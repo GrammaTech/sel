@@ -29,6 +29,8 @@
            :other-files
            :ignore-files
            :ignore-directories
+           :only-files
+           :only-directories
            :component-class
            :project-dir
            :ignored-path-p
@@ -74,6 +76,18 @@ This holds a list of cons cells of the form (path . software-object-for-path)."
       :initform nil
       :documentation
       "List of directories to ignore when collecting evolve-files")
+     (only-files
+      :initarg :only-files
+      :reader only-files
+      :initform nil
+      :documentation
+      "List of files to only consider when collecting evolve-files.")
+     (only-directories
+      :initarg :only-directories
+      :reader only-directories
+      :initform nil
+      :documentation
+      "List of directories to only consider when collecting evolve-files")
      (component-class
       :initarg :component-class :accessor component-class :initform nil
       :documentation "Software object class to utilize in component objects.")
@@ -88,13 +102,23 @@ software objects in it's `evolve-files'."))
 
 (defgeneric ignored-path-p (software path)
   (:documentation "Check if PATH is ignored in SOFTWARE.")
-  (:method ((obj project) path)
-    (or (find-if {search _ (pathname-directory (canonical-pathname path))
-                         :test #'equalp}
-                 (ignore-directories obj)
-                 :key [#'pathname-directory #'ensure-directory-pathname])
-        (find-if [{equal (canonical-pathname path)} #'canonical-pathname]
-                 (ignore-files obj)))))
+  (:method ((obj project) path &aux (c-path (canonical-pathname
+                                             (pathname-relativize
+                                              (project-dir obj) path))))
+    (flet ((included-files (files)
+             (find-if [{equal c-path} #'canonical-pathname]
+                      files))
+           (included-directories (directories)
+             (find-if {search _ (pathname-directory c-path)
+                              :test #'equalp}
+                      directories
+                      :key [#'pathname-directory #'ensure-directory-pathname])))
+      (or (and (only-files obj)
+               (not (included-files (only-files obj))))
+          (and (only-directories obj)
+               (not (included-directories (only-directories obj))))
+          (included-directories (ignore-directories obj))
+          (included-files (ignore-files obj))))))
 
 (defun copy-files (files)
   "Copier for `evolve-files' and `other-files' on `project' software objects."

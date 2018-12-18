@@ -25,6 +25,7 @@
         (or (component-class lisp-project) 'lisp)))
 
 (defmethod collect-evolve-files ((obj lisp-project) &aux result)
+  (assert (project-dir obj) (obj) "directory-dir must be set on ~S" obj)
   (with-cwd ((project-dir obj))
     (walk-directory (project-dir obj)
       (lambda (file)
