@@ -58,7 +58,7 @@
 (defmethod phenome ((forth forth) &key (bin (temp-file-name)))
   "Write FORTH to an executable script suitable for evaluation."
   #-ccl (declare (values t fixnum string string string))
-  (setf bin (ensure-path-is-string bin))
+  (setf bin (namestring bin))
   (string-to-file (format nil "~a~%~a" (shebang forth) (genome-string forth))
                   bin)
   (multiple-value-bind (stdout stderr errno) (shell "chmod +x ~s" bin)

@@ -100,7 +100,6 @@
    :with-cwd
    :pwd
    :cd
-   :ensure-path-is-string
    :pathname-relativize
    :in-directory
    :directory-p
@@ -571,13 +570,6 @@ of DIR and execute BODY"
     (expander (mapcar (lambda (s)
                         (if (listp s) s (list s)))
                       specs) body)))
-
-;;; TODO: Replace with `namestring'.
-(defun ensure-path-is-string (path)
-  (cond
-    ((stringp path) path)
-    ((pathnamep path) (namestring path))
-    (:otherwise (error "Path not string ~S." path))))
 
 (defun pathname-relativize (root-path path)
   "Return PATH relative to ROOT-PATH."
