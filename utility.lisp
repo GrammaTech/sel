@@ -586,6 +586,11 @@ of DIR and execute BODY"
    (namestring (canonical-pathname (ensure-directory-pathname root-path)))
    ""))
 
+;;; TODO: Refactor `in-directory'.  This should probably be combined
+;;; with `merge-pathnames-as-file' and `merge-pathnames-as-directory'.
+;;; I believe the behavior of this function (to call
+;;; `ensure-directory' on all but the last argument) is probably what
+;;; most users expect of the other two functions.
 (defun in-directory (directory path)
   "Return PATH based in DIRECTORY.
 Uses `ensure-directory-pathname' to force DIRECTORY to be a directory
