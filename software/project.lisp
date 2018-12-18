@@ -375,28 +375,29 @@ threads by creating separate build directory per thread.")
 
 (defun make-build-dir (src-dir &key (path (temp-file-name)))
   "Create a temporary copy of a build directory for use during evolution."
-  (restart-case
-      (let ((dir (ensure-directory-pathname path)))
-        ;; Verify parent directory exists, otherwise the copy will fail.
-        (ensure-directories-exist (pathname-parent-directory-pathname dir))
-        ;; Copy from src-dir into path.
-        (multiple-value-bind (stdout stderr errno)
-            (if (probe-file path) ; Different copy if directory already exists.
-                (shell "cp -pr ~a/* ~a/" (namestring src-dir) (namestring dir))
-                (shell "cp -pr ~a ~a" (namestring src-dir) (namestring dir)))
-          (declare (ignorable stdout))
-          (assert (zerop errno) (src-dir path)
-                  "Creation of build directory failed with: ~a" stderr))
-        dir)
-    (retry-make-build-dir ()
-      :report "Retry `make-build-dir' with new temp dir."
-      (make-build-dir src-dir))
-    (new-path (new-path)
-      :report "Retry `make-build-dir' to a new interactively specified path."
-      :interactive (lambda ()
-                     (princ "Path: " *query-io*)
-                     (list (read-line  *query-io*)))
-      (make-build-dir src-dir :path new-path))))
+  (let ((dir (ensure-directory-pathname path)))
+    ;; Verify parent directory exists, otherwise the copy will fail.
+    (ensure-directories-exist (pathname-parent-directory-pathname dir))
+    (restart-case
+        (nest
+         (prog1 dir)
+         (when src-dir)
+         (multiple-value-bind (stdout stderr errno)
+             (if (probe-file path) ; Different copy if directory already exists.
+                 (shell "cp -pr ~a/* ~a/" (namestring src-dir) (namestring dir))
+                 (shell "cp -pr ~a ~a" (namestring src-dir) (namestring dir)))
+           (declare (ignorable stdout)))
+         (assert (zerop errno) (src-dir path)
+                 "Creation of build directory failed with: ~a" stderr))
+      (retry-make-build-dir ()
+        :report "Retry `make-build-dir' with new temp dir."
+        (make-build-dir src-dir))
+      (new-path (new-path)
+        :report "Retry `make-build-dir' to a new interactively specified path."
+        :interactive (lambda ()
+                       (princ "Path: " *query-io*)
+                       (list (read-line  *query-io*)))
+        (make-build-dir src-dir :path new-path)))))
 
 (defun full-path (rel-path)
   "Prepend `*build-dir*' to REL-PATH."
