@@ -128,4 +128,5 @@ information on the format of compilation databases."))
                                             #\Space (aget :command entry)))
                        :flags (compilation-db-flags clang-project entry))
                      file-path))))
-          (compilation-database clang-project)))
+          (remove-if [{ignored-path-p clang-project} {aget :file}]
+                     (compilation-database clang-project))))

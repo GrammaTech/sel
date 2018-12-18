@@ -20,6 +20,10 @@
     ()
   (:documentation "Project specialization for lisp software objects."))
 
+(defmethod initialize-instance :after ((lisp-project lisp-project) &key)
+  (setf (component-class lisp-project)
+        (or (component-class lisp-project) 'lisp)))
+
 (defmethod collect-evolve-files ((obj lisp-project) &aux result)
   (with-cwd ((project-dir obj))
     (walk-directory (project-dir obj)
@@ -27,7 +31,8 @@
         (push (cons (namestring (pathname-relativize (project-dir obj) file))
                     (from-file (make-instance (component-class obj)) file))
               result))
-      :test [{member _ '("lisp" "asd") :test #'equal} #'pathname-type]))
+      :test «and [{member _ '("lisp" "asd") :test #'equal} #'pathname-type]
+                 [#'not {ignored-path-p obj}]»))
   result)
 
 (defmethod phenome ((obj lisp-project) &key (bin (temp-file-name)))
