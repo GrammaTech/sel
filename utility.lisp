@@ -101,6 +101,7 @@
    :pwd
    :cd
    :ensure-path-is-string
+   :pathname-relativize
    :in-directory
    :directory-p
    :canonical-pathname
@@ -571,11 +572,19 @@ of DIR and execute BODY"
                         (if (listp s) s (list s)))
                       specs) body)))
 
+;;; TODO: Replace with `namestring'.
 (defun ensure-path-is-string (path)
   (cond
     ((stringp path) path)
     ((pathnamep path) (namestring path))
     (:otherwise (error "Path not string ~S." path))))
+
+(defun pathname-relativize (root-path path)
+  "Return PATH relative to ROOT-PATH."
+  (replace-all
+   (namestring (canonical-pathname path))
+   (namestring (canonical-pathname (ensure-directory-pathname root-path)))
+   ""))
 
 (defun in-directory (directory path)
   "Return PATH based in DIRECTORY.

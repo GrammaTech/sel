@@ -10,6 +10,7 @@
         :iterate
         :uiop
         :software-evolution-library
+        :software-evolution-library/software/simple
         :software-evolution-library/components/formatting
 	:software-evolution-library/ast-diff/ast-diff
 	:software-evolution-library/ast-diff/alist
@@ -22,13 +23,16 @@
    :if-let :ensure-function :ensure-gethash :copy-file
    :parse-body :simple-style-warning)
   (:export :project
-           :apply-to-project
            :build-command
            :artifacts
            :evolve-files
            :other-files
            :component-class
            :project-dir
+           :apply-to-project
+           :project-path
+           :collect-evolve-files
+           :collect-other-files
            :instrumentation-files
            :all-files
            :make-build-dir
@@ -89,6 +93,50 @@ software objects in it's `evolve-files'."))
   (declare (ignore text project))
   (error "Can only set the genome of component files of a project."))
 
+(defgeneric collect-evolve-files (project)
+  (:documentation "Create the evolve files for PROJECT."))
+
+(defgeneric collect-other-files (project &key excluded-dirs &allow-other-keys)
+  (:documentation
+   "Finds those files in PROJECT that were not included in evolve-files.
+Assumes evolve-files has been initialized.")
+  (:method (obj &key &allow-other-keys) (declare (ignorable obj)) nil)
+  (:method ((project project) &key (excluded-dirs '(".git")) &allow-other-keys)
+    ;; Create software objects for these other files.
+    (nest
+     (flet ((ends-in-tilde (s)
+              (let ((len (length s)))
+                (and (> len 0) (eql (elt s (1- len)) #\~))))
+            (pathname-has-symlink (p)
+              (not (equal p (uiop:resolve-symlinks p))))))
+     ;; These are represented as simple text files, for line-oriented diffs.
+     (mapcar «cons #'identity
+                   [{from-file (make-instance 'simple)}
+                    {merge-pathnames-as-file (project-dir project)}]»)
+     ;; Evolve files may have come from the build dir, but that
+     ;; doesn't matter here as we are comparing the relativized paths.
+     (remove-if {member _ (mapcar #'car (evolve-files project)) :test #'equal})
+     (mapcar {pathname-relativize (project-dir project)})
+     (remove-if
+      (lambda (p) (or (null (pathname-name p))
+		 (ends-in-tilde (pathname-name p))
+		 (ends-in-tilde (pathname-type p))
+		 ;; For now do not include symlinks.  In the future,
+		 ;; make links be special objects.
+		 (pathname-has-symlink p)
+		 (intersection (pathname-directory p)
+			       excluded-dirs
+			       :test #'equal))))
+     (uiop:directory*)
+     (merge-pathnames-as-file (project-dir project) #p"**/*.*"))))
+
+(defmethod from-file ((obj project) path)
+  (assert (probe-file path) (path) "~a does not exist." path)
+  (setf (project-dir obj) (canonical-pathname (truename path))
+        (evolve-files obj) (collect-evolve-files obj)
+        (other-files obj) (collect-other-files obj))
+  obj)
+
 (defmethod to-file :before ((project project) path)
   ;; Don't copy supporting files if they're already in `*build-dir*'.
   (unless (and *build-dir* (equalp (namestring path) (namestring *build-dir*)))
@@ -135,7 +183,6 @@ software objects in it's `evolve-files'."))
                     mutation)))
 
 (defmethod apply-mutations ((project project) (mut mutation) n)
-  "DOCFIXME"
   (labels ((apply-mutations-single-file (evolve-file mut n)
              (setf (slot-value mut 'object) (cdr evolve-file))
              (setf (slot-value mut 'targets) nil)
@@ -163,7 +210,6 @@ software objects in it's `evolve-files'."))
           (finally (return (values results mutations))))))
 
 (defmethod apply-picked-mutations ((project project) (mut mutation) n)
-  "DOCFIXME"
   (labels ((apply-mutation-single-file (evolve-file mut)
              (setf (slot-value mut 'object) (cdr evolve-file))
              (setf (slot-value mut 'targets) nil)
@@ -189,12 +235,12 @@ software objects in it's `evolve-files'."))
           (finally (return (values results mutations))))))
 
 (defmethod crossover ((a project) (b project))
-  "Randomly pick one file in a and perform crossover with the corresponding file in b."
-
+  "Randomly pick a file in A and crossover with the corresponding file in B."
   (bind ((which (pick-file a))
          (file (car (nth which (evolve-files a))))
-         ((:values crossed point-a point-b) (crossover (cdr (nth which (evolve-files a)))
-                                                       (cdr (nth which (evolve-files b)))))
+         ((:values crossed point-a point-b)
+          (crossover (cdr (nth which (evolve-files a)))
+                     (cdr (nth which (evolve-files b)))))
          (new (copy a)))
     (setf (cdr (nth which (evolve-files new))) crossed)
     ;; Add filenames to crossover points for better stats
@@ -207,6 +253,25 @@ software objects in it's `evolve-files'."))
 (defmethod apply-to-project ((project project) function)
   "Mapcar FUNCTION over `all-files' of PROJECT."
   (values project (mapcar [function #'cdr] (all-files project))))
+
+(defgeneric project-path (project path)
+  (:documentation "Expand PATH relative to PROJECT.")
+  (:method ((obj project) path)
+    (replace-all (namestring (canonical-pathname path))
+                 (-> (if (and *build-dir*
+                              (search (namestring *build-dir*)
+                                      (namestring
+                                       (ensure-directory-pathname
+                                        (canonical-pathname path)))))
+                         *build-dir*
+                         (project-dir obj))
+                   (canonical-pathname)
+                   (ensure-directory-pathname)
+                   (namestring))
+                 (-> (project-dir obj)
+                   (canonical-pathname)
+                   (ensure-directory-pathname)
+                   (namestring)))))
 
 
 ;;;; Diffs on projects

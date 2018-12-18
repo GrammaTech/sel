@@ -46,8 +46,7 @@
   (setf (component-class java-project)
         (or (component-class java-project) 'java)))
 
-(defmethod from-file ((obj java-project) project-dir)
-  "Build project and extract relevant java source files."
+(defmethod from-file :before ((obj java-project) project-dir)
   (setf (project-dir obj) project-dir)
   (multiple-value-bind (stdout stderr exit-code)
       (phenome obj)
@@ -57,41 +56,38 @@
                   stdout: ~a~%~
                   stderr: ~a~%"
                (build-command obj)
-               stdout stderr)
-        (setf (evolve-files obj)
-              (iter (for entry in
-                         (->> (merge-pathnames-as-file
-                               *build-dir*
-                               ;; FIXME: The following artificially
-                               ;; limits Java projects to a single
-                               ;; build artifact and should be
-                               ;; generalized as in
-                               ;; clang-project.lisp.
-                               (first (artifacts obj)))
-                           (get-applicable-project-files project-dir)
-                           (mapcar
-                            (lambda (file)
-                              (replace-all
-                               file
-                               (namestring
-                                (ensure-directory-pathname project-dir))
-                               "")))))
-                    (for i upfrom 1)
-                    (handler-case
-                        (let ((java-obj (from-file
-                                         (make-instance (component-class obj))
-                                         (merge-pathnames-as-file
-                                          *build-dir*
-                                          entry))))
-                          (if (not (zerop (size java-obj)))
-                              (collect (cons entry java-obj))
-                              (warn "Ignoring file ~a with 0 statements"
-                                    entry)))
-                      (mutate (e)
-                        (declare (ignorable e))
-                        (warn "Ignoring file ~a, failed to initialize"
-                              entry)))))))
-  obj)
+               stdout stderr))))
+
+(defmethod collect-evolve-files ((obj java-project))
+  (iter (for entry in
+             (->> (merge-pathnames-as-file
+                   (project-dir obj)
+                   ;; FIXME: The following artificially
+                   ;; limits Java projects to a single
+                   ;; build artifact and should be
+                   ;; generalized as in
+                   ;; clang-project.lisp.
+                   (first (artifacts obj)))
+               (get-applicable-project-files (project-dir obj))
+               (mapcar
+                (lambda (file)
+                  (replace-all
+                   file
+                   (namestring
+                    (ensure-directory-pathname (project-dir obj)))
+                   "")))))
+        (handler-case
+            (let ((java-obj (from-file
+                             (make-instance (component-class obj))
+                             (merge-pathnames-as-file
+                              (project-dir obj)
+                              entry))))
+              (if (not (zerop (size java-obj)))
+                  (collect (cons entry java-obj))
+                  (warn "Ignoring file ~a with 0 statements" entry)))
+          (mutate (e)
+            (declare (ignorable e))
+            (warn "Ignoring file ~a, failed to initialize" entry)))))
 
 (defun get-filename (path)
   "Return filename of a path"
