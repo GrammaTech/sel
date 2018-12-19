@@ -1,1 +1,3 @@
 *.dbcache
+*.o
+compile_commands.json

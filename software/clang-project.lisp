@@ -17,6 +17,7 @@
         :software-evolution-library/software/project
         :software-evolution-library/software/parseable-project)
   (:shadowing-import-from :uiop
+                          :nest
                           :ensure-directory-pathname
                           :directory-exists-p
                           :run-program
@@ -40,37 +41,42 @@ information on the format of compilation databases."))
   (setf (component-class clang-project)
         (or (component-class clang-project) 'clang)))
 
-(defmethod create-evolve-files :around ((obj clang-project))
+(defmethod collect-evolve-files :before ((obj clang-project))
   "Ensure CLANG-PROJECT has a compilation-database populated."
   (assert (or (compilation-database obj) (which "bear")) (obj)
           "Calling `from-file' on a clang-project requires a compilation ~
            database or 'bear' installation on your PATH")
-  (multiple-value-bind (stdout stderr errno)
-      (shell "cd ~a && bear ~a" (project-dir obj) (build-command obj))
-    (declare (ignorable errno))
-    (if-let ((db (and (probe-file (make-pathname
-                                   :directory (directory-namestring
-                                               (project-dir obj))
-                                   :name "compile_commands.json"))
-                      (with-open-file (in (make-pathname
-                                           :directory (directory-namestring
-                                                       (project-dir obj))
-                                           :name "compile_commands.json"))
-                        (remove-duplicates (json:decode-json-from-source in)
-                                           :test #'equalp
-                                           :key (lambda (entry)
-                                                  (merge-pathnames-as-file
-                                                   (ensure-directory-pathname
-                                                    (aget :directory entry))
-                                                   (aget :file entry)))
-                                           :from-end t)))))
-      (setf (compilation-database obj) db)
-      (error "Failed to create compilation database for project.~%~
-                           build command: ~a~%~
-                           stdout: ~a~%~
-                           stderr: ~a~%"
-             (build-command obj)
-             stdout stderr))))
+  (nest
+   (unless (compilation-database obj))
+   (let ((comp-db-path (make-pathname
+                        :directory (directory-namestring
+                                    (ensure-directory-pathname
+                                     (project-dir obj)))
+                        :name "compile_commands"
+                        :type "json"))))
+   (setf (compilation-database obj))
+   (progn
+     (unless (probe-file comp-db-path)
+       (multiple-value-bind (stdout stderr errno)
+           (shell "cd ~a && bear ~a" (project-dir obj) (build-command obj))
+         (declare (ignorable errno))
+         (unless (probe-file comp-db-path)
+           (error "Failed to create compilation database for project.~%~
+                   build command: ~a~%~
+                   stdout: ~a~%~
+                   stderr: ~a~%"
+                  (build-command obj)
+                  stdout stderr))))
+     (with-open-file (in comp-db-path)
+       (or (remove-duplicates (json:decode-json-from-source in)
+                              :test #'equalp
+                              :key (lambda (entry)
+                                     (merge-pathnames-as-file
+                                      (ensure-directory-pathname
+                                       (aget :directory entry))
+                                      (aget :file entry)))
+                              :from-end t)
+           (warn "Empty compilation-database for ~a" (project-dir obj)))))))
 
 (defun compilation-db-flags (clang-project entry)
   "Return the flags for ENTRY in a compilation database."
@@ -80,7 +86,9 @@ information on the format of compilation databases."))
   (->> (iter (for f in (->> (or (mapcar (lambda (arg) ; Wrap quotes for the shell.
                                           (regex-replace
                                            "\"([^\"]*)\"" arg "'\"\\1\"'"))
-                                        (aget :arguments entry))
+                                        ;; Drop the first element of
+                                        ;; arguments which is the compiler.
+                                        (cdr (aget :arguments entry)))
                                 (cdr (split-sequence
                                          #\Space (or (aget :command entry) "")
                                          :remove-empty-subseqs t)))
@@ -124,8 +132,9 @@ information on the format of compilation databases."))
               (cons (pathname-relativize (project-dir clang-project) file-path)
                     (from-file
                      (make-instance (component-class clang-project)
-                       :compiler (first (split-sequence
-                                            #\Space (aget :command entry)))
+                       :compiler (or (first (split-sequence
+                                                #\Space (aget :command entry)))
+                                     (first (aget :arguments entry)))
                        :flags (compilation-db-flags clang-project entry))
                      file-path))))
           (remove-if [{ignored-path-p clang-project} {aget :file}]
