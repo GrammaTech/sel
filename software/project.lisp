@@ -102,9 +102,11 @@ software objects in it's `evolve-files'."))
 
 (defgeneric ignored-path-p (software path)
   (:documentation "Check if PATH is ignored in SOFTWARE.")
-  (:method ((obj project) path &aux (c-path (canonical-pathname
-                                             (pathname-relativize
-                                              (project-dir obj) path))))
+  (:method ((obj project) path &aux (c-path (if (project-dir obj)
+                                                (canonical-pathname
+                                                 (pathname-relativize
+                                                  (project-dir obj) path))
+                                                (canonical-pathname path))))
     (flet ((included-files (files)
              (find-if [{equal c-path} #'canonical-pathname]
                       files))
