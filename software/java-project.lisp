@@ -76,19 +76,19 @@
                    (namestring
                     (ensure-directory-pathname (project-dir obj)))
                    "")))))
-        (unless (ignored-path-p obj entry))
-        (handler-case
-            (let ((java-obj (from-file
-                             (make-instance (component-class obj))
-                             (merge-pathnames-as-file
-                              (project-dir obj)
-                              entry))))
-              (if (not (zerop (size java-obj)))
-                  (collect (cons entry java-obj))
-                  (warn "Ignoring file ~a with 0 statements" entry)))
-          (mutate (e)
-            (declare (ignorable e))
-            (warn "Ignoring file ~a, failed to initialize" entry)))))
+        (unless (ignored-path-p obj entry)
+          (handler-case
+              (let ((java-obj (from-file
+                               (make-instance (component-class obj))
+                               (merge-pathnames-as-file
+                                (project-dir obj)
+                                entry))))
+                (if (not (zerop (size java-obj)))
+                    (collect (cons entry java-obj))
+                    (warn "Ignoring file ~a with 0 statements" entry)))
+            (mutate (e)
+              (declare (ignorable e))
+              (warn "Ignoring file ~a, failed to initialize" entry))))))
 
 (defun get-filename (path)
   "Return filename of a path"
