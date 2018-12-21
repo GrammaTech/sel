@@ -66,26 +66,17 @@ Next: <a href="sel_002dsw_002dsexp.html#sel_002dsw_002dsexp" accesskey="n" rel="
 <hr>
 <a name="sel_002dsw_002dproject-1"></a>
 <h3 class="section">C.33 sel-sw-project</h3>
-<a name="Variable-_002abuild_002ddir_002a"></a><dl>
-<dt><a name="index-_002abuild_002ddir_002a"></a>Variable: <strong>*build-dir*</strong></dt>
-<dd><p>Directory in which to build projects.
-Each project needs a build directory which contains copies of the
-build scripts and other dependencies. Paths within a project are
-relative to *build-dir*, which allows us to do evolution in multiple
-threads by creating separate build directory per thread.
+<a name="Generic_002dFunction-collect_002dother_002dfiles"></a><dl>
+<dt><a name="index-collect_002dother_002dfiles"></a>Generic Function: <strong>collect-other-files</strong> <em>project</em></dt>
+<dd><p>Find parseable files in <code>project</code> that were not included in &lsquo;evolve-files&rsquo;.
+Assumes &lsquo;evolve-files&rsquo; has been initialized.  Only applies to
+non-symlink text files that don&rsquo;t end in &quot;~&quot; and are not ignored by
+&lsquo;ignore-other-files&rsquo;, &lsquo;ignore-other-directories&rsquo;, &lsquo;only-other-files&rsquo;,
+or &lsquo;only-other-directories&rsquo;.
 </p></dd></dl>
-<a name="Macro-with_002dbuild_002ddir"></a><dl>
-<dt><a name="index-with_002dbuild_002ddir"></a>Macro: <strong>with-build-dir</strong> <em>(build-dir) &amp;body body</em></dt>
-<dd><p>Rebind *build-dir* within <code>body</code>
-</p></dd></dl>
-<a name="Macro-with_002dtemp_002dbuild_002ddir"></a><dl>
-<dt><a name="index-with_002dtemp_002dbuild_002ddir"></a>Macro: <strong>with-temp-build-dir</strong> <em>(src-dir) &amp;body body</em></dt>
-<dd><p>Create a temporary copy of src-dir, and rebind *build-dir* to that
-path within <code>body</code>.
-</p></dd></dl>
-<a name="Function-full_002dpath"></a><dl>
-<dt><a name="index-full_002dpath"></a>Function: <strong>full-path</strong> <em>rel-path</em></dt>
-<dd><p>Prepend current build directory to a relative path.
+<a name="Generic_002dFunction-ignored_002dother_002dpath_002dp"></a><dl>
+<dt><a name="index-ignored_002dother_002dpath_002dp"></a>Generic Function: <strong>ignored-other-path-p</strong> <em>software path</em></dt>
+<dd><p>Check if <code>path</code> is an ignored other path in <code>software</code>.
 </p></dd></dl>
 <a name="Generic_002dFunction-instrumentation_002dfiles"></a><dl>
 <dt><a name="index-instrumentation_002dfiles"></a>Generic Function: <strong>instrumentation-files</strong> <em>project</em></dt>
@@ -120,6 +111,30 @@ This holds a list of cons cells of the form (path . software-object-for-path).
 
 <p>Source files which may be used (e.g., instrumented) but not evolved.
 This holds a list of cons cells of the form (path . software-object-for-path).
+</p></li><li> <code>ignore-files</code> &mdash; initarg: <code><span class="nolinebreak">:ignore-files</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/project:ignore-files</span><!-- /@w --></code>
+
+<p>List of files to ignore when collecting evolve-files.
+</p></li><li> <code>ignore-directories</code> &mdash; initarg: <code><span class="nolinebreak">:ignore-directories</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/project:ignore-directories</span><!-- /@w --></code>
+
+<p>List of directories to ignore when collecting evolve-files
+</p></li><li> <code>only-files</code> &mdash; initarg: <code><span class="nolinebreak">:only-files</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/project:only-files</span><!-- /@w --></code>
+
+<p>List of files to only consider when collecting evolve-files.
+</p></li><li> <code>only-directories</code> &mdash; initarg: <code><span class="nolinebreak">:only-directories</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/project:only-directories</span><!-- /@w --></code>
+
+<p>List of directories to only consider when collecting evolve-files
+</p></li><li> <code>ignore-other-files</code> &mdash; initarg: <code><span class="nolinebreak">:ignore-other-files</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/project:ignore-other-files</span><!-- /@w --></code>
+
+<p>List of files to ignore when collecting other-files.
+</p></li><li> <code>ignore-other-directories</code> &mdash; initarg: <code><span class="nolinebreak">:ignore-other-directories</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/project:ignore-other-directories</span><!-- /@w --></code>
+
+<p>List of directories to ignore when collecting other-files
+</p></li><li> <code>only-other-files</code> &mdash; initarg: <code><span class="nolinebreak">:only-other-files</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/project:only-other-files</span><!-- /@w --></code>
+
+<p>List of files to only consider when collecting other-files.
+</p></li><li> <code>only-other-directories</code> &mdash; initarg: <code><span class="nolinebreak">:only-other-directories</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/project:only-other-directories</span><!-- /@w --></code>
+
+<p>List of directories to only consider when collecting other-files
 </p></li><li> <code>component-class</code> &mdash; initarg: <code><span class="nolinebreak">:component-class</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/project:component-class</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/project:component-class)</span><!-- /@w --></code>
 
 <p>Software object class to utilize in component objects.
@@ -132,9 +147,33 @@ This holds a list of cons cells of the form (path . software-object-for-path).
 <code>e</code>.g., a multi-file C software project may include multiple clang
 software objects in it&rsquo;s &lsquo;evolve-files&rsquo;.
 </p></dd></dl>
+<a name="Variable-_002abuild_002ddir_002a"></a><dl>
+<dt><a name="index-_002abuild_002ddir_002a"></a>Variable: <strong>*build-dir*</strong></dt>
+<dd><p>Directory in which to build projects.
+Each project needs a build directory which contains copies of the
+build scripts and other dependencies. Paths within a project are
+relative to *build-dir*, which allows us to do evolution in multiple
+threads by creating separate build directory per thread.
+</p></dd></dl>
+<a name="Generic_002dFunction-collect_002devolve_002dfiles"></a><dl>
+<dt><a name="index-collect_002devolve_002dfiles"></a>Generic Function: <strong>collect-evolve-files</strong> <em>project</em></dt>
+<dd><p>Create the evolve files for <code>project</code>.
+</p></dd></dl>
+<a name="Method-collect_002devolve_002dfiles-before-_0028_0028obj-clang_002dproject_0029_0029"></a><dl>
+<dt><a name="index-before-collect_002devolve_002dfiles"></a>Method: <strong>before collect-evolve-files</strong> <em>(obj clang-project)</em></dt>
+<dd><p>Ensure <code>clang-project</code> has a compilation-database populated.
+</p></dd></dl>
+<a name="Generic_002dFunction-ignored_002devolve_002dpath_002dp"></a><dl>
+<dt><a name="index-ignored_002devolve_002dpath_002dp"></a>Generic Function: <strong>ignored-evolve-path-p</strong> <em>software path</em></dt>
+<dd><p>Check if <code>path</code> is an ignored evolve path in <code>software</code>.
+</p></dd></dl>
 <a name="Function-make_002dbuild_002ddir"></a><dl>
 <dt><a name="index-make_002dbuild_002ddir"></a>Function: <strong>make-build-dir</strong> <em>src-dir &amp;key path</em></dt>
 <dd><p>Create a temporary copy of a build directory for use during evolution.
+</p></dd></dl>
+<a name="Generic_002dFunction-project_002dpath"></a><dl>
+<dt><a name="index-project_002dpath"></a>Generic Function: <strong>project-path</strong> <em>project path</em></dt>
+<dd><p>Expand <code>path</code> relative to <code>project</code>.
 </p></dd></dl>
 
 <hr>

@@ -66,23 +66,11 @@ Next: <a href="sel_002drest.html#sel_002drest" accesskey="n" rel="next">sel-rest
 <hr>
 <a name="sel_002dutility-1"></a>
 <h3 class="section">C.2 sel-utility</h3>
-<a name="Class-process"></a><dl>
-<dt><a name="index-process"></a>Class: <strong>process</strong></dt>
-<dd><p>Class precedence list: <code>process, standard-object, t</code>
+<a name="Class-task"></a><dl>
+<dt><a name="index-task"></a>Class: <strong>task</strong></dt>
+<dd><p>Class precedence list: <code>task, standard-object, t</code>
 </p>
-<p>Slots:
-</p><ul>
-<li> <code>os-process</code> &mdash; initarg: <code><span class="nolinebreak">:os-process</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/utility:os-process</span><!-- /@w --></code>
-
-<p>The underlying process object (compiler-specific).
-This field will not usually need to be accessed directly: use methods
-&lsquo;process-input-stream&rsquo;, &lsquo;process-output-stream&rsquo;,
-&lsquo;process-error-stream&rsquo;, &lsquo;process-error-code&rsquo;, &lsquo;process-status&rsquo;,
-&lsquo;signal-process&rsquo; to interact with processes.
-</p></li></ul>
-
-<p>Object representing an external process.
-Wraps around <code>sbcl-</code> or CCL-specific representations of external processes.
+<p>Base class for all task classes.
 </p></dd></dl>
 <a name="Variable-_002abash_002dshell_002a"></a><dl>
 <dt><a name="index-_002abash_002dshell_002a"></a>Variable: <strong>*bash-shell*</strong></dt>
@@ -119,6 +107,28 @@ Wraps around <code>sbcl-</code> or CCL-specific representations of external proc
 <a name="Variable-_002auninteresting_002dconditions_002a"></a><dl>
 <dt><a name="index-_002auninteresting_002dconditions_002a"></a>Variable: <strong>*uninteresting-conditions*</strong></dt>
 <dd><p>Additional uninteresting conditions for &lsquo;with-quiet-compilation&rsquo; to stifle.
+</p></dd></dl>
+<a name="Setf_002dExpander-getenv"></a><dl>
+<dt><a name="index-getenv"></a>Setf Expander: <strong>getenv</strong> <em>x</em></dt>
+<dd><p>Set an environment variable.
+</p></dd></dl>
+<a name="Class-process"></a><dl>
+<dt><a name="index-process"></a>Class: <strong>process</strong></dt>
+<dd><p>Class precedence list: <code>process, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>os-process</code> &mdash; initarg: <code><span class="nolinebreak">:os-process</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/utility:os-process</span><!-- /@w --></code>
+
+<p>The underlying process object (compiler-specific).
+This field will not usually need to be accessed directly: use methods
+&lsquo;process-input-stream&rsquo;, &lsquo;process-output-stream&rsquo;,
+&lsquo;process-error-stream&rsquo;, &lsquo;process-error-code&rsquo;, &lsquo;process-status&rsquo;,
+&lsquo;signal-process&rsquo; to interact with processes.
+</p></li></ul>
+
+<p>Object representing an external process.
+Wraps around <code>sbcl-</code> or CCL-specific representations of external processes.
 </p></dd></dl>
 <a name="Macro-getopts"></a><dl>
 <dt><a name="index-getopts"></a>Macro: <strong>getopts</strong> <em>args-and-opts &amp;body forms</em></dt>
@@ -158,6 +168,14 @@ Wraps around <code>sbcl-</code> or CCL-specific representations of external proc
 <dt><a name="index-process_002doutput_002dstream-1"></a>Method: <strong>process-output-stream</strong> <em>(process process)</em></dt>
 <dd><p>Return the output stream for <code>process</code>.
 </p></dd></dl>
+<a name="Generic_002dFunction-process_002drunning_002dp"></a><dl>
+<dt><a name="index-process_002drunning_002dp"></a>Generic Function: <strong>process-running-p</strong> <em>process</em></dt>
+<dd><p>Return <code>t</code> if <code>process</code> is running, <code>nil</code> otherwise.
+</p></dd></dl>
+<a name="Method-process_002drunning_002dp-_0028_0028process-process_0029_0029"></a><dl>
+<dt><a name="index-process_002drunning_002dp-1"></a>Method: <strong>process-running-p</strong> <em>(process process)</em></dt>
+<dd><p>Return <code>t</code> if <code>process</code> is running, <code>nil</code> otherwise.
+</p></dd></dl>
 <a name="Structure-task_002drunner"></a><dl>
 <dt><a name="index-task_002drunner"></a>Structure: <strong>task-runner</strong></dt>
 <dd><p>Class precedence list: <code>task-runner, structure-object, t</code>
@@ -187,19 +205,6 @@ Wraps around <code>sbcl-</code> or CCL-specific representations of external proc
 
 <p>Task for applying &lsquo;some&rsquo; in parallel.
 The <code>object</code> field is a list on whose elements <code>some-task-pred</code> is applied.
-</p></dd></dl>
-<a name="Class-some_002dtest_002dtask"></a><dl>
-<dt><a name="index-some_002dtest_002dtask"></a>Class: <strong>some-test-task</strong></dt>
-<dd><p>Class precedence list: <code>some-test-task, task, standard-object, t</code>
-</p>
-<p>Slots:
-</p><ul>
-<li> <code>pred</code> &mdash; initarg: <code>:pred<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/utility:some-task-pred</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/utility:some-task-pred)</span><!-- /@w --></code>
-
-<p>Predicate used by &lsquo;some&rsquo;.
-</p></li></ul>
-
-<p>Task to apply predicate <code>some-task-pred</code> to <code>object</code>.
 </p></dd></dl>
 <a name="Class-task_002dmap"></a><dl>
 <dt><a name="index-task_002dmap-1"></a>Class: <strong>task-map</strong></dt>
@@ -236,6 +241,13 @@ object.
 This is useful for &lsquo;flet&rsquo; and &lsquo;labels&rsquo; functions which can&rsquo;t be traced
 with &lsquo;cl-user:trace&rsquo;.
 </p></dd></dl>
+<a name="Macro-with_002dcwd"></a><dl>
+<dt><a name="index-with_002dcwd"></a>Macro: <strong>with-cwd</strong> <em>dir &amp;rest body</em></dt>
+<dd><p>Change the current working directory to dir and execute body.
+<code>warning:</code> This function is not thread safe.  Execution in a threaded
+environment may causes execution outside of the intended directory or
+may lose the original working directory.
+</p></dd></dl>
 <a name="Macro-with_002dtemp_002ddir_002dof"></a><dl>
 <dt><a name="index-with_002dtemp_002ddir_002dof"></a>Macro: <strong>with-temp-dir-of</strong> <em>spec dir &amp;rest body</em></dt>
 <dd><p>Populate <code>spec</code> with the path to a temporary directory with the contents
@@ -245,11 +257,6 @@ of <code>dir</code> and execute <code>body</code>
 <dt><a name="index-with_002dtemp_002dfile"></a>Macro: <strong>with-temp-file</strong> <em>spec &amp;rest body</em></dt>
 <dd><p><code>spec</code> holds the variable used to reference the file w/optional extension.
 After <code>body</code> is executed the temporary file is removed.
-</p></dd></dl>
-<a name="Macro-with_002dtemp_002dfile_002dof"></a><dl>
-<dt><a name="index-with_002dtemp_002dfile_002dof"></a>Macro: <strong>with-temp-file-of</strong> <em>spec str &amp;rest body</em></dt>
-<dd><p><code>spec</code> should be a list of the variable used to reference the file
-and an optional extension.
 </p></dd></dl>
 <a name="Macro-with_002dtemp_002dfile_002dof_002dbytes"></a><dl>
 <dt><a name="index-with_002dtemp_002dfile_002dof_002dbytes"></a>Macro: <strong>with-temp-file-of-bytes</strong> <em>spec bytes &amp;rest body</em></dt>
@@ -301,10 +308,6 @@ and 0 otherwise.
 <code>phenome</code> should be the phenome of an ASM object and <code>genome</code> should be
 the genome of an ASM object.
 </p></dd></dl>
-<a name="Function-canonical_002dpathname"></a><dl>
-<dt><a name="index-canonical_002dpathname"></a>Function: <strong>canonical-pathname</strong> <em>path</em></dt>
-<dd><p>Remove redundant information from <code>path</code>.
-</p></dd></dl>
 <a name="Function-chunks"></a><dl>
 <dt><a name="index-chunks"></a>Function: <strong>chunks</strong> <em>list size &amp;optional include-remainder-p</em></dt>
 <dd><p>Return subsequent chunks of <code>list</code> of size <code>size</code>.
@@ -351,6 +354,11 @@ region.
 <dt><a name="index-equal_002dit"></a>Function: <strong>equal-it</strong> <em>obj1 obj2 &amp;optional trace inhibit-slots</em></dt>
 <dd><p>Equal over objects and lists.
 </p></dd></dl>
+<a name="Function-file_002dmime_002dtype"></a><dl>
+<dt><a name="index-file_002dmime_002dtype"></a>Function: <strong>file-mime-type</strong> <em>path</em></dt>
+<dd><p>Return the mime type of <code>path</code> as a list of two symbols.
+The Unix &lsquo;file&rsquo; command is used, specifically &quot;file -b &ndash;mime-type PATH&quot;.
+</p></dd></dl>
 <a name="Function-function_002dlines"></a><dl>
 <dt><a name="index-function_002dlines"></a>Function: <strong>function-lines</strong> <em>lines</em></dt>
 <dd><p>Return the line numbers of the lines (in order) of <code>function</code>.
@@ -359,16 +367,6 @@ region.
 <a name="Function-gdb_002ddisassemble"></a><dl>
 <dt><a name="index-gdb_002ddisassemble"></a>Function: <strong>gdb-disassemble</strong> <em>phenome function</em></dt>
 <dd><p>Return the raw gdb disassembled code of <code>function</code> in <code>phenome</code>.
-</p></dd></dl>
-<a name="Function-getenv"></a><dl>
-<dt><a name="index-getenv"></a>Function: <strong>getenv</strong> <em>x</em></dt>
-<dd><p>Query the environment, as in C getenv.
-Beware: may return empty string if a variable is present but empty;
-use getenvp to return <code>nil</code> in such a case.
-</p></dd></dl>
-<a name="Setf_002dExpander-getenv"></a><dl>
-<dt><a name="index-getenv-1"></a>Setf Expander: <strong>getenv</strong> <em>x</em></dt>
-<dd><p>Set an environment variable.
 </p></dd></dl>
 <a name="Function-getter"></a><dl>
 <dt><a name="index-getter"></a>Function: <strong>getter</strong> <em>key</em></dt>
@@ -383,12 +381,6 @@ pathname (i.e., ending in a &quot;/&quot;).
 <a name="Generic_002dFunction-kill_002dprocess"></a><dl>
 <dt><a name="index-kill_002dprocess"></a>Generic Function: <strong>kill-process</strong> <em>process &amp;key urgent</em></dt>
 <dd><p>Send a kill signal to <code>process</code>. If <code>urgent</code> is <code>t</code>, send <code>sigkill</code>.
-</p></dd></dl>
-<a name="Class-task"></a><dl>
-<dt><a name="index-task"></a>Class: <strong>task</strong></dt>
-<dd><p>Class precedence list: <code>task, standard-object, t</code>
-</p>
-<p>Base class for all task classes.
 </p></dd></dl>
 <a name="Function-list_002ddirectory"></a><dl>
 <dt><a name="index-list_002ddirectory"></a>Function: <strong>list-directory</strong> <em>dirname &amp;key follow-symlinks</em></dt>
@@ -450,15 +442,15 @@ containing the logical concatenation of them all.
 </p>
 <p>For example (pairs &rsquo;(a b c)) <code>=&gt;</code> (&rsquo;(a . b) &rsquo;(a . c) &rsquo;(b . c))
 </p></dd></dl>
-<a name="Function-parse_002dnumber"></a><dl>
-<dt><a name="index-parse_002dnumber"></a>Function: <strong>parse-number</strong> <em>string</em></dt>
-<dd><p>Parse the number located at the front of <code>string</code> or return an error.
-</p></dd></dl>
 <a name="Function-partition"></a><dl>
 <dt><a name="index-partition"></a>Function: <strong>partition</strong> <em>test list</em></dt>
 <dd><p>Return a list of lists of elements of <code>list</code> which do and do not satisfy <code>test</code>.
 The first list holds elements of <code>list</code> which satisfy <code>test</code>, the second
 holds those which do not.
+</p></dd></dl>
+<a name="Function-pathname_002drelativize"></a><dl>
+<dt><a name="index-pathname_002drelativize"></a>Function: <strong>pathname-relativize</strong> <em>root-path path</em></dt>
+<dd><p>Return <code>path</code> relative to <code>root-path</code>.
 </p></dd></dl>
 <a name="Function-plist_002dmerge"></a><dl>
 <dt><a name="index-plist_002dmerge"></a>Function: <strong>plist-merge</strong> <em>plist-1 plist-2</em></dt>
@@ -488,14 +480,6 @@ holds those which do not.
 <dt><a name="index-process_002did-1"></a>Method: <strong>process-id</strong> <em>(process process)</em></dt>
 <dd><p>Return the process id for <code>process</code>.
 </p></dd></dl>
-<a name="Generic_002dFunction-process_002drunning_002dp"></a><dl>
-<dt><a name="index-process_002drunning_002dp"></a>Generic Function: <strong>process-running-p</strong> <em>process</em></dt>
-<dd><p>Return <code>t</code> if <code>process</code> is running, <code>nil</code> otherwise.
-</p></dd></dl>
-<a name="Method-process_002drunning_002dp-_0028_0028process-process_0029_0029"></a><dl>
-<dt><a name="index-process_002drunning_002dp-1"></a>Method: <strong>process-running-p</strong> <em>(process process)</em></dt>
-<dd><p>Return <code>t</code> if <code>process</code> is running, <code>nil</code> otherwise.
-</p></dd></dl>
 <a name="Generic_002dFunction-process_002dtask"></a><dl>
 <dt><a name="index-process_002dtask"></a>Generic Function: <strong>process-task</strong> <em>task runner</em></dt>
 <dd><p>Process the object, including evaluate fitness, push new Jobs, and
@@ -515,12 +499,36 @@ timing, it&rsquo;s possible that the result won&rsquo;t match that of &lsquo;som
 promises to find the first while &lsquo;some-task&rsquo; may return any element satisfying
 &lsquo;some-task-pred&rsquo;.
 </p></dd></dl>
-<a name="Macro-with_002dcwd"></a><dl>
-<dt><a name="index-with_002dcwd"></a>Macro: <strong>with-cwd</strong> <em>dir &amp;rest body</em></dt>
-<dd><p>Change the current working directory to dir and execute body.
-<code>warning:</code> This function is not thread safe.  Execution in a threaded
-environment may causes execution outside of the intended directory or
-may lose the original working directory.
+<a name="Class-some_002dtest_002dtask"></a><dl>
+<dt><a name="index-some_002dtest_002dtask"></a>Class: <strong>some-test-task</strong></dt>
+<dd><p>Class precedence list: <code>some-test-task, task, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>pred</code> &mdash; initarg: <code>:pred<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/utility:some-task-pred</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/utility:some-task-pred)</span><!-- /@w --></code>
+
+<p>Predicate used by &lsquo;some&rsquo;.
+</p></li></ul>
+
+<p>Task to apply predicate <code>some-task-pred</code> to <code>object</code>.
+</p></dd></dl>
+<a name="Macro-with_002dtemp_002dfile_002dof"></a><dl>
+<dt><a name="index-with_002dtemp_002dfile_002dof"></a>Macro: <strong>with-temp-file-of</strong> <em>(variable &amp;optional type) string &amp;rest body</em></dt>
+<dd><p>Execute <code>body</code> with <code>string</code> in a temporary file whose path is in <code>variable</code>.
+</p></dd></dl>
+<a name="Function-canonical_002dpathname"></a><dl>
+<dt><a name="index-canonical_002dpathname"></a>Function: <strong>canonical-pathname</strong> <em>path</em></dt>
+<dd><p>Remove redundant information from <code>path</code>.
+</p></dd></dl>
+<a name="Function-getenv"></a><dl>
+<dt><a name="index-getenv-1"></a>Function: <strong>getenv</strong> <em>x</em></dt>
+<dd><p>Query the environment, as in C getenv.
+Beware: may return empty string if a variable is present but empty;
+use getenvp to return <code>nil</code> in such a case.
+</p></dd></dl>
+<a name="Function-parse_002dnumber"></a><dl>
+<dt><a name="index-parse_002dnumber"></a>Function: <strong>parse-number</strong> <em>string</em></dt>
+<dd><p>Parse the number located at the front of <code>string</code> or return an error.
 </p></dd></dl>
 <a name="Function-profile_002dto_002ddot_002dgraph"></a><dl>
 <dt><a name="index-profile_002dto_002ddot_002dgraph"></a>Function: <strong>profile-to-dot-graph</strong> <em>stream</em></dt>

@@ -469,12 +469,8 @@ insert).
 Returns the resulting software objects.  Returns a list of the applied
 mutations as an optional second value.
 </p></dd></dl>
-<a name="Method-apply_002dmutations-_0028_0028project-project_0029-_0028mut-mutation_0029-n_0029"></a><dl>
-<dt><a name="index-apply_002dmutations-1"></a>Method: <strong>apply-mutations</strong> <em>(project project) (mut mutation) n</em></dt>
-<dd><p><code>docfixme</code>
-</p></dd></dl>
 <a name="Method-apply_002dmutations-_0028_0028obj-software_0029-_0028mut-mutation_0029-n_0029"></a><dl>
-<dt><a name="index-apply_002dmutations-2"></a>Method: <strong>apply-mutations</strong> <em>(obj software) (mut mutation) n</em></dt>
+<dt><a name="index-apply_002dmutations-1"></a>Method: <strong>apply-mutations</strong> <em>(obj software) (mut mutation) n</em></dt>
 <dd><p><code>docfixme</code>
 </p><ul>
 <li> <code>obj</code> <code>docfixme</code>
@@ -502,12 +498,8 @@ address and the cdr is the value.
 Returns the resulting software objects.  Returns a list of the applied
 mutations as an optional second value.
 </p></dd></dl>
-<a name="Method-apply_002dpicked_002dmutations-_0028_0028project-project_0029-_0028mut-mutation_0029-n_0029"></a><dl>
-<dt><a name="index-apply_002dpicked_002dmutations-1"></a>Method: <strong>apply-picked-mutations</strong> <em>(project project) (mut mutation) n</em></dt>
-<dd><p><code>docfixme</code>
-</p></dd></dl>
 <a name="Method-apply_002dpicked_002dmutations-_0028_0028obj-software_0029-_0028mut-mutation_0029-n_0029"></a><dl>
-<dt><a name="index-apply_002dpicked_002dmutations-2"></a>Method: <strong>apply-picked-mutations</strong> <em>(obj software) (mut mutation) n</em></dt>
+<dt><a name="index-apply_002dpicked_002dmutations-1"></a>Method: <strong>apply-picked-mutations</strong> <em>(obj software) (mut mutation) n</em></dt>
 <dd><p><code>docfixme</code>
 </p><ul>
 <li> <code>obj</code> <code>docfixme</code>
@@ -587,7 +579,7 @@ Define an :around method on this function to record crossovers.
 </dd></dl>
 <a name="Method-crossover-_0028_0028a-project_0029-_0028b-project_0029_0029"></a><dl>
 <dt><a name="index-crossover-5"></a>Method: <strong>crossover</strong> <em>(a project) (b project)</em></dt>
-<dd><p>Randomly pick one file in a and perform crossover with the corresponding file in b.
+<dd><p>Randomly pick a file in A and crossover with the corresponding file in <code>b</code>.
 </p></dd></dl>
 <a name="Method-crossover-_0028_0028a-source_0029-_0028b-source_0029_0029"></a><dl>
 <dt><a name="index-crossover-6"></a>Method: <strong>crossover</strong> <em>(a source) (b source)</em></dt>
@@ -950,40 +942,20 @@ Note this is required as no &lsquo;from-file&rsquo; method is defined on the
 <dt><a name="index-from_002dfile-10"></a>Method: <strong>from-file</strong> <em>(obj pliny-database) db</em></dt>
 <dd><p>Create a Pliny database using the contents of <code>db</code>
 </p></dd></dl>
-<a name="Method-from_002dfile-_0028_0028javascript_002dproject-javascript_002dproject_0029-project_002ddir_0029"></a><dl>
-<dt><a name="index-from_002dfile-11"></a>Method: <strong>from-file</strong> <em>(javascript-project javascript-project) project-dir</em></dt>
-<dd><p>Populate <code>javascript-project</code> from the source code in <code>project-dir</code>.
-</p><ul>
-<li> <code>javascript-project</code> to be populated from source in <code>project-dir</code>
-</li><li> <code>project-dir</code> source code to populate <code>javascript-project</code> with
-</li></ul>
-</dd></dl>
 <a name="Method-from_002dfile-_0028_0028obj-javascript_0029-path_0029"></a><dl>
-<dt><a name="index-from_002dfile-12"></a>Method: <strong>from-file</strong> <em>(obj javascript) path</em></dt>
+<dt><a name="index-from_002dfile-11"></a>Method: <strong>from-file</strong> <em>(obj javascript) path</em></dt>
 <dd><p>Populate <code>obj</code> with the Javascript source at <code>path</code>.
 </p><ul>
 <li> <code>obj</code> to be populated from the Javascript source at <code>path</code>
 </li><li> <code>path</code> to source code to populate <code>obj</code> with
 </li></ul>
 </dd></dl>
-<a name="Method-from_002dfile-_0028_0028obj-java_002dproject_0029-project_002ddir_0029"></a><dl>
-<dt><a name="index-from_002dfile-13"></a>Method: <strong>from-file</strong> <em>(obj java-project) project-dir</em></dt>
-<dd><p>Build project and extract relevant java source files.
-</p></dd></dl>
 <a name="Method-from_002dfile-_0028_0028obj-java_0029-path_0029"></a><dl>
-<dt><a name="index-from_002dfile-14"></a>Method: <strong>from-file</strong> <em>(obj java) path</em></dt>
+<dt><a name="index-from_002dfile-12"></a>Method: <strong>from-file</strong> <em>(obj java) path</em></dt>
 <dd><p>Populate software object upon initialization
 </p></dd></dl>
-<a name="Method-from_002dfile-_0028_0028clang_002dproject-clang_002dproject_0029-project_002ddir_0029"></a><dl>
-<dt><a name="index-from_002dfile-15"></a>Method: <strong>from-file</strong> <em>(clang-project clang-project) project-dir</em></dt>
-<dd><p>Populate <code>clang-project</code> from the source code in <code>project-dir</code>.
-</p><ul>
-<li> <code>clang-project</code> to be populated from source in <code>project-dir</code>
-</li><li> <code>project-dir</code> source code to populate <code>clang-project</code> with
-</li></ul>
-</dd></dl>
 <a name="Method-from_002dfile-_0028_0028obj-clang_0029-path_0029"></a><dl>
-<dt><a name="index-from_002dfile-16"></a>Method: <strong>from-file</strong> <em>(obj clang) path</em></dt>
+<dt><a name="index-from_002dfile-13"></a>Method: <strong>from-file</strong> <em>(obj clang) path</em></dt>
 <dd><p>Populate <code>obj</code> with the source code file at <code>path</code>
 </p><ul>
 <li> <code>obj</code> to be populated from source code at <code>path</code>
@@ -991,23 +963,15 @@ Note this is required as no &lsquo;from-file&rsquo; method is defined on the
 </li></ul>
 </dd></dl>
 <a name="Method-from_002dfile-_0028_0028obj-source_0029-path_0029"></a><dl>
-<dt><a name="index-from_002dfile-17"></a>Method: <strong>from-file</strong> <em>(obj source) path</em></dt>
+<dt><a name="index-from_002dfile-14"></a>Method: <strong>from-file</strong> <em>(obj source) path</em></dt>
 <dd><p>Initialize <code>obj</code> with the contents of <code>path</code>
 </p></dd></dl>
 <a name="Method-from_002dfile-_0028_0028range-sw_002drange_0029-path_0029"></a><dl>
-<dt><a name="index-from_002dfile-18"></a>Method: <strong>from-file</strong> <em>(range sw-range) path</em></dt>
+<dt><a name="index-from_002dfile-15"></a>Method: <strong>from-file</strong> <em>(range sw-range) path</em></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
 <a name="Method-from_002dfile-_0028_0028light-light_0029-path_0029"></a><dl>
-<dt><a name="index-from_002dfile-19"></a>Method: <strong>from-file</strong> <em>(light light) path</em></dt>
-<dd><p><code>docfixme</code>
-</p></dd></dl>
-<a name="Method-from_002dfile-_0028_0028simple-simple_0029-_0028paths-list_0029_0029"></a><dl>
-<dt><a name="index-from_002dfile-20"></a>Method: <strong>from-file</strong> <em>(simple simple) (paths list)</em></dt>
-<dd><p><code>docfixme</code>
-</p></dd></dl>
-<a name="Method-from_002dfile-_0028_0028simple-simple_0029-path_0029"></a><dl>
-<dt><a name="index-from_002dfile-21"></a>Method: <strong>from-file</strong> <em>(simple simple) path</em></dt>
+<dt><a name="index-from_002dfile-16"></a>Method: <strong>from-file</strong> <em>(light light) path</em></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
 <a name="Generic_002dFunction-from_002dstring"></a><dl>
@@ -1104,10 +1068,6 @@ instead of Newlines.
 <dt><a name="index-genome_002dstring-3"></a>Method: <strong>genome-string</strong> <em>(obj source) &amp;optional stream</em></dt>
 <dd><p>Return the source code of <code>obj</code>, optionally writing to <code>stream</code>
 </p></dd></dl>
-<a name="Method-genome_002dstring-_0028_0028simple-simple_0029-_0026optional-stream_0029"></a><dl>
-<dt><a name="index-genome_002dstring-4"></a>Method: <strong>genome-string</strong> <em>(simple simple) &amp;optional stream</em></dt>
-<dd><p><code>docfixme</code>
-</p></dd></dl>
 <a name="Generic_002dFunction-_0028setf-genome_002dstring_0029"></a><dl>
 <dt><a name="index-_0028setf-genome_002dstring_0029"></a>Generic Function: <strong>(setf genome-string)</strong> <em>text software</em></dt>
 <dd><p>Set the &lsquo;genome&rsquo; of <code>software</code> to the string representation
@@ -1148,10 +1108,6 @@ instead of Newlines.
 <dt><a name="index-lines-6"></a>Method: <strong>lines</strong> <em>(light light)</em></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
-<a name="Method-lines-_0028_0028simple-simple_0029_0029"></a><dl>
-<dt><a name="index-lines-7"></a>Method: <strong>lines</strong> <em>(simple simple)</em></dt>
-<dd><p><code>docfixme</code>
-</p></dd></dl>
 <a name="Generic_002dFunction-mcmc_002dstep"></a><dl>
 <dt><a name="index-mcmc_002dstep"></a>Generic Function: <strong>mcmc-step</strong> <em>software</em></dt>
 <dd><p>Change software in a way amenable to <code>mcmc</code>.
@@ -1186,12 +1142,8 @@ should be ergodic.
 <dt><a name="index-mutate-5"></a>Method: <strong>mutate</strong> <em>(obj source)</em></dt>
 <dd><p>Apply a mutation to <code>obj</code>
 </p></dd></dl>
-<a name="Method-mutate-_0028_0028simple-simple_0029_0029"></a><dl>
-<dt><a name="index-mutate-6"></a>Method: <strong>mutate</strong> <em>(simple simple)</em></dt>
-<dd><p><code>docfixme</code>
-</p></dd></dl>
 <a name="Condition-mutate"></a><dl>
-<dt><a name="index-mutate-7"></a>Condition: <strong>mutate</strong></dt>
+<dt><a name="index-mutate-6"></a>Condition: <strong>mutate</strong></dt>
 <dd><p>Class precedence list: <code>mutate, error, serious-condition, condition, t</code>
 </p>
 <p>Mutation errors are thrown when a mutation fails.
@@ -1289,7 +1241,7 @@ a &rsquo;no-mutation-targets exception if none are available.
 <dd><p><code>docfixme</code>
 </p></dd></dl>
 <a name="Generic_002dFunction-phenome"></a><dl>
-<dt><a name="index-phenome"></a>Generic Function: <strong>phenome</strong> <em>software &amp;key bin src</em></dt>
+<dt><a name="index-phenome"></a>Generic Function: <strong>phenome</strong> <em>software &amp;key bin src build-dir</em></dt>
 <dd><p>Phenotype of the software.
 This method will link, compile or serialize the software object as
 necessary returning an executable version of the software suitable for
@@ -1372,8 +1324,8 @@ is not a compiled language.
 <dt><a name="index-phenome-10"></a>Method: <strong>phenome</strong> <em>(obj java) &amp;key (bin (temp-file-name))</em></dt>
 <dd><p>Compiles the software object to a jar and converts it to a linux executable
 </p></dd></dl>
-<a name="Method-phenome-_0028_0028obj-project_0029-_0026key-_0028bin-_0028temp_002dfile_002dname_0029_0029_0029"></a><dl>
-<dt><a name="index-phenome-11"></a>Method: <strong>phenome</strong> <em>(obj project) &amp;key (bin (temp-file-name))</em></dt>
+<a name="Method-phenome-_0028_0028obj-project_0029-_0026key-_0028bin-_0028temp_002dfile_002dname_0029_0029-_0028build_002ddir-_0028or-_002abuild_002ddir_002a-_0028temp_002dfile_002dname_0029_0029_0029_0029"></a><dl>
+<dt><a name="index-phenome-11"></a>Method: <strong>phenome</strong> <em>(obj project) &amp;key (bin (temp-file-name)) (build-dir (or *build-dir* (temp-file-name)))</em></dt>
 <dd><p>Build the software project <code>obj</code> and copy build artifact(s) to <code>bin</code>.
 </p></dd></dl>
 <a name="Method-phenome-_0028_0028obj-source_0029-_0026key-_0028bin-_0028temp_002dfile_002dname_0029_0029_0029"></a><dl>
@@ -1526,10 +1478,6 @@ Used to target mutation.
 <dt><a name="index-pick_002dmutation_002dtype-5"></a>Method: <strong>pick-mutation-type</strong> <em>(obj clang)</em></dt>
 <dd><p>Select type of mutation to apply to <code>obj</code>.
 </p></dd></dl>
-<a name="Method-pick_002dmutation_002dtype-_0028_0028obj-simple_0029_0029"></a><dl>
-<dt><a name="index-pick_002dmutation_002dtype-6"></a>Method: <strong>pick-mutation-type</strong> <em>(obj simple)</em></dt>
-<dd><p><code>docfixme</code>
-</p></dd></dl>
 <a name="Class-software"></a><dl>
 <dt><a name="index-software"></a>Class: <strong>software</strong></dt>
 <dd><p>Class precedence list: <code>software, oid-object, standard-object, t</code>
@@ -1644,10 +1592,6 @@ list of the mutations applied to produce those children.
 <dt><a name="index-size-6"></a>Method: <strong>size</strong> <em>(range sw-range)</em></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
-<a name="Method-size-_0028_0028obj-simple_0029_0029"></a><dl>
-<dt><a name="index-size-7"></a>Method: <strong>size</strong> <em>(obj simple)</em></dt>
-<dd><p><code>docfixme</code>
-</p></dd></dl>
 <a name="Function-summarize_002dmutation_002dstats"></a><dl>
 <dt><a name="index-summarize_002dmutation_002dstats"></a>Function: <strong>summarize-mutation-stats</strong></dt>
 <dd><p><code>docfixme</code>
@@ -1664,18 +1608,6 @@ list of the mutations applied to produce those children.
 <a name="Method-to_002dfile-_0028_0028asm-asm_002dheap_0029-file_0029"></a><dl>
 <dt><a name="index-to_002dfile-2"></a>Method: <strong>to-file</strong> <em>(asm asm-heap) file</em></dt>
 <dd><p>Save the assembly for ASM to <code>file</code>.
-</p></dd></dl>
-<a name="Method-to_002dfile-_0028_0028project-project_0029-path_0029"></a><dl>
-<dt><a name="index-to_002dfile-3"></a>Method: <strong>to-file</strong> <em>(project project) path</em></dt>
-<dd><p>Write <code>project</code> to the <code>path</code> directory.
-</p><ul>
-<li> <code>project</code> project to output
-</li><li> <code>path</code> directory to write the project to
-</li></ul>
-</dd></dl>
-<a name="Method-to_002dfile-_0028_0028simple-simple_0029-file_0029"></a><dl>
-<dt><a name="index-to_002dfile-4"></a>Method: <strong>to-file</strong> <em>(simple simple) file</em></dt>
-<dd><p><code>docfixme</code>
 </p></dd></dl>
 <a name="Function-tournament"></a><dl>
 <dt><a name="index-tournament"></a>Function: <strong>tournament</strong> <em>&amp;key predicate tie-breaker-predicate size</em></dt>

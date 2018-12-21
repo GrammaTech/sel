@@ -77,10 +77,44 @@ most recent at the top.  Every entry will be named and indexed by date
 and version number.  Working notes may be accumulated in a special
 &ldquo;Unreleased&rdquo; section at the top of the ChangeLog.
 </p>
-<a name="g_t2018_002d10_002d17-v0_002e1_002e1-_002d_002d-Unreleased"></a>
-<h3 class="appendixsec">F.1 2018-10-17 v0.1.1 &ndash; Unreleased</h3>
-<a name="index-changelog_002d2018_002d11_002d30"></a>
+<a name="g_t2018_002d12_002d18-v0_002e1_002e2-_002d_002d-Unreleased"></a>
+<h3 class="appendixsec">F.1 2018-12-18 v0.1.2 &ndash; Unreleased</h3>
+<a name="index-changelog_002d2018_002d12_002d18"></a>
 <a name="index-v0_002e1_002e1"></a>
+
+<ul>
+<li> Differences and merges are now supported on projects.
+
+</li><li> Non-code <code>other-files</code> in software projects are now represented
+as <code>simple</code> software objects.  This allows for differencing and
+merging of these non-code files when differencing and merging
+projects.
+
+</li><li> Simple software objects now preserve permissions on their files.
+
+</li><li> The <code>phenome</code> method on software projects no longer requires that
+the <code>*build-dir*</code> variable be set and exist.  Build directories
+are now created on demand if required.  This change removes the
+following no longer required public variables and methods from
+software projects:
+<ul>
+<li> <code>*build-dir*</code>
+</li><li> <code>with-build-dir</code>
+</li><li> <code>with-temp-build-dir</code>
+</li><li> <code>full-path</code>
+</li></ul>
+
+</li><li> The <code>ensure-path-is-string</code> function has been removed from
+<code>sel/utility</code> as it provides no functionality beyond the standard
+<code>namestring</code> function.
+
+</li></ul>
+
+
+<a name="g_t2018_002d11_002d30-v0_002e1_002e1-_002d_002d-Unreleased"></a>
+<h3 class="appendixsec">F.2 2018-11-30 v0.1.1 &ndash; Unreleased</h3>
+<a name="index-changelog_002d2018_002d11_002d30"></a>
+<a name="index-v0_002e1_002e1-1"></a>
 
 <ul>
 <li> Removed backend-specific initargs from project software objects
@@ -93,8 +127,8 @@ Any calls to <code>make-instance</code> with projects must now utilize
 </li></ul>
 
 <a name="g_t2018_002d11_002d06-v0_002e1_002e0-_002d_002d-Use-package_002dinferred_002dsystem"></a>
-<h3 class="appendixsec">F.2 2018-11-06 v0.1.0 &ndash; Use package-inferred-system</h3>
-<a name="index-changelog_002d2018_002d10_002d17"></a>
+<h3 class="appendixsec">F.3 2018-11-06 v0.1.0 &ndash; Use package-inferred-system</h3>
+<a name="index-changelog_002d2018_002d11_002d06"></a>
 <a name="index-v0_002e0_002e3"></a>
 
 <p>SEL now uses the package-inferred-system feature of ASDF (see
@@ -154,8 +188,8 @@ and deprecates the USER_QUICK_LISP environment variable which was
 redundant with the QUICK_LISP environment variable.
 </p>
 <a name="g_t2018_002d10_002d17-v0_002e0_002e2-_002d_002d-Unreleased"></a>
-<h3 class="appendixsec">F.3 2018-10-17 v0.0.2 &ndash; Unreleased</h3>
-<a name="index-changelog_002d2018_002d10_002d17-1"></a>
+<h3 class="appendixsec">F.4 2018-10-17 v0.0.2 &ndash; Unreleased</h3>
+<a name="index-changelog_002d2018_002d10_002d17"></a>
 <a name="index-v0_002e0_002e2"></a>
 
 <ul>
@@ -168,7 +202,7 @@ redundant with the QUICK_LISP environment variable.
 </li></ul>
 
 <a name="g_t2018_002d08_002d21-v0_002e0_002e1-_002d_002d-Unreleased"></a>
-<h3 class="appendixsec">F.4 2018-08-21 v0.0.1 &ndash; Unreleased</h3>
+<h3 class="appendixsec">F.5 2018-08-21 v0.0.1 &ndash; Unreleased</h3>
 <a name="index-changelog_002d2018_002d08_002d21"></a>
 <a name="index-v0_002e0_002e1"></a>
 
@@ -197,7 +231,7 @@ project.
 </li></ul>
 
 <a name="g_t2018_002d07_002d25-v0_002e0_002e0-_002d_002d-Initial-Release-to-Quicklisp"></a>
-<h3 class="appendixsec">F.5 2018-07-25 v0.0.0 &ndash; Initial Release to Quicklisp</h3>
+<h3 class="appendixsec">F.6 2018-07-25 v0.0.0 &ndash; Initial Release to Quicklisp</h3>
 <a name="index-changelog_002d2018_002d07_002d25"></a>
 <a name="index-v0_002e0_002e0"></a>
 
