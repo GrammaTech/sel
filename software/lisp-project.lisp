@@ -33,7 +33,7 @@
                     (from-file (make-instance (component-class obj)) file))
               result))
       :test «and [{member _ '("lisp" "asd") :test #'equal} #'pathname-type]
-                 [#'not {ignored-path-p obj}]»))
+                 [#'not {ignored-evolve-path-p obj}]»))
   result)
 
 (defmethod phenome ((obj lisp-project) &key (bin (temp-file-name)))

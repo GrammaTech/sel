@@ -7100,30 +7100,40 @@ prints unique counters in the trace"
   value)
 
 (deftest ignored-files-are-ignored ()
-  (let ((prj (make-instance 'project :ignore-files '("README"))))
-    (is (ignored-path-p prj "README"))
-    (is (not (ignored-path-p prj "Makefile")))))
+  (is (sel/sw/project::ignored-path-p
+       "README" :ignore-files '("README")))
+  (is (not (sel/sw/project::ignored-path-p
+            "Makefile" :ignore-files '("README")))))
 
 (deftest ignored-directories-are-ignored ()
-  (let ((prj (make-instance 'project :ignore-directories '("etc"))))
-    (is (ignored-path-p prj "etc/foo"))
-    (is (ignored-path-p prj "./etc/foo"))
-    (is (not (ignored-path-p prj "Makefile")))
-    (is (not (ignored-path-p prj "src/foo")))
-    (is (not (ignored-path-p prj "./src/foo")))))
+  (is (sel/sw/project::ignored-path-p
+       "etc/foo" :ignore-directories '("etc")))
+  (is (sel/sw/project::ignored-path-p
+       "./etc/foo" :ignore-directories '("etc")))
+  (is (not (sel/sw/project::ignored-path-p
+            "Makefile" :ignore-directories '("etc"))))
+  (is (not (sel/sw/project::ignored-path-p
+            "src/foo" :ignore-directories '("etc"))))
+  (is (not (sel/sw/project::ignored-path-p
+            "./src/foo" :ignore-directories '("etc")))))
 
 (deftest only-files-are-only ()
-  (let ((prj (make-instance 'project :only-files '("README"))))
-    (is (not (ignored-path-p prj "README")))
-    (is (ignored-path-p prj "Makefile"))))
+  (is (not (sel/sw/project::ignored-path-p
+            "README" :only-files '("README"))))
+  (is (sel/sw/project::ignored-path-p
+       "Makefile" :only-files '("README"))))
 
 (deftest only-directories-are-only ()
-  (let ((prj (make-instance 'project :only-directories '("etc"))))
-    (is (not (ignored-path-p prj "etc/foo")))
-    (is (not (ignored-path-p prj "./etc/foo")))
-    (is (ignored-path-p prj "Makefile"))
-    (is (ignored-path-p prj "src/foo"))
-    (is (ignored-path-p prj "./src/foo"))))
+  (is (not (sel/sw/project::ignored-path-p
+            "etc/foo" :only-directories '("etc"))))
+  (is (not (sel/sw/project::ignored-path-p
+            "./etc/foo" :only-directories '("etc"))))
+  (is (sel/sw/project::ignored-path-p
+       "Makefile" :only-directories '("etc")))
+  (is (sel/sw/project::ignored-path-p
+       "src/foo" :only-directories '("etc")))
+  (is (sel/sw/project::ignored-path-p
+       "./src/foo" :only-directories '("etc"))))
 
 (deftest project-copy-preserves-permissions ()
   ;; Ensure `to-file' preserves permissions on executable files.
@@ -7145,6 +7155,9 @@ prints unique counters in the trace"
     (is (equal 1 (length (evolve-files *project*))))
     (is (equal "grep.c" (car (first (evolve-files *project*)))))
     (is (equal "cc" (compiler (cdr (first (evolve-files *project*))))))
+    ;; Don't include binaries in `other-files'.
+    (is (not (member "support/inputs/grepBinary"
+                     (mapcar #'car (other-files *project*)) :test #'equalp)))
     (is (equal (namestring (make-pathname :directory +grep-prj-dir+))
                (second (member "-I" (flags (cdr (car (evolve-files *project*))))
                                :test #'equal))))))

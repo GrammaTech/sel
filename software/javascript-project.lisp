@@ -83,7 +83,7 @@
               ;; 2) The file has a "js" extension.
               ;; 3) The file is listed as a "bin" in package.json.
               ;; 4) The file is listed as "main" in package.json.
-              (or (and (not (ignored-path-p obj rel-path))
+              (or (and (not (ignored-evolve-path-p obj rel-path))
                        (equal "js" (pathname-type rel-path)))
                   (find rel-path (aget :bin pkg)
                         :key [#'canonical-pathname #'cdr]

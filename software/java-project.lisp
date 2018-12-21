@@ -76,7 +76,7 @@
                    (namestring
                     (ensure-directory-pathname (project-dir obj)))
                    "")))))
-        (unless (ignored-path-p obj entry)
+        (unless (ignored-evolve-path-p obj entry)
           (handler-case
               (let ((java-obj (from-file
                                (make-instance (component-class obj))

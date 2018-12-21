@@ -137,5 +137,5 @@ information on the format of compilation databases."))
                                      (first (aget :arguments entry)))
                        :flags (compilation-db-flags clang-project entry))
                      file-path))))
-          (remove-if [{ignored-path-p clang-project} {aget :file}]
+          (remove-if [{ignored-evolve-path-p clang-project} {aget :file}]
                      (compilation-database clang-project))))
