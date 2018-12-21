@@ -79,7 +79,7 @@ See http://llvm.org)."))
 * BIN DOCFIXME
 "
   #-ccl (declare (values t fixnum string string string))
-  (setf bin (ensure-path-is-string bin))
+  (setf bin (namestring bin))
   (with-temp-file-of (src (ext llvm)) (genome llvm)
     (multiple-value-bind (stdout stderr errno)
         (shell "cat ~a|~a|~a ~{~a~^ ~} -x assembler - -o ~a"

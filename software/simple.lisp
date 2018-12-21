@@ -13,6 +13,7 @@
         :software-evolution-library/utility)
   (:shadowing-import-from :uiop :ensure-directory-pathname)
   (:import-from :asdf-encodings :detect-file-encoding)
+  (:import-from :osicat :file-permissions)
   (:export :simple
            :light
            :sw-range
@@ -29,86 +30,37 @@
 
 ;;; simple software objects
 (define-software simple (software)
-  ((genome :initarg :genome :accessor genome :initform nil :copier sel/utility:enhanced-copy-seq)
-   (encoding :initarg :encoding :accessor encoding :initform :default))
-  (:documentation "DOCFIXME"))
+  ((genome :initarg :genome :accessor genome :initform nil
+           :copier sel/utility:enhanced-copy-seq)
+   (permissions :initarg :permissions :accessor permissions :initform nil))
+  (:documentation "The simplest base software object."))
 
 (declaim (inline lines))
-
 (defmethod lines ((simple simple))
-  "DOCFIXME"
   (remove nil (map 'list {aget :code} (genome simple))))
 
 (defmethod (setf lines) (new (simple simple))
-  "DOCFIXME"
   (setf (genome simple) (mapcar [#'list {cons :code}] new)))
 
 (defmethod size ((obj simple))
-  "DOCFIXME"
   (length (lines obj)))
 
 (declaim (inline genome-string))
 (defmethod genome-string ((simple simple) &optional stream)
-  "DOCFIXME"
   (format stream "~{~a~%~}" (lines simple)))
 
-(defun file-to-simple-genome-list (filespec &optional (external-format :default))
-  "DOCFIXME"
-  (with-open-file (in filespec :external-format external-format)
-    (loop :for line := (read-line in nil) :while line
-       :collect (list (cons :code line)))))
-
 (defmethod from-file ((simple simple) path)
-  "DOCFIXME"
-  (let ((encoding (detect-file-encoding path)))
-    (setf (encoding simple) encoding
-	  (genome simple) (file-to-simple-genome-list path encoding)))
-  simple)
-
-(defun common-subseq (paths)
-  "DOCFIXME"
-  (coerce (loop :for i :below (apply #'min (mapcar #'length paths))
-             :while (every [{equal (aref (car paths) i)} {aref _ i}] paths)
-             :collect (aref (car paths) i))
-          'string))
-
-(defmethod from-file ((simple simple) (paths list))
-  "DOCFIXME"
-  (let ((base (common-subseq paths)))
-    (setf (genome simple)
-          (mapcan (lambda (path)
-                    (cons (list (cons :path (subseq path (length base))))
-                          (file-to-simple-genome-list path)))
-                  paths)))
+  (setf (permissions simple) (file-permissions path)
+        (genome simple)
+        (with-open-file (in path :external-format (detect-file-encoding path))
+          (loop :for line := (read-line in nil) :while line
+             :collect (list (cons :code line)))))
   simple)
 
 (defmethod to-file ((simple simple) file)
-  "DOCFIXME"
-  ;; handle multi-file individuals differently
-  (if (assoc :path (car (genome simple)))
-      ;; if multi-file, then assume FILE is a directory path
-      (let ((base (ensure-directory-pathname file))
-            path lines paths)
-        (flet ((flush ()
-                 (prog1 (push (string-to-file
-                               (format nil "~{~a~%~}" (nreverse lines))
-                               (make-pathname
-                                :directory (pathname-directory base)
-                                :name path)
-			       :external-format (encoding simple))
-                              paths)
-                   (setf lines nil path nil))))
-          (loop :for el :in (genome simple) :do
-             (if (assoc :path el)
-                 (progn
-                   ;; write accumulated lines to path
-                   (when (and lines path) (flush))
-                   (setf path (cdr (assoc :path el))))
-                 (push (cdr (assoc :code el)) lines)))
-          (flush)))
-      ;; if single-file, then assume FILE is a file path
-      (with-open-file (out file :direction :output :if-exists :supersede)
-        (genome-string simple out))))
+  (with-open-file (out file :direction :output :if-exists :supersede)
+    (genome-string simple out))
+  (setf (file-permissions file) (permissions simple)))
 
 (defvar *simple-mutation-types*
   (cumulative-distribution
@@ -119,11 +71,9 @@
    "DOCFIXME")
 
 (defmethod pick-mutation-type ((obj simple))
-  "DOCFIXME"
   (random-pick *simple-mutation-types*))
 
 (defmethod mutate ((simple simple))
-  "DOCFIXME"
   (unless (> (size simple) 0)
     (error (make-condition 'mutate :text "No valid IDs" :obj simple)))
   (restart-case

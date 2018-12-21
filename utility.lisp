@@ -33,7 +33,9 @@
                 :define-foreign-type
                 :defcfun
                 :with-foreign-object
-                :with-foreign-slots)
+                :with-foreign-slots
+                :null-pointer
+                :null-pointer-p)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
@@ -72,6 +74,7 @@
   (:export
    :infinity
    ;; OS
+   :file-mime-type
    :file-to-string
    :use-encoding
    :file-to-bytes
@@ -100,7 +103,7 @@
    :with-cwd
    :pwd
    :cd
-   :ensure-path-is-string
+   :pathname-relativize
    :in-directory
    :directory-p
    :canonical-pathname
@@ -371,6 +374,13 @@
                      (uiop::merge-pathnames dir-name prefix)
                      dir-name))))
 
+(defun file-mime-type (path)
+  "Return the mime type of PATH as a list of two symbols.
+The Unix `file' command is used, specifically \"file -b --mime-type PATH\"."
+  (assert (probe-file path) (path) "No file or directory at ~S" path)
+  (nest (mapcar #'intern) (split-sequence #\/) (string-upcase) (trim-whitespace)
+        (shell "file -b --mime-type ~a" (namestring path))))
+
 (defun file-to-string
     (pathname &key (external-format
                     (encoding-external-format (detect-encoding pathname))))
@@ -571,12 +581,18 @@ of DIR and execute BODY"
                         (if (listp s) s (list s)))
                       specs) body)))
 
-(defun ensure-path-is-string (path)
-  (cond
-    ((stringp path) path)
-    ((pathnamep path) (namestring path))
-    (:otherwise (error "Path not string ~S." path))))
+(defun pathname-relativize (root-path path)
+  "Return PATH relative to ROOT-PATH."
+  (replace-all
+   (namestring (canonical-pathname path))
+   (namestring (canonical-pathname (ensure-directory-pathname root-path)))
+   ""))
 
+;;; TODO: Refactor `in-directory'.  This should probably be combined
+;;; with `merge-pathnames-as-file' and `merge-pathnames-as-directory'.
+;;; I believe the behavior of this function (to call
+;;; `ensure-directory' on all but the last argument) is probably what
+;;; most users expect of the other two functions.
 (defun in-directory (directory path)
   "Return PATH based in DIRECTORY.
 Uses `ensure-directory-pathname' to force DIRECTORY to be a directory

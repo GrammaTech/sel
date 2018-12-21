@@ -91,6 +91,11 @@
 ;;;     Models and manages the data collected from running test suites against
 ;;;     instrumented Software objects. (work in progress)
 ;;;
+;;;  Instrumented Software
+;;;     Software objects which have been instrumented.
+;;;
+;;;  Traced Software
+;;;     Instrumented Software objects which have also been traced.
 ;;;
 ;;; @subsubsection Operations on resources
 ;;;
@@ -101,18 +106,18 @@
 ;;; Client:
 ;;;
 ;;;  POST
-;;;     @code{<service-base>/sel/client} Create a new client.  Body
+;;;     @code{<service-base>/client} Create a new client.  Body
 ;;;     (JSON) contains initial values for special variable settings.
 ;;;     Returns the Client-ID.
 ;;;  DELETE
-;;;     @code{<service-base>/sel/client&cid=<client-ID>} Delete
+;;;     @code{<service-base>/client&cid=<client-ID>} Delete
 ;;;     the client session, and cause all the software objects
 ;;;     owned by the client to become garbage.
 ;;;
 ;;; Software:
 ;;;
 ;;;  POST
-;;;     @code{<service-base>/sel/soft?cid=<client-ID>&type=<software-type>}
+;;;     @code{<service-base>/soft?cid=<client-ID>&type=<software-type>}
 ;;;     Body, JSON format, contains path (to C file, AST, Asm file,
 ;;;     etc.), or a URL to a file, or the actual source code which
 ;;;     would comprise the file.  If the body simply contains a
@@ -122,115 +127,144 @@
 ;;;     (MAKE-INSTANCE '<software-type> &key).  Returns a software
 ;;;     object ID of newly created software.
 ;;;  GET
-;;;     @code{<service-base>/sel/soft?cid=<client-ID>&sid=<software
+;;;     @code{<service-base>/soft?cid=<client-ID>&sid=<software
 ;;;     ID>} Returns JSON describing software object (differs
 ;;;     depending on type of software).
 ;;;  GET
-;;;     @code{<service-base>/sel/soft?type=<software type>} Returns
+;;;     @code{<service-base>/soft?type=<software type>} Returns
 ;;;     IDs of live software objects of the passed type, owned by
 ;;;     the client.
 ;;;  GET
-;;;     @code{<service-base>/sel/soft} Return IDs of all live
+;;;     @code{<service-base>/soft} Return IDs of all live
 ;;;     software objects owned by the client.
 ;;;  PUT
-;;;     @code{<service-base>/sel/soft?sid=<software ID>} Update a
+;;;     @code{<service-base>/soft?sid=<software ID>} Update a
 ;;;     software object.  Body (JSON) contains slots to update, new
 ;;;     values.
 ;;;  DELETE
-;;;     @code{<service-base>/sel/soft?sid=<software ID>} Delete a
+;;;     @code{<service-base>/soft?sid=<software ID>} Delete a
 ;;;     software object.  (work in progress)
 ;;;
 ;;; Population:
 ;;;
 ;;;  POST
-;;;     @code{<service-base>/sel/population?name=<population-name>}
+;;;     @code{<service-base>/population?name=<population-name>}
 ;;;     Creates a Population resource, owned by the client,
 ;;;     containing software objects of the specified type.  Body
 ;;;     should contain, JSON format, list of Software-ID (sid) to
 ;;;     include in population, and software type.  Returns the ID
 ;;;     of newly created Population (pid).
 ;;;  PUT
-;;;     @code{<service-base>/sel/pop?pid=<Population-ID>} Adds the
+;;;     @code{<service-base>/pop?pid=<Population-ID>} Adds the
 ;;;     specified sid(s) to the population.  Body (JSON) contains
 ;;;     sid field, which is a list of sids to add.
 ;;;  GET
-;;;     @code{<service-base>/sel/pop?pid=<Population-ID>} Retrieves
+;;;     @code{<service-base>/pop?pid=<Population-ID>} Retrieves
 ;;;     information about the population, including list of
 ;;;     Software-IDs and software type.
 ;;;  DELETE
-;;;     @code{<service-base>/sel/pop?pid=<Population-ID>} Delete
+;;;     @code{<service-base>/pop?pid=<Population-ID>} Delete
 ;;;     the population.  (work in progress)
 ;;;
 ;;; Async-Job:
 ;;;
 ;;;  POST
-;;;     @code{<service-base>/sel/async?type=<job-type>} Body
+;;;     @code{<service-base>/async?type=<job-type>} Body
 ;;;     contains (JSON) parameters for EVOLVE task, FITNESS-TEST or
 ;;;     other defined type of task.  Returns immediately with a
 ;;;     Job-ID (jid).  Creating a Job starts a task (on a new
 ;;;     thread) which will execute until stopped or completed.
 ;;;  GET
-;;;     @code{<service-base>/sel/async?jid=<Job-ID>} Returns JSON
+;;;     @code{<service-base>/async?jid=<Job-ID>} Returns JSON
 ;;;     containing job status and results.
 ;;;  PUT
-;;;     @code{<service-base>/sel/async?jid=<Job-ID>&<update-vars>}
+;;;     @code{<service-base>/async?jid=<Job-ID>&<update-vars>}
 ;;;     Allows some control of the task, such as stopping the task.
 ;;;
 ;;; Mutation:
 ;;;
 ;;;  POST
-;;;     @{<service-base>/sel/mut?type=<mutation-type>&sid=<software-id>}
+;;;     @{<service-base>/mut?type=<mutation-type>&sid=<software-id>}
 ;;;     Body (JSON) contains targets field (integer, list, or ast).
 ;;;     Returns mutation-id (mid).
 ;;;  GET
-;;;     @code{<service-base>/sel/mut?mid=<mutation-id>} Returns
+;;;     @code{<service-base>/mut?mid=<mutation-id>} Returns
 ;;;     mutation details.
 ;;;  PUT
-;;;     @code{<service-base>/sel/mut?mid=<mutation-id>} Apply
+;;;     @code{<service-base>/mut?mid=<mutation-id>} Apply
 ;;;     mutation to its target software object, returns the sid of
 ;;;     the new (mutated) software object.
 ;;;  DELETE
-;;;     @code{service-base>/sel/mut?mid=<mutation-id>}
+;;;     @code{service-base>/mut?mid=<mutation-id>}
 ;;;     Delete the specified mutation. (work in progress)
 ;;;
 ;;; Directories:
 ;;;
 ;;;  GET
-;;;     @code{<service-base>/sel/dir/software} Returns list of types
+;;;     @code{<service-base>/dir/software} Returns list of types
 ;;;     of software which may be intantiated.  (work in progress)
 ;;;
 ;;; Test Suites:
 ;;;
 ;;;  POST
-;;;     @code{<service-base>/sel/tests} Creates a TEST-SUITE
+;;;     @code{<service-base>/tests} Creates a TEST-SUITE
 ;;;     instance, owned by the client, containing a collection of
 ;;;     TEST-SUITE objects.  Body should contain "test" field, JSON
 ;;;     format, array of structures, each containing program-name
 ;;;     and program-args.  Returns oid of newly created tests
 ;;;     suite.
 ;;;  GET
-;;;     @code{<service-base>/sel/tests?oid=<test-suite-oid>}
+;;;     @code{<service-base>/tests?oid=<test-suite-oid>}
 ;;;     Retrieves collection of test cases in the test-suite.
 ;;;  DELETE
 ;;;     @code{<service-base>/tests?pid=<test-suite-oid>} Delete
 ;;;     the test suite.  (work in progress)
 ;;;
+;;; Instrumented:
+;;;
+;;;  POST
+;;;     @code{<service-base>/instrumented?sid=<software-oid>}
+;;;     Creates an Instrumented Software object instance,
+;;;     owned by the client
+;;;  GET
+;;;     @code{<service-base>/instrumented?sid=<software-oid>}
+;;;     If sid is unspecified, retrieves the instrumented software
+;;;     objects owned by the client. If sid is supplied,
+;;;     returns the details of the specified instrumented software object.
+;;;
+;;; Traced Software:
+;;;
+;;;  POST
+;;;     @code{<service-base>/tracesoft?sid=<software-oid>&tests-oid=<tests oid>}
+;;;     Traces the specified software object, using the specified tests.
+;;;     Returns the oid specified (does not create a new, distinct software
+;;;     object).
+;;;
 ;;; @texi{rest}
 (defpackage :software-evolution-library/rest
   (:nicknames :sel/rest)
   (:use
+   :arrow-macros
+   :named-readtables
+   :curry-compose-reader-macros
    :common-lisp
    :snooze
    :cl-json
    :iterate
+   :trace-db
    :software-evolution-library/software-evolution-library
    :software-evolution-library/utility
    :software-evolution-library/components/test-suite
+   :software-evolution-library/components/formatting
+   :software-evolution-library/components/instrument
+   :software-evolution-library/components/traceable
+   :software-evolution-library/software/parseable
    ;; TODO: Maybe remove this dependency.
    :software-evolution-library/software/asm-super-mutant
    :software-evolution-library/software/clang)
   (:export :lookup-session))
 (in-package :software-evolution-library/rest)
+(in-readtable :curry-compose-reader-macros)
 
 (defvar *session-id-generator* 1000
   "Start session ids at 1001 and increment")
@@ -270,6 +304,14 @@
       :initarg :test-suites
       :accessor session-test-suites
       :initform nil)
+     (scions
+      :initarg :scions
+      :accessor session-scions
+      :initform nil)
+     (trace-results
+      :initarg :trace-results
+      :accessor session-trace-results
+      :initform nil)
      (jobs
       :initarg :jobs
       :accessor session-jobs
@@ -305,6 +347,15 @@
       (setf (gethash (session-id session-obj) *session-pool*) session-obj)
       (session-id session-obj)))
 
+(defun convert-symbol (string)
+  "If a string contains '::' then convert it to a symbol if possible."
+  (if (and (stringp string)(search "::" string))
+    (let ((sym (read-from-string string)))
+      (if (symbolp sym)
+  	sym
+	string))
+    string))
+
 (defroute
     soft (:post "application/json" &key cid (sid nil) (type nil))
     (declare (ignore sid))
@@ -315,23 +366,25 @@
 	   (client (lookup-session cid))
 	   (path (cdr (assoc :path json)))
 	   (url (cdr (assoc :url json)))
-	   (code (cdr (assoc :code json))))
+	   (code (cdr (assoc :code json)))
+	   (software-type (convert-symbol type))) ; convert string to symbol
       (declare (ignore url code)) ; not implemented yet
       (when path
-        (let ((software
-	       (from-file
-	        (apply 'make-instance
-		       type
-		       (iter (for x in json)
-			     (unless
-			         (member (car x)
-				         '(:path :url :code :software-id))
-			       (collect (car x))
-			       (collect (cdr x)))))
-	        path)))
-	  ;; store the software obj with the session
-	  (push software (session-software client))
-	  (format nil "~D" (sel::oid software))))))
+	  (let ((software
+		 (from-file
+		  (apply 'make-instance
+			 software-type
+			 (iter (for x in json)
+			       (unless
+				   (member (car x)
+					   '(:path :project-dir
+					     :url :code :software-id))
+				 (collect (car x))
+				 (collect (convert-symbol (cdr x))))))
+		  path)))
+	    ;; store the software obj with the session
+	    (push (format-genome software) (session-software client))
+	    (format nil "~D" (sel::oid software))))))
 
 (defun find-software (client sid)
   "Return the population from the client record (if found)."
@@ -351,7 +404,8 @@
 		      :class (format nil "~A"
 				     (class-name (class-of software)))
 		      :size (format nil "~D" (size software))
-		      :fitness (fitness software))))
+		      :fitness (fitness software)
+		      :instrumented (instrumented-p software))))
 	      (let ((ids (iter (for x in (session-software client))
 			       (if (or (null type)
 				       (eq (class-name (class-of x)) type))
@@ -468,7 +522,7 @@
 		     (http-condition 400 "Malformed JSON (~a)!" e))))
 	   (client (lookup-session cid))
 	   (type (cdr (assoc :type json)))
-	   (type-sym (intern (string-upcase type) :sel))
+	   (type-sym (convert-symbol type))
 	   (sid (cdr (assoc :sid json)))
 	   (software (find-software client sid))
 	   (targets (cdr (assoc :targets json))))
@@ -564,7 +618,7 @@ in a population"))
 (defun lookup-job-func (population name)
   "Allow some special-case names, otherwise fall through to symbol
  in SEL package by the specificed name."
-  (let* ((sym (intern (string-upcase name) :sel))
+  (let* ((sym (convert-symbol name))
 	 (func (symbol-function sym)))
     (if (and (eq 'sel::evaluate sym)
              ;; TODO: Maybe remove this special case and dependency.
@@ -627,7 +681,13 @@ in a population"))
 		      (let ((program-name (cdr (assoc :program-name test)))
 			    (program-args (cdr (assoc :program-args test))))
 			(make-instance 'test-case :program-name program-name
-				       :program-args program-args)))
+				       :program-args
+				       (mapcar (lambda (x)
+						 (if (or (equal x ":BIN")
+							 (equal x "BIN"))
+						     :bin
+						     x))
+					       program-args))))
 		    tests))))
       ;; store the test-suite obj with the session
       (push test-suite (session-test-suites client))
@@ -663,3 +723,99 @@ in a population"))
 (defroute
     tests (:get "application/json" &key cid oid)
     (get-test-suite cid oid))
+
+(defroute
+    instrumented (:post "application/json" &key cid sid)
+    (let* ((client (lookup-session cid))
+	   (soft (find-software client sid)))
+
+      (let ((inst-soft
+	     (instrument (copy soft)
+			 :functions
+			 (list (lambda (instrumenter ast)
+				 (var-instrument {get-unbound-vals
+						 (software instrumenter)}
+						 instrumenter
+						 ast))))))
+	;; store the software obj with the session
+	(push inst-soft (session-software client))
+	(format nil "~D" (sel::oid inst-soft)))))
+
+(defun get-instrumented (cid sid type)
+  (let* ((result "{ \"error\": \"Nothing\"}")
+	 (client (lookup-session cid)))
+    (if client
+	(let ((software (find-software client sid)))
+	  (if software
+	      (setf result
+		    (json:encode-json-plist-to-string
+		     (list
+		      :oid (sel::oid software)
+		      :class (format nil "~A"
+				     (class-name (class-of software)))
+		      :size (format nil "~D" (size software))
+		      :fitness (fitness software)
+		      :instrumented (instrumented-p software))))
+	      (let ((ids (iter (for x in (session-software client))
+			       (if (and
+				    (or (null type)
+					(eq (class-name (class-of x)) type))
+				    (ignore-errors (instrumented-p x)))
+				   (collect (sel::oid x))))))
+		(setf result
+		      (json:encode-json-to-string ids))))))
+
+    result))
+
+(defroute
+    instrumented (:get :text/* &key cid sid (type nil))
+    (get-instrumented cid sid type))
+
+(defroute
+    instrumented (:get "application/json" &key cid sid (type nil))
+    (get-instrumented cid sid type))
+
+;;;
+;;; Pulled this from bi/utility
+;;;
+(defmacro with-trace-error-handling (&rest body)
+  "FIXME
+
+* BODY FIXME
+"
+  `(handler-bind ((end-of-file
+                    (lambda (c)
+                      (declare (ignorable c))
+                      (invoke-restart 'sel::ignore-rest-of-stream)))
+                  (trace-error (lambda (c)
+                                 (declare (ignorable c))
+                                 (cond
+                                   ((find-restart 'sel::ignore-empty-trace)
+                                    (invoke-restart 'sel::ignore-empty-trace))
+                                   ((find-restart 'sel::nil-traces)
+                                    (invoke-restart 'sel::nil-traces))
+                                   ((find-restart 'sel::skip-test-case)
+                                    (invoke-restart 'sel::skip-test-case))))))
+     (progn ,@body)))
+
+(defroute
+    tracesoft (:post "application/json" &key cid sid tests-oid)
+    (let* ((json (handler-case
+		     (json:decode-json-from-string (payload-as-string))
+		   (error (e)
+		     (http-condition 400 "Malformed JSON (~a)!" e))))
+	   (client (lookup-session cid))
+	   (soft (find-software client sid))
+	   (test-suite (find-test-suite client tests-oid))
+	   (inst-bin (cdr (assoc :inst-bin json))))
+
+      ;; create the binary executable
+      (if inst-bin
+	  (phenome soft :bin inst-bin))
+
+      (with-trace-error-handling
+	  (with-temp-dir-of (temp) "."
+	     (with-cwd (temp)
+                  (apply 'collect-traces soft test-suite
+                                  (if inst-bin (list :bin inst-bin))))))
+      (format nil "~D" (sel::oid soft))))

@@ -50,7 +50,7 @@ and applies the changed data in `genome' of ELF."))
 (defmethod phenome ((elf elf) &key (bin (temp-file-name)))
   "DOCFIXME"
   #-ccl (declare (values t fixnum string string string))
-  (setf bin (ensure-path-is-string bin))
+  (setf bin (namestring bin))
   (write-elf (elf elf) bin)
   (multiple-value-bind (stdout stderr errno) (shell "chmod +x ~a" bin)
     (values bin errno stderr stdout bin)))
