@@ -40,7 +40,7 @@
 
 (defgeneric instrument (obj &key points functions functions-after
                                  trace-file trace-env instrument-exit filter
-                                 num-threads)
+                                 num-threads &allow-other-keys)
   (:documentation
    "Instrument OBJ to print AST index before each full statement.
 

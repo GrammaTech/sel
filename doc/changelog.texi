@@ -34,7 +34,45 @@ most recent at the top.  Every entry will be named and indexed by date
 and version number.  Working notes may be accumulated in a special
 ``Unreleased'' section at the top of the ChangeLog.
 
-@appendixsec 2018-10-17 v0.1.1 -- Unreleased
+@appendixsec 2018-12-18 v0.1.2 -- Unreleased
+@cindex changelog-2018-12-18
+@cindex v0.1.1
+
+@itemize
+@item
+Differences and merges are now supported on projects.
+
+@item
+Non-code @code{other-files} in software projects are now represented
+as @code{simple} software objects.  This allows for differencing and
+merging of these non-code files when differencing and merging
+projects.
+
+@item
+Simple software objects now preserve permissions on their files.
+
+@item
+The @code{phenome} method on software projects no longer requires that
+the @code{*build-dir*} variable be set and exist.  Build directories
+are now created on demand if required.  This change removes the
+following no longer required public variables and methods from
+software projects:
+@itemize
+@item @code{*build-dir*}
+@item @code{with-build-dir}
+@item @code{with-temp-build-dir}
+@item @code{full-path}
+@end itemize
+
+@item
+The @code{ensure-path-is-string} function has been removed from
+@code{sel/utility} as it provides no functionality beyond the standard
+@code{namestring} function.
+
+@end itemize
+
+
+@appendixsec 2018-11-30 v0.1.1 -- Unreleased
 @cindex changelog-2018-11-30
 @cindex v0.1.1
 
@@ -50,7 +88,7 @@ Any calls to @code{make-instance} with projects must now utilize
 @end itemize
 
 @appendixsec 2018-11-06 v0.1.0 -- Use package-inferred-system
-@cindex changelog-2018-10-17
+@cindex changelog-2018-11-06
 @cindex v0.0.3
 
 SEL now uses the package-inferred-system feature of ASDF (see

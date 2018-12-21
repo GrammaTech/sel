@@ -9,20 +9,21 @@ stages:
   - build
   - test-and-tag
   - dependents
-  - deploy-and-cleanup
+  - deploy
+  - cleanup
 
 .build-template: &build
   script:
     - if [ "$OS" = "ubuntu" ];
       then
-          export TAG=latest;
+          export PULL_TAG=latest;
       else
-          export TAG=${OS};
+          export PULL_TAG=${OS};
       fi
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY
-    - docker pull $DOCKER_REGISTRY/synthesis/clang-mutate:${TAG}
-    - docker pull $DOCKER_REGISTRY/synthesis/java-mutator:${TAG}
-    - docker pull $DOCKER_REGISTRY/synthesis/cl:${TAG}
+    - docker pull $DOCKER_REGISTRY/synthesis/clang-mutate:${PULL_TAG}
+    - docker pull $DOCKER_REGISTRY/synthesis/java-mutator:${PULL_TAG}
+    - docker pull $DOCKER_REGISTRY/synthesis/cl:${PULL_TAG}
     - docker build --build-arg=GT=yes  --build-arg=LISP=sbcl -f .ci/Dockerfile.${OS} -t ${LOCAL_IMAGE_NAME}-${OS}-${LISP} .
     - if [ ! "$CI_BUILD_REF_NAME" = "latest" ];
       then
@@ -134,16 +135,12 @@ trigger_shaker:
     - master
 
 pages:
-  stage: deploy-and-cleanup
+  stage: deploy
   script:
     - export CONTAINER_FILE=${LOCAL_IMAGE_NAME}-arch-sbcl.container
     - mkdir -p $(dirname ${CONTAINER_FILE})
     - docker run -e LOCAL_USER=root -e GT=yes --cidfile=${CONTAINER_FILE} ${LOCAL_IMAGE_NAME}-arch-sbcl /bin/bash -c "mkdir -p /public && cd /root/quicklisp/local-projects/sel && make doc && cp -R doc/software-evolution-library/* /public/"
     - docker cp $(cat ${CONTAINER_FILE}):/public ./
-    - docker rmi -f ${LOCAL_IMAGE_NAME}-arch-ccl
-    - docker rmi -f ${LOCAL_IMAGE_NAME}-arch-sbcl
-    - docker rmi -f ${LOCAL_IMAGE_NAME}-ubuntu-ccl
-    - docker rmi -f ${LOCAL_IMAGE_NAME}-ubuntu-sbcl
   artifacts:
     paths:
       - public
@@ -151,11 +148,12 @@ pages:
     - master
 
 cleanup:
-  stage: deploy-and-cleanup
+  stage: cleanup
   script:
+    - date
+  after_script:
     - docker rmi -f ${LOCAL_IMAGE_NAME}-arch-ccl
     - docker rmi -f ${LOCAL_IMAGE_NAME}-arch-sbcl
     - docker rmi -f ${LOCAL_IMAGE_NAME}-ubuntu-sbcl
     - docker rmi -f ${LOCAL_IMAGE_NAME}-ubuntu-ccl
-  except:
-    - master
+  when: always

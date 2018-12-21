@@ -242,7 +242,7 @@ inspecting the value of `*lisp-interaction*'."
        :documentation "verbosity level 0-4")
       (("load" #\l) :type string :optional t
        :action #'handle-load
-       :documentation "load FILE as lisp code (may be used to define scions)")
+       :documentation "load FILE as lisp code")
       (("eval" #\e) :type string :optional t
        :action #'handle-eval
        :documentation "eval STRING as lisp code")

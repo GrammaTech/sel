@@ -82,6 +82,7 @@
    :software-evolution-library/software/with-exe
    :software-evolution-library/stefil-plus)
   (:import-from :hunchentoot)
+  (:import-from :osicat :file-permissions :pathname-as-directory)
   (:shadowing-import-from :common-lisp :type)
   (:shadowing-import-from :software-evolution-library :size)
   (:shadowing-import-from :clack :stop)
@@ -687,10 +688,8 @@
   (:teardown (setf *soft* nil)))
 
 (defixture rest-server
-    (:setup (incf *clack-port*)
-            (setf *clack* (initialize-clack)))
-  (:teardown (clack:stop *clack*)
-             (setf *rest-client* nil)))
+  (:setup (unless *clack* (setf *clack* (initialize-clack))))
+  (:teardown (clack:stop *clack*)(setf *clack* nil)(setf *rest-client* nil)))
 
 (defixture gcd-elf
   (:setup
@@ -6498,11 +6497,9 @@ prints unique counters in the trace"
                                         ast)))
                 :trace-file :stderr)
     (with-temp-file (bin)
-      (with-temp-build-dir ((directory-namestring
-                             (make-pathname :directory +multi-file-dir+)))
-        (is (zerop (nth-value 1 (ignore-phenome-errors
-                                 (phenome *project* :bin bin))))
-            "Successfully compiled instrumented project."))
+      (is (zerop (nth-value 1 (ignore-phenome-errors
+                               (phenome *project* :bin bin))))
+          "Successfully compiled instrumented project.")
       (with-temp-file (trace-file)
         (let ((errno (nth-value 2 (run-program (format nil "~a 2>~a"
                                                        bin trace-file)))))
@@ -7102,6 +7099,55 @@ prints unique counters in the trace"
 (defmethod test-method ((obj simple) value)
   value)
 
+(deftest ignored-files-are-ignored ()
+  (is (sel/sw/project::ignored-path-p
+       "README" :ignore-files '("README")))
+  (is (not (sel/sw/project::ignored-path-p
+            "Makefile" :ignore-files '("README")))))
+
+(deftest ignored-directories-are-ignored ()
+  (is (sel/sw/project::ignored-path-p
+       "etc/foo" :ignore-directories '("etc")))
+  (is (sel/sw/project::ignored-path-p
+       "./etc/foo" :ignore-directories '("etc")))
+  (is (not (sel/sw/project::ignored-path-p
+            "Makefile" :ignore-directories '("etc"))))
+  (is (not (sel/sw/project::ignored-path-p
+            "src/foo" :ignore-directories '("etc"))))
+  (is (not (sel/sw/project::ignored-path-p
+            "./src/foo" :ignore-directories '("etc")))))
+
+(deftest only-files-are-only ()
+  (is (not (sel/sw/project::ignored-path-p
+            "README" :only-files '("README"))))
+  (is (sel/sw/project::ignored-path-p
+       "Makefile" :only-files '("README"))))
+
+(deftest only-directories-are-only ()
+  (is (not (sel/sw/project::ignored-path-p
+            "etc/foo" :only-directories '("etc"))))
+  (is (not (sel/sw/project::ignored-path-p
+            "./etc/foo" :only-directories '("etc"))))
+  (is (sel/sw/project::ignored-path-p
+       "Makefile" :only-directories '("etc")))
+  (is (sel/sw/project::ignored-path-p
+       "src/foo" :only-directories '("etc")))
+  (is (sel/sw/project::ignored-path-p
+       "./src/foo" :only-directories '("etc"))))
+
+(deftest project-copy-preserves-permissions ()
+  ;; Ensure `to-file' preserves permissions on executable files.
+  (nest
+   (with-fixture grep-project)
+   (with-temp-file (dir-path))
+   (let ((dir (pathname-directory (pathname-as-directory dir-path))))
+     (to-file *project* dir-path)
+     (is (member :user-exec
+                 (file-permissions
+                  (make-pathname :name "test"
+                                 :type "sh"
+                                 :directory (append dir (list "support")))))))))
+
 (deftest clang-project-test ()
   (with-fixture grep-project
     (is (equal "make grep" (build-command *project*)))
@@ -7109,10 +7155,12 @@ prints unique counters in the trace"
     (is (equal 1 (length (evolve-files *project*))))
     (is (equal "grep.c" (car (first (evolve-files *project*)))))
     (is (equal "cc" (compiler (cdr (first (evolve-files *project*))))))
-    (is (equal (list "-I" (namestring (make-pathname :directory +grep-prj-dir+))
-                     "-c" "-o" "grep")
-               (-> (flags (cdr (first (evolve-files *project*))))
-                   (remove-duplicates :test #'string=))))))
+    ;; Don't include binaries in `other-files'.
+    (is (not (member "support/inputs/grepBinary"
+                     (mapcar #'car (other-files *project*)) :test #'equalp)))
+    (is (equal (namestring (make-pathname :directory +grep-prj-dir+))
+               (second (member "-I" (flags (cdr (car (evolve-files *project*))))
+                               :test #'equal))))))
 
 (deftest (apply-mutations-to-project-unique-test :long-running) ()
   (with-fixture clang-project

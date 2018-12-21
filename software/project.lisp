@@ -10,6 +10,7 @@
         :iterate
         :uiop
         :software-evolution-library
+        :software-evolution-library/software/simple
         :software-evolution-library/components/formatting
 	:software-evolution-library/ast-diff/ast-diff
 	:software-evolution-library/ast-diff/alist
@@ -22,19 +23,29 @@
    :if-let :ensure-function :ensure-gethash :copy-file
    :parse-body :simple-style-warning)
   (:export :project
-           :apply-to-project
            :build-command
            :artifacts
            :evolve-files
            :other-files
+           :ignore-files
+           :ignore-directories
+           :only-files
+           :only-directories
+           :ignore-other-files
+           :ignore-other-directories
+           :only-other-files
+           :only-other-directories
            :component-class
            :project-dir
+           :ignored-evolve-path-p
+           :ignored-other-path-p
+           :apply-to-project
+           :project-path
+           :collect-evolve-files
+           :collect-other-files
            :instrumentation-files
            :all-files
-           :with-build-dir
-           :with-temp-build-dir
            :make-build-dir
-           :full-path
            :*build-dir*))
 (in-package :software-evolution-library/software/project)
 (in-readtable :curry-compose-reader-macros)
@@ -58,6 +69,54 @@ This holds a list of cons cells of the form (path . software-object-for-path)."
       "Source files which may be used (e.g., instrumented) but not evolved.
 This holds a list of cons cells of the form (path . software-object-for-path)."
       :copier copy-files)
+     (ignore-files
+      :initarg :ignore-files
+      :reader ignore-files
+      :initform nil
+      :documentation
+      "List of files to ignore when collecting evolve-files.")
+     (ignore-directories
+      :initarg :ignore-directories
+      :reader ignore-directories
+      :initform nil
+      :documentation
+      "List of directories to ignore when collecting evolve-files")
+     (only-files
+      :initarg :only-files
+      :reader only-files
+      :initform nil
+      :documentation
+      "List of files to only consider when collecting evolve-files.")
+     (only-directories
+      :initarg :only-directories
+      :reader only-directories
+      :initform nil
+      :documentation
+      "List of directories to only consider when collecting evolve-files")
+     (ignore-other-files
+      :initarg :ignore-other-files
+      :reader ignore-other-files
+      :initform nil
+      :documentation
+      "List of files to ignore when collecting other-files.")
+     (ignore-other-directories
+      :initarg :ignore-other-directories
+      :reader ignore-other-directories
+      :initform (list ".git/")
+      :documentation
+      "List of directories to ignore when collecting other-files")
+     (only-other-files
+      :initarg :only-other-files
+      :reader only-other-files
+      :initform nil
+      :documentation
+      "List of files to only consider when collecting other-files.")
+     (only-other-directories
+      :initarg :only-other-directories
+      :reader only-other-directories
+      :initform nil
+      :documentation
+      "List of directories to only consider when collecting other-files")
      (component-class
       :initarg :component-class :accessor component-class :initform nil
       :documentation "Software object class to utilize in component objects.")
@@ -69,6 +128,51 @@ This holds a list of cons cells of the form (path . software-object-for-path)."
    "A project is composed of multiple component software objects.
 E.g., a multi-file C software project may include multiple clang
 software objects in it's `evolve-files'."))
+
+(defun ignored-path-p
+    (path
+     &key ignore-files ignore-directories only-files only-directories
+     &aux (canonical-path (canonical-pathname path)))
+  (flet ((included-files (files)
+           (find-if [{equal canonical-path} #'canonical-pathname]
+                    files))
+         (included-directories (directories)
+           (find-if {search _ (pathname-directory canonical-path)
+                            :test #'equalp}
+                    directories
+                    :key [#'pathname-directory #'ensure-directory-pathname])))
+    (or (and only-files (not (included-files only-files)))
+        (and only-directories (not (included-directories only-directories)))
+        (included-directories ignore-directories)
+        (included-files ignore-files))))
+
+(defgeneric ignored-evolve-path-p (software path)
+  (:documentation "Check if PATH is an ignored evolve path in SOFTWARE.")
+  (:method ((obj project) path &aux (canonical-path
+                                     (if (project-dir obj)
+                                         (canonical-pathname
+                                          (pathname-relativize
+                                           (project-dir obj) path))
+                                         (canonical-pathname path))))
+    (ignored-path-p canonical-path
+                    :ignore-files (ignore-files obj)
+                    :ignore-directories (ignore-directories obj)
+                    :only-files (only-files obj)
+                    :only-directories (only-directories obj))))
+
+(defgeneric ignored-other-path-p (software path)
+  (:documentation "Check if PATH is an ignored other path in SOFTWARE.")
+  (:method ((obj project) path &aux (canonical-path
+                                     (if (project-dir obj)
+                                         (canonical-pathname
+                                          (pathname-relativize
+                                           (project-dir obj) path))
+                                         (canonical-pathname path))))
+    (ignored-path-p canonical-path
+                    :ignore-files (ignore-other-files obj)
+                    :ignore-directories (ignore-other-directories obj)
+                    :only-files (only-other-files obj)
+                    :only-directories (only-other-directories obj))))
 
 (defun copy-files (files)
   "Copier for `evolve-files' and `other-files' on `project' software objects."
@@ -92,22 +196,67 @@ software objects in it's `evolve-files'."))
   (declare (ignore text project))
   (error "Can only set the genome of component files of a project."))
 
-(defmethod write-genome-to-files ((project project) dir)
+(defgeneric collect-evolve-files (project)
+  (:documentation "Create the evolve files for PROJECT."))
+
+(defgeneric collect-other-files (project)
+  (:documentation
+   "Find parseable files in PROJECT that were not included in `evolve-files'.
+Assumes `evolve-files' has been initialized.  Only applies to
+non-symlink text files that don't end in \"~\" and are not ignored by
+`ignore-other-files', `ignore-other-directories', `only-other-files',
+or `only-other-directories'.")
+  (:method (obj) (declare (ignorable obj)) nil)
+  (:method ((project project))
+    ;; Create software objects for these other files.
+    (nest
+     (flet ((text-file-p (p) (eql 'text (car (file-mime-type p))))
+            (ends-in-tilde (s)
+              (let ((len (length s)))
+                (and (> len 0) (eql (elt s (1- len)) #\~))))
+            (pathname-has-symlink (p)
+              (not (equal p (uiop:resolve-symlinks p))))))
+     ;; These are represented as simple text files, for line-oriented diffs.
+     (mapcar «cons #'identity
+                   [{from-file (make-instance 'simple)}
+                    {merge-pathnames-as-file (project-dir project)}]»)
+     ;; Evolve files may have come from the build dir, but that
+     ;; doesn't matter here as we are comparing the relativized paths.
+     (remove-if {member _ (mapcar #'car (evolve-files project)) :test #'equal})
+     (mapcar {pathname-relativize (project-dir project)})
+     (remove-if
+      (lambda (p) (or (null (pathname-name p))
+		 (ends-in-tilde (pathname-name p))
+		 (ends-in-tilde (pathname-type p))
+                 (not (text-file-p p))
+		 ;; For now do not include symlinks.  In the future,
+		 ;; make links be special objects.
+		 (pathname-has-symlink p)
+		 (ignored-other-path-p project p))))
+     (uiop:directory*)
+     (merge-pathnames-as-file (project-dir project) #p"**/*.*"))))
+
+(defmethod from-file ((obj project) path)
+  (assert (probe-file path) (path) "~a does not exist." path)
+  (setf (project-dir obj) (canonical-pathname (truename path))
+        (evolve-files obj) (collect-evolve-files obj)
+        (other-files obj) (collect-other-files obj))
+  obj)
+
+(defmethod to-file :before ((project project) path)
+  ;; Don't copy supporting files if they're already in `*build-dir*'.
+  (unless (and *build-dir* (equalp (namestring path) (namestring *build-dir*)))
+    (make-build-dir (project-dir project) :path path)))
+
+(defmethod to-file ((project project) path)
+  ;; Write genomes into the relevant files.
   (handler-bind ((file-access
                   (lambda (c)
                     (warn "Changing permission from ~a to ~a"
                           (file-access-operation c) (file-access-path c))
                     (invoke-restart 'set-file-writable))))
     (loop for (file . obj) in (all-files project)
-       do (string-to-file (genome-string obj) (in-directory dir file)))))
-
-(defmethod to-file ((project project) path)
-  "Write PROJECT to the PATH directory.
-* PROJECT project to output
-* PATH directory to write the project to
-"
-  (make-build-dir-aux (project-dir project) path)
-  (write-genome-to-files project path))
+       do (to-file obj (in-directory path file)))))
 
 (defmethod size ((obj project))
   "Return summed size across all `evolve-files'."
@@ -140,7 +289,6 @@ software objects in it's `evolve-files'."))
                     mutation)))
 
 (defmethod apply-mutations ((project project) (mut mutation) n)
-  "DOCFIXME"
   (labels ((apply-mutations-single-file (evolve-file mut n)
              (setf (slot-value mut 'object) (cdr evolve-file))
              (setf (slot-value mut 'targets) nil)
@@ -168,7 +316,6 @@ software objects in it's `evolve-files'."))
           (finally (return (values results mutations))))))
 
 (defmethod apply-picked-mutations ((project project) (mut mutation) n)
-  "DOCFIXME"
   (labels ((apply-mutation-single-file (evolve-file mut)
              (setf (slot-value mut 'object) (cdr evolve-file))
              (setf (slot-value mut 'targets) nil)
@@ -194,12 +341,12 @@ software objects in it's `evolve-files'."))
           (finally (return (values results mutations))))))
 
 (defmethod crossover ((a project) (b project))
-  "Randomly pick one file in a and perform crossover with the corresponding file in b."
-
+  "Randomly pick a file in A and crossover with the corresponding file in B."
   (bind ((which (pick-file a))
          (file (car (nth which (evolve-files a))))
-         ((:values crossed point-a point-b) (crossover (cdr (nth which (evolve-files a)))
-                                                       (cdr (nth which (evolve-files b)))))
+         ((:values crossed point-a point-b)
+          (crossover (cdr (nth which (evolve-files a)))
+                     (cdr (nth which (evolve-files b)))))
          (new (copy a)))
     (setf (cdr (nth which (evolve-files new))) crossed)
     ;; Add filenames to crossover points for better stats
@@ -212,6 +359,25 @@ software objects in it's `evolve-files'."))
 (defmethod apply-to-project ((project project) function)
   "Mapcar FUNCTION over `all-files' of PROJECT."
   (values project (mapcar [function #'cdr] (all-files project))))
+
+(defgeneric project-path (project path)
+  (:documentation "Expand PATH relative to PROJECT.")
+  (:method ((obj project) path)
+    (replace-all (namestring (canonical-pathname path))
+                 (-> (if (and *build-dir*
+                              (search (namestring *build-dir*)
+                                      (namestring
+                                       (ensure-directory-pathname
+                                        (canonical-pathname path)))))
+                         *build-dir*
+                         (project-dir obj))
+                   (canonical-pathname)
+                   (ensure-directory-pathname)
+                   (namestring))
+                 (-> (project-dir obj)
+                   (canonical-pathname)
+                   (ensure-directory-pathname)
+                   (namestring)))))
 
 
 ;;;; Diffs on projects
@@ -266,69 +432,66 @@ threads by creating separate build directory per thread.")
 
 (defun make-build-dir (src-dir &key (path (temp-file-name)))
   "Create a temporary copy of a build directory for use during evolution."
-  (restart-case (make-build-dir-aux src-dir path)
-    (retry-make-build-dir ()
-      :report "Retry `make-build-dir' with new temp dir."
-      (make-build-dir src-dir))
-    (new-path (new-path)
-      :report "Retry `make-build-dir' to a new interactively specified path."
-      :interactive (lambda ()
-                     (princ "Path: " *query-io*)
-                     (list (read-line  *query-io*)))
-      (make-build-dir src-dir :path new-path))))
-
-(defun make-build-dir-aux (src-dir path)
-  "Auxiliary function invoked from MAKE-BUILD-DIR, which wraps
-this call in error handling code. See that function for argument
-meanings."
   (let ((dir (ensure-directory-pathname path)))
     ;; Verify parent directory exists, otherwise the copy will fail.
     (ensure-directories-exist (pathname-parent-directory-pathname dir))
-    ;; Copy from src-dir into path.
-    (multiple-value-bind (stdout stderr errno)
-        (shell "cp -pr ~a ~a" (namestring src-dir) (namestring dir))
-      (declare (ignorable stdout))
-      (assert (zerop errno) (src-dir path)
-              "Creation of build directory failed with: ~a" stderr))
-    dir))
+    (restart-case
+        (nest
+         (prog1 dir)
+         (when src-dir)
+         (multiple-value-bind (stdout stderr errno)
+             (if (probe-file path) ; Different copy if directory already exists.
+                 (shell "cp -pr ~a/* ~a/" (namestring src-dir) (namestring dir))
+                 (shell "cp -pr ~a ~a" (namestring src-dir) (namestring dir)))
+           (declare (ignorable stdout)))
+         (assert (zerop errno) (src-dir path)
+                 "Creation of build directory failed with: ~a" stderr))
+      (retry-make-build-dir ()
+        :report "Retry `make-build-dir' with new temp dir."
+        (make-build-dir src-dir))
+      (new-path (new-path)
+        :report "Retry `make-build-dir' to a new interactively specified path."
+        :interactive (lambda ()
+                       (princ "Path: " *query-io*)
+                       (list (read-line  *query-io*)))
+        (make-build-dir src-dir :path new-path)))))
 
 (defun full-path (rel-path)
-  "Prepend current build directory to a relative path."
+  "Prepend `*build-dir*' to REL-PATH."
   (assert *build-dir*)
   (in-directory *build-dir* rel-path))
 
-(defmacro with-build-dir ((build-dir) &body body)
-  "Rebind *build-dir* within BODY"
-  `(let ((*build-dir* ,build-dir))
-     ,@body))
+(defmethod phenome :around
+    ((obj project) &key
+                     (bin (temp-file-name))
+                     (build-dir (or *build-dir* (temp-file-name))))
+  (let ((keep-file-p (probe-file build-dir)))
+    ;; Ensure source and required artifacts are present in build-dir.
+    (to-file obj build-dir)
+    ;; Using `call-next-method' with arguments to ensure build-dir has
+    ;; the same value in the main `phenome' method.
+    (unwind-protect (call-next-method obj :bin bin :build-dir build-dir)
+      (unless keep-file-p (sel/utility::ensure-temp-file-free build-dir)))))
 
-(defmacro with-temp-build-dir ((src-dir) &body body)
-  "Create a temporary copy of src-dir, and rebind *build-dir* to that
-path within BODY."
-  (let ((build-dir (gensym)))
-    `(let ((,build-dir (when ,src-dir (make-build-dir ,src-dir))))
-       (unwind-protect (with-build-dir (,build-dir) ,@body)
-         (delete-directory-tree ,build-dir :validate t)))))
-
-(defmethod phenome ((obj project) &key (bin (temp-file-name)))
+(defmethod phenome
+    ((obj project) &key
+                     (bin (temp-file-name))
+                     (build-dir (or *build-dir* (temp-file-name))))
   "Build the software project OBJ and copy build artifact(s) to BIN."
-  (assert *build-dir* (*build-dir*)
-          "*build-dir* must be set prior to building a project.")
-  (write-genome-to-files obj *build-dir*)
-
-  ;; Build the object and copy it to desired location.
+  ;; Build.
   (multiple-value-bind (stdout stderr exit)
-      (shell "cd ~a && ~a" *build-dir* (build-command obj))
+      (shell "cd ~a && ~a" build-dir (build-command obj))
     (restart-case
         (if (zerop exit)
             (progn
               (when (> (length (artifacts obj)) 1)
                 (shell "mkdir ~a" bin))
+              ;; Copy artifacts to BIN.
               (iter (for artifact in (artifacts obj))
                     (shell "cp -r ~a ~a"
-                           (namestring (full-path artifact)) bin)))
+                           (namestring (in-directory build-dir artifact)) bin)))
             (error (make-condition 'phenome
-                     :text stderr :obj obj :loc *build-dir*)))
+                     :text stderr :obj obj :loc build-dir)))
       (retry-project-build ()
         :report "Retry `phenome' on OBJ."
         (phenome obj :bin bin))
@@ -336,4 +499,4 @@ path within BODY."
         :report "Allow failure returning NIL for bin."
         (setf bin nil)))
     (values bin exit stderr stdout
-            (mapcar [#'full-path #'first] (evolve-files obj)))))
+            (mapcar [{in-directory build-dir} #'first] (evolve-files obj)))))

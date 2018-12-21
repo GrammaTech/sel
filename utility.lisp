@@ -33,7 +33,9 @@
                 :define-foreign-type
                 :defcfun
                 :with-foreign-object
-                :with-foreign-slots)
+                :with-foreign-slots
+                :null-pointer
+                :null-pointer-p)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
@@ -72,6 +74,7 @@
   (:export
    :infinity
    ;; OS
+   :file-mime-type
    :file-to-string
    :use-encoding
    :file-to-bytes
@@ -100,7 +103,7 @@
    :with-cwd
    :pwd
    :cd
-   :ensure-path-is-string
+   :pathname-relativize
    :in-directory
    :directory-p
    :canonical-pathname
@@ -371,6 +374,13 @@
                      (uiop::merge-pathnames dir-name prefix)
                      dir-name))))
 
+(defun file-mime-type (path)
+  "Return the mime type of PATH as a list of two symbols.
+The Unix `file' command is used, specifically \"file -b --mime-type PATH\"."
+  (assert (probe-file path) (path) "No file or directory at ~S" path)
+  (nest (mapcar #'intern) (split-sequence #\/) (string-upcase) (trim-whitespace)
+        (shell "file -b --mime-type ~a" (namestring path))))
+
 (defun file-to-string
     (pathname &key (external-format
                     (encoding-external-format (detect-encoding pathname))))
@@ -455,7 +465,7 @@ SET-UTF8-ENCODING. "
 (defvar *temp-dir* nil
   "Set to non-nil for a custom temporary directory.")
 
-(defun temp-file-name (&optional ext)
+(defun temp-file-name (&optional type)
   (let ((base #+clisp
           (let ((stream (gensym)))
             (eval `(with-open-stream
@@ -472,12 +482,12 @@ SET-UTF8-ENCODING. "
           (system:make-temp-file-name nil *temp-dir*)
           #-(or sbcl clisp ccl allegro ecl)
           (error "no temporary file backend for this lisp.")))
-    (if ext
+    (if type
         (if (pathnamep base)
             (namestring (make-pathname :directory (pathname-directory base)
                                        :name (pathname-name base)
-                                       :type ext))
-            (concatenate 'string base "." ext))
+                                       :type type))
+            (concatenate 'string base "." type))
         (if (pathname base)
             (namestring base)
             base))))
@@ -538,12 +548,11 @@ may lose the original working directory."
     (setf *default-pathname-defaults* pathname)
     (chdir pathname)))
 
-(defmacro with-temp-file-of (spec str &rest body)
-  "SPEC should be a list of the variable used to reference the file
-and an optional extension."
-  `(let ((,(car spec) (temp-file-name ,(second spec))))
-     (unwind-protect (progn (string-to-file ,str ,(car spec)) ,@body)
-       (when (probe-file ,(car spec)) (delete-file ,(car spec))))))
+(defmacro with-temp-file-of ((variable &optional type) string &rest body)
+  "Execute BODY with STRING in a temporary file whose path is in VARIABLE."
+  `(let ((,variable (temp-file-name ,type)))
+     (unwind-protect (progn (string-to-file ,string ,variable) ,@body)
+       (when (probe-file ,variable) (delete-file ,variable)))))
 
 (defmacro with-temp-file-of-bytes (spec bytes &rest body)
   "SPEC should be a list of the variable used to reference the file
@@ -572,12 +581,18 @@ of DIR and execute BODY"
                         (if (listp s) s (list s)))
                       specs) body)))
 
-(defun ensure-path-is-string (path)
-  (cond
-    ((stringp path) path)
-    ((pathnamep path) (namestring path))
-    (:otherwise (error "Path not string ~S." path))))
+(defun pathname-relativize (root-path path)
+  "Return PATH relative to ROOT-PATH."
+  (replace-all
+   (namestring (canonical-pathname path))
+   (namestring (canonical-pathname (ensure-directory-pathname root-path)))
+   ""))
 
+;;; TODO: Refactor `in-directory'.  This should probably be combined
+;;; with `merge-pathnames-as-file' and `merge-pathnames-as-directory'.
+;;; I believe the behavior of this function (to call
+;;; `ensure-directory' on all but the last argument) is probably what
+;;; most users expect of the other two functions.
 (defun in-directory (directory path)
   "Return PATH based in DIRECTORY.
 Uses `ensure-directory-pathname' to force DIRECTORY to be a directory
@@ -878,10 +893,13 @@ Wraps around SBCL- or CCL-specific representations of external processes."))
 
 (define-condition shell-command-failed (error)
   ((commmand :initarg :command :initform nil :reader command)
-   (exit-code :initarg :exit-code :initform nil :reader exit-code))
+   (exit-code :initarg :exit-code :initform nil :reader exit-code)
+   (stderr :initarg :stderr :initform nil :reader stderr))
   (:report (lambda (condition stream)
-             (format stream "Shell command failed with status ~a: \"~a\""
-                     (exit-code condition) (command condition)))))
+             (format stream "Shell command ~S failed with [~A]:~%~S~&"
+                     (command condition)
+                     (exit-code condition)
+                     (stderr condition)))))
 
 (defun shell (control-string &rest format-arguments &aux input)
   "Apply CONTROL-STRING to FORMAT-ARGUMENTS and execute the result with a shell.
@@ -959,8 +977,9 @@ Optionally print debug information if `*shell-debug*' is non-nil."
                      (not (find errno *shell-non-error-codes*)))
                 (find errno *shell-error-codes*))
         (restart-case (error (make-condition 'shell-command-failed
+                               :command cmd
                                :exit-code errno
-                               :command cmd))
+                               :stderr stderr-str))
           (ignore-shell-error () "Ignore error and continue")))
       (values stdout-str stderr-str errno))))
 
@@ -2445,6 +2464,14 @@ that function may be declared.")
 
 ;;;; Iteration helpers
 (defmacro-clause (CONCATENATING expr &optional INTO var INITIAL-VALUE (val ""))
+  ;; Use of this helper is *NOT* recommended for potentially large
+  ;; lists of strings as the repeated concatenation continually copies
+  ;; the string leading to very bad performance.  A better option
+  ;; would be the following:
+  ;;
+  ;;     (with-output-to-string (out)
+  ;;       (iter #|...foo...|#
+  ;;         (write-string #|...bar|# out)))
   `(reducing ,expr by {concatenate 'string} into ,var initial-value ,val))
 
 

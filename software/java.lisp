@@ -160,7 +160,7 @@ insert)."
   "Compiles the software object to a jar and converts it to a linux executable"
   (with-temp-dir (sandbox)
     (with-cwd (sandbox)
-      (let ((bin (ensure-path-is-string bin))
+      (let ((bin (namestring bin))
             (file-path (namestring (make-pathname :directory sandbox
                                                   :name (file-name obj)
                                                   :type (ext obj)))))

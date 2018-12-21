@@ -659,15 +659,8 @@ Class @code{project}
 
 @itemize
 @item Class @refapiclass{project}
-@item Macros
-  @itemize
-  @item @refapimacro{with-build-dir}
-  @item @refapimacro{with-temp-build-dir}
-  @end itemize
-
 @item Functions
   @itemize
-  @item @refapifunction{full-path}
   @item @refapifunction{make-build-dir}
   @end itemize
 
@@ -1308,9 +1301,5 @@ Class @code{clang-expression}
   @itemize
   @item @refapifunction{expression-intern}
   @item @refapifunction{expression-to-c}
-  @end itemize
-@item Methods
-  @itemize
-@c  @item @refapimethod{expression, expression ((obj clang) (ast clang-ast))}
   @end itemize
 @end itemize

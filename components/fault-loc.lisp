@@ -225,7 +225,7 @@ which maps (test-casel: position)"
   "DOCFIXME
 * SORTED DOCFIXME
 "
-  (with-open-file (stream (merge-pathnames "/tmp/GP_fault_loc_sorted")
+  (with-open-file (stream (pathname "/tmp/GP_fault_loc_sorted")
                           :direction :output :if-exists :supersede)
     (loop :for stmt :in sorted
        :do (format stream "~a~%" (pp-stmt-counts stmt)))))
