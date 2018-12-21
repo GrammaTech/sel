@@ -74,6 +74,7 @@
   (:export
    :infinity
    ;; OS
+   :file-mime-type
    :file-to-string
    :use-encoding
    :file-to-bytes
@@ -372,6 +373,13 @@
     (ext:mkstemp (if prefix
                      (uiop::merge-pathnames dir-name prefix)
                      dir-name))))
+
+(defun file-mime-type (path)
+  "Return the mime type of PATH as a list of two symbols.
+The Unix `file' command is used, specifically \"file -b --mime-type PATH\"."
+  (assert (probe-file path) (path) "No file or directory at ~S" path)
+  (nest (mapcar #'intern) (split-sequence #\/) (string-upcase) (trim-whitespace)
+        (shell "file -b --mime-type ~a" (namestring path))))
 
 (defun file-to-string
     (pathname &key (external-format
