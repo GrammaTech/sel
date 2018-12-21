@@ -33,7 +33,9 @@
                 :define-foreign-type
                 :defcfun
                 :with-foreign-object
-                :with-foreign-slots)
+                :with-foreign-slots
+                :null-pointer
+                :null-pointer-p)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
