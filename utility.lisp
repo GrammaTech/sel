@@ -136,6 +136,7 @@
    :parse-number
    :parse-numbers
    :trim-whitespace
+   :trim-right-whitespace
    :make-terminal-raw
    :make-terminal-unraw
    :ioctl
@@ -1094,6 +1095,11 @@ The SHELL command is executed with `*bash-shell*'."
 (defun trim-whitespace (str)
   (string-trim '(#\Space #\Tab #\Newline #\Linefeed)
                str))
+
+(defun trim-right-whitespace (str)
+  (string-right-trim '(#\Space #\Tab #\Newline #\Linefeed)
+		     str))
+
 
 (defun make-terminal-raw ()
   "Place the terminal into 'raw' mode, no echo or delete.

@@ -44,6 +44,8 @@
            :to-ast
            :ast-later-p
 	   :map-ast
+	   :ast-meld?
+	   :ast-class-meld?
            :replace-in-ast))
 (in-package :software-evolution-library/software/ast)
 (in-readtable :curry-compose-reader-macros)
@@ -827,3 +829,16 @@ modile +AST-HASH-BASE+"
   (setf (ast-stored-hash ast) nil)
   (mapc #'ast-clear-hash (ast-children ast))
   ast)
+
+(defgeneric ast-meld? (ast)
+  (:documentation "Returns true if the children of this AST are to be combined when a merge conflict is found during patching."))
+
+(defmethod ast-meld? ((ast ast))
+  (ast-class-meld? (ast-class ast) ast))
+
+(defgeneric ast-class-meld? (ast-class ast)
+  (:documentation "Dispatches on the ast-class of an ast to compute ast-meld?"))
+
+(defmethod ast-class-meld? ((ast-class t) (ast t)) nil)
+
+(defmethod ast-class-meld? ((ast-class (eql :TopLevel)) ast) t)
