@@ -441,8 +441,9 @@ otherwise.
 * AST node to find the immediate children of
 "
   (declare (ignorable obj)) ;; TODO: Remove obj as a parameter
+  ;; Q: can we share structure with the list from AST-CHILDREN?
   (iter (for child in (ast-children ast))
-        (when (subtypep (type-of child) 'ast)
+        (when (typep child 'ast)
           (collect child))))
 
 (defmethod get-vars-in-scope ((obj parseable) (ast ast)

@@ -62,7 +62,7 @@
 ;;; TODO: I don't see why `save-to' is needed instead of just using `to-file'.
 (defgeneric save-to (soft out-dir sub))
 
-(defmethod save-to ((soft project) out-dir sub)
+(defmethod save-to ((soft t) out-dir sub)
   (let ((dest (make-pathname :directory (append out-dir (list sub)))))
     (unless (probe-file dest)
       (to-file (copy soft) dest))))
@@ -107,7 +107,7 @@
               (append
                (when flags
                  (list :flags flags))
-               (when (and compiler (member language '(clang clang-project)))
+               (when (and compiler (member language '(clang #| clang-project |#)))
                  (list :compiler compiler))
                (when compilation-database
                  (list :compilation-database compilation-database))
@@ -123,7 +123,7 @@
             (lisp-implementation-type) (lisp-implementation-version))
   (declare (ignorable quiet verbose))
   (when help (show-help-for-ast-diff))
-  (setf *note-out* *error-output*)
+  (setf *note-out* (list *error-output*))
   (unless (every #'resolve-file (list source1 source2))
     (exit-command ast-diff 2 (error "Missing source.")))
   (unless language
@@ -156,7 +156,7 @@
             (lisp-implementation-type) (lisp-implementation-version))
   (declare (ignorable quiet verbose raw no-color))
   (when help (show-help-for-ast-merge))
-  (setf *note-out* *error-output*)
+  (setf *note-out* (list *error-output*))
   (unless (every #'resolve-file (list source1 source2 source3))
     (exit-command ast-merge 2 (error "Missing source.")))
   (setf out-dir (or out-dir (resolve-out-dir-from-source source1))
@@ -180,11 +180,14 @@
   (note 3 "Performing merge")
   (multiple-value-bind (new-merged unstable)
       (apply #'converge
-             (mapcar
-              {create-software-from
-               _ language flags compiler compilation-database build-command}
-              source1 source2 source3))
-    (save-to new-merged out-dir "merged")
+	     (mapcar
+	      { create-software-from
+	      _ language flags compiler compilation-database build-command}
+	      (list source1 source2 source3)))
+    (if (directory-p source1)
+	(save-to new-merged out-dir "merge")
+	(to-file new-merged (make-pathname :directory out-dir
+					   :name "merge")))
     (if (not unstable)
 	(note 1 "No merge conflicts")
 	(note 0 "Merge conflicts:~%~a~%" unstable))
