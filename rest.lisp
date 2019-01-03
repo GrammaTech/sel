@@ -261,7 +261,9 @@
    :software-evolution-library/software/parseable
    ;; TODO: Maybe remove this dependency.
    :software-evolution-library/software/asm-super-mutant
-   :software-evolution-library/software/clang)
+   :software-evolution-library/software/clang
+   :software-evolution-library/command-line)
+  (:shadowing-import-from :clack :clackup :stop)
   (:export :lookup-session))
 (in-package :software-evolution-library/rest)
 (in-readtable :curry-compose-reader-macros)
@@ -819,3 +821,32 @@ in a population"))
                   (apply 'collect-traces soft test-suite
                                   (if inst-bin (list :bin inst-bin))))))
       (format nil "~D" (sel::oid soft))))
+
+(define-command rest-server
+    (port &spec +common-command-line-options+ &aux handler)
+  "Run the SEL rest server."
+  #.(format nil
+            "~%Built from SEL ~a, and ~a ~a.~%"
+            +software-evolution-library-version+
+            (lisp-implementation-type) (lisp-implementation-version))
+  (declare (ignorable quiet verbose load eval out-dir read-seed save-seed))
+  (flet ((shutdown (&optional (message "quit") (errno 0))
+           (format t "Stopping server on ~a~%" message)
+           (stop handler)
+           (exit-command rest-server errno)))
+    (when help (show-help-for-rest-server) (exit-command rest-server 0))
+    (setf handler (clackup (make-clack-app) :port (parse-integer port)))
+    ;; From https://github.com/LispCookbook/cl-cookbook/blob/master/scripting.md
+    (handler-case
+        (iter (for char = (read-char))
+              (when (or (eql char #\q) (eql char #\Q))
+                (shutdown)))
+      ;; Catch a user's C-c
+      (#+sbcl sb-sys:interactive-interrupt
+        #+ccl  ccl:interrupt-signal-condition
+        #+clisp system::simple-interrupt-condition
+        #+ecl ext:interactive-interrupt
+        #+allegro excl:interrupt-signal
+        () (shutdown "abort" 0))
+      (error (e)
+        (shutdown (format nil "unexpected error ~S" e) 1)))))
