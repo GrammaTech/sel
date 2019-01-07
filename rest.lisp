@@ -268,6 +268,9 @@
 (in-package :software-evolution-library/rest)
 (in-readtable :curry-compose-reader-macros)
 
+(setf snooze::*catch-http-conditions* nil)
+(setf snooze::*catch-errors* :verbose)
+
 (defvar *session-id-generator* 1000
   "Start session ids at 1001 and increment")
 
@@ -357,7 +360,7 @@
   	sym
 	string))
     string))
-
+#|
 (defroute
     soft (:post "application/json" &key cid (sid nil) (type nil))
     (declare (ignore sid))
@@ -387,6 +390,47 @@
 	    ;; store the software obj with the session
 	    (push (format-genome software) (session-software client))
 	    (format nil "~D" (sel::oid software))))))
+|#
+
+(defroute
+    soft (:post "application/json" &key cid (sid nil) (type nil))
+    (declare (ignore sid))
+    (let ((json (handler-case
+		    (json:decode-json-from-string (payload-as-string))
+		  (error (e)
+		    (http-condition 400 "Malformed JSON (~a)!" e)))))
+;      (setf *json* json)
+;      (format t "json: ~A~%" *json*)
+;      (format t "client: ~A~%" (lookup-session cid))
+;      (format t "path: ~A~%" (cdr (assoc :path *json*)))
+;      (format t "url: ~A~%" (cdr (assoc :url *json*)))
+;      (format t "code: ~A~%" (cdr (assoc :code *json*)))
+;      (format t "software-type: ~A~%" (convert-symbol type))
+      (handler-case 
+	  (let* ((client (lookup-session cid))
+		 (path (cdr (assoc :path json)))
+		 (url (cdr (assoc :url json)))
+		 (code (cdr (assoc :code json)))
+		 (software-type (convert-symbol type))) ;conv. string to symbol
+	    (declare (ignore url code)) ; not implemented yet
+	    (when path
+	      (let ((software
+		     (from-file
+		      (apply 'make-instance
+			     software-type
+			     (iter (for x in json)
+				   (unless
+				       (member (car x)
+					       '(:path :project-dir
+						 :url :code :software-id))
+				     (collect (car x))
+				     (collect (convert-symbol (cdr x))))))
+		      path)))
+		;; store the software obj with the session
+		(push (format-genome software) (session-software client))
+		(format nil "~D" (sel::oid software)))))
+	(error (e)
+	  (http-condition 400 "Error in software POST method (~a)!" e)))))
 
 (defun find-software (client sid)
   "Return the population from the client record (if found)."
@@ -850,3 +894,32 @@ in a population"))
         () (shutdown "abort" 0))
       (error (e)
         (shutdown (format nil "unexpected error ~S" e) 1)))))
+
+;;;
+;;; Catch-all explainer for any error that gets sent back
+;;;
+(defmethod explain-condition ((error error) (resource t)
+			      (ct snooze-types:text/plain))
+  (with-output-to-string (s)
+    (format s
+     "Error occurred processing ~A resource object via REST API: ~A"
+     resource (princ-to-string error))))
+
+;;;
+;;; Catch-all explainer for any http-condition that gets sent back
+;;;
+(defmethod explain-condition ((condition http-condition) (resource t)
+			      (ct snooze-types:text/plain))
+  (with-output-to-string (s)
+    (format s
+     "Error occurred processing ~A resource object via REST API: ~A"
+     resource (princ-to-string condition))))
+
+;;;
+;;; Specific explainer for soft resource (software object)
+(defmethod explain-condition ((error error) (resource (eql #'soft))
+			      (ct snooze-types:text/plain))
+  (with-output-to-string (s)
+    (format s
+     "Error occurred processing SOFT (Software) object via REST API: ~A"
+     (princ-to-string error))))
