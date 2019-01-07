@@ -2,6 +2,9 @@ import requests
 import json
 import pprint
 
+# useful pretty printer
+pp = pprint.PrettyPrinter(indent=2)
+
 # beginning of the URLs for all the SEL APIs
 url_base = 'http://127.0.0.1:9003/'
 
@@ -111,10 +114,13 @@ def update_population(name, sids):
 # mutation type and targets.
 # Returns the mutation oid (object id).
 #
-def create_mutation(mutation_type, oid, targets):
+def create_mutation(mutation_type, oid, targets, scion):
     global client_id
     return oid_result(requests.post(url_('mut?cid={}'.format(client_id)),
-                             json = { 'type': mutation_type, 'sid': oid, 'targets': targets },
+                             json = { 'type': mutation_type,
+                                      'sid': oid,
+                                      'targets': targets,
+                                      'scion': "SCION:"+ str(scion) },
                          headers = { 'Content-Type': 'application/json'}))
 
 # Get all mutation objects associated with the current client.
@@ -272,10 +278,12 @@ def get_scion(oid):
 # applied to the specified scion.
 # Returns the trace results name.
 #
-def create_trace_results(name, software_oid, scion_oid):
+def create_trace_results(name, software_oid, orig_software_oid, scion_oid):
     global client_id
     return str_result(requests.post(url_('traceres?cid={}&name="{}"'.format(client_id, name)),
-                             json = { 'sid': software_oid, 'scion-oid': scion_oid },
+                             json = { 'sid': software_oid,
+                                      'osid': orig_software_oid,
+                                      'scion-oid': scion_oid },
                          headers = { 'Content-Type': 'application/json'}))
 
 # Get all trace results objects associated with the current client
@@ -292,3 +300,29 @@ def get_trace_results(name):
     global client_id
     return requests.get(url_('traceres?cid={}&name="{}"'.format(client_id, name)),
                          headers = { 'Accept': 'application/json'}).json()
+
+#
+# Mutated/Injected software management
+#
+
+# Create a new software object, which is a copy of the argument software,
+# with mutations.
+# Returns the new software oids.
+#
+def create_injections(software_oid, mutation_oid):
+    global client_id
+    return requests.post(
+        url_('inject?cid={}&sid={}&mid={}'.format(
+            client_id, software_oid, mutation_oid)),
+        headers = { 'Content-Type': 'application/json'}).json()
+
+#
+# Write software to file
+#
+def write_software(software_oid, path):
+    global client_id
+    return requests.post(url_('writesoft?cid={}&sid={}'.format(
+        client_id, software_oid)),
+                         json = {"path": path},
+                         headers = { 'Content-Type': 'application/json'})
+
