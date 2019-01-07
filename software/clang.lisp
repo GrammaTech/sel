@@ -418,7 +418,7 @@ if not given.
                                  "~a" "~s") value))))
     (apply #'make-statement class :generic (list text) rest)))
 
-(defun make-operator (syn-ctx opcode child-asts &rest rest)
+(defun make-operator (syn-ctx opcode child-asts &rest rest &key full-stmt &allow-other-keys)
   "Create a unary or binary operator AST.
 * SYN-CTX surrounding syntactic context of the AST node
 * OPCODE name of the operation for Unary/BinaryOp AST nodes
@@ -433,7 +433,9 @@ if not given.
                  (list (first child-asts)
                        (format nil " ~a " opcode)
                        (second child-asts)))))
-    (apply #'make-statement class syn-ctx children :opcode opcode rest)))
+    (apply #'make-statement class syn-ctx (if full-stmt (append children (list ";"))
+					      children)
+	   :opcode opcode rest)))
 
 (defun make-block (children &rest rest)
   "Create a compount statement AST.
@@ -536,8 +538,9 @@ if not given.
                                (if initializer
                                    (list (format nil "~a ~a = "
                                                  (type-decl-string type) name)
-                                         initializer)
-                                   (list (format nil "~a ~a"
+                                         initializer
+					 ";")
+                                   (list (format nil "~a ~a;"
                                                  (type-decl-string type) name)))
                                :types (list (type-hash type))
                                :declares decls))
