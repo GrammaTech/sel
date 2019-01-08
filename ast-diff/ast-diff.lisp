@@ -731,7 +731,7 @@ A diff is a sequence of actions as returned by `ast-diff' including:
 (defmethod ast-patch ((original null) (script null) &key &allow-other-keys)
   nil)
 
-(defmethod ast-patch ((ast ast) script &rest keys &key delete? (meld? (ast-meld? ast)) &allow-other-keys)
+(defmethod ast-patch ((ast ast) script &rest keys &key delete? (meld? (ast-meld-p ast)) &allow-other-keys)
   (declare (ignorable delete? meld?))
   (let* ((children (ast-children ast))
 	 ;; For now, always meld

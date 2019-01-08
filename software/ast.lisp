@@ -44,7 +44,7 @@
            :to-ast
            :ast-later-p
 	   :map-ast
-	   :ast-meld?
+	   :ast-meld-p
 	   :ast-class-meld?
            :replace-in-ast))
 (in-package :software-evolution-library/software/ast)
@@ -830,14 +830,16 @@ modile +AST-HASH-BASE+"
   (mapc #'ast-clear-hash (ast-children ast))
   ast)
 
-(defgeneric ast-meld? (ast)
-  (:documentation "Returns true if the children of this AST are to be combined when a merge conflict is found during patching."))
+(defgeneric ast-meld-p (ast)
+  (:documentation
+   "Returns true if the children of AST are to be combined on merge conflict."))
 
-(defmethod ast-meld? ((ast ast))
+(defmethod ast-meld-p ((ast ast))
   (ast-class-meld? (ast-class ast) ast))
 
 (defgeneric ast-class-meld? (ast-class ast)
-  (:documentation "Dispatches on the ast-class of an ast to compute ast-meld?"))
+  (:documentation
+   "Dispatches on the ast-class of an ast to compute `ast-meld-p'"))
 
 (defmethod ast-class-meld? ((ast-class t) (ast t)) nil)
 

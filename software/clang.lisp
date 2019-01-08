@@ -338,7 +338,7 @@ See http://clang.llvm.org/."))
       (print-unreadable-object (obj stream :type t)
         (format stream "~a" (ast-class obj)))))
 
-(defmethod ast-class-meld? ((ast-class (eql :CompoundStmt)) ast) t)
+(defmethod ast-class-meld-p ((ast-class (eql :CompoundStmt)) ast) t)
 
 (defun make-statement (class syn-ctx children
                        &key expr-type full-stmt guard-stmt opcode
