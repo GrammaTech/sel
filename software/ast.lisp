@@ -44,6 +44,7 @@
            :to-ast
            :ast-later-p
 	   :map-ast
+	   :map-ast-strings
 	   :ast-meld-p
 	   :ast-class-meld?
            :replace-in-ast))
