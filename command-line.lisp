@@ -167,25 +167,27 @@ Optional DESCRIPTION is added to the path."
 
 (defun resolve-test-script-from-test-script (test-script test-dir
 					     &aux result)
-  "FIXME
+  "Ensure that TEST-SCRIPT exists and is within TEST-DIR.
 
 * TEST-SCRIPT FIXME
 * TEST-DIR FIXME
 * RESULT FIXME
 "
-  (let ((test-script-path
-         (canonical-pathname
-          (merge-pathnames-as-file (ensure-directory-pathname test-dir)
-                                   (car (split-sequence #\Space
-                                                        test-script))))))
+  (let ((test-dir-path (probe-file (canonical-pathname test-dir)))
+        (test-script-path
+         (probe-file ; <- Required for canonical path w.r.t. symlinks.
+          (canonical-pathname
+           (merge-pathnames-as-file (ensure-directory-pathname test-dir)
+                                    (car (split-sequence #\Space
+                                           test-script)))))))
     (assert (probe-file test-script-path)
             (test-script)
             "Test script ~S does not exist." test-script-path)
-    (assert (search (pathname-directory test-dir)
+    (assert (search (pathname-directory test-dir-path)
                     (pathname-directory test-script-path)
                     :test #'equal)
             (test-script-path)
-            "Test script must be in a subdirectory of ~S" test-dir)
+            "Test script must be in a subdirectory of ~S" test-dir-path)
 
     (setf result (format nil "~{~a~^ ~}"
                          (append (list test-script-path)
