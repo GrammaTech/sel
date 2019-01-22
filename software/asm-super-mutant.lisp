@@ -194,12 +194,44 @@
 ;;;   further fitness tests, or cause the whole fitness program to crash,
 ;;;   resulting in all variants to come back as +worst-c-fitness+.
 ;;;
+;;; @subsection Installing PAPI on Ubuntu
+;;; Fitness evaluation requires the PAPI component and the Linux Perf
+;;; functionality. Building the fitness evaluation program (on the fly
+;;; during fitness evaluation) requires a C program to compile and link
+;;; to PAPI. This also requires a .h file to compile.
+;;;
+;;; To install papi:
+;;;
+;;;      sudo apt-get install papi-tools
+;;;
+;;; To install perf:
+;;;
+;;;     sudo apt-get install linux-tools-common linux-tools-generic linux-tools-`uname -r`
+;;;
+;;; To get necessary include (.h) file for compiling C harness with PAPI
+;;; (needed to perform fitness evaluation):
+;;;
+;;;      sudo apt-get install libpapi-dev
+;;;
+;;; Then you should be able to enter
+;;;
+;;; papi_avail
+;;;
+;;; and see a list of available PAPI events.
+;;; ASM-SUPER-MUTANT requires the use of the PAPI_TOT_INS event (total number
+;;; of instructions executed).
+;;; After installation, the PAPI library should be found in one of these
+;;; locations:
+;;;     /usr/lib/x86_64-linux-gnu/libpapi.so
+;;;     /usr/lib/libpapi.so.5.6.1
+;;;
 ;;; @texi{asm-super-mutant}
 
 (defpackage :software-evolution-library/software/asm-super-mutant
   (:nicknames :sel/software/asm-super-mutant :sel/sw/asm-super-mutant)
   (:use :common-lisp
         :alexandria
+	:command-line-arguments
         :arrow-macros
         :named-readtables
         :curry-compose-reader-macros
@@ -207,6 +239,8 @@
         :split-sequence
         :software-evolution-library
         :software-evolution-library/utility
+	:software-evolution-library/command-line
+	:software-evolution-library/components/lexicase
         :software-evolution-library/software/asm
         :software-evolution-library/software/asm-heap
         :software-evolution-library/software/super-mutant)
@@ -244,6 +278,11 @@
     :accessor var-table
     :initform nil
     :documentation "Vector of var-rec (data/address records)")
+   (bss-segment
+    :initarg :bss-segment
+    :accessor bss-segment
+    :initform nil
+    :documentation "Address of bss segment in original executable")
    (target-name
     :initarg :target-name
     :accessor target-name
@@ -275,13 +314,18 @@
     :initarg :io-dir
     :accessor io-dir
     :initform nil
-    :documentation "Directory containing I/O files")
+    :documentation "Directory containing I/O files, named for the functions.")
+   (io-file
+    :initarg :io-file
+    :accessor io-file
+    :initform nil
+    :documentation "If this is specified, use this file (ignore io-dir).")
    (fitness-harness
     :initarg :fitness-harness
     :accessor fitness-harness
     :initform "./asm-super-mutant-fitness.c"
     :documentation "Pathname to the fitness harness file (C program source)"))
-   (:documentation
+  (:documentation
    "Combine SUPER-MUTANT capabilities with ASM-HEAP framework."))
 
 ;; C 64-bit unsigned long MAXINT, is the worst possible fitness score
@@ -347,7 +391,7 @@
   ;; if target-name non-nil, set the target
   (declare (ignore file))
   (if (target-name asm)
-    (target-function-name asm (target-name asm)))
+      (target-function-name asm (target-name asm)))
   asm)
 
 ;;;
@@ -669,10 +713,12 @@ a symbol, the SYMBOL-NAME of the symbol is used."
        (function-index-entry-end-address index-entry))
       (load-io-file
        asm
-       (merge-pathnames
-	(pathname (io-dir asm))
-	(make-pathname :name function-name)))
+       (or (and (io-file asm) (pathname (io-file asm)))
+	   (merge-pathnames
+	    (pathname (io-dir asm))
+	    (make-pathname :name function-name))))
       (setf (target-info asm) index-entry))))
+
 
 (defun find-main-line (asm-super)
   (find "$main:" (genome asm-super) :key 'asm-line-info-text :test 'equal))
@@ -869,11 +915,22 @@ a symbol, the SYMBOL-NAME of the symbol is used."
     (insert-new-line asm-variants "" (length (genome asm-variants)))))
 
 (defun add-bss-section (asm-variants asm-super)
-  (insert-new-lines
-   asm-variants
-   (cons "section .seldata noexec write align=32"
-	 (cdr (lines (extract-section asm-super ".BSS"))))
-   (length (genome asm-variants))))
+  ;; if bss section found, add it
+  (let ((bss (extract-section asm-super ".BSS")))
+    (if bss
+	(insert-new-lines
+	 asm-variants
+	 (cons "section .seldata noexec write align=32"
+	       (cdr (lines (extract-section asm-super ".BSS"))))
+	 (length (genome asm-variants)))
+	(insert-new-lines
+	 asm-variants
+	 (list "section .seldata noexec write align=32"
+	"    times 16 db 0"
+	"    times  8 db 0"
+	"    times  8 db 0"
+	"    times  8 db 0")
+	 (length (genome asm-variants))))))
 
 (defun add-return-address-vars (asm-variants)
   (insert-new-lines
@@ -974,13 +1031,16 @@ a symbol, the SYMBOL-NAME of the symbol is used."
         (when (zerop errno)
           ;; Link.
 	  (multiple-value-bind (stdout stderr errno)
-	      (shell
-	       "clang -no-pie -O0 -fnon-call-exceptions -g -Wl,--section-start=.seldata=~a -lrt -o ~a ~a ~a ~a"
-	       (format nil "0x~x" (bss-segment-address asm))
-	       bin
-	       (fitness-harness asm)
-	       obj
-	       *lib-papi*)
+	    (shell
+	     "clang -no-pie -O0 -fnon-call-exceptions -g ~a -lrt -o ~a ~a ~a ~a"
+	     (if (bss-segment asm)
+		 (format nil "-Wl,--section-start=.seldata=0x~x"
+			 (bss-segment asm))
+		 "")
+	     bin
+	     (fitness-harness asm)
+	     obj
+	     *lib-papi*)
             (restart-case
                 (unless (zerop errno)
                   (error (make-condition 'phenome :text stderr
@@ -1055,7 +1115,7 @@ needs to have been loaded, along with the var-table by PARSE-SANITY-FILE."
 (defun add-simple-cut-variant (asm-super i)
   (let* ((orig (create-target asm-super))
          (variant (apply-mutation orig
-				  (make-instance 'simple-cut
+				  (make-instance 'sel/sw/simple::simple-cut
 						 :object orig :targets i))))
     (push variant (mutants asm-super))))
 
@@ -1078,7 +1138,8 @@ needs to have been loaded, along with the var-table by PARSE-SANITY-FILE."
 	    (push
 	     (apply-mutation
 	      (copy orig)
-	      (make-instance 'simple-cut :object orig :targets index))
+	      (make-instance 'sel/sw/simple::simple-cut
+			     :object orig :targets index))
 	     variants)
 	    ;; (format t "Cutting index ~D, line: ~A~%" index
 	    ;;    (asm-line-info-text line))
@@ -1140,6 +1201,7 @@ included in the disassembly file). Returns a vector of var-rec."
 	(push (make-var-rec :name name :type type :address address) recs)))))
 
 (defun bss-segment-address (asm-super)
-  (let ((first-bss-var
-	 (find "b" (var-table asm-super) :test 'equal :key 'var-rec-type)))
-    (var-rec-address first-bss-var)))
+  (or (bss-segment asm-super)
+      (let ((first-bss-var
+	     (find "b" (var-table asm-super) :test 'equal :key 'var-rec-type)))
+	(var-rec-address first-bss-var))))

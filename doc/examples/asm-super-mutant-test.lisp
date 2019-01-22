@@ -154,7 +154,7 @@ created softare object."
 			 :io-dir io-dir
 			 :function-bounds-file function-bounds-file
 			 :fitness-harness fitness-file
-			 :var-table (sel::parse-sanity-file var-address-file))
+			 :var-table (sel/sw/asm-super-mutant::parse-sanity-file var-address-file))
 	  asm-path)))
 
     ;; Select the function we want to work on.
@@ -301,7 +301,7 @@ instances representing the MUTANTS (variants) of the target function."
 	   :mutants-generator
 	   (lambda (asm)
 	     (let ((v (copy best-variant)))
-	       (setf (sel::super-owner v) asm)
+	       (setf (sel/sw/asm-heap::super-owner v) asm)
 	       (list v)))
 	   :io-dir alt-io-dir
 	   :var-address-file *var-address-file*
@@ -318,7 +318,7 @@ instances representing the MUTANTS (variants) of the target function."
 		       (verbose nil)
 		       (stream *standard-output*))
   (format stream "Fitness evaluations completed for function ~A: ~A~%~%"
-	  (sel::function-name-from-label
+	  (sel/sw/asm-heap::function-name-from-label
 	   (asm-line-info-label (elt (genome (first (mutants super))) 0)))
 	  *fitness-evals*)
   (let* ((min-size (reduce 'min (mapcar 'size population)))
