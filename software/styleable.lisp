@@ -732,18 +732,26 @@ by feature merge functions).
           (finally (return (values (coerce vecs 'vector)
                                    (coerce metas 'vector)))))))
 
-(defun update-project-features (project &key (features nil))
+(defun update-project-features (project
+                                &key (features nil) (files (all-files project)))
   "Update feature values for FEATURES in PROJECT by re-merging feature-vectors
 and metadata for all software objects in the project.
 * PROJECT a project object
 * FEATURES a list of style-features whose values are to be re-computed.
 May be a subset of the features tracked in project.
+* FILES a list of files on which to extract features (default: `all-files')
 "
+  ;; Setup project data structures
+  (setf (features project) features)
+  (setf (feature-vecs project)
+        (coerce (repeatedly (length features) nil) 'vector))
+  (setf (feature-vec-meta project)
+        (coerce (repeatedly (length features) nil) 'vector))
+
   (iter (for feature in features)
         ;; assume index of feature is the same across project
         ;; and all objects in project
         (let* ((index (position feature (features project)))
-               (files (all-files project))
                (obj (cdr (first files))))
           (when (< 0 (length files))
             ;; init feature vecs/meta on project to that of first obj
@@ -767,7 +775,7 @@ May be a subset of the features tracked in project.
 
 (defmethod extract-features ((project style-project)
                              &key (features *feature-extractors*)
-                               (files nil))
+                               (files (all-files project)))
   "For a PROJECT object, extract a set of FEATURES for each software object in
 the project and merge the results. Return two values: a vector of feature vectors
 and a vector of metadata (used by feature merge functions).
@@ -775,10 +783,11 @@ and a vector of metadata (used by feature merge functions).
 * FEATURES a list of features to be extracted (default: `*feature-extractors*')
 * FILES a list of files on which to extract features (default: `all-files')
 "
-  (iter (for (file . obj) in (or files (all-files project)))
+  (iter (for (file . obj) in files)
         (declare (ignorable file))
-        (extract-features obj :features features))
-  (update-project-features project :features features)
+        (setf (features obj) features)
+        (extract-features obj))
+  (update-project-features project :features features :files files)
   (values (feature-vecs project)
           (feature-vec-meta project)))
 
