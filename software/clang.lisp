@@ -3805,26 +3805,6 @@ Move the semicolon in just one level, but no further"
     (copy ast :children ast
 	  :full-stmt t)))
 
-(defun remove-semicolon-from-stmt (ast)
-  "Removes a semicolon from the end of AST, descending into
-subasts as needed.  Return the original AST if there is no
-semicolon found"
-  (let* ((children (ast-children ast))
-	 (lc (lastcar children)))
-    (typecase lc
-      (string
-       (let ((pos (position #\; lc :from-end t)))
-	 (if pos
-	     (copy ast :children (append (butlast children)
-					 (list (subseq lc 0 pos))))
-	     ast))
-       (ast
-	(let ((nlc (remove-semicolon-of-ast lc)))
-	  (if (eql lc nlc)
-	      ast
-	      (copy ast :children (append (butlast children) (list nlc))))))
-       (t ast)))))  
-
 (defun fix-semicolons-ast (ast)
   "Move semicolons into the appropriate stmt nodes in the children of node AST"
   (move-semicolons-into-expr-stmts ast)
