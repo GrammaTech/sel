@@ -48,8 +48,9 @@
 
 (defmethod from-file :before ((obj java-project) project-dir)
   (setf (project-dir obj) project-dir)
-  (multiple-value-bind (stdout stderr exit-code)
+  (multiple-value-bind (bin exit-code stdout stderr files)
       (phenome obj)
+    (declare (ignorable bin files))
     (if (not (zerop exit-code))
         (error "Failed to build java project for project.~%~
                   build-command: ~a~%~
