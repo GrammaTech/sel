@@ -81,6 +81,7 @@ doc/sel-sw-elf-cisc-api.texi
 doc/sel-sw-elf-risc-api.texi
 doc/sel-sw-expression-api.texi
 doc/sel-sw-forth-api.texi
+doc/sel-sw-file-api.texi
 doc/sel-sw-java-api.texi
 doc/sel-sw-java-project-api.texi
 doc/sel-sw-javascript-api.texi

@@ -54,6 +54,7 @@ DOC_PACKAGES =								\
 	software-evolution-library/software/elf				\
 	software-evolution-library/software/elf-cisc			\
 	software-evolution-library/software/elf-risc			\
+	software-evolution-library/software/file			\
 	software-evolution-library/software-evolution-library		\
 	software-evolution-library/software/expression			\
 	software-evolution-library/software/forth			\
