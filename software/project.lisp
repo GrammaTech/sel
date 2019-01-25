@@ -226,12 +226,12 @@ or `only-other-directories'.")
      (mapcar {pathname-relativize (project-dir project)})
      (remove-if
       (lambda (p) (or (null (pathname-name p))
-		 (ends-in-tilde (pathname-name p))
-		 (ends-in-tilde (pathname-type p))
-                 (not (text-file-p p))
 		 ;; For now do not include symlinks.  In the future,
 		 ;; make links be special objects.
 		 (pathname-has-symlink p)
+		 (ends-in-tilde (pathname-name p))
+		 (ends-in-tilde (pathname-type p))
+                 (not (text-file-p p))
 		 (ignored-other-path-p project p))))
      (uiop:directory*)
      (merge-pathnames-as-file (project-dir project) #p"**/*.*"))))
