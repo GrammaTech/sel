@@ -283,12 +283,12 @@
     (let ((*readtable* (copy-readtable nil)))
       (setf (readtable-case *readtable*) :preserve)
       (cl-user::read stream t nil t)))
-
-  (defreadtable :sel-readtable
-    ;; Define an SEL readtable which combines CCRM with a #! reader
-    ;; macro for preserving case reads.  Both can be useful generally.
-    (:merge :curry-compose-reader-macros)
-    (:dispatch-macro-char #\# #\! #'read-preserving-case))
+  (handler-bind ((style-warning #'muffle-warning))
+    (defreadtable :sel-readtable
+        ;; Define an SEL readtable which combines CCRM with a #! reader
+        ;; macro for preserving case reads.  Both can be useful generally.
+        (:merge :curry-compose-reader-macros)
+      (:dispatch-macro-char #\# #\! #'read-preserving-case)))
 
   (in-readtable :sel-readtable))
 
