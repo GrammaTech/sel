@@ -215,7 +215,7 @@ or `only-other-directories'.")
               (let ((len (length s)))
                 (and (> len 0) (eql (elt s (1- len)) #\~))))
             (pathname-has-symlink (p)
-              (not (equal p (uiop:resolve-symlinks p))))))
+              (not (equal p (resolve-symlinks p))))))
      ;; These are represented as simple text files, for line-oriented diffs.
      (mapcar «cons #'identity
                    [{from-file (make-instance 'simple)}
@@ -226,6 +226,7 @@ or `only-other-directories'.")
      (mapcar {pathname-relativize (project-dir project)})
      (remove-if
       (lambda (p) (or (null (pathname-name p))
+		 (not (file-exists-p p))
 		 ;; For now do not include symlinks.  In the future,
 		 ;; make links be special objects.
 		 (pathname-has-symlink p)
