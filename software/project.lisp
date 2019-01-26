@@ -40,7 +40,6 @@
            :ignored-evolve-path-p
            :ignored-other-path-p
            :apply-to-project
-           :project-path
            :collect-evolve-files
            :collect-other-files
            :instrumentation-files
@@ -360,25 +359,6 @@ or `only-other-directories'.")
 (defmethod apply-to-project ((project project) function)
   "Mapcar FUNCTION over `all-files' of PROJECT."
   (values project (mapcar [function #'cdr] (all-files project))))
-
-(defgeneric project-path (project path)
-  (:documentation "Expand PATH relative to PROJECT.")
-  (:method ((obj project) path)
-    (replace-all (namestring (canonical-pathname path))
-                 (-> (if (and *build-dir*
-                              (search (namestring *build-dir*)
-                                      (namestring
-                                       (ensure-directory-pathname
-                                        (canonical-pathname path)))))
-                         *build-dir*
-                         (project-dir obj))
-                   (canonical-pathname)
-                   (ensure-directory-pathname)
-                   (namestring))
-                 (-> (project-dir obj)
-                   (canonical-pathname)
-                   (ensure-directory-pathname)
-                   (namestring)))))
 
 
 ;;;; Diffs on projects
