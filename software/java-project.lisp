@@ -35,7 +35,8 @@
                           :ensure-directory-pathname
                           :directory-exists-p
                           :run-program)
-  (:export :java-project))
+  (:export :java-project
+           :get-files-jar))
 (in-package :software-evolution-library/software/java-project)
 (in-readtable :curry-compose-reader-macros)
 

@@ -31,7 +31,6 @@
            :java-make-literal
            :java-number
            :java-jar-exec
-           :get-files-jar
            :add-import))
 (in-package :software-evolution-library/software/java)
 (in-readtable :curry-compose-reader-macros)
