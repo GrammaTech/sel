@@ -101,6 +101,7 @@
    :with-temp-dir
    :with-temp-dir-of
    :with-cwd
+   :with-temp-cwd-of
    :pwd
    :cd
    :pathname-relativize
@@ -536,6 +537,13 @@ may lose the original working directory."
        (unwind-protect
          (progn (cd ,(car dir)) ,@body)
          (cd ,orig)))))
+
+(defmacro with-temp-cwd-of (spec dir &rest body)
+  "Copy DIR into a temporary directory, the path to which is stored in SPEC,
+and execute BODY within this temporary directory."
+  `(with-temp-dir-of ,spec ,dir
+     (with-cwd ,spec
+       ,@body)))
 
 (defun pwd ()
   (getcwd))
