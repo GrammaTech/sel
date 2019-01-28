@@ -109,7 +109,9 @@
 	    (incf cost (ccost (car (pop conses)))))
       cost)))
 
-(defmethod ccost (x) 1)
+(defmethod ccost (x)
+  (declare (ignorable x))
+  1)
 
 ;; #+sbcl (declaim (optimize sb-cover:store-coverage-data))
 
@@ -168,9 +170,15 @@
   (:documentation "Check if recursion is possible on AST-A and AST-B."))
 
 
-(defmethod ast-can-recurse ((ast-a cons) (ast-b cons)) t)
-(defmethod ast-can-recurse ((ast-a string) (ast-b string)) t)
-(defmethod ast-can-recurse (ast-a ast-b) nil)
+(defmethod ast-can-recurse ((ast-a cons) (ast-b cons))
+  (declare (ignorable ast-a ast-b))
+  t)
+(defmethod ast-can-recurse ((ast-a string) (ast-b string))
+  (declare (ignorable ast-a ast-b))
+  t)
+(defmethod ast-can-recurse (ast-a ast-b)
+  (declare (ignorable ast-a ast-b))
+  nil)
 (defmethod ast-can-recurse ((ast-a ast) (ast-b ast))
   (eq (ast-class ast-a) (ast-class ast-b)))
 
@@ -729,6 +737,7 @@ A diff is a sequence of actions as returned by `ast-diff' including:
 :recurse S : recursively apply script S to the current AST"))
 
 (defmethod ast-patch ((original null) (script null) &key &allow-other-keys)
+  (declare (ignorable original script))
   nil)
 
 (defmethod ast-patch ((ast ast) script &rest keys &key delete? (meld? (ast-meld-p ast)) &allow-other-keys)
@@ -775,6 +784,7 @@ A diff is a sequence of actions as returned by `ast-diff' including:
   ;; This feature allows conflicts to be migrated up ASTs until they can
   ;; be more safely combined.
   ;; When MELD? is true, place conflicts in contiguous pieces.
+  (declare (ignorable delete?))
   (labels
       ((edit (asts script)
 	 ;; Returns multiple values, depending on the value of MELD
@@ -884,6 +894,7 @@ edit operations that consume list elements, and replicating the others."
       (error "Could not meld scripts: different number of fixed location actions"))))
 
 (defmethod ast-patch :around ((original sequence) (script list) &key delete? meld? &allow-other-keys)
+  (declare (ignorable delete?))
   (if (and (find :conflict script :key #'car) (not meld?))
       (let ((script1 (iter (for action in script)
 			   (appending
@@ -966,6 +977,7 @@ edit operations that consume list elements, and replicating the others."
     ;; Make the result simple again
     (copy-seq result)))
 
+#|
 (defmethod ast-patch ((ast ast) script
                       &rest keys &key (delete? t) &allow-other-keys)
   (declare (ignorable delete?))
@@ -975,6 +987,7 @@ edit operations that consume list elements, and replicating the others."
       (apply #'values
 	     (iter (for patched-children in children-versions)
 		   (collect (copy ast :children patched-children)))))))
+|#
 
 (defmethod ast-patch ((original simple) script &rest keys &key &allow-other-keys)
   (let ((new-unpacked-genome
@@ -1157,8 +1170,10 @@ a tail of diff-a, and a tail of diff-b.")
 	   )))
   ;; default cases for :insert
   (:method ((sym-a (eql :insert)) (sym-b t) o-a o-b)
+    (declare (ignorable sym-a sym-b))
     (values (list (car o-a)) (cdr o-a) o-b))
   (:method (sym-a (sym-b (eql :insert)) o-a o-b)
+    (declare (ignorable sym-a sym-b))
     (values (list (car o-b)) o-a (cdr o-b)))
   ;; sym-a is :delete
   (:method ((sym-a (eql :delete)) (sym-b (eql :delete)) o-a o-b)
@@ -1214,6 +1229,7 @@ a tail of diff-a, and a tail of diff-b.")
   (:method ((sym-a null) (sym-b null) o-a o-b)
     (error "Bad diff merge: ~A, ~A" o-a o-b))
   (:method ((sym-a null) sym-b o-a o-b)
+    (declare (ignorable sym-b))
     (values (list (car o-b)) (cdr o-a) (cdr o-b)))
 
   (:method ((sym-a (eql :same-tail)) (sym-b (eql :same)) o-a o-b)
@@ -1259,27 +1275,33 @@ a tail of diff-a, and a tail of diff-b.")
   ;; Unwind :*-sequence operations
 
   (:method ((sym-a (eql :insert-sequence)) sym-b o-a o-b)
+    (declare (ignorable sym-b))
     (let ((new-o-a (nconc (map 'list (lambda (x) (cons :insert x)) (cdar o-a))
                           (cdr o-a))))
       (merge-diffs2 new-o-a o-b)))
   (:method (sym-a (sym-b (eql :insert-sequence)) o-a o-b)
+    (declare (ignorable sym-a))
     (let ((new-o-b (nconc (map 'list (lambda (x) (cons :insert x)) (cdar o-b))
                           (cdr o-b))))
       (merge-diffs2 o-a new-o-b)))
 
   (:method ((sym-a (eql :delete-sequence)) sym-b o-a o-b)
+    (declare (ignorable sym-b))
     (let ((new-o-a (nconc (map 'list (lambda (x) (cons :delete x)) (cdar o-a))
                           (cdr o-a))))
       (merge-diffs2 new-o-a o-b)))
   (:method (sym-a (sym-b (eql :delete-sequence)) o-a o-b)
+    (declare (ignorable sym-a))
     (let ((new-o-b (nconc (map 'list (lambda (x) (cons :delete x)) (cdar o-b))
                           (cdr o-b))))
       (merge-diffs2 o-a new-o-b)))
 
   (:method ((sym-a (eql :same-sequence)) sym-b o-a o-b)
+    (declare (ignorable sym-b))
     (setf o-a (same-seq-to-list o-a))
     (merge-diffs2 (same-seq-to-sames o-a) o-b))
   (:method (sym-a (sym-b (eql :same-sequence)) o-a o-b)
+    (declare (ignorable sym-a))
     (setf o-b (same-seq-to-list o-b))
     (merge-diffs2 o-a (same-seq-to-sames o-b)))
   (:method ((sym-a (eql :same-sequence)) (sym-b (eql :same-sequence)) o-a o-b)
