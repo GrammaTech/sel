@@ -133,13 +133,18 @@ software objects in it's `evolve-files'."))
      &key ignore-files ignore-directories only-files only-directories
      &aux (canonical-path (canonical-pathname path)))
   (flet ((included-files (files)
-           (find-if [{equal canonical-path} #'canonical-pathname]
+           (find-if (lambda (file)
+                      (or (equal file "*")
+                          (equal canonical-path (canonical-pathname file))))
                     files))
          (included-directories (directories)
-           (find-if {search _ (pathname-directory canonical-path)
-                            :test #'equalp}
-                    directories
-                    :key [#'pathname-directory #'ensure-directory-pathname])))
+           (find-if (lambda (dir)
+                      (or (equal dir "*")
+                          (search (pathname-directory
+                                    (ensure-directory-pathname dir))
+                                  (pathname-directory canonical-path)
+                                  :test #'equalp)))
+                    directories)))
     (or (and only-files (not (included-files only-files)))
         (and only-directories (not (included-directories only-directories)))
         (included-directories ignore-directories)

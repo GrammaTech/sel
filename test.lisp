@@ -7105,12 +7105,16 @@ prints unique counters in the trace"
 (deftest ignored-files-are-ignored ()
   (is (sel/sw/project::ignored-path-p
        "README" :ignore-files '("README")))
+  (is (sel/sw/project::ignored-path-p
+       "README" :ignore-files '("*")))
   (is (not (sel/sw/project::ignored-path-p
             "Makefile" :ignore-files '("README")))))
 
 (deftest ignored-directories-are-ignored ()
   (is (sel/sw/project::ignored-path-p
        "etc/foo" :ignore-directories '("etc")))
+  (is (sel/sw/project::ignored-path-p
+       "etc/foo" :ignore-directories '("*")))
   (is (sel/sw/project::ignored-path-p
        "./etc/foo" :ignore-directories '("etc")))
   (is (not (sel/sw/project::ignored-path-p
