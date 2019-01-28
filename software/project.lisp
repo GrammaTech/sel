@@ -226,13 +226,13 @@ or `only-other-directories'.")
      (remove-if
       (lambda (p) (or (null (pathname-name p))
 		 (not (file-exists-p p))
+		 (ends-in-tilde (pathname-name p))
+		 (ends-in-tilde (pathname-type p))
+		 (ignored-other-path-p project p)
 		 ;; For now do not include symlinks.  In the future,
 		 ;; make links be special objects.
 		 (pathname-has-symlink p)
-		 (ends-in-tilde (pathname-name p))
-		 (ends-in-tilde (pathname-type p))
-                 (not (text-file-p p))
-		 (ignored-other-path-p project p))))
+                 (not (text-file-p p)))))
      (uiop:directory*)
      (merge-pathnames-as-file (project-dir project) #p"**/*.*"))))
 
