@@ -574,7 +574,7 @@ and an optional extension."
   "Populate SPEC with the path to a temporary directory with the contents
 of DIR and execute BODY"
   `(with-temp-dir ,spec
-     (shell "cp -pr ~a/* ~a" (namestring ,dir) (namestring ,(car spec)))
+     (shell "cp -pr ~a/. ~a" (namestring ,dir) (namestring ,(car spec)))
      ,@body))
 
 (defmacro with-temp-files (specs &rest body)
