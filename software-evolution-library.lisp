@@ -673,6 +673,9 @@ Also, ensures MUTATION is a member of superclasses"
      ,@options))
 
 (defgeneric build-op (mutation software)
+  ;; Returns a list of build-op objects
+  ;; Each build-op object is a pair (<build-op-keyword> . <build-op-args>)
+  ;; <build-op-args> is an alist of (<build-arg-keyword> . <build-arg-value>) pairs
   (:documentation "Build operation on SOFTWARE from a MUTATION."))
 
 (defmacro compose-mutations (class-name mutations &rest options)

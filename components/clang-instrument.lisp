@@ -535,11 +535,17 @@ Creates a CLANG-INSTRUMENTER for OBJ and calls its instrument method.
                     points))))
     (labels
         ((last-traceable-stmt (proto)
+           "The last traceable statement in the body of a function
+declaration, or NIL if PROTO is not a function declaration or there
+is no such traceable statement."
            (->> (function-body obj proto)
                 (get-immediate-children obj)
                 (lastcar)
                 (enclosing-traceable-stmt obj)))
          (first-traceable-stmt (proto)
+           "The first traceable statement in the body of a function
+declaration, or NIL if PROTO is not a function declaration or there
+is no such traceable statement."
            (first (get-immediate-children obj (function-body obj proto))))
          (instrument-asts (obj)
            "Generate instrumentation for all ASTs in OBJ.  As a side-effect,
