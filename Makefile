@@ -87,7 +87,7 @@ TEST_ARTIFACTS = \
 	test/etc/gcd/gcd \
 	test/etc/gcd/gcd.s
 
-BINS = ast-diff ast-merge
+BINS = ast-diff ast-merge rest-server
 
 BIN_TEST_DIR = test/bin
 BIN_TESTS =			\
