@@ -434,7 +434,7 @@ REPLACEMENT.
 
 asts->tree tends to leave dangling empty strings at the ends of child
 list, and we want to treat them as NIL in most cases."
-       (when (not (emptyp str)) str))
+       (when (not (equalp str "")) str))
      (helper (tree path next)
          (bind (((head . tail) path)
                 (children (ast-children tree)))
