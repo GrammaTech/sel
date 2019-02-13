@@ -17,6 +17,7 @@
         :software-evolution-library/utility
         :software-evolution-library/software/simple)
   (:export :asm
+           :asm-range
            :*asm-linker*
            :*asm-mutation-types*
            :addr-map
