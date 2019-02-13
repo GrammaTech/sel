@@ -1368,7 +1368,6 @@
 
 (deftest simple-crossover-test ()
   (with-fixture gcd-asm
-    (number-genome *gcd*)
     (let ((variant (copy *gcd*)))
       (apply-mutation variant (make-instance 'simple-cut :targets 0))
       ;; (push '(:cut 0) (edits variant))
@@ -1391,13 +1390,11 @@
 
 (deftest homologous-crossover-same-same ()
   (with-fixture gcd-asm
-    (number-genome *gcd*)
     (is (tree-equal (genome *gcd*)
                     (genome (homologous-crossover *gcd* (copy *gcd*)))))))
 
 (deftest homologous-crossover-with-cut ()
   (with-fixture gcd-asm
-    (number-genome *gcd*)
     (let ((variant (copy *gcd*))
           (target 40))
       ;; apply cut to variant
@@ -1425,7 +1422,6 @@
   ;; copied statement (which might not be close to the ideal point for a
   ;; homologous crossover.
   (with-fixture gcd-asm
-    (number-genome *gcd*)
     (let ((insert-pt 40)
           (stmt-to-insert 60)
           (variant (copy *gcd*)))
@@ -1450,7 +1446,6 @@
   ;; want to fix. If the cross-point in A refers to an index that was previouly
   ;; swapped in B, we will select cross-b as that new location.
   (with-fixture gcd-asm
-    (number-genome *gcd*)
     (let ((targets (list 20 60))
           (variant (copy *gcd*)))
       (apply-mutation
