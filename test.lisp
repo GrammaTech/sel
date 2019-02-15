@@ -10072,20 +10072,20 @@ int main() { puts(\"~d\"); return 0; }
 (deftest is-type-works ()
   (let ((resp1 #!'(Answer TestQ Ack))
         (resp2 #!'(Feedback ((id 1) (route 0) (contents Processed)))))
-    (is (sel/serapi-io::is-type #!'Answer resp1))
-    (is (sel/serapi-io::is-type #!'Feedback resp2))
-    (is (not (sel/serapi-io::is-type #!'Answer resp2)))
-    (is (not (sel/serapi-io::is-type #!'Feedback resp1)))))
+    (is (sel/cp/serapi-io::is-type #!'Answer resp1))
+    (is (sel/cp/serapi-io::is-type #!'Feedback resp2))
+    (is (not (sel/cp/serapi-io::is-type #!'Answer resp2)))
+    (is (not (sel/cp/serapi-io::is-type #!'Feedback resp1)))))
 
 (deftest feedback-parsing-works ()
   (let ((resp1 #!'(Feedback ((id 1) (route 0) (contents Processed))))
         (resp2 #!'(Answer TestQ Ack)))
-    (is (eql 1 (sel/serapi-io::feedback-id resp1)))
-    (is (eql 0 (sel/serapi-io::feedback-route resp1)))
-    (is (eql #!'Processed (sel/serapi-io::feedback-contents resp1)))
-    (is (not (sel/serapi-io::feedback-id resp2)))
-    (is (not (sel/serapi-io::feedback-route resp2)))
-    (is (not (sel/serapi-io::feedback-contents resp2)))))
+    (is (eql 1 (sel/cp/serapi-io::feedback-id resp1)))
+    (is (eql 0 (sel/cp/serapi-io::feedback-route resp1)))
+    (is (eql #!'Processed (sel/cp/serapi-io::feedback-contents resp1)))
+    (is (not (sel/cp/serapi-io::feedback-id resp2)))
+    (is (not (sel/cp/serapi-io::feedback-route resp2)))
+    (is (not (sel/cp/serapi-io::feedback-contents resp2)))))
 
 (deftest message-content-works ()
   (let ((resp1
@@ -10094,10 +10094,10 @@ int main() { puts(\"~d\"); return 0; }
               (contents (Message Notice () (Some (AST (tree)) here))))))
         (resp2 #!'(Answer TestQ Ack)))
     (is (equal #!'(Some (AST (tree)) here)
-               (sel/serapi-io::message-content
-                (sel/serapi-io::feedback-contents resp1))))
-    (is (not (sel/serapi-io::message-content
-              (sel/serapi-io::feedback-contents resp2))))))
+               (sel/cp/serapi-io::message-content
+                (sel/cp/serapi-io::feedback-contents resp1))))
+    (is (not (sel/cp/serapi-io::message-content
+              (sel/cp/serapi-io::feedback-contents resp2))))))
 
 (deftest message-level-works ()
   (let ((resp1
@@ -10105,10 +10105,10 @@ int main() { puts(\"~d\"); return 0; }
              ((id 1) (route 0)
               (contents (Message Notice () (Some (AST (tree)) here))))))
         (resp2 #!'(Answer TestQ Ack)))
-    (is (eql #!'Notice (sel/serapi-io::message-level
-                        (sel/serapi-io::feedback-contents resp1))))
-    (is (not (sel/serapi-io::message-level
-              (sel/serapi-io::feedback-contents resp2))))))
+    (is (eql #!'Notice (sel/cp/serapi-io::message-level
+                        (sel/cp/serapi-io::feedback-contents resp1))))
+    (is (not (sel/cp/serapi-io::message-level
+              (sel/cp/serapi-io::feedback-contents resp2))))))
 
 (deftest answer-parsing-works ()
   (let ((resp1 #!'(Answer TestQ Ack))
@@ -10118,26 +10118,26 @@ int main() { puts(\"~d\"); return 0; }
                    (ObjList ((CoqString "Inductive binop..."))))))
     ;; verify answer-content
     (is (equal (list #!'Ack nil (lastcar resp3) (lastcar resp4))
-               (mapcar #'sel/serapi-io::answer-content
+               (mapcar #'sel/cp/serapi-io::answer-content
                        (list resp1 resp2 resp3 resp4))))
 
     ;; verify answer-string
     (is (equal (list nil nil nil)
-               (mapcar [#'sel/serapi-io::answer-string
-                        #'sel/serapi-io::answer-content]
+               (mapcar [#'sel/cp/serapi-io::answer-string
+                        #'sel/cp/serapi-io::answer-content]
                        (list resp1 resp2 resp3))))
     (is (equal "Inductive binop..."
-               (sel/serapi-io::answer-string
-                (sel/serapi-io::answer-content resp4))))
+               (sel/cp/serapi-io::answer-string
+                (sel/cp/serapi-io::answer-content resp4))))
 
     ;; verify answer-ast
     (is (equal (list nil nil nil)
-               (mapcar [#'sel/serapi-io::answer-ast
-                        #'sel/serapi-io::answer-content]
+               (mapcar [#'sel/cp/serapi-io::answer-ast
+                        #'sel/cp/serapi-io::answer-content]
                        (list resp1 resp2 resp4))))
     (is (equal #!'(NIL more-stuff)
-               (sel/serapi-io::answer-ast
-                (sel/serapi-io::answer-content resp3))))))
+               (sel/cp/serapi-io::answer-ast
+                (sel/cp/serapi-io::answer-content resp3))))))
 
 (deftest end-of-response-parsing-works ()
   (let ((resp1 #!'(Answer TestQ Completed))
@@ -10156,8 +10156,8 @@ int main() { puts(\"~d\"); return 0; }
     (is (equal (list 2 nil nil)
                (iter (for i in (list resp1 resp2 resp3))
                      (collecting
-                      (when-let ((content (sel/serapi-io::answer-content i)))
-                        (sel/serapi-io::added-id content))))))))
+                      (when-let ((content (sel/cp/serapi-io::answer-content i)))
+                        (sel/cp/serapi-io::added-id content))))))))
 
 (deftest (can-add-and-lookup-coq-string :long-running) ()
   (with-fixture serapi

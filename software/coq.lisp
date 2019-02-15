@@ -105,7 +105,8 @@
            :tag-loc-info
            :untag-loc-info
            :lookup-source-strings
-           :coq-type-checks))
+           :coq-type-checks
+           :synthesize-typed-coq-expression))
 (in-package :software-evolution-library/software/coq)
 (in-readtable :serapi-readtable)
 
@@ -522,8 +523,9 @@ Assumes FUNCTION is defined in a top-level AST in OBJ."
   (load-coq-object coq :include-imports nil :num-asts (1+ ast-num))
   (bind ((coq-ast (nth ast-num (unannotated-genome coq)))
          (fn-name (coq-definition-ast-p coq-ast))
-         (local-names
-          (mapcar #'first (sel/serapi-io::parse-coq-function-locals coq-ast)))
+         (local-names (mapcar
+                       #'first
+                       (sel/cp/serapi-io::parse-coq-function-locals coq-ast)))
          (type (split-sequence :-> (cddr (check-coq-type fn-name)))))
     (reset-serapi-process)
     (mapcar #'append
