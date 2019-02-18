@@ -96,6 +96,10 @@
            :project-file
            :file-source
            :imports
+           :coq-modules
+           :coq-sections
+           :coq-assumptions
+           :coq-definitions
            :reset-and-load-imports
            :init-coq-project
            :find-nearest-type
