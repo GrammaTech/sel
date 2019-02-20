@@ -800,27 +800,6 @@ Optionally, tag the lookup query with QTAG."))
   (let ((vernac (format nil "Print ~a." ast-name)))
     (coq-message-contents (run-coq-vernacular vernac :qtag qtag))))
 
-(defun tokenize-type (type-string)
-  (labels ((tokenize (str)
-             (let ((splitting-tokens (list #\: #\( #\))))
-               (cond
-                 ((emptyp str) nil)
-                 ((equal str "->") (list :->))
-                 ((equal str "forall") (list :forall))
-                 ((equal str "exists") (list :exists))
-                 ((equal str ":") (list :colon))
-                 ((equal str "(") (list :l-paren))
-                 ((equal str ")") (list :r-paren))
-                 ((some {find _ str :test #'char=} splitting-tokens)
-                  (iter (for token in splitting-tokens)
-                        (when-let ((idx (position token str :test #'char=)))
-                          (leave (mappend #'tokenize
-                                          (list (subseq str 0 idx)
-                                                (subseq str idx (1+ idx))
-                                                (subseq str (1+ idx))))))))
-                 (t (list str))))))
-    (mappend #'tokenize (split "\\s+" type-string))))
-
 (defgeneric check-coq-type (coq-expr &key qtag)
   (:documentation "Look up and return the type of a Coq expression COQ-EXPR.
 Optionally use QTAG to tag the query."))
@@ -836,24 +815,7 @@ Optionally use QTAG to tag the query."))
              (remove #!'Pp_empty <>)
              (car)
              (lookup-coq-string <> :input-format #!'CoqPp)
-             (tokenize-type)))))
-
-(defun search-coq-type (coq-type &key (qtag (gensym "q")))
-  "Return a list of tokenized types of values whose \"final\" type is COQ-TYPE.
-Results include functions parameterized by values of types other than COQ-TYPE
-as long as the final result returned by the function is of type COQ-TYPE.
-E.g., if COQ-TYPE is bool, functions of type nat->bool will be included."
-  (flet ((parenthesize (str)
-           (let ((str (trim-whitespace str)))
-             (if (and (starts-with-subseq "(" str)
-                      (ends-with-subseq ")" str))
-                 str
-                 (format nil "(~a)" str)))))
-    (->> (format nil "SearchPattern ~a." (parenthesize coq-type))
-         (run-coq-vernacular)
-         (coq-message-contents)
-         (mapcar [#'tokenize-type
-                  {lookup-coq-string _ :input-format '|CoqPp|}]))))
+             (tokenize-coq-type)))))
 
 (defun find-coq-string-in-objlist (response)
   "For SerAPI response list RESPONSE, return a CoqString answer if there is one.
