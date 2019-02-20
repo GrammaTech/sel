@@ -689,7 +689,7 @@
     (setf *soft* (from-file (make-instance 'asm-super-mutant)
 			   (asm-test-dir "odd-even.asm"))
 	 (fitness-harness *soft*) (software-dir "asm-super-mutant-fitness.c"))
-    (load-io-file *soft* (asm-test-dir "odd-even.io"))
+    (setf (sel/sw/asm-super-mutant::io-file *soft*) (asm-test-dir "odd-even.io"))
     (target-function-name *soft* "is_even")
     (setf (var-table *soft*)
 	  (parse-sanity-file (asm-test-dir "odd-even.nm"))))
@@ -1523,10 +1523,10 @@
            (make-instance 'simple-swap
 			  :targets (list
 				    (position-if
-				     [{eql 'sel/asm::movsd} #'asm-line-info-opcode]
+				     [{equalp "movsd"} #'asm-line-info-opcode]
 				     (genome *gcd*))
 				    (position-if
-				     [{eql 'sel/asm::call} #'asm-line-info-opcode]
+				     [{equalp "call"} #'asm-line-info-opcode]
 				     (genome *gcd*))))))
       (setf variant (apply-mutation variant mutation))
       (is (not (equalp (genome variant) (genome *gcd*))))

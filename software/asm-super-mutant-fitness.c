@@ -509,6 +509,10 @@ unsigned long run_variant(int v, int test) {
            (res ? "yes" : "no"),
            elapsed_instructions);
 #endif
+    if (res && elapsed_instructions == 0) {
+        fprintf(stderr, "Error: elapsed_instructions (0) is not valid!");
+        elapsed_instructions = ULONG_MAX;
+    }
     return res == 0 ? ULONG_MAX : elapsed_instructions;
 }
 
@@ -658,8 +662,13 @@ int main(int argc, char* argv[]) {
     // Note: this is the only thing sent to stdout by this program.
     //
     for (int i = 0; i < num_variants; i++) {
-        for (int j = 0; j < num_tests; j++)
+        for (int j = 0; j < num_tests; j++) {
+            if (test_results[i * num_tests + j] == 0) {
+                fprintf(stderr, "Error: test_result (0) is not valid!");
+                test_results[i * num_tests + j] = ULONG_MAX;
+            }
             fprintf(stdout, "%lu ", test_results[i * num_tests + j]);
+        }
         fprintf(stdout, "\n");
     }
     // free(test_results);
