@@ -314,6 +314,10 @@
   :test #'equalp
   :documentation "Path to the switch-macros example.")
 
+(define-constant +simple-macros-dir+ (append +etc-dir+ (list "simple-macros"))
+  :test #'equalp
+  :documentation "Path to the simple-macros example.")
+
 (define-constant +fl-tiny-dir+ (append +etc-dir+ (list "fl-test"))
   :test #'equalp
   :documentation "Path to condition fault localization example.")
@@ -500,6 +504,11 @@
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
                  :directory +switch-macros-dir+))
+
+(defun simple-macros-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +simple-macros-dir+))
 
 (defun fl-tiny-dir (filename)
   (make-pathname :name (pathname-name filename)
@@ -1168,6 +1177,14 @@
    (setf *soft*
          (from-file (make-instance 'clang)
                     (switch-macros-dir "switch-macros.c"))))
+  (:teardown
+   (setf *soft* nil)))
+
+(defixture simple-macros-clang
+  (:setup
+   (setf *soft*
+         (from-file (make-instance 'clang)
+                    (simple-macros-dir "simple-macros.c"))))
   (:teardown
    (setf *soft* nil)))
 
@@ -2397,6 +2414,17 @@ is not to be found"
       (is (equal '(:Record)
                  (mapcar #'ast-class
                          (get-immediate-children *soft* typedef)))))))
+
+(deftest simple-macro-expansion ()
+  (with-fixture simple-macros-clang
+    ;; Without the -DDEBUG on the command line we only see two
+    ;; instances of the FUNCTION_LIKE_DEBUG macro.
+    (is (= 2 (count-if [{eql :MACROEXPANSION} #'ast-class] (asts *soft*))))
+    ;; Even in this case we still see the "ifdef DEBUG" lines in the
+    ;; source text of the top level compound statement.
+    (is (search "#ifdef DEBUG"
+                (ast-text (find-if [{eql :COMPOUNDSTMT} #'ast-class]
+                                   (asts *soft*)))))))
 
 (deftest overlapping-sibling-asts ()
   ;; A combination of macros and case statements produces tricky
