@@ -47,8 +47,7 @@
 	   :map-ast-strings
 	   :ast-meld-p
 	   :ast-class-meld?
-           :replace-in-ast
-           :ast-ancestors))
+           :replace-in-ast))
 (in-package :software-evolution-library/software/ast)
 (in-readtable :curry-compose-reader-macros)
 
@@ -850,25 +849,3 @@ modile +AST-HASH-BASE+"
 (defmethod ast-class-meld? ((ast-class t) (ast t)) nil)
 
 (defmethod ast-class-meld? ((ast-class (eql :TopLevel)) ast) t)
-
-(defgeneric ast-ancestors (root path)
-  (:documentation "Compute a stack of ancestors of a node that is at PATH.  Returns
-that stack, and as a second value the value itself at PATH"))
-
-(defmethod ast-ancestors ((root ast) (path ast))
-  (multiple-value-bind (ancestor-list node)
-      (ast-ancestors root (ast-path path))
-    (assert (eql path node) () "~a has path ~a, but this led to ~a"
-            path (ast-path path) node)
-    (values ancestor-list node)))
-
-(defmethod ast-ancestors ((root ast) (path list))
-  (let ((ancestor-list nil)
-        (node root))
-    (iter (while path)
-          (assert (typep node 'ast))
-          (let ((i (pop path)))
-            (assert (typep i '(integer 0)))
-            (push node ancestor-list)
-            (setf node (elt (ast-children node) i))))
-    (values ancestor-list node)))
