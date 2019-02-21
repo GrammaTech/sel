@@ -47,7 +47,8 @@
 	   :map-ast-strings
 	   :ast-meld-p
 	   :ast-class-meld?
-           :replace-in-ast))
+           :replace-in-ast
+           :ast-ancestors))
 (in-package :software-evolution-library/software/ast)
 (in-readtable :curry-compose-reader-macros)
 
@@ -309,7 +310,7 @@ LOCATION."))
   (:documentation "Insert AST immediately after LOCATION in TREE, returning
 new tree."))
 
-(defgeneric replace-ast (tree location replacement)
+(defgeneric replace-ast (tree location replacement &key &allow-other-keys)
   (:documentation "Return the modified TREE with the AST at LOCATION replaced
 with REPLACEMENT."))
 
@@ -414,15 +415,17 @@ operations."
                          (list replacement)
                          (subseq (ast-children ast) (+ 1 n)))))
 
-(defmethod replace-ast ((tree ast) (location ast) (replacement ast))
+(defmethod replace-ast ((tree ast) (location ast) (replacement ast)
+                        &rest args &key &allow-other-keys)
   "Return the modified TREE with the AST at LOCATION replaced with
 REPLACEMENT.
 * TREE Applicative AST tree to be modified
 * LOCATION AST to be replaced in TREE
 * REPLACEMENT Replacement AST"
-  (replace-ast tree (ast-path location) replacement))
+  (apply #'replace-ast tree (ast-path location) replacement args))
 
-(defmethod replace-ast ((tree ast) (location list) (replacement ast))
+(defmethod replace-ast ((tree ast) (location list) (replacement ast)
+                        &key &allow-other-keys)
   "Return the modified TREE with the AST at LOCATION replaced with
 REPLACEMENT.
 * TREE Applicative AST tree to be modified
@@ -492,7 +495,9 @@ list, and we want to treat them as NIL in most cases."
                                              (butlast fixed)
                                              (nthcdr (+ 2 head) children)))
                       (lastcar fixed))))))))
-    (helper tree location nil)))
+    (if location
+        (helper tree location nil)
+        tree)))
 
 (defmethod remove-ast ((tree ast) (location ast))
   "Return the modified TREE with the AST at LOCATION removed.
@@ -845,3 +850,25 @@ modile +AST-HASH-BASE+"
 (defmethod ast-class-meld? ((ast-class t) (ast t)) nil)
 
 (defmethod ast-class-meld? ((ast-class (eql :TopLevel)) ast) t)
+
+(defgeneric ast-ancestors (root path)
+  (:documentation "Compute a stack of ancestors of a node that is at PATH.  Returns
+that stack, and as a second value the value itself at PATH"))
+
+(defmethod ast-ancestors ((root ast) (path ast))
+  (multiple-value-bind (ancestor-list node)
+      (ast-ancestors root (ast-path path))
+    (assert (eql path node) () "~a has path ~a, but this led to ~a"
+            path (ast-path path) node)
+    (values ancestor-list node)))
+
+(defmethod ast-ancestors ((root ast) (path list))
+  (let ((ancestor-list nil)
+        (node root))
+    (iter (while path)
+          (assert (typep node 'ast))
+          (let ((i (pop path)))
+            (assert (typep i '(integer 0)))
+            (push node ancestor-list)
+            (setf node (elt (ast-children node) i))))
+    (values ancestor-list node)))

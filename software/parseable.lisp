@@ -961,25 +961,30 @@ to allow for successful mutation of SOFTWARE at PT."
                                   (list (cons :stmt1 location)
                                         (cons :value1 ast)))))
 
-(defmethod replace-ast ((obj parseable) (location list) (replacement ast))
+(defmethod replace-ast ((obj parseable) (location list) (replacement ast)
+                        &rest args &key &allow-other-keys)
   "Return the modified OBJ with the AST at LOCATION replaced with
 REPLACEMENT.
 * OBJ object to be modified
 * LOCATION path to the AST to be replaced in OBJ
 * REPLACEMENT Replacement AST
 "
-  (replace-ast obj (get-ast obj location) replacement))
+  (apply #'replace-ast obj (get-ast obj location) replacement args))
 
-(defmethod replace-ast ((obj parseable) (location ast) (replacement ast))
+(defmethod replace-ast ((obj parseable) (location ast) (replacement ast)
+                        &key literal &allow-other-keys)
   "Return the modified OBJ with the AST at LOCATION replaced with
 REPLACEMENT.
 * OBJ object to be modified
 * LOCATION AST to be replaced in OBJ
 * REPLACEMENT Replacement AST
+* LITERAL, if true, causes the replacement to occur without
+  recontextualization
 "
   (apply-mutation obj (at-targets (make-instance 'parseable-replace)
                                   (list (cons :stmt1 location)
-                                        (cons :value1 replacement)))))
+                                        (cons (if literal :literal1 :value1)
+                                              replacement)))))
 
 (defmethod remove-ast ((obj parseable) (location list))
   "Return the modified OBJ with the AST at LOCATION removed.
@@ -998,8 +1003,9 @@ REPLACEMENT.
 
 
 ;;; Customization for ast-diff.
-(defmethod ast-diff ((parseable-a parseable) (parseable-b parseable))
-  (ast-diff (ast-root parseable-a) (ast-root parseable-b)))
+(defmethod ast-diff ((parseable-a parseable) (parseable-b parseable) &rest args
+                     &key &allow-other-keys)
+  (apply #'ast-diff (ast-root parseable-a) (ast-root parseable-b) args))
 
 (defmethod ast-patch ((obj parseable) (diff list) &rest keys &key &allow-other-keys)
   (setf obj (copy obj))
@@ -1014,5 +1020,3 @@ REPLACEMENT.
 	(apply #'converge root1 root2 root3 args)
       (declare (ignorable problems))
       (make-instance (class-of obj1) :genome nil :ast-root merged-root))))
-
-

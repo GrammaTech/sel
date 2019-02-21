@@ -222,7 +222,7 @@
     result))
 
 ;;; Main interface to calculating ast differences.
-(defgeneric ast-diff (ast-a ast-b)
+(defgeneric ast-diff (ast-a ast-b &key &allow-other-keys)
   (:documentation
    "Return a least-cost edit script which transforms AST-A into AST-B.
 Also return a second value indicating the cost of the edit.
@@ -233,9 +233,9 @@ The following generic functions may be specialized to configure
 differencing of specialized AST structures.; `ast-equal-p',
 `ast-cost', `ast-can-recurse', and `ast-on-recurse'."))
 
-(defmethod ast-diff ((ast-a ast) (ast-b ast))
+(defmethod ast-diff ((ast-a ast) (ast-b ast) &rest args &key &allow-other-keys)
   (if (ast-can-recurse ast-a ast-b)
-      (ast-diff (ast-children ast-a) (ast-children ast-b))
+      (apply #'ast-diff (ast-children ast-a) (ast-children ast-b) args)
       (call-next-method)))
 
 (defun remove-common-prefix-and-suffix (list-a list-b)
@@ -290,7 +290,9 @@ Prefix and postfix returned as additional values."
 (defun simple-queue-enqueue (sq val)
   (push val (cdr sq)))
 
-(defun recursive-diff (total-a total-b &key (upper-bound most-positive-fixnum)
+(defun recursive-diff (total-a total-b &rest args
+                       &key (upper-bound most-positive-fixnum)
+                       &allow-other-keys
 		       &aux
 			 (from (make-cache total-a total-b))
 			 ;; FRINGE is a queue used to order
@@ -412,8 +414,7 @@ Prefix and postfix returned as additional values."
                      (j (%pos-b b)))
                  (or (aref r-cache i j)
 		     (setf (aref r-cache i j)
-			   (ast-diff (car a) (car b))
-			   )))))
+			   (apply #'ast-diff (car a) (car b) args))))))
 
           ;; Check neighbors: diagonal, recurse, insert, delete.
           (when (and (consp a) (consp b))
@@ -464,7 +465,7 @@ Prefix and postfix returned as additional values."
 
 (defmethod diff-cost-car ((diff cons) (diff-car symbol)) 0)
 
-(defun ast-diff-on-lists (ast-a ast-b)
+(defun ast-diff-on-lists (ast-a ast-b &rest args &key &allow-other-keys)
   (assert (proper-list-p ast-a))
   (assert (proper-list-p ast-b))
   ;; Drop common prefix and postfix, just run the diff on different middle.
@@ -510,7 +511,7 @@ Prefix and postfix returned as additional values."
             (values (mapcar (lambda (el) (cons :delete el)) unique-a)
                     (1- (ccost unique-a)))))) ; 1- for trailing nil.
 
-      (let ((rdiff (recursive-diff unique-a unique-b)))
+      (let ((rdiff (apply #'recursive-diff unique-a unique-b args)))
 	(add-common rdiff (diff-cost rdiff))))))
 
 (defun properize (list)
@@ -536,13 +537,14 @@ value that is used instead."
       (setf (gethash hash table) ast))
     hash))
 
-(defmethod ast-diff (ast-a ast-b)
-  (if (equalp ast-a ast-b)
+(defmethod ast-diff (ast-a ast-b &key &allow-other-keys)
+  (if (equal ast-a ast-b)
       (values `((:same . ,ast-a)) 0)
       (values `((:delete . ,ast-a) (:insert . ,ast-b))
 	      (+ (ast-cost ast-a) (ast-cost ast-b)))))
 
-(defmethod ast-diff ((ast-a list) (ast-b list) &aux tail-a tail-b)
+(defmethod ast-diff ((ast-a list) (ast-b list) &rest args &key &allow-other-keys
+                     &aux tail-a tail-b)
   (let* ((new-ast-a (ast-on-recurse ast-a))
 	 (new-ast-b (ast-on-recurse ast-b)))
     (setf (values ast-a tail-a) (properize new-ast-a))
@@ -577,7 +579,7 @@ value that is used instead."
             ;; (for cb in (reverse (cons nil common-b)))
             ;; (assert (ast-equal-p ca cb))
             (multiple-value-bind (diff cost)
-                (ast-diff-on-lists da db)
+                (apply #'ast-diff-on-lists da db args)
 	      ;; get rid of this?
 	      #+nil
 	      (when (and overall-diff (equalp (lastcar diff) '(:same)))
@@ -596,15 +598,20 @@ value that is used instead."
 	  (progn
 	    #+ast-diff-debug (format t "Diff on non-nil tail~%")
 	    (multiple-value-bind (diff tail-cost)
-		(ast-diff tail-a tail-b)
+		(apply #'ast-diff tail-a tail-b args)
 	      (setf overall-diff
                     (append overall-diff `((:recurse-tail . ,diff))))
 	      (incf overall-cost tail-cost))))
       (values overall-diff overall-cost))))
 
-(defmethod ast-diff ((s1 string) (s2 string))
+(defvar *diff-on-strings* t
+  "If true, descend into strings to do diffs on them.")
+
+(defmethod ast-diff ((s1 string) (s2 string) &key (strings *diff-on-strings*) &allow-other-keys)
   "special diff method for strings"
-  (string-diff s1 s2))
+  (if strings
+      (string-diff s1 s2)
+      (call-next-method)))
 
 (defun simple-genome-pack (unpacked-g)
   "Converts list of pairs into a SIMPLE genome"
@@ -622,9 +629,11 @@ value that is used instead."
 	    (cdar p))
 	  g))
 
-(defmethod ast-diff ((soft1 simple) (soft2 simple))
-  (ast-diff (simple-genome-unpack (genome soft1))
-	    (simple-genome-unpack (genome soft2))))
+(defmethod ast-diff ((soft1 simple) (soft2 simple) &rest args &key &allow-other-keys)
+  (apply #'ast-diff
+         (simple-genome-unpack (genome soft1))
+         (simple-genome-unpack (genome soft2))
+         args))
 
 (defun split-into-subsequences (seq subseq-indices &aux (n (length seq)))
   "Return subsequences of SEQ delimited by SUBSEQ-INDICES.
@@ -834,8 +843,7 @@ A diff is a sequence of actions as returned by `ast-diff' including:
 		       (let ((a (pop asts)))
 			 (when delete? (collect a)))
 		       (pop args))
-		 (edit asts (cdr script))))
-	       )))))
+		 (edit asts (cdr script)))))))))
     ;; cause various unmerged subsequences to be combined before
     ;; returning, if meld? is true
     (append-values meld? nil (edit original script))))
@@ -969,8 +977,7 @@ edit operations that consume list elements, and replicating the others."
 			 (assert (equalp e (elt original i)))
 			 (incf i)
 			 (vector-push-extend e result))
-		   args)))
-	   )))
+		   args))))))
     (loop while (< i len)
        do (vector-push-extend (elt original i) result)
        do (incf i))
@@ -1057,8 +1064,7 @@ in AST-PATCH.  Returns a new SOFT with the patched files."))
                                        (lambda (e)
                                          (or (equal e '(:delete))
 					     (equal e '(:insert))))
-				       content)))
-				    ))
+				       content)))))
 		     diff)))
       (%print-diff diff)
       (purge)
@@ -1086,14 +1092,14 @@ or SEXPRs."
 
 (declaim (special *unstable*))
 
-(defun merge2 (branch-a branch-b)
+(defun merge2 (branch-a branch-b &rest args &key &allow-other-keys)
   "Find an object that contains branch-a and branch-b as substructures.
 Do this by computing the diff from branch-a to branch-b, then not performing
 the deletions in that diff."
-  (let ((diff (ast-diff branch-a branch-b)))
+  (let ((diff (apply #'ast-diff branch-a branch-b args)))
     (ast-patch branch-a diff :delete? nil)))
 
-(defun merge3 (original branch-a branch-b)
+(defun merge3 (original branch-a branch-b &rest args &key &allow-other-keys)
   "Find a version of that is a plausible combination of the changes from
 ORIGINAL -> BRANCH-A and ORIGINAL -> BRANCH-B.  Return the edit sequence
 from ORIGINAL to this merged version.   Also return a second value that
@@ -1101,8 +1107,8 @@ is true if a clean merge could be found; otherwise, it is a list of
 unstable differences."
   (let ((*unstable* nil))
     (values
-     (merge-diffs2 (ast-diff original branch-a)
-		   (ast-diff original branch-b))
+     (merge-diffs2 (apply #'ast-diff original branch-a args)
+		   (apply #'ast-diff original branch-b args))
      *unstable*)))
 
 (defun record-unstable (o-a o-b)
