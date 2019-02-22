@@ -604,10 +604,7 @@ value that is used instead."
 	      (incf overall-cost tail-cost))))
       (values overall-diff overall-cost))))
 
-(defvar *diff-on-strings* t
-  "If true, descend into strings to do diffs on them.")
-
-(defmethod ast-diff ((s1 string) (s2 string) &key (strings *diff-on-strings*) &allow-other-keys)
+(defmethod ast-diff ((s1 string) (s2 string) &key (strings t) &allow-other-keys)
   "special diff method for strings"
   (if strings
       (string-diff s1 s2)
