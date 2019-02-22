@@ -27,7 +27,7 @@ techniques."
   :description "Test the SOFTWARE-EVOLUTION-LIBRARY package."
   :version "0.0.0"
   ;; This is the reason for this whole defsystem.
-  :depends-on (fare-qusiquote-extras))
+  :depends-on (fare-quasiquote-extras))
 
 
 ;;;; Tests and binaries.
