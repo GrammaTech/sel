@@ -203,6 +203,7 @@
    :binary-search
    :tails
    :pairs
+   :filter-subtrees
    :make-thread-safe-hash-table
    ;;; Source and binary locations and ranges
    :source-location
@@ -1719,7 +1720,11 @@ For example (pairs '(a b c)) => ('(a . b) '(a . c) '(b . c))
         (appending (iter (for b in rest)
                          (collecting (cons a b))))))
 
+(defgeneric filter-subtrees (predicate tree)
+  (:documentation "Return a list of subtrees of TREE satisfying PREDICATE."))
+
 (defmethod filter-subtrees (predicate (tree list))
+  "Return a list of subtrees of TREE satisfying PREDICATE."
   (when (and tree (listp tree))
     (append
      (when (funcall predicate tree) (list tree))
