@@ -10060,7 +10060,7 @@ int main() { puts(\"~d\"); return 0; }
       (is (member #!'(Answer TestQ Ack) response :test #'equal))
       (is (member #!'(Answer TestQ Completed) response :test #'equal)))))
 
-(deftest can-run-coq-vernacular ()
+(deftest (can-run-coq-vernacular :long-running) ()
   (with-fixture serapi
     (let ((vernac "Print nat."))
       (write-to-serapi *serapi-process*
@@ -10207,7 +10207,7 @@ int main() { puts(\"~d\"); return 0; }
                  (("b" :-> ("c" :-> "d") :-> "e") :-> "f")
                  :-> "g")))))
 
-(deftest can-lookup-coq-types ()
+(deftest (can-lookup-coq-types :long-running) ()
   (with-fixture serapi
     ;; Look up some built-in Coq types
     (is (equal (check-coq-type "True") '("True" :COLON "Prop")))
@@ -10218,7 +10218,7 @@ int main() { puts(\"~d\"); return 0; }
     (is (equal (check-coq-type "plus")
                '("Nat.add" :COLON "nat" :-> "nat" :-> "nat")))))
 
-(deftest can-search-coq-types ()
+(deftest (can-search-coq-types :long-running) ()
   ;; NOTE: may need to change if Coq version or default load libraries change.
   (with-fixture serapi
     (let* ((fns (search-coq-type "nat -> nat -> nat -> nat"))
@@ -10228,7 +10228,7 @@ int main() { puts(\"~d\"); return 0; }
                          :test #'equal}
                  fn-names)))))
 
-(deftest can-create-coq-expressions-1 ()
+(deftest (can-create-coq-expressions-1 :long-running) ()
   (with-fixture serapi
     ;; Nat.add 5 3
     (let ((e-ast1 (make-coq-application (make-coq-var-reference #!'plus)
@@ -10389,7 +10389,7 @@ int main() { puts(\"~d\"); return 0; }
                             :targets (list 7 0)))
     (is (equal '(a) (genome *coq*)))))
 
-(deftest can-synthesize-coq-expressions ()
+(deftest (can-synthesize-coq-expressions :long-running) ()
   (with-fixture serapi
     (let* ((types (list "false : bool"
                         "true : bool"

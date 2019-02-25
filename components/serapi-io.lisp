@@ -804,9 +804,11 @@ Optionally, tag the lookup query with QTAG."))
   (:documentation "Look up and return the type of a Coq expression COQ-EXPR.
 Optionally use QTAG to tag the query."))
 
-(defmethod check-coq-type ((coq-expr string) &key (qtag (gensym "q")))
-  "Look up and return the type of a COQ-EXPR string using Coq's `Check'."
-  (let ((response (run-coq-vernacular (format nil "Check ~a." coq-expr))))
+(defmethod check-coq-type (coq-expr &key (qtag (gensym "q")))
+  "Look up and return the type of a COQ-EXPR using Coq's `Check'.
+COQ-EXPR will be coerced to a string via the `format' ~a directive."
+  (let ((response (run-coq-vernacular (format nil "Check ~a." coq-expr)
+                                      :qtag qtag)))
     (if (member #!'Error (coq-message-levels response))
         (error (make-condition 'serapi-error
                                :text (coq-message-contents response)
@@ -1019,25 +1021,6 @@ Return a list of IDs for the ASTs that were added."
                               (tokenize (subseq str next-token)))
                         (list (subseq str 0)))))))))
     (tokenize type-string)))
-
-(defgeneric check-coq-type (coq-expr &key qtag)
-  (:documentation "Look up and return the type of a Coq expression COQ-EXPR.
-Optionally use QTAG to tag the query."))
-
-(defmethod check-coq-type (coq-expr &key (qtag (gensym "q")))
-  "Look up and return the type of a COQ-EXPR using Coq's `Check'.
-COQ-EXPR will be coerced to a string via the `format' ~a directive."
-  (let ((response (run-coq-vernacular (format nil "Check ~a." coq-expr)
-                                      :qtag qtag)))
-    (if (member #!'Error (coq-message-levels response))
-        (error (make-condition 'serapi-error
-                               :text (coq-message-contents response)
-                               :serapi *serapi-process*))
-        (-<> (coq-message-contents response)
-             (remove #!'Pp_empty <>)
-             (car)
-             (lookup-coq-string <> :input-format #!'CoqPp)
-             (tokenize-coq-type)))))
 
 (defun search-coq-type (coq-type &key module (qtag (gensym "q")))
   "Return a list of tokenized types of values whose \"final\" type is COQ-TYPE.
