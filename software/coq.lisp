@@ -86,7 +86,7 @@
         :iterate
         :split-sequence
         :cl-ppcre
-        :software-evolution-library/software-evolution-library
+        :software-evolution-library
         :software-evolution-library/utility
         :software-evolution-library/software/sexp
         :software-evolution-library/components/serapi-io)
