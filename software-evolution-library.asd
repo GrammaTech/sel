@@ -50,7 +50,7 @@ techniques."
   :entry-point "software-evolution-library/ast-diff/commands::run-ast-diff")
 
 (defsystem "software-evolution-library/run-ast-merge"
-  :author "Paul Dietz and GrammaTech"
+  :author "Eric Schulte and GrammaTech"
   :licence "GPL V3"
   :description "Compute the merge of two programs that diverge from a common ancestral version."
   :version "0.0.0"
