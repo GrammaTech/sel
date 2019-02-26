@@ -29,10 +29,6 @@ techniques."
   ;; This is the reason for this whole defsystem.
   :depends-on (fare-quasiquote-extras))
 
-(register-system-packages
- "software-evolution-library/components/serapi-io"
- '(:software-evolution-library/components/serapi-io))
-
 
 ;;;; Tests and binaries.
 (defsystem "software-evolution-library/test"
