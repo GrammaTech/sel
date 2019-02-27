@@ -40,7 +40,8 @@
            :function-index-entry-declarations
            :insert-new-line
            :insert-new-lines
-           :parse-asm-line))
+           :parse-asm-line
+           :call-targets))
 (in-package :software-evolution-library/software/asm-heap)
 (in-readtable :curry-compose-reader-macros)
 
@@ -169,10 +170,8 @@ we are excluding CALL instructions."
 	((and (token-label-p (first tokens)) ; first token symbol beg. with '$'?
 	      (equalp (second tokens) "COLON"))  ; followed by a ':'?
 	 ':label-decl)
-	((or (member "db" tokens :test 'equalp)
-	     (member "dq" tokens :test 'equalp)
-	     (member "dd" tokens :test 'equalp)
-	     (member "dw" tokens :test 'equalp))
+	((some {member _ tokens :test #'equalp}
+               (list "db" "dq" "dd" "dw"))
 	 ':data)
 	((member (first tokens)
                  '("align"
@@ -795,8 +794,9 @@ for each function. The result is a vector of function-index-entry."
   (is-extern-call-target (call-target info)))
 
 (defun call-targets (asm-heap)
-    "Return the names of functions being called in the asm code. Format is: 
-(:name <string> :library <string-library-name> :full-name <qualified name>)."
+  "Return the names of functions being called in the asm code.
+The format is:
+  (:name <string> :library <string-library-name> :full-name <qualified name>)."
   (iter
     (for info in-vector (genome asm-heap))
       (if (is-call-statement info)
@@ -811,5 +811,3 @@ for each function. The result is a vector of function-index-entry."
             (setf result
                 (list ':name target ':library nil ':full-name target)))
           (collect result)))))
-
-

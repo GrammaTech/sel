@@ -231,7 +231,6 @@
   (:nicknames :sel/software/asm-super-mutant :sel/sw/asm-super-mutant)
   (:use :common-lisp
         :alexandria
-	:command-line-arguments
         :arrow-macros
         :named-readtables
         :curry-compose-reader-macros
@@ -239,8 +238,6 @@
         :split-sequence
         :software-evolution-library
         :software-evolution-library/utility
-	:software-evolution-library/command-line
-	:software-evolution-library/components/lexicase
         :software-evolution-library/software/asm
         :software-evolution-library/software/asm-heap
         :software-evolution-library/software/super-mutant)
@@ -304,7 +301,8 @@
    (target-lines
     :initarg :target-lines
     :accessor target-lines
-    :documentation "Cache the lines of the target code, as they are used often.")
+    :documentation
+    "Cache the lines of the target code, as they are used often.")
    (assembler
     :initarg :assembler
     :accessor assembler
@@ -329,20 +327,20 @@
     :initarg :include-lines
     :accessor include-lines
     :initform nil
-    :documentation "Optional list of lines of assembler source to include in 
-fitness file.")
+    :documentation
+    "Optional list of lines of assembler source to include in fitness file.")
    (include-funcs
     :initarg :include-funcs
     :accessor include-funcs
     :initform nil
-    :documentation "Optional list of names of functions to include in fitness 
-file.")
+    :documentation
+    "Optional list of names of functions to include in fitness file.")
   (libraries
     :initarg :libraries
     :accessor libraries
     :initform nil
-    :documentation "Optional list of names of functions to include in fitness 
-file."))
+    :documentation
+    "Optional list of names of functions to include in fitness file."))
   (:documentation
    "Combine SUPER-MUTANT capabilities with ASM-HEAP framework."))
 
@@ -696,14 +694,15 @@ file."))
     asm))
 
 (defun get-function-lines (asm-super start-addr end-addr)
-  "Given start and end addresses of a function, determine start line, 
-end line, and text of included lines. Returns 3 values: list of lines, 
+  "Return lines and start and end indices of START-ADDR END-ADDR in ASM-SUPER.
+Given start and end addresses of a function, determine start line, end
+line, and text of included lines. Returns 3 values: list of lines,
 start line index and end line index."
   (let* ((genome (genome asm-super))
 	 (start-index
 	  (position start-addr genome
 		    :key 'asm-line-info-address
-		    :test (lambda (x y)(and y (= x y))))) ;; skip null address
+		    :test (lambda (x y)(and y (= x y))))) ; Skip null address.
 	 (end-index
 	  (position end-addr genome
 		    :key 'asm-line-info-address
@@ -717,21 +716,20 @@ start line index and end line index."
      end-index)))
 
 (defun traverse-function-graph (asm asm-super ht)
-  "Collect all the called functions (both extern and local) and store in 
+  "Collect all the called functions (both extern and local) and store in
 passed hash-table."
-  (let ((targets (sel/sw/asm-heap::call-targets asm)))
-    (dolist (x targets)
-      (let ((name (getf x ':name)))
-        (unless (gethash name ht)
-	  (setf (gethash name ht) x)
-	  (let ((child (make-instance 'sel/sw/asm-heap:asm-heap)))
-	    (setf (lines child) (get-function-lines-from-name asm-super name))
-	    (traverse-function-graph child asm-super ht)))))))
+  (dolist (x (call-targets asm))
+    (let ((name (getf x ':name)))
+      (unless (gethash name ht)
+	(setf (gethash name ht) x)
+	(let ((child (make-instance 'asm-heap)))
+	  (setf (lines child) (get-function-lines-from-name asm-super name))
+	  (traverse-function-graph child asm-super ht))))))
 
 (defun collect-local-funcs (asm-super)
-  "For targeted function, collect all the function names being called, 
+  "For targeted function, collect all the function names being called,
 either directly or indirectly."
-  (let* ((ht (make-hash-table :test 'equalp)))
+  (let ((ht (make-hash-table :test 'equalp)))
     (traverse-function-graph (create-target asm-super) asm-super ht)
     (let ((funcs '()))
       (maphash
@@ -743,9 +741,9 @@ either directly or indirectly."
       funcs)))
 
 (defun collect-extern-funcs (asm-super)
-  "For targeted function, collect all extern call targets for 
+  "For targeted function, collect all extern call targets for
 the function or any local functions it directly or indirectly."
-  (let* ((ht (make-hash-table :test 'equalp)))
+  (let ((ht (make-hash-table :test 'equalp)))
     (traverse-function-graph (create-target asm-super) asm-super ht)
     (let ((funcs '()))
       (maphash
@@ -754,7 +752,7 @@ the function or any local functions it directly or indirectly."
 	 (if (getf v ':library)
 	     (push (getf v ':full-name) funcs)))
        ht)
-      funcs)))  
+      funcs)))
 
 (defun target-function (asm-super start-addr end-addr)
   "Define the target function by specifying start address and end address"
@@ -1068,11 +1066,11 @@ a symbol, the SYMBOL-NAME of the symbol is used."
     (setf (lines asm-variants) (list))  ;; empty heap
     (add-prolog asm-variants number-of-variants (target-info asm-super))
     (add-externs asm-variants asm-super)
-    
+
     ;; add additionally specified functions or code lines
     (add-included-lines asm-super asm-variants)
     (add-included-funcs asm-super asm-variants)
-    
+
     (let ((count 0))
       (dolist (v (mutants asm-super))
 	(assert (equalp (genome (super-owner v)) (genome asm-super)) (v)
@@ -1295,9 +1293,9 @@ returns NIL."
 		      (function-index asm-super))))
 
 (defun parse-sanity-file (filename)
-  "Parses the 'sanity' file which is output by the GTX disassembler. It
-contains all the data variables and addresses (some of which are not
-included in the disassembly file). Returns a vector of var-rec."
+  "Parses the 'sanity' file which is output by the GTX disassembler.
+It contains all the data variables and addresses (some of which are
+not included in the disassembly file). Returns a vector of var-rec."
   (with-open-file (is filename)
     (do* ((recs '())
 	  (line (read-line is nil nil) (read-line is nil nil)))
@@ -1314,5 +1312,3 @@ included in the disassembly file). Returns a vector of var-rec."
       (let ((first-bss-var
 	     (find "b" (var-table asm-super) :test 'equal :key 'var-rec-type)))
 	(var-rec-address first-bss-var))))
-
-
