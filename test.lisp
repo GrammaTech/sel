@@ -1660,8 +1660,8 @@
 (deftest parser-test-4 ()
   (with-fixture csurf-asm-calc
     (let ((op-line (find :op (genome *soft*) :key 'asm-line-info-type)))
-      (is (and (eq (asm-line-info-opcode op-line) 'sel/asm::sub)
-	       (equal (asm-line-info-operands op-line) '((sel/asm::rsp) (8))))))))
+      (is (equalp (asm-line-info-opcode op-line) "sub"))
+      (is (equalp (asm-line-info-operands op-line) '(("rsp" "COMMA" 8)))))))
 
 (deftest parser-test-5 ()
   (with-fixture csurf-asm-calc
