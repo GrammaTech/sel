@@ -743,7 +743,6 @@ by `compose-mutations', `sequence-mutations' first targets and applies A and the
            :type (or software null)
            :documentation "The software object to be mutated.")
    (targets :initarg :targets :reader get-targets :initform nil
-            :type (or list fixnum ast)
             :documentation "A calculated target set."))
   (:documentation "The base class of all software mutations."))
 
