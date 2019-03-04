@@ -19,7 +19,9 @@
         :software-evolution-library
         :software-evolution-library/utility
         :software-evolution-library/software/project
-        :software-evolution-library/components/serapi-io))
+        :software-evolution-library/software/coq
+        :software-evolution-library/components/serapi-io)
+  (:export :coq-project))
 (in-package :software-evolution-library/software/coq-project)
 (in-readtable :serapi-readtable)
 

@@ -92,7 +92,6 @@
         :software-evolution-library/components/serapi-io)
   (:shadowing-import-from :uiop :pathname-directory-pathname)
   (:export :coq
-           :coq-project
            :ast-ids
            :project-file
            :file-source
@@ -101,6 +100,7 @@
            :coq-sections
            :coq-assumptions
            :coq-definitions
+           :*coq-mutation-types*
            :reset-and-load-imports
            :init-coq-project
            :find-nearest-type
