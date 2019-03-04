@@ -1115,7 +1115,7 @@ unspecified."
                                   (Default Explicit)
                                   ,PARAM-TYPE))))))
 
-;; TODO: Can we switch to using `make-coq-local-binder-exprs'?
+;; TODO: Maybe switch to using `make-coq-local-binder-exprs'
 (defun make-coq-lambda (params body)
   "Create a Coq lambda expression from PARAMS and BODY."
   (if (null params)
@@ -1232,16 +1232,16 @@ COQ-TYPE may be either a string or a symbol."
                                     [{eql (find-symbol "Pp_string")} #'car]
                                     resp))))
     (unless (starts-with-subseq "No object" (car strings))
-      ;; TODO: not certain this is correct for all types, but assumes that
-      ;; results are things like "Constant qualid" or "Notation qualid", so the
-      ;; qualids are the "even" elements of the list of strings in the result.
+      ;; TODO: May not be correct for all types. Assumes that results are things
+      ;; like "Constant qualid" or "Notation qualid", so the qualids are the
+      ;; even elements of the list of strings in the result.
       (iter (for even in (cdr strings) by #'cddr)
             (collecting (if (starts-with-subseq "SerTop." even)
-                            (subseq even 7)
+                            (subseq even (length "SerTop."))
                             even))))))
 
 (defun parse-coq-function-locals (sexpr)
-  ;; NOTE: may want to add VernacStartTheoremProof for theorems and lemmas.
+  ;; NOTE: may need to add VernacStartTheoremProof for theorems and lemmas.
   ;; See coq/stm/vernac_classifier.ml for grammar hints.
   (intern "CLocalAssum" *package*)
   (intern "Name" *package*)
