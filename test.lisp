@@ -2890,7 +2890,7 @@ int x = CHARSIZE;")))
                   :clang
                   "x + y"
                   :unbound-vals `(("x" ,(type-from-trace-string "int"))
-                    ("y" ,(type-from-trace-string "char"))))))
+                                  ("y" ,(type-from-trace-string "char"))))))
       (is (eq 1 (length asts)))
       (is (eq :BinaryOperator (ast-class (car asts))))
       (is (equalp '(((:name . "y")) ((:name . "x")))
@@ -2912,7 +2912,7 @@ int x = CHARSIZE;")))
                 :clang
                 "x = 1; y = 1"
                 :unbound-vals `(("x" ,(type-from-trace-string "int"))
-                  ("y" ,(type-from-trace-string "char")))
+                                ("y" ,(type-from-trace-string "char")))
                 :includes nil)))
     (is (eq 2 (length asts)))
     (is (eq :BinaryOperator (ast-class (first asts))))
@@ -3360,13 +3360,13 @@ int x = CHARSIZE;")))
   (:setup
    (setf *soft*
          (with-warnings-as-notes 3
-         (from-file
-          (make-instance 'java-project
-            :build-command "./gt-harness.sh build"
-            :artifacts
-            (list (format nil "target/~
-                        simpleMultifileMaven-1.~
-                        0-SNAPSHOT-jar-with-dependencies.jar")))
+           (from-file
+            (make-instance 'java-project
+              :build-command "./gt-harness.sh build"
+              :artifacts
+              (list (format nil "target/~
+                          simpleMultifileMaven-1.~
+                          0-SNAPSHOT-jar-with-dependencies.jar")))
             (make-pathname :directory +maven-prj-dir+)))))
   (:teardown
    (setf *soft* nil)))
@@ -10258,7 +10258,7 @@ int main() { puts(\"~d\"); return 0; }
 
 (defixture ls-test
   (:setup (setf *coq* (make-instance
-                          'coq
+                       'coq
                        :genome (copy-tree '(a (b ((c d) a))
                                             (b (() (c d e) ())))))))
   (:teardown
