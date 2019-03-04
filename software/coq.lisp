@@ -664,6 +664,7 @@ pairs of expressions from RESULT-EXPRS."
          (search-type (tokenize-coq-type type)))
     (if (zerop depth)
         (iter (for (name ast colon . scope-type) in scopes)
+              (declare (ignorable colon))
               (when (type-matches search-type scope-type)
                 (collecting ast into exact-names))
               (when (equal (tokenize-coq-type "bool") scope-type)
