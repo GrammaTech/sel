@@ -101,11 +101,13 @@
 
 (defmethod make-skipped-input-result
     ((client second-climacs) stream reason source)
+  (declare (ignorable client stream))
   (make-instance 'skipped-input-result
     :reason reason :start (car source) :end (cdr source)))
 
 (defmethod eclector.reader:read-common :around
     ((client second-climacs) input-stream eof-error-p eof-value)
+  (declare (ignorable eof-error-p eof-value))
   (let ((position (eclector.parse-result:source-position client input-stream)))
     (if-let ((cached (getcache position client)))
       (progn

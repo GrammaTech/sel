@@ -17,13 +17,13 @@
         :software-evolution-library/utility
         :software-evolution-library/software/simple)
   (:export :asm
+           :asm-range
            :*asm-linker*
            :*asm-mutation-types*
            :addr-map
            :asm-replace-operand
            :asm-nth-instruction
            :asm-split-instruction
-           :number-genome
            :homologous-crossover))
 (in-package :software-evolution-library/software/asm)
 (in-readtable :curry-compose-reader-macros)
@@ -37,6 +37,14 @@
    (flags    :initarg :flags    :accessor flags :initform nil))
   (:documentation
    "General assembler backend used to manipulate \".s\" text assembler."))
+
+(defmethod from-file :after ((obj asm) file)
+  "Ensure `number-genome' is called on all ASM files.
+This adds :id fields to genome elements required by `homologous-crossover'."
+  ;; Only run `number-genome' on asm objects with standard genomes.
+  (when (and (proper-list-p (genome obj))
+             (proper-list-p (first (genome obj))))
+    (number-genome obj)))
 
 (defclass asm-range (sw-range asm)
   ((stats :initarg :stats :accessor stats :initform nil))
@@ -124,12 +132,14 @@ address and the cdr is the value."
 
 
 ;;; Crossover
-(defun number-genome (asm)
-  "Number each element in the genome of ASM by adding an :ID association."
-  (iter (for line in (genome asm))
-        (for i upfrom 0)
-        (unless (aget :id line)
-          (setf (elt (genome asm) i) (acons :id i line)))))
+(defgeneric number-genome (asm)
+  (:documentation
+   "Number each element in the genome of ASM by adding an :ID association.")
+  (:method ((obj asm))
+    (iter (for line in (genome obj))
+          (for i upfrom 0)
+          (unless (aget :id line)
+            (setf (elt (genome obj) i) (acons :id i line))))))
 
 (defgeneric homologous-crossover (software-a software-b)
   (:documentation "Crossover at a similar point in both software objects.
@@ -181,6 +191,11 @@ Used by `homologous-crossover'."
                        (setf closest upper)
                        (setf closest-diff (abs (- id-a id-b-upper)))))))
               (finally (return closest)))))))
+
+(defmethod find-corresponding-point
+    ((point-a integer) (a asm-range) (b asm-range))
+  "A very simplified implementation for ASM-RANGE which don't use support tags."
+  (min point-a (size a) (size b)))
 
 (defmethod homologous-crossover ((a asm) (b asm))
   "Crossover at a similar point in asm objects, A and B.

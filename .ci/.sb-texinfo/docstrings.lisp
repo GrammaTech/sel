@@ -73,12 +73,12 @@
 (defparameter *character-replacements*
   '((#\* . "star") (#\/ . "slash") (#\+ . "plus")
     (#\< . "lt") (#\> . "gt")
-    (#\= . "equals"))
+    (#\= . "equals") (#\? . "question-mark"))
   "Characters and their replacement names that `alphanumize' uses. If
 the replacements contain any of the chars they're supposed to replace,
 you deserve to lose.")
 
-(defparameter *characters-to-drop* '(#\\ #\` #\')
+(defparameter *characters-to-drop* '(#\\ #\` #\' #\?)
   "Characters that should be removed by `alphanumize'.")
 
 (defparameter *texinfo-escaped-chars* "@{}"

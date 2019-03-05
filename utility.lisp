@@ -101,6 +101,7 @@
    :with-temp-dir
    :with-temp-dir-of
    :with-cwd
+   :with-temp-cwd-of
    :pwd
    :cd
    :pathname-relativize
@@ -136,6 +137,7 @@
    :parse-number
    :parse-numbers
    :trim-whitespace
+   :trim-right-whitespace
    :make-terminal-raw
    :make-terminal-unraw
    :ioctl
@@ -201,6 +203,7 @@
    :binary-search
    :tails
    :pairs
+   :filter-subtrees
    :make-thread-safe-hash-table
    ;;; Source and binary locations and ranges
    :source-location
@@ -282,12 +285,12 @@
     (let ((*readtable* (copy-readtable nil)))
       (setf (readtable-case *readtable*) :preserve)
       (cl-user::read stream t nil t)))
-
-  (defreadtable :sel-readtable
-    ;; Define an SEL readtable which combines CCRM with a #! reader
-    ;; macro for preserving case reads.  Both can be useful generally.
-    (:merge :curry-compose-reader-macros)
-    (:dispatch-macro-char #\# #\! #'read-preserving-case))
+  (handler-bind ((style-warning #'muffle-warning))
+    (defreadtable :sel-readtable
+      ;; Define an SEL readtable which combines CCRM with a #! reader
+      ;; macro for preserving case reads.  Both can be useful generally.
+      (:merge :curry-compose-reader-macros)
+      (:dispatch-macro-char #\# #\! #'read-preserving-case)))
 
   (in-readtable :sel-readtable))
 
@@ -536,6 +539,13 @@ may lose the original working directory."
          (progn (cd ,(car dir)) ,@body)
          (cd ,orig)))))
 
+(defmacro with-temp-cwd-of (spec dir &rest body)
+  "Copy DIR into a temporary directory, the path to which is stored in SPEC,
+and execute BODY within this temporary directory."
+  `(with-temp-dir-of ,spec ,dir
+     (with-cwd ,spec
+       ,@body)))
+
 (defun pwd ()
   (getcwd))
 
@@ -565,7 +575,7 @@ and an optional extension."
   "Populate SPEC with the path to a temporary directory with the contents
 of DIR and execute BODY"
   `(with-temp-dir ,spec
-     (shell "cp -pr ~a/* ~a" (namestring ,dir) (namestring ,(car spec)))
+     (shell "cp -pr ~a/. ~a" (namestring ,dir) (namestring ,(car spec)))
      ,@body))
 
 (defmacro with-temp-files (specs &rest body)
@@ -1094,6 +1104,11 @@ The SHELL command is executed with `*bash-shell*'."
 (defun trim-whitespace (str)
   (string-trim '(#\Space #\Tab #\Newline #\Linefeed)
                str))
+
+(defun trim-right-whitespace (str)
+  (string-right-trim '(#\Space #\Tab #\Newline #\Linefeed)
+		     str))
+
 
 (defun make-terminal-raw ()
   "Place the terminal into 'raw' mode, no echo or delete.
@@ -1704,6 +1719,19 @@ For example (pairs '(a b c)) => ('(a . b) '(a . c) '(b . c))
   (iter (for (a . rest) in (tails lst))
         (appending (iter (for b in rest)
                          (collecting (cons a b))))))
+
+(defgeneric filter-subtrees (predicate tree)
+  (:documentation "Return a list of subtrees of TREE satisfying PREDICATE."))
+
+(defmethod filter-subtrees (predicate (tree list))
+  "Return a list of subtrees of TREE satisfying PREDICATE."
+  (when (and tree (listp tree))
+    (append
+     (when (funcall predicate tree) (list tree))
+     (when (listp (car tree))
+       (filter-subtrees predicate (car tree)))
+     (when (listp (cdr tree))
+       (filter-subtrees predicate (cdr tree))))))
 
 (defun make-thread-safe-hash-table (&rest args)
   "Create a thread safe hash table with the given ARGS"

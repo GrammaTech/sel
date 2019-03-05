@@ -179,7 +179,8 @@ BIN_TEST_DIR ?= test/bin
 PASS=\e[1;1m\e[1;32mPASS\e[1;0m
 FAIL=\e[1;1m\e[1;31mFAIL\e[1;0m
 check/%: $(BIN_TEST_DIR)/% $(addprefix bin/, $(BINS))
-	@if ./$< >/dev/null 2>/dev/null;then \
+	@export PATH=./bin:$(PATH); \
+	if ./$< >/dev/null 2>/dev/null;then \
 	printf "$(PASS)\t\e[1;1m%s\e[1;0m\n" $*; exit 0; \
 	else \
 	printf "$(FAIL)\t\e[1;1m%s\e[1;0m\n" $*; exit 1; \

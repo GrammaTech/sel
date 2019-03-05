@@ -194,6 +194,37 @@
 ;;;   further fitness tests, or cause the whole fitness program to crash,
 ;;;   resulting in all variants to come back as +worst-c-fitness+.
 ;;;
+;;; @subsection Installing PAPI on Ubuntu
+;;; Fitness evaluation requires the PAPI component and the Linux Perf
+;;; functionality. Building the fitness evaluation program (on the fly
+;;; during fitness evaluation) requires a C program to compile and link
+;;; to PAPI. This also requires a .h file to compile.
+;;;
+;;; To install papi:
+;;;
+;;;      sudo apt-get install papi-tools
+;;;
+;;; To install perf:
+;;;
+;;;     sudo apt-get install linux-tools-common linux-tools-generic linux-tools-`uname -r`
+;;;
+;;; To get necessary include (.h) file for compiling C harness with PAPI
+;;; (needed to perform fitness evaluation):
+;;;
+;;;      sudo apt-get install libpapi-dev
+;;;
+;;; Then you should be able to enter
+;;;
+;;; papi_avail
+;;;
+;;; and see a list of available PAPI events.
+;;; ASM-SUPER-MUTANT requires the use of the PAPI_TOT_INS event (total number
+;;; of instructions executed).
+;;; After installation, the PAPI library should be found in one of these
+;;; locations:
+;;;     /usr/lib/x86_64-linux-gnu/libpapi.so
+;;;     /usr/lib/libpapi.so.5.6.1
+;;;
 ;;; @texi{asm-super-mutant}
 
 (defpackage :software-evolution-library/software/asm-super-mutant
@@ -244,6 +275,11 @@
     :accessor var-table
     :initform nil
     :documentation "Vector of var-rec (data/address records)")
+   (bss-segment
+    :initarg :bss-segment
+    :accessor bss-segment
+    :initform nil
+    :documentation "Address of bss segment in original executable")
    (target-name
     :initarg :target-name
     :accessor target-name
@@ -265,7 +301,8 @@
    (target-lines
     :initarg :target-lines
     :accessor target-lines
-    :documentation "Cache the lines of the target code, as they are used often.")
+    :documentation
+    "Cache the lines of the target code, as they are used often.")
    (assembler
     :initarg :assembler
     :accessor assembler
@@ -275,13 +312,36 @@
     :initarg :io-dir
     :accessor io-dir
     :initform nil
-    :documentation "Directory containing I/O files")
+    :documentation "Directory containing I/O files, named for the functions.")
+   (io-file
+    :initarg :io-file
+    :accessor io-file
+    :initform nil
+    :documentation "If this is specified, use this file (ignore io-dir).")
    (fitness-harness
     :initarg :fitness-harness
     :accessor fitness-harness
     :initform "./asm-super-mutant-fitness.c"
-    :documentation "Pathname to the fitness harness file (C program source)"))
-   (:documentation
+    :documentation "Pathname to the fitness harness file (C program source)")
+   (include-lines
+    :initarg :include-lines
+    :accessor include-lines
+    :initform nil
+    :documentation
+    "Optional list of lines of assembler source to include in fitness file.")
+   (include-funcs
+    :initarg :include-funcs
+    :accessor include-funcs
+    :initform nil
+    :documentation
+    "Optional list of names of functions to include in fitness file.")
+  (libraries
+    :initarg :libraries
+    :accessor libraries
+    :initform nil
+    :documentation
+    "Optional list of names of functions to include in fitness file."))
+  (:documentation
    "Combine SUPER-MUTANT capabilities with ASM-HEAP framework."))
 
 ;; C 64-bit unsigned long MAXINT, is the worst possible fitness score
@@ -347,7 +407,7 @@
   ;; if target-name non-nil, set the target
   (declare (ignore file))
   (if (target-name asm)
-    (target-function-name asm (target-name asm)))
+      (target-function-name asm (target-name asm)))
   asm)
 
 ;;;
@@ -633,24 +693,75 @@
     (setf (lines asm) (append reg-lines mem-lines))
     asm))
 
-(defun target-function (asm-super start-addr end-addr)
-  "Define the target function by specifying start address and end address"
+(defun get-function-lines (asm-super start-addr end-addr)
+  "Return lines and start and end indices of START-ADDR END-ADDR in ASM-SUPER.
+Given start and end addresses of a function, determine start line, end
+line, and text of included lines. Returns 3 values: list of lines,
+start line index and end line index."
   (let* ((genome (genome asm-super))
 	 (start-index
 	  (position start-addr genome
 		    :key 'asm-line-info-address
-		    :test (lambda (x y)(and y (= x y))))) ;; skip null address
+		    :test (lambda (x y)(and y (= x y))))) ; Skip null address.
 	 (end-index
 	  (position end-addr genome
 		    :key 'asm-line-info-address
 		    :start (if start-index start-index 0)
 		    :test (lambda (x y)(and y (= x y))))))
+    (values
+     (if (and start-index end-index)
+	 (subseq genome start-index (+ 1 end-index))
+	 nil)
+     start-index
+     end-index)))
+
+(defun traverse-function-graph (asm asm-super ht)
+  "Collect all the called functions (both extern and local) and store in
+passed hash-table."
+  (dolist (x (call-targets asm))
+    (let ((name (getf x ':name)))
+      (unless (gethash name ht)
+	(setf (gethash name ht) x)
+	(let ((child (make-instance 'asm-heap)))
+	  (setf (lines child) (get-function-lines-from-name asm-super name))
+	  (traverse-function-graph child asm-super ht))))))
+
+(defun collect-local-funcs (asm-super)
+  "For targeted function, collect all the function names being called,
+either directly or indirectly."
+  (let ((ht (make-hash-table :test 'equalp)))
+    (traverse-function-graph (create-target asm-super) asm-super ht)
+    (let ((funcs '()))
+      (maphash
+       (lambda (k v)
+	 (declare (ignore k))
+	 (unless (getf v ':library)
+	   (push (getf v ':name) funcs)))
+       ht)
+      funcs)))
+
+(defun collect-extern-funcs (asm-super)
+  "For targeted function, collect all extern call targets for
+the function or any local functions it directly or indirectly."
+  (let ((ht (make-hash-table :test 'equalp)))
+    (traverse-function-graph (create-target asm-super) asm-super ht)
+    (let ((funcs '()))
+      (maphash
+       (lambda (k v)
+	 (declare (ignore k))
+	 (if (getf v ':library)
+	     (push (getf v ':full-name) funcs)))
+       ht)
+      funcs)))
+
+(defun target-function (asm-super start-addr end-addr)
+  "Define the target function by specifying start address and end address"
+  (multiple-value-bind (lines start-index end-index)
+      (get-function-lines asm-super start-addr end-addr)
     (setf (target-start-index asm-super) start-index)
     (setf (target-end-index asm-super) end-index)
     (setf (target-lines asm-super)
-	  (if (and start-index end-index)
-	      (subseq genome start-index (+ 1 end-index))
-	      nil))))
+	  lines)))
 
 (defun target-function-name (asm function-name)
   "Specify target function by name. The name can be a symbol or a string. If
@@ -669,10 +780,12 @@ a symbol, the SYMBOL-NAME of the symbol is used."
        (function-index-entry-end-address index-entry))
       (load-io-file
        asm
-       (merge-pathnames
-	(pathname (io-dir asm))
-	(make-pathname :name function-name)))
+       (or (and (io-file asm) (pathname (io-file asm)))
+	   (merge-pathnames
+	    (pathname (io-dir asm))
+	    (make-pathname :name function-name))))
       (setf (target-info asm) index-entry))))
+
 
 (defun find-main-line (asm-super)
   (find "$main:" (genome asm-super) :key 'asm-line-info-text :test 'equal))
@@ -746,12 +859,9 @@ a symbol, the SYMBOL-NAME of the symbol is used."
     (list
      ""
      "; -------------- Externs ---------------")
-    (iter (for x in-vector (genome asm-super))
-	  (if (and (eq (asm-line-info-type x) ':decl)
-		   (eq (first (asm-line-info-tokens x))
-                       'software-evolution-library/asm::extern))
-	      (collect (asm-line-info-text x))))
-    (list ""))
+    (iter (for x in (collect-extern-funcs asm-super))
+	  (collect (format nil "        extern ~A" x))
+    (list "")))
    (length (genome asm))))
 
 ;;;
@@ -770,7 +880,7 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 (defun handle-ret-ops (asm-lines)
   (let ((new-lines '()))
     (iter (for line in-vector asm-lines)
-	  (if (eq (asm-line-info-opcode line) 'sel/asm::ret)
+	  (if (equalp (asm-line-info-opcode line) "ret")
 	      (progn
 		(push (car (parse-asm-line
 			    "        pop qword [result_return_address]"))
@@ -869,11 +979,22 @@ a symbol, the SYMBOL-NAME of the symbol is used."
     (insert-new-line asm-variants "" (length (genome asm-variants)))))
 
 (defun add-bss-section (asm-variants asm-super)
-  (insert-new-lines
-   asm-variants
-   (cons "section .seldata noexec write align=32"
-	 (cdr (lines (extract-section asm-super ".BSS"))))
-   (length (genome asm-variants))))
+  ;; if bss section found, add it
+  (let ((bss (extract-section asm-super ".BSS")))
+    (if bss
+	(insert-new-lines
+	 asm-variants
+	 (cons "section .seldata nobits alloc noexec write align=4"
+	       (cdr (lines (extract-section asm-super ".BSS"))))
+	 (length (genome asm-variants)))
+	(insert-new-lines
+	 asm-variants
+	 (list "section .seldata nobits alloc noexec write align=4"
+	"    times 16 db 0"
+	"    times  8 db 0"
+	"    times  8 db 0"
+	"    times  8 db 0")
+	 (length (genome asm-variants))))))
 
 (defun add-return-address-vars (asm-variants)
   (insert-new-lines
@@ -904,6 +1025,38 @@ a symbol, the SYMBOL-NAME of the symbol is used."
   (format-mem-info asm-variants (input-spec asm-super) "input_mem:")
   (format-mem-info asm-variants (output-spec asm-super) "output_mem:"))
 
+(defun add-included-lines (asm-super asm-variants)
+  "If any extra lines were supplied, paste them in now."
+  (if (include-lines asm-super)
+      (insert-new-lines
+       asm-variants
+       (include-lines asm-super)
+       (length (genome asm-variants)))))
+
+(defun get-function-lines-from-name (asm-super name)
+  "Given a function name, return the lines of that function (if found)."
+  (let ((index-entry (find name (function-index asm-super)
+			   :key 'function-index-entry-name
+			   :test 'equalp)))
+    (when index-entry
+      (get-function-lines
+	      asm-super
+	      (function-index-entry-start-address index-entry)
+	      (function-index-entry-end-address index-entry)))))
+
+(defun add-included-funcs (asm-super asm-variants)
+  "If any extra functions were included, paste them in now."
+  (if (include-funcs asm-super)
+      (dolist (func-name (include-funcs asm-super))
+	(if (symbolp func-name)
+	    (setf func-name (symbol-name func-name)))
+	(let ((lines (get-function-lines-from-name asm-super func-name)))
+	  (when lines
+	    (insert-new-lines
+	     asm-variants
+	     lines
+	     (length (genome asm-variants))))))))
+
 ;;;
 ;;; considers the variants have the same super-owner if its super-owner's
 ;;; genome is equalp to the target asm-super-mutant
@@ -912,7 +1065,12 @@ a symbol, the SYMBOL-NAME of the symbol is used."
   (let ((asm-variants (make-instance 'asm-heap :super-owner asm-super)))
     (setf (lines asm-variants) (list))  ;; empty heap
     (add-prolog asm-variants number-of-variants (target-info asm-super))
-    ;(add-externs asm-variants asm-super) ;this creates linker problem currently
+    (add-externs asm-variants asm-super)
+
+    ;; add additionally specified functions or code lines
+    (add-included-lines asm-super asm-variants)
+    (add-included-funcs asm-super asm-variants)
+
     (let ((count 0))
       (dolist (v (mutants asm-super))
 	(assert (equalp (genome (super-owner v)) (genome asm-super)) (v)
@@ -974,13 +1132,17 @@ a symbol, the SYMBOL-NAME of the symbol is used."
         (when (zerop errno)
           ;; Link.
 	  (multiple-value-bind (stdout stderr errno)
-	      (shell
-	       "clang -no-pie -O0 -fnon-call-exceptions -g -Wl,--section-start=.seldata=~a -lrt -o ~a ~a ~a ~a"
-	       (format nil "0x~x" (bss-segment-address asm))
-	       bin
-	       (fitness-harness asm)
-	       obj
-	       *lib-papi*)
+	    (shell
+	     "clang -no-pie -O0 -fnon-call-exceptions -g ~a -lrt -o ~a ~a ~a ~a ~a"
+	     (if (bss-segment asm)
+		 (format nil "-Wl,--section-start=.seldata=0x~x"
+			 (bss-segment asm))
+		 "")
+	     bin
+	     (fitness-harness asm)
+	     obj
+	     *lib-papi*
+	     (or (libraries asm) ""))
             (restart-case
                 (unless (zerop errno)
                   (error (make-condition 'phenome :text stderr
@@ -1010,8 +1172,8 @@ needs to have been loaded, along with the var-table by PARSE-SANITY-FILE."
       (multiple-value-bind (bin-path phenome-errno stderr stdout src)
 
 	  ;;(handler-case
-	      (phenome asm-super :bin bin)
-	  ;;  (phenome () (values nil 1 "" "" nil)))
+	  (phenome asm-super :bin bin)
+	;;  (phenome () (values nil 1 "" "" nil)))
 
 	(declare (ignorable phenome-errno stderr stdout src))
 	(let ((test-results nil))
@@ -1022,9 +1184,14 @@ needs to have been loaded, along with the var-table by PARSE-SANITY-FILE."
 		(declare (ignorable stderr errno))
 		(if (/= errno 0)
 		    (setf phenome-errno errno)
-		    (setf test-results
-			  (read-from-string
-			   (concatenate 'string "#(" stdout ")"))))))
+		    (progn
+		      (setf test-results
+			    (read-from-string
+			     (concatenate 'string "#(" stdout ")")))
+		      (if test-results
+			  (dotimes (i (length test-results))
+			    (assert (> (elt test-results i) 0) (test-results)
+				    "The fitness cannot be zero")))))))
 	  (if (null test-results)
 	      ;; create array of *worst-fitness*
 	      (setf test-results
@@ -1055,7 +1222,7 @@ needs to have been loaded, along with the var-table by PARSE-SANITY-FILE."
 (defun add-simple-cut-variant (asm-super i)
   (let* ((orig (create-target asm-super))
          (variant (apply-mutation orig
-				  (make-instance 'simple-cut
+				  (make-instance 'sel/sw/simple::simple-cut
 						 :object orig :targets i))))
     (push variant (mutants asm-super))))
 
@@ -1078,7 +1245,8 @@ needs to have been loaded, along with the var-table by PARSE-SANITY-FILE."
 	    (push
 	     (apply-mutation
 	      (copy orig)
-	      (make-instance 'simple-cut :object orig :targets index))
+	      (make-instance 'sel/sw/simple::simple-cut
+			     :object orig :targets index))
 	     variants)
 	    ;; (format t "Cutting index ~D, line: ~A~%" index
 	    ;;    (asm-line-info-text line))
@@ -1090,8 +1258,8 @@ needs to have been loaded, along with the var-table by PARSE-SANITY-FILE."
   "If the passed asm-line-info is a section header, returns the section name.
 Else returns NIL."
   (if (and (eq (asm-line-info-type asm-info) ':decl)
-	   (eq (first (asm-line-info-tokens asm-info)) 'sel/asm::section))
-      (symbol-name (second (asm-line-info-tokens asm-info)))))
+	   (equalp (first (asm-line-info-tokens asm-info)) "section"))
+      (second (asm-line-info-tokens asm-info))))
 
 (defun find-named-section (asm-super name)
   "Returns the starting line (integer) of the named section or
@@ -1125,9 +1293,9 @@ returns NIL."
 		      (function-index asm-super))))
 
 (defun parse-sanity-file (filename)
-  "Parses the 'sanity' file which is output by the GTX disassembler. It
-contains all the data variables and addresses (some of which are not
-included in the disassembly file). Returns a vector of var-rec."
+  "Parses the 'sanity' file which is output by the GTX disassembler.
+It contains all the data variables and addresses (some of which are
+not included in the disassembly file). Returns a vector of var-rec."
   (with-open-file (is filename)
     (do* ((recs '())
 	  (line (read-line is nil nil) (read-line is nil nil)))
@@ -1140,6 +1308,7 @@ included in the disassembly file). Returns a vector of var-rec."
 	(push (make-var-rec :name name :type type :address address) recs)))))
 
 (defun bss-segment-address (asm-super)
-  (let ((first-bss-var
-	 (find "b" (var-table asm-super) :test 'equal :key 'var-rec-type)))
-    (var-rec-address first-bss-var)))
+  (or (bss-segment asm-super)
+      (let ((first-bss-var
+	     (find "b" (var-table asm-super) :test 'equal :key 'var-rec-type)))
+	(var-rec-address first-bss-var))))

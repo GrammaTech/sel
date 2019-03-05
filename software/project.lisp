@@ -40,7 +40,6 @@
            :ignored-evolve-path-p
            :ignored-other-path-p
            :apply-to-project
-           :project-path
            :collect-evolve-files
            :collect-other-files
            :instrumentation-files
@@ -134,13 +133,18 @@ software objects in it's `evolve-files'."))
      &key ignore-files ignore-directories only-files only-directories
      &aux (canonical-path (canonical-pathname path)))
   (flet ((included-files (files)
-           (find-if [{equal canonical-path} #'canonical-pathname]
+           (find-if (lambda (file)
+                      (or (equal file "*")
+                          (equal canonical-path (canonical-pathname file))))
                     files))
          (included-directories (directories)
-           (find-if {search _ (pathname-directory canonical-path)
-                            :test #'equalp}
-                    directories
-                    :key [#'pathname-directory #'ensure-directory-pathname])))
+           (find-if (lambda (dir)
+                      (or (equal dir "*")
+                          (search (pathname-directory
+                                    (ensure-directory-pathname dir))
+                                  (pathname-directory canonical-path)
+                                  :test #'equalp)))
+                    directories)))
     (or (and only-files (not (included-files only-files)))
         (and only-directories (not (included-directories only-directories)))
         (included-directories ignore-directories)
@@ -215,7 +219,7 @@ or `only-other-directories'.")
               (let ((len (length s)))
                 (and (> len 0) (eql (elt s (1- len)) #\~))))
             (pathname-has-symlink (p)
-              (not (equal p (uiop:resolve-symlinks p))))))
+              (not (equal p (resolve-symlinks p))))))
      ;; These are represented as simple text files, for line-oriented diffs.
      (mapcar «cons #'identity
                    [{from-file (make-instance 'simple)}
@@ -226,13 +230,14 @@ or `only-other-directories'.")
      (mapcar {pathname-relativize (project-dir project)})
      (remove-if
       (lambda (p) (or (null (pathname-name p))
+		 (not (file-exists-p p))
 		 (ends-in-tilde (pathname-name p))
 		 (ends-in-tilde (pathname-type p))
-                 (not (text-file-p p))
+		 (ignored-other-path-p project p)
 		 ;; For now do not include symlinks.  In the future,
 		 ;; make links be special objects.
 		 (pathname-has-symlink p)
-		 (ignored-other-path-p project p))))
+                 (not (text-file-p p)))))
      (uiop:directory*)
      (merge-pathnames-as-file (project-dir project) #p"**/*.*"))))
 
@@ -360,25 +365,6 @@ or `only-other-directories'.")
   "Mapcar FUNCTION over `all-files' of PROJECT."
   (values project (mapcar [function #'cdr] (all-files project))))
 
-(defgeneric project-path (project path)
-  (:documentation "Expand PATH relative to PROJECT.")
-  (:method ((obj project) path)
-    (replace-all (namestring (canonical-pathname path))
-                 (-> (if (and *build-dir*
-                              (search (namestring *build-dir*)
-                                      (namestring
-                                       (ensure-directory-pathname
-                                        (canonical-pathname path)))))
-                         *build-dir*
-                         (project-dir obj))
-                   (canonical-pathname)
-                   (ensure-directory-pathname)
-                   (namestring))
-                 (-> (project-dir obj)
-                   (canonical-pathname)
-                   (ensure-directory-pathname)
-                   (namestring)))))
-
 
 ;;;; Diffs on projects
 
@@ -391,9 +377,10 @@ or `only-other-directories'.")
 (defun sort-file-alist (alist)
   (sort (copy-list alist) #'string< :key (lambda (x) (string (car x)))))
 
-(defmethod ast-diff ((project1 project) (project2 project))
+(defmethod ast-diff ((project1 project) (project2 project) &rest args
+                     &key &allow-other-keys)
   (flet ((%obj (proj) (make-instance 'alist-for-diff :alist (all-files proj))))
-    (ast-diff (%obj project1) (%obj project2))))
+    (apply #'ast-diff (%obj project1) (%obj project2) args)))
 
 (defun make-table-for-alist (alist &key (test #'eql))
   (let ((tab (make-hash-table :test test)))

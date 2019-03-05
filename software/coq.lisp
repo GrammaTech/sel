@@ -85,17 +85,22 @@
         :metabang-bind
         :iterate
         :split-sequence
+        :cl-ppcre
         :software-evolution-library
         :software-evolution-library/utility
         :software-evolution-library/software/sexp
         :software-evolution-library/components/serapi-io)
   (:shadowing-import-from :uiop :pathname-directory-pathname)
   (:export :coq
-           :coq-project
            :ast-ids
            :project-file
            :file-source
            :imports
+           :coq-modules
+           :coq-sections
+           :coq-assumptions
+           :coq-definitions
+           :*coq-mutation-types*
            :reset-and-load-imports
            :init-coq-project
            :find-nearest-type
@@ -105,16 +110,21 @@
            :tag-loc-info
            :untag-loc-info
            :lookup-source-strings
-           :coq-type-checks))
+           :coq-type-checks
+           :synthesize-typed-coq-expression))
 (in-package :software-evolution-library/software/coq)
 (in-readtable :serapi-readtable)
 
+(defvar *coq-mutation-types*
+  (cumulative-distribution
+   (normalize-probabilities
+    '((type-safe-swap .  5)
+      (sexp-swap      .  5))))
+  "Cumulative distribution fo normalized probabilities of weighted mutations.")
+
 ;; Coq object
 (define-software coq (sexp)
-  ((ast-ids
-    :initarg :ast-ids :accessor ast-ids :initform nil :copier copy-tree
-    :documentation "List of IDs for the ASTs when they were loaded.")
-   (project-file
+  ((project-file
     :initarg :project-file :accessor project-file :initform nil :copier :direct
     :documentation "Path to _CoqProject file, if it exists.")
    (file-source
@@ -123,7 +133,26 @@
    (imports
     :initarg :imports :accessor imports :initform nil
     :copier copy-list
-    :documentation "ASTs for imports, not part of genome."))
+    :documentation "ASTs for imports, not part of genome.")
+   (coq-modules
+    :initarg :modules :accessor coq-modules :initform nil
+    :copier copy-list
+    :documentation "List of Modules defined by this object.")
+   (coq-sections
+    :initarg :sections :accessor coq-sections :initform nil
+    :copier copy-list
+    :documentation "List of Sections defined by this object.")
+   (coq-assumptions
+    :initarg :assumptions :accessor coq-assumptions :initform nil
+    :copier copy-list
+    :documentation
+    "List of Parameters, Variables, etc. defined by this object.")
+   (coq-definitions
+    :initarg :definitions :accessor coq-definitions :initform nil
+    :copier copy-list
+    :documentation
+    "List of values defined in this object.
+Includes Definition, Inductive, Fixpoint, etc."))
   (:documentation "Coq software object."))
 
 (defun set-load-paths (project-file)
@@ -140,8 +169,8 @@ load path, with a nickname if one was provided in the PROJECT-FILE."
                 (let* ((split-line (split-sequence #\Space line))
                        (rel-dir (second split-line))
                        (nickname (third split-line)))
-                  (lib-add (namestring
-                            (merge-pathnames-as-file dir rel-dir))
+                  (add-coq-lib (namestring
+                                (merge-pathnames-as-file dir rel-dir))
                            :lib-name nickname))))))))
 
 (defgeneric reset-and-load-imports (coq &key imports)
@@ -191,25 +220,39 @@ file have been added."
     (set-load-paths (project-file obj))
     (insert-reset-point))
   (bind ((ast-ids (load-coq-file file))
-         ((import-asts import-strs asts new-ids)
+         ((import-asts import-strs asts modules sections
+                       assumptions definitions)
           (iter (for id in ast-ids)
-                (let ((ast (lookup-coq-ast id))
-                      (str (lookup-coq-string id)))
-                  (if (is-import-ast ast)
-                      ;; separate out import asts
+                (with initial-imports = t)
+                (let ((ast (lookup-coq-ast id)))
+                  ;; Collect all ASTs except imports into genome.
+                  (if (and initial-imports (coq-import-ast-p ast))
+                      ;; separate out import asts at top of file
                       (progn
                         (collect ast into imports)
-                        (collect str into import-strs))
-                      ;; save non-import asts and strings
+                        (collect (lookup-coq-string id) into import-strs))
+                      ;; all other asts
                       (progn
-                        (collect ast into asts)
-                        (collect id into new-ids))))
+                        (setf initial-imports nil)
+                        (collect ast into asts)))
+                  (when-let ((module (coq-module-ast-p ast)))
+                    (collect module into modules))
+                  (when-let ((section (coq-section-ast-p ast)))
+                    (collect section into sections))
+                  (when-let ((assumption (coq-assumption-ast-p ast)))
+                    (collect assumption into assumptions))
+                  (when-let ((definition (coq-definition-ast-p ast)))
+                    (collect definition into definitions)))
                 (finally
-                 (return (list imports import-strs asts new-ids))))))
+                 (return (list imports import-strs asts modules sections
+                               assumptions definitions))))))
     (setf (genome obj) (tag-loc-info asts))
-    (setf (ast-ids obj) new-ids)
     (setf (file-source obj) file)
     (setf (imports obj) import-asts)
+    (setf (coq-modules obj) modules)
+    (setf (coq-sections obj) sections)
+    (setf (coq-assumptions obj) assumptions)
+    (setf (coq-definitions obj) definitions)
 
     ;; load imports and update reset-point
     (reset-and-load-imports obj :imports import-strs)
@@ -232,6 +275,42 @@ Set INCLUDE-IMPORTS to T to include import statements in the result."
          (when (and ast (listp ast))
            (collecting (lookup-coq-string ast))))))
 
+(defun lookup-coq-import-strings (coq)
+  "Return a list of the string names of modules imported at top of file."
+  (remove-if «or {equal "Require"} {equal "Import"}»
+             (mappend [{split "\\s+"} #'lookup-coq-string]
+                      (imports coq))))
+
+(defun load-coq-object (coq &key (include-imports t) num-asts)
+  "Load the first NUM-ASTS ASTs of the COQ genome.
+If NUM-ASTS is NIL, load all ASTs. INCLUDE-IMPORTS (default T) specifies that
+imports should be loaded first."
+  (restart-case
+      (let ((ast-ids nil))
+        (when include-imports
+          (iter (for import in (imports coq))
+                (when import
+                  (when-let ((str (lookup-coq-string import)))
+                    (add-coq-string str)))))
+        (let ((num-asts (or num-asts (length (unannotated-genome coq)))))
+          (iter (for ast in (take num-asts (unannotated-genome coq)))
+                (when (and ast (listp ast))
+                  (when-let ((str (lookup-coq-string ast)))
+                    (append ast-ids (add-coq-string str))))
+                (finally (return ast-ids)))))
+    (cancel-asts-and-retry-load (ast)
+      :report "Cancel ASTs and retry loading object."
+      (cancel-coq-asts ast)
+      (load-coq-object coq :include-imports include-imports :num-asts num-asts))
+    (recreate-serapi-process-and-retry ()
+      :report "Create a new SerAPI process and retry loading object."
+      (kill-serapi *serapi-process*)
+      (setf *serapi-process* (make-serapi))
+      (unless include-imports
+        (reset-and-load-imports coq))
+      (load-coq-object coq :include-imports include-imports
+                       :num-asts num-asts))))
+
 (defgeneric coq-type-checks (coq)
   (:documentation
    "Return the fraction of ASTs in COQ software object that typecheck."))
@@ -243,10 +322,8 @@ Return NIL if source strings cannot be looked up."
   (insert-reset-point)
   (iter (for str in (lookup-source-strings obj :include-imports nil))
         (let ((new-ids (add-coq-string str)))
-          (appending new-ids into new-ast-ids)
           (sum (if new-ids 1 0) into typecheck-sum))
         (finally
-         (setf (ast-ids obj) new-ast-ids)
          (return (if (zerop (length (genome obj)))
                      0
                      (/ typecheck-sum (length (genome obj))))))))
@@ -318,12 +395,11 @@ If none exist, raise a `no-mutation-targets' error."
 Remove statements containing Coq location info from consideration.
 If none exist, raise a `no-mutation-targets' error."
   (if-let ((stmts (good-stmts obj)))
-    (if stmts
-        (random-elt stmts)
-        (error (make-condition
-                'no-mutation-targets
-                :obj obj
-                :text "No non-location statements in Coq genome.")))))
+    (random-elt stmts)
+    (error (make-condition
+               'no-mutation-targets
+             :obj obj
+             :text "No non-location statements in Coq genome."))))
 
 (defun find-nearest-type (coq index)
   "For object COQ, find the nearest tag for the subtree at INDEX in the genome.
@@ -396,7 +472,7 @@ condition."
 (defmethod apply-mutation ((obj coq) (mutation type-safe-swap))
   "Apply a `type-safe-swap' MUTATION to Coq object OBJ."
   (bind (((s1 s2) (targets mutation)))
-    ;; (note 3 "Applying `type-safe-swap' mutation with targets: (~a ~a)" s1 s2)
+    (note 3 "Applying `type-safe-swap' mutation with targets: (~a ~a)" s1 s2)
     (let ((s1 (max s1 s2))
           (s2 (min s1 s2)))
       (with-slots (genome) obj
@@ -417,4 +493,196 @@ condition."
 (defmethod pick-mutation-type ((obj coq))
   "Randomly select a mutation that may be performed on OBJ."
   (declare (ignorable obj))
-  (random-pick (list (cons 'type-safe-swap 0.8) (cons 'sexp-swap 1.0))))
+  (random-pick *coq-mutation-types*))
+
+(defmethod stmt-range ((obj coq) (function string))
+  "Return a list of the indices of the first and last ASTs of FUNCTION in OBJ.
+Assumes FUNCTION is defined in a top-level AST in OBJ."
+  (intern function *package*)
+  (when-let ((top-level-pos
+              (iter (for defn in (genome obj))
+                    (for i upfrom 0)
+                    (when-let ((defn-name (coq-definition-ast-p defn)))
+                      (when (eql defn-name (find-symbol function *package*))
+                        (collecting i))))))
+    (let ((end-prev (tree-size (take (first top-level-pos) (genome obj)))))
+      (list (1+ end-prev)
+            (+ end-prev (tree-size (nth (first top-level-pos)
+                                        (genome obj))))))))
+
+(defun parse-coq-assumption-type (coq ast-num assum-name)
+  (reset-and-load-imports coq)
+  (insert-reset-point)
+  ;; load object up through AST we care about
+  (load-coq-object coq :include-imports nil
+                   :num-asts (1+ ast-num))
+  (prog1
+      (check-coq-type assum-name)
+    (reset-serapi-process)))
+
+(defun parse-coq-function-local-types (coq ast-num)
+  (reset-and-load-imports coq)
+  (insert-reset-point)
+  ;; Load object up through AST we care about, handling errors if they occur.
+  (load-coq-object coq :include-imports nil :num-asts (1+ ast-num))
+  (bind ((coq-ast (nth ast-num (unannotated-genome coq)))
+         (fn-name (coq-definition-ast-p coq-ast))
+         (local-names (mapcar
+                       #'first
+                       (sel/cp/serapi-io::parse-coq-function-locals coq-ast)))
+         (type (split-sequence :-> (cddr (check-coq-type fn-name)))))
+    (reset-serapi-process)
+    (mapcar #'append
+            (mapcar #'list
+                    (mapcar #'string local-names)
+                    (mapcar #'make-coq-var-reference local-names)
+                    (repeatedly (length local-names) :COLON))
+            type)))
+
+(defun unqualify-coq-modules (env modules)
+  ;; env is ((term :COLON type ...) ...)
+  ;; Need to unqualify any qualified terms or types. Type may contain nested
+  ;; lists.
+  (labels ((unqualify-term (term module)
+             (cond
+               ((null term) nil)
+               ((listp term)
+                (cons (unqualify-term (car term) module)
+                      (unqualify-term (cdr term) module)))
+               ((and (stringp term)
+                     (starts-with-subseq (format nil "~a." module)
+                                         term))
+                (subseq term (1+ (length module))))
+               (t term))))
+    (iter (for module in (mapcar #'string modules))
+          ;; update env with unqualified module references
+          (setf env (unqualify-term env module))
+          (finally (return env)))))
+
+(defun build-environment (coq &key num-asts modules whitelist-defs
+                                imported-modules)
+  (reset-and-load-imports coq)
+  (insert-reset-point)
+  (load-coq-object coq :include-imports nil
+                   :num-asts (or num-asts (length (genome coq))))
+  (prog1
+      ;; if no module list is specified, search anyway with :module NIL
+      ;; (i.e., in all loaded libraries)
+      (let ((types (append (search-coq-type "Type")
+                           (search-coq-type "Set"))))
+        (iter (for module in (or modules (list nil)))
+              (let ((vals (mappend [{unqualify-coq-modules _ imported-modules}
+                                    {search-coq-type _ :module module}
+                                    #'first]
+                                   types)))
+                (mapc (lambda (type)
+                        (when (or (not whitelist-defs)
+                                  (some {ends-with-subseq _ (first type)
+                                                          :test #'equal}
+                                        whitelist-defs))
+                          (collecting type into mod-types)))
+                      vals))
+              (finally
+               (return
+                 (mapcar (lambda (ty)
+                           (if (listp ty)
+                               (cons (car ty)
+                                     (cons (make-coq-var-reference (car ty))
+                                           (cdr ty)))
+                               ty))
+                         mod-types)))))
+    ;; reset after loading coq software object
+    (reset-serapi-process)))
+
+;; NOTE: this function generates a list of ASTs which may be converted to
+;; strings using `(lookup-coq-string expr :input-format #!'CoqExpr)'.
+(defun synthesize-typed-coq-expression (type scopes depth)
+  "Synthesize an expression of type TYPE using in-scope values SCOPES.
+Return a list of strings representing Coq expressions of type TYPE.
+TYPE is a string denoting a Coq type (e.g., \"nat -> bool\").
+SCOPES is a list of variables with tokenized types (e.g., as generated by
+`search-coq-type').
+DEPTH is a number limiting the search depth. Functions will be applied to no
+more than DEPTH parameters."
+  (bind (((:labels type-matches (ty1 ty2))
+          "Return T if ty1 and ty2 are strings representing the same type.
+Must account for the possibility that ty1 and ty2 might be either qualified or
+unqualified type names."
+          (cond
+            ((and (null ty1) (null ty2)) t)
+            ;; For strings, check if one is a suffix of the other
+            ;; (essentially ignoring qualification)
+            ((and (stringp ty1) (stringp ty2))
+             (or (ends-with-subseq ty1 ty2)
+                 (ends-with-subseq ty2 ty1)))
+            ;; For symbols, convert to strings and check for match
+            ((and (symbolp ty1) (symbolp ty2))
+             (type-matches (string ty1) (string ty2)))
+            ;; Two type lists of the same length: check that every element
+            ;; matches.
+            ((and (listp ty1) (listp ty2) (= (length ty1) (length ty2)))
+             (every #'identity (mapcar #'type-matches ty1 ty2)))
+            (t nil)))
+         ((:flet extend-env (type scopes))
+          "Return a list of curried function calls applying function TYPE to
+every variable in SCOPES whose type matches that of TYPE's first parameter.
+E.g., for type \"bool\", the list includes \"(implb true) : bool -> bool\" and
+\"(negb true) : bool\"."
+          (let ((split-type (split-sequence-if {eql :->} (cdddr type)))
+                (name (first type))
+                (type-ast (second type)))
+            ;; Ensure that TYPE is a function (has at least 1 :->).
+            (when (< 1 (length split-type))
+              ;; Iterate over SCOPES, finding items with the correct type.
+              (iter (for (scope-name scope-ast colon . scope-ty) in scopes)
+                    (declare (ignorable colon))
+                    (when (type-matches (car split-type) scope-ty)
+                      (collecting
+                       ;; Format as a tokenized type whose name is the curried
+                       ;; function call.
+                       (append (list (format nil "(~a ~a)" name scope-name)
+                                     (make-coq-application type-ast scope-ast)
+                                     :COLON)
+                               ;; Drop the first type, join the rest with :->.
+                               (cdr (mappend {cons :->}
+                                             (cdr split-type))))))))))
+         #+(or )                       ; NOTE: Uncomment if used below
+         ((:flet synthesize-typed-coq-if-expression (bool-exprs result-exprs))
+          "Return a list of if expressions testing BOOL-EXPRS and resulting in
+pairs of expressions from RESULT-EXPRS."
+          (iter (for test-expr in bool-exprs)
+                (appending
+                 (iter (for then-expr in result-exprs)
+                       (appending
+                        (iter (for else-expr in result-exprs)
+                              (collecting
+                               (list (format nil "(if ~a then ~a else ~a)"
+                                             test-expr then-expr else-expr)
+                                     (make-coq-if test-expr
+                                                  then-expr
+                                                  else-expr)))))))))
+         (search-type (tokenize-coq-type type)))
+    (if (zerop depth)
+        (iter (for (name ast colon . scope-type) in scopes)
+              (declare (ignorable colon))
+              (when (type-matches search-type scope-type)
+                (collecting ast into exact-names))
+              (when (equal (tokenize-coq-type "bool") scope-type)
+                (collecting name into bool-names)
+                (collecting ast into bool-asts))
+              (finally (return (append exact-names nil
+                                       #+(or ) ; NOTE: Uncomment above if used.
+                                       (remove-if
+                                        #'null
+                                        (synthesize-typed-coq-if-expression
+                                         bool-names
+                                         exact-names))))))
+        ;; extend environment up to depth limit
+        (iter (for scope-type in scopes)
+              (unioning (extend-env scope-type scopes) into envs test #'equal)
+              (finally (return (synthesize-typed-coq-expression
+                                type
+                                (union scopes envs :test (lambda (x y)
+                                                           (equal (car x)
+                                                                  (car y))))
+                                (1- depth))))))))

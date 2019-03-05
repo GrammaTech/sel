@@ -35,11 +35,15 @@
 ;;;
 ;;; Starting the server:
 ;;;
-;;;     (setf *handler* (clack:clackup (snooze:make-clack-app) :port 9003))
+;;;     (start-server)
 ;;;
 ;;; Stopping the server:
 ;;;
-;;;     (clack:stop *handler*)
+;;;     (stop-server)
+;;;
+;;; Restart the server:
+;;;
+;;;     (start-server)            ;; will stop, if running, then start
 ;;;
 ;;; @subsection Resources and Operations
 ;;;
@@ -70,11 +74,6 @@
 ;;;     evolutions, fitness tests across large populations, and
 ;;;     searches.
 ;;;
-;;;  Directories
-;;;     Lists (dictionaries) of sel-supported options software types,
-;;;     with meta-data for each type to support create/update mutation
-;;;     types.
-;;;
 ;;;  Client sessions
 ;;;     establish ownership of a jobs, software objects, populations, etc.
 ;;;
@@ -83,13 +82,9 @@
 ;;;     executable file and some command-line argumants. These are
 ;;;     used to evaluate Software objects.
 ;;;
-;;;  Scions
-;;;     Patterns defined by Bug-Injector to describe software bugs
-;;;     (this is a work still in progress)
-;;;
 ;;;  Traces
 ;;;     Models and manages the data collected from running test suites against
-;;;     instrumented Software objects. (work in progress)
+;;;     instrumented Software objects.
 ;;;
 ;;;  Instrumented Software
 ;;;     Software objects which have been instrumented.
@@ -97,7 +92,7 @@
 ;;;  Traced Software
 ;;;     Instrumented Software objects which have also been traced.
 ;;;
-;;; @subsubsection Operations on resources
+;;; @subsubsection Operations on Resources
 ;;;
 ;;; Note: all operations (other than session create) require a client-ID
 ;;; parameter. Although only specified in the first ones below, all others
@@ -198,12 +193,6 @@
 ;;;     @code{service-base>/mut?mid=<mutation-id>}
 ;;;     Delete the specified mutation. (work in progress)
 ;;;
-;;; Directories:
-;;;
-;;;  GET
-;;;     @code{<service-base>/dir/software} Returns list of types
-;;;     of software which may be intantiated.  (work in progress)
-;;;
 ;;; Test Suites:
 ;;;
 ;;;  POST
@@ -240,6 +229,14 @@
 ;;;     Returns the oid specified (does not create a new, distinct software
 ;;;     object).
 ;;;
+;;; Write Software:
+;;;
+;;;  POST
+;;;     @code{<service-base>/writesoft?sid=<software-oid>}
+;;;     Writes the specified software object to a file (TO-FILE).
+;;;     Returns success or error code.
+;;;     Body contains path specification.
+;;;
 ;;; @texi{rest}
 (defpackage :software-evolution-library/rest
   (:nicknames :sel/rest)
@@ -249,6 +246,7 @@
    :curry-compose-reader-macros
    :common-lisp
    :snooze
+   :split-sequence
    :cl-json
    :iterate
    :trace-db
@@ -261,16 +259,37 @@
    :software-evolution-library/software/parseable
    ;; TODO: Maybe remove this dependency.
    :software-evolution-library/software/asm-super-mutant
-   :software-evolution-library/software/clang)
-  (:export :lookup-session))
+   :software-evolution-library/software/clang
+   :software-evolution-library/command-line)
+  (:shadowing-import-from :clack :clackup :stop)
+  (:export :lookup-session
+           :session-property
+           :start-server
+           :stop-server))
 (in-package :software-evolution-library/rest)
 (in-readtable :curry-compose-reader-macros)
+
+(setf snooze::*catch-http-conditions* nil)
+(setf snooze::*catch-errors* :verbose)
 
 (defvar *session-id-generator* 1000
   "Start session ids at 1001 and increment")
 
 (defvar *session-pool* (make-hash-table :test 'equal)
   "Keep a collection of live session objects")
+
+(defvar *server* nil)
+(defvar *default-rest-port* 9003)
+
+(defun start-server (&optional (port *default-rest-port*))
+  (if *server*
+      (stop-server))
+  (setf *server* (clack:clackup (snooze:make-clack-app) :port port)))
+
+(defun stop-server ()
+  (when *server*
+    (clack:stop *server*)
+    (setf *server* nil)))
 
 (defun lookup-session (cid)
   (if (symbolp cid)
@@ -304,10 +323,10 @@
       :initarg :test-suites
       :accessor session-test-suites
       :initform nil)
-     (scions
-      :initarg :scions
-      :accessor session-scions
-      :initform nil)
+     (properties  ; allow other modules (which use sel) to add properties
+      :initarg :properties
+      :accessor session-properties
+      :initform (make-hash-table :test 'equalp))
      (trace-results
       :initarg :trace-results
       :accessor session-trace-results
@@ -319,99 +338,108 @@
 
   (:documentation "Client session object"))
 
+(defun session-property (session name)
+  (gethash name (session-properties session)))
+
+(defun (setf session-property) (value session name)
+  (setf (gethash name (session-properties session)) value))
+
 (defroute
     client (:post "application/json")
     (let* ((json (handler-case
-		     (json:decode-json-from-string (payload-as-string))
-		   (error (e)
-		     (http-condition 400 "Malformed JSON (~a)!" e))))
-	   (max-population-size (cdr (assoc :max-population-size json)))
-	   (cross-chance (cdr (assoc :cross-chance json)))
-	   (mutation-rate (cdr (assoc :mut-rate json)))
+                     (json:decode-json-from-string (payload-as-string))
+                   (error (e)
+                     (http-condition 400 "Malformed JSON (~a)!" e))))
+           (max-population-size (cdr (assoc :max-population-size json)))
+           (cross-chance (cdr (assoc :cross-chance json)))
+           (mutation-rate (cdr (assoc :mut-rate json)))
            (session-obj
-	    (make-instance 'session
-	      :settings
-	      (append
-	       (if max-population-size
-		   (list :max-population-size max-population-size))
-	       (if cross-chance
-		   (list :cross-chance
-			 (or (numberp cross-chance)
-			     (coerce (read-from-string cross-chance) 'real))))
-	       (if mutation-rate
-		   (list :mutation-rate
-			 (or (numberp mutation-rate)
-			     (coerce
-			      (read-from-string mutation-rate)
-			      'real))))))))
+            (make-instance 'session
+                           :settings
+                           (append
+                            (if max-population-size
+                                (list :max-population-size max-population-size))
+                            (if cross-chance
+                                (list :cross-chance
+                                      (or (numberp cross-chance)
+                                          (coerce (read-from-string cross-chance) 'real))))
+                            (if mutation-rate
+                                (list :mutation-rate
+                                      (or (numberp mutation-rate)
+                                          (coerce
+                                           (read-from-string mutation-rate)
+                                           'real))))))))
       (setf (gethash (session-id session-obj) *session-pool*) session-obj)
       (session-id session-obj)))
 
 (defun convert-symbol (string)
   "If a string contains '::' then convert it to a symbol if possible."
   (if (and (stringp string)(search "::" string))
-    (let ((sym (read-from-string string)))
-      (if (symbolp sym)
-  	sym
-	string))
-    string))
+      (let ((sym (read-from-string string)))
+        (if (symbolp sym)
+            sym
+            string))
+      string))
 
 (defroute
     soft (:post "application/json" &key cid (sid nil) (type nil))
     (declare (ignore sid))
-    (let* ((json (handler-case
-		     (json:decode-json-from-string (payload-as-string))
-		   (error (e)
-		     (http-condition 400 "Malformed JSON (~a)!" e))))
-	   (client (lookup-session cid))
-	   (path (cdr (assoc :path json)))
-	   (url (cdr (assoc :url json)))
-	   (code (cdr (assoc :code json)))
-	   (software-type (convert-symbol type))) ; convert string to symbol
-      (declare (ignore url code)) ; not implemented yet
-      (when path
-	  (let ((software
-		 (from-file
-		  (apply 'make-instance
-			 software-type
-			 (iter (for x in json)
-			       (unless
-				   (member (car x)
-					   '(:path :project-dir
-					     :url :code :software-id))
-				 (collect (car x))
-				 (collect (convert-symbol (cdr x))))))
-		  path)))
-	    ;; store the software obj with the session
-	    (push (format-genome software) (session-software client))
-	    (format nil "~D" (sel::oid software))))))
+    (let ((json (handler-case
+                    (json:decode-json-from-string (payload-as-string))
+                  (error (e)
+                    (http-condition 400 "Malformed JSON (~a)!" e)))))
+      (handler-case
+          (let* ((client (lookup-session cid))
+                 (path (cdr (assoc :path json)))
+                 (url (cdr (assoc :url json)))
+                 (code (cdr (assoc :code json)))
+                 (software-type (convert-symbol type))) ;conv. string to symbol
+            (declare (ignore url code)) ; not implemented yet
+            (when path
+              (let ((software
+                     (from-file
+                      (apply 'make-instance
+                             software-type
+                             (iter (for x in json)
+                                   (unless
+                                       (member (car x)
+                                               '(:path :project-dir
+                                                 :url :code :software-id))
+                                     (collect (car x))
+                                     (collect (convert-symbol (cdr x))))))
+                      path)))
+                ;; store the software obj with the session
+                (push (format-genome software) (session-software client))
+                (format nil "~D" (sel::oid software)))))
+        (error (e)
+          (http-condition 400 "Error in software POST method (~a)!" e)))))
 
 (defun find-software (client sid)
   "Return the population from the client record (if found)."
   (car (member sid (session-software client)
-	       :key 'sel::oid :test 'eql)))
+               :key 'sel::oid :test 'eql)))
 
 (defun get-software (cid sid type)
   (let* ((result "{ \"error\": \"Nothing\"}")
-	 (client (lookup-session cid)))
+         (client (lookup-session cid)))
     (if client
-	(let ((software (find-software client sid)))
-	  (if software
-	      (setf result
-		    (json:encode-json-plist-to-string
-		     (list
-		      :oid (sel::oid software)
-		      :class (format nil "~A"
-				     (class-name (class-of software)))
-		      :size (format nil "~D" (size software))
-		      :fitness (fitness software)
-		      :instrumented (instrumented-p software))))
-	      (let ((ids (iter (for x in (session-software client))
-			       (if (or (null type)
-				       (eq (class-name (class-of x)) type))
-				   (collect (sel::oid x))))))
-		(setf result
-		      (json:encode-json-to-string ids))))))
+        (let ((software (find-software client sid)))
+          (if software
+              (setf result
+                    (json:encode-json-plist-to-string
+                     (list
+                      :oid (sel::oid software)
+                      :class (format nil "~A"
+                                     (class-name (class-of software)))
+                      :size (format nil "~D" (size software))
+                      :fitness (fitness software)
+                      :instrumented (instrumented-p software))))
+              (let ((ids (iter (for x in (session-software client))
+                               (if (or (null type)
+                                       (eq (class-name (class-of x)) type))
+                                   (collect (sel::oid x))))))
+                (setf result
+                      (json:encode-json-to-string ids))))))
 
     result))
 
@@ -442,7 +470,7 @@
 (defun find-population (client pop-name)
   "Return the population from the client record (if found)."
   (car (member pop-name (session-populations client)
-			    :key 'population-name :test 'equal)))
+               :key 'population-name :test 'equal)))
 (defun population-size (population)
   "Return the number of software objects in the population."
   (length (population-individuals population)))
@@ -450,20 +478,20 @@
 (defroute
     population (:post "application/json" &key cid name)
     (let* ((json (handler-case
-		     (json:decode-json-from-string (payload-as-string))
-		   (error (e)
-		     (http-condition 400 "Malformed JSON (~a)!" e))))
-	   (client (lookup-session cid))
-	   (type (intern (string-upcase (cdr (assoc :type json))) :sel))
-	   (sids (cdr (assoc :sids json)))
-	   (population
-	    (apply 'make-instance
-		   'population
-		   :type type
-		   :individuals (mapcar
-			  (lambda (sid) (find-software client sid))
-			  sids)
-		   (if name (list ':name name)))))
+                     (json:decode-json-from-string (payload-as-string))
+                   (error (e)
+                     (http-condition 400 "Malformed JSON (~a)!" e))))
+           (client (lookup-session cid))
+           (type (intern (string-upcase (cdr (assoc :type json))) :sel))
+           (sids (cdr (assoc :sids json)))
+           (population
+            (apply 'make-instance
+                   'population
+                   :type type
+                   :individuals (mapcar
+                                 (lambda (sid) (find-software client sid))
+                                 sids)
+                   (if name (list ':name name)))))
       ;; store the software obj with the session
       (push population (session-populations client))
       (population-name population)))
@@ -479,18 +507,18 @@
 (defun get-population (cid name)
   (let* ((client (lookup-session cid)))
     (if client
-	(let ((population (and name (find-population client name))))
-	  (if (null population)
-	      (let ((pop-names (iter (for x in (session-populations client))
-				     (collect (population-name x)))))
-		(json:encode-json-to-string pop-names))
-	      (format-population-as-json population))))))
+        (let ((population (and name (find-population client name))))
+          (if (null population)
+              (let ((pop-names (iter (for x in (session-populations client))
+                                     (collect (population-name x)))))
+                (json:encode-json-to-string pop-names))
+              (format-population-as-json population))))))
 
 (defun add-population (client population sids)
   (iter (for sid in sids)
-	(let ((ind (find-software client sid)))
-	  (if ind
-	      (push ind (population-individuals population))))))
+        (let ((ind (find-software client sid)))
+          (if ind
+              (push ind (population-individuals population))))))
 
 (defroute
     population (:get :text/* &key cid name)
@@ -503,63 +531,86 @@
 (defroute
     population (:put "application/json" &key cid name)
     (let* ((json (handler-case
-		     (json:decode-json-from-string (payload-as-string))
-		   (error (e)
-		     (http-condition 400 "Malformed JSON (~a)!" e))))
-	   (sids (cdr (assoc :sids json)))
-	   (client (lookup-session cid))
-	   (population (if name (find-population client name))))
+                     (json:decode-json-from-string (payload-as-string))
+                   (error (e)
+                     (http-condition 400 "Malformed JSON (~a)!" e))))
+           (sids (cdr (assoc :sids json)))
+           (client (lookup-session cid))
+           (population (if name (find-population client name))))
       (when population
-	(add-population client population sids)
-	(format-population-as-json population))))
+        (add-population client population sids)
+        (format-population-as-json population))))
+
+(defun lookup-resource (client str)
+  "See if the json value is a string which can be parsed as a resource
+lookup. Resource lookups are of the form \"<resource>:<oid>\""
+  (if (and (stringp str)
+           (find #\: str))
+      (let ((spl (split-sequence #\: str)))
+        (if spl
+            (let* ((res (first spl))
+                   (id (ignore-errors (parse-integer (second spl)))))
+              (and (stringp res) (integerp id)
+                   (car
+                    (member id (session-property client res)
+                            :key 'sel::oid :test 'eql))))))))
 
 (defroute
     mut (:post "application/json" &key cid mid)
     (declare (ignore mid))
     (let* ((json (handler-case
-		     (json:decode-json-from-string (payload-as-string))
-		   (error (e)
-		     (http-condition 400 "Malformed JSON (~a)!" e))))
-	   (client (lookup-session cid))
-	   (type (cdr (assoc :type json)))
-	   (type-sym (convert-symbol type))
-	   (sid (cdr (assoc :sid json)))
-	   (software (find-software client sid))
-	   (targets (cdr (assoc :targets json))))
+                     (json:decode-json-from-string (payload-as-string))
+                   (error (e)
+                     (http-condition 400 "Malformed JSON (~a)!" e))))
+           (client (lookup-session cid))
+           (type (cdr (assoc :type json)))
+           (type-sym (and type (convert-symbol type)))
+           (sid (cdr (assoc :sid json)))
+           (software (find-software client sid))
+           (properties (iter (for x in json)
+                                   (unless
+                                       (member (car x)
+                                               '(:type :sid :targets))
+                                     (collect (car x))
+                                     (collect
+                                         (or (lookup-resource  client (cdr x))
+                                             (convert-symbol (cdr x)))))))
+           (targets (cdr (assoc :targets json))))
       (if type
-	  (let ((mutation
-		  (funcall 'make-instance
-			 type-sym
-			 :object software
-			 :targets targets)))
+          (let ((mutation
+                 (apply 'make-instance
+                        type-sym
+                        :object software
+                        :targets targets
+                        properties)))
 
-	    ;; store the software obj with the session
-	    (push mutation (session-mutations client))
-	    (format nil "~D" (sel::oid mutation))))))
+            ;; store the software obj with the session
+            (push mutation (session-mutations client))
+            (format nil "~D" (sel::oid mutation))))))
 
 (defun format-mutation-as-json (mutation)
   (json:encode-json-plist-to-string
-   (list
-    :id (sel::oid mutation)
-    :type (symbol-name (class-name (class-of mutation)))
-    :sid (sel::oid (object mutation))
-    :software-type (symbol-name (class-name (class-of (object mutation))))
-    :targets (targets mutation))))
+   (apply 'list
+          :id (sel::oid mutation)
+          :type (symbol-name (class-name (class-of mutation)))
+          :sid (and (object mutation) (sel::oid (object mutation)))
+          :software-type (symbol-name (class-name (class-of (object mutation))))
+          :targets (targets mutation))))
 
 (defun find-mutation (client mid)
   "Return the mutation from the client record (if found)."
   (car (member mid (session-mutations client)
-	       :key 'sel::oid :test 'eql)))
+               :key 'sel::oid :test 'eql)))
 
 (defun get-mutation (cid mid)
   (let* ((client (lookup-session cid)))
     (if client
-	(let ((mutation (and mid (find-mutation client mid))))
-	  (if (null mutation)
-	      (let ((mids (iter (for x in (session-mutations client))
-				     (collect (sel::oid x)))))
-		(json:encode-json-to-string mids))
-	      (format-mutation-as-json mutation))))))
+        (let ((mutation (and mid (find-mutation client mid))))
+          (if (null mutation)
+              (let ((mids (iter (for x in (session-mutations client))
+                                     (collect (sel::oid x)))))
+                (json:encode-json-to-string mids))
+              (format-mutation-as-json mutation))))))
 
 (defroute
     mut (:get :text/* &key cid mid)
@@ -594,7 +645,7 @@ in a population"))
 (defun find-job (client job-name)
   "Return the named job from the client record (if found)."
   (car (member job-name (session-jobs client)
-	       :key 'async-job-name :test 'equal)))
+               :key 'async-job-name :test 'equal)))
 
 (defun format-job-as-json (async-job)
   (let ((task-runner (async-job-task-runner async-job)))
@@ -608,44 +659,44 @@ in a population"))
 (defun get-job (cid name)
   (let* ((client (lookup-session cid)))
     (if client
-	(let ((job (and name (find-job client name))))
-	  (if (null job)
-	      (let ((job-names (iter (for x in (session-jobs client))
-				     (collect (async-job-name x)))))
-		(json:encode-json-to-string job-names))
-	      (format-job-as-json job))))))
+        (let ((job (and name (find-job client name))))
+          (if (null job)
+              (let ((job-names (iter (for x in (session-jobs client))
+                                     (collect (async-job-name x)))))
+                (json:encode-json-to-string job-names))
+              (format-job-as-json job))))))
 
 (defun lookup-job-func (population name)
   "Allow some special-case names, otherwise fall through to symbol
  in SEL package by the specificed name."
   (let* ((sym (convert-symbol name))
-	 (func (symbol-function sym)))
+         (func (symbol-function sym)))
     (if (and (eq 'sel::evaluate sym)
              ;; TODO: Maybe remove this special case and dependency.
-	     (subtypep (population-type population) 'asm-super-mutant))
-	    (setf func (lambda (soft) (evaluate nil soft))))
+             (subtypep (population-type population) 'asm-super-mutant))
+            (setf func (lambda (soft) (evaluate nil soft))))
     func))
 
 (defroute
     async (:post "application/json" &key cid name)
     (let* ((json (handler-case
-		     (json:decode-json-from-string (payload-as-string))
-		   (error (e)
-		     (http-condition 400 "Malformed JSON (~a)!" e))))
-	   (client (lookup-session cid))
-	   (pid (cdr (assoc :pid json)))  ; name/id of population
-	   (population (find-population client pid))
-	   (func (lookup-job-func population (cdr (assoc :func json))))
-					; name of function to run
-	   (threads (cdr (assoc :threads json))) ; max number of threads to use
-	   (job (apply 'make-instance 'async-job
-		       :population population
-		       :func func
-		       :task-runner (sel/utility::task-map-async
-				     threads
-				     func
-				     (population-individuals population))
-			      (if name (list :name name)))))
+                     (json:decode-json-from-string (payload-as-string))
+                   (error (e)
+                     (http-condition 400 "Malformed JSON (~a)!" e))))
+           (client (lookup-session cid))
+           (pid (cdr (assoc :pid json)))  ; name/id of population
+           (population (find-population client pid))
+           (func (lookup-job-func population (cdr (assoc :func json))))
+                                        ; name of function to run
+           (threads (cdr (assoc :threads json))) ; max number of threads to use
+           (job (apply 'make-instance 'async-job
+                       :population population
+                       :func func
+                       :task-runner (sel/utility::task-map-async
+                                     threads
+                                     func
+                                     (population-individuals population))
+                              (if name (list :name name)))))
       ;; store the software obj with the session
       (push job (session-jobs client))
       (async-job-name job)))
@@ -661,34 +712,34 @@ in a population"))
 (defun find-test-suite (client oid)
   "Return the test-suite from the client record with specified oid (if found)."
   (car (member oid (session-test-suites client)
-			    :key 'sel::oid :test 'eql)))
+                            :key 'sel::oid :test 'eql)))
 
 (defroute
     tests (:post "application/json" &key cid oid)
     (declare (ignore oid))
     (let* ((json (handler-case
-		     (json:decode-json-from-string (payload-as-string))
-		   (error (e)
-		     (http-condition 400 "Malformed JSON (~a)!" e))))
-	   (client (lookup-session cid))
-	   (tests (cdr (assoc :tests json)))
-	   (test-suite
-	    (funcall 'make-instance
-		   'test-suite
-		   :test-cases
-		   (mapcar
-		    (lambda (test)
-		      (let ((program-name (cdr (assoc :program-name test)))
-			    (program-args (cdr (assoc :program-args test))))
-			(make-instance 'test-case :program-name program-name
-				       :program-args
-				       (mapcar (lambda (x)
-						 (if (or (equal x ":BIN")
-							 (equal x "BIN"))
-						     :bin
-						     x))
-					       program-args))))
-		    tests))))
+                     (json:decode-json-from-string (payload-as-string))
+                   (error (e)
+                     (http-condition 400 "Malformed JSON (~a)!" e))))
+           (client (lookup-session cid))
+           (tests (cdr (assoc :tests json)))
+           (test-suite
+            (funcall 'make-instance
+                   'test-suite
+                   :test-cases
+                   (mapcar
+                    (lambda (test)
+                      (let ((program-name (cdr (assoc :program-name test)))
+                            (program-args (cdr (assoc :program-args test))))
+                        (make-instance 'test-case :program-name program-name
+                                       :program-args
+                                       (mapcar (lambda (x)
+                                                 (if (or (equal x ":BIN")
+                                                         (equal x "BIN"))
+                                                     :bin
+                                                     x))
+                                               program-args))))
+                    tests))))
       ;; store the test-suite obj with the session
       (push test-suite (session-test-suites client))
       (format nil "~D" (sel::oid test-suite)))) ;; return the oid
@@ -708,13 +759,13 @@ in a population"))
 (defun get-test-suite (cid oid)
   (let* ((client (lookup-session cid)))
     (if client
-	(let ((test-suite (and oid (find-test-suite client oid))))
-	  (if (null test-suite)
-	      (let ((test-suite-oids
-		     (iter (for x in (session-test-suites client))
-				     (collect (sel::oid x)))))
-		(json:encode-json-to-string test-suite-oids))
-	      (format-test-suite-as-json test-suite))))))
+        (let ((test-suite (and oid (find-test-suite client oid))))
+          (if (null test-suite)
+              (let ((test-suite-oids
+                     (iter (for x in (session-test-suites client))
+                                     (collect (sel::oid x)))))
+                (json:encode-json-to-string test-suite-oids))
+              (format-test-suite-as-json test-suite))))))
 
 (defroute
     tests (:get :text/* &key cid oid)
@@ -724,46 +775,51 @@ in a population"))
     tests (:get "application/json" &key cid oid)
     (get-test-suite cid oid))
 
-(defroute
-    instrumented (:post "application/json" &key cid sid)
+(defroute instrumented (:post "application/json" &key cid sid)
+  (handler-case
     (let* ((client (lookup-session cid))
-	   (soft (find-software client sid)))
+           (soft (find-software client sid)))
+          (let ((inst-soft
+                 (instrument
+                  (copy soft)
+                  :functions
+                  (list
+                    (lambda (instrumenter ast)
+                      (var-instrument
+                       {get-vars-in-scope (software instrumenter)}
+                      instrumenter
+                      ast)))
+                  :filter #'sel/sw/parseable::traceable-stmt-p)))
+            ;; store the software obj with the session
+            (push inst-soft (session-software client))
+            (format nil "~D" (sel::oid inst-soft))))
+      (error (e)
+        (http-condition 400 "Error in INSTRUMENTED POST method (~a)!" e))))
 
-      (let ((inst-soft
-	     (instrument (copy soft)
-			 :functions
-			 (list (lambda (instrumenter ast)
-				 (var-instrument {get-unbound-vals
-						 (software instrumenter)}
-						 instrumenter
-						 ast))))))
-	;; store the software obj with the session
-	(push inst-soft (session-software client))
-	(format nil "~D" (sel::oid inst-soft)))))
 
 (defun get-instrumented (cid sid type)
   (let* ((result "{ \"error\": \"Nothing\"}")
-	 (client (lookup-session cid)))
+         (client (lookup-session cid)))
     (if client
-	(let ((software (find-software client sid)))
-	  (if software
-	      (setf result
-		    (json:encode-json-plist-to-string
-		     (list
-		      :oid (sel::oid software)
-		      :class (format nil "~A"
-				     (class-name (class-of software)))
-		      :size (format nil "~D" (size software))
-		      :fitness (fitness software)
-		      :instrumented (instrumented-p software))))
-	      (let ((ids (iter (for x in (session-software client))
-			       (if (and
-				    (or (null type)
-					(eq (class-name (class-of x)) type))
-				    (ignore-errors (instrumented-p x)))
-				   (collect (sel::oid x))))))
-		(setf result
-		      (json:encode-json-to-string ids))))))
+        (let ((software (find-software client sid)))
+          (if software
+              (setf result
+                    (json:encode-json-plist-to-string
+                     (list
+                      :oid (sel::oid software)
+                      :class (format nil "~A"
+                                     (class-name (class-of software)))
+                      :size (format nil "~D" (size software))
+                      :fitness (fitness software)
+                      :instrumented (instrumented-p software))))
+              (let ((ids (iter (for x in (session-software client))
+                               (if (and
+                                    (or (null type)
+                                        (eq (class-name (class-of x)) type))
+                                    (ignore-errors (instrumented-p x)))
+                                   (collect (sel::oid x))))))
+                (setf result
+                      (json:encode-json-to-string ids))))))
 
     result))
 
@@ -800,22 +856,112 @@ in a population"))
 
 (defroute
     tracesoft (:post "application/json" &key cid sid tests-oid)
-    (let* ((json (handler-case
-		     (json:decode-json-from-string (payload-as-string))
-		   (error (e)
-		     (http-condition 400 "Malformed JSON (~a)!" e))))
-	   (client (lookup-session cid))
-	   (soft (find-software client sid))
-	   (test-suite (find-test-suite client tests-oid))
-	   (inst-bin (cdr (assoc :inst-bin json))))
+    (handler-case
+        (let* ((json (handler-case
+                         (json:decode-json-from-string (payload-as-string))
+                       (error (e)
+                         (http-condition 400 "Malformed JSON (~a)!" e))))
+               (client (lookup-session cid))
+               (soft (find-software client sid))
+               (test-suite (find-test-suite client tests-oid))
+               (inst-bin (cdr (assoc :inst-bin json))))
 
-      ;; create the binary executable
-      (if inst-bin
-	  (phenome soft :bin inst-bin))
+          (if (and (typep soft 'sel/sw/clang::clang)
+                   (null (sel/software/source::compiler soft)))
+              (setf (sel/software/source::compiler soft) "clang"))
 
-      (with-trace-error-handling
-	  (with-temp-dir-of (temp) "."
-	     (with-cwd (temp)
-                  (apply 'collect-traces soft test-suite
-                                  (if inst-bin (list :bin inst-bin))))))
-      (format nil "~D" (sel::oid soft))))
+          ;; create the binary executable
+          (if inst-bin
+              (phenome soft :bin inst-bin))
+
+          (with-trace-error-handling
+              (with-temp-dir-of (temp)
+                (make-pathname :directory (pathname-directory inst-bin))
+                                (with-cwd (temp)
+                                  (apply 'collect-traces soft test-suite
+                                         :max nil
+                                         (if inst-bin (list :bin inst-bin))))))
+          (format nil "~D" (sel::oid soft)))
+      (error (e)
+             (http-condition 400 "Error in TRACESOFT POST method (~a)!" e))))
+
+(define-command rest-server
+    (port &spec +common-command-line-options+ &aux handler)
+  "Run the SEL rest server."
+  #.(format nil
+            "~%Built from SEL ~a, and ~a ~a.~%"
+            +software-evolution-library-version+
+            (lisp-implementation-type) (lisp-implementation-version))
+  (declare (ignorable quiet verbose load eval out-dir read-seed save-seed))
+  (flet ((shutdown (&optional (message "quit") (errno 0))
+           (format t "Stopping server on ~a~%" message)
+           (stop handler)
+           (exit-command rest-server errno)))
+    (when help (show-help-for-rest-server) (exit-command rest-server 0))
+    (setf handler (clackup (make-clack-app) :port (parse-integer port)))
+    ;; From https://github.com/LispCookbook/cl-cookbook/blob/master/scripting.md
+    (handler-case
+        (iter (for char = (read-char))
+              (when (or (eql char #\q) (eql char #\Q))
+                (shutdown)))
+      ;; Catch a user's C-c
+      (#+sbcl sb-sys:interactive-interrupt
+        #+ccl  ccl:interrupt-signal-condition
+        #+clisp system::simple-interrupt-condition
+        #+ecl ext:interactive-interrupt
+        #+allegro excl:interrupt-signal
+        () (shutdown "abort" 0))
+      (error (e)
+        (shutdown (format nil "unexpected error ~S" e) 1)))))
+
+;;;
+;;; Catch-all explainer for any error that gets sent back
+;;;
+(defmethod explain-condition ((error error) (resource t)
+                              (ct snooze-types:text/plain))
+  (with-output-to-string (s)
+    (format s
+     "Error occurred processing ~A resource object via REST API: ~A"
+     resource (princ-to-string error))))
+
+;;;
+;;; Catch-all explainer for any http-condition that gets sent back
+;;;
+(defmethod explain-condition ((condition http-condition) (resource t)
+                              (ct snooze-types:text/plain))
+  (with-output-to-string (s)
+    (format s
+     "Error occurred processing ~A resource object via REST API: ~A"
+     resource (princ-to-string condition))))
+
+;;;
+;;; Specific explainer for soft resource (software object)
+(defmethod explain-condition ((error error) (resource (eql #'soft))
+                              (ct snooze-types:text/plain))
+  (with-output-to-string (s)
+    (format s
+     "Error occurred processing SOFT (Software) object via REST API: ~A"
+     (princ-to-string error))))
+
+;;;
+;;; write the contents of a software object
+;;;
+(defroute
+    writesoft (:post "application/json" &key cid sid)
+    (handler-case
+        (let* ((json (handler-case
+                         (json:decode-json-from-string (payload-as-string))
+                       (error (e)
+                         (http-condition 400 "Malformed JSON (~a)!" e))))
+               (client (lookup-session cid))
+               (soft (find-software client sid))
+               (path (cdr (assoc :path json))))
+
+          (to-file (format-genome (uninstrument (copy soft)))
+                   path)
+          #(format nil "Software ID ~D successfully written to ~A" sid path)
+          (format nil "~D" sid))
+
+      (error (e)
+        (http-condition 400
+                        "Error in WRITESOFT POST method (~a)!" e))))

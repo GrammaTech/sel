@@ -40,8 +40,11 @@
 
 (defmethod initialize-instance :after ((javascript-project javascript-project)
                                        &key)
-  (setf (component-class javascript-project)
-        (or (component-class javascript-project) 'javascript)))
+  (setf (slot-value javascript-project 'component-class)
+        (or (component-class javascript-project) 'javascript))
+  (setf (slot-value javascript-project 'ignore-directories)
+        (or (ignore-directories javascript-project)
+            (list "test" "tests" "node_modules"))))
 
 (defmethod from-file :around ((obj javascript-project) path)
   ;; Sanity check that a package.json file exists

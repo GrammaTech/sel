@@ -273,6 +273,7 @@ See http://clang.llvm.org/."))
 "
   ;; Load the raw string and generate a json database
   (setf (genome obj) string)
+  ;; (fix-semicolons (ast-root obj))
   obj)
 
 
@@ -336,6 +337,8 @@ See http://clang.llvm.org/."))
       (call-next-method)
       (print-unreadable-object (obj stream :type t)
         (format stream "~a" (ast-class obj)))))
+
+(defmethod ast-class-meld-p ((ast-class (eql :CompoundStmt)) ast) t)
 
 (defun make-statement (class syn-ctx children
                        &key expr-type full-stmt guard-stmt opcode
@@ -415,7 +418,7 @@ if not given.
                                  "~a" "~s") value))))
     (apply #'make-statement class :generic (list text) rest)))
 
-(defun make-operator (syn-ctx opcode child-asts &rest rest)
+(defun make-operator (syn-ctx opcode child-asts &rest rest &key full-stmt &allow-other-keys)
   "Create a unary or binary operator AST.
 * SYN-CTX surrounding syntactic context of the AST node
 * OPCODE name of the operation for Unary/BinaryOp AST nodes
@@ -430,7 +433,9 @@ if not given.
                  (list (first child-asts)
                        (format nil " ~a " opcode)
                        (second child-asts)))))
-    (apply #'make-statement class syn-ctx children :opcode opcode rest)))
+    (apply #'make-statement class syn-ctx (if full-stmt (append children (list ";"))
+					      children)
+	   :opcode opcode rest)))
 
 (defun make-block (children &rest rest)
   "Create a compount statement AST.
@@ -533,8 +538,9 @@ if not given.
                                (if initializer
                                    (list (format nil "~a ~a = "
                                                  (type-decl-string type) name)
-                                         initializer)
-                                   (list (format nil "~a ~a"
+                                         initializer
+					 ";")
+                                   (list (format nil "~a ~a;"
                                                  (type-decl-string type) name)))
                                :types (list (type-hash type))
                                :declares decls))
@@ -1014,6 +1020,36 @@ statement."))
   ((targeter :initform #'pick-bad-bad))
   (:documentation "Perform a swap operation on a clang software object."))
 
+(defmethod build-op ((mutation clang-swap) software)
+  "Return an association list with the operations to apply a `clang-swap'
+MUTATION to SOFTWARE.
+* MUTATION defines targets of the swap operation
+* SOFTWARE object to be modified by the mutation
+"
+  ;; This was specialized from parseable-swap because we may need to
+  ;; add or remove semicolons when swapping expressions and statements
+
+  (declare (ignorable software))
+  (let* ((targets (targets mutation))
+	 (s1 (aget :stmt1 targets))
+	 (s2 (aget :stmt2 targets))
+	 (s1-full? (full-stmt-p software s1))
+	 (s2-full? (full-stmt-p software s2))
+	 (s1-semi? (has-trailing-semicolon-p s1))
+	 (s2-semi? (has-trailing-semicolon-p s2))
+	 (s1-stmt? (or s1-full? s1-semi?))
+	 (s2-stmt? (or s2-full? s2-semi?)))
+    `((:set (:stmt1 . ,s1)
+	    ;; (:stmt2 . ,s2)
+	    (:stmt2 . ,(if (or s1-full? s1-semi?)
+			   s2 ;; depending on fixup-mutations to add semis
+			   (remove-semicolon s2))))
+      (:set (:stmt1 . ,s2)
+	    (:stmt2 . ,(if (or s2-full? s2-semi?)
+			   s1 ;; depending on fixup-mutations to add semis
+			   (remove-semicolon s1)))
+	    ))))
+
 (define-mutation clang-swap-full (clang-swap)
   ((targeter :initform {pick-bad-bad _ :filter #'full-stmt-filter}))
   (:documentation "Perform a swap operation on a clang software object,
@@ -1120,10 +1156,13 @@ software object."))
                      (if (eq :CompoundStmt (ast-class p))
                          (appending (get-immediate-children software p))
                          (collecting p)))
-               (interleave <> (format nil ";~%"))
+	   (interleave <> (format nil "~%"))
+	   #|
                (append <> (if (not (starts-with #\; (text-after-ast guarded)))
                               (list (format nil ";~%"))
-                              nil)))))
+                              nil))
+	   |#
+	       )))
 
       (let ((children
           (switch ((ast-class guarded))
@@ -1275,9 +1314,11 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
                 ,(let ((children (get-immediate-children obj body)))
                       (cons :literal1
                             (make-for-stmt (ast-syn-ctx ast)
-                                           precedent
+                                           (remove-semicolon precedent)
                                            condition
-                                           (some->> children (lastcar))
+                                           (some->> children
+					     (lastcar)
+					     (remove-semicolon))
                                            (some->> children
                                                     (butlast)
                                                     (make-block))))))
@@ -1731,7 +1772,7 @@ type in TYPES.
                  (collect ast into body))
                 (t (error "Unrecognized ast.~%~S" ast)))
           (finally
-           (setf ast-root (asts->tree genome body)
+           (setf ast-root (fix-semicolons (asts->tree genome body))
                  types (types->hashtable m-types)
                  macros m-macros
                  genome nil))))
@@ -2248,14 +2289,17 @@ Adds and removes semicolons, commas, and braces.
       ((no-change ()
          (list before ast after))
        (add-semicolon-if-unbraced ()
-         (if (or (null ast) (ends-with #\} (trim-whitespace (source-text ast))))
+         (if (or (null ast) (ends-with "};"
+				       (trim-whitespace (source-text ast))
+				       :test #'find))
              (if (and (stringp after) (starts-with #\; (trim-whitespace after)))
                  (list before ast (subseq after (1+ (position #\; after))))
                  (no-change))
              (add-semicolon)))
        (add-semicolon-before-if-unbraced ()
          (if (or (null ast)
-                 (starts-with #\{ (trim-whitespace (source-text ast))))
+                 (starts-with #\{ (trim-whitespace (source-text ast)))
+		 (and before (ends-with #\; (trim-whitespace (source-text before)))))
              (no-change)
              (list before ";" ast after)))
        (add-semicolon ()
@@ -2329,6 +2373,29 @@ Adds and removes semicolons, commas, and braces.
                         (:instead (add-semicolon))
                         (:remove (no-change))))
               (:toplevel (add-semicolon-if-unbraced))))))
+
+(defmethod ends-with-semicolon ((str string))
+  (let ((trimmed (trim-right-whitespace str)))
+    (when (ends-with #\; trimmed)
+      (subseq trimmed 0 (1- (length trimmed))))))
+
+(defmethod ends-with-semicolon (obj) nil)
+
+(defgeneric remove-semicolon (obj)
+  (:documentation "Removes the trailing semicolon from an AST, returning a new AST node.
+If there is no trailing semicolon, return the AST unchanged."))
+
+(defmethod remove-semicolon ((obj clang-ast))
+  (let* ((children (ast-children obj))
+	 (last (lastcar children)))
+    (if-let ((trimmed (ends-with-semicolon last)))
+      (copy obj :children (append (butlast children) (list trimmed)))
+      obj)))
+
+(defmethod remove-semicolon ((obj string))
+  (or (ends-with-semicolon obj) obj))
+
+(defmethod remove-semicolon ((obj null)) nil)
 
 
 ;;; AST Utility functions
@@ -3639,3 +3706,118 @@ within a function body, return null."))
                       (length block-children))))
       ;; If error parsing simply return nil.
       (mutate (e) (declare (ignorable e)) nil))))
+
+;;; Function to find the position of a semicolon, if any
+;;; Skip over C and C++ style comments
+
+(defun position-of-leading-semicolon (str)
+  (let ((len (length str))
+	(i -1))
+    (loop
+       (flet ((%step () (when (>= (incf i) len) (return))))
+	 (declare (inline %step))
+	 (%step)
+	 (let ((c (char str i)))
+	   (unless (or (eql c #\Space) (not (graphic-char-p c)))
+	     (case c
+	       (#\/
+		(%step)
+		(setf c (char str i))
+		(%step)
+		(case c
+		  (#\/
+		   ;; C++ style comment; skip to end of line
+		   (let ((next (position #\Newline str :start i)))
+		     (unless next (return))
+		     (setf i next)))
+		  ;; C style comment; search for closing characters
+		  (#\*
+		   (let ((next (search "*/" str :start2 i)))
+		     (unless next (return))
+		     (setf i (1+ next))))
+		  (t (return nil))))
+	       (#\;
+		(return (values i (subseq str 0 (1+ i)) (subseq str (1+ i)))))
+	       (t (return nil)))))))))
+
+(defun position-of-trailing-semicolon (str)
+  (let ((pos (position-of-leading-semicolon (reverse str))))
+    (and pos (- (length str) pos 1))))
+    
+
+;;; Process a clang ast to move semicolons down to appropriate places
+
+(defun is-full-stmt-ast (ast)
+  (and (typep ast 'clang-ast)
+       (ast-full-stmt (ast-node ast))))
+
+(defun move-semicolons-into-full-stmts (children)
+  "Given a list of children of an AST node, move semicolons from strings in the list
+   they are in into preceding full stmt nodes.  Applied in preorder, this can migrate
+   semicolons multiple levels down the tree."
+  (loop for p on children
+     do (let ((e (car p)))
+	  (when (and (is-full-stmt-ast e)
+		     (stringp (cadr p)))
+	    (let ((e-children (ast-children e))
+		  (lc))
+	      (when (stringp (car (setf lc (last e-children))))
+		(multiple-value-bind (found? prefix suffix)
+		    (position-of-leading-semicolon (cadr p))
+		  (when found?
+		    (setf (car lc) (concatenate 'string (car lc) prefix))
+		    (setf (cadr p) suffix)))))))))
+
+(defun move-semicolons-into-expr-stmts (ast)
+  "CALLEXPRs in COMPOUNDSTMTs don't have their semicolons in them.
+Move the semicolon in just one level, but no further"
+  (when (eql (ast-class ast) :compoundstmt)
+    (let ((children (ast-children ast)))
+      (loop for p on children
+	 do (let ((e (car p))
+		  (lc))
+	      (when (and (typep e 'ast)
+			 (eql (ast-class e) :callexpr)
+			 (stringp (car (setf lc (last (ast-children e))))))
+		(multiple-value-bind (found? prefix suffix)
+		    (position-of-leading-semicolon (cadr p))
+		  (when found?
+		    (setf (car lc) (concatenate 'string (car lc) prefix)
+			  (cadr p) suffix)))))))))
+
+(defun has-trailing-semicolon-p (ast)
+  (typecase ast
+    (string
+     (position-of-trailing-semicolon ast))
+    (ast
+     (has-trailing-semicolon-p (lastcar (ast-children ast))))
+    (t nil)))
+
+(defun add-semicolon-to-expr (ast)
+  "Add a semicolon to the end of AST"
+  (let* ((children (ast-children ast))
+	 (lc (lastcar children))
+	 (new-children
+	  (if (stringp lc)
+	      (append (butlast children)
+		      (list (concatenate 'string lc ";")))
+	      (append children ";"))))
+    (copy ast :children ast
+	  :full-stmt t)))
+
+(defun fix-semicolons-ast (ast)
+  "Move semicolons into the appropriate stmt nodes in the children of node AST"
+  (move-semicolons-into-expr-stmts ast)
+  (move-semicolons-into-full-stmts (ast-children ast))
+  ast)
+
+(defun fix-semicolons (ast)
+  "Move semicolons into appropriate stmt nodes in the tree rooted at AST"
+  (map-ast ast #'fix-semicolons-ast)
+  ast)
+
+(defun stmt-p (ast)
+  ;; Try to figure out if this node is pretending to be a statement, either
+  ;; because it's truly a statement, or is an expression ending in a semicolon
+  (or (ast-full-stmt ast)
+      (has-trailing-semicolon-p ast)))

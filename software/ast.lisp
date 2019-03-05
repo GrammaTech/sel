@@ -43,6 +43,10 @@
 	   :ast-hash
            :to-ast
            :ast-later-p
+	   :map-ast
+	   :map-ast-strings
+	   :ast-meld-p
+	   :ast-class-meld?
            :replace-in-ast))
 (in-package :software-evolution-library/software/ast)
 (in-readtable :curry-compose-reader-macros)
@@ -305,7 +309,7 @@ LOCATION."))
   (:documentation "Insert AST immediately after LOCATION in TREE, returning
 new tree."))
 
-(defgeneric replace-ast (tree location replacement)
+(defgeneric replace-ast (tree location replacement &key &allow-other-keys)
   (:documentation "Return the modified TREE with the AST at LOCATION replaced
 with REPLACEMENT."))
 
@@ -410,15 +414,17 @@ operations."
                          (list replacement)
                          (subseq (ast-children ast) (+ 1 n)))))
 
-(defmethod replace-ast ((tree ast) (location ast) (replacement ast))
+(defmethod replace-ast ((tree ast) (location ast) (replacement ast)
+                        &rest args &key &allow-other-keys)
   "Return the modified TREE with the AST at LOCATION replaced with
 REPLACEMENT.
 * TREE Applicative AST tree to be modified
 * LOCATION AST to be replaced in TREE
 * REPLACEMENT Replacement AST"
-  (replace-ast tree (ast-path location) replacement))
+  (apply #'replace-ast tree (ast-path location) replacement args))
 
-(defmethod replace-ast ((tree ast) (location list) (replacement ast))
+(defmethod replace-ast ((tree ast) (location list) (replacement ast)
+                        &key &allow-other-keys)
   "Return the modified TREE with the AST at LOCATION replaced with
 REPLACEMENT.
 * TREE Applicative AST tree to be modified
@@ -430,7 +436,7 @@ REPLACEMENT.
 
 asts->tree tends to leave dangling empty strings at the ends of child
 list, and we want to treat them as NIL in most cases."
-       (when (not (emptyp str)) str))
+       (when (not (equalp str "")) str))
      (helper (tree path next)
          (bind (((head . tail) path)
                 (children (ast-children tree)))
@@ -488,7 +494,9 @@ list, and we want to treat them as NIL in most cases."
                                              (butlast fixed)
                                              (nthcdr (+ 2 head) children)))
                       (lastcar fixed))))))))
-    (helper tree location nil)))
+    (if location
+        (helper tree location nil)
+        tree)))
 
 (defmethod remove-ast ((tree ast) (location ast))
   "Return the modified TREE with the AST at LOCATION removed.
@@ -651,6 +659,19 @@ use carefully.
     (unless fn
       (error "No function found for ~A" sym))
     (map-ast-strings tree fn)))
+
+;;; Map over the nodes of an AST
+
+(defgeneric map-ast (tree fn)
+  (:documentation "Apply fn to each node of an AST, in preorder"))
+
+(defmethod map-ast ((tree ast) fn)
+  (funcall fn tree)
+  (dolist (c (ast-children tree))
+    (when (typep c 'ast) (map-ast c fn)))
+  tree)
+
+(defmethod map-ast (tree fn) nil)
 
 
 ;;; AST diffs
@@ -813,3 +834,18 @@ modile +AST-HASH-BASE+"
   (setf (ast-stored-hash ast) nil)
   (mapc #'ast-clear-hash (ast-children ast))
   ast)
+
+(defgeneric ast-meld-p (ast)
+  (:documentation
+   "Returns true if the children of AST are to be combined on merge conflict."))
+
+(defmethod ast-meld-p ((ast ast))
+  (ast-class-meld? (ast-class ast) ast))
+
+(defgeneric ast-class-meld? (ast-class ast)
+  (:documentation
+   "Dispatches on the ast-class of an ast to compute `ast-meld-p'"))
+
+(defmethod ast-class-meld? ((ast-class t) (ast t)) nil)
+
+(defmethod ast-class-meld? ((ast-class (eql :TopLevel)) ast) t)

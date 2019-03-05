@@ -23,7 +23,6 @@
            :sexp-swap
            :subtree
            :tree-size
-           :filter-subtrees
            :*sexp-mutation-types*))
 (in-package :software-evolution-library/software/sexp)
 (in-readtable :curry-compose-reader-macros)
@@ -93,7 +92,7 @@
   (tree-size (genome sexp)))
 
 (defmethod filter-subtrees (predicate (sexp sexp))
-  "Remove subtrees of SEXP patching PREDICATE."
+  "Return list of subtrees of SEXP satisfying PREDICATE."
   (remove-if-not [predicate {subtree (genome sexp)}]
                  (iter (for i below (size sexp)) (collect i))))
 

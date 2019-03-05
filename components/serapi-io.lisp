@@ -62,32 +62,57 @@
            :*sertop-args*
            :*serapi-timeout*
            :*serapi-process*
-           :is-type
-           :feedback-id
-           :feedback-route
-           :feedback-contents
-           :message-content
-           :answer-content
-           :answer-string
-           :answer-ast
-           :added-id
+           :coq-message-contents
+           :coq-message-levels
            :is-terminating
            :is-error
            :is-loc-info
-           :is-import-ast
+           :coq-import-ast-p
+           :coq-module-ast-p
+           :coq-section-ast-p
+           :coq-assumption-ast-p
+           :coq-definition-ast-p
            :lookup-coq-pp
            :lookup-coq-string
            :add-coq-string
-           :lib-add
+           :add-coq-lib
            :lookup-coq-ast
            :coq-ast-to-string
            :cancel-coq-asts
+           :run-coq-vernacular
+           :check-coq-type
+           :search-coq-type
+           :tokenize-coq-type
            :load-coq-file
+           :serapi-readtable
+           ;; Error handling
            :serapi-timeout-error
            :use-empty-response
            :retry-read
            :serapi-timeout
-           :serapi-readtable))
+           :serapi-error
+           :serapi-error-ast
+           :serapi-backtrace
+           :serapi-error-text
+           :serapi-error-proc
+           :cancel-ast
+           :kill-serapi-process
+           ;; Building Coq expressions
+           :wrap-coq-constr-expr
+           :make-coq-integer
+           :make-coq-ident
+           :make-coq-var-reference
+           :make-coq-application
+           :make-coq-name
+           :make-coq-lname
+           :make-coq-local-binder-exprs
+           :make-coq-lambda
+           :make-coq-if
+           :make-coq-case-pattern
+           :make-coq-match
+           :make-coq-definition
+           :coq-function-definition-p
+           ))
 (in-package :software-evolution-library/components/serapi-io)
 (eval-when (:compile-toplevel :load-toplevel :execute)
   ;; Ensure the two packages which compose the fare-quasiquote-extras
@@ -139,7 +164,7 @@ to `*sertop-args*'."
 ;;;; possible every *serapi-sleep-interval* seconds until the timeout has
 ;;;; elapsed. E.g., for timeout of 1 and sleep-interval 0.1, we would try to
 ;;;; read every .1s until either 1s elapsed or it was possible to read
-(defparameter *serapi-timeout* 2
+(defparameter *serapi-timeout* 30
   "Maximum amount of time to wait before determining that no data can be read.")
 
 (defparameter *serapi-sleep-interval* 0.1
@@ -168,21 +193,27 @@ See `insert-reset-point'.")
                          #+sbcl (list :search t)))))
 
 (define-condition serapi-error (error)
-  ((text :initarg :text :initform nil :reader text)
-   (serapi :initarg :serapi :initform nil :reader serapi))
+  ((text :initarg :text :initform nil :accessor serapi-error-text)
+   (serapi :initarg :serapi :initform nil :reader serapi-error-proc)
+   (error-ast :initarg :error-ast :initform nil :accessor serapi-error-ast)
+   (backtrace :initarg :backtrace :initform nil :accessor serapi-backtrace))
   (:report (lambda (condition stream)
-             (format stream "SERAPI: ~a~%~S"
-                     (text condition) (serapi condition))))
+             (format stream "SerAPI or Coq exception~a: ~a~%~a"
+                     (if (serapi-error-ast condition)
+                         (format nil " in AST ~a" (serapi-error-ast condition))
+                         "")
+                     (serapi-error-text condition)
+                     (serapi-backtrace condition))))
   (:documentation
    "Condition raised if errors are detected in the SerAPI process."))
 
 (define-condition serapi-timeout-error (error)
-  ((text :initarg :text :initform nil :reader text)
+  ((text :initarg :text :initform nil :accessor serapi-error-text)
    (serapi-timeout :initarg :serapi-timeout :initform nil
                    :reader serapi-timeout))
   (:report (lambda (condition stream)
              (format stream "Time limit of ~a seconds exceeded: ~a."
-                     (serapi-timeout condition) (text condition))))
+                     (serapi-timeout condition) (serapi-error-text condition))))
   (:documentation
    "Condition raised if timeout is exceeded."))
 
@@ -190,6 +221,7 @@ See `insert-reset-point'.")
   "Return a copy of STR with special characters escaped before output to SerAPI.
 Control characters for whitespace (\\n, \\t, \\b, \\r in Lisp) should be
 preceded by four backslashes, and double quotes should be preceded by 2.
+Additionally, ~ must be escaped as ~~ so that the string can be formatted.
 See also `unescape-string'."
   ;; Please be intimidated by the number of backslashes here, use *extreme*
   ;; caution if editing, and see the CL-PPCRE note on why backslashes in
@@ -203,7 +235,10 @@ See also `unescape-string'."
        ;; replace all \" with \\" unless already escaped
        ;; in regex, \\\" ==> \" in Lisp string
        ;; (replace-all "\"" "\\\"")
-       (regex-replace-all "(?<!\\\\)\\\"" <> "\\\\\"")))
+       (regex-replace-all "(?<!\\\\)\\\"" <> "\\\\\"")
+
+       ;; replace all ~ with ~~
+       (regex-replace-all "~" <> "~~")))
 
 
 (defun unescape-string (str)
@@ -267,8 +302,10 @@ format."
              (mapc {write-char _ s} (list #\\ #\\ #\\ char)))
             ((and (eql last #\\) (not (eql char #\\)))
              ;; If last char is an escape and neither penult nor current is,
-             ;; Skip inhibited escaped whitespace chars, double escape others.
-             (unless (member char '(#\n #\t #\r #\b))
+             ;; Replace inhibited escaped whitespace chars with space, double
+             ;; escape others.
+             (if (member char '(#\n #\t #\r #\b))
+                 (write-char #\Space s)
                (mapc {write-char _ s} (list #\\ #\\ char))))
             (t (unless (eql char #\\) (write-char char s))))
           (setf penult last)
@@ -318,7 +355,7 @@ maximum of TIMEOUT seconds. Return NIL if no data becomes available."
   "Check if STR is an error message.
 Errors may result from either an improperly formed SerAPI command or an invalid
 Coq command."
-  (or (starts-with-subseq "(\"Sexplib.Conv.Of_sexp_error\"" str)
+  (or (starts-with-subseq "(Sexplib.Conv.Of_sexp_error" str)
       (search "CoqExn" str :from-end t)))
 
 (defmethod is-terminating ((str string))
@@ -365,9 +402,17 @@ format."
             (with-input-from-string (in str)
               (let ((value (read in)))
                 (when (and (listp value) (is-error value))
-                  ;; TODO: maybe throw an error here, but in all cases so far
-                  ;; we just want to ignore these unless we're debugging.
-                  (note 3 "WARNING: SerAPI response included error ~a" value))
+                  (restart-case
+                      (error (parse-error-message
+                              (make-condition 'serapi-error
+                                              :serapi serapi)
+                              value))
+                    (cancel-ast (ast)
+                      :report "Cancel ASTs and continue."
+                      (cancel-coq-asts ast))
+                    (kill-serapi-process ()
+                      :report "Kill SerAPI process."
+                      (kill-serapi serapi))))
                 (collect value into values)))
             (finally (return values))))))
 
@@ -381,6 +426,15 @@ format."
 Add Coq `*dummy-stmt*' to `*serapi-process*' and update `reset-points' with the
 AST ID. See also `reset-serapi-process'."
   (let ((ast-ids (add-coq-string *dummy-stmt*)))
+    ;; Adding dummy statement will often require running Exec in cases where
+    ;; Message output would be generated. Running Exec when it's not needed
+    ;; isn't a problem, but failure to run it when it is needed causes
+    ;; Message output to be included with the following query which would likely
+    ;; cause confusion and/or errors.
+    (mapc (lambda (ast-id)
+            (write-to-serapi *serapi-process* #!`((Exec ,AST-ID)))
+            (read-serapi-response *serapi-process*))
+            ast-ids)
     (if (listp ast-ids)
         ;; if there's more than one ast-id, we reset to the smallest (first)
         (push (first ast-ids) (reset-points *serapi-process*))
@@ -480,6 +534,38 @@ Return NIL if MESSAGE is not a Message response."
       (and (eql (find-symbol "Message") msg-sym)
            m))))
 
+(defun message-level (message)
+  "For a Message response from SerAPI, MESSAGE, return the message level.
+Return NIL if MESSAGE is not a Message response. As of Coq 8.7.2, message levels
+defined in coq/lib/feedback.ml include Debug, Info, Notice, Warning, Error."
+  (intern "Message" *package*)
+  (match message
+    (`(,msg-sym ,lvl ,_ ,_)
+      (and (eql (find-symbol "Message") msg-sym)
+           lvl))))
+
+(defun coq-message-contents (response)
+  "For a SerAPI response, return the contents of any `Message' structures.
+This is useful for fetching results of Coq vernacular queries."
+  (intern "Feedback" *package*)
+  (intern "Message" *package*)
+  (iter (for sexpr in response)
+        (when (is-type (find-symbol "Feedback") sexpr)
+          (let ((contents (feedback-contents sexpr)))
+            (when (is-type (find-symbol "Message") contents)
+              (collecting (message-content contents)))))))
+
+(defun coq-message-levels (response)
+  "For a SerAPI response, return the level of the first `Message' structure.
+This is useful for verifying success of a Coq vernacular query."
+  (intern "Feedback" *package*)
+  (intern "Message" *package*)
+  (iter (for sexpr in response)
+        (when (is-type (find-symbol "Feedback") sexpr)
+          (let ((contents (feedback-contents sexpr)))
+            (when (is-type (find-symbol "Message") contents)
+              (collecting (message-level contents)))))))
+
 (defun answer-content (sexpr)
   "For an Answer response from SerAPI, SEXPR, return the content.
 Return NIL if SEXPR is not an Answer response."
@@ -536,9 +622,37 @@ for failed responses it will be tagged as an error."
 command or an invalid Coq command, NIL otherwise."
   (intern "Sexplib.Conv.Of_sexp_error" *package*)
   (intern "CoqExn" *package*)
+  (intern "Error" *package*)
   (or (is-type (find-symbol "Sexplib.Conv.Of_sexp_error") sexpr)
-      (equal (car sexpr) "Sexplib.Conv.Of_sexp_error")
-      (is-type (find-symbol "CoqExn") (answer-content sexpr))))
+      (is-type (find-symbol "CoqExn") (answer-content sexpr))
+      (equal (find-symbol "Error") (message-level sexpr))))
+
+(defun parse-error-message (condition sexpr)
+  (intern "Sexplib.Conv.Of_sexp_error" *package*)
+  (intern "CoqExn" *package*)
+  (intern "Backtrace" *package*)
+  (intern "Error" *package*)
+  (cond
+    ((is-type (find-symbol "Sexplib.Conv.Of_sexp_error") sexpr)
+     (setf (serapi-error-text condition) sexpr))
+    ((is-type (find-symbol "CoqExn") (answer-content sexpr))
+     (let* ((err-info (answer-content sexpr))
+            (info-len (length err-info)))
+       (when err-info
+         ;; Set error-ast if present
+         (when (and (>= info-len 3) (nth 2 err-info))
+           ;; NOTE: Based on CoqExn Stateid's in serapi_protocol.mli
+           ;; The ID of the earliest AST in the problem range (if known).
+           (setf (serapi-error-ast condition) (caar (nth 2 err-info))))
+         ;; Set backtrace info if present
+         (when-let ((backtrace (and (>= info-len 4) (nth 3 err-info))))
+           (when (and (is-type (find-symbol "Backtrace") backtrace)
+                      (lastcar backtrace))
+             (setf (serapi-backtrace condition) (lastcar backtrace))))
+         (when (>= info-len 5)
+           (setf (serapi-error-text condition) (nth 5 err-info))))))
+    (t nil))
+  condition)
 
 (defun is-loc-info (sexpr)
   "Return T if SEXPR is a list of Coq location info, NIL otherwise."
@@ -565,9 +679,8 @@ command or an invalid Coq command, NIL otherwise."
                 t))
          (otherwise nil))))
 
-(defun is-import-ast (sexpr)
-  "Return T if SEXPR is tagged as as VernacImport or VernacRequire, NIL
-otherwise."
+(defun coq-import-ast-p (sexpr)
+  "Return T if SEXPR is tagged as VernacImport or VernacRequire, NIL otherwise."
   ;; ASTs for imports have length 2 where the first element is located info
   ;; and the second is either VernacImport or VernacRequire.
   (intern "VernacImport" *package*)
@@ -577,23 +690,134 @@ otherwise."
        (or (is-type (find-symbol "VernacImport") (second sexpr))
            (is-type (find-symbol "VernacRequire") (second sexpr)))))
 
+(defun coq-module-ast-p (sexpr)
+  "Return module name if SEXPR is tagged as defining a module, NIL otherwise.
+Module tags include VernacDefineModule, VernacDeclareModule,
+VernacDeclareModuleType."
+  (intern "VernacDefineModule" *package*)
+  (intern "VernacDeclareModule" *package*)
+  (intern "VernacDeclareModuleType" *package*)
+  (intern "Id" *package*)
+  (and (listp sexpr)
+       (match sexpr
+         ((guard `(,_ (,vernac-tag ,_ (,_ (,id-tag ,module-name)) . ,_))
+                 (and (or (eql vernac-tag (find-symbol "VernacDefineModule"))
+                          (eql vernac-tag (find-symbol "VernacDeclareModule")))
+                      (eql id-tag (find-symbol "Id"))))
+          module-name)
+         ((guard `(,_ (,vernac-tag (,_ (,id-tag ,module-name)) . ,_))
+                 (and (eql vernac-tag (find-symbol "VernacDeclareModuleType"))
+                      (eql id-tag (find-symbol "Id"))))
+          module-name)
+         (otherwise nil))))
+
+(defun coq-section-ast-p (sexpr)
+  "Return section name if SEXPR is tagged as VernacBeginSection, NIL otherwise."
+  (intern "VernacBeginSection" *package*)
+  (intern "Id" *package*)
+  (and (listp sexpr)
+       (match sexpr
+         ((guard `(,_ (,section-tag (,_ (,id-tag ,section-name))))
+                 (and (eql section-tag (find-symbol "VernacBeginSection"))
+                      (eql id-tag (find-symbol "Id"))))
+          section-name)
+         (otherwise nil))))
+
+(defun coq-assumption-ast-p (sexpr)
+  "Return name of Parameter, Variable, etc. if SEXPR is tagged VernacAssumption.
+Otherwise return NIL."
+  (intern "VernacAssumption" *package*)
+  (flet ((parse-assumption-ids (sexpr)
+           (and (listp sexpr)
+                (match sexpr
+                  ((guard `(,_ ((((,_ (,id-tag ,name)) ,_)) . ,_))
+                          (eql id-tag (find-symbol "Id")))
+                   name)
+                  (otherwise nil)))))
+    (and (listp sexpr)
+         (match sexpr
+           ((guard `(,_ (,assumption-tag ,_ ,_ ,ls))
+                   (eql assumption-tag (find-symbol "VernacAssumption")))
+            (first (mapcar #'parse-assumption-ids ls)))
+           (otherwise nil)))))
+
+(defun coq-definition-ast-p (sexpr)
+  "Return definition name if SEXPR is tagged as a definition, NIL otherwise.
+Definition tags include VernacDefinition, VernacInductive, VernacFixpoint,
+VernacCoFixpoint."
+  ;; NOTE: may want to add VernacStartTheoremProof for theorems and lemmas.
+  ;; See coq/stm/vernac_classifier.ml for grammar hints.
+  (intern "VernacDefinition" *package*)
+  (intern "VernacInductive" *package*)
+  (intern "VernacFixpoint" *package*)
+  (intern "VernacCoFixpoint" *package*)
+  (intern "Id" *package*)
+  (flet ((parse-inductive-ids (sexpr)
+           (and (listp sexpr)
+                (match sexpr
+                  ((guard `(((,_ ((,_ (,id-tag ,name)) ,_)) . ,_) ,_)
+                          (eql id-tag (find-symbol "Id")))
+                   name)
+                  (otherwise nil))))
+         (parse-fixpoint-ids (sexpr)
+           (and (listp sexpr)
+                (match sexpr
+                  ((guard `((((,_ (,id-tag ,name)) ,_) . ,_) ,_)
+                          (eql id-tag (find-symbol "Id")))
+                   name)
+                  (otherwise nil)))))
+    (and (listp sexpr)
+         (match sexpr
+           ((guard `(,_ (,fixpoint-tag ,_ ,ls))
+                   (or (eql fixpoint-tag (find-symbol "VernacFixpoint"))
+                       (eql fixpoint-tag (find-symbol "VernacCoFixpoint"))))
+            (first (mapcar #'parse-fixpoint-ids ls)))
+           ((guard `(,_ (,definition-tag ,_ ((,_ (,id-tag ,name)) ,_) ,_))
+                   (and (eql definition-tag (find-symbol "VernacDefinition"))
+                        (eql id-tag (find-symbol "Id"))))
+            name)
+           ((guard `(,_ (,inductive-tag ,_ ,_ ,_ ,ls))
+                   (eql inductive-tag (find-symbol "VernacInductive")))
+            (first (mapcar #'parse-inductive-ids ls)))
+           (otherwise nil)))))
+
+(defun add-period (coq-string)
+  (if (ends-with-subseq "." (trim-whitespace coq-string))
+      coq-string
+      (concatenate 'string coq-string ".")))
+
+(defun run-coq-vernacular (vernac &key (qtag (gensym "q")))
+  (let ((vernac (add-period vernac)))
+    (write-to-serapi *serapi-process* #!`((,QTAG (Query () (Vernac ,VERNAC)))))
+    (read-serapi-response *serapi-process*)))
+
 (defgeneric lookup-coq-pp (ast-name &key qtag)
   (:documentation
    "Look up and return a Coq representation of AST-NAME.
 Optionally, tag the lookup query with QTAG."))
 
 (defmethod lookup-coq-pp ((ast-name string) &key (qtag (gensym "q")))
-  (let* ((vernac (concatenate 'string "Print " ast-name "."))
-         (query #!`((,QTAG (Query () (Vernac ,VERNAC))))))
-    (write-to-serapi *serapi-process* query)
+  (let ((vernac (format nil "Print ~a." ast-name)))
+    (coq-message-contents (run-coq-vernacular vernac :qtag qtag))))
 
-    (intern "Feedback" *package*)
-    (intern "Message" *package*)
-    (iter (for sexpr in (read-serapi-response *serapi-process*))
-        (when (is-type (find-symbol "Feedback") sexpr)
-          (let ((contents (feedback-contents sexpr)))
-            (when (is-type (find-symbol "Message") contents)
-              (leave (message-content contents))))))))
+(defgeneric check-coq-type (coq-expr &key qtag)
+  (:documentation "Look up and return the type of a Coq expression COQ-EXPR.
+Optionally use QTAG to tag the query."))
+
+(defmethod check-coq-type (coq-expr &key (qtag (gensym "q")))
+  "Look up and return the type of a COQ-EXPR using Coq's `Check'.
+COQ-EXPR will be coerced to a string via the `format' ~a directive."
+  (let ((response (run-coq-vernacular (format nil "Check ~a." coq-expr)
+                                      :qtag qtag)))
+    (if (member #!'Error (coq-message-levels response))
+        (error (make-condition 'serapi-error
+                               :text (coq-message-contents response)
+                               :serapi *serapi-process*))
+        (-<> (coq-message-contents response)
+             (remove #!'Pp_empty <>)
+             (car)
+             (lookup-coq-string <> :input-format #!'CoqPp)
+             (tokenize-coq-type)))))
 
 (defun find-coq-string-in-objlist (response)
   "For SerAPI response list RESPONSE, return a CoqString answer if there is one.
@@ -654,21 +878,24 @@ Return a list of the AST-IDs created as a result. Optionally, provide a QTAG for
 the submission."
   (unless (emptyp coq-string)
     ;; ensure coq string ends with .
-    (let* ((coq-string (if (ends-with-subseq "." coq-string)
-                           coq-string
-                           (concatenate 'string coq-string ".")))
+    (let* ((coq-string (add-period coq-string))
            (add #!`((,QTAG (Add () ,COQ-STRING)))))
       ;; submit to SerAPI
       (write-to-serapi *serapi-process* add)
 
       ;; read/parse response
       (intern "Added" *package*)
-      (iter (for sexpr in (read-serapi-response *serapi-process*))
-            (when-let ((answer (answer-content sexpr)))
-              (when (is-type (find-symbol "Added") answer)
-                (collecting (added-id answer))))))))
+      (let ((added-ids
+             (iter (for sexpr in (read-serapi-response *serapi-process*))
+                   (when-let ((answer (answer-content sexpr)))
+                     (when (is-type (find-symbol "Added") answer)
+                       (collecting (added-id answer)))))))
+        (iter (for added in added-ids)
+              (write-to-serapi *serapi-process* #!`((,QTAG (Exec ,ADDED))))
+              (read-serapi-response *serapi-process*))
+        added-ids))))
 
-(defun lib-add (path &key lib-name (has-ml "true") (qtag (gensym "l")))
+(defun add-coq-lib (path &key lib-name (has-ml "true") (qtag (gensym "l")))
   "Add directory PATH to the Coq and, optionally, ML load paths in SerAPI.
 Return the SerAPI response.
 * LIB-NAME an optional prefix to use when importing from the directory. E.g.,
@@ -720,3 +947,324 @@ Return a list of IDs for the ASTs that were added."
                        (while line)
                        (concatenating (format nil "~a~%" line)))))
       (add-coq-string lines :qtag qtag))))
+
+(defun list-coq-libraries (&key (imported-only t)
+                             (keep-prefix "Coq.")
+                             (qtag (gensym "v")))
+  (intern "Pp_string" *package*)
+  (let ((all-loaded
+         (->> (run-coq-vernacular (format nil "Print Libraries.") :qtag qtag)
+              (coq-message-contents)
+              ;; filter message contents to just include strings
+              (filter-subtrees [{eql (find-symbol "Pp_string")} #'car])
+              ;; remove spaces
+              (mapcar [#'trim-whitespace #'second])
+              ;; remove empty strings
+              (remove-if #'emptyp)
+              ;; remove leading "Loaded and imported" string
+              (cdr)))
+        (end-of-imports-str "Loaded and not imported"))
+    (cond
+      ;; keep only loaded and imported library names that start with prefix
+      ((and imported-only keep-prefix)
+       (remove-if-not
+        {starts-with-subseq keep-prefix}
+        (cdr (take-until {starts-with-subseq end-of-imports-str} all-loaded))))
+      ;; keep only loaded and imported library names
+      (imported-only
+       (cdr (take-until {starts-with-subseq end-of-imports-str} all-loaded)))
+      ;; keep all loaded library names that start with prefix
+      (keep-prefix
+       (remove-if-not {starts-with-subseq keep-prefix} all-loaded))
+      ;; list all loaded library names
+      (t (remove-if {starts-with-subseq end-of-imports-str} all-loaded)))))
+
+
+;; Type lookup and search
+(defun tokenize-coq-type (type-string)
+  (labels ((find-matching-paren (str pos depth)
+             (cond
+               ((equal pos (length str)) nil)
+               ((and (equal (elt str pos) #\)) (zerop depth))
+                pos)
+               ((equal (elt str pos) #\))
+                (find-matching-paren str (1+ pos) (1- depth)))
+               ((equal (elt str pos) #\()
+                (find-matching-paren str (1+ pos) (1+ depth)))
+               (t (find-matching-paren str (1+ pos) depth))))
+           (tokenize (str)
+             (let ((str (trim-whitespace str))
+                   (split-tokens (list #\: #\( #\) #\[ #\] #\Space #\Tab
+                                       #\Newline)))
+               (cond
+                 ((emptyp str) nil)
+                 ((starts-with-subseq "->" str)
+                  (cons :-> (tokenize (subseq str 2))))
+                 ((starts-with-subseq "forall " str)
+                  (cons :forall (tokenize (subseq str 6))))
+                 ((starts-with-subseq "exists " str)
+                  (cons :exists (tokenize (subseq str 6))))
+                 ((starts-with-subseq ":" str)
+                  (cons :colon (tokenize (subseq str 1))))
+                 ((or (starts-with-subseq "[" str)
+                      (starts-with-subseq "]" str))
+                  (cons (subseq str 0 1) (tokenize (subseq str 1))))
+                 ((starts-with-subseq "(" str)
+                  (let ((end-paren (find-matching-paren str 1 0)))
+                    (cons (tokenize (subseq str 1 end-paren))
+                          (tokenize (subseq str (1+ end-paren))))))
+                 ((starts-with-subseq ")" str) nil)
+                 (t
+                  (let ((next-token (position-if {member _ split-tokens} str)))
+                    (if next-token
+                        (cons (subseq str 0 next-token)
+                              (tokenize (subseq str next-token)))
+                        (list (subseq str 0)))))))))
+    (tokenize type-string)))
+
+(defun search-coq-type (coq-type &key module (qtag (gensym "q")))
+  "Return a list of tokenized types of values whose \"final\" type is COQ-TYPE.
+Results include functions parameterized by values of types other than COQ-TYPE
+as long as the final result returned by the function is of type COQ-TYPE.
+E.g., if COQ-TYPE is bool, functions of type nat->bool will be included."
+  (flet ((parenthesize (str)
+           (let ((str (trim-whitespace str)))
+             (if (and (starts-with-subseq "(" str)
+                      (ends-with-subseq ")" str))
+                 str
+                 (format nil "(~a)" str)))))
+    ;; Translates to vernacular:
+    ;; SearchPattern (coq-type) inside module. or
+    ;; SearchPattern (coq-type).
+    (-<>> (format nil "SearchPattern ~a ~a"
+                  (parenthesize coq-type)
+                  (if module
+                      (format nil "inside ~a" module)
+                      (format nil "")))
+      (run-coq-vernacular <> :qtag qtag)
+      (coq-message-contents)
+      (mapcar [#'tokenize-coq-type
+               {lookup-coq-string _ :input-format '|CoqPp|}]))))
+
+
+;;; Building Coq expressions
+
+(defun wrap-coq-constr-expr (expr)
+  "Create a Coq ConstrExpr by wrapping EXPR with v and loc tags.
+Generally, this will be used by the `make-coq-*' functions and won't need to be
+invoked directly."
+  #!`((v ,EXPR) (loc ())))
+
+(defun make-coq-integer (x)
+  "Wrap integer X in CPrim and Numeral tags."
+  (wrap-coq-constr-expr #!`(CPrim (Numeral ,X true))))
+
+(defun make-coq-ident (id)
+  "Wrap ID in Ident and Id tags."
+  #!`(Ident (() (Id ,ID))))
+
+(defun make-coq-var-reference (id)
+  "Wrap Coq variable ID in CRef and either Ident or Qualid tags.
+Use Ident for unqualified names and Qualid for qualified names."
+  (let ((quals (reverse (split-sequence #\. (string id)))))
+    (mapc {intern _ *package*} quals)
+    (flet ((make-dirpath-ls (quals)
+             (mapcar [{list #!'Id } #'find-symbol] (cdr quals))))
+      (when (and quals (listp quals))
+        (if (= 1 (length quals))
+            (wrap-coq-constr-expr #!`(CRef ,(MAKE-COQ-IDENT ID) ()))
+            (wrap-coq-constr-expr
+             #!`(CRef
+                 (Qualid (() (Ser_Qualid (DirPath ,(MAKE-DIRPATH-LS QUALS))
+                                         (Id ,(FIND-SYMBOL (CAR QUALS))))))
+                 ())))))))
+
+(defun make-coq-application (fun &rest params)
+  "Wrap Coq function FUN and parameters PARAMS in a CApp tag.
+Assumes that FUN and all PARAMS are appropriately wrapped (e.g., with
+`make-coq-var-reference' or similar)."
+  (wrap-coq-constr-expr
+   #!`(CApp (() ,FUN)
+            ,(MAPCAR #'LIST
+                     PARAMS
+                     (REPEATEDLY (LENGTH PARAMS) ())))))
+
+(defun make-coq-name (id)
+  "Wrap ID in Name and Id tags."
+  #!`(Name (Id ,ID)))
+
+(defun make-coq-lname (id)
+  (list () (make-coq-name id)))
+
+(defun make-coq-local-binder-exprs (type params &optional param-types)
+  "Create a list of local binder expressions.
+If present, PARAM-TYPES is the same length as PARAMS and indicates the type of
+each param. If absent, a CHole tag is used to indicate that the type is
+unspecified."
+  ;; assumes (length params) == (length param-types)
+  (let ((num-param-types (length param-types))
+        (param-types (coerce param-types 'vector)))
+    (iter (for param in params)
+          (for i upfrom 0)
+          (let ((param-type (or (and (> num-param-types i)
+                                     (elt param-types i))
+                                #!`(CHole ((BinderType ,(MAKE-COQ-NAME PARAM)))
+                                          IntroAnonymous
+                                          ()))))
+            (collecting #!`(,TYPE (,(MAKE-COQ-LNAME PARAM))
+                                  (Default Explicit)
+                                  ,PARAM-TYPE))))))
+
+;; TODO: Maybe switch to using `make-coq-local-binder-exprs'
+(defun make-coq-lambda (params body)
+  "Create a Coq lambda expression from PARAMS and BODY."
+  (if (null params)
+      body
+      (let ((lname (make-coq-lname (car params)))
+            (chole (wrap-coq-constr-expr
+                    #!`(CHole ((BinderType ,(MAKE-COQ-NAME (CAR PARAMS))))
+                              IntroAnonymous
+                              ()))))
+        (wrap-coq-constr-expr
+         #!`(CLambdaN (((,LNAME)
+                        (Default Explicit)
+                        ,CHOLE))
+                      ,(MAKE-COQ-LAMBDA (CDR PARAMS) BODY))))))
+
+(defun make-coq-if (test then else)
+  "Create a Coq If expression: if TEST then THEN else ELSE."
+  (wrap-coq-constr-expr
+   #!`(CIf ,TEST
+           (() ())
+           ,THEN
+           ,ELSE)))
+
+(defun make-coq-case-pattern (pattern-type &rest pattern-args)
+  "Create cases for a Coq match statement."
+  (intern "CPatAtom" *package*)
+  (intern "CPatNotation" *package*)
+  (intern "CPatCstr" *package*)
+  (intern "_" *package*)
+  (wrap-coq-constr-expr
+   (match (find-symbol pattern-type)
+     ;; CPatAtom
+     ((guard cpatatom (eql cpatatom (find-symbol "CPatAtom")))
+      (cond
+        ((equal (first pattern-args) (find-symbol "_"))
+         #!`(CPatAtom ()))
+        ((first pattern-args)
+         #!`(CPatAtom (,(MAKE-COQ-IDENT (FIRST PATTERN-ARGS)))))
+        (t nil)))
+     ;; CPatNotation
+     ((guard cpatnotation (eql cpatnotation (find-symbol "CPatNotation")))
+      (let ((notation (first pattern-args))
+            (notation-subs (cdr pattern-args)))
+        #!`(CPatNotation ,NOTATION
+                         (,NOTATION-SUBS ())
+                         ())))
+     ((guard cpatcstr (eql cpatcstr (find-symbol "CPatCstr")))
+      (let ((ref (first pattern-args))
+            (exprs (cdr pattern-args)))
+        #!`(CPatCstr ,REF
+                     ()
+                     ,EXPRS)))
+     (otherwise ()))))
+
+(defun make-coq-match (style test &rest branches)
+  "Create a Coq match expression.
+STYLE indicates the style of the match (e.g., #!'RegularStyle).
+TEST is the expression being matched against.
+BRANCHES are the match cases and will generally be constructed with
+`make-coq-case-pattern'."
+  (let ((split-branches (iter (for (pat result) on branches by #'cddr)
+                              (collecting #!`(() (((()  (,PAT))) ,RESULT))))))
+    (wrap-coq-constr-expr
+     #!`(CCases ,STYLE
+                ()
+                ;; assume TEST is just a single item and no in/as clauses
+                ((,TEST () ()))
+                ,SPLIT-BRANCHES))))
+
+(defun make-coq-definition (name params return-type body)
+  "Create a Coq function definition.
+NAME - the name of the function.
+PARAMS - a list of pairs indicating the name and type of each input parameter to
+the function.
+RETURN-TYPE - the function's return type.
+BODY - the function body."
+  (let ((binders (make-coq-local-binder-exprs
+                  #!'CLocalAssum
+                  (mapcar #'first params)
+                  (mapcar #'second params))))
+    #!`(() (VernacDefinition
+            (() Definition)
+            ((() (Id ,NAME)) ())
+            (DefineBody
+                ,BINDERS
+                ()
+              ,BODY
+              (,RETURN-TYPE))))))
+
+(defun coq-function-definition-p (sexpr &optional function-name)
+  "Return T if SEXPR is a Coq VernacDefinition expression.
+If FUNCTION-NAME is specified, only return T if SEXPR defines a function
+named FUNCTION-NAME."
+  (intern "VernacDefinition" *package*)
+  (intern "Id" *package*)
+  (when function-name
+    (intern function-name *package*))
+  (match sexpr
+    ((guard `(,_ (,vernac-def ,_ ((,_ (,id ,name)) ,_) ,_))
+            (and (eql vernac-def
+                      (find-symbol "VernacDefinition" *package*))
+                 (eql id (find-symbol "Id" *package*))))
+     (or (not function-name)
+         (and function-name (eql (find-symbol function-name *package*)
+                                 name))))))
+
+(defun lookup-qualified-coq-names (coq-type)
+  "For a Coq type COQ-TYPE, look up the qualified names (using Locate).
+Return a list of strings representing the possible qualified names.
+COQ-TYPE may be either a string or a symbol."
+  (intern "Pp_string" *package*)
+  (let* ((resp (run-coq-vernacular (format nil "Locate ~a." coq-type)))
+         (strings (mapcar #'second (filter-subtrees
+                                    [{eql (find-symbol "Pp_string")} #'car]
+                                    resp))))
+    (unless (starts-with-subseq "No object" (car strings))
+      ;; TODO: May not be correct for all types. Assumes that results are things
+      ;; like "Constant qualid" or "Notation qualid", so the qualids are the
+      ;; even elements of the list of strings in the result.
+      (iter (for even in (cdr strings) by #'cddr)
+            (collecting (if (starts-with-subseq "SerTop." even)
+                            (subseq even (length "SerTop."))
+                            even))))))
+
+(defun parse-coq-function-locals (sexpr)
+  ;; NOTE: may need to add VernacStartTheoremProof for theorems and lemmas.
+  ;; See coq/stm/vernac_classifier.ml for grammar hints.
+  (intern "CLocalAssum" *package*)
+  (intern "Name" *package*)
+  (intern "Id" *package*)
+  (when (listp sexpr)
+    (when-let ((local-assums (filter-subtrees
+                              [{eql (find-symbol "CLocalAssum")} #'car]
+                              sexpr))
+               (fn-name (coq-definition-ast-p sexpr)))
+      (flet ((parse-ids (ids-ls)
+               (iter (for the-id in ids-ls)
+                     (collecting
+                      (match the-id
+                        ((guard `(,_ (,name-tag (,id-tag ,name)))
+                                (and (eql name-tag (find-symbol "Name"))
+                                     (eql id-tag (find-symbol "Id"))))
+                         name))))))
+        (iter (for assum in local-assums)
+              (appending
+               (match assum
+                 ((guard `(,c-local-assum ,ids-ls ,_ ((,_ ,type) ,_))
+                         (eql c-local-assum (find-symbol "CLocalAssum")))
+                  (let ((ids (parse-ids ids-ls)))
+                    (mapcar #'list
+                            ids
+                            (repeatedly (length ids) type)))))))))))

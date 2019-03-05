@@ -40,7 +40,8 @@
            :function-index-entry-declarations
            :insert-new-line
            :insert-new-lines
-           :parse-asm-line))
+           :parse-asm-line
+           :call-targets))
 (in-package :software-evolution-library/software/asm-heap)
 (in-readtable :curry-compose-reader-macros)
 
@@ -67,7 +68,11 @@
   declarations)     ; list of declaration lines found for the function
 
 ;;; This read-table and package are used for parsing ASM instructions.
-(defvar *assembler-x86-readtable* (copy-readtable))
+(defvar *assembler-x86-readtable*
+  (let ((rt (copy-readtable)))
+    (setf (readtable-case rt) :preserve) ;; preserve case of asm symbols
+    rt))
+
 (defpackage :software-evolution-library/asm (:nicknames :sel/asm))
 
 ;;
@@ -137,20 +142,22 @@
 	  (eof (cons 0 0))
 	  (token (read s nil eof)(read s nil eof)))
 	 ((eq token eof)(nreverse result))
-	(push token result))))
+      (if (symbolp token)
+	  (setf token (symbol-name token)))
+      (push token result))))
 
 (defun token-label-p (token)
-  (and (symbolp token)
-       (char= (char (symbol-name token) 0) #\$)))
+  (and (stringp token)
+       (char= (char token 0) #\$)))
 
 (defun branch-op-p (token)
   "Returns true iff the token represents a jump operation. We assume it
 is a jump operator if the first letter is #\j or #\J. For our purposes
 we are excluding CALL instructions."
-  (and (symbolp token)
+  (and (stringp token)
        (or
-	(char= (char (symbol-name token) 0) #\j)
-	(char= (char (symbol-name token) 0) #\J))))
+	(char= (char token 0) #\j)
+	(char= (char token 0) #\J))))
 
 ;;; Given a list of tokens representing the line, returns either of:
 ;;;     :nothing
@@ -161,22 +168,21 @@ we are excluding CALL instructions."
 (defun parse-line-type (tokens)
   (cond ((null tokens) ':empty)
 	((and (token-label-p (first tokens)) ; first token symbol beg. with '$'?
-	      (eq (second tokens) :colon))  ; followed by a ':'?
+	      (equalp (second tokens) "COLON"))  ; followed by a ':'?
 	 ':label-decl)
-	((or (member 'sel/asm::db tokens)
-	     (member 'sel/asm::dq tokens)
-	     (member 'sel/asm::dd tokens)
-	     (member 'sel/asm::dw tokens))
+	((some {member _ tokens :test #'equalp}
+               (list "db" "dq" "dd" "dw"))
 	 ':data)
 	((member (first tokens)
-                 '(sel/asm::align
-                   sel/asm::section
-                   sel/asm::extern
-                   sel/asm::%define
-                   sel/asm::global))
+                 '("align"
+                   "section"
+                   "extern"
+                   "%define"
+                   "global")
+		 :test 'equalp)
 	 ':decl)
 	((and (token-label-p (first tokens))
-	      (eq (second tokens) 'sel/asm::equ))
+	      (equalp (second tokens) "equ"))
 	 ':decl)
 	(t ':op)))     ;; use this as catch-all for anything else
 
@@ -245,10 +251,11 @@ we are excluding CALL instructions."
 (defun format-asm-operand (op) ; list of tokens
   (format nil "~{~A~}"
 	  (mapcar (lambda (x)
-		 (if (member x '(sel/asm::qword
-				 sel/asm::dword
-				 sel/asm::word
-				 sel/asm::byte))
+		 (if (member x '("qword"
+				 "dword"
+				 "word"
+				 "byte")
+			     :test 'equalp)
 		     (format nil "~A " x)
 		     x))
 		  op)))
@@ -618,14 +625,14 @@ those of A and B."
 
 (defun function-name-from-label (name)
   "Given a label like $FOO1, returns \"FOO\""
-  (subseq (symbol-name name) 1))
+  (subseq name 1))
 
 (defun function-label-p (label-name)
   "Returns true if the passed symbol represents a valid function name.
 The heuristic is that if it starts with #\$ and doesn't start with the
 known prefixes that are auto-generated in the code, we consider it a
 function name."
-  (let ((name (symbol-name label-name)))
+  (let ((name (string-upcase label-name)))
     (and
      (char= (elt name 0) #\$)
      (not
@@ -639,8 +646,7 @@ function name."
        (function-label-p (asm-line-info-label asm-line-info))))
 
 (defun extract-function-name-from-decl (decl-name)
-  (let ((name (symbol-name decl-name)))
-    (subseq name 1 (position #\. name))))
+  (subseq decl-name 1 (position #\. decl-name)))
 
 (defun extract-function-declarations (asm)
   "Traverse the asm-heap, and collect declarations associated with
@@ -677,17 +683,16 @@ for each function. The result is a vector of function-index-entry."
 		  (incf i)
 		  (iter (while (< i (length genome)))
 			(let ((info2 (elt genome i)))
-			  (if (eq (asm-line-info-opcode info2)
-				  'sel/asm::call)
+			  (if (equalp (asm-line-info-opcode info2)
+				  "call")
 			      (setf leaf nil)) ;found a call, so not a leaf
 			  (when (or
-				 (eq (asm-line-info-opcode info2)
-				     'sel/asm::ret)
+				 (equalp (asm-line-info-opcode info2) "ret")
 				 (and
 				  (eq (asm-line-info-type info2)
 				      :decl)
-				  (eq (first (asm-line-info-tokens info2))
-				      'sel/asm::align))
+				  (equalp (first (asm-line-info-tokens info2))
+				      "align"))
 				 (line-is-function-label info2))
 			    (push
 			     (make-function-index-entry
@@ -768,52 +773,41 @@ for each function. The result is a vector of function-index-entry."
 		         (nreverse entries)))
           (make-array (length entries) :initial-contents entries))))))
 
-#|
-   Not implemented yet --RGC
+(defun is-call-statement (info)
+  (equalp (asm-line-info-opcode info) "call"))
 
-(defmethod one-point-crossover ((a sw-range) (b sw-range))
-  "DOCFIXME"
-  (assert (eq (reference a) (reference b)) (a b)
-          "Can not crossover range objects with unequal references.")
-  (let ((range (min (size a) (size b))))
-    (if (> range 0)
-        (let ((point (random range))
-              (new (copy a)))
-          (setf (genome new)
-                (copy-seq (append (range-subseq (genome a) 0 point)
-                                  (range-subseq (genome b) point))))
-          (values new point))
-        (values (copy a) 0))))
+;;;
+;;; This is NASM Intel syntax-specific
+;;; It assumes an external symbol looks like this:
+;;;     $__ctype_b_loc@@GLIBC_2.3
+;;;
+(defun call-target (info)
+  (and (is-call-statement info)
+       (caar (asm-line-info-operands info))))
 
-(defmethod two-point-crossover ((a sw-range) (b sw-range))
-  "DOCFIXME"
-  (let ((range (min (size a) (size b))))
-    (if (> range 0)
-        (let ((points (sort (loop :for i :below 2 :collect (random range)) #'<))
-              (new (copy a)))
-          (setf (genome new)
-                (copy-seq
-                 (append
-                  (range-subseq (genome b) 0 (first points))
-                  (range-subseq (genome a) (first points) (second points))
-                  (range-subseq (genome b) (second points)))))
-          (values new points))        (values (copy a) nil))))
+(defun is-extern-call-target (target)
+  "Given the name of the target of a CALL, returns true iff it is an extern
+   function."
+  (and target (search "@@" target)))
 
-(setf *orig* (from-file (make-instance
-                   'asm-heap)
-                  (make-pathname
-                   :name "calc.null"
-                   :type "asm"
-                   :directory "/u1/rcorman/synth/shaker/test/etc/calc/GTX.FILES")))
+(defun is-extern-call-statement (info)
+  (is-extern-call-target (call-target info)))
 
-(dotimes (i (length g))
-  (let ((info (elt g i)))
-    (if (and (asm-line-info-label info)
-             (not (starts-with-p (symbol-name (asm-line-info-label info)) "$LOC_"))
-	     (not (starts-with-p (symbol-name (asm-line-info-label info)) "$BB_FALLTHROUGH_"))
-             (not (starts-with-p (symbol-name (asm-line-info-label info)) "$UNK_")))
-      (format t "~A ~A ~A~%"
-        (first (asm-line-info-tokens info))
-        (asm-line-info-orig-line info)
-        (asm-line-info-text info)))))
-|#
+(defun call-targets (asm-heap)
+  "Return the names of functions being called in the asm code.
+The format is:
+  (:name <string> :library <string-library-name> :full-name <qualified name>)."
+  (iter
+    (for info in-vector (genome asm-heap))
+      (if (is-call-statement info)
+        (let ((target (call-target info))
+              (result nil))
+          (if (is-extern-call-target target)
+            (let* ((pos (search "@@" target))
+                   (name (and pos (subseq target 0 pos)))
+                   (library (and pos (subseq target (+ pos 2)))))
+              (setf result
+                (list ':name name ':library library ':full-name target)))
+            (setf result
+                (list ':name target ':library nil ':full-name target)))
+          (collect result)))))

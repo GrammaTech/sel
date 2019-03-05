@@ -27,7 +27,7 @@ techniques."
   :description "Test the SOFTWARE-EVOLUTION-LIBRARY package."
   :version "0.0.0"
   ;; This is the reason for this whole defsystem.
-  :depends-on (fare-qusiquote-extras))
+  :depends-on (fare-quasiquote-extras))
 
 
 ;;;; Tests and binaries.
@@ -50,7 +50,7 @@ techniques."
   :entry-point "software-evolution-library/ast-diff/commands::run-ast-diff")
 
 (defsystem "software-evolution-library/run-ast-merge"
-  :author "Paul Dietz and GrammaTech"
+  :author "Eric Schulte and GrammaTech"
   :licence "GPL V3"
   :description "Compute the merge of two programs that diverge from a common ancestral version."
   :version "0.0.0"
@@ -58,3 +58,13 @@ techniques."
   :build-operation "asdf:program-op"
   :build-pathname "bin/ast-merge"
   :entry-point "software-evolution-library/ast-diff/commands::run-ast-merge")
+
+(defsystem "software-evolution-library/run-rest-server"
+  :author "Eric Schulte and GrammaTech"
+  :licence "GPL V3"
+  :description "Calculate difference between two programs."
+  :version "0.0.0"
+  :depends-on (software-evolution-library/rest)
+  :build-operation "asdf:program-op"
+  :build-pathname "bin/rest-server"
+  :entry-point "software-evolution-library/rest::run-rest-server")
