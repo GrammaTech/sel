@@ -395,12 +395,11 @@ If none exist, raise a `no-mutation-targets' error."
 Remove statements containing Coq location info from consideration.
 If none exist, raise a `no-mutation-targets' error."
   (if-let ((stmts (good-stmts obj)))
-    (if stmts
-        (random-elt stmts)
-        (error (make-condition
-                'no-mutation-targets
-                :obj obj
-                :text "No non-location statements in Coq genome.")))))
+    (random-elt stmts)
+    (error (make-condition
+               'no-mutation-targets
+             :obj obj
+             :text "No non-location statements in Coq genome."))))
 
 (defun find-nearest-type (coq index)
   "For object COQ, find the nearest tag for the subtree at INDEX in the genome.
@@ -647,6 +646,7 @@ E.g., for type \"bool\", the list includes \"(implb true) : bool -> bool\" and
                                ;; Drop the first type, join the rest with :->.
                                (cdr (mappend {cons :->}
                                              (cdr split-type))))))))))
+         #+(or )                       ; NOTE: Uncomment if used below
          ((:flet synthesize-typed-coq-if-expression (bool-exprs result-exprs))
           "Return a list of if expressions testing BOOL-EXPRS and resulting in
 pairs of expressions from RESULT-EXPRS."
@@ -671,12 +671,12 @@ pairs of expressions from RESULT-EXPRS."
                 (collecting name into bool-names)
                 (collecting ast into bool-asts))
               (finally (return (append exact-names nil
-                                       ;; (remove-if
-                                       ;;  #'null
-                                       ;;  (synthesize-typed-coq-if-expression
-                                       ;;   bool-names
-                                       ;;   exact-names))
-                                       ))))
+                                       #+(or ) ; NOTE: Uncomment above if used.
+                                       (remove-if
+                                        #'null
+                                        (synthesize-typed-coq-if-expression
+                                         bool-names
+                                         exact-names))))))
         ;; extend environment up to depth limit
         (iter (for scope-type in scopes)
               (unioning (extend-env scope-type scopes) into envs test #'equal)
