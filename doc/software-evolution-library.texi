@@ -1922,7 +1922,7 @@ tools should be to maximize the level of verbosity, e.g. @code{-v 5}.
 * Documentation::
 * Don't use superfluous @code{let} or @code{let*} bindings::
 * Map instead of iterate::
-* Judicious use of arrow macros::
+* Judicious use of indentation macros::
 @end menu
 
 @node Use the compiler(s), Formatting, SEL Coding Standards, SEL Coding Standards
@@ -2154,7 +2154,7 @@ acceptable.
 
 @end itemize
 
-@node Map instead of iterate, Judicious use of arrow macros, Don't use superfluous @code{let} or @code{let*} bindings, SEL Coding Standards
+@node Map instead of iterate, Judicious use of indentation macros, Don't use superfluous @code{let} or @code{let*} bindings, SEL Coding Standards
 @appendixsec Map instead of iterate
 
 
@@ -2168,32 +2168,22 @@ better indentation behavior, in which case it might be acceptable (but
 I can't think of one now).
 
 
-@node Judicious use of arrow macros, ChangeLog, Map instead of iterate, SEL Coding Standards
-@appendixsec Judicious use of ``arrow'' (@code{->}, @code{->>}, etc...) macros
+@node Judicious use of indentation macros, ChangeLog, Map instead of iterate, SEL Coding Standards
+@appendixsec Judicious use of Indentation macros
 
-We sometimes over-use the @code{->} and @code{->>} macros.  These
-@emph{typically} only make sense to chain multiple calls, not single
-(or often double) nested call.  One exception here is to aid
-indentation (avoid going over 80 characters) when regular nesting
-would require contortionist indentation.  For example in the following
-excerpt from our tests.  This
+Keeping code to within 80 columns can be difficult when deeply nested
+forms or chained function calls consume most of your column budget for
+indentation.  The UIOP/UTILITY:NEST macro (see
+@url{https://github.com/fare/asdf/blob/master/uiop/utility.lisp,
+uiop/utility.lisp}) is an excellent flexible option to reduce nesting
+(see @url{https://fare.livejournal.com/189741.html, A tale of many
+nests}).
 
-
-@lisp
-    (is (equalp (->> (stmt-starting-with-text *collatz* "int collatz")
-                     (function-body *collatz*))
-                #|...|#))
-@end lisp
-
-is nicer than this.
-
-@lisp
-    (is (equalp (function-body
-                 *collatz*
-                 (stmt-starting-with-text *collatz* "int collatz"))
-                #|...|#))
-@end lisp
-
+Use of @code{nest} should generally be preferred to ``arrow'' macros,
+(see @url{https://github.com/hipeta/arrow-macros}).  The @code{nest}
+macro is simpler and more generally useful than the arrow macros.
+However, the arrow macros are an acceptable option which are already
+used widely within SEL.
 
 @node ChangeLog, Licensing, SEL Coding Standards, Top
 @appendix ChangeLog
