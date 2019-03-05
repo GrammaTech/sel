@@ -94,6 +94,12 @@ Similar to <code>range</code>, but allows for adding and mutating lines, and sho
 be able to handle type of mutation we need. The <code>genome</code> is a vector of
 references into the asm-heap (asm-line-info) describes the code.
 </p></dd></dl>
+<a name="Function-call_002dtargets"></a><dl>
+<dt><a name="index-call_002dtargets"></a>Function: <strong>call-targets</strong> <em>asm-heap</em></dt>
+<dd><p>Return the names of functions being called in the asm code.
+The format is:
+  (:name &lt;string&gt; :library &lt;string-library-name&gt; :full-name &lt;qualified name&gt;).
+</p></dd></dl>
 
 
 

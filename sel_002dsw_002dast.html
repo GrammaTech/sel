@@ -76,6 +76,10 @@ Next: <a href="sel_002dsw_002dcil.html#sel_002dsw_002dcil" accesskey="n" rel="ne
 <dt><a name="index-ast_002dclass"></a>Generic Function: <strong>ast-class</strong> <em>ast</em></dt>
 <dd><p>Class of AST.
 </p></dd></dl>
+<a name="Generic_002dFunction-ast_002dclass_002dmeld_003f"></a><dl>
+<dt><a name="index-ast_002dclass_002dmeld_003f"></a>Generic Function: <strong>ast-class-meld?</strong> <em>ast-class ast</em></dt>
+<dd><p>Dispatches on the ast-class of an ast to compute &lsquo;ast-meld-p&rsquo;
+</p></dd></dl>
 <a name="Generic_002dFunction-ast_002dhash"></a><dl>
 <dt><a name="index-ast_002dhash"></a>Generic Function: <strong>ast-hash</strong> <em>ast</em></dt>
 <dd><p>A hash value for the AST, which is a nonnegative
@@ -89,10 +93,6 @@ then the equality of the hashes is unlikely.
 </p>
 <p>Base type of immutable portion of ast nodes.
 </p></dd></dl>
-<a name="Macro-define_002dast"></a><dl>
-<dt><a name="index-define_002dast"></a>Macro: <strong>define-ast</strong> <em>name-and-options &amp;rest slot-descriptions</em></dt>
-<dd><p>Implicitly defines an AST wrapper for the defined AST-node.
-</p></dd></dl>
 <a name="Function-ast_002dlater_002dp"></a><dl>
 <dt><a name="index-ast_002dlater_002dp"></a>Function: <strong>ast-later-p</strong> <em>ast-a ast-b</em></dt>
 <dd><p>Is <code>ast-a</code> later in the genome than <code>ast-b</code>?
@@ -100,9 +100,17 @@ then the equality of the hashes is unlikely.
 <p>Use this to sort AST asts for mutations that perform multiple
 operations.
 </p></dd></dl>
+<a name="Generic_002dFunction-ast_002dmeld_002dp"></a><dl>
+<dt><a name="index-ast_002dmeld_002dp"></a>Generic Function: <strong>ast-meld-p</strong> <em>ast</em></dt>
+<dd><p>Returns true if the children of AST are to be combined on merge conflict.
+</p></dd></dl>
 <a name="Generic_002dFunction-ast_002dtext"></a><dl>
 <dt><a name="index-ast_002dtext"></a>Generic Function: <strong>ast-text</strong> <em>ast</em></dt>
 <dd><p>Return textual representation of AST.
+</p></dd></dl>
+<a name="Macro-define_002dast"></a><dl>
+<dt><a name="index-define_002dast"></a>Macro: <strong>define-ast</strong> <em>name-and-options &amp;rest slot-descriptions</em></dt>
+<dd><p>Implicitly defines an AST wrapper for the defined AST-node.
 </p></dd></dl>
 <a name="Generic_002dFunction-fixup_002dmutation"></a><dl>
 <dt><a name="index-fixup_002dmutation"></a>Generic Function: <strong>fixup-mutation</strong> <em>operation current before ast after</em></dt>
@@ -191,6 +199,15 @@ new tree.
 </li><li> <code>replacement</code> AST to insert
 </li></ul>
 </dd></dl>
+<a name="Generic_002dFunction-map_002dast"></a><dl>
+<dt><a name="index-map_002dast"></a>Generic Function: <strong>map-ast</strong> <em>tree fn</em></dt>
+<dd><p>Apply fn to each node of an AST, in preorder
+</p></dd></dl>
+<a name="Generic_002dFunction-map_002dast_002dstrings"></a><dl>
+<dt><a name="index-map_002dast_002dstrings"></a>Generic Function: <strong>map-ast-strings</strong> <em>tree fn</em></dt>
+<dd><p>Build a new AST obtained by replacing each string with
+(funcall <code>fn</code> string).  If the <code>fn</code> returns <code>nil</code> do not replace.
+</p></dd></dl>
 <a name="Generic_002dFunction-rebind_002dvars"></a><dl>
 <dt><a name="index-rebind_002dvars"></a>Generic Function: <strong>rebind-vars</strong> <em>ast var-replacements fun-replacements</em></dt>
 <dd><p>Replace variable and function references, returning a new AST.
@@ -262,22 +279,24 @@ new tree.
 </li></ul>
 </dd></dl>
 <a name="Generic_002dFunction-replace_002dast"></a><dl>
-<dt><a name="index-replace_002dast"></a>Generic Function: <strong>replace-ast</strong> <em>tree location replacement</em></dt>
+<dt><a name="index-replace_002dast"></a>Generic Function: <strong>replace-ast</strong> <em>tree location replacement &amp;key literal &amp;allow-other-keys</em></dt>
 <dd><p>Return the modified <code>tree</code> with the AST at <code>location</code> replaced
 with <code>replacement</code>.
 </p></dd></dl>
-<a name="Method-replace_002dast-_0028_0028obj-parseable_0029-_0028location-ast_0029-_0028replacement-ast_0029_0029"></a><dl>
-<dt><a name="index-replace_002dast-1"></a>Method: <strong>replace-ast</strong> <em>(obj parseable) (location ast) (replacement ast)</em></dt>
+<a name="Method-replace_002dast-_0028_0028obj-parseable_0029-_0028location-ast_0029-_0028replacement-ast_0029-_0026key-literal-_0026allow_002dother_002dkeys_0029"></a><dl>
+<dt><a name="index-replace_002dast-1"></a>Method: <strong>replace-ast</strong> <em>(obj parseable) (location ast) (replacement ast) &amp;key literal &amp;allow-other-keys</em></dt>
 <dd><p>Return the modified <code>obj</code> with the AST at <code>location</code> replaced with
 <code>replacement</code>.
 </p><ul>
 <li> <code>obj</code> object to be modified
 </li><li> <code>location</code> AST to be replaced in <code>obj</code>
 </li><li> <code>replacement</code> Replacement AST
+</li><li> <code>literal</code>, if true, causes the replacement to occur without
+  recontextualization
 </li></ul>
 </dd></dl>
-<a name="Method-replace_002dast-_0028_0028obj-parseable_0029-_0028location-list_0029-_0028replacement-ast_0029_0029"></a><dl>
-<dt><a name="index-replace_002dast-2"></a>Method: <strong>replace-ast</strong> <em>(obj parseable) (location list) (replacement ast)</em></dt>
+<a name="Method-replace_002dast-_0028_0028obj-parseable_0029-_0028location-list_0029-_0028replacement-ast_0029-_0026rest-args-_0026key-_0026allow_002dother_002dkeys_0029"></a><dl>
+<dt><a name="index-replace_002dast-2"></a>Method: <strong>replace-ast</strong> <em>(obj parseable) (location list) (replacement ast) &amp;rest args &amp;key &amp;allow-other-keys</em></dt>
 <dd><p>Return the modified <code>obj</code> with the AST at <code>location</code> replaced with
 <code>replacement</code>.
 </p><ul>
@@ -286,8 +305,8 @@ with <code>replacement</code>.
 </li><li> <code>replacement</code> Replacement AST
 </li></ul>
 </dd></dl>
-<a name="Method-replace_002dast-_0028_0028tree-ast_0029-_0028location-list_0029-_0028replacement-ast_0029_0029"></a><dl>
-<dt><a name="index-replace_002dast-3"></a>Method: <strong>replace-ast</strong> <em>(tree ast) (location list) (replacement ast)</em></dt>
+<a name="Method-replace_002dast-_0028_0028tree-ast_0029-_0028location-list_0029-_0028replacement-ast_0029-_0026key-_0026allow_002dother_002dkeys_0029"></a><dl>
+<dt><a name="index-replace_002dast-3"></a>Method: <strong>replace-ast</strong> <em>(tree ast) (location list) (replacement ast) &amp;key &amp;allow-other-keys</em></dt>
 <dd><p>Return the modified <code>tree</code> with the AST at <code>location</code> replaced with
 <code>replacement</code>.
 </p><ul>
@@ -296,8 +315,8 @@ with <code>replacement</code>.
 </li><li> <code>replacement</code> Replacement AST
 </li></ul>
 </dd></dl>
-<a name="Method-replace_002dast-_0028_0028tree-ast_0029-_0028location-ast_0029-_0028replacement-ast_0029_0029"></a><dl>
-<dt><a name="index-replace_002dast-4"></a>Method: <strong>replace-ast</strong> <em>(tree ast) (location ast) (replacement ast)</em></dt>
+<a name="Method-replace_002dast-_0028_0028tree-ast_0029-_0028location-ast_0029-_0028replacement-ast_0029-_0026rest-args-_0026key-_0026allow_002dother_002dkeys_0029"></a><dl>
+<dt><a name="index-replace_002dast-4"></a>Method: <strong>replace-ast</strong> <em>(tree ast) (location ast) (replacement ast) &amp;rest args &amp;key &amp;allow-other-keys</em></dt>
 <dd><p>Return the modified <code>tree</code> with the AST at <code>location</code> replaced with
 <code>replacement</code>.
 </p><ul>

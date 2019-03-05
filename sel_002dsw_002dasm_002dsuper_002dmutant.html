@@ -81,6 +81,9 @@ Next: <a href="sel_002dsw_002dast.html#sel_002dsw_002dast" accesskey="n" rel="ne
 </p></li><li> <code>var-table</code> &mdash; initarg: <code><span class="nolinebreak">:var-table</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant:var-table</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant:var-table)</span><!-- /@w --></code>
 
 <p>Vector of var-rec (data/address records)
+</p></li><li> <code>bss-segment</code> &mdash; initarg: <code><span class="nolinebreak">:bss-segment</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant::bss-segment</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant::bss-segment)</span><!-- /@w --></code>
+
+<p>Address of bss segment in original executable
 </p></li><li> <code>target-name</code> &mdash; initarg: <code><span class="nolinebreak">:target-name</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant::target-name</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant::target-name)</span><!-- /@w --></code>
 
 <p>Name of target function
@@ -101,10 +104,22 @@ Next: <a href="sel_002dsw_002dast.html#sel_002dsw_002dast" accesskey="n" rel="ne
 <p>Assembler to use for assembling.
 </p></li><li> <code>io-dir</code> &mdash; initarg: <code><span class="nolinebreak">:io-dir</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant::io-dir</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant::io-dir)</span><!-- /@w --></code>
 
-<p>Directory containing I/O files
+<p>Directory containing I/O files, named for the functions.
+</p></li><li> <code>io-file</code> &mdash; initarg: <code><span class="nolinebreak">:io-file</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant::io-file</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant::io-file)</span><!-- /@w --></code>
+
+<p>If this is specified, use this file (ignore io-dir).
 </p></li><li> <code>fitness-harness</code> &mdash; initarg: <code><span class="nolinebreak">:fitness-harness</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant:fitness-harness</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant:fitness-harness)</span><!-- /@w --></code>
 
 <p>Pathname to the fitness harness file <code>(c program source)</code>
+</p></li><li> <code>include-lines</code> &mdash; initarg: <code><span class="nolinebreak">:include-lines</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant::include-lines</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant::include-lines)</span><!-- /@w --></code>
+
+<p>Optional list of lines of assembler source to include in fitness file.
+</p></li><li> <code>include-funcs</code> &mdash; initarg: <code><span class="nolinebreak">:include-funcs</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant::include-funcs</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant::include-funcs)</span><!-- /@w --></code>
+
+<p>Optional list of names of functions to include in fitness file.
+</p></li><li> <code>libraries</code> &mdash; initarg: <code>:libraries<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant::libraries</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant::libraries)</span><!-- /@w --></code>
+
+<p>Optional list of names of functions to include in fitness file.
 </p></li></ul>
 
 <p>Combine <code>super-mutant</code> capabilities with <code>asm-heap</code> framework.
@@ -123,9 +138,9 @@ Next: <a href="sel_002dsw_002dast.html#sel_002dsw_002dast" accesskey="n" rel="ne
 </p></dd></dl>
 <a name="Function-parse_002dsanity_002dfile"></a><dl>
 <dt><a name="index-parse_002dsanity_002dfile"></a>Function: <strong>parse-sanity-file</strong> <em>filename</em></dt>
-<dd><p>Parses the &rsquo;sanity&rsquo; file which is output by the <code>gtx</code> disassembler. It
-contains all the data variables and addresses (some of which are not
-included in the disassembly file). Returns a vector of var-rec.
+<dd><p>Parses the &rsquo;sanity&rsquo; file which is output by the <code>gtx</code> disassembler.
+It contains all the data variables and addresses (some of which are
+not included in the disassembly file). Returns a vector of var-rec.
 </p></dd></dl>
 <a name="Function-target_002dfunction"></a><dl>
 <dt><a name="index-target_002dfunction"></a>Function: <strong>target-function</strong> <em>asm-super start-addr end-addr</em></dt>

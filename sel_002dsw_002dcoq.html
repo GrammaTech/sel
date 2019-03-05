@@ -72,10 +72,7 @@ Next: <a href="sel_002dsw_002dcoq_002dproject.html#sel_002dsw_002dcoq_002dprojec
 </p>
 <p>Slots:
 </p><ul>
-<li> <code>ast-ids</code> &mdash; initarg: <code><span class="nolinebreak">:ast-ids</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/coq:ast-ids</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/coq:ast-ids)</span><!-- /@w --></code>
-
-<p>List of IDs for the ASTs when they were loaded.
-</p></li><li> <code>project-file</code> &mdash; initarg: <code><span class="nolinebreak">:project-file</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/coq:project-file</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/coq:project-file)</span><!-- /@w --></code>
+<li> <code>project-file</code> &mdash; initarg: <code><span class="nolinebreak">:project-file</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/coq:project-file</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/coq:project-file)</span><!-- /@w --></code>
 
 <p>Path to _CoqProject file, if it exists.
 </p></li><li> <code>file-source</code> &mdash; initarg: <code><span class="nolinebreak">:file-source</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/coq:file-source</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/coq:file-source)</span><!-- /@w --></code>
@@ -84,9 +81,26 @@ Next: <a href="sel_002dsw_002dcoq_002dproject.html#sel_002dsw_002dcoq_002dprojec
 </p></li><li> <code>imports</code> &mdash; initarg: <code>:imports<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/coq:imports</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/coq:imports)</span><!-- /@w --></code>
 
 <p>ASTs for imports, not part of genome.
+</p></li><li> <code>coq-modules</code> &mdash; initarg: <code>:modules<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/coq:coq-modules</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/coq:coq-modules)</span><!-- /@w --></code>
+
+<p>List of Modules defined by this object.
+</p></li><li> <code>coq-sections</code> &mdash; initarg: <code>:sections<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/coq:coq-sections</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/coq:coq-sections)</span><!-- /@w --></code>
+
+<p>List of Sections defined by this object.
+</p></li><li> <code>coq-assumptions</code> &mdash; initarg: <code>:assumptions<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/coq:coq-assumptions</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/coq:coq-assumptions)</span><!-- /@w --></code>
+
+<p>List of Parameters, Variables, etc. defined by this object.
+</p></li><li> <code>coq-definitions</code> &mdash; initarg: <code>:definitions<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/coq:coq-definitions</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/coq:coq-definitions)</span><!-- /@w --></code>
+
+<p>List of values defined in this object.
+Includes Definition, Inductive, Fixpoint, etc.
 </p></li></ul>
 
 <p>Coq software object.
+</p></dd></dl>
+<a name="Variable-_002acoq_002dmutation_002dtypes_002a"></a><dl>
+<dt><a name="index-_002acoq_002dmutation_002dtypes_002a"></a>Variable: <strong>*coq-mutation-types*</strong></dt>
+<dd><p>Cumulative distribution fo normalized probabilities of weighted mutations.
 </p></dd></dl>
 <a name="Generic_002dFunction-coq_002dtype_002dchecks"></a><dl>
 <dt><a name="index-coq_002dtype_002dchecks"></a>Generic Function: <strong>coq-type-checks</strong> <em>coq</em></dt>
@@ -96,6 +110,22 @@ Next: <a href="sel_002dsw_002dcoq_002dproject.html#sel_002dsw_002dcoq_002dprojec
 <dt><a name="index-coq_002dtype_002dchecks-1"></a>Method: <strong>coq-type-checks</strong> <em>(obj coq)</em></dt>
 <dd><p>Return the fraction of ASTs in Coq software <code>obj</code> that typecheck.
 Return <code>nil</code> if source strings cannot be looked up.
+</p></dd></dl>
+<a name="Class-type_002dsafe_002dswap"></a><dl>
+<dt><a name="index-type_002dsafe_002dswap"></a>Class: <strong>type-safe-swap</strong></dt>
+<dd><p>Class precedence list: <code>type-safe-swap, sexp-swap, mutation, oid-object, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p>Swap two Coq ASTs tagged with the same type.
 </p></dd></dl>
 <a name="Function-find_002dnearest_002dtype"></a><dl>
 <dt><a name="index-find_002dnearest_002dtype"></a>Function: <strong>find-nearest-type</strong> <em>coq index</em></dt>
@@ -128,26 +158,26 @@ Ensure that the selected index is not equal to <code>ignore-index</code>.
 <dt><a name="index-reset_002dand_002dload_002dimports"></a>Generic Function: <strong>reset-and-load-imports</strong> <em>coq &amp;key imports</em></dt>
 <dd><p>Reset the SerAPI process and load <code>imports</code> for <code>coq</code> software object.
 </p></dd></dl>
+<a name="Method-reset_002dand_002dload_002dimports-_0028_0028project-coq_002dproject_0029-_0026key-imports_0029"></a><dl>
+<dt><a name="index-reset_002dand_002dload_002dimports-1"></a>Method: <strong>reset-and-load-imports</strong> <em>(project coq-project) &amp;key imports</em></dt>
+<dd><p>Reset the SerAPI process and load <code>imports</code> for each Coq object in <code>project</code>.
+If <code>imports</code> is <code>nil</code>, it defaults to the list of &lsquo;imports&rsquo; for each Coq object in
+<code>project</code>.
+</p></dd></dl>
 <a name="Method-reset_002dand_002dload_002dimports-_0028_0028obj-coq_0029-_0026key-_0028imports-_0028imports-obj_0029_0029_0029"></a><dl>
-<dt><a name="index-reset_002dand_002dload_002dimports-1"></a>Method: <strong>reset-and-load-imports</strong> <em>(obj coq) &amp;key (imports (imports obj))</em></dt>
+<dt><a name="index-reset_002dand_002dload_002dimports-2"></a>Method: <strong>reset-and-load-imports</strong> <em>(obj coq) &amp;key (imports (imports obj))</em></dt>
 <dd><p>Reset the SerAPI process and load <code>imports</code> for <code>coq</code> software object.
 <code>imports</code> defaults to the list of &lsquo;imports&rsquo; in <code>coq</code>.
 </p></dd></dl>
-<a name="Class-type_002dsafe_002dswap"></a><dl>
-<dt><a name="index-type_002dsafe_002dswap"></a>Class: <strong>type-safe-swap</strong></dt>
-<dd><p>Class precedence list: <code>type-safe-swap, sexp-swap, mutation, oid-object, standard-object, t</code>
-</p>
-<p>Slots:
-</p><ul>
-<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> targets.
-</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> random target.
-</p></li></ul>
-
-<p>Swap two Coq ASTs tagged with the same type.
+<a name="Function-synthesize_002dtyped_002dcoq_002dexpression"></a><dl>
+<dt><a name="index-synthesize_002dtyped_002dcoq_002dexpression"></a>Function: <strong>synthesize-typed-coq-expression</strong> <em>type scopes depth</em></dt>
+<dd><p>Synthesize an expression of type <code>type</code> using in-scope values <code>scopes</code>.
+Return a list of strings representing Coq expressions of type <code>type</code>.
+<code>type</code> is a string denoting a Coq type (e.g., &quot;nat <code>-&gt;</code> bool&quot;).
+<code>scopes</code> is a list of variables with tokenized types (e.g., as generated by
+&lsquo;search-coq-type&rsquo;).
+<code>depth</code> is a number limiting the search depth. Functions will be applied to no
+more than <code>depth</code> parameters.
 </p></dd></dl>
 <a name="Function-tag_002dloc_002dinfo"></a><dl>
 <dt><a name="index-tag_002dloc_002dinfo"></a>Function: <strong>tag-loc-info</strong> <em>sexpr</em></dt>

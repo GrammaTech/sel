@@ -742,8 +742,17 @@ a refine-condition <code>mutation</code> to <code>software</code>.
 </li><li> <code>software</code> object to be modified by the mutation
 </li></ul>
 </dd></dl>
+<a name="Method-build_002dop-_0028_0028mutation-clang_002dswap_0029-software_0029"></a><dl>
+<dt><a name="index-build_002dop-12"></a>Method: <strong>build-op</strong> <em>(mutation clang-swap) software</em></dt>
+<dd><p>Return an association list with the operations to apply a &lsquo;clang-swap&rsquo;
+<code>mutation</code> to <code>software</code>.
+</p><ul>
+<li> <code>mutation</code> defines targets of the swap operation
+</li><li> <code>software</code> object to be modified by the mutation
+</li></ul>
+</dd></dl>
 <a name="Method-build_002dop-_0028_0028mutation-clang_002dinsert_0029-software_0029"></a><dl>
-<dt><a name="index-build_002dop-12"></a>Method: <strong>build-op</strong> <em>(mutation clang-insert) software</em></dt>
+<dt><a name="index-build_002dop-13"></a>Method: <strong>build-op</strong> <em>(mutation clang-insert) software</em></dt>
 <dd><p>Return an association list with the operations to apply a &lsquo;clang-insert&rsquo;
 <code>mutation</code> to <code>software</code>.
 </p><ul>
@@ -752,7 +761,7 @@ a refine-condition <code>mutation</code> to <code>software</code>.
 </li></ul>
 </dd></dl>
 <a name="Method-build_002dop-_0028_0028mutation-parseable_002dnop_0029-software_0029"></a><dl>
-<dt><a name="index-build_002dop-13"></a>Method: <strong>build-op</strong> <em>(mutation parseable-nop) software</em></dt>
+<dt><a name="index-build_002dop-14"></a>Method: <strong>build-op</strong> <em>(mutation parseable-nop) software</em></dt>
 <dd><p>Return an association list with the operations to apply a &lsquo;nop&rsquo;
 <code>mutation</code> to <code>software</code>.
 </p><ul>
@@ -761,7 +770,7 @@ a refine-condition <code>mutation</code> to <code>software</code>.
 </li></ul>
 </dd></dl>
 <a name="Method-build_002dop-_0028_0028mutation-parseable_002dcut_0029-software_0029"></a><dl>
-<dt><a name="index-build_002dop-14"></a>Method: <strong>build-op</strong> <em>(mutation parseable-cut) software</em></dt>
+<dt><a name="index-build_002dop-15"></a>Method: <strong>build-op</strong> <em>(mutation parseable-cut) software</em></dt>
 <dd><p>Return an association list with the operations to apply a &lsquo;parseable-cut&rsquo;
 <code>mutation</code> to <code>software</code>.
 </p><ul>
@@ -770,7 +779,7 @@ a refine-condition <code>mutation</code> to <code>software</code>.
 </li></ul>
 </dd></dl>
 <a name="Method-build_002dop-_0028_0028mutation-parseable_002dreplace_0029-software_0029"></a><dl>
-<dt><a name="index-build_002dop-15"></a>Method: <strong>build-op</strong> <em>(mutation parseable-replace) software</em></dt>
+<dt><a name="index-build_002dop-16"></a>Method: <strong>build-op</strong> <em>(mutation parseable-replace) software</em></dt>
 <dd><p>Return an association list with the operations to apply an
 &lsquo;parseable-replace&rsquo; <code>mutation</code> to <code>software</code>.
 </p><ul>
@@ -779,7 +788,7 @@ a refine-condition <code>mutation</code> to <code>software</code>.
 </li></ul>
 </dd></dl>
 <a name="Method-build_002dop-_0028_0028mutation-parseable_002dmove_0029-software_0029"></a><dl>
-<dt><a name="index-build_002dop-16"></a>Method: <strong>build-op</strong> <em>(mutation parseable-move) software</em></dt>
+<dt><a name="index-build_002dop-17"></a>Method: <strong>build-op</strong> <em>(mutation parseable-move) software</em></dt>
 <dd><p>Return an association list with the operations to apply a &lsquo;parseable-move&rsquo;
 <code>mutation</code> to <code>software</code>.
 </p><ul>
@@ -788,7 +797,7 @@ a refine-condition <code>mutation</code> to <code>software</code>.
 </li></ul>
 </dd></dl>
 <a name="Method-build_002dop-_0028_0028mutation-parseable_002dswap_0029-software_0029"></a><dl>
-<dt><a name="index-build_002dop-17"></a>Method: <strong>build-op</strong> <em>(mutation parseable-swap) software</em></dt>
+<dt><a name="index-build_002dop-18"></a>Method: <strong>build-op</strong> <em>(mutation parseable-swap) software</em></dt>
 <dd><p>Return an association list with the operations to apply a &lsquo;parseable-swap&rsquo;
 <code>mutation</code> to <code>software</code>.
 </p><ul>
@@ -797,7 +806,7 @@ a refine-condition <code>mutation</code> to <code>software</code>.
 </li></ul>
 </dd></dl>
 <a name="Method-build_002dop-_0028_0028mutation-parseable_002dinsert_0029-software_0029"></a><dl>
-<dt><a name="index-build_002dop-18"></a>Method: <strong>build-op</strong> <em>(mutation parseable-insert) software</em></dt>
+<dt><a name="index-build_002dop-19"></a>Method: <strong>build-op</strong> <em>(mutation parseable-insert) software</em></dt>
 <dd><p>Return an association list with the operations to apply a &lsquo;parseable-insert&rsquo;
 <code>mutation</code> to <code>software</code>.
 </p><ul>
@@ -937,6 +946,11 @@ file have been added.
 <dd><p>Initialize an &lsquo;asm-range&rsquo; software object from a file.
 Note this is required as no &lsquo;from-file&rsquo; method is defined on the
 &lsquo;range&rsquo; software object class.
+</p></dd></dl>
+<a name="Method-from_002dfile-after-_0028_0028obj-asm_0029-file_0029"></a><dl>
+<dt><a name="index-after-from_002dfile-1"></a>Method: <strong>after from-file</strong> <em>(obj asm) file</em></dt>
+<dd><p>Ensure &lsquo;number-genome&rsquo; is called on all ASM files.
+This adds :id fields to genome elements required by &lsquo;homologous-crossover&rsquo;.
 </p></dd></dl>
 <a name="Method-from_002dfile-_0028_0028obj-pliny_002ddatabase_0029-db_0029"></a><dl>
 <dt><a name="index-from_002dfile-10"></a>Method: <strong>from-file</strong> <em>(obj pliny-database) db</em></dt>

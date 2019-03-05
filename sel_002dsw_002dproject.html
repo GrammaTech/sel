@@ -159,9 +159,9 @@ threads by creating separate build directory per thread.
 <dt><a name="index-collect_002devolve_002dfiles"></a>Generic Function: <strong>collect-evolve-files</strong> <em>project</em></dt>
 <dd><p>Create the evolve files for <code>project</code>.
 </p></dd></dl>
-<a name="Method-collect_002devolve_002dfiles-before-_0028_0028obj-clang_002dproject_0029_0029"></a><dl>
-<dt><a name="index-before-collect_002devolve_002dfiles"></a>Method: <strong>before collect-evolve-files</strong> <em>(obj clang-project)</em></dt>
-<dd><p>Ensure <code>clang-project</code> has a compilation-database populated.
+<a name="Method-collect_002devolve_002dfiles-around-_0028_0028clang_002dproject-clang_002dproject_0029_0029"></a><dl>
+<dt><a name="index-around-collect_002devolve_002dfiles"></a>Method: <strong>around collect-evolve-files</strong> <em>(clang-project clang-project)</em></dt>
+<dd><p>Wrapper to create a compilation database for <code>clang-project</code> if necessary.
 </p></dd></dl>
 <a name="Generic_002dFunction-ignored_002devolve_002dpath_002dp"></a><dl>
 <dt><a name="index-ignored_002devolve_002dpath_002dp"></a>Generic Function: <strong>ignored-evolve-path-p</strong> <em>software path</em></dt>
@@ -170,10 +170,6 @@ threads by creating separate build directory per thread.
 <a name="Function-make_002dbuild_002ddir"></a><dl>
 <dt><a name="index-make_002dbuild_002ddir"></a>Function: <strong>make-build-dir</strong> <em>src-dir &amp;key path</em></dt>
 <dd><p>Create a temporary copy of a build directory for use during evolution.
-</p></dd></dl>
-<a name="Generic_002dFunction-project_002dpath"></a><dl>
-<dt><a name="index-project_002dpath"></a>Generic Function: <strong>project-path</strong> <em>project path</em></dt>
-<dd><p>Expand <code>path</code> relative to <code>project</code>.
 </p></dd></dl>
 
 <hr>

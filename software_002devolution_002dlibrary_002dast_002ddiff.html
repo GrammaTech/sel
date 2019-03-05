@@ -75,7 +75,7 @@ Next: <a href="sel_002dsw_002dadaptive_002dmutation.html#sel_002dsw_002dadaptive
 <dd><p>Return cost of AST.
 </p></dd></dl>
 <a name="Generic_002dFunction-ast_002ddiff"></a><dl>
-<dt><a name="index-ast_002ddiff"></a>Generic Function: <strong>ast-diff</strong> <em>ast-a ast-b</em></dt>
+<dt><a name="index-ast_002ddiff"></a>Generic Function: <strong>ast-diff</strong> <em>ast-a ast-b &amp;key strings &amp;allow-other-keys</em></dt>
 <dd><p>Return a least-cost edit script which transforms <code>ast-a</code> into <code>ast-b</code>.
 Also return a second value indicating the cost of the edit.
 </p>
@@ -85,8 +85,8 @@ Also return a second value indicating the cost of the edit.
 differencing of specialized AST structures.; &lsquo;ast-equal-p&rsquo;,
 &lsquo;ast-cost&rsquo;, &lsquo;ast-can-recurse&rsquo;, and &lsquo;ast-on-recurse&rsquo;.
 </p></dd></dl>
-<a name="Method-ast_002ddiff-_0028_0028s1-string_0029-_0028s2-string_0029_0029"></a><dl>
-<dt><a name="index-ast_002ddiff-1"></a>Method: <strong>ast-diff</strong> <em>(s1 string) (s2 string)</em></dt>
+<a name="Method-ast_002ddiff-_0028_0028s1-string_0029-_0028s2-string_0029-_0026key-_0028strings-t_0029-_0026allow_002dother_002dkeys_0029"></a><dl>
+<dt><a name="index-ast_002ddiff-1"></a>Method: <strong>ast-diff</strong> <em>(s1 string) (s2 string) &amp;key (strings t) &amp;allow-other-keys</em></dt>
 <dd><p>special diff method for strings
 </p></dd></dl>
 <a name="Function-ast_002ddiff_002delide_002dsame"></a><dl>
@@ -104,7 +104,7 @@ root of the edit script (and implicitly also the program AST).
 <dd><p>Possibly AST on recursion.
 </p></dd></dl>
 <a name="Generic_002dFunction-ast_002dpatch"></a><dl>
-<dt><a name="index-ast_002dpatch"></a>Generic Function: <strong>ast-patch</strong> <em>original diff &amp;rest keys &amp;key delete? &amp;allow-other-keys</em></dt>
+<dt><a name="index-ast_002dpatch"></a>Generic Function: <strong>ast-patch</strong> <em>original diff &amp;rest keys &amp;key delete? meld? &amp;allow-other-keys</em></dt>
 <dd><p>Create an edited AST by applying <code>diff</code> to <code>original</code>.
 </p>
 <p>A diff is a sequence of actions as returned by &lsquo;ast-diff&rsquo; including:
@@ -138,7 +138,7 @@ three things: a list to be appended to the final merged diff,
 a tail of diff-a, and a tail of diff-b.
 </p></dd></dl>
 <a name="Function-merge3"></a><dl>
-<dt><a name="index-merge3"></a>Function: <strong>merge3</strong> <em>original branch-a branch-b</em></dt>
+<dt><a name="index-merge3"></a>Function: <strong>merge3</strong> <em>original branch-a branch-b &amp;rest args &amp;key &amp;allow-other-keys</em></dt>
 <dd><p>Find a version of that is a plausible combination of the changes from
 <code>original</code> <code>-&gt;</code> <code>branch-a</code> and <code>original</code> <code>-&gt;</code> <code>branch-b</code>.  Return the edit sequence
 from <code>original</code> to this merged version.   Also return a second value that

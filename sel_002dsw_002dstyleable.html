@@ -387,8 +387,8 @@ returns two values: the extracted feature vector and its metadata.
 Returns two values: a vector of feature vectors and a vector of metadata (used
 by feature merge functions).
 </p></dd></dl>
-<a name="Method-extract_002dfeatures-_0028_0028project-style_002dproject_0029-_0026key-_0028features-_002afeature_002dextractors_002a_0029-_0028files-nil_0029_0029"></a><dl>
-<dt><a name="index-extract_002dfeatures-1"></a>Method: <strong>extract-features</strong> <em>(project style-project) &amp;key (features *feature-extractors*) (files nil)</em></dt>
+<a name="Method-extract_002dfeatures-_0028_0028project-style_002dproject_0029-_0026key-_0028features-_002afeature_002dextractors_002a_0029-_0028files-_0028all_002dfiles-project_0029_0029_0029"></a><dl>
+<dt><a name="index-extract_002dfeatures-1"></a>Method: <strong>extract-features</strong> <em>(project style-project) &amp;key (features *feature-extractors*) (files (all-files project))</em></dt>
 <dd><p>For a <code>project</code> object, extract a set of <code>features</code> for each software object in
 the project and merge the results. Return two values: a vector of feature vectors
 and a vector of metadata (used by feature merge functions).
@@ -530,7 +530,7 @@ the result
 </li></ul>
 </dd></dl>
 <a name="Function-update_002dproject_002dfeatures"></a><dl>
-<dt><a name="index-update_002dproject_002dfeatures"></a>Function: <strong>update-project-features</strong> <em>project &amp;key features</em></dt>
+<dt><a name="index-update_002dproject_002dfeatures"></a>Function: <strong>update-project-features</strong> <em>project &amp;key features files</em></dt>
 <dd><p>Update feature values for <code>features</code> in <code>project</code> by re-merging feature-vectors
 and metadata for all software objects in the project.
 </p><ul>
@@ -538,6 +538,7 @@ and metadata for all software objects in the project.
 </li><li> <code>features</code> a list of style-features whose values are to be re-computed.
 </li></ul>
 <p>May be a subset of the features tracked in project.
+* <code>files</code> a list of files on which to extract features (default: &lsquo;all-files&rsquo;)
 </p></dd></dl>
 
 <hr>

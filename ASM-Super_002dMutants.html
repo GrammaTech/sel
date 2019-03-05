@@ -284,6 +284,40 @@ struct for both).
   resulting in all variants to come back as +worst-c-fitness+.
 
 </li></ul>
+<a name="Installing-PAPI-on-Ubuntu"></a>
+<h4 class="subsection">3.8.9 Installing PAPI on Ubuntu</h4>
+<p>Fitness evaluation requires the PAPI component and the Linux Perf
+functionality. Building the fitness evaluation program (on the fly
+during fitness evaluation) requires a C program to compile and link
+to PAPI. This also requires a .h file to compile.
+</p>
+<p>To install papi:
+</p>
+<p>sudo apt-get install papi-tools
+</p>
+<p>To install perf:
+</p>
+<div class="example">
+<pre class="example">    sudo apt-get install linux-tools-common linux-tools-generic linux-tools-`uname -r`
+</pre></div>
+
+<p>To get necessary include (.h) file for compiling C harness with PAPI
+(needed to perform fitness evaluation):
+</p>
+<p>sudo apt-get install libpapi-dev
+</p>
+<p>Then you should be able to enter
+</p>
+<p>papi_avail
+</p>
+<p>and see a list of available PAPI events.
+<code>asm-super-mutant</code> requires the use of the PAPI_TOT_INS event (total number
+of instructions executed).
+After installation, the PAPI library should be found in one of these
+locations:
+    /usr/lib/x86_64-linux-gnu/libpapi.so
+    /usr/lib/libpapi.so.5.6.1
+</p>
 
 
 <hr>

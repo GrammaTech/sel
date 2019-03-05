@@ -66,6 +66,12 @@ Next: <a href="sel_002dcp_002dtest_002dsuite.html#sel_002dcp_002dtest_002dsuite"
 <hr>
 <a name="sel_002dcp_002dserapi_002dio-1"></a>
 <h3 class="section">C.60 sel-cp-serapi-io</h3>
+<a name="Condition-serapi_002derror"></a><dl>
+<dt><a name="index-serapi_002derror"></a>Condition: <strong>serapi-error</strong></dt>
+<dd><p>Class precedence list: <code>serapi-error, error, serious-condition, condition, t</code>
+</p>
+<p>Condition raised if errors are detected in the SerAPI process.
+</p></dd></dl>
 <a name="Condition-serapi_002dtimeout_002derror"></a><dl>
 <dt><a name="index-serapi_002dtimeout_002derror"></a>Condition: <strong>serapi-timeout-error</strong></dt>
 <dd><p>Class precedence list: <code>serapi-timeout-error, error, serious-condition, condition, t</code>
@@ -88,37 +94,23 @@ Next: <a href="sel_002dcp_002dtest_002dsuite.html#sel_002dcp_002dtest_002dsuite"
 <dt><a name="index-_002asertop_002dpath_002a"></a>Variable: <strong>*sertop-path*</strong></dt>
 <dd><p>Path to sertop program.
 </p></dd></dl>
-<a name="Macro-with_002dserapi"></a><dl>
-<dt><a name="index-with_002dserapi"></a>Macro: <strong>with-serapi</strong> <em>(&amp;optional process) &amp;body body</em></dt>
-<dd><p>Macro to create a serapi process bound to <code>serapi</code>.
-Uses default path and arguments for sertop (&lsquo;*sertop-path*&rsquo; and
-&lsquo;*sertop-args*&rsquo;).
+<a name="Function-add_002dcoq_002dlib"></a><dl>
+<dt><a name="index-add_002dcoq_002dlib"></a>Function: <strong>add-coq-lib</strong> <em>path &amp;key lib-name has-ml qtag</em></dt>
+<dd><p>Add directory <code>path</code> to the Coq and, optionally, <code>ml</code> load paths in SerAPI.
+Return the SerAPI response.
+* <code>lib-name</code> an optional prefix to use when importing from the directory. <code>e</code>.g.,
+for <code>lib-name</code> Foo, file PATH/Bar.vo could be imported with
+&quot;Require Import Foo.Bar.&quot;).
+* <code>has-ml</code> the string &quot;true&quot; or &quot;false&quot;, indicating whether <code>path</code> should or
+should not be added to the <code>ml</code> load path in addition to the Coq load path. For
+convenience, the default is &quot;true&quot;.
+* <code>qtag</code> optionally, a tag to use for the SerAPI command.
 </p></dd></dl>
 <a name="Function-add_002dcoq_002dstring"></a><dl>
 <dt><a name="index-add_002dcoq_002dstring"></a>Function: <strong>add-coq-string</strong> <em>coq-string &amp;key qtag</em></dt>
 <dd><p>Submit <code>coq-string</code> as a new statement to add to the Coq document.
 Return a list of the AST-IDs created as a result. Optionally, provide a <code>qtag</code> for
 the submission.
-</p></dd></dl>
-<a name="Function-added_002did"></a><dl>
-<dt><a name="index-added_002did"></a>Function: <strong>added-id</strong> <em>sexpr</em></dt>
-<dd><p>For an Added response <code>sexpr</code>, a response from SerAPI, return the AST <code>id</code> added.
-Return <code>nil</code> if <code>sexpr</code> is not an Added response.
-</p></dd></dl>
-<a name="Function-answer_002dast"></a><dl>
-<dt><a name="index-answer_002dast"></a>Function: <strong>answer-ast</strong> <em>sexpr</em></dt>
-<dd><p>For an ObjList response <code>sexpr</code>, a response from SerAPI, return the CoqAst list.
-Return <code>nil</code> if <code>sexpr</code> is not an ObjList or does not contain a CoqAst.
-</p></dd></dl>
-<a name="Function-answer_002dcontent"></a><dl>
-<dt><a name="index-answer_002dcontent"></a>Function: <strong>answer-content</strong> <em>sexpr</em></dt>
-<dd><p>For an Answer response from SerAPI, <code>sexpr</code>, return the content.
-Return <code>nil</code> if <code>sexpr</code> is not an Answer response.
-</p></dd></dl>
-<a name="Function-answer_002dstring"></a><dl>
-<dt><a name="index-answer_002dstring"></a>Function: <strong>answer-string</strong> <em>sexpr</em></dt>
-<dd><p>For an ObjList in <code>sexpr</code>, a response from SerAPI, return the CoqString string.
-Return <code>nil</code> if <code>sexpr</code> is not an ObjList or does not contain a CoqString.
 </p></dd></dl>
 <a name="Function-cancel_002dcoq_002dasts"></a><dl>
 <dt><a name="index-cancel_002dcoq_002dasts"></a>Function: <strong>cancel-coq-asts</strong> <em>ast-ids &amp;key qtag</em></dt>
@@ -127,20 +119,56 @@ Optionally, use <code>qtag</code> to tag the query. Canceling means that the AST
 longer be defined and other definitions added in the interim will also be
 removed.
 </p></dd></dl>
-<a name="Function-feedback_002dcontents"></a><dl>
-<dt><a name="index-feedback_002dcontents"></a>Function: <strong>feedback-contents</strong> <em>sexpr</em></dt>
-<dd><p>For a Feedback response from SerAPI, <code>sexpr</code>, return the contents.
-Return <code>nil</code> if <code>sexpr</code> is not a Feedback response.
+<a name="Generic_002dFunction-check_002dcoq_002dtype"></a><dl>
+<dt><a name="index-check_002dcoq_002dtype"></a>Generic Function: <strong>check-coq-type</strong> <em>coq-expr &amp;key qtag</em></dt>
+<dd><p>Look up and return the type of a Coq expression <code>coq-expr</code>.
+Optionally use <code>qtag</code> to tag the query.
 </p></dd></dl>
-<a name="Function-feedback_002did"></a><dl>
-<dt><a name="index-feedback_002did"></a>Function: <strong>feedback-id</strong> <em>sexpr</em></dt>
-<dd><p>For a Feedback response from SerAPI, <code>sexpr</code>, return the id.
-Return <code>nil</code> if <code>sexpr</code> is not a Feedback response.
+<a name="Method-check_002dcoq_002dtype-_0028coq_002dexpr-_0026key-_0028qtag-_0028gensym-q_0029_0029_0029"></a><dl>
+<dt><a name="index-check_002dcoq_002dtype-1"></a>Method: <strong>check-coq-type</strong> <em>coq-expr &amp;key (qtag (gensym q))</em></dt>
+<dd><p>Look up and return the type of a <code>coq-expr</code> using Coq&rsquo;s &lsquo;Check&rsquo;.
+<code>coq-expr</code> will be coerced to a string via the &lsquo;format&rsquo; ~a directive.
 </p></dd></dl>
-<a name="Function-feedback_002droute"></a><dl>
-<dt><a name="index-feedback_002droute"></a>Function: <strong>feedback-route</strong> <em>sexpr</em></dt>
-<dd><p>For a Feedback response from SerAPI, <code>sexpr</code>, return the route
-Return <code>nil</code> if <code>sexpr</code> is not a Feedback response.
+<a name="Function-coq_002dassumption_002dast_002dp"></a><dl>
+<dt><a name="index-coq_002dassumption_002dast_002dp"></a>Function: <strong>coq-assumption-ast-p</strong> <em>sexpr</em></dt>
+<dd><p>Return name of Parameter, Variable, etc. if <code>sexpr</code> is tagged VernacAssumption.
+Otherwise return <code>nil</code>.
+</p></dd></dl>
+<a name="Function-coq_002ddefinition_002dast_002dp"></a><dl>
+<dt><a name="index-coq_002ddefinition_002dast_002dp"></a>Function: <strong>coq-definition-ast-p</strong> <em>sexpr</em></dt>
+<dd><p>Return definition name if <code>sexpr</code> is tagged as a definition, <code>nil</code> otherwise.
+Definition tags include VernacDefinition, VernacInductive, VernacFixpoint,
+VernacCoFixpoint.
+</p></dd></dl>
+<a name="Function-coq_002dfunction_002ddefinition_002dp"></a><dl>
+<dt><a name="index-coq_002dfunction_002ddefinition_002dp"></a>Function: <strong>coq-function-definition-p</strong> <em>sexpr &amp;optional function-name</em></dt>
+<dd><p>Return <code>t</code> if <code>sexpr</code> is a Coq VernacDefinition expression.
+If <code>function-name</code> is specified, only return <code>t</code> if <code>sexpr</code> defines a function
+named <code>function-name</code>.
+</p></dd></dl>
+<a name="Function-coq_002dimport_002dast_002dp"></a><dl>
+<dt><a name="index-coq_002dimport_002dast_002dp"></a>Function: <strong>coq-import-ast-p</strong> <em>sexpr</em></dt>
+<dd><p>Return <code>t</code> if <code>sexpr</code> is tagged as VernacImport or VernacRequire, <code>nil</code> otherwise.
+</p></dd></dl>
+<a name="Function-coq_002dmessage_002dcontents"></a><dl>
+<dt><a name="index-coq_002dmessage_002dcontents"></a>Function: <strong>coq-message-contents</strong> <em>response</em></dt>
+<dd><p>For a SerAPI response, return the contents of any &lsquo;Message&rsquo; structures.
+This is useful for fetching results of Coq vernacular queries.
+</p></dd></dl>
+<a name="Function-coq_002dmessage_002dlevels"></a><dl>
+<dt><a name="index-coq_002dmessage_002dlevels"></a>Function: <strong>coq-message-levels</strong> <em>response</em></dt>
+<dd><p>For a SerAPI response, return the level of the first &lsquo;Message&rsquo; structure.
+This is useful for verifying success of a Coq vernacular query.
+</p></dd></dl>
+<a name="Function-coq_002dmodule_002dast_002dp"></a><dl>
+<dt><a name="index-coq_002dmodule_002dast_002dp"></a>Function: <strong>coq-module-ast-p</strong> <em>sexpr</em></dt>
+<dd><p>Return module name if <code>sexpr</code> is tagged as defining a module, <code>nil</code> otherwise.
+Module tags include VernacDefineModule, VernacDeclareModule,
+VernacDeclareModuleType.
+</p></dd></dl>
+<a name="Function-coq_002dsection_002dast_002dp"></a><dl>
+<dt><a name="index-coq_002dsection_002dast_002dp"></a>Function: <strong>coq-section-ast-p</strong> <em>sexpr</em></dt>
+<dd><p>Return section name if <code>sexpr</code> is tagged as VernacBeginSection, <code>nil</code> otherwise.
 </p></dd></dl>
 <a name="Function-insert_002dreset_002dpoint"></a><dl>
 <dt><a name="index-insert_002dreset_002dpoint"></a>Function: <strong>insert-reset-point</strong></dt>
@@ -163,15 +191,6 @@ command or an invalid Coq command, <code>nil</code> otherwise.
 Errors may result from either an improperly formed SerAPI command or an invalid
 Coq command.
 </p></dd></dl>
-<a name="Function-is_002dimport_002dast"></a><dl>
-<dt><a name="index-is_002dimport_002dast"></a>Function: <strong>is-import-ast</strong> <em>sexpr</em></dt>
-<dd><p>Return <code>t</code> if <code>sexpr</code> is tagged as as VernacImport or VernacRequire, <code>nil</code>
-otherwise.
-</p></dd></dl>
-<a name="Function-is_002dloc_002dinfo"></a><dl>
-<dt><a name="index-is_002dloc_002dinfo"></a>Function: <strong>is-loc-info</strong> <em>sexpr</em></dt>
-<dd><p>Return <code>t</code> if <code>sexpr</code> is a list of Coq location info, <code>nil</code> otherwise.
-</p></dd></dl>
 <a name="Generic_002dFunction-is_002dterminating"></a><dl>
 <dt><a name="index-is_002dterminating"></a>Generic Function: <strong>is-terminating</strong> <em>output</em></dt>
 <dd><p>Check if <code>output</code> is indicates the end of a SerAPI response.
@@ -188,17 +207,15 @@ for failed responses it will be tagged as an error.
 For successful responses, the string will contain the word &quot;Completed&quot;, and
 for failed responses it will be an error string.
 </p></dd></dl>
-<a name="Function-lib_002dadd"></a><dl>
-<dt><a name="index-lib_002dadd"></a>Function: <strong>lib-add</strong> <em>path &amp;key lib-name has-ml qtag</em></dt>
-<dd><p>Add directory <code>path</code> to the Coq and, optionally, <code>ml</code> load paths in SerAPI.
-Return the SerAPI response.
-* <code>lib-name</code> an optional prefix to use when importing from the directory. <code>e</code>.g.,
-for <code>lib-name</code> Foo, file PATH/Bar.vo could be imported with
-&quot;Require Import Foo.Bar.&quot;).
-* <code>has-ml</code> the string &quot;true&quot; or &quot;false&quot;, indicating whether <code>path</code> should or
-should not be added to the <code>ml</code> load path in addition to the Coq load path. For
-convenience, the default is &quot;true&quot;.
-* <code>qtag</code> optionally, a tag to use for the SerAPI command.
+<a name="Macro-with_002dserapi"></a><dl>
+<dt><a name="index-with_002dserapi"></a>Macro: <strong>with-serapi</strong> <em>(&amp;optional process) &amp;body body</em></dt>
+<dd><p>Macro to create a serapi process bound to <code>serapi</code>.
+Uses default path and arguments for sertop (&lsquo;*sertop-path*&rsquo; and
+&lsquo;*sertop-args*&rsquo;).
+</p></dd></dl>
+<a name="Function-is_002dloc_002dinfo"></a><dl>
+<dt><a name="index-is_002dloc_002dinfo"></a>Function: <strong>is-loc-info</strong> <em>sexpr</em></dt>
+<dd><p>Return <code>t</code> if <code>sexpr</code> is a list of Coq location info, <code>nil</code> otherwise.
 </p></dd></dl>
 <a name="Function-load_002dcoq_002dfile"></a><dl>
 <dt><a name="index-load_002dcoq_002dfile"></a>Function: <strong>load-coq-file</strong> <em>file-name &amp;key qtag</em></dt>
@@ -241,14 +258,68 @@ If <code>pp-string</code> is not a CoqAst expression, specify the <code>input-fo
 coq_object type in the SerAPI file serapi/serapi_protocol.mli for a complete
 list. Optionally, provide a <code>qtag</code> for the lookup query.
 </p></dd></dl>
+<a name="Function-make_002dcoq_002dapplication"></a><dl>
+<dt><a name="index-make_002dcoq_002dapplication"></a>Function: <strong>make-coq-application</strong> <em>fun &amp;rest params</em></dt>
+<dd><p>Wrap Coq function <code>fun</code> and parameters <code>params</code> in a CApp tag.
+Assumes that <code>fun</code> and all <code>params</code> are appropriately wrapped (e.g., with
+&lsquo;make-coq-var-reference&rsquo; or similar).
+</p></dd></dl>
+<a name="Function-make_002dcoq_002dcase_002dpattern"></a><dl>
+<dt><a name="index-make_002dcoq_002dcase_002dpattern"></a>Function: <strong>make-coq-case-pattern</strong> <em>pattern-type &amp;rest pattern-args</em></dt>
+<dd><p>Create cases for a Coq match statement.
+</p></dd></dl>
+<a name="Function-make_002dcoq_002ddefinition"></a><dl>
+<dt><a name="index-make_002dcoq_002ddefinition"></a>Function: <strong>make-coq-definition</strong> <em>name params return-type body</em></dt>
+<dd><p>Create a Coq function definition.
+<code>name</code> <code>-</code> the name of the function.
+<code>params</code> <code>-</code> a list of pairs indicating the name and type of each input parameter to
+the function.
+<code>return-type</code> <code>-</code> the function&rsquo;s return type.
+<code>body</code> <code>-</code> the function body.
+</p></dd></dl>
+<a name="Function-make_002dcoq_002dident"></a><dl>
+<dt><a name="index-make_002dcoq_002dident"></a>Function: <strong>make-coq-ident</strong> <em>id</em></dt>
+<dd><p>Wrap <code>id</code> in Ident and Id tags.
+</p></dd></dl>
+<a name="Function-make_002dcoq_002dif"></a><dl>
+<dt><a name="index-make_002dcoq_002dif"></a>Function: <strong>make-coq-if</strong> <em>test then else</em></dt>
+<dd><p>Create a Coq If expression: if <code>test</code> then <code>then</code> else <code>else</code>.
+</p></dd></dl>
+<a name="Function-make_002dcoq_002dinteger"></a><dl>
+<dt><a name="index-make_002dcoq_002dinteger"></a>Function: <strong>make-coq-integer</strong> <em>x</em></dt>
+<dd><p>Wrap integer <code>x</code> in CPrim and Numeral tags.
+</p></dd></dl>
+<a name="Function-make_002dcoq_002dlambda"></a><dl>
+<dt><a name="index-make_002dcoq_002dlambda"></a>Function: <strong>make-coq-lambda</strong> <em>params body</em></dt>
+<dd><p>Create a Coq lambda expression from <code>params</code> and <code>body</code>.
+</p></dd></dl>
+<a name="Function-make_002dcoq_002dlocal_002dbinder_002dexprs"></a><dl>
+<dt><a name="index-make_002dcoq_002dlocal_002dbinder_002dexprs"></a>Function: <strong>make-coq-local-binder-exprs</strong> <em>type params &amp;optional param-types</em></dt>
+<dd><p>Create a list of local binder expressions.
+If present, <code>param-types</code> is the same length as <code>params</code> and indicates the type of
+each param. If absent, a CHole tag is used to indicate that the type is
+unspecified.
+</p></dd></dl>
+<a name="Function-make_002dcoq_002dmatch"></a><dl>
+<dt><a name="index-make_002dcoq_002dmatch"></a>Function: <strong>make-coq-match</strong> <em>style test &amp;rest branches</em></dt>
+<dd><p>Create a Coq match expression.
+<code>style</code> indicates the style of the match (e.g., <code>#</code>!&rsquo;RegularStyle).
+<code>test</code> is the expression being matched against.
+<code>branches</code> are the match cases and will generally be constructed with
+&lsquo;make-coq-case-pattern&rsquo;.
+</p></dd></dl>
+<a name="Function-make_002dcoq_002dname"></a><dl>
+<dt><a name="index-make_002dcoq_002dname"></a>Function: <strong>make-coq-name</strong> <em>id</em></dt>
+<dd><p>Wrap <code>id</code> in Name and Id tags.
+</p></dd></dl>
+<a name="Function-make_002dcoq_002dvar_002dreference"></a><dl>
+<dt><a name="index-make_002dcoq_002dvar_002dreference"></a>Function: <strong>make-coq-var-reference</strong> <em>id</em></dt>
+<dd><p>Wrap Coq variable <code>id</code> in CRef and either Ident or Qualid tags.
+Use Ident for unqualified names and Qualid for qualified names.
+</p></dd></dl>
 <a name="Function-make_002dserapi"></a><dl>
 <dt><a name="index-make_002dserapi"></a>Function: <strong>make-serapi</strong> <em>&amp;optional program args</em></dt>
 <dd><p>Start up SerAPI and return a <code>process</code> object to interact with.
-</p></dd></dl>
-<a name="Function-message_002dcontent"></a><dl>
-<dt><a name="index-message_002dcontent"></a>Function: <strong>message-content</strong> <em>message</em></dt>
-<dd><p>For a Message response from SerAPI, <code>message</code>, return the content.
-Return <code>nil</code> if <code>message</code> is not a Message response.
 </p></dd></dl>
 <a name="Function-reset_002dserapi_002dprocess"></a><dl>
 <dt><a name="index-reset_002dserapi_002dprocess"></a>Function: <strong>reset-serapi-process</strong></dt>
@@ -258,6 +329,13 @@ See also &lsquo;insert-reset-point&rsquo;.
 <a name="Function-sanitize_002dprocess_002dstring"></a><dl>
 <dt><a name="index-sanitize_002dprocess_002dstring"></a>Function: <strong>sanitize-process-string</strong> <em>string</em></dt>
 <dd><p>Ensure that special characters are properly escaped in <code>string</code>.
+</p></dd></dl>
+<a name="Function-search_002dcoq_002dtype"></a><dl>
+<dt><a name="index-search_002dcoq_002dtype"></a>Function: <strong>search-coq-type</strong> <em>coq-type &amp;key module qtag</em></dt>
+<dd><p>Return a list of tokenized types of values whose &quot;final&quot; type is <code>coq-type</code>.
+Results include functions parameterized by values of types other than <code>coq-type</code>
+as long as the final result returned by the function is of type <code>coq-type</code>.
+<code>e</code>.g., if <code>coq-type</code> is bool, functions of type nat-&gt;bool will be included.
 </p></dd></dl>
 <a name="Function-set_002dserapi_002dpaths"></a><dl>
 <dt><a name="index-set_002dserapi_002dpaths"></a>Function: <strong>set-serapi-paths</strong></dt>
@@ -271,6 +349,12 @@ to &lsquo;*sertop-args*&rsquo;.
 <dd><p>Remove extra escape characters from <code>str</code> prior to writing to screen or file.
 Control characters for whitespace (\n, \t, \b, \r) and double quotes (&quot;)
 are preceded by an extra pair of backslashes. See also &lsquo;escape-string&rsquo;.
+</p></dd></dl>
+<a name="Function-wrap_002dcoq_002dconstr_002dexpr"></a><dl>
+<dt><a name="index-wrap_002dcoq_002dconstr_002dexpr"></a>Function: <strong>wrap-coq-constr-expr</strong> <em>expr</em></dt>
+<dd><p>Create a Coq ConstrExpr by wrapping <code>expr</code> with v and loc tags.
+Generally, this will be used by the &lsquo;make-coq-*&rsquo; functions and won&rsquo;t need to be
+invoked directly.
 </p></dd></dl>
 
 <hr>

@@ -121,13 +121,19 @@ RESTful interface utilities.
 <p>Starting the server:
 </p>
 <div class="example">
-<pre class="example">    (setf *handler* (clack:clackup (snooze:make-clack-app) :port 9003))
+<pre class="example">    (start-server)
 </pre></div>
 
 <p>Stopping the server:
 </p>
 <div class="example">
-<pre class="example">    (clack:stop *handler*)
+<pre class="example">    (stop-server)
+</pre></div>
+
+<p>Restart the server:
+</p>
+<div class="example">
+<pre class="example">    (start-server)            ;; will stop, if running, then start
 </pre></div>
 
 <a name="Resources-and-Operations"></a>
@@ -171,13 +177,6 @@ provides a way to name and manage lists of Software objects.
 </p>
 
 </dd>
-<dt><em>Directories</em></dt>
-<dd><p>Lists (dictionaries) of sel-supported options software types,
-    with meta-data for each type to support create/update mutation
-    types.
-</p>
-
-</dd>
 <dt><em>Client sessions</em></dt>
 <dd><p>establish ownership of a jobs, software objects, populations, etc.
 </p>
@@ -190,15 +189,9 @@ provides a way to name and manage lists of Software objects.
 </p>
 
 </dd>
-<dt><em>Scions</em></dt>
-<dd><p>Patterns defined by Bug-Injector to describe software bugs
-    (this is a work still in progress)
-</p>
-
-</dd>
 <dt><em>Traces</em></dt>
 <dd><p>Models and manages the data collected from running test suites against
-    instrumented Software objects. (work in progress)
+    instrumented Software objects.
 </p>
 
 </dd>
@@ -213,8 +206,8 @@ provides a way to name and manage lists of Software objects.
 </dd>
 </dl>
 
-<a name="Operations-on-resources"></a>
-<h4 class="subsubsection">2.6.3.2 Operations on resources</h4>
+<a name="Operations-on-Resources"></a>
+<h4 class="subsubsection">2.6.3.2 Operations on Resources</h4>
 
 <p>Note: all operations (other than session create) require a client-ID
 parameter. Although only specified in the first ones below, all others
@@ -368,17 +361,6 @@ require it as well.
 </dd>
 </dl>
 
-<p>Directories:
-</p>
-
-<dl compact="compact">
-<dt><em><code>get</code></em></dt>
-<dd><p><code>&lt;service-base&gt;/dir/software</code> Returns list of types
-    of software which may be intantiated.  (work in progress)
-</p>
-</dd>
-</dl>
-
 <p>Test Suites:
 </p>
 
@@ -432,6 +414,19 @@ require it as well.
     Traces the specified software object, using the specified tests.
     Returns the oid specified (does not create a new, distinct software
     object).
+</p>
+</dd>
+</dl>
+
+<p>Write Software:
+</p>
+
+<dl compact="compact">
+<dt><em><code>post</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/writesoft?sid=&lt;software-oid&gt;</code>
+    Writes the specified software object to a file <code>(to-file)</code>.
+    Returns success or error code.
+    Body contains path specification.
 </p>
 </dd>
 </dl>
