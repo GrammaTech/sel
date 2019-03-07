@@ -112,6 +112,7 @@
            :untag-loc-info
            :lookup-source-strings
            :coq-type-checks
+           :load-coq-object
            :synthesize-typed-coq-expression))
 (in-package :software-evolution-library/software/coq)
 (in-readtable :serapi-readtable)
@@ -560,40 +561,45 @@ Assumes FUNCTION is defined in a top-level AST in OBJ."
           (setf env (unqualify-term env module))
           (finally (return env)))))
 
-(defun build-environment (coq &key num-asts modules whitelist-defs
-                                imported-modules)
+(defun build-environment (coq modules &key num-asts whitelist-defs
+                                        blacklist-defs imported-modules)
   (reset-and-load-imports coq)
   (insert-reset-point)
   (load-coq-object coq :include-imports nil
                    :num-asts (or num-asts (length (genome coq))))
   (prog1
-      ;; if no module list is specified, search anyway with :module NIL
-      ;; (i.e., in all loaded libraries)
-      (let ((types (append (search-coq-type "Type")
-                           (search-coq-type "Set"))))
-        (iter (for module in (or modules (list nil)))
-              (let ((vals (mappend [{unqualify-coq-modules _ imported-modules}
-                                    {search-coq-type _ :module module}
-                                    #'first]
-                                   types)))
-                (mapc (lambda (type)
-                        (when (or (not whitelist-defs)
-                                  (some {ends-with-subseq _ (first type)
-                                                          :test #'equal}
-                                        whitelist-defs))
-                          (collecting type into mod-types)))
-                      vals))
-              (finally
-               (return
-                 (mapcar (lambda (ty)
-                           (if (listp ty)
-                               (cons (car ty)
-                                     (cons (make-coq-var-reference (car ty))
-                                           (cdr ty)))
-                               ty))
-                         mod-types)))))
-    ;; reset after loading coq software object
-    (reset-serapi-process)))
+      ;; Do nothing if no modules are specified (it's infeasible to collect
+      ;; all terms in the Coq environment)
+      (let* ((terms
+              (when modules
+                (iter (for module in modules)
+                      (appending (search-coq-type "_" :module module)))))
+             ;; remove module qualifications for imported modules
+             (unqualified (unqualify-coq-modules terms imported-modules)))
+        ;; Keep only types that are on the whitelist and not on the blacklist
+        (remove-if-not
+         #'identity
+         (mapcar (lambda (uq-type)
+                   (when (and
+                          ;; In whitelist (or no whitelist present)
+                          (or (not whitelist-defs)
+                              (some {ends-with-subseq _ (first uq-type)
+                                                      :test #'equal}
+                                    whitelist-defs))
+                          ;; Not in blacklist (or no blacklist present)
+                          (or (not blacklist-defs)
+                              (not (some {ends-with-subseq _ (first uq-type)
+                                                           :test #'equal}
+                                         blacklist-defs)))
+                          (listp uq-type))
+                     ;; For accepted types, return a list:
+                     ;; (type-name coq-var-reference :COLON type)
+                     (cons (car uq-type)
+                           (cons (make-coq-var-reference (car uq-type))
+                                 (cdr uq-type)))))
+                 unqualified)))
+      ;; reset after loading coq software object
+      (reset-serapi-process)))
 
 ;; NOTE: this function generates a list of ASTs which may be converted to
 ;; strings using `(lookup-coq-string expr :input-format #!'CoqExpr)'.
@@ -662,7 +668,7 @@ pairs of expressions from RESULT-EXPRS."
                                      (make-coq-if test-expr
                                                   then-expr
                                                   else-expr)))))))))
-         (search-type (tokenize-coq-type type)))
+         (search-type (if (listp type) type (tokenize-coq-type type))))
     (if (zerop depth)
         (iter (for (name ast colon . scope-type) in scopes)
               (declare (ignorable colon))
