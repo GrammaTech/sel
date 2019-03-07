@@ -44,6 +44,7 @@
            :update-asts-if-necessary
            :update-caches-if-necessary
            :bad-asts
+           :stmt-range
            ;; :good-stmts
            :good-mutation-targets
            :bad-mutation-targets
@@ -211,6 +212,12 @@ made traceable by wrapping with curly braces, return that."))
 (defgeneric force-include (software include)
   (:documentation "Add an #include directive for an INCLUDE to SOFTWARE
 even if such an INCLUDE already exists in SOFTWARE."))
+
+(defgeneric stmt-range (software function)
+  (:documentation
+   "The indices of the first and last statements in a function.
+Return as a list of (first-index last-index). Indices are positions in
+the list returned by (asts software)."  ) )
 
 
 ;;; Core parseable methods

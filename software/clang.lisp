@@ -44,7 +44,6 @@
            :function-body
            :function-body-p
            :function-decl-p
-           :stmt-range
            :adjust-stmt-range
            :random-point-in-function
            :select-intraprocedural-pair
@@ -2451,13 +2450,6 @@ Returns nil if no full-stmt is found.
 "
   (cond ((ast-full-stmt ast) ast)
         (ast (get-parent-full-stmt clang (get-parent-ast clang ast)))))
-
-(defgeneric stmt-range (software function)
-  (:documentation
-   "The indices of the first and last statements in a function.
-
-Return as a list of (first-index last-index). Indices are positions in
-the list returned by (asts software)."  ) )
 
 (defmethod stmt-range ((software clang) (function clang-ast))
   "DOCFIXME
