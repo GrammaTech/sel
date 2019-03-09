@@ -148,9 +148,9 @@
                   (if (every [{eql :same} #'car] diff) 0 1)
                   diff)))
 
-(define-command ast-merge (source1 source2 source3
+(define-command ast-merge (my-source old-source your-source
                                &spec +command-line-options+)
-  "Merge changes from source1->source2 and source1->source3."
+  "Merge changes from old-source->my-source and old-source->your-source."
   #.(format nil
             "~%Built from SEL ~a, and ~a ~a.~%"
             +software-evolution-library-version+
@@ -158,18 +158,19 @@
   (declare (ignorable quiet verbose raw no-color))
   (when help (show-help-for-ast-merge))
   (setf *note-out* (list *error-output*))
-  (unless (every #'resolve-file (list source1 source2 source3))
+  (unless (every #'resolve-file (list old-source my-source your-source))
     (exit-command ast-merge 2 (error "Missing source.")))
-  (setf out-dir (or out-dir (resolve-out-dir-from-source source1))
-        source1 (truenamize source1)
-	source2 (truenamize source2)
-	source3 (truenamize source3)
-        language (or language (guess-language-from source1 source2 source3)))
+  (setf out-dir (or out-dir (resolve-out-dir-from-source old-source))
+        old-source (truenamize old-source)
+	my-source (truenamize my-source)
+	your-source (truenamize your-source)
+        language (or language
+                     (guess-language-from old-source my-source your-source)))
 
   (note 3 "Parameters:~%~S~%"
-        `((source1 . ,source1)
-          (source2 . ,source2)
-          (source3 . ,source3)
+        `((old-source . ,old-source)
+          (my-source . ,my-source)
+          (your-source . ,your-source)
           (out-dir . ,out-dir)
           (*note-level* . ,*note-level*)))
 
@@ -184,8 +185,8 @@
 	     (mapcar
 	      { create-software-from
 	      _ language flags compiler compilation-database build-command}
-	      (list source1 source2 source3)))
-    (if (directory-p source1)
+	      (list old-source my-source your-source)))
+    (if (directory-p old-source)
 	(save-to new-merged out-dir "merge")
 	(to-file new-merged (make-pathname :directory out-dir
 					   :name "merge")))
