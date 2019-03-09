@@ -148,9 +148,9 @@
                   (if (every [{eql :same} #'car] diff) 0 1)
                   diff)))
 
-(define-command ast-merge (my-source old-source your-source
+(define-command ast-merge (my-file old-file your-file
                                &spec +command-line-options+)
-  "Merge changes from old-source->my-source and old-source->your-source."
+  "Merge changes from old-file->my-file and old-file->your-file."
   #.(format nil
             "~%Built from SEL ~a, and ~a ~a.~%"
             +software-evolution-library-version+
@@ -158,19 +158,18 @@
   (declare (ignorable quiet verbose raw no-color))
   (when help (show-help-for-ast-merge))
   (setf *note-out* (list *error-output*))
-  (unless (every #'resolve-file (list old-source my-source your-source))
+  (unless (every #'resolve-file (list old-file my-file your-file))
     (exit-command ast-merge 2 (error "Missing source.")))
-  (setf out-dir (or out-dir (resolve-out-dir-from-source old-source))
-        old-source (truenamize old-source)
-	my-source (truenamize my-source)
-	your-source (truenamize your-source)
-        language (or language
-                     (guess-language-from old-source my-source your-source)))
+  (setf out-dir (or out-dir (resolve-out-dir-from-source old-file))
+        old-file (truenamize old-file)
+	my-file (truenamize my-file)
+	your-file (truenamize your-file)
+        language (or language (guess-language-from old-file my-file your-file)))
 
   (note 3 "Parameters:~%~S~%"
-        `((old-source . ,old-source)
-          (my-source . ,my-source)
-          (your-source . ,your-source)
+        `((old-file . ,old-file)
+          (my-file . ,my-file)
+          (your-file . ,your-file)
           (out-dir . ,out-dir)
           (*note-level* . ,*note-level*)))
 
@@ -185,8 +184,8 @@
 	     (mapcar
 	      { create-software-from
 	      _ language flags compiler compilation-database build-command}
-	      (list old-source my-source your-source)))
-    (if (directory-p old-source)
+	      (list old-file my-file your-file)))
+    (if (directory-p old-file)
 	(save-to new-merged out-dir "merge")
 	(to-file new-merged (make-pathname :directory out-dir
 					   :name "merge")))
