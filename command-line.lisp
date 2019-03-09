@@ -276,6 +276,6 @@ inspecting the value of `*lisp-interaction*'."
     '((("build-command" #\b) :type string :optional t :initial-value "make"
        :documentation "shell command to build project directory")))
   (defparameter +clang-project-command-line-options+
-    '((("compilation-database" #\C) :type string :optional t
+    '((("compilation-database" #\D) :type string :optional t
        :action #'read-compilation-database
        :documentation "path to clang compilation database"))))
