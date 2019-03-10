@@ -19,12 +19,15 @@
   (:shadowing-import-from :uiop
                           :nest
                           :ensure-directory-pathname
+                          :absolute-pathname-p
                           :directory-exists-p
                           :run-program
 			  :resolve-symlinks
 			  :directory*)
   (:export :clang-project
-           :compilation-database))
+           :compilation-database
+           :compilation-db-entry-compiler
+           :compilation-db-entry-flags))
 (in-package :software-evolution-library/software/clang-project)
 (in-readtable :curry-compose-reader-macros)
 
@@ -122,6 +125,56 @@ information on the format of compilation databases."))
                     (ensure-directory-pathname)
                     (project-path clang-project))))))
 
+;;; TODO: The next two functions should be used instead of
+;;; `get-compiler' and `get-flags' respectively in
+;;; `collect-evolve-files' once we get rid of the temporary directory
+;;; business in that function.
+(defun compilation-db-entry-compiler (entry)
+  "Return the compiler in the compilation database ENTRY."
+  (or (first (split-sequence #\Space (aget :command entry)))
+      (first (aget :arguments entry))))
+
+(defun compilation-db-entry-flags (entry)
+  "Return the compiler flags in the compilation database ENTRY."
+  (flet ((flag-list-helper (entry)
+           "Get a massaged list of compiler flags from the ENTRY."
+           (nest
+            (mappend (lambda (arg) ; Split leading "-L".
+                       (split-sequence #\Space
+                         (replace-all arg "-L" "-L ")
+                         :remove-empty-subseqs t)))
+            (mappend (lambda (arg) ; Split leading "-I".
+                       (split-sequence #\Space
+                         (replace-all arg "-I" "-I ")
+                         :remove-empty-subseqs t)))
+            (or (mapcar (lambda (arg) ; Wrap quotes for the shell.
+                          (regex-replace
+                           "\"([^\"]*)\"" arg "'\"\\1\"'"))
+                        ;; Drop the first element of
+                        ;; arguments which is the compiler.
+                        (cdr (aget :arguments entry)))
+                (cdr (split-sequence
+                         #\Space (or (aget :command entry) "")
+                         :remove-empty-subseqs t))))))
+    (nest
+     ;; Remove the file being built from the flags.
+     (remove-if {equalp (aget :file entry)})
+     (iter (for f in (flag-list-helper entry))
+           (for p previous f)
+           (collect (if (or (string= p "-I") (string= p "-L"))
+                        ;; Ensure include/library paths
+                        ;; point to the correct location
+                        ;; and not a temporary build directory.
+                        (if (absolute-pathname-p f)
+                            f
+                            (merge-pathnames-as-directory
+                             (make-pathname :directory
+                                            (aget :directory entry))
+                             (make-pathname :directory
+                                            (list :relative f))))
+                        ;; Pass the flag thru.
+                        f))))))
+
 (defmethod collect-evolve-files ((clang-project clang-project))
   (mapcar (lambda (entry)
             (let ((file-path (-<>> (aget :directory entry)
@@ -132,9 +185,7 @@ information on the format of compilation databases."))
               (cons (pathname-relativize (project-dir clang-project) file-path)
                     (from-file
                      (make-instance (component-class clang-project)
-                       :compiler (or (first (split-sequence
-                                                #\Space (aget :command entry)))
-                                     (first (aget :arguments entry)))
+                       :compiler (compilation-db-entry-compiler entry)
                        :flags (compilation-db-flags clang-project entry))
                      file-path))))
           (remove-if [{ignored-evolve-path-p clang-project} {aget :file}]

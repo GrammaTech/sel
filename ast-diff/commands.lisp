@@ -36,9 +36,6 @@
         :named-readtables
         :curry-compose-reader-macros
         :iterate
-        ;; TODO: Drop next two when importing compilation-db functions.
-        :split-sequence
-        :cl-ppcre
         :software-evolution-library
         :software-evolution-library/utility
         :software-evolution-library/command-line
@@ -53,7 +50,7 @@
         :software-evolution-library/software/javascript
         :software-evolution-library/software/javascript-project
         :software-evolution-library/software/lisp)
-  (:import-from :uiop :writeln :truenamize :absolute-pathname-p :nest)
+  (:import-from :uiop :writeln :truenamize :nest)
   (:shadow :merge :ast-diff)
   (:export :ast-diff :ast-merge))
 (in-package :software-evolution-library/ast-diff/commands)
@@ -92,54 +89,6 @@
                :documentation "output diff as raw ASTs (default is as text)")
               (("no-color" #\C) :type boolean :optional t
                :documentation "inhibit color printing")))))
-
-;;; Next two taken from clang-project.lisp.  Should be exported there
-;;; once we are able to remove the `project-path' nonsense.
-(defun compilation-db-entry-compiler (entry)
-  "Return the compiler in the compilation database ENTRY."
-  (or (first (split-sequence #\Space (aget :command entry)))
-      (first (aget :arguments entry))))
-
-(defun compilation-db-entry-flags (entry)
-  "Return the compiler flags in the compilation database ENTRY."
-  (flet ((flag-list-helper (entry)
-           "Get a massaged list of compiler flags from the ENTRY."
-           (nest
-            (mappend (lambda (arg) ; Split leading "-L".
-                       (split-sequence #\Space
-                         (replace-all arg "-L" "-L ")
-                         :remove-empty-subseqs t)))
-            (mappend (lambda (arg) ; Split leading "-I".
-                       (split-sequence #\Space
-                         (replace-all arg "-I" "-I ")
-                         :remove-empty-subseqs t)))
-            (or (mapcar (lambda (arg) ; Wrap quotes for the shell.
-                          (regex-replace
-                           "\"([^\"]*)\"" arg "'\"\\1\"'"))
-                        ;; Drop the first element of
-                        ;; arguments which is the compiler.
-                        (cdr (aget :arguments entry)))
-                (cdr (split-sequence
-                         #\Space (or (aget :command entry) "")
-                         :remove-empty-subseqs t))))))
-    (nest
-     ;; Remove the file being built from the flags.
-     (remove-if {equalp (aget :file entry)})
-     (iter (for f in (flag-list-helper entry))
-           (for p previous f)
-           (collect (if (or (string= p "-I") (string= p "-L"))
-                        ;; Ensure include/library paths
-                        ;; point to the correct location
-                        ;; and not a temporary build directory.
-                        (if (absolute-pathname-p f)
-                            f
-                            (merge-pathnames-as-directory
-                             (make-pathname :directory
-                                            (aget :directory entry))
-                             (make-pathname :directory
-                                            (list :relative f))))
-                        ;; Pass the flag thru.
-                        f))))))
 
 (defun create-software-from
     (path language
