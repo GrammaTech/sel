@@ -155,7 +155,7 @@
       (pathname-directory-pathname source)))
 
 (defun resolve-store-path-from-out-dir-and-name
-    (out-dir name &optional description)
+    (out-dir name &optional description (type "store"))
   "Build a reasonable store path based on OUT-DIR and NAME.
 Optional DESCRIPTION is added to the path."
   (namestring
@@ -163,7 +163,7 @@ Optional DESCRIPTION is added to the path."
                   :name (if description
                             (concatenate 'string name "-" description)
                             name)
-                  :type "store")))
+                  :type type)))
 
 (defun resolve-test-script-from-test-script (test-script test-dir
 					     &aux result)
