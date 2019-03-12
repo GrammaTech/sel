@@ -42,6 +42,7 @@
   "Ensure `number-genome' is called on all ASM files.
 This adds :id fields to genome elements required by `homologous-crossover'."
   ;; Only run `number-genome' on asm objects with standard genomes.
+  (declare (ignore file))
   (when (and (proper-list-p (genome obj))
              (proper-list-p (first (genome obj))))
     (number-genome obj)))

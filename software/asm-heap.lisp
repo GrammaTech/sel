@@ -419,6 +419,56 @@ structs, and storing them in a vector on the LINE-HEAP"
   (with-open-file (out file :direction :output :if-exists :supersede)
     (genome-string asm out)))
 
+(defmethod phenome ((asm asm-heap) &key (bin (temp-file-name)))
+  "Runs the `linker' for ASM-HEAP, using the specified `flags' for ASM and returns
+multiple values holding in order: (1) the binary path BIN to which the
+executable was compiled, (2) the errno, or a numeric indication of success, of
+the linking process, (3) STDERR of the linking process, (4) STDOUT of the
+linking process, (5) the source file name used during linking."
+  #-ccl (declare (values t fixnum string string string))
+
+  ;; if intel (backward-compatibility) use phenome in ASM class
+  (when (eq (asm-syntax asm) ':intel)
+    (return-from phenome (call-next-method)))
+  
+  (with-temp-file-of (src "s") (genome-string asm)
+    (with-temp-file (obj "o")
+      ;; Assemble.
+      (multiple-value-bind (stdout stderr errno)
+          (shell "~a ~a -o ~a ~a"
+		 (if (eq (asm-syntax asm) ':intel)
+		     "nasm"
+		     "as")
+		 (if (eq (asm-syntax asm) ':intel)
+		     "-f elf64"
+		     "")
+		 obj
+		 src)
+	(declare (ignorable stdout stderr))
+        (restart-case
+            (unless (zerop errno)
+              (error (make-condition 'phenome :text stderr :obj asm :loc src)))
+          (retry-project-build ()
+            :report "Retry `phenome' assemble on OBJ."
+            (phenome obj :bin bin))
+          (return-nil-for-bin ()
+            :report "Allow failure returning NIL for bin."
+            (setf bin nil))))
+      (setf (sel/sw/asm::linker asm)
+	    (if (eq (asm-syntax asm) ':intel)
+		"gcc"
+		"clang"))
+      (setf (sel/sw/asm::flags asm)
+	    '("-no-pie" "-O0" "-fnon-call-exceptions" "-g" "-lrt"))
+      (multiple-value-bind (stdout stderr errno)
+        (shell "~a -o ~a ~a ~{~a~^ ~}"
+               (sel/sw/asm::linker asm)
+	       bin
+	       obj
+	       (sel/sw/asm::flags asm))
+      (declare (ignorable stdout ))
+      (values bin errno stderr stdout src)))))
+
 (defun vector-cut (a index)
   "Destructively remove and return an element from a vector with a fill pointer."
   (let ((deleted (aref a index)))
@@ -697,7 +747,7 @@ function name."
       (or (starts-with-p name "$LOC_")
 	  (starts-with-p name "$BB_FALLTHROUGH_")
 	  (starts-with-p name "$UNK_")
-	  (starts-with-p name ".L_"))))))
+	  (starts-with-p name ".L"))))))
 
 (defun line-is-function-label (asm-line-info)
   "Returns true if the passed line-info represents a name of a function."
@@ -846,12 +896,14 @@ for each function. The result is a vector of function-index-entry."
           (make-array (length entries) :initial-contents entries))))))
 
 (defun is-call-statement (info)
-  (equalp (asm-line-info-opcode info) "call"))
+  (member (asm-line-info-opcode info) '("call" "callq") :test 'equalp))
 
 ;;;
 ;;; This is NASM Intel syntax-specific
 ;;; It assumes an external symbol looks like this:
 ;;;     $__ctype_b_loc@@GLIBC_2.3
+;;;     or
+;;;     memchr@PLT
 ;;;
 (defun call-target (info)
   (and (is-call-statement info)
@@ -860,7 +912,7 @@ for each function. The result is a vector of function-index-entry."
 (defun is-extern-call-target (target)
   "Given the name of the target of a CALL, returns true iff it is an extern
    function."
-  (and target (search "@@" target)))
+  (and target (search "@" target)))
 
 (defun is-extern-call-statement (info)
   (is-extern-call-target (call-target info)))
@@ -875,11 +927,92 @@ The format is:
         (let ((target (call-target info))
               (result nil))
           (if (is-extern-call-target target)
-            (let* ((pos (search "@@" target))
+            (let* ((pos (search "@" target))
                    (name (and pos (subseq target 0 pos)))
                    (library (and pos (subseq target (+ pos 2)))))
+	      ;; if library starts with "@" trim it off
+	      (if (and
+		   (> (length library) 0)
+		   (char= (char library 0) #\@))
+		  (setf library (subseq library 1)))
               (setf result
                 (list ':name name ':library library ':full-name target)))
             (setf result
                 (list ':name target ':library nil ':full-name target)))
           (collect result)))))
+
+(defun create-ranked-function-index (asm)
+  "Create a table of functions with ranking according to how 
+   many call statements are found in the function code."
+  (let ((entries '())
+	(i 0)
+	(genome (genome asm)))
+    (iter (while (< i (length genome)))
+	  (let ((info (elt genome i)))
+	    (if (line-is-function-label info)
+		;; look for the end of the function
+		(let ((name (function-name-from-label
+			     (asm-line-info-label info)
+			     asm))
+		      (local-call-count 0)
+		      (line-count 1)
+		      (extern-call-count 0))
+		  (incf i)
+		  (iter (while (< i (length genome)))
+			(incf line-count)
+			(let ((info2 (elt genome i)))
+			  (when
+			      (is-call-statement info2)
+			    (if (is-extern-call-statement info2)
+				(incf extern-call-count)
+				(incf local-call-count)))
+			  (when (or
+				 (member (asm-line-info-opcode info2)
+					 '("ret" "retq" "hlt")
+					 :test 'equalp)
+				 (and
+				  (eq
+				   (asm-line-info-type info2)
+				   :decl)
+				  (member (first (asm-line-info-tokens info2))
+				      '("align" ".align") :test 'equalp))
+				 (and (line-is-function-label info2)
+				      ; ignore duplicate function labels
+				      (not
+				       (equalp (asm-line-info-label info)
+					       (asm-line-info-label info2)))))
+			    (push
+			     (list
+			      (list ':name name)
+			      (list ':local local-call-count)
+			      (list ':extern extern-call-count)
+			      (list ':total
+				    (+ local-call-count extern-call-count))
+			      (list ':size line-count))
+			     entries)
+			    (return)))
+			(incf i)))))
+	  (incf i))
+    (sort entries '<
+	  :key (lambda (x) (second (first (member ':total x :key 'car)))))))
+
+(defun collect-all-calls (asm)
+  (let ((calls '()))
+    (dotimes (i (max (length (genome asm)) 300))
+      (let ((info (elt (genome asm) i)))
+	(if (is-call-statement info)
+	    (push (list i
+			(asm-line-info-text info)
+			(if (is-extern-call-statement info)
+			    ':extern
+			    ':local))
+		  calls))))
+    (nreverse calls)))
+
+(defun collect-non-extern-call-functions (asm)
+  "Return ranked, sorted list of functions which do not make any 
+calls to external functions (outside this file)."
+  (let ((all (create-ranked-function-index asm)))
+    (iter (for x in all)
+	  (if (= (second (assoc ':extern x)) 0)
+	      (collect x)))))

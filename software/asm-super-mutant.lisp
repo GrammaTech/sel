@@ -877,16 +877,18 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 ;;; The passed argument is a vector of asm-line-info, and this returns
 ;;; a list of asm-line-info.
 ;;;
-(defun handle-ret-ops (asm-lines)
+(defun handle-ret-ops (asm-lines asm-syntax)
   (let ((new-lines '()))
     (iter (for line in-vector asm-lines)
 	  (if (equalp (asm-line-info-opcode line) "ret")
 	      (progn
 		(push (car (parse-asm-line
-			    "        pop qword [result_return_address]"))
+			    "        pop qword [result_return_address]"
+			    asm-syntax))
 		      new-lines)
 	        (push (car (parse-asm-line
-			    "        jmp qword [save_return_address]"))
+			    "        jmp qword [save_return_address]"
+			    asm-syntax))
 		      new-lines))
 	      (push line new-lines)))
     (nreverse new-lines)))
@@ -1078,7 +1080,8 @@ a symbol, the SYMBOL-NAME of the symbol is used."
         (add-variant-func
 	 asm-variants
 	 (format nil "variant_~D" count)
-	 (mapcar 'asm-line-info-text (handle-ret-ops (genome v))))
+	 (mapcar 'asm-line-info-text
+		 (handle-ret-ops (genome v) (asm-syntax asm-super))))
 	(incf count)))
     (add-variant-table asm-variants number-of-variants)
     (add-io-tests asm-super asm-variants)
