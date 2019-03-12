@@ -35,16 +35,19 @@
      :initarg :package-spec
      :accessor package-spec
      :initform nil
-     :documentation "Javascript project specification from package.json file."))
+     :documentation "Javascript project specification from package.json file.")
+   (ignore-directories
+    :initarg :ignore-directories
+    :reader ignore-directories
+    :initform (list "test" "tests" "node_modules")
+    :documentation
+    "List of directories to ignore when collecting evolve-files"))
   (:documentation "Project specialization for javascript software objects."))
 
 (defmethod initialize-instance :after ((javascript-project javascript-project)
                                        &key)
   (setf (slot-value javascript-project 'component-class)
-        (or (component-class javascript-project) 'javascript))
-  (setf (slot-value javascript-project 'ignore-directories)
-        (or (ignore-directories javascript-project)
-            (list "test" "tests" "node_modules"))))
+        (or (component-class javascript-project) 'javascript)))
 
 (defmethod from-file :around ((obj javascript-project) path)
   ;; Sanity check that a package.json file exists
