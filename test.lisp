@@ -4128,37 +4128,43 @@ int x = CHARSIZE;")))
           "`analyze-mutation' notices no change: ~S"
           (hash-table-alist *mutation-stats*)))))
 
-(deftest able-to-compose-simple-mutations ()
-  (compose-mutations cut-and-swap (clang-cut clang-swap))
-  (finalize-inheritance (find-class 'cut-and-swap))
-  (is (find-class 'cut-and-swap)
-      "`compose-mutations' successfully defines a class")
-  (is (some [{eql 'targeter} #'slot-definition-name]
-            (class-slots (find-class 'cut-and-swap)))
-      "`compose-mutations' defines a class with a targeter")
-  (is (some [{eql 'picker} #'slot-definition-name]
-            (class-slots (find-class 'cut-and-swap)))
-      "`compose-mutations' defines a class with a picker"))
+(locally (declare
+          #+sbcl (sb-ext:muffle-conditions sb-ext:compiler-note style-warning))
+  ;; The above `sb-ext:muffle-conditions' helps us ignore a "Cannot
+  ;; find a type specializer for cut-and-swap" style warning.  Longer
+  ;; term it would be better to update the `compose-mutations' macro
+  ;; so that this warning is not triggered.
+  (deftest able-to-compose-simple-mutations ()
+    (compose-mutations cut-and-swap (clang-cut clang-swap))
+    (finalize-inheritance (find-class 'cut-and-swap))
+    (is (find-class 'cut-and-swap)
+        "`compose-mutations' successfully defines a class")
+    (is (some [{eql 'targeter} #'slot-definition-name]
+              (class-slots (find-class 'cut-and-swap)))
+        "`compose-mutations' defines a class with a targeter")
+    (is (some [{eql 'picker} #'slot-definition-name]
+              (class-slots (find-class 'cut-and-swap)))
+        "`compose-mutations' defines a class with a picker"))
 
-(deftest able-to-apply-composed-mutation ()
-  (compose-mutations swap-and-cut (clang-swap clang-cut))
-  (with-fixture hello-world-clang-w-fitness
-    (let (variant op)
-      ;; Multiple tries to get around stochastic failures.
-      ;; The mutation may make random choices which fail the test.
-      (is (iter (as count upfrom 0)
-                (setf variant (copy *hello-world*))
-                (setf op (make-instance 'swap-and-cut :object variant))
-                (apply-mutation variant op)
-                (when (and (different-asts (asts variant)
-                                           (asts *hello-world*))
-                           (not (equal (genome variant)
-                                       (genome *hello-world*)))
-                           (< (size variant)
-                              (size *hello-world*)))
-                  (return t))
-                (when (> count 100)
-                  (return nil)))))))
+  (deftest able-to-apply-composed-mutation ()
+    (compose-mutations swap-and-cut (clang-swap clang-cut))
+    (with-fixture hello-world-clang-w-fitness
+      (let (variant op)
+        ;; Multiple tries to get around stochastic failures.
+        ;; The mutation may make random choices which fail the test.
+        (is (iter (as count upfrom 0)
+                  (setf variant (copy *hello-world*))
+                  (setf op (make-instance 'swap-and-cut :object variant))
+                  (apply-mutation variant op)
+                  (when (and (different-asts (asts variant)
+                                             (asts *hello-world*))
+                             (not (equal (genome variant)
+                                         (genome *hello-world*)))
+                             (< (size variant)
+                                (size *hello-world*)))
+                    (return t))
+                  (when (> count 100)
+                    (return nil))))))))
 
 
 ;;;; Ancestry tests.
