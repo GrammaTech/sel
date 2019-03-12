@@ -7312,45 +7312,39 @@ prints unique counters in the trace"
 (defmethod test-method ((obj simple) value)
   value)
 
-(deftest ignored-files-are-ignored ()
+(deftest ignored-paths-are-ignored ()
   (is (sel/sw/project::ignored-path-p
-       "README" :ignore-files '("README")))
+       "README" :ignore-paths '("README")))
   (is (sel/sw/project::ignored-path-p
-       "README" :ignore-files '("*")))
+       "README" :ignore-paths '("*")))
   (is (not (sel/sw/project::ignored-path-p
-            "Makefile" :ignore-files '("README")))))
+            "Makefile" :ignore-paths '("README"))))
+  (is (sel/sw/project::ignored-path-p
+       "etc/foo" :ignore-paths '("etc/*")))
+  (is (sel/sw/project::ignored-path-p
+       "./etc/foo" :ignore-paths '("etc/*")))
+  (is (not (sel/sw/project::ignored-path-p
+            "Makefile" :ignore-paths '("etc/*"))))
+  (is (not (sel/sw/project::ignored-path-p
+            "src/foo" :ignore-paths '("etc/*"))))
+  (is (not (sel/sw/project::ignored-path-p
+            "./src/foo" :ignore-paths '("etc/*")))))
 
-(deftest ignored-directories-are-ignored ()
-  (is (sel/sw/project::ignored-path-p
-       "etc/foo" :ignore-directories '("etc")))
-  (is (sel/sw/project::ignored-path-p
-       "etc/foo" :ignore-directories '("*")))
-  (is (sel/sw/project::ignored-path-p
-       "./etc/foo" :ignore-directories '("etc")))
+(deftest only-paths-are-only ()
   (is (not (sel/sw/project::ignored-path-p
-            "Makefile" :ignore-directories '("etc"))))
-  (is (not (sel/sw/project::ignored-path-p
-            "src/foo" :ignore-directories '("etc"))))
-  (is (not (sel/sw/project::ignored-path-p
-            "./src/foo" :ignore-directories '("etc")))))
-
-(deftest only-files-are-only ()
-  (is (not (sel/sw/project::ignored-path-p
-            "README" :only-files '("README"))))
+            "README" :only-paths '("README"))))
   (is (sel/sw/project::ignored-path-p
-       "Makefile" :only-files '("README"))))
-
-(deftest only-directories-are-only ()
+       "Makefile" :only-paths '("README")))
   (is (not (sel/sw/project::ignored-path-p
-            "etc/foo" :only-directories '("etc"))))
+            "etc/foo" :only-paths '("etc/*"))))
   (is (not (sel/sw/project::ignored-path-p
-            "./etc/foo" :only-directories '("etc"))))
+            "./etc/foo" :only-paths '("etc/*"))))
   (is (sel/sw/project::ignored-path-p
-       "Makefile" :only-directories '("etc")))
+       "Makefile" :only-paths '("etc/*")))
   (is (sel/sw/project::ignored-path-p
-       "src/foo" :only-directories '("etc")))
+       "src/foo" :only-paths '("etc/*")))
   (is (sel/sw/project::ignored-path-p
-       "./src/foo" :only-directories '("etc"))))
+       "./src/foo" :only-paths '("etc/*"))))
 
 (deftest project-copy-preserves-permissions ()
   ;; Ensure `to-file' preserves permissions on executable files.

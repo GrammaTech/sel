@@ -36,12 +36,13 @@
      :accessor package-spec
      :initform nil
      :documentation "Javascript project specification from package.json file.")
-   (ignore-directories
-    :initarg :ignore-directories
-    :reader ignore-directories
-    :initform (list "test" "tests" "node_modules")
+   (ignore-paths
+    :initarg :ignore-paths
+    :reader ignore-paths
+    :initform (list "test/*" "tests/*" "node_modules/*")
     :documentation
-    "List of directories to ignore when collecting evolve-files"))
+    "List of paths to ignore when collecting evolve-files.
+This default value is particular to node.js JavaScript projects."))
   (:documentation "Project specialization for javascript software objects."))
 
 (defmethod initialize-instance :after ((javascript-project javascript-project)

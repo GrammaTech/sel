@@ -27,14 +27,10 @@
            :artifacts
            :evolve-files
            :other-files
-           :ignore-files
-           :ignore-directories
-           :only-files
-           :only-directories
-           :ignore-other-files
-           :ignore-other-directories
-           :only-other-files
-           :only-other-directories
+           :ignore-paths
+           :only-paths
+           :ignore-other-paths
+           :only-other-paths
            :component-class
            :project-dir
            :ignored-evolve-path-p
@@ -69,54 +65,34 @@ This holds a list of cons cells of the form (path . software-object-for-path)."
       "Source files which may be used (e.g., instrumented) but not evolved.
 This holds a list of cons cells of the form (path . software-object-for-path)."
       :copier copy-files)
-     (ignore-files
-      :initarg :ignore-files
-      :reader ignore-files
+     (ignore-paths
+      :initarg :ignore-paths
+      :reader ignore-paths
       :initform nil
       :documentation
-      "List of files to ignore when collecting evolve-files.")
-     (ignore-directories
-      :initarg :ignore-directories
-      :reader ignore-directories
+      "List of paths to ignore when collecting evolve-files.
+Paths may contain wildcards.")
+     (only-paths
+      :initarg :only-paths
+      :reader only-paths
       :initform nil
       :documentation
-      "List of directories to ignore when collecting evolve-files")
-     (only-files
-      :initarg :only-files
-      :reader only-files
+      "List of paths to only consider when collecting evolve-files.
+Paths may contain wildcards.")
+     (ignore-other-paths
+      :initarg :ignore-other-paths
+      :reader ignore-other-paths
       :initform nil
       :documentation
-      "List of files to only consider when collecting evolve-files.")
-     (only-directories
-      :initarg :only-directories
-      :reader only-directories
+      "List of paths to ignore when collecting other-files.
+Paths may contain wildcards.")
+     (only-other-paths
+      :initarg :only-other-paths
+      :reader only-other-paths
       :initform nil
       :documentation
-      "List of directories to only consider when collecting evolve-files")
-     (ignore-other-files
-      :initarg :ignore-other-files
-      :reader ignore-other-files
-      :initform nil
-      :documentation
-      "List of files to ignore when collecting other-files.")
-     (ignore-other-directories
-      :initarg :ignore-other-directories
-      :reader ignore-other-directories
-      :initform (list ".git/")
-      :documentation
-      "List of directories to ignore when collecting other-files")
-     (only-other-files
-      :initarg :only-other-files
-      :reader only-other-files
-      :initform nil
-      :documentation
-      "List of files to only consider when collecting other-files.")
-     (only-other-directories
-      :initarg :only-other-directories
-      :reader only-other-directories
-      :initform nil
-      :documentation
-      "List of directories to only consider when collecting other-files")
+      "List of paths to only consider when collecting other-files.
+Paths may contain wildcards.")
      (component-class
       :initarg :component-class :accessor component-class :initform nil
       :documentation "Software object class to utilize in component objects.")
@@ -129,27 +105,12 @@ This holds a list of cons cells of the form (path . software-object-for-path)."
 E.g., a multi-file C software project may include multiple clang
 software objects in it's `evolve-files'."))
 
-(defun ignored-path-p
-    (path
-     &key ignore-files ignore-directories only-files only-directories
-     &aux (canonical-path (canonical-pathname path)))
-  (flet ((included-files (files)
-           (find-if (lambda (file)
-                      (or (equal file "*")
-                          (equal canonical-path (canonical-pathname file))))
-                    files))
-         (included-directories (directories)
-           (find-if (lambda (dir)
-                      (or (equal dir "*")
-                          (search (pathname-directory
-                                    (ensure-directory-pathname dir))
-                                  (pathname-directory canonical-path)
-                                  :test #'equalp)))
-                    directories)))
-    (or (and only-files (not (included-files only-files)))
-        (and only-directories (not (included-directories only-directories)))
-        (included-directories ignore-directories)
-        (included-files ignore-files))))
+(defun ignored-path-p (path &key ignore-paths only-paths
+                       &aux (canonical-path (canonical-pathname path)))
+  (flet ((included (files)
+           (find-if {pathname-match-p canonical-path} files)))
+    (or (and only-paths (not (included only-paths)))
+        (included ignore-paths))))
 
 (defgeneric ignored-evolve-path-p (software path)
   (:documentation "Check if PATH is an ignored evolve path in SOFTWARE.")
@@ -160,10 +121,8 @@ software objects in it's `evolve-files'."))
                                            (project-dir obj) path))
                                          (canonical-pathname path))))
     (ignored-path-p canonical-path
-                    :ignore-files (ignore-files obj)
-                    :ignore-directories (ignore-directories obj)
-                    :only-files (only-files obj)
-                    :only-directories (only-directories obj))))
+                    :ignore-paths (ignore-paths obj)
+                    :only-paths (only-paths obj))))
 
 (defgeneric ignored-other-path-p (software path)
   (:documentation "Check if PATH is an ignored other path in SOFTWARE.")
@@ -174,10 +133,8 @@ software objects in it's `evolve-files'."))
                                            (project-dir obj) path))
                                          (canonical-pathname path))))
     (ignored-path-p canonical-path
-                    :ignore-files (ignore-other-files obj)
-                    :ignore-directories (ignore-other-directories obj)
-                    :only-files (only-other-files obj)
-                    :only-directories (only-other-directories obj))))
+                    :ignore-paths (ignore-other-paths obj)
+                    :only-paths (only-other-paths obj))))
 
 (defun copy-files (files)
   "Copier for `evolve-files' and `other-files' on `project' software objects."
@@ -209,8 +166,7 @@ software objects in it's `evolve-files'."))
    "Find parseable files in PROJECT that were not included in `evolve-files'.
 Assumes `evolve-files' has been initialized.  Only applies to
 non-symlink text files that don't end in \"~\" and are not ignored by
-`ignore-other-files', `ignore-other-directories', `only-other-files',
-or `only-other-directories'.")
+`ignore-other-paths', or `only-other-paths'.")
   (:method (obj) (declare (ignorable obj)) nil)
   (:method ((project project))
     ;; Create software objects for these other files.
