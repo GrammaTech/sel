@@ -94,29 +94,40 @@
     (path language
      &optional flags compiler compilation-database build-command)
   "Build software object of type LANGUAGE from PATH."
-  (from-file (apply
-              #'make-instance
-              language
-              (append
-               (when flags
-                 (list :flags flags))
-               (when (and compiler (member language '(clang #| clang-project |#)))
-                 (list :compiler compiler))
-               (when compilation-database
-                 (case language
-                   (clang-project
-                    (list :compilation-database compilation-database))
-                   (clang
-                    (list :compiler (compilation-db-entry-compiler
-                                     (first compilation-database))
-                          :flags (compilation-db-entry-flags
-                                  (first compilation-database))))
-                   (t
-                    (error "language ~s doesn't support a compilation database"
-                           language))))
-               (when (and compiler (subtypep language 'project))
-                 (list :build-command build-command))))
-             path))
+  ;; Protect against accidentally passing in with keyword arguments.
+  (assert (listp flags) (flags) "Flags are ~s but should be a list." flags)
+  (assert (listp compilation-database)
+          (compilation-database)
+          "Compilation-database is ~s but should be a list."
+          compilation-database)
+  (from-file
+   (nest
+    ;; These options are interdependent.  Sort everything out in this `let'.
+    (let ((flags
+           (cond
+             ((and (eql language 'clang) compilation-database)
+              (compilation-db-entry-flags (first compilation-database)))
+             (flags flags)))
+          (compiler
+           (cond
+             ((and (eql language 'clang) compilation-database)
+              (compilation-db-entry-compiler (first compilation-database)))
+             ((and compiler (eql language 'clang))
+              compiler)))
+          (compilation-database
+           (case language
+             (clang nil)
+             (t compilation-database)))
+          (build-command
+           (when (subtypep language 'project) build-command))))
+    (apply #'make-instance language)
+    (apply #'append)
+    (remove-if-not #'second)
+    `((:flags ,flags)
+      (:compiler ,compiler)
+      (:compilation-database ,compilation-database)
+      (:build-command ,build-command)))
+   path))
 
 (define-command ast-diff (source1 source2 &spec +command-line-options+)
   "Compare source code in SOURCE1 and SOURCE2 by AST."
