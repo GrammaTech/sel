@@ -143,6 +143,12 @@ references into the asm-heap (asm-line-info) describes the code."))
 		     nil
 		     *assembler-x86-readtable*)
 
+(set-macro-character #\# (lambda (stream ch)
+			   (declare (ignore stream ch))
+			   :#)
+		     nil
+		     *assembler-x86-readtable*)
+
 ;; If we encounter a single quote, look for the terminating quote.
 (set-macro-character
  #\'
@@ -166,6 +172,13 @@ references into the asm-heap (asm-line-info) describes the code."))
  nil
  *assembler-x86-readtable*)
 
+;;;
+;;; The Lisp reader will handle intel comments (;) as we need them, so we
+;;; don't do anything special about them.
+;;; The reader will not correctly handle gas assembler comments (#) so
+;;; we defined a special reader macro to turn them into :#, which basically
+;;; signals the same thing as eof (end of line).
+;;;
 (defun tokenize-asm-line (line)
   "Take a line of text from a .asm file, and, and converts it to tokens."
   (with-input-from-string (s line)
@@ -174,7 +187,7 @@ references into the asm-heap (asm-line-info) describes the code."))
 	  (result '())
 	  (eof (cons 0 0))
 	  (token (read s nil eof)(read s nil eof)))
-	 ((eq token eof)(nreverse result))
+	 ((or (eq token eof)(eq token :#))(nreverse result))
       (if (symbolp token)
 	  (setf token (symbol-name token)))
       (push token result))))
@@ -204,7 +217,8 @@ we are excluding CALL instructions."
 	      (equalp (second tokens) "COLON"))  ; followed by a ':'?
 	 ':label-decl)
 	((some {member _ tokens :test #'equalp}
-               (list "db" "dq" "dd" "dw"))
+               (list "db" "dq" "dd" "dw"
+		     ".quad" ".zero" ".byte" ".word" ".string"))
 	 ':data)
 	((member (first tokens)
                  '("align" ".align"
@@ -213,9 +227,14 @@ we are excluding CALL instructions."
                    "%define"
                    "global" ".globl"
 		   ".type"
-		   ".text")
+		   ".text"
+		   ".bss")
 		 :test 'equalp)
 	 ':decl)
+	((and (= (length tokens) 1)
+	      (stringp (first tokens))
+	      (char= (char (first tokens) 0) #\.))
+	 ':decl)  ; gas style declaration starts with a "."
 	((and (token-label-p (first tokens))
 	      (equalp (second tokens) "equ"))
 	 ':decl)

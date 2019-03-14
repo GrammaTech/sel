@@ -50,7 +50,7 @@
                          (trim-whitespace (shell "pwd")) "/")))
 
 (defparameter *asm-path*
-  (merge-pathnames "grep-testing/grep.asm" asm-super-base-dir)
+  (merge-pathnames "grep-testing/grep.s" asm-super-base-dir)
   "Path to master asm file i.e. grep")
 
 (defparameter *io-dir*
@@ -319,7 +319,8 @@ instances representing the MUTANTS (variants) of the target function."
 		       (stream *standard-output*))
   (format stream "Fitness evaluations completed for function ~A: ~A~%~%"
 	  (sel/sw/asm-heap::function-name-from-label
-	   (asm-line-info-label (elt (genome (first (mutants super))) 0)))
+	   (asm-line-info-label (elt (genome (first (mutants super))) 0))
+	   super)
 	  *fitness-evals*)
   (let* ((min-size (reduce 'min (mapcar 'size population)))
 	 (max-size (reduce 'max (mapcar 'size population)))
