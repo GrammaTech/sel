@@ -427,7 +427,7 @@ threads by creating separate build directory per thread.")
 (defmethod phenome :around
     ((obj project) &key
                      (bin (temp-file-name))
-                     (build-dir (or *build-dir* (temp-file-name))))
+                     (build-dir (or *build-dir* (project-dir obj))))
   (let ((keep-file-p (probe-file build-dir)))
     ;; Ensure source and required artifacts are present in build-dir.
     (to-file obj build-dir)
@@ -439,9 +439,8 @@ threads by creating separate build directory per thread.")
 (defmethod phenome
     ((obj project) &key
                      (bin (temp-file-name))
-                     (build-dir (or *build-dir* (temp-file-name))))
+                     (build-dir (or *build-dir* (project-dir obj))))
   "Build the software project OBJ and copy build artifact(s) to BIN."
-  ;; Build.
   (multiple-value-bind (stdout stderr exit)
       (shell "cd ~a && ~a" build-dir (build-command obj))
     (restart-case
