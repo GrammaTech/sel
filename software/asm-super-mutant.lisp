@@ -565,134 +565,6 @@
 	  (setf result (+ (ash result 8) (aref bytes i))))
     result))
 
-;;;
-;;; reg is a string, naming the register i.e. "rax" or "r13".
-;;; bytes is an 8-element byte array containing the 64-bit unsigned contents
-;;; to be stored, in big-endian order
-;;;
-(defun load-reg (reg bytes)
-  (format nil "mov qword ~A, 0x~X"
-	  reg
-	  (be-bytes-to-qword bytes)))
-
-;;;
-;;; reg is a string, naming the register i.e. "rax" or "r13".
-;;; bytes is an 8-element byte array containing the 64-bit unsigned contents
-;;; to be compared, in big-endian order
-;;;
-(defun comp-reg (reg bytes)
-  (let ((label (gensym "reg_cmp_")))
-    (list
-     (format nil "push ~A" reg)
-     (format nil "mov qword ~A, 0x~X"
-	     reg
-	     (be-bytes-to-qword bytes))
-     (format nil "cmp qword ~A, [rsp]" reg)
-     (format nil "pop ~A" reg)
-     (format nil "je ~A" label)
-     "mov rdi, qword [$stdout@@GLIBC_2.2.5]"
-     "mov rsi, $error_reg_compare"
-     (format nil "mov qword rdx, 0x~X" (be-bytes-to-qword bytes)) ; expected
-     "call $fprintf wrt ..plt"
-     (format nil "jmp $output_reg_comparison_failure")
-     (format nil "~A:" label))))
-
-
-;;;
-;;; Initialize 8 bytes of memory, using the mask to init only specified bytes.
-;;; Returns list of lines to do the initialization.
-;;;
-(defun init-mem (spec)
-  (let ((addr (memory-spec-addr spec))
-	(mask (memory-spec-mask spec))
-	(bytes (memory-spec-bytes spec)))
-    (if (equal mask #*11111111)  ;; we can ignore the mask
-	(list
-	 (format nil "mov qword rax, 0x~X" (be-bytes-to-qword bytes))
-	 (format nil "mov qword rcx, 0x~X" addr)
-	 "mov qword [rcx], rax")
-	(list
-	 (format nil "mov qword rax, 0x~X" (be-bytes-to-qword bytes))
-	 (format nil "mov qword rbx, 0x~X"
-		 (be-bytes-to-qword (create-byte-mask mask)))
-	 (format nil "mov qword rcx, 0x~X" addr)
-	 "and rax, rbx"   ; mask off unwanted bytes of src
-	 "not rbx"        ; invert mask
-	 "and qword [rcx], rbx" ; mask off bytes which will be overwritten
-	 "or qword [rcx], rax"))))
-
-;;;
-;;; Initialize 8 bytes of memory, using the mask to init only specified bytes.
-;;; Returns list of lines to do the initialization.
-;;;
-(defun comp-mem (spec)
-  (let ((addr (memory-spec-addr spec))
-	(mask (memory-spec-mask spec))
-	(bytes (memory-spec-bytes spec))
-	(label (gensym "$mem_cmp_")))
-    (if (equal mask #*11111111)  ;; we can ignore the mask
-	(list
-	 (format nil "mov qword rax, 0x~X" (be-bytes-to-qword bytes))
-	 (format nil "mov qword rcx, 0x~X" addr)
-	 "cmp qword [rcx], rax"
-	 (format nil "je ~A" label)
-         (format nil "jmp $output_comparison_failure")
-         (format nil "~A:" label))
-	(list
-	 (format nil "mov qword rax, 0x~X" (be-bytes-to-qword bytes))
-	 (format nil "mov qword rbx, 0x~X"
-		 (be-bytes-to-qword (create-byte-mask mask)))
-	 (format nil "mov qword rcx, 0x~X" addr)
-	 "mov qword rdx, [rcx]"
-	 "and rax, rbx"   ; mask off unwanted bytes of src
-	 "and rdx, rbx" ; mask off unwanted bytes of dest
-	 "cmp rdx, rax"
-	 (format nil "je ~A" label)
-         (format nil "jmp $output_comparison_failure")
-         (format nil "~A:" label)))))
-
-;;;
-;;; Return asm-heap containing the lines to set up the environment
-;;; for a fitness test.
-;;; Skip SIMD registers for now.
-;;;
-(defun init-env (asm-super)
-  (let* ((input-spec (input-spec asm-super))
-	 (reg-lines
-	  (iterate
-	    (for x in-vector (input-specification-regs input-spec))
-	    (collect (load-reg (reg-contents-name x)(reg-contents-value x)))))
-	 (mem-lines
-	  (apply 'append
-		 (iterate
-	           (for x in-vector (input-specification-mem input-spec))
-		   (collect (init-mem x)))))
-	 (asm (make-instance 'asm-heap :super-owner asm-super)))
-    (setf (lines asm) (append mem-lines reg-lines))
-    asm))
-
-;;;
-;;; Return an asm-heap containing the lines to check the resulting outputs.
-;;; Skip SIMD registers for now.
-;;;
-(defun check-env (asm-super)
-  (let* ((output-spec (output-spec asm-super))
-	 (reg-lines
-	  (apply 'append
-		 (iterate
-	           (for x in-vector (input-specification-regs output-spec))
-	           (collect
-		       (comp-reg (reg-contents-name x)
-				 (reg-contents-value x))))))
-	 (mem-lines
-	  (apply 'append
-		 (iterate
-	           (for x in-vector (input-specification-mem output-spec))
-		   (collect (comp-mem x)))))
-	 (asm (make-instance 'asm-heap :super-owner asm-super)))
-    (setf (lines asm) (append reg-lines mem-lines))
-    asm))
-
 (defun get-function-lines (asm-super start-addr end-addr)
   "Return lines and start and end indices of START-ADDR END-ADDR in ASM-SUPER.
 Given start and end addresses of a function, determine start line, end
@@ -934,18 +806,31 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 ;;;
 (defun handle-ret-ops (asm-lines asm-syntax)
   (let ((new-lines '()))
-    (iter (for line in-vector asm-lines)
-	  (if (equalp (asm-line-info-opcode line) "ret")
-	      (progn
-		(push (car (parse-asm-line
-			    "        pop qword [result_return_address]"
-			    asm-syntax))
-		      new-lines)
-	        (push (car (parse-asm-line
-			    "        jmp qword [save_return_address]"
-			    asm-syntax))
-		      new-lines))
-	      (push line new-lines)))
+    (if (eq asm-syntax ':intel)
+	(iter (for line in-vector asm-lines)
+	      (if (equalp (asm-line-info-opcode line) "ret")
+		  (progn
+		    (push (car (parse-asm-line
+				"        pop qword [result_return_address]"
+				asm-syntax))
+			  new-lines)
+		    (push (car (parse-asm-line
+				"        jmp qword [save_return_address]"
+				asm-syntax))
+			  new-lines))
+		  (push line new-lines)))
+	(iter (for line in-vector asm-lines)
+	      (if (equalp (asm-line-info-opcode line) "retq")
+		  (progn
+		    (push (car (parse-asm-line
+				"        popq (result_return_address)"
+				asm-syntax))
+			  new-lines)
+		    (push (car (parse-asm-line
+				"        jmpq *(save_return_address)"
+				asm-syntax))
+			  new-lines))
+		  (push line new-lines))))
     (nreverse new-lines)))
 
 ;;; Append a variant function, defined by the name and
@@ -966,7 +851,7 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 	   (format nil "~A:" name)  ; function name
 	   "        pop qword [save_return_address]"
 	   "        push qword [save_return_address]")
-	  (cdr localized-lines)   ; skip first line, the function name
+	  localized-lines
 	  (list "ret"   ; probably redundant, already in lines
 		"align 4"))
 	 (length (genome asm-variant)))
@@ -978,7 +863,7 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 	   (format nil "~A:" name)  ; function name
 	   "        popq (save_return_address)"
 	   "        pushq (save_return_address)")
-	  (cdr localized-lines)   ; skip first line, the function name
+	  localized-lines
 	  (list "retq"   ; probably redundant, already in lines
 		".align 8"))
 	 (length (genome asm-variant))))))
@@ -1446,7 +1331,7 @@ returns NIL."
 	(let ((end (position-if 'section-header-p (genome asm-super)
 				:start (+ named-section-pos 1))))
 	  (if (null end)
-	      (setf end (- (length (genome asm-super)) 1)))
+	      (setf end (length (genome asm-super))))
 	  (let ((section (make-instance 'asm-heap :super-owner asm-super)))
 	    (setf (lines section)
 		  (map 'list 'asm-line-info-text

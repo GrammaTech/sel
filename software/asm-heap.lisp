@@ -194,7 +194,9 @@ references into the asm-heap (asm-line-info) describes the code."))
 
 (defun token-label-p (token)
   (and (stringp token)
-       (char= (char token 0) #\$)))
+       (or
+	(char= (char token 0) #\$)
+	(starts-with-p token ".L"))))
 
 (defun branch-op-p (token)
   "Returns true iff the token represents a jump operation. We assume it
@@ -560,7 +562,8 @@ linking process, (5) the source file name used during linking."
     (format t "skipping cut with label ~A~%"
 	    (asm-line-info-label (elt (genome asm) (targets mutation))))
     (invoke-restart 'try-another-mutation))
-  (vector-cut (genome asm) (targets mutation))
+  (unless (asm-line-info-label (elt (genome asm) (targets mutation)))
+    (vector-cut (genome asm) (targets mutation)))
   asm)
 
 (defmethod apply-mutation ((asm asm-heap) (mutation simple-insert))
@@ -631,7 +634,7 @@ is raised."
 (defun find-labels (asm-heap)
   (let ((lab-list '()))
     (iter (for a in-vector (genome asm-heap))
-	  (if (and
+	  (when (and
 	       (eq (asm-line-info-type a) ':op)
 	       (branch-op-p (first (asm-line-info-tokens a))))
 	    (if (token-label-p (second (asm-line-info-tokens a)))
