@@ -47,6 +47,8 @@
            :resolve-num-tests-from-num-tests
            :wait-on-manual
            :exit-command
+           :guess-language
+           :create-software
            ;; Common sets of command-line-arguments options.
            :+common-command-line-options+
            :+interactive-command-line-options+
@@ -228,6 +230,55 @@ inspecting the value of `*lisp-interaction*'."
   `(if uiop/image:*lisp-interaction*
        (return-from ,command-name ,interactive-return-val)
        (quit ,errno)))
+
+(defun guess-language (&rest sources)
+  (flet ((%guess-language-from (source)
+           (unless (directory-p source)
+             (second (find-if (lambda (pair)
+                                (member (pathname-type source) (car pair)
+                                        :test #'equalp))
+                              '((("lisp") lisp)
+                                (("java") java)
+                                (("js") javascript)
+                                (("c" "cpp" "h" "hpp" "cc" "cxx" "hxx")
+                                 clang)))))))
+    (let ((guesses (mapcar #'%guess-language-from sources)))
+      (when (= 1 (length (remove-duplicates guesses)))
+        (car guesses)))))
+
+(defun create-software (path &key
+                               (language (guess-language path))
+                               compiler flags build-command artifacts
+                               compilation-database)
+  "Build software object of type LANGUAGE from PATH."
+  (from-file
+   (nest
+    ;; These options are interdependent.  Sort everything out in this `let'.
+    (let ((flags
+           (cond
+             ((and (eql language 'clang) compilation-database)
+              (compilation-db-entry-flags (first compilation-database)))
+             (flags flags)))
+          (compiler
+           (cond
+             ((and (eql language 'clang) compilation-database)
+              (compilation-db-entry-compiler (first compilation-database)))
+             ((and compiler (eql language 'clang))
+              compiler)))
+          (compilation-database
+           (case language
+             (clang nil)
+             (t compilation-database)))
+          (build-command
+           (when (subtypep language 'project) build-command))))
+    (apply #'make-instance language)
+    (apply #'append)
+    (remove-if-not #'second)
+    `((:flags ,flags)
+      (:compiler ,compiler)
+      (:compilation-database ,compilation-database)
+      (:build-command ,build-command)))
+   path))
 
 
 ;;;; Common sets of command-line-arguments options.
