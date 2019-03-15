@@ -7319,6 +7319,19 @@ prints unique counters in the trace"
           (("C" ,(make-pathname :directory +grep-prj-dir+)) 'clang-project)
           (("java" ,(make-pathname :directory +grep-prj-dir+)) 'java-project))))
 
+(deftest create-software-guesses-clang-project ()
+  (let ((sw (create-software
+             (make-pathname :directory +grep-prj-dir+)
+             :build-command
+             (concatenate 'string
+               (namestring (make-pathname :directory +grep-prj-dir+
+                                          :name "build.sh"))
+               " --full --nonsense-arg"))))
+    (is sw)
+    (is (eql 'clang-project (type-of sw)))
+    (is (string= "./" (subseq (build-command sw) 0 2)))
+    (is (search "--full" (build-command sw)))))
+
 
 ;;;; Project tests.
 (defsuite clang-project-tests "Project tests."

@@ -22,8 +22,11 @@
         :curry-compose-reader-macros
         :command-line-arguments
         :split-sequence
+        :cl-store
+        :software-evolution-library
         :software-evolution-library/utility
         ;; Software objects.
+        :software-evolution-library/software/source
         :software-evolution-library/software/project
         :software-evolution-library/software/clang
         :software-evolution-library/software/javascript
@@ -307,37 +310,77 @@ directories and if files based on their extensions."
       (find-if #'identity guesses))))
 
 (defun create-software (path &key
-                               (language (guess-language path))
+                               (language (guess-language path) language-p)
                                compiler flags build-command artifacts
-                               compilation-database)
-  "Build software object of type LANGUAGE from PATH."
+                               compilation-database store-path)
+  "Build a software object from a common superset of language-specific options.
+
+Keyword arguments are as follows:
+  LANGUAGE ------------- (optional) language of input file/directory
+                         (default to result of `guess-language' on PATH)
+                         String language is assumed to be a language name to be
+                         resolved w/`resolve-language-from-language-and-source'.
+                         Symbol language is assumed to be a class in sel/sw
+  STORE-PATH ----------- path to the cached store file with the software
+  COMPILER ------------- compiler for software object
+  BUILD-COMMAND -------- shell command to build project directory
+  ARTIFACTS ------------ build-command products
+  COMPILATION-DATABASE - path to clang compilation database"
+  (when (and store-path (probe-file store-path))
+    (return-from create-software (restore store-path)))
   (from-file
    (nest
-    ;; These options are interdependent.  Sort everything out in this `let'.
-    (let ((flags
-           (cond
-             ((and (eql language 'clang) compilation-database)
-              (compilation-db-entry-flags (first compilation-database)))
-             (flags flags)))
-          (compiler
-           (cond
-             ((and (eql language 'clang) compilation-database)
-              (compilation-db-entry-compiler (first compilation-database)))
-             ((and compiler (eql language 'clang))
-              compiler)))
-          (compilation-database
-           (case language
-             (clang nil)
-             (t compilation-database)))
-          (build-command
-           (when (subtypep language 'project) build-command))))
+    ;; These options are interdependent.  Resolve any dependencies and
+    ;; drop options which don't exist for LANGUAGE in this `let*'.
+    (let* ((language (cond
+                       ((and language-p (symbolp language))
+                        language)
+                       ((and language-p (stringp language))
+                        (resolve-language-from-language-and-source
+                         language path))
+                       (t language)))
+           (flags
+            (when (subtypep language 'source)
+              (cond
+                ((and (eql language 'clang) compilation-database)
+                 (compilation-db-entry-flags (first compilation-database)))
+                (flags flags))))
+           (compiler
+            (when (subtypep language 'source)
+              (cond
+                ((and (eql language 'clang) compilation-database)
+                 (compilation-db-entry-compiler (first compilation-database)))
+                ((and compiler (eql language 'clang))
+                 compiler))))
+           (compilation-database
+            (case language
+              (clang nil)
+              (t compilation-database)))
+           (build-command
+            (when (subtypep language 'project)
+              (let ((build-command-list (split-sequence #\Space build-command)))
+                ;; Remove any absolute path from the beginning of build-command.
+                (if-let ((abs-cmd-name (nest
+                                        (ignore-errors)
+                                        (merge-pathnames-as-file path)
+                                        (canonical-pathname
+                                         (car build-command-list)))))
+                  (format nil "~a~{ ~a~}"
+                          (replace-all (namestring abs-cmd-name)
+                                       (namestring path)
+                                       "./")
+                          (cdr build-command-list))
+                  build-command))))
+           (artifacts
+            (when (subtypep language 'project) artifacts))))
     (apply #'make-instance language)
     (apply #'append)
     (remove-if-not #'second)
-    `((:flags ,flags)
-      (:compiler ,compiler)
-      (:compilation-database ,compilation-database)
-      (:build-command ,build-command)))
+    `((:compiler ,compiler)
+      (:flags ,flags)
+      (:build-command ,build-command)
+      (:artifacts ,artifacts)
+      (:compilation-database ,compilation-database)))
    path))
 
 
