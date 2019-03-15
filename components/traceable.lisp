@@ -72,11 +72,44 @@ traces in a s-expression format."))
 
 
 ;;; Trace collection interface
+(defgeneric reset-traces (software)
+  (:documentation "Reset the SOFTWARE's traces.")
+  (:method ((obj binary-traceable))
+    (setf (traces obj) (make-instance 'binary-trace-db)))
+  (:method ((obj sexp-traceable))
+    (setf (traces obj) (make-instance 'sexp-trace-db))))
+
 (defgeneric collect-traces (software test-suite &key max bin num-threads)
   (:documentation
    "Execute instrumented SOFTWARE on TEST-SUITE collecting dynamic traces.
 See the documentation of `collect-trace' for information on the
-MAX, BIN, and NUM-THREADS keyword arguments."))
+MAX, BIN, and NUM-THREADS keyword arguments.")
+  (:method ((obj traceable) (test-suite test-suite)
+            &key max (bin (temp-file-name)) (num-threads 0)
+            &aux (args (list :bin bin)))
+    "Execute instrumented OBJ on TEST-SUITE collecting dynamic traces.
+* OBJ Instrumented software object suitable for trace collection
+* TEST-SUITE suite of test case to execute for trace collection
+* MAX maximum number of trace points to record
+* BIN compiled binary with instrumentation to use for trace collection
+* NUM-THREADS number of threads to use in trace collection"
+    (when max (setf args (append args (list :max max))))
+    (with-possibly-existing-bin (bin)
+        (restart-case
+            (phenome obj :bin bin)
+          (skip-trace-collection ()
+            :report "Skip trace collection and leave object unchanged."
+            (return-from collect-traces (traces obj)))
+          (nil-traces ()
+            :report "Set object traces to NIL and continue."
+            (setf (traces obj) nil)
+            (return-from collect-traces (traces obj))))
+      (reset-traces obj)
+      (task-map num-threads
+                (lambda (test-case)
+                  (apply #'collect-trace obj test-case args))
+                (test-cases test-suite)))
+    (traces obj)))
 
 (defgeneric collect-trace (software input &key max bin)
   (:documentation
@@ -87,35 +120,6 @@ the name of an already-compiled binary to use.
 Returns a list of traces, which may contains multiple elements if
 executing a test script which runs the traceable program multiple
 times."))
-
-
-;;; Trace collection with proprietary binary format
-(defmethod collect-traces ((obj binary-traceable) (test-suite test-suite)
-                           &key max (bin (temp-file-name)) (num-threads 0)
-                           &aux (args (list :bin bin)))
-  "Execute instrumented OBJ on TEST-SUITE collecting dynamic traces.
-* OBJ Instrumented software object suitable for trace collection
-* TEST-SUITE suite of test case to execute for trace collection
-* MAX maximum number of trace points to record
-* BIN compiled binary with instrumentation to use for trace collection
-* NUM-THREADS number of threads to use in trace collection"
-  (when max (setf args (append args (list :max max))))
-  (with-possibly-existing-bin (bin)
-      (restart-case
-          (phenome obj :bin bin)
-        (skip-trace-collection ()
-          :report "Skip trace collection and leave object unchanged."
-          (return-from collect-traces (traces obj)))
-        (nil-traces ()
-          :report "Set object traces to NIL and continue."
-          (setf (traces obj) nil)
-          (return-from collect-traces (traces obj))))
-    (setf (traces obj) (make-instance 'binary-trace-db))
-    (task-map num-threads
-              (lambda (test-case)
-                (apply #'collect-trace obj test-case args))
-              (test-cases test-suite)))
-  (traces obj))
 
 (defmethod collect-trace ((obj binary-traceable) (test-case test-case)
                           &key max (bin (temp-file-name)))
@@ -200,36 +204,6 @@ times."))
                           :bin bin)))
                    (ignore-empty-trace ()
                      :report "Ignore empty trace")))))))))
-
-
-;;; Trace collection with legacy s-expression format
-(defmethod collect-traces ((obj sexp-traceable) (test-suite test-suite)
-                           &key max (bin (temp-file-name)) (num-threads 0)
-                           &aux (args (list :bin bin)))
-  ;; TODO: Combine with previous collect traces.  Unacceptable code duplication.
-  "Execute instrumented OBJ on TEST-SUITE collecting dynamic traces.
-* OBJ Instrumented software object suitable for trace collection
-* TEST-SUITE suite of test case to execute for trace collection
-* MAX maximum number of trace points to record
-* BIN compiled binary with instrumentation to use for trace collection
-* NUM-THREADS number of threads to use in trace collection"
-  (when max (setf args (append args (list :max max))))
-  (with-possibly-existing-bin (bin)
-      (restart-case
-          (phenome obj :bin bin)
-        (skip-trace-collection ()
-          :report "Skip trace collection and leave object unchanged."
-          (return-from collect-traces (traces obj)))
-        (nil-traces ()
-          :report "Set object traces to NIL and continue."
-          (setf (traces obj) nil)
-          (return-from collect-traces (traces obj))))
-    (setf (traces obj) (make-instance 'sexp-trace-db))
-    (task-map num-threads
-              (lambda (test-case)
-                (apply #'collect-trace obj test-case args))
-              (test-cases test-suite)))
-  (traces obj))
 
 (defmethod collect-trace ((obj sexp-traceable) (test-case test-case)
                           &key (max infinity) (bin (temp-file-name)))
