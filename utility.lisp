@@ -619,10 +619,13 @@ pathname (i.e., ending in a \"/\")."
 
 (defun directory-p (pathname)
   "Return a directory version of PATHNAME if it indicates a directory."
-  (if (directory-pathname-p pathname)
-      pathname
-      ;; When T `directory-exists-p' (like this function) returns the pathname.
-      (directory-exists-p (pathname-as-directory pathname))))
+  (cond
+    ((directory-pathname-p pathname) pathname)
+    ;; Wild pathnames are not directory pathnames.
+    ;; Also, `directory-exists-p' faults on wild pathnames.
+    ((wild-pathname-p pathname) nil)
+    ;; `directory-exists-p' (like this function) returns the pathname.
+    (t (directory-exists-p (pathname-as-directory pathname)))))
 
 
 ;;;; Utilities from cl-fad.
