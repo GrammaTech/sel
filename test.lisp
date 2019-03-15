@@ -7308,6 +7308,17 @@ prints unique counters in the trace"
            (guess-language (make-pathname :directory +grep-prj-dir+))))
   (is (null (guess-language #P"foo.js" #P"bar.lisp"))))
 
+(deftest resolving-languages-works ()
+  (mapc (lambda (pair)
+          (destructuring-bind (args result) pair
+            (is result (apply #'resolve-language-from-language-and-source
+                              args))))
+        `((("c") 'clang)
+          (("C++") 'clang)
+          (("CL") 'lisp)
+          (("C" ,(make-pathname :directory +grep-prj-dir+)) 'clang-project)
+          (("java" ,(make-pathname :directory +grep-prj-dir+)) 'java-project))))
+
 
 ;;;; Project tests.
 (defsuite clang-project-tests "Project tests."

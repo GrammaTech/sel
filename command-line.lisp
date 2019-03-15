@@ -71,6 +71,7 @@
            :resolve-store-path-from-out-dir-and-name
            :resolve-test-script-from-test-script
            :resolve-num-tests-from-num-tests
+           :resolve-language-from-language-and-source
            :wait-on-manual
            :exit-command
            :guess-language
@@ -240,6 +241,18 @@ Optional DESCRIPTION is added to the path."
   (assert (and (numberp num-tests) (>= num-tests 0)) (num-tests)
           "Must supply the positive number of tests to run.")
   num-tests)
+
+(defun resolve-language-from-language-and-source (language &optional source)
+  (let ((class (nest
+                (second)
+                (find-if [{find-if {equalp (string-upcase language)}} #'car])
+                '((("JAVA") java)
+                  (("JAVASCRIPT") javascript)
+                  (("C" "CPP" "C++" "C-PLUS-PLUS" "C PLUS PLUS") clang)
+                  (("LISP" "CL" "COMMON LISP") lisp)))))
+    (if (and source (directory-p source))
+        (intern (concatenate 'string class "-PROJECT"))
+        class)))
 
 (defun wait-on-manual (manual)
   "Wait to terminate until the swank server returns if MANUAL is non-nil."
