@@ -785,8 +785,7 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
   "Instrument CLANG-PROJECT to print AST index before each full statement.
 
 * CLANG-PROJECT the project to instrument
-* ARGS passed through to the instrument method on underlying software objects.
-"
+* ARGS passed through to the instrument method on underlying software objects."
   ;; Instrument the non-entry point files in the project in parallel.
   (task-map (or (plist-get :num-threads args) 1)
             (lambda (instrumenter)
