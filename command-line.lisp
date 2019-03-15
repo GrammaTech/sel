@@ -1,13 +1,38 @@
+;;;; command-line.lisp --- General functionality for SEL command-line tools
+;;;
+;;; Command line utility functions and helpers for SEL-based
+;;; command-line tools.
+;;;
+;;; This package extends the
+;;; @url{https://github.com/fare/command-line-arguments,
+;;; command-line-arguments} package with numerous option definitions
+;;; and helper functions for parsing command line arguments and
+;;; options which are specific to SEL.  See the appendix for a full
+;;; list of the available options.  See the SEL/AST-DIFF/COMMANDS
+;;; package for example usage.
+;;;
+;;; @texi{command-line}
 (defpackage :software-evolution-library/command-line
   (:nicknames :sel/command-line)
-  (:documentation "Command line interface for three way merging of software")
+  (:documentation
+   "Generally useful functionality for SEL-based command-line tools.")
   (:use :common-lisp
         :alexandria
         :named-readtables
         :curry-compose-reader-macros
         :command-line-arguments
         :split-sequence
-        :software-evolution-library/utility)
+        :software-evolution-library/utility
+        ;; Software objects.
+        :software-evolution-library/software/project
+        :software-evolution-library/software/clang
+        :software-evolution-library/software/javascript
+        :software-evolution-library/software/java
+        :software-evolution-library/software/lisp
+        :software-evolution-library/software/clang-project
+        :software-evolution-library/software/javascript-project
+        :software-evolution-library/software/java-project
+        :software-evolution-library/software/lisp-project)
   (:import-from :bordeaux-threads :all-threads :thread-name :join-thread)
   (:import-from :cl-ppcre :scan)
   (:import-from :swank :create-server)
@@ -21,7 +46,8 @@
                 :pathname-parent-directory-pathname)
   (:shadowing-import-from :uiop/filesystem
                           :file-exists-p
-                          :directory-exists-p)
+                          :directory-exists-p
+                          :directory-files)
   (:shadowing-import-from :asdf-encodings :encoding-external-format)
   (:export :define-command
            ;; Functions to handle command line options and arguments.
@@ -79,7 +105,8 @@
   (create-server :port port :style :spawn :dont-close t))
 
 (defun handle-load (path)
-  (load path :external-format (encoding-external-format (detect-encoding path))))
+  (load path
+        :external-format (encoding-external-format (detect-encoding path))))
 
 (defun handle-eval (string)
   (eval (read-from-string string)))
@@ -232,19 +259,39 @@ inspecting the value of `*lisp-interaction*'."
        (quit ,errno)))
 
 (defun guess-language (&rest sources)
-  (flet ((%guess-language-from (source)
-           (unless (directory-p source)
-             (second (find-if (lambda (pair)
-                                (member (pathname-type source) (car pair)
-                                        :test #'equalp))
-                              '((("lisp") lisp)
-                                (("java") java)
-                                (("js") javascript)
-                                (("c" "cpp" "h" "hpp" "cc" "cxx" "hxx")
-                                 clang)))))))
-    (let ((guesses (mapcar #'%guess-language-from sources)))
-      (when (= 1 (length (remove-duplicates guesses)))
-        (car guesses)))))
+  "Guess the SEL software object class that best matches SOURCES.
+SOURCES should be a collection of paths.  The result is determined
+based on heuristics based on whether SOURCES points to files or
+directories and if files based on their extensions."
+  (let ((guesses
+         (mapcar (lambda (source)
+                   (nest
+                    (if (directory-p source)
+                        (when-let ((guess (apply #'guess-language
+                                                 (directory-files source))))
+                          (intern
+                           (concatenate 'string
+                             (symbol-name guess) "-PROJECT"))))
+                    (second)
+                    (find-if (lambda (pair)
+                               (member (pathname-type source) (car pair)
+                                       :test #'equalp)))
+                    ;; List of extensions and the associated sel/sw class.
+                    '((("lisp") lisp)
+                      (("java") java)
+                      (("js") javascript)
+                      (("c" "cpp" "h" "hpp" "cc" "cxx" "hxx") clang))))
+                 sources)))
+    #+debug (format t "GUESSES:~S~%" guesses)
+    ;; NOTE: If/when we start adding source languages for Makefiles
+    ;;       and shell scripts this heuristic will become much more
+    ;;       brittle.  We are going to have to expand our rules for
+    ;;       what constitutes a clang project vs. a javascript
+    ;;       project.  Probably best would be to create a general
+    ;;       "software project" that holds all types.
+    (when (= 1 (length (remove nil (remove-duplicates guesses))))
+      ;; Return first non-nil guess.
+      (find-if #'identity guesses))))
 
 (defun create-software (path &key
                                (language (guess-language path))

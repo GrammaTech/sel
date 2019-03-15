@@ -22,6 +22,7 @@
    ;; TODO: Remove those which aren't actually needed for testing.
    :software-evolution-library
    :software-evolution-library/utility
+   :software-evolution-library/command-line
    :software-evolution-library/rest
    :software-evolution-library/ast-diff/ast-diff
    :software-evolution-library/components/instrument
@@ -7296,6 +7297,16 @@ prints unique counters in the trace"
     (is (equal "/tmp" (trim-whitespace stdout)))
     (is (equal "" stderr))
     (is (zerop errno))))
+
+
+;;;; Command-line tests.
+(defsuite command-line-tests "Command line tests")
+
+(deftest guess-language-test ()
+  (is (eql 'clang (guess-language #P"this/foo.cpp")))
+  (is (eql 'clang-project
+           (guess-language (make-pathname :directory +grep-prj-dir+))))
+  (is (null (guess-language #P"foo.js" #P"bar.lisp"))))
 
 
 ;;;; Project tests.
