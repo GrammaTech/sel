@@ -692,15 +692,23 @@
 				(gcd-dir "gcd.s.intel"))))
   (:teardown (setf *gcd* nil)))
 
-(defixture odd-even-asm-super
+(defixture odd-even-asm-super-intel
   (:setup
     (setf *soft* (from-file (make-instance 'asm-super-mutant)
-			   (asm-test-dir "odd-even.asm"))
+			   (asm-test-dir "is-even.s.intel"))
 	 (fitness-harness *soft*) (software-dir "asm-super-mutant-fitness.c"))
-    (setf (sel/sw/asm-super-mutant::io-file *soft*) (asm-test-dir "odd-even.io"))
-    (target-function-name *soft* "is_even")
-    (setf (var-table *soft*)
-	  (parse-sanity-file (asm-test-dir "odd-even.nm"))))
+    (setf (sel/sw/asm-super-mutant::io-file *soft*) (asm-test-dir "is_even.io"))
+    (target-function-name *soft* "is_even"))
+
+  (:teardown (setf *soft* nil)))
+
+(defixture odd-even-asm-super-att
+  (:setup
+    (setf *soft* (from-file (make-instance 'asm-super-mutant)
+			   (asm-test-dir "is-even.s.att"))
+	 (fitness-harness *soft*) (software-dir "asm-super-mutant-fitness.c"))
+    (setf (sel/sw/asm-super-mutant::io-file *soft*) (asm-test-dir "is_even.io"))
+    (target-function-name *soft* "is_even"))
 
   (:teardown (setf *soft* nil)))
 
@@ -1710,21 +1718,28 @@
   ;; Only run these tests if we found libpapi.so.
   *lib-papi*)
 
-(deftest asm-super-mutant-finds-improved-version ()
-  (with-fixture odd-even-asm-super
-    ;; Add target function, and all possible single-cut variants.
-    (setf (mutants *soft*)
-	  (cons (create-target *soft*)
-		(create-all-simple-cut-variants *soft*)))
-    (evaluate nil *soft*)
-    (let ((best
-	   (lexicase-select-best
-	    (mutants *soft*)
-	    :predicate (lambda (x y) (< x y))))) ; Lower number is better.
-      ;; Is the first test result of the first best "better" (lower
-      ;; number) than the first test result of the original version?
-      (is (< (elt (fitness (first best)) 0)
-	     (elt (fitness (elt (mutants *soft*) 0)) 0))))))
+(defun asm-super-mutant-finds-improved-version ()
+  ;; Add target function, and all possible single-cut variants.
+  (setf (mutants *soft*)
+	(cons (create-target *soft*)
+	      (create-all-simple-cut-variants *soft*)))
+  (evaluate nil *soft*)
+  (let ((best
+	 (lexicase-select-best
+	  (mutants *soft*)
+	  :predicate (lambda (x y) (< x y))))) ; Lower number is better.
+    ;; Is the first test result of the first best "better" (lower
+    ;; number) than the first test result of the original version?
+    (is (< (elt (fitness (first best)) 0)
+	   (elt (fitness (elt (mutants *soft*) 0)) 0)))))
+
+(deftest asm-super-mutant-finds-improved-version-intel ()
+  (with-fixture odd-even-asm-super-intel
+    (asm-super-mutant-finds-improved-version)))
+
+(deftest asm-super-mutant-finds-improved-version-att ()
+  (with-fixture odd-even-asm-super-att
+    (asm-super-mutant-finds-improved-version)))
 
 
 ;;; REST tests
