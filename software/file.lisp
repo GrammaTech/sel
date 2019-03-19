@@ -75,4 +75,4 @@ modification time when writing OBJ to PATH."
       (call-next-method)
       (unless (equalp (canonical-pathname (original-path obj))
                       (canonical-pathname path))
-        (shell "cp -p ~a ~a" (original-path obj) path))))
+        (shell "cp --preserve=all ~a ~a" (original-path obj) path))))
