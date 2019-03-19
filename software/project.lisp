@@ -429,6 +429,8 @@ threads by creating separate build directory per thread.")
     ((obj project) &key
                      (bin (temp-file-name))
                      (build-dir (or *build-dir* (project-dir obj))))
+  (assert build-dir (obj)
+          "Project ~S requires a project-dir to build a phenome." obj)
   (let ((keep-file-p (probe-file build-dir)))
     ;; Ensure source and required artifacts are present in build-dir.
     (to-file obj build-dir)
