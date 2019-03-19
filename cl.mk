@@ -133,10 +133,10 @@ unit-check: test-artifacts $(TEST_LISP_DEPS) $(LISP_DEPS) $(MANIFEST)
 	--eval '(uiop:quit (if $(PACKAGE_NAME)/test::*success* 0 1))'
 
 unit-check/%: test-artifacts $(TEST_LISP_DEPS) $(LISP_DEPS) $(MANIFEST)
-	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LISP) $(LISP_FLAGS) \
+	@CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LISP) $(LISP_FLAGS) \
 	--load $(QUICK_LISP)/setup.lisp \
-	--eval '(ql:quickload :software-evolution-library/utility)' \
-	--eval '(ql:quickload :$(PACKAGE_NAME)/test)' \
+	--eval '(ql:quickload :software-evolution-library/utility :silent t)' \
+	--eval '(ql:quickload :$(PACKAGE_NAME)/test :silent t)' \
 	--eval '(setq sel/stefil+:*long-tests* t)' \
 	--eval '(setf uiop/image::*lisp-interaction* nil)' \
 	--eval '(setf sel/utility:*uninteresting-conditions* (list (quote stefil::test-style-warning)))' \
