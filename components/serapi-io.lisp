@@ -111,19 +111,19 @@
            :make-coq-case-pattern
            :make-coq-match
            :make-coq-definition
-           :coq-function-definition-p
-           ))
+           :coq-function-definition-p))
 (in-package :software-evolution-library/components/serapi-io)
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  ;; Ensure the two packages which compose the fare-quasiquote-extras
-  ;; package are loaded before we use the fare-quasiquote readtable.
-  (require :fare-quasiquote-readtable)
-  (require :fare-quasiquote-optima)
-  (defreadtable :serapi-readtable
-    ;; Must fuse FQ after SEL because otherwise the SBCL quasiquoter
-    ;; clobbers the FQ quasiquoter. Alt. fix is for CCRM and SEL to
-    ;; define a mixin readtable as done by FQ.
-    (:fuse :sel-readtable :fare-quasiquote-mixin))
+  (unless (find-readtable :serapi-readtable)
+    ;; Ensure the two packages which compose the fare-quasiquote-extras
+    ;; package are loaded before we use the fare-quasiquote readtable.
+    (require :fare-quasiquote-readtable)
+    (require :fare-quasiquote-optima)
+    (defreadtable :serapi-readtable
+      ;; Must fuse FQ after SEL because otherwise the SBCL quasiquoter
+      ;; clobbers the FQ quasiquoter. Alt. fix is for CCRM and SEL to
+      ;; define a mixin readtable as done by FQ.
+      (:fuse :sel-readtable :fare-quasiquote-mixin)))
   (in-readtable :serapi-readtable))
 
 (defvar *sertop-path* "sertop" "Path to sertop program.")
