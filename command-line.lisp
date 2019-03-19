@@ -430,6 +430,9 @@ Keyword arguments are as follows:
     '((("build-command" #\b) :type string :optional t :initial-value "make"
        :documentation "shell command to build project directory")))
   (defparameter +clang-project-command-line-options+
-    '((("compilation-database" #\D) :type string :optional t
+    '((("artifacts" #\a) :type string :optional t
+       :action #'handle-comma-delimited-argument
+       :documentation "build products")
+      (("compilation-database" #\D) :type string :optional t
        :action #'read-compilation-database
        :documentation "path to clang compilation database"))))

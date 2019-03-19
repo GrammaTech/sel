@@ -87,13 +87,17 @@
   (unless (every #'resolve-file (list source1 source2))
     (exit-command ast-diff 2 (error "Missing source.")))
   (unless language
-    (setf language (guess-language-from source1 source2)))
+    (setf language (guess-language source1 source2)))
   ;; Create the diff.
   (let ((diff
          (apply #'sel/ast-diff/ast-diff:ast-diff
                 (mapcar
-                 {create-software-from
-                  _ language flags compiler compilation-database build-command}
+                 {create-software _
+                                  :compiler compiler
+                                  :flags flags
+                                  :build-command build-command
+                                  :artifacts artifacts
+                                  :compilation-database compilation-database}
                  (list source1 source2)))))
     ;; Print according to the RAW option.
     (if raw
@@ -122,7 +126,7 @@
   (setf old-file (truenamize old-file)
 	my-file (truenamize my-file)
 	your-file (truenamize your-file)
-        language (or language (guess-language-from old-file my-file your-file)))
+        language (or language (guess-language old-file my-file your-file)))
   ;; Force OUT-DIR when running as a command line utility and merging
   ;; whole directories.  We can't write multiple files to STDOUT.
   (when (and (not uiop/image:*lisp-interaction*)
