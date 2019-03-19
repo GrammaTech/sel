@@ -43,7 +43,7 @@ LISP_DEPS ?=				\
 	$(wildcard src/*.lisp)
 
 # Default lisp to build manifest file.
-LISP ?= ccl
+LISP ?= sbcl
 ifneq (,$(findstring sbcl, $(LISP)))
 ifeq ("$(SBCL_HOME)","")
 LISP_HOME = SBCL_HOME=$(dir $(shell which $(LISP)))../lib/sbcl
