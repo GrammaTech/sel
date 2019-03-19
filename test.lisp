@@ -677,11 +677,19 @@
   (:teardown (setf *soft* nil)))
 
 (defixture gcd-asm
-  (:setup (setf *gcd* (from-file (make-instance 'asm) (gcd-dir "gcd.s"))))
+  (:setup (setf *gcd* (from-file (make-instance 'asm) (gcd-dir "gcd.s.intel"))))
   (:teardown (setf *gcd* nil)))
 
-(defixture gcd-asm-heap
-  (:setup (setf *gcd* (from-file (make-instance 'asm-heap) (gcd-dir "gcd.s"))))
+(defixture gcd-asm-heap-att
+  (:setup
+   (setf *gcd* (from-file (make-instance 'asm-heap)
+			      (gcd-dir "gcd.s.att"))))
+  (:teardown (setf *gcd* nil)))
+
+(defixture gcd-asm-heap-intel
+  (:setup
+   (setf *gcd* (from-file (make-instance 'asm-heap)
+				(gcd-dir "gcd.s.intel"))))
   (:teardown (setf *gcd* nil)))
 
 (defixture odd-even-asm-super
@@ -1277,8 +1285,6 @@
 ;;; ASM representation.
 (defsuite asm-tests "ASM representation.")
 
-
-
 (deftest simple-read ()
   (with-fixture gcd-asm
     (is (equal 'asm (type-of *gcd*)))))
@@ -1290,7 +1296,7 @@
            (to-file *gcd* a)
            (multiple-value-bind (out err ret)
                (shell "diff ~s ~a"
-                                                  (namestring (gcd-dir "gcd.s")) a)
+		      (namestring (gcd-dir "gcd.s.intel")) a)
              (declare (ignorable out err))
              (is (= 0 ret))))
       (delete-file a))))
@@ -1305,8 +1311,7 @@
          (with-fixture gcd-asm
            (to-file (copy *gcd*) a)
            (multiple-value-bind (out err ret)
-               (shell "diff ~s ~a"
-                                                  (namestring (gcd-dir "gcd.s")) a)
+               (shell "diff ~s ~a" (namestring (gcd-dir "gcd.s.intel")) a)
              (declare (ignorable out err))
              (is (= 0 ret))))
       (delete-file a))))
@@ -1481,56 +1486,222 @@
           (t (is (= (size crossed) (size *gcd*)))))))))
 
 
+
 ;;; ASM-HEAP representation.
-(deftest edit-of-asm-heap-copy-does-not-change-original ()
-  (with-fixture gcd-asm-heap
-    (let ((orig-hash (sxhash (genome *gcd*)))
-          (variant (copy *gcd*)))
-      ;; Multiple tries to apply a mutation creating a difference.
-      ;; Stochastically some might result in the same genome, e.g. by
-      ;; swapping to identical instructions.
-      (is (iter (as count upfrom 0)
-                (handler-bind
-                    ((no-mutation-targets
-                      (lambda (c)
-                        (declare (ignorable c))
-                        (invoke-restart 'try-another-mutation))))
-                  (mutate variant))
-                (when (not (equal-it (genome variant) (genome *gcd*)))
-                  (return t))
-                (when (> count 100)
-                  (return nil)))
-          "In 100 tries, a mutation results in a different mutated genome.")
-      (is (equal orig-hash (sxhash (genome *gcd*)))))))
 
-(deftest asm-heap-cut-actually-shortens ()
-  (with-fixture gcd-asm-heap
-    (let ((variant (copy *gcd*)))
+(deftest simple-asm-heap-read-intel ()
+  (with-fixture gcd-asm-heap-intel
+    (is (equal 'asm-heap (type-of *gcd*)))
+    (is (equal (asm-syntax *gcd*) ':intel))))
+
+(deftest simple-asm-heap-read-att ()
+  (with-fixture gcd-asm-heap-att
+    (is (equal 'asm-heap (type-of *gcd*)))
+    (is (equal (asm-syntax *gcd*) ':att))))
+
+(defun idempotent-asm-heap-read-write (filename)
+  (let ((a (temp-file-name)))
+    (unwind-protect
+	 (to-file *gcd* a)
+      (multiple-value-bind (out err ret)
+	  (shell "diff ~s ~a"
+		 (namestring (gcd-dir filename)) a)
+	(declare (ignorable out err))
+	(is (= 0 ret)))
+      (delete-file a))))
+
+(deftest idempotent-asm-heap-read-write-intel ()
+  (with-fixture gcd-asm-heap-intel
+    (idempotent-asm-heap-read-write "gcd.s.intel")))
+
+(deftest idempotent-asm-heap-read-write-att ()
+  (with-fixture gcd-asm-heap-att
+    (idempotent-asm-heap-read-write "gcd.s.att")))
+
+(deftest idempotent-asm-heap-copy-intel ()
+  (with-fixture gcd-asm-heap-intel
+    (is (equal-it *gcd* (copy *gcd*) nil '(oid)))))
+
+(deftest idempotent-asm-heap-copy-att ()
+  (with-fixture gcd-asm-heap-att
+    (is (equal-it *gcd* (copy *gcd*) nil '(oid)))))
+
+(defun idempotent-asm-heap-read-copy-write (filename)
+  (let ((a (temp-file-name)))
+    (unwind-protect
+	 (to-file (copy *gcd*) a)
+      (multiple-value-bind (out err ret)
+	  (shell "diff ~s ~a" (namestring (gcd-dir filename)) a)
+	(declare (ignorable out err))
+	(is (= 0 ret)))
+      (delete-file a))))
+
+(deftest idempotent-asm-heap-read-copy-write-intel ()
+  (with-fixture gcd-asm-heap-intel
+    (idempotent-asm-heap-read-write "gcd.s.intel")))
+
+(deftest idempotent-asm-heap-read-copy-write-att ()
+  (with-fixture gcd-asm-heap-att
+    (idempotent-asm-heap-read-write "gcd.s.att")))
+
+(defun edit-of-asm-heap-copy-does-not-change-original ()
+  (let ((orig-hash (sxhash (genome *gcd*)))
+	(variant (copy *gcd*)))
+    ;; Multiple tries to apply a mutation creating a difference.
+    ;; Stochastically some might result in the same genome, e.g. by
+    ;; swapping to identical instructions.
+    (is (iter (as count upfrom 0)
+	      (handler-bind
+		  ((no-mutation-targets
+		    (lambda (c)
+		      (declare (ignorable c))
+		      (invoke-restart 'try-another-mutation))))
+		(mutate variant))
+	      (when (not (equal-it (genome variant) (genome *gcd*)))
+		(return t))
+	      (when (> count 100)
+		(return nil)))
+	"In 100 tries, a mutation results in a different mutated genome.")
+    (is (equal orig-hash (sxhash (genome *gcd*))))))
+
+(deftest edit-of-asm-heap-copy-does-not-change-original-intel ()
+  (with-fixture gcd-asm-heap-intel
+    (edit-of-asm-heap-copy-does-not-change-original)))
+
+(deftest edit-of-asm-heap-copy-does-not-change-original-att ()
+  (with-fixture gcd-asm-heap-intel
+    (edit-of-asm-heap-copy-does-not-change-original)))
+
+(defun asm-heap-cut-actually-shortens ()
+  (let ((variant (copy *gcd*)))
       (apply-mutation variant (make-instance 'simple-cut :targets 4))
-      (is (< (length (genome variant)) (length (genome *gcd*)))))))
+      (is (< (length (genome variant)) (length (genome *gcd*))))))
 
-(deftest asm-heap-insertion-actually-lengthens ()
-  (with-fixture gcd-asm-heap
-    (let ((variant (copy *gcd*)))
-      (apply-mutation variant (make-instance 'simple-insert
-					     :targets (list 4 8)))
-      (is (> (length (genome variant)) (length (genome *gcd*)))))))
+(deftest asm-heap-cut-actually-shortens-intel ()
+  (with-fixture gcd-asm-heap-intel
+    (asm-heap-cut-actually-shortens)))
 
-(deftest asm-heap-swap-maintains-length ()
-  (with-fixture gcd-asm-heap
-    (let ((variant (copy *gcd*))
-          (mutation
-           (make-instance 'simple-swap
-			  :targets (list
-				    (position-if
-				     [{equalp "movsd"} #'asm-line-info-opcode]
-				     (genome *gcd*))
-				    (position-if
-				     [{equalp "call"} #'asm-line-info-opcode]
-				     (genome *gcd*))))))
-      (setf variant (apply-mutation variant mutation))
-      (is (not (equalp (genome variant) (genome *gcd*))))
-      (is (= (length (genome variant)) (length (genome *gcd*)))))))
+(deftest asm-heap-cut-actually-shortens-att ()
+  (with-fixture gcd-asm-heap-att
+    (asm-heap-cut-actually-shortens)))
+
+(defun asm-heap-insertion-actually-lengthens ()
+  (let ((variant (copy *gcd*)))
+    (apply-mutation variant (make-instance 'simple-insert
+					   :targets (list 4 8)))
+    (is (> (length (genome variant)) (length (genome *gcd*))))))
+
+(deftest asm-heap-insertion-actually-lengthens-intel ()
+  (with-fixture gcd-asm-heap-intel
+    (asm-heap-insertion-actually-lengthens)))
+
+(deftest asm-heap-insertion-actually-lengthens-att ()
+  (with-fixture gcd-asm-heap-att
+    (asm-heap-insertion-actually-lengthens)))
+
+;;;
+;;; Note that these operands chosen (movsd, call) are
+;;; both in common with both intel and att syntax (so work for both).
+;;;
+(defun asm-heap-swap-maintains-length ()
+  (let ((variant (copy *gcd*))
+	(mutation
+	 (make-instance 'simple-swap
+			:targets (list
+				  (position-if
+				   [{equalp "movsd"} #'asm-line-info-opcode]
+				   (genome *gcd*))
+				  (position-if
+				   [{equalp "call"} #'asm-line-info-opcode]
+				   (genome *gcd*))))))
+    (setf variant (apply-mutation variant mutation))
+    (is (not (equalp (genome variant) (genome *gcd*))))
+    (is (= (length (genome variant)) (length (genome *gcd*))))))
+
+(deftest asm-heap-swap-maintains-length-intel ()
+  (with-fixture gcd-asm-heap-intel
+    (asm-heap-swap-maintains-length)))
+
+(deftest asm-heap-swap-maintains-length-att ()
+  (with-fixture gcd-asm-heap-att
+    (asm-heap-swap-maintains-length)))
+
+(defun asm-heap-replace-operand-maintains-length ()
+  (let ((variant (copy *gcd*)))
+    (apply-mutation variant (make-instance 'asm-replace-operand
+					   :targets (list 16 17)))
+    (is (not (tree-equal (genome variant) (genome *gcd*) :test #'tree-equal)))
+    (is (= (length (genome variant)) (length (genome *gcd*))))))
+
+(deftest asm-heap-replace-operand-maintains-length-intel ()
+  (with-fixture gcd-asm-heap-intel
+    (asm-heap-replace-operand-maintains-length)))
+
+(deftest asm-heap-replace-operand-maintains-length-att ()
+  (with-fixture gcd-asm-heap-att
+    (asm-heap-replace-operand-maintains-length)))
+
+(defun asm-heap-replace-operand-changes-operand ()
+  (let ((variant (copy *gcd*)))
+    ;; need a deep copy of the heap
+    (setf (lines variant)(lines *gcd*))
+    (apply-mutation variant (make-instance 'asm-replace-operand
+					   :targets (list 16 17)))
+    (is (not (equalp (asm-line-info-operands (elt (genome variant) 16))
+		     (asm-line-info-operands (elt (genome *gcd*) 16)))))))
+
+(deftest asm-heap-replace-operand-changes-operand-intel ()
+  (with-fixture gcd-asm-heap-intel
+    (asm-heap-replace-operand-changes-operand)))
+
+(deftest asm-heap-replace-operand-changes-operand-att ()
+  (with-fixture gcd-asm-heap-att
+    (asm-heap-replace-operand-changes-operand)))
+
+(defun asm-heap-simple-crossover-test ()
+  (let ((variant (copy *gcd*)))
+    (apply-mutation variant (make-instance 'simple-cut :targets 0))
+    (let ((new (crossover variant *gcd*)))
+      (is (not (tree-equal (genome new) (genome *gcd*) :test #'tree-equal))))))
+
+(deftest asm-heap-simple-crossover-test-intel ()
+  (with-fixture gcd-asm-heap-intel
+    (asm-heap-simple-crossover-test)))
+
+(deftest asm-heap-simple-crossover-test-att ()
+  (with-fixture gcd-asm-heap-att
+    (asm-heap-simple-crossover-test)))
+
+(defun asm-heap-can-form-a-phenome ()
+  (with-temp-file (bin)
+    (ignore-phenome-errors
+     (is (phenome *gcd* :bin bin)
+	 "Phenome works on an ASM-HEAP software object.")
+     (is (probe-file bin)
+	 "Phenome creates the binary file for an ASM-HEAP software object.")
+     (is (nth-value 2 (shell "~a 1 1" bin))
+       "Phenome creates a runnable binary for an ASM-HEAP software object."))))
+
+(deftest (asm-heap-can-form-a-phenome-intel :long-running) ()
+  (with-fixture gcd-asm-heap-intel
+    (asm-heap-can-form-a-phenome)))
+
+(deftest (asm-heap-can-form-a-phenome-att :long-running) ()
+  (with-fixture gcd-asm-heap-att
+    (asm-heap-can-form-a-phenome)))
+
+(defun asm-heap-homologous-crossover-same-same ()
+  (is (tree-equal (genome *gcd*)
+		  (genome (homologous-crossover *gcd* (copy *gcd*)))
+		  :test 'equalp)))
+
+(deftest asm-heap-homologous-crossover-same-same-intel ()
+  (with-fixture gcd-asm-heap-intel
+    (asm-heap-homologous-crossover-same-same)))
+
+(deftest asm-heap-homologous-crossover-same-same-att ()
+  (with-fixture gcd-asm-heap-att
+    (asm-heap-homologous-crossover-same-same)))
 
 
 ;;; ASM-SUPER-MUTANT representation.
@@ -1660,8 +1831,8 @@
 (deftest parser-test-4 ()
   (with-fixture csurf-asm-calc
     (let ((op-line (find :op (genome *soft*) :key 'asm-line-info-type)))
-      (is (equalp (asm-line-info-opcode op-line) "sub"))
-      (is (equalp (asm-line-info-operands op-line) '(("rsp" "COMMA" 8)))))))
+      (is (and (eq (asm-line-info-opcode op-line) 'sel/asm::sub)
+	       (equal (asm-line-info-operands op-line) '((sel/asm::rsp) (8))))))))
 
 (deftest parser-test-5 ()
   (with-fixture csurf-asm-calc
