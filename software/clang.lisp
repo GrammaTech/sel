@@ -1036,9 +1036,7 @@ MUTATION to SOFTWARE.
 	 (s1-full? (full-stmt-p software s1))
 	 (s2-full? (full-stmt-p software s2))
 	 (s1-semi? (has-trailing-semicolon-p s1))
-	 (s2-semi? (has-trailing-semicolon-p s2))
-	 (s1-stmt? (or s1-full? s1-semi?))
-	 (s2-stmt? (or s2-full? s2-semi?)))
+	 (s2-semi? (has-trailing-semicolon-p s2)))
     `((:set (:stmt1 . ,s1)
 	    ;; (:stmt2 . ,s2)
 	    (:stmt2 . ,(if (or s1-full? s1-semi?)
@@ -1047,8 +1045,7 @@ MUTATION to SOFTWARE.
       (:set (:stmt1 . ,s2)
 	    (:stmt2 . ,(if (or s2-full? s2-semi?)
 			   s1 ;; depending on fixup-mutations to add semis
-			   (remove-semicolon s1)))
-	    ))))
+			   (remove-semicolon s1)))))))
 
 (define-mutation clang-swap-full (clang-swap)
   ((targeter :initform {pick-bad-bad _ :filter #'full-stmt-filter}))
@@ -1142,27 +1139,14 @@ software object."))
 * SOFTWARE object to be modified by the mutation
 "
   (labels
-      ((text-after-ast-helper (ast path)
-         (bind (((head . tail) path))
-           (if tail
-               (text-after-ast-helper (nth head (ast-children ast)) tail)
-               (nth (1+ head) (ast-children ast)))))
-       (text-after-ast (ast)
-         (text-after-ast-helper (ast-root software) (ast-path ast)))
-       (compose-children (&rest parents)
+      ((compose-children (&rest parents)
          (-<>> (iter (for p in parents)
                      ;; In case of an unbraced if/loop body, include
                      ;; the body directly.
                      (if (eq :CompoundStmt (ast-class p))
                          (appending (get-immediate-children software p))
                          (collecting p)))
-	   (interleave <> (format nil "~%"))
-	   #|
-               (append <> (if (not (starts-with #\; (text-after-ast guarded)))
-                              (list (format nil ";~%"))
-                              nil))
-	   |#
-	       )))
+	   (interleave <> (format nil "~%")))))
 
       (let ((children
           (switch ((ast-class guarded))
@@ -3795,15 +3779,7 @@ Move the semicolon in just one level, but no further"
 
 (defun add-semicolon-to-expr (ast)
   "Add a semicolon to the end of AST"
-  (let* ((children (ast-children ast))
-	 (lc (lastcar children))
-	 (new-children
-	  (if (stringp lc)
-	      (append (butlast children)
-		      (list (concatenate 'string lc ";")))
-	      (append children ";"))))
-    (copy ast :children ast
-	  :full-stmt t)))
+  (copy ast :children ast :full-stmt t))
 
 (defun fix-semicolons-ast (ast)
   "Move semicolons into the appropriate stmt nodes in the children of node AST"
