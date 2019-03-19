@@ -6,6 +6,7 @@
 #                      (default: PACKAGE_NAME)
 # DOC_PACKAGES ------- Names of packages to document
 #                      (default: PACKAGE_NAME)
+# DOC_DEPS ----------- Optional additional Makefile targets for doc
 # BINS --------------- Names of binaries to build
 # TEST_ARTIFACTS ----- Name of dependencies for testing
 # LISP_DEPS ---------- Packages require to build CL package
@@ -254,7 +255,9 @@ real-clean: more-clean
 
 
 ## Documentation
-doc: api
+DOC_DEPS ?=
+
+doc: api $(DOC_DEPS)
 	make -C doc
 
 api: doc/include/sb-texinfo.texinfo
