@@ -53,7 +53,7 @@
    ;; Functions needed by alist.lisp
    :record-unstable
    :merge-diffs2
-   ))
+   :merge3))
 (in-package :software-evolution-library/ast-diff/ast-diff)
 (in-readtable :curry-compose-reader-macros)
 ;;; Comments on further algorithm improvements

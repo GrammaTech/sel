@@ -187,7 +187,8 @@
               ;; Inhibit the clack "Hunchentoot server is started." messages.
               (let ((*standard-output* (make-broadcast-stream)))
                 (clack:clackup (snooze:make-clack-app) :port *clack-port*))
-	    (sleep *clack-delay*)) ; wait for a second before continuing, ensure server is up
+            ;; Wait for a second before continuing, to ensure the server is up.
+	    (sleep *clack-delay*))
         (try-a-new-port ()
           :report "Try using a new port"
           (incf *clack-port*)
@@ -705,11 +706,11 @@
 
 (defixture odd-even-asm-super-att
   (:setup
-    (setf *soft* (from-file (make-instance 'asm-super-mutant)
+   (setf *soft* (from-file (make-instance 'asm-super-mutant)
 			   (asm-test-dir "is-even.s.att"))
 	 (fitness-harness *soft*) (software-dir "asm-super-mutant-fitness.c"))
-    (setf (sel/sw/asm-super-mutant::io-file *soft*) (asm-test-dir "is_even.io"))
-    (target-function-name *soft* "is_even"))
+   (setf (sel/sw/asm-super-mutant::io-file *soft*) (asm-test-dir "is_even.io"))
+   (target-function-name *soft* "is_even"))
 
   (:teardown (setf *soft* nil)))
 
@@ -849,7 +850,8 @@
                                             :directory +etc-dir+))
            (make-instance 'json-database :json-stream in)))
    (setf *soft* (from-file (make-instance 'clang-w-fodder)
-                           (lisp-bugs-dir "no-insert-fodder-decl-mutation-targets.c"))))
+                           (lisp-bugs-dir
+                            "no-insert-fodder-decl-mutation-targets.c"))))
   (:teardown
    (setf *database* nil)
    (setf *soft* nil)))
@@ -1141,49 +1143,52 @@
    (setf *test-suite* nil)))
 
 (defixture cs-tighten-clang
-  (:setup (setf *soft*
-                (from-file (make-instance 'clang)
-                           (cs-tighten-dir "test-tighten.c")))
-          (setf *test-suite*
-                (make-instance 'test-suite
-                  :test-cases
-                  (iter (for i below 6)
-                        (collecting
-                         (make-instance 'test-case
-                           :program-name (namestring (cs-tighten-dir "fitness.sh"))
-                           :program-args (list :bin (write-to-string i))))))))
+  (:setup (setf
+           *soft*
+           (from-file (make-instance 'clang)
+                      (cs-tighten-dir "test-tighten.c"))
+           *test-suite*
+           (make-instance 'test-suite
+             :test-cases
+             (iter (for i below 6)
+                   (collecting
+                     (make-instance 'test-case
+                       :program-name (namestring (cs-tighten-dir "fitness.sh"))
+                       :program-args (list :bin (write-to-string i))))))))
   (:teardown
    (setf *soft* nil)
    (setf *test-suite* nil)))
 
 (defixture cs-add-guard-clang
-  (:setup (setf *soft*
-                (from-file (make-instance 'clang)
-                           (cs-add-guard-dir "test-add-guard.c")))
-          (setf *test-suite*
-                (make-instance 'test-suite
-                  :test-cases
-                  (iter (for i below 8)
-                        (collecting
-                         (make-instance 'test-case
-                           :program-name (namestring (cs-add-guard-dir "fitness.sh"))
-                           :program-args (list :bin (write-to-string i))))))))
+  (:setup (setf
+           *soft*
+           (from-file (make-instance 'clang)
+                      (cs-add-guard-dir "test-add-guard.c"))
+           *test-suite*
+           (nest
+            (make-instance 'test-suite :test-cases)
+            (iter (for i below 8))
+            (collecting
+              (make-instance 'test-case
+                :program-name (namestring (cs-add-guard-dir "fitness.sh"))
+                :program-args (list :bin (write-to-string i)))))))
   (:teardown
    (setf *soft* nil)
    (setf *test-suite* nil)))
 
 (defixture cs-divide-clang
-  (:setup (setf *soft*
-                (from-file (make-instance 'clang)
-                           (cs-divide-dir "divide.c")))
-          (setf *test-suite*
-                (make-instance 'test-suite
-                  :test-cases
-                  (iter (for i below 5)
-                        (collecting
-                         (make-instance 'test-case
-                           :program-name (namestring (cs-divide-dir "fitness.sh"))
-                           :program-args (list :bin (write-to-string i))))))))
+  (:setup (setf
+           *soft*
+           (from-file (make-instance 'clang)
+                      (cs-divide-dir "divide.c"))
+           *test-suite*
+           (make-instance 'test-suite
+             :test-cases
+             (iter (for i below 5)
+                   (collecting
+                     (make-instance 'test-case
+                       :program-name (namestring (cs-divide-dir "fitness.sh"))
+                       :program-args (list :bin (write-to-string i))))))))
   (:teardown
    (setf *soft* nil)
    (setf *test-suite* nil)))
@@ -1290,9 +1295,10 @@
    (setf *soft* nil)))
 
 (defixture task-runner
-  (:setup (setf *soft*
-                (list (run-task (make-instance 'parent-task :object "test1") 10)
-                      (run-task (make-instance 'parent-task :object "test2") 20)))
+  (:setup (setf
+           *soft*
+           (list (run-task (make-instance 'parent-task :object "test1") 10)
+                 (run-task (make-instance 'parent-task :object "test2") 20)))
 	  ;; wait for all the threads to terminate
 	  (mapcar 'bt:join-thread (task-runner-workers (first *soft*)))
 	  (mapcar 'bt:join-thread (task-runner-workers (second *soft*))))
@@ -1476,7 +1482,8 @@
           ((< cross-a insert-pt)
            (is (= (size crossed) (size *gcd*))))
           ((= cross-a insert-pt)
-           (is (= (size crossed) (- (size *gcd*) (- stmt-to-insert insert-pt)))))
+           (is (= (size crossed)
+                  (- (size *gcd*) (- stmt-to-insert insert-pt)))))
           (t (is (= (size crossed) (1+ (size *gcd*))))))))))
 
 (deftest homologous-crossover-with-swap ()
@@ -1975,15 +1982,14 @@
     (with-fixture gcd-elf
       (phenome *gcd* :bin a)
       (multiple-value-bind (out err ret)
-          (shell "diff ~s ~a"
-                                             (namestring (gcd-dir "gcd")) a)
+          (shell "diff ~s ~a" (namestring (gcd-dir "gcd")) a)
         (declare (ignorable out err))
         (is (= 0 ret))))))
 
 (deftest elf-copy-same-genome ()
   (with-fixture gcd-elf
     (is (equal-it (genome *gcd*)
-                                              (genome (copy *gcd*))))))
+                  (genome (copy *gcd*))))))
 
 (deftest elf-idempotent-read-copy-write ()
   (with-temp-file (a)
@@ -1991,7 +1997,7 @@
       (phenome (copy *gcd*) :bin a)
       (multiple-value-bind (out err ret)
           (shell "diff ~s ~a"
-                                             (namestring (gcd-dir "gcd")) a)
+                 (namestring (gcd-dir "gcd")) a)
         (declare (ignorable out err))
         (is (= 0 ret))))))
 
@@ -2237,8 +2243,8 @@
           (variant (copy *hello-world*)))
       (apply-mutation
           variant
-        `(clang-cut (:stmt1 . ,(stmt-with-text variant
-                                               "printf(\"Hello, World!\\n\");"))))
+        `(clang-cut (:stmt1 . ,(stmt-with-text
+                                variant "printf(\"Hello, World!\\n\");"))))
       (is (string= (genome *hello-world*) orig-genome))
       (is (not (string= (genome variant) orig-genome))))))
 
@@ -2262,8 +2268,8 @@
     (let ((variant (copy *hello-world*)))
       (apply-mutation
           variant
-        `(clang-cut (:stmt1 . ,(stmt-with-text variant
-                                               "printf(\"Hello, World!\\n\");"))))
+        `(clang-cut (:stmt1 . ,(stmt-with-text
+                                variant "printf(\"Hello, World!\\n\");"))))
       (is (ast-equal-p (stmt-with-text *hello-world* "return 0;")
                        (stmt-with-text variant "return 0;"))))))
 
@@ -2572,7 +2578,8 @@ is not to be found"
   (with-fixture no-mutation-targets-clang
     (handler-case
         (progn
-          (build-op (make-instance 'clang-promote-guarded :object *soft*) *soft*)
+          (build-op (make-instance 'clang-promote-guarded :object *soft*)
+                    *soft*)
           (is nil "build-op should have thrown no-mutation-targets error"))
       (error (e)
         (is (equal (type-of e) 'no-mutation-targets)
@@ -3163,7 +3170,8 @@ int x = CHARSIZE;")))
       (apply-mutation *soft* (make-instance 'insert-fodder-decl
                                :object *soft*)))))
 
-(deftest (insert-decl-lengthens-a-clang-w-fodder-software-object :long-running) ()
+(deftest
+    (insert-decl-lengthens-a-clang-w-fodder-software-object :long-running) ()
   (handler-bind ((mutate ; TODO: Maybe better to fix the hello-world C file.
                   (lambda (e)
                     (if (find-restart 'keep-partial-asts)
@@ -3178,7 +3186,8 @@ int x = CHARSIZE;")))
         (is (string/= (genome variant)
                       (genome *hello-world*)))))))
 
-(deftest (insert-decl-rename-lengthens-and-insinuates-a-clang-w-fodder :long-running) ()
+(deftest (insert-decl-rename-lengthens-and-insinuates-a-clang-w-fodder
+          :long-running) ()
   (with-fixture gcd-clang-w-fodder
     (let ((var (copy *gcd*))
           (mut (make-instance 'insert-fodder-decl-rep :object *gcd*)))
@@ -3401,11 +3410,15 @@ int x = CHARSIZE;")))
   (let ((*java-file-name* "TestSimple_WhileForIfPrint_2"))
     (with-fixture general-fixture-java
       (let ((before-genome (genome *soft*))
-            (after-genome (genome (apply-mutation *soft*
-                                    (make-instance 'java-insert :targets
-                                                   `((:stmt1 . ,(java-make-literal :integer 2))
-                                                     (:value1 . ,(java-make-literal :string
-                                                                                    "System.out.println(\"THIS STATEMENT INSERTED\");")))))))
+            (after-genome
+             (nest
+              (genome)
+              (apply-mutation *soft*)
+              (make-instance 'java-insert :targets)
+              (list (cons :stmt1 (java-make-literal :integer 2)))
+              (cons :value1)
+              (java-make-literal :string)
+              "System.out.println(\"THIS STATEMENT INSERTED\");"))
             (target "THIS STATEMENT INSERTED"))
         (is (not (scan-to-strings target before-genome)))
         (is (scan-to-strings target after-genome))))))
@@ -4186,7 +4199,7 @@ int x = CHARSIZE;")))
 
 (defixture hello-world-clang-w-ancestry
   (:setup
-   (setf software-evolution-library/software/ancestral::*next-ancestry-id* 0
+   (setf sel/sw/ancestral::*next-ancestry-id* 0
          *hello-world*
          (from-file (make-instance 'clang-w-ancestry :compiler "clang"
                                    :flags '("-g -m32 -O0"))
@@ -4724,14 +4737,15 @@ Useful for printing or returning differences in the REPL."
     (with-fixture broken-compilation-gcc
       (is (scan (quote-meta-chars "missing_variable =")
                 ;; Without the retries this test can fail stochastically.
-                (iter (for fixed = (fix-compilation
-                                    (handler-bind
-                                        ((mutate
-                                          (lambda (e)
-                                            (declare (ignorable e))
-                                            (invoke-restart 'keep-partial-asts))))
-                                      (copy *broken-gcc*))
-                                    4))
+                (iter (for fixed =
+                           (fix-compilation
+                            (handler-bind
+                                ((mutate
+                                  (lambda (e)
+                                    (declare (ignorable e))
+                                    (invoke-restart 'keep-partial-asts))))
+                              (copy *broken-gcc*))
+                            4))
                       (unless (zerop (length (genome fixed)))
                         (return (genome fixed)))))))))
 
@@ -5050,7 +5064,8 @@ Useful for printing or returning differences in the REPL."
                                           (stmt-starting-with-text *collatz*)
                                           (get-immediate-children *collatz*)
                                           (second))
-                                     (stmt-with-text *collatz* "m = 3*m + 1;"))))
+                                     (stmt-with-text
+                                      *collatz* "m = 3*m + 1;"))))
     (is (equalp (stmt-with-text *collatz* "++k;")
                 (ancestor-after *collatz*
                                      (->> "while"
@@ -5063,22 +5078,23 @@ Useful for printing or returning differences in the REPL."
   (with-fixture crossover-no-compound-stmt-clang
     (is (equalp (stmt-starting-with-text *soft* "for (j = 0")
                 (ancestor-after *soft*
-                                     (stmt-starting-with-text *soft* "for (i = 0")
-                                     (stmt-with-text *soft*
-                                                     "printf(\"%d\\n\", i+j);"))))
+                                     (stmt-starting-with-text
+                                      *soft* "for (i = 0")
+                                     (stmt-with-text
+                                      *soft* "printf(\"%d\\n\", i+j);"))))
     (is (equalp (stmt-with-text *soft* "printf(\"%d\\n\", i+j);")
                 (ancestor-after *soft*
                                      (stmt-starting-with-text *soft*
                                                               "for (j = 0")
-                                     (stmt-with-text *soft*
-                                                     "printf(\"%d\\n\", i+j);"))))
+                                     (stmt-with-text
+                                      *soft* "printf(\"%d\\n\", i+j);"))))
     (is (equalp (stmt-starting-with-text *soft* "for (i = 0")
                 (ancestor-after *soft*
                                      (->> "int main"
                                           (stmt-starting-with-text *soft*)
                                           (function-body *soft*))
-                                     (stmt-with-text *soft*
-                                                     "printf(\"%d\\n\", i+j);"))))
+                                     (stmt-with-text
+                                      *soft* "printf(\"%d\\n\", i+j);"))))
     (is (equalp (stmt-with-text *soft* "return 0;")
                 (ancestor-after *soft*
                                      (->> "int main"
@@ -5108,7 +5124,8 @@ Useful for printing or returning differences in the REPL."
                                                      "m = 3*m + 1;"))))
     (is (equalp (stmt-with-text *collatz* "int k = 0;")
                 (enclosing-full-stmt *collatz*
-                                     (stmt-with-text *collatz* "int k = 0;"))))))
+                                     (stmt-with-text
+                                      *collatz* "int k = 0;"))))))
 
 (deftest enclosing-full-stmt-no-compound-stmt-test ()
   (with-fixture crossover-no-compound-stmt-clang
@@ -5172,10 +5189,11 @@ Useful for printing or returning differences in the REPL."
                      (find-if [{eq :IfStmt} #'ast-class])
                      (get-immediate-children *collatz*)
                      (second))
-                (enclosing-block *collatz* (stmt-with-text *collatz* "m /= 2;"))))
-    (is (null (enclosing-block *collatz*
-                               (->> (stmt-starting-with-text *collatz* "int collatz")
-                                    (function-body *collatz*)))))))
+                (enclosing-block *collatz*
+                                 (stmt-with-text *collatz* "m /= 2;"))))
+    (is (null (nest (enclosing-block *collatz*)
+                    (function-body *collatz*)
+                    (stmt-starting-with-text *collatz* "int collatz"))))))
 
 (deftest enclosing-block-no-compound-stmt-test ()
   (with-fixture crossover-no-compound-stmt-clang
@@ -5188,8 +5206,8 @@ Useful for printing or returning differences in the REPL."
                                  (stmt-starting-with-text *soft*
                                                           "for (i = 0"))))
     (is (equalp (stmt-starting-with-text *soft* "for (i = 0")
-                (enclosing-block *soft*
-                                 (stmt-starting-with-text *soft* "for (j = 0"))))
+                (enclosing-block *soft* (stmt-starting-with-text
+                                         *soft* "for (j = 0"))))
     (is (null (enclosing-block *soft*
                                (->> (stmt-starting-with-text *soft* "int main")
                                     (function-body *soft*)))))))
@@ -5267,8 +5285,8 @@ Useful for printing or returning differences in the REPL."
                (block-successor *soft*
                                 (stmt-starting-with-text *soft* "for (j = 0"))))
     (is (equalp (stmt-with-text *soft* "return 0;")
-                (block-successor *soft*
-                                 (stmt-starting-with-text *soft* "for (i = 0"))))))
+                (block-successor *soft* (stmt-starting-with-text
+                                         *soft* "for (i = 0"))))))
 
 (deftest block-successor-switch-stmt-test ()
   (with-fixture crossover-switch-stmt-clang
@@ -5310,8 +5328,8 @@ Useful for printing or returning differences in the REPL."
                (block-successor *soft*
                                 (stmt-starting-with-text *soft* "for (j = 0"))))
     (is (equalp (stmt-with-text *soft* "int j;")
-                (block-predeccessor *soft*
-                                    (stmt-starting-with-text *soft* "for (i = 0"))))))
+                (block-predeccessor *soft* (stmt-starting-with-text
+                                            *soft* "for (i = 0"))))))
 
 (deftest block-predeccessor-switch-stmt-test ()
   (with-fixture crossover-switch-stmt-clang
@@ -6154,18 +6172,18 @@ Useful for printing or returning differences in the REPL."
     (is (stmt-with-text obj "t.x = t.x - 1" :no-error))))
 
 (deftest expand-arithmatic-op-works-class-member-increment ()
-  (let ((obj (from-file (make-instance 'clang
-                          :compiler "clang"
-                          :flags '("-g" "-m32" "-O0"))
-                        (expand-arithmatic-op-dir "class-member-increment.cpp"))))
+  (let ((obj (nest (from-file (make-instance 'clang
+                                :compiler "clang"
+                                :flags '("-g" "-m32" "-O0")))
+                   (expand-arithmatic-op-dir "class-member-increment.cpp"))))
     (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
     (is (stmt-with-text obj "x = x + 1" :no-error))))
 
 (deftest expand-arithmatic-op-works-class-member-decrement ()
-  (let ((obj (from-file (make-instance 'clang
-                          :compiler "clang"
-                          :flags '("-g" "-m32" "-O0"))
-                        (expand-arithmatic-op-dir "class-member-decrement.cpp"))))
+  (let ((obj (nest (from-file (make-instance 'clang
+                                :compiler "clang"
+                                :flags '("-g" "-m32" "-O0")))
+                   (expand-arithmatic-op-dir "class-member-decrement.cpp"))))
     (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
     (is (stmt-with-text obj "x = x - 1" :no-error))))
 
@@ -6189,7 +6207,7 @@ Useful for printing or returning differences in the REPL."
          (make-array 100
                      :element-type '(cons symbol symbol)
                      :initial-element (cons :nothing :nothing)))
-        (software-evolution-library/software/adaptive-mutation::*mutation-results-queue-next* 0))
+        (sel/sw/adaptive-mutation::*mutation-results-queue-next* 0))
     (dotimes (n 100)
       (queue-mutation 'cut :dead))
     (is (every [{equal 'cut} #'car] *mutation-results-queue*)
@@ -6203,7 +6221,7 @@ Useful for printing or returning differences in the REPL."
 *mutation-results-queue* is unpopulated"
          (let ((*mutation-results-queue*
                 (copy-seq +initial-mutation-results-queue+))
-               (software-evolution-library/software/adaptive-mutation::*mutation-results-queue-next* 0)
+               (sel/sw/adaptive-mutation::*mutation-results-queue-next* 0)
         (mutation-types (copy-seq *clang-mutation-types*)))
     (is (equalp mutation-types
                 (update-mutation-types mutation-types)))))
@@ -6213,7 +6231,7 @@ Useful for printing or returning differences in the REPL."
 *mutation-results-queue* is populated"
          (let ((*mutation-results-queue*
                 (copy-seq +initial-mutation-results-queue+))
-               (software-evolution-library/software/adaptive-mutation::*mutation-results-queue-next* 0)
+               (sel/sw/adaptive-mutation::*mutation-results-queue-next* 0)
                (mutation-types (copy-seq *clang-mutation-types*)))
            (dotimes (n (length +initial-mutation-results-queue+))
       (queue-mutation 'cut :dead))
@@ -6221,7 +6239,7 @@ Useful for printing or returning differences in the REPL."
 
 (deftest adaptive-analyze-mutation-updates-results-queue-properly ()
   (let ((*fitness-predicate* #'<)
-        (software-evolution-library/software/adaptive-mutation::*mutation-results-queue-next* 0)
+        (sel/sw/adaptive-mutation::*mutation-results-queue-next* 0)
         (*mutation-results-queue*
          (copy-seq +initial-mutation-results-queue+))
         (parent-a (make-instance 'clang :fitness 2))
@@ -6338,12 +6356,13 @@ Useful for printing or returning differences in the REPL."
       ;; Is function exit instrumented?
       (is (stmt-with-text
            instrumented
-           (format nil
-                   "write_trace_id(__sel_trace_file, &__sel_trace_file_lock, ~du)"
-                   (-<>> (first (functions *gcd*))
-                         (function-body *gcd*)
-                         (position <> (asts *gcd*)
-                                   :test #'equalp))) :no-error))
+           (format
+            nil
+            "write_trace_id(__sel_trace_file, &__sel_trace_file_lock, ~du)"
+            (position (function-body *gcd* (first (functions *gcd*)))
+                      (asts *gcd*)
+                      :test #'equalp))
+           :no-error))
 
       ;; Instrumented compiles and runs.
       (with-temp-file (bin)
@@ -6412,7 +6431,8 @@ Useful for printing or returning differences in the REPL."
         (is (probe-file bin))
         (is (not (emptyp (get-gcd-trace bin))))))))
 
-(deftest (instrumentation-insertion-w-points-and-added-blocks-test :long-running) ()
+(deftest
+    (instrumentation-insertion-w-points-and-added-blocks-test :long-running) ()
   (with-fixture gcd-wo-curlies-clang
     (let* ((cookie 1234)
            (instrumented
@@ -6465,23 +6485,25 @@ prints unique counters in the trace"
                                    :from-end t)))
               "a = atoi(argv[1]) was not inserted into the genome")
           (is (search
-               (format nil
-                       "write_trace_id(__sel_trace_file, &__sel_trace_file_lock, ~du)"
-                       (->> (find-if [{string= "a = atoi(argv[1]);"}
-                                      #'peel-bananas #'source-text]
-                                     (asts variant)
-                                     :from-end nil)
-                            (index-of-ast variant)))
+               (format
+                nil
+                "write_trace_id(__sel_trace_file, &__sel_trace_file_lock, ~du)"
+                (->> (find-if [{string= "a = atoi(argv[1]);"}
+                               #'peel-bananas #'source-text]
+                              (asts variant)
+                              :from-end nil)
+                  (index-of-ast variant)))
                (genome instrumented))
               "instrumentation was not added for the inserted statement")
           (is (search
-               (format nil
-                       "write_trace_id(__sel_trace_file, &__sel_trace_file_lock, ~du)"
-                       (->> (find-if [{string= "a = atoi(argv[1]);"}
-                                      #'peel-bananas #'source-text]
-                                     (asts variant)
-                                     :from-end t)
-                            (index-of-ast variant)))
+               (format
+                nil
+                "write_trace_id(__sel_trace_file, &__sel_trace_file_lock, ~du)"
+                (->> (find-if [{string= "a = atoi(argv[1]);"}
+                               #'peel-bananas #'source-text]
+                              (asts variant)
+                              :from-end t)
+                  (index-of-ast variant)))
                (genome instrumented))
               "instrumentation was not added for the original statement"))))))
 
@@ -8058,20 +8080,21 @@ prints unique counters in the trace"
 (deftest ast-keyword-tf-extractor-correct ()
   (with-fixture variety-clang
     (let ((ls-count (-<>> (ast-keyword-tf-extractor *variety*)
-                          (coerce <> 'list)
-                          (mapcar {* 44}))))
-      (is (equal
-           (mapcar #'cons
-                   ls-count
-                   *clang-c-keywords*)
-           '((0 . "alignof") (0 . "auto") (2 . "break") (2 . "case") (1 . "char")
-             (1 . "const") (1 . "continue") (1 . "default") (1 . "do")
-             (3 . "double") (1 . "else") (2 . "enum") (0 . "extern") (0 . "float")
-             (1 . "for") (3 . "goto") (1 . "if") (0 . "inline") (11 . "int")
-             (0 . "long") (0 . "register") (0 . "restrict") (4 . "return")
-             (0 . "short") (0 . "signed") (1 . "sizeof") (0 . "static")
-             (1 . "struct") (1 . "switch") (2 . "typedef") (1 . "union")
-             (0 . "unsigned") (1 . "void") (0 . "volatile") (2 . "while")))))))
+                      (coerce <> 'list)
+                      (mapcar {* 44}))))
+      (is
+       (equal
+        (mapcar #'cons
+                ls-count
+                *clang-c-keywords*)
+        '((0 . "alignof") (0 . "auto") (2 . "break") (2 . "case") (1 . "char")
+          (1 . "const") (1 . "continue") (1 . "default") (1 . "do")
+          (3 . "double") (1 . "else") (2 . "enum") (0 . "extern") (0 . "float")
+          (1 . "for") (3 . "goto") (1 . "if") (0 . "inline") (11 . "int")
+          (0 . "long") (0 . "register") (0 . "restrict") (4 . "return")
+          (0 . "short") (0 . "signed") (1 . "sizeof") (0 . "static")
+          (1 . "struct") (1 . "switch") (2 . "typedef") (1 . "union")
+          (0 . "unsigned") (1 . "void") (0 . "volatile") (2 . "while")))))))
 
 (deftest small-bi-grams-count-example ()
   (let* ((ls (list "the" "tortoise" "and" "the" "hare" "and" "the" "race"))
@@ -9245,8 +9268,8 @@ prints unique counters in the trace"
                    (bad-stmts (mapcar #'cdar (rinard 5 instrumented
                                                      trace-results)))
                    (gold-set-prefix (list 54 23 12 10 4)))
-                                        ;(format t "BAD:  ~{~a~^,~}~%" bad-stmts)
-                                        ;(format t "GOLD: ~{~a~^,~}~%" gold-set-prefix)
+              ;; (format t "BAD:  ~{~a~^,~}~%" bad-stmts)
+              ;; (format t "GOLD: ~{~a~^,~}~%" gold-set-prefix)
               (is (equal bad-stmts gold-set-prefix)))))))))
 
 (defsuite clang-super-mutants "Super mutants of clang objects."
@@ -9434,38 +9457,39 @@ prints unique counters in the trace"
 (deftest (super-mutant-genome-detects-incompatible-functions :long-running) ()
   ;; These all fail because ast-args is set by clang-mutate and does not
   ;; update upon mutation
-  ;; (let* ((base (from-string (make-instance 'clang)
-  ;;                           "void foo(int a, int b) {}"))
-  ;;        (remove-arg (copy base))
-  ;;        (change-arg-type (copy base))
-  ;;        (change-arg-name (copy base)))
-  ;;   ;; Different argument count
-  ;;   (apply-mutation remove-arg
-  ;;                   `(clang-cut (:stmt1 . ,(stmt-with-text remove-arg
-  ;;                                                          "int b"))))
-  ;;   (signals mutate
-  ;;     (genome (make-instance 'super-mutant
-  ;;                            :mutants (list base remove-arg))))
-  ;;   ;; Different argument type
-  ;;   (apply-mutation change-arg-type
-  ;;                   `(clang-replace (:stmt1 . ,(stmt-with-text change-arg-type
-  ;;                                                              "int b"))
-  ;;                                   (:value1 . ,(make-statement :ParmVar
-  ;;                                                               :finallistelt
-  ;;                                                               '("char b")))))
-  ;;   (signals mutate
-  ;;     (genome (make-instance 'super-mutant
-  ;;                            :mutants (list base change-arg-type))))
-  ;;   ;; Different argument name
-  ;;   (apply-mutation change-arg-name
-  ;;                   `(clang-replace (:stmt1 . ,(stmt-with-text change-arg-name
-  ;;                                                              "int b"))
-  ;;                                   (:value1 . ,(make-statement :ParmVar
-  ;;                                                               :finallistelt
-  ;;                                                               '("int c")))))
-  ;;   (signals mutate
-  ;;     (genome (make-instance 'super-mutant
-  ;;                            :mutants (list base change-arg-name)))))
+  #+(or )
+  (let* ((base (from-string (make-instance 'clang)
+                            "void foo(int a, int b) {}"))
+         (remove-arg (copy base))
+         (change-arg-type (copy base))
+         (change-arg-name (copy base)))
+    ;; Different argument count
+    (apply-mutation remove-arg
+                    `(clang-cut (:stmt1 . ,(stmt-with-text remove-arg
+                                                           "int b"))))
+    (signals mutate
+      (genome (make-instance 'super-mutant
+                :mutants (list base remove-arg))))
+    ;; Different argument type
+    (apply-mutation change-arg-type
+                    `(clang-replace (:stmt1 . ,(stmt-with-text change-arg-type
+                                                               "int b"))
+                                    (:value1 . ,(make-statement :ParmVar
+                                                                :finallistelt
+                                                                '("char b")))))
+    (signals mutate
+      (genome (make-instance 'super-mutant
+                :mutants (list base change-arg-type))))
+    ;; Different argument name
+    (apply-mutation change-arg-name
+                    `(clang-replace (:stmt1 . ,(stmt-with-text change-arg-name
+                                                               "int b"))
+                                    (:value1 . ,(make-statement :ParmVar
+                                                                :finallistelt
+                                                                '("int c")))))
+    (signals mutate
+      (genome (make-instance 'super-mutant
+                :mutants (list base change-arg-name)))))
 
   ;; Different return types
   (signals mutate
@@ -9756,7 +9780,8 @@ int main() { puts(\"~d\"); return 0; }
 	   (al-obj2 (%f al2))
 	   (diff (ast-diff al-obj1 al-obj2))
 	   (al-obj3 (ast-patch al-obj1 diff)))
-      (sort (copy-list (sel/ast-diff/alist:alist-of-alist-for-diff al-obj3)) #'string< :key #'car))))
+      (sort (copy-list (sel/ast-diff/alist:alist-of-alist-for-diff al-obj3))
+            #'string< :key #'car))))
 
 (deftest ast-diff-alist-diff-1 ()
   (is (equal (ast-diff-alist-test nil nil) nil)))
@@ -9771,13 +9796,16 @@ int main() { puts(\"~d\"); return 0; }
   (is (equal (ast-diff-alist-test '((a . 1)) '((a . 2))) '((a . 2)))))
 
 (deftest ast-diff-alist-diff-5 ()
-  (is (equal (ast-diff-alist-test '((a . 1) (b . 3)) '((a . 2) (b . 3))) '((a . 2) (b . 3)))))
+  (is (equal (ast-diff-alist-test '((a . 1) (b . 3)) '((a . 2) (b . 3)))
+             '((a . 2) (b . 3)))))
 
 (deftest ast-diff-alist-diff-6 ()
-  (is (equal (ast-diff-alist-test '((a . 1) (b . 2)) '((b . 2) (a . 1))) '((a . 1) (b . 2)))))
+  (is (equal (ast-diff-alist-test '((a . 1) (b . 2)) '((b . 2) (a . 1)))
+             '((a . 1) (b . 2)))))
 
 (deftest ast-diff-alist-diff-7 ()
-  (is (equal (ast-diff-alist-test '((a . 1)) '((b . 2) (a . 3))) '((a . 3) (b . 2)))))
+  (is (equal (ast-diff-alist-test '((a . 1)) '((b . 2) (a . 3)))
+             '((a . 3) (b . 2)))))
 
 (deftest print-lisp-diff.1 ()
   (is (equalp (with-output-to-string (s)
@@ -9947,12 +9975,14 @@ int main() { puts(\"~d\"); return 0; }
   (with-fixture binary-search-clang
     (let ((var (copy *binary-search*)))
       (setf var (mutate var))
-      (is (every [{member _ '(:delete :insert :delete-sequence :insert-sequence)} #'second]
-                 (ast-diff-elide-same (ast-diff *binary-search* var)))))))
+      (is (every
+           [{member _ '(:delete :insert :delete-sequence :insert-sequence)}
+            #'second]
+           (ast-diff-elide-same (ast-diff *binary-search* var)))))))
 
 (deftest print-diff.1 ()
   (is (equalp (with-output-to-string (s)
-		(flet ((%f (s) (sel:from-string (make-instance 'sel/sw/clang:clang) s)))
+		(flet ((%f (s) (from-string (make-instance 'clang) s)))
 		  (print-diff (ast-diff (%f "int a; int c;")
 					(%f "int a; int b; int c;"))
                               :no-color t
@@ -9962,7 +9992,7 @@ int main() { puts(\"~d\"); return 0; }
 
 (deftest print-diff.2 ()
   (is (equalp (with-output-to-string (s)
-		(flet ((%f (s) (sel:from-string (make-instance 'sel/sw/clang:clang) s)))
+		(flet ((%f (s) (from-string (make-instance 'clang) s)))
 		  (print-diff (ast-diff (%f "int a; int b; int c;")
 					(%f "int a; int c;"))
                               :no-color t
@@ -9972,7 +10002,7 @@ int main() { puts(\"~d\"); return 0; }
 
 (deftest print-diff.3 ()
   (is (equalp (with-output-to-string (s)
-		(flet ((%f (s) (sel:from-string (make-instance 'sel/sw/clang:clang) s)))
+		(flet ((%f (s) (from-string (make-instance 'clang) s)))
 		  (print-diff (ast-diff (%f "int a; int b; int c;")
 					(%f "int a; int d; int c;"))
                               :no-color t
@@ -9982,7 +10012,7 @@ int main() { puts(\"~d\"); return 0; }
 
 (deftest print-diff.4 ()
   (is (equalp (with-output-to-string (s)
-		(flet ((%f (s) (sel:from-string (make-instance 'sel/sw/clang:clang) s)))
+		(flet ((%f (s) (from-string (make-instance 'clang) s)))
 		  (print-diff (ast-diff (%f "char *s = \"abcd\";")
 					(%f "char *s = \"acd\";"))
                               :no-color t
@@ -9992,7 +10022,7 @@ int main() { puts(\"~d\"); return 0; }
 
 (deftest print-diff.5 ()
   (is (equalp (with-output-to-string (s)
-		(flet ((%f (s) (sel:from-string (make-instance 'sel/sw/clang:clang) s)))
+		(flet ((%f (s) (from-string (make-instance 'clang) s)))
 		  (print-diff (ast-diff (%f "char *s = \"abcd\";")
 					(%f "char *s = \"ad\";"))
                               :no-color t
@@ -10004,7 +10034,7 @@ int main() { puts(\"~d\"); return 0; }
 
 (deftest print-diff.6 ()
   (is (equalp (with-output-to-string (s)
-		(flet ((%f (s) (sel:from-string (make-instance 'sel/sw/clang:clang) s)))
+		(flet ((%f (s) (from-string (make-instance 'clang) s)))
 		  (print-diff (ast-diff (%f "char *s = \"ad\";")
 					(%f "char *s = \"abcd\";"))
                               :no-color t
@@ -10014,7 +10044,7 @@ int main() { puts(\"~d\"); return 0; }
 
 (deftest print-diff.7 ()
   (is (equalp (with-output-to-string (s)
-		(flet ((%f (s) (sel:from-string (make-instance 'sel/sw/clang:clang) s)))
+		(flet ((%f (s) (from-string (make-instance 'clang) s)))
 		  (print-diff (ast-diff (%f "char *s = \"ad\";")
 					(%f "char *s = \"abd\";"))
                               :no-color t
@@ -10030,118 +10060,126 @@ int main() { puts(\"~d\"); return 0; }
   (clang-mutate-available-p))
 
 (deftest sexp-merge3-empty ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 nil nil nil))
+  (is (equalp (multiple-value-list (merge3 nil nil nil))
 	      '(nil nil))
       "Simplest case"))
 
 (deftest sexp-merge3-insert-first ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 nil '(a) nil))
+  (is (equalp (multiple-value-list (merge3 nil '(a) nil))
 	      '(((:insert . a)) nil))
       "Adding one element in first change"))
 
 (deftest sexp-merge3-insert-second ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 nil nil '(a)))
+  (is (equalp (multiple-value-list (merge3 nil nil '(a)))
 	      '(((:insert . a)) nil))
       "Adding one element in second change"))
 
 (deftest sexp-merge3-insert-both ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 nil '(a) '(a)))
+  (is (equalp (multiple-value-list (merge3 nil '(a) '(a)))
 	      '(((:insert . a)) nil))
       "Adding one element in both changes"))
 
 (deftest sexp-merge3-delete-first ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(a) nil '(a)))
+  (is (equalp (multiple-value-list (merge3 '(a) nil '(a)))
 	      '(((:delete . a)) nil))
       "Deleting one element in first change"))
 
 (deftest sexp-merge3-delete-second ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(a) '(a) nil))
+  (is (equalp (multiple-value-list (merge3 '(a) '(a) nil))
 	      '(((:delete . a)) nil))
       "Deleting one element in second change"))
 
 (deftest sexp-merge3-delete-second-2 ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(a) nil nil))
+  (is (equalp (multiple-value-list (merge3 '(a) nil nil))
 	      '(((:delete . a)) nil))
       "Deleting one element in both changes"))
 
 (deftest sexp-merge3-recursive-first ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '((a)) '((a b)) '((a))))
+  (is (equalp (multiple-value-list (merge3 '((a)) '((a b)) '((a))))
 	      '(((:recurse (:same . a) (:insert . b))) nil))
       "Recurse in first change"))
 
 (deftest sexp-merge3-recursive-second ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '((a)) '((a)) '((a b))))
+  (is (equalp (multiple-value-list (merge3 '((a)) '((a)) '((a b))))
 	      '(((:recurse (:same . a) (:insert . b))) nil))
       "Recurse in first change"))
 
 (deftest sexp-merge3-recursive-both ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '((a)) '((a b)) '((a b))))
+  (is (equalp (multiple-value-list (merge3 '((a)) '((a b)) '((a b))))
 	      '(((:recurse (:same . a) (:insert . b))) nil))
       "Recurse in both changes"))
 
 (deftest sexp-merge3-insert-delete ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(a) '(a b) ()))
+  (is (equalp (multiple-value-list (merge3 '(a) '(a b) ()))
 	      '(((:delete . a) (:insert . b)) nil))
       "Insert and delete in the same place."))
 
 (deftest sexp-merge3-delete-insert ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(a) '() '(a b)))
+  (is (equalp (multiple-value-list (merge3 '(a) '() '(a b)))
 	      '(((:delete . a) (:insert . b)) nil))
       "Delete and insert in the same place."))
 
 (deftest sexp-merge3-delete-insert-tail ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(a b . c) '(a) '(a e . c)))
-	      '(((:same . a) (:insert . e) (:delete . b) (:recurse-tail (:delete . c) (:insert)))
-		(((:delete . b) (:insert . e)))))
+  (is (equalp (multiple-value-list (merge3 '(a b . c) '(a) '(a e . c)))
+              '(((:same . a) (:insert . e) (:delete . b)
+                 (:recurse-tail (:delete . c) (:insert)))
+	        (((:delete . b) (:insert . e)))))
       "Delete and insert in the same place, with improper list."))
 
 (deftest sexp-merge3-delete-insert-tail.2 ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '((a b . c)) '((a)) '((a b . c))))
-	      '(((:recurse (:same . a) (:delete . b) (:recurse-tail (:delete . c) (:insert))))
+  (is (equalp (multiple-value-list (merge3 '((a b . c)) '((a)) '((a b . c))))
+	      '(((:recurse (:same . a) (:delete . b)
+                  (:recurse-tail (:delete . c) (:insert))))
 		nil))
       "Delete including tail of improper list."))
 
 (deftest sexp-merge3-delete-insert-tail.3 ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '((a b . c)) '((a b . c)) '((a))))
-	      '(((:recurse (:same . a) (:delete . b) (:recurse-tail (:delete . c) (:insert))))
+  (is (equalp (multiple-value-list (merge3 '((a b . c)) '((a b . c)) '((a))))
+	      '(((:recurse (:same . a) (:delete . b)
+                  (:recurse-tail (:delete . c) (:insert))))
 		nil))
       "Delete including tail of improper list."))
 
 (deftest sexp-merge3-delete-insert-tail.4 ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '((a b . c)) '((a . c)) '((a b . e))))
-	      '(((:recurse (:same . a) (:delete . b) (:recurse-tail (:delete . c) (:insert . e))))
+  (is (equalp (multiple-value-list
+               (merge3 '((a b . c)) '((a . c)) '((a b . e))))
+	      '(((:recurse (:same . a) (:delete . b)
+                  (:recurse-tail (:delete . c) (:insert . e))))
 		nil))
       "Delete, but change tail of improper list."))
 
 
 (deftest sexp-merge3-insert2 ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(a d) '(a b c d) '(a d)))
+  (is (equalp (multiple-value-list (merge3 '(a d) '(a b c d) '(a d)))
 	      '(((:same . a) (:insert . b) (:insert . c) (:same . d)) nil))
       "Two insertions"))
 
 (deftest sexp-merge3-insert3 ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(d) '(d) '(a b c d)))
+  (is (equalp (multiple-value-list (merge3 '(d) '(d) '(a b c d)))
 	      '(((:insert . a) (:insert . b) (:insert . c) (:same . d)) nil))
       "Three insertions"))
 
 (deftest sexp-merge3-delete2 ()
-   (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(a b c d) '(a d) '(a b c d)))
+   (is (equalp (multiple-value-list (merge3 '(a b c d) '(a d) '(a b c d)))
 	      '(((:same . a) (:delete . b) (:delete . c) (:same . d)) nil))
        "Two deletions"))
 
 (deftest sexp-merge3-delete3 ()
-   (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(a b c d e) '(a b c d e) '(a e)))
-	      '(((:same . a) (:delete . b) (:delete . c) (:delete . d) (:same . e)) nil))
+   (is (equalp (multiple-value-list (merge3 '(a b c d e) '(a b c d e) '(a e)))
+	       '(((:same . a) (:delete . b) (:delete . c) (:delete . d)
+                  (:same . e))
+                 nil))
        "Three deletions"))
 
 (deftest sexp-merge3-unstable-inserts ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(x 0) '(x 1) '(x 2)))
-	      '(((:same . x) (:conflict ((:insert . 1)) ((:insert . 2))) (:delete . 0))
+  (is (equalp (multiple-value-list (merge3 '(x 0) '(x 1) '(x 2)))
+	      '(((:same . x) (:conflict ((:insert . 1)) ((:insert . 2)))
+                 (:delete . 0))
 		(((:insert . 1) (:insert . 2)))))
       "Two insertions at the same point"))
 
 (deftest sexp-merge3-unstable-recurse-insert/delete ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(x (a) y) '(x (b) y) '(x c y)))
+  (is (equalp (multiple-value-list (merge3 '(x (a) y) '(x (b) y) '(x c y)))
 	      '(((:same . x)
 		 (:insert . c)
 		 (:conflict ((:recurse (:insert . b) (:delete . a)))
@@ -10151,7 +10189,7 @@ int main() { puts(\"~d\"); return 0; }
       "recurse and deletion at same point (unstable)"))
 
 (deftest sexp-merge3-unstable-insert/delete-recurse ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(x (a) y) '(x c y) '(x (b) y)))
+  (is (equalp (multiple-value-list (merge3 '(x (a) y) '(x c y) '(x (b) y)))
 	      '(((:same . x)
 		 (:insert . c)
 		 (:conflict ((:delete a))
@@ -10161,40 +10199,45 @@ int main() { puts(\"~d\"); return 0; }
       "deletion and recurse at same point (unstable)"))
 
 (deftest sexp-merge3-insert/insert-tail1 ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '((a b)) '((a c)) '((a b . d))))
+  (is (equalp (multiple-value-list (merge3 '((a b)) '((a c)) '((a b . d))))
 	      '(((:recurse (:same . a) (:insert . c) (:delete . b)
 		  (:recurse-tail (:delete) (:insert . d))))
 		nil))
       "insert and insertion of a tail element"))
 
 (deftest sexp-merge3-insert/insert-tail2 ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '((a b)) '((a b . d)) '((a c))))
+  (is (equalp (multiple-value-list (merge3 '((a b)) '((a b . d)) '((a c))))
 	      '(((:recurse (:same . a) (:insert . c) (:delete . b)
 		  (:recurse-tail (:delete) (:insert . d))))
 		nil))
       "insert and insertion of a tail element"))
 
 (deftest sexp-merge3-insert/insert-tail3 ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '((a b)) '((a b . d)) '((a c . d))))
+  (is (equalp (multiple-value-list (merge3 '((a b)) '((a b . d)) '((a c . d))))
 	      '(((:recurse (:same . a) (:insert . c) (:delete . b)
 		  (:recurse-tail (:delete) (:insert . d))))
 		nil))
       "insert and insertion of a tail element"))
 
 (deftest sexp-merge3-insert/insert-tail4 ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '((a . d)) '((a b . d)) '((a c . d))))
-	      '(((:recurse (:same . a) (:conflict ((:insert . b)) ((:insert . c)))
+  (is (equalp (multiple-value-list
+               (merge3 '((a . d)) '((a b . d)) '((a c . d))))
+	      '(((:recurse (:same . a)
+                  (:conflict ((:insert . b)) ((:insert . c)))
 		  (:same-tail . d)))
 		(((:insert . b) (:insert . c)))))
       "insert and insertion with a common tail element"))
 
 (deftest sexp-merge3-insert-string ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '("abc") '("adbc") '("abec")))
-	      '(((:RECURSE (:SAME . #\a) (:INSERT . #\d) (:SAME . #\b) (:INSERT . #\e) (:SAME . #\c))) NIL))
+  (is (equalp (multiple-value-list (merge3 '("abc") '("adbc") '("abec")))
+	      '(((:recurse (:same . #\a)
+                  (:insert . #\d) (:same . #\b)
+                  (:insert . #\e) (:same . #\c))) nil))
       "Merge of separate insertions into a string"))
 
 (deftest sexp-merge3-insert-string.2 ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '("axbycz") '("axdbycz") '("axbyecz")))
+  (is (equalp (multiple-value-list
+               (merge3 '("axbycz") '("axdbycz") '("axbyecz")))
 	      '(((:recurse (:same . #\a) (:same . #\x) (:insert . #\d)
 		  (:same . #\b) (:same . #\y)
 		  (:insert . #\e)
@@ -10202,8 +10245,10 @@ int main() { puts(\"~d\"); return 0; }
       "Merge of separate insertions into a string"))
 
 (deftest sexp-merge3-string-same.1 ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(("foo" 2)) '((3 "foo" 2)) '((4 "foo" 2))))
-	      '(((:recurse (:conflict ((:insert . 3)) ((:insert . 4))) (:same . "foo") (:same . 2)))
+  (is (equalp (multiple-value-list
+               (merge3 '(("foo" 2)) '((3 "foo" 2)) '((4 "foo" 2))))
+	      '(((:recurse (:conflict ((:insert . 3)) ((:insert . 4)))
+                  (:same . "foo") (:same . 2)))
 		(((:insert . 3) (:insert . 4)))))
       "Special handling of strings following insertions"))
 
