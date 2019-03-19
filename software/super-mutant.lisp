@@ -178,6 +178,7 @@ the first return value.
                        #'proxy-phenome
                        #+sbcl
                        (lambda (args other)
+                         (declare (ignorable other))
                          (apply #'proxy-phenome args))
                        #-(or sbcl ccl)
                        (error "make-phenome-proxy not implemented")
