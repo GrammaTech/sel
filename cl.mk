@@ -52,7 +52,7 @@ REPL_STARTUP ?= ()
 
 ifneq ($(LISP_STACK),)
 ifneq (,$(findstring sbcl, $(LISP)))
-LISP_FLAGS = --dynamic-space-size $(LISP_STACK) --no-userinit --no-sysinit
+LISP_FLAGS = --noinform --dynamic-space-size $(LISP_STACK) --no-userinit --no-sysinit
 else
 ifneq (,$(findstring ecl, $(LISP)))
 # TODO: Figure out how to set --heap-size appropriately.
