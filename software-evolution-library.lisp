@@ -638,7 +638,7 @@ Define an :around method on this function to record crossovers."))
   (:documentation "Parse CONFIG-FILE and use to configure SOFTWARE."))
 
 (defgeneric to-file (software file)
-  (:documentation "Write SOFTWARE to FILE"))
+  (:documentation "Write SOFTWARE to FILE."))
 
 (defmethod to-file ((software software) file)
   (string-to-file (genome software) file))

@@ -402,6 +402,7 @@ threads by creating separate build directory per thread.")
         (nest
          (prog1 dir)
          (when src-dir)
+         (unless (equalp (canonical-pathname src-dir) (canonical-pathname dir)))
          (multiple-value-bind (stdout stderr errno)
              (if (probe-file path) ; Different copy if directory already exists.
                  (shell "cp -pr ~a/* ~a/" (namestring src-dir) (namestring dir))

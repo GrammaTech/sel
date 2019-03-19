@@ -1256,21 +1256,30 @@
    (setf *soft* nil)))
 
 (defixture fib-javascript
-  (:setup
-   (setf *soft*
-         (from-file (make-instance 'javascript-traceable)
-                    (javascript-dir #P"fib/fib.js"))))
-  (:teardown
-   (setf *soft* nil)))
+    (:setup
+     (setf *soft*
+           (from-file (make-instance 'javascript-traceable)
+                      (javascript-dir #P"fib/fib.js"))))
+    (:teardown
+     (setf *soft* nil)))
 
-(defixture fib-project-javascript
-  (:setup
-   (setf *soft*
-         (from-file (make-instance 'javascript-traceable-project
-                      :component-class 'javascript-traceable)
-                    (javascript-dir #P"fib-project/"))))
-  (:teardown
-   (setf *soft* nil)))
+(let ((fib-path (merge-pathnames-as-file (javascript-dir #P"fib-project/")
+                                         "fib.js"))
+      (app-path (merge-pathnames-as-file (javascript-dir #P"fib-project/")
+                                         "app.js"))
+      fib-contents app-contents)
+  (defixture fib-project-javascript
+    (:setup
+     (setf fib-contents (file-to-string fib-path)
+           app-contents (file-to-string app-path)
+           *soft*
+           (from-file (make-instance 'javascript-traceable-project
+                        :component-class 'javascript-traceable)
+                      (javascript-dir #P"fib-project/"))))
+    (:teardown
+     (setf *soft* nil)
+     (string-to-file fib-contents fib-path)
+     (string-to-file app-contents app-path))))
 
 (defixture csurf-asm-calc
   (:setup (setf *soft*
@@ -6644,33 +6653,36 @@ prints unique counters in the trace"
                                           ast)))))))
 
 (defvar *project*)
-(defixture clang-project
-  (:setup
-   (setf *project*
-         (-> (make-instance 'clang-project
-               :build-command "make foo"
-               :artifacts '("foo")
-               :compilation-database
-               `(((:file .
-                         ,(-> (make-pathname :directory +multi-file-dir+
-                                             :name "foo"
-                                             :type "cpp")
-                              (namestring)))
-                  (:directory .
-                              ,(-> (make-pathname :directory +multi-file-dir+)
-                                   (directory-namestring)))
-                  (:command . "make"))
-                 ((:file .
-                         ,(-> (make-pathname :directory +multi-file-dir+
-                                             :name "bar"
-                                             :type "cpp")
-                              (namestring)))
-                  (:directory .
-                              ,(-> (make-pathname :directory +multi-file-dir+)
-                                   (directory-namestring)))
-                  (:command . "make"))))
-             (from-file (make-pathname :directory +multi-file-dir+)))))
-  (:teardown (setf *project* nil)))
+(let ((foo-path (make-pathname :directory +multi-file-dir+
+                               :name "foo"
+                               :type "cpp"))
+      (bar-path (make-pathname :directory +multi-file-dir+
+                               :name "bar"
+                               :type "cpp"))
+      foo-contents bar-contents)
+  (defixture clang-project
+    ;; Has to preserve some files which are overwritten by the test.
+    (:setup
+     (setf foo-contents (file-to-string foo-path)
+           bar-contents (file-to-string bar-path)
+           *project*
+           (from-file
+            (make-instance 'clang-project
+              :build-command "make foo"
+              :artifacts '("foo")
+              :compilation-database
+              `(((:file . ,(namestring foo-path))
+                 (:directory . ,(directory-namestring
+                                 (make-pathname :directory +multi-file-dir+)))
+                 (:command . "make"))
+                ((:file . ,(namestring bar-path))
+                 (:directory . ,(directory-namestring
+                                 (make-pathname :directory +multi-file-dir+)))
+                 (:command . "make"))))
+            (make-pathname :directory +multi-file-dir+))))
+    (:teardown (setf *project* nil)
+               (string-to-file foo-contents foo-path)
+               (string-to-file bar-contents bar-path))))
 
 (defixture grep-project
   (:setup
