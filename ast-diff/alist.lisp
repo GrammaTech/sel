@@ -83,10 +83,20 @@ elements of the alist."
 		 (case (car x)
 		   (:insert-alist (collect (cdr x)))
 		   (:delete-alist
-		    (assert (ast-equal-p (cdr x) (gethash (cadr x) table)))
+                    (let ((cdrx (cdr x))
+                          (lookup (gethash (cadr x) table)))
+                      (assert (ast-equal-p cdrx lookup)
+                              ()
+                              ":DELETE-ALIST value not the same as the value in the alist: ~a, ~a, ~a"
+                              (cadr x) cdrx lookup))
 		    (unless delete? (collect (cdr x))))
 		   (:same-alist
-		    (assert (ast-equal-p (cdr x) (gethash (cadr x) table)))
+                    (let ((cdrx (cdr x))
+                          (lookup (gethash (cadr x) table)))
+                      (assert (ast-equal-p cdrx lookup)
+                              ()
+                              ":SAME value not the same as the value in the alist: ~a, ~a, ~a"
+                              (cadr x) cdrx lookup))
 		    (collect (cdr x)))
 		   (:recurse-alist
 		    (let ((sub (gethash (cadr x) table)))
@@ -105,7 +115,9 @@ elements of the alist."
 	  (keys nil))
       (iter (for x in al-d-a)
 	    (let ((key (cadr x)))
-	      (assert (null (gethash key table)))
+	      (assert (null (gethash key table))
+                      ()
+                      "KEY already present in table: ~a" key)
 	      (setf (gethash key table) (list x nil))
 	      (push key keys)))
       (iter (for x in al-d-b)

@@ -763,20 +763,36 @@ A diff is a sequence of actions as returned by `ast-diff' including:
     (:recurse-tail
      (ast-patch original (cdr script)))
     (:same
-     (assert (ast-equal-p original (cdr script)))
+     (assert (ast-equal-p original (cdr script))
+             ()
+             "AST-PATCH: :SAME not same as in script: ~a, ~a"
+             original
+             (cdr script))
      (cdr script))
     (t
      (assert (proper-list-p script))
      (let ((keys (mapcar #'car script)))
        (cond
 	 ((equal keys '(:same))
-	  (assert (ast-equal-p original (cdar script)))
+	  (assert (ast-equal-p original (cdar script))
+                  ()
+                  "AST-PATCH: :SAME not same as in script(2): ~a, ~a"
+                  original
+                  (cdar script))
 	  (cdar script))
 	 ((equal keys '(:insert :delete))
-	  (assert (ast-equal-p original (cdadr script)))
+	  (assert (ast-equal-p original (cdadr script))
+                  ()
+                  "AST-PATCH: ~a not same as in script(2): ~a, ~a"
+                  keys
+                  original (cdadr script))
 	  (cdar script))
 	 ((equal keys '(:delete :insert))
-	  (assert (ast-equal-p original (cdar script)))
+          (assert (ast-equal-p original (cdar script))
+                  ()
+                  "AST-PATCH: ~a not same as in script(2): ~a, ~a"
+                  keys
+                  original (cdar script))
 	  (cdadr script))
 	 (:conflict
 	  (values-list (iter (for s in (cdr script))
@@ -819,15 +835,19 @@ A diff is a sequence of actions as returned by `ast-diff' including:
 	       (:recurse-tail
 		(assert (null (cdr script)))
 		(ast-patch asts args))
-	       (:delete (assert (ast-equal-p (car asts) args))
-			;; The key DELETE?, if NIL (default T) will
-			;; cause :DELETE edits to be ignored.  The
-			;; use case for this is to do a kind of binary
-			;; merge of two objects, sharing as much structure
-			;; as possible
-			(if delete?
-			    (edit (cdr asts) (cdr script))
-			    (cons-values meld? (car asts) (edit (cdr asts) (cdr script)))))
+	       (:delete
+                (assert (ast-equal-p (car asts) args)
+                        ()
+                        "AST-PATCH (CONS): :DELETE not same as in script: ~a,~a"
+                        (car asts) args)
+                ;; The key DELETE?, if NIL (default T) will
+                ;; cause :DELETE edits to be ignored.  The
+                ;; use case for this is to do a kind of binary
+                ;; merge of two objects, sharing as much structure
+                ;; as possible
+                (if delete?
+                    (edit (cdr asts) (cdr script))
+                    (cons-values meld? (car asts) (edit (cdr asts) (cdr script)))))
 	       (:insert (cons-values meld? args (edit asts (cdr script))))
 	       (:insert-sequence
 		(append-values meld? args (edit asts (cdr script))))
@@ -836,7 +856,10 @@ A diff is a sequence of actions as returned by `ast-diff' including:
 		 meld?
 		 (iter (while (consp args))
 		       (assert asts)
-		       (assert (ast-equal-p (car asts) (car args)))
+		       (assert (ast-equal-p (car asts) (car args))
+                               ()
+                               "AST-PATCH (CONS): :DELETE-SEQUENCE not same as in script: ~a, ~a"
+                               (car asts) (car args))
 		       (let ((a (pop asts)))
 			 (when delete? (collect a)))
 		       (pop args))
@@ -861,40 +884,46 @@ edit operations that consume list elements, and replicating the others."
 		  (action2 (caar script2)))
 	      ;; actions are one of: :same, :delete, :recurse
 	      ;; Don't do :same-tail, :recurse-tail here
-	      (switch ((list action1 action2) :test #'equal)
-		('(:same :same)
-		  (assert (ast-equal-p (cdar script1) (cdar script2)))
-		  (collect (pop script1))
-		  (pop script2))
-		('(:delete :delete)
-		  (assert (ast-equal-p (cdar script1) (cdar script2)))
-		  (collect (pop script1))
-		  (pop script2))
-		('(:delete :same)
-		  (assert (ast-equal-p (cdar script1) (cdar script2)))
-		  (collect (pop script1))
-		  (pop script2))
-		('(:recurse :same)
-		  (collect (pop script1))
-		  (pop script2))
-		('(:recurse :delete)
-		  (collect (pop script1))
-		  (pop script2))
-		('(:same :delete)
-		  (assert (ast-equal-p (cdar script1) (cdar script2)))
-		  (pop script1)
-		  (collect (pop script2)))
-		('(:same :recurse)
-		  (pop script1)
-		  (collect (pop script2)))
-		('(:delete :recurse)
-		  (pop script1)
-		  (collect (pop script2)))
-		('(:recurse :recurse)
-		  ;; should not happen?
-		  (pop script2)
-		  (collect (pop script1)))
-		(t (error "Do not recognize actions in meld-scripts: ~A, ~A" action1 action2)))))
+              (let ((val (list action1 action2)))
+                (flet ((%check (s1 s2)
+                         (assert (ast-equal-p s1 s2)
+                                 ()
+                                 "MELD-SCRIPTS ~a: should have been the same: ~a, ~a" val s1 s2)))
+                  (switch (val :test #'equal)
+                    ('(:same :same)
+                      (%check (cdar script1) (cdar script2))
+                      (collect (pop script1))
+                      (pop script2))
+                    ('(:delete :delete)
+                      (%check (cdar script1) (cdar script2))
+                      (collect (pop script1))
+                      (pop script2))
+                    ('(:delete :same)
+                      (%check (cdar script1) (cdar script2))
+                      (collect (pop script1))
+                      (pop script2))
+                    ('(:recurse :same)
+                      (collect (pop script1))
+                      (pop script2))
+                    ('(:recurse :delete)
+                      (collect (pop script1))
+                      (pop script2))
+                    ('(:same :delete)
+                      (%check (cdar script1) (cdar script2))
+                      (pop script1)
+                      (collect (pop script2)))
+                    ('(:same :recurse)
+                      (pop script1)
+                      (collect (pop script2)))
+                    ('(:delete :recurse)
+                      (pop script1)
+                      (collect (pop script2)))
+                    ('(:recurse :recurse)
+                      ;; should not happen?
+                      (pop script2)
+                      (collect (pop script1)))
+                    (t (error "Do not recognize actions in meld-scripts: ~A, ~A"
+                              action1 action2)))))))
     (when (or script1 script2)
       (error "Could not meld scripts: different number of fixed location actions"))))
 
