@@ -38,7 +38,8 @@ RUN cp -R /usr/synth/quicklisp /root/quicklisp
 RUN rm /root/quicklisp/local-projects/system-index.txt
 COPY . /root/quicklisp/local-projects/sel
 WORKDIR /root/quicklisp/local-projects/sel
-ENV PATH=/root/quicklisp/local-projects/sel/bin:/root/.opam/4.06.0/bin:/usr/synth/bin:$PATH \
+ENV LISP=$LISP \
+    PATH=/root/quicklisp/local-projects/sel/bin:/root/.opam/4.06.0/bin:/usr/synth/bin:$PATH \
     LD_LIBRARY_PATH=/root/quicklisp/dists/trace-db/software/trace-db/:/usr/synth/lib/:$LD_LIBRARY_PATH \
     SERAPI=/root/.opam/4.06.0/bin/sertop \
     COQLIB=/root/.opam/4.06.0/lib/coq/ \
