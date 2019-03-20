@@ -528,7 +528,7 @@ After BODY is executed the temporary file is removed."
      (ensure-directories-exist (ensure-directory-pathname ,(car spec)))
      ,@body))
 
-(defmacro with-cwd (dir &rest body)
+(defmacro with-cwd ((dir) &rest body)
   "Change the current working directory to dir and execute body.
 WARNING: This function is not thread safe.  Execution in a threaded
 environment may causes execution outside of the intended directory or
@@ -536,7 +536,7 @@ may lose the original working directory."
   (with-gensyms (orig)
     `(let ((,orig (getcwd)))
        (unwind-protect
-         (progn (cd ,(car dir)) ,@body)
+         (progn (cd ,dir) ,@body)
          (cd ,orig)))))
 
 (defmacro with-temp-cwd-of (spec dir &rest body)
