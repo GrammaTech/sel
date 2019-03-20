@@ -358,19 +358,22 @@ Keyword arguments are as follows:
               (t compilation-database)))
            (build-command
             (when (subtypep language 'project)
-              (let ((build-command-list (split-sequence #\Space build-command)))
-                ;; Remove any absolute path from the beginning of build-command.
-                (if-let ((abs-cmd-name (nest
-                                        (ignore-errors)
-                                        (merge-pathnames-as-file path)
-                                        (canonical-pathname
-                                         (car build-command-list)))))
-                  (format nil "~a~{ ~a~}"
-                          (replace-all (namestring abs-cmd-name)
-                                       (namestring path)
-                                       "./")
-                          (cdr build-command-list))
-                  build-command))))
+              (let* ((build-command-list (split-sequence #\Space build-command))
+                     (abs-cmd-name (nest
+                                    (ignore-errors)
+                                    (merge-pathnames-as-file path)
+                                    (canonical-pathname
+                                     (car build-command-list)))))
+                ;; Remove any absolute path from the beginning of
+                ;; build-command *if* build-command is a file in the
+                ;; base of the project.
+                (if (and abs-cmd-name (probe-file abs-cmd-name))
+                    (format nil "~a~{ ~a~}"
+                            (replace-all (namestring abs-cmd-name)
+                                         (namestring path)
+                                         "./")
+                            (cdr build-command-list))
+                    build-command))))
            (artifacts
             (when (subtypep language 'project) artifacts))))
     (apply #'make-instance language)
