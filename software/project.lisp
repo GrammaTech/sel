@@ -42,7 +42,9 @@
            :instrumentation-files
            :all-files
            :make-build-dir
-           :*build-dir*))
+           :*build-dir*
+           :*build-projects-in-temporary-directories*
+           :phenome-dir))
 (in-package :software-evolution-library/software/project)
 (in-readtable :curry-compose-reader-macros)
 
@@ -427,10 +429,20 @@ threads by creating separate build directory per thread.")
   (assert *build-dir*)
   (in-directory *build-dir* rel-path))
 
+(defvar *build-projects-in-temporary-directories* nil
+  "When set to non-nil build all project phenomes in temporary directories.")
+
+(defgeneric phenome-dir (software)
+  (:documentation "Return the directory in which to build SOFTWARE's phenome.")
+  (:method ((obj project))
+    (if *build-projects-in-temporary-directories*
+        (temp-file-name)
+        (project-dir obj))))
+
 (defmethod phenome :around
     ((obj project) &key
                      (bin (temp-file-name))
-                     (build-dir (or *build-dir* (project-dir obj))))
+                     (build-dir (or *build-dir* (phenome-dir obj))))
   (assert build-dir (obj)
           "Project ~S requires a project-dir to build a phenome." obj)
   (let ((keep-file-p (probe-file build-dir)))
@@ -444,7 +456,7 @@ threads by creating separate build directory per thread.")
 (defmethod phenome
     ((obj project) &key
                      (bin (temp-file-name))
-                     (build-dir (or *build-dir* (project-dir obj))))
+                     (build-dir (or *build-dir* (phenome-dir obj))))
   "Build the software project OBJ and copy build artifact(s) to BIN."
   (multiple-value-bind (stdout stderr exit)
       (shell "cd ~a && ~a" build-dir (build-command obj))
