@@ -93,6 +93,7 @@
          (apply #'sel/ast-diff/ast-diff:ast-diff
                 (mapcar
                  {create-software _
+                                  :language language
                                   :compiler compiler
                                   :flags flags
                                   :build-command build-command
@@ -141,6 +142,7 @@
       (apply #'converge
 	     (mapcar
 	      {create-software _
+                               :language language
                                :compiler compiler
                                :flags flags
                                :build-command build-command

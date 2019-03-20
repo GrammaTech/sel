@@ -254,7 +254,7 @@ Optional DESCRIPTION is added to the path."
                   (("C" "CPP" "C++" "C-PLUS-PLUS" "C PLUS PLUS") clang)
                   (("LISP" "CL" "COMMON LISP") lisp)))))
     (if (and source (directory-p source))
-        (intern (concatenate 'string class "-PROJECT"))
+        (intern (concatenate 'string (string class) "-PROJECT"))
         class)))
 
 (defun wait-on-manual (manual)
