@@ -7363,7 +7363,7 @@ prints unique counters in the trace"
                " --full --nonsense-arg"))))
     (is sw)
     (is (eql 'clang-project (type-of sw)))
-    (is (string= "./" (subseq (build-command sw) 0 2)))
+    (is (not (string= "./" (subseq (build-command sw) 0 2))))
     (is (search "--full" (build-command sw)))))
 
 
