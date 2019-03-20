@@ -153,7 +153,7 @@
     (if out-dir
         (if (directory-p old-file)
             (to-file new-merged
-                     (make-pathname :directory (append out-dir "merged")))
+                     (make-pathname :directory (append out-dir (list "merged"))))
 	    (to-file new-merged
                      (resolve-store-path-from-out-dir-and-name
                       out-dir
