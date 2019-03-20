@@ -1275,7 +1275,7 @@
   (:setup (setf *soft*
 		(from-file
 		 (make-instance 'csurf-asm)
-                 (asm-test-dir "calc.asm"))))
+                 (asm-test-dir "calc.s.intel"))))
   (:teardown
    (setf *soft* nil)))
 
@@ -1833,7 +1833,7 @@
 ;; simple test to see if the whole file parsed correctly
 (deftest parser-test-1 ()
   (with-fixture csurf-asm-calc
-    (is (= (length (genome *soft*)) 840))))
+    (is (= (length (genome *soft*)) 828))))
 
 (deftest parser-test-2 ()
   (with-fixture csurf-asm-calc
@@ -1846,8 +1846,9 @@
 (deftest parser-test-4 ()
   (with-fixture csurf-asm-calc
     (let ((op-line (find :op (genome *soft*) :key 'asm-line-info-type)))
-      (is (and (eq (asm-line-info-opcode op-line) 'sel/asm::sub)
-	       (equal (asm-line-info-operands op-line) '((sel/asm::rsp) (8))))))))
+      (is (and (equalp (asm-line-info-opcode op-line) "sub")
+	       (equalp (asm-line-info-operands op-line)
+		       '(("rsp" "comma" 8))))))))
 
 (deftest parser-test-5 ()
   (with-fixture csurf-asm-calc
@@ -4254,7 +4255,7 @@ int x = CHARSIZE;")))
          (from-file
           (make-instance 'csurf-asm-w/ancestry
             :redirect-file (asm-test-dir "calc.elf_copy_redirect.asm"))
-          (asm-test-dir "calc.asm"))
+          (asm-test-dir "calc.s.intel"))
          *test* [#'length #'genome])
    (evaluate *test* *soft*))
   (:teardown
