@@ -32,6 +32,7 @@
         :software-evolution-library/software/javascript
         :software-evolution-library/software/java
         :software-evolution-library/software/lisp
+        :software-evolution-library/software/simple
         :software-evolution-library/software/clang-project
         :software-evolution-library/software/javascript-project
         :software-evolution-library/software/java-project
@@ -252,7 +253,8 @@ Optional DESCRIPTION is added to the path."
                 '((("JAVA") java)
                   (("JAVASCRIPT") javascript)
                   (("C" "CPP" "C++" "C-PLUS-PLUS" "C PLUS PLUS") clang)
-                  (("LISP" "CL" "COMMON LISP") lisp)))))
+                  (("LISP" "CL" "COMMON LISP") lisp)
+                  (("TEXT") simple)))))
     (if (and source (directory-p source))
         (intern (concatenate 'string (string class) "-PROJECT"))
         class)))
