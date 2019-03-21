@@ -1,4 +1,22 @@
 ;;; asm-heap.lisp --- parse assembly code into asm-line-info structs
+;;;
+;;; The ASM-HEAP software class supports mutations on assembler
+;;; source files. These can be in either Intel x86_64 syntax
+;;; (as used with the Nasm assembler) or AT&T x86_64 syntax (as
+;;; used with GAS, or Gnu Assembler).
+;;;
+;;; The ASM-SYNTAX property will be automatically set to either
+;;; :INTEL or :ATT based on the lines which are loaded into the genome.
+;;;
+;;; In general, one line of the source file results in one element
+;;; of the resulting genome. However, the line parser does these things:
+;;;   a) separates label declarationss onto their own line
+;;;      e.g.  my_label: push rax
+;;;      becomes "my_label:" and "push rax" as two lines.
+;;;   b) lines either empty or consisting only of white space are removed
+;;;      Lines containing only comments are not removed, they are kept as is,
+;;;      but the ASM-LINE-INFO-TYPE is :EMPTY.
+;;;
 (defpackage :software-evolution-library/software/asm-heap
   (:nicknames :sel/software/asm-heap :sel/sw/asm-heap)
   (:use :common-lisp
