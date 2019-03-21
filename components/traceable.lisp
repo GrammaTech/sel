@@ -61,6 +61,9 @@ traces in a s-expression format."))
   (:documentation "Error thrown when trace collection fails unexpectedly"))
 
 (defmacro with-possibly-existing-bin ((bin) missing-bin &body body)
+  "Run BODY with the file BIN already present or created by MISSING-BIN.
+If BIN had to be created then remove it after BODY completes.  If BIN
+was already in place then leave it alone."
   (with-gensyms (bin-already-exists probe)
     `(let ((,bin-already-exists (probe-file ,bin)))
        (unless ,bin-already-exists ,missing-bin)
