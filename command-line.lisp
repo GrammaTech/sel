@@ -309,10 +309,12 @@ directories and if files based on their extensions."
       ;; Return first non-nil guess.
       (find-if #'identity guesses))))
 
-(defun create-software (path &key
-                               (language (guess-language path) language-p)
-                               compiler flags build-command artifacts
-                               compilation-database store-path)
+(defun create-software (path &rest rest
+                        &key ; NOTE: Maintain list of keyword arguments below.
+                          (language (guess-language path) language-p)
+                          compiler flags build-command artifacts
+                          compilation-database store-path
+                          &allow-other-keys)
   "Build a software object from a common superset of language-specific options.
 
 Keyword arguments are as follows:
@@ -325,7 +327,8 @@ Keyword arguments are as follows:
   COMPILER ------------- compiler for software object
   BUILD-COMMAND -------- shell command to build project directory
   ARTIFACTS ------------ build-command products
-  COMPILATION-DATABASE - path to clang compilation database"
+  COMPILATION-DATABASE - path to clang compilation database
+Other keyword arguments are allowed and are passed through to `make-instance'."
   (when (and store-path (probe-file store-path))
     (return-from create-software (restore store-path)))
   (from-file
@@ -377,7 +380,11 @@ Keyword arguments are as follows:
            (artifacts
             (when (subtypep language 'project) artifacts))))
     (apply #'make-instance language)
-    (apply #'append)
+    (apply #'append
+           (plist-drop-if ; Any other keyword arguments are passed through.
+            {member _ (list :language :compiler :flags :build-command :artifacts
+                            :compilation-database :store-path)}
+            (copy-seq rest)))
     (remove-if-not #'second)
     `((:compiler ,compiler)
       (:flags ,flags)
