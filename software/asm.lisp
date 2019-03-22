@@ -110,7 +110,7 @@ linking process, (5) the source file name used during linking."
   #-ccl (declare (values t fixnum string string string))
   (with-temp-file-of (src "s") (genome-string asm)
     (multiple-value-bind (stdout stderr errno)
-        (shell "~a -o ~a ~a ~{~a~^ ~}"
+        (shell "~a -no-pie -o ~a ~a ~{~a~^ ~}"
                (or (linker asm) *asm-linker*) bin src (flags asm))
       (declare (ignorable stdout ))
       (values bin errno stderr stdout src))))
