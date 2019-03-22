@@ -830,7 +830,10 @@ A diff is a sequence of actions as returned by `ast-diff' including:
 				   (edit (cdr asts) (cdr script))))
 	       (:same-tail
 		(assert (null (cdr script))) ;; :same-tail always occurs last
-		(assert (ast-equal-p asts args))
+		(assert (ast-equal-p asts args)
+                        ()
+                        "AST-PATCH (CONS): :SAME-TAIL not as as in script: ~a, ~a"
+                        asts args)
 		asts)
 	       (:recurse-tail
 		(assert (null (cdr script)))
