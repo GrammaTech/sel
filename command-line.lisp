@@ -307,9 +307,11 @@ directories and if files based on their extensions."
     ;;       what constitutes a clang project vs. a javascript
     ;;       project.  Probably best would be to create a general
     ;;       "software project" that holds all types.
-    (when (= 1 (length (remove nil (remove-duplicates guesses))))
+    (case (length (remove nil (remove-duplicates guesses)))
       ;; Return first non-nil guess.
-      (find-if #'identity guesses))))
+      (1 (find-if #'identity guesses))
+      (0 'simple)
+      (t nil))))
 
 (defun create-software (path &rest rest
                         &key ; NOTE: Maintain list of keyword arguments below.
@@ -388,7 +390,8 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
                             :compilation-database :store-path)}
             (copy-seq rest)))
     (remove-if-not #'second)
-    `((:compiler ,compiler)
+    `((:allow-other-keys t)
+      (:compiler ,compiler)
       (:flags ,flags)
       (:build-command ,build-command)
       (:artifacts ,artifacts)
