@@ -350,6 +350,57 @@
 ;; C 64-bit unsigned long MAXINT, is the worst possible fitness score
 (defconstant +worst-c-fitness+ #xffffffffffffffff)
 
+(defparameter *all-registers*
+  '("rax"
+    "rbx"
+    "rcx"
+    "rdx"
+    "rsp"
+    "rbp"
+    "rsi"
+    "rdi"
+    "r8"
+    "r9"
+    "r10"
+    "r11"
+    "r12"
+    "r13"
+    "r14"
+    "r15")
+  "Set of all possible registers on x86_64.")
+
+(defparameter +num-regs+ (length *all-registers*))
+
+(defparameter *input-registers*
+  '("rax"
+    "rbx"
+    "rcx"
+    "rdx"
+    "rsp"
+    "rbp"
+    "rsi"
+    "rdi"
+    "r8"
+    "r9"
+    "r10"
+    "r12"
+    "r13"
+    "r14"
+    "r15")
+  "All registers which are live at input.")
+
+(defparameter *output-registers*
+  '("rax"
+    "rbx"
+    "rdx"
+    "rsp"
+    "rbp"
+    "r12"
+    "r13"
+    "r14"
+    "r15")
+  "All registers which are live at output.")
+
 ;;;
 ;;; all the SIMD register names start with 'y'
 ;;;
@@ -503,6 +554,25 @@
    :simd-regs (make-array 16 :fill-pointer 0)
    :mem (make-array 0 :fill-pointer 0 :adjustable t)))
 
+(defun sort-registers (reg-list)
+  (let ((reg-values
+         (iter (for i from 0)
+               (for reg in *all-registers*)
+               (collect (cons reg i)))))
+    (sort (copy-list reg-list) '<
+          :key (lambda (r)(cdr (find r reg-values :test 'equalp :key 'car))))))
+
+(defun sort-reg-contents (reg-contents-vec)
+  (let ((reg-values
+         (iter (for i from 0)
+               (for reg in *all-registers*)
+               (collect (cons reg i)))))
+    (sort (copy-array reg-contents-vec) '<
+          :key (lambda (r)
+                 (cdr (find (reg-contents-name r) reg-values
+                            :test 'equalp
+                            :key 'car))))))
+
 (defun load-io-file (super-asm filename)
   "Load the file containing input and output state information"
   (let ((input-spec (new-io-spec))
@@ -517,10 +587,14 @@
 	(cond ((zerop (length line))) ; do nothing, empty line
 	      ((search "Input data" line)
 	       (when (> (length (input-specification-regs output-spec)) 0)
+                 (setf (input-specification-regs output-spec)
+                       (sort-reg-contents (input-specification-regs output-spec)))
 	         (vector-push-extend output-spec (output-spec super-asm))
 	         (setf output-spec (new-io-spec)))
 	       (setf parsing-inputs t))
 	      ((search "Output data" line)
+               (setf (input-specification-regs input-spec)
+                     (sort-reg-contents (input-specification-regs input-spec)))
 	       (vector-push-extend input-spec (input-spec super-asm))
 	       (setf input-spec (new-io-spec))
 	       (setf parsing-inputs nil))
@@ -540,8 +614,22 @@
 	       (vector-push-extend
 		(parse-mem-spec line pos)
 		(input-specification-mem
-		 (if parsing-inputs input-spec output-spec))))))))
-  t)
+		 (if parsing-inputs input-spec output-spec)))))))
+    (if (> (length (input-spec super-asm)) 0)
+        (setf *input-registers*
+              (sort-registers
+               (iter (for x in-vector
+                          (input-specification-regs
+                           (aref (input-spec super-asm) 0)))
+                     (collect (reg-contents-name x))))))
+    (if (> (length (output-spec super-asm)) 0)
+        (setf *output-registers*
+              (sort-registers
+               (iter (for x in-vector
+                          (input-specification-regs
+                           (aref (output-spec super-asm) 0)))
+                     (collect (reg-contents-name x))))))
+    t))
 
 ;;;
 ;;; takes 8 bit mask and converts to 8-byte mask, with each
@@ -697,7 +785,7 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 ;;;
 (defun add-label-suffix (text suffix asm-syntax)
   (let ((label-re
-	 (if (eq asm-syntax ':intel)
+	 (if (intel-syntax-p asm-syntax)
 	     "\\$[\\w@]+"
 	     "\\.\\L\\_[\\w@]+")))
     (multiple-value-bind (start end register-match-begin register-match-end)
@@ -708,7 +796,7 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 	       (or
 		(and (char= #\j (char (string-trim '(#\space #\tab) text) 0))
 		     (not (find #\@ text :start start :end end)))
-		(if (eq asm-syntax ':intel)
+		(if (intel-syntax-p asm-syntax)
 		    (char= #\$ (char (string-trim '(#\space #\tab) text) 0))
 		    (char= #\. (char (string-trim '(#\space #\tab) text) 0)))))
 	  (concatenate 'string
@@ -721,7 +809,7 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 ;;; Insert prolog code at the beginning of the file.
 ;;;
 (defun add-prolog (asm num-variants index-info syntax)
-  (if (eq syntax ':intel)
+  (if (intel-syntax-p syntax)
       (insert-new-lines
        asm
        (append
@@ -733,8 +821,18 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 	 "        global input_mem"
 	 "        global output_mem"
 	 "        global num_tests"
+	 "        global save_rsp"
+	 "        global save_rbx"
 	 "        global save_return_address"
-	 "        global result_return_address")
+	 "        global result_return_address"
+	 "        global test_offset"
+	 "        global _init_registers"
+         "        global _restore_registers"
+         "        global result_regs"
+         "        global live_input_registers"
+         "        global num_input_registers"
+         "        global live_output_registers"
+         "        global num_output_registers")
 	(iter (for i from 0 below num-variants)
 	      (collect (format nil "        global variant_~D" i)))
 	(list
@@ -749,7 +847,7 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 	 ""
 	 "; ----------- Code & Data ------------"
 	 "section .text exec nowrite  align=16"
-	 "      align 4"))
+	 "      align 8"))
        0)
       (insert-new-lines
        asm
@@ -762,8 +860,18 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 	 "        .globl input_mem"
 	 "        .globl output_mem"
 	 "        .globl num_tests"
+	 "        .globl save_rsp"
+	 "        .globl save_rbx"
 	 "        .globl save_return_address"
-	 "        .globl result_return_address")
+	 "        .globl result_return_address"
+	 "        .globl test_offset"
+	 "        .globl _init_registers"
+         "        .globl _restore_registers"
+         "        .globl result_regs"
+         "        .globl live_input_registers"
+         "        .globl num_input_registers"
+         "        .globl live_output_registers"
+         "        .globl num_output_registers")
 	(iter (for i from 0 below num-variants)
 	      (collect (format nil "        .globl variant_~D" i)))
 	(list
@@ -782,7 +890,7 @@ a symbol, the SYMBOL-NAME of the symbol is used."
        0)))
 
   (defun add-externs (asm asm-super)
-    (if (eq (asm-syntax asm-super) ':intel)
+    (if (intel-syntax-p asm-super)
 	(insert-new-lines
 	 asm
 	 (append
@@ -791,8 +899,7 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 	   "; -------------- Externs ---------------")
 	  (iter (for x in (collect-extern-funcs asm-super))
 		(collect (format nil "        extern ~A" x))
-		(list "")))
-	 (length (genome asm)))))
+		(list ""))))))
 
 ;;;
 ;;; Replace a RET operation with:
@@ -809,7 +916,7 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 ;;;
 (defun handle-ret-ops (asm-lines asm-syntax)
   (let ((new-lines '()))
-    (if (eq asm-syntax ':intel)
+    (if (intel-syntax-p asm-syntax)
 	(iter (for line in-vector asm-lines)
 	      (if (equalp (asm-line-info-opcode line) "ret")
 		  (progn
@@ -846,7 +953,7 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 	   (lambda (line)
 	     (add-label-suffix line suffix asm-syntax))
 	   lines)))
-    (if (eq asm-syntax ':intel)
+    (if (intel-syntax-p asm-syntax)
 	(insert-new-lines
 	 asm-variant
 	 (append
@@ -856,8 +963,7 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 	   "        push qword [save_return_address]")
 	  localized-lines
 	  (list "ret"   ; probably redundant, already in lines
-		"align 4"))
-	 (length (genome asm-variant)))
+		"align 8")))
 	;; att syntax
 	(insert-new-lines
 	 asm-variant
@@ -868,14 +974,13 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 	   "        pushq (save_return_address)")
 	  localized-lines
 	  (list "retq"   ; probably redundant, already in lines
-		".align 8"))
-	 (length (genome asm-variant))))))
+		".align 8"))))))
 
 (defun format-reg-specs (io-spec asm-syntax)
   (iter (for reg-spec in-vector (input-specification-regs io-spec))
 	(collect
 	    (format nil
-		    (if (eq asm-syntax ':intel)
+		    (if (intel-syntax-p asm-syntax)
 			"    dq 0x~16,'0X  ; ~A"
 			"    .quad 0x~16,'0X  # ~A")
 		    (be-bytes-to-qword (reg-contents-value reg-spec))
@@ -888,7 +993,7 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 ;;; The list is terminated with an address of 0.
 ;;;
 (defun format-mem-specs (io-spec asm-syntax)
-  (if (eq asm-syntax ':intel)
+  (if (intel-syntax-p asm-syntax)
       (let ((lines
 	     (iter (for spec in-vector (input-specification-mem io-spec))
 		   (collect
@@ -930,63 +1035,57 @@ a symbol, the SYMBOL-NAME of the symbol is used."
    asm
    (list
     ""
-    (if (eq asm-syntax ':intel)
+    (if (intel-syntax-p asm-syntax)
 	";;;  table of function pointers, 0-terminated"
 	"#    table of function pointers, 0-terminated")
-    "variant_table:")
-   (length (genome asm)))
+    "variant_table:"))
 
   (dotimes (i num-variants)
     (insert-new-line
      asm
      (format nil
-	     (if (eq asm-syntax ':intel)
+	     (if (intel-syntax-p asm-syntax)
 		 "        dq variant_~D"
 		 "        .quad variant_~D")
-	     i)
-     (length (genome asm))))
+	     i)))
   (insert-new-line asm
-		   (if (eq asm-syntax ':intel)
+		   (if (intel-syntax-p asm-syntax)
 		       "        dq 0x0"
-		       "        .quad 0x0")
-		   (length (genome asm))))
+		       "        .quad 0x0")))
 
 (defun format-reg-info (asm-variants spec-vec asm-syntax label)
   (insert-new-lines asm-variants (list "" label) (length (genome asm-variants)))
   (dotimes (i (length spec-vec))
     (insert-new-lines
      asm-variants
-     (format-reg-specs (aref spec-vec i) asm-syntax)
-     (length (genome asm-variants)))
-    (insert-new-line asm-variants "" (length (genome asm-variants)))))
+     (format-reg-specs (aref spec-vec i) asm-syntax))
+    (insert-new-line asm-variants "")))
 
 (defun format-mem-info (asm-variants spec-vec asm-syntax label)
-  (insert-new-lines asm-variants (list "" label) (length (genome asm-variants)))
+  (insert-new-lines asm-variants (list "" label))
   (dotimes (i (length spec-vec))
     (insert-new-lines
      asm-variants
      (format-mem-specs (aref spec-vec i) asm-syntax)
      (length (genome asm-variants)))
-    (insert-new-line asm-variants "" (length (genome asm-variants)))))
+    (insert-new-line asm-variants "")))
 
 (defun add-bss-section (asm-variants asm-super)
   ;; if bss section found, add it
   (let ((bss (extract-section asm-super ".BSS")))
-    (if (eq (asm-syntax asm-super) ':intel)
+    (if (intel-syntax-p asm-super)
 	(if bss
 	    (insert-new-lines
 	     asm-variants
 	     (cons "section .seldata nobits alloc noexec write align=4"
-		   (cdr (lines (extract-section asm-super ".BSS"))))
-	     (length (genome asm-variants)))
+		   (cdr (lines (extract-section asm-super ".BSS")))))
 	    (insert-new-lines
 	     asm-variants
 	     (list "section .seldata nobits alloc noexec write align=4"
 		   "    times 16 db 0"
 		   "    times  8 db 0"
 		   "    times  8 db 0"
-		   "    times  8 db 0")
-	     (length (genome asm-variants))))
+		   "    times  8 db 0")))
 	;; att syntax
 	(if bss
 	    (insert-new-lines
@@ -994,8 +1093,7 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 	     (append
 	      (list ".section .seldata, \"wa\", @nobits"
 		    ".align 16")
-	      (cdr (lines (extract-section asm-super ".BSS"))))
-	     (length (genome asm-variants)))
+	      (cdr (lines (extract-section asm-super ".BSS")))))
 	    (insert-new-lines
 	     asm-variants
 	     (list  ".section .seldata, \"wa\", @nobits"
@@ -1004,31 +1102,45 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 		   "    .zero 8"
 		   "    .zero 4"
 		   "    .zero 4"
-		   "    .zero 8")
-	     (length (genome asm-variants))))
-	)))
+		   "    .zero 8"))))))
 
 (defun add-return-address-vars (asm-variants asm-syntax)
-  (if (eq asm-syntax ':intel)
+  (if (intel-syntax-p asm-syntax)
       (insert-new-lines
        asm-variants
        (list
-	"        ; save address to return back to, in case the stack is messed up"
+	"        ; save address to return back to, in case the stack is corrupt"
 	"        save_return_address: resb 8"
 	"        ; save the address found on the stack (should be the same)"
 	"        result_return_address: resb 8"
-	"")
-       (length (genome asm-variants)))
+        "        ; local use only"
+        "        temp_return_address: resb 8"
+        "        save_rsp: resb 8"
+        "        save_rbx: resb 8"
+        "        test_offset: resb 8"
+        (format nil "        result_regs: resb 0x~X" (* +num-regs+ 8))
+        ""))
       ;; att syntax
       (insert-new-lines
        asm-variants
        (list
-	"        # save address to return back to, in case the stack is messed up"
+	"        # save address to return back to, in case the stack is corrupt"
 	"        save_return_address: .zero 8"
 	"        # save the address found on the stack (should be the same)"
 	"        result_return_address: .zero 8"
-	"")
-       (length (genome asm-variants)))))
+        "        temp_return_address: .zero 8"
+        "        save_rsp: .zero 8"
+        "        save_rbx: .zero 8"
+        "        test_offset: .zero 8"
+        (format nil "        result_regs: .zero 0x~X" (* +num-regs+ 8))
+	""))))
+
+(defun calc-live-regs (register-list)
+  "Calculate live input register bit mask. 
+RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
+  (iter
+    (for x in register-list)
+    (sum (ash 1 (position x *all-registers* :test 'equalp)))))
 
 (defun add-io-tests (asm-super asm-variants)
   "Copy the I/O data from the asm-super into the asm-variants assembly file"
@@ -1036,17 +1148,40 @@ a symbol, the SYMBOL-NAME of the symbol is used."
    asm-variants
    (list
     ""
-    "num_tests:")
-   (length (genome asm-variants)))
+    "num_tests:"))
   (insert-new-line
    asm-variants
    (format nil
-	   (if (eq (asm-syntax asm-super)
-		   ':intel)
+	   (if (intel-syntax-p asm-super)
 	       "        dq ~d"
 	       "        .quad ~d")
-	   (length (input-spec asm-super)))
-   (length (genome asm-variants)))
+	   (length (input-spec asm-super))))
+
+  ;; add live register masks
+  (if (intel-syntax-p asm-super)
+      (insert-new-lines
+       asm-variants
+       (list
+        (format nil "live_input_registers:  dq 0x~X"
+                (calc-live-regs *input-registers*))
+        (format nil "num_input_registers:   dq 0x~X"
+                (length *input-registers*))
+        (format nil "live_output_registers: dq 0x~X"
+                (calc-live-regs *output-registers*))
+        (format nil "num_output_registers:  dq 0x~X"
+                (length *output-registers*))))
+      (insert-new-lines
+       asm-variants
+       (list
+        (format nil "live_input_registers:  .quad 0x~X"
+                (calc-live-regs *input-registers*))
+        (format nil "num_input_registers:   .quad 0x~X"
+                (length *input-registers*))
+        (format nil "live_output_registers: .quad 0x~X"
+                (calc-live-regs *output-registers*))
+        (format nil "num_output_registers:  .quad 0x~X"
+                (length *output-registers*)))))
+        
   (format-reg-info asm-variants (input-spec asm-super)
 		   (asm-syntax asm-super)
 		   "input_regs:")
@@ -1067,8 +1202,7 @@ a symbol, the SYMBOL-NAME of the symbol is used."
   (if (include-lines asm-super)
       (insert-new-lines
        asm-variants
-       (include-lines asm-super)
-       (length (genome asm-variants)))))
+       (include-lines asm-super))))
 
 (defun get-function-lines-from-name (asm-super name)
   "Given a function name, return the lines of that function (if found)."
@@ -1091,8 +1225,158 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 	  (when lines
 	    (insert-new-lines
 	     asm-variants
-	     lines
-	     (length (genome asm-variants))))))))
+	     lines))))))
+    
+(defun add-init-regs(asm-super asm-variants)
+  "Add assembler code to initialize registers."
+  (let ((rbx-pos nil))
+    (insert-new-lines
+     asm-variants
+     (list
+      "_init_registers: "
+      (if (intel-syntax-p asm-super)
+          "        pop qword [temp_return_address]"
+          "        popq temp_return_address")))
+    
+    ;; push all the registers except rsp
+    (insert-new-lines
+     asm-variants
+     (mapcan
+      (lambda (x)
+        (unless (equalp x "RSP")
+          (list
+           (if (intel-syntax-p asm-super)
+               (format nil "        push ~A" (string-downcase x))
+               (format nil "        push %~A" (string-downcase x))))))
+      *all-registers*))
+
+    ;; initialize registers with input_regs data 
+    (insert-new-lines
+     asm-variants
+     (if (intel-syntax-p asm-super)
+         (list
+          "        mov qword [save_rsp], rsp"
+          "        mov rax, qword [test_offset]" 
+          "        lea rbx, [input_regs]"
+          "        add rbx, rax")
+         (list
+          "        movq %rsp, save_rsp"
+          "        movq test_offset, %rax"
+          "        leaq input_regs, %rbx"
+          "        add %rax, %rbx")))
+
+    ;; rbx now points to register data
+    (insert-new-lines
+     asm-variants
+     (iter
+       (for x in *input-registers*)
+       (for i from 0 by 8)
+       (if (equalp x "RBX")
+           (setf rbx-pos i)
+           (collect
+               (if (intel-syntax-p asm-super)
+                   (format nil "        mov  ~A, [rbx + 0x~X]"
+                           (string-downcase x)
+                           i)
+                   (format nil "        movq 0x~X(%rbx), %~A"
+                           i
+                           (string-downcase x)))))))
+
+    (insert-new-lines
+     asm-variants
+     (if (intel-syntax-p asm-super)
+         (list
+          "        add rsp, 8"
+          (format nil "        mov rbx, qword [rbx + 0x~X]" rbx-pos))
+         (list
+          "        add $8, %rsp"
+          (format nil "        movq 0x~X(%rbx), %rbx" rbx-pos))))
+
+    (insert-new-lines
+     asm-variants
+     (if (intel-syntax-p asm-super)
+         (list
+          "        push qword [temp_return_address]"
+          "        ret"
+          "        align 8")
+         (list
+          "        pushq temp_return_address"
+          "        retq"
+          "        .align 8")))))
+
+(defun add-restore-regs(asm-super asm-variants)
+  "Add assembler code to save and restore registers."
+  ;; function name
+  (let ((rbx-pos nil))
+    (if (intel-syntax-p asm-super)
+        (insert-new-lines
+         asm-variants
+         (append
+          (list
+           "_restore_registers: "
+           "        pop qword [temp_return_address]"
+           "        mov qword [save_rbx], rbx"
+           "        lea rbx, [result_regs]")
+          (iter
+            (for x in *output-registers*)
+            (for i from 0 by 8)
+            (if (equalp x "RBX")
+                (setf rbx-pos i)
+                (collect
+                    (format nil "        mov  qword [rbx + 0x~X], ~A"
+                            i
+                            (string-downcase x)))))
+          (if rbx-pos ; if rbx is live, handle it specially
+              (list
+               "        mov rcx, rbx"
+               "        mov rbx, qword [save_rbx]"
+               (format nil "        mov qword [rcx + 0x~X], rbx" rbx-pos)))
+          (list
+           "        mov rsp, qword [save_rsp]")
+          (iter
+            (for x in (reverse *all-registers*))
+            (unless (equalp x "RSP")
+              (collect
+                  (format nil "        pop ~A"
+                          (string-downcase x)))))
+          (list
+           "        push qword [temp_return_address]"
+           "        ret"
+           "        align 8")))
+        (insert-new-lines
+         asm-variants
+         (append
+          (list
+           "_restore_registers: "
+           "        popq temp_return_address"
+           "        movq %rbx, save_rbx"
+           "        lea result_regs, %rbx")
+          (iter
+            (for x in *output-registers*)
+            (for i from 0 by 8)
+            (if (equalp x "RBX")
+                (setf rbx-pos i)
+                (collect
+                    (format nil "        movq %~A, 0x~X(%rbx)"
+                            (string-downcase x)
+                            i))))
+          (if rbx-pos ; if rbx is live, handle it specially
+              (list
+               "        mov %rbx, %rcx"
+               "        movq save_rbx, %rbx"
+               (format nil "        movq %rbx, 0x~X(%rcx)" rbx-pos)))
+          (list
+           "        movq save_rsp, %rsp")
+          (iter
+            (for x in (reverse *all-registers*))
+            (unless (equalp x "RSP")
+              (collect
+                  (format nil "        popq %~A"
+                          (string-downcase x)))))
+          (list
+           "        pushq temp_return_address"
+           "        retq"
+           "        .align 8"))))))
 
 ;;;
 ;;; considers the variants have the same super-owner if its super-owner's
@@ -1109,6 +1393,9 @@ a symbol, the SYMBOL-NAME of the symbol is used."
     (add-included-lines asm-super asm-variants)
     (add-included-funcs asm-super asm-variants)
 
+    (add-init-regs asm-super asm-variants)
+    (add-restore-regs asm-super asm-variants)
+    
     (let ((count 0))
       (dolist (v (mutants asm-super))
 	(assert (equalp (genome (super-owner v)) (genome asm-super)) (v)
@@ -1159,10 +1446,10 @@ a symbol, the SYMBOL-NAME of the symbol is used."
       ;; Assemble.
       (multiple-value-bind (stdout stderr errno)
           (shell "~a ~a -o ~a ~a"
-		 (if (eq (asm-syntax asm) ':intel)
+		 (if (intel-syntax-p asm)
 		     "nasm"
 		     "as")
-		 (if (eq (asm-syntax asm) ':intel)
+		 (if (intel-syntax-p asm)
 		     "-f elf64"
 		     "")
 		 obj
@@ -1218,11 +1505,7 @@ needs to have been loaded, along with the var-table by PARSE-SANITY-FILE."
 	 (*worst-fitness* (worst-numeric-fitness)))
     (with-temp-file (bin)
       (multiple-value-bind (bin-path phenome-errno stderr stdout src)
-
-	  ;;(handler-case
 	  (phenome asm-super :bin bin)
-	;;  (phenome () (values nil 1 "" "" nil)))
-
 	(declare (ignorable phenome-errno stderr stdout src))
 	(let ((test-results nil))
 	  (if (zerop phenome-errno)

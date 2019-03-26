@@ -714,6 +714,28 @@
 
   (:teardown (setf *soft* nil)))
 
+(defixture odd-even-asm-super-reg-test-intel
+  (:setup
+   (setf *soft* (from-file (make-instance 'asm-super-mutant)
+			   (asm-test-dir "is-even.s.intel"))
+	 (fitness-harness *soft*) (software-dir "asm-super-mutant-fitness.c"))
+   (setf (sel/sw/asm-super-mutant::io-file *soft*)
+         (asm-test-dir "is_even-reg-test.io"))
+   (target-function-name *soft* "is_even"))
+
+  (:teardown (setf *soft* nil)))
+
+(defixture odd-even-asm-super-reg-test-att
+  (:setup
+   (setf *soft* (from-file (make-instance 'asm-super-mutant)
+			   (asm-test-dir "is-even.s.att"))
+	 (fitness-harness *soft*) (software-dir "asm-super-mutant-fitness.c"))
+   (setf (sel/sw/asm-super-mutant::io-file *soft*)
+         (asm-test-dir "is_even-reg-test.io"))
+   (target-function-name *soft* "is_even"))
+
+  (:teardown (setf *soft* nil)))
+
 (defixture rest-server
   (:setup (unless *clack* (setf *clack* (initialize-clack))))
   (:teardown (clack:stop *clack*)(setf *clack* nil)(setf *rest-client* nil)))
@@ -1756,6 +1778,14 @@
 
 (deftest asm-super-mutant-finds-improved-version-att ()
   (with-fixture odd-even-asm-super-att
+    (asm-super-mutant-finds-improved-version)))
+
+(deftest asm-super-mutant-finds-improved-version-reg-test-intel ()
+  (with-fixture odd-even-asm-super-reg-test-intel
+    (asm-super-mutant-finds-improved-version)))
+
+(deftest asm-super-mutant-finds-improved-version-reg-test-att ()
+  (with-fixture odd-even-asm-super-reg-test-att
     (asm-super-mutant-finds-improved-version)))
 
 

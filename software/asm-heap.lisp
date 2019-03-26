@@ -75,7 +75,8 @@
            :insert-new-line
            :insert-new-lines
            :parse-asm-line
-           :call-targets))
+           :call-targets
+           :intel-syntax-p))
 (in-package :software-evolution-library/software/asm-heap)
 (in-readtable :curry-compose-reader-macros)
 
@@ -202,6 +203,14 @@ All elements of the genome are references into this line-heap."))
  nil
  *assembler-x86-readtable*)
 
+(defun intel-syntax-p (x)
+  "True if syntax has been set to :intel. 
+The argument should be an asm-heap instance 
+or a symbol representing a valid asm-syntax slot value."
+  (if (symbolp x)
+      (eq x ':intel)
+      (eq (asm-syntax x) ':intel)))
+
 ;;;
 ;;; The Lisp reader will handle intel comments (;) as we need them, so we
 ;;; don't do anything special about them.
@@ -292,7 +301,7 @@ we are excluding CALL instructions."
 
 (defun parse-line-type (tokens syntax)
   "From list of tokens, determine type of line."
-  (if (eq syntax ':intel)
+  (if (intel-syntax-p syntax)
       (parse-line-type-intel tokens)
       (parse-line-type-att tokens)))
 
@@ -505,7 +514,7 @@ linking process, (5) the source file name used during linking."
   #-ccl (declare (values t fixnum string string string))
 
   ;; if intel (backward-compatibility) use phenome in ASM class
-  (when (eq (asm-syntax asm) ':intel)
+  (when (intel-syntax-p asm)
     (return-from phenome (call-next-method)))
 
   (with-temp-file-of (src "s") (genome-string asm)
@@ -572,7 +581,8 @@ linking process, (5) the source file name used during linking."
 ;;; Parses a new line of assembler, adds it to the heap, and inserts
 ;;; it at index in the genome. Returns the number of lines inserted.
 ;;;
-(defun insert-new-line (asm-heap text index)
+(defun insert-new-line (asm-heap text
+			&optional (index (length (genome asm-heap))))
   (let ((info-list (parse-and-add-to-heap asm-heap text)))
     (dolist (info info-list)
       (vector-insert (genome asm-heap) index info)
@@ -582,7 +592,8 @@ linking process, (5) the source file name used during linking."
 ;;;
 ;;; Parse and add a list of lines of assembler code.
 ;;;
-(defun insert-new-lines (asm-heap line-list index)
+(defun insert-new-lines (asm-heap line-list
+			 &optional (index (length (genome asm-heap))))
   (dolist (x line-list)
     (incf index (insert-new-line asm-heap x index))))
 
@@ -802,8 +813,7 @@ those of A and B."
 
 (defun function-name-from-label (name asm)
   "Given a label like $FOO1, returns FOO1 (intel only)."
-  (if (and (eq (asm-syntax asm) ':intel)
-	   (char= (char name 0) #\$))
+  (if (and (intel-syntax-p asm) (char= (char name 0) #\$))
       (subseq name 1)
       name))
 
@@ -845,17 +855,17 @@ name. The resulting hash-table is returned."
 		      (pos (position #\. tok)))
 		 (and pos (> pos 1))))
 	      (push
-	        x
-	        (gethash
-		 (extract-function-name-from-decl
-		  (first (asm-line-info-tokens x)))
-		 table))))
+               x
+               (gethash
+                (extract-function-name-from-decl
+                 (first (asm-line-info-tokens x)))
+                table))))
     table))
 
 (defun create-asm-function-index (asm)
   "Traverse the passed asm-heap, and collect a function-index-entry
 for each function. The result is a vector of function-index-entry."
-  (let ((table (if (eq (asm-syntax asm) ':intel)
+  (let ((table (if (intel-syntax-p asm)
 		   (extract-function-declarations asm)
 		   (make-hash-table :test 'equalp)))
 	(entries '())
@@ -873,7 +883,7 @@ for each function. The result is a vector of function-index-entry."
 		  (iter (while (< i (length genome)))
 			(let ((info2 (elt genome i)))
 			  (if (member (asm-line-info-opcode info2)
-				  '("call" "callq") :test 'equalp)
+                                      '("call" "callq") :test 'equalp)
 			      (setf leaf nil)) ;found a call, so not a leaf
 			  (when (or
 				 (member (asm-line-info-opcode info2)
@@ -883,9 +893,9 @@ for each function. The result is a vector of function-index-entry."
 				  (eq (asm-line-info-type info2)
 				      :decl)
 				  (member (first (asm-line-info-tokens info2))
-				      '("align" ".align") :test 'equalp))
+                                          '("align" ".align") :test 'equalp))
 				 (and (line-is-function-label info2)
-				      ; ignore duplicate function labels
+                                        ; ignore duplicate function labels
 				      (not
 				       (equalp (asm-line-info-label info)
 					       (asm-line-info-label info2)))))
@@ -901,12 +911,12 @@ for each function. The result is a vector of function-index-entry."
 			    (return)))
 			(incf i)))))
 	  (incf i))
-    (if (eq (asm-syntax asm) ':intel)
+    (if (intel-syntax-p asm)
 	(setf entries
-	  (remove-if (lambda (x)
-		       (or (null (function-index-entry-start-address x))
-			   (null (function-index-entry-end-address x))))
-		     (nreverse entries))))
+              (remove-if (lambda (x)
+                           (or (null (function-index-entry-start-address x))
+                               (null (function-index-entry-end-address x))))
+                         (nreverse entries))))
     (make-array (length entries) :initial-contents entries)))
 
 (defun asm-labels (asm)

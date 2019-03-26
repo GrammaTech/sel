@@ -31,65 +31,63 @@
 //
 typedef void (*vfunc)();
 
-
 extern vfunc variant_table[]; // 0-terminated array of variant
-                              // function pointers, defined in the asm file
-#define NUM_INPUT_REGS 15     // number of live input registers
-#define NUM_OUTPUT_REGS 9     // number of live output registers
-#define RSP_OUTPUT_INDEX 3    // index within output register set
-                              // where RSP is stored
-#define RSP_INPUT_INDEX 4     // index of RSP on input registers
-#define DEBUG 0               // set this to 1, to turn on debugging messages
-
-// Expected input registers:
-//    rax
-//    rbx
-//    rcx
-//    rdx
-//    rsp
-//    rbp
-//    rsi
-//    rdi
-//    r8
-//    r9
-//    r10
-//    r12
-//    r13
-//    r14
-//    r15
-//
-// Expected output registers:
-//    rax
-//    rbx
-//    rdx
-//    rsp
-//    rbp
-//    r12
-//    r13
-//    r14
-//    r15
+                              // function pointers, defined in the asm
+                              // file
+#define NUM_REGS 16           // total number of registers (if all are used)
+#define DEBUG 1               // set this to 1, to turn on debugging messages
 
 #define PAGE_SIZE 4096
 #define PAGE_MASK 0xfffffffffffff000
-#define RSP_POS 3  // position of stack pointer in output registers
 
-extern unsigned long input_regs[NUM_INPUT_REGS];
-extern unsigned long output_regs[NUM_OUTPUT_REGS];
+extern unsigned long input_regs[];
+extern unsigned long output_regs[];
 extern unsigned long input_mem[];
 extern unsigned long output_mem[];
 extern unsigned long num_tests;   // number of test cases
 
-unsigned long save_rsp;  // save the stack pointer
-unsigned long save_rbx;  // save the stack pointer
+extern unsigned long save_rsp;  // save the stack pointer
+extern unsigned long save_rbx;  // save the stack pointer
 
 extern unsigned long save_return_address;
 extern unsigned long result_return_address;
 
-unsigned long result_regs[NUM_OUTPUT_REGS]; // for storing the
+extern unsigned long result_regs[NUM_REGS]; // for storing the
                                             // resulting values
+extern unsigned long test_offset;
 
-static unsigned long test_offset = 0;
+//
+// Live input register mask contains uses bits to represent
+// each live register.
+//
+unsigned long rax_bit = 0x00000001;
+unsigned long rbx_bit = 0x00000002;
+unsigned long rcx_bit = 0x00000004;
+unsigned long rdx_bit = 0x00000008;
+unsigned long rsp_bit = 0x00000010;
+unsigned long rbp_bit = 0x00000020;
+unsigned long rsi_bit = 0x00000040;
+unsigned long rdi_bit = 0x00000080;
+unsigned long r08_bit = 0x00000100;
+unsigned long r09_bit = 0x00000200;
+unsigned long r10_bit = 0x00000400;
+unsigned long r11_bit = 0x00000800;
+unsigned long r12_bit = 0x00001000;
+unsigned long r13_bit = 0x00002000;
+unsigned long r14_bit = 0x00004000;
+unsigned long r15_bit = 0x00008000;
+
+extern unsigned long live_input_registers; // input live register mask
+extern unsigned long live_output_registers;// output live register mask
+extern unsigned long num_input_registers;  // number of live input registers
+extern unsigned long num_output_registers; // number of live output registers
+
+unsigned long overhead = 0;    // number of instructions in
+                               // setup/restore code
+
 static int EventSet = PAPI_NULL;
+
+extern void _init_registers();
 
 #define timer_start(name) \
     unsigned long name; \
@@ -108,91 +106,50 @@ static int EventSet = PAPI_NULL;
     }
 
 //
-// First push all of the input registers to save them (except rsp, we
-// have to store that in static data).
-// Then, replace all registers with the input register data.
-// We do this in a macro so it will always be inlined in the caller
-// function.
+// Determine which register position contains RSP, given the mask.
+// To figure it out, we count one bits in the registers
+// mask until we get to RSP bit (which should always be set).
 //
-#define init_regs()                  \
-    asm(                             \
-        "push %rax\n\t"              \
-        "push %rbx\n\t"              \
-        "push %rcx\n\t"              \
-        "push %rdx\n\t"              \
-        "push %rbp\n\t"              \
-        "push %rsi\n\t"              \
-        "push %rdi\n\t"              \
-        "push %r8\n\t"               \
-        "push %r9\n\t"               \
-        "push %r10\n\t"              \
-        "push %r12\n\t"              \
-        "push %r13\n\t"              \
-        "push %r14\n\t"              \
-        "push %r15\n\t"              \
-        "movq %rsp, save_rsp\n\t"    \
-        "movq test_offset, %rax\n\t" \
-        "leaq input_regs, %rbx\n\t"  \
-        "add %rax, %rbx\n\t"        \
-        "movq 0x00(%rbx), %rax\n\t" \
-        "movq 0x10(%rbx), %rcx\n\t" \
-        "movq 0x18(%rbx), %rdx\n\t" \
-        "movq 0x20(%rbx), %rsp\n\t" \
-        "add $8, %rsp\n\t"          \
-        "movq 0x28(%rbx), %rbp\n\t" \
-        "movq 0x30(%rbx), %rsi\n\t" \
-        "movq 0x38(%rbx), %rdi\n\t" \
-        "movq 0x40(%rbx), %r8\n\t"  \
-        "movq 0x48(%rbx), %r9\n\t"  \
-        "movq 0x50(%rbx), %r10\n\t" \
-        "movq 0x58(%rbx), %r12\n\t" \
-        "movq 0x60(%rbx), %r13\n\t" \
-        "movq 0x68(%rbx), %r14\n\t" \
-        "movq 0x70(%rbx), %r15\n\t" \
-        "movq 0x08(%rbx), %rbx\n\t" \
-        );
+int RSP_position(unsigned long mask) {
+    return
+        ((mask & rax_bit) ? 1 : 0) +
+        ((mask & rbx_bit) ? 1 : 0) +
+        ((mask & rcx_bit) ? 1 : 0) +
+        ((mask & rdx_bit) ? 1 : 0);
+}
+
+const char* reg_names[NUM_REGS] = {
+    "rax", "rbx", "rcx", "rdx",
+    "rsp", "rbp", "rsi", "rdi",
+    "r8",  "r9",  "r10", "r11",
+    "r12", "r13", "r14", "r15"
+};
 
 //
-// Copy all the registers (which we care about) into the
-// output_regs array.
-// Then restore all the registers previous state
-// (before we called init_regs) by restoring the previous
-// stack pointer (stored statically in save_sp) and
-// then popping all the other registers.
+// Return the name of the nth register.
+// Finds the nth one-bit, starting from low bit of reg_mask.
+// n is zero-based i.e. 0 = 1st reg, 1 = 2nd reg etc.
+// Returns the name of the corresponding register.
 //
-#define copy_result_regs()                 \
-    asm(                                   \
-       "movq %rbx, save_rbx\n\t"           \
-       "lea result_regs, %rbx\n\t"         \
-       "movq %rax, 0x00(%rbx)\n\t"         \
-       "movq %rdx, 0x10(%rbx)\n\t"         \
-       "movq %rsp, 0x18(%rbx)\n\t"         \
-       "movq %rbp, 0x20(%rbx)\n\t"         \
-       "movq %r12, 0x28(%rbx)\n\t"         \
-       "movq %r13, 0x30(%rbx)\n\t"         \
-       "movq %r14, 0x38(%rbx)\n\t"         \
-       "movq %r15, 0x40(%rbx)\n\t"         \
-       "movq %rbx, %rcx\n\t"               \
-       "movq save_rbx, %rbx\n\t"           \
-       "movq %rbx, 0x08(%rcx)\n\t");
-
-#define restore_regs()                     \
-    asm(                                   \
-       "movq save_rsp, %rsp\n\t"           \
-       "pop %r15\n\t"                      \
-       "pop %r14\n\t"                      \
-       "pop %r13\n\t"                      \
-       "pop %r12\n\t"                      \
-       "pop %r10\n\t"                      \
-       "pop %r9\n\t"                       \
-       "pop %r8\n\t"                       \
-       "pop %rdi\n\t"                      \
-       "pop %rsi\n\t"                      \
-       "pop %rbp\n\t"                      \
-       "pop %rdx\n\t"                      \
-       "pop %rcx\n\t"                      \
-       "pop %rbx\n\t"                      \
-       "pop %rax\n\t");
+const char* reg_name(unsigned long reg_mask, int n) {
+#if DEBUG
+    int save_n = n;
+#endif
+    unsigned long mask = 1;
+    int i = 0;
+    for (; i < NUM_REGS; i++) {
+        if (reg_mask & mask)
+            --n;
+        if (n < 0) break;
+        mask <<= 1;
+    }
+#if DEBUG
+    if (i < NUM_REGS)
+        fprintf(stderr, "reg_name:  reg_mask=0x%lx, n=%i, name=%s\n",
+            reg_mask, save_n, reg_names[i]);
+#endif
+    return (i < NUM_REGS) ? reg_names[i] : "";
+}
 
 //
 // Map a single page as read/write, given an address that falls on
@@ -228,7 +185,8 @@ void map_pages(unsigned long* p) {
 }
 
 void init_pages() {
-    map_page((unsigned long*)(input_regs[RSP_INPUT_INDEX]));  // map the initial stack page
+    // map the initial stack page
+    map_page((unsigned long*)(input_regs[RSP_position(live_input_registers)]));
     map_pages(input_mem); // map pages indicated by the memory i/o
 }
 
@@ -257,9 +215,6 @@ void init_mem(int test) {
     }
 }
 
-const char* output_reg_names[NUM_OUTPUT_REGS] = {
-    "rax", "rbx", "rdx", "rsp", "rbp", "r12", "r13", "r14", "r15" };
-
 //
 // Returns 1 if results are correct, 0 otherwise.
 // Assumes the output register values have been copied
@@ -284,18 +239,21 @@ int check_results(int variant, int test) {
         success = 0;
     }
 
+    int rsp_pos = RSP_position(live_output_registers);
+
     // check registers
-    for (int i = 0; i < NUM_OUTPUT_REGS; i++) {
-        if (i != RSP_POS
-            && output_regs[test * NUM_OUTPUT_REGS + i] != result_regs[i]) {
+    for (int i = 0; i < num_output_registers; i++) {
+        if (i != rsp_pos
+            && output_regs[test * num_output_registers + i] != result_regs[i]) {
 #if DEBUG
             fprintf(stderr, "Test %d failed at register: %s, expected: %lx, "
-                   "found: %lx, orig rsp: %lx\n",
+                   "found: %lx, orig rsp: %lx, rsp_pos: %i\n",
                   test,
-                  output_reg_names[i],
-                  output_regs[test * NUM_OUTPUT_REGS + i],
+                  reg_name(live_output_registers, i),
+                  output_regs[test * num_output_registers + i],
                   result_regs[i],
-                  save_rsp);
+                  save_rsp,
+                  rsp_pos);
 #endif
             success = 0;
         }
@@ -319,8 +277,8 @@ int check_results(int variant, int test) {
         unsigned long data = *p++;
         unsigned long mask = *p++;
 
-        unsigned long* rsp = (unsigned long*)output_regs[test * NUM_OUTPUT_REGS
-                                                         + RSP_OUTPUT_INDEX];
+        unsigned long* rsp = (unsigned long*)output_regs[test * num_output_registers
+                                                         + rsp_pos];
         if (addr < rsp && (rsp - addr) < 64)
             continue;    // ignore changes in the 1024 below the top
                          // of the stack (i.e. not on the stack, which
@@ -459,11 +417,9 @@ unsigned long run_variant(int v, int test) {
     long_long stop_value[1];
     int retval;
 
-    test_offset = test * NUM_INPUT_REGS * sizeof(unsigned long);
+    test_offset = test * num_input_registers * sizeof(unsigned long);
     execaddr = variant_table[v];
     init_mem(test);
-    //timer_start(start);
-    //PAPI_reset(EventSet);
 
     start_timer();  // start POSIX timer
     sigunblock();
@@ -480,11 +436,10 @@ unsigned long run_variant(int v, int test) {
         exit(1);
     }
 
-    init_regs();
+    asm("call _init_registers\n\t");        
     execaddr();
-    copy_result_regs();
-    restore_regs();
-//    timer_elapsed(start, elapsed);
+    asm("call _restore_registers\n\t");
+
     retval = PAPI_read(EventSet, end_value);     // get PAPI count
     end_timer();  // stop POSIX timer
     sigunblock();
@@ -507,13 +462,60 @@ unsigned long run_variant(int v, int test) {
 #if DEBUG
     fprintf(stderr, "variant %d valid: %s instructions: %lld\n", v,
            (res ? "yes" : "no"),
-           elapsed_instructions);
+           elapsed_instructions - overhead);
 #endif
     if (res && elapsed_instructions == 0) {
         fprintf(stderr, "Error: elapsed_instructions (0) is not valid!");
         elapsed_instructions = ULONG_MAX;
     }
-    return res == 0 ? ULONG_MAX : elapsed_instructions;
+    return res == 0 ? ULONG_MAX : elapsed_instructions - overhead;
+}
+
+//
+// Determine the number of instructions of overhead,
+// initializing registers and then restoring them.
+// The result is stored in the 'overhead' variable.
+// This is then subtracted from each result to obtain
+// a more accurate measurement.
+//
+unsigned long run_overhead() {
+    long_long start_value[1];
+    long_long end_value[1];
+    long_long stop_value[1];
+    int retval;
+
+    retval = PAPI_start(EventSet);  // start PAPI counting
+    if (retval < 0) {
+        fprintf(stderr, "PAPI_start() error: %d\n", retval);
+        exit(1);
+    }
+
+    retval = PAPI_read(EventSet, start_value);     // get PAPI count
+    if (retval < 0) {
+        fprintf(stderr, "PAPI_read() error: %d\n", retval);
+        exit(1);
+    }
+
+    asm("call _init_registers\n\t");
+    asm("call _restore_registers\n\t");
+    retval = PAPI_read(EventSet, end_value);     // get PAPI count
+
+    if (retval < 0) {
+        fprintf(stderr, "PAPI_read() error: %d\n", retval);
+        exit(1);
+    }
+
+    retval = PAPI_stop(EventSet, stop_value);
+    if (retval < 0) {
+        fprintf(stderr, "PAPI_stop() error: %d\n", retval);
+        exit(1);
+    }
+
+    overhead = (unsigned long)(end_value[0] - start_value[0]);
+#if DEBUG
+    fprintf(stderr, "Number of overhead instructions: %lu\n", overhead);
+#endif
+    return (unsigned long) overhead;
 }
 
 void run_variant_tests(int v, unsigned long test_results[]) {
@@ -653,6 +655,9 @@ int main(int argc, char* argv[]) {
         test_results[i] = ULONG_MAX;   // set fitness to max to
                                        // initialize
 
+    // see how many overhead instructions there are
+    unsigned long overhead = run_overhead();
+    
     for (int i = 0; variant_table[i]; i++) {
         run_variant_tests(i, test_results + (i * num_tests));
     }
