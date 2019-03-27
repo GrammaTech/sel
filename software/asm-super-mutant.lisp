@@ -641,7 +641,7 @@ the function or any local functions it directly or indirectly."
 	  lines)))
 
 (defun target-function-by-lines (asm-super start-line end-line)
-  "Define the target function by specifying start address and end address"
+  "Define the target function by line boundary."
   (let ((lines (subseq (genome asm-super) start-line (1+ end-line))))
     ;; strip off the function label at the beginning, if present (could be 2)
     (if (sel/sw/asm-heap::line-is-function-label (elt lines 0))

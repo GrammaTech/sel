@@ -50,7 +50,7 @@
                          (trim-whitespace (shell "pwd")) "/")))
 
 (defparameter *asm-path*
-  (merge-pathnames "grep-testing/grep.s" asm-super-base-dir)
+  (merge-pathnames "grep-testing/grep.s.intel" asm-super-base-dir)
   "Path to master asm file i.e. grep")
 
 (defparameter *io-dir*
