@@ -32,7 +32,7 @@
         :software-evolution-library/software/simple
         :software-evolution-library/software/asm
         :software-evolution-library/software/super-mutant)
-  (:import-from :sel/sw/asm
+  (:import-from :software-evolution-library/software/asm
                 flags
                 linker)
   (:export :asm-heap
@@ -378,13 +378,12 @@ we are excluding CALL instructions."
 
 (defmethod function-index ((asm asm-heap))
   "If FUNCTION-INDEX slot contains an index, return it. Otherwise create
-the index and return it (intel syntax only)."
+the index and return it."
   (or (slot-value asm 'function-index)
       (setf (slot-value asm 'function-index)
 	    (if (function-bounds-file asm)
 		(load-function-bounds asm (function-bounds-file asm))
-		(if (eq (asm-syntax asm) ':intel)
-                    (create-asm-function-index asm))))))
+                (create-asm-function-index asm)))))
 
 (defmethod size ((asm asm-heap))
   "Return the number of lines in the program."
@@ -435,16 +434,12 @@ all to be att syntax. If it can't be determined, returns nil."
     (if (or
 	 (search "%rbp" line)
 	 (search "%rsp" line)
-	 (search "%rax" line)
-	 (starts-with-p line ".globl")
-	 (starts-with-p line ".section"))
+	 (search "%rax" line))
 	(return-from intel-or-att ':att))
     (if (or
 	 (search "rbp" line)
 	 (search "rsp" line)
-	 (search "rax" line)
-	 (starts-with-p line "global")
-	 (starts-with-p line "section"))
+	 (search "rax" line))
 	(return-from intel-or-att ':intel)))
   nil)
 
@@ -455,9 +450,8 @@ structs, and storing them in a vector on the LINE-HEAP"
   (let* ((asm-infos '())
 	 (orig-line 0)
 	 (id 0))
-    (unless (asm-syntax asm)
-      (setf (asm-syntax asm)
-	    (intel-or-att asm-lines))) ; set syntax based on heuristic
+    (setf (asm-syntax asm)
+          (intel-or-att asm-lines)) ; set syntax based on heuristic
     (dolist (line asm-lines)
       (unless (comment-or-blank-line line)
 	(dolist (asm-info (parse-asm-line line (asm-syntax asm)))
