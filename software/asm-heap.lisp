@@ -500,7 +500,7 @@ linking process, (5) the source file name used during linking."
     (with-temp-file (obj "o")
       ;; Assemble.
       (multiple-value-bind (stdout stderr errno)
-          (shell "~a ~a -o ~a ~a"
+          (shell "~a -o ~a ~a"
 		 "as"
 		 obj
 		 src)
@@ -702,7 +702,8 @@ than once, returns false."
       (unless (= count 1) (return-from labels-valid-p nil))))
   ;; return false if any of the label declarations are duplicated
   (let ((declared-labels (find-label-decls asm-heap)))
-    (= (length declared-labels) (length (remove-duplicates declared-labels)))))
+    (= (length declared-labels)
+       (length (remove-duplicates declared-labels :test 'equal)))))
 
 ;;;
 ;;; Issues with the searching method below. I think we we might get reasonable
