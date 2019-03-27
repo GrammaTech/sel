@@ -991,12 +991,9 @@ The format is:
           (if (is-extern-call-target target)
             (let* ((pos (search "@" target))
                    (name (and pos (subseq target 0 pos)))
-                   (library (and pos (subseq target (+ pos 2)))))
-	      ;; if library starts with "@" trim it off
-	      (if (and
-		   (> (length library) 0)
-		   (char= (char library 0) #\@))
-		  (setf library (subseq library 1)))
+                   (library
+                    (and pos
+                         (string-trim '(#\@) (subseq target (+ pos 2))))))
               (setf result
                 (list ':name name ':library library ':full-name target)))
             (setf result
