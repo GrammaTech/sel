@@ -318,6 +318,7 @@ directories and if files based on their extensions."
                           (language (guess-language path) language-p)
                           compiler flags build-command artifacts
                           compilation-database store-path
+                          (source-directory nil source-directory-p)
                           &allow-other-keys)
   "Build a software object from a common superset of language-specific options.
 
@@ -331,10 +332,25 @@ Keyword arguments are as follows:
   COMPILER ------------- compiler for software object
   BUILD-COMMAND -------- shell command to build project directory
   ARTIFACTS ------------ build-command products
-  COMPILATION-DATABASE - path to clang compilation database
+  COMPILATION-DATABASE - Path to compilation database or parsed version
+  SOURCE-DIRECTORY ----- Directory in which the software object resides,
+                         or NIL.  Defaults to the directory of PATH if
+                         PATH is a single non-directory file, NIL otherwise.
 Other keyword arguments are allowed and are passed through to `make-instance'."
   (when (and store-path (probe-file store-path))
     (return-from create-software (restore store-path)))
+  (typecase compilation-database
+    ((or string pathname)
+     (setf compilation-database
+           (read-compilation-database compilation-database))))
+  ;; If this is on a single file, and source-directory is not
+  ;; specified, set it to the directory containing the file.
+  ;; This will enable individual files to be compiled using
+  ;; the local environment for inclusion of header files
+  (unless (or (sel/utility:directory-p path)
+              source-directory-p)
+    (setf source-directory
+          (namestring (uiop:pathname-directory-pathname path))))
   (from-file
    (nest
     ;; These options are interdependent.  Resolve any dependencies and
@@ -387,7 +403,7 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
     (apply #'append
            (plist-drop-if ; Any other keyword arguments are passed through.
             {member _ (list :language :compiler :flags :build-command :artifacts
-                            :compilation-database :store-path)}
+                            :source-directory :compilation-database :store-path)}
             (copy-seq rest)))
     (remove-if-not #'second)
     `((:allow-other-keys t)
@@ -395,6 +411,7 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
       (:flags ,flags)
       (:build-command ,build-command)
       (:artifacts ,artifacts)
+      (:source-directory ,source-directory)
       (:compilation-database ,compilation-database)))
    path))
 
