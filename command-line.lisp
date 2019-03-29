@@ -298,7 +298,12 @@ directories and if files based on their extensions."
                     '((("lisp") lisp)
                       (("java") java)
                       (("js") javascript)
-                      (("c" "cpp" "h" "hpp" "cc" "cxx" "hxx") clang))))
+                      (("c" "cpp" "cc" "cxx") clang)
+                      ;; We cannot parse header files, as they
+                      ;; don't have entries in the compile commands
+                      ;; database.  Treat them as simple files instead.
+                      ;; (("h" "hpp" "hxx") clang)
+                      )))
                  sources)))
     #+debug (format t "GUESSES:~S~%" guesses)
     ;; NOTE: If/when we start adding source languages for Makefiles
