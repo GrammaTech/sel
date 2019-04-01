@@ -52,7 +52,7 @@
            :function-index
            :function-bounds-file
            :super-owner
-	   :asm-syntax
+           :asm-syntax
            :asm-line-info
            :asm-line-info-text
            :asm-line-info-tokens
@@ -105,29 +105,29 @@
 (define-software asm-heap (asm)
   ((line-heap :initarg :line-heap :accessor line-heap)
    (function-index :initarg :function-index :initform nil
-		   :accessor function-index
-		   :documentation "Create this on demand.")
+                   :accessor function-index
+                   :documentation "Create this on demand.")
    (function-bounds-file
     :initarg :function-bounds-file
     :initform nil :accessor function-bounds-file
     :documentation "If this is present, use it to create function index")
    (super-owner :initarg :super-owner :accessor super-owner :initform nil
-		:documentation
-		"If present, contains asm-super-mutant instance.")
+                :documentation
+                "If present, contains asm-super-mutant instance.")
    (asm-syntax :initarg :asm-syntax :accessor asm-syntax :initform ':intel
-		:documentation
-		"Assembly syntax, either :att or :intel."))
+                :documentation
+                "Assembly syntax, either :att or :intel."))
   (:documentation
-   "Structured software object for assembler source. 
+   "Structured software object for assembler source.
 
-Alternative to ASM software objects which should use less memory 
-in many cases. Similar to RANGE, but allows for adding and mutating 
-lines, and should be able to handle any type of mutation we need. 
-The GENOME is a vector of references into the asm-heap. 
-Copying an ASM-HEAP is shallow by default, to avoid a large 
-performance penalty when making many copies. The line-heap holds 
-the original lines of the program (before any mutations, along 
-with any new or modified lines appended to the end of the heap. 
+Alternative to ASM software objects which should use less memory
+in many cases. Similar to RANGE, but allows for adding and mutating
+lines, and should be able to handle any type of mutation we need.
+The GENOME is a vector of references into the asm-heap.
+Copying an ASM-HEAP is shallow by default, to avoid a large
+performance penalty when making many copies. The line-heap holds
+the original lines of the program (before any mutations, along
+with any new or modified lines appended to the end of the heap.
 All elements of the genome are references into this line-heap."))
 
 ;;; This read-table and package are used for parsing ASM instructions.
@@ -337,10 +337,10 @@ we are excluding CALL instructions."
            (if (and next-info (not (eq (asm-line-info-type
                                         (car next-info))
                                         ':empty)))
-	       ;; If an empty line follows the label, discard it.
+               ;; If an empty line follows the label, discard it.
 	       (cons info next-info)
 	       (progn
-					; Restore full text line.
+		 ;; Restore full text line.
 		 (setf (asm-line-info-text info) line)
 		 (list info)))))
 	(:empty (list info))
@@ -437,9 +437,9 @@ the index and return it."
 	(and pos (comment-or-blank-line (subseq text 0 pos))))))
 
 (defun intel-or-att (text-lines)
-  "Heuristic: asm lines are intel or att syntax. 
-Returns :intel or :att. 
-If any line contains specified register name then consider them 
+  "Heuristic: asm lines are intel or att syntax.
+Returns :intel or :att.
+If any line contains specified register name then consider them
 all to be att syntax. If it can't be determined, returns nil."
   (dolist (line text-lines)
     (setf line (trim-whitespace line))
@@ -507,7 +507,7 @@ linking process, (5) the source file name used during linking."
   ;; if intel (backward-compatibility) use phenome in ASM class
   (when (eq (asm-syntax asm) ':intel)
     (return-from phenome (call-next-method)))
-  
+
   (with-temp-file-of (src "s") (genome-string asm)
     (with-temp-file (obj "o")
       ;; Assemble.
@@ -808,11 +808,11 @@ those of A and B."
       name))
 
 (defun function-label-p (label-name)
-  "Label represents a valid function name. 
-The heuristic is that, in Intel syntax, if it starts with #\$ and 
-doesn't start with the known prefixes that are auto-generated in 
-the code, we consider it a function name. In AT&T syntax the .L 
-prefix is used for auto-generated labels, and if it isn't one of 
+  "Label represents a valid function name.
+The heuristic is that, in Intel syntax, if it starts with #\$ and
+doesn't start with the known prefixes that are auto-generated in
+the code, we consider it a function name. In AT&T syntax the .L
+prefix is used for auto-generated labels, and if it isn't one of
 those we assume a function name."
   (let ((name (string-upcase label-name)))
     (and
@@ -1013,7 +1013,7 @@ The format is:
           (collect result)))))
 
 (defun create-ranked-function-index (asm)
-  "Create a table of functions with ranking according to how 
+  "Create a table of functions with ranking according to how
    many call statements are found in the function code."
   (let ((entries '())
 	(i 0)
@@ -1066,4 +1066,3 @@ The format is:
 	  (incf i))
     (sort entries '<
 	  :key (lambda (x) (second (first (member ':total x :key 'car)))))))
-

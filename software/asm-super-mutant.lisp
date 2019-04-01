@@ -935,7 +935,7 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 	"#    table of function pointers, 0-terminated")
     "variant_table:")
    (length (genome asm)))
-  
+
   (dotimes (i num-variants)
     (insert-new-line
      asm
@@ -1315,7 +1315,7 @@ Else returns NIL."
 		   '(".bss" ".data" ".text")
 		   :test 'equalp)
 	   (first (asm-line-info-tokens asm-info)))))
-      
+
 
 (defun find-named-section (asm-super name)
   "Returns the starting line (integer) of the named section or
