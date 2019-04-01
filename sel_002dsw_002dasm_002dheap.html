@@ -87,12 +87,22 @@ Next: <a href="sel_002dsw_002dasm_002dsuper_002dmutant.html#sel_002dsw_002dasm_0
 </p></li><li> <code>super-owner</code> &mdash; initarg: <code><span class="nolinebreak">:super-owner</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-heap:super-owner</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-heap:super-owner)</span><!-- /@w --></code>
 
 <p>If present, contains asm-super-mutant instance.
+</p></li><li> <code>asm-syntax</code> &mdash; initarg: <code><span class="nolinebreak">:asm-syntax</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-heap:asm-syntax</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-heap:asm-syntax)</span><!-- /@w --></code>
+
+<p>Assembly syntax, either :att or :intel.
 </p></li></ul>
 
-<p>Alternative to <code>simple</code> software objects which should use less memory.
-Similar to <code>range</code>, but allows for adding and mutating lines, and should
-be able to handle type of mutation we need. The <code>genome</code> is a vector of
-references into the asm-heap (asm-line-info) describes the code.
+<p>Structured software object for assembler source.
+</p>
+<p>Alternative to ASM software objects which should use less memory
+in many cases. Similar to <code>range</code>, but allows for adding and mutating
+lines, and should be able to handle any type of mutation we need.
+The <code>genome</code> is a vector of references into the asm-heap.
+Copying an <code>asm-heap</code> is shallow by default, to avoid a large
+performance penalty when making many copies. The line-heap holds
+the original lines of the program (before any mutations, along
+with any new or modified lines appended to the end of the heap.
+All elements of the genome are references into this line-heap.
 </p></dd></dl>
 <a name="Function-call_002dtargets"></a><dl>
 <dt><a name="index-call_002dtargets"></a>Function: <strong>call-targets</strong> <em>asm-heap</em></dt>
@@ -101,6 +111,11 @@ The format is:
   (:name &lt;string&gt; :library &lt;string-library-name&gt; :full-name &lt;qualified name&gt;).
 </p></dd></dl>
 
+<hr>
+<div class="header">
+<p>
+Next: <a href="sel_002dsw_002dasm_002dsuper_002dmutant.html#sel_002dsw_002dasm_002dsuper_002dmutant" accesskey="n" rel="next">sel-sw-asm-super-mutant</a>, Previous: <a href="sel_002dsw_002dasm.html#sel_002dsw_002dasm" accesskey="p" rel="prev">sel-sw-asm</a>, Up: <a href="SEL-Packages.html#SEL-Packages" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+</div>
 
 
 

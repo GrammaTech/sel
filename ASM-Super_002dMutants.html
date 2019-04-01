@@ -80,9 +80,12 @@ minimal amount of time.  Avoiding the per-process overhead in
 fitness evaluations results in orders-of-magnitude improvements of
 efficiency.
 </p>
-<p>The <code>asm-super-mutant</code> is an <code>asm-heap</code> represents assembler (possibly
-lifted from a binary executable e.g., by GrammaTech&rsquo;s CodeSurfer
-for Binaries) and also contains the <code>super-mutant</code> methods.
+<p>The <code>asm-super-mutant</code> has been tested with <code>at&amp;t</code> and Intel syntax
+and for nasm (Intel) and gas <code>(at&amp;t) </code>assemblers. Like <code>asm-heap</code>,
+it won&rsquo;t work for arbitrary macro-heavy assembler code.
+</p>
+<p>The <code>asm-super-mutant</code> derives from an <code>asm-heap</code> and also
+contains the <code>super-mutant</code> methods.
 </p>
 <p>The <code>asm-super-mutant</code> initially contains a complete program
 executable (initialized from an asm format file).  In addition it

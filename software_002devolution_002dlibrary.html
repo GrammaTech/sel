@@ -1297,8 +1297,16 @@ generation, (5) the source file name used during compilation.
 <dt><a name="index-phenome-5"></a>Method: <strong>phenome</strong> <em>(asm asm-super-mutant) &amp;key (bin (temp-file-name out)) (src (temp-file-name asm))</em></dt>
 <dd><p>Create ASM file, assemble it, and link to create binary <code>bin</code>.
 </p></dd></dl>
+<a name="Method-phenome-_0028_0028asm-asm_002dheap_0029-_0026key-_0028bin-_0028temp_002dfile_002dname_0029_0029_0029"></a><dl>
+<dt><a name="index-phenome-6"></a>Method: <strong>phenome</strong> <em>(asm asm-heap) &amp;key (bin (temp-file-name))</em></dt>
+<dd><p>Runs the &lsquo;linker&rsquo; for <code>asm-heap</code>, using the specified &lsquo;flags&rsquo; for ASM and returns
+multiple values holding in order: (1) the binary path <code>bin</code> to which the
+executable was compiled, (2) the errno, or a numeric indication of success, of
+the linking process, (3) <code>stderr</code> of the linking process, (4) <code>stdout</code> of the
+linking process, (5) the source file name used during linking.
+</p></dd></dl>
 <a name="Method-phenome-_0028_0028obj-super_002dmutant_0029-_0026key-_0028bin-_0028temp_002dfile_002dname_0029_0029_0029"></a><dl>
-<dt><a name="index-phenome-6"></a>Method: <strong>phenome</strong> <em>(obj super-mutant) &amp;key (bin (temp-file-name))</em></dt>
+<dt><a name="index-phenome-7"></a>Method: <strong>phenome</strong> <em>(obj super-mutant) &amp;key (bin (temp-file-name))</em></dt>
 <dd><p>Phenotype of the software.
 This method will link, compile or serialize the software object as
 necessary returning an executable version of the software suitable for
@@ -1311,7 +1319,7 @@ or a string holding non-error output relevant to phenome
 generation, (5) the source file name used during compilation. 
 </p></dd></dl>
 <a name="Method-phenome-_0028_0028asm-asm_0029-_0026key-_0028bin-_0028temp_002dfile_002dname_0029_0029_0029"></a><dl>
-<dt><a name="index-phenome-7"></a>Method: <strong>phenome</strong> <em>(asm asm) &amp;key (bin (temp-file-name))</em></dt>
+<dt><a name="index-phenome-8"></a>Method: <strong>phenome</strong> <em>(asm asm) &amp;key (bin (temp-file-name))</em></dt>
 <dd><p>Runs the &lsquo;linker&rsquo; for ASM, using the specified &lsquo;flags&rsquo; for ASM and returns
 multiple values holding in order: (1) the binary path <code>bin</code> to which the
 executable was compiled, (2) the errno, or a numeric indication of success, of
@@ -1319,7 +1327,7 @@ the linking process, (3) <code>stderr</code> of the linking process, (4) <code>s
 linking process, (5) the source file name used during linking.
 </p></dd></dl>
 <a name="Method-phenome-_0028_0028obj-javascript_002dproject_0029-_0026key-_0028bin-_0028temp_002dfile_002dname_0029_0029_0029"></a><dl>
-<dt><a name="index-phenome-8"></a>Method: <strong>phenome</strong> <em>(obj javascript-project) &amp;key (bin (temp-file-name))</em></dt>
+<dt><a name="index-phenome-9"></a>Method: <strong>phenome</strong> <em>(obj javascript-project) &amp;key (bin (temp-file-name))</em></dt>
 <dd><p>Create a phenotype of the <code>javascript-project</code>.  In this case,
 override the phenome method to output the genome of <code>obj</code> to <code>bin</code> as JavaScript
 is not a compiled language.
@@ -1327,7 +1335,7 @@ is not a compiled language.
 <code>bin</code> location where the phenome will be created on the filesystem
 </p></dd></dl>
 <a name="Method-phenome-_0028_0028obj-javascript_0029-_0026key-_0028bin-_0028temp_002dfile_002dname_0029_0029_0029"></a><dl>
-<dt><a name="index-phenome-9"></a>Method: <strong>phenome</strong> <em>(obj javascript) &amp;key (bin (temp-file-name))</em></dt>
+<dt><a name="index-phenome-10"></a>Method: <strong>phenome</strong> <em>(obj javascript) &amp;key (bin (temp-file-name))</em></dt>
 <dd><p>Create a phenotype of the javascript software <code>obj</code>.  In this case, override
 the phenome method to output the genome of <code>obj</code> to <code>bin</code> as JavaScript
 is not a compiled language.
@@ -1335,20 +1343,20 @@ is not a compiled language.
 <code>bin</code> location where the phenome will be created on the filesystem
 </p></dd></dl>
 <a name="Method-phenome-_0028_0028obj-java_0029-_0026key-_0028bin-_0028temp_002dfile_002dname_0029_0029_0029"></a><dl>
-<dt><a name="index-phenome-10"></a>Method: <strong>phenome</strong> <em>(obj java) &amp;key (bin (temp-file-name))</em></dt>
+<dt><a name="index-phenome-11"></a>Method: <strong>phenome</strong> <em>(obj java) &amp;key (bin (temp-file-name))</em></dt>
 <dd><p>Compiles the software object to a jar and converts it to a linux executable
 </p></dd></dl>
 <a name="Method-phenome-_0028_0028obj-project_0029-_0026key-_0028bin-_0028temp_002dfile_002dname_0029_0029-_0028build_002ddir-_0028or-_002abuild_002ddir_002a-_0028temp_002dfile_002dname_0029_0029_0029_0029"></a><dl>
-<dt><a name="index-phenome-11"></a>Method: <strong>phenome</strong> <em>(obj project) &amp;key (bin (temp-file-name)) (build-dir (or *build-dir* (temp-file-name)))</em></dt>
+<dt><a name="index-phenome-12"></a>Method: <strong>phenome</strong> <em>(obj project) &amp;key (bin (temp-file-name)) (build-dir (or *build-dir* (temp-file-name)))</em></dt>
 <dd><p>Build the software project <code>obj</code> and copy build artifact(s) to <code>bin</code>.
 </p></dd></dl>
 <a name="Method-phenome-_0028_0028obj-source_0029-_0026key-_0028bin-_0028temp_002dfile_002dname_0029_0029_0029"></a><dl>
-<dt><a name="index-phenome-12"></a>Method: <strong>phenome</strong> <em>(obj source) &amp;key (bin (temp-file-name))</em></dt>
+<dt><a name="index-phenome-13"></a>Method: <strong>phenome</strong> <em>(obj source) &amp;key (bin (temp-file-name))</em></dt>
 <dd><p>Compile <code>obj</code> to create an executable version of the software
 on the filesystem at <code>bin</code>.
 </p></dd></dl>
 <a name="Condition-phenome"></a><dl>
-<dt><a name="index-phenome-13"></a>Condition: <strong>phenome</strong></dt>
+<dt><a name="index-phenome-14"></a>Condition: <strong>phenome</strong></dt>
 <dd><p>Class precedence list: <code>phenome, error, serious-condition, condition, t</code>
 </p>
 <p><code>docfixme</code>
