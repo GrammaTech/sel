@@ -8,6 +8,9 @@
 ;;; This file also defines the asm-range class which is a more space
 ;;; efficient optimization of the asm class.
 ;;;
+;;; ASM expects its linker slot (gcc by default) to be configured
+;;; with a tool that will both assemble and link the file.
+;;;
 ;;; @texi{asm}
 (defpackage :software-evolution-library/software/asm
   (:nicknames :sel/software/asm :sel/sw/asm)
