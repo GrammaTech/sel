@@ -1,6 +1,8 @@
 ;;; csurf-asm.lisp --- Support for csurf-generated assembler files
 ;;;
-;;; DOCFIXME Need a page or so introduction to csurf-asm software objects.
+;;; CSURF-ASM is a customization of asm-heap specifically for the
+;;; output of GrammaTech's CSurf/GTx tooling. It should work for AT&T and
+;;; Intel syntax and for nasm and gas assemblers.
 ;;;
 ;;; @texi{csurf-asm}
 (defpackage :software-evolution-library/software/csurf-asm

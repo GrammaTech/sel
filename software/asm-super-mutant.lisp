@@ -10,9 +10,12 @@
 ;;; fitness evaluations results in orders-of-magnitude improvements of
 ;;; efficiency.
 ;;;
-;;; The ASM-SUPER-MUTANT is an ASM-HEAP represents assembler (possibly
-;;; lifted from a binary executable e.g., by GrammaTech's CodeSurfer
-;;; for Binaries) and also contains the SUPER-MUTANT methods.
+;;; The ASM-SUPER-MUTANT It should work for AT&T and Intel syntax
+;;; and for nasm (Intel) and gas (AT&T) assemblers. Like ASM-HEAP,
+;;; it won't work for arbitrary macro-heavy assembler code.
+;;;
+;;; The ASM-SUPER-MUTANT derives from an ASM-HEAP and also
+;;; contains the SUPER-MUTANT methods.
 ;;;
 ;;; The ASM-SUPER-MUTANT initially contains a complete program
 ;;; executable (initialized from an asm format file).  In addition it

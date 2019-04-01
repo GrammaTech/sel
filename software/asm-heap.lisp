@@ -1,4 +1,16 @@
-;;; asm-heap.lisp --- parse assembly code into asm-line-info structs
+;;; asm-heap.lisp --- specialized representation of assembly code
+;;;
+;;; ASM-HEAP is another optimization of the ASM class (like
+;;; ASM-RANGE) but with a different design utilizing a heap
+;;; of the original lines. Mutations and copies can share those
+;;; original lines, avoiding deep copies of large assembler
+;;; object.
+;;;
+;;; This class assumes the assembler code is simple and does not use
+;;; macros or custom declarations. This makes it useful for most
+;;; assembler output from compilers or disassemblers.
+;;; This allows some simple tokenization, and identifies function
+;;; boundaries.
 ;;;
 ;;; The ASM-HEAP software class supports mutations on assembler
 ;;; source files. These can be in either Intel x86_64 syntax

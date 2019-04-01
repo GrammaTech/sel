@@ -1,6 +1,12 @@
 ;;; asm.lisp --- software representation of Assembly code
 ;;;
-;;; DOCFIXME Need a page or so introduction to asm software objects.
+;;; ASM is a minimal extension of simple.lisp to support assembler
+;;; files in which each line is treated as an atomic unit.
+;;; Mutations simply move around lines. Thus it works for any
+;;; assembler language and the phenome methods are simple/generic
+;;; enough to assemble any assembler with the appropriate linker and flags.
+;;; This file also defines the asm-range class which is a more space
+;;; efficient optimization of the asm class.
 ;;;
 ;;; @texi{asm}
 (defpackage :software-evolution-library/software/asm
