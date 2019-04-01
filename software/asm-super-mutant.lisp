@@ -10,7 +10,7 @@
 ;;; fitness evaluations results in orders-of-magnitude improvements of
 ;;; efficiency.
 ;;;
-;;; The ASM-SUPER-MUTANT It should work for AT&T and Intel syntax
+;;; The ASM-SUPER-MUTANT has been tested with AT&T and Intel syntax
 ;;; and for nasm (Intel) and gas (AT&T) assemblers. Like ASM-HEAP,
 ;;; it won't work for arbitrary macro-heavy assembler code.
 ;;;
