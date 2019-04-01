@@ -1,4 +1,34 @@
-;;; asm-heap.lisp --- parse assembly code into asm-line-info structs
+;;; asm-heap.lisp --- specialized representation of assembly code
+;;;
+;;; ASM-HEAP is another optimization of the ASM class (like
+;;; ASM-RANGE) but with a different design utilizing a heap
+;;; of the original lines. Mutations and copies can share those
+;;; original lines, avoiding deep copies of large assembler
+;;; object.
+;;;
+;;; This class assumes the assembler code is simple and does not use
+;;; macros or custom declarations. This makes it useful for most
+;;; assembler output from compilers or disassemblers.
+;;; This allows some simple tokenization, and identifies function
+;;; boundaries.
+;;;
+;;; The ASM-HEAP software class supports mutations on assembler
+;;; source files. These can be in either Intel x86_64 syntax
+;;; (as used with the Nasm assembler) or AT&T x86_64 syntax (as
+;;; used with GAS, or Gnu Assembler).
+;;;
+;;; The ASM-SYNTAX property will be automatically set to either
+;;; :INTEL or :ATT based on the lines which are loaded into the genome.
+;;;
+;;; In general, one line of the source file results in one element
+;;; of the resulting genome. However, the line parser does these things:
+;;;   a) separates label declarations onto their own line
+;;;      e.g.  my_label: push rax
+;;;      becomes "my_label:" and "push rax" as two lines.
+;;;   b) lines either empty or consisting only of white space are removed
+;;;      Lines containing only comments are not removed, they are kept as is,
+;;;      but the ASM-LINE-INFO-TYPE is :EMPTY.
+;;;
 (defpackage :software-evolution-library/software/asm-heap
   (:nicknames :sel/software/asm-heap :sel/sw/asm-heap)
   (:use :common-lisp
@@ -14,11 +44,15 @@
         :software-evolution-library/software/simple
         :software-evolution-library/software/asm
         :software-evolution-library/software/super-mutant)
+  (:import-from :software-evolution-library/software/asm
+                flags
+                linker)
   (:export :asm-heap
            :line-heap
            :function-index
            :function-bounds-file
            :super-owner
+           :asm-syntax
            :asm-line-info
            :asm-line-info-text
            :asm-line-info-tokens
@@ -67,6 +101,35 @@
   is-leaf           ; true, if function does not make any calls
   declarations)     ; list of declaration lines found for the function
 
+
+(define-software asm-heap (asm)
+  ((line-heap :initarg :line-heap :accessor line-heap)
+   (function-index :initarg :function-index :initform nil
+                   :accessor function-index
+                   :documentation "Create this on demand.")
+   (function-bounds-file
+    :initarg :function-bounds-file
+    :initform nil :accessor function-bounds-file
+    :documentation "If this is present, use it to create function index")
+   (super-owner :initarg :super-owner :accessor super-owner :initform nil
+                :documentation
+                "If present, contains asm-super-mutant instance.")
+   (asm-syntax :initarg :asm-syntax :accessor asm-syntax :initform ':intel
+                :documentation
+                "Assembly syntax, either :att or :intel."))
+  (:documentation
+   "Structured software object for assembler source.
+
+Alternative to ASM software objects which should use less memory
+in many cases. Similar to RANGE, but allows for adding and mutating
+lines, and should be able to handle any type of mutation we need.
+The GENOME is a vector of references into the asm-heap.
+Copying an ASM-HEAP is shallow by default, to avoid a large
+performance penalty when making many copies. The line-heap holds
+the original lines of the program (before any mutations, along
+with any new or modified lines appended to the end of the heap.
+All elements of the genome are references into this line-heap."))
+
 ;;; This read-table and package are used for parsing ASM instructions.
 (defvar *assembler-x86-readtable*
   (let ((rt (copy-readtable)))
@@ -79,36 +142,42 @@
 ;; treat some characters such as : and , as special tokens
 ;;
 (set-macro-character #\: (lambda (stream ch)(declare (ignore stream ch)) :colon)
-		     nil
-		     *assembler-x86-readtable*)
+                     nil
+                     *assembler-x86-readtable*)
 
 (set-macro-character #\, (lambda (stream ch)(declare (ignore stream ch)) :comma)
-		     nil
-		     *assembler-x86-readtable*)
+                     nil
+                     *assembler-x86-readtable*)
 
 (set-macro-character #\[ (lambda (stream ch)
-			   (declare (ignore stream ch))
-			   :\[)
-		     nil
-		     *assembler-x86-readtable*)
+                           (declare (ignore stream ch))
+                           :\[)
+                     nil
+                     *assembler-x86-readtable*)
 
 (set-macro-character #\] (lambda (stream ch)
-			   (declare (ignore stream ch))
-			   :\])
-		     nil
-		     *assembler-x86-readtable*)
+                           (declare (ignore stream ch))
+                           :\])
+                     nil
+                     *assembler-x86-readtable*)
 
 (set-macro-character #\+ (lambda (stream ch)
-			   (declare (ignore stream ch))
-			   :+)
-		     nil
-		     *assembler-x86-readtable*)
+                           (declare (ignore stream ch))
+                           :+)
+                     nil
+                     *assembler-x86-readtable*)
 
 (set-macro-character #\* (lambda (stream ch)
-			   (declare (ignore stream ch))
-			   :*)
-		     nil
-		     *assembler-x86-readtable*)
+                           (declare (ignore stream ch))
+                           :*)
+                     nil
+                     *assembler-x86-readtable*)
+
+(set-macro-character #\# (lambda (stream ch)
+                           (declare (ignore stream ch))
+                           :#)
+                     nil
+                     *assembler-x86-readtable*)
 
 ;; If we encounter a single quote, look for the terminating quote.
 (set-macro-character
@@ -133,22 +202,31 @@
  nil
  *assembler-x86-readtable*)
 
+;;;
+;;; The Lisp reader will handle intel comments (;) as we need them, so we
+;;; don't do anything special about them.
+;;; The reader will not correctly handle gas assembler comments (#) so
+;;; we defined a special reader macro to turn them into :#, which basically
+;;; signals the same thing as eof (end of line).
+;;;
 (defun tokenize-asm-line (line)
   "Take a line of text from a .asm file, and, and converts it to tokens."
   (with-input-from-string (s line)
     (do* ((*readtable* *assembler-x86-readtable*)
-	  (*package* (find-package :sel/asm))
-	  (result '())
-	  (eof (cons 0 0))
-	  (token (read s nil eof)(read s nil eof)))
-	 ((eq token eof)(nreverse result))
+          (*package* (find-package :sel/asm))
+          (result '())
+          (eof (cons 0 0))
+          (token (read s nil eof)(read s nil eof)))
+         ((or (eq token eof)(eq token :#))(nreverse result))
       (if (symbolp token)
-	  (setf token (symbol-name token)))
+          (setf token (symbol-name token)))
       (push token result))))
 
 (defun token-label-p (token)
   (and (stringp token)
-       (char= (char token 0) #\$)))
+       (or
+        (starts-with-p token "$")
+        (starts-with-p token ".L"))))
 
 (defun branch-op-p (token)
   "Returns true iff the token represents a jump operation. We assume it
@@ -156,8 +234,8 @@ is a jump operator if the first letter is #\j or #\J. For our purposes
 we are excluding CALL instructions."
   (and (stringp token)
        (or
-	(char= (char token 0) #\j)
-	(char= (char token 0) #\J))))
+        (char= (char token 0) #\j)
+        (char= (char token 0) #\J))))
 
 ;;; Given a list of tokens representing the line, returns either of:
 ;;;     :nothing
@@ -165,26 +243,58 @@ we are excluding CALL instructions."
 ;;;     :data
 ;;;     :label
 ;;;     :operation
-(defun parse-line-type (tokens)
+(defun parse-line-type-intel (tokens)
   (cond ((null tokens) ':empty)
-	((and (token-label-p (first tokens)) ; first token symbol beg. with '$'?
-	      (equalp (second tokens) "COLON"))  ; followed by a ':'?
-	 ':label-decl)
-	((some {member _ tokens :test #'equalp}
+        ((and (is-asm-symbol (first tokens)) ; first token valid symbol?
+              (equalp (second tokens) "COLON"))  ; followed by a ':'?
+         ':label-decl)
+        ((some {member _ tokens :test #'equalp}
                (list "db" "dq" "dd" "dw"))
-	 ':data)
-	((member (first tokens)
+         ':data)
+        ((member (first tokens)
                  '("align"
                    "section"
                    "extern"
                    "%define"
-                   "global")
-		 :test 'equalp)
-	 ':decl)
-	((and (token-label-p (first tokens))
-	      (equalp (second tokens) "equ"))
-	 ':decl)
-	(t ':op)))     ;; use this as catch-all for anything else
+                   "global"
+                   ".type"
+                   ".text"
+                   ".bss")
+                 :test 'equalp)
+         ':decl)
+        ((and (token-label-p (first tokens))
+              (equalp (second tokens) "equ"))
+         ':decl)
+        (t ':op)))     ;; use this as catch-all for anything else
+
+(defun parse-line-type-att (tokens)
+  (cond ((null tokens) ':empty)
+        ((and (is-asm-symbol (first tokens)) ; first token valid symbol?
+              (equalp (second tokens) "COLON"))  ; followed by a ':'?
+         ':label-decl)
+        ((some {member _ tokens :test #'equalp}
+               (list ".quad" ".zero" ".byte" ".word" ".string"))
+         ':data)
+        ((member (first tokens)
+                 '(".align"
+                   ".section"
+                   ".globl"
+                   ".type"
+                   ".text"
+                   ".bss")
+                 :test 'equalp)
+         ':decl)
+        ((and (= (length tokens) 1)
+              (stringp (first tokens))
+              (char= (char (first tokens) 0) #\.))
+         ':decl)  ; gas style declaration starts with a "."
+        (t ':op)))
+
+(defun parse-line-type (tokens syntax)
+  "From list of tokens, determine type of line."
+  (if (eq syntax ':intel)
+      (parse-line-type-intel tokens)
+      (parse-line-type-att tokens)))
 
 ;;;
 ;;; takes a line of text from a .asm file, and, and returns 1 or 2
@@ -193,45 +303,46 @@ we are excluding CALL instructions."
 ;;; text/tokens. In this case 2 asm-line-info structs are returned.
 ;;; Otherwise, as single asm-line-info is returned.
 ;;;
-(defun parse-asm-line (line)
+(defun parse-asm-line (line syntax)
   (let* ((tokens (tokenize-asm-line line))
-	 (info (make-asm-line-info :text line :tokens tokens)))
+         (info (make-asm-line-info :text line :tokens tokens)))
 
     ;; see if there is a comment: "orig ea=0xnnnnnnnn" which specifies
     ;; the original address of code or data
     (let* ((addr-comment "orig ea=0x")
-	   (addr-pos (search addr-comment line :from-end t :test 'equal)))
+           (addr-pos (search addr-comment line :from-end t :test 'equal)))
       (if addr-pos
-	  (setf (asm-line-info-address info)
-		(parse-integer line
-			       :radix 16
-			       :start (+ (length addr-comment) addr-pos)
-			       :junk-allowed t))))
+          (setf (asm-line-info-address info)
+                (parse-integer line
+                               :radix 16
+                               :start (+ (length addr-comment) addr-pos)
+                               :junk-allowed t))))
 
     ;; Determine type of line
-    (let ((line-type (parse-line-type tokens)))
+    (let ((line-type (parse-line-type tokens syntax)))
       (setf (asm-line-info-type info) line-type)
 
       (case line-type
-	(:label-decl (let* ((label (first tokens))
-                            (label-end (position #\: line))
-                            (line1 (subseq line 0 (+ label-end 1)))
-                            (line2 (concatenate 'string
-				    "       "
-				    (subseq line (+ label-end 1))))
-                            (next-info (parse-asm-line line2))) ;; recurse!
-                       (setf (asm-line-info-text info) line1)
-                       (setf (asm-line-info-tokens info) (list label ':colon))
-                       (setf (asm-line-info-label info) label)
-                       (if (and next-info (not (eq (asm-line-info-type
-                                                    (car next-info))
-                                                   ':empty)))
-                           ;; If an empty line follows the label, discard it.
-                           (cons info next-info)
-                           (progn
-                             ; Restore full text line.
-                             (setf (asm-line-info-text info) line)
-                             (list info)))))
+        (:label-decl
+         (let* ((label (first tokens))
+                (label-end (position #\: line))
+                (line1 (subseq line 0 (+ label-end 1)))
+                (line2 (concatenate 'string
+                                    "       "
+                                    (subseq line (+ label-end 1))))
+                (next-info (parse-asm-line line2 syntax))) ;; recurse!
+           (setf (asm-line-info-text info) line1)
+           (setf (asm-line-info-tokens info) (list label ':colon))
+           (setf (asm-line-info-label info) label)
+           (if (and next-info (not (eq (asm-line-info-type
+                                        (car next-info))
+                                        ':empty)))
+               ;; If an empty line follows the label, discard it.
+	       (cons info next-info)
+	       (progn
+		 ;; Restore full text line.
+		 (setf (asm-line-info-text info) line)
+		 (list info)))))
 	(:empty (list info))
 	(:op (setf (asm-line-info-opcode info) (first tokens))
 	     (let ((comma-pos (position ':comma (rest tokens))))
@@ -251,13 +362,15 @@ we are excluding CALL instructions."
 (defun format-asm-operand (op) ; list of tokens
   (format nil "~{~A~}"
 	  (mapcar (lambda (x)
-		 (if (member x '("qword"
+		    (cond
+		      ((member x '("qword"
 				 "dword"
 				 "word"
 				 "byte")
 			     :test 'equalp)
-		     (format nil "~A " x)
-		     x))
+		       (format nil "~A " x))
+		      ((equalp x "COMMA") ", ")
+		      (t x)))
 		  op)))
 
 (defun update-asm-line-info-text (asm-line)
@@ -268,35 +381,6 @@ we are excluding CALL instructions."
 		(asm-line-info-opcode asm-line)
 		(mapcar 'format-asm-operand
 			(asm-line-info-operands asm-line))))))
-
-
-;;; asm-heap software objects
-;;
-;; An software object which uses less memory. The
-;; line-heap holds the original lines of the program (before any
-;; mutations, along with any new or modified lines appended to the end
-;; of the heap. All elements of the genome are references into this
-;; line-heap.  history is a list of asm-edit structs, representing the
-;; edit history. The first item in the list is the newest edit.
-;;
-;;
-(define-software asm-heap (asm)
-  ((line-heap :initarg :line-heap :accessor line-heap)
-   (function-index :initarg :function-index :initform nil
-		   :accessor function-index
-		   :documentation "Create this on demand.")
-   (function-bounds-file
-    :initarg :function-bounds-file
-    :initform nil :accessor function-bounds-file
-    :documentation "If this is present, use it to create function index")
-   (super-owner :initarg :super-owner :accessor super-owner :initform nil
-		:documentation
-		"If present, contains asm-super-mutant instance."))
-  (:documentation
-   "Alternative to SIMPLE software objects which should use less memory.
-Similar to RANGE, but allows for adding and mutating lines, and should
-be able to handle type of mutation we need. The GENOME is a vector of
-references into the asm-heap (asm-line-info) describes the code."))
 
 (defmethod create-super ((variant asm-heap) &optional rest-variants)
   "Creates a ASM-SUPER-MUTANT and populates it with single variant."
@@ -311,7 +395,7 @@ the index and return it."
       (setf (slot-value asm 'function-index)
 	    (if (function-bounds-file asm)
 		(load-function-bounds asm (function-bounds-file asm))
-		(create-asm-function-index asm)))))
+                (create-asm-function-index asm)))))
 
 (defmethod size ((asm asm-heap))
   "Return the number of lines in the program."
@@ -326,6 +410,51 @@ the index and return it."
   "Return the list of text lines of the genome."
   (map 'list 'asm-line-info-text (genome asm)))
 
+(defparameter *symbol-special-chars* '(#\$ #\. #\_))
+
+(defun is-asm-symbol (s)
+  "Returns true iif the passed string is a valid symbol."
+  (and (stringp s)
+       (> (length s) 0)
+       (or (alpha-char-p (char s 0))
+	   (member (char s 0) *symbol-special-chars*))
+       (or (= (length s) 1)
+	   (every
+	    (lambda (c)
+	      (or (alpha-char-p c)
+		  (digit-char-p c)
+		  (member c *symbol-special-chars*)))
+	    (subseq s 1)))))
+
+(defun is-empty (text)
+  "Returns true iff the text is empty or all whitespace."
+  (emptyp (trim-whitespace text)))
+
+(defun comment-or-blank-line (text)
+  "If text is a blank line or comment line, return true."
+  (or (is-empty text)
+      (let ((pos (position #\# text)))
+	(and pos (comment-or-blank-line (subseq text 0 pos))))))
+
+(defun intel-or-att (text-lines)
+  "Heuristic: asm lines are intel or att syntax.
+Returns :intel or :att.
+If any line contains specified register name then consider them
+all to be att syntax. If it can't be determined, returns nil."
+  (dolist (line text-lines)
+    (setf line (trim-whitespace line))
+    (if (or
+	 (search "%rbp" line)
+	 (search "%rsp" line)
+	 (search "%rax" line))
+	(return-from intel-or-att ':att))
+    (if (or
+	 (search "rbp" line)
+	 (search "rsp" line)
+	 (search "rax" line))
+	(return-from intel-or-att ':intel)))
+  nil)
+
 (defmethod (setf lines) (asm-lines (asm asm-heap))
   "Initializes the line-heap.
 Does this by converting the passed list of lines to ASM-LINE-INFO
@@ -333,13 +462,16 @@ structs, and storing them in a vector on the LINE-HEAP"
   (let* ((asm-infos '())
 	 (orig-line 0)
 	 (id 0))
+    (setf (asm-syntax asm)
+          (intel-or-att asm-lines)) ; set syntax based on heuristic
     (dolist (line asm-lines)
-      (dolist (asm-info (parse-asm-line line))
-	(setf (asm-line-info-id asm-info) id)
-	(setf (asm-line-info-orig-line asm-info) orig-line)
-	(incf id)
-	(push asm-info asm-infos))
-      (incf orig-line))
+      (unless (comment-or-blank-line line)
+	(dolist (asm-info (parse-asm-line line (asm-syntax asm)))
+	  (setf (asm-line-info-id asm-info) id)
+	  (setf (asm-line-info-orig-line asm-info) orig-line)
+	  (incf id)
+	  (push asm-info asm-infos))
+	(incf orig-line)))
     (setf asm-infos (nreverse asm-infos))
     (let* ((size (length asm-infos))
 	   (heap (make-array size
@@ -364,6 +496,49 @@ structs, and storing them in a vector on the LINE-HEAP"
   (with-open-file (out file :direction :output :if-exists :supersede)
     (genome-string asm out)))
 
+(defmethod phenome ((asm asm-heap) &key (bin (temp-file-name)))
+  "Runs the `linker' for ASM-HEAP, using the specified `flags' for ASM and returns
+multiple values holding in order: (1) the binary path BIN to which the
+executable was compiled, (2) the errno, or a numeric indication of success, of
+the linking process, (3) STDERR of the linking process, (4) STDOUT of the
+linking process, (5) the source file name used during linking."
+  #-ccl (declare (values t fixnum string string string))
+
+  ;; if intel (backward-compatibility) use phenome in ASM class
+  (when (eq (asm-syntax asm) ':intel)
+    (return-from phenome (call-next-method)))
+
+  (with-temp-file-of (src "s") (genome-string asm)
+    (with-temp-file (obj "o")
+      ;; Assemble.
+      (multiple-value-bind (stdout stderr errno)
+          (shell "~a -o ~a ~a"
+		 "as"
+		 obj
+		 src)
+	(declare (ignorable stdout stderr))
+        (restart-case
+            (unless (zerop errno)
+              (error (make-condition 'phenome :text stderr :obj asm :loc src)))
+          (retry-project-build ()
+            :report "Retry `phenome' assemble on OBJ."
+            (phenome obj :bin bin))
+          (return-nil-for-bin ()
+            :report "Allow failure returning NIL for bin."
+            (setf bin nil))))
+      (setf (linker asm) "clang")
+      (setf (flags asm)
+	    '("-no-pie" "-O0" "-fnon-call-exceptions" "-g" "-lrt"))
+      (multiple-value-bind (stdout stderr errno)
+        (shell "~a -o ~a ~a ~{~a~^ ~}"
+               (linker asm)
+	       bin
+	       obj
+	       (flags asm))
+      (declare (ignorable stdout ))
+
+      (values bin errno stderr stdout src)))))
+
 (defun vector-cut (a index)
   "Destructively remove and return an element from a vector with a fill pointer."
   (let ((deleted (aref a index)))
@@ -385,7 +560,7 @@ structs, and storing them in a vector on the LINE-HEAP"
 ;;; Returns the list of new asm-line-info struct.
 ;;;
 (defun parse-and-add-to-heap (asm-heap text)
-  (let* ((info-list (parse-asm-line text))
+  (let* ((info-list (parse-asm-line text (asm-syntax asm-heap)))
 	 (id (length (line-heap asm-heap))))
     (dolist (info info-list)
       (setf (asm-line-info-id info) id)
@@ -436,7 +611,8 @@ structs, and storing them in a vector on the LINE-HEAP"
     (format t "skipping cut with label ~A~%"
 	    (asm-line-info-label (elt (genome asm) (targets mutation))))
     (invoke-restart 'try-another-mutation))
-  (vector-cut (genome asm) (targets mutation))
+  (unless (asm-line-info-label (elt (genome asm) (targets mutation)))
+    (vector-cut (genome asm) (targets mutation)))
   asm)
 
 (defmethod apply-mutation ((asm asm-heap) (mutation simple-insert))
@@ -493,7 +669,7 @@ is raised."
 	;; update one of the operands with a randomly selected operand from
 	;; the good statement
 	(setf (elt (asm-line-info-operands new-instr)
-		   (random (length (asm-line-info-operands new-instr))))
+		   (random (length (asm-line-info-operands good-instr))))
 	      (random-elt good-operands))
 	;; update the text since we changed the operand
 	(update-asm-line-info-text new-instr)
@@ -507,7 +683,7 @@ is raised."
 (defun find-labels (asm-heap)
   (let ((lab-list '()))
     (iter (for a in-vector (genome asm-heap))
-	  (if (and
+	  (when (and
 	       (eq (asm-line-info-type a) ':op)
 	       (branch-op-p (first (asm-line-info-tokens a))))
 	    (if (token-label-p (second (asm-line-info-tokens a)))
@@ -538,7 +714,8 @@ than once, returns false."
       (unless (= count 1) (return-from labels-valid-p nil))))
   ;; return false if any of the label declarations are duplicated
   (let ((declared-labels (find-label-decls asm-heap)))
-    (= (length declared-labels) (length (remove-duplicates declared-labels)))))
+    (= (length declared-labels)
+       (length (remove-duplicates declared-labels :test 'equal)))))
 
 ;;;
 ;;; Issues with the searching method below. I think we we might get reasonable
@@ -623,22 +800,28 @@ those of A and B."
 	         (values new point-a point-b)
 		 (values (copy a) 0 0)))))))
 
-(defun function-name-from-label (name)
-  "Given a label like $FOO1, returns \"FOO\""
-  (subseq name 1))
+(defun function-name-from-label (name asm)
+  "Given a label like $FOO1, returns FOO1 (intel only)."
+  (if (and (eq (asm-syntax asm) ':intel)
+	   (char= (char name 0) #\$))
+      (subseq name 1)
+      name))
 
 (defun function-label-p (label-name)
-  "Returns true if the passed symbol represents a valid function name.
-The heuristic is that if it starts with #\$ and doesn't start with the
-known prefixes that are auto-generated in the code, we consider it a
-function name."
+  "Label represents a valid function name.
+The heuristic is that, in Intel syntax, if it starts with #\$ and
+doesn't start with the known prefixes that are auto-generated in
+the code, we consider it a function name. In AT&T syntax the .L
+prefix is used for auto-generated labels, and if it isn't one of
+those we assume a function name."
   (let ((name (string-upcase label-name)))
     (and
-     (char= (elt name 0) #\$)
+     (is-asm-symbol name)
      (not
       (or (starts-with-p name "$LOC_")
 	  (starts-with-p name "$BB_FALLTHROUGH_")
-	  (starts-with-p name "$UNK_"))))))
+	  (starts-with-p name "$UNK_")
+	  (starts-with-p name ".L"))))))
 
 (defun line-is-function-label (asm-line-info)
   "Returns true if the passed line-info represents a name of a function."
@@ -656,7 +839,11 @@ name. The resulting hash-table is returned."
   (let ((table (make-hash-table :test 'equalp))
 	(genome (genome asm)))
     (iter (for x in-vector genome)
-	  (if (eq (asm-line-info-type x) ':decl)
+	  (if (and
+	       (eq (asm-line-info-type x) ':decl)
+	       (let* ((tok (first (asm-line-info-tokens x)))
+		      (pos (position #\. tok)))
+		 (and pos (> pos 1))))
 	      (push
 	        x
 	        (gethash
@@ -668,7 +855,9 @@ name. The resulting hash-table is returned."
 (defun create-asm-function-index (asm)
   "Traverse the passed asm-heap, and collect a function-index-entry
 for each function. The result is a vector of function-index-entry."
-  (let ((table (extract-function-declarations asm))
+  (let ((table (if (eq (asm-syntax asm) ':intel)
+		   (extract-function-declarations asm)
+		   (make-hash-table :test 'equalp)))
 	(entries '())
 	(i 0)
 	(genome (genome asm)))
@@ -678,22 +867,28 @@ for each function. The result is a vector of function-index-entry."
 		;; look for the end of the function
 		(let ((start-index i)
 		      (name (function-name-from-label
-			     (asm-line-info-label info)))
+			     (asm-line-info-label info) asm))
 		      (leaf t))
 		  (incf i)
 		  (iter (while (< i (length genome)))
 			(let ((info2 (elt genome i)))
-			  (if (equalp (asm-line-info-opcode info2)
-				  "call")
+			  (if (member (asm-line-info-opcode info2)
+				  '("call" "callq") :test 'equalp)
 			      (setf leaf nil)) ;found a call, so not a leaf
 			  (when (or
-				 (equalp (asm-line-info-opcode info2) "ret")
+				 (member (asm-line-info-opcode info2)
+					 '("ret" "retq" "hlt")
+					 :test 'equalp)
 				 (and
 				  (eq (asm-line-info-type info2)
 				      :decl)
-				  (equalp (first (asm-line-info-tokens info2))
-				      "align"))
-				 (line-is-function-label info2))
+				  (member (first (asm-line-info-tokens info2))
+				      '("align" ".align") :test 'equalp))
+				 (and (line-is-function-label info2)
+				      ; ignore duplicate function labels
+				      (not
+				       (equalp (asm-line-info-label info)
+					       (asm-line-info-label info2)))))
 			    (push
 			     (make-function-index-entry
 			      :name name
@@ -706,11 +901,12 @@ for each function. The result is a vector of function-index-entry."
 			    (return)))
 			(incf i)))))
 	  (incf i))
-    (setf entries
+    (if (eq (asm-syntax asm) ':intel)
+	(setf entries
 	  (remove-if (lambda (x)
 		       (or (null (function-index-entry-start-address x))
 			   (null (function-index-entry-end-address x))))
-		     (nreverse entries)))
+		     (nreverse entries))))
     (make-array (length entries) :initial-contents entries)))
 
 (defun asm-labels (asm)
@@ -719,7 +915,7 @@ for each function. The result is a vector of function-index-entry."
       (iter (for x in-vector (genome asm))
 	    (and (asm-line-info-label x)
 		 (setf (gethash
-			(function-name-from-label (asm-line-info-label x))
+			(function-name-from-label (asm-line-info-label x) asm)
 			ht) t)))
       ht))
 
@@ -774,12 +970,14 @@ for each function. The result is a vector of function-index-entry."
           (make-array (length entries) :initial-contents entries))))))
 
 (defun is-call-statement (info)
-  (equalp (asm-line-info-opcode info) "call"))
+  (member (asm-line-info-opcode info) '("call" "callq") :test 'equalp))
 
 ;;;
 ;;; This is NASM Intel syntax-specific
 ;;; It assumes an external symbol looks like this:
 ;;;     $__ctype_b_loc@@GLIBC_2.3
+;;;     or
+;;;     memchr@PLT
 ;;;
 (defun call-target (info)
   (and (is-call-statement info)
@@ -788,7 +986,7 @@ for each function. The result is a vector of function-index-entry."
 (defun is-extern-call-target (target)
   "Given the name of the target of a CALL, returns true iff it is an extern
    function."
-  (and target (search "@@" target)))
+  (and target (search "@" target)))
 
 (defun is-extern-call-statement (info)
   (is-extern-call-target (call-target info)))
@@ -803,11 +1001,68 @@ The format is:
         (let ((target (call-target info))
               (result nil))
           (if (is-extern-call-target target)
-            (let* ((pos (search "@@" target))
+            (let* ((pos (search "@" target))
                    (name (and pos (subseq target 0 pos)))
-                   (library (and pos (subseq target (+ pos 2)))))
+                   (library
+                    (and pos
+                         (string-trim '(#\@) (subseq target (+ pos 2))))))
               (setf result
                 (list ':name name ':library library ':full-name target)))
             (setf result
                 (list ':name target ':library nil ':full-name target)))
           (collect result)))))
+
+(defun create-ranked-function-index (asm)
+  "Create a table of functions with ranking according to how
+   many call statements are found in the function code."
+  (let ((entries '())
+	(i 0)
+	(genome (genome asm)))
+    (iter (while (< i (length genome)))
+	  (let ((info (elt genome i)))
+	    (if (line-is-function-label info)
+		;; look for the end of the function
+		(let ((name (function-name-from-label
+			     (asm-line-info-label info)
+			     asm))
+		      (local-call-count 0)
+		      (line-count 1)
+		      (extern-call-count 0))
+		  (incf i)
+		  (iter (while (< i (length genome)))
+			(incf line-count)
+			(let ((info2 (elt genome i)))
+			  (when
+			      (is-call-statement info2)
+			    (if (is-extern-call-statement info2)
+				(incf extern-call-count)
+				(incf local-call-count)))
+			  (when (or
+				 (member (asm-line-info-opcode info2)
+					 '("ret" "retq" "hlt")
+					 :test 'equalp)
+				 (and
+				  (eq
+				   (asm-line-info-type info2)
+				   :decl)
+				  (member (first (asm-line-info-tokens info2))
+				      '("align" ".align") :test 'equalp))
+				 (and (line-is-function-label info2)
+				      ; ignore duplicate function labels
+				      (not
+				       (equalp (asm-line-info-label info)
+					       (asm-line-info-label info2)))))
+			    (push
+			     (list
+			      (list ':name name)
+			      (list ':local local-call-count)
+			      (list ':extern extern-call-count)
+			      (list ':total
+				    (+ local-call-count extern-call-count))
+			      (list ':size line-count))
+			     entries)
+			    (return)))
+			(incf i)))))
+	  (incf i))
+    (sort entries '<
+	  :key (lambda (x) (second (first (member ':total x :key 'car)))))))

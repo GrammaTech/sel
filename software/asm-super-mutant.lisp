@@ -10,9 +10,12 @@
 ;;; fitness evaluations results in orders-of-magnitude improvements of
 ;;; efficiency.
 ;;;
-;;; The ASM-SUPER-MUTANT is an ASM-HEAP represents assembler (possibly
-;;; lifted from a binary executable e.g., by GrammaTech's CodeSurfer
-;;; for Binaries) and also contains the SUPER-MUTANT methods.
+;;; The ASM-SUPER-MUTANT has been tested with AT&T and Intel syntax
+;;; and for nasm (Intel) and gas (AT&T) assemblers. Like ASM-HEAP,
+;;; it won't work for arbitrary macro-heavy assembler code.
+;;;
+;;; The ASM-SUPER-MUTANT derives from an ASM-HEAP and also
+;;; contains the SUPER-MUTANT methods.
 ;;;
 ;;; The ASM-SUPER-MUTANT initially contains a complete program
 ;;; executable (initialized from an asm format file).  In addition it
@@ -565,134 +568,6 @@
 	  (setf result (+ (ash result 8) (aref bytes i))))
     result))
 
-;;;
-;;; reg is a string, naming the register i.e. "rax" or "r13".
-;;; bytes is an 8-element byte array containing the 64-bit unsigned contents
-;;; to be stored, in big-endian order
-;;;
-(defun load-reg (reg bytes)
-  (format nil "mov qword ~A, 0x~X"
-	  reg
-	  (be-bytes-to-qword bytes)))
-
-;;;
-;;; reg is a string, naming the register i.e. "rax" or "r13".
-;;; bytes is an 8-element byte array containing the 64-bit unsigned contents
-;;; to be compared, in big-endian order
-;;;
-(defun comp-reg (reg bytes)
-  (let ((label (gensym "reg_cmp_")))
-    (list
-     (format nil "push ~A" reg)
-     (format nil "mov qword ~A, 0x~X"
-	     reg
-	     (be-bytes-to-qword bytes))
-     (format nil "cmp qword ~A, [rsp]" reg)
-     (format nil "pop ~A" reg)
-     (format nil "je ~A" label)
-     "mov rdi, qword [$stdout@@GLIBC_2.2.5]"
-     "mov rsi, $error_reg_compare"
-     (format nil "mov qword rdx, 0x~X" (be-bytes-to-qword bytes)) ; expected
-     "call $fprintf wrt ..plt"
-     (format nil "jmp $output_reg_comparison_failure")
-     (format nil "~A:" label))))
-
-
-;;;
-;;; Initialize 8 bytes of memory, using the mask to init only specified bytes.
-;;; Returns list of lines to do the initialization.
-;;;
-(defun init-mem (spec)
-  (let ((addr (memory-spec-addr spec))
-	(mask (memory-spec-mask spec))
-	(bytes (memory-spec-bytes spec)))
-    (if (equal mask #*11111111)  ;; we can ignore the mask
-	(list
-	 (format nil "mov qword rax, 0x~X" (be-bytes-to-qword bytes))
-	 (format nil "mov qword rcx, 0x~X" addr)
-	 "mov qword [rcx], rax")
-	(list
-	 (format nil "mov qword rax, 0x~X" (be-bytes-to-qword bytes))
-	 (format nil "mov qword rbx, 0x~X"
-		 (be-bytes-to-qword (create-byte-mask mask)))
-	 (format nil "mov qword rcx, 0x~X" addr)
-	 "and rax, rbx"   ; mask off unwanted bytes of src
-	 "not rbx"        ; invert mask
-	 "and qword [rcx], rbx" ; mask off bytes which will be overwritten
-	 "or qword [rcx], rax"))))
-
-;;;
-;;; Initialize 8 bytes of memory, using the mask to init only specified bytes.
-;;; Returns list of lines to do the initialization.
-;;;
-(defun comp-mem (spec)
-  (let ((addr (memory-spec-addr spec))
-	(mask (memory-spec-mask spec))
-	(bytes (memory-spec-bytes spec))
-	(label (gensym "$mem_cmp_")))
-    (if (equal mask #*11111111)  ;; we can ignore the mask
-	(list
-	 (format nil "mov qword rax, 0x~X" (be-bytes-to-qword bytes))
-	 (format nil "mov qword rcx, 0x~X" addr)
-	 "cmp qword [rcx], rax"
-	 (format nil "je ~A" label)
-         (format nil "jmp $output_comparison_failure")
-         (format nil "~A:" label))
-	(list
-	 (format nil "mov qword rax, 0x~X" (be-bytes-to-qword bytes))
-	 (format nil "mov qword rbx, 0x~X"
-		 (be-bytes-to-qword (create-byte-mask mask)))
-	 (format nil "mov qword rcx, 0x~X" addr)
-	 "mov qword rdx, [rcx]"
-	 "and rax, rbx"   ; mask off unwanted bytes of src
-	 "and rdx, rbx" ; mask off unwanted bytes of dest
-	 "cmp rdx, rax"
-	 (format nil "je ~A" label)
-         (format nil "jmp $output_comparison_failure")
-         (format nil "~A:" label)))))
-
-;;;
-;;; Return asm-heap containing the lines to set up the environment
-;;; for a fitness test.
-;;; Skip SIMD registers for now.
-;;;
-(defun init-env (asm-super)
-  (let* ((input-spec (input-spec asm-super))
-	 (reg-lines
-	  (iterate
-	    (for x in-vector (input-specification-regs input-spec))
-	    (collect (load-reg (reg-contents-name x)(reg-contents-value x)))))
-	 (mem-lines
-	  (apply 'append
-		 (iterate
-	           (for x in-vector (input-specification-mem input-spec))
-		   (collect (init-mem x)))))
-	 (asm (make-instance 'asm-heap :super-owner asm-super)))
-    (setf (lines asm) (append mem-lines reg-lines))
-    asm))
-
-;;;
-;;; Return an asm-heap containing the lines to check the resulting outputs.
-;;; Skip SIMD registers for now.
-;;;
-(defun check-env (asm-super)
-  (let* ((output-spec (output-spec asm-super))
-	 (reg-lines
-	  (apply 'append
-		 (iterate
-	           (for x in-vector (input-specification-regs output-spec))
-	           (collect
-		       (comp-reg (reg-contents-name x)
-				 (reg-contents-value x))))))
-	 (mem-lines
-	  (apply 'append
-		 (iterate
-	           (for x in-vector (input-specification-mem output-spec))
-		   (collect (comp-mem x)))))
-	 (asm (make-instance 'asm-heap :super-owner asm-super)))
-    (setf (lines asm) (append reg-lines mem-lines))
-    asm))
-
 (defun get-function-lines (asm-super start-addr end-addr)
   "Return lines and start and end indices of START-ADDR END-ADDR in ASM-SUPER.
 Given start and end addresses of a function, determine start line, end
@@ -758,8 +633,26 @@ the function or any local functions it directly or indirectly."
   "Define the target function by specifying start address and end address"
   (multiple-value-bind (lines start-index end-index)
       (get-function-lines asm-super start-addr end-addr)
+    ;; strip off the function label at the beginning, if present (could be 2)
+    (if (sel/sw/asm-heap::line-is-function-label (elt lines 0))
+	(setf lines (subseq lines 1)))
+    (if (sel/sw/asm-heap::line-is-function-label (elt lines 0))
+	(setf lines (subseq lines 1)))
     (setf (target-start-index asm-super) start-index)
     (setf (target-end-index asm-super) end-index)
+    (setf (target-lines asm-super)
+	  lines)))
+
+(defun target-function-by-lines (asm-super start-line end-line)
+  "Define the target function by line boundary."
+  (let ((lines (subseq (genome asm-super) start-line (1+ end-line))))
+    ;; strip off the function label at the beginning, if present (could be 2)
+    (if (sel/sw/asm-heap::line-is-function-label (elt lines 0))
+	(setf lines (subseq lines 1)))
+    (if (sel/sw/asm-heap::line-is-function-label (elt lines 0))
+	(setf lines (subseq lines 1)))
+    (setf (target-start-index asm-super) start-line)
+    (setf (target-end-index asm-super) end-line)
     (setf (target-lines asm-super)
 	  lines)))
 
@@ -774,10 +667,10 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 			    :key 'function-index-entry-name
 			    :test 'equalp)))
     (when index-entry
-      (target-function
+      (target-function-by-lines
        asm
-       (function-index-entry-start-address index-entry)
-       (function-index-entry-end-address index-entry))
+       (function-index-entry-start-line index-entry)
+       (function-index-entry-end-line index-entry))
       (load-io-file
        asm
        (or (and (io-file asm) (pathname (io-file asm)))
@@ -802,67 +695,104 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 ;;; ops which start with the letter "j". Also do not change labels used as
 ;;; branch targets if the name contains #\@ (signifies non-local label).
 ;;;
-(defun add-label-suffix (text suffix)
-  (multiple-value-bind (start end register-match-begin register-match-end)
-      (ppcre:scan "\\$[\\w@]+" text)
-    (declare (ignore register-match-begin register-match-end))
-    (if (and (integerp start)
-	     (integerp end)
-	     (or
-	      (and (char= #\j (char (string-trim '(#\space #\tab) text) 0))
-		   (not (find #\@ text :start start :end end)))
-	      (char= #\$ (char (string-trim '(#\space #\tab) text) 0))))
-	(concatenate 'string
-		     (subseq text 0 end)
-		     suffix
-		     (subseq text end))
-	text)))
+(defun add-label-suffix (text suffix asm-syntax)
+  (let ((label-re
+	 (if (eq asm-syntax ':intel)
+	     "\\$[\\w@]+"
+	     "\\.\\L\\_[\\w@]+")))
+    (multiple-value-bind (start end register-match-begin register-match-end)
+	(ppcre:scan label-re text)
+      (declare (ignore register-match-begin register-match-end))
+      (if (and (integerp start)
+	       (integerp end)
+	       (or
+		(and (char= #\j (char (string-trim '(#\space #\tab) text) 0))
+		     (not (find #\@ text :start start :end end)))
+		(if (eq asm-syntax ':intel)
+		    (char= #\$ (char (string-trim '(#\space #\tab) text) 0))
+		    (char= #\. (char (string-trim '(#\space #\tab) text) 0)))))
+	  (concatenate 'string
+		       (subseq text 0 end)
+		       suffix
+		       (subseq text end))
+	  text))))
 
 ;;;
 ;;; Insert prolog code at the beginning of the file.
 ;;;
-(defun add-prolog (asm num-variants index-info)
-  (insert-new-lines
-   asm
-   (append
-    (list
-     "; -------------- Globals (exported) ---------------"
-     "        global variant_table"
-     "        global input_regs"
-     "        global output_regs"
-     "        global input_mem"
-     "        global output_mem"
-     "        global num_tests"
-     "        global save_return_address"    ; save address to return to
-     "        global result_return_address   ; keep track of what we found")
-    (iter (for i from 0 below num-variants)
-	  (collect (format nil "        global variant_~D" i)))
-    (list
-     ""
-     "; -------------- Stack Vars ---------------")
-    (mapcar 'asm-line-info-text
-	    (function-index-entry-declarations index-info))
-    (list
-     ""
-     "; -------------- Stack --------------"
-     "section .note.GNU-stack noalloc noexec nowrite progbits"
-     ""
-     "; ----------- Code & Data ------------"
-     "section .text exec nowrite  align=16"
-     "      align 4"))
-   0))
+(defun add-prolog (asm num-variants index-info syntax)
+  (if (eq syntax ':intel)
+      (insert-new-lines
+       asm
+       (append
+	(list
+	 "; -------------- Globals (exported) ---------------"
+	 "        global variant_table"
+	 "        global input_regs"
+	 "        global output_regs"
+	 "        global input_mem"
+	 "        global output_mem"
+	 "        global num_tests"
+	 "        global save_return_address"
+	 "        global result_return_address")
+	(iter (for i from 0 below num-variants)
+	      (collect (format nil "        global variant_~D" i)))
+	(list
+	 ""
+	 "; -------------- Stack Vars ---------------")
+	(mapcar 'asm-line-info-text
+		(function-index-entry-declarations index-info))
+	(list
+	 ""
+	 "; -------------- Stack --------------"
+	 "section .note.GNU-stack noalloc noexec nowrite progbits"
+	 ""
+	 "; ----------- Code & Data ------------"
+	 "section .text exec nowrite  align=16"
+	 "      align 4"))
+       0)
+      (insert-new-lines
+       asm
+       (append
+	(list
+	 "# -------------- Globals (exported) ---------------"
+	 "        .globl variant_table"
+	 "        .globl input_regs"
+	 "        .globl output_regs"
+	 "        .globl input_mem"
+	 "        .globl output_mem"
+	 "        .globl num_tests"
+	 "        .globl save_return_address"
+	 "        .globl result_return_address")
+	(iter (for i from 0 below num-variants)
+	      (collect (format nil "        .globl variant_~D" i)))
+	(list
+	 ""
+	 "# -------------- Stack Vars ---------------")
+	(mapcar 'asm-line-info-text
+		(function-index-entry-declarations index-info))
+	(list
+	 ""
+	 "# -------------- Stack --------------"
+	 ".section .note.GNU-stack , \"\", @progbits"
+	 ""
+	 "# ----------- Code & Data ------------"
+	 ".section .text"
+	 ".align 16"))
+       0)))
 
-(defun add-externs (asm asm-super)
-  (insert-new-lines
-   asm
-   (append
-    (list
-     ""
-     "; -------------- Externs ---------------")
-    (iter (for x in (collect-extern-funcs asm-super))
-	  (collect (format nil "        extern ~A" x))
-    (list "")))
-   (length (genome asm))))
+  (defun add-externs (asm asm-super)
+    (if (eq (asm-syntax asm-super) ':intel)
+	(insert-new-lines
+	 asm
+	 (append
+	  (list
+	   ""
+	   "; -------------- Externs ---------------")
+	  (iter (for x in (collect-extern-funcs asm-super))
+		(collect (format nil "        extern ~A" x))
+		(list "")))
+	 (length (genome asm)))))
 
 ;;;
 ;;; Replace a RET operation with:
@@ -877,46 +807,77 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 ;;; The passed argument is a vector of asm-line-info, and this returns
 ;;; a list of asm-line-info.
 ;;;
-(defun handle-ret-ops (asm-lines)
+(defun handle-ret-ops (asm-lines asm-syntax)
   (let ((new-lines '()))
-    (iter (for line in-vector asm-lines)
-	  (if (equalp (asm-line-info-opcode line) "ret")
-	      (progn
-		(push (car (parse-asm-line
-			    "        pop qword [result_return_address]"))
-		      new-lines)
-	        (push (car (parse-asm-line
-			    "        jmp qword [save_return_address]"))
-		      new-lines))
-	      (push line new-lines)))
+    (if (eq asm-syntax ':intel)
+	(iter (for line in-vector asm-lines)
+	      (if (equalp (asm-line-info-opcode line) "ret")
+		  (progn
+		    (push (car (parse-asm-line
+				"        pop qword [result_return_address]"
+				asm-syntax))
+			  new-lines)
+		    (push (car (parse-asm-line
+				"        jmp qword [save_return_address]"
+				asm-syntax))
+			  new-lines))
+		  (push line new-lines)))
+	(iter (for line in-vector asm-lines)
+	      (if (equalp (asm-line-info-opcode line) "retq")
+		  (progn
+		    (push (car (parse-asm-line
+				"        popq (result_return_address)"
+				asm-syntax))
+			  new-lines)
+		    (push (car (parse-asm-line
+				"        jmpq *(save_return_address)"
+				asm-syntax))
+			  new-lines))
+		  (push line new-lines))))
     (nreverse new-lines)))
 
 ;;; Append a variant function, defined by the name and
 ;;; lines of assembler code,
 ;;;
-(defun add-variant-func (asm-variant name lines)
+(defun add-variant-func (asm-variant name asm-syntax lines)
   (let* ((suffix (format nil "_~A" name))
 	 (localized-lines
 	  (mapcar
 	   (lambda (line)
-	     (add-label-suffix line suffix))
+	     (add-label-suffix line suffix asm-syntax))
 	   lines)))
-    (insert-new-lines
-     asm-variant
-     (append
-      (list
-       (format nil "~A:" name)  ; function name
-       "        pop qword [save_return_address] ; save the return address"
-       "        push qword [save_return_address]")
-      (cdr localized-lines)   ; skip first line, the function name
-      (list "ret"   ; probably redundant, already in lines
-	    "align 4"))
-     (length (genome asm-variant)))))
+    (if (eq asm-syntax ':intel)
+	(insert-new-lines
+	 asm-variant
+	 (append
+	  (list
+	   (format nil "~A:" name)  ; function name
+	   "        pop qword [save_return_address]"
+	   "        push qword [save_return_address]")
+	  localized-lines
+	  (list "ret"   ; probably redundant, already in lines
+		"align 4"))
+	 (length (genome asm-variant)))
+	;; att syntax
+	(insert-new-lines
+	 asm-variant
+	 (append
+	  (list
+	   (format nil "~A:" name)  ; function name
+	   "        popq (save_return_address)"
+	   "        pushq (save_return_address)")
+	  localized-lines
+	  (list "retq"   ; probably redundant, already in lines
+		".align 8"))
+	 (length (genome asm-variant))))))
 
-(defun format-reg-specs (io-spec)
+(defun format-reg-specs (io-spec asm-syntax)
   (iter (for reg-spec in-vector (input-specification-regs io-spec))
 	(collect
-	    (format nil "    dq 0x~16,'0X  ; ~A"
+	    (format nil
+		    (if (eq asm-syntax ':intel)
+			"    dq 0x~16,'0X  ; ~A"
+			"    .quad 0x~16,'0X  # ~A")
 		    (be-bytes-to-qword (reg-contents-value reg-spec))
 		    (reg-contents-name reg-spec)))))
 
@@ -926,86 +887,148 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 ;;; (this means the high byte only is used)
 ;;; The list is terminated with an address of 0.
 ;;;
-(defun format-mem-specs (io-spec)
-  (let ((lines
-	 (iter (for spec in-vector (input-specification-mem io-spec))
-	       (collect
-		   (let ((addr (memory-spec-addr spec))
-			 (mask (memory-spec-mask spec))
-			 (bytes (memory-spec-bytes spec)))
-		     (format
-		      nil
-		      "    dq 0x~16,'0X~%    dq 0x~16,'0X~%    dq 0x~A~%"
-		      addr
-		      (be-bytes-to-qword bytes)
-		      (apply 'concatenate 'string
-			     (map 'list
-				  (lambda (x)
-				    (if (= x 1) "FF" "00"))
-				  mask))))))))
-    (append lines (list "    dq 0"))))    ; and with zero address
+(defun format-mem-specs (io-spec asm-syntax)
+  (if (eq asm-syntax ':intel)
+      (let ((lines
+	     (iter (for spec in-vector (input-specification-mem io-spec))
+		   (collect
+		       (let ((addr (memory-spec-addr spec))
+			     (mask (memory-spec-mask spec))
+			     (bytes (memory-spec-bytes spec)))
+			 (format
+			  nil
+			  "    dq 0x~16,'0X~%    dq 0x~16,'0X~%    dq 0x~A~%"
+			  addr
+			  (be-bytes-to-qword bytes)
+			  (apply 'concatenate 'string
+				 (map 'list
+				      (lambda (x)
+					(if (= x 1) "FF" "00"))
+				      mask))))))))
+	(append lines (list "    dq 0x0"))) ; terminate with 0 address
+      ;; att syntax
+      (let ((lines
+	     (iter (for spec in-vector (input-specification-mem io-spec))
+		   (collect
+		       (let ((addr (memory-spec-addr spec))
+			     (mask (memory-spec-mask spec))
+			     (bytes (memory-spec-bytes spec)))
+			 (format
+			  nil
+			  "  .quad 0x~16,'0X~%  .quad 0x~16,'0X~%  .quad 0x~A~%"
+			  addr
+			  (be-bytes-to-qword bytes)
+			  (apply 'concatenate 'string
+				 (map 'list
+				      (lambda (x)
+					(if (= x 1) "FF" "00"))
+				      mask))))))))
+	(append lines (list "    .quad 0x0"))))) ; terminate with zero address
 
-(defun add-variant-table (asm num-variants)
+(defun add-variant-table (asm num-variants asm-syntax)
   (insert-new-lines
    asm
    (list
     ""
-    ";;;  table of function pointers, 0-terminated"
+    (if (eq asm-syntax ':intel)
+	";;;  table of function pointers, 0-terminated"
+	"#    table of function pointers, 0-terminated")
     "variant_table:")
    (length (genome asm)))
+
   (dotimes (i num-variants)
     (insert-new-line
      asm
-     (format nil "        dq variant_~D" i)
+     (format nil
+	     (if (eq asm-syntax ':intel)
+		 "        dq variant_~D"
+		 "        .quad variant_~D")
+	     i)
      (length (genome asm))))
-  (insert-new-line asm "        dq 0" (length (genome asm))))
+  (insert-new-line asm
+		   (if (eq asm-syntax ':intel)
+		       "        dq 0x0"
+		       "        .quad 0x0")
+		   (length (genome asm))))
 
-(defun format-reg-info (asm-variants spec-vec label)
+(defun format-reg-info (asm-variants spec-vec asm-syntax label)
   (insert-new-lines asm-variants (list "" label) (length (genome asm-variants)))
   (dotimes (i (length spec-vec))
     (insert-new-lines
      asm-variants
-     (format-reg-specs (aref spec-vec i))
+     (format-reg-specs (aref spec-vec i) asm-syntax)
      (length (genome asm-variants)))
     (insert-new-line asm-variants "" (length (genome asm-variants)))))
 
-(defun format-mem-info (asm-variants spec-vec label)
+(defun format-mem-info (asm-variants spec-vec asm-syntax label)
   (insert-new-lines asm-variants (list "" label) (length (genome asm-variants)))
   (dotimes (i (length spec-vec))
     (insert-new-lines
      asm-variants
-     (format-mem-specs (aref spec-vec i))
+     (format-mem-specs (aref spec-vec i) asm-syntax)
      (length (genome asm-variants)))
     (insert-new-line asm-variants "" (length (genome asm-variants)))))
 
 (defun add-bss-section (asm-variants asm-super)
   ;; if bss section found, add it
   (let ((bss (extract-section asm-super ".BSS")))
-    (if bss
-	(insert-new-lines
-	 asm-variants
-	 (cons "section .seldata nobits alloc noexec write align=4"
-	       (cdr (lines (extract-section asm-super ".BSS"))))
-	 (length (genome asm-variants)))
-	(insert-new-lines
-	 asm-variants
-	 (list "section .seldata nobits alloc noexec write align=4"
-	"    times 16 db 0"
-	"    times  8 db 0"
-	"    times  8 db 0"
-	"    times  8 db 0")
-	 (length (genome asm-variants))))))
+    (if (eq (asm-syntax asm-super) ':intel)
+	(if bss
+	    (insert-new-lines
+	     asm-variants
+	     (cons "section .seldata nobits alloc noexec write align=4"
+		   (cdr (lines (extract-section asm-super ".BSS"))))
+	     (length (genome asm-variants)))
+	    (insert-new-lines
+	     asm-variants
+	     (list "section .seldata nobits alloc noexec write align=4"
+		   "    times 16 db 0"
+		   "    times  8 db 0"
+		   "    times  8 db 0"
+		   "    times  8 db 0")
+	     (length (genome asm-variants))))
+	;; att syntax
+	(if bss
+	    (insert-new-lines
+	     asm-variants
+	     (append
+	      (list ".section .seldata, \"wa\", @nobits"
+		    ".align 16")
+	      (cdr (lines (extract-section asm-super ".BSS"))))
+	     (length (genome asm-variants)))
+	    (insert-new-lines
+	     asm-variants
+	     (list  ".section .seldata, \"wa\", @nobits"
+		   "    .zero 8"
+		   "    .zero 8"
+		   "    .zero 8"
+		   "    .zero 4"
+		   "    .zero 4"
+		   "    .zero 8")
+	     (length (genome asm-variants))))
+	)))
 
-(defun add-return-address-vars (asm-variants)
-  (insert-new-lines
-   asm-variants
-   (list
-    "        ; save address to return back to, in case the stack is messed up"
-    "        save_return_address: resb 8"
-    "        ; save the address found on the stack (should be the same)"
-    "        result_return_address: resb 8"
-    "")
-   (length (genome asm-variants))))
+(defun add-return-address-vars (asm-variants asm-syntax)
+  (if (eq asm-syntax ':intel)
+      (insert-new-lines
+       asm-variants
+       (list
+	"        ; save address to return back to, in case the stack is messed up"
+	"        save_return_address: resb 8"
+	"        ; save the address found on the stack (should be the same)"
+	"        result_return_address: resb 8"
+	"")
+       (length (genome asm-variants)))
+      ;; att syntax
+      (insert-new-lines
+       asm-variants
+       (list
+	"        # save address to return back to, in case the stack is messed up"
+	"        save_return_address: .zero 8"
+	"        # save the address found on the stack (should be the same)"
+	"        result_return_address: .zero 8"
+	"")
+       (length (genome asm-variants)))))
 
 (defun add-io-tests (asm-super asm-variants)
   "Copy the I/O data from the asm-super into the asm-variants assembly file"
@@ -1013,17 +1036,31 @@ a symbol, the SYMBOL-NAME of the symbol is used."
    asm-variants
    (list
     ""
-    ";;;  number of test cases"
     "num_tests:")
    (length (genome asm-variants)))
   (insert-new-line
    asm-variants
-   (format nil "        dq ~d" (length (input-spec asm-super)))
+   (format nil
+	   (if (eq (asm-syntax asm-super)
+		   ':intel)
+	       "        dq ~d"
+	       "        .quad ~d")
+	   (length (input-spec asm-super)))
    (length (genome asm-variants)))
-  (format-reg-info asm-variants (input-spec asm-super) "input_regs:")
-  (format-reg-info asm-variants (output-spec asm-super) "output_regs:")
-  (format-mem-info asm-variants (input-spec asm-super) "input_mem:")
-  (format-mem-info asm-variants (output-spec asm-super) "output_mem:"))
+  (format-reg-info asm-variants (input-spec asm-super)
+		   (asm-syntax asm-super)
+		   "input_regs:")
+  (format-reg-info asm-variants (output-spec asm-super)
+		   (asm-syntax asm-super)
+		   "output_regs:")
+  (format-mem-info asm-variants
+		   (input-spec asm-super)
+		   (asm-syntax asm-super)
+		   "input_mem:")
+  (format-mem-info asm-variants
+		   (output-spec asm-super)
+		   (asm-syntax asm-super)
+		   "output_mem:"))
 
 (defun add-included-lines (asm-super asm-variants)
   "If any extra lines were supplied, paste them in now."
@@ -1064,7 +1101,8 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 (defun generate-file (asm-super output-path number-of-variants)
   (let ((asm-variants (make-instance 'asm-heap :super-owner asm-super)))
     (setf (lines asm-variants) (list))  ;; empty heap
-    (add-prolog asm-variants number-of-variants (target-info asm-super))
+    (add-prolog asm-variants number-of-variants (target-info asm-super)
+		(asm-syntax asm-super))
     (add-externs asm-variants asm-super)
 
     ;; add additionally specified functions or code lines
@@ -1078,12 +1116,14 @@ a symbol, the SYMBOL-NAME of the symbol is used."
         (add-variant-func
 	 asm-variants
 	 (format nil "variant_~D" count)
-	 (mapcar 'asm-line-info-text (handle-ret-ops (genome v))))
+	 (asm-syntax asm-super)
+	 (mapcar 'asm-line-info-text
+		 (handle-ret-ops (genome v) (asm-syntax asm-super))))
 	(incf count)))
-    (add-variant-table asm-variants number-of-variants)
+    (add-variant-table asm-variants number-of-variants (asm-syntax asm-super))
     (add-io-tests asm-super asm-variants)
     (add-bss-section asm-variants asm-super)
-    (add-return-address-vars asm-variants)
+    (add-return-address-vars asm-variants (asm-syntax asm-super))
     (setf (super-soft asm-super) asm-variants)  ;; cache the asm-heap
     (with-open-file (os output-path :direction :output :if-exists :supersede)
       (dolist (line (lines asm-variants))
@@ -1118,7 +1158,15 @@ a symbol, the SYMBOL-NAME of the symbol is used."
     (with-temp-file (obj "o")
       ;; Assemble.
       (multiple-value-bind (stdout stderr errno)
-          (shell "~a -f elf64 -o ~a ~a" (assembler asm) obj src)
+          (shell "~a ~a -o ~a ~a"
+		 (if (eq (asm-syntax asm) ':intel)
+		     "nasm"
+		     "as")
+		 (if (eq (asm-syntax asm) ':intel)
+		     "-f elf64"
+		     "")
+		 obj
+		 src)
 	(declare (ignorable stdout stderr))
         (restart-case
             (unless (zerop errno)
@@ -1258,8 +1306,16 @@ needs to have been loaded, along with the var-table by PARSE-SANITY-FILE."
   "If the passed asm-line-info is a section header, returns the section name.
 Else returns NIL."
   (if (and (eq (asm-line-info-type asm-info) ':decl)
-	   (equalp (first (asm-line-info-tokens asm-info)) "section"))
-      (second (asm-line-info-tokens asm-info))))
+	   (member (first (asm-line-info-tokens asm-info))
+		   '("section" ".section")
+		   :test 'equalp))
+      (second (asm-line-info-tokens asm-info))
+      (and (eq (asm-line-info-type asm-info) ':decl)
+	   (member (first (asm-line-info-tokens asm-info))
+		   '(".bss" ".data" ".text")
+		   :test 'equalp)
+	   (first (asm-line-info-tokens asm-info)))))
+
 
 (defun find-named-section (asm-super name)
   "Returns the starting line (integer) of the named section or
@@ -1278,7 +1334,7 @@ returns NIL."
 	(let ((end (position-if 'section-header-p (genome asm-super)
 				:start (+ named-section-pos 1))))
 	  (if (null end)
-	      (setf end (- (length (genome asm-super)) 1)))
+	      (setf end (length (genome asm-super))))
 	  (let ((section (make-instance 'asm-heap :super-owner asm-super)))
 	    (setf (lines section)
 		  (map 'list 'asm-line-info-text

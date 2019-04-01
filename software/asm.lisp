@@ -1,6 +1,15 @@
 ;;; asm.lisp --- software representation of Assembly code
 ;;;
-;;; DOCFIXME Need a page or so introduction to asm software objects.
+;;; ASM is a minimal extension of simple.lisp to support assembler
+;;; files in which each line is treated as an atomic unit.
+;;; Mutations simply move around lines. Thus it works for any
+;;; assembler language and the phenome methods are simple/generic
+;;; enough to assemble any assembler with the appropriate linker and flags.
+;;; This file also defines the asm-range class which is a more space
+;;; efficient optimization of the asm class.
+;;;
+;;; ASM expects its linker slot (gcc by default) to be configured
+;;; with a tool that will both assemble and link the file.
 ;;;
 ;;; @texi{asm}
 (defpackage :software-evolution-library/software/asm
@@ -42,6 +51,7 @@
   "Ensure `number-genome' is called on all ASM files.
 This adds :id fields to genome elements required by `homologous-crossover'."
   ;; Only run `number-genome' on asm objects with standard genomes.
+  (declare (ignore file))
   (when (and (proper-list-p (genome obj))
              (proper-list-p (first (genome obj))))
     (number-genome obj)))
@@ -109,7 +119,7 @@ linking process, (5) the source file name used during linking."
   #-ccl (declare (values t fixnum string string string))
   (with-temp-file-of (src "s") (genome-string asm)
     (multiple-value-bind (stdout stderr errno)
-        (shell "~a -o ~a ~a ~{~a~^ ~}"
+        (shell "~a -no-pie -o ~a ~a ~{~a~^ ~}"
                (or (linker asm) *asm-linker*) bin src (flags asm))
       (declare (ignorable stdout ))
       (values bin errno stderr stdout src))))
