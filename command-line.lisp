@@ -23,6 +23,7 @@
         :command-line-arguments
         :split-sequence
         :cl-store
+        :uiop/filesystem
         :software-evolution-library
         :software-evolution-library/utility
         ;; Software objects.
@@ -395,7 +396,7 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
                 ;; Remove any absolute path from the beginning of
                 ;; build-command *if* build-command is a file in the
                 ;; base of the project.
-                (if (and abs-cmd-name (probe-file abs-cmd-name))
+                (if (file-exists-p abs-cmd-name)
                     (format nil "~a~{ ~a~}"
                             (replace-all (namestring abs-cmd-name)
                                          (namestring path)
