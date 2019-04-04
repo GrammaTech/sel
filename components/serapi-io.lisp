@@ -56,7 +56,6 @@
            :kill-serapi
            :write-to-serapi
            :sanitize-process-string
-           :unescape-string
            :read-serapi-response
            :*sertop-path*
            :*sertop-args*
@@ -216,40 +215,6 @@ See `insert-reset-point'.")
                      (serapi-timeout condition) (serapi-error-text condition))))
   (:documentation
    "Condition raised if timeout is exceeded."))
-
-(defun escape-string (str)
-  "Return a copy of STR with special characters escaped before output to SerAPI.
-Control characters for whitespace (\\n, \\t, \\b, \\r in Lisp) should be
-preceded by four backslashes, and double quotes should be preceded by 2.
-Additionally, ~ must be escaped as ~~ so that the string can be formatted.
-See also `unescape-string'."
-  ;; Please be intimidated by the number of backslashes here, use *extreme*
-  ;; caution if editing, and see the CL-PPCRE note on why backslashes in
-  ;; regex-replace are confusing prior to thinking about editing this.
-  (-<> str
-       ;; replace all \\n with \\\\n unless already escaped (also other WS)
-       ;; in regex \\\\ ==> \\ in Lisp string (which is \ in "real life")
-       ;; (replace-all "\\" "\\\\")
-       (regex-replace-all "(?<!\\\\)\\\\(n\|t\|b\|r)" <> "\\\\\\\\\\1")
-
-       ;; replace all \" with \\" unless already escaped
-       ;; in regex, \\\" ==> \" in Lisp string
-       ;; (replace-all "\"" "\\\"")
-       (regex-replace-all "(?<!\\\\)\\\"" <> "\\\\\"")
-
-       ;; replace all ~ with ~~
-       (regex-replace-all "~" <> "~~")))
-
-
-(defun unescape-string (str)
-  "Remove extra escape characters from STR prior to writing to screen or file.
-Control characters for whitespace (\\n, \\t, \\b, \\r) and double quotes (\")
-are preceded by an extra pair of backslashes. See also `escape-string'."
-  (-<> str
-       ;; change \\\\foo to \\foo
-       (regex-replace-all "\\\\\\\\(n\|t\|b\|r)" <> "\\\\\\1")
-       ;; change \\\" to \"
-       (regex-replace-all "\\\\\\\"" <> "\"")))
 
 (defun escape-cmd (sexpr)
   "Return a copy of SEXPR with special characters reformatted for SerAPI.
