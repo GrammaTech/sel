@@ -245,6 +245,14 @@ void write_trace_header(FILE *out, pthread_mutex_t *lock,
   :test #'string=
   :documentation "C code which implements trace writing.")
 
+(define-constant +names-variable-name+ "names"
+  :test #'string=
+  :documentation "Name of the variable containing instrumentation var names.")
+
+(define-constant +types-variable-name+ "types"
+  :test #'string=
+  :documentation "Name of the variable containing instrumentation types.")
+
 (define-constant +write-trace-initialization+
   (concatenate 'string "
 #include <unistd.h>
@@ -261,12 +269,13 @@ void __attribute__((constructor(101))) __bi_setup_log_file() {
     unlink(handshake_file_path);
   }
   " +instrument-log-variable-name+ " = ~a;
-  const char *names[] = {~{~s, ~}};
-  const type_description types[] = {~{~a, ~}};
+  ~a;
+  ~a;
   pthread_mutex_init(&" +instrument-log-lock-variable-name+ ", NULL);
   write_trace_header(" +instrument-log-variable-name+ ",
                      &" +instrument-log-lock-variable-name+",
-                     names, ~d, types, ~d);
+                     " +names-variable-name+ ", ~d,
+                     " +types-variable-name+ ", ~d);
 }
 ")
   :test #'string=
@@ -1013,7 +1022,30 @@ OBJ a clang software object
                ((eq file-name :stdout) "stdout")
                (file-name (format nil "fopen(~s, \"w\")" (namestring file-name)))
                ((stringp env-name) (format nil "fopen(getenv(~a), \"w\")" env-name))
-               (t (format nil "fopen(buffer, \"w\")")))))
+               (t (format nil "fopen(buffer, \"w\")"))))
+           (names-initialization-str ()
+             (if (zerop (hash-table-count (names instrumenter)))
+                 (format nil "const char **~a = NULL"
+                         +names-variable-name+)
+                 (format nil "const char *~a[] = {~{~s, ~}}"
+                         +names-variable-name+
+                         (-<>> (names instrumenter)
+                               (hash-table-alist)
+                               (sort <> #'< :key #'cdr)
+                               (mapcar #'car)))))
+           (types-initialization-str ()
+             (if (zerop (hash-table-count (types instrumenter)))
+                 (format nil "const type_description *~a = NULL"
+                         +types-variable-name+)
+                 (format nil "const type_description ~a[] = {~{~a, ~}}"
+                         +types-variable-name+
+                         (-<>> (type-descriptions instrumenter)
+                               (hash-table-alist)
+                               (sort <> #'<
+                                     :key [{gethash _
+                                            (types instrumenter)}
+                                           #'car])
+                               (mapcar #'cdr))))))
 
     (if contains-entry
         ;; Object contains main() so insert setup code. The goal is to
@@ -1032,17 +1064,8 @@ OBJ a clang software object
                              (format nil +write-trace-initialization+
                                      *instrument-handshake-env-name*
                                      (file-open-str)
-                                     (-<>> (names instrumenter)
-                                           (hash-table-alist)
-                                           (sort <> #'< :key #'cdr)
-                                           (mapcar #'car))
-                                     (-<>> (type-descriptions instrumenter)
-                                           (hash-table-alist)
-                                           (sort <> #'<
-                                                 :key [{gethash _
-                                                        (types instrumenter)}
-                                                       #'car])
-                                           (mapcar #'cdr))
+                                     (names-initialization-str)
+                                     (types-initialization-str)
                                      (hash-table-count (names instrumenter))
                                      (hash-table-count (types instrumenter)))))
 
