@@ -193,11 +193,11 @@ running, send a SIGKILL signal.
     (kill-process test-process))
 
   ;; If still running, sleep short interval, then send an urgent kill signal
-  ;; (SIGKILL).
+  ;; (SIGKILL), to the process and all its children
   (when (process-running-p test-process)
     (sleep *process-sleep-interval*)
     (when (process-running-p test-process)
-      (kill-process test-process :urgent t))
+      (kill-process test-process :urgent t :children t))
 
     ;; If it's *still* running, warn someone.
     (when (process-running-p test-process)

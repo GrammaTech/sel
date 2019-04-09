@@ -44,6 +44,7 @@
   (:shadowing-import-from :asdf-encodings :encoding-external-format)
   (:shadowing-import-from :iterate :iter :for :until :collecting :in)
   (:shadowing-import-from :uiop/run-program :run-program)
+  (:shadowing-import-from :uiop/os :os-unix-p)
   (:shadowing-import-from :uiop :quit)
   (:shadowing-import-from
    :alexandria
@@ -282,6 +283,7 @@
    :starts-with-p
    :ends-with-p))
 (in-package :software-evolution-library/utility)
+(cffi:load-foreign-library :libosicat)
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun read-preserving-case (stream char n)
     (declare (ignorable char) (ignorable n))
@@ -878,12 +880,17 @@ Wraps around SBCL- or CCL-specific representations of external processes."))
   "Return T if PROCESS is running, NIL otherwise."
   (process-alive-p (os-process process)))
 
-(defgeneric kill-process (process &key urgent)
+(defgeneric kill-process (process &key urgent children)
   (:documentation
-   "Send a kill signal to PROCESS. If URGENT is T, send SIGKILL."))
+   "Send a kill signal to PROCESS. If URGENT is T, send SIGKILL.
+If CHILDREN is T, also kill all processes below PROCESS."))
 
-(defmethod kill-process (process &key urgent)
-  (uiop/launch-program::terminate-process (os-process process) :urgent urgent))
+(defmethod kill-process (process &key urgent children)
+  (if (not children)
+      (uiop/launch-program::terminate-process (os-process process) :urgent urgent)
+      (if (os-unix-p)
+          (eql (nth-value 2 (shell "rkill -~a ~a" (if urgent 9 15) (process-id process))) 0)
+          (error "Killing all children not implemented on this platform"))))
 
 
 ;;;; Shell and system command helpers
