@@ -188,9 +188,9 @@ running, send a SIGKILL signal.
               (sleep *process-sleep-interval*)
               (leave t))))
 
-  ;; Send a non-urgent kill signal (SIGTERM)
+  ;; Send a non-urgent kill signal (SIGTERM) to the process and all its children
   (when (process-running-p test-process)
-    (kill-process test-process))
+    (kill-process test-process :children t))
 
   ;; If still running, sleep short interval, then send an urgent kill signal
   ;; (SIGKILL), to the process and all its children
