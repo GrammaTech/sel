@@ -897,10 +897,8 @@ If CHILDREN is T, also kill all processes below PROCESS."))
             (eql (nth-value 2 (shell
                                (ecase *has-rkill*
                                  (:yes "rkill -~a ~a")
-                                 (:no "kill -~d -- -$(ps -o pgid= $PID | ~
-                                            grep -o '[0-9]*' | ~
-                                            head -n 1 | ~
-                                            tr -d ' ')"))
+                                 (:no "kill -~d -$(ps -o pgid= ~d | ~
+                                                   tr -d ' ')"))
                                (if urgent 9 15) (process-id process))) 0))
           (error "Killing all children not implemented on this platform"))))
 
