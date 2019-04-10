@@ -20,7 +20,7 @@ FROM docker.grammatech.com/synthesis/clang-mutate:arch
 # Also, python is required for testbot to submit results to the datamanager.
 RUN sed -i 's/#\[multilib\]/\[multilib\]/; /^\[multilib\]/,/^$/ s/^#//' /etc/pacman.conf
 RUN pacman --noconfirm -Syu archlinux-keyring
-RUN pacman --noconfirm -Syu astyle boost boost-libs diffutils expect findutils gawk gcc-multilib graphviz grep jdk8-openjdk less lib32-fakeroot lib32-gcc-libs lib32-glibc lib32-libltdl libffi man-db man-pages maven nodejs npm pandoc patch python sed subversion tar texinfo unzip
+RUN pacman --noconfirm -Syu astyle boost boost-libs diffutils expect findutils gawk gcc-multilib graphviz grep jdk8-openjdk less lib32-fakeroot lib32-gcc-libs lib32-glibc lib32-libltdl libffi man-db man-pages maven nodejs npm pandoc patch python sed subversion tar texinfo unzip pslist
 
 
 COPY --from=coq-serapi /root/.opam /root/.opam
