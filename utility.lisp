@@ -885,11 +885,23 @@ Wraps around SBCL- or CCL-specific representations of external processes."))
    "Send a kill signal to PROCESS. If URGENT is T, send SIGKILL.
 If CHILDREN is T, also kill all processes below PROCESS."))
 
+(defvar *has-rkill* nil "Does the system have `rkill' in the path?")
+
 (defmethod kill-process (process &key urgent children)
   (if (not children)
-      (uiop/launch-program::terminate-process (os-process process) :urgent urgent)
+      (terminate-process (os-process process) :urgent urgent)
       (if (os-unix-p)
-          (eql (nth-value 2 (shell "rkill -~a ~a" (if urgent 9 15) (process-id process))) 0)
+          (progn
+            (unless *has-rkill*
+              (setf *has-rkill* (if (which "rkill") :yes :no)))
+            (eql (nth-value 2 (shell
+                               (ecase *has-rkill*
+                                 (:yes "rkill -~a ~a")
+                                 (:no "kill -~d -- -$(ps -o pgid= $PID | ~
+                                            grep -o '[0-9]*' | ~
+                                            head -n 1 | ~
+                                            tr -d ' ')"))
+                               (if urgent 9 15) (process-id process))) 0))
           (error "Killing all children not implemented on this platform"))))
 
 
