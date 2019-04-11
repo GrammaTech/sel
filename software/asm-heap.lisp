@@ -577,23 +577,24 @@ linking process, (5) the source file name used during linking."
       (vector-push-extend info (line-heap asm-heap)))
     info-list))
 
-;;;
-;;; Parses a new line of assembler, adds it to the heap, and inserts
-;;; it at index in the genome. Returns the number of lines inserted.
-;;;
 (defun insert-new-line (asm-heap text
 			&optional (index (length (genome asm-heap))))
+  "Insert a line of assembler code into the genome.
+Parses a new line of assembler, adds it to the heap, and inserts
+it at index in the genome. Returns the number of lines inserted.
+Note that one line may be split into multiple lines by the parser.
+If index is not supplied, defaults to the end of the genome."
   (let ((info-list (parse-and-add-to-heap asm-heap text)))
     (dolist (info info-list)
       (vector-insert (genome asm-heap) index info)
       (incf index))
     (length info-list)))
 
-;;;
-;;; Parse and add a list of lines of assembler code.
-;;;
 (defun insert-new-lines (asm-heap line-list
 			 &optional (index (length (genome asm-heap))))
+  "Insert a list of asm lines into the genome.
+Inserts list of lines (calling insert-new-line).
+If index is not supplied, defaults to end of the genome."
   (dolist (x line-list)
     (incf index (insert-new-line asm-heap x index))))
 
@@ -812,7 +813,9 @@ those of A and B."
 		 (values (copy a) 0 0)))))))
 
 (defun function-name-from-label (name asm)
-  "Given a label like $FOO1, returns FOO1 (intel only)."
+  "Given a label like $FOO1, returns FOO1 (intel only).
+The gtx disassembler decorates labels with $ prefix, but
+the gtirb disassembler (for AT&T syntax) does not."
   (if (and (intel-syntax-p asm) (char= (char name 0) #\$))
       (subseq name 1)
       name))
@@ -843,9 +846,9 @@ those we assume a function name."
 
 (defun extract-function-declarations (asm)
   "Traverse the asm-heap, and collect declarations associated with
-each function. The function name is determined from the declaration.
-The declarations are stored in a hash-table, keyed to the function
-name. The resulting hash-table is returned."
+ each function. The function name is determined from the declaration.
+ The declarations are stored in a hash-table, keyed to the function
+ name. The resulting hash-table is returned."
   (let ((table (make-hash-table :test 'equalp))
 	(genome (genome asm)))
     (iter (for x in-vector genome)
@@ -863,8 +866,9 @@ name. The resulting hash-table is returned."
     table))
 
 (defun create-asm-function-index (asm)
-  "Traverse the passed asm-heap, and collect a function-index-entry
-for each function. The result is a vector of function-index-entry."
+  "Extracts a function index from an assembly file.
+ Traverse the passed asm-heap, and collect a function-index-entry
+ for each function. The result is a vector of function-index-entry."
   (let ((table (if (intel-syntax-p asm)
 		   (extract-function-declarations asm)
 		   (make-hash-table :test 'equalp)))

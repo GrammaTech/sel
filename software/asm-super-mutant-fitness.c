@@ -35,7 +35,7 @@ extern vfunc variant_table[]; // 0-terminated array of variant
                               // function pointers, defined in the asm
                               // file
 #define NUM_REGS 16           // total number of registers (if all are used)
-#define DEBUG 1               // set this to 1, to turn on debugging messages
+#define DEBUG 0               // set this to 1, to turn on debugging messages
 
 #define PAGE_SIZE 4096
 #define PAGE_MASK 0xfffffffffffff000
@@ -436,7 +436,7 @@ unsigned long run_variant(int v, int test) {
         exit(1);
     }
 
-    asm("call _init_registers\n\t");        
+    asm("call _init_registers\n\t");
     execaddr();
     asm("call _restore_registers\n\t");
 
@@ -657,7 +657,7 @@ int main(int argc, char* argv[]) {
 
     // see how many overhead instructions there are
     unsigned long overhead = run_overhead();
-    
+
     for (int i = 0; variant_table[i]; i++) {
         run_variant_tests(i, test_results + (i * num_tests));
     }

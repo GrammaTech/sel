@@ -1136,7 +1136,7 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 	""))))
 
 (defun calc-live-regs (register-list)
-  "Calculate live input register bit mask. 
+  "Calculate live input register bit mask.
 RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
   (iter
     (for x in register-list)
@@ -1181,7 +1181,7 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
                 (calc-live-regs *output-registers*))
         (format nil "num_output_registers:  .quad 0x~X"
                 (length *output-registers*)))))
-        
+
   (format-reg-info asm-variants (input-spec asm-super)
 		   (asm-syntax asm-super)
 		   "input_regs:")
@@ -1226,7 +1226,7 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
 	    (insert-new-lines
 	     asm-variants
 	     lines))))))
-    
+
 (defun add-init-regs(asm-super asm-variants)
   "Add assembler code to initialize registers."
   (let ((rbx-pos nil))
@@ -1237,7 +1237,7 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
       (if (intel-syntax-p asm-super)
           "        pop qword [temp_return_address]"
           "        popq temp_return_address")))
-    
+
     ;; push all the registers except rsp
     (insert-new-lines
      asm-variants
@@ -1250,13 +1250,13 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
                (format nil "        push %~A" (string-downcase x))))))
       *all-registers*))
 
-    ;; initialize registers with input_regs data 
+    ;; initialize registers with input_regs data
     (insert-new-lines
      asm-variants
      (if (intel-syntax-p asm-super)
          (list
           "        mov qword [save_rsp], rsp"
-          "        mov rax, qword [test_offset]" 
+          "        mov rax, qword [test_offset]"
           "        lea rbx, [input_regs]"
           "        add rbx, rax")
          (list
@@ -1395,7 +1395,7 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
 
     (add-init-regs asm-super asm-variants)
     (add-restore-regs asm-super asm-variants)
-    
+
     (let ((count 0))
       (dolist (v (mutants asm-super))
 	(assert (equalp (genome (super-owner v)) (genome asm-super)) (v)
