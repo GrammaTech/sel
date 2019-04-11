@@ -5,6 +5,7 @@
         :software-evolution-library/utility
         :software-evolution-library/ast-diff/ast-diff
         :cl-who)
+  (:shadow :escape-string)
   (:export :diff-to-html))
 (in-package :software-evolution-library/ast-diff/html)
 
