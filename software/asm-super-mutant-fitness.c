@@ -60,22 +60,22 @@ extern unsigned long test_offset;
 // Live input register mask contains uses bits to represent
 // each live register.
 //
-unsigned long rax_bit = 0x00000001;
-unsigned long rbx_bit = 0x00000002;
-unsigned long rcx_bit = 0x00000004;
-unsigned long rdx_bit = 0x00000008;
-unsigned long rsp_bit = 0x00000010;
-unsigned long rbp_bit = 0x00000020;
-unsigned long rsi_bit = 0x00000040;
-unsigned long rdi_bit = 0x00000080;
-unsigned long r08_bit = 0x00000100;
-unsigned long r09_bit = 0x00000200;
-unsigned long r10_bit = 0x00000400;
-unsigned long r11_bit = 0x00000800;
-unsigned long r12_bit = 0x00001000;
-unsigned long r13_bit = 0x00002000;
-unsigned long r14_bit = 0x00004000;
-unsigned long r15_bit = 0x00008000;
+const unsigned long rax_bit = 0x00000001;
+const unsigned long rbx_bit = 0x00000002;
+const unsigned long rcx_bit = 0x00000004;
+const unsigned long rdx_bit = 0x00000008;
+const unsigned long rsp_bit = 0x00000010;
+const unsigned long rbp_bit = 0x00000020;
+const unsigned long rsi_bit = 0x00000040;
+const unsigned long rdi_bit = 0x00000080;
+const unsigned long r08_bit = 0x00000100;
+const unsigned long r09_bit = 0x00000200;
+const unsigned long r10_bit = 0x00000400;
+const unsigned long r11_bit = 0x00000800;
+const unsigned long r12_bit = 0x00001000;
+const unsigned long r13_bit = 0x00002000;
+const unsigned long r14_bit = 0x00004000;
+const unsigned long r15_bit = 0x00008000;
 
 extern unsigned long live_input_registers; // input live register mask
 extern unsigned long live_output_registers;// output live register mask
