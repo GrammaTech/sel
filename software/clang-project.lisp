@@ -9,6 +9,7 @@
         :iterate
         :split-sequence
         :cl-ppcre
+        :uiop/filesystem
         :software-evolution-library
         :software-evolution-library/utility
         :software-evolution-library/software/simple
@@ -179,17 +180,19 @@ information on the format of compilation databases."))
                         f))))))
 
 (defmethod collect-evolve-files ((clang-project clang-project))
-  (mapcar (lambda (entry)
-            (let ((file-path (-<>> (aget :directory entry)
-                               (ensure-directory-pathname)
-                               (merge-pathnames-as-file <>
-                                                        (aget :file entry))
-                               (project-path clang-project))))
-              (cons (pathname-relativize (project-dir clang-project) file-path)
+  (labels ((get-file-path (entry)
+             (-<>> (aget :directory entry)
+                   (ensure-directory-pathname)
+                   (merge-pathnames-as-file <> (aget :file entry))
+                   (project-path clang-project))))
+    (mapcar (lambda (entry)
+              (cons (pathname-relativize (project-dir clang-project)
+                                         (get-file-path entry))
                     (from-file
                      (make-instance (component-class clang-project)
                        :compiler (compilation-db-entry-compiler entry)
                        :flags (compilation-db-flags clang-project entry))
-                     file-path))))
-          (remove-if [{ignored-evolve-path-p clang-project} {aget :file}]
-                     (compilation-database clang-project))))
+                     (get-file-path entry))))
+            (remove-if «or [{ignored-evolve-path-p clang-project} {aget :file}]
+                           [#'not #'file-exists-p #'get-file-path]»
+                       (compilation-database clang-project)))))
