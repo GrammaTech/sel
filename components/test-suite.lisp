@@ -104,9 +104,7 @@ EXTRA-KEYS will be passed through to that method.
 
 Some EXTRA-KEYS that may be useful are:
 * :output and :error-output - to specify how output and error streams are
-  handled. In some cases, these are sent to /dev/null by default, making
-  inaccessible after the process completes, so it's often useful to set one or
-  both of these to `:stream' to capture the output.
+  handled. By default, these are captured so they can be returned as strings.
 
 * :wait - whether to wait for the process to complete before continuing.
   The default is to wait; however, some components (such as `traceable') may
@@ -119,12 +117,18 @@ Some EXTRA-KEYS that may be useful are:
     (let* ((real-cmd (mapcar {bin-sub (namestring phenome)}
                              (cons (program-name test-case)
                                    (program-args test-case))))
-           (output (or (plist-get :output extra-keys) :stream))
+           (output (cond (*shell-debug* :stream)
+                         ((member :output (plist-keys extra-keys))
+                          (plist-get :output extra-keys))
+                         (t :stream)))
            ;; Backwards compatible: we used to use :error to refer to the error
            ;; output stream, but uiop:run-program standardizes to :error-output
-           (error-output (or (plist-get :error-output extra-keys)
-                             (plist-get :error extra-keys)
-                             :stream)))
+           (error-output (cond (*shell-debug* :stream)
+                               ((member :error-output (plist-keys extra-keys))
+                                (plist-get :error-output extra-keys))
+                               ((member :error (plist-keys extra-keys))
+                                (plist-get :error extra-keys))
+                               (t :stream))))
 
       (plist-drop :output extra-keys)
       (plist-drop :error-output extra-keys)

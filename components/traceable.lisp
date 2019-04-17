@@ -141,6 +141,8 @@ times."))
       (let ((proc (start-test bin test-case
                               :env (list (cons *instrument-handshake-env-name*
                                                handshake-file))
+                              :output nil
+                              :error-output nil
                               :wait nil)))
         (labels ((timeout-p (start-time)
                    (> (/ (- (get-internal-real-time) start-time)
@@ -230,6 +232,8 @@ times."))
       (let ((proc (start-test bin test-case
                               :env (list (cons *instrument-log-env-name*
                                                pipe))
+                              :output nil
+                              :error-output nil
                               :wait nil)))
         (restart-case
             (unless (add-trace (traces obj)
