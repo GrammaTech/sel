@@ -7460,6 +7460,8 @@ prints unique counters in the trace"
        "etc/foo" :ignore-paths '("etc/*")))
   (is (sel/sw/project::ignored-path-p
        "./etc/foo" :ignore-paths '("etc/*")))
+  (is (sel/sw/project::ignored-path-p
+       "./etc/foo/bar/baz" :ignore-paths '("etc/**/*")))
   (is (not (sel/sw/project::ignored-path-p
             "Makefile" :ignore-paths '("etc/*"))))
   (is (not (sel/sw/project::ignored-path-p
@@ -7476,6 +7478,8 @@ prints unique counters in the trace"
             "etc/foo" :only-paths '("etc/*"))))
   (is (not (sel/sw/project::ignored-path-p
             "./etc/foo" :only-paths '("etc/*"))))
+  (is (not (sel/sw/project::ignored-path-p
+            "./etc/foo/bar/baz" :only-paths '("etc/**/*"))))
   (is (sel/sw/project::ignored-path-p
        "Makefile" :only-paths '("etc/*")))
   (is (sel/sw/project::ignored-path-p
