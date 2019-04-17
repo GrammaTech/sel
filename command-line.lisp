@@ -432,51 +432,51 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defparameter +common-command-line-options+
-    '((("help" #\h #\?) :type boolean :optional t
+    '((("help" #\h #\?) :type boolean
        :documentation "display help output")
-      (("quiet" #\q) :type boolean :optional t
+      (("quiet" #\q) :type boolean
        :action #'handle-set-quiet-argument
        :documentation "set verbosity level to 0")
-      (("verbose" #\V) :type integer :optional t :initial-value 2
+      (("verbose" #\V) :type integer :initial-value 2
        :action #'handle-set-verbose-argument
        :documentation "verbosity level 0-4")
-      (("load" #\l) :type string :optional t
+      (("load" #\l) :type string
        :action #'handle-load
        :documentation "load FILE as lisp code")
-      (("eval" #\e) :type string :optional t
+      (("eval" #\e) :type string
        :action #'handle-eval
        :documentation "eval STRING as lisp code")
-      (("out-dir" #\o) :type string :optional t
+      (("out-dir" #\o) :type string
        :action #'handle-out-dir-argument
        :documentation "write final population into DIR")
-      (("read-seed") :type string :optional t
+      (("read-seed") :type string
        :action #'handle-read-random-state-from-path-argument
        :documentation "load random seed from FILE")
-      (("save-seed") :type string :optional t
+      (("save-seed") :type string
        :action #'handle-save-random-state-to-path-argument
        :documentation "save random seed to FILE")))
   (defparameter +interactive-command-line-options+
-    '((("interactive") :type boolean :optional t
+    '((("interactive") :type boolean
        :action #'handle-set-interactive-argument
        :documentation "run interactively")
-      (("manual") :type boolean :optional t
+      (("manual") :type boolean
        :documentation "Don't automatically evolve")
-      (("swank" #\s) :type integer :optional t
+      (("swank" #\s) :type integer
        :action #'handle-swank-port-argument
        :documentation "start a swank listener on PORT")))
   (defparameter +clang-command-line-options+
     '((("compiler" #\c) :type string :initial-value "clang"
        :documentation "use CC as the C compiler")
-      (("flags" #\F) :type string :optional t
+      (("flags" #\F) :type string
        :action #'handle-comma-delimited-argument
        :documentation "comma-separated list of compiler flags")))
   (defparameter +project-command-line-options+
-    '((("build-command" #\b) :type string :optional t :initial-value "make"
+    '((("build-command" #\b) :type string :initial-value "make"
        :documentation "shell command to build project directory")))
   (defparameter +clang-project-command-line-options+
-    '((("artifacts" #\a) :type string :optional t
+    '((("artifacts" #\a) :type string
        :action #'handle-comma-delimited-argument
        :documentation "build products")
-      (("compilation-database" #\D) :type string :optional t
+      (("compilation-database" #\D) :type string
        :action #'read-compilation-database
        :documentation "path to clang compilation database"))))
