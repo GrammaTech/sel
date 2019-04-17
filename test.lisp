@@ -2792,7 +2792,7 @@ int x = CHARSIZE;")))
   (handler-bind (#+sbcl (sb-int:stream-encoding-error
                          (lambda (c)
                            (declare (ignorable c))
-                           (invoke-restart 'set-utf8-encoding))))
+                           (invoke-restart 'use-encoding :utf-8))))
     (with-fixture unicode-clang
       (is (stmt-with-text *soft* "int x = 0" :no-error))
       (is (stmt-with-text *soft* "\"2 bytes: Δ\"" :no-error))

@@ -85,7 +85,6 @@
    :file-access-path
    :set-file-writable
    :string-to-file
-   :set-utf8-encoding
    :bytes-to-file
    :stream-to-string
    :getenv
@@ -393,23 +392,26 @@ The Unix `file' command is used, specifically \"file -b --mime-type PATH\"."
     (pathname &key (external-format
                     (encoding-external-format (detect-encoding pathname))))
   #+ccl (declare (ignorable external-format))
-  (restart-case
-      (let (#+sbcl (sb-impl::*default-external-format* external-format)
+  (labels ((run-read ()
+             (let (#+sbcl (sb-impl::*default-external-format* external-format)
                    #+ecl (ext:*default-external-format* external-format))
-        (with-open-file (in pathname)
-          (let* ((file-bytes (file-length in))
-                 (seq (make-string file-bytes))
-                 (file-chars (read-sequence seq in)))
-            (if (= file-bytes file-chars)
-                seq
-                ;; Truncate the unused tail of seq.  It is possible
-                ;; for read-sequence to read less than file-length
-                ;; when the file has multi-byte UTF-8 characters.
-                (subseq seq 0 file-chars)))))
-    ;; Try a different encoding
-    (use-encoding (encoding)
-      :report "Specify another encoding"
-      (file-to-string pathname :external-format encoding))))
+               (with-open-file (in pathname)
+                 (let* ((file-bytes (file-length in))
+                        (seq (make-string file-bytes))
+                        (file-chars (read-sequence seq in)))
+                   (if (= file-bytes file-chars)
+                       seq
+                       ;; Truncate the unused tail of seq.  It is possible
+                       ;; for read-sequence to read less than file-length
+                       ;; when the file has multi-byte UTF-8 characters.
+                       (subseq seq 0 file-chars)))))))
+
+    (restart-case
+        (run-read)
+      (use-encoding (encoding)
+        :report "Specify another encoding."
+        (setf external-format encoding)
+        (run-read)))))
 
 (defun file-to-bytes (path)
   (with-open-file (in path :element-type '(unsigned-byte 8))
@@ -441,13 +443,14 @@ The Unix `file' command is used, specifically \"file -b --mime-type PATH\"."
   "Write STRING to PATH.
 Restarts available to handle cases where PATH is not writable,
 SET-FILE-WRITABLE, and where the appropriate encoding is not used,
-SET-UTF8-ENCODING. "
-  (flet ((run-write ()
-	   (ensure-directories-exist path)
-           (with-open-file (out path :direction :output
-                                :if-exists if-exists
-                                :external-format external-format)
-             (format out "~a" string))))
+USE-ENCODING. "
+  (labels ((run-write ()
+             (ensure-directories-exist path)
+             (with-open-file (out path :direction :output
+                                  :if-exists if-exists
+                                  :external-format external-format)
+               (format out "~a" string))))
+
     (when (and (file-exists-p path)
                (not (member :user-write (file-permissions path))))
       (restart-case
@@ -457,11 +460,12 @@ SET-UTF8-ENCODING. "
         (set-file-writable ()
           (format nil "Forcefully set ~a to be writable" path)
           (push :user-write (file-permissions path)))))
+
     (restart-case
         (run-write)
-      (set-utf8-encoding ()
-        (format nil "Set ~a encoding to UTF8." path)
-        (setf external-format :UTF8)
+      (use-encoding (encoding)
+        :report "Specify another encoding."
+        (setf external-format encoding)
         (run-write))))
   path)
 
