@@ -107,6 +107,13 @@ Paths may contain wildcards.")
 E.g., a multi-file C software project may include multiple clang
 software objects in it's `evolve-files'."))
 
+(defvar *build-dir* nil
+  "Directory in which to build projects.
+Each project needs a build directory which contains copies of the
+build scripts and other dependencies. Paths within a project are
+relative to *build-dir*, which allows us to do evolution in multiple
+threads by creating separate build directory per thread.")
+
 (defun ignored-path-p (path &key ignore-paths only-paths
                        &aux (canonical-path (canonical-pathname path)))
   (flet ((included (files)
@@ -389,13 +396,6 @@ non-symlink text files that don't end in \"~\" and are not ignored by
 
 
 ;;;; Build directory handling.
-
-(defvar *build-dir* nil
-  "Directory in which to build projects.
-Each project needs a build directory which contains copies of the
-build scripts and other dependencies. Paths within a project are
-relative to *build-dir*, which allows us to do evolution in multiple
-threads by creating separate build directory per thread.")
 
 (defun make-build-dir (src-dir &key (path (temp-file-name)))
   "Create a temporary copy of a build directory for use during evolution."
