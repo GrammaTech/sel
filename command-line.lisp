@@ -209,13 +209,12 @@ Optional DESCRIPTION is added to the path."
 * TEST-DIR FIXME
 * RESULT FIXME
 "
-  (let ((test-dir-path (probe-file (canonical-pathname test-dir)))
+  (let ((test-dir-path (canonical-pathname test-dir))
         (test-script-path
-         (probe-file ; <- Required for canonical path w.r.t. symlinks.
-          (canonical-pathname
-           (merge-pathnames-as-file (ensure-directory-pathname test-dir)
-                                    (car (split-sequence #\Space
-                                           test-script)))))))
+         (canonical-pathname
+          (merge-pathnames-as-file (ensure-directory-pathname test-dir)
+                                   (car (split-sequence #\Space
+                                          test-script))))))
     (assert (probe-file test-script-path)
             (test-script)
             "Test script ~S does not exist." test-script-path)
@@ -224,6 +223,10 @@ Optional DESCRIPTION is added to the path."
                     :test #'equal)
             (test-script-path)
             "Test script must be in a subdirectory of ~S" test-dir-path)
+
+    ;; Per eschulte, required for canonical path w.r.t. symlinks
+    (setf test-dir-path (probe-file test-dir-path))
+    (setf test-script-path (probe-file test-script-path))
 
     (setf result (format nil "~{~a~^ ~}"
                          (append (list test-script-path)
