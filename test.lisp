@@ -1290,6 +1290,13 @@
     (:teardown
      (setf *soft* nil)))
 
+(defixture trivial-json
+  (:setup
+   (setf *soft*
+         (from-file (make-instance 'json) (javascript-dir #P"trivial.json"))))
+  (:teardown
+   (setf *soft* nil)))
+
 (let ((fib-path (merge-pathnames-as-file (javascript-dir #P"fib-project/")
                                          "fib.js"))
       (app-path (merge-pathnames-as-file (javascript-dir #P"fib-project/")
@@ -3646,6 +3653,12 @@ int x = CHARSIZE;")))
     (is (= 40 (length (asts *soft*))))
     (is (equal (file-to-string (javascript-dir #P"fib/fib.js"))
                (genome *soft*)))))
+
+(deftest can-parse-a-json-software-object ()
+  (with-fixture trivial-json
+    (is (not (null (asts *soft*))))
+    (is (eq :OBJECTEXPRESSION
+            (ast-class (ast-node (ast-root *soft*)))))))
 
 (deftest cut-shortens-a-javascript-software-object ()
   (with-fixture fib-javascript

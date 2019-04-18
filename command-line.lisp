@@ -299,6 +299,7 @@ directories and if files based on their extensions."
                     '((("lisp") lisp)
                       (("java") java)
                       (("js") javascript)
+                      (("json") json)
                       (("c" "cpp" "cc" "cxx") clang)
                       ;; We cannot parse header files, as they
                       ;; don't have entries in the compile commands
