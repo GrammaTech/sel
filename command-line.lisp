@@ -311,14 +311,18 @@ directories and if files based on their extensions."
     ;; NOTE: If/when we start adding source languages for Makefiles
     ;;       and shell scripts this heuristic will become much more
     ;;       brittle.  We are going to have to expand our rules for
-    ;;       what constitutes a clang project vs. a javascript
+    ;;       what constitutes a clang project vs. a JavaScript
     ;;       project.  Probably best would be to create a general
     ;;       "software project" that holds all types.
-    (case (length (remove nil (remove-duplicates guesses)))
-      ;; Return first non-nil guess.
-      (1 (find-if #'identity guesses))
-      (0 'simple)
-      (t nil))))
+    ;;
+    ;;       And this has begun with the addition of a JSON software
+    ;;       object.
+    (let ((unique (remove 'json (remove nil (remove-duplicates guesses)))))
+      (case (length unique)
+        ;; Return first non-nil guess.
+        (1 (find-if #'identity unique))
+        (0 'simple)
+        (t nil)))))
 
 (defun create-software (path &rest rest
                         &key ; NOTE: Maintain list of keyword arguments below.
