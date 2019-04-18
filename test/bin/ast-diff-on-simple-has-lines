@@ -1,0 +1,13 @@
+#!/bin/bash
+#
+# Due to a temporary bug, diff files did not have newlines.
+#
+DIFF="$(ast-diff test/etc/simple/seq-10.txt \
+                 test/etc/simple/seq-10-edit.txt)"
+if [ $(echo "$DIFF"|wc -l) -gt 9 ];then
+    echo PASS
+    exit 0
+else
+    echo FAIL
+    exit 1
+fi
