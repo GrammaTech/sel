@@ -147,6 +147,9 @@
 
 (defvar *genome*      nil "Genome used in tests.")
 (defvar *soft*        nil "Software used in tests.")
+(defvar *base*        nil "Software used in diff/merge tests.")
+(defvar *left*        nil "Software used in diff/merge tests.")
+(defvar *right*       nil "Software used in diff/merge tests.")
 (defvar *tfos*        nil "Another software used in tests.")
 (defvar *gcd*         nil "Holds the gcd software object.")
 (defvar *gcd-trace-path* nil "Holds the file of gcd traces.")
@@ -1296,6 +1299,21 @@
          (from-file (make-instance 'json) (javascript-dir #P"trivial.json"))))
   (:teardown
    (setf *soft* nil)))
+
+(defixture json-conflict-yargs
+  (:setup
+   (destructuring-bind (base left right)
+       (mapcar
+        (lambda (name)
+          (from-file
+           (make-instance 'json)
+           (make-pathname :directory (append +javascript-dir+ '("package-json"))
+                          :type "json"
+                          :name name)))
+        '("d5da5eb" "ea14630" "6655688"))
+     (setf *base* base *left* left *right* right)))
+  (:teardown
+   (setf *base* nil *left* nil *right* nil)))
 
 (let ((fib-path (merge-pathnames-as-file (javascript-dir #P"fib-project/")
                                          "fib.js"))

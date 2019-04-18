@@ -1,0 +1,13 @@
+#!/bin/bash
+#
+# Due to a temporary bug, diff files did not have newlines.
+#
+DIFF="$(ast-diff test/etc/javascript/package-json/d5da5eb.json \
+                 test/etc/javascript/package-json/ea14630.json)"
+if [ $(echo "$DIFF"|wc -l) -gt 10 ];then
+    echo PASS
+    exit 0
+else
+    echo FAIL
+    exit 1
+fi

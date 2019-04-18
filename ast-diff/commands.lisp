@@ -103,9 +103,7 @@
     ;; Print according to the RAW option.
     (if raw
         (writeln (ast-diff-elide-same diff) :readably t)
-        (if no-color
-            (print-diff diff :no-color t)
-            (print-diff diff)))
+        (print-diff diff :no-color no-color))
     ;; Only exit with 0 if the two inputs match.
     (wait-on-manual manual)
     (exit-command ast-diff
