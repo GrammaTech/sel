@@ -407,7 +407,15 @@ The Unix `file' command is used, specifically \"file -b --mime-type PATH\"."
                        (subseq seq 0 file-chars)))))))
 
     (restart-case
-        (run-read)
+        (if (member external-format '(:utf8 :utf-8))
+            (run-read)
+            (handler-case
+                (run-read)
+              (stream-error (c)
+                ;; Try utf-8 as a default fallback.
+                (declare (ignorable c))
+                (setf external-format :utf-8)
+                (run-read))))
       (use-encoding (encoding)
         :report "Specify another encoding."
         (setf external-format encoding)
@@ -462,7 +470,15 @@ USE-ENCODING. "
           (push :user-write (file-permissions path)))))
 
     (restart-case
-        (run-write)
+        (if (member external-format '(:utf8 :utf-8))
+            (run-write)
+            (handler-case
+                (run-write)
+              (stream-error (c)
+                ;; Try utf-8 as a default fallback.
+                (declare (ignorable c))
+                (setf external-format :utf-8)
+                (run-write))))
       (use-encoding (encoding)
         :report "Specify another encoding."
         (setf external-format encoding)
