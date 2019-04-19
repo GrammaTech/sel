@@ -429,9 +429,9 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defparameter +common-command-line-options+
-    '((("help" #\h #\?) :type boolean
+    '((("help" #\h #\?) :type boolean :optional t
        :documentation "display help output")
-      (("quiet" #\q) :type boolean
+      (("quiet" #\q) :type boolean :optional t
        :action #'handle-set-quiet-argument
        :documentation "set verbosity level to 0")
       (("verbose" #\V) :type integer :initial-value 2
@@ -453,10 +453,10 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
        :action #'handle-save-random-state-to-path-argument
        :documentation "save random seed to FILE")))
   (defparameter +interactive-command-line-options+
-    '((("interactive") :type boolean
+    '((("interactive") :type boolean :optional t
        :action #'handle-set-interactive-argument
        :documentation "run interactively")
-      (("manual") :type boolean
+      (("manual") :type boolean :optional t
        :documentation "Don't automatically evolve")
       (("swank" #\s) :type integer
        :action #'handle-swank-port-argument
