@@ -21,6 +21,7 @@
         :curry-compose-reader-macros
         :uiop/pathname
         :software-evolution-library
+        :software-evolution-library/software/json
         :software-evolution-library/software/javascript
         :software-evolution-library/software/parseable-project
         :software-evolution-library/software/project

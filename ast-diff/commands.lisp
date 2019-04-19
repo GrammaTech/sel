@@ -49,6 +49,7 @@
         :software-evolution-library/software/java-project
         :software-evolution-library/software/javascript
         :software-evolution-library/software/javascript-project
+        :software-evolution-library/software/json
         :software-evolution-library/software/lisp)
   (:import-from :uiop :writeln :truenamize :nest)
   (:shadow :merge :ast-diff)
