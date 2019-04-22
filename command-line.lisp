@@ -275,6 +275,7 @@ inspecting the value of `*lisp-interaction*'."
        (return-from ,command-name ,interactive-return-val)
        (quit ,errno)))
 
+(defvar *project-p* nil "Internal variable for use by `guess-language'.")
 (defun guess-language (&rest sources)
   "Guess the SEL software object class that best matches SOURCES.
 SOURCES should be a collection of paths.  The result is determined
@@ -284,11 +285,12 @@ directories and if files based on their extensions."
          (mapcar (lambda (source)
                    (nest
                     (if (directory-p source)
-                        (when-let ((guess (apply #'guess-language
-                                                 (directory-files source))))
-                          (intern
-                           (concatenate 'string
-                             (symbol-name guess) "-PROJECT"))))
+                        (let ((*project-p* t))
+                          (when-let ((guess (apply #'guess-language
+                                                   (directory-files source))))
+                            (intern
+                             (concatenate 'string
+                               (symbol-name guess) "-PROJECT")))))
                     (second)
                     (find-if (lambda (pair)
                                (member (pathname-type source) (car pair)
@@ -306,21 +308,25 @@ directories and if files based on their extensions."
                       )))
                  sources)))
     #+debug (format t "GUESSES:~S~%" guesses)
-    ;; NOTE: If/when we start adding source languages for Makefiles
-    ;;       and shell scripts this heuristic will become much more
-    ;;       brittle.  We are going to have to expand our rules for
-    ;;       what constitutes a clang project vs. a JavaScript
-    ;;       project.  Probably best would be to create a general
-    ;;       "software project" that holds all types.
-    ;;
-    ;;       And this has begun with the addition of a JSON software
-    ;;       object.
-    (let ((unique (remove 'json (remove nil (remove-duplicates guesses)))))
-      (case (length unique)
-        ;; Return first non-nil guess.
-        (1 (find-if #'identity unique))
-        (0 'simple)
-        (t nil)))))
+    (cond
+      (*project-p*
+       ;; Inside of a project we remove all JSON and SIMPLE software
+       ;; objects assuming that they may exist in any type of project.
+       ;;
+       ;; NOTE: We will have to add to this list of incidental
+       ;; software types that don't determine the project type.
+       (let ((unique (remove-if {member _ '(json simple)}
+                                (remove nil (remove-duplicates guesses)))))
+         (if (= 1 (length unique))
+             (find-if #'identity unique)
+             nil)))
+      ((= 1 (length sources))
+       ;; For a single file either return the guess, or return
+       ;; SIMPLE if no language matched.
+       (or (car guesses) 'simple))
+      ((= 1 (length (remove-duplicates guesses)))
+       ;; Multiple non-project files must all be equal to return a guess.
+       (or (car guesses) 'simple)))))
 
 (defun create-software (path &rest rest
                         &key ; NOTE: Maintain list of keyword arguments below.
