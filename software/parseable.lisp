@@ -19,7 +19,6 @@
            :asts
            :asts-changed-p
            :copy-lock
-           :source-directory
            :parseable-mutation
            :parseable-insert
            :parseable-swap
@@ -89,18 +88,8 @@ See the documentation of `update-asts' for required invariants.")
                    "Have ASTs changed since the last parse?")
    (copy-lock :initform (make-lock "parseable-copy")
               :copier :none
-              :documentation "Lock while copying parseable objects.")
-   (source-directory
-    :initarg :source-directory
-    :initform nil :type (or null string)
-    :accessor source-directory
-    :documentation
-    "Optional pointer to source directory may be used to resolve includes."))
+              :documentation "Lock while copying parseable objects."))
   (:documentation "Parsed AST tree software representation."))
-
-(defmethod from-file :around ((obj parseable) file)
-  (let ((*temp-dir* (or (source-directory obj) *temp-dir*)))
-    (call-next-method)))
 
 (defgeneric roots (obj)
   (:documentation "Return all top-level ASTs in OBJ."))
@@ -317,8 +306,7 @@ applicative AST tree and clear the genome string."
 field indicates the object has changed since the last parse."
   (when (asts-changed-p obj)
     (clear-caches obj)
-    (let ((*temp-dir* (or (source-directory obj) *temp-dir*)))
-      (call-next-method)))
+    (call-next-method))
   (setf (asts-changed-p obj) nil))
 
 (defmethod update-asts-if-necessary ((obj parseable))
