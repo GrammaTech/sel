@@ -16,8 +16,7 @@
 
 
 ;;; cil software objects
-(define-software cil (source)
-  ((compiler :initarg :compiler :accessor compiler :initform "gcc"))
+(define-software cil (source) ()
   (:documentation "C abstract syntax trees using C Intermediate Language (CIL).
 See http://kerneis.github.io/cil/."))
 

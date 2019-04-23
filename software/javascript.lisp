@@ -63,23 +63,6 @@
   (:documentation "Javascript software representation."))
 
 
-;;; Javascript object creation
-(defmethod from-file ((obj javascript) path)
-  "Populate OBJ with the Javascript source at PATH.
-* OBJ to be populated from the Javascript source at PATH
-* PATH to source code to populate OBJ with"
-  (setf (ext obj) (pathname-type (pathname path)))
-  (from-string obj (file-to-string path))
-  obj)
-
-(defmethod from-string ((obj javascript) string)
-  "Populate OBJ with the Javascript source code in STRING.
-* OBJ to be ppopulated from Javascript source in STRING
-* STRING source code to populate OBJ with"
-  (setf (genome obj) string)
-  obj)
-
-
 ;;; Javascript ast data structures
 (define-ast (javascript-ast (:conc-name ast)))
 

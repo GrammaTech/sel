@@ -11,7 +11,6 @@
         :software-evolution-library
         :software-evolution-library/utility)
   (:export :source
-           ;; :genome
            :compiler
            :ext
            :flags
@@ -59,9 +58,14 @@ on the filesystem at BIN."
     (if stream (write-string genome stream) genome)))
 
 (defmethod from-file ((obj source) path)
-  "Initialize OBJ with the contents of PATH"
+  "Initialize OBJ with the contents of PATH."
   (setf (genome obj) (file-to-string path))
   (setf (ext obj)  (pathname-type (pathname path)))
+  obj)
+
+(defmethod from-string ((obj source) string)
+  "Initialize OBJ with the contents of STRING."
+  (setf (genome obj) string)
   obj)
 
 (defmethod size ((obj source))
