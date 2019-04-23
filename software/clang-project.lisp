@@ -84,57 +84,6 @@ information on the format of compilation databases."))
                               :from-end t)
            (warn "Empty compilation-database for ~a" (project-dir obj)))))))
 
-(defun compilation-db-flags (clang-project entry)
-  "Return the flags for ENTRY in a compilation database."
-  ;; Get flags from :arguments or :command field.  These fields handle quote
-  ;; escaping differently; see
-  ;; https://clang.llvm.org/docs/JSONCompilationDatabase.html.
-  (labels ((get-flags (entry)
-             (->> (or (mapcar (lambda (arg) ; Wrap quotes for the shell.
-                               (regex-replace
-                                "\"([^\"]*)\"" arg "'\"\\1\"'"))
-                              ;; Drop the first element of
-                              ;; arguments which is the compiler.
-                              (cdr (aget :arguments entry)))
-                      (cdr (split-sequence #\Space
-                             (or (aget :command entry) "")
-                             :remove-empty-subseqs t)))
-                  (mappend (lambda (arg) ; Split leading "-I" and "-L".
-                             (split-sequence #\Space
-                               (replace-all (replace-all arg "-I" "-I ")
-                                            "-L" "-L ")
-                               :remove-empty-subseqs t))))))
-    (->> (iter (for f in (get-flags entry))
-               (for p previous f)
-               (collect
-                   (if (or (string= p "-L") (string= p "-I"))
-                       (if (starts-with-subseq "/" f)
-                           (->> (ensure-directory-pathname f)
-                                (project-path clang-project))
-                           (->> (merge-pathnames-as-directory
-                                 (make-pathname :directory
-                                                (aget :directory
-                                                      entry))
-                                 (make-pathname :directory
-                                                (list :relative f)))
-                                (ensure-directory-pathname)
-                                (project-path clang-project)))
-                       f)))
-         (remove-if {string= (aget :file entry)})
-         (append (list "-I"
-                       (namestring (project-dir clang-project))))
-         (append (list "-I"
-                       (->> (merge-pathnames-as-directory
-                             (ensure-directory-pathname
-                              (aget :directory entry))
-                             (aget :file entry))
-                            (ensure-directory-pathname)
-                            (project-path clang-project)))))))
-
-;;; TODO: The next two functions should be used instead of
-;;; `get-compiler' and `get-flags' respectively in
-;;; `collect-evolve-files' once we get rid of the temporary directory
-;;; business in that function.
 (defun compilation-db-entry-compiler (entry)
   "Return the compiler in the compilation database ENTRY."
   (or (first (split-sequence #\Space (aget :command entry)))
@@ -185,15 +134,14 @@ information on the format of compilation databases."))
   (labels ((get-file-path (entry)
              (-<>> (aget :directory entry)
                    (ensure-directory-pathname)
-                   (merge-pathnames-as-file <> (aget :file entry))
-                   (project-path clang-project))))
+                   (merge-pathnames-as-file <> (aget :file entry)))))
     (mapcar (lambda (entry)
               (cons (pathname-relativize (project-dir clang-project)
                                          (get-file-path entry))
                     (from-file
                      (make-instance (component-class clang-project)
                        :compiler (compilation-db-entry-compiler entry)
-                       :flags (compilation-db-flags clang-project entry))
+                       :flags (compilation-db-entry-flags entry))
                      (get-file-path entry))))
             (remove-if «or [{ignored-evolve-path-p clang-project} {aget :file}]
                            [#'not #'file-exists-p #'get-file-path]»

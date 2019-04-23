@@ -34,15 +34,10 @@
            :ignored-evolve-path-p
            :ignored-other-path-p
            :apply-to-project
-           :project-path
            :collect-evolve-files
            :collect-other-files
            :instrumentation-files
-           :all-files
-           :make-build-dir
-           :*build-dir*
-           :*build-projects-in-temporary-directories*
-           :phenome-dir))
+           :all-files))
 (in-package :software-evolution-library/software/project)
 (in-readtable :curry-compose-reader-macros)
 
@@ -104,13 +99,6 @@ Paths may contain wildcards.")
    "A project is composed of multiple component software objects.
 E.g., a multi-file C software project may include multiple clang
 software objects in it's `evolve-files'."))
-
-(defvar *build-dir* nil
-  "Directory in which to build projects.
-Each project needs a build directory which contains copies of the
-build scripts and other dependencies. Paths within a project are
-relative to *build-dir*, which allows us to do evolution in multiple
-threads by creating separate build directory per thread.")
 
 (defun ignored-path-p (path &key ignore-paths only-paths
                        &aux (canonical-path (canonical-pathname path)))
@@ -214,13 +202,24 @@ non-symlink text files that don't end in \"~\" and are not ignored by
         (other-files obj) (collect-other-files obj))
   obj)
 
-(defmethod to-file :before ((project project) path)
-  ;; Don't copy supporting files if they're already in `*build-dir*'.
-  (unless (and *build-dir* (equalp (namestring path) (namestring *build-dir*)))
-    (make-build-dir (project-dir project) :path path)))
-
 (defmethod to-file ((project project) path)
-  ;; Write genomes into the relevant files.
+  ;; Ensure path is a canonical directory path.
+  (setf path (canonical-pathname (ensure-directory-pathname path)))
+
+  ;; Verify parent directory exists, otherwise the copy will fail.
+  (ensure-directories-exist (pathname-parent-directory-pathname path))
+
+  ;; Copy the project directory to the output path.
+  (unless (equalp path (project-dir project))
+    (multiple-value-bind (stdout stderr errno)
+         (if (probe-file path) ; Different copy if directory already exists.
+             (shell "cp -pr ~a/* ~a/" (project-dir project) path)
+             (shell "cp -pr ~a ~a" (project-dir project) path))
+      (declare (ignorable stdout))
+      (assert (zerop errno) (path)
+              "Creation of output directory failed with: ~a" stderr)))
+
+  ;; Write the software objects.
   (handler-bind ((file-access
                   (lambda (c)
                     (warn "Changing permission from ~a to ~a"
@@ -331,74 +330,10 @@ non-symlink text files that don't end in \"~\" and are not ignored by
   "Mapcar FUNCTION over `all-files' of PROJECT."
   (values project (mapcar [function #'cdr] (all-files project))))
 
-(defgeneric project-path (project path)
-  (:documentation "Expand PATH relative to PROJECT.")
-  (:method ((obj project) path)
-    (replace-all (namestring (canonical-pathname path))
-                 (-> (if (and *build-dir*
-                              (search (namestring *build-dir*)
-                                      (namestring
-                                       (ensure-directory-pathname
-                                        (canonical-pathname path)))))
-                         *build-dir*
-                         (project-dir obj))
-                   (canonical-pathname)
-                   (ensure-directory-pathname)
-                   (namestring))
-                 (-> (project-dir obj)
-                   (canonical-pathname)
-                   (ensure-directory-pathname)
-                   (namestring)))))
-
-
-;;;; Build directory handling.
-
-(defun make-build-dir (src-dir &key (path (temp-file-name)))
-  "Create a temporary copy of a build directory for use during evolution."
-  (let ((dir (ensure-directory-pathname path)))
-    ;; Verify parent directory exists, otherwise the copy will fail.
-    (ensure-directories-exist (pathname-parent-directory-pathname dir))
-    (restart-case
-        (nest
-         (prog1 dir)
-         (when src-dir)
-         (unless (equalp (canonical-pathname src-dir) (canonical-pathname dir)))
-         (multiple-value-bind (stdout stderr errno)
-             (if (probe-file path) ; Different copy if directory already exists.
-                 (shell "cp -pr ~a/* ~a/" (namestring src-dir) (namestring dir))
-                 (shell "cp -pr ~a ~a" (namestring src-dir) (namestring dir)))
-           (declare (ignorable stdout)))
-         (assert (zerop errno) (src-dir path)
-                 "Creation of build directory failed with: ~a" stderr))
-      (retry-make-build-dir ()
-        :report "Retry `make-build-dir' with new temp dir."
-        (make-build-dir src-dir))
-      (new-path (new-path)
-        :report "Retry `make-build-dir' to a new interactively specified path."
-        :interactive (lambda ()
-                       (princ "Path: " *query-io*)
-                       (list (read-line  *query-io*)))
-        (make-build-dir src-dir :path new-path)))))
-
-(defun full-path (rel-path)
-  "Prepend `*build-dir*' to REL-PATH."
-  (assert *build-dir*)
-  (in-directory *build-dir* rel-path))
-
-(defvar *build-projects-in-temporary-directories* nil
-  "When set to non-nil build all project phenomes in temporary directories.")
-
-(defgeneric phenome-dir (software)
-  (:documentation "Return the directory in which to build SOFTWARE's phenome.")
-  (:method ((obj project))
-    (if *build-projects-in-temporary-directories*
-        (temp-file-name)
-        (project-dir obj))))
-
 (defmethod phenome :around
     ((obj project) &key
                      (bin (temp-file-name))
-                     (build-dir (or *build-dir* (phenome-dir obj))))
+                     (build-dir (project-dir obj)))
   (assert build-dir (obj)
           "Project ~S requires a project-dir to build a phenome." obj)
   (let ((keep-file-p (probe-file build-dir)))
@@ -412,7 +347,7 @@ non-symlink text files that don't end in \"~\" and are not ignored by
 (defmethod phenome
     ((obj project) &key
                      (bin (temp-file-name))
-                     (build-dir (or *build-dir* (phenome-dir obj))))
+                     (build-dir (project-dir obj)))
   "Build the software project OBJ and copy build artifact(s) to BIN."
   (multiple-value-bind (stdout stderr exit)
       (shell "cd ~a && ~a" build-dir (build-command obj))
