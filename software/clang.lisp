@@ -15,6 +15,7 @@
         :split-sequence
         :cl-ppcre
         :cl-json
+        :uiop/pathname
         :software-evolution-library
         :software-evolution-library/utility
         :software-evolution-library/software/ast
@@ -23,12 +24,14 @@
         :software-evolution-library/components/formatting
         :software-evolution-library/components/searchable
         :software-evolution-library/components/fodder-database)
+  (:import-from :uiop :nest)
   (:export :clang
            :headers
            :macros
            :includes
            :types
            :globals
+           :normalize-flags
            :pick-guarded-compound
            :clang-mutation
            :bind-free-vars
@@ -254,6 +257,57 @@
   (:documentation
    "C language (C, C++, C#, etc...) ASTs using Clang, C language frontend for LLVM.
 See http://clang.llvm.org/."))
+
+
+;;; clang object creation
+(defun normalize-flags (dir flags)
+  "Normalize the list of compiler FLAGS so all search paths are fully
+expanded relative to DIR.
+
+* DIR base directory for all relative paths
+* FLAGS list of compiler flags
+"
+  (labels ((split-flags (flags)
+             (nest (remove-if #'emptyp)
+                   (mappend (lambda (flag) ; Split leading "L".
+                              (split-sequence #\Space
+                                (replace-all flag "-L" "-L ")
+                                :remove-empty-subseqs t)))
+                   (mappend (lambda (flag) ; Split leading "-I".
+                              (split-sequence #\Space
+                                (replace-all flag "-I" "-I ")
+                                :remove-empty-subseqs t))
+                            flags))))
+    (iter (for f in (split-flags flags))
+          (for p previous f)
+          (collect (if (or (string= p "-I") (string= p "-L"))
+                       ;; Ensure include/library paths
+                       ;; point to the correct location
+                       ;; and not a temporary build directory.
+                       (if (absolute-pathname-p f)
+                           f
+                           (nest (namestring)
+                                 (canonical-pathname)
+                                 (merge-pathnames-as-directory
+                                  (make-pathname :directory
+                                                 dir)
+                                  (make-pathname :directory
+                                                 (list :relative f)))))
+                       ;; Pass the flag thru.
+                       f)))))
+
+(defmethod from-file ((obj clang) path)
+  "Initialize OBJ with the contents of PATH."
+  (setf path (if (absolute-pathname-p path)
+                 path
+                 (merge-pathnames-as-file (truename ".") path)))
+  (setf (genome obj) (file-to-string path))
+  (setf (ext obj) (pathname-type (pathname path)))
+  (setf (flags obj) (nest (normalize-flags (pathname-directory-pathname path))
+                          (cons (format nil "-I~a"
+                                        (pathname-directory-pathname path)))
+                          (flags obj)))
+  obj)
 
 
 ;;; clang individual ast data structures

@@ -93,42 +93,22 @@ information on the format of compilation databases."))
   "Return the compiler flags in the compilation database ENTRY."
   (flet ((flag-list-helper (entry)
            "Get a massaged list of compiler flags from the ENTRY."
-           (nest
-            (mappend (lambda (arg) ; Split leading "-L".
-                       (split-sequence #\Space
-                         (replace-all arg "-L" "-L ")
-                         :remove-empty-subseqs t)))
-            (mappend (lambda (arg) ; Split leading "-I".
-                       (split-sequence #\Space
-                         (replace-all arg "-I" "-I ")
-                         :remove-empty-subseqs t)))
-            (or (mapcar (lambda (arg) ; Wrap quotes for the shell.
-                          (regex-replace
-                           "\"([^\"]*)\"" arg "'\"\\1\"'"))
-                        ;; Drop the first element of
-                        ;; arguments which is the compiler.
-                        (cdr (aget :arguments entry)))
-                (cdr (split-sequence
-                         #\Space (or (aget :command entry) "")
-                         :remove-empty-subseqs t))))))
+           (or (mapcar (lambda (arg) ; Wrap quotes for the shell.
+                         (regex-replace
+                          "\"([^\"]*)\"" arg "'\"\\1\"'"))
+                       ;; Drop the first element of
+                       ;; arguments which is the compiler.
+                       (cdr (aget :arguments entry)))
+               (cdr (split-sequence
+                        #\Space (or (aget :command entry) "")
+                        :remove-empty-subseqs t)))))
     (nest
+     ;; Normalize the list of compiler flags
+     (normalize-flags (aget :directory entry))
      ;; Remove the file being built from the flags.
      (remove-if {equalp (aget :file entry)})
-     (iter (for f in (flag-list-helper entry))
-           (for p previous f)
-           (collect (if (or (string= p "-I") (string= p "-L"))
-                        ;; Ensure include/library paths
-                        ;; point to the correct location
-                        ;; and not a temporary build directory.
-                        (if (absolute-pathname-p f)
-                            f
-                            (merge-pathnames-as-directory
-                             (make-pathname :directory
-                                            (aget :directory entry))
-                             (make-pathname :directory
-                                            (list :relative f))))
-                        ;; Pass the flag thru.
-                        f))))))
+     ;; Get list of compiler flags from the ENTRY
+     (flag-list-helper entry))))
 
 (defmethod collect-evolve-files ((clang-project clang-project))
   (labels ((get-file-path (entry)
