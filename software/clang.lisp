@@ -371,7 +371,9 @@ expanded relative to DIR.
       (print-unreadable-object (obj stream :type t)
         (format stream "~a" (ast-class obj)))))
 
-(defmethod ast-class-meld-p ((ast-class (eql :CompoundStmt)) ast) t)
+(defmethod ast-class-meld-p ((ast-class (eql :CompoundStmt)) ast)
+  (declare (ignorable ast-class ast))
+  t)
 
 (defun make-statement (class syn-ctx children
                        &key expr-type full-stmt guard-stmt opcode
@@ -2396,7 +2398,9 @@ Adds and removes semicolons, commas, and braces.
     (when (ends-with #\; trimmed)
       (subseq trimmed 0 (1- (length trimmed))))))
 
-(defmethod ends-with-semicolon (obj) nil)
+(defmethod ends-with-semicolon (obj)
+  (declare (ignorable obj))
+  nil)
 
 (defgeneric remove-semicolon (obj)
   (:documentation "Removes the trailing semicolon from an AST, returning a new AST node.
