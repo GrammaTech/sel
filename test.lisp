@@ -7405,14 +7405,6 @@ prints unique counters in the trace"
   (is (eql 'clang-project
            (guess-language (make-pathname :directory +grep-prj-dir+))))
   (is (eql 'simple (guess-language #P"this/Makefile")))
-  (is (null (let ((sel/command-line::*project-p* t))
-              (guess-language #P"this/Makefile"  #P"this/foo.json"))))
-  ;; Confirm that a recursive call to `guess-language' in a directory
-  ;; holding a .cpp and a Makefile returns CLANG.  The outer call will
-  ;; then turn this into CLANG-PROJECT.
-  (is (eql 'clang
-           (let ((sel/command-line::*project-p* t))
-             (guess-language #P"this/Makefile"  #P"this/foo.cpp"))))
   (is (null (guess-language #P"foo.js" #P"bar.lisp"))))
 
 (deftest resolving-languages-works ()

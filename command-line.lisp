@@ -275,58 +275,62 @@ inspecting the value of `*lisp-interaction*'."
        (return-from ,command-name ,interactive-return-val)
        (quit ,errno)))
 
-(defvar *project-p* nil "Internal variable for use by `guess-language'.")
 (defun guess-language (&rest sources)
   "Guess the SEL software object class that best matches SOURCES.
 SOURCES should be a collection of paths.  The result is determined
 based on heuristics based on whether SOURCES points to files or
 directories and if files based on their extensions."
-  (let ((guesses
-         (mapcar (lambda (source)
-                   (nest
-                    (if (directory-p source)
-                        (let ((*project-p* t))
-                          (when-let ((guess (apply #'guess-language
-                                                   (directory-files source))))
-                            (intern
-                             (concatenate 'string
-                               (symbol-name guess) "-PROJECT")))))
-                    (second)
-                    (find-if (lambda (pair)
-                               (member (pathname-type source) (car pair)
-                                       :test #'equalp)))
-                    ;; List of extensions and the associated sel/sw class.
-                    '((("lisp") lisp)
-                      (("java") java)
-                      (("js") javascript)
-                      (("json") json)
-                      (("c" "cpp" "cc" "cxx") clang)
-                      ;; We cannot parse header files, as they
-                      ;; don't have entries in the compile commands
-                      ;; database.  Treat them as simple files instead.
-                      ;; (("h" "hpp" "hxx") clang)
-                      )))
-                 sources)))
-    #+debug (format t "GUESSES:~S~%" guesses)
-    (cond
-      (*project-p*
-       ;; Inside of a project we remove all JSON and SIMPLE software
-       ;; objects assuming that they may exist in any type of project.
-       ;;
-       ;; NOTE: We will have to add to this list of incidental
-       ;; software types that don't determine the project type.
-       (let ((unique (remove-if {member _ '(json simple)}
+  (labels
+      ((guess-helper (sources project-p)
+         (let ((guesses
+                (mapcar (lambda (source)
+                          (nest
+                           (if (directory-p source)
+                               (when-let ((guess (guess-helper
+                                                  (directory-files source)
+                                                  t)))
+                                 (intern
+                                  (concatenate 'string
+                                    (symbol-name guess) "-PROJECT"))))
+                           (second)
+                           (find-if
+                            (lambda (pair)
+                              (member (pathname-type source) (car pair)
+                                      :test #'equalp)))
+                           ;; List of extensions and associated sel/sw class.
+                           '((("lisp") lisp)
+                             (("java") java)
+                             (("js") javascript)
+                             (("json") json)
+                             (("c" "cpp" "cc" "cxx") clang)
+                             ;; We cannot parse header files, as they
+                             ;; don't have entries in the compile
+                             ;; commands database.  Treat them as
+                             ;; simple files instead.
+                             #|(("h" "hpp" "hxx") clang)|#)))
+                        sources)))
+           #+debug (format t "GUESSES:~S~%" guesses)
+           (cond
+             (project-p
+              ;; Inside of a project we remove all JSON and SIMPLE software
+              ;; objects assuming that they may exist in any type of project.
+              ;;
+              ;; NOTE: We will have to add to this list of incidental
+              ;; software types that don't determine the project type.
+              (let ((unique
+                     (remove-if {member _ '(json simple)}
                                 (remove nil (remove-duplicates guesses)))))
-         (if (= 1 (length unique))
-             (find-if #'identity unique)
-             nil)))
-      ((= 1 (length sources))
-       ;; For a single file either return the guess, or return
-       ;; SIMPLE if no language matched.
-       (or (car guesses) 'simple))
-      ((= 1 (length (remove-duplicates guesses)))
-       ;; Multiple non-project files must all be equal to return a guess.
-       (or (car guesses) 'simple)))))
+                (if (= 1 (length unique))
+                    (find-if #'identity unique)
+                    nil)))
+             ((= 1 (length sources))
+              ;; For a single file either return the guess, or return
+              ;; SIMPLE if no language matched.
+              (or (car guesses) 'simple))
+             ((= 1 (length (remove-duplicates guesses)))
+              ;; Multiple non-project files must all be equal to return a guess.
+              (or (car guesses) 'simple))))))
+    (guess-helper sources nil)))
 
 (defun create-software (path &rest rest
                         &key ; NOTE: Maintain list of keyword arguments below.
