@@ -7415,6 +7415,7 @@ prints unique counters in the trace"
         `((("c") 'clang)
           (("C++") 'clang)
           (("CL") 'lisp)
+          (("JSON") 'json)
           (("C" ,(make-pathname :directory +grep-prj-dir+)) 'clang-project)
           (("java" ,(make-pathname :directory +grep-prj-dir+)) 'java-project))))
 

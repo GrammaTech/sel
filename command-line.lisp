@@ -251,6 +251,7 @@ Optional DESCRIPTION is added to the path."
                 (find-if [{find-if {equalp (string-upcase language)}} #'car])
                 '((("JAVA") java)
                   (("JAVASCRIPT") javascript)
+                  (("JSON") json)
                   (("C" "CPP" "C++" "C-PLUS-PLUS" "C PLUS PLUS") clang)
                   (("LISP" "CL" "COMMON LISP") lisp)
                   (("TEXT") simple)))))
