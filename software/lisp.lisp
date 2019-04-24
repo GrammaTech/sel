@@ -17,7 +17,6 @@
         :iterate
         :software-evolution-library
         :software-evolution-library/utility
-        :software-evolution-library/ast-diff/ast-diff
         :software-evolution-library/software/ast
         :software-evolution-library/software/source
         :software-evolution-library/software/parseable
@@ -240,15 +239,3 @@
                          :children (mapcar #'make-tree (parse-asts obj)))
           (slot-value obj 'genome) nil)
     obj))
-
-;;; NOTE: Lisp requires special handling so that differences don't try
-;;;       to descend into the text of atomic expressions.  The surfiet
-;;;       of classes in other AST-based langauges prevent this from
-;;;       happening.
-(defmethod ast-can-recurse ((ast-a lisp-ast) (ast-b lisp-ast))
-  (and (eq (ast-class ast-a) (ast-class ast-b))
-       (or (not (eql :expression (ast-class ast-a)))
-           ;; Special handling for lisp expression ASTs.
-           ;; Don't descend into atomic expressions.
-           (not (or (atom (aget :expression (ast-aux-data ast-a)))
-                    (atom (aget :expression (ast-aux-data ast-b))))))))

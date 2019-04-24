@@ -8,8 +8,7 @@
 ;;; command-line-arguments} package with numerous option definitions
 ;;; and helper functions for parsing command line arguments and
 ;;; options which are specific to SEL.  See the appendix for a full
-;;; list of the available options.  See the SEL/AST-DIFF/COMMANDS
-;;; package for example usage.
+;;; list of the available options.
 ;;;
 ;;; @texi{command-line}
 (defpackage :software-evolution-library/command-line

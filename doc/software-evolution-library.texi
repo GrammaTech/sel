@@ -874,7 +874,6 @@ infrastructure.
 * Fault Localization::          Identify or prioritize likely-faulty code
 * Tracing::                     Trace execution of software
 * Super-Mutants::               Evaluate multiple variants in a single genome
-* AST Differencing::            Calculate AST tree-differences of software
 @end menu
 
 @node Test Suites, Multi-objective Fitness, Components, Components
@@ -916,11 +915,6 @@ infrastructure.
 @section Super-Mutants
 @cindex super-mutants
 @include include/super-mutant.texi
-
-@node AST Differencing, Utilities, Super-Mutants, Components
-@section AST Differencing
-@cindex ast-differencing
-@include include/ast-diff.texi
 
 @node Utilities, Basic Utilities, Components, Top
 @chapter Utilities
@@ -1437,9 +1431,6 @@ appendix holds each individual package's API in turn.
 * sel-utility::                 Software-Evolution-Library Utilities.
 * sel-rest::                    Software-Evolution-Library Rest interface.
 * sel-view::                    Software-Evolution-Library Text GUI.
-* software-evolution-library-ast-diff:: Software Evolution Library AST differencing.
-* sel-ast-diff-commands::       Software Evolution Library AST differencing Commands.
-* sel-ast-diff-html::           Software Evolution Library AST differencing HTML output.
 * sel-sw-adaptive-mutation::    Software-Evolution-Library/Software adaptive mutation.
 * sel-sw-ancestral::            Software-Evolution-Library/Software ancestral.
 * sel-sw-asm::                  Software-Evolution-Library/Software asm.
@@ -1509,15 +1500,11 @@ appendix holds each individual package's API in turn.
 @section sel-rest
 @include sel-rest-api.texi
 
-@node sel-view, software-evolution-library-ast-diff, sel-rest, SEL Packages
+@node sel-view, sel-sw-adaptive-mutation, sel-rest, SEL Packages
 @section sel-view
 @include sel-view-api.texi
 
-@node software-evolution-library-ast-diff, sel-sw-adaptive-mutation, sel-view, SEL Packages
-@section software-evolution-library-ast-diff
-@include software-evolution-library-ast-diff-api.texi
-
-@node sel-sw-adaptive-mutation, sel-sw-ancestral, software-evolution-library-ast-diff, SEL Packages
+@node sel-sw-adaptive-mutation, sel-sw-ancestral, sel-view, SEL Packages
 @section sel-sw-adaptive-mutation
 @include sel-sw-adaptive-mutation-api.texi
 
@@ -1657,19 +1644,11 @@ appendix holds each individual package's API in turn.
 @section sel-sw-super-mutant-project
 @include sel-sw-super-mutant-project-api.texi
 
-@node sel-sw-with-exe, sel-ast-diff-commands, sel-sw-super-mutant-project, SEL Packages
+@node sel-sw-with-exe, sel-cp-clang-instrument, sel-sw-super-mutant-project, SEL Packages
 @section sel-sw-with-exe
 @include sel-sw-with-exe-api.texi
 
-@node sel-ast-diff-commands, sel-ast-diff-html, sel-sw-with-exe, SEL Packages
-@section sel-ast-diff-commands
-@include sel-ast-diff-commands-api.texi
-
-@node sel-ast-diff-html, sel-cp-clang-instrument, sel-ast-diff-commands, SEL Packages
-@section sel-ast-diff-html
-@include sel-ast-diff-html-api.texi
-
-@node sel-cp-clang-instrument, sel-cp-clang-tokens, sel-ast-diff-html, SEL Packages
+@node sel-cp-clang-instrument, sel-cp-clang-tokens, sel-sw-with-exe, SEL Packages
 @section sel-cp-clang-instrument
 @include sel-cp-clang-instrument-api.texi
 

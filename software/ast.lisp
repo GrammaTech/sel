@@ -39,6 +39,7 @@
            :splice-asts
            :fixup-mutation
            :ast-children
+           :ast-equal-p
            :ast-text
 	   :ast-hash
            :to-ast
@@ -674,12 +675,29 @@ use carefully.
 (defmethod map-ast (tree fn) nil)
 
 
-;;; AST diffs
+;;; AST equality
+(defgeneric ast-equal-p (ast-a ast-b)
+  (:documentation "Return T AST-A and AST-B are equal for differencing."))
+
+(defmethod ast-equal-p ((ast-a ast) (ast-b ast))
+  (and (eq (ast-class ast-a) (ast-class ast-b))
+       (eq (length (ast-children ast-a))
+           (length (ast-children ast-b)))
+       (every #'ast-equal-p (ast-children ast-a) (ast-children ast-b))))
+
+(defmethod ast-equal-p ((ast-a t) (ast-b t))
+  (equalp ast-a ast-b))
+
+(defmethod ast-equal-p ((ast-a cons) (ast-b cons))
+  (and (iter (while (consp ast-a))
+             (while (consp ast-b))
+             (always (ast-equal-p (pop ast-a) (pop ast-b))))
+       (ast-equal-p ast-a ast-b)))
+
 (defgeneric ast-text (ast)
   (:documentation "Return textual representation of AST.")
   (:method ((ast ast)) (peel-bananas (source-text ast))))
 
-
 (defgeneric ast-hash (ast)
   (:documentation "A hash value for the AST, which is a nonnegative
 integer.  It should be the case that (ast-equal-p x y) implies
@@ -814,9 +832,7 @@ modile +AST-HASH-BASE+"
                (ast-hash (symbol-name s))))))
 
   (defmethod ast-hash ((p package))
-    (ast-hash (package-name p)))
-
-  )
+    (ast-hash (package-name p))))
 
 (defmethod ast-hash ((ast ast))
 ;;  (or (ast-stored-hash ast)

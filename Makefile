@@ -11,11 +11,6 @@ PACKAGE_NICKNAME = sel
 #     grep -r "in-package :software-evolution-library"|grep -v ".git"|sed 's/^.*package ://;s/)$//'|sort|uniq
 DOC_PACKAGES =								\
 	software-evolution-library					\
-	software-evolution-library/ast-diff/string			\
-	software-evolution-library/ast-diff/ast-diff			\
-	software-evolution-library/ast-diff/alist			\
-	software-evolution-library/ast-diff/html			\
-	software-evolution-library/ast-diff/commands			\
 	software-evolution-library/components/clang-instrument		\
 	software-evolution-library/components/clang-tokens		\
 	software-evolution-library/components/condition-synthesis	\
@@ -81,23 +76,17 @@ DOC_PACKAGES =								\
 LISP_DEPS =				\
 	$(wildcard *.lisp) 		\
 	$(wildcard components/*.lisp)	\
-	$(wildcard software/*.lisp)	\
-	$(wildcard ast-diff/*.lisp)
+	$(wildcard software/*.lisp)
 
 TEST_ARTIFACTS = \
 	test/etc/gcd/gcd \
 	test/etc/gcd/gcd.s
 
-BINS = ast-diff ast-merge rest-server
+BINS = rest-server
 
 BIN_TEST_DIR = test/bin
 BIN_TESTS =			\
-	example-001-mutate	\
-	javascript-diff-on-gcd	\
-	java-diff-on-gcd	\
-	lisp-diff-on-gcd	\
-	lisp-diff-on-gcd-raw	\
-	clang-diff-on-gcd
+	example-001-mutate
 
 LONG_BIN_TESTS =		\
 	example-002-evaluation	\
