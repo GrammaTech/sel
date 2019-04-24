@@ -93,15 +93,16 @@ information on the format of compilation databases."))
   "Return the compiler flags in the compilation database ENTRY."
   (flet ((flag-list-helper (entry)
            "Get a massaged list of compiler flags from the ENTRY."
-           (or (mapcar (lambda (arg) ; Wrap quotes for the shell.
+           (if (aget :arguments entry)
+               (mapcar (lambda (arg) ; Wrap quotes for the shell.
                          (regex-replace
                           "\"([^\"]*)\"" arg "'\"\\1\"'"))
-                       ;; Drop the first element of
-                       ;; arguments which is the compiler.
                        (cdr (aget :arguments entry)))
-               (cdr (split-sequence
-                        #\Space (or (aget :command entry) "")
-                        :remove-empty-subseqs t)))))
+               (-<>> (or (aget :command entry) "")
+                     (unescape-string)
+                     (regex-replace-all "\\\"([^\"]*)\\\"" <> "'\"\\1\"'")
+                     (split-sequence #\Space <> :remove-empty-subseqs t)
+                     (cdr)))))
     (nest
      ;; Normalize the list of compiler flags
      (normalize-flags (aget :directory entry))
