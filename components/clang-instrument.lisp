@@ -22,7 +22,7 @@
         :software-evolution-library/components/instrument
         :software-evolution-library/components/fodder-database
         :software-evolution-library/components/traceable)
-  (:shadowing-import-from :uiop :truenamize)
+  (:import-from :uiop :nest truenamize)
   (:export :clang-instrumenter
            :clang-instrument
            :instrument-c-exprs))
@@ -513,7 +513,7 @@ Creates a CLANG-INSTRUMENTER for OBJ and calls its instrument method.
 (defmethod instrument
     ((instrumenter clang-instrumenter)
      &key points functions functions-after trace-file trace-env instrument-exit
-       (filter (constantly t)) (num-threads 1))
+       (filter (constantly t)) (num-threads 0))
   "Use INSTRUMENTER to instrument a clang software object.
 
 * INSTRUMENTER current instrumentation state
@@ -692,7 +692,7 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
 
     obj))
 
-(defmethod uninstrument ((clang clang) &key (num-threads 1))
+(defmethod uninstrument ((clang clang) &key (num-threads 0))
   "Remove instrumentation from CLANG"
   (declare (ignorable num-threads))
   (labels ((uninstrument-genome-prologue (clang)
@@ -790,18 +790,22 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
 (defmethod instrument ((clang-project clang-project) &rest args
     &aux (names (make-thread-safe-hash-table :test #'equalp))
          (types (make-thread-safe-hash-table :test #'equalp))
-         (type-descriptions (make-thread-safe-hash-table :test #'equalp)))
+         (type-descriptions (make-thread-safe-hash-table :test #'equalp))
+         (files (instrumentation-files clang-project))
+         (num-threads (or (plist-get :num-threads args) 0)))
   "Instrument CLANG-PROJECT to print AST index before each full statement.
 
 * CLANG-PROJECT the project to instrument
 * ARGS passed through to the instrument method on underlying software objects."
   ;; Instrument the non-entry point files in the project in parallel.
-  (task-map (or (plist-get :num-threads args) 1)
+  (task-map num-threads
             (lambda (instrumenter)
               (apply #'instrument instrumenter args))
-            (iter (for obj in (->> (instrumentation-files clang-project)
-                                   (mapcar #'cdr)
-                                   (remove-if #'get-entry)))
+            (iter (for obj in (nest (remove-if #'null)
+                                    (task-map num-threads
+                                              (lambda (obj)
+                                                (unless (get-entry obj) obj))
+                                              (mapcar #'cdr files))))
                   (for file-id upfrom 0)
                   (collect (make-instance 'clang-instrumenter
                              :software obj
@@ -814,7 +818,7 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
   ;; We do this after instrumenting all non-entry point files
   ;; to ensure the names, types, and type-description hash tables
   ;; are complete.
-  (iter (for (path . obj) in (instrumentation-files clang-project))
+  (iter (for (path . obj) in files)
         (for file-id upfrom 0)
         (declare (ignorable path))
         (when (get-entry obj)
