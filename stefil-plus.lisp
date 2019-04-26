@@ -95,9 +95,18 @@
 (defmacro defroot (name)
   (let ((local-name (intern (symbol-name name) *package*)))
     `(eval-when (:compile-toplevel :load-toplevel :execute)
-       (stefil::defsuite ,local-name)
-       (setf sel/stefil+::*root-suite* ',local-name)
-       (setf (stefil::parent-of (stefil::find-test ',local-name)) nil))))
+       (with-muffled-conditions (*uninteresting-conditions*)
+         (handler-bind
+             ((stefil::test-style-warning
+               (lambda (condition)
+                 (if (search "redefining test"
+                             (simple-condition-format-control condition))
+                     (muffle-warning condition)
+                     condition))))
+           (stefil::in-root-suite)
+           (stefil::defsuite ,local-name)
+           (setf sel/stefil+::*root-suite* ',local-name)
+           (setf (stefil::parent-of (stefil::find-test ',local-name)) nil))))))
 
 (defmacro defsuite (name documentation &optional (test-pre-check t))
   "Define NAME with DOCUMENTATION.
