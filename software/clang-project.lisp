@@ -47,9 +47,11 @@ information on the format of compilation databases."))
 
 (defmethod collect-evolve-files :before ((obj clang-project))
   "Ensure CLANG-PROJECT has a compilation-database populated."
-  (assert (or (compilation-database obj) (which "bear")) (obj)
-          "Calling `from-file' on a clang-project requires a compilation ~
-           database or 'bear' installation on your PATH")
+  (assert (or (compilation-database obj)
+              (and (build-command obj) (which "bear")))
+          (obj)
+          "Clang-project requires a compilation-database ~
+           or a build-command and 'bear' in your PATH")
   (nest
    (unless (compilation-database obj))
    (let ((comp-db-path (make-pathname
