@@ -45,6 +45,7 @@ extern unsigned long output_regs[];
 extern unsigned long input_mem[];
 extern unsigned long output_mem[];
 extern unsigned long num_tests;   // number of test cases
+extern unsigned long test_results[]; // storage for test results
 
 extern unsigned long save_rsp;  // save the stack pointer
 extern unsigned long save_rbx;  // save the stack pointer
@@ -84,6 +85,8 @@ extern unsigned long num_output_registers; // number of live output registers
 
 unsigned long overhead = 0;    // number of instructions in
                                // setup/restore code
+
+unsigned long executing = 0;   // 1 if variant is running
 
 static int EventSet = PAPI_NULL;
 
@@ -246,8 +249,9 @@ int check_results(int variant, int test) {
         if (i != rsp_pos
             && output_regs[test * num_output_registers + i] != result_regs[i]) {
 #if DEBUG
-            fprintf(stderr, "Test %d failed at register: %s, expected: %lx, "
-                   "found: %lx, orig rsp: %lx, rsp_pos: %i\n",
+            fprintf(stderr, "Variant %d, test %d failed at register: %s, expected: %lx, "
+                  "found: %lx, orig rsp: %lx, rsp_pos: %i\n",
+                  variant,
                   test,
                   reg_name(live_output_registers, i),
                   output_regs[test * num_output_registers + i],
@@ -284,8 +288,9 @@ int check_results(int variant, int test) {
                          // of the stack (i.e. not on the stack, which
                          // grows down)
         if ((*addr & mask) != (data & mask)) {
-            fprintf(stderr, "Test %d failed at addr: %lx, expected: %lx, "
+            fprintf(stderr, "Variant %d, test %d failed at addr: %lx, expected: %lx, "
                    "mask: %lx, found: %lx, orig rsp: %lx\n",
+                   variant,
                    test,
                    (unsigned long)addr,
                    data, mask, *addr, save_rsp);
@@ -316,7 +321,10 @@ static void sigunblock() {
 #define REG_RIP 16
 
 void segfault_sigaction(int signal, siginfo_t *si, void *context) {
-    //fprintf(stderr, "Caught segfault at address %p\n", si->si_addr);
+    if (!executing) {
+        //fprintf(stderr, "Caught segfault at address %p\n", si->si_addr);
+        exit(1);
+    }
 
     unblock_signal(signal);
 
@@ -329,9 +337,17 @@ void segfault_sigaction(int signal, siginfo_t *si, void *context) {
     asm("        jmp *%rbx\n\t");
 }
 
-void timer_sigaction(int signal, siginfo_t *si, void *arg) {
-    //fprintf(stderr, "Execution timer expired\n");
+void timer_sigaction(int signal, siginfo_t *si, void *context) {
+    if (!executing) {
+        //fprintf(stderr, "Execution timer expired\n");
+        exit(1);
+    }
+    
     unblock_signal(signal);
+
+    ucontext_t* p = (ucontext_t*)context;
+    p->uc_mcontext.gregs[REG_RIP] = (greg_t)save_return_address;
+
     asm("        pushq $1\n\t");
     asm("        popq result_return_address\n\t");
     asm("        movq save_return_address, %rbx\n\t");
@@ -437,7 +453,9 @@ unsigned long run_variant(int v, int test) {
     }
 
     asm("call _init_registers\n\t");
+    executing = 1;
     execaddr();
+    executing = 0;
     asm("call _restore_registers\n\t");
 
     retval = PAPI_read(EventSet, end_value);     // get PAPI count
@@ -496,7 +514,12 @@ unsigned long run_overhead() {
         exit(1);
     }
 
+    // This matches what happens during PAPI timing in run_variant,
+    // but without call to execaddr().
+    
     asm("call _init_registers\n\t");
+    executing = 1; 
+    executing = 0;
     asm("call _restore_registers\n\t");
     retval = PAPI_read(EventSet, end_value);     // get PAPI count
 
@@ -518,13 +541,13 @@ unsigned long run_overhead() {
     return (unsigned long) overhead;
 }
 
-void run_variant_tests(int v, unsigned long test_results[]) {
+void run_variant_tests(int v, unsigned long results[]) {
 #if DEBUG
     fprintf(stderr, "Testing variant %d: ", v);
 #endif
     for (int k = 0; k < num_tests; k++) {
-        test_results[k] = run_variant(v, k);
-        if (test_results[k] == ULONG_MAX)
+        results[k] = run_variant(v, k);
+        if (results[k] == ULONG_MAX)
             return;             // quit on the first failure
     }
 }
@@ -647,19 +670,19 @@ int main(int argc, char* argv[]) {
 #if DEBUG
     fprintf(stderr, "Number of variants: %d\n", num_variants);
 #endif
-    unsigned long* test_results =
-        (unsigned long*)malloc(sizeof(unsigned long) * num_tests * num_variants);
+    //unsigned long* test_results =
+    //    (unsigned long*)malloc(sizeof(unsigned long) * num_tests * num_variants);
     unsigned long* p = test_results;
 
     for (int i = 0; i < (num_tests * num_variants); i++)
-        test_results[i] = ULONG_MAX;   // set fitness to max to
+        p[i] = ULONG_MAX;   // set fitness to max to
                                        // initialize
 
     // see how many overhead instructions there are
     unsigned long overhead = run_overhead();
 
     for (int i = 0; variant_table[i]; i++) {
-        run_variant_tests(i, test_results + (i * num_tests));
+        run_variant_tests(i, p + (i * num_tests));
     }
 
     // output the results, with all the tests results for one variant
@@ -668,11 +691,11 @@ int main(int argc, char* argv[]) {
     //
     for (int i = 0; i < num_variants; i++) {
         for (int j = 0; j < num_tests; j++) {
-            if (test_results[i * num_tests + j] == 0) {
+            if (p[i * num_tests + j] == 0) {
                 fprintf(stderr, "Error: test_result (0) is not valid!");
-                test_results[i * num_tests + j] = ULONG_MAX;
+                p[i * num_tests + j] = ULONG_MAX;
             }
-            fprintf(stdout, "%lu ", test_results[i * num_tests + j]);
+            fprintf(stdout, "%lu ", p[i * num_tests + j]);
         }
         fprintf(stdout, "\n");
     }

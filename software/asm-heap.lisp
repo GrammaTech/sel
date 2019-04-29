@@ -64,6 +64,7 @@
            :asm-line-info-orig-file
            :asm-line-info-orig-line
            :asm-line-info-address
+           :asm-line-info-properties
            :function-index-entry
            :function-index-entry-name
            :function-index-entry-start-line
@@ -76,7 +77,8 @@
            :insert-new-lines
            :parse-asm-line
            :call-targets
-           :intel-syntax-p))
+           :intel-syntax-p
+           :vector-cut))
 (in-package :software-evolution-library/software/asm-heap)
 (in-readtable :curry-compose-reader-macros)
 
@@ -90,7 +92,8 @@
   id       ; unique index in heap, sequential starting at 0
   orig-file   ; path of the orignal .asm file that was loaded (if any)
   orig-line ; line number (0-based) of line in original .asm file (if any)
-  address)  ; original address of code or data
+  address  ; original address of code or data
+  properties)   ; properties (used for custom purposes)
 
 (defstruct function-index-entry
   "Entry into the index, which is a vector of all the functions in the file."
@@ -242,9 +245,14 @@ or a symbol representing a valid asm-syntax slot value."
 is a jump operator if the first letter is #\j or #\J. For our purposes
 we are excluding CALL instructions."
   (and (stringp token)
-       (or
-        (char= (char token 0) #\j)
-        (char= (char token 0) #\J))))
+       (let ((tok (string-downcase token)))
+         (or (starts-with-p tok "j")
+             (starts-with-p tok "call")))))
+
+(defun push-op-p (token)
+  "Returns true iff the token represents a push operation."
+  (and (stringp token)
+       (starts-with-p (string-downcase token) "push")))
 
 ;;; Given a list of tokens representing the line, returns either of:
 ;;;     :nothing
@@ -314,7 +322,7 @@ we are excluding CALL instructions."
 ;;;
 (defun parse-asm-line (line syntax)
   (let* ((tokens (tokenize-asm-line line))
-         (info (make-asm-line-info :text line :tokens tokens)))
+         (info (make-asm-line-info :text line :tokens tokens :properties nil)))
 
     ;; see if there is a comment: "orig ea=0xnnnnnnnn" which specifies
     ;; the original address of code or data
@@ -697,7 +705,8 @@ is raised."
     (iter (for a in-vector (genome asm-heap))
 	  (when (and
 	       (eq (asm-line-info-type a) ':op)
-	       (branch-op-p (first (asm-line-info-tokens a))))
+	       (or (branch-op-p (first (asm-line-info-tokens a)))
+                   (push-op-p (first (asm-line-info-tokens a)))))
 	    (if (token-label-p (second (asm-line-info-tokens a)))
 		(push (second (asm-line-info-tokens a)) lab-list))
 	    (if (token-label-p (third (asm-line-info-tokens a)))
@@ -721,7 +730,7 @@ than once, returns false."
   (dolist (lab (find-labels asm-heap))
     (let ((count 0))
       (iter (for a in-vector (genome asm-heap))
-	    (if (eq (asm-line-info-label a) lab)
+	    (if (equalp (asm-line-info-label a) lab)
 		(incf count)))
       (unless (= count 1) (return-from labels-valid-p nil))))
   ;; return false if any of the label declarations are duplicated
