@@ -837,6 +837,11 @@ Optionally, provide a QTAG for the lookup query. INPUT-FORMAT is ignored."
     (write-to-serapi *serapi-process* query)
     (find-coq-string-in-objlist (read-serapi-response *serapi-process*))))
 
+(defmethod lookup-coq-string ((raw-string string) &key qtag input-format)
+  "RAW-STRING is already a Coq string. Return it without doing a lookup."
+  (declare (ignorable qtag input-format))
+  raw-string)
+
 (defun add-coq-string (coq-string &key (qtag (gensym "a")))
   "Submit COQ-STRING as a new statement to add to the Coq document.
 Return a list of the AST-IDs created as a result. Optionally, provide a QTAG for
