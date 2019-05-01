@@ -216,6 +216,20 @@ See `insert-reset-point'.")
   (:documentation
    "Condition raised if timeout is exceeded."))
 
+(defun escape-coq-string (str)
+  "Escape special chars in STR: whitespace, quotes, ~, and backslashes in /\\."
+  (regex-replace-all "/\\\\(?!\\\\)" (escape-string str) "/\\\\\\\\"))
+
+(defun unescape-coq-string (str)
+  "Remove extra escape characters from STR prior to writing to screen or file.
+Backslashes (for whitespace characters or /\\) and double quotes (\") are
+preceded by an extra pair of backslashes. See also `escape-coq-string'."
+  (-<> str
+    ;; change \\ to \
+    (regex-replace-all "\\\\\\\\" <> "\\")
+    ;; ;; change \" to "
+    (regex-replace-all "\\\\\\\"" <> "\"")))
+
 (defun escape-cmd (sexpr)
   "Return a copy of SEXPR with special characters reformatted for SerAPI.
 Ensure that control characters are properly escaped and that NIL is rewritten as
@@ -224,7 +238,7 @@ a left paren symbol followed by a right paren symbol.
   (labels ((escape-strs (sexpr)
              (cond
                ((stringp sexpr)
-                (-<>> (escape-string sexpr)
+                (-<>> (escape-coq-string sexpr)
                       (coerce <> 'list)
                       (cons #\")
                       (append <> (list #\"))

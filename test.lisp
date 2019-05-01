@@ -9790,12 +9790,21 @@ int main() { puts(\"~d\"); return 0; }
     (is (process-running-p *serapi-process*))))
 
 (deftest serapi-special-character-handling ()
-  (let* ((src "[[\\\"expr\\\" ::== \\\"coords\\\" \\\\n || \\\"coords\\\" \\\\n \\\"expr\\\" <{< fun x _ y => Row x y >}>]] ;;.")
-         (sanitized (sanitize-process-string src)))
-    (is (equal sanitized
+  (let* ((src0 "[[\\\"expr\\\" ::== \\\"coords\\\" \\\\n || \\\"coords\\\" \\\\n \\\"expr\\\" <{< fun x _ y => Row x y >}>]] ;;.")
+         (sanitized0 (sanitize-process-string src))
+         ;; a /\\n b /\n c should differentiate \n from an extraneous n
+         ;; preceded by backslashes
+         (src1 "a /\\\\\\n b /\\\\n c")
+         (sanitized1 (sanitize-process-string src1)))
+    (is (equal sanitized0
                "[[\\\\\\\"expr\\\\\\\" ::== \\\\\\\"coords\\\\\\\" \\\\\\\\n || \\\\\\\"coords\\\\\\\" \\\\\\\\n \\\\\\\"expr\\\\\\\" <{< fun x _ y => Row x y >}>]] ;;."))
-    (is (equal (unescape-string sanitized)
-               "[[\\\\\"expr\\\\\" ::== \\\\\"coords\\\\\" \\\\\\n || \\\\\"coords\\\\\" \\\\\\n \\\\\"expr\\\\\" <{< fun x _ y => Row x y >}>]] ;;."))))
+    (is (equal (sel/cp/serapi-io::unescape-coq-string sanitized0)
+               "[[\\\\\"expr\\\\\" ::== \\\\\"coords\\\\\" \\\\n || \\\\\"coords\\\\\" \\\\n \\\\\"expr\\\\\" <{< fun x _ y => Row x y >}>]] ;;."))
+    (is (equal sanitized0 (sel/cp/serapi-io::escape-coq-string sanitized0)))
+    (is (equal sanitized1 "a /\\\\\\\\  b /\\\\\\\\n c"))
+    (is (equal sanitized1 (sel/cp/serapi-io::escape-coq-string sanitized0)))
+    (is (equal (sel/cp/serapi-io::unescape-coq-string sanitized1)
+               "a /\\\\  b /\\\\n c"))))
 
 (deftest (can-read-write-serapi :long-running) ()
   (with-fixture serapi
