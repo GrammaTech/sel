@@ -255,7 +255,8 @@ Optional DESCRIPTION is added to the path."
                   (("LISP" "CL" "COMMON LISP") lisp)
                   (("TEXT") simple)))))
     (if (and source (directory-p source))
-        (intern (concatenate 'string (string class) "-PROJECT"))
+        (intern (concatenate 'string (symbol-name class) "-PROJECT")
+                :sel/command-line)
         class)))
 
 (defun wait-on-manual (manual)
