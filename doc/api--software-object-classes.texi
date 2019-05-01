@@ -659,13 +659,6 @@ Class @code{project}
 
 @itemize
 @item Class @refapiclass{project}
-@item Functions
-  @itemize
-  @item @refapifunction{make-build-dir}
-  @end itemize
-
-@item Variable @refapivariable{*build-dir*}
-
 @item Methods
   @itemize
   @item @refapimethod{apply-mutation,apply-mutation}
