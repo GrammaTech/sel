@@ -139,6 +139,7 @@
    :parse-numbers
    :trim-whitespace
    :trim-right-whitespace
+   :normalize-whitespace
    :escape-string
    :unescape-string
    :make-terminal-raw
@@ -1142,6 +1143,33 @@ The SHELL command is executed with `*bash-shell*'."
 (defun trim-right-whitespace (str)
   (string-right-trim '(#\Space #\Tab #\Newline #\Linefeed)
 		     str))
+
+(defun normalize-whitespace (str)
+  "Trims leading and trailing whitespace, and reduces all remaining
+sequences of one or more whitespace characters to a single space"
+  (flet ((%whitespacep (c)
+           (member c '(#\Space #\Tab #\Newline #\Linefeed))))
+    (let ((str (trim-whitespace str))
+          (element-type (array-element-type str)))
+      (let* ((len (length str)))
+        (if (= len 0)
+            (make-array '(0) :element-type element-type)
+            (let ((result (make-array (list len)
+                                      :element-type element-type
+                                      :initial-element #\Space))
+                  (out 0)
+                  (w-start nil))
+              (loop for cursor from 0 below len
+                 do (let ((c (aref str cursor)))
+                      (if (%whitespacep c)
+                          (unless w-start
+                            (psetf (aref result out) #\Space
+                                   out (1+ out)
+                                   w-start cursor))
+                          (setf (aref result out) c
+                                out (1+ out)
+                                w-start nil))))
+              (subseq result 0 out)))))))
 
 (defun escape-string (str)
   "Return a copy of STR with special characters escaped before output to SerAPI.
