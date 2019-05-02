@@ -44,7 +44,8 @@ RUN wget https://downloads.sourceforge.net/project/astyle/astyle/astyle%203.1/as
 
 # Javascript
 RUN curl -sL https://deb.nodesource.com/setup_8.x | bash - && \
-    apt-get install -y nodejs && \
+    apt-get -y update && \
+    apt-get -y install nodejs && \
     npm install --global acorn && \
     npm install --global prettier
 
