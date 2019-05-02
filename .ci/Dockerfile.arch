@@ -14,7 +14,7 @@ RUN pacman --noconfirm -Syu archlinux-keyring && \
     pacman --noconfirm -Syu astyle boost boost-libs diffutils expect findutils gawk gcc-multilib graphviz grep jdk8-openjdk less lib32-fakeroot lib32-gcc-libs lib32-glibc lib32-libltdl libffi m4 make man-db man-pages maven nodejs npm opam pandoc patch python sed subversion tar texinfo unzip
 
 # Install ocaml 4.06.0 via opam (for SerAPI)
-RUN opam init --disable-sandboxing -j 4 --compiler="4.06.0" -y
+RUN opam init --disable-sandboxing -j 4 --compiler="ocaml.4.06.0" -y
 
 # Configure ocaml, install coq-serapi at fixed version
 RUN eval `opam config env` && \
