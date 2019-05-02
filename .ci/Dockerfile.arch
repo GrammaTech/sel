@@ -31,7 +31,6 @@ ARG GT
 ARG LISP
 # Use /root/quicklisp/local-projects.
 RUN cp -R /usr/synth/quicklisp /root/quicklisp
-RUN rm /root/quicklisp/local-projects/system-index.txt
 COPY . /root/quicklisp/local-projects/sel
 WORKDIR /root/quicklisp/local-projects/sel
 ENV LISP=$LISP \
