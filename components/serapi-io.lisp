@@ -267,28 +267,32 @@ format."
       (format (process-input-stream serapi) full-string)
       (finish-output (process-input-stream serapi)))))
 
-(defun sanitize-process-string (string &aux (last nil) (penult nil))
-  "Ensure that special characters are properly escaped in STRING."
+(defun sanitize-process-string (string &aux (last nil))
+  "Ensure that special characters are properly escaped in STRING.
+Backslashes and quotation marks are escaped, and whitespace characters (\\n,
+\\t, \\r, \\b) are replaced with a single space."
   (with-output-to-string (s)
     (iter (for char in (coerce string 'list))
           (cond
-            ((and (eql penult #\\) (eql last #\\))
-             ;; If two previous chars were escapes then keep them and char
-             ;; (prevent suppressing \\n and similar)
-             (mapc {write-char _ s} (list #\\ #\\ #\\ #\\ char)))
+            ((and (eql last #\\) (eql char #\\))
+             ;; If we find \\ escape them as \\\\
+             (mapc {write-char _ s} (list #\\ #\\ #\\ #\\)))
             ((and (eql last #\\) (eql char #\"))
-             ;; If we found a \", make sure it's triple escaped
+             ;; If we find \", make sure it's escaped as \\\"
              (mapc {write-char _ s} (list #\\ #\\ #\\ char)))
-            ((and (eql last #\\) (not (eql char #\\)))
-             ;; If last char is an escape and neither penult nor current is,
-             ;; Replace inhibited escaped whitespace chars with space, double
-             ;; escape others.
-             (if (member char '(#\n #\t #\r #\b))
-                 (write-char #\Space s)
-               (mapc {write-char _ s} (list #\\ #\\ char))))
+            ((and (eql last #\\) (member char '(#\n #\t #\r #\b)))
+             ;; If we find whitespace \n, \t, \r, \b, replace with a space
+             (write-char #\Space s))
+            ((eql last #\\)
+             ;; If we find \[c] and c isn't \, ", n, t, r, or b: escape as \\c
+             (mapc {write-char _ s} (list #\\ #\\ char)))
             (t (unless (eql char #\\) (write-char char s))))
-          (setf penult last)
-          (setf last char))))
+          ;; If prev char was \, it's now escaped and the current character is
+          ;; output. Otherwise, we might still need to escape the current char
+          ;; if it's a \.
+          (if (eql last #\\)
+              (setf last nil)
+              (setf last char)))))
 
 (defmethod read-process-string ((process process)
                                 &optional (eof-error-p t) eof-value)
