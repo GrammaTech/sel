@@ -9799,7 +9799,7 @@ int main() { puts(\"~d\"); return 0; }
     (is (equal sanitized0
                "[[\\\\\\\"expr\\\\\\\" ::== \\\\\\\"coords\\\\\\\" \\\\\\\\n || \\\\\\\"coords\\\\\\\" \\\\\\\\n \\\\\\\"expr\\\\\\\" <{< fun x _ y => Row x y >}>]] ;;."))
     (is (equal (sel/cp/serapi-io::unescape-coq-string sanitized0)
-               "[[\\\\\"expr\\\\\" ::== \\\\\"coords\\\\\" \\\\n || \\\\\"coords\\\\\" \\\\n \\\\\"expr\\\\\" <{< fun x _ y => Row x y >}>]] ;;."))
+               "[[\\\"expr\\\" ::== \\\"coords\\\" \\\\n || \\\"coords\\\" \\\\n \\\"expr\\\" <{< fun x _ y => Row x y >}>]] ;;."))
     (is (equal sanitized0 (sel/cp/serapi-io::escape-coq-string sanitized0)))
     (is (equal sanitized1 "a /\\\\\\\\  b /\\\\\\\\n c"))
     (is (equal sanitized1 (sel/cp/serapi-io::escape-coq-string sanitized1)))
@@ -10063,7 +10063,7 @@ int main() { puts(\"~d\"); return 0; }
   (with-fixture total-maps
     (is *coq*)
     (is (typep *coq* 'coq))
-    (is (= 172 (length (genome *coq*))))
+    (is (= 171 (length (genome *coq*))))
     (is (= 4 (length (imports *coq*))))
     (is (not (coq-modules *coq*)))
     (is (not (coq-sections *coq*)))
