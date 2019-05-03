@@ -1020,8 +1020,8 @@ E.g., if COQ-TYPE is bool, functions of type nat->bool will be included."
     (-<>> (format nil "SearchPattern ~a ~a"
                   (parenthesize coq-type)
                   (if module
-                      (format nil "inside ~a" module)
-                      (format nil "")))
+                      (format nil "inside ~a." module)
+                      (format nil ".")))
       (run-coq-vernacular <> :qtag qtag)
       (coq-message-contents)
       (mapcar [#'tokenize-coq-type
