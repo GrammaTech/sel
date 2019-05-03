@@ -225,9 +225,9 @@ See `insert-reset-point'.")
 Backslashes (for whitespace characters or /\\) and double quotes (\") are
 preceded by an extra pair of backslashes. See also `escape-coq-string'."
   (-<> str
-    ;; change \\ to \
+    ;; change \\\\foo to \\foo
     (regex-replace-all "\\\\\\\\" <> "\\")
-    ;; ;; change \" to "
+    ;; change \\\" to \"
     (regex-replace-all "\\\\\\\"" <> "\"")))
 
 (defun escape-cmd (sexpr)
@@ -764,15 +764,9 @@ VernacCoFixpoint."
             (first (mapcar #'parse-inductive-ids ls)))
            (otherwise nil)))))
 
-(defun add-period (coq-string)
-  (if (ends-with-subseq "." (trim-whitespace coq-string))
-      coq-string
-      (concatenate 'string coq-string ".")))
-
 (defun run-coq-vernacular (vernac &key (qtag (gensym "q")))
-  (let ((vernac (add-period vernac)))
-    (write-to-serapi *serapi-process* #!`((,QTAG (Query () (Vernac ,VERNAC)))))
-    (read-serapi-response *serapi-process*)))
+  (write-to-serapi *serapi-process* #!`((,QTAG (Query () (Vernac ,VERNAC)))))
+  (read-serapi-response *serapi-process*))
 
 (defgeneric lookup-coq-pp (ast-name &key qtag)
   (:documentation
@@ -866,8 +860,7 @@ Return a list of the AST-IDs created as a result. Optionally, provide a QTAG for
 the submission."
   (unless (emptyp coq-string)
     ;; ensure coq string ends with .
-    (let* ((coq-string (add-period coq-string))
-           (add #!`((,QTAG (Add () ,COQ-STRING)))))
+    (let ((add #!`((,QTAG (Add () ,COQ-STRING)))))
       ;; submit to SerAPI
       (write-to-serapi *serapi-process* add)
 
