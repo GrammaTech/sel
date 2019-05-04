@@ -747,7 +747,6 @@ by `compose-mutations', `sequence-mutations' first targets and applies A and the
   (:documentation "The base class of all software mutations."))
 
 (defmethod print-object ((mut mutation) stream)
-  "DOCFIXME"
   (print-unreadable-object (mut stream :type t)
     (prin1 (object mut) stream)
     (when (or (get-targets mut) (targeter mut))
@@ -756,55 +755,32 @@ by `compose-mutations', `sequence-mutations' first targets and applies A and the
                  (multiple-value-call [#'third #'list]
                    (function-lambda-expression (targeter mut)))) stream))))
 
-(defmethod targets ((mut mutation))
-  "DOCFIXME
-* MUT DOCFIXME
-"
-  (or (get-targets mut)
-      (when (object mut)
-        (setf (slot-value mut 'targets)
-              (funcall (targeter mut) (object mut))))))
+(defgeneric targets (mutation)
+  (:documentation "Return all possible targets of MUTATION.")
+  (:method ((mut mutation))
+    (or (get-targets mut)
+        (when (object mut)
+          (setf (slot-value mut 'targets)
+                (funcall (targeter mut) (object mut)))))))
 
 (defgeneric at-targets (mutation targets &key &allow-other-keys)
   (:documentation "Return a copy of MUTATION with `targets' set to TARGETS."))
 
 (defmethod at-targets ((mut mutation) targets &key (object (object mut)))
-  "DOCFIXME
-* MUT DOCFIXME
-* TARGETS DOCFIXME
-* OBJECT DOCFIXME
-"
   (make-instance (type-of mut) :object object :targets targets))
 
 (defmethod mutation-key ((obj software) (mutation mutation))
-  "DOCFIXME
-* OBJ DOCFIXME
-* MUTATION DOCFIXME
-"
   (declare (ignorable obj)) (type-of mutation))
 
 (defmethod apply-mutation :before ((obj software) (mut mutation))
-  "DOCFIXME
-* OBJ DOCFIXME
-* MUT DOCFIXME
-"
   ;; Mutation removes previously calculated fitness values.
   (declare (ignorable mut))
   (setf (fitness obj) nil))
 
 (defmethod apply-all-mutations ((obj software) (mut mutation))
-  "DOCFIXME
-* OBJ DOCFIXME
-* MUT DOCFIXME
-"
   (apply-mutations obj mut infinity))
 
 (defmethod apply-mutations ((obj software) (mut mutation) n)
-  "DOCFIXME
-* OBJ DOCFIXME
-* MUT DOCFIXME
-* N DOCFIXME
-"
   (setf (object mut) obj)
   (iter (for targeted in (mapcar {at-targets mut} (targets mut)))
         (for i below n)
@@ -813,11 +789,6 @@ by `compose-mutations', `sequence-mutations' first targets and applies A and the
         (finally (return (values results mutations)))))
 
 (defmethod apply-picked-mutations ((obj software) (mut mutation) n)
-  "DOCFIXME
-* OBJ DOCFIXME
-* MUT DOCFIXME
-* N DOCFIXME
-"
   (setf (object mut) obj)
   (iter (for i below n)
         (for picked = (funcall (picker mut) obj))
