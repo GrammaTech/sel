@@ -802,10 +802,8 @@ by `compose-mutations', `sequence-mutations' first targets and applies A and the
 ;;; Evolution
 (defvar *population* nil
   "Holds the variant programs to be evolved.
-
 This variable may be read to inspect a running search process, or
-written to as part of a running search process.
-")
+written to as part of a running search process.")
 
 (defvar *generations* nil
   "Holds the running generation count.")
