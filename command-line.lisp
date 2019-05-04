@@ -67,8 +67,7 @@
            :handle-save-random-state-to-path-argument
            :handle-set-quiet-argument
            :handle-set-verbose-argument
-           :handle-store-traces-argument
-           :handle-load-traces-argument
+           :handle-trace-file-argument
            :resolve-file
            :resolve-out-dir-from-source
            :resolve-name-from-source
@@ -145,21 +144,14 @@
   (when (>= level 4) (setf *shell-debug* t))
   (setf *note-level* level))
 
-(defun handle-store-traces-argument (path)
-  "Ensure PATH is a valid argument to store-traces."
+(defun handle-trace-file-argument (path)
+  "Ensure PATH is a valid argument to store (or potentially load) traces."
   (let ((parent-parent-dir (pathname-parent-directory-pathname
                             (pathname-directory-pathname path))))
     (when (pathname-directory parent-parent-dir)
       (assert (directory-exists-p parent-parent-dir)
               (parent-parent-dir)
               "~a does not exist" parent-parent-dir)))
-  path)
-
-(defun handle-load-traces-argument (path)
-  "Ensure PATH is a valid argument to load-traces."
-  (assert (file-exists-p path)
-          (path)
-          "~a does not exist" path)
   path)
 
 (defun resolve-file (file)
