@@ -760,8 +760,12 @@ by `compose-mutations', `sequence-mutations' first targets and applies A and the
   (:method ((mut mutation))
     (or (get-targets mut)
         (when (object mut)
-          (setf (slot-value mut 'targets)
-                (funcall (targeter mut) (object mut)))))))
+          (restart-case
+              (setf (slot-value mut 'targets)
+                    (funcall (targeter mut) (object mut)))
+            (ignore-failed-mutation ()
+              :report "Ignore failed mutation targeter and continue"
+              nil))))))
 
 (defgeneric at-targets (mutation targets &key &allow-other-keys)
   (:documentation "Return a copy of MUTATION with `targets' set to TARGETS."))
@@ -785,7 +789,11 @@ by `compose-mutations', `sequence-mutations' first targets and applies A and the
   (iter (for targeted in (mapcar {at-targets mut} (targets mut)))
         (for i below n)
         (collect targeted into mutations)
-        (collect (apply-mutation (copy obj) targeted) into results)
+        (restart-case
+            (collect (apply-mutation (copy obj) targeted) into results)
+          (ignore-failed-mutation ()
+            :report "Ignore failed mutation application and continue"
+            (values nil nil)))
         (finally (return (values results mutations)))))
 
 (defmethod apply-picked-mutations ((obj software) (mut mutation) n)
