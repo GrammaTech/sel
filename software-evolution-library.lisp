@@ -320,6 +320,7 @@ Return a deep copy of a software object."))
 (defgeneric lines (software)
   (:documentation "Return the lines of code of the `genome' of SOFTWARE."))
 
+(declaim (inline genome-string))
 (defgeneric genome-string (software &optional stream)
   (:documentation "Return a string of the `genome' of SOFTWARE."))
 

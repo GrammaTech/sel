@@ -44,7 +44,6 @@
 (defmethod size ((obj simple))
   (length (lines obj)))
 
-(declaim (inline genome-string))
 (defmethod genome-string ((simple simple) &optional stream)
   (format stream "~{~a~%~}" (lines simple)))
 

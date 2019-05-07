@@ -64,7 +64,6 @@
   (multiple-value-bind (stdout stderr errno) (shell "chmod +x ~s" bin)
     (values bin errno stderr stdout bin)))
 
-(declaim (inline genome-string))
 (defmethod genome-string ((forth forth) &optional stream)
   "Return genome of FORTH as a string.
 Like `(genome-string simple)' but lines are delimited by spaces
