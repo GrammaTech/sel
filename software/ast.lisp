@@ -48,7 +48,8 @@
 	   :map-ast-strings
 	   :ast-meld-p
 	   :ast-class-meld?
-           :replace-in-ast))
+           :replace-in-ast
+           :move-prefixes-down))
 (in-package :software-evolution-library/software/ast)
 (in-readtable :curry-compose-reader-macros)
 
@@ -656,10 +657,9 @@ use carefully.
 
 (defmethod map-ast-strings ((tree t) (fn function)) tree)
 (defmethod map-ast-strings ((tree t) (sym symbol))
-  (let ((fn (symbol-function sym)))
-    (unless fn
-      (error "No function found for ~A" sym))
-    (map-ast-strings tree fn)))
+  (unless (fboundp sym)
+    (error "No function found for ~A" sym))
+  (map-ast-strings tree (symbol-function sym)))
 
 ;;; Map over the nodes of an AST
 
@@ -865,3 +865,34 @@ modile +AST-HASH-BASE+"
 (defmethod ast-class-meld? ((ast-class t) (ast t)) nil)
 
 (defmethod ast-class-meld? ((ast-class (eql :TopLevel)) ast) t)
+
+;;;; Utility function for comment/terminator normalization
+
+(defun move-prefixes-down (children allowed-fn prefix-fn)
+  "Give a list CHILDREN of strings and AST nodes, find children
+that satisfy ALLOWED-FN, are followed by a string, and for for which
+PREFIX-FN returns a non-null value, which must be a position
+in the string.   Move the [0..pos) prefix of that string
+down into the list of children of the preceding node, concatenating
+it onto the end of the last string in that node's children.
+All list operations are destructive."
+  (loop for p on children
+     do (when-let* ((node (car p))
+                    (pos (and (cdr p)
+                              (stringp (cadr p))
+                              (funcall allowed-fn node)
+                              (funcall prefix-fn (cadr p))))
+                    (l (last (ast-children node))))
+          (if (stringp (car l))
+              (setf (car l) (concatenate 'string (car l)
+                                         (subseq (cadr p) 0 pos)))
+              (setf (cdr l) (list (subseq (cadr p) 0 pos))))
+          (setf (cadr p) (subseq (cadr p) pos)))))
+
+          
+          
+            
+            
+
+                   
+  

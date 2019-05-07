@@ -98,6 +98,9 @@
    :appendf :ensure-list :featurep :emptyp
    :if-let :ensure-function :ensure-gethash :copy-file
    :parse-body :simple-style-warning)
+  (:shadowing-import-from
+   :hu.dwim.util
+   :string-trim-whitespace)
   (:export :test :batch-test :testbot-test))
 (in-package :software-evolution-library/test)
 (named-readtables:in-readtable :sel-readtable)
@@ -2798,9 +2801,9 @@ int x = CHARSIZE;")))
                            (declare (ignorable c))
                            (invoke-restart 'use-encoding :utf-8))))
     (with-fixture unicode-clang
-      (is (stmt-with-text *soft* "int x = 0" :no-error))
-      (is (stmt-with-text *soft* "\"2 bytes: Δ\"" :no-error))
-      (is (stmt-with-text *soft* "int y = 1" :no-error))
+      (is (stmt-with-text *soft* "int x = 0" :no-error t))
+      (is (stmt-with-text *soft* "\"2 bytes: Δ\"" :no-error t))
+      (is (stmt-with-text *soft* "int y = 1" :no-error t))
       (is (string= (genome *soft*)
                    (file-to-string (unicode-dir "unicode.c")))))))
 
@@ -2864,7 +2867,7 @@ int x = CHARSIZE;")))
           (*clang-mutation-types* '((clang-insert-same . 1)))
           (variant (copy *hello-world*)))
       (mutate variant)
-      (is (stmt-with-text variant "return 00;" :no-error)))))
+      (is (stmt-with-text variant "return 00;" :no-error t)))))
 
 (deftest insert-full-same-adds-same-class-full-stmt ()
   (with-fixture hello-world-clang-control-picks
@@ -2884,7 +2887,7 @@ int x = CHARSIZE;")))
           (*clang-mutation-types* '((clang-replace . 1)))
           (variant (copy *hello-world*)))
       (mutate variant)
-      (is (stmt-with-text variant "return printf;" :no-error)))))
+      (is (stmt-with-text variant "return printf;" :no-error t)))))
 
 (deftest replace-full-changes-full-stmt ()
   (with-fixture hello-world-clang-control-picks
@@ -2907,7 +2910,7 @@ int x = CHARSIZE;")))
           (*clang-mutation-types* '((clang-replace-same . 1)))
           (variant (copy *hello-world*)))
       (mutate variant)
-      (is (stmt-with-text variant "printf(printf);" :no-error)))))
+      (is (stmt-with-text variant "printf(printf);" :no-error t)))))
 
 (deftest replace-full-same-changes-same-class-full-stmt ()
   (with-fixture hello-world-clang
@@ -2931,8 +2934,8 @@ int x = CHARSIZE;")))
           (*clang-mutation-types* '((clang-swap . 1)))
           (variant (copy *hello-world*)))
       (mutate variant)
-      (is (stmt-with-text variant "\"Hello, World!\\n\"" :no-error))
-      (is (stmt-with-text variant "0" :no-error)))))
+      (is (stmt-with-text variant "\"Hello, World!\\n\"" :no-error t))
+      (is (stmt-with-text variant "0" :no-error t)))))
 
 (deftest move-changes-any-stmts ()
   (with-fixture hello-world-clang-control-picks
@@ -2946,9 +2949,9 @@ int x = CHARSIZE;")))
           (is (not (string= (genome *hello-world*) (genome variant)))
               "Move changes genome."))
         ;; Still exist (> 0).
-        (is (stmt-with-text variant bad-1 :no-error)
+        (is (stmt-with-text variant bad-1 :no-error t)
             "Move doesn't remove \"Hello, World!\\n\".")
-        (is (stmt-with-text variant bad-2 :no-error)
+        (is (stmt-with-text variant bad-2 :no-error t)
             "Move doesn't remove \"0\".")
         ;; No duplicates (< 2).
         (is
@@ -2974,8 +2977,8 @@ int x = CHARSIZE;")))
         ;; sanity check.
         (is (ast-full-stmt (aget :stmt1 (targets mutation))))
         (is (ast-full-stmt (aget :stmt2 (targets mutation))))
-        (is (stmt-with-text variant "printf" :no-error))
-        (is (stmt-with-text variant "return 0;" :no-error))))))
+        (is (stmt-with-text variant "printf" :no-error t))
+        (is (stmt-with-text variant "return 0;" :no-error t))))))
 
 (deftest swap-full-same-changes-same-class-full-stmt ()
   (with-fixture hello-world-clang
@@ -3772,11 +3775,12 @@ int x = CHARSIZE;")))
 (deftest javascript-can-rebind-vars ()
   (with-fixture fib-javascript
     (is (string= "temp = b;"
-                 (->> (rebind-vars (stmt-with-text *soft* "temp = a;")
-                                        (list (list "a" "b"))
-                                        nil)
-                      (source-text)
-                      (peel-bananas))))))
+                 (string-trim-whitespace
+                  (->> (rebind-vars (stmt-with-text *soft* "temp = a;")
+                                    (list (list "a" "b"))
+                                    nil)
+                    (source-text)
+                    (peel-bananas)))))))
 
 (deftest javascript-get-vars-in-scope ()
   (with-fixture fib-javascript
@@ -3948,6 +3952,50 @@ int x = CHARSIZE;")))
                          (get-vars-in-scope soft)
                          (mapcar {aget :name}))
               :test #'equal))))
+
+(deftest javascript.newline.post-processing.1 ()
+  (is (equalp (sel/sw/javascript::position-after-leading-newline "") nil)
+      "position-after-leading-newline on empty string"))
+
+(deftest javascript.newline.post-processing.2 ()
+  (is (equalp (sel/sw/javascript::position-after-leading-newline "x") nil)
+      "position-after-leading-newline on string with no whitespace or newline"))
+
+(deftest javascript.newline.post-processing.3 ()
+  (is (equalp (sel/sw/javascript::position-after-leading-newline "   ") nil)
+      "position-after-leading-newline on string with whitespace only, no newline"))
+
+(deftest javascript.newline.post-processing.4 ()
+  (is (equalp (sel/sw/javascript::position-after-leading-newline " x") nil)
+      "position-after-leading-newline on string with whitespace, no newline"))
+
+(deftest javascript.newline.post-processing.5 ()
+  (is (equalp (sel/sw/javascript::position-after-leading-newline (string #\Newline)) 1)
+      "position-after-leading-newline on newline"))
+
+(deftest javascript.newline.post-processing.6 ()
+  (is (equalp (sel/sw/javascript::position-after-leading-newline
+               (concatenate 'string (string #\Newline) "x"))
+              1)
+      "position-after-leading-newline on newline + other stuff"))
+
+(deftest javascript.newline.post-processing.7 ()
+  (is (equalp (sel/sw/javascript::position-after-leading-newline
+               (concatenate 'string (string #\Newline) "// foo "))
+              1)
+      "position-after-leading-newline on newline, comment"))
+
+(deftest javascript.newline.post-processing.8 ()
+  (is (equalp (sel/sw/javascript::position-after-leading-newline
+               (concatenate 'string  "// foo " (string #\Newline) "   "))
+              8)
+      "position-after-leading-newline on comment, newline "))
+
+(deftest javascript.newline.post-processing.9 ()
+  (is (equalp (sel/sw/javascript::position-after-leading-newline
+                "  // foo ")
+              nil)
+      "position-after-leading-newline on comment"))
 
 
 ;;;; Javascript project.
@@ -4563,11 +4611,14 @@ int x = CHARSIZE;")))
 
 
 ;;;; Helper functions to avoid hard-coded statement numbers.
-(defun stmt-with-text (obj text &optional no-error)
+(defun stmt-with-text (obj text &key no-error (trim t))
   "Return the AST in OBJ holding TEXT.
 Unless optional argument NO-ERROR is non-nil an error is raised if no
 AST holding STMT is found."
-  (or (find-if [{string= text} #'peel-bananas #'source-text]
+  (when trim
+    (setf text (string-trim-whitespace text)))
+  (or (find-if [{string= text} (if trim #'string-trim-whitespace #'identity)
+                #'peel-bananas #'source-text]
                (asts obj))
       (if no-error
           nil
@@ -5966,10 +6017,10 @@ Useful for printing or returning differences in the REPL."
                (length (asts *scopes*))))
         ;; a is the only var in scope so all these assignments should
         ;; be rebound.
-        (is (stmt-with-text variant "a = 10;" :no-error))
-        (is (stmt-with-text variant "a = 11;" :no-error))
-        (is (stmt-with-text variant "a = 12;" :no-error))
-        (is (not (stmt-with-text variant "int b;" :no-error)))))))
+        (is (stmt-with-text variant "a = 10;" :no-error t))
+        (is (stmt-with-text variant "a = 11;" :no-error t))
+        (is (stmt-with-text variant "a = 12;" :no-error t))
+        (is (not (stmt-with-text variant "int b;" :no-error t)))))))
 
 (deftest (crossover-a-multiple-statements-with-a-single-statement
           :long-running) ()
@@ -5989,9 +6040,9 @@ Useful for printing or returning differences in the REPL."
                (length (asts *scopes*))))
         ;; a is the only var in scope so this assignment should
         ;; be rebound.
-        (is (stmt-with-text variant "a = 8;" :no-error))
-        (is (not (stmt-with-text variant "int b;" :no-error)))
-        (is (not (stmt-with-text variant "b = 1;" :no-error)))))))
+        (is (stmt-with-text variant "a = 8;" :no-error t))
+        (is (not (stmt-with-text variant "int b;" :no-error t)))
+        (is (not (stmt-with-text variant "b = 1;" :no-error t)))))))
 
 (deftest (intraprocedural-2pt-crossover-does-not-crash :long-running) ()
   (with-fixture intraprocedural-2pt-crossover-bug-clang
@@ -6018,7 +6069,7 @@ Useful for printing or returning differences in the REPL."
 (deftest multiple-decl-works ()
   (with-fixture scopes-clang
     ;; NOTE: Why isn't this statement reliably found?
-    (when-let* ((ast (stmt-with-text *scopes* "int f, g;" :no-error)))
+    (when-let* ((ast (stmt-with-text *scopes* "int f, g;" :no-error t)))
       (is (= 2 (length (ast-declares ast)))))))
 
 (deftest (pick-for-loop-works :long-running) ()
@@ -6135,8 +6186,8 @@ Useful for printing or returning differences in the REPL."
       (is (phenome-p variant))
       (is (not (equal (genome-string *scopes*)
                       (genome-string variant))))
-      (let ((stmt (or (stmt-with-text variant "b = 13;" :no-error)
-                      (stmt-with-text variant "c = 13;" :no-error))))
+      (let ((stmt (or (stmt-with-text variant "b = 13;" :no-error t)
+                      (stmt-with-text variant "c = 13;" :no-error t))))
         (is stmt)
         ;; unbound-vals are updated correctly
         (let ((unbound (mapcar {aget :name} (get-unbound-vals variant stmt))))
@@ -6150,7 +6201,7 @@ Useful for printing or returning differences in the REPL."
       (is (not (equal (genome-string *scopes*)
                       (genome-string variant)))))
     (when-let* ((variant (copy *scopes*))
-                (id (stmt-with-text *scopes* "int f, g;" :no-error)))
+                (id (stmt-with-text *scopes* "int f, g;" :no-error t)))
       (apply-mutation variant `(cut-decl (:stmt1 . ,id)))
       (is (phenome-p variant))
       (is (not (equal (genome-string *scopes*)
@@ -6194,7 +6245,7 @@ Useful for printing or returning differences in the REPL."
                         (expand-arithmatic-op-dir
                          "simple-compound-assign.c"))))
     (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
-    (is (stmt-with-text obj "argc = argc * 2" :no-error))))
+    (is (stmt-with-text obj "argc = argc * 2" :no-error t))))
 
 (deftest expand-arithmatic-op-works-complex-compound-assignment ()
   (let ((obj (from-file (make-instance 'clang
@@ -6203,7 +6254,7 @@ Useful for printing or returning differences in the REPL."
                         (expand-arithmatic-op-dir
                          "complex-compound-assign.c"))))
     (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
-    (is (stmt-with-text obj "argc = argc + ((argc*4) / rand())" :no-error))))
+    (is (stmt-with-text obj "argc = argc + ((argc*4) / rand())" :no-error t))))
 
 (deftest expand-arithmatic-op-works-increment ()
   (let ((obj (from-file (make-instance 'clang
@@ -6211,7 +6262,7 @@ Useful for printing or returning differences in the REPL."
                           :flags '("-g" "-m32" "-O0"))
                         (expand-arithmatic-op-dir "increment.c"))))
     (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
-    (is (stmt-with-text obj "i = i + 1" :no-error))))
+    (is (stmt-with-text obj "i = i + 1" :no-error t))))
 
 (deftest expand-arithmatic-op-works-decrement ()
   (let ((obj (from-file (make-instance 'clang
@@ -6219,7 +6270,7 @@ Useful for printing or returning differences in the REPL."
                           :flags '("-g" "-m32" "-O0"))
                         (expand-arithmatic-op-dir "decrement.c"))))
     (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
-    (is (stmt-with-text obj "argc = argc - 1" :no-error))))
+    (is (stmt-with-text obj "argc = argc - 1" :no-error t))))
 
 (deftest expand-arithmatic-op-works-field-increment ()
   (let ((obj (from-file (make-instance 'clang
@@ -6227,7 +6278,7 @@ Useful for printing or returning differences in the REPL."
                           :flags '("-g" "-m32" "-O0"))
                         (expand-arithmatic-op-dir "field-increment.c"))))
     (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
-    (is (stmt-with-text obj "t.x = t.x + 1" :no-error))))
+    (is (stmt-with-text obj "t.x = t.x + 1" :no-error t))))
 
 (deftest expand-arithmatic-op-works-field-decrement ()
   (let ((obj (from-file (make-instance 'clang
@@ -6235,7 +6286,7 @@ Useful for printing or returning differences in the REPL."
                           :flags '("-g" "-m32" "-O0"))
                         (expand-arithmatic-op-dir "field-decrement.c"))))
     (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
-    (is (stmt-with-text obj "t.x = t.x - 1" :no-error))))
+    (is (stmt-with-text obj "t.x = t.x - 1" :no-error t))))
 
 (deftest expand-arithmatic-op-works-class-member-increment ()
   (let ((obj (nest (from-file (make-instance 'clang
@@ -6243,7 +6294,7 @@ Useful for printing or returning differences in the REPL."
                                 :flags '("-g" "-m32" "-O0")))
                    (expand-arithmatic-op-dir "class-member-increment.cpp"))))
     (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
-    (is (stmt-with-text obj "x = x + 1" :no-error))))
+    (is (stmt-with-text obj "x = x + 1" :no-error t))))
 
 (deftest expand-arithmatic-op-works-class-member-decrement ()
   (let ((obj (nest (from-file (make-instance 'clang
@@ -6251,7 +6302,7 @@ Useful for printing or returning differences in the REPL."
                                 :flags '("-g" "-m32" "-O0")))
                    (expand-arithmatic-op-dir "class-member-decrement.cpp"))))
     (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
-    (is (stmt-with-text obj "x = x - 1" :no-error))))
+    (is (stmt-with-text obj "x = x - 1" :no-error t))))
 
 
 ;;;; Adaptive-mutation tests.
@@ -6428,7 +6479,7 @@ Useful for printing or returning differences in the REPL."
             (position (function-body *gcd* (first (functions *gcd*)))
                       (asts *gcd*)
                       :test #'equalp))
-           :no-error))
+           :no-error t))
 
       ;; Instrumented compiles and runs.
       (with-temp-file (bin)
@@ -8586,8 +8637,8 @@ prints unique counters in the trace"
                                `((:splice (:stmt1 . ,location)
                                           (:value1 . ,inserted))))
 
-      (is (not (stmt-with-text *contexts* "int x = 0;" :no-error)))
-      (is (stmt-with-text *contexts* "int x = 1;" :no-error))
+      (is (not (stmt-with-text *contexts* "int x = 0;" :no-error t)))
+      (is (stmt-with-text *contexts* "int x = 1;" :no-error t))
       (is (eq 1
               (->> (stmt-starting-with-text *contexts* "void full_stmt")
                    (function-body *contexts*)
