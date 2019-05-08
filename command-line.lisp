@@ -359,18 +359,9 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
                          language path))
                        (t language)))
            (flags
-            (when (subtypep language 'source)
-              (cond
-                ((and (eql language 'clang) compilation-database)
-                 (compilation-db-entry-flags (first compilation-database)))
-                (flags flags))))
+            (when (subtypep language 'source) flags))
            (compiler
-            (when (subtypep language 'source)
-              (cond
-                ((and (eql language 'clang) compilation-database)
-                 (compilation-db-entry-compiler (first compilation-database)))
-                ((and compiler (eql language 'clang))
-                 compiler))))
+            (when (subtypep language 'source) compiler))
            (compilation-database
             (when (eql language 'clang-project) compilation-database))
            (build-command

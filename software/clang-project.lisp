@@ -26,9 +26,7 @@
 			  :resolve-symlinks
 			  :directory*)
   (:export :clang-project
-           :compilation-database
-           :compilation-db-entry-compiler
-           :compilation-db-entry-flags))
+           :compilation-database))
 (in-package :software-evolution-library/software/clang-project)
 (in-readtable :curry-compose-reader-macros)
 
