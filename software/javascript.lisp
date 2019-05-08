@@ -520,6 +520,7 @@ AST ast to return the scopes for"
                             :forinstatement :forofstatement :blockstatement
                             :breakstatement :continuestatement
                             :expressionstatement
+                            :throwstatement :returnstatement
                             :ifstatement)))
 
 (defun position-after-leading-newline (str)
