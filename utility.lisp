@@ -1136,6 +1136,7 @@ The SHELL command is executed with `*bash-shell*'."
   (mapcar #'(lambda (num) (parse-integer num :radix radix))
           (split-sequence delim string :remove-empty-subseqs t)))
 
+;;; This duplicates the function hu.dwim.utils:string-trim-whitespace
 (defun trim-whitespace (str)
   (string-trim '(#\Space #\Tab #\Newline #\Linefeed)
                str))

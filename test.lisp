@@ -98,9 +98,6 @@
    :appendf :ensure-list :featurep :emptyp
    :if-let :ensure-function :ensure-gethash :copy-file
    :parse-body :simple-style-warning)
-  (:shadowing-import-from
-   :hu.dwim.util
-   :string-trim-whitespace)
   (:export :test :batch-test :testbot-test))
 (in-package :software-evolution-library/test)
 (named-readtables:in-readtable :sel-readtable)
@@ -3775,7 +3772,7 @@ int x = CHARSIZE;")))
 (deftest javascript-can-rebind-vars ()
   (with-fixture fib-javascript
     (is (string= "temp = b;"
-                 (string-trim-whitespace
+                 (trim-whitespace
                   (->> (rebind-vars (stmt-with-text *soft* "temp = a;")
                                     (list (list "a" "b"))
                                     nil)
@@ -3996,6 +3993,16 @@ int x = CHARSIZE;")))
                 "  // foo ")
               nil)
       "position-after-leading-newline on comment"))
+
+(deftest javascript.newline.post-processing.10 ()
+  (is (equalp (sel/sw/javascript::position-after-leading-newline "/")
+              nil)
+      "position-after-leading-newline slash at EOL not a comment"))
+
+(deftest javascript.newline.post-processing.11 ()
+  (is (equalp (sel/sw/javascript::position-after-leading-newline " / ")
+              nil)
+      "position-after-leading-newline slash not at EOL not a comment"))
 
 
 ;;;; Javascript project.
@@ -4616,8 +4623,8 @@ int x = CHARSIZE;")))
 Unless optional argument NO-ERROR is non-nil an error is raised if no
 AST holding STMT is found."
   (when trim
-    (setf text (string-trim-whitespace text)))
-  (or (find-if [{string= text} (if trim #'string-trim-whitespace #'identity)
+    (setf text (trim-whitespace text)))
+  (or (find-if [{string= text} (if trim #'trim-whitespace #'identity)
                 #'peel-bananas #'source-text]
                (asts obj))
       (if no-error
