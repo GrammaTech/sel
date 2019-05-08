@@ -343,7 +343,7 @@ Keyword arguments are as follows:
   COMPILER ------------- compiler for software object
   BUILD-COMMAND -------- shell command to build project directory
   ARTIFACTS ------------ build-command products
-  COMPILATION-DATABASE - path to clang compilation database
+  COMPILATION-DATABASE - clang compilation database
 Other keyword arguments are allowed and are passed through to `make-instance'."
   (when (and store-path (probe-file store-path))
     (return-from create-software (restore store-path)))
@@ -372,9 +372,7 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
                 ((and compiler (eql language 'clang))
                  compiler))))
            (compilation-database
-            (case language
-              (clang nil)
-              (t compilation-database)))
+            (when (eql language 'clang-project) compilation-database))
            (build-command
             (when (subtypep language 'project)
               (let* ((build-command-list (split-sequence #\Space build-command))
