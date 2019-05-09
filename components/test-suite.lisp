@@ -61,7 +61,7 @@ synthesis)."))
 (defmethod print-object ((obj test-suite) stream)
   "Print `test-suite' OBJ to STREAM"
   (print-unreadable-object (obj stream :type t)
-    (format stream "~s" (test-cases obj))))
+    (format stream "~s" (length (test-cases obj)))))
 
 (defmethod print-object ((obj test-case) stream)
   "Print `test-case' OBJ to STREAM"
