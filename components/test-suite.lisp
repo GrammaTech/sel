@@ -226,6 +226,9 @@ Return three values: output printed to standard out, error output, and exit
 status. Th default behavior is simply to run `start-test' and `finish-test'."
   (finish-test (apply #'start-test phenome test-case extra-keys)))
 
+;;; TODO: The following two `evaluate' methods really must be changed
+;;;       to use a different name.  They conflict with the defgeneric
+;;;       for evaluate defined in software-evolution-library.lisp.
 (defmethod evaluate (phenome (obj test-case) &rest extra-keys
 			     &key &allow-other-keys)
    "Run `test-case' OBJ on PHENOME and return a fitness score (as
