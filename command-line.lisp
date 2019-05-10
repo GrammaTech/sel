@@ -68,6 +68,9 @@
            :handle-set-quiet-argument
            :handle-set-verbose-argument
            :handle-trace-file-argument
+           :handle-pop-size-argument
+           :handle-mut-rate-argument
+           :handle-tournament-size-argument
            :resolve-file
            :resolve-out-dir-from-source
            :resolve-name-from-source
@@ -85,7 +88,8 @@
            :+interactive-command-line-options+
            :+clang-command-line-options+
            :+project-command-line-options+
-           :+clang-project-command-line-options+))
+           :+clang-project-command-line-options+
+           :+evolutionary-command-line-options+))
 (in-package :software-evolution-library/command-line)
 (in-readtable :curry-compose-reader-macros)
 
@@ -153,6 +157,29 @@
               (parent-parent-dir)
               "~a does not exist" parent-parent-dir)))
   path)
+
+(defun handle-pop-size-argument (pop-size)
+  ;; Command-line argument handling ensures POP-SIZE is an Int.
+  (setf *max-population-size* (the integer pop-size))
+  (assert (> *max-population-size* 0) (*max-population-size*)
+          "Must supply a positive population size"))
+
+(defun handle-cross-chance-argument (cross-chance)
+  ;; Command-line argument handling ensures CROSS-CHANCE is an int.
+  (setf *cross-chance* (parse-number cross-chance))
+  (assert (and (> *cross-chance* 0) (<= *cross-chance* 1)) (*cross-chance*)
+          "Crossover chance must be between 0 and 1"))
+
+(defun handle-mut-rate-argument (mut-rate)
+  ;; Command-line argument handling ensures MUT-RATE is an int.
+  (setf *mut-rate* (parse-number mut-rate))
+  (assert (> *mut-rate* 0) (*mut-rate*)
+          "Must supply a positive mutation rate"))
+
+(defun handle-tournament-size-argument (tournament-size)
+  (setf *tournament-size* tournament-size)
+  (assert (> *tournament-size* 1) (*tournament-size*)
+          "Tournament size must be >1"))
 
 (defun resolve-file (file)
   "Ensure file is an actual file that exists on the filesystem."
@@ -451,4 +478,21 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
        :documentation "build products")
       (("compilation-database" #\D) :type string
        :action #'read-compilation-database
-       :documentation "path to clang compilation database"))))
+       :documentation "path to clang compilation database")))
+  (defparameter +evolutionary-command-line-options+
+    '((("pop-size") :type integer :initial-value #.(expt 2 8)
+       :action #'handle-pop-size-argument
+       :documentation "size of evolution population (default 2^8)")
+      (("cross-chance") :type string :initial-value "2/3"
+       :action #'handle-cross-chance-argument
+       :documentation "fraction of new individuals crossed over")
+      (("mut-rate") :type string :initial-value "1"
+       :action #'handle-mut-rate-argument
+       :documentation "mutations per evolutionary loop iteration")
+      (("tournament-size") :type integer :initial-value 2
+       :action #'handle-tournament-size-argument
+       :documentation "mutations per evolutionary loop iteration")
+      (("max-evals") :type integer
+       :documentation "maximum number of evaluations to run in evolution")
+      (("max-time") :type integer
+       :documentation "maximum number of seconds to run evolution"))))
