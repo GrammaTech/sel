@@ -7625,7 +7625,16 @@ prints unique counters in the trace"
 (deftest clang-project-compilation-database-flags-test ()
   (is (equal (list "-DDIR='\"/tmp\"'" "-DIN" "\"-D_U_=a\"")
              (sel/sw/clang-project::compilation-db-entry-flags
-               `((:command . "cc -DDIR=\\\"/tmp\\\" -DIN \"-D_U_=a\""))))))
+               `((:command .
+                  "cc -DDIR=\\\"/tmp\\\" -DIN \"-D_U_=a\"")))))
+  (is (equal (list "-DDIR1='\"/tmp1\"'" "-DDIR2='\"/tmp2\"'")
+             (sel/sw/clang-project::compilation-db-entry-flags
+               `((:command .
+                  "cc -DDIR1=\\\"/tmp1\\\" -DDIR2=\\\"/tmp2\\\"")))))
+  (is (equal (list "-DDIR='\"\"'")
+             (sel/sw/clang-project::compilation-db-entry-flags
+               `((:command .
+                  "cc -DDIR=\\\"\\\""))))))
 
 
 ;;;; Tests that require bear.
