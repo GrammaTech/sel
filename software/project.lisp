@@ -210,7 +210,7 @@ non-symlink text files that don't end in \"~\" and are not ignored by
   (ensure-directories-exist (pathname-parent-directory-pathname path))
 
   ;; Copy the project directory to the output path.
-  (unless (equalp path (project-dir project))
+  (unless (equalp path (canonical-pathname (project-dir project)))
     (multiple-value-bind (stdout stderr errno)
          (if (probe-file path) ; Different copy if directory already exists.
              (shell "cp -pr ~a/* ~a/" (project-dir project) path)
