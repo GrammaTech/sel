@@ -7505,8 +7505,10 @@ prints unique counters in the trace"
 (defvar *project*)
 (defixture project
   (:setup
-   (setf *s1* (make-instance 'simple :genome "s1-genome"))
-   (setf *s2* (make-instance 'simple :genome "s2-genome"))
+   (setf *s1* (make-instance 'simple))
+   (setf (lines *s1*) (list "s1-genome"))
+   (setf *s2* (make-instance 'simple))
+   (setf (lines *s2*) (list "s2-genome"))
    (setf *project* (make-instance 'project
                      :evolve-files `(("s1" . ,*s1*)
                                      ("s2" . ,*s2*)))))
@@ -7514,6 +7516,28 @@ prints unique counters in the trace"
 
 (defmethod test-method ((obj simple) value)
   value)
+
+(deftest to-file-fails-with-nil-path ()
+  (with-fixture project
+    (signals error (to-file *project* nil))))
+
+(deftest simple-to-from-file-without-project-dir-works ()
+  (with-fixture project
+    (setf (project-dir *project*) nil)
+    (let ((file (temp-file-name)))
+      (with-temp-dir (file)
+           (progn
+             (to-file *project* file)
+             (is (member :user-read (file-permissions file)))
+             (is (member :user-write (file-permissions file)))
+             (let ((s1-2 (from-file (make-instance 'simple)
+                                     (make-pathname :name "s1"
+                                                    :directory file)))
+                   (s2-2 (from-file (make-instance 'simple)
+                                     (make-pathname :name "s2"
+                                                    :directory file))))
+               (is (equalp (genome *s1*) (genome s1-2)))
+               (is (equalp (genome *s2*) (genome s2-2)))))))))
 
 (deftest ignored-paths-are-ignored ()
   (is (sel/sw/project::ignored-path-p
@@ -7559,6 +7583,7 @@ prints unique counters in the trace"
    (with-fixture grep-project)
    (with-temp-file (dir-path))
    (let ((dir (pathname-directory (pathname-as-directory dir-path))))
+     (is (project-dir *project*))
      (to-file *project* dir-path)
      (is (member :user-exec
                  (file-permissions
@@ -7578,7 +7603,9 @@ prints unique counters in the trace"
                      (mapcar #'car (other-files *project*)) :test #'equalp)))
     (is (equal (namestring (make-pathname :directory +grep-prj-dir+))
                (second (member "-I" (flags (cdr (car (evolve-files *project*))))
-                               :test #'equal))))))
+                               :test #'equal))))
+    (is (equal (namestring (make-pathname :directory +grep-prj-dir+))
+               (namestring (project-dir *project*))))))
 
 (deftest (apply-mutations-to-project-unique-test :long-running) ()
   (with-fixture clang-project
