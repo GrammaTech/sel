@@ -203,6 +203,8 @@ non-symlink text files that don't end in \"~\" and are not ignored by
   obj)
 
 (defmethod to-file ((project project) path)
+  (assert path (path) "Destination path may not be nil")
+
   ;; Ensure path is a canonical directory path.
   (setf path (canonical-pathname (ensure-directory-pathname path)))
 
@@ -210,11 +212,13 @@ non-symlink text files that don't end in \"~\" and are not ignored by
   (ensure-directories-exist (pathname-parent-directory-pathname path))
 
   ;; Copy the project directory to the output path.
-  (unless (equalp path (canonical-pathname (project-dir project)))
+  (when (and (project-dir project)
+             (probe-file (project-dir project))
+             (not (equalp path (canonical-pathname (project-dir project)))))
     (multiple-value-bind (stdout stderr errno)
-         (if (probe-file path) ; Different copy if directory already exists.
-             (shell "cp -pr ~a/* ~a/" (project-dir project) path)
-             (shell "cp -pr ~a ~a" (project-dir project) path))
+        (if (probe-file path) ; Different copy if directory already exists.
+            (shell "cp -pr ~a/* ~a/" (project-dir project) path)
+            (shell "cp -pr ~a ~a" (project-dir project) path))
       (declare (ignorable stdout))
       (assert (zerop errno) (path)
               "Creation of output directory failed with: ~a" stderr)))
@@ -334,9 +338,11 @@ non-symlink text files that don't end in \"~\" and are not ignored by
     ((obj project) &key
                      (bin (temp-file-name))
                      (build-dir (project-dir obj)))
-  (assert build-dir (obj)
-          "Project ~S requires a project-dir to build a phenome." obj)
-  (let ((keep-file-p (probe-file build-dir)))
+  (let ((keep-file-p (and build-dir (probe-file build-dir))))
+    (unless keep-file-p
+      (warn "No valid build-dir or project-dir specified for project ~S. Using temp directory."
+            obj)
+      (setf build-dir (temp-file-name)))
     ;; Ensure source and required artifacts are present in build-dir.
     (to-file obj build-dir)
     ;; Using `call-next-method' with arguments to ensure build-dir has

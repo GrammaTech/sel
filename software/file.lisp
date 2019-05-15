@@ -71,7 +71,10 @@ modification time when writing OBJ to PATH."
   (setf (file-permissions path) (permissions obj)))
 
 (defmethod to-file :around ((obj file) path)
-  (if (modifiedp obj)
+  ;; Copy from original-path unless obj is modified or original-path is invalid
+  (if (or (modifiedp obj)
+          (not (original-path obj))
+          (not (probe-file (original-path obj))))
       (call-next-method)
       (unless (equalp (canonical-pathname (original-path obj))
                       (canonical-pathname path))
