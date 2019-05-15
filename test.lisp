@@ -7456,6 +7456,56 @@ prints unique counters in the trace"
     (is (equal "" stderr))
     (is (zerop errno))))
 
+(deftest read-and-write-shell-files ()
+  (let ((test-string "Hello world. Hello world. Hello world."))
+    (is (nest
+         (string= test-string)
+         ;; NOTE: Give it 10 tries to account for rare stochastic
+         ;; end-of-file errors in which I think we're going from
+         ;; writing to reading too quickly for the file system.
+         (iter (as count upfrom 0)
+               (handler-case
+                   (with-temp-file (temp.xz)
+                     (write-shell-file (out temp.xz "xz")
+                       (write-line test-string out))
+                     (return (read-shell-file (in temp.xz "xzcat")
+                               (read-line in))))
+                 (error (c) (declare (ignorable c)) nil))
+               (when (> count 10) (return nil)))))))
+
+(deftest read-and-write-bytes-shell-files ()
+  (let ((byte #x25))
+    (is (nest
+         (= byte)
+         ;; NOTE: see note in `read-and-write-shell-files'
+         (iter (as count upfrom 0)
+               (handler-case
+                   (with-temp-file (temp.xz)
+                     (write-shell-file (out temp.xz "xz")
+                       (write-byte byte out))
+                     (return
+                       (read-shell-file (in temp.xz "xzcat")
+                         (read-byte in))))
+                 (error (c) (declare (ignorable c)) nil))
+               (when (> count 10) (return nil)))))))
+
+(deftest cl-store-read-and-write-shell-files ()
+  (let ((it (make-instance 'software :fitness 37)))
+    (is (nest
+         (= (fitness it))
+         (fitness)
+         ;; NOTE: see note in `read-and-write-shell-files'
+         (iter (as count upfrom 0)
+               (handler-case
+                   (with-temp-file (temp.xz)
+                     (write-shell-file (out temp.xz "xz")
+                       (store it out))
+                     (return
+                       (read-shell-file (in temp.xz "xzcat")
+                         (restore in))))
+                 (error (c) (declare (ignorable c)) nil))
+               (when (> count 10) (return nil)))))))
+
 
 ;;;; Command-line tests.
 (defsuite command-line-tests "Command line tests")
