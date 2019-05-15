@@ -68,6 +68,10 @@ permissions and modification time when creating OBJ."
 modification time when writing OBJ to PATH."
   (when (modification-time obj)
     (shell "touch -t ~a ~a" (modification-time obj) path))
+  (unless (permissions obj)
+    (warn "No permissions set for file ~S, using u+rw" obj)
+    (setf (permissions obj)
+          (list :user-read :user-write)))
   (setf (file-permissions path) (permissions obj)))
 
 (defmethod to-file :around ((obj file) path)
