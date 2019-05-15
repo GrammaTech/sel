@@ -266,6 +266,9 @@ expanded relative to DIR.
 * DIR base directory for all relative paths
 * FLAGS list of compiler flags
 "
+  (when (pathnamep dir)
+    (setf dir (namestring (make-pathname :defaults dir
+                                         :name nil :type nil))))
   (labels ((split-flags (flags)
              (nest (remove-if #'emptyp)
                    (mappend (lambda (flag) ; Split leading "L".
