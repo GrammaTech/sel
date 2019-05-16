@@ -7476,7 +7476,7 @@ prints unique counters in the trace"
 (deftest read-and-write-bytes-shell-files ()
   (let ((byte #x25))
     (is (nest
-         (= byte)
+         (equal byte)
          ;; NOTE: see note in `read-and-write-shell-files'
          (iter (as count upfrom 0)
                (handler-case
@@ -7574,20 +7574,19 @@ prints unique counters in the trace"
 (deftest simple-to-from-file-without-project-dir-works ()
   (with-fixture project
     (setf (project-dir *project*) nil)
-    (let ((file (temp-file-name)))
-      (with-temp-dir (file)
-           (progn
-             (to-file *project* file)
-             (is (member :user-read (file-permissions file)))
-             (is (member :user-write (file-permissions file)))
-             (let ((s1-2 (from-file (make-instance 'simple)
-                                     (make-pathname :name "s1"
-                                                    :directory file)))
-                   (s2-2 (from-file (make-instance 'simple)
-                                     (make-pathname :name "s2"
-                                                    :directory file))))
-               (is (equalp (genome *s1*) (genome s1-2)))
-               (is (equalp (genome *s2*) (genome s2-2)))))))))
+    (with-temp-dir (file)
+      (progn
+        (to-file *project* file)
+        (is (member :user-read (file-permissions file)))
+        (is (member :user-write (file-permissions file)))
+        (let ((s1-2 (from-file (make-instance 'simple)
+                               (make-pathname :name "s1"
+                                              :directory file)))
+              (s2-2 (from-file (make-instance 'simple)
+                               (make-pathname :name "s2"
+                                              :directory file))))
+          (is (equalp (genome *s1*) (genome s1-2)))
+          (is (equalp (genome *s2*) (genome s2-2))))))))
 
 (deftest ignored-paths-are-ignored ()
   (is (sel/sw/project::ignored-path-p
