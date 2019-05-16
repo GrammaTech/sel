@@ -27,7 +27,8 @@
    :cl-ppcre
    :cl-store
    :cl-dot
-   :diff)
+   :diff
+   :flexi-streams)
   (:shadow :read)
   (:import-from :cffi
                 :defcstruct
@@ -130,10 +131,10 @@
    :ignore-shell-error
    :shell-command-failed
    :shell
+   :write-shell
+   :read-shell
    :write-shell-file
    :read-shell-file
-   :*bash-shell*
-   :read-shell
    :xz-pipe
    :parse-number
    :parse-numbers
@@ -922,9 +923,10 @@ If CHILDREN is T, also kill all processes below PROCESS."))
 ;;; variable which may be set to non-nil to dump all system and shell
 ;;; executions and results for diagnostics.
 ;;;
-;;; The `write-shell-file', `read-shell-file' and `xz-pipe' functions
-;;; provide for running shell commands and common lisp streams of
-;;; text (in some cases flowing from or into files on disk).
+;;; The `write-shell', `read-shell', `write-shell-file',
+;;; `read-shell-file' and `xz-pipe' functions provide for running
+;;; shell commands and common lisp streams (in some cases flowing from
+;;; or into files on disk).
 ;;;
 ;;;@texi{shell}
 (defvar *shell-debug* nil
@@ -1028,83 +1030,45 @@ Optionally print debug information if `*shell-debug*' is non-nil."
           (ignore-shell-error () "Ignore error and continue")))
       (values stdout-str stderr-str errno))))
 
-(defmacro write-shell-file
-    ((stream-var file shell &optional args) &rest body)
-  "Executes BODY with STREAM-VAR passing through SHELL to FILE."
+(defmacro io-shell ((io stream-var shell &rest args) &rest body)
+  "Executes BODY with STREAM-VAR holding the input or output of SHELL.
+ARGS (including keyword arguments) are passed through to `uiop:launch-program'."
+  (assert (member io '(:input :output)) (io)
+          "first argument ~a to `io-shell' is not one of :INPUT or :OUTPUT" io)
   (let ((proc-sym (gensym)))
-    `(let* ((,proc-sym
-             #+sbcl (sb-ext:run-program ,shell ,args :search t
-                                        :output ,file
-                                        :input :stream
-                                        :wait nil)
-             #+ccl (ccl:run-program ,shell ,args :output ,file
-                                    :input :stream
-                                    :wait nil)
-             #+ecl (ext:run-program ,shell ,args :output ,file
-                                    :input :stream
-                                    :wait nil)
-             #-(or sbcl ccl ecl)
-             (error
-              "`WRITE-SHELL-FILE' only implemented for SBCL, CCL, and ECL.")))
-       (unwind-protect
-            (with-open-stream
-                (,stream-var #+sbcl (sb-ext:process-input ,proc-sym)
-                             #+ccl (ccl:external-process-input-stream ,proc-sym)
-                             #+ecl (ext:external-process-input ,proc-sym)
-                             #-(or sbcl ccl ecl)
-                             (error "Only SBCL, CCL or ECL."))
-              ,@body)))))
-
-(defmacro read-shell-file
-    ((stream-var file shell &optional args) &rest body)
-  "Executes BODY with STREAM-VAR passing through SHELL from FILE."
-  #+(or sbcl ccl ecl)
-  (let ((proc-sym (gensym)))
-    `(let* ((,proc-sym
-             #+sbcl (sb-ext:run-program ,shell ,args :search t
-                                        :output :stream
-                                        :input ,file
-                                        :wait nil)
-             #+ccl (ccl:run-program ,shell ,args :output :stream
-                                    :input ,file
-                                    :wait nil)
-             #+ecl (ext:run-program ,shell ,args :output :stream
-                                    :input ,file
-                                    :wait nil)
-             #-(or sbcl ccl ecl)
-             (error
-              "`READ-SHELL-FILE' only implemented for SBCL, CCL or ECL.")))
-       (unwind-protect
-            (with-open-stream
-                (,stream-var
-                 #+sbcl (sb-ext:process-output ,proc-sym)
-                 #+ccl (ccl:external-process-output-stream ,proc-sym)
-                 #+ecl (ext:external-process-output ,proc-sym)
-                 #-(or sbcl ccl ecl) (error "Only SBCL or CCL."))
-              ,@body)))))
-
-(defvar *bash-shell* "/bin/bash"
-  "Bash shell for use in `read-shell'.")
-
-#+sbcl
-(defmacro read-shell ((stream-var shell) &rest body)
-  "Executes BODY with STREAM-VAR holding the output of SHELL.
-The SHELL command is executed with `*bash-shell*'."
-  (let ((proc-sym (gensym)))
-    `(let* ((,proc-sym (sb-ext:run-program *bash-shell*
-                                           (list "-c" ,shell) :search t
-                                           :output :stream
-                                           :wait nil)))
-       (with-open-stream (,stream-var (sb-ext:process-output ,proc-sym))
+    `(let* ((,proc-sym (uiop:launch-program ,shell ,@args
+                                            ,io :stream
+                                            :wait nil
+                                            :element-type '(unsigned-byte 8))))
+       (with-open-stream
+           (,stream-var (make-flexi-stream
+                         ,(ecase io
+                            (:input `(process-info-input ,proc-sym))
+                            (:output `(process-info-output ,proc-sym)))))
          ,@body))))
 
-#-sbcl
-(defmacro read-shell (&rest args)
-  (declare (ignorable args))
-  (error "`READ-SHELL' unimplemented for non-SBCL lisps."))
+(defmacro write-shell ((stream-var shell &rest args) &rest body)
+  "Executes BODY with STREAM-VAR passing the input to SHELL.
+ARGS (including keyword arguments) are passed through to `uiop:launch-program'."
+  `(io-shell (:input ,stream-var ,shell ,@args) ,@body))
+
+(defmacro read-shell ((stream-var shell &rest args) &rest body)
+  "Executes BODY with STREAM-VAR holding the output of SHELL.
+ARGS (including keyword arguments) are passed through to `uiop:launch-program'."
+  `(io-shell (:output ,stream-var ,shell ,@args) ,@body))
+
+(defmacro write-shell-file ((stream-var file shell &rest args) &rest body)
+  "Executes BODY with STREAM-VAR passing through SHELL to FILE.
+ARGS (including keyword arguments) are passed through to `uiop:launch-program'."
+  `(io-shell (:input ,stream-var ,shell ,@args :output ,file) ,@body))
+
+(defmacro read-shell-file ((stream-var file shell &rest args) &rest body)
+  "Executes BODY with STREAM-VAR passing through SHELL from FILE.
+ARGS (including keyword arguments) are passed through to `uiop:launch-program'"
+  `(io-shell (:output ,stream-var ,shell ,@args :input ,file) ,@body))
 
 (defmacro xz-pipe ((in-stream in-file) (out-stream out-file) &rest body)
-  "Executes BODY with IN-STREAM and OUT-STREAM read/writing data from xz files."
+  "Execute BODY with IN-STREAM and OUT-STREAM read/writing data from xz files."
   `(read-shell-file (,in-stream ,in-file "unxz")
      (write-shell-file (,out-stream ,out-file "xz")
        ,@body)))
