@@ -1376,20 +1376,19 @@
   (with-fixture gcd-asm
     (let ((orig-hash (sxhash (genome *gcd*)))
           (ant (copy *gcd*)))
-      ;; Multiple tries to apply a mutation creating a difference.
-      ;; Stochastically some might result in the same genome, e.g. by
-      ;; swapping to identical instructions.
-      (is (iter (as count upfrom 0)
-                (handler-bind
-                    ((no-mutation-targets
-                      (lambda (c)
-                        (declare (ignorable c))
-                        (invoke-restart 'try-another-mutation))))
-                  (mutate ant))
-                (when (not (equal-it (genome ant) (genome *gcd*)))
-                  (return t))
-                (when (> count 100)
-                  (return nil)))
+      (is (with-retries (100)
+            ;; Multiple tries to apply a mutation creating a
+            ;; difference.  Stochastically some might result in the
+            ;; same genome, e.g. by swapping to identical
+            ;; instructions.
+            (handler-bind
+                ((no-mutation-targets
+                  (lambda (c)
+                    (declare (ignorable c))
+                    (invoke-restart 'try-another-mutation))))
+              (mutate ant))
+            (when (not (equal-it (genome ant) (genome *gcd*)))
+              (return t)))
           "In 100 tries, a mutation results in a different mutated genome.")
       (is (equal orig-hash (sxhash (genome *gcd*)))))))
 
@@ -1604,20 +1603,18 @@
 (defun edit-of-asm-heap-copy-does-not-change-original ()
   (let ((orig-hash (sxhash (genome *gcd*)))
 	(variant (copy *gcd*)))
-    ;; Multiple tries to apply a mutation creating a difference.
-    ;; Stochastically some might result in the same genome, e.g. by
-    ;; swapping to identical instructions.
-    (is (iter (as count upfrom 0)
-	      (handler-bind
-		  ((no-mutation-targets
-		    (lambda (c)
-		      (declare (ignorable c))
-		      (invoke-restart 'try-another-mutation))))
-		(mutate variant))
-	      (when (not (equal-it (genome variant) (genome *gcd*)))
-		(return t))
-	      (when (> count 100)
-		(return nil)))
+    (is (with-retries (100)
+          ;; Multiple tries to apply a mutation creating a difference.
+          ;; Stochastically some might result in the same genome,
+          ;; e.g. by swapping to identical instructions.
+          (handler-bind
+              ((no-mutation-targets
+                (lambda (c)
+                  (declare (ignorable c))
+                  (invoke-restart 'try-another-mutation))))
+            (mutate variant))
+          (when (not (equal-it (genome variant) (genome *gcd*)))
+            (return t)))
 	"In 100 tries, a mutation results in a different mutated genome.")
     (is (equal orig-hash (sxhash (genome *gcd*))))))
 
@@ -1950,13 +1947,11 @@
 ;; simple test to see if the whole file parsed correctly
 (deftest (task-runner-1 :long-running) ( )
   (let (length)
-    (is (iter (as count upfrom 0)
-              (with-fixture task-runner
-                (setf length (length (task-runner-results (first *soft*)))))
-              (when (= length 20)
-                (return t))
-              (when (> count 100)
-                (return nil))))))
+    (is (with-retries (100)
+          (with-fixture task-runner
+            (setf length (length (task-runner-results (first *soft*)))))
+          (when (= length 20)
+            (return t))))))
 
 (deftest (task-runner-2 :long-running) ()
   (with-fixture task-runner
@@ -4296,19 +4291,17 @@ int x = CHARSIZE;")))
       (let (variant op)
         ;; Multiple tries to get around stochastic failures.
         ;; The mutation may make random choices which fail the test.
-        (is (iter (as count upfrom 0)
-                  (setf variant (copy *hello-world*))
-                  (setf op (make-instance 'swap-and-cut :object variant))
-                  (apply-mutation variant op)
-                  (when (and (different-asts (asts variant)
-                                             (asts *hello-world*))
-                             (not (equal (genome variant)
-                                         (genome *hello-world*)))
-                             (< (size variant)
-                                (size *hello-world*)))
-                    (return t))
-                  (when (> count 100)
-                    (return nil))))))))
+        (is (with-retries (100)
+              (setf variant (copy *hello-world*))
+              (setf op (make-instance 'swap-and-cut :object variant))
+              (apply-mutation variant op)
+              (when (and (different-asts (asts variant)
+                                         (asts *hello-world*))
+                         (not (equal (genome variant)
+                                     (genome *hello-world*)))
+                         (< (size variant)
+                            (size *hello-world*)))
+                (return t))))))))
 
 
 ;;;; Ancestry tests.
@@ -4643,19 +4636,18 @@ AST holding STMT is found."
 
 (deftest (swap-can-recontextualize :long-running) ()
   (with-fixture huf-clang
-    ;; NOTE: Without the retries recontectualization can fail
-    ;;       stochastically, not all possible rebinding variables
-    ;;       work.
-    ;;
-    ;; TODO: Refine recontextualization with type information so that
-    ;;       this *always* works.
     (let ((mut (make-instance 'clang-swap :targets
                               (list (cons :stmt1 (stmt-with-text *huf* "n > 0"))
                                     (cons :stmt2 (stmt-with-text *huf* "bc=0;"))))))
-      (is (iter (for var = (apply-mutation (copy *huf*) mut))
-                (as count upfrom 0)
-                (when (phenome-p var) (return t))
-                (when (> count 100) (return nil)))
+      (is (with-retries (100)
+            ;; NOTE: Without the retries recontectualization can fail
+            ;;       stochastically, not all possible rebinding
+            ;;       variables work.
+            ;;
+            ;; TODO: Refine recontextualization with type information
+            ;;       so that this *always* works.
+            (for var = (apply-mutation (copy *huf*) mut))
+            (when (phenome-p var) (return t)))
           "Is able to rebind successfully with 100 tries"))))
 
 (defun diff-strings (original modified diff-region)
@@ -5888,24 +5880,23 @@ Useful for printing or returning differences in the REPL."
            (a-stmt2 (stmt-with-text *scopes* "return a + b + c;"))
            (b-stmt1 a-stmt1)
            (b-stmt2 a-stmt2))
-      ;; NOTE: Without the retries recontectualization can fail
-      ;;       stochastically, not all possible rebinding variables
-      ;;       work.
-      ;;
-      ;; TODO: Refine recontextualization with type information so
-      ;;       that this *always* works.
-      (is (iter (for (values variant a-pts b-pts ok effective-a-pts) =
-                     (intraprocedural-2pt-crossover *scopes* *scopes*
-                                                    a-stmt1 a-stmt2
-                                                    b-stmt1 b-stmt2))
-                (as count upfrom 0)
-                (declare (ignorable a-pts b-pts effective-a-pts))
-                (when (and ok
-                           (phenome-p variant)
-                           (= (length (asts *scopes*))
-                              (length (asts variant))))
-                  (return t))
-                (when (> count 100) (return nil)))
+      (is (with-retries (100)
+            ;; NOTE: Without the retries recontectualization can fail
+            ;;       stochastically, not all possible rebinding
+            ;;       variables work.
+            ;;
+            ;; TODO: Refine recontextualization with type information
+            ;;       so that this *always* works.
+            (for (values variant a-pts b-pts ok effective-a-pts) =
+                 (intraprocedural-2pt-crossover *scopes* *scopes*
+                                                a-stmt1 a-stmt2
+                                                b-stmt1 b-stmt2))
+            (declare (ignorable a-pts b-pts effective-a-pts))
+            (when (and ok
+                       (phenome-p variant)
+                       (= (length (asts *scopes*))
+                          (length (asts variant))))
+              (return t)))
           "Able to crossover entire text of a function with 100 tries."))))
 
 (deftest (crossover-a-single-statement-the-first :long-running) ()
@@ -5986,24 +5977,23 @@ Useful for printing or returning differences in the REPL."
                                              "for (b = 2;"))
            (b-stmt1 a-stmt1)
            (b-stmt2 a-stmt2))
-      ;; NOTE: Without the retries recontectualization can fail
-      ;;       stochastically, not all possible rebinding variables
-      ;;       work.
-      ;;
-      ;; TODO: Refine recontextualization with type information so
-      ;;       that this *always* works.
-      (is (iter (for (values variant a-pts b-pts ok effective-a-pts) =
-                     (intraprocedural-2pt-crossover *scopes* *scopes*
-                                                    a-stmt1 a-stmt2
-                                                    b-stmt1 b-stmt2))
-                (as count upfrom 0)
-                (declare (ignorable a-pts b-pts effective-a-pts))
-                (when (and ok
-                           (phenome-p variant)
-                           (= (length (asts *scopes*))
-                              (length (asts variant))))
-                  (return t))
-                (when (> count 100) (return nil)))
+      (is (with-retries (100)
+            ;; NOTE: Without the retries recontectualization can fail
+            ;;       stochastically, not all possible rebinding
+            ;;       variables work.
+            ;;
+            ;; TODO: Refine recontextualization with type information
+            ;;       so that this *always* works.
+            (for (values variant a-pts b-pts ok effective-a-pts) =
+                 (intraprocedural-2pt-crossover *scopes* *scopes*
+                                                a-stmt1 a-stmt2
+                                                b-stmt1 b-stmt2))
+            (declare (ignorable a-pts b-pts effective-a-pts))
+            (when (and ok
+                       (phenome-p variant)
+                       (= (length (asts *scopes*))
+                          (length (asts variant))))
+              (return t)))
           "Able to crossover a statement and a ancestor with 100 tries."))))
 
 (deftest (crossover-a-statement-with-multiple-statements :long-running) ()
@@ -7460,51 +7450,48 @@ prints unique counters in the trace"
   (let ((test-string "Hello world. Hello world. Hello world."))
     (is (nest
          (string= test-string)
+         (with-retries (10))
          ;; NOTE: Give it 10 tries to account for rare stochastic
          ;; end-of-file errors in which I think we're going from
          ;; writing to reading too quickly for the file system.
-         (iter (as count upfrom 0)
-               (handler-case
-                   (with-temp-file (temp.xz)
-                     (write-shell-file (out temp.xz "xz")
-                       (write-line test-string out))
-                     (return (read-shell-file (in temp.xz "xzcat")
-                               (read-line in))))
-                 (error (c) (declare (ignorable c)) nil))
-               (when (> count 10) (return nil)))))))
+         (handler-case
+             (with-temp-file (temp.xz)
+               (write-shell-file (out temp.xz "xz")
+                 (write-line test-string out))
+               (return (read-shell-file (in temp.xz "xzcat")
+                         (read-line in))))
+           (error (c) (declare (ignorable c)) nil))))))
 
 (deftest read-and-write-bytes-shell-files ()
   (let ((byte #x25))
     (is (nest
          (equal byte)
+         (with-retries (10))
          ;; NOTE: see note in `read-and-write-shell-files'
-         (iter (as count upfrom 0)
-               (handler-case
-                   (with-temp-file (temp.xz)
-                     (write-shell-file (out temp.xz "xz")
-                       (write-byte byte out))
-                     (return
-                       (read-shell-file (in temp.xz "xzcat")
-                         (read-byte in))))
-                 (error (c) (declare (ignorable c)) nil))
-               (when (> count 10) (return nil)))))))
+         (handler-case
+             (with-temp-file (temp.xz)
+               (write-shell-file (out temp.xz "xz")
+                 (write-byte byte out))
+               (return
+                 (read-shell-file (in temp.xz "xzcat")
+                   (read-byte in))))
+           (error (c) (declare (ignorable c)) nil))))))
 
 (deftest cl-store-read-and-write-shell-files ()
   (let ((it (make-instance 'software :fitness 37)))
     (is (nest
          (= (fitness it))
          (fitness)
+         (with-retries (10))
          ;; NOTE: see note in `read-and-write-shell-files'
-         (iter (as count upfrom 0)
-               (handler-case
-                   (with-temp-file (temp.xz)
-                     (write-shell-file (out temp.xz "xz")
-                       (store it out))
-                     (return
-                       (read-shell-file (in temp.xz "xzcat")
-                         (restore in))))
-                 (error (c) (declare (ignorable c)) nil))
-               (when (> count 10) (return nil)))))))
+         (handler-case
+             (with-temp-file (temp.xz)
+               (write-shell-file (out temp.xz "xz")
+                 (store it out))
+               (return
+                 (read-shell-file (in temp.xz "xzcat")
+                   (restore in))))
+           (error (c) (declare (ignorable c)) nil))))))
 
 
 ;;;; Command-line tests.

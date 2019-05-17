@@ -66,7 +66,8 @@
            :*debug-on-unexpected-error*
            :*debug-on-assertion-failure*
 	   :long-running-p
-	   :long-running))
+	   :long-running
+           :with-retries))
 
 (in-package :sel/stefil+)
 
@@ -271,3 +272,12 @@ long-running."
 		 (equalp x '(declare (sel/stefil+::long-running t)))))
 	  (stefil::declarations-of test-obj))
 	 t)))
+
+(defmacro with-retries ((number &optional failure) &body body)
+  "Try BODY NUMBER times.  If no try returns then return FAILURE.
+Body is executed inside of an `iter' form, so iteration forms may be
+present."
+  (with-gensyms (count)
+    `(iter (as ,count upfrom 0)
+           ,@body
+           (when (> ,count ,number) (return ,failure)))))
