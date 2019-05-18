@@ -258,7 +258,8 @@
            :leaf-functions
            :parse-sanity-file
            :*optimize-included-lines*
-           :*inline-included-lines*))
+           :*inline-included-lines*
+           :*size-affects-fitness*))
 
 (in-package :software-evolution-library/software/asm-super-mutant)
 (in-readtable :curry-compose-reader-macros)
@@ -499,6 +500,8 @@
 	(trim-whitespace line))))  ;; returns nil if end-of-file
 
 (defparameter *fitness-harness* "./asm-super-mutant-fitness.c")
+
+(defparameter *size-affects-fitness* nil)
 
 ;;;
 ;;; The string argument should consist only of hex digits (at least in the first
@@ -1716,6 +1719,12 @@ needs to have been loaded, along with the var-table by PARSE-SANITY-FILE."
 	      (let ((variant-results
 		     (subseq test-results
 			     (* i num-tests) (* (+ i 1) num-tests))))
+                (if *size-affects-fitness*
+                    (setf variant-results
+                          (concatenate 'vector
+                                       variant-results
+                                       (vector
+                                        (size (elt (mutants asm-super) i))))))
 		(setf (fitness (elt (mutants asm-super) i))
 		      variant-results)
 		(push variant-results results)))
