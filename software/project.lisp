@@ -21,6 +21,7 @@
    :if-let :ensure-function :ensure-gethash :copy-file
    :parse-body :simple-style-warning)
   (:export :project
+           :*build-dir*
            :build-command
            :artifacts
            :evolve-files
@@ -99,6 +100,17 @@ Paths may contain wildcards.")
    "A project is composed of multiple component software objects.
 E.g., a multi-file C software project may include multiple clang
 software objects in it's `evolve-files'."))
+
+(defvar *build-dir* nil
+  "Directory in which to build projects with `phenome'.
+When non-nil `phenome' builds projects in this directory instead of
+the `project-dir' field of the software object.  Calling `phenome' on
+software objects sharing the same project-dir in multiple threads will
+lead to conflicts.  This may be avoided by giving each thread its own
+build directory.  To do this set *BUILD-DIR* to a different location
+in each thread and then initialize *BUILD-DIR* in each thread by
+calling `{to-file _ *BUILD_DIR*}' against a base software
+object (e.g., the original program).")
 
 (defun ignored-path-p (path &key ignore-paths only-paths
                        &aux (canonical-path (canonical-pathname path)))
@@ -337,7 +349,7 @@ non-symlink text files that don't end in \"~\" and are not ignored by
 (defmethod phenome :around
     ((obj project) &key
                      (bin (temp-file-name))
-                     (build-dir (project-dir obj)))
+                     (build-dir (or *build-dir* (project-dir obj))))
   (let ((keep-file-p (and build-dir (probe-file build-dir))))
     (unless keep-file-p
       (warn "No valid build-dir or project-dir specified for project ~S. Using temp directory."
@@ -353,7 +365,7 @@ non-symlink text files that don't end in \"~\" and are not ignored by
 (defmethod phenome
     ((obj project) &key
                      (bin (temp-file-name))
-                     (build-dir (project-dir obj)))
+                     (build-dir (or *build-dir* (project-dir obj))))
   "Build the software project OBJ and copy build artifact(s) to BIN."
   (multiple-value-bind (stdout stderr exit)
       (shell "cd ~a && ~a" build-dir (build-command obj))
