@@ -328,7 +328,7 @@ imports should be loaded first."
                     (add-coq-string str)))))
         (let ((num-asts (or num-asts (length (unannotated-genome coq)))))
           (iter (for ast in (take num-asts (unannotated-genome coq)))
-                (when (and ast (listp ast))
+                (when ast
                   (when-let ((str (lookup-coq-string ast)))
                     (append ast-ids (add-coq-string str))))
                 (finally (return ast-ids)))))
