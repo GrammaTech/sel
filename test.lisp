@@ -10310,3 +10310,20 @@ int main() { puts(\"~d\"); return 0; }
       (iter (for expected in '("negb" "orb false" "orb true"
                                "orb (negb false)" "orb (negb true)"))
             (is (member expected result2-strs :test #'equal))))))
+
+;;; conflict asts
+(defsuite conflict-ast-tests "Conflict ast tests.")
+
+(deftest conflict-ast.1 ()
+  (let ((c1 (make-instance 'conflict-ast
+                           :child-alist '((1 a) (2 b))
+                           :default-children '(c)))
+        (c2 (make-instance 'conflict-ast
+                           :child-alist '((2 d) (3 e))
+                           :default-children '(f))))
+    (let ((c (combine-conflict-asts c1 c2)))
+      (is (equalp (conflict-ast-child-alist c)
+                  '((1 a f) (2 b d) (3 c e)))
+          "conflict ast alists are merged")
+      (is (equalp (conflict-ast-default-children c) '(c f))
+          "conflict ast defaults are merged"))))

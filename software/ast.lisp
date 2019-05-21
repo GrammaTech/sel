@@ -42,6 +42,11 @@
            :ast-equal-p
            :ast-text
 	   :ast-hash
+           :create-conflict-ast
+           :conflict-ast
+           :conflict-ast-child-alist
+           :conflict-ast-default-children
+           :combine-conflict-asts
            :to-ast
            :ast-later-p
 	   :map-ast
@@ -215,6 +220,57 @@ the ast path and source text.
                     (,(symbol-cat conc-name slot) (ast-node ,obj))))
                slot-names)))))
 
+(defclass conflict-ast ()
+  ((child-alist
+    :accessor conflict-ast-child-alist
+    :initarg :child-alist
+    :initform nil
+    :documentation "Mapping from conflict options to lists of children")
+   (default-children
+    :accessor conflict-ast-default-children
+    :initarg :default-children
+    :initform nil
+    :documentation "Children to use for a key not present in CHILD-ALIST"))
+  (:documentation
+   "Node representing several possibilities for insertion into an AST.
+The mapping from a conflicted AST into a regular AST is as follows: for
+a given conflict key, and for each conflict node, get the list of children
+corresponding to that key (default if the key is not present), and splice
+that list of children in place of the conflict node in its parent's children
+list."))
+
+(defgeneric combine-conflict-asts (ca1 ca2)
+  (:documentation
+   "Merge two conflict ast nodes, combining their alists and default values appropriately"))
+
+(defmethod combine-conflict-asts ((ca1 conflict-ast) (ca2 conflict-ast))
+  (let ((al1 (conflict-ast-child-alist ca1))
+        (al2 (conflict-ast-child-alist ca2))
+        (def1 (conflict-ast-default-children ca1))
+        (def2 (conflict-ast-default-children ca2)))
+    ;; Normalize alists, removing all elements mapping to NIL
+    (setf al1 (remove-if-not #'cdr (copy-alist al1)))
+    (setf al2 (remove-if-not #'cdr (copy-alist al2)))
+    ;; Build combined alist
+    (iter (for p in al1)
+          (let* ((k (car p))
+                 (vals2 (aget k al2)))
+            (if vals2
+                (setf (cdr p) (append (cdr p) vals2))
+                (setf (cdr p) (append (cdr p) def2)))))
+    (let ((al (append al1
+                      (iter (for p in al2)
+                            (let* ((k (car p))
+                                   (vals1 (aget k al1)))
+                              (unless vals1
+                                (collect (cons k (append def1 (cdr p))))))))))
+      (make-instance 'conflict-ast
+                     :child-alist al
+                     :default-children (append def1 def2)))))
+
+;;; There should be functions for stripping conflict nodes out of a tree,
+;;; based on option keys.
+
 (defun to-ast (ast-type spec)
   "Walk a potentially recursive AST SPEC creating an AST-TYPE AST.
 A SPEC should have the form
@@ -347,6 +403,15 @@ replacing the original AST."))
 (defmethod source-text ((str string))
   "Return the source code corresponding to STR."
   str)
+
+(defmethod source-text ((c conflict-ast))
+  (with-output-to-string (s)
+    (format s "{")
+    (iter (for e on (conflict-ast-child-alist c))
+          (format s "~a: " (caar e))
+          (iter (for x in (cdar e)) (format s "~a" (source-text x)))
+          (when (cdr e) (format s "|")))
+    (format s "}")))
 
 (defmethod rebind-vars ((ast string) var-replacements fun-replacements)
   "Replace variable and function references, returning a new AST.
@@ -888,11 +953,3 @@ All list operations are destructive."
                                          (subseq (cadr p) 0 pos)))
               (setf (cdr l) (list (subseq (cadr p) 0 pos))))
           (setf (cadr p) (subseq (cadr p) pos)))))
-
-          
-          
-            
-            
-
-                   
-  
