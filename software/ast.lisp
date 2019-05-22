@@ -83,6 +83,37 @@ the ast path and source text.
 
 (defgeneric ast-class (ast) (:documentation "Class of AST."))
 
+(defun symbol-cat (&rest symbols)
+  "Return a symbol concatenation of SYMBOLS."
+  (intern (string-upcase (mapconcat #'symbol-name symbols "-"))))
+
+(defun symbol-cat-in-package (package &rest symbols)
+  "Return a symbol concatenation of SYMBOLS in PACKAGE."
+  (intern (string-upcase (mapconcat #'symbol-name symbols "-"))
+          package))
+
+(defun get-struct-name (name-and-options)
+  "Given NAME-AND-OPTIONS, return the struct name."
+  (if (listp name-and-options)
+      (car name-and-options)
+      name-and-options))
+
+(defun get-struct-conc-name (name-and-options)
+  "Given NAME-AND-OPTIONS, return the struct conc name."
+  (if (listp name-and-options)
+      (or (second (assoc :conc-name
+                         (cdr name-and-options)))
+          (car name-and-options))
+      name-and-options))
+
+(defun get-struct-slot-names (slot-descriptions)
+  "Given SLOT-DESCRIPTIONS, return the slot names."
+  (mapcar (lambda (slot)
+            (if (listp slot)
+                (car slot)
+                slot))
+          (remove-if #'stringp slot-descriptions)))
+
 (defmacro define-immutable-node-struct (name-and-options &rest slot-descriptions)
   (with-gensyms ((obj obj-))
     (let* ((name (get-struct-name name-and-options))
@@ -299,37 +330,6 @@ to `to-ast`.  E.g.
                                 keys)
                    :children children)))))
     (convert-to-node spec)))
-
-(defun symbol-cat (&rest symbols)
-  "Return a symbol concatenation of SYMBOLS."
-  (intern (string-upcase (mapconcat #'symbol-name symbols "-"))))
-
-(defun symbol-cat-in-package (package &rest symbols)
-  "Return a symbol concatenation of SYMBOLS in PACKAGE."
-  (intern (string-upcase (mapconcat #'symbol-name symbols "-"))
-          package))
-
-(defun get-struct-name (name-and-options)
-  "Given NAME-AND-OPTIONS, return the struct name."
-  (if (listp name-and-options)
-      (car name-and-options)
-      name-and-options))
-
-(defun get-struct-conc-name (name-and-options)
-  "Given NAME-AND-OPTIONS, return the struct conc name."
-  (if (listp name-and-options)
-      (or (second (assoc :conc-name
-                         (cdr name-and-options)))
-          (car name-and-options))
-      name-and-options))
-
-(defun get-struct-slot-names (slot-descriptions)
-  "Given SLOT-DESCRIPTIONS, return the slot names."
-  (mapcar (lambda (slot)
-            (if (listp slot)
-                (car slot)
-                slot))
-          (remove-if #'stringp slot-descriptions)))
 
 
 ;;; Generic functions on ASTs
