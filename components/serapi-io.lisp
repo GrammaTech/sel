@@ -1150,7 +1150,8 @@ BODY - the function body."
                 ,BINDERS
                 ()
               ,BODY
-              (,RETURN-TYPE))))))
+              ,(WHEN RETURN-TYPE
+                 (LIST RETURN-TYPE)))))))
 
 (defun coq-function-definition-p (sexpr &optional function-name)
   "Return T if SEXPR is a Coq VernacDefinition expression.
