@@ -261,9 +261,31 @@ list."
   child-alist    ; Mapping from conflict options to lists of children.
   default-children) ; Children to use for keys not present in CHILD-ALIST.
 
+(defmethod copy
+    ((struct conflict-ast) &key
+                             (path nil path-provided-p)
+                             (node nil node-provided-p)
+                             (children nil children-provided-p)
+                             (stored-hash nil stored-hash-provided-p)
+                             (child-alist nil child-alist-provided-p)
+                             (default-children nil default-children-provided-p))
+  (apply
+   #'make-conflict-ast
+   (append
+    (when path-provided-p (list :path path))
+    (when node-provided-p (list :node node))
+    (when children-provided-p (list :children children))
+    (when stored-hash-provided-p (list :stored-hash stored-hash))
+    (list :child-alist (if child-alist-provided-p
+                           child-alist
+                           (conflict-ast-child-alist struct))
+          :default-children (if default-children-provided-p
+                                default-children
+                                (conflict-ast-default-children struct))))))
+
 (defgeneric combine-conflict-asts (ca1 ca2)
   (:documentation
-   "Merge two conflict ast nodes, combining their alists and default values appropriately"))
+   "Merge conflict ast nodes CA1 and CA2, their alists and default values."))
 
 (defmethod combine-conflict-asts ((ca1 conflict-ast) (ca2 conflict-ast))
   (let ((al1 (copy-alist (conflict-ast-child-alist ca1)))
