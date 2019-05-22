@@ -39,6 +39,7 @@
            :get-vars-in-scope
            :update-asts
            :update-caches
+           :update-paths
            :parse-asts
            :clear-caches
            :update-asts-if-necessary
@@ -285,8 +286,7 @@ applicative AST tree and clear the genome string."
         (slot-value obj 'genome)
         nil))
 
-(defmethod update-paths
-    ((tree ast) &optional path)
+(defmethod update-paths ((tree ast) &optional path)
   "Return TREE with all paths updated to begin at PATH"
   (copy tree
         :path (reverse path)
