@@ -235,13 +235,13 @@ list."
    "Merge two conflict ast nodes, combining their alists and default values appropriately"))
 
 (defmethod combine-conflict-asts ((ca1 conflict-ast) (ca2 conflict-ast))
-  (let ((al1 (conflict-ast-child-alist ca1))
-        (al2 (conflict-ast-child-alist ca2))
+  (let ((al1 (copy-alist (conflict-ast-child-alist ca1)))
+        (al2 (copy-alist (conflict-ast-child-alist ca2)))
         (def1 (conflict-ast-default-children ca1))
         (def2 (conflict-ast-default-children ca2)))
-    ;; Normalize alists, removing all elements mapping to NIL
-    (setf al1 (remove-if-not #'cdr (copy-alist al1)))
-    (setf al2 (remove-if-not #'cdr (copy-alist al2)))
+    ;; Previously we removed alist entries mapping to nil,
+    ;; but this has been removed so even empty lists show up
+    ;; in a merge
     ;; Build combined alist
     (iter (for p in al1)
           (let* ((k (car p))
