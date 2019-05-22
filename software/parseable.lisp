@@ -281,10 +281,9 @@ the NEW ast-root."
 (defmethod (setf ast-root) :after (new (obj parseable))
   "Ensure the AST paths in NEW are correct after modifying the
 applicative AST tree and clear the genome string."
-  (setf (slot-value obj 'ast-root)
-        (update-paths new)
-        (slot-value obj 'genome)
-        nil))
+  (setf (slot-value obj 'ast-root) new
+        (slot-value obj 'genome) nil)
+  (update-paths obj))
 
 (defmethod update-paths ((tree ast) &optional path)
   "Return TREE with all paths updated to begin at PATH"
@@ -295,6 +294,10 @@ applicative AST tree and clear the genome string."
                         (collect (if (subtypep (type-of c) 'ast)
                                      (update-paths c (cons i path))
                                      c)))))
+
+(defmethod update-paths ((obj parseable) &optional path)
+  (prog1 (setf (slot-value obj 'ast-root) (update-paths (ast-root obj) path))
+    (update-caches obj)))
 
 (defmethod ast-root :before ((obj parseable))
   "Ensure the `ast-root' field is set on OBJ prior to access."
@@ -318,8 +321,7 @@ field indicates the object has changed since the last parse."
 
 (defmethod update-asts-if-necessary ((obj parseable))
   "Parse ASTs in obj if the `ast-root' field has not been set.
-* OBJ object to potentially populate with ASTs
-"
+* OBJ object to potentially populate with ASTs"
   (with-slots (ast-root) obj (unless ast-root (update-asts obj))))
 
 ;;; NOTE: The `update-caches' method assumes that the initial
