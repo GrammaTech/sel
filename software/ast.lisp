@@ -42,7 +42,7 @@
            :ast-equal-p
            :ast-text
 	   :ast-hash
-           :create-conflict-ast
+           :make-conflict-ast
            :conflict-ast
            :conflict-ast-child-alist
            :conflict-ast-default-children
@@ -220,24 +220,15 @@ the ast path and source text.
                     (,(symbol-cat conc-name slot) (ast-node ,obj))))
                slot-names)))))
 
-(defclass conflict-ast ()
-  ((child-alist
-    :accessor conflict-ast-child-alist
-    :initarg :child-alist
-    :initform nil
-    :documentation "Mapping from conflict options to lists of children")
-   (default-children
-    :accessor conflict-ast-default-children
-    :initarg :default-children
-    :initform nil
-    :documentation "Children to use for a key not present in CHILD-ALIST"))
-  (:documentation
-   "Node representing several possibilities for insertion into an AST.
+(defstruct (conflict-ast (:include ast))
+  "Node representing several possibilities for insertion into an AST.
 The mapping from a conflicted AST into a regular AST is as follows: for
 a given conflict key, and for each conflict node, get the list of children
 corresponding to that key (default if the key is not present), and splice
 that list of children in place of the conflict node in its parent's children
-list."))
+list."
+  child-alist    ; Mapping from conflict options to lists of children.
+  default-children) ; Children to use for keys not present in CHILD-ALIST.
 
 (defgeneric combine-conflict-asts (ca1 ca2)
   (:documentation
@@ -264,9 +255,9 @@ list."))
                                    (vals1 (aget k al1)))
                               (unless vals1
                                 (collect (cons k (append def1 (cdr p))))))))))
-      (make-instance 'conflict-ast
-                     :child-alist al
-                     :default-children (append def1 def2)))))
+      (make-conflict-ast
+       :child-alist al
+       :default-children (append def1 def2)))))
 
 ;;; There should be functions for stripping conflict nodes out of a tree,
 ;;; based on option keys.

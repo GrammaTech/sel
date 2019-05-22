@@ -10315,12 +10315,12 @@ int main() { puts(\"~d\"); return 0; }
 (defsuite conflict-ast-tests "Conflict ast tests.")
 
 (deftest conflict-ast.1 ()
-  (let ((c1 (make-instance 'conflict-ast
-                           :child-alist '((1 a) (2 b))
-                           :default-children '(c)))
-        (c2 (make-instance 'conflict-ast
-                           :child-alist '((2 d) (3 e))
-                           :default-children '(f))))
+  (let ((c1 (make-conflict-ast
+             :child-alist '((1 a) (2 b))
+             :default-children '(c)))
+        (c2 (make-conflict-ast
+             :child-alist '((2 d) (3 e))
+             :default-children '(f))))
     (let ((c (combine-conflict-asts c1 c2)))
       (is (equalp (conflict-ast-child-alist c)
                   '((1 a f) (2 b d) (3 c e)))
