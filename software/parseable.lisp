@@ -322,21 +322,16 @@ field indicates the object has changed since the last parse."
 "
   (with-slots (ast-root) obj (unless ast-root (update-asts obj))))
 
-;;; NOTE: The `update-caches' method makes some assumptions about the
-;;;       structure of the ASTs.  Namely that the initial top-level
-;;;       AST can be thrown away.  Also, that any AST without any
-;;;       children need not be collected at all.  (Maybe this last one
-;;;       is a proxy for not collecting string asts?)
+;;; NOTE: The `update-caches' method assumes that the initial
+;;;       top-level AST can be thrown away.
 (defgeneric update-caches (software)
   (:documentation "Update cached fields in SOFTWARE.")
   (:method ((obj parseable))
     (labels ((collect-asts (tree)
-               ;; Collect all subtrees
-               (unless (null (ast-children tree))
-                 (cons tree
-                       (iter (for c in (ast-children tree))
-                             (appending (when (subtypep (type-of c) 'ast)
-                                          (collect-asts c))))))))
+               (cons tree
+                     (iter (for c in (ast-children tree))
+                           (appending (when (subtypep (type-of c) 'ast)
+                                        (collect-asts c)))))))
       (setf (slot-value obj 'asts)
             (cdr (collect-asts (ast-root obj)))))))
 
