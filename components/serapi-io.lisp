@@ -754,15 +754,16 @@ Optionally use QTAG to tag the query."))
 COQ-EXPR will be coerced to a string via the `format' ~a directive."
   (let ((response (run-coq-vernacular (format nil "Check ~a." coq-expr)
                                       :qtag qtag)))
-    (if (member #!'Error (coq-message-levels response))
+    (if (member (intern "Error" :sel/cp/serapi-io)
+                (coq-message-levels response))
         (error (make-condition 'serapi-error
                                :text (coq-message-contents response)
                                :serapi *serapi-process*))
         (-<> (coq-message-contents response)
-             (remove #!'Pp_empty <>)
-             (car)
-             (lookup-coq-string <> :input-format #!'CoqPp)
-             (tokenize-coq-type)))))
+          (remove (intern "Pp_empty" :sel/cp/serapi-io) <>)
+          (car)
+          (lookup-coq-string <> :input-format #!'CoqPp)
+          (tokenize-coq-type)))))
 
 (defun find-coq-string-in-objlist (response)
   "For SerAPI response list RESPONSE, return a CoqString answer if there is one.
@@ -1014,9 +1015,9 @@ invoked directly."
   "Wrap Coq variable ID in CRef and either Ident or Qualid tags.
 Use Ident for unqualified names and Qualid for qualified names."
   (let ((quals (reverse (split-sequence #\. (string id)))))
-    (mapc {intern _ :sel/cp/serapi-io} quals)
     (flet ((make-dirpath-ls (quals)
-             (mapcar [{list #!'Id } {find-symbol _  :sel/cp/serapi-io } ]
+             (mapcar [{list (intern "Id" :sel/cp/serapi-io) }
+                      {intern _  :sel/cp/serapi-io } ]
                      (cdr quals))))
       (when (and quals (listp quals))
         (if (= 1 (length quals))
@@ -1025,8 +1026,7 @@ Use Ident for unqualified names and Qualid for qualified names."
              #!`(CRef
                  (Qualid (() (Ser_Qualid
                               (DirPath ,(MAKE-DIRPATH-LS QUALS))
-                              (Id ,(FIND-SYMBOL (CAR QUALS)
-                                                :SEL/CP/SERAPI-IO)))))
+                              (Id ,(INTERN (CAR QUALS) :SEL/CP/SERAPI-IO)))))
                  ())))))))
 
 (defun make-coq-application (fun &rest params)

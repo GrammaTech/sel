@@ -532,12 +532,11 @@ condition."
 (defmethod stmt-range ((obj coq) (function string))
   "Return a list of the indices of the first and last ASTs of FUNCTION in OBJ.
 Assumes FUNCTION is defined in a top-level AST in OBJ."
-  (intern function *package*)
   (when-let ((top-level-pos
               (iter (for defn in (genome obj))
                     (for i upfrom 0)
                     (when-let ((defn-name (coq-definition-ast-p defn)))
-                      (when (eql defn-name (find-symbol function *package*))
+                      (when (eql defn-name (intern function :sel/cp/serapi-io))
                         (collecting i))))))
     (let ((end-prev (tree-size (take (first top-level-pos) (genome obj)))))
       (list (1+ end-prev)
