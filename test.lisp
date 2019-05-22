@@ -9981,37 +9981,39 @@ int main() { puts(\"~d\"); return 0; }
     (is (not (process-running-p serapi)))))
 
 (deftest (with-serapi-creates-new-process :long-running) ()
-  (is (not *serapi-process*))
-  (with-serapi ()
-    ;; locally binds `*serapi-process*'
-    (write-to-serapi *serapi-process*
-                     #!`((Test1 (Query () (Vernac "Print nat.")))))
-    (is (member #!'(Answer Test1 Ack)
-                (read-serapi-response *serapi-process*)
-                :test #'equal)))
+  (let ((*package* (find-package 'sel/cp/serapi-io)))
+    (is (not *serapi-process*))
+    (with-serapi ()
+      ;; locally binds `*serapi-process*'
+      (write-to-serapi *serapi-process*
+                       #!`((Test1 (Query () (Vernac "Print nat.")))))
+      (is (member (mapcar #'intern (list "Answer" "Test1" "Ack"))
+                  (read-serapi-response *serapi-process*)
+                  :test #'equal))))
   ;; `*serapi-process*' goes out of scope at end
   (is (not *serapi-process*)))
 
 (deftest (with-serapi-can-capture-process :long-running) ()
-  (with-fixture serapi
-    (is (process-running-p *serapi-process*))
-    (let ((serproc (make-serapi)))
-      ;; serproc is a different process than *serapi-process*
-      (is (not (eq serproc *serapi-process*)))
-      (with-serapi (serproc)
-        ;; *serapi-process is rebound to serproc inside with-serapi
-        (is (eq serproc *serapi-process*))
-        (write-to-serapi *serapi-process*
-                         #!`((Test1 (Query () (Vernac "Print nat.")))))
-        ;; writing to *serapi-process* also writes to serproc
-        (is (member #!'(Answer Test1 Ack)
-                    (read-serapi-response serproc)
-                    :test #'equal)))
-      ;; serproc isn't killed after with-serapi ends
-      (is (process-running-p serproc))
-      (kill-serapi serproc))
-    ;; *serapi-process isn't killed after with-serapi ends
-    (is (process-running-p *serapi-process*))))
+  (let ((*package* (find-package 'sel/cp/serapi-io)))
+    (with-fixture serapi
+      (is (process-running-p *serapi-process*))
+      (let ((serproc (make-serapi)))
+        ;; serproc is a different process than *serapi-process*
+        (is (not (eq serproc *serapi-process*)))
+        (with-serapi (serproc)
+          ;; *serapi-process is rebound to serproc inside with-serapi
+          (is (eq serproc *serapi-process*))
+          (write-to-serapi *serapi-process*
+                           #!'((Test1 (Query () (Vernac "Print nat.")))))
+          ;; writing to *serapi-process* also writes to serproc
+          (is (member (mapcar #'intern (list "Answer" "Test1" "Ack"))
+                      (read-serapi-response serproc)
+                      :test #'equal)))
+        ;; serproc isn't killed after with-serapi ends
+        (is (process-running-p serproc))
+        (kill-serapi serproc))
+      ;; *serapi-process isn't killed after with-serapi ends
+      (is (process-running-p *serapi-process*)))))
 
 (deftest serapi-special-character-handling ()
   (let* ((src0 "[[\\\"expr\\\" ::== \\\"coords\\\" \\\\n || \\\"coords\\\" \\\\n \\\"expr\\\" <{< fun x _ y => Row x y >}>]] ;;.")
@@ -10031,15 +10033,20 @@ int main() { puts(\"~d\"); return 0; }
                "a /\\\\  b /\\\\n c"))))
 
 (deftest (can-read-write-serapi :long-running) ()
-  (with-fixture serapi
-    ;; write basic "Print nat." query and read response
-    (write-to-serapi *serapi-process*
-                     #!`((TestQ (Query () (Vernac "Print nat.")))))
-    (let ((response (read-serapi-response *serapi-process*)))
-      (is response)
-      (is (= 5 (length response)))
-      (is (member #!'(Answer TestQ Ack) response :test #'equal))
-      (is (member #!'(Answer TestQ Completed) response :test #'equal)))))
+  (let ((*package* (find-package 'sel/cp/serapi-io)))
+    (with-fixture serapi
+      ;; write basic "Print nat." query and read response
+      (write-to-serapi *serapi-process*
+                       #!`((TestQ (Query () (Vernac "Print nat.")))))
+      (let ((response (read-serapi-response *serapi-process*)))
+        (is response)
+        (is (= 5 (length response)))
+        (is (member (mapcar #'intern (list "Answer" "TestQ" "Ack"))
+                    response
+                    :test #'equal))
+        (is (member (mapcar #'intern (list "Answer" "TestQ" "Completed"))
+                    response
+                    :test #'equal))))))
 
 (deftest (can-run-coq-vernacular :long-running) ()
   (with-fixture serapi
@@ -10051,94 +10058,141 @@ int main() { puts(\"~d\"); return 0; }
         (is (equal resp1 resp2))))))
 
 (deftest is-type-works ()
-  (let ((resp1 #!'(Answer TestQ Ack))
-        (resp2 #!'(Feedback ((id 1) (route 0) (contents Processed)))))
-    (is (sel/cp/serapi-io::is-type #!'Answer resp1))
-    (is (sel/cp/serapi-io::is-type #!'Feedback resp2))
-    (is (not (sel/cp/serapi-io::is-type #!'Answer resp2)))
-    (is (not (sel/cp/serapi-io::is-type #!'Feedback resp1)))))
+  (let ((*package* (find-package 'sel/cp/serapi-io)))
+    (let ((resp1 (mapcar #'intern (list "Answer" "TestQ" "Ack")))
+          (resp2 (list (intern "Feedback")
+                       (list (list (intern "id") 1)
+                             (list (intern "route") 0)
+                             (list (intern "contents") (intern "Processed"))))))
+      (is (sel/cp/serapi-io::is-type (intern "Answer") resp1))
+      (is (sel/cp/serapi-io::is-type (intern "Feedback") resp2))
+      (is (not (sel/cp/serapi-io::is-type (intern "Answer") resp2)))
+      (is (not (sel/cp/serapi-io::is-type (intern "Feedback") resp1))))))
 
 (deftest feedback-parsing-works ()
-  (let ((resp1 #!'(Feedback ((id 1) (route 0) (contents Processed))))
-        (resp2 #!'(Answer TestQ Ack)))
-    (is (eql 1 (sel/cp/serapi-io::feedback-id resp1)))
-    (is (eql 0 (sel/cp/serapi-io::feedback-route resp1)))
-    (is (eql #!'Processed (sel/cp/serapi-io::feedback-contents resp1)))
-    (is (not (sel/cp/serapi-io::feedback-id resp2)))
-    (is (not (sel/cp/serapi-io::feedback-route resp2)))
-    (is (not (sel/cp/serapi-io::feedback-contents resp2)))))
+  (let ((*package* (find-package 'sel/cp/serapi-io)))
+    (let ((resp1 (list (intern "Feedback")
+                       (list (list (intern "id") 1)
+                             (list (intern "route") 0)
+                             (list (intern "contents") (intern "Processed")))))
+          (resp2 (mapcar #'intern (list "Answer" "TestQ" "Ack"))))
+      (is (eql 1 (sel/cp/serapi-io::feedback-id resp1)))
+      (is (eql 0 (sel/cp/serapi-io::feedback-route resp1)))
+      (is (eql (intern "Processed")
+               (sel/cp/serapi-io::feedback-contents resp1)))
+      (is (not (sel/cp/serapi-io::feedback-id resp2)))
+      (is (not (sel/cp/serapi-io::feedback-route resp2)))
+      (is (not (sel/cp/serapi-io::feedback-contents resp2))))))
 
 (deftest message-content-works ()
-  (let ((resp1
-         #!'(Feedback
-             ((id 1) (route 0)
-              (contents (Message Notice () (Some (AST (tree)) here))))))
-        (resp2 #!'(Answer TestQ Ack)))
-    (is (equal #!'(Some (AST (tree)) here)
-               (sel/cp/serapi-io::message-content
-                (sel/cp/serapi-io::feedback-contents resp1))))
-    (is (not (sel/cp/serapi-io::message-content
-              (sel/cp/serapi-io::feedback-contents resp2))))))
+  (let ((*package* (find-package 'sel/cp/serapi-io)))
+    (let ((resp1
+            (list (intern "Feedback")
+                  (list (list (intern "id") 1)
+                        (list (intern "route") 0)
+                        (list (intern "contents")
+                              (list (intern "Message")
+                                    (intern "Notice")
+                                    ()
+                                    (list (intern "Some")
+                                          (list (intern "AST")
+                                                (list (intern "tree")))
+                                          (intern "here")))))))
+          (resp2 (mapcar #'intern (list "Answer" "TestQ" "Ack"))))
+      (is (equal (list (intern "Some")
+                       (list (intern "AST")
+                             (list (intern "tree")))
+                       (intern "here"))
+                 (sel/cp/serapi-io::message-content
+                  (sel/cp/serapi-io::feedback-contents resp1))))
+      (is (not (sel/cp/serapi-io::message-content
+                (sel/cp/serapi-io::feedback-contents resp2)))))))
 
 (deftest message-level-works ()
-  (let ((resp1
-         #!'(Feedback
-             ((id 1) (route 0)
-              (contents (Message Notice () (Some (AST (tree)) here))))))
-        (resp2 #!'(Answer TestQ Ack)))
-    (is (eql #!'Notice (sel/cp/serapi-io::message-level
-                        (sel/cp/serapi-io::feedback-contents resp1))))
-    (is (not (sel/cp/serapi-io::message-level
-              (sel/cp/serapi-io::feedback-contents resp2))))))
+  (let ((*package* (find-package 'sel/cp/serapi-io)))
+    (let ((resp1
+            (list (intern "Feedback")
+                  (list (list (intern "id") 1)
+                        (list (intern "route") 0)
+                        (list (intern "contents")
+                              (list (intern "Message")
+                                    (intern "Notice")
+                                    ()
+                                    (list (intern "Some")
+                                          (list (intern "AST")
+                                                (list (intern "tree")))
+                                          (intern "here")))))))
+          (resp2 (mapcar #'intern (list "Answer" "TestQ" "Ack"))))
+      (is (eql (intern "Notice") (sel/cp/serapi-io::message-level
+                                  (sel/cp/serapi-io::feedback-contents resp1))))
+      (is (not (sel/cp/serapi-io::message-level
+                (sel/cp/serapi-io::feedback-contents resp2)))))))
 
 (deftest answer-parsing-works ()
-  (let ((resp1 #!'(Answer TestQ Ack))
-        (resp2 #!'(Feedback ((id 1) (route 0) (contents Processed))))
-        (resp3 #!'(Answer TestQ (ObjList ((CoqAst (NIL more-stuff))))))
-        (resp4 #!'(Answer TestQ
-                   (ObjList ((CoqString "Inductive binop..."))))))
-    ;; verify answer-content
-    (is (equal (list #!'Ack nil (lastcar resp3) (lastcar resp4))
-               (mapcar #'sel/cp/serapi-io::answer-content
-                       (list resp1 resp2 resp3 resp4))))
+  (let ((*package* (find-package 'sel/cp/serapi-io)))
+    (let ((resp1 (mapcar #'intern (list "Answer" "TestQ" "Ack")))
+          (resp2 (list (intern "Feedback")
+                       (list (list (intern "id") 1)
+                             (list (intern "route") 0)
+                             (list (intern "contents") (intern "Processed")))))
+          (resp3 (list (intern "Answer") (intern "TestQ")
+                       (list (intern "ObjList")
+                             (list (list (intern "CoqAst")
+                                         (list NIL (intern "more-stuff")))))))
+          (resp4 (list (intern "Answer") (intern "TestQ")
+                       (list (intern "ObjList")
+                             (list (list (intern "CoqString")
+                                         "Inductive binop..."))))))
+      ;; verify answer-content
+      (is (equal (list (intern "Ack") nil (lastcar resp3) (lastcar resp4))
+                 (mapcar #'sel/cp/serapi-io::answer-content
+                         (list resp1 resp2 resp3 resp4))))
 
-    ;; verify answer-string
-    (is (equal (list nil nil nil)
-               (mapcar [#'sel/cp/serapi-io::answer-string
-                        #'sel/cp/serapi-io::answer-content]
-                       (list resp1 resp2 resp3))))
-    (is (equal "Inductive binop..."
-               (sel/cp/serapi-io::answer-string
-                (sel/cp/serapi-io::answer-content resp4))))
+      ;; verify answer-string
+      (is (equal (list nil nil nil)
+                 (mapcar [#'sel/cp/serapi-io::answer-string
+                          #'sel/cp/serapi-io::answer-content]
+                         (list resp1 resp2 resp3))))
+      (is (equal "Inductive binop..."
+                 (sel/cp/serapi-io::answer-string
+                  (sel/cp/serapi-io::answer-content resp4))))
 
-    ;; verify answer-ast
-    (is (equal (list nil nil nil)
-               (mapcar [#'sel/cp/serapi-io::answer-ast
-                        #'sel/cp/serapi-io::answer-content]
-                       (list resp1 resp2 resp4))))
-    (is (equal #!'(NIL more-stuff)
-               (sel/cp/serapi-io::answer-ast
-                (sel/cp/serapi-io::answer-content resp3))))))
+      ;; verify answer-ast
+      (is (equal (list nil nil nil)
+                 (mapcar [#'sel/cp/serapi-io::answer-ast
+                          #'sel/cp/serapi-io::answer-content]
+                         (list resp1 resp2 resp4))))
+      (is (equal (list NIL (intern "more-stuff"))
+                 (sel/cp/serapi-io::answer-ast
+                  (sel/cp/serapi-io::answer-content resp3)))))))
 
 (deftest end-of-response-parsing-works ()
-  (let ((resp1 #!'(Answer TestQ Completed))
-        (resp2 #!'(Sexplib.Conv.Of_sexp_error (Failure "Failure message")
-                   etc))
-        (resp3 #!'(Answer TestQ Ack)))
-    (is (equal (list t t nil)
-               (mapcar #'is-terminating (list resp1 resp2 resp3))))
-    (is (equal (list nil t nil)
-               (mapcar #'is-error (list resp1 resp2 resp3))))))
+  (let ((*package* (find-package 'sel/cp/serapi-io)))
+    (let ((resp1 (mapcar #'intern (list "Answer" "TestQ" "Completed")))
+          (resp2 (list (intern "Sexplib.Conv.Of_sexp_error")
+                       (list (intern "Failure") "Failure message")
+                       (intern "etc")))
+          (resp3 (mapcar #'intern (list "Answer" "TestQ" "Ack"))))
+      (is (equal (list t t nil)
+                 (mapcar #'is-terminating (list resp1 resp2 resp3))))
+      (is (equal (list nil t nil)
+                 (mapcar #'is-error (list resp1 resp2 resp3)))))))
 
 (deftest added-id-correct ()
-  (let ((resp1 #!'(Answer TestQ (Added 2 () NewTip)))
-        (resp2 #!'(Answer TestQ Ack))
-        (resp3 #!'(Feedback ((id 1) (route 0) (contents Processed)))))
-    (is (equal (list 2 nil nil)
-               (iter (for i in (list resp1 resp2 resp3))
-                     (collecting
-                      (when-let ((content (sel/cp/serapi-io::answer-content i)))
-                        (sel/cp/serapi-io::added-id content))))))))
+  (let ((*package* (find-package 'sel/cp/serapi-io)))
+    (let ((resp1 (list (intern "Answer") (intern "TestQ")
+                       (list (intern "Added") 2 () (intern "NewTip"))))
+          (resp2 (mapcar #'intern (list "Answer" "TestQ" "Ack")))
+          (resp3 (list (intern "Feedback")
+                       (list (list (intern "id") 1)
+                             (list (intern "route") 0)
+                             (list (intern "contents") (intern "Processed"))))))
+      (is (equal (list 2 nil nil)
+                 (iter (for i in (list resp1 resp2 resp3))
+                       (collecting
+                         (when-let ((content
+                                     (sel/cp/serapi-io::answer-content i)))
+                           (sel/cp/serapi-io::added-id content)))))))))
 
 (deftest (can-add-and-lookup-coq-string :long-running) ()
   (with-fixture serapi
@@ -10167,7 +10221,8 @@ int main() { puts(\"~d\"); return 0; }
       (let ((resp1 (read-serapi-response *serapi-process*))
             (resp2 (lookup-coq-pp "test")))
         (is (equal resp2 (coq-message-contents resp1)))
-        (is (some {eql #!'Notice } (coq-message-levels resp1)))))))
+        (is (some {eql (intern "Notice" :sel/cp/serapi-io) }
+                  (coq-message-levels resp1)))))))
 
 (deftest (can-load-coq-file :long-running) ()
   (with-fixture serapi
