@@ -335,8 +335,11 @@ field indicates the object has changed since the last parse."
                (unless (null (ast-children tree))
                  (cons tree
                        (iter (for c in (ast-children tree))
-                             (unless (stringp c)
-                               (appending (collect-asts c))))))))
+                             (appending (cond
+                                          ((subtypep (type-of c) 'ast)
+                                           (collect-asts c))
+                                          ((subtypep (type-of c) 'conflict-ast)
+                                           (list c)))))))))
       (setf (slot-value obj 'asts)
             (cdr (collect-asts (ast-root obj)))))))
 
