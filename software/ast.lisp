@@ -354,7 +354,9 @@ to `to-ast`.  E.g.
                                                  'make ast-type)
                    :node (apply (symbol-cat-in-package (symbol-package ast-type)
                                                        'make ast-type 'node)
-                                :class (intern (symbol-name class))
+                                :class (if (keywordp class)
+                                           class
+                                           (intern (symbol-name class) "KEYWORD"))
                                 keys)
                    :children children)))))
     (convert-to-node spec)))
