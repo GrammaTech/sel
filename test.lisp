@@ -4021,14 +4021,6 @@ int x = CHARSIZE;")))
                      :children (mapcar #'to-js-ast- (cddr tree))))))))
     (update-paths (to-js-ast- tree))))
 
-(defun map-ast (fn ast)
-  (cons (funcall fn ast)
-        (mapcar {map-ast fn} (remove-if-not #'ast-p (ast-children ast)))))
-
-(defun ast->list (ast &aux result)
-  (map-ast (lambda (ast) (push ast result)) ast)
-  (reverse result))
-
 (defvar *asts* nil "Place-holder for ASTs in tests.")
 
 (defixture javascript-ast-w-conflict
@@ -4041,12 +4033,12 @@ int x = CHARSIZE;")))
 (deftest javascript-and-conflict-basic-parseable-ast-functionality ()
   (with-fixture javascript-ast-w-conflict
     (is (javascript-ast-p *asts*))      ; We actually have ASTs.
-    (is (every #'ast-path (cdr (ast->list *asts*)))) ; Non-root asts have paths.
+    (is (every #'ast-path (cdr (ast-to-list *asts*)))) ; Non-root ast have path.
     (is (javascript-ast-p (copy *asts*)))            ; Copy works.
-    (is (< (length (ast->list (replace-nth-child ; Replacement works.
+    (is (< (length (ast-to-list (replace-nth-child ; Replacement works.
                                ;; Note: we do 1 here because 0th is 'top'.
                                (copy *asts*) 1 '())))
-           (length (ast->list *asts*)))))
+           (length (ast-to-list *asts*)))))
   (with-fixture javascript-ast-w-conflict
     ;; Access ASTs.
     (is (string= "top" (get-ast *asts* '(0))))

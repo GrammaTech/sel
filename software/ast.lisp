@@ -54,6 +54,8 @@
            :to-ast
            :ast-later-p
 	   :map-ast
+           :mapc-ast
+           :ast-to-list
 	   :map-ast-strings
 	   :ast-meld-p
 	   :ast-class-meld?
@@ -785,9 +787,8 @@ use carefully.
   (map-ast-strings tree (symbol-function sym)))
 
 ;;; Map over the nodes of an AST
-
 (defgeneric map-ast (tree fn)
-  (:documentation "Apply fn to each node of an AST, in preorder"))
+  (:documentation "Apply FN to each node of AST, in preorder."))
 
 (defmethod map-ast ((tree ast) fn)
   (funcall fn tree)
@@ -796,6 +797,15 @@ use carefully.
   tree)
 
 (defmethod map-ast (tree fn) nil)
+
+(defun mapc-ast (ast fn)
+  "Apply FN to AST collecting the results with `cons'."
+  (cons (funcall fn ast)
+        (mapcar {map-ast fn} (remove-if-not #'ast-p (ast-children ast)))))
+
+(defun ast-to-list (ast &aux result)
+  (map-ast ast (lambda (ast) (push ast result)))
+  (reverse result))
 
 
 ;;; AST equality
