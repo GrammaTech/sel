@@ -9966,7 +9966,9 @@ int main() { puts(\"~d\"); return 0; }
                           (lambda (c)
                             (declare (ignorable c))
                             (invoke-restart 'use-empty-response))))
-            (read-serapi-response *serapi-process*)))
+            ;; read two-line prologue
+            (sel/cp/serapi-io::read-with-timeout *serapi-process* 2 0.1)
+            (sel/cp/serapi-io::read-with-timeout *serapi-process* 2 0.1)))
   (:teardown
    (kill-serapi *serapi-process*)
    (setf *serapi-process* nil)))
@@ -9980,40 +9982,40 @@ int main() { puts(\"~d\"); return 0; }
     (sleep 0.1)
     (is (not (process-running-p serapi)))))
 
-(deftest (with-serapi-creates-new-process :long-running) ()
-  (let ((*package* (find-package 'sel/cp/serapi-io)))
-    (is (not *serapi-process*))
-    (with-serapi ()
-      ;; locally binds `*serapi-process*'
-      (write-to-serapi *serapi-process*
-                       #!`((Test1 (Query () (Vernac "Print nat.")))))
-      (is (member (mapcar #'intern (list "Answer" "Test1" "Ack"))
-                  (read-serapi-response *serapi-process*)
-                  :test #'equal))))
+(deftest with-serapi-creates-new-process ()
+  (is (not *serapi-process*))
+  (with-serapi ()
+    ;; locally binds `*serapi-process*'
+    (write-to-serapi *serapi-process*
+                     #!`((Test1 (Query () (Vernac "Print nat.")))))
+    (is (member (mapcar {intern _ :sel/cp/serapi-io}
+                        (list "Answer" "Test1" "Ack"))
+                (read-serapi-response *serapi-process*)
+                :test #'equal)))
   ;; `*serapi-process*' goes out of scope at end
   (is (not *serapi-process*)))
 
-(deftest (with-serapi-can-capture-process :long-running) ()
-  (let ((*package* (find-package 'sel/cp/serapi-io)))
-    (with-fixture serapi
-      (is (process-running-p *serapi-process*))
-      (let ((serproc (make-serapi)))
-        ;; serproc is a different process than *serapi-process*
-        (is (not (eq serproc *serapi-process*)))
-        (with-serapi (serproc)
-          ;; *serapi-process is rebound to serproc inside with-serapi
-          (is (eq serproc *serapi-process*))
-          (write-to-serapi *serapi-process*
-                           #!'((Test1 (Query () (Vernac "Print nat.")))))
-          ;; writing to *serapi-process* also writes to serproc
-          (is (member (mapcar #'intern (list "Answer" "Test1" "Ack"))
-                      (read-serapi-response serproc)
-                      :test #'equal)))
-        ;; serproc isn't killed after with-serapi ends
-        (is (process-running-p serproc))
-        (kill-serapi serproc))
-      ;; *serapi-process isn't killed after with-serapi ends
-      (is (process-running-p *serapi-process*)))))
+(deftest with-serapi-can-capture-process ()
+  (with-fixture serapi
+    (is (process-running-p *serapi-process*))
+    (let ((serproc (make-serapi)))
+      ;; serproc is a different process than *serapi-process*
+      (is (not (eq serproc *serapi-process*)))
+      (with-serapi (serproc)
+        ;; *serapi-process is rebound to serproc inside with-serapi
+        (is (eq serproc *serapi-process*))
+        (write-to-serapi *serapi-process*
+                         #!'((Test1 (Query () (Vernac "Print nat.")))))
+        ;; writing to *serapi-process* also writes to serproc
+        (is (member (mapcar {intern _ :sel/cp/serapi-io}
+                            (list "Answer" "Test1" "Ack"))
+                    (read-serapi-response serproc)
+                    :test #'equal)))
+      ;; serproc isn't killed after with-serapi ends
+      (is (process-running-p serproc))
+      (kill-serapi serproc))
+    ;; *serapi-process isn't killed after with-serapi ends
+    (is (process-running-p *serapi-process*))))
 
 (deftest serapi-special-character-handling ()
   (let* ((src0 "[[\\\"expr\\\" ::== \\\"coords\\\" \\\\n || \\\"coords\\\" \\\\n \\\"expr\\\" <{< fun x _ y => Row x y >}>]] ;;.")
@@ -10032,23 +10034,24 @@ int main() { puts(\"~d\"); return 0; }
     (is (equal (sel/cp/serapi-io::unescape-coq-string sanitized1)
                "a /\\\\  b /\\\\n c"))))
 
-(deftest (can-read-write-serapi :long-running) ()
-  (let ((*package* (find-package 'sel/cp/serapi-io)))
-    (with-fixture serapi
-      ;; write basic "Print nat." query and read response
-      (write-to-serapi *serapi-process*
-                       #!`((TestQ (Query () (Vernac "Print nat.")))))
-      (let ((response (read-serapi-response *serapi-process*)))
-        (is response)
-        (is (= 5 (length response)))
-        (is (member (mapcar #'intern (list "Answer" "TestQ" "Ack"))
-                    response
-                    :test #'equal))
-        (is (member (mapcar #'intern (list "Answer" "TestQ" "Completed"))
-                    response
-                    :test #'equal))))))
+(deftest can-read-write-serapi ()
+  (with-fixture serapi
+    ;; write basic "Print nat." query and read response
+    (write-to-serapi *serapi-process*
+                     #!`((TestQ (Query () (Vernac "Print nat.")))))
+    (let ((response (read-serapi-response *serapi-process*)))
+      (is response)
+      (is (= 5 (length response)))
+      (is (member (mapcar {intern _ :sel/cp/serapi-io}
+                          (list "Answer" "TestQ" "Ack"))
+                  response
+                  :test #'equal))
+      (is (member (mapcar {intern _ :sel/cp/serapi-io}
+                          (list "Answer" "TestQ" "Completed"))
+                  response
+                  :test #'equal)))))
 
-(deftest (can-run-coq-vernacular :long-running) ()
+(deftest can-run-coq-vernacular ()
   (with-fixture serapi
     (let ((vernac "Print nat."))
       (write-to-serapi *serapi-process*
@@ -10057,34 +10060,34 @@ int main() { puts(\"~d\"); return 0; }
             (resp2 (run-coq-vernacular vernac :qtag #!'TestQ)))
         (is (equal resp1 resp2))))))
 
-(deftest is-type-works ()
-  (let ((*package* (find-package 'sel/cp/serapi-io)))
-    (let ((resp1 (mapcar #'intern (list "Answer" "TestQ" "Ack")))
-          (resp2 (list (intern "Feedback")
-                       (list (list (intern "id") 1)
-                             (list (intern "route") 0)
-                             (list (intern "contents") (intern "Processed"))))))
-      (is (sel/cp/serapi-io::is-type (intern "Answer") resp1))
-      (is (sel/cp/serapi-io::is-type (intern "Feedback") resp2))
-      (is (not (sel/cp/serapi-io::is-type (intern "Answer") resp2)))
-      (is (not (sel/cp/serapi-io::is-type (intern "Feedback") resp1))))))
+(deftest serapi-is-type-works ()
+  (with-fixture serapi
+    (let* ((resp (run-coq-vernacular "Print nat." :qtag #!'TestQ))
+           ;; (Answer TestQ Ack)
+           (ack (nth 0 resp))
+           ;; (Feedback (id 1) (route 0) (contents Processed))
+           (feedback (nth 1 resp))
+           (answer-sym (intern "Answer" :sel/cp/serapi-io))
+           (feedback-sym (intern "Feedback" :sel/cp/serapi-io)))
+      (is (sel/cp/serapi-io::is-type answer-sym ack))
+      (is (sel/cp/serapi-io::is-type feedback-sym feedback))
+      (is (not (sel/cp/serapi-io::is-type answer-sym feedback)))
+      (is (not (sel/cp/serapi-io::is-type feedback-sym ack))))))
 
-(deftest feedback-parsing-works ()
-  (let ((*package* (find-package 'sel/cp/serapi-io)))
-    (let ((resp1 (list (intern "Feedback")
-                       (list (list (intern "id") 1)
-                             (list (intern "route") 0)
-                             (list (intern "contents") (intern "Processed")))))
-          (resp2 (mapcar #'intern (list "Answer" "TestQ" "Ack"))))
-      (is (eql 1 (sel/cp/serapi-io::feedback-id resp1)))
-      (is (eql 0 (sel/cp/serapi-io::feedback-route resp1)))
-      (is (eql (intern "Processed")
-               (sel/cp/serapi-io::feedback-contents resp1)))
-      (is (not (sel/cp/serapi-io::feedback-id resp2)))
-      (is (not (sel/cp/serapi-io::feedback-route resp2)))
-      (is (not (sel/cp/serapi-io::feedback-contents resp2))))))
+(deftest serapi-feedback-parsing-works ()
+  (with-fixture serapi
+    (let* ((resp (run-coq-vernacular "Print nat." :qtag #!'TestQ))
+           (ack (nth 0 resp))
+           (feedback (nth 1 resp)))
+      (is (not (sel/cp/serapi-io::feedback-id ack)))
+      (is (not (sel/cp/serapi-io::feedback-route ack)))
+      (is (not (sel/cp/serapi-io::feedback-contents ack)))
+      (is (eql 1 (sel/cp/serapi-io::feedback-id feedback)))
+      (is (eql 0 (sel/cp/serapi-io::feedback-route feedback)))
+      (is (eql (intern "Processed" :sel/cp/serapi-io)
+               (sel/cp/serapi-io::feedback-contents feedback))))))
 
-(deftest message-content-works ()
+(deftest serapi-message-content-works ()
   (let ((*package* (find-package 'sel/cp/serapi-io)))
     (let ((resp1
             (list (intern "Feedback")
@@ -10108,93 +10111,76 @@ int main() { puts(\"~d\"); return 0; }
       (is (not (sel/cp/serapi-io::message-content
                 (sel/cp/serapi-io::feedback-contents resp2)))))))
 
-(deftest message-level-works ()
-  (let ((*package* (find-package 'sel/cp/serapi-io)))
-    (let ((resp1
-            (list (intern "Feedback")
-                  (list (list (intern "id") 1)
-                        (list (intern "route") 0)
-                        (list (intern "contents")
-                              (list (intern "Message")
-                                    (intern "Notice")
-                                    ()
-                                    (list (intern "Some")
-                                          (list (intern "AST")
-                                                (list (intern "tree")))
-                                          (intern "here")))))))
-          (resp2 (mapcar #'intern (list "Answer" "TestQ" "Ack"))))
-      (is (eql (intern "Notice") (sel/cp/serapi-io::message-level
-                                  (sel/cp/serapi-io::feedback-contents resp1))))
+(deftest serapi-message-level-works ()
+  (with-fixture serapi
+    (let* ((resp (run-coq-vernacular "Print nat." :qtag #!'TestQ))
+           ;; (Answer TestQ Ack)
+           (ack (nth 0 resp))
+           ;; (Feedback (id 1) (route 0) (contents (Message Notice () ...)))
+           (message (nth 2 resp)))
+      (is (eql (intern "Notice" :sel/cp/serapi-io)
+               (sel/cp/serapi-io::message-level
+                (sel/cp/serapi-io::feedback-contents message))))
       (is (not (sel/cp/serapi-io::message-level
-                (sel/cp/serapi-io::feedback-contents resp2)))))))
+                (sel/cp/serapi-io::feedback-contents ack)))))))
 
-(deftest answer-parsing-works ()
-  (let ((*package* (find-package 'sel/cp/serapi-io)))
-    (let ((resp1 (mapcar #'intern (list "Answer" "TestQ" "Ack")))
-          (resp2 (list (intern "Feedback")
-                       (list (list (intern "id") 1)
-                             (list (intern "route") 0)
-                             (list (intern "contents") (intern "Processed")))))
-          (resp3 (list (intern "Answer") (intern "TestQ")
-                       (list (intern "ObjList")
-                             (list (list (intern "CoqAst")
-                                         (list NIL (intern "more-stuff")))))))
-          (resp4 (list (intern "Answer") (intern "TestQ")
-                       (list (intern "ObjList")
-                             (list (list (intern "CoqString")
-                                         "Inductive binop..."))))))
-      ;; verify answer-content
-      (is (equal (list (intern "Ack") nil (lastcar resp3) (lastcar resp4))
-                 (mapcar #'sel/cp/serapi-io::answer-content
-                         (list resp1 resp2 resp3 resp4))))
+(deftest serapi-answer-parsing-works ()
+  (with-fixture serapi
+    (let ((ids (add-coq-string "Definition test := true.")))
+      (write-to-serapi *serapi-process*
+                       #!`((TestQ (Query () (Ast ,(FIRST IDS))))))
+      (let* ((resp1 (mapcar #'tag-loc-info
+                            (read-serapi-response *serapi-process*)))
+             ;; (Answer TestQ Ack)
+             (ack (nth 0 resp1))
+             ;; (Answer TestQ (ObjList ((CoqAst ...))))
+             (objlist-ast (nth 1 resp1))
+             (resp2 (run-coq-vernacular "Check test." :qtag #!'TestC))
+             ;; (Feedback (id 2) (route 0) (contents Processed))
+             (feedback (nth 1 resp2))
+             (none (write-to-serapi *serapi-process*
+                         #!`((TestP (Query ((pp ((pp_format PpStr))))
+                                           (Ast ,(FIRST IDS)))))))
+             (resp3 (read-serapi-response *serapi-process*))
+             ;; (Answer TestP (ObjList ((CoqString Definition test := true.))))
+             (objlist-string (nth 1 resp3)))
+        (declare (ignorable none))
+        ;; verify answer-content
+        (is (equal (list (lastcar ack) (lastcar objlist-ast) nil
+                         (lastcar objlist-string))
+                   (mapcar #'sel/cp/serapi-io::answer-content
+                           (list ack objlist-ast feedback objlist-string))))
+        ;; verify answer-string
+        (is (equal (list nil nil nil "Definition test := true.")
+                   (mapcar [#'sel/cp/serapi-io::answer-string
+                               #' sel/cp/serapi-io::answer-content]
+                           (list ack objlist-ast feedback objlist-string))))
+        ;; verify answer-ast is nil for non-AST answers
+        (is (equal (list nil nil nil)
+                   (mapcar [#'sel/cp/serapi-io::answer-ast
+                            #'sel/cp/serapi-io::answer-content]
+                           (list ack feedback objlist-string))))
+        ;; verify answer-ast is a VernacDefinition
+        (is (sel/cp/serapi-io::is-type
+             (intern "VernacDefinition" :sel/cp/serapi-io)
+             (nth 1 (sel/cp/serapi-io::answer-ast
+                     (sel/cp/serapi-io::answer-content objlist-ast)))))))))
 
-      ;; verify answer-string
-      (is (equal (list nil nil nil)
-                 (mapcar [#'sel/cp/serapi-io::answer-string
-                          #'sel/cp/serapi-io::answer-content]
-                         (list resp1 resp2 resp3))))
-      (is (equal "Inductive binop..."
-                 (sel/cp/serapi-io::answer-string
-                  (sel/cp/serapi-io::answer-content resp4))))
+(deftest serapi-end-of-response-parsing-works ()
+  (let ((resp1 (mapcar {intern _ :sel/cp/serapi-io}
+                       (list "Answer" "TestQ" "Completed")))
+        (resp2 (list (intern "Sexplib.Conv.Of_sexp_error" :sel/cp/serapi-io)
+                     (list (intern "Failure" :sel/cp/serapi-io)
+                           "Failure message")
+                     (intern "etc" :sel/cp/serapi-io)))
+        (resp3 (mapcar {intern _ :sel/cp/serapi-io}
+                       (list "Answer" "TestQ" "Ack"))))
+    (is (equal (list t t nil)
+               (mapcar #'is-terminating (list resp1 resp2 resp3))))
+    (is (equal (list nil t nil)
+               (mapcar #'is-error (list resp1 resp2 resp3))))))
 
-      ;; verify answer-ast
-      (is (equal (list nil nil nil)
-                 (mapcar [#'sel/cp/serapi-io::answer-ast
-                          #'sel/cp/serapi-io::answer-content]
-                         (list resp1 resp2 resp4))))
-      (is (equal (list NIL (intern "more-stuff"))
-                 (sel/cp/serapi-io::answer-ast
-                  (sel/cp/serapi-io::answer-content resp3)))))))
-
-(deftest end-of-response-parsing-works ()
-  (let ((*package* (find-package 'sel/cp/serapi-io)))
-    (let ((resp1 (mapcar #'intern (list "Answer" "TestQ" "Completed")))
-          (resp2 (list (intern "Sexplib.Conv.Of_sexp_error")
-                       (list (intern "Failure") "Failure message")
-                       (intern "etc")))
-          (resp3 (mapcar #'intern (list "Answer" "TestQ" "Ack"))))
-      (is (equal (list t t nil)
-                 (mapcar #'is-terminating (list resp1 resp2 resp3))))
-      (is (equal (list nil t nil)
-                 (mapcar #'is-error (list resp1 resp2 resp3)))))))
-
-(deftest added-id-correct ()
-  (let ((*package* (find-package 'sel/cp/serapi-io)))
-    (let ((resp1 (list (intern "Answer") (intern "TestQ")
-                       (list (intern "Added") 2 () (intern "NewTip"))))
-          (resp2 (mapcar #'intern (list "Answer" "TestQ" "Ack")))
-          (resp3 (list (intern "Feedback")
-                       (list (list (intern "id") 1)
-                             (list (intern "route") 0)
-                             (list (intern "contents") (intern "Processed"))))))
-      (is (equal (list 2 nil nil)
-                 (iter (for i in (list resp1 resp2 resp3))
-                       (collecting
-                         (when-let ((content
-                                     (sel/cp/serapi-io::answer-content i)))
-                           (sel/cp/serapi-io::added-id content)))))))))
-
-(deftest (can-add-and-lookup-coq-string :long-running) ()
+(deftest can-add-and-lookup-coq-string ()
   (with-fixture serapi
     (let* ((add-str "Inductive test :=   | T1 : test   | T2 : test.")
            (id (add-coq-string add-str)))
@@ -10203,7 +10189,7 @@ int main() { puts(\"~d\"); return 0; }
       (let ((lookup-str (lookup-coq-string (first id))))
         (is (equal add-str lookup-str))))))
 
-(deftest (can-convert-ast-to-string :long-running) ()
+(deftest can-convert-coq-ast-to-string ()
   (with-fixture serapi
     (let* ((add-str "Inductive test :=   | T1 : test   | T2 : test.")
            (id (add-coq-string add-str)))
@@ -10213,7 +10199,7 @@ int main() { puts(\"~d\"); return 0; }
              (ast-str (lookup-coq-string lookup-ast)))
         (is (equal add-str ast-str))))))
 
-(deftest (can-lookup-pretty-printed-repr-1 :long-running) ()
+(deftest can-lookup-coq-pretty-printed-repr-1 ()
   (with-fixture serapi
     (let ((add-str "Inductive test :=   | T1 : test   | T2 : test."))
       (add-coq-string add-str)
@@ -10224,7 +10210,7 @@ int main() { puts(\"~d\"); return 0; }
         (is (some {eql (intern "Notice" :sel/cp/serapi-io) }
                   (coq-message-levels resp1)))))))
 
-(deftest (can-load-coq-file :long-running) ()
+(deftest can-load-coq-file ()
   (with-fixture serapi
     (let ((ids (load-coq-file (coq-test-dir "NatBinop.v"))))
       (is (equal '(2 3 4) ids)))))
@@ -10254,7 +10240,7 @@ int main() { puts(\"~d\"); return 0; }
     (is (equal (check-coq-type "plus")
                '("Nat.add" :COLON "nat" :-> "nat" :-> "nat")))))
 
-(deftest (can-search-coq-types :long-running) ()
+(deftest can-search-coq-types ()
   ;; NOTE: may need to change if Coq version or default load libraries change.
   (with-fixture serapi
     (let* ((fns (search-coq-type "nat -> nat -> nat -> nat"))
@@ -10264,7 +10250,7 @@ int main() { puts(\"~d\"); return 0; }
                          :test #'equal}
                  fn-names)))))
 
-(deftest (can-create-coq-expressions-1 :long-running) ()
+(deftest can-create-coq-expressions-1 ()
   (with-fixture serapi
     ;; Nat.add 5 3
     (let ((e-ast1 (make-coq-application (make-coq-var-reference #!'plus)
@@ -10308,7 +10294,8 @@ int main() { puts(\"~d\"); return 0; }
                           (lambda (c)
                             (declare (ignorable c))
                             (invoke-restart 'use-empty-response))))
-            (read-serapi-response *serapi-process*))
+            (sel/cp/serapi-io::read-with-timeout *serapi-process* 2 0.1)
+            (sel/cp/serapi-io::read-with-timeout *serapi-process* 2 0.1))
           (setf *coq* (from-file (make-instance 'coq)
                                  (coq-test-dir "TotalMaps.v"))))
   (:teardown
@@ -10323,7 +10310,8 @@ int main() { puts(\"~d\"); return 0; }
                           (lambda (c)
                             (declare (ignorable c))
                             (invoke-restart 'use-empty-response))))
-            (read-serapi-response *serapi-process*))
+            (sel/cp/serapi-io::read-with-timeout *serapi-process* 2 0.1)
+            (sel/cp/serapi-io::read-with-timeout *serapi-process* 2 0.1))
           (setf *coq* (from-file (make-instance 'coq)
                                  (coq-test-dir "NatBinop.v"))))
   (:teardown
@@ -10331,7 +10319,7 @@ int main() { puts(\"~d\"); return 0; }
    (kill-serapi *serapi-process*)
    (setf *serapi-process* nil)))
 
-(deftest (from-file-sets-fields :long-running) ()
+(deftest (coq-from-file-sets-fields :long-running) ()
   (with-fixture math
     (is *coq*)
     (is (typep *coq* 'coq))
@@ -10348,7 +10336,7 @@ int main() { puts(\"~d\"); return 0; }
     (is (not (coq-sections *coq*)))
     (is (= 12 (length (coq-definitions *coq*))))))
 
-(deftest (can-lookup-pretty-printed-repr-2 :long-running) ()
+(deftest (coq-can-lookup-pretty-printed-repr-2 :long-running) ()
   (with-fixture math
     (let ((resp1 (run-coq-vernacular "Print binop."))
           (resp2 (first (lookup-coq-pp "binop"))))
@@ -10359,14 +10347,14 @@ int main() { puts(\"~d\"); return 0; }
         (is (equal resp2 (first msgs)))))))
 
 
-(deftest find-nearest-type-works ()
+(deftest coq-find-nearest-type-works ()
   (let* ((ls (copy-tree'(a (b ((c d) e)) f (() (g) ()))))
          (coq (make-instance 'coq :genome ls))
          (types (iter (for i below (tree-size ls))
                       (collecting (find-nearest-type coq i)))))
     (is (equal types '(a b b c c c d e f g g g g f)))))
 
-(deftest can-pick-subtree-matching-type ()
+(deftest can-pick-coq-subtree-matching-type ()
   (let* ((ls '(a (b ((c d) e)) f (() (g) ())))
          (coq (make-instance 'coq :genome ls)))
     (is (not (pick-subtree-matching-type coq 'a 0)))
@@ -10376,7 +10364,7 @@ int main() { puts(\"~d\"); return 0; }
     (is (= 13 (pick-subtree-matching-type coq 'f 8)))
     (is (= 8 (pick-subtree-matching-type coq 'f 13)))))
 
-(deftest pick-typesafe-bad-good-respects-types ()
+(deftest coq-pick-typesafe-bad-good-respects-types ()
   (let* ((ls '(a (b ((c d) e)) f (() (g) ())))
          (coq (make-instance 'coq :genome ls)))
     (iter (for i below 25)
@@ -10388,7 +10376,7 @@ int main() { puts(\"~d\"); return 0; }
             (no-mutation-targets () nil)))))
 
 
-(deftest apply-type-safe-swap-mutation-test-1 ()
+(deftest coq-apply-type-safe-swap-mutation-test-1 ()
   (with-fixture ls-test
     ;; genome: '(a (b ((c d) a)) (b (() (c d e) ())))
     ;; swap (c d) and (c d e)
@@ -10398,7 +10386,7 @@ int main() { puts(\"~d\"); return 0; }
     (is (equal '(a (b ((c d e) a)) (b (() (c d) ())))
                (genome *coq*)))))
 
-(deftest apply-type-safe-swap-mutation-test-2 ()
+(deftest coq-apply-type-safe-swap-mutation-test-2 ()
   (with-fixture ls-test
     ;; swap (b ((c d) a)) with (b (() (c d e) ()))
     (apply-mutation *coq* (make-instance 'type-safe-swap
@@ -10407,7 +10395,7 @@ int main() { puts(\"~d\"); return 0; }
     (is (equal '(a (b (() (c d e) ())) (b ((c d) a)))
                (genome *coq*)))))
 
-(deftest apply-type-safe-swap-mutation-test-3 ()
+(deftest coq-apply-type-safe-swap-mutation-test-3 ()
   (with-fixture ls-test
     ;; strange but permissible
     ;; swap ((b ((c d) a)) (b (() (c d e) ()))) with (b (() (c d e) ()))
@@ -10417,7 +10405,7 @@ int main() { puts(\"~d\"); return 0; }
     (is (equal '(a (b (() (c d e) ())) ((b ((c d) a)) (b (() (c d e) ()))))
                (genome *coq*)))))
 
-(deftest apply-type-safe-swap-mutation-test-4 ()
+(deftest coq-apply-type-safe-swap-mutation-test-4 ()
   (with-fixture ls-test
     ;; verify no issues at edge
     (apply-mutation *coq* (make-instance 'type-safe-swap
