@@ -557,11 +557,13 @@ To remove PATH or replace it with multiple children see
   (apply #'replace-ast tree (ast-path location) replacement args))
 
 (defmethod replace-ast ((tree ast) (location list) (replacement list)
-                        &key &allow-other-keys)
+                        &key &allow-other-keys &aux (cp (copy tree)))
   (assert (not (null location)) (location)
           "`replace-ast' requires non-nil location.")
-  (replace-nth-child
-   (get-ast tree (butlast location)) (lastcar location) replacement))
+  (setf (get-ast cp (butlast location))
+        (replace-nth-child
+         (get-ast cp (butlast location)) (lastcar location) replacement))
+  cp)
 
 (defmethod replace-ast ((tree ast) (location list) (replacement ast)
                         &key &allow-other-keys)

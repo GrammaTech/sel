@@ -4026,7 +4026,8 @@ int x = CHARSIZE;")))
 (defixture javascript-ast-w-conflict
   (:setup (setf *asts* (to-js-ast
                         '(:j "top"
-                          (:j "left" (:c ((:old ) (:my "a") (:your "b"))))
+                          (:j "left"
+                           (:c ((:old ) (:my "a") (:your "b"))))
                           (:j "right")))))
   (:teardown (setf *asts* nil)))
 
@@ -4064,6 +4065,16 @@ int x = CHARSIZE;")))
                        (make-javascript-ast
                         :node (make-javascript-ast-node :class :foo))))
     (is (eql :foo (ast-class (get-ast *asts* '(1)))))))
+
+(deftest javascript-and-conflict-replace-ast ()
+  (with-fixture javascript-ast-w-conflict
+    (let ((cnf (find-if [{subtypep _ 'conflict-ast} #'type-of]
+                        (ast-to-list *asts*))))
+      (setf *asts* (replace-ast *asts* cnf
+                                (aget :my (conflict-ast-child-alist cnf))))
+      (is (equalp (mapc-ast *asts* #'ast-path)
+                  '(NIL ((1)) ((2)))))
+      (is (string= (ast-text *asts*) "topleftaright")))))
 
 
 ;;;; Javascript project.
