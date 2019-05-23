@@ -434,12 +434,12 @@ replacing the original AST."))
 
 (defmethod source-text ((c conflict-ast))
   (with-output-to-string (s)
-    (format s ">>>>>>>>>>>>")
+    (format s "{")
     (iter (for e on (conflict-ast-child-alist c))
           (format s "~a: " (caar e))
           (iter (for x in (cdar e)) (format s "~a" (source-text x)))
-          (when (cdr e) (format s "============")))
-    (format s "<<<<<<<<<<<<")))
+          (when (cdr e) (format s "|")))
+    (format s "}")))
 
 (defmethod rebind-vars ((ast string) var-replacements fun-replacements)
   "Replace variable and function references, returning a new AST.
