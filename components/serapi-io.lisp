@@ -457,7 +457,13 @@ Uses default path and arguments for sertop (`*sertop-path*' and
                              (lambda (c)
                                (declare (ignorable c))
                                (invoke-restart 'use-empty-response))))
-                         (read-serapi-response *serapi-process*)))
+                         ;; read 2 prologue lines if present
+                         ;; (this is not a complete response, so should not use
+                         ;; read-serapi-response)
+                         (read-with-timeout *serapi-process* *serapi-timeout*
+                                            *serapi-sleep-interval*)
+                         (read-with-timeout *serapi-process* *serapi-timeout*
+                                            *serapi-sleep-interval*)))
                      ,@body)
            (unless ,old-proc (kill-serapi *serapi-process*)))))))
 
