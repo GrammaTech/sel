@@ -235,6 +235,8 @@ See also `tag-loc-info'."
                               ;; On error, ast isn't re-serializable, so save
                               ;; the raw string. Otherwise, save the ASTs.
                               (serapi-error ()
+                                (setf found-error t))
+                              (condition ()
                                 (setf found-error t)))
                             (finally
                              (return (if found-error
