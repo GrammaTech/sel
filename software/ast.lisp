@@ -528,15 +528,15 @@ To remove PATH or replace it with multiple children see
 
 (defgeneric replace-nth-child (ast n replacement)
   (:documentation
-   "Return AST with the nth child of AST replaced with REPLACEMENT.
-* AST tree to modify
-* N child to modify
-* REPLACEMENT replacement for the nth child")
+   "Return a copy of AST with the nth child replaced with REPLACEMENT.
+* AST tree
+* Offset in `ast-children' of AST to modify
+* REPLACEMENT is the replacement for the nth child")
   (:method ((ast ast) (n number) (replacement ast))
     (replace-nth-child ast n (list replacement)))
-  (:method ((ast ast) (n number) (replacement list))
-    (set-ast-siblings ast n replacement)
-    (setf ast (update-paths ast (ast-path ast)))))
+  (:method ((ast ast) (n number) (replacement list) &aux (new (copy ast)))
+    (set-ast-siblings new n replacement)
+    (setf new (update-paths new (ast-path ast)))))
 
 (defmethod replace-ast ((tree ast) (location ast) (replacement list)
                         &rest args &key &allow-other-keys)
@@ -550,10 +550,8 @@ To remove PATH or replace it with multiple children see
                         &key &allow-other-keys)
   (assert (not (null location)) (location)
           "`replace-ast' requires non-nil location.")
-  (setf (get-ast tree (butlast location))
-        (replace-nth-child
-         (get-ast tree (butlast location)) (lastcar location) replacement))
-  tree)
+  (replace-nth-child
+   (get-ast tree (butlast location)) (lastcar location) replacement))
 
 (defmethod replace-ast ((tree ast) (location list) (replacement ast)
                         &key &allow-other-keys)
