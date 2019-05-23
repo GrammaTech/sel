@@ -75,7 +75,7 @@
   (children nil :type list)                  ; Remainder of subtree.
   (stored-hash nil :type (or null fixnum)))
 
-(defmethod print-object ((obj ast) stream)
+(defmethod print-object ((obj ast) stream &aux (cutoff 20))
   "Print a representation of the ast OBJ to STREAM, including
 the ast path and source text.
 * OBJ ast to print
@@ -84,8 +84,16 @@ the ast path and source text.
   (if *print-readably*
       (call-next-method)
       (print-unreadable-object (obj stream :type t)
-        (format stream ":PATH ~s ~:_ :AST ~s ~:_ :TEXT ~a"
-                (ast-path obj) (ast-node obj) (source-text obj)))))
+        (format stream ":PATH ~s ~:_ :NODE ~s ~:_ :TEXT ~s"
+                (ast-path obj) (ast-node obj)
+                (let* ((text (source-text obj))
+                       (truncated
+                        (if (> (length text) cutoff)
+                            (concatenate 'string (subseq text 0 cutoff) "...")
+                            text)))
+                  (if-let ((position (search (string #\Newline) truncated)))
+                    (concatenate 'string (subseq truncated 0 position) "...")
+                    truncated))))))
 
 (defgeneric ast-class (ast) (:documentation "Class of AST."))
 
