@@ -809,7 +809,7 @@ use carefully.
 (defun mapc-ast (ast fn)
   "Apply FN to AST collecting the results with `cons'."
   (cons (funcall fn ast)
-        (mapcar {map-ast fn} (remove-if-not #'ast-p (ast-children ast)))))
+        (mapcar {mapc-ast _ fn} (remove-if-not #'ast-p (ast-children ast)))))
 
 (defun ast-to-list (ast &aux result)
   (map-ast ast (lambda (ast) (push ast result)))
