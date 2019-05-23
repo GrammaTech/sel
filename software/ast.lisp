@@ -55,6 +55,7 @@
            :ast-later-p
 	   :map-ast
            :mapc-ast
+           :mapc-ast-and-strings
            :ast-to-list
 	   :map-ast-strings
 	   :ast-meld-p
@@ -776,6 +777,8 @@ use carefully.
                                     (nthcdr (+ 2 head) children)))))))
     (helper tree location)))
 
+
+;;; Map over the nodes of an AST
 (defgeneric map-ast-strings (tree fn)
   (:documentation "Build a new AST obtained by replacing each string with
 (funcall FN string).  If the FN returns NIL do not replace."))
@@ -795,8 +798,7 @@ use carefully.
   (unless (fboundp sym)
     (error "No function found for ~A" sym))
   (map-ast-strings tree (symbol-function sym)))
-
-;;; Map over the nodes of an AST
+
 (defgeneric map-ast (tree fn)
   (:documentation "Apply FN to each node of AST, in preorder."))
 
@@ -812,6 +814,13 @@ use carefully.
   "Apply FN to AST collecting the results with `cons'."
   (cons (funcall fn ast)
         (mapcar {mapc-ast _ fn} (remove-if-not #'ast-p (ast-children ast)))))
+
+(defun mapc-ast-and-strings (ast fn)
+  "Apply FN to ASTs and strings in AST collecting the results with `cons'."
+  (if (ast-p ast)
+      (cons (funcall fn ast)
+            (mapcar {mapc-ast-and-strings _ fn} (ast-children ast)))
+      (funcall fn ast)))
 
 (defun ast-to-list (ast &aux result)
   (map-ast ast (lambda (ast) (push ast result)))
