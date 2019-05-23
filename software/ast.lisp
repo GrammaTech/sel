@@ -34,6 +34,8 @@
            :replace-in-vars
            :insert-ast
            :insert-ast-after
+           :update-paths
+           :get-ast
            :replace-nth-child
            :replace-ast
            :remove-ast
@@ -382,9 +384,8 @@ LOCATION."))
   (:documentation "Insert AST immediately after LOCATION in TREE, returning
 new tree."))
 
-(defgeneric replace-ast (tree location replacement &key &allow-other-keys)
-  (:documentation "Return the modified TREE with the AST at LOCATION replaced
-with REPLACEMENT."))
+(defgeneric replace-ast (object location replacement &key &allow-other-keys)
+  (:documentation "Replace the AST at LOCATION in OBJECT with REPLACEMENT."))
 
 (defgeneric remove-ast (tree location)
   (:documentation "Return the modified TREE with the AST at LOCATION removed."))
@@ -486,33 +487,75 @@ operations."
 
 
 ;;; Tree manipulations
-(defun replace-nth-child (ast n replacement)
-  "Return AST with the nth child of AST replaced with REPLACEMENT.
+(defgeneric update-paths (object &optional path)
+  (:documentation
+   "Return OBJECT's ASTs with all paths updated to begin at PATH.")
+  (:method ((tree ast) &optional path)
+    (copy tree
+          :path (reverse path)
+          :children (iter (for c in (ast-children tree))
+                          (for i upfrom 0)
+                          (collect (if (subtypep (type-of c) 'ast)
+                                       (update-paths c (cons i path))
+                                       c))))))
+
+(defgeneric get-ast (obj path)
+  (:documentation "Return the AST in OBJ at PATH.")
+  (:method ((tree ast) (path list))
+    (if path
+        (destructuring-bind (head . tail) path
+          (get-ast (nth head (ast-children tree)) tail))
+        tree))
+  (:method (leaf (path (eql nil))) leaf))
+
+(defun set-ast-siblings (parent sibling-offset new-siblings)
+  "Replace SIBLING-OFFSET in PARENT with NEW-SIBLINGS."
+  (with-slots (children) parent
+    (setf children (nconc (subseq children 0 sibling-offset)
+                          new-siblings
+                          (subseq children (1+ sibling-offset))))))
+
+(defmethod (setf get-ast) (new (obj ast) path)
+  "Set location PATH in OBJ to NEW.
+To remove PATH or replace it with multiple children see
+`replace-nth-child'."
+  (set-ast-siblings (get-ast obj (butlast path))
+                    (lastcar path)
+                    (list new))
+  (setf obj (update-paths obj (ast-path obj))))
+
+(defgeneric replace-nth-child (ast n replacement)
+  (:documentation
+   "Return AST with the nth child of AST replaced with REPLACEMENT.
 * AST tree to modify
 * N child to modify
-* REPLACEMENT replacement for the nth child"
-  (copy ast
-        :children (nconc (subseq (ast-children ast) 0 n)
-                         (list replacement)
-                         (subseq (ast-children ast) (+ 1 n)))))
+* REPLACEMENT replacement for the nth child")
+  (:method ((ast ast) (n number) (replacement ast))
+    (replace-nth-child ast n (list replacement)))
+  (:method ((ast ast) (n number) (replacement list))
+    (set-ast-siblings ast n replacement)
+    (setf ast (update-paths ast (ast-path ast)))))
+
+(defmethod replace-ast ((tree ast) (location ast) (replacement list)
+                        &rest args &key &allow-other-keys)
+  (apply #'replace-ast tree (ast-path location) replacement args))
 
 (defmethod replace-ast ((tree ast) (location ast) (replacement ast)
                         &rest args &key &allow-other-keys)
-  "Return the modified TREE with the AST at LOCATION replaced with
-REPLACEMENT.
-* TREE Applicative AST tree to be modified
-* LOCATION AST to be replaced in TREE
-* REPLACEMENT Replacement AST"
   (apply #'replace-ast tree (ast-path location) replacement args))
+
+(defmethod replace-ast ((tree ast) (location list) (replacement list)
+                        &key &allow-other-keys)
+  (assert (not (null location)) (location)
+          "`replace-ast' requires non-nil location.")
+  (setf (get-ast tree (butlast location))
+        (replace-nth-child
+         (get-ast tree (butlast location)) (lastcar location) replacement))
+  tree)
 
 (defmethod replace-ast ((tree ast) (location list) (replacement ast)
                         &key &allow-other-keys)
-  "Return the modified TREE with the AST at LOCATION replaced with
-REPLACEMENT.
-* TREE Applicative AST tree to be modified
-* LOCATION path to the AST to be replaced in TREE
-* REPLACEMENT Replacement AST"
-  (labels
+  (labels        ; TODO: Remove or relocate all of this "fixup" logic.
     ((non-empty (str)
        "Return STR only if it's not empty.
 

@@ -3999,6 +3999,80 @@ int x = CHARSIZE;")))
               nil)
       "position-after-leading-newline slash not at EOL not a comment"))
 
+(defun to-js-ast (tree)
+  (labels ((to-js-ast- (tree)
+             (assert (or (stringp tree)
+                         (and (listp tree) (keywordp (car tree))))
+                     (tree)
+                     "Every subtree must be a string or start with AST keyword")
+             (nest
+              (if (stringp tree)
+                  tree)
+              (case (car tree)
+                (:j (make-javascript-ast
+                     :node (make-javascript-ast-node)
+                     :children (mapcar #'to-js-ast- (cdr tree))))
+                (:c (make-conflict-ast
+                     :child-alist (mapcar
+                                   (lambda (pair)
+                                     (destructuring-bind (key . value) pair
+                                       (cons key (mapcar #'to-js-ast- value))))
+                                   (second tree))
+                     :children (mapcar #'to-js-ast- (cddr tree))))))))
+    (update-paths (to-js-ast- tree))))
+
+(defun map-ast (fn ast)
+  (cons (funcall fn ast)
+        (mapcar {map-ast fn} (remove-if-not #'ast-p (ast-children ast)))))
+
+(defun ast->list (ast &aux result)
+  (map-ast (lambda (ast) (push ast result)) ast)
+  (reverse result))
+
+(defvar *asts* nil "Place-holder for ASTs in tests.")
+
+(defixture javascript-ast-w-conflict
+  (:setup (setf *asts* (to-js-ast
+                        '(:j "top"
+                          (:j "left" (:c ((:old ) (:my "a") (:your "b"))))
+                          (:j "right")))))
+  (:teardown (setf *asts* nil)))
+
+(deftest javascript-and-conflict-basic-parseable-ast-functionality ()
+  (with-fixture javascript-ast-w-conflict
+    (is (javascript-ast-p *asts*))      ; We actually have ASTs.
+    (is (every #'ast-path (cdr (ast->list *asts*)))) ; Non-root asts have paths.
+    (is (javascript-ast-p (copy *asts*)))            ; Copy works.
+    (is (< (length (ast->list (replace-nth-child ; Replacement works.
+                               ;; Note: we do 1 here because 0th is 'top'.
+                               (copy *asts*) 1 '())))
+           (length (ast->list *asts*)))))
+  (with-fixture javascript-ast-w-conflict
+    ;; Access ASTs.
+    (is (string= "top" (get-ast *asts* '(0))))
+    (is (javascript-ast-p (get-ast *asts* '(1))))
+    (is (string= "left" (get-ast *asts* '(1 0))))
+    (is (javascript-ast-p (get-ast *asts* '(2))))
+    (is (string= "right" (get-ast *asts* '(2 0))))
+    ;; Set AST with (setf (get-ast ...) ...).
+    (setf (get-ast *asts* '(2 0)) "RIGHT")
+    (is (string= "RIGHT" (get-ast *asts* '(2 0))))
+    (setf (get-ast *asts* '(1)) (make-javascript-ast
+                                 :node (make-javascript-ast-node :class :foo)))
+    (is (eql :foo (ast-class (get-ast *asts* '(1))))))
+  (with-fixture javascript-ast-w-conflict
+    ;; Replace-ast is like (setf get-ast) except that:
+    ;; 1. it modifies a copy of the original AST and doesn't change
+    ;;    its argument, and
+    ;; 2. is also does "fixups" which aren't tested here (or really
+    ;;    tested anywhere).  It would be good to relocate and test or
+    ;;    remove the "fixups."
+    (setf *asts*
+          (replace-ast *asts* '(1)
+                       (make-javascript-ast
+                        :node (make-javascript-ast-node :class :foo))))
+    (is (eql :foo (ast-class (get-ast *asts* '(1)))))))
+
 
 ;;;; Javascript project.
 (defun npm-available-p ()

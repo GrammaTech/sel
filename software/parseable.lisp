@@ -28,7 +28,6 @@
            :parseable-nop
            ;; Generic functions.
            :roots
-           :get-ast
            :get-parent-ast
            :get-parent-asts
            :get-ast-types
@@ -39,7 +38,6 @@
            :get-vars-in-scope
            :update-asts
            :update-caches
-           :update-paths
            :parse-asts
            :clear-caches
            :update-asts-if-necessary
@@ -98,9 +96,6 @@ See the documentation of `update-asts' for required invariants.")
 
 (defgeneric asts (obj)
   (:documentation "Return a list of all asts in OBJ."))
-
-(defgeneric get-ast (obj path)
-  (:documentation "Return the AST in OBJ at PATH."))
 
 (defgeneric get-parent-ast (obj ast)
   (:documentation "Return the parent node of AST in OBJ"))
@@ -285,16 +280,6 @@ applicative AST tree and clear the genome string."
         (slot-value obj 'genome) nil)
   (update-paths obj))
 
-(defmethod update-paths ((tree ast) &optional path)
-  "Return TREE with all paths updated to begin at PATH"
-  (copy tree
-        :path (reverse path)
-        :children (iter (for c in (ast-children tree))
-                        (for i upfrom 0)
-                        (collect (if (subtypep (type-of c) 'ast)
-                                     (update-paths c (cons i path))
-                                     c)))))
-
 (defmethod update-paths ((obj parseable) &optional path)
   (prog1 (setf (slot-value obj 'ast-root) (update-paths (ast-root obj) path))
     (update-caches obj)))
@@ -382,15 +367,8 @@ field indicates the object has changed since the last parse."
 (defmethod get-ast ((obj parseable) (path list))
   "Return the AST in OBJ at the given PATH.
 * OBJ software object with ASTs
-* PATH path to the AST to return
-"
-  (labels ((helper (tree path)
-             (if path
-                 (destructuring-bind (head . tail) path
-                   (helper (nth head (ast-children tree))
-                           tail))
-                 tree)))
-    (helper (ast-root obj) path)))
+* PATH path to the AST to return"
+  (get-ast (ast-root obj) path))
 
 (defgeneric parent-ast-p (software possible-parent-ast ast)
   (:documentation "Return true if POSSIBLE-PARENT-AST is a parent of AST in OBJ, nil
@@ -966,24 +944,34 @@ to allow for successful mutation of SOFTWARE at PT."
 
 (defmethod replace-ast ((obj parseable) (location list) (replacement ast)
                         &rest args &key &allow-other-keys)
-  "Return the modified OBJ with the AST at LOCATION replaced with
-REPLACEMENT.
-* OBJ object to be modified
-* LOCATION path to the AST to be replaced in OBJ
-* REPLACEMENT Replacement AST
-"
   (apply #'replace-ast obj (get-ast obj location) replacement args))
 
 (defmethod replace-ast ((obj parseable) (location ast) (replacement ast)
                         &key literal &allow-other-keys)
-  "Return the modified OBJ with the AST at LOCATION replaced with
-REPLACEMENT.
+  "Return the modified OBJ with the AST at LOCATION replaced with REPLACEMENT.
 * OBJ object to be modified
 * LOCATION AST to be replaced in OBJ
 * REPLACEMENT Replacement AST
-* LITERAL, if true, causes the replacement to occur without
-  recontextualization
-"
+* LITERAL, if true, causes the replacement to occur without recontextualization"
+  ;; TODO: Do we really want this to apply a mutation instead of
+  ;;       modifying the tree directly by calling replace-ast on the
+  ;;       ast-root?  I guess the mutation ensures that the paths
+  ;;       etc.. are updated.
+  (apply-mutation obj (at-targets (make-instance 'parseable-replace)
+                                  (list (cons :stmt1 location)
+                                        (cons (if literal :literal1 :value1)
+                                              replacement)))))
+
+(defmethod replace-ast ((obj parseable) (location (eql nil)) (replacement list)
+                        &key &allow-other-keys)
+  (error "Location argument to `replace-ast' can not be nil"))
+
+(defmethod replace-ast ((obj parseable) (location list) (replacement list)
+                        &rest args &key &allow-other-keys)
+  (apply #'replace-ast obj (get-ast obj location) replacement args))
+
+(defmethod replace-ast ((obj parseable) (location conflict-ast) (replacement list)
+                        &key literal &allow-other-keys)
   (apply-mutation obj (at-targets (make-instance 'parseable-replace)
                                   (list (cons :stmt1 location)
                                         (cons (if literal :literal1 :value1)
