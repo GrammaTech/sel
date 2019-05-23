@@ -163,7 +163,7 @@ to `*sertop-args*'."
 ;;;; possible every *serapi-sleep-interval* seconds until the timeout has
 ;;;; elapsed. E.g., for timeout of 1 and sleep-interval 0.1, we would try to
 ;;;; read every .1s until either 1s elapsed or it was possible to read
-(defparameter *serapi-timeout* 30
+(defparameter *serapi-timeout* 10
   "Maximum amount of time to wait before determining that no data can be read.")
 
 (defparameter *serapi-sleep-interval* 0.1
