@@ -817,10 +817,11 @@ use carefully.
 
 (defun mapc-ast-and-strings (ast fn)
   "Apply FN to ASTs and strings in AST collecting the results with `cons'."
-  (if (ast-p ast)
-      (cons (funcall fn ast)
-            (mapcar {mapc-ast-and-strings _ fn} (ast-children ast)))
-      (funcall fn ast)))
+  (typecase ast
+    (string (funcall fn ast))
+    (conflict-ast (funcall fn ast))
+    (ast (cons (funcall fn ast)
+            (mapcar {mapc-ast-and-strings _ fn} (ast-children ast))))))
 
 (defun ast-to-list (ast &aux result)
   (map-ast ast (lambda (ast) (push ast result)))
