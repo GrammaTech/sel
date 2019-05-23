@@ -26,6 +26,8 @@
         :software-evolution-library/components/fodder-database)
   (:import-from :uiop :nest)
   (:export :clang
+           :clang-ast
+           :clang-ast-p
            :headers
            :macros
            :includes

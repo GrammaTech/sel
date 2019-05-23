@@ -23,7 +23,7 @@
 	:eclector.parse-result)
   (:shadowing-import-from :eclector.parse-result :read)
   (:import-from :uiop :nest)
-  (:export :lisp))
+  (:export :lisp :lisp-ast :lisp-ast-p))
 (in-package :software-evolution-library/software/lisp)
 (in-readtable :curry-compose-reader-macros)
 

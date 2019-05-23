@@ -20,6 +20,7 @@
         :software-evolution-library/utility)
   (:import-from :uiop :nest)
   (:export :ast
+           :ast-p
            :define-ast
            :define-immutable-node-struct
            :to-alist
@@ -44,6 +45,7 @@
 	   :ast-hash
            :make-conflict-ast
            :conflict-ast
+           :conflict-ast-p
            :conflict-ast-child-alist
            :conflict-ast-default-children
            :combine-conflict-asts

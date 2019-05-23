@@ -45,6 +45,7 @@
   (:export :javascript
            :javascript-mutation
            :javascript-ast
+           :javascript-ast-p
            :javascript-ast-node
            :make-javascript-ast
            :copy-javascript-ast
