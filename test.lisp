@@ -9982,7 +9982,7 @@ int main() { puts(\"~d\"); return 0; }
     (sleep 0.1)
     (is (not (process-running-p serapi)))))
 
-(deftest with-serapi-creates-new-process ()
+(deftest (with-serapi-creates-new-process :long-running) ()
   (is (not *serapi-process*))
   (with-serapi ()
     ;; locally binds `*serapi-process*'
@@ -9995,7 +9995,7 @@ int main() { puts(\"~d\"); return 0; }
   ;; `*serapi-process*' goes out of scope at end
   (is (not *serapi-process*)))
 
-(deftest with-serapi-can-capture-process ()
+(deftest (with-serapi-can-capture-process :long-running) ()
   (with-fixture serapi
     (is (process-running-p *serapi-process*))
     (let ((serproc (make-serapi)))
@@ -10124,7 +10124,7 @@ int main() { puts(\"~d\"); return 0; }
       (is (not (sel/cp/serapi-io::message-level
                 (sel/cp/serapi-io::feedback-contents ack)))))))
 
-(deftest serapi-answer-parsing-works ()
+(deftest (serapi-answer-parsing-works :long-running) ()
   (with-fixture serapi
     (let ((ids (add-coq-string "Definition test := true.")))
       (write-to-serapi *serapi-process*
@@ -10189,7 +10189,7 @@ int main() { puts(\"~d\"); return 0; }
       (let ((lookup-str (lookup-coq-string (first id))))
         (is (equal add-str lookup-str))))))
 
-(deftest can-convert-coq-ast-to-string ()
+(deftest (can-convert-coq-ast-to-string :long-running) ()
   (with-fixture serapi
     (let* ((add-str "Inductive test :=   | T1 : test   | T2 : test.")
            (id (add-coq-string add-str)))
@@ -10199,7 +10199,7 @@ int main() { puts(\"~d\"); return 0; }
              (ast-str (lookup-coq-string lookup-ast)))
         (is (equal add-str ast-str))))))
 
-(deftest can-lookup-coq-pretty-printed-repr-1 ()
+(deftest (can-lookup-coq-pretty-printed-repr-1 :long-running) ()
   (with-fixture serapi
     (let ((add-str "Inductive test :=   | T1 : test   | T2 : test."))
       (add-coq-string add-str)
@@ -10210,7 +10210,7 @@ int main() { puts(\"~d\"); return 0; }
         (is (some {eql (intern "Notice" :sel/cp/serapi-io) }
                   (coq-message-levels resp1)))))))
 
-(deftest can-load-coq-file ()
+(deftest (can-load-coq-file :long-running) ()
   (with-fixture serapi
     (let ((ids (load-coq-file (coq-test-dir "NatBinop.v"))))
       (is (equal '(2 3 4) ids)))))
@@ -10240,7 +10240,7 @@ int main() { puts(\"~d\"); return 0; }
     (is (equal (check-coq-type "plus")
                '("Nat.add" :COLON "nat" :-> "nat" :-> "nat")))))
 
-(deftest can-search-coq-types ()
+(deftest (can-search-coq-types :long-running) ()
   ;; NOTE: may need to change if Coq version or default load libraries change.
   (with-fixture serapi
     (let* ((fns (search-coq-type "nat -> nat -> nat -> nat"))
@@ -10250,7 +10250,7 @@ int main() { puts(\"~d\"); return 0; }
                          :test #'equal}
                  fn-names)))))
 
-(deftest can-create-coq-expressions-1 ()
+(deftest (can-create-coq-expressions-1 :long-running) ()
   (with-fixture serapi
     ;; Nat.add 5 3
     (let ((e-ast1 (make-coq-application (make-coq-var-reference #!'plus)
