@@ -330,6 +330,8 @@ list."
        :child-alist al
        :default-children (append def1 def2)))))
 
+(defmethod ast-class ((c conflict-ast)) nil)
+
 ;;; There should be functions for stripping conflict nodes out of a tree,
 ;;; based on option keys.
 

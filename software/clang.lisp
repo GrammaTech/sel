@@ -365,6 +365,8 @@ expanded relative to DIR.
   (name nil :type (or string null))
   (body nil :type (or string null)))
 
+(defmethod ast-includes ((c conflict-ast)) nil)
+
 (defmethod print-object ((obj clang-ast-node) stream)
   "Print a representation of the clang-ast-node OBJ to STREAM.
 * OBJ clang-ast to print
