@@ -966,6 +966,9 @@ to allow for successful mutation of SOFTWARE at PT."
   "Return a copy of OBJ with the AST at LOCATION replaced with REPLACEMENT."
   (apply #'replace-ast obj (get-ast obj location) replacement args))
 
+;;; TODO: The `replace-ast' method is destructive on software (it
+;;;       applies a mutation) but not on ASTs where it is
+;;;       applicative.  This is confusing and should be changed.
 (defmethod replace-ast ((obj parseable) (location conflict-ast) (replacement list)
                         &key literal &allow-other-keys)
   "Modify and return OBJ with the AST at LOCATION replaced with REPLACEMENT."
