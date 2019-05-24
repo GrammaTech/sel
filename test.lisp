@@ -4076,6 +4076,18 @@ int x = CHARSIZE;")))
                   '(NIL ((1)) ((2)))))
       (is (string= (ast-text *asts*) "topleftaright")))))
 
+(deftest javascript-and-conflict-replace-ast-leaves-original-unmolested ()
+  (with-fixture javascript-ast-w-conflict
+    (let ((orig-text (ast-text *asts*))
+          (orig (mapcar #'copy (ast-to-list *asts*))))
+      (let ((cnf (find-if [{subtypep _ 'conflict-ast} #'type-of]
+                          (ast-to-list *asts*))))
+        (replace-ast *asts* cnf
+                     (aget :my (conflict-ast-child-alist cnf))))
+      (is (string= orig-text (ast-text *asts*)))
+      (is (equal-it orig (mapcar #'copy (ast-to-list *asts*))
+                    nil '(path))))))
+
 
 ;;;; Javascript project.
 (defun npm-available-p ()
