@@ -529,9 +529,9 @@ operations."
 (defun set-ast-siblings (parent sibling-offset new-siblings)
   "Replace SIBLING-OFFSET in PARENT with NEW-SIBLINGS."
   (with-slots (children) parent
-    (setf children (nconc (subseq children 0 sibling-offset)
-                          new-siblings
-                          (subseq children (1+ sibling-offset))))))
+    (setf children (append (subseq children 0 sibling-offset)
+                           new-siblings
+                           (subseq children (1+ sibling-offset))))))
 
 (defmethod (setf get-ast) (new (obj ast) path)
   "Set location PATH in OBJ to NEW.
@@ -541,6 +541,21 @@ To remove PATH or replace it with multiple children see
                     (lastcar path)
                     (list new))
   (setf obj (update-paths obj (ast-path obj))))
+
+#+not-needed
+(defgeneric deep-copy (ast)
+  (:documentation "Perform a deep copy of an AST.")
+  (:method ((obj string)) (copy-seq obj))
+  (:method ((obj (eql nil))) (error "Not callable on nil!"))
+  (:method ((obj ast))
+    (copy obj :children (mapcar #'deep-copy (ast-children obj))))
+  (:method ((obj conflict-ast))
+    (copy obj
+          :children (mapcar #'deep-copy (ast-children obj))
+          :child-alist (mapcar (lambda (pair)
+                                 (destructuring-bind (key . value) pair
+                                   (cons key (mapcar #'deep-copy value))))
+                               (conflict-ast-child-alist obj)))))
 
 (defgeneric replace-nth-child (ast n replacement)
   (:documentation
