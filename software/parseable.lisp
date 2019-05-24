@@ -969,10 +969,10 @@ to allow for successful mutation of SOFTWARE at PT."
 (defmethod replace-ast ((obj parseable) (location conflict-ast) (replacement list)
                         &key literal &allow-other-keys)
   "Modify and return OBJ with the AST at LOCATION replaced with REPLACEMENT."
-  (apply-mutation (copy obj) (at-targets (make-instance 'parseable-replace)
-                                         (list (cons :stmt1 location)
-                                               (cons (if literal :literal1 :value1)
-                                                     replacement)))))
+  (apply-mutation obj (at-targets (make-instance 'parseable-replace)
+                                  (list (cons :stmt1 location)
+                                        (cons (if literal :literal1 :value1)
+                                              replacement)))))
 
 (defmethod remove-ast ((obj parseable) (location list))
   "Return the modified OBJ with the AST at LOCATION removed.
