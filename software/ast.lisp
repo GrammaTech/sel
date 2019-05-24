@@ -823,9 +823,11 @@ use carefully.
     (ast (cons (funcall fn ast)
             (mapcar {mapc-ast-and-strings _ fn} (ast-children ast))))))
 
-(defun ast-to-list (ast &aux result)
-  (map-ast ast (lambda (ast) (push ast result)))
-  (reverse result))
+(defgeneric ast-to-list (obj)
+  (:documentation "Return ASTs under OBJ as a list.")
+  (:method ((ast ast) &aux result)
+    (map-ast ast (lambda (ast) (push ast result)))
+    (reverse result)))
 
 
 ;;; AST equality
