@@ -951,15 +951,7 @@ to allow for successful mutation of SOFTWARE at PT."
 
 (defmethod replace-ast ((obj parseable) (location ast) (replacement ast)
                         &key literal &allow-other-keys)
-  "Return the modified OBJ with the AST at LOCATION replaced with REPLACEMENT.
-* OBJ object to be modified
-* LOCATION AST to be replaced in OBJ
-* REPLACEMENT Replacement AST
-* LITERAL, if true, causes the replacement to occur without recontextualization"
-  ;; TODO: Do we really want this to apply a mutation instead of
-  ;;       modifying the tree directly by calling replace-ast on the
-  ;;       ast-root?  I guess the mutation ensures that the paths
-  ;;       etc.. are updated.
+  "Modify and return OBJ with the AST at LOCATION replaced with REPLACEMENT."
   (apply-mutation obj (at-targets (make-instance 'parseable-replace)
                                   (list (cons :stmt1 location)
                                         (cons (if literal :literal1 :value1)
@@ -971,14 +963,16 @@ to allow for successful mutation of SOFTWARE at PT."
 
 (defmethod replace-ast ((obj parseable) (location list) (replacement list)
                         &rest args &key &allow-other-keys)
+  "Return a copy of OBJ with the AST at LOCATION replaced with REPLACEMENT."
   (apply #'replace-ast obj (get-ast obj location) replacement args))
 
 (defmethod replace-ast ((obj parseable) (location conflict-ast) (replacement list)
                         &key literal &allow-other-keys)
-  (apply-mutation obj (at-targets (make-instance 'parseable-replace)
-                                  (list (cons :stmt1 location)
-                                        (cons (if literal :literal1 :value1)
-                                              replacement)))))
+  "Modify and return OBJ with the AST at LOCATION replaced with REPLACEMENT."
+  (apply-mutation (copy obj) (at-targets (make-instance 'parseable-replace)
+                                         (list (cons :stmt1 location)
+                                               (cons (if literal :literal1 :value1)
+                                                     replacement)))))
 
 (defmethod remove-ast ((obj parseable) (location list))
   "Return the modified OBJ with the AST at LOCATION removed.

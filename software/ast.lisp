@@ -543,6 +543,10 @@ To remove PATH or replace it with multiple children see
 (defgeneric replace-nth-child (ast n replacement)
   (:documentation
    "Return a copy of AST with the nth child replaced with REPLACEMENT.
+Note that this will destructively modify AST (and all of ASTs parents)
+and thus it should be called from a recursive helper which will walk
+back up the tree to the root generating a new zipper of modified ASTs.
+
 * AST tree
 * Offset in `ast-children' of AST to modify
 * REPLACEMENT is the replacement for the nth child")
@@ -561,13 +565,17 @@ To remove PATH or replace it with multiple children see
   (apply #'replace-ast tree (ast-path location) replacement args))
 
 (defmethod replace-ast ((tree ast) (location list) (replacement list)
-                        &key &allow-other-keys &aux (cp (copy tree)))
+                        &key &allow-other-keys)
   (assert (not (null location)) (location)
           "`replace-ast' requires non-nil location.")
-  (setf (get-ast cp (butlast location))
-        (replace-nth-child
-         (get-ast cp (butlast location)) (lastcar location) replacement))
-  cp)
+  (labels
+      ((helper (tree path)
+         (destructuring-bind (head . tail) path
+           (replace-nth-child tree head
+                              (if tail
+                                  (helper (nth head (ast-children tree)) tail)
+                                  replacement)))))
+    (helper tree location)))
 
 (defmethod replace-ast ((tree ast) (location list) (replacement ast)
                         &key &allow-other-keys)
@@ -693,8 +701,7 @@ use carefully.
 
 * TREE Applicative AST tree to be modified
 * LOCATION path to the AST where insertion is to occur
-* NEW-ASTS ASTs to be inserted into TREE
-"
+* NEW-ASTS ASTs to be inserted into TREE"
   (labels
     ((helper (tree path)
        (bind (((head . tail) path)
