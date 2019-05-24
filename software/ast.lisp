@@ -77,11 +77,6 @@
   (stored-hash nil :type (or null fixnum)))
 
 (defmethod print-object ((obj ast) stream &aux (cutoff 20))
-  "Print a representation of the ast OBJ to STREAM, including
-the ast path and source text.
-* OBJ ast to print
-* STREAM stream to print OBJ to
-"
   (if *print-readably*
       (call-next-method)
       (print-unreadable-object (obj stream :type t)
@@ -297,6 +292,14 @@ list."
           :default-children (if default-children-provided-p
                                 default-children
                                 (conflict-ast-default-children struct))))))
+
+(defmethod print-object ((obj conflict-ast) stream)
+  (if *print-readably*
+      (call-next-method)
+      (print-unreadable-object (obj stream :type t)
+        (format stream ":PATH ~s ~:_ :NODE ~s ~:_ :CHILD-ALIST ~s"
+                (ast-path obj) (ast-node obj)
+                (conflict-ast-child-alist obj)))))
 
 (defgeneric combine-conflict-asts (ca1 ca2)
   (:documentation
