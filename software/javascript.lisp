@@ -559,15 +559,3 @@ or comments.  NIL if no such newline exists."
   (move-prefixes-down
    (ast-children ast)
    #'is-stmt #'position-after-leading-newline))
-
-
-
-
-                   
-                  
-                
-
-
-
-
-          
