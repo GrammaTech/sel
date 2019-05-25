@@ -42,6 +42,7 @@
         :software-evolution-library/software/parseable
         :software-evolution-library/components/formatting)
   (:shadowing-import-from :cl-json :decode-json-from-string)
+  (:shadowing-import-from :osicat :file-permissions)
   (:export :javascript
            :javascript-mutation
            :javascript-ast
@@ -347,6 +348,11 @@
 
 
 ;;; Methods common to all software objects
+(defmethod to-file :after ((obj javascript) file)
+  "Ensure JavaScript scripts are marked executable."
+  (when (string= (subseq (first (ast-children (ast-root obj))) 0 2) "#!")
+    (push :user-exec (file-permissions file))))
+
 (defmethod phenome ((obj javascript) &key (bin (temp-file-name)))
   "Create a phenotype of the javascript software OBJ.  In this case, override
 the phenome method to output the genome of OBJ to BIN as JavaScript
