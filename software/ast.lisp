@@ -531,7 +531,8 @@ operations."
   (with-slots (children) parent
     (setf children (append (subseq children 0 sibling-offset)
                            new-siblings
-                           (subseq children (1+ sibling-offset))))))
+                           (subseq children (min (1+ sibling-offset)
+                                                 (length children)))))))
 
 (defmethod (setf get-ast) (new (obj ast) path)
   "Set location PATH in OBJ to NEW.
