@@ -110,11 +110,14 @@ on the filesystem at BIN."
   "Return a list of lines of source in OBJ"
   (split-sequence #\Newline (genome obj)))
 
-(defmethod line-breaks ((obj source))
-  "Return a list with the index of line breaks in OBJ"
-  (cons 0 (loop :for char :in (coerce (genome obj) 'list) :as index
-                :from 0
-                :when (equal char #\Newline) :collect index)))
+(defgeneric line-breaks (source)
+  (:documentation "Return a list with the index of line breaks in SOURCE.")
+  (:method ((source string))
+    (cons 0 (loop :for char :in (coerce source 'list) :as index
+               :from 0
+               :when (equal char #\Newline) :collect index)))
+  (:method ((obj source))
+    (line-breaks (genome obj))))
 
 (defmethod (setf lines) (new (obj source))
   "Set the lines of source in OBJ
