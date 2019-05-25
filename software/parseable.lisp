@@ -19,6 +19,7 @@
            :asts
            :asts-changed-p
            :copy-lock
+           :*parseable-mutation-types*
            :parseable-mutation
            :parseable-insert
            :parseable-swap
@@ -734,6 +735,33 @@ second should be included as a possible pick
 
 
 ;;; Mutations
+(defvar *parseable-mutation-types*
+  (cumulative-distribution
+   (normalize-probabilities
+    '((parseable-insert . 1)
+      (parseable-swap . 1)
+      (parseable-move . 1)
+      (parseable-replace . 1)
+      (parseable-cut . 1)
+      (parseable-nop . 1))))
+  "Cumulative distribution of normalized probabilities of weighted mutations.")
+
+(defmethod pick-mutation-type ((obj parseable))
+  "Select type of mutation to apply to OBJ."
+  (random-pick *parseable-mutation-types*))
+
+(defmethod mutate ((obj parseable))
+  "Select a random mutation and mutate OBJ."
+  (unless (> (size obj) 0)
+    (error (make-condition 'mutate :text "No valid IDs" :obj obj)))
+  (restart-case
+      (let ((mutation (make-instance (pick-mutation-type obj) :object obj)))
+        (apply-mutation obj mutation)
+        (values obj mutation))
+    (try-another-mutation ()
+      :report "Try another mutation"
+      (mutate obj))))
+
 (defclass parseable-mutation (mutation)
   ()
   (:documentation "Specialization of the mutation interface for parseable

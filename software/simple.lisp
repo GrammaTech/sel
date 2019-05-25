@@ -64,7 +64,7 @@
     '((simple-cut    . 1)
       (simple-insert . 1)
       (simple-swap   . 1))))
-   "DOCFIXME")
+  "Default list of mutations to apply to simple software objects.")
 
 (defmethod pick-mutation-type ((obj simple))
   (random-pick *simple-mutation-types*))
