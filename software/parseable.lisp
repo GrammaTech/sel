@@ -284,8 +284,7 @@ applicative AST tree and clear the genome string."
   (update-paths obj))
 
 (defmethod update-paths ((obj parseable) &optional path)
-  (prog1 (setf (slot-value obj 'ast-root) (update-paths (ast-root obj) path))
-    (update-caches obj)))
+  (setf (slot-value obj 'ast-root) (update-paths (ast-root obj) path)))
 
 (defmethod ast-root :before ((obj parseable))
   "Ensure the `ast-root' field is set on OBJ prior to access."
