@@ -348,9 +348,10 @@
 
 
 ;;; Methods common to all software objects
-(defmethod to-file :after ((obj javascript) file)
+(defmethod to-file :after ((obj javascript) file
+                           &aux (preamble (car (ast-children (ast-root obj)))))
   "Ensure JavaScript scripts are marked executable."
-  (when (string= (subseq (first (ast-children (ast-root obj))) 0 2) "#!")
+  (when (string= (subseq preamble 0 (min (length preamble) 2)) "#!")
     (push :user-exec (file-permissions file))))
 
 (defmethod phenome ((obj javascript) &key (bin (temp-file-name)))
