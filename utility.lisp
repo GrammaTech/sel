@@ -91,6 +91,7 @@
    :getenv
    :quit
    :git
+   :git-directory
    :current-git-commit
    :current-git-branch
    :current-git-status
