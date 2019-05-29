@@ -326,28 +326,28 @@
   (:report (lambda (condition stream)
              (format stream "Git failed: ~a" (description condition)))))
 
-(defmacro with-git-directory ((directory git-dir) &rest body)
-  (with-gensyms (recur dir)
-    `(labels
-         ((,recur (,dir)
-            (when (< (length ,dir) 2)
-              (error (make-condition 'git
-                       :description
-                       (format nil "~a is not in a git repository." ,dir))))
-            (handler-case
-                (let ((,git-dir (make-pathname
-                                 :directory (append ,dir (list ".git")))))
-                  (if (probe-file git-dir)
-                      ,@body
-                      (,recur (butlast ,dir))))
-              (error (e)
-                (error (make-condition 'git
-                         :description
-                         (format nil "~a finding git information." e)))))))
-       (,recur ,directory))))
+(defun git-directory (directory) ; NOTE: Currently an internal function.
+  "Return first parent directory of DIRECTORY that is a git repository.
+Raise an error if no such parent exists."
+  (labels ((git-directory- (d)
+             (when (< (length d) 2)
+               (error
+                (make-condition 'git
+                  :description (format nil "~s is not in a git repository."
+                                       directory))))
+             (handler-case
+                 (let ((gd (make-pathname :directory (append d (list ".git")))))
+                   (when (probe-file gd)
+                     (return-from git-directory- gd)))
+               (error (e)
+                 (error
+                  (make-condition 'git
+                    :description (format nil "~s finding git directory." e)))))
+             (git-directory- (butlast d))))
+    (git-directory- directory)))
 
 (defun current-git-commit (directory)
-  (with-git-directory (directory git-dir)
+  (let ((git-dir (git-directory directory)))
     (with-open-file (git-head-in (merge-pathnames "HEAD" git-dir))
       (let ((git-head (read-line git-head-in)))
         (if (scan "ref:" git-head)
@@ -358,7 +358,7 @@
             (subseq git-head 0 7))))))         ; detached head
 
 (defun current-git-branch (directory)
-  (with-git-directory (directory git-dir)
+  (let ((git-dir (git-directory directory)))
     (with-open-file (git-head-in (merge-pathnames "HEAD" git-dir))
       (lastcar (split-sequence #\/ (read-line git-head-in))))))
 
