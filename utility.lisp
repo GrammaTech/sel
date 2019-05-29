@@ -93,6 +93,7 @@
    :git
    :current-git-commit
    :current-git-branch
+   :current-git-status
    :*temp-dir*
    :temp-file-name
    :with-temp-file
@@ -361,6 +362,21 @@ Raise an error if no such parent exists."
   (let ((git-dir (git-directory directory)))
     (with-open-file (git-head-in (merge-pathnames "HEAD" git-dir))
       (lastcar (split-sequence #\/ (read-line git-head-in))))))
+
+(defun current-git-status (directory)
+  "Return the git status of DIRECTORY as a list of lists of (status file).
+Return nil if there are no modified, untracked, or deleted files."
+  (multiple-value-bind (stdout stderr errno)
+      (let ((git-dir (git-directory directory)))
+        (shell "GIT_WORK_TREE=~a GIT_DIR=~a git status --porcelain"
+               (namestring (make-pathname
+                            :directory (butlast (pathname-directory git-dir))))
+               (namestring git-dir)))
+    (mapcar (lambda (line)
+              (multiple-value-bind (status point)
+                  (read-from-string line nil)
+                (list status (subseq line point))))
+            (split-sequence #\Newline stdout :remove-empty-subseqs t))))
 
 #+sbcl
 (locally (declare (sb-ext:muffle-conditions sb-ext:compiler-note))
