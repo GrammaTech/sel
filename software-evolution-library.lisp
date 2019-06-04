@@ -708,7 +708,7 @@ MUTATIONS is a list of the names of mutation classes."
                  (list ,@(mapcar
                           (lambda (fun) `(apply ,fun ,args))
                           (mapcar {slot-initform 'targeter} mutations))))
-               :type 'function
+               :type function
                :documentation
                ,(format nil "Targeters from ~a." mutations))
               (picker
@@ -718,7 +718,7 @@ MUTATIONS is a list of the names of mutation classes."
                   (lambda (target picker) (funcall picker target))
                   targets
                   (list ,@(mapcar {slot-initform 'picker} mutations))))
-               :type 'function
+               :type function
                :documentation
                ,(format nil "Pickers from ~a." mutations)))
              ;; NOTE: Should compose other slots as well.
