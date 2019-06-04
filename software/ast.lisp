@@ -135,7 +135,7 @@
                                               (or (plist-get :type slot) t))
                                         (list slot t)))
                                   (remove-if #'stringp slot-descriptions))))
-      `(prog1
+      `(progn
            ;; Define the immutable structure.
            (defstruct (,name ,@(when (listp name-and-options)
                                  (remove-if
@@ -197,7 +197,8 @@
                                      `(symbol-name
                                        (,(symbol-cat conc-name name) ,obj))
                                      `(,(symbol-cat conc-name name) ,obj))))
-                       names-w-types)))))))
+                       names-w-types)))
+           ',name))))
 
 (defmacro define-ast (name-and-options &rest slot-descriptions
                       &aux (default-ast-slot-descriptions
@@ -212,7 +213,7 @@
            (name (get-struct-name name-and-options))
            (conc-name (get-struct-conc-name name-and-options))
            (slot-names (get-struct-slot-names all-slot-descriptions)))
-      `(prog2
+      `(progn
            ;; Define the immutable node.
            (define-immutable-node-struct (,(symbol-cat name 'node)
                                           (:include ast-node)
@@ -259,7 +260,8 @@
                (lambda (slot)
                  `(defmethod ,(symbol-cat conc-name slot) ((,obj ,name))
                     (,(symbol-cat conc-name slot) (ast-node ,obj))))
-               slot-names)))))
+               slot-names)
+           ',name))))
 
 (defstruct (conflict-ast (:include ast))
   "Node representing several possibilities for insertion into an AST.
