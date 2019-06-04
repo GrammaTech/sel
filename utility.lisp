@@ -387,7 +387,7 @@ Return nil if there are no modified, untracked, or deleted files."
     (mapcar (lambda (line)
               (multiple-value-bind (status point)
                   (read-from-string line nil)
-                (list status (subseq line point))))
+                (list (make-keyword status) (subseq line point))))
             (split-sequence #\Newline stdout :remove-empty-subseqs t))))
 
 #+sbcl
