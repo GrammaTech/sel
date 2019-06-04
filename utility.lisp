@@ -340,7 +340,19 @@ Raise an error if no such parent exists."
              (handler-case
                  (let ((gd (make-pathname :directory (append d (list ".git")))))
                    (when (probe-file gd)
-                     (return-from git-directory- gd)))
+                     (if (directory-exists-p gd)
+                         ;; Actual .git/ directory.
+                         (return-from git-directory- gd)
+                         ;; For submodules we have a file pointing to directory.
+                         (let ((line (split-sequence #\Space
+                                       (with-open-file (in gd)
+                                         (read-line in)))))
+                           (when (string= "gitdir:" (first line))
+                             (return-from git-directory-
+                               (merge-pathnames
+                                (ensure-directory-pathname (second line))
+                                (ensure-directory-pathname
+                                 (make-pathname :directory d)))))))))
                (error (e)
                  (error
                   (make-condition 'git
@@ -370,8 +382,7 @@ Return nil if there are no modified, untracked, or deleted files."
   (multiple-value-bind (stdout stderr errno)
       (let ((git-dir (git-directory directory)))
         (shell "GIT_WORK_TREE=~a GIT_DIR=~a git status --porcelain"
-               (namestring (make-pathname
-                            :directory (butlast (pathname-directory git-dir))))
+               (namestring (make-pathname :directory directory))
                (namestring git-dir)))
     (mapcar (lambda (line)
               (multiple-value-bind (status point)
