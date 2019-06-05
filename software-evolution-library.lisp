@@ -206,13 +206,13 @@ slot in DIRECT-SLOTS may be one of the following:
             assumed to be a function (e.g., `copy-tree') which is used
             to copy the slot."
   ;; Ensure a child of software.
-  `(prog1
-       ;; Define the class
-       (defclass ,name ,(if (member 'software direct-superclasses)
-                            direct-superclasses
-                            `(,@direct-superclasses software))
-         ,(mapcar {plist-drop :copier} direct-slots)
-         ,@options)
+  `(progn
+     ;; Define the class
+     (defclass ,name ,(if (member 'software direct-superclasses)
+                          direct-superclasses
+                          `(,@direct-superclasses software))
+       ,(mapcar {plist-drop :copier} direct-slots)
+       ,@options)
      ;; Define the copy method
      ,(unless (null direct-slots)
         `(defmethod copy :around ((obj ,name) &key)
@@ -233,7 +233,8 @@ slot in DIRECT-SLOTS may be one of the following:
                                         `(,accessor obj))))))
                             (mapcar #'car direct-slots)
                             (mapcar {plist-get :copier} direct-slots))))
-                      copy)))))
+                      copy)))
+     (find-class ',name)))
 
 (defgeneric genome (software)
   (:documentation
@@ -672,6 +673,12 @@ Also, ensures MUTATION is a member of superclasses"
                 :documentation "A function from software -> random target.")))
       ,@(remove-if {member _ '(targeter picker)} slots :key #'car))
      ,@options))
+
+(defgeneric picker (x)
+  (:documentation "Reader for the PICKER slot of mutation objects"))
+
+(defgeneric targeter (x)
+  (:documentation "Reader for the TARGETER slot of mutation objects"))
 
 (defgeneric build-op (mutation software)
   ;; Returns a list of build-op objects
