@@ -21,6 +21,9 @@
   (:import-from :uiop :nest)
   (:export :ast
            :ast-p
+           :generic-ast
+           :generic-ast-p
+           :generic-ast-assert
            :define-ast
            :define-immutable-node-struct
            :to-alist
@@ -69,12 +72,45 @@
 ;;; Data structure definitions
 (defstruct ast-node "Base type of immutable portion of ast nodes.")
 
-(defstruct (ast (:constructor make-raw-ast))
+(defstruct (ast (:constructor make-raw-ast) (:conc-name ast-internal-))
   "Base type of sub-tree of an applicative AST tree."
   (path nil :type list)                      ; Path to subtree from root of tree.
   (node nil :type (or ast-node string null)) ; Pointer to immutable AST data.
   (children nil :type list)                  ; Remainder of subtree.
   (stored-hash nil :type (or null fixnum)))
+
+(defgeneric ast-path (a)
+  (:documentation "Genericized version of path reader for AST structs")
+  (:method ((a ast)) (ast-internal-path a)))
+(defgeneric (setf ast-path) (v a)
+  (:documentation "Genericized version of path writer for AST structs")
+  (:method ((v list) (a ast)) (setf (ast-internal-path a) v)))
+(defgeneric ast-children (a)
+  (:documentation "Genericized version of children reader for AST structs")
+  (:method ((a ast)) (ast-internal-children a)))
+(defgeneric (setf ast-children) (v a)
+  (:documentation "Genericized version of children writer for AST structs")
+  (:method ((v list) (a ast)) (setf (ast-internal-children a) v)))
+(defgeneric ast-stored-hash (a)
+  (:documentation "Genericized version of stored-hash reader for AST structs")
+  (:method ((a ast)) (ast-internal-stored-hash a)))
+(defgeneric (setf ast-stored-hash) (v a)
+  (:documentation "Genericized version of children writer for AST structs")
+  (:method (v (a ast)) (setf (ast-internal-stored-hash a) v)))
+
+(defmethod ast-node ((a ast)) (ast-internal-node a))
+(defmethod (setf ast-node) (v (a ast)) (setf (ast-internal-node a) v))
+
+(defgeneric generic-ast-p (x)
+  (:documentation "Generic predicate: 'is this an AST (node)', so a user
+does not use (typep ... 'ast).")
+  (:method ((x ast)) t)
+  (:method (x) nil))
+
+(defun generic-ast-assert (x)
+  (assert (generic-ast-p x) () "Not an ast: ~s" x))
+
+(deftype generic-ast () '(satisfies generic-ast-p))
 
 (defmethod print-object ((obj ast) stream &aux (cutoff 20))
   (if *print-readably*
@@ -254,7 +290,25 @@
                         (,(symbol-cat name 'node) ,obj))
                :children (if children-supplied-p
                              children
-                             (,(symbol-cat name 'children) ,obj))))
+                             (ast-children ,obj))))
+           ;; Define accessors for internal fields on outer structure
+           (defmethod ,(symbol-cat conc-name 'path) ((,obj ,name))
+             (ast-internal-path ,obj))
+           (defmethod (setf ,(symbol-cat conc-name 'path)) ((v list) (,obj ,name))
+             (setf (ast-internal-path ,obj) v))
+           (defmethod ,(symbol-cat conc-name 'node) ((,obj ,name))
+             (ast-internal-node ,obj))
+           (defmethod (setf ,(symbol-cat conc-name 'node)) (v (,obj ,name))
+             (setf (ast-internal-node ,obj) v))
+           (defmethod ,(symbol-cat conc-name 'children) ((,obj ,name))
+             (ast-internal-children ,obj))
+           (defmethod (setf ,(symbol-cat conc-name 'children)) ((v list) (,obj ,name))
+             (setf (ast-internal-children ,obj) v))
+           (defmethod ,(symbol-cat conc-name 'stored-hash) ((,obj ,name))
+             (ast-internal-stored-hash ,obj))
+           (defmethod (setf ,(symbol-cat conc-name 'stored-hash)) (v (,obj ,name))
+             (setf (ast-internal-stored-hash ,obj) v))
+
            ;; Define accessors for inner fields on outer structure.
            ,@(mapcar
                (lambda (slot)
@@ -515,7 +569,7 @@ operations."
           :path (reverse path)
           :children (iter (for c in (ast-children tree))
                           (for i upfrom 0)
-                          (collect (if (subtypep (type-of c) 'ast)
+                          (collect (if (generic-ast-p c)
                                        (update-paths c (cons i path))
                                        c))))))
 
@@ -835,7 +889,7 @@ use carefully.
 (defmethod map-ast ((tree ast) fn)
   (funcall fn tree)
   (dolist (c (ast-children tree))
-    (when (typep c 'ast) (map-ast c fn)))
+    (when (generic-ast-p c) (map-ast c fn)))
   tree)
 
 (defmethod map-ast (tree fn) nil)

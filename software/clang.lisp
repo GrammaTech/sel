@@ -3331,7 +3331,7 @@ Returns outermost AST of context.
                (reverse (ast-macros ast)))
          (mapc [{add-type clang} {find-type database}]
                (reverse (ast-types ast)))
-         (mapc #'update (remove-if-not [{subtypep _ 'ast} #'type-of]
+         (mapc #'update (remove-if-not #'generic-ast-p
                                        (ast-children ast)))))
     (update ast)))
 
@@ -3713,7 +3713,7 @@ within a function body, return null."))
                                               (function-body obj)
                                               (ast-children)))
                            (for prev previous child)
-                           (when (subtypep (type-of child) 'ast)
+                           (when (generic-ast-p child)
                              (if (and keep-comments (has-comment-p prev))
                                  (collect (prepend-text child
                                                         (trim-stmt-end prev)))
@@ -3797,7 +3797,7 @@ Move the semicolon in just one level, but no further"
       (loop for p on children
 	 do (let ((e (car p))
 		  (lc))
-	      (when (and (typep e 'ast)
+	      (when (and (generic-ast-p e)
 			 (eql (ast-class e) :callexpr)
 			 (stringp (car (setf lc (last (ast-children e))))))
 		(multiple-value-bind (found? prefix suffix)
@@ -3810,7 +3810,7 @@ Move the semicolon in just one level, but no further"
   (typecase ast
     (string
      (position-of-trailing-semicolon ast))
-    (ast
+    (generic-ast
      (has-trailing-semicolon-p (lastcar (ast-children ast))))
     (t nil)))
 
