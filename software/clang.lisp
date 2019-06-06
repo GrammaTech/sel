@@ -28,6 +28,9 @@
   (:export :clang
            :clang-ast
            :clang-ast-p
+           :generic-clang-ast
+           :generic-clang-ast-p
+           :generic-clang-ast-assert
            :headers
            :macros
            :includes
@@ -365,6 +368,14 @@ expanded relative to DIR.
   (hash nil :type (or number null))
   (name nil :type (or string null))
   (body nil :type (or string null)))
+
+(defgeneric generic-clang-ast-p (obj)
+  (:documentation "Predicate that generalizes CLANG-AST-P to other classes")
+  (:method ((obj clang-ast)) t)
+  (:method (obj) nil))
+
+(defun generic-clang-ast-assert (obj)
+  (assert (generic-clang-ast-p obj) () "Not a clang ast: ~s" obj))
 
 (defmethod ast-includes ((c conflict-ast)) nil)
 
