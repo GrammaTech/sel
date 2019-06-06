@@ -4068,7 +4068,7 @@ int x = CHARSIZE;")))
 
 (deftest javascript-and-conflict-replace-ast ()
   (with-fixture javascript-ast-w-conflict
-    (let ((cnf (find-if [{subtypep _ 'conflict-ast} #'type-of]
+    (let ((cnf (find-if {typep _ 'conflict-ast} ; [{subtypep _ 'conflict-ast} #'type-of]
                         (ast-to-list *asts*))))
       (setf *asts* (replace-ast *asts* cnf
                                 (aget :my (conflict-ast-child-alist cnf))))
@@ -4080,7 +4080,7 @@ int x = CHARSIZE;")))
   (with-fixture javascript-ast-w-conflict
     (let ((orig-text (ast-text *asts*))
           (orig (mapcar #'copy (ast-to-list *asts*))))
-      (let ((cnf (find-if [{subtypep _ 'conflict-ast} #'type-of]
+      (let ((cnf (find-if {typep _ 'conflict-ast} ; [{subtypep _ 'conflict-ast} #'type-of]
                           (ast-to-list *asts*))))
         (replace-ast *asts* cnf
                      (aget :my (conflict-ast-child-alist cnf))))
