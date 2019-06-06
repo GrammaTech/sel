@@ -904,28 +904,41 @@ use carefully.
   (typecase ast
     (string (funcall fn ast))
     (conflict-ast (funcall fn ast))
-    (ast (cons (funcall fn ast)
-            (mapcar {mapc-ast-and-strings _ fn} (ast-children ast))))))
+    (generic-ast (cons (funcall fn ast)
+                       (mapcar {mapc-ast-and-strings _ fn} (ast-children ast))))))
 
 (defgeneric ast-to-list (obj)
   (:documentation "Return ASTs under OBJ as a list.")
-  (:method ((ast ast) &aux result)
-    (map-ast ast (lambda (ast) (push ast result)))
-    (reverse result)))
-
+;;  (:method ((ast ast) &aux result)
+;;    (map-ast ast (lambda (ast) (push ast result)))
+;;    (reverse result))
+  (:method (ast &aux result)
+    (if (not (generic-ast-p ast))
+        (call-next-method)
+        (progn
+          (map-ast ast (lambda (ast) (push ast result)))
+          (reverse result)))))
 
 ;;; AST equality
 (defgeneric ast-equal-p (ast-a ast-b)
   (:documentation "Return T AST-A and AST-B are equal for differencing."))
 
-(defmethod ast-equal-p ((ast-a ast) (ast-b ast))
+(defun actual-ast-equal-p (ast-a ast-b)
+  ;; (generic-ast-assert ast-a)
+  ;; (generic-ast-assert ast-b)
   (and (eq (ast-class ast-a) (ast-class ast-b))
        (eq (length (ast-children ast-a))
            (length (ast-children ast-b)))
        (every #'ast-equal-p (ast-children ast-a) (ast-children ast-b))))
 
+(defmethod ast-equal-p ((ast-a ast) (ast-b ast))
+  (actual-ast-equal-p ast-a ast-b))
+
 (defmethod ast-equal-p ((ast-a t) (ast-b t))
-  (equalp ast-a ast-b))
+  (if (and (generic-ast-p ast-a)
+           (generic-ast-p ast-b))
+      (actual-ast-equal-p ast-a ast-b)
+      (equalp ast-a ast-b)))
 
 (defmethod ast-equal-p ((ast-a cons) (ast-b cons))
   (and (iter (while (consp ast-a))
@@ -935,7 +948,10 @@ use carefully.
 
 (defgeneric ast-text (ast)
   (:documentation "Return textual representation of AST.")
-  (:method ((ast ast)) (peel-bananas (source-text ast))))
+  (:method (ast)
+    (if (generic-ast-p ast)
+        (peel-bananas (source-text ast))
+        (format nil "~A" ast))))                
 
 (defgeneric ast-hash (ast)
   (:documentation "A hash value for the AST, which is a nonnegative
@@ -1079,6 +1095,11 @@ modile +AST-HASH-BASE+"
   (ast-hash (cons (ast-class ast) (ast-children ast))))
 ;; ))
 
+(defmethod ast-hash (ast)
+  (if (generic-ast-p ast)
+      (ast-hash (cons (ast-class ast) (ast-children ast)))
+      (call-next-method)))
+
 (defgeneric ast-clear-hash (ast)
   (:documentation "Clear the stored hash fields of an ast"))
 
@@ -1090,11 +1111,18 @@ modile +AST-HASH-BASE+"
   (mapc #'ast-clear-hash (ast-children ast))
   ast)
 
+(defmethod ast-clear-hash (ast)
+  (if (generic-ast-p ast)
+      (progn
+         (setf (ast-stored-hash ast) nil)
+         (mapc #'ast-clear-hash (ast-children ast)))
+      (call-next-method)))
+
 (defgeneric ast-meld-p (ast)
   (:documentation
    "Returns true if the children of AST are to be combined on merge conflict."))
 
-(defmethod ast-meld-p ((ast ast))
+(defmethod ast-meld-p (ast)
   (ast-class-meld? (ast-class ast) ast))
 
 (defgeneric ast-class-meld? (ast-class ast)
