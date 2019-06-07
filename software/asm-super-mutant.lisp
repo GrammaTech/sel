@@ -1098,7 +1098,7 @@ a symbol, the SYMBOL-NAME of the symbol is used."
    (list
     ""
     (if (intel-syntax-p asm-syntax)
-	"section .selrodata nobits alloc noexec nowrite align=8"
+	"section .selrodata progbits alloc noexec nowrite align=8"
 	".section selrodata, \"a\", @progbits")
     (if (intel-syntax-p asm-syntax)
 	";;;  table of function pointers, 0-terminated"
@@ -1147,10 +1147,10 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 	    (insert-new-lines
 	     asm-variants
 	     (list "section .seldata nobits alloc noexec write align=4"
-		   "    times 16 db 0"
-		   "    times  8 db 0"
-		   "    times  8 db 0"
-		   "    times  8 db 0")))
+		   "        resb 16"
+		   "        resb 8"
+		   "        resb 8"
+		   "        resb 8")))
 	;; att syntax
 	(if bss
 	    (insert-new-lines
@@ -1629,10 +1629,10 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
   "Path to papi library.  See http://icl.cs.utk.edu/papi/.")
 
 ;; arbitrary addresses--must be under 32-bits
-(defun bss-segment-start () #x8567800)
-(defun data-segment-start () #x7489500)
-(defun text-segment-start () #x9346400)
-(defun seldata-segment-start () #x4567900)
+(defun bss-segment-start () nil)
+(defun data-segment-start () nil)
+(defun text-segment-start () nil)
+(defun seldata-segment-start () nil)
 
 (defmethod phenome ((asm asm-super-mutant)
 		    &key (bin (temp-file-name "out"))
