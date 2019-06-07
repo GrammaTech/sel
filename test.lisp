@@ -940,7 +940,8 @@
 (defixture gcd-clang-w-fodder
   (:setup
    (setf *database*
-         (with-open-file (in (make-pathname :name "euler-example.json"
+         (with-open-file (in (make-pathname :name "euler-example"
+                                            :type "json"
                                             :directory +etc-dir+))
            (make-instance 'json-database :json-stream in)))
    (setf *gcd*
@@ -4916,7 +4917,8 @@ Useful for printing or returning differences in the REPL."
 	printf(\"Hello, World!\\n\");
 	return missing_variable;}"))
           (setf *database*
-                (with-open-file (in (make-pathname :name "euler-example.json"
+                (with-open-file (in (make-pathname :name "euler-example"
+                                                   :type "json"
                                                    :directory +etc-dir+))
                   (make-instance 'json-database :json-stream in))))
   (:teardown (setf *database* nil)))
@@ -6463,7 +6465,8 @@ Useful for printing or returning differences in the REPL."
 (defixture json-database
   (:setup
    (setf *database*
-         (with-open-file (in (make-pathname :name "euler-example.json"
+         (with-open-file (in (make-pathname :name "euler-example"
+                                            :type "json"
                                             :directory +etc-dir+))
            (make-instance 'json-database :json-stream in))))
   (:teardown
@@ -7613,7 +7616,8 @@ prints unique counters in the trace"
              :build-command
              (concatenate 'string
                (namestring (make-pathname :directory +grep-prj-dir+
-                                          :name "build.sh"))
+                                          :name "build"
+                                          :type "sh"))
                " --full --nonsense-arg"))))
     (is sw)
     (is (eql 'clang-project (type-of sw)))
