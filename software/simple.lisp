@@ -34,7 +34,7 @@
            :copier sel/utility:enhanced-copy-seq))
   (:documentation "The simplest base software object."))
 
-(declaim (inline lines))
+;; (declaim (inline lines))
 (defmethod lines ((simple simple))
   (remove nil (map 'list {aget :code} (genome simple))))
 
@@ -220,6 +220,7 @@ determines the number of elements on either side of the points to
 consider.  TEST should take two elements and return a similarity
 metric between 0 and 1.  KEY may be a function of one argument whose
 value is passed to TEST."
+  #+sbcl (declare (sb-ext:muffle-conditions sb-ext:compiler-note))
   (let* ((ap (random (length a)))
          (a-ctx (let ((ctx (subseq a
                                    (max 0 (- ap context))
@@ -257,6 +258,7 @@ value is passed to TEST."
                                    (key {aget :code})
                                    (test (lambda (a b) (if (tree-equal a b) 1 0))))
   "DOCFIXME"
+  #+sbcl (declare (sb-ext:muffle-conditions sb-ext:compiler-note))
   (let ((range (min (size a) (size b))))
     (if (> range 0)
         (let* ((new (copy a))
