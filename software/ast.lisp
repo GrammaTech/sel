@@ -1167,6 +1167,10 @@ All list operations are destructive."
 ;;; Kind dispatch pattern
 
 (defmacro defgeneric-kind (fn args &body body)
+  "Macro for the kind dispatch idiom.  ARGS is a list consisting of
+the AST argument (a symbol), with optional leading and trailing lists
+of arguments.  When there is only one such list, it must follow the
+ast argument."
   (assert (listp args))
   (assert (>= (length args) 2))
   (let ((pre-args nil)
@@ -1180,14 +1184,14 @@ All list operations are destructive."
       (4 (setf pre-args (car args))
          (setf ast (cadr args))
          (setf post-args (caddr args))))
+    (assert (and ast (not (keywordp ast)) (symbolp ast)))
     (assert (listp pre-args))
     (assert (listp post-args))
     (assert (every #'symbolp pre-args))
     (assert (every #'symbolp post-args))
     (assert (symbolp fn))
     (assert (keywordp kind-symbol))
-    (let ((ast (car args))
-          (fn/kind (intern (concatenate 'string (symbol-name fn) "/KIND")
+    (let ((fn/kind (intern (concatenate 'string (symbol-name fn) "/KIND")
                            (symbol-package fn)))
           (doc (if (and (stringp (car body)) (cdr body))
                    (pop body)
@@ -1197,5 +1201,6 @@ All list operations are destructive."
            (:documentation ,(format nil "Internal generic function for ~(~a~)" fn)))
          (defmethod ,fn/kind (,@pre-args ,ast ,@post-args (kind (eql ,kind-symbol))) ,@body)
          (defgeneric ,fn (,@pre-args ,ast ,@post-args)
-           ,@(when doc `((:documentation ,doc)))
-           (:method (,@pre-args ,ast ,@post-args) (,fn/kind ,@pre-args ,ast ,@post-args (ast-kind ,ast))))))))
+           ,@(when doc `((:documentation ,doc))))
+         (defmethod ,fn (,@pre-args ,ast ,@post-args)
+           (,fn/kind ,@pre-args ,ast ,@post-args (ast-kind ,ast)))))))
