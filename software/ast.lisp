@@ -48,6 +48,7 @@
            :ast-equal-p
            :ast-text
 	   :ast-hash
+           :ast-kind
            :make-conflict-ast
            :conflict-ast
            :conflict-ast-p
@@ -64,7 +65,8 @@
 	   :ast-meld-p
 	   :ast-class-meld?
            :replace-in-ast
-           :move-prefixes-down))
+           :move-prefixes-down
+           :defgeneric-kind))
 (in-package :software-evolution-library/software/ast)
 (in-readtable :curry-compose-reader-macros)
 
@@ -111,6 +113,11 @@ does not use (typep ... 'ast).")
   (assert (generic-ast-p x) () "Not an ast: ~s" x))
 
 (deftype generic-ast () '(satisfies generic-ast-p))
+
+(defgeneric ast-kind (ast)
+  (:documentation "Maps AST to a specific 'kind' symbol.
+Different representations of the same underlying kind of
+ast should map to the same symbol."))
 
 (defmethod print-object ((obj ast) stream &aux (cutoff 20))
   (if *print-readably*
@@ -1155,3 +1162,40 @@ All list operations are destructive."
                                          (subseq (cadr p) 0 pos)))
               (setf (cdr l) (list (subseq (cadr p) 0 pos))))
           (setf (cadr p) (subseq (cadr p) pos)))))
+
+
+;;; Kind dispatch pattern
+
+(defmacro defgeneric-kind (fn args &body body)
+  (assert (listp args))
+  (assert (>= (length args) 2))
+  (let ((pre-args nil)
+        (post-args nil)
+        (ast nil)
+        (kind-symbol (car (last args))))
+    (ecase (length args)
+      (2 (setf ast (car args)))
+      (3 (setf ast (car args))
+         (setf post-args (cadr args)))
+      (4 (setf pre-args (car args))
+         (setf ast (cadr args))
+         (setf post-args (caddr args))))
+    (assert (listp pre-args))
+    (assert (listp post-args))
+    (assert (every #'symbolp pre-args))
+    (assert (every #'symbolp post-args))
+    (assert (symbolp fn))
+    (assert (keywordp kind-symbol))
+    (let ((ast (car args))
+          (fn/kind (intern (concatenate 'string (symbol-name fn) "/KIND")
+                           (symbol-package fn)))
+          (doc (if (and (stringp (car body)) (cdr body))
+                   (pop body)
+                   nil)))
+      `(progn
+         (defgeneric ,fn/kind (,@pre-args ,ast ,@post-args kind)
+           (:documentation ,(format nil "Internal generic function for ~(~a~)" fn)))
+         (defmethod ,fn/kind (,@pre-args ,ast ,@post-args (kind (eql ,kind-symbol))) ,@body)
+         (defgeneric ,fn (,@pre-args ,ast ,@post-args)
+           ,@(when doc `((:documentation ,doc)))
+           (:method (,@pre-args ,ast ,@post-args) (,fn/kind ,@pre-args ,ast ,@post-args (ast-kind ,ast))))))))
