@@ -321,18 +321,17 @@ The returned vector will have one entry for each ast class listed in `clang-c-as
 (defgeneric ast-depth (software ast)
   (:documentation "Depth of AST in SOFTWARE. The root node has a depth of 0."))
 
-(defmethod ast-depth ((clang clang) (ast clang-ast))
+(defmethod ast-depth ((clang clang) ast)
   "Depth of AST in CLANG. The root node has a depth of 0
 * CLANG software object
 * AST ast pointing to the root of the AST tree in CLANG
 "
   (1- (length (get-parent-asts clang ast))))
 
-
 (defvar *ast-depths-cache* (make-hash-table :test #'equal)
   "Cache for computing AST depths")
 
-(defmethod ast-depth :around ((clang clang) (ast clang-ast))
+(defmethod ast-depth :around ((clang clang) ast)
   "Depth of AST in CLANG. The root node has a depth of 0
 * CLANG software object
 * AST ast pointing to the root of the AST tree in CLANG
@@ -548,7 +547,7 @@ an AST."
   (:documentation
    "Return 1 if AST is a statement matching KEYWORD, 0 otherwise."))
 
-(defmethod auto-count-keyword ((keyword string) (ast clang-ast))
+(defmethod auto-count-keyword ((keyword string) ast)
   "Return 1 if AST is a statement matching KEYWORD, 0 otherwise.
 * KEYWORD a string, to be compared against the `ast-class' of AST. See
 also `*clang-c-ast-keywords-auto-count*'.
@@ -563,7 +562,7 @@ also `*clang-c-ast-keywords-auto-count*'.
   (:documentation "Return 1 if KEYWORD occurs anywhere in the text of an AST in
 SOFTWARE, 0 otherwise."))
 
-(defmethod search-keyword ((clang clang) (keyword string) (ast clang-ast))
+(defmethod search-keyword ((clang clang) (keyword string) ast)
   "Return 1 if KEYWORD occurs anywhere in the source text of an AST in CLANG, 0
 otherwise. Only searches ASTs whose `ast-class' is in
 `*clang-c-ast-keywords-search-count*'.
