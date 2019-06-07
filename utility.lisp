@@ -330,6 +330,7 @@
 
 (defun git-directory (directory) ; NOTE: Currently an internal function.
   "Return first parent directory of DIRECTORY that is a git repository.
+Return a second value which is the base git repository, the GIT_WORK_TREE.
 Raise an error if no such parent exists."
   (labels ((git-directory- (d)
              (when (< (length d) 2)
@@ -342,17 +343,19 @@ Raise an error if no such parent exists."
                    (when (probe-file gd)
                      (if (directory-exists-p gd)
                          ;; Actual .git/ directory.
-                         (return-from git-directory- gd)
+                         (return-from git-directory-
+                           (values gd (make-pathname :directory d)))
                          ;; For submodules we have a file pointing to directory.
                          (let ((line (split-sequence #\Space
                                        (with-open-file (in gd)
                                          (read-line in)))))
                            (when (string= "gitdir:" (first line))
                              (return-from git-directory-
-                               (merge-pathnames
+                               (values (merge-pathnames
                                 (ensure-directory-pathname (second line))
                                 (ensure-directory-pathname
-                                 (make-pathname :directory d)))))))))
+                                 (make-pathname :directory d)))
+                                       (make-pathname :directory d))))))))
                (error (e)
                  (error
                   (make-condition 'git
@@ -380,10 +383,12 @@ Raise an error if no such parent exists."
   "Return the git status of DIRECTORY as a list of lists of (status file).
 Return nil if there are no modified, untracked, or deleted files."
   (multiple-value-bind (stdout stderr errno)
-      (let ((git-dir (git-directory directory)))
+      (multiple-value-bind (git-dir git-work-tree) (git-directory directory)
+        ;; (format t "GIT-DIR:~S GIT-TREE:~S~%" git-dir git-work-tree)
         (shell "GIT_WORK_TREE=~a GIT_DIR=~a git status --porcelain"
-               (namestring (make-pathname :directory directory))
+               (namestring git-work-tree)
                (namestring git-dir)))
+    (declare (ignore stderr errno))
     (mapcar (lambda (line)
               (multiple-value-bind (status point)
                   (read-from-string line nil)
