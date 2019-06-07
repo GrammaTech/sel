@@ -37,7 +37,9 @@
         :software-evolution-library/software/clang-project
         :software-evolution-library/software/javascript-project
         :software-evolution-library/software/java-project
-        :software-evolution-library/software/lisp-project)
+        :software-evolution-library/software/lisp-project
+        ;; Components.
+        :software-evolution-library/components/test-suite)
   (:import-from :bordeaux-threads :all-threads :thread-name :join-thread)
   (:import-from :cl-ppcre :scan)
   (:import-from :swank :create-server)
@@ -83,6 +85,8 @@
            :exit-command
            :guess-language
            :create-software
+           :create-test
+           :create-test-suite
            ;; Common sets of command-line-arguments options.
            :+common-command-line-options+
            :+interactive-command-line-options+
@@ -420,6 +424,33 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
       (:artifacts ,artifacts)
       (:compilation-database ,compilation-database)))
    path))
+
+(defgeneric create-test (script)
+  (:documentation "Return a test case of SCRIPT.")
+  (:method ((script pathname))
+    (make-instance 'test-case :program-name (namestring script)))
+  (:method ((script string))
+    (create-test script))
+  (:method ((script list))
+    (make-instance 'test-case
+      :program-name (car script)
+      :program-args (mapcar (lambda (x) (if (string= x "~a") :bin x))
+                            (cdr script)))))
+
+(defgeneric create-test-suite (script num-tests)
+  (:documentation "Return a test suite of SCRIPT and NUM-TESTS.")
+  (:method ((script pathname) (num-tests t))
+    (create-test-suite (namestring script) num-tests))
+  (:method ((script string) (num-tests t))
+    (nest
+     (let ((cmd (split-sequence #\space script))))
+     (flet ((replace-num (num)
+              (cons (car cmd)
+                    (mapcar (lambda (x)
+                              (if (string= x "~d") (write-to-string num) x))
+                            (cdr cmd))))))
+     (make-instance 'test-suite :test-cases)
+     (mapcar [#'create-test #'replace-num #'1+] (iota num-tests)))))
 
 
 ;;;; Common sets of command-line-arguments options.
