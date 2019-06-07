@@ -377,6 +377,8 @@ expanded relative to DIR.
 (defun generic-clang-ast-assert (obj)
   (assert (generic-clang-ast-p obj) () "Not a clang ast: ~s" obj))
 
+(defmethod ast-kind ((ast clang-ast)) :clang)
+
 (defmethod ast-includes ((c conflict-ast)) nil)
 
 (defmethod print-object ((obj clang-ast-node) stream)
@@ -420,7 +422,7 @@ if not given.
          (remove-duplicates
           (apply #'append
                  (mapcar function
-                         (remove-if-not #'clang-ast-p children)))
+                         (remove-if-not #'generic-clang-ast-p children)))
           :test #'equal)))
     (let ((types (or types (union-child-vals #'ast-types)))
           (unbound-funs (or unbound-funs
@@ -800,7 +802,7 @@ will not be generated automatically.
   (:documentation "Guess the type of the VARIABLE-NAME in AST.
 VARIABLE-NAME should be declared in AST."))
 
-(defmethod declared-type ((ast clang-ast) variable-name)
+(defgeneric-kind declared-type (ast (variable-name) :clang)
   "Guess the type of the VARIABLE-NAME in AST.
 VARIABLE-NAME should be declared in AST."
   ;; NOTE: This is very simple and probably not robust to variable
@@ -1550,7 +1552,7 @@ to expand.
 * ASTS list of ASTs in GENOME as identified by clang-mutate
 "
   (let ((roots (mapcar {aget :counter}
-                       (remove-if-not [#'zerop {aget :parent-counter}] asts)))
+                       (remove-if-not [{eql 0} {aget :parent-counter}] asts)))
         (ast-vector (coerce asts 'vector))
         ;; Find all multi-byte characters in the genome for adjusting
         ;; offsets later.
@@ -2424,12 +2426,13 @@ Adds and removes semicolons, commas, and braces.
   (:documentation "Removes the trailing semicolon from an AST, returning a new AST node.
 If there is no trailing semicolon, return the AST unchanged."))
 
-(defmethod remove-semicolon ((obj clang-ast))
+(defmethod remove-semicolon (obj)
+  (generic-ast-assert obj)
   (let* ((children (ast-children obj))
-	 (last (lastcar children)))
+         (last (lastcar children)))
     (if-let ((trimmed (ends-with-semicolon last)))
-      (copy obj :children (append (butlast children) (list trimmed)))
-      obj)))
+            (copy obj :children (append (butlast children) (list trimmed)))
+            obj)))
 
 (defmethod remove-semicolon ((obj string))
   (or (ends-with-semicolon obj) obj))
@@ -2727,8 +2730,7 @@ Ends with AST.
                                         nil
                                         (cons new-acc blocks)))))))
 
-(defmethod tree-successors ((ast clang-ast) (ancestor clang-ast)
-                            &key include-ast)
+(defmethod tree-successors (ast ancestor &key include-ast)
   "Find all successors of AST within subtree at ANCESTOR.
 
 Returns ASTs and text snippets, grouped by depth. AST itself is
@@ -2760,13 +2762,8 @@ included as the first successor."
         (reverse (aget :types snippet)))
   snippet)
 
-(defgeneric begins-scope (ast)
-  (:documentation "True if AST begins a new scope."))
-
-(defmethod begins-scope ((ast clang-ast))
-  "DOCFIXME
-* AST DOCFIXME
-"
+(defgeneric-kind begins-scope (ast :clang)
+  "True if AST begins a new scope."
   (member (ast-class ast)
           '(:CompoundStmt :Block :Captured :Function :CXXMethod)))
 
@@ -2846,7 +2843,7 @@ included as the first successor."
                                     (get-immediate-children software ast)))
                      :test #'equal))
 
-(defmethod get-unbound-funs ((software clang) (ast clang-ast-node))
+(defmethod get-unbound-funs ((software clang) ast)
   "DOCFIXME
 * SOFTWARE DOCFIXME
 * AST DOCFIXME
@@ -2898,7 +2895,7 @@ included as the first successor."
                       (or (find name in-scope :test #'string= :key {aget :name})
                           `((:name . ,name)))))))))
 
-(defmethod get-unbound-vals ((software clang) (ast clang-ast-node))
+(defmethod get-unbound-vals ((software clang) ast)
   "DOCFIXME
 * SOFTWARE DOCFIXME
 * AST DOCFIXME
@@ -3108,7 +3105,7 @@ variables to replace use of the variables declared in stmt ID."))
     (if (>= 0 depth) the-block
         (nth-enclosing-block clang (1- depth) the-block))))
 
-(defmethod ast-declarations ((ast clang-ast))
+(defgeneric-kind ast-declarations (ast :clang)
   "DOCFIXME
 * AST DOCFIXME
 "
@@ -3120,13 +3117,8 @@ variables to replace use of the variables declared in stmt ID."))
      (mapcar #'car (ast-args ast)))
     (:otherwise nil)))
 
-(defgeneric ast-var-declarations (ast)
-  (:documentation "Names of the variables that AST declares."))
-
-(defmethod ast-var-declarations ((ast clang-ast))
-  "DOCFIXME
-* AST DOCFIXME
-"
+(defgeneric-kind ast-var-declarations (ast :clang)
+  "Names of the variables that AST declares."
   (when (member (ast-class ast) '(:Var :ParmVar :DeclStmt))
     (ast-declares ast)))
 
@@ -3780,7 +3772,7 @@ within a function body, return null."))
 ;;; Process a clang ast to move semicolons down to appropriate places
 
 (defun is-full-stmt-ast (ast)
-  (and (typep ast 'clang-ast)
+  (and (generic-clang-ast-p ast)
        (ast-full-stmt (ast-node ast))))
 
 (defun move-semicolons-into-full-stmts (children)
