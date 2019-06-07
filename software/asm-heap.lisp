@@ -899,9 +899,7 @@ those we assume a function name."
                                       '("call" "callq") :test 'equalp)
 			      (setf leaf nil)) ;found a call, so not a leaf
 			  (when (or
-				 (member (asm-line-info-opcode info2)
-					 '("ret" "retq" "hlt")
-					 :test 'equalp)
+                                 (= i (1- (length genome)))  ;; end of genome
 				 (and
 				  (eq (asm-line-info-type info2)
 				      :decl)

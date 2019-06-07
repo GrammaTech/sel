@@ -86,9 +86,18 @@ extern unsigned long num_output_registers; // number of live output registers
 unsigned long overhead = 0;    // number of instructions in
                                // setup/restore code
 
-unsigned long executing = 0;   // 1 if variant is running
+enum ExecutionState {
+    NormalState = 0,
+    RunningTest = 1,
+    InitMemory = 2,
+    InitPages = 3
+};
+enum ExecutionState executing = NormalState;
 
 static int EventSet = PAPI_NULL;
+static int segfault = 0;
+static unsigned long segfault_addr = 0;
+static jmp_buf bailout = {0};
 
 extern void _init_registers();
 
@@ -176,30 +185,47 @@ void map_page(unsigned long* addr) {
 // Ensure all pages that are referenced are committed.
 // When we get to a null address, we've reached the end of the inputs.
 //
-void map_pages(unsigned long* p) {
+int map_pages(unsigned long* p) {
+    int i = 0;
+    segfault = 0;
+
     for (int k = 0; k < num_tests; k++) {
         while (*p) {
+            i = setjmp(bailout); // safe place to return to
+            if (segfault || i != 0) {
+                segfault = 0;
+                return -1;  // segment violation was caught!
+            }
             unsigned long* addr = (unsigned long*)*p;
+#if DEBUG
+    fprintf(stderr, "Allocating page at address 0x%lx, test %d\n",
+            (unsigned long)addr, k);
+#endif
             map_page(addr);
             p += 3;
         }
         p++;
     }
+    return 0; // return normally
 }
 
-void init_pages() {
+int init_pages() {
     // map the initial stack page
     map_page((unsigned long*)(input_regs[RSP_position(live_input_registers)]));
-    map_pages(input_mem); // map pages indicated by the memory i/o
+    return map_pages(input_mem); // map pages indicated by the memory i/o
 }
 
 //
 // Traverse the mem inputs, three qwords at a time.
 // When we get to a null address, we've reached the end of the inputs.
+// Returns 0 if successful, -1 if a segment violation error occurs.
+// If the segment violation occurs, segfault is set to 1,
+// and segfault_addr will contain the address of the violation.
 //
-void init_mem(int test) {
+int init_mem(int test) {
     unsigned long* p = input_mem;
-
+    int i = 0;
+    
     // skip to the indicated test, by advancing past (test - 1) 0
     // words (qwords containing 0)
     unsigned long count = test;
@@ -209,13 +235,20 @@ void init_mem(int test) {
         count--;
     }
     // p should now be positioned at the correct test data
-
     while (*p) {
+        segfault = 0;
+        i = setjmp(bailout); // come back here if we get a segment
+                              // violation
+        if (segfault || i != 0) {
+            segfault = 0;
+            return -1;  // segment violation was caught!
+        }
         unsigned long* addr = (unsigned long*)*p++;
         unsigned long data = *p++;
         unsigned long mask = *p++;
         *addr = (data & mask) | (~mask & *addr);
     }
+    return 0;
 }
 
 //
@@ -318,14 +351,48 @@ static void sigunblock() {
     sigprocmask(SIG_UNBLOCK, &sa_mask, NULL);
 }
 
-#define REG_RIP 16
+// from gcc sys/ucontext.h--processor/platform dependent
+//
+enum {
+    REG_R8    = 0,
+    REG_R9    = 1,
+    REG_R10   = 2,
+    REG_R11   = 3,
+    REG_R12   = 4,
+    REG_R13   = 5,
+    REG_R14   = 6,
+    REG_R15   = 7,
+    REG_RDI   = 8,
+    REG_RSI   = 9,
+    REG_RBP   = 10,
+    REG_RBX   = 11,
+    REG_RDX   = 12,
+    REG_RAX   = 13,
+    REG_RCX   = 14,
+    REG_RSP   = 15,
+    REG_RIP   = 16
+};
+
+unsigned long dummy = 0;
 
 void segfault_sigaction(int signal, siginfo_t *si, void *context) {
-    if (!executing) {
-        //fprintf(stderr, "Caught segfault at address %p\n", si->si_addr);
+    if (executing == NormalState) {
         exit(1);
     }
-
+    // if we were executing init_mem(), change the address to &dummy,
+    // set the segfault flag and return. The init_mem() loop should exit.
+    if (executing == InitMemory || executing == InitPages) {
+        segfault_addr = (unsigned long)(si->si_addr);
+        si->si_addr = &dummy;
+        segfault = 1;
+        unblock_signal(signal);
+        ucontext_t* p = (ucontext_t*)context;
+        // if (p->uc_mcontext.gregs[REG_RSI] == (greg_t)segfault_addr)
+        //    p->uc_mcontext.gregs[REG_RSI] = (greg_t)&dummy;
+        longjmp(bailout, 1);  // jump to safe instruction
+        return;
+    }
+    // we are executing a variant function (executing = RunningTest)
     unblock_signal(signal);
 
     ucontext_t* p = (ucontext_t*)context;
@@ -338,7 +405,7 @@ void segfault_sigaction(int signal, siginfo_t *si, void *context) {
 }
 
 void timer_sigaction(int signal, siginfo_t *si, void *context) {
-    if (!executing) {
+    if (executing != RunningTest) {
         //fprintf(stderr, "Execution timer expired\n");
         exit(1);
     }
@@ -435,8 +502,17 @@ unsigned long run_variant(int v, int test) {
 
     test_offset = test * num_input_registers * sizeof(unsigned long);
     execaddr = variant_table[v];
-    init_mem(test);
-
+    executing = InitMemory;
+    retval = init_mem(test);
+    executing = NormalState;
+    if (retval == -1) {
+#if DEBUG
+        fprintf(stderr, "Variant %d, test %d failed to initialize address %lx\n",
+                v, test, segfault_addr);
+#endif
+        return ULONG_MAX;
+    }
+        
     start_timer();  // start POSIX timer
     sigunblock();
 
@@ -453,9 +529,9 @@ unsigned long run_variant(int v, int test) {
     }
 
     asm("call _init_registers\n\t");
-    executing = 1;
+    executing = RunningTest;
     execaddr();
-    executing = 0;
+    executing = NormalState;
     asm("call _restore_registers\n\t");
 
     retval = PAPI_read(EventSet, end_value);     // get PAPI count
@@ -518,8 +594,8 @@ unsigned long run_overhead() {
     // but without call to execaddr().
     
     asm("call _init_registers\n\t");
-    executing = 1; 
-    executing = 0;
+    executing = RunningTest; 
+    executing = NormalState;
     asm("call _restore_registers\n\t");
     retval = PAPI_read(EventSet, end_value);     // get PAPI count
 
@@ -657,8 +733,15 @@ int main(int argc, char* argv[]) {
 #endif
     papi_init();
 
-    init_pages(); // allocate any referenced pages
-
+    executing = InitPages;
+    int retval = init_pages(); // allocate any referenced pages
+    executing = NormalState;
+    if (retval == -1) {
+        fprintf(stderr, "Segmentation fault initializing pages at 0x%lx\n",
+                segfault_addr);
+        exit(1);
+    }
+    
     unsigned long best = 0;
     int best_index = -1;
     int num_variants = 0;
@@ -670,8 +753,6 @@ int main(int argc, char* argv[]) {
 #if DEBUG
     fprintf(stderr, "Number of variants: %d\n", num_variants);
 #endif
-    //unsigned long* test_results =
-    //    (unsigned long*)malloc(sizeof(unsigned long) * num_tests * num_variants);
     unsigned long* p = test_results;
 
     for (int i = 0; i < (num_tests * num_variants); i++)
@@ -699,6 +780,5 @@ int main(int argc, char* argv[]) {
         }
         fprintf(stdout, "\n");
     }
-    // free(test_results);
     return 0;
 }

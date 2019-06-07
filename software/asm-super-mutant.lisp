@@ -861,6 +861,14 @@ a symbol, the SYMBOL-NAME of the symbol is used."
          "        global test_results")
 	(iter (for i from 0 below num-variants)
 	      (collect (format nil "        global variant_~D" i)))
+        ;;
+        ;; Use start_included_lines, end_included_lines to delineate
+        ;; included code sections. The macros intentionally don't do anything,
+        ;; they are just used as markers.
+        ;;
+        (list
+         "        %define start_included_lines"
+         "        %define end_included_lines")
 	(list
 	 ""
 	 "; -------------- Stack Vars ---------------")
@@ -901,6 +909,16 @@ a symbol, the SYMBOL-NAME of the symbol is used."
          "        .globl test_results")
 	(iter (for i from 0 below num-variants)
 	      (collect (format nil "        .globl variant_~D" i)))
+        ;;
+        ;; Use start_included_lines, end_included_lines to delineate
+        ;; included code sections. The macros intentionally don't do anything,
+        ;; they are just used as markers.
+        ;;
+        (list
+         "        .macro start_included_lines"
+         "        .endm"
+         "        .macro end_included_lines"
+         "        .endm")
 	(list
 	 ""
 	 "# -------------- Stack Vars ---------------")
@@ -948,11 +966,16 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 ;;;
 (defun handle-ret-ops (asm-lines asm-syntax)
   (let ((new-lines '())
-        (ret-found nil))
+        (included-section nil))
     (if (intel-syntax-p asm-syntax)
 	(iter (for line in-vector asm-lines)
+              ;; watch for included-lines boundary macro
+              (if (equalp (asm-line-info-opcode line) "start_included_lines")
+                  (setf included-section t)
+                  (if (equalp (asm-line-info-opcode line) "end_included_lines")
+                      (setf included-section nil)))
 	      (if (and
-                   (not ret-found)
+                   (not included-section)
                    (equalp (asm-line-info-opcode line) "ret")
                    (not (getf (asm-line-info-properties line) ':inline)))
 		  (progn
@@ -963,12 +986,11 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 		    (push (car (parse-asm-line
 				"        jmp qword [save_return_address]"
 				asm-syntax))
-			  new-lines)
-                    (setf ret-found t))
+			  new-lines))
 		  (push line new-lines)))
 	(iter (for line in-vector asm-lines)
 	      (if (and
-                   (not ret-found)
+                   (not included-section)
                    (equalp (asm-line-info-opcode line) "retq")
                    (not (getf (asm-line-info-properties line) ':inline)))
 		  (progn
@@ -979,8 +1001,7 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 		    (push (car (parse-asm-line
 				"        jmpq *(save_return_address)"
 				asm-syntax))
-			  new-lines)
-                    (setf ret-found t))
+			  new-lines))
 		  (push line new-lines))))
     (nreverse new-lines)))
 
@@ -1076,6 +1097,9 @@ a symbol, the SYMBOL-NAME of the symbol is used."
    asm
    (list
     ""
+    (if (intel-syntax-p asm-syntax)
+	"section .selrodata nobits alloc noexec nowrite align=8"
+	".section selrodata, \"a\", @progbits")
     (if (intel-syntax-p asm-syntax)
 	";;;  table of function pointers, 0-terminated"
 	"#    table of function pointers, 0-terminated")
@@ -1335,16 +1359,19 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
                            i
                            (string-downcase x)))))))
 
-    (insert-new-lines
+    (insert-new-line
      asm-variants
      (if (intel-syntax-p asm-super)
-         (list
-          "        add rsp, 8"
-          (format nil "        mov rbx, qword [rbx + 0x~X]" rbx-pos))
-         (list
-          "        add $8, %rsp"
-          (format nil "        movq 0x~X(%rbx), %rbx" rbx-pos))))
+         "        add rsp, 8"
+         "        add $8, %rsp"))
 
+    (if rbx-pos ; if rbx is a live register
+        (insert-new-line
+         asm-variants
+         (if (intel-syntax-p asm-super)
+             (format nil "        mov rbx, qword [rbx + 0x~X]" rbx-pos)
+             (format nil "        movq 0x~X(%rbx), %rbx" rbx-pos))))
+    
     (insert-new-lines
      asm-variants
      (if (intel-syntax-p asm-super)
@@ -1529,6 +1556,11 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
  If *inline-included-lines* the lines are inlined, otherwise
  they are appended onto each variant."
   (when lines
+    ;; put boundary markers around the included lines
+    (setf lines
+          (append (list "        start_included_lines")
+                  lines
+                  (list "        end_included_lines")))
     (let* ((temp (make-instance 'asm-heap))
            (prefix (local-prefix (asm-syntax asm)))
            (func-index nil)
@@ -1596,6 +1628,12 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
       (probe-file "/usr/lib/libpapi.so.5.6.1"))
   "Path to papi library.  See http://icl.cs.utk.edu/papi/.")
 
+;; arbitrary addresses--must be under 32-bits
+(defun bss-segment-start () #x8567800)
+(defun data-segment-start () #x7489500)
+(defun text-segment-start () #x9346400)
+(defun seldata-segment-start () #x4567900)
+
 (defmethod phenome ((asm asm-super-mutant)
 		    &key (bin (temp-file-name "out"))
 		      (src (temp-file-name "asm")))
@@ -1627,12 +1665,25 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
           ;; Link.
 	  (multiple-value-bind (stdout stderr errno)
 	    (shell
-	     "clang -no-pie -O0 -fnon-call-exceptions -g ~a -lrt -o ~a ~a ~a ~a ~a"
-	     (if (bss-segment asm)
+	     (concatenate 'string
+                          "clang -no-pie -O0 -fnon-call-exceptions -g"
+                          " ~a ~a ~a ~a -lrt -o ~a ~a ~a ~a ~a")
+             (if (bss-segment asm)
 		 (format nil "-Wl,--section-start=.seldata=0x~x"
 			 (bss-segment asm))
-		 (format nil "-Wl,--section-start=.seldata=0x~x"
-			 #x45800000)) ; put statics at totally arbitrary address
+		 (if (seldata-segment-start)
+                     (format nil "-Wl,--section-start=.seldata=0x~x"
+                             (seldata-segment-start))
+                     ""))
+             (if (bss-segment-start)
+                 (format nil "-Wl,-Tbss=0x~x" (bss-segment-start))
+                 "")
+             (if (data-segment-start)
+                 (format nil "-Wl,-Tdata=0x~x" (data-segment-start))
+                 "")
+             (if (text-segment-start)
+                 (format nil "-Wl,-Ttext=0x~x" (text-segment-start))
+                 "")
 	     bin
 	     (fitness-harness asm)
 	     obj
