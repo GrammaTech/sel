@@ -388,7 +388,7 @@ Return nil if there are no modified, untracked, or deleted files."
         (shell "GIT_WORK_TREE=~a GIT_DIR=~a git status --porcelain"
                (namestring git-work-tree)
                (namestring git-dir)))
-    (declare (ignore stderr errno))
+    (declare (ignorable stderr errno))
     (mapcar (lambda (line)
               (multiple-value-bind (status point)
                   (read-from-string line nil)
