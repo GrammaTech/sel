@@ -2059,7 +2059,7 @@
           ;; more likely that there are sufficient no-ops to delete.
           ;; This works with the local compiled version of gcd, but
           ;; may fail in the future or on other systems.
-          (to-copy (position-if [{= 1} #'length {aget :code}] (genome *gcd*))))
+          (to-copy (position-if [{eql 1} #'length {aget :code}] (genome *gcd*))))
       (apply-mutation variant (list :insert 0 to-copy))
       (is (= (length (bytes *gcd*)) (length (bytes variant))))
       (is (not (equal-it (bytes *gcd*) (bytes variant)))))))
@@ -2068,7 +2068,7 @@
   (with-fixture gcd-elf
     (let* ((variant (copy *gcd*))
            ;; See FIND-SMALL in `elf-insertion-changes-but-maintains-lengthens'
-           (to-copy (position-if [{= 1} #'length {aget :code}] (genome *gcd*)))
+           (to-copy (position-if [{eql 1} #'length {aget :code}] (genome *gcd*)))
            (new-genome (elf-replace
                         variant 0 (copy-tree (nth to-copy (genome *gcd*))))))
       (is (= (length (mappend {aget :code} (genome *gcd*)))
@@ -6857,7 +6857,7 @@ prints unique counters in the trace"
                                (phenome *soft* :bin bin))))
           "Successfully compiled instrumented program.")
       (let ((trace (get-gcd-trace bin)))
-        (is (every [{eq 1} #'length {aget :scopes}]
+        (is (every [{eql 1} #'length {aget :scopes}]
                    trace)
             "No duplicate variables.")
 
