@@ -508,7 +508,7 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
   (defparameter +evolutionary-command-line-options+
     '((("pop-size") :type integer :initial-value #.(expt 2 8)
        :action #'handle-pop-size-argument
-       :documentation "size of evolution population (default 2^8)")
+       :documentation "size of evolution population")
       (("cross-chance") :type string :initial-value "2/3"
        :action #'handle-cross-chance-argument
        :documentation "fraction of new individuals crossed over")
