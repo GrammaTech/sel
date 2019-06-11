@@ -2426,8 +2426,7 @@ Adds and removes semicolons, commas, and braces.
   (:documentation "Removes the trailing semicolon from an AST, returning a new AST node.
 If there is no trailing semicolon, return the AST unchanged."))
 
-(defmethod remove-semicolon (obj)
-  (generic-ast-assert obj)
+(defmethod remove-semicolon ((obj ast))
   (let* ((children (ast-children obj))
          (last (lastcar children)))
     (if-let ((trimmed (ends-with-semicolon last)))
@@ -3334,8 +3333,7 @@ Returns outermost AST of context.
                (reverse (ast-macros ast)))
          (mapc [{add-type clang} {find-type database}]
                (reverse (ast-types ast)))
-         (mapc #'update (remove-if-not #'generic-ast-p
-                                       (ast-children ast)))))
+         (mapc #'update (remove-if-not #'ast-p (ast-children ast)))))
     (update ast)))
 
 ;; Find the ancestor of STMT that is a child of ANCESTOR.
@@ -3716,7 +3714,7 @@ within a function body, return null."))
                                               (function-body obj)
                                               (ast-children)))
                            (for prev previous child)
-                           (when (generic-ast-p child)
+                           (when (ast-p child)
                              (if (and keep-comments (has-comment-p prev))
                                  (collect (prepend-text child
                                                         (trim-stmt-end prev)))
@@ -3800,7 +3798,7 @@ Move the semicolon in just one level, but no further"
       (loop for p on children
 	 do (let ((e (car p))
 		  (lc))
-	      (when (and (generic-ast-p e)
+	      (when (and (ast-p e)
 			 (eql (ast-class e) :callexpr)
 			 (stringp (car (setf lc (last (ast-children e))))))
 		(multiple-value-bind (found? prefix suffix)
@@ -3813,7 +3811,7 @@ Move the semicolon in just one level, but no further"
   (typecase ast
     (string
      (position-of-trailing-semicolon ast))
-    (generic-ast
+    (ast
      (has-trailing-semicolon-p (lastcar (ast-children ast))))
     (t nil)))
 

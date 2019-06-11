@@ -21,9 +21,6 @@
   (:import-from :uiop :nest)
   (:export :ast
            :ast-p
-           :generic-ast
-           :generic-ast-p
-           :generic-ast-assert
            :define-ast
            :define-immutable-node-struct
            :to-alist
@@ -74,7 +71,9 @@
 ;;; Data structure definitions
 (defstruct ast-node "Base type of immutable portion of ast nodes.")
 
-(defstruct (ast (:constructor make-raw-ast) (:conc-name ast-internal-))
+(defstruct ast "Base structure of mutable portion of ast nodes.")
+
+(defstruct (ast-stub (:include ast) (:constructor make-raw-ast) (:conc-name ast-internal-))
   "Base type of sub-tree of an applicative AST tree."
   (path nil :type list)                      ; Path to subtree from root of tree.
   (node nil :type (or ast-node string null)) ; Pointer to immutable AST data.
@@ -83,36 +82,25 @@
 
 (defgeneric ast-path (a)
   (:documentation "Genericized version of path reader for AST structs")
-  (:method ((a ast)) (ast-internal-path a)))
+  (:method ((a ast-stub)) (ast-internal-path a)))
 (defgeneric (setf ast-path) (v a)
   (:documentation "Genericized version of path writer for AST structs")
-  (:method ((v list) (a ast)) (setf (ast-internal-path a) v)))
+  (:method ((v list) (a ast-stub)) (setf (ast-internal-path a) v)))
 (defgeneric ast-children (a)
   (:documentation "Genericized version of children reader for AST structs")
-  (:method ((a ast)) (ast-internal-children a)))
+  (:method ((a ast-stub)) (ast-internal-children a)))
 (defgeneric (setf ast-children) (v a)
   (:documentation "Genericized version of children writer for AST structs")
-  (:method ((v list) (a ast)) (setf (ast-internal-children a) v)))
+  (:method ((v list) (a ast-stub)) (setf (ast-internal-children a) v)))
 (defgeneric ast-stored-hash (a)
   (:documentation "Genericized version of stored-hash reader for AST structs")
-  (:method ((a ast)) (ast-internal-stored-hash a)))
+  (:method ((a ast-stub)) (ast-internal-stored-hash a)))
 (defgeneric (setf ast-stored-hash) (v a)
   (:documentation "Genericized version of children writer for AST structs")
-  (:method (v (a ast)) (setf (ast-internal-stored-hash a) v)))
+  (:method (v (a ast-stub)) (setf (ast-internal-stored-hash a) v)))
 
-(defmethod ast-node ((a ast)) (ast-internal-node a))
-(defmethod (setf ast-node) (v (a ast)) (setf (ast-internal-node a) v))
-
-(defgeneric generic-ast-p (x)
-  (:documentation "Generic predicate: 'is this an AST (node)', so a user
-does not use (typep ... 'ast).")
-  (:method ((x ast)) t)
-  (:method (x) nil))
-
-(defun generic-ast-assert (x)
-  (assert (generic-ast-p x) () "Not an ast: ~s" x))
-
-(deftype generic-ast () '(satisfies generic-ast-p))
+(defmethod ast-node ((a ast-stub)) (ast-internal-node a))
+(defmethod (setf ast-node) (v (a ast-stub)) (setf (ast-internal-node a) v))
 
 (defgeneric ast-kind (ast)
   (:documentation "Maps AST to a specific 'kind' symbol.
@@ -123,7 +111,7 @@ ast should map to the same symbol."))
   "Maximum number of characters to print for TEXT in
 PRINT-OBJECT method on AST structures.")
 
-(defmethod print-object ((obj ast) stream &aux (cutoff *ast-print-cutoff*))
+(defmethod print-object ((obj ast-stub) stream &aux (cutoff *ast-print-cutoff*))
   (if *print-readably*
       (call-next-method)
       (print-unreadable-object (obj stream :type t)
@@ -268,7 +256,7 @@ PRINT-OBJECT method on AST structures.")
 	     ,@doc-strings
              ,@all-slot-descriptions)
            ;; Define and return the wrapper.
-           (defstruct (,name (:include ast)
+           (defstruct (,name (:include ast-stub)
                              (:copier nil)
                              ,@(when (listp name-and-options)
                                  (remove-if
@@ -328,7 +316,7 @@ PRINT-OBJECT method on AST structures.")
                slot-names)
            ',name))))
 
-(defstruct (conflict-ast (:include ast))
+(defstruct (conflict-ast (:include ast-stub))
   "Node representing several possibilities for insertion into an AST.
 The mapping from a conflicted AST into a regular AST is as follows: for
 a given conflict key, and for each conflict node, get the list of children
@@ -580,7 +568,7 @@ operations."
           :path (reverse path)
           :children (iter (for c in (ast-children tree))
                           (for i upfrom 0)
-                          (collect (if (generic-ast-p c)
+                          (collect (if (ast-p c)
                                        (update-paths c (cons i path))
                                        c))))))
 
@@ -900,7 +888,7 @@ use carefully.
 (defmethod map-ast ((tree ast) fn)
   (funcall fn tree)
   (dolist (c (ast-children tree))
-    (when (generic-ast-p c) (map-ast c fn)))
+    (when (ast-p c) (map-ast c fn)))
   tree)
 
 (defmethod map-ast (tree fn) nil)
@@ -915,8 +903,8 @@ use carefully.
   (typecase ast
     (string (funcall fn ast))
     (conflict-ast (funcall fn ast))
-    (generic-ast (cons (funcall fn ast)
-                       (mapcar {mapc-ast-and-strings _ fn} (ast-children ast))))))
+    (ast (cons (funcall fn ast)
+               (mapcar {mapc-ast-and-strings _ fn} (ast-children ast))))))
 
 (defgeneric ast-to-list (obj)
   (:documentation "Return ASTs under OBJ as a list.")
@@ -924,7 +912,7 @@ use carefully.
 ;;    (map-ast ast (lambda (ast) (push ast result)))
 ;;    (reverse result))
   (:method (ast &aux result)
-    (if (not (generic-ast-p ast))
+    (if (not (ast-p ast))
         (call-next-method)
         (progn
           (map-ast ast (lambda (ast) (push ast result)))
@@ -934,22 +922,14 @@ use carefully.
 (defgeneric ast-equal-p (ast-a ast-b)
   (:documentation "Return T AST-A and AST-B are equal for differencing."))
 
-(defun actual-ast-equal-p (ast-a ast-b)
-  ;; (generic-ast-assert ast-a)
-  ;; (generic-ast-assert ast-b)
+(defmethod ast-equal-p ((ast-a ast) (ast-b ast))
   (and (eq (ast-class ast-a) (ast-class ast-b))
-       (eq (length (ast-children ast-a))
-           (length (ast-children ast-b)))
+       (eql (length (ast-children ast-a))
+            (length (ast-children ast-b)))
        (every #'ast-equal-p (ast-children ast-a) (ast-children ast-b))))
 
-(defmethod ast-equal-p ((ast-a ast) (ast-b ast))
-  (actual-ast-equal-p ast-a ast-b))
-
 (defmethod ast-equal-p ((ast-a t) (ast-b t))
-  (if (and (generic-ast-p ast-a)
-           (generic-ast-p ast-b))
-      (actual-ast-equal-p ast-a ast-b)
-      (equalp ast-a ast-b)))
+  (equalp ast-a ast-b))
 
 (defmethod ast-equal-p ((ast-a cons) (ast-b cons))
   (and (iter (while (consp ast-a))
@@ -960,7 +940,7 @@ use carefully.
 (defgeneric ast-text (ast)
   (:documentation "Return textual representation of AST.")
   (:method (ast)
-    (if (generic-ast-p ast)
+    (if (ast-p ast)
         (peel-bananas (source-text ast))
         (format nil "~A" ast))))                
 
@@ -1106,11 +1086,6 @@ modile +AST-HASH-BASE+"
   (ast-hash (cons (ast-class ast) (ast-children ast))))
 ;; ))
 
-(defmethod ast-hash (ast)
-  (if (generic-ast-p ast)
-      (ast-hash (cons (ast-class ast) (ast-children ast)))
-      (call-next-method)))
-
 (defgeneric ast-clear-hash (ast)
   (:documentation "Clear the stored hash fields of an ast"))
 
@@ -1121,13 +1096,6 @@ modile +AST-HASH-BASE+"
   (setf (ast-stored-hash ast) nil)
   (mapc #'ast-clear-hash (ast-children ast))
   ast)
-
-(defmethod ast-clear-hash (ast)
-  (if (generic-ast-p ast)
-      (progn
-         (setf (ast-stored-hash ast) nil)
-         (mapc #'ast-clear-hash (ast-children ast)))
-      (call-next-method)))
 
 (defgeneric ast-meld-p (ast)
   (:documentation
