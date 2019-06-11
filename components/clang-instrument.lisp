@@ -510,6 +510,70 @@ Creates a CLANG-INSTRUMENTER for OBJ and calls its instrument method.
            :ast-ids (get-ast-ids-ht obj))
          args))
 
+;; This was in INSTRUMENT's LABEL form, but is not dependent
+;; on any surronding state.  Removed for clarity and
+;; traceability
+(defun add-semicolon (ast semi-position)
+  (cond ((eq semi-position :before)
+         (labels ((add-semi-before (ast children)
+                    (if (stringp (car children))
+                        (copy ast :children
+                              (cons (concatenate 'string ";"
+                                                 (car children))
+                                    (cdr children)))
+                        (copy ast :children
+                              (cons (add-semi-before
+                                     (car children)
+                                     (ast-children (car children)))
+                                    (cdr children))))))
+           (add-semi-before ast (ast-children ast))))
+        ((eq semi-position :after)
+         (copy ast :children (append (ast-children ast) (list ";"))))
+        ((eq semi-position :both)
+         (-> (add-semicolon ast :before)
+           (add-semicolon :after)))
+        (t ast)))
+
+(defun instrument-create-value (obj ast return-type before after
+                                instrumenter instrument-exit)
+  (let* (;; Look up AST again in case its children have been
+         ;; instrumented
+         (wrap (not (traceable-stmt-p obj ast)))
+         (new-ast (get-ast obj (ast-path ast)))
+         (stmts (append (mapcar {add-semicolon _ :after} before)
+                        (if (and instrument-exit
+                                 (eq (ast-class ast) :ReturnStmt))
+                            (->> (instrument-return instrumenter
+                                                    new-ast
+                                                    (null return-type))
+                              (mapcar {add-semicolon _ :both}))
+                            (list new-ast))
+                        (mapcar {add-semicolon _ :both} after))))
+    ;; Wrap in compound statement if needed
+    (if wrap
+        (make-statement
+         :CompoundStmt
+         :FullStmt
+         `("{" ,@(interleave stmts ";") ";}")
+         :full-stmt t
+         :aux-data '((:instrumentation t)))
+        stmts)))
+
+(defun last-traceable-stmt (obj proto)
+  "The last traceable statement in the body of a function
+declaration, or NIL if PROTO is not a function declaration or there
+is no such traceable statement."
+  (->> (function-body obj proto)
+    (get-immediate-children obj)
+    (lastcar)
+    (enclosing-traceable-stmt obj)))
+
+(defun first-traceable-stmt (obj proto)
+  "The first traceable statement in the body of a function
+declaration, or NIL if PROTO is not a function declaration or there
+is no such traceable statement."
+  (first (get-immediate-children obj (function-body obj proto))))
+
 (defmethod instrument
     ((instrumenter clang-instrumenter)
      &key points functions functions-after trace-file trace-env instrument-exit
@@ -543,20 +607,7 @@ Creates a CLANG-INSTRUMENTER for OBJ and calls its instrument method.
                                     ast)))))
                     points))))
     (labels
-        ((last-traceable-stmt (proto)
-           "The last traceable statement in the body of a function
-declaration, or NIL if PROTO is not a function declaration or there
-is no such traceable statement."
-           (->> (function-body obj proto)
-                (get-immediate-children obj)
-                (lastcar)
-                (enclosing-traceable-stmt obj)))
-         (first-traceable-stmt (proto)
-           "The first traceable statement in the body of a function
-declaration, or NIL if PROTO is not a function declaration or there
-is no such traceable statement."
-           (first (get-immediate-children obj (function-body obj proto))))
-         (instrument-asts (obj)
+        ((instrument-asts (obj)
            "Generate instrumentation for all ASTs in OBJ.  As a side-effect,
 update POINTS after instrumenting ASTs."
            (-<>> (asts obj)
@@ -592,7 +643,7 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
                ;; Instrumentation before
                (;; Temp variable for return value
                 ,@(when (and instrument-exit
-                             (equalp ast (first-traceable-stmt function))
+                             (equalp ast (first-traceable-stmt obj function))
                              return-type)
                         `(,(make-var-decl "_inst_ret" return-type nil
                                           :aux-data '((:instrumentation t)))))
@@ -608,52 +659,9 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
                           ,(write-end-entry instrumenter)))
                 ;; Function exit instrumentation
                 ,@(when (and instrument-exit
-                             (equalp ast (last-traceable-stmt function)))
+                             (equalp ast (last-traceable-stmt obj function)))
                         (instrument-exit instrumenter function
-                                         (null return-type)))))))
-         (add-semicolon (ast semi-position)
-           (cond ((eq semi-position :before)
-                  (labels ((add-semi-before (ast children)
-                             (if (stringp (car children))
-                                 (copy ast :children
-                                           (cons (concatenate 'string ";"
-                                                              (car children))
-                                                 (cdr children)))
-                                 (copy ast :children
-                                           (cons (add-semi-before
-                                                   (car children)
-                                                   (ast-children (car children)))
-                                                 (cdr children))))))
-                    (add-semi-before ast (ast-children ast))))
-                 ((eq semi-position :after)
-                  (copy ast :children (append (ast-children ast) (list ";"))))
-                 ((eq semi-position :both)
-                  (-> (add-semicolon ast :before)
-                      (add-semicolon :after)))
-                 (t ast)))
-         (create-value (obj ast return-type before after)
-           (let* (;; Look up AST again in case its children have been
-                  ;; instrumented
-                  (wrap (not (traceable-stmt-p obj ast)))
-                  (new-ast (get-ast obj (ast-path ast)))
-                  (stmts (append (mapcar {add-semicolon _ :after} before)
-                                 (if (and instrument-exit
-                                          (eq (ast-class ast) :ReturnStmt))
-                                     (->> (instrument-return instrumenter
-                                                             new-ast
-                                                             (null return-type))
-                                          (mapcar {add-semicolon _ :both}))
-                                     (list new-ast))
-                                 (mapcar {add-semicolon _ :both} after))))
-             ;; Wrap in compound statement if needed
-             (if wrap
-                 (make-statement
-                   :CompoundStmt
-                   :FullStmt
-                   `("{" ,@(interleave stmts ";") ";}")
-                   :full-stmt t
-                   :aux-data '((:instrumentation t)))
-                 stmts))))
+                                         (null return-type))))))))
 
     ;; Apply mutations to instrument OBJ.
     ;; Note: These mutations are sent as a list to `apply-mutation-ops`
@@ -664,17 +672,23 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
       (iter (for (ast return-type before after) in (instrument-asts obj))
             (collect (if (not (traceable-stmt-p obj ast))
                          `(:set (:stmt1 . ,ast)
-                                (:value1 . ,{create-value obj
-                                                          ast
-                                                          return-type
-                                                          before
-                                                          after}))
+                                (:value1 . ,{instrument-create-value
+                                             obj
+                                             ast
+                                             return-type
+                                             before
+                                             after
+                                             instrumenter
+                                             instrument-exit}))
                          `(:splice (:stmt1 . ,ast)
-                                   (:value1 . ,{create-value obj
-                                                             ast
-                                                             return-type
-                                                             before
-                                                             after})))))))
+                                   (:value1 . ,{instrument-create-value
+                                                obj
+                                                ast
+                                                return-type
+                                                before
+                                                after
+                                                instrumenter
+                                                instrument-exit})))))))
 
     ;; Warn about any leftover un-inserted points.
     (mapc (lambda (point)
