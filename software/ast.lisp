@@ -119,7 +119,11 @@ does not use (typep ... 'ast).")
 Different representations of the same underlying kind of
 ast should map to the same symbol."))
 
-(defmethod print-object ((obj ast) stream &aux (cutoff 20))
+(defparameter *ast-print-cutoff* 20
+  "Maximum number of characters to print for TEXT in
+PRINT-OBJECT method on AST structures.")
+
+(defmethod print-object ((obj ast) stream &aux (cutoff *ast-print-cutoff*))
   (if *print-readably*
       (call-next-method)
       (print-unreadable-object (obj stream :type t)
