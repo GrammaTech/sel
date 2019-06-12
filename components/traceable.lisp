@@ -19,15 +19,12 @@
            :binary-traceable
            :sexp-traceable
            :traces
-           :collect-trace
            :collect-traces
-           :read-trace-file
-           :read-trace-stream
+           :collect-test-case-traces
            :trace-error
            :skip-trace-collection
            :nil-traces
-           :ignore-empty-trace
-           :bin))
+           :ignore-empty-trace))
 (in-package :software-evolution-library/components/traceable)
 (in-readtable :curry-compose-reader-macros)
 
@@ -82,21 +79,20 @@ was already in place then leave it alone."
   (:method ((obj sexp-traceable))
     (setf (traces obj) (make-instance 'sexp-trace-db))))
 
-(defgeneric collect-traces (software test-suite &key max bin num-threads)
+(defgeneric collect-traces (software test-suite
+                            &key max-trace-points bin num-traces)
   (:documentation
-   "Execute instrumented SOFTWARE on TEST-SUITE collecting dynamic traces.
-See the documentation of `collect-trace' for information on the
-MAX, BIN, and NUM-THREADS keyword arguments.")
-  (:method ((obj traceable) (test-suite test-suite)
-            &key max (bin (temp-file-name)) (num-threads 0)
-            &aux (args (list :bin bin)))
     "Execute instrumented OBJ on TEST-SUITE collecting dynamic traces.
 * OBJ Instrumented software object suitable for trace collection
 * TEST-SUITE suite of test case to execute for trace collection
-* MAX maximum number of trace points to record
+* MAX-TRACE-POINTS maximum number of trace points to record per trace
 * BIN compiled binary with instrumentation to use for trace collection
-* NUM-THREADS number of threads to use in trace collection"
-    (when max (setf args (append args (list :max max))))
+* NUM-TRACES maximum number of traces to collect from the given test suite")
+  (:method ((obj traceable) (test-suite test-suite)
+            &key max-trace-points (bin (temp-file-name)) (num-traces infinity)
+            &aux (args (list :bin bin)))
+    (when max-trace-points
+      (setf args (append args (list :max-trace-points max-trace-points))))
     (with-possibly-existing-bin (bin)
         (restart-case
             (phenome obj :bin bin)
@@ -108,152 +104,147 @@ MAX, BIN, and NUM-THREADS keyword arguments.")
             (setf (traces obj) nil)
             (return-from collect-traces (traces obj))))
       (reset-traces obj)
-      (task-map num-threads
-                (lambda (test-case)
-                  (apply #'collect-trace obj test-case args))
-                (test-cases test-suite)))
+      (mapc (lambda (test-case)
+              (apply #'collect-test-case-traces obj test-case
+                     :num-traces (- num-traces (n-traces (traces obj)))
+                     args))
+            (test-cases test-suite)))
     (traces obj)))
 
-(defgeneric collect-trace (software input &key max bin)
+(defgeneric collect-test-case-traces (software input
+                                      &key max-trace-points bin num-traces)
   (:documentation
-   "Execute instrumented SOFTWARE on TEST-CASE collecting a dynamic trace.
-MAX specifies the maximum number of trace points to record.  BIN specifies
-the name of an already-compiled binary to use.
+   "Execute instrumented SOFTWARE on TEST-CASE collecting dynamic trace(s).
+Returns a list of traces, which may contain multiple elements if
+executing a test case which runs the traceable program multiple
+times.
 
-Returns a list of traces, which may contains multiple elements if
-executing a test script which runs the traceable program multiple
-times."))
-
-(defmethod collect-trace ((obj binary-traceable) (test-case test-case)
-                          &key max (bin (temp-file-name)))
-  "Execute instrumented OBJ on TEST-CASE collecting dynamic traces.
 * OBJ Instrumented software object suitable for trace collection
 * TEST-CASE test case to execute for trace collection
-* MAX maximum number of trace points to record
-* BIN compiled binary with instrumentation to use for trace collection"
-  (with-possibly-existing-bin (bin)
-      (restart-case
-          (phenome obj :bin bin)
-        (skip-test-case ()
-          :report "Skip trace collection for test case and return NIL."
-          (return-from collect-trace nil)))
-    (with-temp-file (handshake-file) ;; Start running the test case.
-      (let ((proc (start-test bin test-case
-                              :env (list (cons *instrument-handshake-env-name*
-                                               handshake-file))
-                              :output nil
-                              :error-output nil
-                              :wait nil)))
-        (labels ((timeout-p (start-time)
-                   (> (/ (- (get-internal-real-time) start-time)
-                         internal-time-units-per-second)
-                      *trace-open-timeout*))
-                 (handshake (pipe &aux (start-time (get-internal-real-time)))
-                   ;; Create the handshake file, which indicates that we
-                   ;; are ready to read traces. Write the pipe name to the
-                   ;; handshake file to begin trace collection.
-                   (iter (while (not (timeout-p start-time)))
-                         (handler-case
-                             (progn
-                               (with-output-to-file (out handshake-file)
-                                 (format out "~a" pipe)
-                                 (finish-output out))
-                               (finish))
-                           (error (e)
-                             (declare (ignorable e))
-                             (sleep 1))))
+* MAX maximum number of trace points to record per trace
+* BIN compiled binary with instrumentation to use for trace collection
+* NUM-TRACES maximum number of traces to collect from the given test case")
+  (:method ((obj binary-traceable) (test-case test-case)
+            &key max-trace-points (bin (temp-file-name)) (num-traces infinity))
+    (with-possibly-existing-bin (bin)
+        (restart-case
+            (phenome obj :bin bin)
+          (skip-test-case ()
+            :report "Skip trace collection for test case and return NIL."
+            (return-from collect-test-case-traces nil)))
+      (with-temp-file (handshake-file) ;; Start running the test case.
+        (let ((proc (start-test bin test-case
+                                :env (list (cons *instrument-handshake-env-name*
+                                                 handshake-file))
+                                :output nil
+                                :error-output nil
+                                :wait nil)))
+          (labels ((timeout-p (start-time)
+                     (> (/ (- (get-internal-real-time) start-time)
+                           internal-time-units-per-second)
+                        *trace-open-timeout*))
+                   (handshake (pipe &aux (start-time (get-internal-real-time)))
+                     ;; Create the handshake file, which indicates that we
+                     ;; are ready to read traces. Write the pipe name to the
+                     ;; handshake file to begin trace collection.
+                     (iter (while (not (timeout-p start-time)))
+                           (handler-case
+                               (progn
+                                 (with-output-to-file (out handshake-file)
+                                   (format out "~a" pipe)
+                                   (finish-output out))
+                                 (finish))
+                             (error (e)
+                               (declare (ignorable e))
+                               (sleep 1))))
 
-                   (iter (while (not (timeout-p start-time)))
-                         ;; The instrumented process will complete the
-                         ;; handshake by deleting the file.
-                         (handler-case
-                             (unless (probe-file handshake-file)
-                               (return t))
-                           (error (e)
-                             ;; A race condition exists in the SBCL 1.4.7
-                             ;; `probe-file' where if the handshake
-                             ;; file is deleted during the execution
-                             ;; of the function, an error will be thrown.
-                             (declare (ignorable e))))
+                     (iter (while (not (timeout-p start-time)))
+                           ;; The instrumented process will complete the
+                           ;; handshake by deleting the file.
+                           (handler-case
+                               (unless (probe-file handshake-file)
+                                 (return t))
+                             (error (e)
+                               ;; A race condition exists in the SBCL 1.4.7
+                               ;; `probe-file' where if the handshake
+                               ;; file is deleted during the execution
+                               ;; of the function, an error will be thrown.
+                               (declare (ignorable e))))
 
-                         (unless (process-running-p proc)
-                           (note 4 "Test process exited")
-                           (return nil))
+                           (unless (process-running-p proc)
+                             (note 4 "Test process exited")
+                             (return nil))
 
-                         (finally (note 3 "No handshake after ~d seconds"
-                                        *trace-open-timeout*)))))
-          (iter (for i upfrom 0)
-                (while (with-temp-fifo (pipe)
-                         (when (handshake pipe)
-                           (add-trace (traces obj) pipe *trace-open-timeout*
-                                      (list ;; keep :bin symbol if present
-                                       (cons :input
+                           (finally (note 3 "No handshake after ~d seconds"
+                                          *trace-open-timeout*)))))
+            (iter (for i below num-traces)
+                  (while (with-temp-fifo (pipe)
+                           (when (handshake pipe)
+                             (add-trace (traces obj) pipe *trace-open-timeout*
+                                        (list ;; keep :bin symbol if present
+                                         (cons :input
+                                               (cons (program-name test-case)
+                                                     (program-args test-case))))
+                                        :max-trace-points max-trace-points))))
+                  (finally
+                   (finish-test proc)
+                   (restart-case
+                       ;; This usually indicates a problem with the
+                       ;; test script or the instrumentation
+                       (when (zerop i)
+                         (error
+                          (make-condition 'trace-error
+                            :text (format nil
+                                          "No traces collected for ~
+                                           test case ~s ~s."
+                                          test-case
+                                          (cons (program-name test-case)
+                                                (program-args test-case)))
+                            :obj test-case
+                            :bin bin)))
+                     (ignore-empty-trace ()
+                       :report "Ignore empty trace")))))))))
+
+  (:method ((obj sexp-traceable) (test-case test-case)
+            &key max-trace-points (bin (temp-file-name)) (num-traces infinity))
+    (declare (ignorable num-traces))
+    (with-possibly-existing-bin (bin)
+        (restart-case
+            (unless (phenome obj :bin bin)
+              (error (make-condition 'trace-error
+                       :text "Unable to compile software."
+                       :obj obj
+                       :bin bin)))
+          (skip-test-case ()
+            :report "Skip trace collection for test case and return NIL."
+            (return-from collect-test-case-traces nil)))
+      (with-temp-fifo (pipe)
+        ;; Start run on the input.
+        (let ((proc (start-test bin test-case
+                                :env (list (cons *instrument-log-env-name*
+                                                 pipe))
+                                :output nil
+                                :error-output nil
+                                :wait nil)))
+          (restart-case
+              (unless (add-trace (traces obj)
+                                 pipe
+                                 *trace-open-timeout*
+                                 (list (cons :input
                                              (cons (program-name test-case)
                                                    (program-args test-case))))
-                                      :max max))))
-                (finally
-                 (finish-test proc)
-                 (restart-case
-                     ;; This usually indicates a problem with the
-                     ;; test script or the instrumentation
-                     (when (zerop i)
-                       (error
-                        (make-condition 'trace-error
-                          :text (format
-                                 nil
-                                 "No traces collected for test case ~s ~s."
-                                 test-case
-                                 (cons (program-name test-case)
-                                       (program-args test-case)))
-                          :obj test-case
-                          :bin bin)))
-                   (ignore-empty-trace ()
-                     :report "Ignore empty trace")))))))))
-
-(defmethod collect-trace ((obj sexp-traceable) (test-case test-case)
-                          &key (max infinity) (bin (temp-file-name)))
-  "Execute instrumented OBJ on TEST-CASE collecting dynamic traces.
-* OBJ Instrumented java software object suitable for trace collection
-* TEST-CASE test case to execute for trace collection
-* MAX maximum number of trace points to record
-* BIN compiled binary with instrumentation to use for trace collection"
-  (with-possibly-existing-bin (bin)
-      (restart-case
-          (unless (phenome obj :bin bin)
-            (error (make-condition 'trace-error
-                     :text "Unable to compile software."
-                     :obj obj
-                     :bin bin)))
-        (skip-test-case ()
-          :report "Skip trace collection for test case and return NIL."
-          (return-from collect-trace nil)))
-    (with-temp-fifo (pipe)
-      ;; Start run on the input.
-      (let ((proc (start-test bin test-case
-                              :env (list (cons *instrument-log-env-name*
-                                               pipe))
-                              :output nil
-                              :error-output nil
-                              :wait nil)))
-        (restart-case
-            (unless (add-trace (traces obj)
-                               pipe
-                               *trace-open-timeout*
-                               (list (cons :input
-                                           (cons (program-name test-case)
-                                                 (program-args test-case))))
-                               :max max)
-              ;; This usually indicates a problem with the
-              ;; test script or the instrumentation
-              (error (make-condition 'trace-error
-                       :text (format nil
-                                     "No traces collected for test case ~s ~s."
-                                     test-case
-                                     (cons (program-name test-case)
-                                           (program-args test-case)))
-                       :obj test-case
-                       :bin bin)))
-          (ignore-empty-trace ()
-            :report "Ignore empty trace"))
-        (finish-test proc)))))
-
+                                 :max-trace-points max-trace-points)
+                ;; This usually indicates a problem with the
+                ;; test script or the instrumentation
+                (error (make-condition 'trace-error
+                         :text (format nil
+                                       "No traces collected for ~
+                                        test case ~s ~s."
+                                       test-case
+                                       (cons (program-name test-case)
+                                             (program-args test-case)))
+                         :obj test-case
+                         :bin bin)))
+            (ignore-empty-trace ()
+              :report "Ignore empty trace"))
+          (finish-test proc))))))
