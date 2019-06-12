@@ -80,7 +80,6 @@
              :collect form)))
   sexp)
 
-(declaim (inline genome-string))
 (defmethod genome-string ((sexp sexp) &optional stream)
   (format stream "~&~{~S~^~%~}~%" (genome sexp)))
 

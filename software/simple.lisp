@@ -34,7 +34,6 @@
            :copier sel/utility:enhanced-copy-seq))
   (:documentation "The simplest base software object."))
 
-;; (declaim (inline lines))
 (defmethod lines ((simple simple))
   (remove nil (map 'list {aget :code} (genome simple))))
 
