@@ -27,6 +27,7 @@
            :from-alist
            :ast-path
            :ast-node
+           :ast-stored-hash
            :ast-class
            :ast-aux-data
            :source-text
@@ -159,6 +160,11 @@ PRINT-OBJECT method on AST structures.")
                 slot))
           (remove-if #'stringp slot-descriptions)))
 
+(defun get-struct-include (name-and-options)
+  "Given NAME-AND-OPTIONS, return the struct :include name, or NIL if none."
+  (and (listp name-and-options)
+       (cadr (assoc :include (cdr name-and-options)))))
+
 (defmacro define-immutable-node-struct (name-and-options &rest slot-descriptions)
   (with-gensyms ((obj obj-))
     (let* ((name (get-struct-name name-and-options))
@@ -241,7 +247,8 @@ PRINT-OBJECT method on AST structures.")
                                (aux-data nil :type list))))
   "Implicitly defines an AST wrapper for the defined AST-node."
   (with-gensyms ((obj obj-))
-    (let* ((doc-strings (remove-if-not #'stringp slot-descriptions))
+    (let* ((include (get-struct-include name-and-options))
+           (doc-strings (remove-if-not #'stringp slot-descriptions))
 	   (slot-descriptions (remove-if #'stringp slot-descriptions))
 	   (all-slot-descriptions (append default-ast-slot-descriptions
                                           slot-descriptions))
@@ -256,15 +263,22 @@ PRINT-OBJECT method on AST structures.")
 	     ,@doc-strings
              ,@all-slot-descriptions)
            ;; Define and return the wrapper.
-           (defstruct (,name (:include ast-stub)
-                             (:copier nil)
-                             ,@(when (listp name-and-options)
-                                 (remove-if
-                                  (lambda (pair)
-                                    (member (car pair)
-                                            '(:conc-name :copier :include)))
-                                  (cdr name-and-options))))
-	     ,@doc-strings)
+           (defstruct (,name ;; (:include ast-stub)
+                        (:include ast)
+                        (:copier nil)
+                        ,@(when (listp name-and-options)
+                            (remove-if
+                             (lambda (pair)
+                               (member (car pair)
+                                       '(:conc-name :copier :include)))
+                             (cdr name-and-options))))
+	     ,@doc-strings
+             ;; Duplicated from ast-stub
+             (path nil :type list)           ;; Path to subtree from root of tree.
+             (node nil :type (or ast-node string null)) ;; Pointer to immutable AST data.
+             (children nil :type list)                  ;; Remainder of subtree.
+             (stored-hash nil :type (or null fixnum))
+             )
            ;; Copy method for light weight copies of wrapper only.
            (defmethod copy
                ((,obj ,name)
@@ -291,6 +305,23 @@ PRINT-OBJECT method on AST structures.")
                              children
                              (ast-children ,obj))))
            ;; Define accessors for internal fields on outer structure
+           (defmethod ast-path ((,obj ,name))
+             (,(symbol-cat conc-name 'path) ,obj))
+           (defmethod (setf ast-path) ((v list) (,obj ,name))
+             (setf (,(symbol-cat conc-name 'path) ,obj) v))
+           (defmethod ast-node ((,obj ,name))
+             (,(symbol-cat conc-name 'node) ,obj))
+           (defmethod (setf ast-node) (v (,obj ,name))
+             (setf (,(symbol-cat conc-name 'node) ,obj) v))
+           (defmethod ast-children ((,obj ,name))
+             (,(symbol-cat conc-name 'children) ,obj))
+           (defmethod (setf ast-children) ((v list) (,obj ,name))
+             (setf (,(symbol-cat conc-name 'children) ,obj) v))
+           (defmethod ast-stored-hash ((,obj ,name))
+             (,(symbol-cat conc-name 'stored-hash) ,obj))
+           (defmethod (setf ast-stored-hash) (v (,obj ,name))
+             (setf (,(symbol-cat conc-name 'stored-hash) ,obj) v))
+           #|
            (defmethod ,(symbol-cat conc-name 'path) ((,obj ,name))
              (ast-internal-path ,obj))
            (defmethod (setf ,(symbol-cat conc-name 'path)) ((v list) (,obj ,name))
@@ -307,12 +338,13 @@ PRINT-OBJECT method on AST structures.")
              (ast-internal-stored-hash ,obj))
            (defmethod (setf ,(symbol-cat conc-name 'stored-hash)) (v (,obj ,name))
              (setf (ast-internal-stored-hash ,obj) v))
+           |#
 
            ;; Define accessors for inner fields on outer structure.
            ,@(mapcar
                (lambda (slot)
                  `(defmethod ,(symbol-cat conc-name slot) ((,obj ,name))
-                    (,(symbol-cat conc-name slot) (ast-node ,obj))))
+                    (,(symbol-cat conc-name slot) (,(symbol-cat conc-name 'node) ,obj))))
                slot-names)
            ',name))))
 

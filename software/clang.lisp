@@ -26,6 +26,7 @@
         :software-evolution-library/components/fodder-database)
   (:import-from :uiop :nest)
   (:export :clang
+           :clang-base
            :clang-ast
            :clang-ast-p
            :generic-clang-ast
@@ -223,7 +224,11 @@
 (in-package :software-evolution-library/software/clang)
 (in-readtable :curry-compose-reader-macros)
 
-(define-software clang (parseable)
+(define-software clang-base (parseable)
+  ()
+  (:documentation "Base class for C/C++ objects parsed with Clang front end"))
+
+(define-software clang (clang-base)
   ((stmt-asts :initarg :stmt-asts :reader stmt-asts
               :initform nil :copier :direct
               :type #+sbcl (list (cons keyword *) *) #-sbcl list
@@ -303,7 +308,7 @@ expanded relative to DIR.
                        ;; Pass the flag thru.
                        f)))))
 
-(defmethod from-file ((obj clang) path)
+(defmethod from-file ((obj clang-base) path)
   "Initialize OBJ with the contents of PATH."
   (setf path (if (absolute-pathname-p path)
                  path
@@ -395,10 +400,14 @@ expanded relative to DIR.
   (declare (ignorable ast-class ast))
   t)
 
-(defun make-statement (class syn-ctx children
-                       &key expr-type full-stmt guard-stmt opcode
-                         types unbound-funs unbound-vals declares includes
-                         aux-data)
+(defun make-statement (&rest args)
+  (declare (special *make-statement-fn*))
+  (apply *make-statement-fn* args))
+
+(defun make-statement* (class syn-ctx children
+                        &key expr-type full-stmt guard-stmt opcode
+                          types unbound-funs unbound-vals declares includes
+                          aux-data)
   "Create a statement AST.
 
 TYPES, UNBOUND-FUNS, and UNBOUND-VALS will be computed from children
@@ -445,6 +454,10 @@ if not given.
                 :includes includes
                 :aux-data aux-data)
         :children children))))
+
+(defparameter *make-statement-fn* #'make-statement*
+  "Function to be used to dispatch on different creation operators
+for statements")
 
 (defun make-literal (value &optional (kind (etypecase value
                                              (integer :integer)
