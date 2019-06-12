@@ -264,7 +264,7 @@ PRINT-OBJECT method on AST structures.")
              ,@all-slot-descriptions)
            ;; Define and return the wrapper.
            (defstruct (,name ;; (:include ast-stub)
-                        (:include ast)
+                        (:include ,(or include 'ast))
                         (:copier nil)
                         ,@(when (listp name-and-options)
                             (remove-if
