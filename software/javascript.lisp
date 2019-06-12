@@ -68,8 +68,6 @@
 ;;; Javascript ast data structures
 (define-ast (javascript-ast (:conc-name ast)))
 
-(defmethod ast-kind ((ast javascript-ast)) :javascript)
-
 (defmethod print-object ((obj javascript-ast-node) stream)
   "Print a representation of the javascript-ast-node OBJ to STREAM.
 * OBJ clang-ast to print
