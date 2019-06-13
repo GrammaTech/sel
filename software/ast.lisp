@@ -20,6 +20,7 @@
         :software-evolution-library/utility)
   (:import-from :uiop :nest)
   (:export :ast
+           :ast-stub
            :ast-p
            :define-ast
            :define-immutable-node-struct
@@ -69,7 +70,6 @@
 (defstruct (ast-stub (:include ast) (:constructor make-raw-ast) (:conc-name ast-internal-))
   "Base type of sub-tree of an applicative AST tree."
   (path nil :type list)                      ; Path to subtree from root of tree.
-  (node nil :type (or ast-node string null)) ; Pointer to immutable AST data.
   (children nil :type list)                  ; Remainder of subtree.
   (stored-hash nil :type (or null fixnum)))
 
