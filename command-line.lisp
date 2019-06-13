@@ -450,7 +450,7 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
                               (if (string= x "~d") (write-to-string num) x))
                             (cdr cmd))))))
      (make-instance 'test-suite :test-cases)
-     (mapcar [#'create-test #'replace-num #'1+] (iota num-tests)))))
+     (mapcar [#'create-test #'replace-num] (iota num-tests)))))
 
 
 ;;;; Common sets of command-line-arguments options.
