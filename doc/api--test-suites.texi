@@ -29,7 +29,7 @@ Class @code{test-suite}
 
 @item Methods
   @itemize
-  @item @refapimethod{collect-traces,collect-traces}
+  @item @refapimethod{collect-test-case-traces,collect-test-case-traces}
   @item @refapimethod{evaluate,evaluate}
   @end itemize
 @end itemize
@@ -60,7 +60,6 @@ Class @code{test-case}
 @item Methods
   @itemize
 @c whitespace in this reference is important
-  @item @refapimethod{collect-trace,collect-trace}
   @item @refapimethod{evaluate,evaluate}
   @item @refapimethod{run-test,run-test}
   @item @refapimethod{start-test,start-test}

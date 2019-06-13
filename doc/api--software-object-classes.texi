@@ -200,8 +200,7 @@ Class @code{software}
 @item Methods
   @itemize
   @item @refapimethod{apply-mutation,apply-mutation before}
-  @item @refapimethod{collect-trace,collect-trace}
-  @item @refapimethod{collect-traces,collect-traces}
+  @item @refapimethod{collect-test-case-traces,collect-test-case-traces}
   @end itemize
 @end itemize
 
@@ -511,7 +510,6 @@ Class @code{clang}
   @item @refapifunction{make-literal}
   @item @refapifunction{make-operator}
   @item @refapifunction{make-parens}
-  @item @refapifunction{make-statement}
   @item @refapifunction{make-var-decl}
   @item @refapifunction{make-var-reference}
   @item @refapifunction{make-while-stmt}
