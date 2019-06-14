@@ -35,7 +35,7 @@ extern vfunc variant_table[]; // 0-terminated array of variant
                               // function pointers, defined in the asm
                               // file
 #define NUM_REGS 16           // total number of registers (if all are used)
-#define DEBUG 0               // set this to 1, to turn on debugging messages
+#define DEBUG 1               // set this to 1, to turn on debugging messages
 
 #define PAGE_SIZE 4096
 #define PAGE_MASK 0xfffffffffffff000
@@ -85,6 +85,7 @@ extern unsigned long num_output_registers; // number of live output registers
 
 unsigned long overhead = 0;    // number of instructions in
                                // setup/restore code
+unsigned long heap_address = 0;
 
 enum ExecutionState {
     NormalState = 0,
@@ -166,7 +167,7 @@ const char* reg_name(unsigned long reg_mask, int n) {
 //
 // Map a single page as read/write, given an address that falls on
 // that page
-void map_page(unsigned long* addr) {
+void map_output_page(unsigned long* addr) {
     unsigned long* page_addr = (unsigned long*)(((unsigned long)addr) & PAGE_MASK);
     void* anon = mmap(page_addr, PAGE_SIZE,
                           PROT_READ|PROT_WRITE,
@@ -181,11 +182,27 @@ void map_page(unsigned long* addr) {
 }
 
 //
-// Traverse the mem inputs, three qwords at a time.
-// Ensure all pages that are referenced are committed.
-// When we get to a null address, we've reached the end of the inputs.
+// Map a single page as read/write only, given an address that falls on
+// that page
+void map_input_page(unsigned long* addr) {
+    unsigned long* page_addr = (unsigned long*)(((unsigned long)addr) & PAGE_MASK);
+    void* anon = mmap(page_addr, PAGE_SIZE,
+                          PROT_READ,
+                              MAP_ANONYMOUS|MAP_PRIVATE|MAP_FIXED /*|MAP_UNINITIALIZED*/,
+                          -1,
+                          0);
+#if DEBUG
+    fprintf(stderr, "Allocated page at address 0x%lx, result: %lx\n",
+           (unsigned long)page_addr,
+           (unsigned long)anon);
+#endif
+}
 //
-int map_pages(unsigned long* p) {
+// Traverse the mem outputs, three qwords at a time.
+// Ensure all pages that are referenced are committed.
+// When we get to a null address, we've reached the end of the outputs.
+//
+int map_output_pages(unsigned long* p) {
     int i = 0;
     segfault = 0;
 
@@ -198,10 +215,39 @@ int map_pages(unsigned long* p) {
             }
             unsigned long* addr = (unsigned long*)*p;
 #if DEBUG
-    fprintf(stderr, "Allocating page at address 0x%lx, test %d\n",
+    fprintf(stderr, "Allocating read-write page at address 0x%lx, test %d\n",
             (unsigned long)addr, k);
 #endif
-            map_page(addr);
+            map_output_page(addr);
+            p += 3;
+        }
+        p++;
+    }
+    return 0; // return normally
+}
+
+//
+// Traverse the mem inputs, three qwords at a time.
+// Ensure all pages that are referenced are committed.
+// When we get to a null address, we've reached the end of the inputs.
+//
+int map_input_pages(unsigned long* p) {
+    int i = 0;
+    segfault = 0;
+
+    for (int k = 0; k < num_tests; k++) {
+        while (*p) {
+            i = setjmp(bailout); // safe place to return to
+            if (segfault || i != 0) {
+                segfault = 0;
+                return -1;  // segment violation was caught!
+            }
+            unsigned long* addr = (unsigned long*)*p;
+#if DEBUG
+    fprintf(stderr, "Allocating read-only page at address 0x%lx, test %d\n",
+            (unsigned long)addr, k);
+#endif
+            map_input_page(addr);
             p += 3;
         }
         p++;
@@ -211,8 +257,11 @@ int map_pages(unsigned long* p) {
 
 int init_pages() {
     // map the initial stack page
-    map_page((unsigned long*)(input_regs[RSP_position(live_input_registers)]));
-    return map_pages(input_mem); // map pages indicated by the memory i/o
+    map_output_page((unsigned long*)(input_regs[RSP_position(live_input_registers)]));
+    int ret =  map_input_pages(input_mem); // map pages indicated by
+                                           // the memory i/o
+    ret |= map_output_pages(output_mem);
+    return ret;
 }
 
 //
@@ -225,7 +274,7 @@ int init_pages() {
 int init_mem(int test) {
     unsigned long* p = input_mem;
     int i = 0;
-    
+
     // skip to the indicated test, by advancing past (test - 1) 0
     // words (qwords containing 0)
     unsigned long count = test;
@@ -409,7 +458,7 @@ void timer_sigaction(int signal, siginfo_t *si, void *context) {
         //fprintf(stderr, "Execution timer expired\n");
         exit(1);
     }
-    
+
     unblock_signal(signal);
 
     ucontext_t* p = (ucontext_t*)context;
@@ -512,7 +561,7 @@ unsigned long run_variant(int v, int test) {
 #endif
         return ULONG_MAX;
     }
-        
+
     start_timer();  // start POSIX timer
     sigunblock();
 
@@ -592,9 +641,9 @@ unsigned long run_overhead() {
 
     // This matches what happens during PAPI timing in run_variant,
     // but without call to execaddr().
-    
+
     asm("call _init_registers\n\t");
-    executing = RunningTest; 
+    executing = RunningTest;
     executing = NormalState;
     asm("call _restore_registers\n\t");
     retval = PAPI_read(EventSet, end_value);     // get PAPI count
@@ -702,6 +751,18 @@ void setup_kernel_handler(int sig) {
 //
 //
 int main(int argc, char* argv[]) {
+
+    // move the heap by allocating a large block which we don't use
+    heap_address = (unsigned long)sbrk(0x1000000); // 16 megs
+#if DEBUG
+    fprintf(stderr, "Heap address: %ld\n", heap_address);
+#endif
+
+    // move our stack down effectively by allocating
+    // 4 megs via alloca()--this may help prevent collisions
+    // with the i/o data addresses
+    char* temp = alloca(0x80000);
+
     // set up signal handling
     if (sigaltstack(&signal_stack, NULL) == -1) {
         fprintf(stderr, "Error installing alternate signal stack\n");
@@ -741,7 +802,7 @@ int main(int argc, char* argv[]) {
                 segfault_addr);
         exit(1);
     }
-    
+
     unsigned long best = 0;
     int best_index = -1;
     int num_variants = 0;

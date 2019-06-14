@@ -239,6 +239,7 @@
         :curry-compose-reader-macros
         :iterate
         :split-sequence
+        :cl-ppcre
         :software-evolution-library
         :software-evolution-library/utility
         :software-evolution-library/software/asm
@@ -259,7 +260,11 @@
            :parse-sanity-file
            :*optimize-included-lines*
            :*inline-included-lines*
-           :*size-affects-fitness*))
+           :*size-affects-fitness*
+           :*bss-segment-start*
+           :*data-segment-start*
+           :*text-segment-start*
+           :*seldata-segment-start*))
 
 (in-package :software-evolution-library/software/asm-super-mutant)
 (in-readtable :curry-compose-reader-macros)
@@ -418,6 +423,11 @@
 (defparameter *break-on-fitness-failure* nil
   "If true, evolve stop with an error when the fitness executable fails.")
 
+(defparameter *bss-segment-start* nil "If non-nil, address of .bss segment")
+(defparameter *data-segment-start* nil "If non-nil, address of .data segment")
+(defparameter *text-segment-start* #x400000 "If non-nil, base address")
+(defparameter *seldata-segment-start* nil
+  "If non-nil, address of .seldata segment")
 ;;;
 ;;; all the SIMD register names start with 'y'
 ;;;
@@ -592,6 +602,43 @@
                             :test 'equalp
                             :key 'car))))))
 
+(defparameter *callee-saved-init-value*
+  (make-array 8
+              :element-type '(unsigned-byte 8)
+              :initial-contents '(#x0 #x0 #xF0 #xF #x0 #xF0 #xF #x0))
+                                        ; #xf00f00f00f00
+  "Arbitrary value to initialize callee-save registers which are
+ not otherwise initialized by the io spec.")
+
+(defparameter *callee-saved-registers*
+  '("rsp" "rbx" "rbp" "r12" "r13" "r14" "r15")
+  "Registers that must be preserved by any function.")
+
+(defun create-required-reg-specs (input-specs output-specs)
+  "Ensure callee-save registers are handled.
+ Callee-save registers are: rsp, rbx, rbp, r12-r15."
+  (flet ((add-input-reg (input-regs reg)
+           (unless (find reg input-regs :key 'reg-contents-name :test 'equal)
+             (vector-push
+              (make-reg-contents :name reg :value *callee-saved-init-value*)
+              input-regs)))
+         (add-output-reg (input-regs output-regs reg)
+           ;; if already there, don't add
+           (unless (find reg output-regs :key 'reg-contents-name :test 'equal)
+             (let ((reg-spec
+                    (find reg input-regs :key 'reg-contents-name :test 'equal)))
+               (vector-push
+                (if reg-spec
+                    (copy-reg-contents reg-spec)
+                    (make-reg-contents :name reg
+                                       :value *callee-saved-init-value*))
+                output-regs)))))
+    (dolist (reg *callee-saved-registers*)
+      (add-input-reg (input-specification-regs input-specs) reg)
+      (add-output-reg (input-specification-regs input-specs)
+                      (input-specification-regs output-specs)
+                      reg))))
+
 (defun load-io-file (super-asm filename)
   "Load the file containing input and output state information"
   (let ((input-spec (new-io-spec))
@@ -601,22 +648,30 @@
       (do ((line (get-next-line input) (get-next-line input))
 	   (pos 0 0))
 	  ((null line)
-	   (when (> (length (input-specification-regs output-spec)) 0)
+           (when (or
+                  (> (length (input-specification-regs output-spec)) 0)
+                  (> (length (input-specification-mem output-spec)) 0))
 	     (vector-push-extend output-spec (output-spec super-asm))))
 	(cond ((zerop (length line))) ; do nothing, empty line
 	      ((search "Input data" line)
-	       (when (> (length (input-specification-regs output-spec)) 0)
+               ;; store the previous input/output set (if any)
+               (when (or
+                      (> (length (input-specification-regs output-spec)) 0)
+                      (> (length (input-specification-mem output-spec)) 0))
+                 ;; ensure callee-saved registers are preserved
+                 (create-required-reg-specs input-spec output-spec)
+                 (setf (input-specification-regs input-spec)
+                       (sort-reg-contents (input-specification-regs input-spec)))
                  (setf (input-specification-regs output-spec)
-                       (sort-reg-contents (input-specification-regs output-spec)))
-	         (vector-push-extend output-spec (output-spec super-asm))
+                       (sort-reg-contents
+                        (input-specification-regs output-spec)))
+                 (vector-push-extend input-spec (input-spec super-asm))
+                 (vector-push-extend output-spec (output-spec super-asm))
+                 (setf input-spec (new-io-spec))
 	         (setf output-spec (new-io-spec)))
 	       (setf parsing-inputs t))
 	      ((search "Output data" line)
-               (setf (input-specification-regs input-spec)
-                     (sort-reg-contents (input-specification-regs input-spec)))
-	       (vector-push-extend input-spec (input-spec super-asm))
-	       (setf input-spec (new-io-spec))
-	       (setf parsing-inputs nil))
+               (setf parsing-inputs nil))
 	      ((char= (char line 0) #\%) ; register spec?
 	       (let ((spec (parse-reg-spec line pos)))
 		 (if (simd-reg-p (reg-contents-name spec))  ; SIMD register?
@@ -624,11 +679,15 @@
 		      spec
 		      (input-specification-simd-regs
 		       (if parsing-inputs input-spec output-spec)))
-		     ;; else a general-purpose register
-		     (vector-push
-		      spec
-		      (input-specification-regs
-		       (if parsing-inputs input-spec output-spec))))))
+                     ;; else a general-purpose register--don't collect duplicate
+                     (unless (find (reg-contents-name spec)
+                                   (input-specification-regs
+                                    (if parsing-inputs input-spec output-spec))
+                                   :key 'reg-contents-name :test 'equal)
+                       (vector-push
+                        spec
+                        (input-specification-regs
+                         (if parsing-inputs input-spec output-spec)))))))
 	      (t ; assume memory specification
 	       (vector-push-extend
 		(parse-mem-spec line pos)
@@ -666,13 +725,21 @@
 	  (setf result (+ (ash result 8) (aref bytes i))))
     result))
 
-;;;
-;;; Assume bytes are in big-endian order
-;;;
 (defun be-bytes-to-qword (bytes)
+  "Convert 8-byte vector to qword.
+ Assumes bytes in big-endian order."
   (let ((result 0))
     (iter (for i from 0 to 7)
 	  (setf result (+ (ash result 8) (aref bytes i))))
+    result))
+
+(defun qword-to-be-bytes (n)
+  "Convert integer to vector of 8 bytes.
+ Results will be in big-endian order."
+  (let ((result (make-array 8 :element-type '(unsigned-byte 8)))
+        (shift -64))
+    (dotimes (i 8)
+      (setf (elt result i) (logand (ash n (incf shift 8)) #xff)))
     result))
 
 (defun get-function-lines (asm-super start-addr end-addr)
@@ -821,6 +888,7 @@ a symbol, the SYMBOL-NAME of the symbol is used."
                   (starts-with-subseq "j" trimmed)
                   (starts-with-subseq "call" trimmed)
                   (starts-with-subseq "push" trimmed) ; we sometimes push a label
+                  (starts-with-subseq "mov" trimmed)  ; handle labels in offset calc
                   (if (intel-syntax-p asm-syntax)
                       (char= #\$ (char trimmed 0))
                       (char= #\. (char trimmed 0))))))
@@ -934,17 +1002,17 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 	 ".align 16"))
        0)))
 
-  (defun add-externs (asm asm-super)
-    (if (intel-syntax-p asm-super)
-	(insert-new-lines
-	 asm
-	 (append
-	  (list
-	   ""
-	   "; -------------- Externs ---------------")
-	  (iter (for x in (collect-extern-funcs asm-super))
-		(collect (format nil "        extern ~A" x))
-		(list ""))))))
+(defun add-externs (asm asm-super)
+  (if (intel-syntax-p asm-super)
+      (insert-new-lines
+       asm
+       (append
+        (list
+         ""
+         "; -------------- Externs ---------------")
+        (iter (for x in (collect-extern-funcs asm-super))
+              (collect (format nil "        extern ~A" x))
+              (list ""))))))
 
 ;;;
 ;;; Replace a RET operation with:
@@ -1135,6 +1203,34 @@ a symbol, the SYMBOL-NAME of the symbol is used."
      (length (genome asm-variants)))
     (insert-new-line asm-variants "")))
 
+(defparameter *system-stack-size* #x400000)  ;; assume 4 meg stack for now
+
+(defun remove-mem-below-sp (io-specs)
+  "Filter out unnecessary memory specs.
+ If any memory specifications are in the stack space
+ but below the stack pointer (rsp) then they are considered
+ junk and we will ignore them for testing."
+  (iterate (for spec in-vector io-specs)
+           (let* ((rsp-spec (find "rsp" (input-specification-regs spec)
+                                  :key 'reg-contents-name :test 'equal))
+                  (rsp-val
+                   (and rsp-spec
+                        (be-bytes-to-qword
+                         (reg-contents-value rsp-spec)))))
+             (if rsp-val
+                 (setf (input-specification-mem spec)
+                       (remove-if (lambda (mem-spec)
+                                    (let ((addr (memory-spec-addr mem-spec)))
+                                      (and (< addr rsp-val)
+                                           (> addr (- rsp-val
+                                                      *system-stack-size*)))))
+                                  (input-specification-mem spec)))))))
+#|
+need to do same for output-spec
+
+|#
+
+
 (defun add-bss-section (asm-variants asm-super)
   ;; if bss section found, add it
   (let ((bss (extract-section asm-super ".BSS")))
@@ -1277,9 +1373,14 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
 (defun add-included-lines (asm-super asm-variants)
   "If any extra lines were supplied, paste them in now."
   (if (include-lines asm-super)
-      (insert-new-lines
-       asm-variants
-       (include-lines asm-super))))
+      (let ((included (make-instance 'asm-heap)))
+        (setf (lines included) (include-lines asm-super))
+        ;; ensure any rip-relative addresses are converted to absolute
+        (dotimes (i (length (genome included)))
+          (convert-rip-relative-to-absolute included i))
+        (insert-new-lines
+         asm-variants
+         (lines included)))))
 
 (defun get-function-lines-from-name (asm-super name)
   "Given a function name, return the lines of that function (if found)."
@@ -1300,9 +1401,14 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
 	    (setf func-name (symbol-name func-name)))
 	(let ((lines (get-function-lines-from-name asm-super func-name)))
 	  (when lines
-	    (insert-new-lines
-	     asm-variants
-	     lines))))))
+            (let ((included (make-instance 'asm-heap)))
+              (setf (lines included) lines)
+              ;; ensure any rip-relative addresses are converted to absolute
+              (dotimes (i (length (genome included)))
+                (convert-rip-relative-to-absolute included i))
+              (insert-new-lines
+               asm-variants
+               (lines included))))))))
 
 (defun add-init-regs(asm-super asm-variants)
   "Add assembler code to initialize registers."
@@ -1481,6 +1587,10 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
       (dolist (v (mutants asm-super))
 	(assert (equalp (genome (super-owner v)) (genome asm-super)) (v)
                 "Variant is not owned by this asm-super-mutant")
+        ;; ensure any rip-relative addresses are converted to absolute
+        (dotimes (i (length (genome v)))
+          (convert-rip-relative-to-absolute v i))
+
         (add-variant-func
 	 asm-variants
 	 (format nil "variant_~D" count)
@@ -1628,12 +1738,6 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
       (probe-file "/usr/lib/libpapi.so.5.6.1"))
   "Path to papi library.  See http://icl.cs.utk.edu/papi/.")
 
-;; arbitrary addresses--must be under 32-bits
-(defun bss-segment-start () nil)
-(defun data-segment-start () nil)
-(defun text-segment-start () nil)
-(defun seldata-segment-start () nil)
-
 (defmethod phenome ((asm asm-super-mutant)
 		    &key (bin (temp-file-name "out"))
 		      (src (temp-file-name "asm")))
@@ -1671,18 +1775,18 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
              (if (bss-segment asm)
 		 (format nil "-Wl,--section-start=.seldata=0x~x"
 			 (bss-segment asm))
-		 (if (seldata-segment-start)
+                 (if *seldata-segment-start*
                      (format nil "-Wl,--section-start=.seldata=0x~x"
-                             (seldata-segment-start))
+                             *seldata-segment-start*)
                      ""))
-             (if (bss-segment-start)
-                 (format nil "-Wl,-Tbss=0x~x" (bss-segment-start))
+             (if *bss-segment-start*
+                 (format nil "-Wl,-Tbss=0x~x" *bss-segment-start*)
                  "")
-             (if (data-segment-start)
-                 (format nil "-Wl,-Tdata=0x~x" (data-segment-start))
+             (if *data-segment-start*
+                 (format nil "-Wl,-Tdata=0x~x" *data-segment-start*)
                  "")
-             (if (text-segment-start)
-                 (format nil "-Wl,-Ttext=0x~x" (text-segment-start))
+             (if *text-segment-start*
+                 (format nil "-Wl,-Ttext-segment=0x~x" *text-segment-start*)
                  "")
 	     bin
 	     (fitness-harness asm)
@@ -1748,7 +1852,7 @@ needs to have been loaded, along with the var-table by PARSE-SANITY-FILE."
                 (let ((errmsg
                        (format
                         t
-                        "No results--all variants marked as worst fitness. 
+                        "No results--all variants marked as worst fitness.
  bin: ~A, src: ~A, phenome-create-error: ~A, phenome-execute-error: ~A"
                         bin-path
                         src
@@ -1883,3 +1987,83 @@ not included in the disassembly file). Returns a vector of var-rec."
       (let ((first-bss-var
 	     (find "b" (var-table asm-super) :test 'equal :key 'var-rec-type)))
 	(var-rec-address first-bss-var))))
+
+(defmethod to-file :before ((asm asm-heap) file)
+  "Save the assembly for ASM to FILE.
+If any rip-relative addresses have been converted to
+absolute, for evaluation, restore them to the original
+instructions."
+  ;; ensure any rip-relative addresses are converted to absolute
+  (dotimes (i (length (genome asm)))
+    (restore-rip-relative-address asm i)))
+
+(defparameter *rip-rel-pattern* "[0-9A-Fa-fxX]*\\(\\%rip\\)"
+  "Pattern matches rip-relative addresses in AT&T.
+This pattern is specific to AT&T syntax and will only find
+the pattern in AT&T syntax code. We don't yet support
+rip-relative addresses in Intel syntax. This pattern will fail
+to find a match in Intel assembler.")
+
+(defun convert-rip-relative-to-absolute (asm line-index)
+  "Convert any rip-relative address to absolute.
+If the assembly operation contains a rip-relative address,
+replace it with an absolute address calculated as
+<offset of rip-relative address> + <orig-address of following line>.
+This should work as long as the address fits in 32-bits, as x86-64
+instruction set does not support absolute addresses over 32-bits."
+
+  ;; skip all this if it isn't an op statement
+  (let* ((genome (genome asm))
+         (asm-line-info (elt genome line-index)))
+    (if (eq (asm-line-info-type asm-line-info) ':op)
+        (let* ((text (asm-line-info-text asm-line-info))
+               (next-orig-addr
+                (iter (for x from (+ 1 line-index) to (1- (length genome)))
+                      (if (asm-line-info-address (elt genome x))
+                          (leave (asm-line-info-address (elt genome x)))))))
+
+          (multiple-value-bind (start end)
+              (cl-ppcre:scan *rip-rel-pattern* text)
+            (if (and start end)
+                (let* ((offset-str
+                        (string-downcase
+                         (subseq text start (position #\( text))))
+                       (offset
+                        (parse-integer offset-str
+                                       :radix
+                                       (if (starts-with-subseq "0x" offset-str)
+                                           16
+                                           10)))
+                       (abs-address (and (numberp offset)
+                                         (numberp next-orig-addr)
+                                         (+ offset next-orig-addr)))
+                       (new-line (and abs-address
+                                      (cl-ppcre:regex-replace
+                                       *rip-rel-pattern*
+                                       text
+                                       (format nil "0x~X" abs-address)))))
+                  ;; We found an rip-relative address and we created a
+                  ;; replacement asm-line-info, which uses an absolute address.
+                  ;; Now we stash the original in the new one's properties
+                  ;; (key=:orig) and then replace the statement in the genome
+                  ;; with the new asm-line-info.
+                  (if new-line
+                      (let ((new-line-info
+                             (first (parse-asm-line
+                                     new-line
+                                     (asm-syntax asm)))))
+                        ;; properties not set correctly?
+                        (setf (getf (asm-line-info-properties new-line-info)
+                                    :orig)
+                              asm-line-info)
+                        (setf (elt (genome asm)
+                                   line-index) new-line-info))))))))))
+
+;;;
+;;; If RIP-relative addressing was used, restore it.
+;;;
+(defun restore-rip-relative-address (asm line-index)
+  (let ((orig (getf (asm-line-info-properties (elt (genome asm) line-index))
+                    :orig)))
+    (if orig
+        (setf (elt (genome asm) line-index) orig))))
