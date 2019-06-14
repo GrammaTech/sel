@@ -130,7 +130,7 @@ unit-check: test-artifacts $(TEST_LISP_DEPS) $(LISP_DEPS) $(MANIFEST)
 	--eval '(ql:quickload :software-evolution-library/utility)' \
 	--eval '(ql:quickload :$(PACKAGE_NAME)/test)' \
 	--eval '(setq sel/stefil+:*long-tests* t)' \
-	--eval '(let ((sel/utility:*uninteresting-conditions* (list (quote stefil::test-style-warning)))) (sel/utility::with-quiet-compilation (asdf:test-system :$(PACKAGE_NAME))))' \
+	--eval '($(PACKAGE_NAME)/test::run-batch)' \
 	--eval '(uiop:quit (if $(PACKAGE_NAME)/test::*success* 0 1))'
 
 unit-check/%: test-artifacts $(TEST_LISP_DEPS) $(LISP_DEPS) $(MANIFEST)
