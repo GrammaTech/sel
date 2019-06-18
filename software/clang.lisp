@@ -2162,6 +2162,11 @@ already in scope, it will keep that name.")
              (format nil "ast ~a ~a" (ast :stmt1) fields)
              (format nil "sexp ~a ~a ~a" (ast :stmt1) fields aux)))))))
 
+(defparameter *clang-mutate-readtable*
+  (let ((rt (copy-readtable nil)))
+    #+sbcl (setf (sb-ext:readtable-base-char-preference rt) :both)
+    rt))
+
 (defmethod clang-mutate ((obj clang) op
                          &key script
                          &aux value1-file value2-file)
@@ -2313,7 +2318,8 @@ already in scope, it will keep that name.")
                      :obj obj :op op)))
           (values
            (case (car op)
-             (:sexp (read-from-string stdout))
+             (:sexp (let ((*readtable* *clang-mutate-readtable*))
+                      (read-from-string stdout)))
              (t stdout))
            exit))
       ;; Cleanup forms.
