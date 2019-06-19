@@ -226,12 +226,15 @@ Optional DESCRIPTION is added to the path."
 (defun resolve-test-script-from-test-script (test-script test-dir
 					     &aux result)
   "Ensure that TEST-SCRIPT exists, add ~~a and ~~d arguments if missing."
-  (let ((test-dir-path (canonical-pathname test-dir))
-        (test-script-path
-         (canonical-pathname
-          (merge-pathnames-as-file (ensure-directory-pathname test-dir)
-                                   (car (split-sequence #\Space
-                                          test-script))))))
+  (let* ((test-dir (if (listp test-dir) ; Handle raw directory TEST-DIR.
+                       (make-pathname :directory test-dir)
+                       test-dir))
+         (test-dir-path (canonical-pathname test-dir))
+         (test-script-path
+          (canonical-pathname
+           (merge-pathnames-as-file (ensure-directory-pathname test-dir)
+                                    (car (split-sequence #\Space
+                                                         test-script))))))
     (assert (probe-file test-script-path)
             (test-script)
             "Test script ~S does not exist." test-script-path)
