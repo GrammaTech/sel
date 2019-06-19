@@ -214,6 +214,9 @@ DEFERRED OPTIONS (maybe one day):
                               Can be used with -style option.
   -version                  - Display the version of this program"))
 
+
+;;;; Runtime
+;;; (message "Command-line arguments:%S" argv)
 (getopts
   ("-h" (show-help))
   ("--help" (show-help))
@@ -236,7 +239,7 @@ DEFERRED OPTIONS (maybe one day):
             ".lisp-format" (file-name-directory (expand-file-name file)))))
       (if lisp-format-file
           (let ((inhibit-message t))
-            (load lisp-format-file t t))
+            (load lisp-format-file nil t t))
         (error "No '.lisp-format' file found in '%s' or parent directories."
                (file-name-directory (expand-file-name file))))))
   ;; In a new buffer or visiting the file:
