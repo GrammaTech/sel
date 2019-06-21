@@ -55,6 +55,7 @@
    :software-evolution-library/software/ast
    :software-evolution-library/software/cil
    :software-evolution-library/software/clang
+   :software-evolution-library/software/new-clang
    :software-evolution-library/software/clang-expression
    :software-evolution-library/software/clang-project
    :software-evolution-library/software/clang-w-fodder

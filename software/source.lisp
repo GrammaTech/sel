@@ -14,7 +14,10 @@
            :compiler
            :ext
            :flags
-           :raw-size))
+           :raw-size
+           ;; :genome-lines
+           :genome-line-offsets
+           :genome-lines-mixin))
 (in-package :software-evolution-library/software/source)
 (in-readtable :curry-compose-reader-macros)
 
@@ -34,9 +37,12 @@
   (:documentation "Raw source code software representation."))
 
 (defclass genome-lines-mixin ()
-  ((genome-lines :type vector :accessor genome-lines
+  (#+nil
+   (genome-lines :type vector :accessor genome-lines
                  :documentation "Mapping from line numbers (starting at zero) to positions
 in genome.")
+   (genome-line-offsets :type vector :accessor genome-line-offsets
+                        :documentation "The position in GENOME of the first character of each line")
    (last-line-terminated? :type boolean :accessor last-line-terminated?
                           :documentation "If true, last line was terminated by the separator"))
   (:documentation "Mixin for recording lines of a source"))
@@ -66,39 +72,57 @@ on the filesystem at BIN."
     (if stream (write-string genome stream) genome)))
 
 (defmethod (setf genome) :after (v (obj genome-lines-mixin))
-  (slot-makunbound obj 'genome-lines))
+  (slot-makunbound obj 'genome-line-offsets))
 
 (defmethod slot-unbound (class (obj genome-lines-mixin)
-                         (slot-name (eql 'genome-lines)))
+                         (slot-name (eql 'genome-line-offsets)))
   ;; Compute GENOME-LINES when needed
+  ;; (format t "Begin computing genome-lines~%")
   (let* ((s (genome-string obj))
          (ter (make-string 1 :initial-element #\Newline
                            :element-type 'base-char))
          (len (length s))
-         (ter-len (length sep))
+         (ter-len (length ter))
          (etype (array-element-type s))
          (pos 0))
     ;; Lines will be displaced into genome-string, so we don't
     ;; waste space holding two copies of the program.
     ;; Lines do NOT include line terminator character (ter)
     (setf (last-line-terminated? obj) t)
-    (let ((lines (iter (while (<= pos len))
-                       (let* ((next (search ter s :start pos))
-                              (line-len
-                               (if next
-                                   (prog1 (- next pos)
-                                     (setf pos (+ next ter-len)))
-                                   ;; Last line was nonempty and did not end in
-                                   ;; the expected terminator character(s)
-                                   (prog1 (- len pos)
-                                     (setf (last-line-terminated? obj) nil
-                                           pos len)))))
-                         (collecting (make-array (list line-len)
-                                                 :element-type etype
-                                                 :displaced-to s
-                                                 :displaced-index-offset pos))))))
-      (setf (genome-lines obj)
-            (make-array (list (length lines)) :intial-contents lines)))))
+    ;; (format t "s =~%~a~%(length s) = ~a~%" s (length s))
+    (let ((line-positions
+           (iter (while (< pos len))
+                 (collecting pos)
+                 (let ((next (search ter s :start2 pos)))
+                   (if next
+                       (prog1 (- next pos)
+                         (setf pos (+ next ter-len)))
+                       ;; Last line was nonempty and did not end in
+                       ;; the expected terminator character(s)
+                       (prog1 (- len pos)
+                         (setf (last-line-terminated? obj) nil
+                               pos len)))))))
+      (setf (genome-line-offsets obj) (coerce line-positions 'vector))
+      #+nil
+      (let ((lines (iter (while (< pos len))
+                         (let* ((next (search ter s :start2 pos))
+                                (old-pos pos)
+                                (line-len
+                                 (if next
+                                     (prog1 (- next pos)
+                                       (setf pos (+ next ter-len)))
+                                     ;; Last line was nonempty and did not end in
+                                     ;; the expected terminator character(s)
+                                     (prog1 (- len pos)
+                                       (setf (last-line-terminated? obj) nil
+                                             pos len)))))
+                           ;; (format t "next = ~a, old-pos = ~a, pos = ~a, line-len = ~a~%" next old-pos pos line-len)
+                           (collecting (make-array (list line-len)
+                                                   :element-type etype
+                                                   :displaced-to s
+                                                   :displaced-index-offset old-pos))))))
+        (setf (genome-lines obj)
+              (make-array (list (length lines)) :initial-contents lines))))))
 
 (defmethod from-file ((obj source) path)
   "Initialize OBJ with the contents of PATH."

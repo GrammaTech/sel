@@ -29,6 +29,7 @@
         :software-evolution-library/software/source
         :software-evolution-library/software/project
         :software-evolution-library/software/clang
+        :software-evolution-library/software/new-clang
         :software-evolution-library/software/javascript
         :software-evolution-library/software/java
         :software-evolution-library/software/lisp
