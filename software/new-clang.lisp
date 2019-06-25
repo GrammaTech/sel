@@ -26,6 +26,7 @@
         :software-evolution-library/components/fodder-database
         :software-evolution-library/software/clang)
   (:import-from :uiop :nest)
+  (:import-from :anaphora :awhen :it)
   (:export ))
 (in-package :software-evolution-library/software/new-clang)
 (in-readtable :curry-compose-reader-macros)
@@ -141,11 +142,16 @@ See http://clang.llvm.org/.  This is for ASTs from Clang 9+."))
   (new-clang-ast-class obj))
 (defmethod ast-syn-ctx ((obj new-clang-ast))
   (new-clang-ast-syn-ctx obj))
+(defmethod source-text ((ast new-clang-ast))
+  (with-output-to-string (out)
+    (mapc [{write-string _ out} #'source-text] (ast-children ast))))
 
 ;;; Structures for various attribute values
 
 (defstruct new-clang-range begin end)
-(defstruct new-clang-loc col file line)
+;; Locations may also be integers, which represent absolute
+;; character positions in source genome
+(defstruct new-clang-loc col file line tok-len)
 (defstruct new-clang-type qual desugared)
 
 ;; Wrapper for values in referencedDecl attribute, when
@@ -171,6 +177,25 @@ See http://clang.llvm.org/.  This is for ASTs from Clang 9+."))
   (aget :previous-decl (new-clang-ast-attrs obj)))
 
 (declaim (special *canonical-string-table* *symbol-table*))
+
+;;; We cache the last lookup of certain slots, so that repeat values
+;;; can be omitted in the json.  A special accessor maintains this cache
+
+(declaim (special *aget-cache*))
+(defun cached-aget (key alist)
+  "Cached aget looks up the value, then uses the cached valued
+if no value was found."
+  (if (boundp '*aget-cache*)
+      (let ((value (aget key alist))
+            (cache *aget-cache*))
+        (if value
+            (let ((p (assoc key cache)))
+              (if p (setf (cdr p) value)
+                  (setf *aget-cache* (cons (cons key value) cache)))
+              value)
+            (aget key cache)))
+      (let ((*aget-cache* nil))
+        (cached-aget key alist))))
 
 ;;; Question on this: are IDs unique between files?
 ;;; Or do we need keys that include file names?
@@ -198,9 +223,22 @@ be bound for each clang program.")
 
 ;;; Json conversion
 
+(defun clang-convert-json-for-file (json file genome-len)
+  ;; The aget cache is used to record values of elided
+  ;; json attributes, that are assumed to be equal to the previous
+  ;; occurrence of such an attribute.  This requires the json
+  ;; be converted left to right.  cl-json produces alists
+  ;; in the same order they appear in the json, fortunately.
+  (let* ((*aget-cache* nil)
+         (ast (clang-convert-json json :file file)))
+    (unless (ast-attr ast :range)
+      (let ((range (make-new-clang-range :begin 0 :end genome-len)))
+        (setf (ast-attr ast :range) range)))
+    ast))
+
 (defun clang-convert-json (json &key referenced file)
   "Convert json data in list form to data structures using NEW-CLANG-AST"
-  (declare (ignorable file))
+  (declare (ignorable file referenced))
   (typecase json
     (null nil)
     (cons
@@ -210,6 +248,8 @@ be bound for each clang program.")
                                   :unknown)))
        (unless (keywordp json-kind-symbol)
          (error "Cannot convert ~a to a json-kind keyword" json-kind))
+       (j2ck json json-kind-symbol)
+       #+nil
        (if referenced
            (j2ck-referenced json json-kind-symbol)
            (j2ck-unreferenced json json-kind-symbol))))
@@ -225,54 +265,78 @@ on json-kind-symbol when special subclasses are wanted."))
   (let ((obj (make-new-clang-ast)))
     (store-slots obj json)))
 
-(defun j2ck-unreferenced (json json-kind-symbol)
-  "Version of J2CK on non-reference objects."
-  (let* ((obj (j2ck json json-kind-symbol)))
+(defun alist-subsumed (al1 al2)
+  (iter (for (k . v) in al1)
+        (always (or (equal v "")
+                    (equal v (aget k al2))))))
+
+(defmethod j2ck :around (json json-kind-symbol)
+  (let ((obj (call-next-method)))
     (when obj
-      (let ((table *symbol-table*)
-            (id (new-clang-ast-id obj)))
-        ;; (format t "ID = ~s~%" id)
-        (if (integerp id)
-            (let ((entry (gethash id table)))
-              (typecase entry
-                (reference-entry
-                 (setf (reference-entry-obj entry) obj)
-                 (setf (gethash id table) obj))
-                ((not null)
-                 (unless (eql (ast-class entry) :builtin-type)
-                   (warn "Object id ~a occurs more than once.~%Old entry: ~a.~%New Json: ~a"
-                         (int-to-c-hex id)
-                         (clang-to-list entry)
-                         (clang-to-list obj)))
-                 entry)
-                (null
-                 (setf (gethash id table) obj)
-                 (let ((pr-id (clang-previous-decl obj)))
-                   (when pr-id
-                     (assert (integerp pr-id))
-                     (let ((rd-obj (gethash pr-id table)))
-                       (assert rd-obj () "Cannot find previous decl for ~a~%" pr-id)
-                       (setf (new-clang-ast-id rd-obj) id)
-                       (remhash pr-id table))))
-                 obj)))
-            obj)))))
+      (let ((id (new-clang-ast-id obj)))
+        (when id
+          (push obj (gethash id *symbol-table*)))))
+    obj))
+
+#|
+(defun j2ck-unreferenced (json json-kind-symbol)
+"Version of J2CK on non-reference objects."
+(let* ((obj (j2ck json json-kind-symbol)))
+(when obj
+(let ((table *symbol-table*)
+(id (new-clang-ast-id obj)))
+;; (format t "ID = ~s~%" id)
+(if (integerp id)
+(let ((entry (gethash id table)))
+(typecase entry
+(reference-entry
+(setf (reference-entry-obj entry) obj)
+(setf (gethash id table) obj))
+((not null)
+(unless (eql (ast-class entry) :builtin-type)
+(let ((l1 (clang-to-list entry))
+(l2 (clang-to-list obj))
+(hex (int-to-c-hex id)))
+(cond
+((equal l1 l2)
+;; (warn "Object id ~a occurs more than once:~%Same json:~a" hex l1)
+)
+((alist-subsumed l2 l1)
+;; (warn "Object id ~a occurs more than once:~%Subsumed.~%" hex)
+)
+(t
+(warn "Object id ~a occurs more than once.~%Old entry: ~a.~%New Json: ~a"
+hex l1 l2)))))
+obj)
+(null
+(setf (gethash id table) obj)
+(let ((pr-id (clang-previous-decl obj)))
+(when pr-id
+(assert (integerp pr-id))
+(let ((rd-obj (gethash pr-id table)))
+(assert rd-obj () "Cannot find previous decl for ~a~%" pr-id)
+(setf (new-clang-ast-id rd-obj) id)
+(remhash pr-id table))))
+obj)))
+obj)))))
 
 (defun j2ck-referenced (json json-kind-symbol)
-  "Version of J2CK on objects that are the value of a referencedDecl
+"Version of J2CK on objects that are the value of a reference
 attribute.  This properly handles normalization of references."
-  (let* ((obj (j2ck json json-kind-symbol)))
-    (when obj
-      (let ((table *symbol-table*)
-            (id (new-clang-ast-id obj)))
-        (when (integerp id)
-          (let ((entry (gethash id table)))
-            (if entry
-                (setf obj (if (reference-entry-p entry)
-                              (reference-entry-obj entry)
-                              entry))
-                (setf (gethash id table)
-                      (make-reference-entry :obj obj)))))))
-    obj))
+(let* ((obj (j2ck json json-kind-symbol)))
+(when obj
+(let ((table *symbol-table*)
+(id (new-clang-ast-id obj)))
+(when (integerp id)
+(let ((entry (gethash id table)))
+(if entry
+(setf obj (if (reference-entry-p entry)
+(reference-entry-obj entry)
+entry))
+(setf (gethash id table)
+(make-reference-entry :obj obj)))))))
+obj))
+|#
 
 (defgeneric store-slots (obj json)
   (:documentation "Store values in the json into obj.
@@ -294,8 +358,10 @@ form for SLOT, and stores into OBJ.  Returns OBJ or its replacement."))
   ;; Generic case
   (let ((attrs (new-clang-ast-attrs obj)))
     (assert (null (aget slot attrs)) () "Duplicate slot ~a" slot)
-    (setf (new-clang-ast-attrs obj)
-          (append attrs `((,slot . ,(convert-slot-value obj slot value))))))
+    (let ((converted-value (convert-slot-value obj slot value)))
+      (when converted-value
+        (setf (new-clang-ast-attrs obj)
+              (append attrs `((,slot . ,converted-value)))))))
   obj)
 
 (defmethod store-slot ((obj new-clang-ast) (slot (eql :kind)) value)
@@ -315,18 +381,22 @@ form for SLOT, and stores into OBJ.  Returns OBJ or its replacement."))
 
 (defmethod store-slot ((obj new-clang-ast) (slot (eql :inner)) value)
   (let ((children (mapcar #'clang-convert-json value)))
-    (format t "STORE-SLOT on ~a, :INNER with ~A children~%" value (length value))
+    ;; (format t "STORE-SLOT on ~a, :INNER with ~A children~%" value (length value))
     (setf (new-clang-ast-children obj) children))
   obj)
 
 (defgeneric convert-slot-value (obj slot value)
-  (:documentation "Convert a value in the context of a specific slot"))
+  (:documentation "Convert a value in the context of a specific slot.  Return of
+NIL indicates no value."))
 
 (defmethod convert-slot-value ((obj new-clang-ast) (slot symbol) value)
   ;; Default to a context-independent conversion
   (clang-convert-json value))
 
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :referenced-decl)) value)
+  (clang-convert-json value :referenced t))
+
+(defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :decl)) value)
   (clang-convert-json value :referenced t))
 
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :template-params)) value)
@@ -338,17 +408,21 @@ form for SLOT, and stores into OBJ.  Returns OBJ or its replacement."))
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :previous-decl)) value)
   (read-c-integer value))
 
+(defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :name)) value)
+  (and (equal value "") (call-next-method)))
+
 ;; More conversions
 
 (defun convert-loc-json (loc-json)
   "Special handler for values of loc attributes"
   (let ((col (aget :col loc-json))
-        (file (aget :file loc-json))
-        (line (aget :line loc-json)))
+        (file (cached-aget :file loc-json))
+        (line (cached-aget :line loc-json))
+        (tok-len (aget :tok-len loc-json)))
     (when (stringp file)
       (setf file (canonicalize-string file)))
     (when (or col file line)
-      (make-new-clang-loc :col col :file file :line line))))
+      (make-new-clang-loc :col col :file file :line line :tok-len tok-len))))
 
 (defun convert-range-json (range-json)
   "Special handler for values of range attributes"
@@ -531,36 +605,271 @@ actual source file"))
 
 ;;;; Invocation of clang to get json
 
-(defparameter *clang8-binary*
-  "/pdietz/clang8-installed/bin/clang"
+(defparameter *clang-binary*
+  "/pdietz/clang9-installed/bin/clang"
   "This is clearly not the final word on this")
 
 (defmethod clang-json ((obj new-clang) &key &allow-other-keys)
   (with-temp-file-of (src-file (ext obj)) (genome obj)
                      (let ((cmd-fmt "~a -cc1 -ast-dump=json ~{~a~^ ~} ~a")
-                           (c8bin *clang8-binary*))
+                           (genome-len (length (genome obj)))
+                           (cbin *clang-binary*))
                        (unwind-protect
                             (multiple-value-bind (stdout stderr exit)
                                 (shell cmd-fmt
-                                       c8bin
+                                       cbin
                                        (flags obj)
                                        src-file)
                               (when (find exit '(131 132 134 136 139))
                                 (error
                                  (make-condition 'mutate
                                                  :text (format nil "~a core dump with ~d, ~s"
-                                                               c8bin exit stderr)
+                                                               cbin exit stderr)
                                                  :obj obj)))
                               (unless (zerop exit)
                                 (error
                                  (make-condition 'mutate
                                                  :text (format nil "~a exit ~d~%cmd:~s~%stderr:~s"
-                                                               c8bin exit
+                                                               cbin exit
                                                                (format nil cmd-fmt
-                                                                       c8bin
+                                                                       cbin
                                                                        (flags obj)
                                                                        src-file)
                                                                stderr)
                                                  :obj obj)))
                               (values (decode-json-from-string stdout)
-                                      src-file))))))
+                                      src-file
+                                      genome-len))))))
+
+;;; Offsets into the genome
+
+;; Vector giving offsets for the start of each line
+;; This is obtained from a sw object using genome-line-offsets
+(declaim (special *offsets*))
+
+
+(defgeneric offset (obj))
+(defmethod offset (obj) nil)
+(defmethod offset ((obj new-clang-loc))
+  (let ((line (new-clang-loc-line obj))
+        (col (new-clang-loc-col obj)))
+    (when (and line col)
+      (+ (elt *offsets* (1- line)) col -1))))
+(defmethod offset ((obj integer)) obj)
+
+(defgeneric all-offsets (obj))
+(defmethod all-offsets ((obj new-clang-ast))
+  (append
+   (let ((range (aget :range (new-clang-ast-attrs obj))))
+     (all-offsets range))
+   (reduce #'append
+           (ast-children obj)
+           :key #'all-offsets
+           :initial-value nil)))
+(defmethod all-offsets ((obj new-clang-range))
+  (append (all-offsets (new-clang-range-begin obj))
+          (all-offsets (new-clang-range-end obj))))
+(defmethod all-offsets ((obj new-clang-loc))
+  (awhen (offset obj)
+         (list it)))
+(defmethod all-offsets ((offset integer)) (list offset))
+(defmethod all-offsets (x) nil)
+
+(defgeneric begin-offsets (obj)
+  (:documentation "List of unique BEGIN offsets in the AST"))
+(defmethod begin-offsets ((obj new-clang-ast))
+  (append
+   (let ((range (ast-attr obj :range)))
+     (begin-offsets range)
+     (reduce #'append
+             (ast-children obj)
+             :key #'begin-offsets
+             :initial-value nil))))
+(defmethod begin-offsets ((obj new-clang-range))
+  (begin-offsets (new-clang-range-begin obj)))
+(defmethod begin-offsets ((obj new-clang-loc))
+  (awhen (offset obj)
+         (list it)))
+(defmethod begin-offsets ((offset integer)) (list offset))
+
+(defgeneric end-offsets (obj)
+  (:documentation "List of unique END offsets in the AST"))
+(defmethod end-offsets ((obj new-clang-ast))
+  (append
+   (let ((range (ast-attr obj :range)))
+     (end-offsets range)
+     (reduce #'append
+             (ast-children obj)
+             :key #'end-offsets
+             :initial-value nil))))
+(defmethod end-offsets ((obj new-clang-range))
+  (end-offsets (new-clang-range-end obj)))
+(defmethod end-offsets ((obj new-clang-loc))
+  (awhen (offset obj)
+         (list it)))
+(defmethod end-offsets ((offset integer)) (list offset))
+
+(defgeneric begin-offset (obj))
+(defmethod begin-offset (obj) nil)
+(defmethod begin-offset ((obj new-clang-ast))
+  (begin-offset (aget :range (new-clang-ast-attrs obj))))
+(defmethod begin-offset ((obj new-clang-range))
+  (offset (new-clang-range-begin obj)))
+
+(defgeneric end-offset (obj))
+(defmethod end-offset (obj) nil)
+(defmethod end-offset ((obj new-clang-ast))
+  (end-offset (aget :range (new-clang-ast-attrs obj))))
+(defmethod end-offset ((obj new-clang-range))
+  (offset (new-clang-range-end obj)))
+
+(defun unique-offsets (offsets)
+  (sort (remove-duplicates offsets) #'<))
+
+(defun all-unique-offsets (sw obj)
+  (unique-offsets
+   (let ((*offsets* (genome-line-offsets sw)))
+     (all-offsets obj))))
+
+(defgeneric tok-len (x)
+  (:method ((x new-clang-loc)) (new-clang-loc-tok-len x))
+  (:method ((x integer)) 0)
+  (:method (x) nil))
+
+;;; Compute beginning, ending offsets for an ast, other things
+;;; The end offset is one past the last character in the ast-text
+;;; for the ast
+(defgeneric begin-and-end-offsets (x))
+(defmethod begin-and-end-offsets ((obj new-clang-ast))
+  (let ((range (ast-attr obj :range)))
+    (begin-and-end-offsets range)))
+(defmethod begin-and-end-offsets ((obj new-clang-range))
+  (let ((end (new-clang-range-end obj)))
+    (values (begin-offset obj)
+            (when end
+              (if-let ((end-offset (offset end))
+                       (tok-len (tok-len end)))
+                (+ end-offset tok-len))))))
+(defmethod begin-and-end-offsets ((obj null)) (values nil nil))
+
+;;; Given a list of unique offsets for an AST, and
+;;; the AST, build an alist of (offset . node) pairs, the
+;;; nodes corresponding to those offsets.  Each should be
+;;; the 'last' (in a preodered traversal) node with that
+;;; beginning offset
+
+(defun sorted-list-p (list &optional (cmp-fn #'<=))
+  (every cmp-fn list (cdr list)))
+
+(defun compute-last-nodes-with-offsets (ast)
+  (let ((node-stack nil))
+    (flet ((%add (a)
+             (let ((offset (begin-offset a)))
+               (when offset
+                 (if (eql offset (caar node-stack))
+                     (setf (cdar node-stack) a)
+                     (push (cons offset a) node-stack))))))
+      (mapc-ast ast #'%add))
+    (nreverse node-stack)))
+
+
+(defun decorate-ast-with-strings (sw ast) ;; get ast from sw?
+  (let* ((*offsets* (genome-line-offsets sw))
+         (genome (genome sw)))
+    (flet ((%decorate (a)
+             ;; At ast node A, split the parts of the source
+             ;; that are not in the children into substrings
+             ;; that are placed between the children.  Do not
+             ;; place strings for children for whom offsets
+             ;; cannot be computed
+             (let ((children (ast-children a)))
+               (multiple-value-bind (begin end)
+                   (begin-and-end-offsets a)
+                 (when (and begin end)
+                   (let ((i begin))
+                     (setf (ast-children a)
+                           (nconc
+                            (iter (for c in children)
+                                  (when (ast-p c)
+                                    (multiple-value-bind (cbegin cend)
+                                        (begin-and-end-offsets c)
+                                      (when cbegin
+                                        (assert (>= cbegin i) ()
+                                                "Offsets out of order: i = ~a, cbegin = ~a, c = ~a, range = ~a"
+                                                i cbegin c
+                                                (ast-attr c :range))
+                                        (collect (subseq genome i cbegin))
+                                        (setf i cend))))
+                                  (collect c))
+                            (list (subseq genome i end))))))))))
+      (map-ast ast #'%decorate)))
+  ast)
+
+(defun fix-ancestor-ranges (ast)
+  "Normalize the ast so the range of each node is a superset
+of the ranges of its children"
+  (flet ((%normalize (a)
+           (multiple-value-bind (begin end)
+               (begin-and-end-offsets a)
+             (let ((min-begin begin)
+                   (max-end end))
+               (iter (for c in (ast-children a))
+                     (when (ast-p c)
+                       (multiple-value-bind (cbegin cend)
+                           (begin-and-end-offsets c)
+                         (when (and cbegin
+                                    (or (null min-begin)
+                                        (> min-begin cbegin)))
+                           (setf min-begin cbegin))
+                         (when (and cend
+                                    (or (null max-end)
+                                        (< max-end cend)))
+                           (setf max-end cend)))))
+               (unless (and (eql min-begin begin)
+                            (eql max-end end))
+                 (format t "Expanding range (~a,~a) to (~a,~a)~%"
+                         begin end min-begin max-end)
+                 (setf (ast-attr a :range)
+                       (make-new-clang-range :begin min-begin :end max-end)))))))
+    (map-ast ast #'%normalize)))
+
+(defun combine-overlapping-siblings (ast)
+  "Group sibling nodes with overlapping or out of order
+ranges into 'combined' nodes.  Warn when this happens."
+  (flet ((%check (a)
+           (let ((end 0)
+                 changed? accumulator)
+             (flet ((%combine ()
+                      (case (length accumulator)
+                        (0)
+                        (1 (list (pop accumulator)))
+                        (t
+                         (let ((new-begin (reduce #'min accumulator :key #'begin-offset))
+                               (new-end (reduce #'max accumulator :key #'end-offset)))
+                           (setf changed? t)
+                           (prog1
+                               (list (make-new-clang-ast
+                                      :class :combined
+                                      :attrs `((:range . ,(make-new-clang-range
+                                                           :begin new-begin
+                                                           :end new-end))
+                                               (:subsumed . ,accumulator))))
+                             (setf accumulator nil)))))))
+               (let ((new-children
+                      (append
+                       (iter (for c in (ast-children a))
+                             (multiple-value-bind (cbegin cend)
+                                 (begin-and-end-offsets c)
+                               (if (< cbegin end)
+                                   (setf accumulator (append accumulator (list c))
+                                         end (max end cend))
+                                   (progn
+                                     (appending (%combine))
+                                     (setf accumulator (list c)
+                                           end cend)))))
+                       (%combine))))
+                 (when changed?
+                   (setf (ast-children ast) new-children)))))))
+    (map-ast ast #'%check)))
+
+
