@@ -2327,9 +2327,9 @@ See the `task-job' method on `task-map' objects."))
   "Run FUNCTION over OBJECTS using a `simple-job' `task-job'."
   ;; Create the task-map object, and run until exhausted.
   (run-task (make-instance 'task-map
-				     :object objects
-				     :task-function function)
-		      num-threads))
+              :object objects
+              :task-function function)
+            num-threads))
 
 
 ;;;; Debugging helpers
