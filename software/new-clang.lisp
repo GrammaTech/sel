@@ -31,6 +31,8 @@
 (in-package :software-evolution-library/software/new-clang)
 (in-readtable :curry-compose-reader-macros)
 
+(declaim (optimize (debug 3)))
+
 (define-software new-clang (clang-base genome-lines-mixin)
   ((stmt-asts :initarg :stmt-asts :reader stmt-asts
               :initform nil :copier :direct
@@ -152,6 +154,11 @@ See http://clang.llvm.org/.  This is for ASTs from Clang 9+."))
 ;; Locations may also be integers, which represent absolute
 ;; character positions in source genome
 (defstruct new-clang-loc col file line tok-len)
+(defstruct new-clang-macro-loc
+  "Structure used to represent :begin/:end entries for
+things in macro expansion.  SPELLING-LOC is the location
+in the macro defn, EXPANSION-LOC is at the macro use."
+  spelling-loc expansion-loc is-macro-arg-expansion)
 (defstruct new-clang-type qual desugared)
 
 ;; Wrapper for values in referencedDecl attribute, when
@@ -415,21 +422,34 @@ NIL indicates no value."))
 
 (defun convert-loc-json (loc-json)
   "Special handler for values of loc attributes"
-  (let ((col (aget :col loc-json))
-        (file (cached-aget :file loc-json))
-        (line (cached-aget :line loc-json))
-        (tok-len (aget :tok-len loc-json)))
-    (when (stringp file)
-      (setf file (canonicalize-string file)))
-    (when (or col file line)
-      (make-new-clang-loc :col col :file file :line line :tok-len tok-len))))
+  (if (aget :spelling-loc loc-json)
+      (convert-macro-loc-json loc-json)
+      (let ((col (aget :col loc-json))
+            (file (cached-aget :file loc-json))
+            (line (cached-aget :line loc-json))
+            (tok-len (aget :tok-len loc-json)))
+        (when (stringp file)
+          (setf file (canonicalize-string file)))
+        (when (or col file line)
+          (make-new-clang-loc :col col :file file :line line :tok-len tok-len)))))
+
+(defun convert-macro-loc-json (loc-json)
+  "This is the special case of a LOC that has spelling and expansion locs"
+  (let ((spelling-loc (convert-loc-json (aget :spelling-loc loc-json)))
+        (expansion-loc (convert-loc-json (aget :expansion-loc loc-json)))
+        (is-macro-arg-expansion (aget :is-macro-arg-expansion loc-json)))
+    (when (or spelling-loc expansion-loc)
+      (make-new-clang-macro-loc
+       :spelling-loc spelling-loc
+       :expansion-loc expansion-loc
+       :is-macro-arg-expansion is-macro-arg-expansion))))
 
 (defun convert-range-json (range-json)
   "Special handler for values of range attributes"
   (let ((begin (convert-loc-json (aget :begin range-json)))
         (end (convert-loc-json (aget :end range-json))))
-    (when (or begin end)
-      (make-new-clang-range :begin begin :end end))))
+    (if (or begin end)
+        (make-new-clang-range :begin begin :end end))))
 
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :loc)) value)
   (declare (ignorable obj slot))
@@ -655,6 +675,13 @@ actual source file"))
         (col (new-clang-loc-col obj)))
     (when (and line col)
       (+ (elt *offsets* (1- line)) col -1))))
+(defmethod offset ((obj new-clang-macro-loc))
+  (let ((spelling-loc (new-clang-macro-loc-spelling-loc obj))
+        (expansion-loc (new-clang-macro-loc-expansion-loc obj)))
+    (when (typep expansion-loc 'new-clang-loc)
+      (if (new-clang-macro-loc-is-macro-arg-expansion obj)
+          (offset spelling-loc)
+          (offset expansion-loc)))))
 (defmethod offset ((obj integer)) obj)
 
 (defgeneric all-offsets (obj))
@@ -733,6 +760,10 @@ actual source file"))
 
 (defgeneric tok-len (x)
   (:method ((x new-clang-loc)) (new-clang-loc-tok-len x))
+  (:method ((x new-clang-macro-loc))
+    (if (new-clang-macro-loc-is-macro-arg-expansion x)
+        (tok-len (new-clang-macro-loc-spelling-loc x))
+        (tok-len (new-clang-macro-loc-expansion-loc x))))
   (:method ((x integer)) 0)
   (:method (x) nil))
 
@@ -877,5 +908,3 @@ ranges into 'combined' nodes.  Warn when this happens."
                    (when changed?
                      (setf (ast-children ast) new-children)))))))
       (map-ast ast #'%check))))
-
-
