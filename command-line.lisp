@@ -257,10 +257,9 @@ Optional DESCRIPTION is added to the path."
                      (format nil "~a ~~d" result)))))
 
 (defun resolve-num-tests-from-num-tests (num-tests)
-  "FIXME
-
-* NUM-TESTS FIXME
-"
+  "Resolves the NUM-TESTS command line argument to a positive number.
+NUM-TESTS should be either a string or integer. Raise an error if the
+input is not positive."
   (etypecase num-tests
     (string (setf num-tests (parse-integer num-tests)))
     (integer nil))
@@ -444,7 +443,9 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
                             (cdr script)))))
 
 (defgeneric create-test-suite (script num-tests)
-  (:documentation "Return a test suite of SCRIPT and NUM-TESTS.")
+  (:documentation "Return a test suite of SCRIPT and NUM-TESTS.
+Replaces ~~a with the binary name and ~~d with NUM-TESTS if they occur
+in SCRIPT.")
   (:method ((script pathname) (num-tests t))
     (create-test-suite (namestring script) num-tests))
   (:method ((script string) (num-tests t))
