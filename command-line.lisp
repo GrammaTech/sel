@@ -223,12 +223,15 @@ Optional DESCRIPTION is added to the path."
                             name)
                   :type type)))
 
-(defun resolve-test-script-from-test-script (test-script test-dir
-					     &aux result)
+(defun resolve-test-script-from-test-script
+    (test-script test-dir &aux result)
   "Ensure that TEST-SCRIPT exists, add ~~a and ~~d arguments if missing."
-  (let* ((test-dir (if (listp test-dir) ; Handle raw directory TEST-DIR.
-                       (make-pathname :directory test-dir)
-                       test-dir))
+  (let* ((test-dir (cond
+                     ((null test-dir) ; Handle TEST-DIR as NIL, meaning '.'.
+                      (make-pathname :directory '(:RELATIVE ".")))
+                     ((listp test-dir) ; Handle raw directory TEST-DIR.
+                      (make-pathname :directory test-dir))
+                     (t test-dir)))
          (test-dir-path (canonical-pathname test-dir))
          (test-script-path
           (canonical-pathname
