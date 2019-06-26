@@ -47,3 +47,15 @@ techniques."
   :build-operation "asdf:program-op"
   :build-pathname "bin/rest-server"
   :entry-point "software-evolution-library/rest::run-rest-server")
+
+(defsystem "software-evolution-library/run-new-clang-round-trip"
+    :author "Paul F. Dietz and GrammaTech"
+    :licence "GPL V3"
+    :description "Test harness for clang parser/unparser"
+    :version "0.0.0"
+    :depends-on (software-evolution-library/components/new-clang-round-trip)
+    :build-operation "asdf:program-op"
+    :build-pathname "bin/new-clang-round-trip"
+    :entry-point "software-evolution-library/components/new-clang-round-trip::run-new-clang-round-trip")
+
+

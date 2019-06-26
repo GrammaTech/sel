@@ -27,7 +27,11 @@
         :software-evolution-library/software/clang)
   (:import-from :uiop :nest)
   (:import-from :anaphora :awhen :it)
-  (:export ))
+  (:export :new-clang
+           :combine-overlapping-siblings
+           :decorate-ast-with-strings
+           :clang-convert-json-for-file
+           :remove-non-program-asts))
 (in-package :software-evolution-library/software/new-clang)
 (in-readtable :curry-compose-reader-macros)
 
@@ -633,7 +637,7 @@ actual source file"))
   (with-temp-file-of (src-file (ext obj)) (genome obj)
                      (let ((cmd-fmt "~a -cc1 -ast-dump=json ~{~a~^ ~} ~a")
                            (genome-len (length (genome obj)))
-                           (cbin *clang-binary*))
+                           (cbin (compiler obj)))
                        (unwind-protect
                             (multiple-value-bind (stdout stderr exit)
                                 (shell cmd-fmt
