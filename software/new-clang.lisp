@@ -805,71 +805,77 @@ actual source file"))
       (map-ast ast #'%decorate)))
   ast)
 
-(defun fix-ancestor-ranges (ast)
+(defun fix-ancestor-ranges (sw ast)
   "Normalize the ast so the range of each node is a superset
 of the ranges of its children"
-  (flet ((%normalize (a)
-           (multiple-value-bind (begin end)
-               (begin-and-end-offsets a)
-             (let ((min-begin begin)
-                   (max-end end))
-               (iter (for c in (ast-children a))
-                     (when (ast-p c)
-                       (multiple-value-bind (cbegin cend)
-                           (begin-and-end-offsets c)
-                         (when (and cbegin
-                                    (or (null min-begin)
-                                        (> min-begin cbegin)))
-                           (setf min-begin cbegin))
-                         (when (and cend
-                                    (or (null max-end)
-                                        (< max-end cend)))
-                           (setf max-end cend)))))
-               (unless (and (eql min-begin begin)
-                            (eql max-end end))
-                 (format t "Expanding range (~a,~a) to (~a,~a)~%"
-                         begin end min-begin max-end)
-                 (setf (ast-attr a :range)
-                       (make-new-clang-range :begin min-begin :end max-end)))))))
-    (map-ast ast #'%normalize)))
+  (let ((*offsets* (genome-line-offsets sw)))
+    (flet ((%normalize (a)
+             (multiple-value-bind (begin end)
+                 (begin-and-end-offsets a)
+               (let ((min-begin begin)
+                     (max-end end))
+                 (iter (for c in (ast-children a))
+                       (when (ast-p c)
+                         (multiple-value-bind (cbegin cend)
+                             (begin-and-end-offsets c)
+                           (when (and cbegin
+                                      (or (null min-begin)
+                                          (> min-begin cbegin)))
+                             (setf min-begin cbegin))
+                           (when (and cend
+                                      (or (null max-end)
+                                          (< max-end cend)))
+                             (setf max-end cend)))))
+                 (unless (and (eql min-begin begin)
+                              (eql max-end end))
+                   (format t "Expanding range (~a,~a) to (~a,~a)~%"
+                           begin end min-begin max-end)
+                   (setf (ast-attr a :range)
+                         (make-new-clang-range :begin min-begin :end max-end)))))))
+      (map-ast ast #'%normalize))))
 
-(defun combine-overlapping-siblings (ast)
+(defun combine-overlapping-siblings (sw ast)
   "Group sibling nodes with overlapping or out of order
 ranges into 'combined' nodes.  Warn when this happens."
-  (flet ((%check (a)
-           (let ((end 0)
-                 changed? accumulator)
-             (flet ((%combine ()
-                      (case (length accumulator)
-                        (0)
-                        (1 (list (pop accumulator)))
-                        (t
-                         (let ((new-begin (reduce #'min accumulator :key #'begin-offset))
-                               (new-end (reduce #'max accumulator :key #'end-offset)))
-                           (setf changed? t)
-                           (prog1
-                               (list (make-new-clang-ast
-                                      :class :combined
-                                      :attrs `((:range . ,(make-new-clang-range
-                                                           :begin new-begin
-                                                           :end new-end))
-                                               (:subsumed . ,accumulator))))
-                             (setf accumulator nil)))))))
-               (let ((new-children
-                      (append
-                       (iter (for c in (ast-children a))
-                             (multiple-value-bind (cbegin cend)
-                                 (begin-and-end-offsets c)
-                               (if (< cbegin end)
-                                   (setf accumulator (append accumulator (list c))
-                                         end (max end cend))
-                                   (progn
-                                     (appending (%combine))
-                                     (setf accumulator (list c)
-                                           end cend)))))
-                       (%combine))))
-                 (when changed?
-                   (setf (ast-children ast) new-children)))))))
-    (map-ast ast #'%check)))
+  (let ((*offsets* (genome-line-offsets sw))
+        (genome (genome sw)))
+    (flet ((%check (a)
+             (let ((end 0)
+                   changed? accumulator)
+               (flet ((%combine ()
+                        (case (length accumulator)
+                          (0)
+                          (1 (list (pop accumulator)))
+                          (t
+                           (let ((new-begin (reduce #'min accumulator :key #'begin-offset))
+                                 (new-end (reduce #'max accumulator :key #'end-offset)))
+                             (setf changed? t)
+                             (format t "Combining ~a overlapping asts over [~a,~a):~%"
+                                     (length accumulator) new-begin new-end)
+                             (format t "~a~%" (subseq genome new-begin new-end))
+                             (prog1
+                                 (list (make-new-clang-ast
+                                        :class :combined
+                                        :attrs `((:range . ,(make-new-clang-range
+                                                             :begin new-begin
+                                                             :end new-end))
+                                                 (:subsumed . ,accumulator))))
+                               (setf accumulator nil)))))))
+                 (let ((new-children
+                        (append
+                         (iter (for c in (ast-children a))
+                               (multiple-value-bind (cbegin cend)
+                                   (begin-and-end-offsets c)
+                                 (if (and cbegin end cend (< cbegin end))
+                                     (setf accumulator (append accumulator (list c))
+                                           end (max end cend))
+                                     (progn
+                                       (appending (%combine))
+                                       (setf accumulator (list c)
+                                             end cend)))))
+                         (%combine))))
+                   (when changed?
+                     (setf (ast-children ast) new-children)))))))
+      (map-ast ast #'%check))))
 
 
