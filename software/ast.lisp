@@ -458,7 +458,8 @@ to `to-ast`.  E.g.
   (:documentation "Convert alist to struct representation."))
 
 (defgeneric source-text (ast)
-  (:documentation "Source code corresponding to an AST."))
+  (:documentation "Source code corresponding to an AST.")
+  (:method ((x null)) ""))
 
 (defgeneric rebind-vars (ast var-replacements fun-replacements)
   (:documentation
