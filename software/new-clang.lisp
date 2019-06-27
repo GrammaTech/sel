@@ -177,6 +177,11 @@ in the macro defn, EXPANSION-LOC is at the macro use."
     (ast-file (new-clang-range-begin range)))
   (:method ((loc new-clang-loc))
     (new-clang-loc-file loc))
+  (:method ((loc new-clang-macro-loc))
+    (ast-file
+     (if (new-clang-macro-loc-is-macro-arg-expansion loc)
+         (new-clang-macro-loc-spelling-loc loc)
+         (new-clang-macro-loc-expansion-loc loc))))
   (:method (obj) nil))
 
 (defun json-kind-to-keyword (json-kind)
@@ -787,6 +792,9 @@ actual source file"))
                 (+ end-offset tok-len))))))
 (defmethod begin-and-end-offsets ((obj null)) (values nil nil))
 
+(defun extended-end-offset (x)
+  (nth-value 1 (begin-and-end-offsets x)))
+
 ;;; Given a list of unique offsets for an AST, and
 ;;; the AST, build an alist of (offset . node) pairs, the
 ;;; nodes corresponding to those offsets.  Each should be
@@ -883,28 +891,44 @@ ranges into 'combined' nodes.  Warn when this happens."
                           (1 (list (pop accumulator)))
                           (t
                            (let ((new-begin (reduce #'min accumulator :key #'begin-offset))
-                                 (new-end (reduce #'max accumulator :key #'end-offset)))
-                             (setf changed? t)
-                             (format t "Combining ~a overlapping asts over [~a,~a):~%"
-                                     (length accumulator) new-begin new-end)
-                             (format t "~a~%" (subseq genome new-begin new-end))
+                                 (new-end (reduce #'max accumulator :key #'extended-end-offset)))
                              (prog1
-                                 (list (make-new-clang-ast
-                                        :class :combined
-                                        :attrs `((:range . ,(make-new-clang-range
-                                                             :begin new-begin
-                                                             :end new-end))
-                                                 (:subsumed . ,accumulator))))
+                                 (if (eql new-begin new-end)
+                                     (progn
+                                       #+cos-debug (format t "No combination needed~&")
+                                       accumulator)
+                                     (progn
+                                       (setf changed? t)
+                                       (progn
+                                         (format t "Combining ~a overlapping asts over [~a,~a):~%"
+                                                 (length accumulator) new-begin new-end)
+                                         (format t "~a~%" (subseq genome new-begin new-end))
+                                         (format t "------------------------------------------------------------~%"))
+                                       (list (make-new-clang-ast
+                                              :class :combined
+                                              :attrs `((:range . ,(make-new-clang-range
+                                                                   :begin new-begin
+                                                                   :end new-end))
+                                                       (:subsumed . ,accumulator))))))
                                (setf accumulator nil)))))))
                  (let ((new-children
                         (append
                          (iter (for c in (ast-children a))
+                               #+cos-debug (format t "end = ~a~%" end)
                                (multiple-value-bind (cbegin cend)
                                    (begin-and-end-offsets c)
                                  (if (and cbegin end cend (< cbegin end))
-                                     (setf accumulator (append accumulator (list c))
-                                           end (max end cend))
                                      (progn
+                                       #+cos-debug
+                                       (when accumulator
+                                         (format t "Adding (~a,~a):~%~a~&" cbegin cend
+                                                 (subseq genome cbegin cend)))
+                                       (setf accumulator (append accumulator (list c))
+                                             end (max end cend)))
+                                     (progn
+                                       #+cos-debug
+                                       (format t "No overlap: cbegin = ~a, cend = ~a~%"
+                                               cbegin cend)
                                        (appending (%combine))
                                        (setf accumulator (list c)
                                              end cend)))))
