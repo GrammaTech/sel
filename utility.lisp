@@ -315,7 +315,7 @@
   (error "must specify a positive infinity value"))
 
 (defmethod print-object ((obj (eql infinity)) stream)
-  (if *print-readably* (call-next-method) (format stream "∞")))
+  (if *print-readably* (call-next-method) (format stream "infinity")))
 
 
 ;;;; Files and Directories, Temporary and Git
