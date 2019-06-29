@@ -143,13 +143,17 @@ def get_mutation(oid):
 #
 
 # Create a new async_job, of the requested type, given a job name,
-# population id, func name and num_threads.
+# population id, population (list), func name and num_threads.
 # Returns the async job name.
+# If a software population object is being used, supply the appropriate pid and
+# pass None for the population argument. If we are passing a list of custom
+# lisp objects, pass None for pid, and a list of lisp objects for population.
+# Each item in population will spawn an asynchronous task, being passed to func.
 #
-def create_async_job(job_name, population, func, num_threads):
+def create_async_job(job_name, pid, population, func, num_threads):
     global client_id
     return str_result(requests.post(url_('async?cid={}&name="{}"'.format(client_id, job_name)),
-                             json = { 'pid': population, 'func': func,
+                             json = { 'pid': pid, 'population' : population, 'func': func,
                                       'threads': num_threads },
                          headers = { 'Content-Type': 'application/json'}))
 

@@ -620,6 +620,80 @@ lookup. Resource lookups are of the form \"<resource>:<oid>\""
     mut (:get "application/json" &key cid mid)
   (get-mutation cid mid))
 
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defstruct async-job-type
+    "Entry in async-job-type table."
+    job-name        ; Symbol names the job type.
+    arg-names       ; Lambda-list for user-defined function.
+    arg-types func) ; Type of each argument
+                                        ; LAMBDA-LIST-KEYWORD pseudo-type is used
+                                        ; for lambda list keywords.
+
+  (defvar *async-job-types* (make-hash-table :test 'equalp)
+    "Registry of async-job-types.")
+
+  (defun register-async-job (job-name arg-names arg-types func)
+    "Register an async-job-type."
+    (setf (gethash job-name *async-job-types*)
+          (make-async-job-type :job-name job-name :arg-names arg-names
+                               :arg-types arg-types :func func))))
+;;;
+;;; The lambda-list should use (<name> <type>) for each variable name.
+;;; The type can be any of: integer, float, string, or boolean.
+;;;
+(defmacro define-async-job
+    (name lambda-list &rest body)
+  "Define an async-job type."
+  (let ((arg-names (mapcar
+                    (lambda (x)
+                      (if (member x lambda-list-keywords)
+                          x
+                          (first x)))
+                    lambda-list))
+        (arg-types (mapcar
+                    (lambda (x)
+                      (if (member x lambda-list-keywords)
+                          'lambda-list-keyword
+                          (second x)))
+                    lambda-list)))
+    `(eval-when (:compile-toplevel :load-toplevel :execute)
+       (progn
+         (register-async-job
+          ',name
+          ',arg-names
+          ',arg-types
+          (lambda (arguments)
+            (apply
+             (lambda (,@arg-names)
+               ,@body)
+             arguments)))
+         ',name))))
+
+#|
+;;;
+;;; example:
+;;;
+(define-async-job four-types
+((a integer) (b string) (c float) &optional ((d t) boolean))
+"Test that the four supported types can be passed via REST."
+(format nil "~A: ~D, ~A: ~S, ~A: ~F, ~A: ~A"
+(type-of a) a
+(type-of b) b
+(type-of c) c
+(type-of d) d))
+Python:
+sel.create_async_job('my-job2', None, [[10, "twenty", 30.1, "CL::T"]],
+"SEL/REST::FOUR-TYPES", 1)
+|#
+
+(defun lookup-async-job-type (name)
+  "Given a name, lookup the async-job-type registry entry."
+  (values (gethash name *async-job-types*)))
+
+(defun apply-async-job-func (name &rest args)
+  "Given a name and arguments, call the async-job-type function."
+  (funcall (async-job-type-func (gethash name *async-job-types*)) args))
+
 (defclass async-job ()
   ((name
     :initarg :name
@@ -652,7 +726,11 @@ in a population"))
     (json:encode-json-plist-to-string
      (list
       :name (async-job-name async-job)
-      :population-name (population-name (async-job-population async-job))
+      :threads-running
+      (task-runner-workers-count (async-job-task-runner async-job))
+      :remaining-jobs
+      (task-runner-remaining-jobs (async-job-task-runner async-job))
+      :population (async-job-population async-job)
       :completed-tasks (task-runner-completed-tasks task-runner)
       :results (task-runner-results task-runner)))))
 
@@ -666,16 +744,23 @@ in a population"))
                 (json:encode-json-to-string job-names))
               (format-job-as-json job))))))
 
-(defun lookup-job-func (population name)
+(defun lookup-job-type-entry (name)
   "Allow some special-case names, otherwise fall through to symbol
- in SEL package by the specificed name."
-  (let* ((sym (convert-symbol name))
-         (func (symbol-function sym)))
-    (if (and (eq 'sel::evaluate sym)
-             ;; TODO: Maybe remove this special case and dependency.
-             (subtypep (population-type population) 'asm-super-mutant))
-        (setf func (lambda (soft) (evaluate nil soft))))
-    func))
+ in SEL package by the specified name."
+  (let* ((sym (convert-symbol name)))
+    (lookup-async-job-type sym)))
+
+(defun lookup-job-func (name)
+  "Allow some special-case names, otherwise fall through to symbol
+ in SEL package by the specified name."
+       (let* ((entry (lookup-job-type-entry name)))
+         (if entry (async-job-type-func entry))))
+
+(defun type-check (population job-type-entry)
+  (declare (ignore job-type-entry)) ; use this later
+  (mapcar (lambda (x)
+            (mapcar (lambda (y) (convert-symbol y)) x))
+          population))
 
 (defroute
     async (:post "application/json" &key cid name)
@@ -685,17 +770,26 @@ in a population"))
                    (http-condition 400 "Malformed JSON (~a)!" e))))
          (client (lookup-session cid))
          (pid (cdr (assoc :pid json)))  ; name/id of population
-         (population (find-population client pid))
-         (func (lookup-job-func population (cdr (assoc :func json))))
+         (population
+          (if pid
+              (find-population client pid) ; pid specifies a population
+              (cdr (assoc :population json)))) ; else assume a list
+         (func-name (cdr (assoc :func json)))
+         (func (lookup-job-func func-name))
                                         ; name of function to run
          (threads (cdr (assoc :threads json))) ; max number of threads to use
+                                        ; must be at least 1 thread!
          (job (apply 'make-instance 'async-job
                      :population population
                      :func func
-                     :task-runner (sel/utility::task-map-async
-                                   threads
-                                   func
-                                   (population-individuals population))
+                     :task-runner
+                     (sel/utility::task-map-async
+                      threads
+                      func
+                      (if (typep population 'population)
+                          (population-individuals population)
+                          (type-check population
+                                      (lookup-job-type-entry func-name))))
                      (if name (list :name name)))))
     ;; store the software obj with the session
     (push job (session-jobs client))
