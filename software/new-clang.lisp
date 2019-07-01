@@ -186,7 +186,8 @@ in the macro defn, EXPANSION-LOC is at the macro use."
 
 (defun json-kind-to-keyword (json-kind)
   (when (stringp json-kind)
-    (values (intern (simplified-camel-case-to-lisp json-kind) :keyword))))
+    (values (intern (simplified-camel-case-to-lisp json-kind)
+                    :keyword))))
 
 (defgeneric clang-previous-decl (obj))
 (defmethod clang-previous-decl ((obj new-clang-ast))
@@ -293,66 +294,6 @@ on json-kind-symbol when special subclasses are wanted."))
         (when id
           (push obj (gethash id *symbol-table*)))))
     obj))
-
-#|
-(defun j2ck-unreferenced (json json-kind-symbol)
-"Version of J2CK on non-reference objects."
-(let* ((obj (j2ck json json-kind-symbol)))
-(when obj
-(let ((table *symbol-table*)
-(id (new-clang-ast-id obj)))
-;; (format t "ID = ~s~%" id)
-(if (integerp id)
-(let ((entry (gethash id table)))
-(typecase entry
-(reference-entry
-(setf (reference-entry-obj entry) obj)
-(setf (gethash id table) obj))
-((not null)
-(unless (eql (ast-class entry) :builtin-type)
-(let ((l1 (clang-to-list entry))
-(l2 (clang-to-list obj))
-(hex (int-to-c-hex id)))
-(cond
-((equal l1 l2)
-;; (warn "Object id ~a occurs more than once:~%Same json:~a" hex l1)
-)
-((alist-subsumed l2 l1)
-;; (warn "Object id ~a occurs more than once:~%Subsumed.~%" hex)
-)
-(t
-(warn "Object id ~a occurs more than once.~%Old entry: ~a.~%New Json: ~a"
-hex l1 l2)))))
-obj)
-(null
-(setf (gethash id table) obj)
-(let ((pr-id (clang-previous-decl obj)))
-(when pr-id
-(assert (integerp pr-id))
-(let ((rd-obj (gethash pr-id table)))
-(assert rd-obj () "Cannot find previous decl for ~a~%" pr-id)
-(setf (new-clang-ast-id rd-obj) id)
-(remhash pr-id table))))
-obj)))
-obj)))))
-
-(defun j2ck-referenced (json json-kind-symbol)
-"Version of J2CK on objects that are the value of a reference
-attribute.  This properly handles normalization of references."
-(let* ((obj (j2ck json json-kind-symbol)))
-(when obj
-(let ((table *symbol-table*)
-(id (new-clang-ast-id obj)))
-(when (integerp id)
-(let ((entry (gethash id table)))
-(if entry
-(setf obj (if (reference-entry-p entry)
-(reference-entry-obj entry)
-entry))
-(setf (gethash id table)
-(make-reference-entry :obj obj)))))))
-obj))
-|#
 
 (defgeneric store-slots (obj json)
   (:documentation "Store values in the json into obj.
@@ -645,10 +586,11 @@ actual source file"))
                            (cbin (compiler obj)))
                        (unwind-protect
                             (multiple-value-bind (stdout stderr exit)
-                                (shell cmd-fmt
-                                       cbin
-                                       (flags obj)
-                                       src-file)
+                                (let ((*trace-output* *standard-output*))
+                                  (shell cmd-fmt
+                                         cbin
+                                         (flags obj)
+                                         src-file))
                               (when (find exit '(131 132 134 136 139))
                                 (error
                                  (make-condition 'mutate
@@ -666,7 +608,8 @@ actual source file"))
                                                                        src-file)
                                                                stderr)
                                                  :obj obj)))
-                              (values (decode-json-from-string stdout)
+                              (values (let ((*read-default-float-format* 'long-float))
+                                        (decode-json-from-string stdout))
                                       src-file
                                       genome-len))))))
 
@@ -919,7 +862,7 @@ ranges into 'combined' nodes.  Warn when this happens."
                                    (begin-and-end-offsets c)
                                  (if (and cbegin end cend (< cbegin end))
                                      (progn
-                                       #+cos-debug
+                                       ;; #+cos-debug
                                        (when accumulator
                                          (format t "Adding (~a,~a):~%~a~&" cbegin cend
                                                  (subseq genome cbegin cend)))
@@ -936,3 +879,25 @@ ranges into 'combined' nodes.  Warn when this happens."
                    (when changed?
                      (setf (ast-children ast) new-children)))))))
       (map-ast ast #'%check))))
+
+#|
+(defgeneric is-macro-expansion-node (a)
+(:method ((a new-clang-ast))
+(let ((range (ast-attr a :range)))
+(and range
+(let ((begin (new-clang-range-begin range))
+(end (new-clang-range-end range)))
+(and (typep begin 'new-clang-macro-loc)
+(typep end 'new-clang-macro-loc)
+(not (new-clang-macro-loc-is-macro-arg-expansion begin)))
+
+(defun encapsulate-macro-expansion (a)
+"Perform macro expansion encapsulation at node A. This involves
+finding the subtree of A that is macro nodes, and pulling out
+the macro arg expansions.  Return A if nothing happened."
+;;
+)
+
+|#
+
+
