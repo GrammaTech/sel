@@ -11,6 +11,7 @@ PACKAGE_NICKNAME = sel
 #     grep -r "in-package :software-evolution-library"|grep -v ".git"|sed 's/^.*package ://;s/)$//'|sort|uniq
 DOC_PACKAGES =								\
 	software-evolution-library					\
+	software-evolution-library/command-line-rest			\
 	software-evolution-library/components/clang-instrument		\
 	software-evolution-library/components/clang-tokens		\
 	software-evolution-library/components/condition-synthesis	\

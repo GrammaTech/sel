@@ -23,6 +23,7 @@
    :software-evolution-library
    :software-evolution-library/utility
    :software-evolution-library/command-line
+   :software-evolution-library/command-line-rest
    :software-evolution-library/rest
    :software-evolution-library/components/instrument
    :software-evolution-library/components/clang-instrument
@@ -1877,6 +1878,41 @@
            "SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/CLANG:CLANG" cid)
         (is (eql status 200))
         (is (integerp oid))))))
+
+(define-async-job four-types-1
+    ((a integer) (b string) (c float) &optional ((d t) boolean))
+  "Test that the four supported types can be passed via REST."
+  (format nil "~A: ~D, ~A: ~S, ~A: ~F, ~A: ~A"
+          (type-of a) a
+          (type-of b) b
+          (type-of c) c
+          (type-of d) d))
+
+(define-command-rest four-types-2
+    ((a integer) (b string) (c float) &optional ((d t) boolean))
+  nil nil
+  "Test that the four supported types can be passed via REST."
+  (format nil "~A: ~D, ~A: ~S, ~A: ~F, ~A: ~A"
+          (type-of a) a
+          (type-of b) b
+          (type-of c) c
+          (type-of d) d))
+
+(deftest run-async-job-func ()
+  (let ((result
+         (sel/rest:apply-async-job-func 'four-types-1 10 "twenty" 30.1 t)))
+    (is (search "10" result))
+    (is (search "\"twenty\"" result))
+    (is (search "30.1" result))
+    (is (search " T" result))))
+
+(deftest run-rest-command-line-func ()
+  (let ((result
+         (four-types-2 10 "twenty" 30.1 t)))
+    (is (search "10" result))
+    (is (search "\"twenty\"" result))
+    (is (search "30.1" result))
+    (is (search " T" result))))
 
 
 ;;; CSURF-ASM representation.

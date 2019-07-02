@@ -257,15 +257,15 @@
    :software-evolution-library/components/instrument
    :software-evolution-library/components/traceable
    :software-evolution-library/software/parseable
-   ;; TODO: Maybe remove this dependency.
-   :software-evolution-library/software/asm-super-mutant
    :software-evolution-library/software/clang
    :software-evolution-library/command-line)
   (:shadowing-import-from :clack :clackup :stop)
   (:export :lookup-session
            :session-property
            :start-server
-           :stop-server))
+           :stop-server
+           :define-async-job
+           :apply-async-job-func))
 (in-package :software-evolution-library/rest)
 (in-readtable :curry-compose-reader-macros)
 
@@ -626,7 +626,7 @@ lookup. Resource lookups are of the form \"<resource>:<oid>\""
     job-name        ; Symbol names the job type.
     arg-names       ; Lambda-list for user-defined function.
     arg-types func) ; Type of each argument
-                                        ; LAMBDA-LIST-KEYWORD pseudo-type is used
+                                        ; :LAMBDA-LIST-KEYWORD pseudo-type is used
                                         ; for lambda list keywords.
 
   (defvar *async-job-types* (make-hash-table :test 'equalp)
@@ -641,50 +641,41 @@ lookup. Resource lookups are of the form \"<resource>:<oid>\""
 ;;; The lambda-list should use (<name> <type>) for each variable name.
 ;;; The type can be any of: integer, float, string, or boolean.
 ;;;
+;;; If body consists of special case (:function <function>) then
+;;; <function> is assumed to be a function (or symbol bound to
+;;; a function) with a lambda-list congruent with the specification
+;;; of DEFINE-ASYNC-JOB. In this case that function will be called
+;;; rather than a new function created.
+;;;
 (defmacro define-async-job
     (name lambda-list &rest body)
   "Define an async-job type."
-  (let ((arg-names (mapcar
-                    (lambda (x)
-                      (if (member x lambda-list-keywords)
-                          x
-                          (first x)))
-                    lambda-list))
-        (arg-types (mapcar
-                    (lambda (x)
-                      (if (member x lambda-list-keywords)
-                          'lambda-list-keyword
-                          (second x)))
-                    lambda-list)))
-    `(eval-when (:compile-toplevel :load-toplevel :execute)
-       (progn
-         (register-async-job
-          ',name
-          ',arg-names
-          ',arg-types
-          (lambda (arguments)
-            (apply
-             (lambda (,@arg-names)
-               ,@body)
-             arguments)))
-         ',name))))
+  (let* ((arg-names (mapcar
+                     (lambda (x)
+                       (if (member x lambda-list-keywords)
+                           x
+                           (first x)))
+                     lambda-list))
+         (arg-types (mapcar
+                     (lambda (x)
+                       (if (member x lambda-list-keywords)
+                           :lambda-list-keyword
+                           (second x)))
+                     lambda-list))
+         (func (if (and (listp body)
+                        (= (length body) 2)
+                        (eq (first body) ':function))
+                   `',(second body)
+                   `(lambda (,@arg-names) ,@body))))
 
-#|
-;;;
-;;; example:
-;;;
-(define-async-job four-types
-((a integer) (b string) (c float) &optional ((d t) boolean))
-"Test that the four supported types can be passed via REST."
-(format nil "~A: ~D, ~A: ~S, ~A: ~F, ~A: ~A"
-(type-of a) a
-(type-of b) b
-(type-of c) c
-(type-of d) d))
-Python:
-sel.create_async_job('my-job2', None, [[10, "twenty", 30.1, "CL::T"]],
-"SEL/REST::FOUR-TYPES", 1)
-|#
+    `(progn
+       (register-async-job
+        ',name
+        ',arg-names
+        ',arg-types
+        (lambda (arguments)
+          (apply ,func arguments)))
+       ',name)))
 
 (defun lookup-async-job-type (name)
   "Given a name, lookup the async-job-type registry entry."
