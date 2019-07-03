@@ -1072,17 +1072,24 @@ in a population"))
 ;;;  :DOCUMENTATION "display help output")
 ;;;
 ;;; This should work:
-;;;  > (define-endpoint-route getfive (lambda () 5) () ())
-;;;  . . .
-;;;  ~> curl -X POST -H "Accept: application/json" \
-;;;                  -H "Content-Type: application/json" \
-;;;                   http://127.0.0.1:9003/getfive?cid='client-1001' \
-;;;                  -d "{}"
-;;;
-;;;               ^ Ideally the thing should work without an empt yjson field,
-;;;               but payload-as-string gets angry in that case. Maybe we can
-;;;               find a workaroud...
+#|
+> (define-endpoint-route getfive (lambda () 5) () ())
+. . .
+~> curl -X POST -H "Accept: application/json" \
+-H "Content-Type: application/json" \
+http://127.0.0.1:9003/getfive?cid='client-1001' \
+-d "{}"
 
+TODO
+- The task library is currently unhappy. Figure out the right invocation.
+- Rename `population` to `args` or `arguments` in `async-job`.
+- Ideally the thing should work without an empty json field, but
+payload-as-string gets angry in that case. Maybe we can find a workaroud...
+- Ensure the requires arguments work correctly
+- Write a parser / handler for optional arguments
+- Incorporate into define-command-rest
+- Write test cases
+|#
 (defun lookup-main-args
     (args json)
   (mapcar  (lambda (argument)
@@ -1131,5 +1138,4 @@ in a population"))
        (defroute
            ,name (:get "application/json" &key cid name)
          (get-job cid name)))))
-
 
