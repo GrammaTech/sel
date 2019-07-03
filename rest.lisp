@@ -1050,3 +1050,86 @@ in a population"))
     (error (e)
       (http-condition 400
                       "Error in WRITESOFT POST method (~a)!" e))))
+
+;;; WIP
+;;; WIP
+;;; WIP
+;;;
+;;; Endpoint definitions macros for `define-command-rest`.
+;;;
+;;; The required arguments are of the form (<name> type>), as:
+;;;
+;;; ((source string) (num-tests integer))
+;;;
+;;; The type can be any of integer, float, string, or boolean.
+;;;
+;;; Optional arguments are expected to be of the form of arguments in
+;;; command-line.lisp, e.g.:
+;;;
+;;; (("help" #\h #\?)
+;;;  :TYPE BOOLEAN
+;;;  :OPTIONAL T
+;;;  :DOCUMENTATION "display help output")
+;;;
+;;; This should work:
+;;;  > (define-endpoint-route getfive (lambda () 5) () ())
+;;;  . . .
+;;;  ~> curl -X POST -H "Accept: application/json" \
+;;;                  -H "Content-Type: application/json" \
+;;;                   http://127.0.0.1:9003/getfive?cid='client-1001' \
+;;;                  -d "{}"
+;;;
+;;;               ^ Ideally the thing should work without an empt yjson field,
+;;;               but payload-as-string gets angry in that case. Maybe we can
+;;;               find a workaroud...
+
+(defun lookup-main-args
+    (args json)
+  (mapcar  (lambda (argument)
+             (if-let ((result (assoc (car argument) json)))
+               (if (typep (cdr result) (cdr argument))
+                   result
+                   (error "Invalid type"))
+               (error "Did not find required argument ~a" (car argument))))
+           args))
+
+(defmacro define-endpoint-route
+    (name func required-args optional-args &rest body)
+  `(progn
+     (let* ((main-args ',required-args)
+            ;; (optional-args (create-optional-json-bindings optional-args))
+            )
+       (defroute
+           ,name (:post "application/json" &key cid)
+         (let* ((json (handler-case
+                          (if-let ((payload (payload-as-string)))
+                            (json:decode-json-from-string payload)
+                            '())
+                        (error (e)
+                          (http-condition 400 "Malformed JSON (~a)!" e))))
+                (client (lookup-session cid))
+                (first-args (lookup-main-args main-args json))
+                ;; (rest-args (lookup-optional-args optional-args json))
+                (args first-args)
+                (func (lookup-job-func ,func))
+                (threads 1)
+                (job (apply 'make-instance 'async-job
+                            :func func
+                            :population args
+                            :task-runner
+                            (sel/utility::task-map-async
+                             threads
+                             func
+                             args))))
+           ;; store the job with the session
+           (push job (session-jobs client))
+           ;; return the job name
+           (async-job-name job)))
+       (defroute
+           ,name (:get :text/* &key cid name)
+         (get-job cid name))
+       (defroute
+           ,name (:get "application/json" &key cid name)
+         (get-job cid name)))))
+
+
