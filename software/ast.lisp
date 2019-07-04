@@ -45,7 +45,7 @@
            :ast-children
            :ast-equal-p
            :ast-text
-	   :ast-hash
+           :ast-hash
            :make-conflict-ast
            :conflict-ast
            :conflict-ast-p
@@ -54,13 +54,13 @@
            :combine-conflict-asts
            :to-ast
            :ast-later-p
-	   :map-ast
+           :map-ast
            :mapc-ast
            :mapc-ast-and-strings
            :ast-to-list
-	   :map-ast-strings
-	   :ast-meld-p
-	   :ast-class-meld?
+           :map-ast-strings
+           :ast-meld-p
+           :ast-class-meld?
            :replace-in-ast
            :move-prefixes-down
            :defgeneric-kind))
@@ -243,8 +243,8 @@ PRINT-OBJECT method on AST structures.")
   (with-gensyms ((obj obj-))
     (let* ((include (get-struct-include name-and-options))
            (doc-strings (remove-if-not #'stringp slot-descriptions))
-	   (slot-descriptions (remove-if #'stringp slot-descriptions))
-	   (all-slot-descriptions (append default-ast-slot-descriptions
+           (slot-descriptions (remove-if #'stringp slot-descriptions))
+           (all-slot-descriptions (append default-ast-slot-descriptions
                                           slot-descriptions))
            (name (get-struct-name name-and-options))
            (conc-name (get-struct-conc-name name-and-options))
@@ -253,8 +253,8 @@ PRINT-OBJECT method on AST structures.")
            ;; Define the immutable node.
            (define-immutable-node-struct (,(symbol-cat name 'node)
                                           (:include ast-node)
-					   (:conc-name ,conc-name))
-	     ,@doc-strings
+                                           (:conc-name ,conc-name))
+             ,@doc-strings
              ,@all-slot-descriptions)
            ;; Define and return the wrapper.
            (defstruct (,name ;; (:include ast-stub)
@@ -266,7 +266,7 @@ PRINT-OBJECT method on AST structures.")
                                (member (car pair)
                                        '(:conc-name :copier :include)))
                              (cdr name-and-options))))
-	     ,@doc-strings
+             ,@doc-strings
              ;; Duplicated from ast-stub
              (path nil :type list)           ;; Path to subtree from root of tree.
              (node nil :type (or ast-node string null)) ;; Pointer to immutable AST data.
@@ -894,10 +894,10 @@ use carefully.
 
 (defmethod map-ast-strings ((tree ast) (fn function))
   (let* ((children (ast-children tree))
-	 (new-children (mapcar (lambda (child) (map-ast-strings child fn)) children)))
+         (new-children (mapcar (lambda (child) (map-ast-strings child fn)) children)))
     (if (every #'eq children new-children)
-	tree
-	(copy tree :children new-children))))
+        tree
+        (copy tree :children new-children))))
 
 (defmethod map-ast-strings ((str string) (fn function))
   (or (funcall fn str) str))
@@ -1046,12 +1046,12 @@ modile +AST-HASH-BASE+"
   (defun ast-combine-simple-vector-hash-values (sv)
     (declare (type simple-vector sv))
     (let ((result 0)
-	  (hb +ast-hash-base+)
-	  (len (length sv)))
+          (hb +ast-hash-base+)
+          (len (length sv)))
       (declare (type hash-type result))
       (iter (for i from 0 below len)
-	    (for hv in-vector sv)
-	    (let* ((im (logand i 31))
+            (for hv in-vector sv)
+            (let* ((im (logand i 31))
                    (a (aref a-coeffs im))
                    (b (aref b-coeffs im)))
               ;; RESULT is squared to avoid linearity
