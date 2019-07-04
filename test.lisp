@@ -4017,77 +4017,56 @@ int x = CHARSIZE;")))
                      :child-alist (mapcar
                                    (lambda (pair)
                                      (destructuring-bind (key . value) pair
-                                       (cons key (mapcar #'to-js-ast- value))))
+                                       (cons key (when value
+                                                   (to-js-ast- value)))))
                                    (second tree))
                      :children (mapcar #'to-js-ast- (cddr tree))))))))
-    (update-paths (to-js-ast- tree))))
-
-(defvar *asts* nil "Place-holder for ASTs in tests.")
+    (to-js-ast- tree)))
 
 (defixture javascript-ast-w-conflict
-  (:setup (setf *asts* (to-js-ast
-                        '(:j "top"
-                          (:j "left"
-                           (:c ((:old ) (:my "a") (:your "b"))))
-                          (:j "right")))))
-  (:teardown (setf *asts* nil)))
+  (:setup
+    (setf *soft* (make-instance 'javascript
+                   :ast-root (to-js-ast '(:j "top"
+                              (:j "left"
+                               (:c ((:old . nil) (:my . "a") (:your . "b"))))
+                              (:j "right"))))))
+  (:teardown
+    (setf *soft* nil)))
 
 (deftest javascript-and-conflict-basic-parseable-ast-functionality ()
   (with-fixture javascript-ast-w-conflict
-    (is (javascript-ast-p *asts*))      ; We actually have ASTs.
-    (is (every #'ast-path (cdr (ast-to-list *asts*)))) ; Non-root ast have path.
-    (is (javascript-ast-p (copy *asts*)))            ; Copy works.
-    (is (< (length (ast-to-list (replace-nth-child ; Replacement works.
-                               ;; Note: we do 1 here because 0th is 'top'.
-                               (copy *asts*) 1 '())))
-           (length (ast-to-list *asts*)))))
+    (is (javascript-ast-p (ast-root *soft*)))         ; We actually have ASTs.
+    (is (every #'ast-path (cdr (asts *soft*))))       ; Non-root ast have path.
+    (is (javascript-ast-p (copy (ast-root *soft*))))) ; Copy works.
   (with-fixture javascript-ast-w-conflict
     ;; Access ASTs.
-    (is (string= "top" (get-ast *asts* '(0))))
-    (is (javascript-ast-p (get-ast *asts* '(1))))
-    (is (string= "left" (get-ast *asts* '(1 0))))
-    (is (javascript-ast-p (get-ast *asts* '(2))))
-    (is (string= "right" (get-ast *asts* '(2 0))))
+    (is (string= "top" (get-ast *soft* '(0))))
+    (is (javascript-ast-p (get-ast *soft* '(1))))
+    (is (string= "left" (get-ast *soft* '(1 0))))
+    (is (javascript-ast-p (get-ast *soft* '(2))))
+    (is (string= "right" (get-ast *soft* '(2 0))))
     ;; Set AST with (setf (get-ast ...) ...).
-    (setf (get-ast *asts* '(2 0)) "RIGHT")
-    (is (string= "RIGHT" (get-ast *asts* '(2 0))))
-    (setf (get-ast *asts* '(1)) (make-javascript-ast
-                                 :node (make-javascript-ast-node :class :foo)))
-    (is (eql :foo (ast-class (get-ast *asts* '(1))))))
+    (setf (get-ast *soft* '(2 0)) "RIGHT")
+    (is (string= "RIGHT" (get-ast *soft* '(2 0))))
+    (setf (get-ast *soft* '(1)) (make-javascript-ast
+                                  :node (make-javascript-ast-node :class :foo)))
+    (is (eql :foo (ast-class (get-ast *soft* '(1))))))
   (with-fixture javascript-ast-w-conflict
-    ;; Replace-ast is like (setf get-ast) except that:
-    ;; 1. it modifies a copy of the original AST and doesn't change
-    ;;    its argument, and
-    ;; 2. is also does "fixups" which aren't tested here (or really
-    ;;    tested anywhere).  It would be good to relocate and test or
-    ;;    remove the "fixups."
-    (setf *asts*
-          (replace-ast *asts* '(1)
-                       (make-javascript-ast
-                        :node (make-javascript-ast-node :class :foo))))
-    (is (eql :foo (ast-class (get-ast *asts* '(1)))))))
+    (replace-ast *soft* '(1)
+                 (make-javascript-ast
+                  :node (make-javascript-ast-node :class :foo)))
+    (is (eql :foo (ast-class (get-ast *soft* '(1)))))))
 
 (deftest javascript-and-conflict-replace-ast ()
   (with-fixture javascript-ast-w-conflict
     (let ((cnf (find-if {typep _ 'conflict-ast} ; [{subtypep _ 'conflict-ast} #'type-of]
-                        (ast-to-list *asts*))))
-      (setf *asts* (replace-ast *asts* cnf
-                                (aget :my (conflict-ast-child-alist cnf))))
-      (is (equalp (mapc-ast *asts* #'ast-path)
-                  '(NIL ((1)) ((2)))))
-      (is (string= (ast-text *asts*) "topleftaright")))))
+                        (asts *soft*))))
+      (setf (get-ast *soft* (ast-path cnf))
+            (aget :my (conflict-ast-child-alist cnf))))
 
-(deftest javascript-and-conflict-replace-ast-leaves-original-unmolested ()
-  (with-fixture javascript-ast-w-conflict
-    (let ((orig-text (ast-text *asts*))
-          (orig (mapcar #'copy (ast-to-list *asts*))))
-      (let ((cnf (find-if {typep _ 'conflict-ast} ; [{subtypep _ 'conflict-ast} #'type-of]
-                          (ast-to-list *asts*))))
-        (replace-ast *asts* cnf
-                     (aget :my (conflict-ast-child-alist cnf))))
-      (is (string= orig-text (ast-text *asts*)))
-      (is (equal-it orig (mapcar #'copy (ast-to-list *asts*))
-                    nil '(path))))))
+    (is (equalp (mapc-ast (ast-root *soft*) #'ast-path)
+                '(NIL ((1)) ((2)))))
+    (is (string= (ast-text (ast-root *soft*)) "topleftaright"))))
 
 
 ;;;; Javascript project.
