@@ -122,6 +122,39 @@ class SelRest:
 
     #### Async Job/Task management
 
+    def create_endpoint_job(self, endpoint, values):
+        """ Create a new endpoint job.
+
+            Args:
+            - endpoint (string) : The endpoint to use.
+            - values (dict) : Dictionary of values the endpoint expects
+
+            Returns the job name.
+        """
+        return str_result(requests.post(self._url(endpoint),
+                                        params={'cid' : self._client_id},
+                                        json=values,
+                                        headers={'Content-Type': 'application/json'}))
+
+    def get_all_endpoint_jobs(self, endpoint):
+        """ Get all jobs associated with the current client and endpoint.
+
+            Args:
+            - endpoint (string) : The endpoint to use.
+
+            Returns a list of job names.
+        """
+        return requests.get(self._url(endpoint), params={'cid' : self._client_id},
+                            headers={'Accept': 'application/json'}).json()
+
+    def get_endpoint_job(self, endpoint, name):
+        """ Get details of a specific endpoint job, given the endpoint and job name. """
+        return requests.get(self._url(endpoint),
+                            params={'cid' : self._client_id, 'name' : name},
+                            headers={'Accept': 'application/json'}).json()
+
+    #### Async Job/Task management
+
     def create_async_job(self, job_name, pid, population, func, num_threads):
         """ Create a new async_job, of the requested type, taking, as arguments:
 

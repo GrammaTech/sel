@@ -161,23 +161,7 @@
 ;;;     @code{<service-base>/pop?pid=<Population-ID>} Delete
 ;;;     the population.  (work in progress)
 ;;;
-;;; Async-Job:
-;;;
-;;;  POST
-;;;     @code{<service-base>/async?type=<job-type>} Body
-;;;     contains (JSON) parameters for EVOLVE task, FITNESS-TEST or
-;;;     other defined type of task.  Returns immediately with a
-;;;     Job-ID (jid).  Creating a Job starts a task (on a new
-;;;     thread) which will execute until stopped or completed.
-;;;  GET
-;;;     @code{<service-base>/async?jid=<Job-ID>} Returns JSON
-;;;     containing job status and results.
-;;;  PUT
-;;;     @code{<service-base>/async?jid=<Job-ID>&<update-vars>}
-;;;     Allows some control of the task, such as stopping the task.
-;;;
 ;;; Mutation:
-;;;
 ;;;  POST
 ;;;     @{<service-base>/mut?type=<mutation-type>&sid=<software-id>}
 ;;;     Body (JSON) contains targets field (integer, list, or ast).
@@ -236,6 +220,21 @@
 ;;;     Writes the specified software object to a file (TO-FILE).
 ;;;     Returns success or error code.
 ;;;     Body contains path specification.
+;;;
+;;; Async-Job:
+;;;
+;;;  POST
+;;;     @code{<service-base>/async?type=<job-type>} Body
+;;;     contains (JSON) parameters for EVOLVE task, FITNESS-TEST or
+;;;     other defined type of task.  Returns immediately with a
+;;;     Job-ID (jid).  Creating a Job starts a task (on a new
+;;;     thread) which will execute until stopped or completed.
+;;;  GET
+;;;     @code{<service-base>/async?jid=<Job-ID>} Returns JSON
+;;;     containing job status and results.
+;;;  PUT
+;;;     @code{<service-base>/async?jid=<Job-ID>&<update-vars>}
+;;;     Allows some control of the task, such as stopping the task.
 ;;;
 ;;; @texi{rest}
 (defpackage :software-evolution-library/rest
@@ -381,6 +380,65 @@
             string))
       string))
 
+;;; Main REST server Command
+
+(define-command rest-server
+    (port &spec +common-command-line-options+ &aux handler)
+  "Run the SEL rest server."
+  #.(format nil
+            "~%Built from SEL ~a, and ~a ~a.~%"
+            +software-evolution-library-version+
+            (lisp-implementation-type) (lisp-implementation-version))
+  (declare (ignorable quiet verbose load eval out-dir read-seed save-seed))
+  (flet ((shutdown (&optional (message "quit") (errno 0))
+           (format t "Stopping server on ~a~%" message)
+           (stop handler)
+           (exit-command rest-server errno)))
+    (when help (show-help-for-rest-server) (exit-command rest-server 0))
+    (setf handler (clackup (make-clack-app) :port (parse-integer port)))
+    ;; From https://github.com/LispCookbook/cl-cookbook/blob/master/scripting.md
+    (handler-case
+        (iter (for char = (read-char))
+              (when (or (eql char #\q) (eql char #\Q))
+                (shutdown)))
+      ;; Catch a user's C-c
+      (#+sbcl sb-sys:interactive-interrupt
+        #+ccl  ccl:interrupt-signal-condition
+        #+clisp system::simple-interrupt-condition
+        #+ecl ext:interactive-interrupt
+        #+allegro excl:interrupt-signal
+        () (shutdown "abort" 0))
+      (error (e)
+        (shutdown (format nil "unexpected error ~S" e) 1)))))
+
+;;; Catch-all explainer for any error that gets sent back
+(defmethod explain-condition ((error error) (resource t)
+                              (ct snooze-types:text/plain))
+  (with-output-to-string (s)
+    (format s
+            "Error occurred processing ~A resource object via REST API: ~A"
+            resource (princ-to-string error))))
+
+;;; Catch-all explainer for any http-condition that gets sent back
+(defmethod explain-condition ((condition http-condition) (resource t)
+                              (ct snooze-types:text/plain))
+  (with-output-to-string (s)
+    (format s
+            "Error occurred processing ~A resource object via REST API: ~A"
+            resource (princ-to-string condition))))
+
+;;; Specific explainer for soft resource (software object)
+(defmethod explain-condition ((error error) (resource (eql #'soft))
+                              (ct snooze-types:text/plain))
+  (with-output-to-string (s)
+    (format s
+            "Error occurred processing SOFT (Software) object via REST API: ~A"
+            (princ-to-string error))))
+
+
+;;;; REST Routes
+
+;;;; Software Routes
 (defroute
     soft (:post "application/json" &key cid (sid nil) (type nil))
   (declare (ignore sid))
@@ -451,6 +509,7 @@
     soft (:get "application/json" &key cid sid (type nil))
   (get-software cid sid type))
 
+;;;; Population Routes
 (defclass population ()
   ((name
     :initarg :name
@@ -541,6 +600,8 @@
       (add-population client population sids)
       (format-population-as-json population))))
 
+;;;; Mutation Routes
+
 (defun lookup-resource (client str)
   "See if the json value is a string which can be parsed as a resource
 lookup. Resource lookups are of the form \"<resource>:<oid>\""
@@ -620,179 +681,7 @@ lookup. Resource lookups are of the form \"<resource>:<oid>\""
     mut (:get "application/json" &key cid mid)
   (get-mutation cid mid))
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (defstruct async-job-type
-    "Entry in async-job-type table."
-    job-name        ; Symbol names the job type.
-    arg-names       ; Lambda-list for user-defined function.
-    arg-types func) ; Type of each argument
-                                        ; :LAMBDA-LIST-KEYWORD pseudo-type is used
-                                        ; for lambda list keywords.
-
-  (defvar *async-job-types* (make-hash-table :test 'equalp)
-    "Registry of async-job-types.")
-
-  (defun register-async-job (job-name arg-names arg-types func)
-    "Register an async-job-type."
-    (setf (gethash job-name *async-job-types*)
-          (make-async-job-type :job-name job-name :arg-names arg-names
-                               :arg-types arg-types :func func))))
-;;;
-;;; The lambda-list should use (<name> <type>) for each variable name.
-;;; The type can be any of: integer, float, string, or boolean.
-;;;
-;;; If body consists of special case (:function <function>) then
-;;; <function> is assumed to be a function (or symbol bound to
-;;; a function) with a lambda-list congruent with the specification
-;;; of DEFINE-ASYNC-JOB. In this case that function will be called
-;;; rather than a new function created.
-;;;
-(defmacro define-async-job
-    (name lambda-list &rest body)
-  "Define an async-job type."
-  (let* ((arg-names (mapcar
-                     (lambda (x)
-                       (if (member x lambda-list-keywords)
-                           x
-                           (first x)))
-                     lambda-list))
-         (arg-types (mapcar
-                     (lambda (x)
-                       (if (member x lambda-list-keywords)
-                           :lambda-list-keyword
-                           (second x)))
-                     lambda-list))
-         (func (if (and (listp body)
-                        (= (length body) 2)
-                        (eq (first body) ':function))
-                   `',(second body)
-                   `(lambda (,@arg-names) ,@body))))
-
-    `(progn
-       (register-async-job
-        ',name
-        ',arg-names
-        ',arg-types
-        (lambda (arguments)
-          (apply ,func arguments)))
-       ',name)))
-
-(defun lookup-async-job-type (name)
-  "Given a name, lookup the async-job-type registry entry."
-  (values (gethash name *async-job-types*)))
-
-(defun apply-async-job-func (name &rest args)
-  "Given a name and arguments, call the async-job-type function."
-  (funcall (async-job-type-func (gethash name *async-job-types*)) args))
-
-(defclass async-job ()
-  ((name
-    :initarg :name
-    :accessor async-job-name
-    :initform (symbol-name (gensym "JOB-"))
-    :documentation "Unique name/id for the job")
-   (population
-    :initarg :population
-    :accessor async-job-population
-    :initform nil)
-   (func   ;; function to run on each software object in population
-    ;; e.g. EVALUATE, TEST-FITNESS, etc.
-    :initarg :func
-    :accessor async-job-func
-    :initform nil)
-   (task-runner
-    :initarg :task-runner
-    :accessor async-job-task-runner
-    :initform nil))
-  (:documentation "Task to perform asynchronously, against every item
-in a population"))
-
-(defun find-job (client job-name)
-  "Return the named job from the client record (if found)."
-  (car (member job-name (session-jobs client)
-               :key 'async-job-name :test 'equal)))
-
-(defun format-job-as-json (async-job)
-  (let ((task-runner (async-job-task-runner async-job)))
-    (json:encode-json-plist-to-string
-     (list
-      :name (async-job-name async-job)
-      :threads-running
-      (task-runner-workers-count (async-job-task-runner async-job))
-      :remaining-jobs
-      (task-runner-remaining-jobs (async-job-task-runner async-job))
-      :population (async-job-population async-job)
-      :completed-tasks (task-runner-completed-tasks task-runner)
-      :results (task-runner-results task-runner)))))
-
-(defun get-job (cid name)
-  (let* ((client (lookup-session cid)))
-    (if client
-        (let ((job (and name (find-job client name))))
-          (if (null job)
-              (let ((job-names (iter (for x in (session-jobs client))
-                                     (collect (async-job-name x)))))
-                (json:encode-json-to-string job-names))
-              (format-job-as-json job))))))
-
-(defun lookup-job-type-entry (name)
-  "Allow some special-case names, otherwise fall through to symbol
- in SEL package by the specified name."
-  (let* ((sym (convert-symbol name)))
-    (lookup-async-job-type sym)))
-
-(defun lookup-job-func (name)
-  "Allow some special-case names, otherwise fall through to symbol
- in SEL package by the specified name."
-       (let* ((entry (lookup-job-type-entry name)))
-         (if entry (async-job-type-func entry))))
-
-(defun type-check (population job-type-entry)
-  (declare (ignore job-type-entry)) ; use this later
-  (mapcar (lambda (x)
-            (mapcar (lambda (y) (convert-symbol y)) x))
-          population))
-
-(defroute
-    async (:post "application/json" &key cid name)
-  (let* ((json (handler-case
-                   (json:decode-json-from-string (payload-as-string))
-                 (error (e)
-                   (http-condition 400 "Malformed JSON (~a)!" e))))
-         (client (lookup-session cid))
-         (pid (cdr (assoc :pid json)))  ; name/id of population
-         (population
-          (if pid
-              (find-population client pid) ; pid specifies a population
-              (cdr (assoc :population json)))) ; else assume a list
-         (func-name (cdr (assoc :func json)))
-         (func (lookup-job-func func-name))
-                                        ; name of function to run
-         (threads (cdr (assoc :threads json))) ; max number of threads to use
-                                        ; must be at least 1 thread!
-         (job (apply 'make-instance 'async-job
-                     :population population
-                     :func func
-                     :task-runner
-                     (sel/utility::task-map-async
-                      threads
-                      func
-                      (if (typep population 'population)
-                          (population-individuals population)
-                          (type-check population
-                                      (lookup-job-type-entry func-name))))
-                     (if name (list :name name)))))
-    ;; store the software obj with the session
-    (push job (session-jobs client))
-    (async-job-name job)))
-
-(defroute
-    async (:get :text/* &key cid name)
-  (get-job cid name))
-
-(defroute
-    async (:get "application/json" &key cid name)
-  (get-job cid name))
+;;;; Test and Test Suite Routes
 
 (defun find-test-suite (client oid)
   "Return the test-suite from the client record with specified oid (if found)."
@@ -859,6 +748,8 @@ in a population"))
 (defroute
     tests (:get "application/json" &key cid oid)
   (get-test-suite cid oid))
+
+;;;; Instrumentated Program Routes
 
 (defroute instrumented (:post "application/json" &key cid sid)
   (handler-case
@@ -970,64 +861,6 @@ in a population"))
     (error (e)
       (http-condition 400 "Error in TRACESOFT POST method (~a)!" e))))
 
-(define-command rest-server
-    (port &spec +common-command-line-options+ &aux handler)
-  "Run the SEL rest server."
-  #.(format nil
-            "~%Built from SEL ~a, and ~a ~a.~%"
-            +software-evolution-library-version+
-            (lisp-implementation-type) (lisp-implementation-version))
-  (declare (ignorable quiet verbose load eval out-dir read-seed save-seed))
-  (flet ((shutdown (&optional (message "quit") (errno 0))
-           (format t "Stopping server on ~a~%" message)
-           (stop handler)
-           (exit-command rest-server errno)))
-    (when help (show-help-for-rest-server) (exit-command rest-server 0))
-    (setf handler (clackup (make-clack-app) :port (parse-integer port)))
-    ;; From https://github.com/LispCookbook/cl-cookbook/blob/master/scripting.md
-    (handler-case
-        (iter (for char = (read-char))
-              (when (or (eql char #\q) (eql char #\Q))
-                (shutdown)))
-      ;; Catch a user's C-c
-      (#+sbcl sb-sys:interactive-interrupt
-        #+ccl  ccl:interrupt-signal-condition
-        #+clisp system::simple-interrupt-condition
-        #+ecl ext:interactive-interrupt
-        #+allegro excl:interrupt-signal
-        () (shutdown "abort" 0))
-      (error (e)
-        (shutdown (format nil "unexpected error ~S" e) 1)))))
-
-;;;
-;;; Catch-all explainer for any error that gets sent back
-;;;
-(defmethod explain-condition ((error error) (resource t)
-                              (ct snooze-types:text/plain))
-  (with-output-to-string (s)
-    (format s
-            "Error occurred processing ~A resource object via REST API: ~A"
-            resource (princ-to-string error))))
-
-;;;
-;;; Catch-all explainer for any http-condition that gets sent back
-;;;
-(defmethod explain-condition ((condition http-condition) (resource t)
-                              (ct snooze-types:text/plain))
-  (with-output-to-string (s)
-    (format s
-            "Error occurred processing ~A resource object via REST API: ~A"
-            resource (princ-to-string condition))))
-
-;;;
-;;; Specific explainer for soft resource (software object)
-(defmethod explain-condition ((error error) (resource (eql #'soft))
-                              (ct snooze-types:text/plain))
-  (with-output-to-string (s)
-    (format s
-            "Error occurred processing SOFT (Software) object via REST API: ~A"
-            (princ-to-string error))))
-
 ;;;
 ;;; write the contents of a software object
 ;;;
@@ -1051,6 +884,183 @@ in a population"))
       (http-condition 400
                       "Error in WRITESOFT POST method (~a)!" e))))
 
+;;; Asynchronous Jobs
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defstruct async-job-type
+    "Entry in async-job-type table."
+    job-name        ; Symbol names the job type.
+    arg-names       ; Lambda-list for user-defined function.
+    arg-types func) ; Type of each argument
+                                        ; :LAMBDA-LIST-KEYWORD pseudo-type is used
+                                        ; for lambda list keywords.
+
+  (defvar *async-job-types* (make-hash-table :test 'equalp)
+    "Registry of async-job-types.")
+
+  (defun register-async-job (job-name arg-names arg-types func)
+    "Register an async-job-type."
+    (setf (gethash job-name *async-job-types*)
+          (make-async-job-type :job-name job-name :arg-names arg-names
+                               :arg-types arg-types :func func))))
+
+;;; The lambda-list should use (<name> <type>) for each variable name.
+;;; The type can be any of: integer, float, string, or boolean.
+;;;
+;;; If body consists of special case (:function <function>) then
+;;; <function> is assumed to be a function (or symbol bound to
+;;; a function) with a lambda-list congruent with the specification
+;;; of DEFINE-ASYNC-JOB. In this case that function will be called
+;;; rather than a new function created.
+
+(defmacro define-async-job
+    (name lambda-list &rest body)
+  "Define an async-job type."
+  (let* ((arg-names (mapcar
+                     (lambda (x)
+                       (if (member x lambda-list-keywords)
+                           x
+                           (first x)))
+                     lambda-list))
+         (arg-types (mapcar
+                     (lambda (x)
+                       (if (member x lambda-list-keywords)
+                           :lambda-list-keyword
+                           (second x)))
+                     lambda-list))
+         (func (if (and (listp body)
+                        (= (length body) 2)
+                        (eq (first body) ':function))
+                   `',(second body)
+                   `(lambda (,@arg-names) ,@body))))
+
+    `(progn
+       (register-async-job
+        ',name
+        ',arg-names
+        ',arg-types
+        (lambda (arguments)
+          (apply ,func arguments)))
+       ',name)))
+
+(defun lookup-async-job-type (name)
+  "Given a name, lookup the async-job-type registry entry."
+  (values (gethash name *async-job-types*)))
+
+(defun apply-async-job-func (name &rest args)
+  "Given a name and arguments, call the async-job-type function."
+  (funcall (async-job-type-func (gethash name *async-job-types*)) args))
+
+(defclass async-job ()
+  ((name
+    :initarg :name
+    :accessor async-job-name
+    :initform (symbol-name (gensym "JOB-"))
+    :documentation "Unique name/id for the job")
+   (population
+    :initarg :population
+    :accessor async-job-population
+    :initform nil)
+   (func   ;; function to run on each software object in population
+    ;; e.g. EVALUATE, TEST-FITNESS, etc.
+    :initarg :func
+    :accessor async-job-func
+    :initform nil)
+   (task-runner
+    :initarg :task-runner
+    :accessor async-job-task-runner
+    :initform nil))
+  (:documentation "Task to perform asynchronously, against every item
+in a population"))
+
+(defun find-job (client job-name)
+  "Return the named job from the client record (if found)."
+  (car (member job-name (session-jobs client)
+               :key 'async-job-name :test 'equal)))
+
+(defun format-job-as-json (async-job)
+  (let ((task-runner (async-job-task-runner async-job)))
+    (json:encode-json-plist-to-string
+     (list
+      :name (async-job-name async-job)
+      :threads-running
+      (task-runner-workers-count (async-job-task-runner async-job))
+      :remaining-jobs
+      (task-runner-remaining-jobs (async-job-task-runner async-job))
+      :population (async-job-population async-job)
+      :completed-tasks (task-runner-completed-tasks task-runner)
+      :results (task-runner-results task-runner)))))
+
+(defun get-job (cid name)
+  (let* ((client (lookup-session cid)))
+    (if client
+        (let ((job (and name (find-job client name))))
+          (if (null job)
+              (let ((job-names (iter (for x in (session-jobs client))
+                                     (collect (async-job-name x)))))
+                (json:encode-json-to-string job-names))
+              (format-job-as-json job))))))
+
+(defun lookup-job-type-entry (name)
+  "Allow some special-case names, otherwise fall through to symbol
+ in SEL package by the specified name."
+  (let* ((sym (convert-symbol name)))
+    (lookup-async-job-type sym)))
+
+(defun lookup-job-func (name)
+  "Allow some special-case names, otherwise fall through to symbol
+ in SEL package by the specified name."
+  (let* ((entry (lookup-job-type-entry name)))
+    (if entry (async-job-type-func entry))))
+
+(defun type-check (population job-type-entry)
+  (declare (ignore job-type-entry)) ; use this later
+  (mapcar (lambda (x)
+            (mapcar (lambda (y) (convert-symbol y)) x))
+          population))
+
+(defroute
+    async (:post "application/json" &key cid name)
+  (let* ((json (handler-case
+                   (json:decode-json-from-string (payload-as-string))
+                 (error (e)
+                   (http-condition 400 "Malformed JSON (~a)!" e))))
+         (client (lookup-session cid))
+         (pid (cdr (assoc :pid json)))  ; name/id of population
+         (population
+          (if pid
+              (find-population client pid) ; pid specifies a population
+              (cdr (assoc :population json)))) ; else assume a list
+         (func-name (cdr (assoc :func json)))
+         (func (lookup-job-func func-name))
+                                        ; name of function to run
+         (threads (cdr (assoc :threads json))) ; max number of threads to use
+                                        ; must be at least 1 thread!
+         (job (apply 'make-instance 'async-job
+                     :population population
+                     :func func
+                     :task-runner
+                     (sel/utility::task-map-async
+                      threads
+                      func
+                      (if (typep population 'population)
+                          (population-individuals population)
+                          (type-check population
+                                      (lookup-job-type-entry func-name))))
+                     (if name (list :name name)))))
+    ;; store the software obj with the session
+    (push job (session-jobs client))
+    (async-job-name job)))
+
+(defroute
+    async (:get :text/* &key cid name)
+  (get-job cid name))
+
+(defroute
+    async (:get "application/json" &key cid name)
+  (get-job cid name))
+
+
 ;;; WIP
 ;;; WIP
 ;;; WIP
@@ -1073,7 +1083,7 @@ in a population"))
 ;;;
 ;;; This should work:
 #|
-> (define-endpoint-route getfive (lambda () 5) () ())
+> (define-endpoint-route addfive (lambda (value) (+ value 5)) ((value integer)) ())
 . . .
 ~> curl -X POST -H "Accept: application/json" \
 -H "Content-Type: application/json" \
@@ -1081,7 +1091,6 @@ http://127.0.0.1:9003/getfive?cid='client-1001' \
 -d "{}"
 
 TODO
-- The task library is currently unhappy. Figure out the right invocation.
 - Rename `population` to `args` or `arguments` in `async-job`.
 - Ideally the thing should work without an empty json field, but
 payload-as-string gets angry in that case. Maybe we can find a workaroud...
@@ -1093,49 +1102,64 @@ payload-as-string gets angry in that case. Maybe we can find a workaroud...
 (defun lookup-main-args
     (args json)
   (mapcar  (lambda (argument)
-             (if-let ((result (assoc (car argument) json)))
-               (if (typep (cdr result) (cdr argument))
+             (if-let ((result (aget (car argument) json :test #'string=)))
+               (if (typep result (cdr argument))
                    result
                    (error "Invalid type"))
                (error "Did not find required argument ~a" (car argument))))
            args))
 
+                                        ; (defmacro def-task-async ((&rest lambda-list) (&rest args) &rest body)
+                                        ;   `(task-map-async
+                                        ;     1
+                                        ;     (lambda (arg-list) (apply (lambda ,lambda-list ,@body) arg-list))
+                                        ;     (list (list ,@args))))
+
+                                        ; (def-task-async (x y) (10 20) (format t "~a + ~a: ~a~%" x y (+ x y)))
+
 (defmacro define-endpoint-route
     (name func required-args optional-args &rest body)
   `(progn
-     (let* ((main-args ',required-args)
+     (let* ((main-args (mapcar (lambda (arg) (cons (string (car arg)) (cadr arg)))
+                               ',required-args))
             ;; (optional-args (create-optional-json-bindings optional-args))
             )
        (defroute
            ,name (:post "application/json" &key cid)
          (let* ((json (handler-case
                           (if-let ((payload (payload-as-string)))
-                            (json:decode-json-from-string payload)
+                            (mapcar (lambda (entry) (cons (string (car entry)) (cdr entry)))
+                                    (json:decode-json-from-string payload))
                             '())
                         (error (e)
                           (http-condition 400 "Malformed JSON (~a)!" e))))
                 (client (lookup-session cid))
+                (_ (note 0 "~a" json))
                 (first-args (lookup-main-args main-args json))
+                (_ (note 0 "~a" first-args))
                 ;; (rest-args (lookup-optional-args optional-args json))
                 (args first-args)
-                (func (lookup-job-func ,func))
+                (lookup-fn (lookup-job-func ,func))
                 (threads 1)
                 (job (apply 'make-instance 'async-job
-                            :func func
+                            :func ,func
                             :population args
                             :task-runner
                             (sel/utility::task-map-async
                              threads
-                             func
-                             args))))
+                             (if lookup-fn lookup-fn ,func)
+                             args)
+                            (list :name (symbol-name (gensym (string ',name)))))))
            ;; store the job with the session
            (push job (session-jobs client))
            ;; return the job name
-           (async-job-name job)))
-       (defroute
-           ,name (:get :text/* &key cid name)
-         (get-job cid name))
-       (defroute
-           ,name (:get "application/json" &key cid name)
+           (async-job-name job))))
+     (defroute
+         ,name (:get :text/* &key cid name)
+       (get-job cid name))
+     (defroute
+         ,name (:get "application/json" &key cid name)
+       (progn
+         (format t "~a ~a" cid name)
          (get-job cid name)))))
 
