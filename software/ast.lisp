@@ -917,7 +917,9 @@ use carefully.
     (when (ast-p c) (map-ast c fn)))
   tree)
 
-(defmethod map-ast (tree fn) nil)
+(defmethod map-ast (tree fn)
+  (declare (ignorable tree fn))
+  nil)
 
 (defun mapc-ast (ast fn)
   "Apply FN to AST collecting the results with `cons'."
@@ -1136,7 +1138,10 @@ modile +AST-HASH-BASE+"
 
 (defmethod ast-class-meld? ((ast-class t) (ast t)) nil)
 
-(defmethod ast-class-meld? ((ast-class (eql :TopLevel)) ast) t)
+(defmethod ast-class-meld? ((ast-class (eql :TopLevel)) ast)
+  (declare (ignorable ast))
+  t)
+
 
 ;;;; Utility function for comment/terminator normalization
 
