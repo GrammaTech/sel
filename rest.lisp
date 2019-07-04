@@ -240,6 +240,7 @@
 (defpackage :software-evolution-library/rest
   (:nicknames :sel/rest)
   (:use
+   :alexandria
    :arrow-macros
    :named-readtables
    :curry-compose-reader-macros
