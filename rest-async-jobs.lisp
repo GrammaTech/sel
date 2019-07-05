@@ -181,9 +181,9 @@
     :accessor async-job-name
     :initform (symbol-name (gensym "JOB-"))
     :documentation "Unique name/id for the job")
-   (population
-    :initarg :population
-    :accessor async-job-population
+   (arguments
+    :initarg :arguments
+    :accessor async-job-args
     :initform nil)
    (func   ;; function to run on each software object in population
     ;; e.g. EVALUATE, TEST-FITNESS, etc.
@@ -217,7 +217,7 @@ in a population"))
       (task-runner-workers-count (async-job-task-runner async-job))
       :remaining-jobs
       (task-runner-remaining-jobs (async-job-task-runner async-job))
-      :population (async-job-population async-job)
+      :arguments (async-job-args async-job)
       :completed-tasks (task-runner-completed-tasks task-runner)
       :results (task-runner-results task-runner)))))
 
@@ -243,29 +243,29 @@ in a population"))
     (async-job-type-func entry)
     func))
 
-(defun type-check (population job-type-entry)
+(defun type-check (arguments job-type-entry)
   (declare (ignore job-type-entry)) ; use this later
   (mapcar (lambda (x)
             (mapcar (lambda (y) (convert-symbol y)) x))
-          population))
+          arguments))
 
 (trace lookup-job-type-entry)
 (trace type-check)
 (trace convert-symbol)
 
 (defun make-job
-    (client population func-name func threads name)
+    (client arguments func-name func threads name)
   (apply 'make-instance
          'async-job
-         :population population
+         :arguments arguments
          :func func
          :task-runner
          (sel/utility::task-map-async
           threads
           func
-          (if (typep population 'population)
-              (population-individuals population)
-              (type-check population
+          (if (typep arguments 'population)
+              (population-individuals arguments)
+              (type-check arguments
                           (lookup-job-type-entry func-name))))
          (if name (list :name (string (gensym (string name)))))))
 
@@ -273,6 +273,9 @@ in a population"))
 (trace session-jobs)
 (trace async-job-name)
 
+
+;; Async can now optionally take a population ID as `pid` or
+;; arguments `arguments`...
 (defroute
     async (:post "application/json" &key cid name)
   (let* ((json (handler-case
@@ -280,14 +283,14 @@ in a population"))
                  (error (e)
                    (http-condition 400 "Malformed JSON (~a)!" e))))
          (client (lookup-session cid))
-         (pid (cdr (assoc :pid json)))  ; name/id of population
-         (population
-          (if pid
+         (pid (aget :pid json))  ; name/id of population
+         (arguments
+          (if pid ;; prefer population to arguments
               (find-population client pid) ; pid specifies a population
-              (cdr (assoc :population json)))) ; else assume a list
-         (func-name (cdr (assoc :func json)))
+              (aget :arguments json))) ; else assume a list
+         (func-name (aget :func json))
          (func (lookup-job-func func-name)) ; name of function to run
-         (threads (cdr (assoc :threads json))) ; max number of threads to use
+         (threads (aget :threads json)) ; max number of threads to use
                                         ; must be at least 1 thread!
          (job (make-job client population func-name func threads name)))
     ;; store the software obj with the session

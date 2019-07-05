@@ -155,27 +155,50 @@ class SelRest:
 
     #### Async Job/Task management
 
-    def create_async_job(self, job_name, pid, population, func, num_threads):
+    def create_async_population_job(self, job_name, pid, func, num_threads):
         """ Create a new async_job, of the requested type, taking, as arguments:
 
             Args:
             - job name (str)
             - population id (int)
-            - population (list)
             - func name (str)
             - num_threads (int)
 
             Returns the async job name.
 
-            If a software population object is being used, supply the appropriate pid and
-            pass None for the population argument. If we are passing a list of custom
-            lisp objects, pass None for pid, and a list of lisp objects for population.
-            Each item in population will spawn an asynchronous task, being passed to func.
+            If a software population object is being used, supply the appropriate pid.
+            If we are passing a list of custom lisp objects, use create_async_job instead.
+            We will spawn an asynchronous task for each population entity,
+            applying `func` to it.
         """
         return str_result(requests.post(self._url('async'),
                                         params={'cid' : self._client_id, 'name' : job_name},
                                         json={'pid' : pid,
-                                              'population' : population,
+                                              'func' : func,
+                                              'threads' : num_threads},
+                                        headers={'Content-Type': 'application/json'}))
+
+    def get_all_async_jobs(self):
+    def create_async_job(self, job_name, arguments, func, num_threads):
+        """ Create a new async_job, of the requested type, taking, as input:
+
+            Args:
+            - job name (str)
+            - population id (int)
+            - arguments (list)
+            - func name (str)
+            - num_threads (int)
+
+            Returns the async job name.
+
+            Arguments is a list of lisp objects to apply the function to. If you
+            would prefer to use a population of software objects, use
+            `create_async_population_job` instead.
+            A new asynchronous task is started, calling the function on the arguments.
+        """
+        return str_result(requests.post(self._url('async'),
+                                        params={'cid' : self._client_id, 'name' : job_name},
+                                        json={'arguments' : [arguments],
                                               'func' : func,
                                               'threads' : num_threads},
                                         headers={'Content-Type': 'application/json'}))

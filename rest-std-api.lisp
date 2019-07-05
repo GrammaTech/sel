@@ -299,9 +299,9 @@
                   (http-condition 400 "Malformed JSON (~a)!" e)))))
     (handler-case
         (let* ((client (lookup-session cid))
-               (path (cdr (assoc :path json)))
-               (url (cdr (assoc :url json)))
-               (code (cdr (assoc :code json)))
+               (path (aget :path json))
+               (url (aget :url json))
+               (code (aget :code json))
                (software-type (convert-symbol type))) ;conv. string to symbol
           (declare (ignore url code)) ; not implemented yet
           (when path
@@ -402,8 +402,8 @@
                  (error (e)
                    (http-condition 400 "Malformed JSON (~a)!" e))))
          (client (lookup-session cid))
-         (type (intern (string-upcase (cdr (assoc :type json))) :sel))
-         (sids (cdr (assoc :sids json)))
+         (type (intern (string-upcase (aget :type json)) :sel))
+         (sids (aget :sids json))
          (population
           (apply 'make-instance
                  'population
@@ -454,7 +454,7 @@
                    (json:decode-json-from-string (payload-as-string))
                  (error (e)
                    (http-condition 400 "Malformed JSON (~a)!" e))))
-         (sids (cdr (assoc :sids json)))
+         (sids (aget :sids json))
          (client (lookup-session cid))
          (population (if name (find-population client name))))
     (when population
@@ -479,9 +479,9 @@
                  (error (e)
                    (http-condition 400 "Malformed JSON (~a)!" e))))
          (session (lookup-session cid))
-         (type (cdr (assoc :type json)))
+         (type (aget :type json))
          (type-sym (and type (convert-symbol type)))
-         (sid (cdr (assoc :sid json)))
+         (sid (aget :sid json))
          (software (find-software session sid))
          (properties (iter (for x in json)
                            (unless
@@ -491,7 +491,7 @@
                              (collect
                               (or (lookup-resource  session (cdr x))
                                   (convert-symbol (cdr x)))))))
-         (targets (cdr (assoc :targets json))))
+         (targets (aget :targets json)))
     (if type
         (let ((mutation
                (apply 'make-instance
@@ -548,15 +548,15 @@
                  (error (e)
                    (http-condition 400 "Malformed JSON (~a)!" e))))
          (session (lookup-session cid))
-         (tests (cdr (assoc :tests json)))
+         (tests (aget :tests json))
          (test-suite
           (funcall 'make-instance
                    'test-suite
                    :test-cases
                    (mapcar
                     (lambda (test)
-                      (let ((program-name (cdr (assoc :program-name test)))
-                            (program-args (cdr (assoc :program-args test))))
+                      (let ((program-name (aget :program-name test))
+                            (program-args (aget :program-args test)))
                         (make-instance 'test-case :program-name program-name
                                        :program-args
                                        (mapcar (lambda (x)
@@ -690,7 +690,7 @@
              (session (lookup-session cid))
              (soft (find-software session sid))
              (test-suite (find-test-suite session tests-oid))
-             (inst-bin (cdr (assoc :inst-bin json))))
+             (inst-bin (aget :inst-bin json)))
 
         (if (and (typep soft 'sel/sw/clang::clang)
                  (null (sel/software/source::compiler soft)))
@@ -723,7 +723,7 @@
                        (http-condition 400 "Malformed JSON (~a)!" e))))
              (session (lookup-session cid))
              (soft (find-software session sid))
-             (path (cdr (assoc :path json))))
+             (path (aget :path json)))
 
         (to-file (format-genome (uninstrument (copy soft)))
                  path)

@@ -143,8 +143,8 @@ lookup. Resource lookups are of the form \"<resource>:<oid>\""
                    (json:decode-json-from-string (payload-as-string))
                  (error (e)
                    (http-condition 400 "Malformed JSON (~a)!" e))))
-         (max-population-size (cdr (assoc :max-population-size json)))
-         (cross-chance (cdr (assoc :cross-chance json)))
-         (mutation-rate (cdr (assoc :mut-rate json))))
+         (max-population-size (aget :max-population-size json))
+         (cross-chance (aget :cross-chance json))
+         (mutation-rate (aget :mut-rate json)))
     (create-new-session max-population-size cross-chance mutation-rate)))
 
