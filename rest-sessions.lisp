@@ -84,7 +84,7 @@
   (gethash (string-downcase (string key))
            (session-value-store session)))
 
-(defun push-session-store-value (value session key)
+(defun push-session-store-value (session key value)
   (push value
         (gethash (string-downcase (string key))
                  (session-value-store session))))
@@ -136,3 +136,15 @@ lookup. Resource lookups are of the form \"<resource>:<oid>\""
                    (car
                     (member id (session-property session res)
                             :key 'sel::oid :test 'eql))))))))
+
+(defroute
+    client (:post "application/json")
+  (let* ((json (handler-case
+                   (json:decode-json-from-string (payload-as-string))
+                 (error (e)
+                   (http-condition 400 "Malformed JSON (~a)!" e))))
+         (max-population-size (cdr (assoc :max-population-size json)))
+         (cross-chance (cdr (assoc :cross-chance json)))
+         (mutation-rate (cdr (assoc :mut-rate json))))
+    (create-new-session max-population-size cross-chance mutation-rate)))
+

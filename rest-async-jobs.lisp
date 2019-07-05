@@ -98,9 +98,12 @@
    :software-evolution-library/rest-std-api
    :software-evolution-library/rest-sessions)
   (:shadowing-import-from :clack :clackup :stop)
-  (:export :async-job
+  (:export :apply-async-job-func
+           :async-job
+           :async-job-name
            :define-async-job
-           :apply-async-job-func
+           :lookup-job-func
+           :get-job
            :session-jobs))
 (in-package :software-evolution-library/rest-async-jobs)
 (in-readtable :curry-compose-reader-macros)
@@ -233,12 +236,12 @@ in a population"))
  in SEL package by the specified name."
   (lookup-async-job-type (convert-symbol name)))
 
-(defun lookup-job-func (name)
+(defun lookup-job-func (func)
   "Allow some special-case names, otherwise fall through to symbol
  in SEL package by the specified name."
-  (if-let ((entry (lookup-job-type-entry name)))
+  (if-let ((entry (lookup-job-type-entry func)))
     (async-job-type-func entry)
-    name))
+    func))
 
 (defun type-check (population job-type-entry)
   (declare (ignore job-type-entry)) ; use this later
@@ -264,7 +267,7 @@ in a population"))
               (population-individuals population)
               (type-check population
                           (lookup-job-type-entry func-name))))
-         (if name (list :name name))))
+         (if name (list :name (string (gensym (string name)))))))
 
 (trace make-job)
 (trace session-jobs)
@@ -288,7 +291,8 @@ in a population"))
                                         ; must be at least 1 thread!
          (job (make-job client population func-name func threads name)))
     ;; store the software obj with the session
-    (push job (session-store-value client "jobs"))
+    ;; (push-session-store-value client "jobs" job)
+    (push job (session-jobs client))
     (async-job-name job)))
 
 (defroute
