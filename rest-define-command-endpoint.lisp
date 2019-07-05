@@ -158,14 +158,12 @@
 . . .
 ~> curl -X POST -H "Accept: application/json" \
 -H "Content-Type: application/json" \
-http://127.0.0.1:9003/getfive?cid='client-1001' \
--d "{}"
+http://127.0.0.1:9003/addfive?cid='client-1001' \
+-d '{"value" : 5}'
 
 TODO
-- Rename `population` to `args` or `arguments` in `async-job`.
 - Ideally the thing should work without an empty json field, but
 payload-as-string gets angry in that case. Maybe we can find a workaroud...
-- Ensure the requires arguments work correctly
 - Write a parser / handler for optional arguments
 - Incorporate into define-command-rest
 - Write test cases
@@ -180,56 +178,83 @@ payload-as-string gets angry in that case. Maybe we can find a workaroud...
                (error "Did not find required argument ~a" (car argument))))
            args))
 
-                                        ; (defmacro def-task-async ((&rest lambda-list) (&rest args) &rest body)
-                                        ;   `(task-map-async
-                                        ;     1
-                                        ;     (lambda (arg-list) (apply (lambda ,lambda-list ,@body) arg-list))
-                                        ;     (list (list ,@args))))
+(defun lookup-command-line-arguments
+    (args json)
+  (defun lookup-cl-arg
+      (argument)
+    (let* ((name (caar argument))
+           (properties (cdr argument))
+           (arg-type (getf properties :type))
+           (optional (getf properties :optional))
+           (init-value (getf properties :initial-value))
+           (json-value (aget name json :test #'string=)))
+      (cond
+        (json-value (if (typep json-value arg-type)
+                        (cons name result)
+                        (error "Expected type ~a for key ~a (with value ~a)" arg-type name json-value)))
+        ((and (not optional) init-value) (cons name init-value))
+        (t '())
+        ;; TODO Not all optional parameters in command-line.lisp are marked as
+        ;; such. Ask eschulte (or similar) if they should be fixed and the code
+        ;; below should be instated, or this current code is permissive enough.
+        ;; (optional '())
+        ;; (t (error "Expected key ~a" name))
+        )))
+  (remove-if #'null (mapcar lookup-cl-arg args)))
 
-                                        ; (def-task-async (x y) (10 20) (format t "~a + ~a: ~a~%" x y (+ x y)))
+(defun make-endpoint-job
+    (session-id name job-fn json main-args command-line-args)
+  (let* ((session (lookup-session session-id))
+         (_ (note 0 "~a" json))
+         (first-args (lookup-main-args main-args json))
+         (_ (note 0 "~a" first-args))
+         (rest-args (lookup-command-line-args command-line-args json))
+         (args first-args)
+         (threads 1)
+         (job (apply 'make-instance 'async-job
+                     :func job-fn
+                     :arguments args
+                     :task-runner
+                     (sel/utility::task-map-async
+                      threads
+                      job-fn
+                      args)
+                     (list :name name))))
+    ;; store the job with the session
+    (push job (session-jobs session))
+    ;; return the job name
+    (async-job-name job)))
+
+(trace make-endpoint-job)
+(trace task-map-async)
 
 #|
-> (define-endpoint-route addfive (lambda (value) (+ value 5)) ((value integer)) ())
+(define-endpoint-route addfive (lambda (value) (+ value 5)) ((value integer)) ())
+(define-endpoint-route fact (lambda (n) (alexandria::factorial n)) ((value integer)) ())
+(define-endpoint-route fact #'alexandria::factorial ((value integer)) ())
+(define-endpoint-route iota-endpoint #'alexandria::iota ((value integer)) ())
 |#
 (defmacro define-endpoint-route
-    (route-name func required-args optional-args &rest body)
+    (route-name func required-args command-line-args &rest body)
   (let ((cid (intern (symbol-name 'cid)))
-        (name (intern (symbol-name 'name))))
+        (name (intern (symbol-name 'name)))
+        (json (intern (symbol-name 'json)))
+        (lookup-fn (intern (symbol-name 'lookup-fn))))
     `(progn
        (let* ((main-args (mapcar (lambda (arg) (cons (string (car arg)) (cadr arg)))
-                                 ',required-args))
-              ;; (optional-args (create-optional-json-bindings optional-args))
-              )
+                                 ',required-args)))
          (defroute
              ,route-name (:post "application/json" &key ,cid (,name (symbol-name (gensym (string ',route-name)))))
-           (let* ((json (handler-case
-                            (if-let ((payload (payload-as-string)))
-                              (mapcar (lambda (entry) (cons (string (car entry)) (cdr entry)))
-                                      (json:decode-json-from-string payload))
-                              '())
-                          (error (e)
-                            (http-condition 400 "Malformed JSON (~a)!" e))))
-                  (client (lookup-session ,cid))
-                  (_ (note 0 "~a" json))
-                  (first-args (lookup-main-args main-args json))
-                  (_ (note 0 "~a" first-args))
-                  ;; (rest-args (lookup-optional-args optional-args json))
-                  (args first-args)
-                  (lookup-fn (lookup-job-func ,func))
-                  (threads 1)
-                  (job (apply 'make-instance 'async-job
-                              :func ,func
-                              :population args
-                              :task-runner
-                              (sel/utility::task-map-async
-                               threads
-                               (if lookup-fn lookup-fn ,func)
-                               args)
-                              (list :name ,name))))
-             ;; store the job with the session
-             (push job (session-jobs client))
-             ;; return the job name
-             (async-job-name job))))
+           (let* ((,json (handler-case
+                             (if-let* ((payload (payload-as-string))
+                                       (string-nonempty (not (emptyp payload))))
+                                      (mapcar (lambda (entry) (cons (string (car entry)) (cdr entry)))
+                                              (json:decode-json-from-string payload)))
+                           (error (e)
+                             (http-condition 400 "Malformed JSON (~a)!" e))))
+                  (,lookup-fn (lookup-job-func ,func))
+                  (,lookup-fn (if ,lookup-fn ,lookup-fn ,func)))
+             (make-endpoint-job ,cid ,name ,lookup-fn ,json main-args ,command-line-args))))
        (defroute
            ,route-name (:get :text/* &key ,cid (,name nil))
          (get-job ,cid (string ,name)))

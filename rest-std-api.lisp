@@ -663,8 +663,8 @@
 (defmacro with-trace-error-handling (&rest body)
   "FIXME
 
-* BODY FIXME
-"
+   * BODY FIXME
+   "
   `(handler-bind ((end-of-file
                    (lambda (c)
                      (declare (ignorable c))
@@ -729,7 +729,6 @@
                  path)
         #(format nil "Software ID ~D successfully written to ~A" sid path)
         (format nil "~D" sid))
-
     (error (e)
       (http-condition 400
                       "Error in WRITESOFT POST method (~a)!" e))))

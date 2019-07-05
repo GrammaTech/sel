@@ -161,6 +161,7 @@
    ;; simple utility
    :*uninteresting-conditions*
    :with-quiet-compilation
+   :if-let*
    :repeatedly
    :indexed
    :different-it
@@ -1399,6 +1400,16 @@ Optional argument OUT specifies an output stream."
           (append *uninteresting-conditions*
                   uiop/lisp-build:*usual-uninteresting-conditions*)))
      ,@body))
+
+(defmacro if-let* (bindings &body (then-form &optional else-form))
+  (let* ((binding-list (if (and (consp bindings) (symbolp (car bindings)))
+                           (list bindings)
+                           bindings))
+         (variables (mapcar #'car binding-list)))
+    `(let* ,binding-list
+       (if (and ,@variables)
+           ,then-form
+           ,else-form))))
 
 (defmacro repeatedly (times &rest body)
   (let ((ignored (gensym)))

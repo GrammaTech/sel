@@ -195,7 +195,7 @@
     :accessor async-job-task-runner
     :initform nil))
   (:documentation "Task to perform asynchronously, against every item
-in a population"))
+                   in a population"))
 
 (defun session-jobs (session)
   (session-store-value session "jobs"))
@@ -233,12 +233,12 @@ in a population"))
 
 (defun lookup-job-type-entry (name)
   "Allow some special-case names, otherwise fall through to symbol
- in SEL package by the specified name."
+   in SEL package by the specified name."
   (lookup-async-job-type (convert-symbol name)))
 
 (defun lookup-job-func (func)
   "Allow some special-case names, otherwise fall through to symbol
- in SEL package by the specified name."
+   in SEL package by the specified name."
   (if-let ((entry (lookup-job-type-entry func)))
     (async-job-type-func entry)
     func))
@@ -248,10 +248,6 @@ in a population"))
   (mapcar (lambda (x)
             (mapcar (lambda (y) (convert-symbol y)) x))
           arguments))
-
-(trace lookup-job-type-entry)
-(trace type-check)
-(trace convert-symbol)
 
 (defun make-job
     (client arguments func-name func threads name)
@@ -269,13 +265,8 @@ in a population"))
                           (lookup-job-type-entry func-name))))
          (if name (list :name (string (gensym (string name)))))))
 
-(trace make-job)
-(trace session-jobs)
-(trace async-job-name)
-
-
-;; Async can now optionally take a population ID as `pid` or
-;; arguments `arguments`...
+;; now optionally take a population ID as `pid` or
+;; arguments `arguments`.
 (defroute
     async (:post "application/json" &key cid name)
   (let* ((json (handler-case

@@ -125,7 +125,7 @@
 
 (defun lookup-resource (session str)
   "See if the json value is a string which can be parsed as a resource
-lookup. Resource lookups are of the form \"<resource>:<oid>\""
+   lookup. Resource lookups are of the form \"<resource>:<oid>\""
   (if (and (stringp str)
            (find #\: str))
       (let ((spl (split-sequence #\: str)))
