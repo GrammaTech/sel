@@ -232,10 +232,7 @@ payload-as-string gets angry in that case. Maybe we can find a workaroud...
              (async-job-name job))))
        (defroute
            ,route-name (:get :text/* &key ,cid (,name nil))
-         (format t "~a ~a" ,cid ,name)
          (get-job ,cid (string ,name)))
        (defroute
            ,route-name (:get "application/json" &key ,cid (,name nil))
-         (progn
-           (format t "~a ~a" ,cid ,name)
-           (get-job ,cid (string ,name)))))))
+         (get-job ,cid (string ,name))))))
