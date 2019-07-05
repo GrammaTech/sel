@@ -6,6 +6,7 @@
    :common-lisp
    :software-evolution-library/utility
    :software-evolution-library/command-line
+   :software-evolution-library/rest-define-command-endpoint
    :software-evolution-library/rest)
   (:import-from :uiop/utility :nest)
   (:export :define-command-rest))
@@ -37,16 +38,13 @@ STATUS
     running job to return the status of the job or, when finished, to
     return the result."
   ;; Split the args to pull out types and pass names to `define-command'.
-  (let* ((arg-names (mapcar
-                     (lambda (x)
-                       (if (member x lambda-list-keywords)
-                           x
-                           (first x)))
-                     args)))
+  (let* ((part-args (partition (lambda (arg) (< (length arg) 3)) args))
+         (main-args (car args))
+         (command-args (mapcar #'car args))
+         (cli-args (cadr args)))
     ;; NOTE: Results just status or "finished/path."
     `(progn
        ;; 1. Define the command.
        (define-command ,name ,arg-names ,pre-help ,post-help ,@body)
        ;; 2. Setup rest.
-       (sel/rest:define-async-job ,name ,args :function ,name)
-       )))
+       (define-endpoint-route ,name #',name ,main-args ,cli-args))))

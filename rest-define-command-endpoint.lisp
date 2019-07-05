@@ -252,7 +252,7 @@ fact
 ((value integer)) +common-command-line-options+)
 |#
 (defmacro define-endpoint-route
-    (route-name func required-args command-line-args &rest body)
+    (route-name func required-args command-line-args)
   (let ((cid (intern (symbol-name 'cid)))
         (name (intern (symbol-name 'name)))
         (json (intern (symbol-name 'json)))
