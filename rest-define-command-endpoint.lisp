@@ -188,48 +188,54 @@ payload-as-string gets angry in that case. Maybe we can find a workaroud...
 
                                         ; (def-task-async (x y) (10 20) (format t "~a + ~a: ~a~%" x y (+ x y)))
 
+#|
+> (define-endpoint-route addfive (lambda (value) (+ value 5)) ((value integer)) ())
+|#
 (defmacro define-endpoint-route
-    (name func required-args optional-args &rest body)
-  `(progn
-     (let* ((main-args (mapcar (lambda (arg) (cons (string (car arg)) (cadr arg)))
-                               ',required-args))
-            ;; (optional-args (create-optional-json-bindings optional-args))
-            )
+    (route-name func required-args optional-args &rest body)
+  (let ((cid (intern (symbol-name 'cid)))
+        (name (intern (symbol-name 'name))))
+    `(progn
+       (let* ((main-args (mapcar (lambda (arg) (cons (string (car arg)) (cadr arg)))
+                                 ',required-args))
+              ;; (optional-args (create-optional-json-bindings optional-args))
+              )
+         (defroute
+             ,route-name (:post "application/json" &key ,cid (,name (symbol-name (gensym (string ',route-name)))))
+           (let* ((json (handler-case
+                            (if-let ((payload (payload-as-string)))
+                              (mapcar (lambda (entry) (cons (string (car entry)) (cdr entry)))
+                                      (json:decode-json-from-string payload))
+                              '())
+                          (error (e)
+                            (http-condition 400 "Malformed JSON (~a)!" e))))
+                  (client (lookup-session ,cid))
+                  (_ (note 0 "~a" json))
+                  (first-args (lookup-main-args main-args json))
+                  (_ (note 0 "~a" first-args))
+                  ;; (rest-args (lookup-optional-args optional-args json))
+                  (args first-args)
+                  (lookup-fn (lookup-job-func ,func))
+                  (threads 1)
+                  (job (apply 'make-instance 'async-job
+                              :func ,func
+                              :population args
+                              :task-runner
+                              (sel/utility::task-map-async
+                               threads
+                               (if lookup-fn lookup-fn ,func)
+                               args)
+                              (list :name ,name))))
+             ;; store the job with the session
+             (push job (session-jobs client))
+             ;; return the job name
+             (async-job-name job))))
        (defroute
-           ,name (:post "application/json" &key cid)
-         (let* ((json (handler-case
-                          (if-let ((payload (payload-as-string)))
-                            (mapcar (lambda (entry) (cons (string (car entry)) (cdr entry)))
-                                    (json:decode-json-from-string payload))
-                            '())
-                        (error (e)
-                          (http-condition 400 "Malformed JSON (~a)!" e))))
-                (client (lookup-session cid))
-                (_ (note 0 "~a" json))
-                (first-args (lookup-main-args main-args json))
-                (_ (note 0 "~a" first-args))
-                ;; (rest-args (lookup-optional-args optional-args json))
-                (args first-args)
-                (lookup-fn (lookup-job-func ,func))
-                (threads 1)
-                (job (apply 'make-instance 'async-job
-                            :func ,func
-                            :population args
-                            :task-runner
-                            (sel/utility::task-map-async
-                             threads
-                             (if lookup-fn lookup-fn ,func)
-                             args)
-                            (list :name (symbol-name (gensym (string ',name)))))))
-           ;; store the job with the session
-           (push job (session-jobs client))
-           ;; return the job name
-           (async-job-name job))))
-     (defroute
-         ,name (:get :text/* &key cid name)
-       (get-job cid name))
-     (defroute
-         ,name (:get "application/json" &key cid name)
-       (progn
-         (format t "~a ~a" cid name)
-         (get-job cid name)))))
+           ,route-name (:get :text/* &key ,cid (,name nil))
+         (format t "~a ~a" ,cid ,name)
+         (get-job ,cid (string ,name)))
+       (defroute
+           ,route-name (:get "application/json" &key ,cid (,name nil))
+         (progn
+           (format t "~a ~a" ,cid ,name)
+           (get-job ,cid (string ,name)))))))
