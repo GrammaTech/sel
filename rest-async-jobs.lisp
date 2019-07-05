@@ -290,7 +290,7 @@ in a population"))
               (aget :arguments json))) ; else assume a list
          (func-name (aget :func json))
          (func (lookup-job-func func-name)) ; name of function to run
-         (threads (aget :threads json)) ; max number of threads to use
+         (threads (or (aget :threads json) 1)) ; max number of threads to use
                                         ; must be at least 1 thread!
          (job (make-job client population func-name func threads name)))
     ;; store the software obj with the session
