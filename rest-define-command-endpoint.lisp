@@ -178,11 +178,11 @@ payload-as-string gets angry in that case. Maybe we can find a workaroud...
                (error "Did not find required argument ~a" (car argument))))
            args))
 
-(defun lookup-command-line-arguments
+(defun lookup-command-line-args
     (args json)
   (defun lookup-cl-arg
       (argument)
-    (let* ((name (caar argument))
+    (let* ((name (string-upcase (caar argument)))
            (properties (cdr argument))
            (arg-type (getf properties :type))
            (optional (getf properties :optional))
@@ -190,9 +190,9 @@ payload-as-string gets angry in that case. Maybe we can find a workaroud...
            (json-value (aget name json :test #'string=)))
       (cond
         (json-value (if (typep json-value arg-type)
-                        (cons name result)
+                        (cons (intern name :keyword) json-value)
                         (error "Expected type ~a for key ~a (with value ~a)" arg-type name json-value)))
-        ((and (not optional) init-value) (cons name init-value))
+        ((and (not optional) init-value) (cons (intern name :keyword) init-value))
         (t '())
         ;; TODO Not all optional parameters in command-line.lisp are marked as
         ;; such. Ask eschulte (or similar) if they should be fixed and the code
@@ -200,7 +200,17 @@ payload-as-string gets angry in that case. Maybe we can find a workaroud...
         ;; (optional '())
         ;; (t (error "Expected key ~a" name))
         )))
-  (remove-if #'null (mapcar lookup-cl-arg args)))
+  (flatten (mapcar #'lookup-cl-arg args)))
+
+(trace aget)
+
+(defun fact-keyword
+    (value &key help verbose)
+  (if help
+      "Computes factorial"
+      (factorial value)))
+
+(trace fact-keyword)
 
 (defun make-endpoint-job
     (session-id name job-fn json main-args command-line-args)
@@ -208,14 +218,14 @@ payload-as-string gets angry in that case. Maybe we can find a workaroud...
          (_ (note 0 "~a" json))
          (first-args (lookup-main-args main-args json))
          (_ (note 0 "~a" first-args))
-         (rest-args (lookup-command-line-args command-line-args json))
-         (args first-args)
+         (cl-args (lookup-command-line-args command-line-args json))
+         (args (list (append first-args cl-args)))
          (threads 1)
          (job (apply 'make-instance 'async-job
                      :func job-fn
                      :arguments args
                      :task-runner
-                     (sel/utility::task-map-async
+                     (sel/utility::simple-task-async-runner
                       threads
                       job-fn
                       args)
@@ -225,14 +235,21 @@ payload-as-string gets angry in that case. Maybe we can find a workaroud...
     ;; return the job name
     (async-job-name job)))
 
+(trace lookup-command-line-args)
 (trace make-endpoint-job)
-(trace task-map-async)
+(trace sel/utility::task-map-async)
+(trace sel/utility::simple-task-async-runner)
 
 #|
 (define-endpoint-route addfive (lambda (value) (+ value 5)) ((value integer)) ())
 (define-endpoint-route fact (lambda (n) (alexandria::factorial n)) ((value integer)) ())
 (define-endpoint-route fact #'alexandria::factorial ((value integer)) ())
 (define-endpoint-route iota-endpoint #'alexandria::iota ((value integer)) ())
+(define-endpoint-route fact #'alexandria::factorial ((value integer)) +common-command-line-options+)
+(define-endpoint-route
+fact
+#'software-evolution-library/rest-define-command-endpoint::fact-keyword
+((value integer)) +common-command-line-options+)
 |#
 (defmacro define-endpoint-route
     (route-name func required-args command-line-args &rest body)

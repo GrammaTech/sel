@@ -1741,6 +1741,10 @@ is replaced with replacement."
 (defun mapconcat (func list sep)
   (apply #'concatenate 'string (interleave (mapcar func list) sep)))
 
+(defun mapcaar (func list)
+  "Applies FUNC to the CAR of each element."
+  (mapcar (lambda (arg) (cons (func (car arg)) (cdr adr))) list))
+
 (defun drop (n seq)
   "Return SEQ less the first N items."
   (if (> n (length seq))
@@ -2334,15 +2338,19 @@ See the `task-job' method on `task-map' objects."))
                              :task-function function)
                            num-threads))))
 
-(defun task-map-async (num-threads function objects)
-  "Run FUNCTION over OBJECTS using a `simple-job' `task-job'."
+(defun task-map-async (num-threads func objects)
+  "Run FUNC over OBJECTS using a `simple-job' `task-job'."
   ;; Create the task-map object, and run until exhausted.
   (run-task (make-instance 'task-map
               :object objects
-              :task-function function)
+              :task-function func)
             num-threads))
 
-
+(defun simple-task-async-runner (num-threads func arguments)
+  "Run FUNCTION with ARGUMENTS as a `simple-job' `task-job'."
+  ;; Create the task-map object, and run until exhausted.
+  (task-map-async num-threads (lambda (args) (apply func args)) arguments))
+
 ;;;; Debugging helpers
 ;;;
 ;;; Functions useful for debugging lisp code.  Of particular note are
