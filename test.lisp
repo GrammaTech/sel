@@ -1880,7 +1880,7 @@
         (is (integerp oid))))))
 
 (define-async-job four-types-1
-    ((a integer) (b string) (c float) &optional ((d t) boolean))
+    ((a integer) (b string) (c float) (d boolean))
   "Test that the four supported types can be passed via REST."
   (format nil "~A: ~D, ~A: ~S, ~A: ~F, ~A: ~A"
           (type-of a) a
@@ -1889,7 +1889,8 @@
           (type-of d) d))
 
 (define-command-rest four-types-2
-    ((a integer) (b string) (c float) &optional ((d t) boolean))
+    ((a integer) (b string) (c float) (d boolean))
+  +common-command-line-options+
   nil nil
   "Test that the four supported types can be passed via REST."
   (format nil "~A: ~D, ~A: ~S, ~A: ~F, ~A: ~A"
