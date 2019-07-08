@@ -1,38 +1,17 @@
-;;; rest.lisp --- RESTful interface over SEL.
+;;; define-command-endpoint.lisp --- RESTful interface for command endpoints.
 ;;;
-;;; Rest API for Software Evolution Library
+;;; Rest Endpoint definitions for Software Evolution Library
 ;;;
-;;; The Rest API for Software Evolution Library is implemented as a web
-;;; service which may be accessed via HTTP operations.
-;;;
-;;; It attempts to conform to principals described here:
-;;; @uref{https://en.wikipedia.org/wiki/Representational_state_transfer,
-;;; Representational State Transfer}
 ;;;
 ;;; @subsection Dependencies
 ;;;
-;;; The Rest API leverages a number of Common Lisp components, which
-;;; are open-source and generally available via Quicklisp.  These
-;;; packages support JSON <-> Common Lisp translations, JSON
-;;; streaming, HTTP web server functions, client HTTP support and
-;;; RESTful interface utilities.
+;;; This depends on all the dependencies defined in the core REST library,
+;;; plus the asynchronous REST job definitions in SEL.
 ;;;
-;;;  CL-JSON
-;;;      Parse and generate JSON format
-;;;  ST-JSON
-;;;      Stream support for JSON format
-;;;  CLACK
-;;;      utility to easily launch web services
-;;;  DRAKMA
-;;;      http client utilities for Common Lisp (for calling Rest
-;;;      APIs/testing
-;;;  HUNCHENTOOT
-;;;      Web server, written in Common Lisp, hosts Rest APIs
-;;;  SNOOZE
-;;;      Rest API framework
+;;; @subsection Using the endpoint service.
 ;;;
-;;; @subsection Running the Rest API Web Service
-;;;
+;;; The endpoint service provides one main entry point,
+;;; @code{define-endpoint-route}. This takes
 ;;; See the main service for how to run the server.
 ;;;
 ;;; @subsection Resources and Operations
@@ -107,15 +86,12 @@
   (:nicknames :sel/rest-define-command-endpoint)
   (:use
    :alexandria
-   :arrow-macros
    :named-readtables
    :curry-compose-reader-macros
    :common-lisp
    :snooze
    :split-sequence
    :cl-json
-   :iterate
-   :trace-db
    :software-evolution-library/software-evolution-library
    :software-evolution-library/command-line
    :software-evolution-library/utility
@@ -125,6 +101,7 @@
    :software-evolution-library/components/traceable
    :software-evolution-library/rest-sessions
    :software-evolution-library/rest-async-jobs
+   :software-evolution-library/rest-utility
    :software-evolution-library/software/parseable
    :software-evolution-library/software/clang)
   (:shadowing-import-from :clack :clackup :stop)
@@ -202,8 +179,6 @@ payload-as-string gets angry in that case. Maybe we can find a workaroud...
         )))
   (flatten (mapcar #'lookup-cl-arg args)))
 
-(trace aget)
-
 (defun fact-keyword
     (value &key help verbose)
   (if help
@@ -241,7 +216,9 @@ payload-as-string gets angry in that case. Maybe we can find a workaroud...
 (trace sel/utility::simple-task-async-runner)
 
 #|
-(define-endpoint-route addfive (lambda (value) (+ value 5)) ((value integer)) ())
+(define-endpoint-route addfive (lambda (value) (+ value 5))
+'() 'sel/rest-async-jobs::lookup-session-job-status
+((value integer)) ())
 (define-endpoint-route fact (lambda (n) (alexandria::factorial n)) ((value integer)) ())
 (define-endpoint-route fact #'alexandria::factorial ((value integer)) ())
 (define-endpoint-route iota-endpoint #'alexandria::iota ((value integer)) ())
@@ -252,29 +229,52 @@ fact
 ((value integer)) +common-command-line-options+)
 |#
 (defmacro define-endpoint-route
-    (route-name func required-args command-line-args)
+    (route-name func environment status-fn required-args
+     &optional (command-line-args '())
+       (environment '())
+       (status-fn 'sel/rest-async-jobs::lookup-session-job-status))
+  " Defines routes via `DEFROUTE` to run the function and retrieve results.
+
+The `define-endpoint-route` macro sets up endpoint routes to start asynchronous
+jobs remotely, mirroring the command definitions from `define-command`. For
+example, the following invocation of `define-endpoint-route` will set up an
+endpoint that adds five to numbers:
+
+    (define-endpoint-route addfive (lambda (value) (+ value 5))
+     '() 'sel/rest-async-jobs::lookup-session-job-status
+     ((value integer)) ())
+"
   (let ((cid (intern (symbol-name 'cid)))
         (name (intern (symbol-name 'name)))
         (json (intern (symbol-name 'json)))
-        (lookup-fn (intern (symbol-name 'lookup-fn))))
-    `(progn
-       (let* ((main-args (mapcar (lambda (arg) (cons (string (car arg)) (cadr arg)))
-                                 ',required-args)))
+        (lookup-fn (intern (symbol-name 'lookup-fn)))
+        (bindings (mapcar (lambda (var) (list var nil)) environment)))
+    `(let*
+         ,bindings
+       (progn
+         (let* ((main-args (mapcar (lambda (arg) (cons (string (car arg)) (cadr arg)))
+                                   ',required-args)))
+           (defroute
+               ,route-name (:post "application/json"
+                                  &key ,cid
+                                  (,name (string-upcase
+                                          (make-gensym-string ',route-name))))
+             (let* ((,json (handler-case
+                               (if-let* ((payload (payload-as-string))
+                                         (string-nonempty (not (emptyp payload))))
+                                        (mapcar (lambda (entry) (cons (string (car entry)) (cdr entry)))
+                                                (json:decode-json-from-string payload)))
+                             (error (e)
+                               (http-condition 400 "Malformed JSON (~a)!" e))))
+                    (,lookup-fn (lookup-job-func ,func))
+                    (,lookup-fn (if ,lookup-fn ,lookup-fn ,func)))
+               (make-endpoint-job ,cid ,name ,lookup-fn ,json main-args ,command-line-args))))
          (defroute
-             ,route-name (:post "application/json" &key ,cid (,name (symbol-name (gensym (string ',route-name)))))
-           (let* ((,json (handler-case
-                             (if-let* ((payload (payload-as-string))
-                                       (string-nonempty (not (emptyp payload))))
-                                      (mapcar (lambda (entry) (cons (string (car entry)) (cdr entry)))
-                                              (json:decode-json-from-string payload)))
-                           (error (e)
-                             (http-condition 400 "Malformed JSON (~a)!" e))))
-                  (,lookup-fn (lookup-job-func ,func))
-                  (,lookup-fn (if ,lookup-fn ,lookup-fn ,func)))
-             (make-endpoint-job ,cid ,name ,lookup-fn ,json main-args ,command-line-args))))
-       (defroute
-           ,route-name (:get :text/* &key ,cid (,name nil))
-         (get-job ,cid (string ,name)))
-       (defroute
-           ,route-name (:get "application/json" &key ,cid (,name nil))
-         (get-job ,cid (string ,name))))))
+             ,route-name (:get :text/* &key ,cid (,name nil))
+           (,status-fn (lookup-session ,cid) (string-upcase (string ,name))))
+         (defroute
+             ,route-name (:get "application/json" &key ,cid (,name nil))
+           (,status-fn (lookup-session ,cid) (string-upcase (string ,name))))
+         (trace ,route-name)
+         (trace ,status-fn)
+         ))))

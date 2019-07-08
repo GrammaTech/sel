@@ -76,7 +76,6 @@
   (:nicknames :sel/rest-async-jobs)
   (:use
    :alexandria
-   :arrow-macros
    :named-readtables
    :curry-compose-reader-macros
    :common-lisp
@@ -103,7 +102,9 @@
            :async-job-name
            :define-async-job
            :lookup-job-func
-           :get-job
+           :format-job-as-json
+           :lookup-session-job
+           :lookup-session-job-status
            :session-jobs))
 (in-package :software-evolution-library/rest-async-jobs)
 (in-readtable :curry-compose-reader-macros)
@@ -179,7 +180,7 @@
   ((name
     :initarg :name
     :accessor async-job-name
-    :initform (symbol-name (gensym "JOB-"))
+    :initform (make-gensym-string "JOB-")
     :documentation "Unique name/id for the job")
    (arguments
     :initarg :arguments
@@ -221,15 +222,15 @@
       :completed-tasks (task-runner-completed-tasks task-runner)
       :results (task-runner-results task-runner)))))
 
-(defun get-job (cid name)
-  (let* ((client (lookup-session cid)))
-    (if client
-        (let ((job (and name (find-job client name))))
-          (if (null job)
-              (let ((job-names (iter (for x in (session-jobs client))
-                                     (collect (async-job-name x)))))
-                (json:encode-json-to-string job-names))
-              (format-job-as-json job))))))
+(defun lookup-session-job (session name)
+  (and name (find-job session (string-upcase name))))
+
+(defun lookup-session-job-status (session name)
+  (when session
+    (if-let ((job (lookup-session-job session name)))
+      (format-job-as-json job)
+      (json:encode-json-to-string
+       (mapcar #'async-job-name (session-jobs session))))))
 
 (defun lookup-job-type-entry (name)
   "Allow some special-case names, otherwise fall through to symbol
@@ -243,12 +244,6 @@
     (async-job-type-func entry)
     func))
 
-(defun type-check (arguments job-type-entry)
-  (declare (ignore job-type-entry)) ; use this later
-  (mapcar (lambda (x)
-            (mapcar (lambda (y) (convert-symbol y)) x))
-          arguments))
-
 (defun make-job
     (client arguments func-name func threads name)
   (apply 'make-instance
@@ -261,9 +256,9 @@
           func
           (if (typep arguments 'population)
               (population-individuals arguments)
-              (type-check arguments
-                          (lookup-job-type-entry func-name))))
-         (if name (list :name (string (gensym (string name)))))))
+              (mapcar (lambda (x) (mapcar #'convert-symbol x))
+                      arguments)))
+         (if name (list :name (make-gensym-string name)))))
 
 ;; now optionally take a population ID as `pid` or
 ;; arguments `arguments`.
@@ -274,16 +269,18 @@
                  (error (e)
                    (http-condition 400 "Malformed JSON (~a)!" e))))
          (client (lookup-session cid))
-         (pid (aget :pid json))  ; name/id of population
+         (pid (aget :pid json))                ; name/id of population
          (arguments
-          (if pid ;; prefer population to arguments
-              (find-population client pid) ; pid specifies a population
-              (aget :arguments json))) ; else assume a list
+          (if pid                             ; prefer population to arguments
+              (find-population client pid)    ; pid specifies a population
+              (aget :arguments json)))        ; else assume a list
          (func-name (aget :func json))
-         (func (lookup-job-func func-name)) ; name of function to run
+         (func (lookup-job-func func-name))    ; name of function to run
          (threads (or (aget :threads json) 1)) ; max number of threads to use
                                         ; must be at least 1 thread!
-         (job (make-job client population func-name func threads name)))
+         (job (make-job client population
+                        func-name func threads
+                        (string-upcase name))))
     ;; store the software obj with the session
     ;; (push-session-store-value client "jobs" job)
     (push job (session-jobs client))
@@ -291,8 +288,8 @@
 
 (defroute
     async (:get :text/* &key cid name)
-  (get-job cid name))
+  (lookup-session-job-status (lookup-session cid) name))
 
 (defroute
     async (:get "application/json" &key cid name)
-  (get-job cid name))
+  (lookup-session-job-status (lookup-session cid) name))

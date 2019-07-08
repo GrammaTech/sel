@@ -1797,6 +1797,27 @@
   (with-fixture odd-even-asm-super-reg-test-att
     (asm-super-mutant-finds-improved-version)))
 
+;;; Command Line tests
+(defsuite cl-tests "Command Line tool tests.")
+
+(define-command fact-cl-entry
+    (n &spec +common-command-line-options+)
+  "Test that canonical REST endpoints work. Computes factorial."
+  #.(format nil
+            "~%Built from SEL ~a, and ~a ~a.~%"
+            +software-evolution-library-version+
+            (lisp-implementation-type) (lisp-implementation-version))
+  (declare (ignorable interactive manual quiet verbose))
+  (if help
+      (show-help-for-fact-entry)
+      (factorial n)))
+
+(deftest run-factorial-cl-func ()
+  (let ((result-1 (fact-entry 5 :verbose 3))
+        (result-2 (fact-entry 52235215 :help T)))
+    (is (eql result-1 121))
+    (is (eql result-2 nil))))
+
 
 ;;; REST tests
 (defsuite rest-tests "REST API tests.")
@@ -1888,17 +1909,6 @@
           (type-of c) c
           (type-of d) d))
 
-(define-command-rest four-types-2
-    ((a integer) (b string) (c float) (d boolean))
-  +common-command-line-options+
-  nil nil
-  "Test that the four supported types can be passed via REST."
-  (format nil "~A: ~D, ~A: ~S, ~A: ~F, ~A: ~A"
-          (type-of a) a
-          (type-of b) b
-          (type-of c) c
-          (type-of d) d))
-
 (deftest run-async-job-func ()
   (let ((result
          (sel/rest:apply-async-job-func 'four-types-1 10 "twenty" 30.1 t)))
@@ -1907,6 +1917,17 @@
     (is (search "30.1" result))
     (is (search " T" result))))
 
+(define-command-rest four-types-2
+    ((a integer) (b string) (c float) (d boolean)
+     &spec +common-command-line-options+)
+  "Test that the four supported types can be passed to an endpoint via REST."
+  nil
+  (format nil "~A: ~D, ~A: ~S, ~A: ~F, ~A: ~A"
+          (type-of a) a
+          (type-of b) b
+          (type-of c) c
+          (type-of d) d))
+
 (deftest run-rest-command-line-func ()
   (let ((result
          (four-types-2 10 "twenty" 30.1 t)))
@@ -1914,6 +1935,26 @@
     (is (search "\"twenty\"" result))
     (is (search "30.1" result))
     (is (search " T" result))))
+
+(define-command-rest fact-entry
+    ((n integer) &spec +common-command-line-options+)
+  "Test that canonical REST endpoints work. Computes factorial."
+  #.(format nil
+            "~%Built from SEL ~a, and ~a ~a.~%"
+            +software-evolution-library-version+
+            (lisp-implementation-type) (lisp-implementation-version))
+  (declare (ignorable interactive manual quiet verbose))
+  (if help
+      (show-help-for-fact-entry)
+      (factorial n)))
+
+(trace fact-entry)
+
+(deftest run-rest-factorial-cl-func ()
+  (let ((result-1 (fact-entry 5 :verbose 3))
+        (result-2 (fact-entry 52235215 :help T)))
+    (is (eql result-1 120))
+    (is (eql result-2 nil))))
 
 
 ;;; CSURF-ASM representation.

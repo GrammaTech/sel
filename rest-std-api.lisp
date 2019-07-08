@@ -241,7 +241,6 @@
   (:nicknames :sel/rest-std-api)
   (:use
    :alexandria
-   :arrow-macros
    :named-readtables
    :curry-compose-reader-macros
    :common-lisp
@@ -372,7 +371,7 @@
   ((name
     :initarg :name
     :accessor population-name
-    :initform (symbol-name (gensym "POP-"))
+    :initform (make-gensym-string "pop-")
     :documentation "Unique name/id for the population")
    (individuals
     :initarg :individuals

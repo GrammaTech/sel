@@ -7,7 +7,6 @@
   (:nicknames :sel/rest-sessions)
   (:use
    :alexandria
-   :arrow-macros
    :named-readtables
    :curry-compose-reader-macros
    :common-lisp
