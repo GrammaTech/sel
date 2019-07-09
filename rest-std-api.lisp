@@ -289,6 +289,9 @@
 (defun session-software (session)
   (session-store-value session "software"))
 
+(defun (setf session-software) (value session)
+  (setf (session-store-value session "software") value))
+
 (defroute
     soft (:post "application/json" &key cid (sid nil) (type nil))
   (declare (ignore sid))
@@ -386,6 +389,9 @@
 (defun session-populations (session)
   (session-store-value session "populations"))
 
+(defun (setf session-populations) (value session)
+  (setf (session-store-value session "populations") value))
+
 (defun find-population (client pop-name)
   "Return the population from the client record (if found)."
   (car (member pop-name (session-populations client)
@@ -465,6 +471,9 @@
 (defun session-mutations (session)
   (session-store-value session "mutations"))
 
+(defun (setf session-mutations) (value session)
+  (setf (session-store-value session "mutations") value))
+
 (defun find-mutation (session mid)
   "Return the mutation from the session record (if found)."
   (car (member mid (session-mutations session)
@@ -533,6 +542,9 @@
 
 (defun session-test-suites (session)
   (session-store-value session "test-suites"))
+
+(defun (setf session-test-suites) (value session)
+  (setf (session-store-value session "test-suites") value))
 
 (defun find-test-suite (client oid)
   "Return the test-suite from the client record with specified oid (if found)."

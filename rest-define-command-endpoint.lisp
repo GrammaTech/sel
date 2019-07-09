@@ -229,21 +229,21 @@ fact
 ((value integer)) +common-command-line-options+)
 |#
 (defmacro define-endpoint-route
-    (route-name func environment status-fn required-args
+    (route-name func required-args
      &optional (command-line-args '())
        (environment '())
        (status-fn 'sel/rest-async-jobs::lookup-session-job-status))
   " Defines routes via `DEFROUTE` to run the function and retrieve results.
 
-The `define-endpoint-route` macro sets up endpoint routes to start asynchronous
-jobs remotely, mirroring the command definitions from `define-command`. For
-example, the following invocation of `define-endpoint-route` will set up an
-endpoint that adds five to numbers:
+   The `define-endpoint-route` macro sets up endpoint routes to start asynchronous
+   jobs remotely, mirroring the command definitions from `define-command`. For
+   example, the following invocation of `define-endpoint-route` will set up an
+   endpoint that adds five to numbers:
 
-    (define-endpoint-route addfive (lambda (value) (+ value 5))
-     '() 'sel/rest-async-jobs::lookup-session-job-status
-     ((value integer)) ())
-"
+   (define-endpoint-route addfive (lambda (value) (+ value 5))
+                          ((value integer)) ()
+                          '() 'sel/rest-async-jobs::lookup-session-job-status)
+   "
   (let ((cid (intern (symbol-name 'cid)))
         (name (intern (symbol-name 'name)))
         (json (intern (symbol-name 'json)))
@@ -252,7 +252,8 @@ endpoint that adds five to numbers:
     `(let*
          ,bindings
        (progn
-         (let* ((main-args (mapcar (lambda (arg) (cons (string (car arg)) (cadr arg)))
+         (let* ((main-args (mapcar (lambda (arg)
+                                     (cons (string (car arg)) (cadr arg)))
                                    ',required-args)))
            (defroute
                ,route-name (:post "application/json"
@@ -261,14 +262,18 @@ endpoint that adds five to numbers:
                                           (make-gensym-string ',route-name))))
              (let* ((,json (handler-case
                                (if-let* ((payload (payload-as-string))
-                                         (string-nonempty (not (emptyp payload))))
-                                        (mapcar (lambda (entry) (cons (string (car entry)) (cdr entry)))
-                                                (json:decode-json-from-string payload)))
+                                         (string-nonempty
+                                          (not (emptyp payload))))
+                                        (mapcaar #'string
+                                                 (json:decode-json-from-string payload)))
                              (error (e)
-                               (http-condition 400 "Malformed JSON (~a)!" e))))
+                               (http-condition
+                                400
+                                "Malformed JSON (~a)!" e))))
                     (,lookup-fn (lookup-job-func ,func))
                     (,lookup-fn (if ,lookup-fn ,lookup-fn ,func)))
-               (make-endpoint-job ,cid ,name ,lookup-fn ,json main-args ,command-line-args))))
+               (make-endpoint-job ,cid ,name ,lookup-fn
+                                  ,json main-args ,command-line-args))))
          (defroute
              ,route-name (:get :text/* &key ,cid (,name nil))
            (,status-fn (lookup-session ,cid) (string-upcase (string ,name))))
@@ -276,5 +281,4 @@ endpoint that adds five to numbers:
              ,route-name (:get "application/json" &key ,cid (,name nil))
            (,status-fn (lookup-session ,cid) (string-upcase (string ,name))))
          (trace ,route-name)
-         (trace ,status-fn)
-         ))))
+         (trace ,status-fn)))))
