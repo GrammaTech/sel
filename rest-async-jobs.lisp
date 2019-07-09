@@ -1,9 +1,6 @@
-;;; rest.lisp --- RESTful interface over SEL.
+;;; async-jobs.lisp --- RESTful asynchronous job interface over SEL.
 ;;;
-;;; Rest API for Software Evolution Library
-;;;
-;;; The Rest API for Software Evolution Library is implemented as a web
-;;; service which may be accessed via HTTP operations.
+;;; Rest API for performing asynchronous jobs as part of SEL.
 ;;;
 ;;; It attempts to conform to principals described here:
 ;;; @uref{https://en.wikipedia.org/wiki/Representational_state_transfer,
@@ -12,27 +9,10 @@
 ;;; @subsection Dependencies
 ;;;
 ;;; The Rest API leverages a number of Common Lisp components, which
-;;; are open-source and generally available via Quicklisp.  These
-;;; packages support JSON <-> Common Lisp translations, JSON
-;;; streaming, HTTP web server functions, client HTTP support and
-;;; RESTful interface utilities.
-;;;
-;;;  CL-JSON
-;;;      Parse and generate JSON format
-;;;  ST-JSON
-;;;      Stream support for JSON format
-;;;  CLACK
-;;;      utility to easily launch web services
-;;;  DRAKMA
-;;;      http client utilities for Common Lisp (for calling Rest
-;;;      APIs/testing
-;;;  HUNCHENTOOT
-;;;      Web server, written in Common Lisp, hosts Rest APIs
-;;;  SNOOZE
-;;;      Rest API framework
-;;;
-;;; See rest.lisp for how to start the server.
-;;;
+;;; are open-source and generally available via Quicklisp.  See the core REST
+;;; file for a full description and how to start a rest server. In addition,
+;;; this file is built from the session and standard library definitions for
+;;; REST provided as part of SEL.
 ;;;
 ;;; @subsection Resources and Operations
 ;;;
@@ -42,34 +22,33 @@
 ;;;
 ;;; The following types of resources are supported.
 ;;;
-;;;
 ;;;  Jobs
 ;;;     Any long running operation which starts a task and returns to
 ;;;     the client immediately.  Examples of jobs include running
 ;;;     evolutions, fitness tests across large populations, and
 ;;;     searches.
 ;;;
-;;;
 ;;; @subsubsection Operations on Resources
 ;;;
-;;; Note: all operations (other than session create) require a client-ID
-;;; parameter. Although only specified in the first ones below, all others
-;;; require it as well.
+;;; Note: asynchronous job management requires a @code{cid} (Client ID) integer
+;;; value representing the Client ID for session lookup. See the client
+;;; sessions file for endpoint usage to acquire one.
 ;;;
 ;;; Async-Job:
 ;;;
 ;;;  POST
-;;;     @code{<service-base>/async?type=<job-type>} Body
+;;;     @code{<service-base>/async?cid=<cid>?type=<job-type>} Body
 ;;;     contains (JSON) parameters for EVOLVE task, FITNESS-TEST or
 ;;;     other defined type of task.  Returns immediately with a
 ;;;     Job-ID (jid).  Creating a Job starts a task (on a new
 ;;;     thread) which will execute until stopped or completed.
 ;;;  GET
-;;;     @code{<service-base>/async?jid=<Job-ID>} Returns JSON
+;;;     @code{<service-base>/async?cid=<cid>?jid=<Job-ID>} Returns JSON
 ;;;     containing job status and results.
 ;;;  PUT
-;;;     @code{<service-base>/async?jid=<Job-ID>&<update-vars>}
+;;;     @code{<service-base>/async?cid=<cid>?jid=<Job-ID>&<update-vars>}
 ;;;     Allows some control of the task, such as stopping the task.
+;;;     (Currently not implemented.)
 ;;;
 ;;; @texi{rest}
 (defpackage :software-evolution-library/rest-async-jobs

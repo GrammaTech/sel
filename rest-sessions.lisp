@@ -1,6 +1,52 @@
-;;; rest-sessions.lisp --- Interface for managing RESTful sessions.
+;;; sessions.lisp --- Interface for managing RESTful sessions.
 ;;;
-;;; This defines abilites to create new sessions and lookup existing sessions.
+;;; This defines abilites to create new sessions and lookup existing sessions,
+;;; managed by session client ID.
+;;;
+;;; @subsection Dependencies
+;;;
+;;; The Rest API leverages a number of Common Lisp components, which
+;;; are open-source and generally available via Quicklisp.  See the core REST
+;;; file for a full description and how to start a rest server.
+;;;
+;;; @subsection Resources and Operations
+;;;
+;;; A standard SEL Rest API supports logical resources, all driven by an
+;;; underlying client session system. This file defines that client session
+;;; system, including the internal data structures and the client session
+;;; endpoint.
+;;;
+;;; @subsubsection Resources
+;;;
+;;; The following resources are define by this file:
+;;;
+;;;  Client sessions
+;;;     establish ownership of a jobs, software objects, populations, etc.
+;;;
+;;; @subsubsection Operations on Resources
+;;;
+;;; Client:
+;;;
+;;;  See the `sessions` section for more details.
+;;;
+;;;  POST
+;;;     @code{<service-base>/client} Create a new client session. The
+;;;     request should include a JSON body for special variable bindings
+;;;     including:
+;;;
+;;;     - @code{max-population-size (integer)} : Max Population Size (see
+;;;       @code{*max-population-size*})
+;;;     - @code{mutation-rate (float)} : Mutation Rate (see
+;;;       @code{*mut-rate*})
+;;;     - @code{cross-chance (float)} : Cross Chance (see
+;;;       @code{*cross-chance*})
+;;;
+;;;     Returns the Client-ID.
+;;;  DELETE
+;;;     @code{<service-base>/client&cid=<cid>} Delete
+;;;     the client session, and cause all the software objects
+;;;     owned by the session to become garbage.
+;;;
 ;;;
 ;;; @texi{rest}
 (defpackage :software-evolution-library/rest-sessions
@@ -41,16 +87,19 @@
   "Keep a collection of live session objects")
 
 (defun lookup-session (cid)
+  "Look up a session by Client ID."
   (if (symbolp cid)
       (setf cid (string-downcase (symbol-name cid))))
   (gethash cid *session-pool*))
 
 (defun lookup-session-value (cid key)
+  "Look up a session value by Client ID and key."
   (if-let ((client (lookup-session cid)))
     (session-store-value client (string-downcase (string key)))
     NIL))
 
 (defun set-session-value (cid key value)
+  "Set a session value by Client ID and key."
   (if-let ((client (lookup-session cid)))
     (setf (session-store-value
            client
@@ -99,9 +148,9 @@
 (defun (setf session-property) (value session name)
   (setf (gethash name (session-properties session)) value))
 
-;; Creates a new session, returning the appropriate session ID.
 (defun create-new-session
-    (&optional max-population-size cross-chance mutation-rate)
+    "Creates a new session, returning the appropriate session ID."
+  (&optional max-population-size cross-chance mutation-rate)
   (let ((session-obj
          (make-instance
              'session

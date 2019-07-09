@@ -2,83 +2,63 @@
 ;;;
 ;;; Rest Endpoint definitions for Software Evolution Library
 ;;;
+;;; This allows for the easy definition of new command endpoints to run
+;;; the specified input as an asynchronous task, including retrieving the status
+;;; and results of the task. See the core REST file for a full description and
+;;; how to start a rest server.
 ;;;
 ;;; @subsection Dependencies
 ;;;
-;;; This depends on all the dependencies defined in the core REST library,
-;;; plus the asynchronous REST job definitions in SEL.
+;;; The Rest API leverages a number of Common Lisp components, which
+;;; are open-source and generally available via Quicklisp. In addition,
+;;; this file is built from the session and asynchronous job definitions for
+;;; REST provided as part of SEL.
+;;;
 ;;;
 ;;; @subsection Using the endpoint service.
 ;;;
 ;;; The endpoint service provides one main entry point,
-;;; @code{define-endpoint-route}. This takes
-;;; See the main service for how to run the server.
+;;; @code{define-endpoint-route}. This takes the following arguments:
 ;;;
-;;; @subsection Resources and Operations
+;;;  - route-name - The name to use for the REST route.
+;;;  - func - The function to invoke on given arguments
+;;;  - required-args - The named arguments to the function with associated
+;;;    types, which will be used to decode the POST JSON.
+;;;  - command-line-args (optional) - Additional, optional arguments defined as
+;;;    per command-line.lisp.
+;;;  - environment (optional) - Variables to let-bind before starting the
+;;;    function (such as globals we should dynamically bind). These will be
+;;;    initialized to NIL before each `func` task is created.
+;;;  - status-fn (optional) - A function to run to retrieve the status of the
+;;;    endpoint. It takes the current session and job name as input. If none is
+;;;    specified, it defaults to
+;;;    @code{sel/rest-async-jobs::lookup-session-job-status}.
 ;;;
-;;; A Rest API supports logical resources. This section lists the logical
-;;; resources supported by the SEL Rest APIs. In some cases (e.g. Software)
-;;; there is a class hierarchy in the SEL package which directly models the
-;;; resource. Or rather, the resource can be thought to be a distillation
-;;; of the methods of that class. In other cases (e.g. Populations) there
-;;; isn't a specific class in SEL. The Rest API resource in this course
-;;; provides a way to name and manage lists of Software objects.
-;;;
-;;; @subsubsection Resources
-;;;
-;;; The following types of resources are supported.
-;;;
-;;;  Software
-;;;      Any non-abstract class that inherits from SOFTWARE
-;;;
-;;;
-;;; @subsubsection Operations on Resources
-;;;
-;;; Note: all operations (other than session create) require a client-ID
-;;; parameter. Although only specified in the first ones below, all others
-;;; require it as well.
-;;;
-;;; Client:
+;;; When invoked, this will produce a new REST resource with the following
+;;; operations:
 ;;;
 ;;;  POST
-;;;     @code{<service-base>/client} Create a new client.  Body
-;;;     (JSON) contains initial values for special variable settings.
-;;;     Returns the Client-ID.
-;;;  DELETE
-;;;     @code{<service-base>/client&cid=<client-ID>} Delete
-;;;     the client session, and cause all the software objects
-;;;     owned by the client to become garbage.
-;;;
-;;; Software:
-;;;
-;;;  POST
-;;;     @code{<service-base>/soft?cid=<client-ID>&type=<software-type>}
-;;;     Body, JSON format, contains path (to C file, AST, Asm file,
-;;;     etc.), or a URL to a file, or the actual source code which
-;;;     would comprise the file.  If the body simply contains a
-;;;     software ID (sid), makes a copy of the software object.
-;;;     All JSON fields which are not [path, url, code,
-;;;     software-id] are passed as keyword parameters to
-;;;     (MAKE-INSTANCE '<software-type> &key).  Returns a software
-;;;     object ID of newly created software.
+;;;     @code{<service-base>/<route-name>?cid=<client-ID>&name=<task-name>}
+;;;     This also takes JSON post data whose keys should correspond (by name)
+;;;     to the required arguments specified in @code{required-args}, plus any
+;;;     additional, optional arguments as specified by
+;;;     @code{command-line-args}. It starts a new, asynchronous job with the
+;;;     appropriate name and returns the job name. If @code{name} is not
+;;;     specified, this will generate a new name based on the route name.
 ;;;  GET
-;;;     @code{<service-base>/soft?cid=<client-ID>&sid=<software
-;;;     ID>} Returns JSON describing software object (differs
-;;;     depending on type of software).
+;;;     @code{<service-base>/<route-name>?cid=<client-ID>}
+;;;     Returns the list of active jobs for the session.
 ;;;  GET
-;;;     @code{<service-base>/soft?type=<software type>} Returns
-;;;     IDs of live software objects of the passed type, owned by
-;;;     the client.
-;;;  GET
-;;;     @code{<service-base>/soft} Return IDs of all live
-;;;     software objects owned by the client.
+;;;     @code{<service-base>/<route-name>soft?cid=<client-ID>&name=<task-name>}
+;;;     Invokes `status-fn` on the client session and job name and returns the
+;;;     result.
 ;;;  PUT
-;;;     @code{<service-base>/soft?sid=<software ID>} Update a
-;;;     software object.  Body (JSON) contains slots to update, new
-;;;     values.
+;;;     @code{<service-base>/<route-name>soft?cid=<client-ID>&name=<task-name>}
+;;;     Performs the specified JSON operation on the named task, if
+;;;     appropriate. (Unimplemented.)
 ;;;  DELETE
-;;;     @code{<service-base>/soft?sid=<software ID>} Delete a
-;;;     software object.  (work in progress)
+;;;     @code{<service-base>/<route-name>soft?cid=<client-ID>&name=<task-name>}
+;;;     Terminates the named task, if appropriate. (Unimplemented.)
 ;;;
 ;;;
 ;;; @texi{rest}
@@ -109,44 +89,9 @@
 (in-package :software-evolution-library/rest-define-command-endpoint)
 (in-readtable :curry-compose-reader-macros)
 
-;;; WIP
-;;; WIP
-;;; WIP
-;;;
-;;; Endpoint definitions macros for `define-command-rest`.
-;;;
-;;; The required arguments are of the form (<name> type>), as:
-;;;
-;;; ((source string) (num-tests integer))
-;;;
-;;; The type can be any of integer, float, string, or boolean.
-;;;
-;;; Optional arguments are expected to be of the form of arguments in
-;;; command-line.lisp, e.g.:
-;;;
-;;; (("help" #\h #\?)
-;;;  :TYPE BOOLEAN
-;;;  :OPTIONAL T
-;;;  :DOCUMENTATION "display help output")
-;;;
-;;; This should work:
-#|
-> (define-endpoint-route addfive (lambda (value) (+ value 5)) ((value integer)) ())
-. . .
-~> curl -X POST -H "Accept: application/json" \
--H "Content-Type: application/json" \
-http://127.0.0.1:9003/addfive?cid='client-1001' \
--d '{"value" : 5}'
-
-TODO
-- Ideally the thing should work without an empty json field, but
-payload-as-string gets angry in that case. Maybe we can find a workaroud...
-- Write a parser / handler for optional arguments
-- Incorporate into define-command-rest
-- Write test cases
-|#
 (defun lookup-main-args
-    (args json)
+    "Resolve the `(<name> . <type>)` list of arguments from the JSON payload."
+  (args json)
   (mapcar  (lambda (argument)
              (if-let ((result (aget (car argument) json :test #'string=)))
                (if (typep result (cdr argument))
@@ -156,7 +101,8 @@ payload-as-string gets angry in that case. Maybe we can find a workaroud...
            args))
 
 (defun lookup-command-line-args
-    (args json)
+    "Resolve the command line-based list of arguments from the JSON payload."
+  (args json)
   (defun lookup-cl-arg
       (argument)
     (let* ((name (string-upcase (caar argument)))
@@ -179,16 +125,11 @@ payload-as-string gets angry in that case. Maybe we can find a workaroud...
         )))
   (flatten (mapcar #'lookup-cl-arg args)))
 
-(defun fact-keyword
-    (value &key help verbose)
-  (if help
-      "Computes factorial"
-      (factorial value)))
-
-(trace fact-keyword)
-
 (defun make-endpoint-job
-    (session-id name job-fn json main-args command-line-args)
+    "Perform the actual setup and invocation for the endpoint POST request.
+Starts an asynchronous job through the task runner and pushes it onto the
+client session jobs."
+  (session-id name job-fn json main-args command-line-args)
   (let* ((session (lookup-session session-id))
          (_ (note 0 "~a" json))
          (first-args (lookup-main-args main-args json))
@@ -210,75 +151,89 @@ payload-as-string gets angry in that case. Maybe we can find a workaroud...
     ;; return the job name
     (async-job-name job)))
 
-(trace lookup-command-line-args)
-(trace make-endpoint-job)
-(trace sel/utility::task-map-async)
-(trace sel/utility::simple-task-async-runner)
+                                        ; (trace lookup-command-line-args)
+                                        ; (trace make-endpoint-job)
+                                        ; (trace sel/utility::task-map-async)
+                                        ; (trace sel/utility::simple-task-async-runner)
 
-#|
-(define-endpoint-route addfive (lambda (value) (+ value 5))
-'() 'sel/rest-async-jobs::lookup-session-job-status
-((value integer)) ())
-(define-endpoint-route fact (lambda (n) (alexandria::factorial n)) ((value integer)) ())
-(define-endpoint-route fact #'alexandria::factorial ((value integer)) ())
-(define-endpoint-route iota-endpoint #'alexandria::iota ((value integer)) ())
-(define-endpoint-route fact #'alexandria::factorial ((value integer)) +common-command-line-options+)
-(define-endpoint-route
-fact
-#'software-evolution-library/rest-define-command-endpoint::fact-keyword
-((value integer)) +common-command-line-options+)
-|#
 (defmacro define-endpoint-route
     (route-name func required-args
      &optional (command-line-args '())
        (environment '())
        (status-fn 'sel/rest-async-jobs::lookup-session-job-status))
-  " Defines routes via `DEFROUTE` to run the function and retrieve results.
+  " Macro to define routes to run the function and retrieve results.
 
-   The `define-endpoint-route` macro sets up endpoint routes to start asynchronous
-   jobs remotely, mirroring the command definitions from `define-command`. For
-   example, the following invocation of `define-endpoint-route` will set up an
-   endpoint that adds five to numbers:
+The `define-endpoint-route` macro sets up endpoint routes via `DEFROUTE`
+to start asynchronous jobs remotely, mirroring the command definitions from
+`define-command`. The arguments are:
 
-   (define-endpoint-route addfive (lambda (value) (+ value 5))
-                          ((value integer)) ()
-                          '() 'sel/rest-async-jobs::lookup-session-job-status)
-   "
-  (let ((cid (intern (symbol-name 'cid)))
-        (name (intern (symbol-name 'name)))
-        (json (intern (symbol-name 'json)))
-        (lookup-fn (intern (symbol-name 'lookup-fn)))
+- route-name - The name to use for the REST route.
+- func - The function to invoke on given arguments
+- required-args - The named arguments to the function with associated
+  types, which will be used to decode the POST JSON
+  (e.g., `((x integer) (y string))`).
+- command-line-args (optional) - Additional, optional arguments defined as
+  per command-line.lisp.
+- environment (optional) - Variables to let-bind before starting the
+  function (such as globals we should dynamically bind). These will be
+  initialized to NIL before each `func` task is created.
+- status-fn (optional) - A function to run to retrieve the status of the
+  endpoint. It takes the current session and job name as input. If none is
+  specified, it defaults to 'sel/rest-async-jobs::lookup-session-job-status.
+
+For example, the following invocation of `define-endpoint-route` will set up an
+endpoint that adds five to numbers:
+
+(define-endpoint-route addfive (lambda (value) (+ value 5))
+                       ((value integer))
+                       '() '()
+                       'sel/rest-async-jobs::lookup-session-job-status)
+
+An appropriate REST invocation for this endpoint might look like:
+
+curl -X POST -H \"Accept: application/json\" \
+             -H \"Content-Type: application/json\" \
+             http://127.0.0.1:9003/addfive?cid='client-1001' \
+             -d '{\"value\" : 5}'
+
+In addition, you can directly name endpoint functions, e.g.:
+
+(define-endpoint-route fact #'alexandria::factorial ((value integer)))
+
+In this case, the function must be in scope wherever this macro is envoed."
+  (let ((package (package-name *package*))
+        (cid (intern (symbol-name 'cid) package))
+        (name (intern (symbol-name 'name) package))
+        (json (intern (symbol-name 'json) package))
+        (lookup-fn (intern (symbol-name 'lookup-fn) package))
         (bindings (mapcar (lambda (var) (list var nil)) environment)))
-    `(let*
-         ,bindings
-       (progn
-         (let* ((main-args (mapcar (lambda (arg)
-                                     (cons (string (car arg)) (cadr arg)))
-                                   ',required-args)))
-           (defroute
-               ,route-name (:post "application/json"
-                                  &key ,cid
-                                  (,name (string-upcase
-                                          (make-gensym-string ',route-name))))
-             (let* ((,json (handler-case
-                               (if-let* ((payload (payload-as-string))
-                                         (string-nonempty
-                                          (not (emptyp payload))))
-                                        (mapcaar #'string
-                                                 (json:decode-json-from-string payload)))
-                             (error (e)
-                               (http-condition
-                                400
-                                "Malformed JSON (~a)!" e))))
-                    (,lookup-fn (lookup-job-func ,func))
-                    (,lookup-fn (if ,lookup-fn ,lookup-fn ,func)))
+    `(progn
+       (let ((main-args (mapcar (lambda (arg)
+                                  (cons (string (car arg)) (cadr arg)))
+                                ',required-args)))
+         (defroute
+             ,route-name (:post "application/json"
+                                &key ,cid
+                                (,name (string-upcase
+                                        (make-gensym-string ',route-name))))
+           (let* ((,json (handler-case
+                             (if-let* ((payload (payload-as-string))
+                                       (string-nonempty
+                                        (not (emptyp payload))))
+                                      (mapcaar #'string
+                                               (json:decode-json-from-string payload)))
+                           (error (e)
+                             (http-condition
+                              400
+                              "Malformed JSON (~a)!" e))))
+                  (,lookup-fn (lookup-job-func ,func))
+                  (,lookup-fn (if ,lookup-fn ,lookup-fn ,func)))
+             (let ,bindings
                (make-endpoint-job ,cid ,name ,lookup-fn
-                                  ,json main-args ,command-line-args))))
-         (defroute
-             ,route-name (:get :text/* &key ,cid (,name nil))
-           (,status-fn (lookup-session ,cid) (string-upcase (string ,name))))
-         (defroute
-             ,route-name (:get "application/json" &key ,cid (,name nil))
-           (,status-fn (lookup-session ,cid) (string-upcase (string ,name))))
-         (trace ,route-name)
-         (trace ,status-fn)))))
+                                  ,json main-args ,command-line-args)))))
+       (defroute
+           ,route-name (:get :text/* &key ,cid (,name nil))
+         (,status-fn (lookup-session ,cid) (string-upcase (string ,name))))
+       (defroute
+           ,route-name (:get "application/json" &key ,cid (,name nil))
+         (,status-fn (lookup-session ,cid) (string-upcase (string ,name)))))))

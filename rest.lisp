@@ -1,9 +1,11 @@
-;;; rest.lisp --- RESTful interface over SEL.
+;;; rest.lisp --- RESTful server definition for SEL.
 ;;;
-;;; Rest API for Software Evolution Library
+;;; Rest server definition for Software Evolution Library
 ;;;
 ;;; The Rest API for Software Evolution Library is implemented as a web
-;;; service which may be accessed via HTTP operations.
+;;; service which may be accessed via HTTP resources. This file serves as an
+;;; entry point to these definitions, providing a simple way to start up the
+;;; main REST service.
 ;;;
 ;;; It attempts to conform to principals described here:
 ;;; @uref{https://en.wikipedia.org/wiki/Representational_state_transfer,
@@ -45,6 +47,14 @@
 ;;;
 ;;;     (start-server)            ;; will stop, if running, then start
 ;;;
+;;; @subsection REST Services
+;;;
+;;; By default, this provides the endpoints defined in sessions, the standard
+;;; REST API, and asynchronous jobs, plus providing the define-command-endpoint
+;;; macro. If you would like to create a rest serevr without all of these
+;;; resources, you should recreate a similar file but omit the imports you wish
+;;; to avoid using.
+;;;
 ;;; @texi{rest}
 (defpackage :software-evolution-library/rest
   (:nicknames :sel/rest)
@@ -57,7 +67,6 @@
    :split-sequence
    :cl-json
    :iterate
-   :trace-db
    :software-evolution-library/software-evolution-library
    :software-evolution-library/utility
    :software-evolution-library/components/test-suite
