@@ -1,0 +1,2 @@
+char *c = "\nabcde\
+fgh";

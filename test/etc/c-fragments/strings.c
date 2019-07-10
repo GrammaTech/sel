@@ -1,0 +1,1 @@
+char *c = "abc""def";
