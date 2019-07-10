@@ -49,6 +49,8 @@
            :to-ast
            :ast-later-p
            :map-ast
+           :map-ast
+           :map-ast-postorder
            :mapc-ast
            :mapc-ast-and-strings
            :ast-to-list
@@ -864,6 +866,15 @@ the methods in parseable.lisp instead.")
   "Apply FN to AST collecting the results with `cons'."
   (cons (funcall fn ast)
         (mapcar {mapc-ast _ fn} (remove-if-not #'ast-p (ast-children ast)))))
+
+(defgeneric map-ast-postorder (tree fn)
+  (:documentation "Apply FN to each node of AST, in postorder."))
+
+(defmethod map-ast-postorder ((tree ast) fn)
+  (dolist (c (ast-children tree))
+    (when (ast-p c) (map-ast-postorder c fn)))
+  (funcall fn tree)
+  tree)
 
 (defun mapc-ast-and-strings (ast fn)
   "Apply FN to ASTs and strings in AST collecting the results with `cons'."
