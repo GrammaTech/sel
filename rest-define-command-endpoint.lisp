@@ -116,13 +116,8 @@
                         (cons (intern name :keyword) json-value)
                         (error "Expected type ~a for key ~a (with value ~a)" arg-type name json-value)))
         ((and (not optional) init-value) (cons (intern name :keyword) init-value))
-        (t '())
-        ;; TODO Not all optional parameters in command-line.lisp are marked as
-        ;; such. Ask eschulte (or similar) if they should be fixed and the code
-        ;; below should be instated, or this current code is permissive enough.
-        ;; (optional '())
-        ;; (t (error "Expected key ~a" name))
-        )))
+        ;; Ignore anything that does not have a default value or definition.
+        (t '()))))
   (flatten (mapcar #'lookup-cl-arg args)))
 
 (defun make-endpoint-job
@@ -148,11 +143,6 @@ client session jobs."
     (push job (session-jobs session))
     ;; return the job name
     (async-job-name job)))
-
-                                        ; (trace lookup-command-line-args)
-                                        ; (trace make-endpoint-job)
-                                        ; (trace sel/utility::task-map-async)
-                                        ; (trace sel/utility::simple-task-async-runner)
 
 (defmacro define-endpoint-route
     (route-name func required-args
