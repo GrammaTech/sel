@@ -468,24 +468,6 @@ to `to-ast`.  E.g.
   (:documentation "Make arbitrary replacements within AST, returning a new
 AST."))
 
-(defgeneric insert-ast (tree location ast)
-  (:documentation "Return the modified TREE with AST inserted at
-LOCATION."))
-
-(defgeneric insert-ast-after (tree location ast)
-  (:documentation "Insert AST immediately after LOCATION in TREE, returning
-new tree."))
-
-(defgeneric replace-ast (object location replacement &key &allow-other-keys)
-  (:documentation "Replace the AST at LOCATION in OBJECT with REPLACEMENT."))
-
-(defgeneric remove-ast (tree location)
-  (:documentation "Return the modified TREE with the AST at LOCATION removed."))
-
-(defgeneric splice-asts (tree location new-asts)
-  (:documentation "Splice NEW-ASTS directly into the given LOCATION in TREE,
-replacing the original AST."))
-
 (defgeneric fixup-mutation (operation current before ast after)
   (:documentation "Adjust mutation result according to syntactic context."))
 
@@ -594,6 +576,12 @@ operations."
 
 
 ;;; Tree manipulations
+;;;
+;;; NOTE: These methods are helpers performing the AST manipulations for
+;;; the corresponding mutation operations in parseable.lisp.  They should
+;;; not be called directly unless you are confident in what you are doing
+;;; and accept that behavior of the parent software object may be incorrect.
+
 (defgeneric replace-nth-child (ast n replacement)
   (:documentation "Return AST with the nth child of AST replaced with
 REPLACEMENT.
@@ -609,116 +597,128 @@ REPLACEMENT.
                             replacement
                             (subseq (ast-children ast) (+ 1 n))))))
 
-(defmethod replace-ast ((tree ast) (location ast) (replacement ast)
-                        &rest args &key &allow-other-keys)
-  (apply #'replace-ast tree (ast-path location) replacement args))
+(defgeneric replace-ast (tree location replacement)
+  (:documentation "Replace the AST at LOCATION in TREE with REPLACEMENT.
 
-(defmethod replace-ast ((tree ast) (location list) (replacement ast)
-                        &key &allow-other-keys)
-  (labels        ; TODO: Remove or relocate all of this "fixup" logic.
-    ((non-empty (str)
-       "Return STR only if it's not empty.
+* TREE Applicative AST tree to be modified
+* LOCATION AST marking location where replacement is to occur
+* NEW-ASTS ASTs to be inserted into TREE
 
-asts->tree tends to leave dangling empty strings at the ends of child
-list, and we want to treat them as NIL in most cases."
-       (when (not (equalp str "")) str))
-     (helper (tree path next)
-         (bind (((head . tail) path)
-                (children (ast-children tree)))
-           (if tail
-               ;; The insertion may need to modify text farther up the
-               ;; tree. Pass down the next bit of non-empty text and
-               ;; get back a new string.
-               (multiple-value-bind (child new-next)
-                   (helper (nth head children)
-                           tail
-                           (or (non-empty (nth (1+ head) children))
-                               next))
-                 (if (and new-next (non-empty (nth (1+ head) children)))
-                     ;; The modified text belongs here. Insert it.
-                     (values (copy tree
-                                   :children (nconc (subseq children
-                                                            0 head)
-                                                    (list child new-next)
-                                                    (subseq children
-                                                            (+ 2 head))))
-                             nil)
+Note: This method is a helper for performing an AST mutation operation
+specified in parseable.lisp and should not be called directly without
+knowledge of the underlying code architecture.  Please consider using
+the methods in parseable.lisp instead.")
+  (:method ((tree ast) (location ast) (replacement ast))
+    (replace-ast tree (ast-path location) replacement))
 
-                     ;; Otherwise keep passing it up the tree.
-                     (values (replace-nth-child tree head child)
-                             new-next)))
-               (let* ((after (nth (1+ head) children))
-                      (fixed (fixup-mutation :instead
-                                             (nth head children)
-                                             (if (positive-integer-p head)
-                                                 (nth (1- head) children)
-                                                 "")
-                                             replacement
-                                             (or (non-empty after) next))))
+  (:method ((tree ast) (location list) (replacement ast))
+    (labels        ; TODO: Remove or relocate all of this "fixup" logic.
+      ((non-empty (str)
+         "Return STR only if it's not empty.
 
-                 (if (non-empty after)
-                     ;; fixup-mutation can change the text after the
-                     ;; insertion (e.g. to remove a semicolon). If
-                     ;; that text is part of this AST, just include it
-                     ;; in the list.
-                     (values
-                      (copy tree
-                            :children (nconc (subseq children
-                                                     0 (max 0 (1- head)))
-                                             fixed
-                                             (nthcdr (+ 2 head) children)))
-                      nil)
+          asts->tree tends to leave dangling empty strings at the ends of child
+          list, and we want to treat them as NIL in most cases."
+         (when (not (equalp str "")) str))
+       (helper (tree path next)
+           (bind (((head . tail) path)
+                  (children (ast-children tree)))
+             (if tail
+                 ;; The insertion may need to modify text farther up the
+                 ;; tree. Pass down the next bit of non-empty text and
+                 ;; get back a new string.
+                 (multiple-value-bind (child new-next)
+                     (helper (nth head children)
+                             tail
+                             (or (non-empty (nth (1+ head) children))
+                                 next))
+                   (if (and new-next (non-empty (nth (1+ head) children)))
+                       ;; The modified text belongs here. Insert it.
+                       (values (copy tree
+                                     :children (nconc (subseq children
+                                                              0 head)
+                                                      (list child new-next)
+                                                      (subseq children
+                                                              (+ 2 head))))
+                               nil)
 
-                     ;; If the text we need to modify came from
-                     ;; farther up the tree, return it instead of
-                     ;; inserting it here.
-                     (values
-                      (copy tree
-                            :children (nconc (subseq children
-                                                     0 (max 0 (1- head)))
-                                             (butlast fixed)
-                                             (nthcdr (+ 2 head) children)))
-                      (lastcar fixed))))))))
-    (if location
-        (helper tree location nil)
-        replacement)))
+                       ;; Otherwise keep passing it up the tree.
+                       (values (replace-nth-child tree head child)
+                               new-next)))
+                 (let* ((after (nth (1+ head) children))
+                        (fixed (fixup-mutation :instead
+                                               (nth head children)
+                                               (if (positive-integer-p head)
+                                                   (nth (1- head) children)
+                                                   "")
+                                               replacement
+                                               (or (non-empty after) next))))
 
-(defmethod remove-ast ((tree ast) (location ast))
-  "Return the modified TREE with the AST at LOCATION removed.
+                   (if (non-empty after)
+                       ;; fixup-mutation can change the text after the
+                       ;; insertion (e.g. to remove a semicolon). If
+                       ;; that text is part of this AST, just include it
+                       ;; in the list.
+                       (values
+                        (copy tree
+                              :children (nconc (subseq children
+                                                       0 (max 0 (1- head)))
+                                               fixed
+                                               (nthcdr (+ 2 head) children)))
+                        nil)
+
+                       ;; If the text we need to modify came from
+                       ;; farther up the tree, return it instead of
+                       ;; inserting it here.
+                       (values
+                        (copy tree
+                              :children (nconc (subseq children
+                                                       0 (max 0 (1- head)))
+                                               (butlast fixed)
+                                               (nthcdr (+ 2 head) children)))
+                        (lastcar fixed))))))))
+      (if location
+          (helper tree location nil)
+          replacement))))
+
+(defgeneric remove-ast (tree location)
+  (:documentation "Return the modified TREE with the AST at LOCATION removed.
+
 * TREE Applicative AST tree to be modified
 * LOCATION AST to be removed in TREE
-"
-  (remove-ast tree (ast-path location)))
 
-(defmethod remove-ast ((tree ast) (location list))
-  "Return the modified TREE with the AST at LOCATION removed.
-* TREE Applicative AST tree to be modified
-* LOCATION path to the AST to be removed in TREE
-"
-  (labels
-      ((helper (tree path)
-         (bind (((head . tail) path)
-                (children (ast-children tree)))
-           (if tail
-               ;; Recurse into child
-               (replace-nth-child tree head (helper (nth head children) tail))
+Note: This method is a helper for performing an AST mutation operation
+specified in parseable.lisp and should not be called directly without
+knowledge of the underlying code architecture.  Please consider using
+the methods in parseable.lisp instead.")
+  (:method ((tree ast) (location ast))
+    (remove-ast tree (ast-path location)))
 
-               ;; Remove child
-               (copy tree
-                     :children (nconc (subseq children 0 (max 0 (1- head)))
-                                      (fixup-mutation
-                                        :remove
-                                        (nth head children)
-                                        (if (positive-integer-p head)
-                                            (nth (1- head) children)
-                                            "")
-                                        nil
-                                        (or (nth (1+ head) children) ""))
-                                      (nthcdr (+ 2 head) children)))))))
-    (helper tree location)))
+  (:method ((tree ast) (location list))
+    (labels
+        ((helper (tree path)
+           (bind (((head . tail) path)
+                  (children (ast-children tree)))
+             (if tail
+                 ;; Recurse into child
+                 (replace-nth-child tree head (helper (nth head children) tail))
 
-(defmethod splice-asts ((tree ast) (location ast) (new-asts list))
-  "Splice a list directly into the given location, replacing the original AST.
+                 ;; Remove child
+                 (copy tree
+                       :children (nconc (subseq children 0 (max 0 (1- head)))
+                                        (fixup-mutation
+                                          :remove
+                                          (nth head children)
+                                          (if (positive-integer-p head)
+                                              (nth (1- head) children)
+                                              "")
+                                          nil
+                                          (or (nth (1+ head) children) ""))
+                                        (nthcdr (+ 2 head) children)))))))
+      (helper tree location))))
+
+(defgeneric splice-asts (tree location new-asts)
+  (:documentation "Splice NEW-ASTS directly into the given LOCATION in TREE,
+replacing the original AST.
 
 Can insert ASTs and text snippets. Does minimal syntactic fixups, so
 use carefully.
@@ -726,102 +726,103 @@ use carefully.
 * TREE Applicative AST tree to be modified
 * LOCATION AST marking location where insertion is to occur
 * NEW-ASTS ASTs to be inserted into TREE
-"
-  (splice-asts tree (ast-path location) new-asts))
 
-(defmethod splice-asts ((tree ast) (location list) (new-asts list))
-  "Splice a list directly into the given location, replacing the original AST.
+Note: This method is a helper for performing an AST mutation operation
+specified in parseable.lisp and should not be called directly without
+knowledge of the underlying code architecture.  Please consider using
+the methods in parseable.lisp instead.")
+  (:method ((tree ast) (location ast) (new-asts list))
+    (splice-asts tree (ast-path location) new-asts))
 
-Can insert ASTs and text snippets. Does minimal syntactic fixups, so
-use carefully.
+  (:method ((tree ast) (location list) (new-asts list))
+    (labels
+      ((helper (tree path)
+         (bind (((head . tail) path)
+                (children (ast-children tree)))
+           (if tail
+               ;; Recurse into child
+               (replace-nth-child tree head (helper (nth head children) tail))
 
-* TREE Applicative AST tree to be modified
-* LOCATION path to the AST where insertion is to occur
-* NEW-ASTS ASTs to be inserted into TREE"
-  (labels
-    ((helper (tree path)
-       (bind (((head . tail) path)
-              (children (ast-children tree)))
-         (if tail
-             ;; Recurse into child
-             (replace-nth-child tree head (helper (nth head children) tail))
+               ;; Splice into children
+               (copy tree
+                     :children (nconc (subseq children 0 head)
+                                      new-asts
+                                      (nthcdr (1+ head) children)))))))
+      (helper tree location))))
 
-             ;; Splice into children
-             (copy tree
-                   :children (nconc (subseq children 0 head)
-                                    new-asts
-                                    (nthcdr (1+ head) children)))))))
-    (helper tree location)))
+(defgeneric insert-ast (tree location ast)
+  (:documentation "Return the modified TREE with AST inserted at
+LOCATION.
 
-(defmethod insert-ast ((tree ast) (location ast) (replacement ast))
-  "Return the modified TREE with the REPLACEMENT inserted at LOCATION.
 * TREE Applicative AST tree to be modified
 * LOCATION AST marking location where insertion is to occur
 * REPLACEMENT AST to insert
-"
-  (insert-ast tree (ast-path location) replacement))
 
-(defmethod insert-ast ((tree ast) (location list) (replacement ast))
-  "Return the modified TREE with the REPLACEMENT inserted at LOCATION.
-* TREE Applicative AST tree to be modified
-* LOCATION path to the AST where insertion is to occur
-* REPLACEMENT AST to insert
-"
-  (labels
-    ((helper (tree path)
-       (bind (((head . tail) path)
-              (children (ast-children tree)))
-         (if tail
-             ;; Recurse into child
-             (replace-nth-child tree head (helper (nth head children) tail))
+Note: This method is a helper for performing an AST mutation operation
+specified in parseable.lisp and should not be called directly without
+knowledge of the underlying code architecture.  Please consider using
+the methods in parseable.lisp instead.")
+  (:method ((tree ast) (location ast) (replacement ast))
+    (insert-ast tree (ast-path location) replacement))
 
-             ;; Insert into children
-             (copy tree
-                   :children (nconc (subseq children 0 (max 0 (1- head)))
-                                    (fixup-mutation
-                                      :before
-                                      (nth head children)
-                                      (if (positive-integer-p head)
-                                          (nth (1- head) children)
-                                          "")
-                                      replacement
-                                      (or (nth head children) ""))
-                                    (nthcdr (1+ head) children)))))))
-    (helper tree location)))
+  (:method ((tree ast) (location list) (replacement ast))
+    (labels
+      ((helper (tree path)
+         (bind (((head . tail) path)
+                (children (ast-children tree)))
+           (if tail
+               ;; Recurse into child
+               (replace-nth-child tree head (helper (nth head children) tail))
 
-(defmethod insert-ast-after ((tree ast) (location ast) (replacement ast))
-  "Return the modified TREE with the REPLACEMENT inserted after LOCATION.
-* TREE Applicative AST tree to be modified
-* LOCATION path to the AST where insertion is to occur immediately after
-* REPLACEMENT AST to insert
-"
-  (insert-ast-after tree (ast-path location) replacement))
+               ;; Insert into children
+               (copy tree
+                     :children (nconc (subseq children 0 (max 0 (1- head)))
+                                      (fixup-mutation
+                                        :before
+                                        (nth head children)
+                                        (if (positive-integer-p head)
+                                            (nth (1- head) children)
+                                            "")
+                                        replacement
+                                        (or (nth head children) ""))
+                                      (nthcdr (1+ head) children)))))))
+      (helper tree location))))
 
-(defmethod insert-ast-after ((tree ast) (location list) (replacement ast))
-  "Return the modified TREE with the REPLACEMENT inserted after LOCATION.
+(defgeneric insert-ast-after (tree location ast)
+  (:documentation "Insert AST immediately after LOCATION in TREE, returning
+new tree.
+
 * TREE Applicative AST tree to be modified
 * LOCATION path to the AST where insertion is to occur immediately after
 * REPLACEMENT AST to insert
-"
-  (labels
-    ((helper (tree path)
-       (bind (((head . tail) path)
-              (children (ast-children tree)))
-         (if tail
-             ;; Recurse into child
-             (replace-nth-child tree head (helper (nth head children) tail))
 
-             ;; Insert into children
-             (copy tree
-                   :children (nconc (subseq children 0 (max 0 head))
-                                    (fixup-mutation
-                                      :after
-                                      (nth head children)
-                                      (nth head children)
-                                      replacement
-                                      (or (nth (1+ head) children) ""))
-                                    (nthcdr (+ 2 head) children)))))))
-    (helper tree location)))
+Note: This method is a helper for performing an AST mutation operation
+specified in parseable.lisp and should not be called directly without
+knowledge of the underlying code architecture.  Please consider using
+the methods in parseable.lisp instead.")
+  (:method ((tree ast) (location ast) (replacement ast))
+    (insert-ast-after tree (ast-path location) replacement))
+
+  (:method ((tree ast) (location list) (replacement ast))
+    (labels
+      ((helper (tree path)
+         (bind (((head . tail) path)
+                (children (ast-children tree)))
+           (if tail
+               ;; Recurse into child
+               (replace-nth-child tree head (helper (nth head children) tail))
+
+               ;; Insert into children
+               (copy tree
+                     :children (nconc (subseq children 0 (max 0 head))
+                                      (fixup-mutation
+                                        :after
+                                        (nth head children)
+                                        (nth head children)
+                                        replacement
+                                        (or (nth (1+ head) children) ""))
+                                      (nthcdr (+ 2 head) children)))))))
+      (helper tree location))))
 
 
 ;;; Map over the nodes of an AST
@@ -907,7 +908,7 @@ use carefully.
   (:method (ast)
     (if (ast-p ast)
         (peel-bananas (source-text ast))
-        (format nil "~A" ast))))                
+        (format nil "~A" ast))))
 
 (defgeneric ast-hash (ast)
   (:documentation "A hash value for the AST, which is a nonnegative

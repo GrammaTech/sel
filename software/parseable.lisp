@@ -991,7 +991,9 @@ to allow for successful mutation of SOFTWARE at PT."
 * OBJ object to be modified
 * LOCATION location where insertion is to occur
 * AST AST to insert
-* LITERAL keyword to control whether recontextualization is performed")
+* LITERAL keyword to control whether recontextualization is performed
+          For modifications where the replacement is to be directly
+          inserted, pass this keyword as true.")
   (:method ((obj parseable) (location ast) (ast ast)
             &rest args &key &allow-other-keys)
     (apply #'insert-ast obj (ast-path location) ast args))
@@ -1009,7 +1011,9 @@ with REPLACEMENT.
 * OBJ object to be modified
 * LOCATION location where replacement is to occur
 * REPLACEMENT AST or ASTs to insert
-* LITERAL keyword to control whether recontextualization is performed")
+* LITERAL keyword to control whether recontextualization is performed
+          For modifications where the replacement is to be directly
+          inserted, pass this keyword as true.")
   (:method ((obj parseable) (location ast) (replacement ast)
             &rest args &key &allow-other-keys)
     (apply #'replace-ast obj (ast-path location) replacement args))
