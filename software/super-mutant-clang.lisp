@@ -28,16 +28,17 @@
   (labels
       ((ensure-functions-compatible (f1 f2 mutant)
          (unless (ast-equal-p f1 f2)
-           (unless (string= (ast-name f1) (ast-name f2))
+           (unless (name= (ast-name f1) (ast-name f2))
              (error (make-condition 'mutate
                                     :text "Mismatched function names"
                                     :obj mutant)))
+           #+nil
            (unless (eq (ast-void-ret f1) (ast-void-ret f2))
              (error (make-condition 'mutate
                                     :text "Mismatched return types"
                                     :obj mutant)))
            (unless (and (eq (ast-varargs f1) (ast-varargs f2))
-                        (equal (ast-args f1) (ast-args f2)))
+                        (ast-args-equal (ast-args f1) (ast-args f2)))
              (error (make-condition 'mutate
                                     :text "Mismatched function arguments"
                                     :obj mutant)))))
