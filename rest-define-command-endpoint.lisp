@@ -90,8 +90,8 @@
 (in-readtable :curry-compose-reader-macros)
 
 (defun lookup-main-args
-    "Resolve the `(<name> . <type>)` list of arguments from the JSON payload."
-  (args json)
+    (args json)
+  "Resolve the `(<name> . <type>)` list of arguments from the JSON payload."
   (mapcar  (lambda (argument)
              (if-let ((result (aget (car argument) json :test #'string=)))
                (if (typep result (cdr argument))
@@ -101,8 +101,8 @@
            args))
 
 (defun lookup-command-line-args
-    "Resolve the command line-based list of arguments from the JSON payload."
-  (args json)
+    (args json)
+  "Resolve the command line-based list of arguments from the JSON payload."
   (defun lookup-cl-arg
       (argument)
     (let* ((name (string-upcase (caar argument)))
@@ -126,14 +126,12 @@
   (flatten (mapcar #'lookup-cl-arg args)))
 
 (defun make-endpoint-job
-    "Perform the actual setup and invocation for the endpoint POST request.
+    (session-id name job-fn json main-args command-line-args)
+  "Perform the actual setup and invocation for the endpoint POST request.
 Starts an asynchronous job through the task runner and pushes it onto the
 client session jobs."
-  (session-id name job-fn json main-args command-line-args)
   (let* ((session (lookup-session session-id))
-         (_ (note 0 "~a" json))
          (first-args (lookup-main-args main-args json))
-         (_ (note 0 "~a" first-args))
          (cl-args (lookup-command-line-args command-line-args json))
          (args (list (append first-args cl-args)))
          (threads 1)
@@ -201,12 +199,12 @@ In addition, you can directly name endpoint functions, e.g.:
 (define-endpoint-route fact #'alexandria::factorial ((value integer)))
 
 In this case, the function must be in scope wherever this macro is envoed."
-  (let ((package (package-name *package*))
-        (cid (intern (symbol-name 'cid) package))
-        (name (intern (symbol-name 'name) package))
-        (json (intern (symbol-name 'json) package))
-        (lookup-fn (intern (symbol-name 'lookup-fn) package))
-        (bindings (mapcar (lambda (var) (list var nil)) environment)))
+  (let* ((package (package-name *package*))
+         (cid (intern (symbol-name 'cid) package))
+         (name (intern (symbol-name 'name) package))
+         (json (intern (symbol-name 'json) package))
+         (lookup-fn (intern (symbol-name 'lookup-fn) package))
+         (bindings (mapcar (lambda (var) (list var nil)) environment)))
     `(progn
        (let ((main-args (mapcar (lambda (arg)
                                   (cons (string (car arg)) (cadr arg)))

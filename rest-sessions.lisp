@@ -149,8 +149,8 @@
   (setf (gethash name (session-properties session)) value))
 
 (defun create-new-session
-    "Creates a new session, returning the appropriate session ID."
-  (&optional max-population-size cross-chance mutation-rate)
+    (&optional max-population-size cross-chance mutation-rate)
+  "Creates a new session, returning the appropriate session ID."
   (let ((session-obj
          (make-instance
              'session

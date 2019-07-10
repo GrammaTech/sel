@@ -224,7 +224,7 @@
     func))
 
 (defun make-job
-    (client arguments func-name func threads name)
+    (arguments func-name func threads &optional name)
   (apply 'make-instance
          'async-job
          :arguments arguments
@@ -247,22 +247,22 @@
                    (json:decode-json-from-string (payload-as-string))
                  (error (e)
                    (http-condition 400 "Malformed JSON (~a)!" e))))
-         (client (lookup-session cid))
+         (session (lookup-session cid))
          (pid (aget :pid json))                ; name/id of population
          (arguments
           (if pid                             ; prefer population to arguments
-              (find-population client pid)    ; pid specifies a population
+              (find-population session pid)    ; pid specifies a population
               (aget :arguments json)))        ; else assume a list
          (func-name (aget :func json))
          (func (lookup-job-func func-name))    ; name of function to run
          (threads (or (aget :threads json) 1)) ; max number of threads to use
                                         ; must be at least 1 thread!
-         (job (make-job client population
+         (job (make-job arguments
                         func-name func threads
                         (string-upcase name))))
     ;; store the software obj with the session
     ;; (push-session-store-value client "jobs" job)
-    (push job (session-jobs client))
+    (push job (session-jobs session))
     (async-job-name job)))
 
 (defroute

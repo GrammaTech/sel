@@ -1815,7 +1815,7 @@
 (deftest run-factorial-cl-func ()
   (let ((result-1 (fact-entry 5 :verbose 3))
         (result-2 (fact-entry 52235215 :help T)))
-    (is (eql result-1 121))
+    (is (eql result-1 120))
     (is (eql result-2 nil))))
 
 
@@ -1947,8 +1947,6 @@
   (if help
       (show-help-for-fact-entry)
       (factorial n)))
-
-(trace fact-entry)
 
 (deftest run-rest-factorial-cl-func ()
   (let ((result-1 (fact-entry 5 :verbose 3))
