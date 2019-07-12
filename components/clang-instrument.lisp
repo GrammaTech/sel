@@ -801,13 +801,6 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
                      (evolve-files clang-project)
                      :key #'cdr)))
 
-(defmethod instrument :around ((clang-project clang-project) &rest args
-    &aux (num-threads (or (plist-get :num-threads args) 0)))
-  "Optimization to parse CLANG-PROJECT ASTs in multiple threads prior to
-instrumentation."
-  (task-map num-threads #'asts (mapcar #'cdr (evolve-files clang-project)))
-  (call-next-method))
-
 (defmethod instrument ((clang-project clang-project) &rest args
     &aux (names (make-thread-safe-hash-table :test #'equalp))
          (types (make-thread-safe-hash-table :test #'equalp))
