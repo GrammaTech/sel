@@ -106,6 +106,9 @@ See the documentation of `update-asts' for required invariants.")
 (defmethod ast-to-list ((obj parseable))
   (ast-to-list (ast-root obj)))
 
+(defgeneric get-ast (obj path)
+  (:documentation "Return the AST in OBJ at the given PATH."))
+
 (defgeneric get-parent-ast (obj ast)
   (:documentation "Return the parent node of AST in OBJ"))
 
