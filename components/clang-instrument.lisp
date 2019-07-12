@@ -44,8 +44,6 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
 
 enum type_format {
     __GT_TRACEDB_UNSIGNED,       /* unsigned integer */
@@ -202,6 +200,9 @@ static void write_trace_blobs(FILE *out, uint32_t n_vars, ...)
   "
 #ifndef __GT_TRACEDB_IMPL
 #define __GT_TRACEDB_IMPL
+
+#include <string.h>
+
 typedef struct {
     /* Index into the string dictionary which gives the name of the type. */
     uint32_t name_index;
@@ -256,6 +257,7 @@ void write_trace_header(FILE *out, pthread_mutex_t *lock,
 (define-constant +write-trace-initialization+
   (concatenate 'string "
 #include <unistd.h>
+#include <stdlib.h>
 void __attribute__((constructor(101))) __bi_setup_log_file() {
   FILE *handshake_file = NULL;
   const char *handshake_file_path = getenv(\"~a\");
