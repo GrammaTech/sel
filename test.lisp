@@ -1949,10 +1949,9 @@
       (factorial n)))
 
 (deftest run-rest-factorial-cl-func ()
-  (let ((result-1 (fact-entry 5 :verbose 3))
-        (result-2 (fact-entry 52235215 :help T)))
-    (is (eql result-1 120))
-    (is (eql result-2 nil))))
+  (let ((*standard-output* (make-broadcast-stream)))
+    (is (eql (fact-entry 5 :verbose 3) 120))
+    (is (eql (fact-entry 52235215 :help T) nil))))
 
 
 ;;; CSURF-ASM representation.
