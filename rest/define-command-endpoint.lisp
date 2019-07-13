@@ -32,7 +32,7 @@
 ;;;  - status-fn (optional) - A function to run to retrieve the status of the
 ;;;    endpoint. It takes the current session and job name as input. If none is
 ;;;    specified, it defaults to
-;;;    @code{sel/rest-async-jobs::lookup-session-job-status}.
+;;;    @code{sel/rest/async-jobs::lookup-session-job-status}.
 ;;;
 ;;; When invoked, this will produce a new REST resource with the following
 ;;; operations:
@@ -62,9 +62,10 @@
 ;;;
 ;;;
 ;;; @texi{rest}
-(defpackage :software-evolution-library/rest-define-command-endpoint
-  (:nicknames :sel/rest-define-command-endpoint)
+(defpackage :software-evolution-library/rest/define-command-endpoint
+  (:nicknames :sel/rest/define-command-endpoint)
   (:use
+   :common-lisp
    :alexandria
    :named-readtables
    :curry-compose-reader-macros
@@ -79,16 +80,16 @@
    :software-evolution-library/components/formatting
    :software-evolution-library/components/instrument
    :software-evolution-library/components/traceable
-   :software-evolution-library/rest-sessions
-   :software-evolution-library/rest-async-jobs
-   :software-evolution-library/rest-utility
+   :software-evolution-library/rest/sessions
+   :software-evolution-library/rest/async-jobs
+   :software-evolution-library/rest/utility
    :software-evolution-library/software/parseable
    :software-evolution-library/software/clang)
   (:shadowing-import-from :clack :clackup :stop)
-  (:import-from :software-evolution-library/rest-async-jobs
+  (:import-from :software-evolution-library/rest/async-jobs
                 :lookup-session-job-status)
   (:export :define-endpoint-route))
-(in-package :software-evolution-library/rest-define-command-endpoint)
+(in-package :software-evolution-library/rest/define-command-endpoint)
 (in-readtable :curry-compose-reader-macros)
 
 (defun lookup-main-args
@@ -116,8 +117,10 @@
       (cond
         (json-value (if (typep json-value arg-type)
                         (cons (intern name :keyword) json-value)
-                        (error "Expected type ~a for key ~a (with value ~a)" arg-type name json-value)))
-        ((and (not optional) init-value) (cons (intern name :keyword) init-value))
+                        (error "Expected type ~a for key ~a (with value ~a)"
+                               arg-type name json-value)))
+        ((and (not optional) init-value) (cons (intern name :keyword)
+                                               init-value))
         ;; Ignore anything that does not have a default value or definition.
         (t '()))))
   (flatten (mapcar #'lookup-cl-arg args)))
@@ -150,7 +153,7 @@ client session jobs."
     (route-name func required-args
      &optional (command-line-args '())
        (environment '())
-       (status-fn #'lookup-session-job-status))
+       (status-fn 'lookup-session-job-status))
   " Macro to define routes to run the function and retrieve results.
 
 The `define-endpoint-route` macro sets up endpoint routes via `DEFROUTE`
@@ -169,15 +172,12 @@ to start asynchronous jobs remotely, mirroring the command definitions from
   initialized to NIL before each `func` task is created.
 - status-fn (optional) - A function to run to retrieve the status of the
   endpoint. It takes the current session and job name as input. If none is
-  specified, it defaults to 'sel/rest-async-jobs::lookup-session-job-status.
+  specified, it defaults to 'sel/rest/async-jobs::lookup-session-job-status.
 
 For example, the following invocation of `define-endpoint-route` will set up an
 endpoint that adds five to numbers:
 
-    (define-endpoint-route addfive (lambda (value) (+ value 5))
-                           ((value integer))
-                           '() '()
-                           'sel/rest-async-jobs::lookup-session-job-status)
+    (define-endpoint-route addfive (lambda (value) (+ value 5)) ((value integer)))
 
 An appropriate REST invocation for this endpoint might look like:
 
@@ -224,9 +224,9 @@ In this case, the function must be in scope wherever this macro is envoed."
                                   ,json main-args ,command-line-args)))))
        (defroute
            ,route-name (:get :text/* &key ,cid (,name nil))
-         (funcall ,status-fn
+         (funcall (function ,status-fn)
                   (lookup-session ,cid) (string-upcase (string ,name))))
        (defroute
            ,route-name (:get "application/json" &key ,cid (,name nil))
-         (funcall ,status-fn
+         (funcall (function ,status-fn)
                   (lookup-session ,cid) (string-upcase (string ,name)))))))

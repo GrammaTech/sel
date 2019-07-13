@@ -49,9 +49,10 @@
 ;;;
 ;;;
 ;;; @texi{rest}
-(defpackage :software-evolution-library/rest-sessions
-  (:nicknames :sel/rest-sessions)
+(defpackage :software-evolution-library/rest/sessions
+  (:nicknames :sel/rest/sessions)
   (:use
+   :common-lisp
    :alexandria
    :named-readtables
    :curry-compose-reader-macros
@@ -78,7 +79,7 @@
            :session-property
            :push-session-store-value
            :create-new-session))
-(in-package :software-evolution-library/rest-sessions)
+(in-package :software-evolution-library/rest/sessions)
 
 (defvar *session-id-generator* 1000
   "Start session ids at 1001 and increment")

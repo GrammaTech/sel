@@ -51,9 +51,10 @@
 ;;;     (Currently not implemented.)
 ;;;
 ;;; @texi{rest}
-(defpackage :software-evolution-library/rest-async-jobs
-  (:nicknames :sel/rest-async-jobs)
+(defpackage :software-evolution-library/rest/async-jobs
+  (:nicknames :sel/rest/async-jobs)
   (:use
+   :common-lisp
    :alexandria
    :named-readtables
    :curry-compose-reader-macros
@@ -72,9 +73,9 @@
    :software-evolution-library/components/traceable
    :software-evolution-library/software/parseable
    :software-evolution-library/software/clang
-   :software-evolution-library/rest-utility
-   :software-evolution-library/rest-std-api
-   :software-evolution-library/rest-sessions)
+   :software-evolution-library/rest/utility
+   :software-evolution-library/rest/std-api
+   :software-evolution-library/rest/sessions)
   (:shadowing-import-from :clack :clackup :stop)
   (:export :apply-async-job-func
            :async-job
@@ -85,7 +86,7 @@
            :lookup-session-job
            :lookup-session-job-status
            :session-jobs))
-(in-package :software-evolution-library/rest-async-jobs)
+(in-package :software-evolution-library/rest/async-jobs)
 (in-readtable :curry-compose-reader-macros)
 
 ;;; Asynchronous Jobs
@@ -224,7 +225,7 @@
     func))
 
 (defun make-job
-    (arguments func-name func threads &optional name)
+    (arguments func threads &optional name)
   (apply 'make-instance
          'async-job
          :arguments arguments
@@ -248,18 +249,15 @@
                  (error (e)
                    (http-condition 400 "Malformed JSON (~a)!" e))))
          (session (lookup-session cid))
-         (pid (aget :pid json))                ; name/id of population
+         (pid (aget :pid json))         ; name/id of population
          (arguments
-          (if pid                             ; prefer population to arguments
-              (find-population session pid)    ; pid specifies a population
-              (aget :arguments json)))        ; else assume a list
-         (func-name (aget :func json))
-         (func (lookup-job-func func-name))    ; name of function to run
+          (if pid                    ; prefer population to arguments
+              (find-population session pid) ; pid specifies a population
+              (aget :arguments json)))      ; else assume a list
+         (func (lookup-job-func (aget :func json))) ; function to run
          (threads (or (aget :threads json) 1)) ; max number of threads to use
-                                        ; must be at least 1 thread!
-         (job (make-job arguments
-                        func-name func threads
-                        (string-upcase name))))
+         ;; There must be at least 1 thread!
+         (job (make-job arguments func threads (string-upcase name))))
     ;; store the software obj with the session
     ;; (push-session-store-value client "jobs" job)
     (push job (session-jobs session))

@@ -201,9 +201,10 @@
 ;;;     Allows some control of the task, such as stopping the task.
 ;;;
 ;;; @texi{rest}
-(defpackage :software-evolution-library/rest-std-api
-  (:nicknames :sel/rest-std-api)
+(defpackage :software-evolution-library/rest/std-api
+  (:nicknames :sel/rest/std-api)
   (:use
+   :common-lisp
    :alexandria
    :named-readtables
    :curry-compose-reader-macros
@@ -215,8 +216,8 @@
    :trace-db
    :software-evolution-library/software-evolution-library
    :software-evolution-library/utility
-   :software-evolution-library/rest-sessions
-   :software-evolution-library/rest-utility
+   :software-evolution-library/rest/sessions
+   :software-evolution-library/rest/utility
    :software-evolution-library/components/test-suite
    :software-evolution-library/components/formatting
    :software-evolution-library/components/instrument
@@ -233,8 +234,9 @@
            :find-population
            :find-mutation
            :find-test-suite
-           :population))
-(in-package :software-evolution-library/rest-std-api)
+           :population
+           :population-individuals))
+(in-package :software-evolution-library/rest/std-api)
 (in-readtable :curry-compose-reader-macros)
 
 

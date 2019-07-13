@@ -75,11 +75,11 @@
    :software-evolution-library/components/traceable
    :software-evolution-library/software/parseable
    :software-evolution-library/software/clang
-   :software-evolution-library/rest-utility
-   :software-evolution-library/rest-sessions
-   :software-evolution-library/rest-std-api
-   :software-evolution-library/rest-async-jobs
-   :software-evolution-library/rest-define-command-endpoint
+   :software-evolution-library/rest/utility
+   :software-evolution-library/rest/sessions
+   :software-evolution-library/rest/std-api
+   :software-evolution-library/rest/async-jobs
+   :software-evolution-library/rest/define-command-endpoint
    :software-evolution-library/command-line)
   (:shadowing-import-from :clack :clackup :stop)
   (:export :lookup-session

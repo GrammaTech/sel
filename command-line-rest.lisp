@@ -7,18 +7,18 @@
    :software-evolution-library
    :software-evolution-library/utility
    :software-evolution-library/command-line
-   :software-evolution-library/rest-define-command-endpoint
-   :software-evolution-library/rest-async-jobs
+   :software-evolution-library/rest/define-command-endpoint
+   :software-evolution-library/rest/async-jobs
    :software-evolution-library/rest)
   (:import-from :uiop/utility :nest)
-  (:import-from :software-evolution-library/rest-async-jobs
+  (:import-from :software-evolution-library/rest/async-jobs
                 :lookup-session-job-status)
   (:export :define-command-rest))
 (in-package :software-evolution-library/command-line-rest)
 (in-readtable :curry-compose-reader-macros)
 
 (defmacro define-command-rest
-    ((name &key environment (status #'lookup-session-job-status))
+    ((name &key environment (status 'lookup-session-job-status))
              args pre-help post-help &body body)
   "Define a function, executable, and a REST server function and executable.
 
