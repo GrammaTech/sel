@@ -85,6 +85,8 @@
    :software-evolution-library/software/parseable
    :software-evolution-library/software/clang)
   (:shadowing-import-from :clack :clackup :stop)
+  (:import-from :software-evolution-library/rest-async-jobs
+                :lookup-session-job-status)
   (:export :define-endpoint-route))
 (in-package :software-evolution-library/rest-define-command-endpoint)
 (in-readtable :curry-compose-reader-macros)
@@ -148,7 +150,7 @@ client session jobs."
     (route-name func required-args
      &optional (command-line-args '())
        (environment '())
-       (status-fn 'sel/rest-async-jobs::lookup-session-job-status))
+       (status-fn #'lookup-session-job-status))
   " Macro to define routes to run the function and retrieve results.
 
 The `define-endpoint-route` macro sets up endpoint routes via `DEFROUTE`
@@ -172,21 +174,21 @@ to start asynchronous jobs remotely, mirroring the command definitions from
 For example, the following invocation of `define-endpoint-route` will set up an
 endpoint that adds five to numbers:
 
-(define-endpoint-route addfive (lambda (value) (+ value 5))
-                       ((value integer))
-                       '() '()
-                       'sel/rest-async-jobs::lookup-session-job-status)
+    (define-endpoint-route addfive (lambda (value) (+ value 5))
+                           ((value integer))
+                           '() '()
+                           'sel/rest-async-jobs::lookup-session-job-status)
 
 An appropriate REST invocation for this endpoint might look like:
 
-curl -X POST -H \"Accept: application/json\" \
-             -H \"Content-Type: application/json\" \
-             http://127.0.0.1:9003/addfive?cid='client-1001' \
-             -d '{\"value\" : 5}'
+    curl -X POST -H \"Accept: application/json\" \
+                 -H \"Content-Type: application/json\" \
+                 http://127.0.0.1:9003/addfive?cid='client-1001' \
+                 -d '{\"value\" : 5}'
 
 In addition, you can directly name endpoint functions, e.g.:
 
-(define-endpoint-route fact #'alexandria::factorial ((value integer)))
+    (define-endpoint-route fact #'alexandria::factorial ((value integer)))
 
 In this case, the function must be in scope wherever this macro is envoed."
   (let* ((package (package-name *package*))
@@ -222,7 +224,9 @@ In this case, the function must be in scope wherever this macro is envoed."
                                   ,json main-args ,command-line-args)))))
        (defroute
            ,route-name (:get :text/* &key ,cid (,name nil))
-         (,status-fn (lookup-session ,cid) (string-upcase (string ,name))))
+         (funcall ,status-fn
+                  (lookup-session ,cid) (string-upcase (string ,name))))
        (defroute
            ,route-name (:get "application/json" &key ,cid (,name nil))
-         (,status-fn (lookup-session ,cid) (string-upcase (string ,name)))))))
+         (funcall ,status-fn
+                  (lookup-session ,cid) (string-upcase (string ,name)))))))

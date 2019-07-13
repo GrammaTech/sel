@@ -1917,7 +1917,7 @@
     (is (search "30.1" result))
     (is (search " T" result))))
 
-(define-command-rest four-types-2
+(define-command-rest (four-types-2)
     ((a integer) (b string) (c float) (d boolean)
      &spec +common-command-line-options+)
   "Test that the four supported types can be passed to an endpoint via REST."
@@ -1936,7 +1936,7 @@
     (is (search "30.1" result))
     (is (search " T" result))))
 
-(define-command-rest fact-entry
+(define-command-rest (fact-entry)
     ((n integer) &spec +common-command-line-options+)
   "Test that canonical REST endpoints work. Computes factorial."
   #.(format nil

@@ -4,25 +4,22 @@
    :named-readtables
    :curry-compose-reader-macros
    :common-lisp
+   :software-evolution-library
    :software-evolution-library/utility
    :software-evolution-library/command-line
    :software-evolution-library/rest-define-command-endpoint
    :software-evolution-library/rest-async-jobs
    :software-evolution-library/rest)
   (:import-from :uiop/utility :nest)
+  (:import-from :software-evolution-library/rest-async-jobs
+                :lookup-session-job-status)
   (:export :define-command-rest))
 (in-package :software-evolution-library/command-line-rest)
 (in-readtable :curry-compose-reader-macros)
 
-(defun find-ampersand-el (el) (and (not (listp el)) (equal #\& (aref (symbol-name el) 0))))
-
-(defvar *default-environment*
-  '(*fitness-predicate*
-    *max-evals* *max-time* *orig* *population*
-    *target-fitness-p* *test-suite* *threads*))
-
 (defmacro define-command-rest
-    (name args pre-help post-help &rest body)
+    ((name &key environment (status #'lookup-session-job-status))
+             args pre-help post-help &body body)
   "Define a function, executable, and a REST server function and executable.
 
 Invokes `define-command' on NAME ARGS PRE-HELP POST-HELP and BODY to
@@ -54,31 +51,17 @@ STATUS
          ;; a rest library that does not use CLOS generics to represent routes
          ;; (to prevent the name collision between defining the entry function
          ;; and the endpoint).
-         (route-name (intern (concatenate 'string "rest-"
+         (route-name (intern (concatenate 'string "REST-"
                                           (string-upcase (string name)))
                              package))
-         (status-symbol (intern "STATUS" package))
-         (status-symbol (intern "STATUS" package))
-         (env-symbol (intern "ENVIRONMENT" package))
          (spec-symbol (intern "&SPEC" package))
          (rest-symbol (intern "&REST" package))
-         (environment (or (plist-get env-symbol body)
-                          *default-environment*))
-         (status-fn (or (plist-get status-symbol body)
-                        'sel/rest-async-jobs::lookup-session-job-status))
-         (body (plist-drop env-symbol (plist-drop status-symbol body)))
          (command-line-specification (plist-get spec-symbol args))
-         (rest-arg (let ((rest-arg (plist-get rest-symbol args)))
-                     (when rest-arg (list rest-symbol rest-arg))))
          (typed-positional-args (take-until
-                                 #'find-ampersand-el
+                                 «and [#'not #'listp]
+                                      [{equal #\&} {aref _ 0} #'symbol-name]»
                                  (plist-drop rest-symbol args)))
-         (positional-args (mapcar #'car typed-positional-args))
-         (aux-args (plist-drop
-                    rest-symbol
-                    (plist-drop
-                     spec-symbol
-                     (drop-until #'find-ampersand-el args)))))
+         (positional-args (mapcar #'car typed-positional-args)))
     ;; NOTE: Results just status or "finished/path."
     `(progn
        ;; 1. Define the command.
@@ -89,10 +72,10 @@ STATUS
        (define-endpoint-route ,route-name #',name
          ,typed-positional-args
          ,command-line-specification
-         ,environment ,status-fn))))
+         ,environment ,status))))
 
 #+comment
-(define-command-rest four-types-2
+(define-command-rest (four-types-2)
     ((a integer) (b string) (c float) (d boolean)
      &spec +common-command-line-options+)
   "Test that the four supported types can be passed via REST."
@@ -104,7 +87,7 @@ STATUS
           (type-of d) d))
 
 #+comment
-(macroexpand-1 '(define-command-rest fact-entry
+(macroexpand-1 '(define-command-rest (fact-entry)
                  ((n integer) &spec +common-command-line-options+)
                  "Test that canonical REST endpoints work. Computes factorial."
                  #.(format nil
