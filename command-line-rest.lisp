@@ -91,27 +91,26 @@
          ,command-line-specification
          ,environment ,status-fn))))
 
-
-#|
+#+comment
 (define-command-rest four-types-2
-((a integer) (b string) (c float) (d boolean)
-&spec +common-command-line-options+)
-"Test that the four supported types can be passed via REST."
-nil
-(format nil "~A: ~D, ~A: ~S, ~A: ~F, ~A: ~A"
-(type-of a) a
-(type-of b) b
-(type-of c) c
-(type-of d) d))
+    ((a integer) (b string) (c float) (d boolean)
+     &spec +common-command-line-options+)
+  "Test that the four supported types can be passed via REST."
+  nil
+  (format nil "~A: ~D, ~A: ~S, ~A: ~F, ~A: ~A"
+          (type-of a) a
+          (type-of b) b
+          (type-of c) c
+          (type-of d) d))
 
+#+comment
 (macroexpand-1 '(define-command-rest fact-entry
-((n integer) &spec +common-command-line-options+)
-"Test that canonical REST endpoints work. Computes factorial."
-#.(format nil
-"~%Built from SEL ~a, and ~a ~a.~%"
-+software-evolution-library-version+
-(lisp-implementation-type) (lisp-implementation-version))
-(declare (ignorable interactive manual quiet verbose))
-(when help (show-help-for-fact-entry))
-(factorial n)))
-|#
+                 ((n integer) &spec +common-command-line-options+)
+                 "Test that canonical REST endpoints work. Computes factorial."
+                 #.(format nil
+                    "~%Built from SEL ~a, and ~a ~a.~%"
+                    +software-evolution-library-version+
+                    (lisp-implementation-type) (lisp-implementation-version))
+                 (declare (ignorable interactive manual quiet verbose))
+                 (when help (show-help-for-fact-entry))
+                 (factorial n)))
