@@ -445,6 +445,20 @@
   (car (member mid (session-mutations session)
                :key 'sel::oid :test 'eql)))
 
+(defun lookup-resource (session str)
+  "See if the json value is a string which can be parsed as a resource lookup.
+Resource lookups are of the form \"<resource>:<oid>\""
+  (if (and (stringp str)
+           (find #\: str))
+      (let ((spl (split-sequence #\: str)))
+        (if spl
+            (let* ((res (first spl))
+                   (id (ignore-errors (parse-integer (second spl)))))
+              (and (stringp res) (integerp id)
+                   (car
+                    (member id (session-property session res)
+                            :key 'sel::oid :test 'eql))))))))
+
 (defroute
     mut (:post "application/json" &key cid mid)
   (declare (ignore mid))
@@ -463,7 +477,7 @@
                                        '(:type :sid :targets))
                              (collect (car x))
                              (collect
-                              (or (lookup-resource  session (cdr x))
+                              (or (lookup-resource session (cdr x))
                                   (convert-symbol (cdr x)))))))
          (targets (aget :targets json)))
     (if type
@@ -561,10 +575,10 @@
 
 (defun get-test-suite (cid oid)
   (if-let ((session (lookup-session cid)))
-    (if-let ((test-suite (and oid (find-test-suite client oid))))
+    (if-let ((test-suite (and oid (find-test-suite session oid))))
       (format-test-suite-as-json test-suite)
       (let ((test-suite-oids
-             (iter (for x in (session-test-suites client))
+             (iter (for x in (session-test-suites session))
                    (collect (sel::oid x)))))
         (json:encode-json-to-string test-suite-oids)))))
 

@@ -172,20 +172,6 @@
     (setf (gethash (session-id session-obj) *session-pool*) session-obj)
     (session-id session-obj)))
 
-(defun lookup-resource (session str)
-  "See if the json value is a string which can be parsed as a resource
-   lookup. Resource lookups are of the form \"<resource>:<oid>\""
-  (if (and (stringp str)
-           (find #\: str))
-      (let ((spl (split-sequence #\: str)))
-        (if spl
-            (let* ((res (first spl))
-                   (id (ignore-errors (parse-integer (second spl)))))
-              (and (stringp res) (integerp id)
-                   (car
-                    (member id (session-property session res)
-                            :key 'sel::oid :test 'eql))))))))
-
 (defroute
     client (:post "application/json")
   (let* ((json (handler-case
