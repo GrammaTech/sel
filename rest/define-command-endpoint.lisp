@@ -154,7 +154,7 @@ client session jobs."
      &optional (command-line-args '())
        (environment '())
        (status-fn 'lookup-session-job-status))
-  " Macro to define routes to run the function and retrieve results.
+  "Macro to define routes to run the function and retrieve results.
 
 The `define-endpoint-route` macro sets up endpoint routes via `DEFROUTE`
 to start asynchronous jobs remotely, mirroring the command definitions from
