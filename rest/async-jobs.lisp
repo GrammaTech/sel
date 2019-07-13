@@ -96,9 +96,9 @@
     "Entry in async-job-type table."
     job-name        ; Symbol names the job type.
     arg-names       ; Lambda-list for user-defined function.
-    arg-types func) ; Type of each argument
-                                        ; :LAMBDA-LIST-KEYWORD pseudo-type is used
-                                        ; for lambda list keywords.
+    ;; Type of each argument :LAMBDA-LIST-KEYWORD pseudo-type is used
+    ;; for lambda list keywords.
+    arg-types func)
 
   (defvar *async-job-types* (make-hash-table :test 'equalp)
     "Registry of async-job-types.")
