@@ -17,4 +17,5 @@
 (mapc (lambda (pair) (put (first pair) 'lisp-indent-function (second pair)))
       '((make-instance 1)
         (if-let 1)
+        (if-let* 1)
         (defixture 1)))

@@ -204,16 +204,17 @@ In this case, the function must be in scope wherever this macro is envoed."
                                 &key ,cid
                                 (,name (string-upcase
                                         (make-gensym-string ',route-name))))
-           (let* ((,json (handler-case
-                             (if-let* ((payload (payload-as-string))
-                                       (string-nonempty
-                                        (not (emptyp payload))))
-                                      (mapcaar #'string
-                                               (json:decode-json-from-string payload)))
-                           (error (e)
-                             (http-condition
-                              400
-                              "Malformed JSON (~a)!" e))))
+           (let* ((,json
+                   (handler-case
+                       (if-let* ((payload (payload-as-string))
+                                 (string-nonempty
+                                  (not (emptyp payload))))
+                         (mapcar [#'string #'car]
+                                 (json:decode-json-from-string payload)))
+                     (error (e)
+                       (http-condition
+                        400
+                        "Malformed JSON (~a)!" e))))
                   (,lookup-fn (lookup-job-func ,func))
                   (,lookup-fn (if ,lookup-fn ,lookup-fn ,func)))
              (let ,bindings

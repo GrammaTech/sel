@@ -1741,10 +1741,6 @@ is replaced with replacement."
 (defun mapconcat (func list sep)
   (apply #'concatenate 'string (interleave (mapcar func list) sep)))
 
-(defun mapcaar (func list)
-  "Applies FUNC to the CAR of each element."
-  (mapcar (lambda (arg) (cons (func (car arg)) (cdr adr))) list))
-
 (defun drop (n seq)
   "Return SEQ less the first N items."
   (if (> n (length seq))
