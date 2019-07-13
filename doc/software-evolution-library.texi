@@ -846,11 +846,38 @@ current and new fitness that returns acceptance.
 @end ignore
 
 
-@node REST API, Components, Search Functions, Implementation
+@node REST API, REST Server, Search Functions, Implementation
 @section REST API
 @cindex rest api
 
+@menu
+* REST Server::                 Using the rest server
+* REST Interface::              Standard RESTful interface over SEL
+* REST Sessions::               Interface for managing RESTful sessions
+* Async Jobs::                  RESTful asynchronous job interface
+@c * Defining a Command Endpoint:: RESTful interface for command endpoints
+@end menu
+
+@node REST Server, REST Interface, REST API, REST API
+
 @include include/rest.texi
+
+@node REST Interface, REST Sessions, REST Server, REST API
+
+@include include/rest-std-api.texi
+
+@node REST Sessions, Async Jobs, REST Interface, REST API
+
+@include include/rest-sessions.texi
+
+@node Async Jobs, Components, REST Sessions, REST API
+
+@include include/rest-async-jobs.texi
+
+@c NOTE: For some reason this one isn't showing up...
+@c @node Defining a Command Endpoint, Components, Async Jobs, REST API
+@c
+@c @include include/rest-define-command-endpoint.texi
 
 @node Components, Test Suites, Implementation, Top
 @chapter Components

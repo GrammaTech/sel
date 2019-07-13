@@ -56,6 +56,11 @@ doc/sel-cp-serapi-io-api.texi
 doc/sel-cp-test-suite-api.texi
 doc/sel-cp-traceable-api.texi
 doc/sel-rest-api.texi
+doc/sel-rest-async-jobs-api.texi
+doc/sel-rest-define-command-endpoint-api.texi
+doc/sel-rest-sessions-api.texi
+doc/sel-rest-std-api-api.texi
+doc/sel-rest-utility-api.texi
 doc/sel-sw-adaptive-mutation-api.texi
 doc/sel-sw-ancestral-api.texi
 doc/sel-sw-asm-api.texi

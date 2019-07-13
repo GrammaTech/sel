@@ -3,27 +3,27 @@
 ;;; This defines abilites to create new sessions and lookup existing sessions,
 ;;; managed by session client ID.
 ;;;
-;;; @subsection Dependencies
+;;; @subsubsection Dependencies
 ;;;
 ;;; The Rest API leverages a number of Common Lisp components, which
 ;;; are open-source and generally available via Quicklisp.  See the core REST
 ;;; file for a full description and how to start a rest server.
 ;;;
-;;; @subsection Resources and Operations
+;;; @subsubsection Resources and Operations
 ;;;
 ;;; A standard SEL Rest API supports logical resources, all driven by an
 ;;; underlying client session system. This file defines that client session
 ;;; system, including the internal data structures and the client session
 ;;; endpoint.
 ;;;
-;;; @subsubsection Resources
+;;; @subsubheading Resources
 ;;;
 ;;; The following resources are define by this file:
 ;;;
 ;;;  Client sessions
 ;;;     establish ownership of a jobs, software objects, populations, etc.
 ;;;
-;;; @subsubsection Operations on Resources
+;;; @subsubheading Operations on Resources
 ;;;
 ;;; Client:
 ;;;
@@ -48,7 +48,7 @@
 ;;;     owned by the session to become garbage.
 ;;;
 ;;;
-;;; @texi{rest}
+;;; @texi{rest-sessions}
 (defpackage :software-evolution-library/rest/sessions
   (:nicknames :sel/rest/sessions)
   (:use

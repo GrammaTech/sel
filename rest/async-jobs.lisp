@@ -6,7 +6,7 @@
 ;;; @uref{https://en.wikipedia.org/wiki/Representational_state_transfer,
 ;;; Representational State Transfer}
 ;;;
-;;; @subsection Dependencies
+;;; @subsubsection Dependencies
 ;;;
 ;;; The Rest API leverages a number of Common Lisp components, which
 ;;; are open-source and generally available via Quicklisp.  See the core REST
@@ -14,11 +14,11 @@
 ;;; this file is built from the session and standard library definitions for
 ;;; REST provided as part of SEL.
 ;;;
-;;; @subsection Resources and Operations
+;;; @subsubsection Resources and Operations
 ;;;
 ;;; This file provides the following:
 ;;;
-;;; @subsubsection Resources
+;;; @subsubheading Resources
 ;;;
 ;;; The following types of resources are supported.
 ;;;
@@ -28,7 +28,7 @@
 ;;;     evolutions, fitness tests across large populations, and
 ;;;     searches.
 ;;;
-;;; @subsubsection Operations on Resources
+;;; @subsubheading Operations on Resources
 ;;;
 ;;; Note: asynchronous job management requires a @code{cid} (Client ID) integer
 ;;; value representing the Client ID for session lookup. See the client
@@ -50,7 +50,7 @@
 ;;;     Allows some control of the task, such as stopping the task.
 ;;;     (Currently not implemented.)
 ;;;
-;;; @texi{rest}
+;;; @texi{rest-async-jobs}
 (defpackage :software-evolution-library/rest/async-jobs
   (:nicknames :sel/rest/async-jobs)
   (:use

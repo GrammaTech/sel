@@ -9,12 +9,12 @@
 ;;; @uref{https://en.wikipedia.org/wiki/Representational_state_transfer,
 ;;; Representational State Transfer}
 ;;;
-;;; @subsection Dependencies
+;;; @subsubsection Dependencies
 ;;;
 ;;; The Rest API leverages a number of Common Lisp components, which
 ;;; are open-source and generally available via Quicklisp.  See the core REST
 ;;; file for a full description.
-;;; @subsection Dependencies
+;;; @subsubsection Dependencies
 ;;;
 ;;; The Rest API leverages a number of Common Lisp components, which
 ;;; are open-source and generally available via Quicklisp.  See the core REST
@@ -22,7 +22,7 @@
 ;;; this file is built from the session definitions for REST provided as part
 ;;; of SEL.
 ;;;
-;;; @subsection Resources and Operations
+;;; @subsubsection Resources and Operations
 ;;;
 ;;; A standard SEL Rest API supports logical resources. This section lists the
 ;;; basic logical resources supported by this standard API. In some cases (e.g.
@@ -31,7 +31,7 @@
 ;;; specific class in SEL, and the REST API resource provides ways to manage and
 ;;; name these lists of software objects.
 ;;;
-;;; @subsubsection Resources
+;;; @subsubheading Resources
 ;;;
 ;;; The following types of resources are defined by this standard API.
 ;;;
@@ -59,7 +59,7 @@
 ;;;  Traced Software
 ;;;     Instrumented Software objects which have also been traced.
 ;;;
-;;; @subsubsection Operations on Resources
+;;; @subsubheading Operations on Resources
 ;;;
 ;;; Note: all operations (other than session create) require a @code{cid}
 ;;; (Client ID) integer value representing the Client ID for session lookup.
@@ -200,7 +200,7 @@
 ;;;     @code{<service-base>/cid=<cid>&async?jid=<Job-ID>&<update-vars>}
 ;;;     Allows some control of the task, such as stopping the task.
 ;;;
-;;; @texi{rest}
+;;; @texi{rest-std-api}
 (defpackage :software-evolution-library/rest/std-api
   (:nicknames :sel/rest/std-api)
   (:use

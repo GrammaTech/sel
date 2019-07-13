@@ -7,15 +7,14 @@
 ;;; and results of the task. See the core REST file for a full description and
 ;;; how to start a rest server.
 ;;;
-;;; @subsection Dependencies
+;;; @subsubsection Dependencies
 ;;;
 ;;; The Rest API leverages a number of Common Lisp components, which
 ;;; are open-source and generally available via Quicklisp. In addition,
 ;;; this file is built from the session and asynchronous job definitions for
 ;;; REST provided as part of SEL.
 ;;;
-;;;
-;;; @subsection Using the endpoint service.
+;;; @subsubsection Using the endpoint service.
 ;;;
 ;;; The endpoint service provides one main entry point,
 ;;; @code{define-endpoint-route}. This takes the following arguments:
@@ -60,8 +59,7 @@
 ;;;     @code{<service-base>/<route-name>soft?cid=<client-ID>&name=<task-name>}
 ;;;     Terminates the named task, if appropriate. (Unimplemented.)
 ;;;
-;;;
-;;; @texi{rest}
+;;; @texi{rest-define-command-endpoint}
 (defpackage :software-evolution-library/rest/define-command-endpoint
   (:nicknames :sel/rest/define-command-endpoint)
   (:use

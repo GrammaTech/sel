@@ -32,6 +32,11 @@ DOC_PACKAGES =								\
 	software-evolution-library/components/test-suite		\
 	software-evolution-library/components/traceable			\
 	software-evolution-library/rest					\
+	software-evolution-library/rest/async-jobs			\
+	software-evolution-library/rest/define-command-endpoint		\
+	software-evolution-library/rest/sessions			\
+	software-evolution-library/rest/std-api				\
+	software-evolution-library/rest/utility				\
 	software-evolution-library/software/adaptive-mutation		\
 	software-evolution-library/software/ancestral			\
 	software-evolution-library/software/asm				\

@@ -3,7 +3,6 @@
 ;;; This includes generic, shared helper functions for use with the REST
 ;;; library in SEL.
 ;;;
-;;; @texi{rest}
 (defpackage :software-evolution-library/rest/utility
   (:nicknames :sel/rest/util :sel/rest/utility)
   (:use
