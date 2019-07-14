@@ -7,10 +7,17 @@ before_script:
 
 stages:
   - build
+  - check-format
   - test-and-tag
   - dependents
   - deploy
   - cleanup
+
+check-format:
+  stage: check-format
+  script:
+    - docker pull $DOCKER_REGISTRY/synthesis/sel/${OS}-${LISP}:${CI_BUILD_REF_NAME} && export REF=${CI_BUILD_REF_NAME} || export REF=master
+    - docker build --rm --build-arg=REF=${REF} -f .ci/Dockerfile.formatter .
 
 .build-template: &build
   script:
