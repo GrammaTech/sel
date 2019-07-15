@@ -40,11 +40,11 @@
   (:documentation "Raw source code software representation."))
 
 (defclass genome-lines-mixin ()
-  (genome-line-offsets :type vector :accessor genome-line-offsets
-                       :documentation "The position in GENOME of the first character of each line")
-  (last-line-terminated? :type boolean :accessor last-line-terminated?
-                         :documentation "If true, last line was terminated by the separator"))
-(:documentation "Mixin for recording lines of a source"))
+  ((genome-line-offsets :type vector :accessor genome-line-offsets
+                        :documentation "The position in GENOME of the first character of each line")
+   (last-line-terminated? :type boolean :accessor last-line-terminated?
+                          :documentation "If true, last line was terminated by the separator"))
+  (:documentation "Mixin for recording lines of a source"))
 
 (defmethod phenome ((obj source) &key (bin (temp-file-name)))
   "Compile OBJ to create an executable version of the software
@@ -71,7 +71,7 @@ on the filesystem at BIN."
     (if stream (write-string genome stream) genome)))
 
 (defmethod (setf genome) :after (v (obj genome-lines-mixin))
-(slot-makunbound obj 'genome-line-offsets))
+  (slot-makunbound obj 'genome-line-offsets))
 
 (defmethod slot-unbound (class (obj genome-lines-mixin)
                          (slot-name (eql 'genome-line-offsets)))
@@ -109,7 +109,7 @@ on the filesystem at BIN."
   obj)
 
 (defmethod from-file :before ((obj source) path)
-(setf (original-file obj) (namestring path)))
+  (setf (original-file obj) (namestring path)))
 
 (defmethod from-string ((obj source) string)
   "Initialize OBJ with the contents of STRING."
@@ -117,7 +117,7 @@ on the filesystem at BIN."
   obj)
 
 (defmethod from-string :before ((obj source) string)
-(setf (original-file obj) nil))
+  (setf (original-file obj) nil))
 
 (defmethod size ((obj source))
   "Return the size of OBJ"
