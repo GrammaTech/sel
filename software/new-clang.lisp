@@ -204,20 +204,28 @@ in the macro defn, EXPANSION-LOC is at the macro use."
 ;; storing them in (symbol-table *soft*)
 (defstruct reference-entry obj)
 
-(defgeneric ast-file (ast)
+;;; AST-FILE was used for two things: to identify non-source
+;;; code that clang stuck in, and to identify macros
+;;; These two functions needed to be separated.
+
+(defun ast-file (ast &optional macro?)
+  (ast-file* ast macro?))
+
+(defgeneric ast-file* (ast macro?)
   (:documentation "The file name associated with an AST node")
-  (:method ((ast new-clang-ast))
-    (ast-file (ast-attr ast :range)))
-  (:method ((range new-clang-range))
-    (ast-file (new-clang-range-begin range)))
-  (:method ((loc new-clang-loc))
+  (:method ((ast new-clang-ast) macro?)
+    (ast-file* (ast-attr ast :range) macro?))
+  (:method ((range new-clang-range) macro?)
+    (ast-file* (new-clang-range-begin range) macro?))
+  (:method ((loc new-clang-loc) macro?)
     (new-clang-loc-file loc))
-  (:method ((loc new-clang-macro-loc))
-    (ast-file
-     (if (new-clang-macro-loc-is-macro-arg-expansion loc)
+  (:method ((loc new-clang-macro-loc) macro?)
+    (ast-file*
+     (if (if (new-clang-macro-loc-is-macro-arg-expansion loc) (not macro?) macro?)
          (new-clang-macro-loc-spelling-loc loc)
-         (new-clang-macro-loc-expansion-loc loc))))
-  (:method (obj) nil))
+         (new-clang-macro-loc-expansion-loc loc))
+     macro?))
+  (:method (obj macro?) nil))
 
 (defun json-kind-to-keyword (json-kind)
   (when (stringp json-kind)
@@ -723,6 +731,9 @@ actual source file"))
 ;; This is obtained from a sw object using genome-line-offsets
 ;; (declaim (special *offsets*))
 
+(defun ncmlimae (x)
+  (new-clang-macro-loc-is-macro-arg-expansion x))
+
 
 (defgeneric offset (obj))
 (defmethod offset (obj) nil)
@@ -735,9 +746,10 @@ actual source file"))
   (let ((spelling-loc (new-clang-macro-loc-spelling-loc obj))
         (expansion-loc (new-clang-macro-loc-expansion-loc obj)))
     (when (typep expansion-loc 'new-clang-loc)
-      (if (new-clang-macro-loc-is-macro-arg-expansion obj)
-          (offset spelling-loc)
-          (offset expansion-loc)))))
+      (if ;; (new-clang-macro-loc-is-macro-arg-expansion obj)
+       (ncmlimae obj)
+       (offset spelling-loc)
+       (offset expansion-loc)))))
 (defmethod offset ((obj integer)) obj)
 
 (defgeneric all-offsets (obj))
@@ -872,12 +884,11 @@ actual source file"))
              ;; that are placed between the children.  Do not
              ;; place strings for children for whom offsets
              ;; cannot be computed
-             (format t "Decorating ~a~%" a)
+             ;; (format t "Decorating ~a~%" a)
              (let ((children (ast-children a)))
                (multiple-value-bind (begin end)
                    (begin-and-end-offsets a)
-                 (format t "B/E offsets of ~a: ~a ~a~%"
-                         a begin end)
+                 ;; (format t "B/E offsets of ~a: ~a ~a~%" a begin end)
                  (when (and begin end)
                    (let ((i begin))
                      (setf (ast-children a)
@@ -891,12 +902,12 @@ actual source file"))
                                                 "Offsets out of order: i = ~a, cbegin = ~a, c = ~a, range = ~a"
                                                 i cbegin c
                                                 (ast-attr c :range))
-                                        (format t "Collecting ~a to ~a for ~a~%" i cbegin c)
+                                        ;; (format t "Collecting ~a to ~a for ~a~%" i cbegin c)
                                         (collect (subseq genome i cbegin))
                                         (setf i cend))))
                                   (collect c))
                             (progn
-                              (format t "Collecting ~a to ~a at end of ~a~%" i end a)
+                              ;; (format t "Collecting ~a to ~a at end of ~a~%" i end a)
                               (list (subseq genome i end)))))))))))
       (map-ast ast #'%decorate)))
   ast)
@@ -925,8 +936,7 @@ of the ranges of its children"
                              (setf max-end cend)))))
                  (unless (and (eql min-begin begin)
                               (eql max-end end))
-                   (format t "Expanding range of ~a from (~a,~a) to (~a,~a)~%"
-                           a begin end min-begin max-end)
+                   (format t "Expanding range of ~a from (~a,~a) to (~a,~a)~%" a begin end min-begin max-end)
                    (setf changed? t)
                    (setf (ast-attr a :range)
                          (make-new-clang-range :begin min-begin :end max-end)))))))
@@ -942,6 +952,7 @@ of the ranges of its children"
 ranges into 'combined' nodes.  Warn when this happens."
   (let ((*soft* sw)
         (genome (genome sw)))
+    (declare (ignorable genome))
     (flet ((%check (a)
              #+cos-debug (format t "Enter %check on ~a~%" a)
              (let ((end 0)
@@ -960,6 +971,7 @@ ranges into 'combined' nodes.  Warn when this happens."
                                        accumulator)
                                      (progn
                                        (setf changed? t)
+                                       #+cos-debug
                                        (progn
                                          (format t "Combining ~a overlapping asts over [~a,~a):~%"
                                                  (length accumulator) new-begin new-end)
@@ -981,7 +993,7 @@ ranges into 'combined' nodes.  Warn when this happens."
                                    (begin-and-end-offsets c)
                                  (if (and cbegin end cend (< cbegin end))
                                      (progn
-                                       ;; #+cos-debug
+                                       #+cos-debug
                                        (when accumulator
                                          (format t "Adding (~a,~a):~%~a~&" cbegin cend
                                                  (subseq genome cbegin cend)))
@@ -1011,25 +1023,26 @@ ranges into 'combined' nodes.  Warn when this happens."
         ;; (clrhash (symbol-table *soft*))
         (setf genome (genome obj)
               ast-root nil))
-      (multiple-value-bind (json tmp-file genome-len)
-          (clang-json obj)
-        (let* ((raw-ast (clang-convert-json-for-file json tmp-file genome-len))
-               (ast (remove-non-program-asts raw-ast tmp-file)))
-          (mark-macro-expansion-nodes ast tmp-file)
-          (encapsulate-macro-expansions ast)
-          (format t "After ENCAPSULATE-MACRO-EXPANSIONS:~%")
-          (dump-ast-val ast #'(lambda (o) (let ((r (ast-range o))) (list r (begin-offset r) (end-offset r)))))
-          (fix-ancestor-ranges obj ast)
-          (format t "After FIX-ANCESTOR-RANGES:~%")
-          (dump-ast-val ast #'(lambda (o) (let ((r (ast-range o))) (list r (begin-offset r) (end-offset r)))))
-          (combine-overlapping-siblings obj ast)
-          (format t "After COMBINE-OVERLAPPING-SIBLINGS:~%")
-          (dump-ast-val ast #'(lambda (o) (let ((r (ast-range o))) (list r (begin-offset r) (end-offset r)))))
-          (decorate-ast-with-strings obj ast)
-          (compute-full-stmt-attrs ast)
-          (compute-guard-stmt-attrs ast)
-          (setf ast-root ast)
-          obj)))))
+      (let ((*canonical-string-table* (make-hash-table :test 'equal)))
+        (multiple-value-bind (json tmp-file genome-len)
+            (clang-json obj)
+          (let* ((raw-ast (clang-convert-json-for-file json tmp-file genome-len))
+                 (ast (remove-non-program-asts raw-ast tmp-file)))
+            (mark-macro-expansion-nodes ast tmp-file)
+            (encapsulate-macro-expansions ast)
+            (format t "After ENCAPSULATE-MACRO-EXPANSIONS:~%")
+            (dump-ast-val ast #'(lambda (o) (let ((r (ast-range o))) (list r (begin-offset r) (end-offset r)))))
+            (fix-ancestor-ranges obj ast)
+            ;; (format t "After FIX-ANCESTOR-RANGES:~%")
+            ;; (dump-ast-val ast #'(lambda (o) (let ((r (ast-range o))) (list r (begin-offset r) (end-offset r)))))
+            (combine-overlapping-siblings obj ast)
+            ;; (format t "After COMBINE-OVERLAPPING-SIBLINGS:~%")
+            ;; (dump-ast-val ast #'(lambda (o) (let ((r (ast-range o))) (list r (begin-offset r) (end-offset r)))))
+            (decorate-ast-with-strings obj ast)
+            (compute-full-stmt-attrs ast)
+            (compute-guard-stmt-attrs ast)
+            (setf ast-root ast)
+            obj))))))
 
 ;;; Macro expansion code
 
@@ -1057,16 +1070,16 @@ line currently being processed.  The nodes are marked with attribute
             (or #+nil (and (not (new-clang-macro-loc-is-macro-arg-expansion end))
                            (progn (format t "isMacroArgExpansion is false~%")
                                   t))
-                (and (not (equal file (ast-file a)))
-                     (progn (format t "file = ~a, (ast-file a) = ~a~%"
-                                    file (ast-file a))
+                (and (not (equal file (ast-file a t)))
+                     (progn (format t "file = ~a, (ast-file a t) = ~a~%" file (ast-file a t))
                             t))
                 (and (< (new-clang-loc-line (new-clang-macro-loc-spelling-loc begin))
                         *current-line*)
-                     (progn (format t "(new-clang-loc-line (new-clang-macro-loc-spelling-loc begin)) = ~a, *current-line* = ~a~%"
-                                    (new-clang-loc-line (new-clang-macro-loc-spelling-loc begin))
-                                    *current-line*)
-                            t))))
+                     (progn ;; #+nil
+                       (format t "(new-clang-loc-line (new-clang-macro-loc-spelling-loc begin)) = ~a, *current-line* = ~a~%"
+                               (new-clang-loc-line (new-clang-macro-loc-spelling-loc begin))
+                               *current-line*)
+                       t))))
        ;; It's from a macro, mark it
        (format t "Marking: ~a~%" a)
        (setf (ast-attr a :from-macro) t))
@@ -1095,15 +1108,19 @@ nodes."
     (new-clang-macro-loc (new-clang-macro-loc-spelling-loc mloc))
     (t mloc)))
 
-(defun macro-range-to-non-macro-range/expansion (r)
-  (let* ((begin (macro-loc-to-loc (new-clang-range-begin r)))
-         (end (macro-loc-to-loc (new-clang-range-end r))))
-    (make-new-clang-range :begin begin :end end)))
+(defgeneric macro-range-to-non-macro-range/expansion (r)
+  (:method ((r new-clang-range))
+    (let* ((begin (macro-loc-expansion-to-loc (new-clang-range-begin r)))
+           (end (macro-loc-expansion-to-loc (new-clang-range-end r))))
+      (make-new-clang-range :begin begin :end end)))
+  (:method (r) r))
 
-(defun macro-range-to-non-macro-range/spelling (r)
-  (let* ((begin (macro-loc-spelling-to-loc (new-clang-range-begin r)))
-         (end (macro-loc-spelling-to-loc (new-clang-range-end r))))
-    (make-new-clang-range :begin begin :end end)))
+(defgeneric macro-range-to-non-macro-range/spelling (r)
+  (:method ((r new-clang-range))
+    (let* ((begin (macro-loc-spelling-to-loc (new-clang-range-begin r)))
+           (end (macro-loc-spelling-to-loc (new-clang-range-end r))))
+      (make-new-clang-range :begin begin :end end)))
+  (:method (r) r))
 
 (defun encapsulate-macro-expansions-below-node (a)
   (assert (not (is-macro-expansion-node a)))

@@ -15,6 +15,7 @@
            :ext
            :flags
            :raw-size
+           :original-file
            ;; :genome-lines
            :genome-line-offsets
            :genome-lines-mixin))
@@ -32,20 +33,18 @@
              :copier copy-seq)
    (ext      :initarg :ext      :accessor ext      :initform "c"
              :copier copy-tree)
+   (original-file :initarg :original-file :accessor original-file
+                  :initform nil :copier :direct)
    (raw-size :initarg :size     :accessor raw-size :initform nil
              :copier :none))
   (:documentation "Raw source code software representation."))
 
 (defclass genome-lines-mixin ()
-  (#+nil
-   (genome-lines :type vector :accessor genome-lines
-                 :documentation "Mapping from line numbers (starting at zero) to positions
-in genome.")
-   (genome-line-offsets :type vector :accessor genome-line-offsets
-                        :documentation "The position in GENOME of the first character of each line")
-   (last-line-terminated? :type boolean :accessor last-line-terminated?
-                          :documentation "If true, last line was terminated by the separator"))
-  (:documentation "Mixin for recording lines of a source"))
+  (genome-line-offsets :type vector :accessor genome-line-offsets
+                       :documentation "The position in GENOME of the first character of each line")
+  (last-line-terminated? :type boolean :accessor last-line-terminated?
+                         :documentation "If true, last line was terminated by the separator"))
+(:documentation "Mixin for recording lines of a source"))
 
 (defmethod phenome ((obj source) &key (bin (temp-file-name)))
   "Compile OBJ to create an executable version of the software
@@ -72,7 +71,7 @@ on the filesystem at BIN."
     (if stream (write-string genome stream) genome)))
 
 (defmethod (setf genome) :after (v (obj genome-lines-mixin))
-  (slot-makunbound obj 'genome-line-offsets))
+(slot-makunbound obj 'genome-line-offsets))
 
 (defmethod slot-unbound (class (obj genome-lines-mixin)
                          (slot-name (eql 'genome-line-offsets)))
@@ -83,7 +82,6 @@ on the filesystem at BIN."
                            :element-type 'base-char))
          (len (length s))
          (ter-len (length ter))
-         (etype (array-element-type s))
          (pos 0))
     ;; Lines will be displaced into genome-string, so we don't
     ;; waste space holding two copies of the program.
@@ -102,27 +100,7 @@ on the filesystem at BIN."
                        (prog1 (- len pos)
                          (setf (last-line-terminated? obj) nil
                                pos len)))))))
-      (setf (genome-line-offsets obj) (coerce line-positions 'vector))
-      #+nil
-      (let ((lines (iter (while (< pos len))
-                         (let* ((next (search ter s :start2 pos))
-                                (old-pos pos)
-                                (line-len
-                                 (if next
-                                     (prog1 (- next pos)
-                                       (setf pos (+ next ter-len)))
-                                     ;; Last line was nonempty and did not end in
-                                     ;; the expected terminator character(s)
-                                     (prog1 (- len pos)
-                                       (setf (last-line-terminated? obj) nil
-                                             pos len)))))
-                           ;; (format t "next = ~a, old-pos = ~a, pos = ~a, line-len = ~a~%" next old-pos pos line-len)
-                           (collecting (make-array (list line-len)
-                                                   :element-type etype
-                                                   :displaced-to s
-                                                   :displaced-index-offset old-pos))))))
-        (setf (genome-lines obj)
-              (make-array (list (length lines)) :initial-contents lines))))))
+      (setf (genome-line-offsets obj) (coerce line-positions 'vector)))))
 
 (defmethod from-file ((obj source) path)
   "Initialize OBJ with the contents of PATH."
@@ -130,10 +108,16 @@ on the filesystem at BIN."
   (setf (ext obj)  (pathname-type (pathname path)))
   obj)
 
+(defmethod from-file :before ((obj source) path)
+(setf (original-file obj) (namestring path)))
+
 (defmethod from-string ((obj source) string)
   "Initialize OBJ with the contents of STRING."
   (setf (genome obj) string)
   obj)
+
+(defmethod from-string :before ((obj source) string)
+(setf (original-file obj) nil))
 
 (defmethod size ((obj source))
   "Return the size of OBJ"

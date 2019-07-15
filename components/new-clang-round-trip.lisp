@@ -54,17 +54,12 @@
             (lisp-implementation-type) (lisp-implementation-version))
   (declare (ignorable quiet verbose))
   (when help (show-help-for-new-clang-round-trip))
-  (let* ((sw (from-file-new-clang source :compiler compiler :flags flags)))
-    (clrhash sel/sw/new-clang::*symbol-table*)
-    (multiple-value-bind (json tmp-file genome-len)
-        (sel/sw/new-clang::clang-json sw)
-      (let* ((raw-ast (clang-convert-json-for-file json tmp-file genome-len))
-             (ast (remove-non-program-asts raw-ast tmp-file)))
-        (combine-overlapping-siblings sw ast)
-        (decorate-ast-with-strings sw ast)
-        ;; (setf (slot-value sw 'ast-root) ast)
-        (with-open-file (s out :direction :output :if-exists :supersede)
-          (format s "~a" (ast-text ast)))))))
+  ;; Rewrite this to use new-clang class
+  (let ((sw (make-instance 'new-clang :flags flags :compiler sel/sw/new-clang::*clang-binary*)))
+    (from-file sw source)
+    (with-open-file (s out :direction :output :if-exists :supersede)
+      (format s "~a" (source-text (ast-root sw))))))
+
 
 
 
