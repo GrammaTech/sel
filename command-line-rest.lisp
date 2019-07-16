@@ -18,7 +18,10 @@
 (in-readtable :curry-compose-reader-macros)
 
 (defmacro define-command-rest
-    ((name &key environment (status 'lookup-session-job-status))
+    ((name &key (environment '(*fitness-predicate*
+                               *max-evals* *max-time* *orig* *population*
+                               *target-fitness-p* *test-suite* *threads*))
+           (status 'lookup-session-job-status))
              args pre-help post-help &body body)
   "Define a function, executable, and a REST server function and executable.
 
