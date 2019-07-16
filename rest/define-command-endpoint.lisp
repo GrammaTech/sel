@@ -150,7 +150,7 @@ client session jobs."
 (defmacro define-endpoint-route
     (route-name func required-args
      &optional (command-line-args '())
-       (environment '())
+       (environment NIL)
        (status-fn 'lookup-session-job-status))
   "Macro to define routes to run the function and retrieve results.
 
@@ -194,7 +194,9 @@ In this case, the function must be in scope wherever this macro is envoed."
          (name (intern (symbol-name 'name) package))
          (json (intern (symbol-name 'json) package))
          (lookup-fn (intern (symbol-name 'lookup-fn) package))
-         (bindings (mapcar (lambda (var) (list var nil)) environment)))
+         (bindings (if environment
+                       (mapcar (lambda (var) (list var nil)) environment)
+                       NIL)))
     `(progn
        (let ((main-args (mapcar (lambda (arg)
                                   (cons (string (car arg)) (cadr arg)))

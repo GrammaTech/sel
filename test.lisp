@@ -1809,14 +1809,13 @@
             (lisp-implementation-type) (lisp-implementation-version))
   (declare (ignorable interactive manual quiet verbose))
   (if help
-      (show-help-for-fact-entry)
+      (show-help-for-fact-cl-entry)
       (factorial n)))
 
 (deftest run-factorial-cl-func ()
-  (let ((result-1 (fact-entry 5 :verbose 3))
-        (result-2 (fact-entry 52235215 :help T)))
-    (is (eql result-1 120))
-    (is (eql result-2 nil))))
+  (let ((*standard-output* (make-broadcast-stream)))
+    (is (eql (fact-entry 5 :verbose 3) 120))
+    (is (eql (fact-entry 52235215 :help T) nil))))
 
 
 ;;; REST tests
@@ -1880,7 +1879,7 @@
  Else, create one and return the client id (cid)."
   (or *rest-client* (rest-test-get-new-client)))
 
-(deftest rest-create-client ()
+(deftest (rest-create-client :long-running) ()
   ;; test ensures the web service is running and it can create a new client,
   ;; tests Create Client (HTTP POST) method.
   (with-fixture rest-server
@@ -1889,7 +1888,7 @@
       (is (stringp cid))
       (is (string-equal (subseq cid 0 7) "client-")))))
 
-(deftest rest-create-software ()
+(deftest (rest-create-software :long-running) ()
   ;; test ensures the web service is running and it can create a new software
   ;; object. Tests Create Software (HTTP POST) method.
   (with-fixture rest-server
@@ -1936,7 +1935,24 @@
     (is (search "30.1" result))
     (is (search " T" result))))
 
-(define-command-rest (fact-entry)
+(define-command-rest (fact-entry-cl)
+    ((n integer) &spec +common-command-line-options+)
+  "Test that canonical REST endpoints work. Computes factorial."
+  #.(format nil
+            "~%Built from SEL ~a, and ~a ~a.~%"
+            +software-evolution-library-version+
+            (lisp-implementation-type) (lisp-implementation-version))
+  (declare (ignorable interactive manual quiet verbose))
+  (if help
+      (show-help-for-fact-entry-cl)
+      (factorial n)))
+
+(deftest run-rest-factorial-cl-func ()
+  (let ((*standard-output* (make-broadcast-stream)))
+    (is (eql (fact-entry-cl 5 :verbose 3) 120))
+    (is (eql (fact-entry-cl 52235215 :help T) nil))))
+
+(define-command-rest (fact-entry :environment '())
     ((n integer) &spec +common-command-line-options+)
   "Test that canonical REST endpoints work. Computes factorial."
   #.(format nil
@@ -1948,10 +1964,48 @@
       (show-help-for-fact-entry)
       (factorial n)))
 
-(deftest run-rest-factorial-cl-func ()
+(deftest run-rest-factorial-cl-func-2 ()
   (let ((*standard-output* (make-broadcast-stream)))
     (is (eql (fact-entry 5 :verbose 3) 120))
     (is (eql (fact-entry 52235215 :help T) nil))))
+
+(defun rest-endpoint-test-create-fact-job (json-input)
+  "Returns new job name or nil.
+ Assumes service is running."
+  (multiple-value-bind (stream status)
+      (drakma:http-request
+       (format nil "http://127.0.0.1:~D/client" *clack-port*)
+       :method :post
+       :content-type "application/json"
+       :content (json:encode-json-to-string
+                 '(("max-population-size" .  "1024")))
+       :want-stream t)
+    (if-let* ((cid (and (= status 200) (read stream)))
+              (cid (if (symbolp cid) (symbol-name cid) cid)))
+      (multiple-value-bind (stream status)
+          (drakma:http-request
+           (format nil "http://127.0.0.1:~D/rest-fact-entry?cid=~A"
+                   *clack-port* cid)
+           :method :post
+           :content-type "application/json"
+           :content (json:encode-json-to-string json-input)
+           :want-stream t)
+        (if-let ((job-name (and (= status 200) (read stream))))
+          (if (symbolp job-name)
+              (symbol-name job-name)
+              job-name))))))
+
+(deftest (run-rest-factorial-remote-1 :long-running) ()
+  (with-fixture rest-server
+    (let ((result (rest-endpoint-test-create-fact-job '(("n" . 5)))))
+      (is (stringp result))
+      (is (starts-with-subseq "JOB-" result)))))
+
+(deftest (run-rest-factorial-remote-2 :long-running) ()
+  (with-fixture rest-server
+    (let ((*standard-output* (make-broadcast-stream)))
+      (is (not (rest-endpoint-test-create-fact-job
+                '(("n" . 5) ("verbose" . T))))))))
 
 
 ;;; CSURF-ASM representation.

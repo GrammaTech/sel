@@ -64,7 +64,11 @@ STATUS
                                  «and [#'not #'listp]
                                       [{equal #\&} {aref _ 0} #'symbol-name]»
                                  (plist-drop rest-symbol args)))
-         (positional-args (mapcar #'car typed-positional-args)))
+         (positional-args (mapcar #'car typed-positional-args))
+         (environment (if (and environment
+                               (not (equal environment '(QUOTE NIL))))
+                          environment
+                          NIL)))
     ;; NOTE: Results just status or "finished/path."
     `(progn
        ;; 1. Define the command.
