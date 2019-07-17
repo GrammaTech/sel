@@ -1830,8 +1830,8 @@
 
 (deftest run-factorial-cl-func ()
   (let ((*standard-output* (make-broadcast-stream)))
-    (is (eql (fact-entry 5 :verbose 3) 120))
-    (is (eql (fact-entry 52235215 :help T) nil))))
+    (is (eql (fact-cl-entry 5 :verbose 3) 120))
+    (is (eql (fact-cl-entry 52235215 :help T) nil))))
 
 
 ;;; REST tests
@@ -1991,15 +1991,20 @@
 (deftest (run-rest-factorial-remote-1 :long-running) ()
   (with-fixture fact-rest-server
     (multiple-value-bind (cid status) (rest-test-get-new-client)
-      (let ((result (rest-endpoint-test-create-fact-job cid '(("n" . 5)))))
+      (let ((result
+             (symbol-name
+              (rest-endpoint-test-create-fact-job cid '(("n" . 5))))))
         (is (stringp result))
-        (is (starts-with-subseq "JOB-" result))))))
+        (is (starts-with-subseq "REST-FACT-ENTRY" result))))))
 
 (deftest (run-rest-factorial-remote-2 :long-running) ()
   (with-fixture fact-rest-server
-    (let ((*standard-output* (make-broadcast-stream)))
-      (is (not (rest-endpoint-test-create-fact-job
-                '(("n" . 5) ("verbose" . T))))))))
+    (multiple-value-bind (cid status) (rest-test-get-new-client)
+      (let ((result
+             (symbol-name
+              (rest-endpoint-test-create-fact-job cid '(("n" . 5) ("help" . T))))))
+        (is (stringp result))
+        (is (starts-with-subseq "REST-FACT-ENTRY" result))))))
 
 
 ;;; CSURF-ASM representation.

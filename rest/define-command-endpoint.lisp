@@ -214,7 +214,8 @@ In this case, the function must be in scope wherever this macro is envoed."
            (let* ((,json
                    (handler-case
                        (if-let ((payload (decode-json-payload)))
-                         (mapcar [#'string #'car] payload))
+                         (mapcar «cons [#'string #'car] #'cdr»
+                                 payload))
                      (error (e)
                        (http-condition
                         400
