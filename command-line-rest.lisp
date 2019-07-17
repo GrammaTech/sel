@@ -64,13 +64,7 @@ STATUS
                                  «and [#'not #'listp]
                                       [{equal #\&} {aref _ 0} #'symbol-name]»
                                  (plist-drop rest-symbol args)))
-         (positional-args (mapcar #'car typed-positional-args))
-         ;; If the environment is passed in with a leading quote, we have to
-         ;; strip it so that define-endpoint-route can map over it properly.
-         (environment (cond
-                        ((and environment (equal environment '(QUOTE NIL))) NIL)
-                        ((equal (car environment) 'QUOTE) (cadr environment))
-                        (t environment))))
+         (positional-args (mapcar #'car typed-positional-args)))
     ;; NOTE: Results just status or "finished/path."
     `(progn
        ;; 1. Define the command.

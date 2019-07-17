@@ -194,6 +194,12 @@ In this case, the function must be in scope wherever this macro is envoed."
          (name (intern (symbol-name 'name) package))
          (json (intern (symbol-name 'json) package))
          (lookup-fn (intern (symbol-name 'lookup-fn) package))
+         ;; If the environment is passed in with a leading quote, we have to
+         ;; strip it so that define-endpoint-route can map over it properly.
+         (environment (cond
+                        ((and environment (equal environment '(QUOTE NIL))) NIL)
+                        ((equal (car environment) 'QUOTE) (cadr environment))
+                        (t environment)))
          (bindings (if environment
                        (mapcar (lambda (var) (list var nil)) environment)
                        NIL)))
