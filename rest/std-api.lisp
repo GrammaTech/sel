@@ -216,12 +216,12 @@
    :trace-db
    :software-evolution-library/software-evolution-library
    :software-evolution-library/utility
-   :software-evolution-library/rest/sessions
-   :software-evolution-library/rest/utility
    :software-evolution-library/components/test-suite
    :software-evolution-library/components/formatting
    :software-evolution-library/components/instrument
    :software-evolution-library/components/traceable
+   :software-evolution-library/rest/sessions
+   :software-evolution-library/rest/utility
    :software-evolution-library/software/parseable
    :software-evolution-library/software/clang
    :software-evolution-library/command-line)
@@ -262,7 +262,7 @@
     soft (:post "application/json" &key cid (sid nil) (type nil))
   (declare (ignore sid))
   (let ((json (handler-case
-                  (json:decode-json-from-string (payload-as-string))
+                  (decode-json-payload)
                 (error (e)
                   (http-condition 400 "Malformed JSON (~a)!" e)))))
     (handler-case
@@ -369,7 +369,7 @@
 (defroute
     population (:post "application/json" &key cid name)
   (let* ((json (handler-case
-                   (json:decode-json-from-string (payload-as-string))
+                   (decode-json-payload)
                  (error (e)
                    (http-condition 400 "Malformed JSON (~a)!" e))))
          (client (lookup-session cid))
@@ -422,7 +422,7 @@
 (defroute
     population (:put "application/json" &key cid name)
   (let* ((json (handler-case
-                   (json:decode-json-from-string (payload-as-string))
+                   (decode-json-payload)
                  (error (e)
                    (http-condition 400 "Malformed JSON (~a)!" e))))
          (sids (aget :sids json))
@@ -463,7 +463,7 @@ Resource lookups are of the form \"<resource>:<oid>\""
     mut (:post "application/json" &key cid mid)
   (declare (ignore mid))
   (let* ((json (handler-case
-                   (json:decode-json-from-string (payload-as-string))
+                   (decode-json-payload)
                  (error (e)
                    (http-condition 400 "Malformed JSON (~a)!" e))))
          (session (lookup-session cid))
@@ -535,7 +535,7 @@ Resource lookups are of the form \"<resource>:<oid>\""
     tests (:post "application/json" &key cid oid)
   (declare (ignore oid))
   (let* ((json (handler-case
-                   (json:decode-json-from-string (payload-as-string))
+                   (decode-json-payload)
                  (error (e)
                    (http-condition 400 "Malformed JSON (~a)!" e))))
          (session (lookup-session cid))
@@ -675,7 +675,7 @@ Resource lookups are of the form \"<resource>:<oid>\""
     tracesoft (:post "application/json" &key cid sid tests-oid)
   (handler-case
       (let* ((json (handler-case
-                       (json:decode-json-from-string (payload-as-string))
+                       (decode-json-payload)
                      (error (e)
                        (http-condition 400 "Malformed JSON (~a)!" e))))
              (session (lookup-session cid))
@@ -709,7 +709,7 @@ Resource lookups are of the form \"<resource>:<oid>\""
     writesoft (:post "application/json" &key cid sid)
   (handler-case
       (let* ((json (handler-case
-                       (json:decode-json-from-string (payload-as-string))
+                       (decode-json-payload)
                      (error (e)
                        (http-condition 400 "Malformed JSON (~a)!" e))))
              (session (lookup-session cid))

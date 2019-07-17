@@ -61,7 +61,6 @@
    :common-lisp
    :snooze
    :split-sequence
-   :cl-json
    :iterate
    :trace-db
    :software-evolution-library/software-evolution-library
@@ -73,9 +72,9 @@
    :software-evolution-library/components/traceable
    :software-evolution-library/software/parseable
    :software-evolution-library/software/clang
-   :software-evolution-library/rest/utility
+   :software-evolution-library/rest/sessions
    :software-evolution-library/rest/std-api
-   :software-evolution-library/rest/sessions)
+   :software-evolution-library/rest/utility)
   (:shadowing-import-from :clack :clackup :stop)
   (:export :apply-async-job-func
            :async-job
@@ -245,7 +244,7 @@
 (defroute
     async (:post "application/json" &key cid name)
   (let* ((json (handler-case
-                   (json:decode-json-from-string (payload-as-string))
+                   (decode-json-payload)
                  (error (e)
                    (http-condition 400 "Malformed JSON (~a)!" e))))
          (session (lookup-session cid))

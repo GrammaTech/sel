@@ -70,7 +70,6 @@
    :common-lisp
    :snooze
    :split-sequence
-   :cl-json
    :software-evolution-library/software-evolution-library
    :software-evolution-library/command-line
    :software-evolution-library/utility
@@ -214,11 +213,8 @@ In this case, the function must be in scope wherever this macro is envoed."
                                         (make-gensym-string ',route-name))))
            (let* ((,json
                    (handler-case
-                       (if-let* ((payload (payload-as-string))
-                                 (string-nonempty
-                                  (not (emptyp payload))))
-                         (mapcar [#'string #'car]
-                                 (json:decode-json-from-string payload)))
+                       (if-let ((payload (decode-json-payload)))
+                         (mapcar [#'string #'car] payload))
                      (error (e)
                        (http-condition
                         400
