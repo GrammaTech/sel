@@ -2000,9 +2000,12 @@
 (deftest (run-rest-factorial-remote-2 :long-running) ()
   (with-fixture fact-rest-server
     (multiple-value-bind (cid status) (rest-test-get-new-client)
-      (let ((result
-             (symbol-name
-              (rest-endpoint-test-create-fact-job cid '(("n" . 5) ("help" . T))))))
+      (let* ((*standard-output* (make-broadcast-stream))
+             (result
+              (symbol-name
+               (rest-endpoint-test-create-fact-job
+                cid
+                '(("n" . 5) ("help" . T))))))
         (is (stringp result))
         (is (starts-with-subseq "REST-FACT-ENTRY" result))))))
 
