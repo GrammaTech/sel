@@ -65,10 +65,12 @@ STATUS
                                       [{equal #\&} {aref _ 0} #'symbol-name]»
                                  (plist-drop rest-symbol args)))
          (positional-args (mapcar #'car typed-positional-args))
-         (environment (if (and environment
-                               (not (equal environment '(QUOTE NIL))))
-                          environment
-                          NIL)))
+         ;; If the environment is passed in with a leading quote, we have to
+         ;; strip it so that define-endpoint-route can map over it properly.
+         (environment (cond
+                        ((and environment (equal environment '(QUOTE NIL))) NIL)
+                        ((equal (car environment) 'QUOTE) (cadr environment))
+                        (t environment))))
     ;; NOTE: Results just status or "finished/path."
     `(progn
        ;; 1. Define the command.
@@ -101,6 +103,6 @@ STATUS
                     "~%Built from SEL ~a, and ~a ~a.~%"
                     +software-evolution-library-version+
                     (lisp-implementation-type) (lisp-implementation-version))
-                 (declare (ignorable interactive manual quiet verbose))
+                 (declare (ignorable quiet verbose))
                  (when help (show-help-for-fact-entry))
                  (factorial n)))

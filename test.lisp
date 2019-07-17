@@ -744,6 +744,22 @@
   (:setup (unless *clack* (setf *clack* (initialize-clack))))
   (:teardown (clack:stop *clack*)(setf *clack* nil)(setf *rest-client* nil)))
 
+(defixture fact-rest-server
+  (:setup
+   (define-command-rest (fact-entry :environment (*population*))
+       ((n integer) &spec +common-command-line-options+)
+     "Test that canonical REST endpoints work. Computes factorial."
+     #.(format nil
+               "~%Built from SEL ~a, and ~a ~a.~%"
+               +software-evolution-library-version+
+               (lisp-implementation-type) (lisp-implementation-version))
+     (declare (ignorable quiet verbose))
+     (if help
+         (show-help-for-fact-entry)
+         (factorial n)))
+   (unless *clack* (setf *clack* (initialize-clack))))
+  (:teardown (clack:stop *clack*)(setf *clack* nil)(setf *rest-client* nil)))
+
 (defixture gcd-elf
   (:setup
    (let ((arch (intern (string-upcase (subseq (shell "uname -m") 0 3)))))
@@ -1807,7 +1823,7 @@
             "~%Built from SEL ~a, and ~a ~a.~%"
             +software-evolution-library-version+
             (lisp-implementation-type) (lisp-implementation-version))
-  (declare (ignorable interactive manual quiet verbose))
+  (declare (ignorable quiet verbose))
   (if help
       (show-help-for-fact-cl-entry)
       (factorial n)))
@@ -1837,7 +1853,6 @@
 	    (setf result (read stream)))
 	(if (symbolp result)
 	    (setf result (symbol-name result)))
-
 	(values result status))))
 
 (defun rest-test-create-software (type cid)
@@ -1942,7 +1957,7 @@
             "~%Built from SEL ~a, and ~a ~a.~%"
             +software-evolution-library-version+
             (lisp-implementation-type) (lisp-implementation-version))
-  (declare (ignorable interactive manual quiet verbose))
+  (declare (ignorable quiet verbose))
   (if help
       (show-help-for-fact-entry-cl)
       (factorial n)))
@@ -1952,57 +1967,36 @@
     (is (eql (fact-entry-cl 5 :verbose 3) 120))
     (is (eql (fact-entry-cl 52235215 :help T) nil))))
 
-(define-command-rest (fact-entry :environment '())
-    ((n integer) &spec +common-command-line-options+)
-  "Test that canonical REST endpoints work. Computes factorial."
-  #.(format nil
-            "~%Built from SEL ~a, and ~a ~a.~%"
-            +software-evolution-library-version+
-            (lisp-implementation-type) (lisp-implementation-version))
-  (declare (ignorable interactive manual quiet verbose))
-  (if help
-      (show-help-for-fact-entry)
-      (factorial n)))
-
 (deftest run-rest-factorial-cl-func-2 ()
-  (let ((*standard-output* (make-broadcast-stream)))
-    (is (eql (fact-entry 5 :verbose 3) 120))
-    (is (eql (fact-entry 52235215 :help T) nil))))
+  (with-fixture fact-rest-server
+    (let ((*standard-output* (make-broadcast-stream)))
+      (is (eql (fact-entry 5 :verbose 3) 120))
+      (is (eql (fact-entry 52235215 :help T) nil)))))
 
-(defun rest-endpoint-test-create-fact-job (json-input)
+(defun rest-endpoint-test-create-fact-job (client-id json-input)
   "Returns new job name or nil.
  Assumes service is running."
   (multiple-value-bind (stream status)
       (drakma:http-request
-       (format nil "http://127.0.0.1:~D/client" *clack-port*)
+       (format nil "http://127.0.0.1:~D/rest-fact-entry?cid=~A"
+               *clack-port* client-id)
        :method :post
        :content-type "application/json"
-       :content (json:encode-json-to-string
-                 '(("max-population-size" .  "1024")))
+       :content (json:encode-json-to-string json-input)
        :want-stream t)
-    (if-let* ((cid (and (= status 200) (read stream)))
-              (cid (if (symbolp cid) (symbol-name cid) cid)))
-      (multiple-value-bind (stream status)
-          (drakma:http-request
-           (format nil "http://127.0.0.1:~D/rest-fact-entry?cid=~A"
-                   *clack-port* cid)
-           :method :post
-           :content-type "application/json"
-           :content (json:encode-json-to-string json-input)
-           :want-stream t)
-        (if-let ((job-name (and (= status 200) (read stream))))
-          (if (symbolp job-name)
-              (symbol-name job-name)
-              job-name))))))
+    (if (= status 200)
+        (read stream)
+        (format nil "Status code ~A" status))))
 
 (deftest (run-rest-factorial-remote-1 :long-running) ()
-  (with-fixture rest-server
-    (let ((result (rest-endpoint-test-create-fact-job '(("n" . 5)))))
-      (is (stringp result))
-      (is (starts-with-subseq "JOB-" result)))))
+  (with-fixture fact-rest-server
+    (multiple-value-bind (cid status) (rest-test-get-new-client)
+      (let ((result (rest-endpoint-test-create-fact-job cid '(("n" . 5)))))
+        (is (stringp result))
+        (is (starts-with-subseq "JOB-" result))))))
 
 (deftest (run-rest-factorial-remote-2 :long-running) ()
-  (with-fixture rest-server
+  (with-fixture fact-rest-server
     (let ((*standard-output* (make-broadcast-stream)))
       (is (not (rest-endpoint-test-create-fact-job
                 '(("n" . 5) ("verbose" . T))))))))
