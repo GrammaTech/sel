@@ -174,10 +174,10 @@
 
 (defroute
     client (:post "application/json")
-  (let* ((json  (handler-case
-                    (decode-json-payload)
-                  (error (e)
-                    (http-condition 400 "Malformed JSON (~a)!" e))))
+  (let* ((json (handler-case
+                   (decode-json-payload)
+                 (error (e)
+                   (http-condition 400 "Malformed JSON (~a)!" e))))
          (max-population-size (aget :max-population-size json))
          (cross-chance (aget :cross-chance json))
          (mutation-rate (aget :mut-rate json)))
