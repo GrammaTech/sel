@@ -1,0 +1,1 @@
+a() { ((unsigned (*)(signed))a); }
