@@ -88,7 +88,7 @@ TEST_ARTIFACTS = \
 	test/etc/gcd/gcd \
 	test/etc/gcd/gcd.s
 
-BINS = rest-server new-clang-round-trip
+BINS = rest-server new-clang-round-trip clang-diff-test
 
 BIN_TEST_DIR = test/bin
 BIN_TESTS =			\
