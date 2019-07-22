@@ -51,6 +51,7 @@
            :map-ast
            :map-ast
            :map-ast-postorder
+           :map-ast-with-ancestors
            :mapc-ast
            :mapc-ast-and-strings
            :ast-to-list
@@ -861,6 +862,19 @@ the methods in parseable.lisp instead.")
 (defmethod map-ast (tree fn)
   (declare (ignorable tree fn))
   nil)
+
+(defgeneric map-ast-with-ancestors (tree fn &optional ancestors)
+  (:documentation "Apply FN to each node of the AST, and its list of ancestors,
+in preorder.  The ancestor list is in decreasing order of depth in the AST."))
+
+(defmethod map-ast-with-ancestors ((tree ast) fn &optional ancestors)
+  (funcall fn tree ancestors)
+  (let ((ancestors (cons tree ancestors)))
+    (dolist (c (ast-children tree))
+      (when (ast-p c) (map-ast-with-ancestors c fn ancestors))))
+  tree)
+
+(defmethod map-ast-with-ancestors (tree fn &optional ancestors) nil)
 
 (defun mapc-ast (ast fn)
   "Apply FN to AST collecting the results with `cons'."
