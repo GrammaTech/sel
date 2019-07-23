@@ -39,7 +39,11 @@
   "
 #ifndef __GT_TRACEDB_INCLUDE
 #define __GT_TRACEDB_INCLUDE
+
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
+
 #include <pthread.h>
 #include <stdio.h>
 #include <stdarg.h>
