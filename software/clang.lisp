@@ -1589,6 +1589,8 @@ to expand.
           (byte-offset-to-chars (aget :begin-off ast-alist)))
         (end-offset (ast-alist)
           (byte-offset-to-chars (aget :end-off ast-alist)))
+        (safe-subseq (seq start end)
+          (subseq seq start (if (<= end start) start end)))
         (collect-children (ast-alist)
           ;; Find child ASTs and sort them in textual order.
           (let ((children (sort (mapcar #'get-ast (aget :children ast-alist))
@@ -1646,7 +1648,9 @@ to expand.
                       (for c = (car subtree))
                       (for i upfrom 0)
                       ;; Collect text
-                      (collect (subseq genome start (begin-offset c))
+                      (collect (safe-subseq genome
+                                            start
+                                            (begin-offset c))
                         into children)
                       ;; Collect child, converted to AST struct
                       (collect (cons (from-alist 'clang-ast-node c)
@@ -1656,11 +1660,14 @@ to expand.
                       (finally
                        (return
                          (append children
-                                 (list (subseq genome start
-                                               (+ 1 (end-offset ast-alist))))))))
+                                 (list (safe-subseq
+                                        genome
+                                        start
+                                        (+ 1 (end-offset ast-alist))))))))
                 ;; No children: create a single string child with source text
-                (let ((text (subseq genome (begin-offset ast-alist)
-                                    (+ 1 (end-offset ast-alist)))))
+                (let ((text (safe-subseq genome
+                                         (begin-offset ast-alist)
+                                         (+ 1 (end-offset ast-alist)))))
                   (when (not (emptyp text))
                     (list (cond ((string= "DeclRefExpr"
                                           (aget :class ast-alist))
