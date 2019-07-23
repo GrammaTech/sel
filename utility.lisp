@@ -1991,7 +1991,7 @@ For example (pairs '(a b c)) => ('(a . b) '(a . c) '(b . c))
 ;;;     (defmacro task-map (num-threads function sequence)
 ;;;       "Run FUNCTION over SEQUENCE using a `simple-job' `task-job'."
 ;;;       (with-gensyms (task-map task-item)
-;;;         `(if (<= 1 ,num-threads)
+;;;         `(if (<= ,num-threads 1)
 ;;;              (mapcar ,function ,sequence) ; No threading.
 ;;;              (progn                     ; Multi-threaded implementation.
 ;;;                (defclass ,task-map (task) ())  ; Task to map over SEQUENCE.
@@ -2325,7 +2325,7 @@ See the `task-job' method on `task-map' objects."))
 
 (defun task-map (num-threads function objects)
   "Run FUNCTION over OBJECTS using a `simple-job' `task-job'."
-  (if (<= 1 num-threads)
+  (if (<= num-threads 1)
       (mapcar function objects)   ; No threading when num-threads <= 1.
       (task-runner-results  ; Return the results from the results obj.
        ;; Create the task-map object, and run until exhausted.
