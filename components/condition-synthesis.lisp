@@ -318,7 +318,7 @@ int abst_cond() {
         result = *return_vals - '0';
         return_vals++;
     }
-    write_trace_aux(__sel_trace_file, result);
+    __write_trace_aux(__sel_trace_file, result);
     return result;
 }
 "

@@ -6674,7 +6674,7 @@ Useful for printing or returning differences in the REPL."
            instrumented
            (format
             nil
-            "write_trace_id(__sel_trace_file, &__sel_trace_file_lock, ~du)"
+            "__write_trace_id(__sel_trace_file, __sel_trace_file_lock, ~du)"
             (position (function-body *gcd* (first (functions *gcd*)))
                       (asts *gcd*)
                       :test #'equalp))
@@ -6699,7 +6699,7 @@ Useful for printing or returning differences in the REPL."
                      (for i upfrom 0)
                      (collect (cons ast (if (evenp i) '(1 2) '(3 4) ))))
                :trace-file :stderr))))
-      (is (scan (quote-meta-chars "write_trace_aux(__sel_trace_file")
+      (is (scan (quote-meta-chars "__write_trace_aux(__sel_trace_file")
                 (genome-string instrumented))
           "We find code to print auxiliary values in the instrumented source.")
       ;; Instrumented compiles and runs.
@@ -6733,7 +6733,7 @@ Useful for printing or returning differences in the REPL."
       ;; Ensure we were able to instrument an else branch w/o curlies.
       (let* ((else-counter (index-of-ast *gcd*
                                          (stmt-with-text *gcd* "b = b - a;")))
-             (matcher (format nil "write_trace_id\\(.*~du\\)"
+             (matcher (format nil "__write_trace_id\\(.*~du\\)"
                               else-counter)))
         (is (scan matcher (genome instrumented)))
         ;; The next line (after flushing) should be the else branch.
@@ -6803,7 +6803,7 @@ prints unique counters in the trace"
           (is (search
                (format
                 nil
-                "write_trace_id(__sel_trace_file, &__sel_trace_file_lock, ~du)"
+                "__write_trace_id(__sel_trace_file, __sel_trace_file_lock, ~du)"
                 (->> (find-if [{string= "a = atoi(argv[1]);"}
                                #'peel-bananas #'source-text]
                               (asts variant)
@@ -6814,7 +6814,7 @@ prints unique counters in the trace"
           (is (search
                (format
                 nil
-                "write_trace_id(__sel_trace_file, &__sel_trace_file_lock, ~du)"
+                "__write_trace_id(__sel_trace_file, __sel_trace_file_lock, ~du)"
                 (->> (find-if [{string= "a = atoi(argv[1]);"}
                                #'peel-bananas #'source-text]
                               (asts variant)
@@ -6833,7 +6833,7 @@ prints unique counters in the trace"
                                           instrumenter
                                           ast)))
                   :trace-file :stderr))
-    (is (scan (quote-meta-chars "write_trace_variables(__sel_trace_file")
+    (is (scan (quote-meta-chars "__write_trace_variables(__sel_trace_file")
               (genome-string *gcd*))
         "We find code to print unbound variables in the instrumented source.")
     (with-temp-file (bin)
@@ -6858,7 +6858,7 @@ prints unique counters in the trace"
                                           instrumenter
                                           ast)))
                   :trace-file :stderr))
-    (is (scan (quote-meta-chars "write_trace_variables(__sel_trace_file")
+    (is (scan (quote-meta-chars "__write_trace_variables(__sel_trace_file")
               (genome-string *gcd*))
         "We find code to print unbound variables in the instrumented source.")
     (with-temp-file (bin)
@@ -6891,7 +6891,7 @@ prints unique counters in the trace"
                                           instrumenter ast
                                           :print-strings t)))
                   :trace-file :stderr))
-    (is (scan (quote-meta-chars "write_trace_blobs(__sel_trace_file")
+    (is (scan (quote-meta-chars "__write_trace_blobs(__sel_trace_file")
               (genome-string *soft*))
         "We find code to print strings in the instrumented source.")
     (with-temp-file (bin)
@@ -6917,7 +6917,7 @@ prints unique counters in the trace"
                                           instrumenter ast
                                           :print-strings t)))
                   :trace-file :stderr))
-    (is (scan (quote-meta-chars "write_trace_blobs(__sel_trace_file")
+    (is (scan (quote-meta-chars "__write_trace_blobs(__sel_trace_file")
               (genome-string *soft*))
         "We find code to print strings in the instrumented source.")
     (with-temp-file (bin)
@@ -6940,7 +6940,7 @@ prints unique counters in the trace"
                                           instrumenter
                                           ast)))
                   :trace-file :stderr))
-    (is (scan (quote-meta-chars "write_trace_variables(__sel_trace_file")
+    (is (scan (quote-meta-chars "__write_trace_variables(__sel_trace_file")
               (genome-string *gcd*))
         "We find code to print unbound variables in the instrumented source.")
     (with-temp-file (bin)
@@ -6962,7 +6962,7 @@ prints unique counters in the trace"
                                           instrumenter
                                           ast)))
                   :trace-file :stderr))
-    (is (scan (quote-meta-chars "write_trace_variables(__sel_trace_file")
+    (is (scan (quote-meta-chars "__write_trace_variables(__sel_trace_file")
               (genome-string *soft*))
         "We find code to print unbound variables in the instrumented source.")
     (with-temp-file (bin)
@@ -7099,7 +7099,8 @@ prints unique counters in the trace"
                                               (software instrumenter)}
                                           instrumenter
                                           ast))))
-      (is (not (scan (quote-meta-chars "write_trace_variables(__sel_trace_file")
+      (is (not (scan (quote-meta-chars
+                      "__write_trace_variables(__sel_trace_file")
                      (genome soft)))
           "No code to print variables in the instrumented source."))))
 
