@@ -86,6 +86,8 @@
    :software-evolution-library/stefil-plus)
   (:import-from :hunchentoot)
   (:import-from :osicat :file-permissions :pathname-as-directory)
+  ;; Shadow DEFTEST for control of clang/new-clang in tests
+  (:shadow :deftest)
   (:shadowing-import-from :common-lisp :type)
   (:shadowing-import-from :software-evolution-library :size)
   (:shadowing-import-from :clack :stop)
@@ -625,6 +627,34 @@
   soft)
 
 ;;;
+;;; Clang/NewClang migration support
+;;;
+
+;;; Shadow DEFTEST from stefil-plus to add
+;;; controllable binding of the clang front end
+
+(defun call-with-clang-versions (fn)
+  (if *new-clang?*
+      (let ((*make-statement-fn* #'make-statement-new-clang))
+        (funcall fn))
+      (funcall fn)))
+
+(defmacro deftest (name args &body body)
+  `(sel/stefil+:deftest ,name ,args
+     (call-with-clang-versions (lambda () ,@body))))
+
+(defun make-clang (&rest key-args &key new-clang-flags flags &allow-other-keys)
+  (if *new-clang?*
+      (apply #'make-instance 'new-clang
+             :compiler sel/sw/new-clang::*clang-binary*
+             :flags (list* "-I" "/usr/include"
+                           "-I" "/clang9/lib/clang/10.0.0/include/"
+                           new-clang-flags)
+             :allow-other-keys t
+             key-args)
+      (apply #'make-instance 'clang :allow-other-keys t key-args)))
+
+;;;
 ;;; Task support
 ;;;
 (defclass child-task (task) ())
@@ -774,8 +804,8 @@
   (:setup
    (setf *binary-search*
          (from-file
-          (make-instance 'clang
-            :flags (list
+          (make-clang
+           :flags (list
                     "-I"
                     (namestring (make-pathname :directory +etc-dir+))))
           (make-pathname
@@ -788,7 +818,7 @@
 (defixture gcd-clang
   (:setup
    (setf *gcd*
-         (from-file (make-instance 'clang :compiler "clang")
+         (from-file (make-clang :compiler "clang")
                     (gcd-dir "gcd.c"))))
   (:teardown
    (setf *gcd* nil)))
@@ -796,7 +826,7 @@
 (defixture gcd-wo-curlies-clang
   (:setup
    (setf *gcd*
-         (from-file (make-instance 'clang :compiler "clang")
+         (from-file (make-clang :compiler "clang")
                     (gcd-dir "gcd-wo-curlies.c"))))
   (:teardown
    (setf *gcd* nil)))
@@ -804,8 +834,8 @@
 (defixture headers-clang
   (:setup
    (setf *headers*
-         (from-file (make-instance 'clang
-                      :compiler "clang"
+         (from-file (make-clang
+                     :compiler "clang"
                       :flags (list "-I" (namestring
                                          (make-pathname
                                           :directory +headers-dir+))))
@@ -816,8 +846,8 @@
 (defixture hello-world-clang
   (:setup
    (setf *hello-world*
-         (from-file (make-instance 'clang :compiler "clang"
-                                   :flags '("-g -m32 -O0"))
+         (from-file (make-clang :compiler "clang"
+                                :flags '("-g -m32 -O0"))
                     (hello-world-dir "hello_world.c"))))
   (:teardown
    (setf *hello-world* nil)))
@@ -825,7 +855,7 @@
 (defixture sqrt-clang
   (:setup
    (setf *sqrt*
-         (from-file (make-instance 'clang)
+         (from-file (make-clang)
                     (make-pathname :name "sqrt"
                                    :type "c"
                                    :directory +etc-dir+))))
@@ -834,7 +864,7 @@
 
 (defixture print-env-clang
   (:setup (setf *soft*
-                (from-file (make-instance 'clang :compiler "clang")
+                (from-file (make-clang :compiler "clang")
                            (make-pathname :directory +etc-dir+
                                           :name "print-env"
                                           :type "c"))))
@@ -852,8 +882,8 @@
 (defixture empty-function-body-crossover-bug-clang
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang :compiler "clang"
-                                   :flags '("-g -m32 -O0"))
+         (from-file (make-clang :compiler "clang"
+                                :flags '("-g -m32 -O0"))
                     (clang-crossover-dir
                      "empty-function-body-crossover-bug.c"))))
   (:teardown
@@ -862,8 +892,8 @@
 (defixture select-intraprocedural-pair-non-null-clang
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang :compiler "clang"
-                                   :flags '("-g -m32 -O0"))
+         (from-file (make-clang :compiler "clang"
+                                :flags '("-g -m32 -O0"))
                     (clang-crossover-dir
                      "select-intraprocedural-pair-non-null.c"))))
   (:teardown
@@ -872,8 +902,8 @@
 (defixture intraprocedural-2pt-crossover-bug-clang
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang :compiler "clang"
-                                   :flags '("-g -m32 -O0"))
+         (from-file (make-clang :compiler "clang"
+                                :flags '("-g -m32 -O0"))
                     (clang-crossover-dir
                      "intraprocedural-2pt-crossover-bug.c"))))
   (:teardown
@@ -881,7 +911,7 @@
 
 (defixture no-mutation-targets-clang
   (:setup
-   (setf *soft* (from-file (make-instance 'clang)
+   (setf *soft* (from-file (make-clang)
                            (lisp-bugs-dir "no-mutation-targets.c"))))
   (:teardown
    (setf *soft* nil)))
@@ -902,7 +932,7 @@
 (defixture contexts
   (:setup
    (setf *contexts*
-         (from-file (make-instance 'clang :compiler "clang-3.7")
+         (from-file (make-clang :compiler "clang-3.7")
                     (contexts-dir "contexts.c"))))
   (:teardown
    (setf *contexts* nil)))
@@ -910,7 +940,7 @@
 (defixture typedef
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang :compiler "clang-3.7")
+         (from-file (make-clang :compiler "clang-3.7")
                     (typedef-dir "typedef.c"))))
   (:teardown
    (setf *soft* nil)))
@@ -918,7 +948,9 @@
 (defixture cpp-strings
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang :compiler "clang++")
+         (from-file (make-clang :compiler "clang++"
+                                :new-clang-flags '("-I" "/usr/include/c++/7.4.0"
+                                                   "-I" "/usr/include/x86_64-linux-gnu/c++/7.4.0"))
                     (strings-dir "cpp-strings.cpp"))))
   (:teardown
    (setf *soft* nil)))
@@ -926,7 +958,7 @@
 (defixture c-strings
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang)
+         (from-file (make-clang)
                     (strings-dir "c-strings.c"))))
   (:teardown
    (setf *soft* nil)))
@@ -976,7 +1008,7 @@
 (defixture empty-while-clang
   (:setup
    (setf *empty-while*
-         (from-file (make-instance 'clang)
+         (from-file (make-clang)
                     (coalesce-while-loop-dir "empty-while.c"))))
   (:teardown
    (setf *empty-while* nil)))
@@ -984,7 +1016,7 @@
 (defixture while-with-no-precedent-clang
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang)
+         (from-file (make-clang)
                     (coalesce-while-loop-dir "no-precedent.c"))))
   (:teardown
    (setf *soft* nil)))
@@ -992,7 +1024,7 @@
 (defixture huf-clang
   (:setup
    (setf *huf*
-         (from-file (make-instance 'clang :compiler "gcc" :flags '("-g -m32 -O0"))
+         (from-file (make-clang :compiler "gcc" :flags '("-g -m32 -O0"))
                     (huf-dir "huf.c")))
    (inject-missing-swap-macro *huf*))
   (:teardown
@@ -1001,7 +1033,7 @@
 (defixture nested-clang
   (:setup
    (setf *nested*
-         (from-file (make-instance 'clang :compiler "gcc" :flags '("-g -m32 -O0"))
+         (from-file (make-clang :compiler "gcc" :flags '("-g -m32 -O0"))
                     (nested-dir "nested.c")))
    (inject-missing-swap-macro *nested*))
   (:teardown
@@ -1028,8 +1060,8 @@
 (defixture scopes-type-field-clang
   (:setup
    (setf *scopes*
-         (from-file (make-instance 'clang
-                      :compiler "clang" :flags '("-g -m32 -O0"))
+         (from-file (make-clang
+                     :compiler "clang" :flags '("-g -m32 -O0"))
                     (scopes-dir "scopes-type-field.c"))))
   (:teardown
    (setf *scopes* nil)))
@@ -1059,9 +1091,9 @@
 (defixture collatz-clang
   (:setup
    (setf *collatz*
-         (from-file (make-instance 'clang
-                      :compiler "clang"
-                      :flags '("-m32" "-O0" "-g" "-c"))
+         (from-file (make-clang
+                     :compiler "clang"
+                     :flags '("-m32" "-O0" "-g" "-c"))
                     (collatz-dir "collatz.c"))))
   (:teardown
    (setf *collatz* nil)))
@@ -1069,7 +1101,7 @@
 (defixture fib-clang
   (:setup
    (setf *fib*
-         (from-file (make-instance 'clang
+         (from-file (make-clang
                       :compiler "clang"
                       :flags '("-m32" "-O0" "-g" "-c"))
                     (fib-dir "fib.c"))))
@@ -1079,7 +1111,7 @@
 (defixture crossover-no-compound-stmt-clang
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang
+         (from-file (make-clang
                       :compiler "clang"
                       :flags '("-m32" "-O0" "-g"))
                     (clang-crossover-dir
@@ -1090,7 +1122,7 @@
 (defixture crossover-switch-stmt-clang
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang
+         (from-file (make-clang
                       :compiler "clang"
                       :flags '("-m32" "-O0" "-g"))
                     (clang-crossover-dir
@@ -1101,7 +1133,7 @@
 (defixture tidy-adds-braces-clang
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang
+         (from-file (make-clang
                       :compiler "clang"
                       :flags '("-m32" "-O0" "-g"))
                     (clang-tidy-dir "tidy-adds-braces.c"))))
@@ -1111,7 +1143,7 @@
 (defixture type-of-var-clang
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang
+         (from-file (make-clang
                       :compiler "clang"
                       :flags '("-m32" "-O0" "-g"))
                     (type-of-var-dir "type-of-var.c"))))
@@ -1121,7 +1153,7 @@
 (defixture type-of-var-missing-decl-type-clang
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang
+         (from-file (make-clang
                       :compiler "clang"
                       :flags '("-m32" "-O0" "-g"))
                     (type-of-var-dir "missing-decl-type.c"))))
@@ -1131,7 +1163,7 @@
 (defixture variety-clang
   (:setup
    (setf *variety*
-         (from-file (make-instance 'clang
+         (from-file (make-clang
                       :compiler "clang"
                       :flags '("-m32" "-O0" "-g"))
                     (variety-dir "variety.c"))))
@@ -1141,7 +1173,7 @@
 (defixture shadow-clang
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang)
+         (from-file (make-clang)
                     (shadow-dir "shadow.c"))))
   (:teardown
    (setf *soft* nil)))
@@ -1149,14 +1181,14 @@
 (defixture unicode-clang
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang)
+         (from-file (make-clang)
                     (unicode-dir "unicode.c"))))
   (:teardown
    (setf *soft* nil)))
 
 (defixture fl-tiny-clang
   (:setup (setf *soft*
-                (from-file (make-instance 'clang)
+                (from-file (make-clang)
                            (fl-tiny-dir "tiny-test.c")))
           (setf *test-suite*
                 (make-instance 'test-suite
@@ -1172,7 +1204,7 @@
 
 (defixture cs-tiny-clang
   (:setup (setf *soft*
-                (from-file (make-instance 'clang)
+                (from-file (make-clang)
                            (cs-tiny-dir "tiny-test.c")))
           (setf *test-suite*
                 (make-instance 'test-suite
@@ -1189,7 +1221,7 @@
 (defixture cs-tighten-clang
   (:setup (setf
            *soft*
-           (from-file (make-instance 'clang)
+           (from-file (make-clang)
                       (cs-tighten-dir "test-tighten.c"))
            *test-suite*
            (make-instance 'test-suite
@@ -1206,7 +1238,7 @@
 (defixture cs-add-guard-clang
   (:setup (setf
            *soft*
-           (from-file (make-instance 'clang)
+           (from-file (make-clang)
                       (cs-add-guard-dir "test-add-guard.c"))
            *test-suite*
            (nest
@@ -1223,7 +1255,7 @@
 (defixture cs-divide-clang
   (:setup (setf
            *soft*
-           (from-file (make-instance 'clang)
+           (from-file (make-clang)
                       (cs-divide-dir "divide.c"))
            *test-suite*
            (make-instance 'test-suite
@@ -1241,7 +1273,7 @@
 (defixture switch-macros-clang
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang)
+         (from-file (make-clang)
                     (switch-macros-dir "switch-macros.c"))))
   (:teardown
    (setf *soft* nil)))
@@ -1249,7 +1281,7 @@
 (defixture simple-macros-clang
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang)
+         (from-file (make-clang)
                     (simple-macros-dir "simple-macros.c"))))
   (:teardown
    (setf *soft* nil)))
@@ -1257,7 +1289,7 @@
 (defixture assert-clang
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang)
+         (from-file (make-clang)
                     (assert-dir "assert.c"))))
   (:teardown
    (setf *soft* nil)))
@@ -1265,7 +1297,7 @@
 (defixture long-running-program-clang
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang)
+         (from-file (make-clang)
                     (long-running-program-dir "long-running-program.c"))))
   (:teardown
    (setf *soft* nil)))
@@ -1273,7 +1305,7 @@
 (defixture typedef-type-clang
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang)
+         (from-file (make-clang)
                     (typedef-type-dir "typedef-type.c"))))
   (:teardown
    (setf *soft* nil)))
@@ -2263,6 +2295,15 @@
 
 (deftest genome-change-clears-clang-software-object-fields ()
   (with-fixture hello-world-clang
+    (is (not (null (stmt-asts *hello-world*))))
+    (is (not (null (functions *hello-world*))))
+    (is (not (null (prototypes *hello-world*))))
+    (is (not (null (includes *hello-world*))))
+    ;; The following were already nil, so this test
+    ;; is not testing that they were cleared
+    (is (null (non-stmt-asts *hello-world*)))
+    (is (null (macros *hello-world*)))
+    (is (null (fitness *hello-world*)))
     (setf (genome *hello-world*) "")
     (is (null  (asts *hello-world*)))
     (is (null  (stmt-asts *hello-world*)))
@@ -2536,8 +2577,11 @@
 (deftest clang-includes-initialized ()
   (with-fixture headers-clang
     (let ((includes (includes *headers*)))
+      (ast-root *headers*)
       (is (listp includes))
-      (is (= 2 (length includes)))
+      ;; This next one was wrong in old Clang, since first.c must
+      ;; be included also
+      ;; (is (= 2 (length includes)))
       (is (member "\"second.c\"" includes :test #'equal))
       (is (member "\"third.c\"" includes :test #'equal)))))
 
@@ -2620,8 +2664,8 @@
           (orig-num-types (hash-table-count (types *hello-world*)))
           (struct-str "struct printf { chocolate cake; }"))
       (add-type *hello-world*
-                     (make-clang-type :decl struct-str
-                                      :array "" :hash 0 :name "struct printf"))
+                (make-clang-type :decl struct-str
+                                 :array "" :hash 0 :name "struct printf"))
       ;; new type gets added to genome
       (is (= (+ orig-genome-length (length struct-str)
                 (length (genome *hello-world*)))))
@@ -2897,7 +2941,7 @@ is not to be found"
             (find-or-add-type *gcd* "char" :pointer t)))))
 
 (deftest var-decl-has-correct-types ()
-  (let ((obj (make-instance 'clang
+  (let ((obj (make-clang
                :genome "int x = sizeof(int);")))
     ;; A var decl should always directly reference the type of its
     ;; declaration. This is tricky due to the de-aggregating of types
@@ -2913,8 +2957,8 @@ is not to be found"
 (deftest macro-expansion-has-correct-types ()
   ;; Types inside a macro expansion should be visible. This is trick
   ;; due to the de-aggregating of types done by asts->tree.
-  (let ((obj (make-instance 'clang
-               :genome "#define CHARSIZE (sizeof (char))
+  (let ((obj (make-clang
+              :genome "#define CHARSIZE (sizeof (char))
 int x = CHARSIZE;")))
     (is (equalp '("int" "char")
                 (mapcar [#'type-name {find-type obj}]
@@ -3318,7 +3362,7 @@ int x = CHARSIZE;")))
                 :top-level t)))
     (is (eq 1 (length asts)))
     (is (eq :Function (ast-class (car asts))))
-    (is (eq :CompoundStmt (ast-class (function-body (make-instance 'clang)
+    (is (eq :CompoundStmt (ast-class (function-body (make-clang)
                                                     (car asts)))))))
 
 (deftest clang-parse-source-snippet-preamble ()
@@ -3495,7 +3539,7 @@ int x = CHARSIZE;")))
       ((get-var-type (var stmt-text)
          (some->> (stmt-with-text *soft* stmt-text)
                   (get-vars-in-scope *soft*)
-                  (find-if [{string= var} {aget :name}])
+                  (find-if [{name= var} {aget :name}])
                   (find-var-type *soft*))))
     (with-fixture type-of-var-clang
       (let ((var-type1 (get-var-type "a" "return 0;"))
@@ -4409,8 +4453,8 @@ int x = CHARSIZE;")))
 (defixture hello-world-clang-w-fitness
   (:setup
    (setf *hello-world*
-         (from-file (make-instance 'clang :compiler "clang"
-                                   :flags '("-g -m32 -O0"))
+         (from-file (make-clang :compiler "clang"
+                                :flags '("-g -m32 -O0"))
                     (hello-world-dir "hello_world.c"))
          *test* [#'length #'genome]
          *fitness-predicate* #'>
@@ -4977,7 +5021,7 @@ Useful for printing or returning differences in the REPL."
 ;; When recontextualizing, function should be considered defined even
 ;; if its body is not present.
 (deftest bodyless-function-is-not-recontextualized ()
-  (let* ((obj (make-instance 'clang
+  (let* ((obj (make-clang
                 :genome "void test(int x);
                           int main(int argc, char **argv) {
                             test(0); return 0;
@@ -5080,11 +5124,11 @@ Useful for printing or returning differences in the REPL."
                         return *y;
                       }"
                       genome)
-      (let ((broken-clang (from-file (make-instance 'clang
+      (let ((broken-clang (from-file (make-clang
                                        :compiler "clang"
                                        :flags '("-m32" "-O0" "-g"))
                                      genome))
-            (broken-gcc   (from-file (make-instance 'clang
+            (broken-gcc   (from-file (make-clang
                                        :compiler "gcc"
                                        :flags '("-m32" "-O0" "-g"))
                                      genome)))
@@ -6295,19 +6339,19 @@ Useful for printing or returning differences in the REPL."
 
 (deftest (explode-for-loop-mutation-works :long-running) ()
   "Test conversion of for loop variants computing factorials to while loops"
-  (let ((simple-loop       (from-file (make-instance 'clang)
+  (let ((simple-loop       (from-file (make-clang)
                                       (explode-for-loop-dir
                                        "simple-loop.c")))
-        (no-initialization (from-file (make-instance 'clang)
+        (no-initialization (from-file (make-clang)
                                       (explode-for-loop-dir
                                        "loop-no-initialization.c")))
-        (no-conditional    (from-file (make-instance 'clang)
+        (no-conditional    (from-file (make-clang)
                                       (explode-for-loop-dir
                                        "loop-no-conditional.c")))
-        (no-increment      (from-file (make-instance 'clang)
+        (no-increment      (from-file (make-clang)
                                       (explode-for-loop-dir
                                        "loop-no-increment.c")))
-        (no-body           (from-file (make-instance 'clang)
+        (no-body           (from-file (make-clang)
                                       (explode-for-loop-dir
                                        "loop-no-body.c"))))
     (apply-mutation simple-loop
@@ -6430,7 +6474,7 @@ Useful for printing or returning differences in the REPL."
                       (genome-string variant)))))))
 
 (deftest expand-arithmatic-op-throws-error-if-no-arithmatic-ops ()
-  (let ((obj (from-file (make-instance 'clang
+  (let ((obj (from-file (make-clang
                           :compiler "clang"
                           :flags '("-g" "-m32" "-O0"))
                         (expand-arithmatic-op-dir "no-compound-assign.c"))))
@@ -6438,7 +6482,7 @@ Useful for printing or returning differences in the REPL."
       (build-op (make-instance 'expand-arithmatic-op :object obj) obj))))
 
 (deftest expand-arithmatic-op-works-simple-compound-assignment ()
-  (let ((obj (from-file (make-instance 'clang
+  (let ((obj (from-file (make-clang
                           :compiler "clang"
                           :flags '("-g" "-m32" "-O0"))
                         (expand-arithmatic-op-dir
@@ -6447,7 +6491,7 @@ Useful for printing or returning differences in the REPL."
     (is (stmt-with-text obj "argc = argc * 2" :no-error t))))
 
 (deftest expand-arithmatic-op-works-complex-compound-assignment ()
-  (let ((obj (from-file (make-instance 'clang
+  (let ((obj (from-file (make-clang
                           :compiler "clang"
                           :flags '("-g" "-m32" "-O0"))
                         (expand-arithmatic-op-dir
@@ -6456,7 +6500,7 @@ Useful for printing or returning differences in the REPL."
     (is (stmt-with-text obj "argc = argc + ((argc*4) / rand())" :no-error t))))
 
 (deftest expand-arithmatic-op-works-increment ()
-  (let ((obj (from-file (make-instance 'clang
+  (let ((obj (from-file (make-clang
                           :compiler "clang"
                           :flags '("-g" "-m32" "-O0"))
                         (expand-arithmatic-op-dir "increment.c"))))
@@ -6464,7 +6508,7 @@ Useful for printing or returning differences in the REPL."
     (is (stmt-with-text obj "i = i + 1" :no-error t))))
 
 (deftest expand-arithmatic-op-works-decrement ()
-  (let ((obj (from-file (make-instance 'clang
+  (let ((obj (from-file (make-clang
                           :compiler "clang"
                           :flags '("-g" "-m32" "-O0"))
                         (expand-arithmatic-op-dir "decrement.c"))))
@@ -6472,7 +6516,7 @@ Useful for printing or returning differences in the REPL."
     (is (stmt-with-text obj "argc = argc - 1" :no-error t))))
 
 (deftest expand-arithmatic-op-works-field-increment ()
-  (let ((obj (from-file (make-instance 'clang
+  (let ((obj (from-file (make-clang
                           :compiler "clang"
                           :flags '("-g" "-m32" "-O0"))
                         (expand-arithmatic-op-dir "field-increment.c"))))
@@ -6480,7 +6524,7 @@ Useful for printing or returning differences in the REPL."
     (is (stmt-with-text obj "t.x = t.x + 1" :no-error t))))
 
 (deftest expand-arithmatic-op-works-field-decrement ()
-  (let ((obj (from-file (make-instance 'clang
+  (let ((obj (from-file (make-clang
                           :compiler "clang"
                           :flags '("-g" "-m32" "-O0"))
                         (expand-arithmatic-op-dir "field-decrement.c"))))
@@ -6488,7 +6532,7 @@ Useful for printing or returning differences in the REPL."
     (is (stmt-with-text obj "t.x = t.x - 1" :no-error t))))
 
 (deftest expand-arithmatic-op-works-class-member-increment ()
-  (let ((obj (nest (from-file (make-instance 'clang
+  (let ((obj (nest (from-file (make-clang
                                 :compiler "clang"
                                 :flags '("-g" "-m32" "-O0")))
                    (expand-arithmatic-op-dir "class-member-increment.cpp"))))
@@ -6496,7 +6540,7 @@ Useful for printing or returning differences in the REPL."
     (is (stmt-with-text obj "x = x + 1" :no-error t))))
 
 (deftest expand-arithmatic-op-works-class-member-decrement ()
-  (let ((obj (nest (from-file (make-instance 'clang
+  (let ((obj (nest (from-file (make-clang
                                 :compiler "clang"
                                 :flags '("-g" "-m32" "-O0")))
                    (expand-arithmatic-op-dir "class-member-decrement.cpp"))))
@@ -6558,10 +6602,10 @@ Useful for printing or returning differences in the REPL."
         (sel/sw/adaptive-mutation::*mutation-results-queue-next* 0)
         (*mutation-results-queue*
          (copy-seq +initial-mutation-results-queue+))
-        (parent-a (make-instance 'clang :fitness 2))
-        (parent-b (make-instance 'clang :fitness 2))
-        (crossed  (make-instance 'clang :fitness 1))
-        (mutant   (make-instance 'clang :fitness 0)))
+        (parent-a (make-clang :fitness 2))
+        (parent-b (make-clang :fitness 2))
+        (crossed  (make-clang :fitness 1))
+        (mutant   (make-clang :fitness 0)))
     (adaptive-analyze-mutation mutant
                                `(clang-cut ,parent-a 0
                                            ,crossed ,parent-b 0)
@@ -7092,7 +7136,7 @@ prints unique counters in the trace"
                     (if (find-restart 'keep-partial-asts)
                         (invoke-restart 'keep-partial-asts)
                         (error e)))))
-    (let ((soft (make-instance 'clang
+    (let ((soft (make-clang
                   :genome "int test(int) { return 1; }")))
       (instrument soft :functions
                   (list (lambda (instrumenter ast)
@@ -9029,8 +9073,9 @@ prints unique counters in the trace"
 (deftest unbound-vals-are-correct ()
   (flet
       ((compare-vals (result expected)
-         (is (equal (mapcar {aget :name} result)
-                    expected))
+         (is (null (set-exclusive-or (mapcar {aget :name} result)
+                                     expected
+                                     :test #'name=)))
          (iter (for var-info in result)
                (is (aget :type var-info))
                (is (aget :decl var-info))
@@ -9082,10 +9127,10 @@ prints unique counters in the trace"
 
 (deftest get-vars-in-scope-keep-globals-flag ()
   (with-fixture scopes-type-field-clang
-    (is (equal "time_args"
+    (is (name= "time_args"
                (->> (get-vars-in-scope *scopes*
-                      (stmt-with-text *scopes* "return 0;")
-                      t)
+                                       (stmt-with-text *scopes* "return 0;")
+                                       t)
                     (first)
                     (aget :name)))
         "time_args variable should have been found at the global scope")
@@ -9864,7 +9909,7 @@ prints unique counters in the trace"
             "Super-function contains correct number of case statements.")))))
 
 (deftest super-mutant-genome-handles-function-prototypes ()
-  (let ((mutant (from-string (make-instance 'clang) "int foo();")))
+  (let ((mutant (from-string (make-clang) "int foo();")))
     (is (genome (make-instance 'super-mutant
                   :mutants (list (copy mutant) (copy mutant)))))))
 
@@ -9872,7 +9917,7 @@ prints unique counters in the trace"
   ;; These all fail because ast-args is set by clang-mutate and does not
   ;; update upon mutation
   #+(or )
-  (let* ((base (from-string (make-instance 'clang)
+  (let* ((base (from-string (make-clang)
                             "void foo(int a, int b) {}"))
          (remove-arg (copy base))
          (change-arg-type (copy base))
@@ -9907,28 +9952,28 @@ prints unique counters in the trace"
 
   ;; Different return types
   (signals mutate
-    (genome (make-instance 'super-mutant
+           (genome (make-instance 'super-mutant
               :mutants
-              (list (from-string (make-instance 'clang)
+              (list (from-string (make-clang)
                                  "void foo() {}")
-                    (from-string (make-instance 'clang)
+                    (from-string (make-clang)
                                  "int foo() { return 1; }")))))
 
   ;; Prototype vs. complete function
   (signals mutate
-    (genome (make-instance 'super-mutant
+           (genome (make-instance 'super-mutant
               :mutants
-              (list (from-string (make-instance 'clang)
+              (list (from-string (make-clang)
                                  "void foo() {}")
-                    (from-string (make-instance 'clang)
+                    (from-string (make-clang)
                                  "void foo();"))))))
 
 (deftest super-mutant-genome-detects-mismatched-globals ()
-  (let* ((base (from-string (make-instance 'clang)
+  (let* ((base (from-string (make-clang)
                             "int a; int b; int c;"))
          (variant (copy base)))
     (apply-mutation variant
-      `(clang-replace (:stmt1 . ,(stmt-with-text variant
+                    `(clang-replace (:stmt1 . ,(stmt-with-text variant
                                                  "int b;"))
                       (:value1 . ,(->> (find-or-add-type variant
                                                          "char")
@@ -9938,7 +9983,7 @@ prints unique counters in the trace"
                 :mutants (list base variant))))))
 
 (deftest super-mutant-genome-detects-delete-function-body ()
-  (let* ((base (from-string (make-instance 'clang)
+  (let* ((base (from-string (make-clang)
                             "void foo() {}"))
          (variant (copy base)))
     ;; This is a useless mutation but it happens sometimes. Ensure
@@ -10045,7 +10090,7 @@ prints unique counters in the trace"
 int main() { puts(\"~d\"); return 0; }
 ")
          (mutants (mapcar (lambda (i)
-                            (from-string (make-instance 'clang)
+                            (from-string (make-clang)
                                          (format nil template i)))
                           '(1 2 3 4)))
          (super (make-instance 'super-mutant :mutants mutants)))

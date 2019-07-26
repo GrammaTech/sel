@@ -14,7 +14,8 @@
         :software-evolution-library/software/project
         :software-evolution-library/software/ast
         :software-evolution-library/software/parseable
-        :software-evolution-library/software/clang)
+        :software-evolution-library/software/clang
+        :software-evolution-library/software/new-clang)
   (:export :style-feature
            :*clang-c-ast-classes*
            :*clang-c-keywords*
@@ -284,7 +285,7 @@ mapped to the keys in SORTED-KEYS.
   (:documentation
    "Return a list of the node types present in the ASTs in SOFTWARE."))
 
-(defmethod ast-node-types ((clang clang))
+(defmethod ast-node-types ((clang clang-base))
   "Return a list of the ast classes that occur in CLANG"
   (mapcar #'ast-class (asts clang)))
 
@@ -305,7 +306,7 @@ denominators DENOM1 and DENOM2, respectively
 
 (define-feature ast-node-type-tf-feature
     "Term frequency of AST node types."
-  (ast-node-type-tf-extractor ((clang clang))
+  (ast-node-type-tf-extractor ((clang clang-base))
     "Return a vector with counts of occurrences of each possible AST node type.
 
 The returned vector will have one entry for each ast class listed in `clang-c-ast-classes'.
@@ -321,7 +322,7 @@ The returned vector will have one entry for each ast class listed in `clang-c-as
 (defgeneric ast-depth (software ast)
   (:documentation "Depth of AST in SOFTWARE. The root node has a depth of 0."))
 
-(defmethod ast-depth ((clang clang) ast)
+(defmethod ast-depth ((clang clang-base) ast)
   "Depth of AST in CLANG. The root node has a depth of 0
 * CLANG software object
 * AST ast pointing to the root of the AST tree in CLANG
@@ -336,18 +337,32 @@ The returned vector will have one entry for each ast class listed in `clang-c-as
 * CLANG software object
 * AST ast pointing to the root of the AST tree in CLANG
 "
-  (let* ((result (gethash (cons (ast-node ast) (ast-children ast))
-                          *ast-depths-cache*
-                          (call-next-method))))
-    (setf (gethash (cons (ast-node ast) (ast-children ast))
+  (let* ((cache *ast-depths-cache*)
+         (key (cons (ast-node ast) (ast-children ast)))
+         (result (gethash key cache)))
+    (or result
+        (setf (gethash key cache) (call-next-method)))))
+#|
+(let* ((result (or (gethash (cons (ast-node ast) (ast-children ast))
+*ast-depths-cache*)
+(call-next-method))))
+(setf (gethash (cons (ast-node ast) (ast-children ast))
                    *ast-depths-cache*)
           result)))
+|#
+
+(defmethod ast-depth :around ((clang new-clang) ast)
+  (let* ((cache *ast-depths-cache*)
+         (key (cons (ast-class ast) (ast-children ast)))
+         (result (gethash key cache)))
+    (or result
+        (setf (gethash key cache) (call-next-method)))))
 
 (defgeneric max-depth-ast (software asts)
   (:documentation "Return the maximum depth of the ASTS in SOFTWARE."))
 
-(defmethod max-depth-ast ((clang clang) asts)
- "Return the maximum depth of the ASTS in CLANG.
+(defmethod max-depth-ast ((clang clang-base) asts)
+  "Return the maximum depth of the ASTS in CLANG.
 All depths are relative to the top-level of the CLANG software object (not
 relative to elements in the list of ASTs).
 * CLANG software object
@@ -364,9 +379,9 @@ Metadata, META1 and META2 is ignored."
           nil))
 
 (define-feature max-depth-ast-feature "Maximum depth of any node in the AST."
-  (max-depth-ast-extractor ((clang clang))
-    "Return 1-element feature vector of the max depth of any AST in SOFTWARE."
-    (if (asts clang)
+  (max-depth-ast-extractor ((clang clang-base))
+                           "Return 1-element feature vector of the max depth of any AST in SOFTWARE."
+                           (if (asts clang)
         (values (vector (max-depth-ast clang (asts clang)))
                 nil)
         (values (vector 0) nil)))
@@ -374,8 +389,8 @@ Metadata, META1 and META2 is ignored."
 
 (define-feature avg-depth-ast-feature
     "Average depth of nodes in the AST."
-  (avg-depth-ast-extractor ((clang clang))
-    "Return 1-element feature vector of the average depth of ASTs in SOFTWARE."
+  (avg-depth-ast-extractor ((clang clang-base))
+                           "Return 1-element feature vector of the average depth of ASTs in SOFTWARE."
     (if-let ((asts (asts clang)))
       (values (vector (mean (mapcar {ast-depth clang} asts)))
               (length asts))
@@ -386,7 +401,7 @@ Metadata, META1 and META2 is ignored."
   (:documentation
    "Average depth of nodes with type NODE-TYPE in the ASTs in SOFTWARE."))
 
-(defmethod ast-node-type-avg-depth ((clang clang) (node-type symbol))
+(defmethod ast-node-type-avg-depth ((clang clang-base) (node-type symbol))
   "Average depth of nodes with type NODE-TYPE in the ASTs in CLANG.
 * CLANG a clang software object
 * NODE-TYPE a value to be compared against the `ast-class' of the ASTs in CLANG
@@ -402,7 +417,7 @@ Metadata, META1 and META2 is ignored."
   (:documentation
    "Return a list of all possible types of AST nodes for ASTs in SOFTWARE."))
 
-(defmethod all-ast-node-types ((clang clang))
+(defmethod all-ast-node-types ((clang clang-base))
   "Return a list of all possible types of AST nodes for ASTs in CLANG.
 Uses `*clang-c-ast-classes*'."
   (declare (ignorable clang))
@@ -428,8 +443,8 @@ represents)."
 
 (define-feature ast-node-type-avg-depth-feature
     "Average depth of each possible node type in the AST."
-  (ast-node-type-avg-depth-extractor ((clang clang))
-    "Returns a feature vector of average depth of AST nodes by type.
+  (ast-node-type-avg-depth-extractor ((clang clang-base))
+                                     "Returns a feature vector of average depth of AST nodes by type.
 The length is the number of possible AST node tyes (as determined by
 `all-ast-node-types'). Each element is the average depth of nodes of the
 corresponding type in the AST of SOFTWARE."
@@ -480,7 +495,7 @@ used as keys in the hash-table
   (:documentation "Update and return data structure BI-GRAMS with counts of
 bi-grams in the ASTs of full statements in SOFTWARE."))
 
-(defmethod ast-full-stmt-bi-grams ((clang clang)
+(defmethod ast-full-stmt-bi-grams ((clang clang-base)
                                    &key (bi-grams-ht
                                          (make-hash-table :test #'equal)))
   "Update and return hash-table BI-GRAMS-HT with counts of bi-grams in the
@@ -496,7 +511,7 @@ ASTs of full statements in CLANG.
   (:documentation "Update and return data structure BI-GRAMS with counts of
 bi-grams in the ASTs of all statements in SOFTWARE."))
 
-(defmethod ast-bi-grams ((clang clang)
+(defmethod ast-bi-grams ((clang clang-base)
                          &key (bi-grams-ht (make-hash-table :test #'equal)))
   "Update and return hash-table BI-GRAMS-HT with counts of bi-grams in the
 ASTs of all statements in CLANG.
@@ -511,7 +526,7 @@ ASTs of all statements in CLANG.
   (:documentation "Return a feature-vector containing counts of bi-grams in
 SOFTWARE stored in BI-GRAMS."))
 
-(defmethod bi-grams-hashtable-to-feature ((clang clang) (bi-grams hash-table))
+(defmethod bi-grams-hashtable-to-feature ((clang clang-base) (bi-grams hash-table))
   "Return a feature-vector containing counts of bi-grams in CLANG stored in
 hash-table BI-GRAMS.
 * CLANG a clang software object
@@ -525,8 +540,8 @@ hash-table BI-GRAMS.
 (define-feature ast-full-stmt-bi-grams-feature
     "Number of occurrences of AST node type bi-grams in each full statement in
 an AST."
-  (ast-full-stmt-bi-grams-extractor ((clang clang))
-    "Return a feature vector counting AST node type bi-grams for full statements."
+  (ast-full-stmt-bi-grams-extractor ((clang clang-base))
+                                    "Return a feature vector counting AST node type bi-grams for full statements."
                                     (->> (ast-full-stmt-bi-grams clang)
                                          (bi-grams-hashtable-to-feature clang)
                                          (normalize-vector)))
@@ -534,8 +549,8 @@ an AST."
 
 (define-feature ast-bi-grams-feature
     "Number of occurrences of AST node type bi-grams in an AST."
-  (ast-bi-grams-extractor ((clang clang))
-    "Return a feature vector counting AST node type bi-grams."
+  (ast-bi-grams-extractor ((clang clang-base))
+                          "Return a feature vector counting AST node type bi-grams."
                           (->> (ast-bi-grams clang)
                                (bi-grams-hashtable-to-feature clang)
                                (normalize-vector)))
@@ -562,7 +577,7 @@ also `*clang-c-ast-keywords-auto-count*'.
   (:documentation "Return 1 if KEYWORD occurs anywhere in the text of an AST in
 SOFTWARE, 0 otherwise."))
 
-(defmethod search-keyword ((clang clang) (keyword string) ast)
+(defmethod search-keyword ((clang clang-base) (keyword string) ast)
   "Return 1 if KEYWORD occurs anywhere in the source text of an AST in CLANG, 0
 otherwise. Only searches ASTs whose `ast-class' is in
 `*clang-c-ast-keywords-search-count*'.
@@ -594,7 +609,7 @@ otherwise. Only searches ASTs whose `ast-class' is in
 (defgeneric ast-keyword-tf (software keyword ast)
   (:documentation "Count term frequency of KEYWORD in an AST of SOFTWARE."))
 
-(defmethod ast-keyword-tf ((clang clang) (keyword string) ast)
+(defmethod ast-keyword-tf ((clang clang-base) (keyword string) ast)
   "Count term frequency of KEYWORD in an AST of CLANG. Uses `auto-count-keyword'
 and `search-keyword'.
 * CLANG a clang software object
@@ -608,7 +623,7 @@ and `search-keyword'.
   (:documentation
    "Return the list of possible keywords that may appear in SOFTWARE."))
 
-(defmethod all-keywords ((clang clang))
+(defmethod all-keywords ((clang clang-base))
   "Return the list of possible keywords that may appear in CLANG.
 Uses `*clang-c-keywords*'.
 "
@@ -617,8 +632,8 @@ Uses `*clang-c-keywords*'.
 
 (define-feature ast-keyword-tf-feature
     "Term frequency of keywords in an AST."
-  (ast-keyword-tf-extractor ((clang clang))
-    "Return a vector containing term frequencies for all possible keywords in
+  (ast-keyword-tf-extractor ((clang clang-base))
+                            "Return a vector containing term frequencies for all possible keywords in
 SOFTWARE (see also `all-keywords').
 
 The returned feature vector will have one entry for each keyword

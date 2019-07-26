@@ -74,7 +74,8 @@
            :replace-ast
            :remove-ast
            ;; Restarts
-           :expand-stmt-pool))
+           :expand-stmt-pool
+           :name=))
 (in-package :software-evolution-library/software/parseable)
 (in-readtable :curry-compose-reader-macros)
 
@@ -141,6 +142,11 @@ and :SCOPE.
 
 (defgeneric get-vars-in-scope (software ast &optional keep-globals)
   (:documentation "Return all variables in enclosing scopes."))
+
+(defgeneric name= (n1 n2)
+  (:documentation "Generalized name equality for AST names")
+  (:method ((n1 string) (n2 string))
+    (string= n1 n2)))
 
 (defgeneric update-asts (software)
   (:documentation "Update the store of asts associated with SOFTWARE.
@@ -478,7 +484,7 @@ otherwise.
                                          (butlast (scopes obj ast))))
                      :from-end t
                      :key {aget :name}
-                     :test #'string=))
+                     :test #'name=))
 
 (defgeneric ast-to-source-range (software ast)
   (:documentation "Convert AST to pair of SOURCE-LOCATIONS.")

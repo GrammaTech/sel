@@ -95,9 +95,6 @@
   (:documentation "Genericized version of children writer for AST structs")
   (:method (v (a ast-stub)) (setf (ast-internal-stored-hash a) v)))
 
-(defmethod ast-node ((a ast-stub)) (ast-internal-node a))
-(defmethod (setf ast-node) (v (a ast-stub)) (setf (ast-internal-node a) v))
-
 (defparameter *ast-print-cutoff* 20
   "Maximum number of characters to print for TEXT in
 PRINT-OBJECT method on AST structures.")
@@ -774,6 +771,8 @@ the methods in parseable.lisp instead.")
       ((helper (tree path)
          (bind (((head . tail) path)
                 (children (ast-children tree)))
+               (assert (>= head 0))
+               (assert (< head (length children)))
            (if tail
                ;; Recurse into child
                (replace-nth-child tree head (helper (nth head children) tail))

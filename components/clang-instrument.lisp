@@ -538,7 +538,7 @@ instrumentation of function exit.
                        :full-stmt t
                        :aux-data '((:instrumentation t))))))
 
-(defmethod instrumented-p ((clang clang))
+(defmethod instrumented-p ((clang clang-base))
   "Return true if CLANG is instrumented
 * CLANG a clang software object
 "

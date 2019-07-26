@@ -31,26 +31,40 @@
            :combine-overlapping-siblings
            :decorate-ast-with-strings
            :clang-convert-json-for-file
-           :remove-non-program-asts))
+           :remove-non-program-asts
+           :make-statement-new-clang
+           :*new-clang?*
+           :make-new-clang-macroexpand-hook))
 (in-package :software-evolution-library/software/new-clang)
 (in-readtable :curry-compose-reader-macros)
 
 (declaim (optimize (debug 3)))
 
+(defparameter *clang-binary*
+  ;; "/pdietz/clang9-installed/bin/clang"
+  "/clang9/bin/clang"
+  "This is the location clang is installed in the clang9 Docker image")
+;; Install locally by:
+;;  sudo docker cp clang9:/clang9 /clang9
+;; This takes several minutes and uses about 34GB of disk space
+
 (define-software new-clang (clang-base genome-lines-mixin)
-  ((stmt-asts :initarg :stmt-asts :reader stmt-asts
-              :initform nil :copier :direct
-              :type #+sbcl (list (cons keyword *) *) #-sbcl list
-              :documentation
-              "List of statement ASTs which exist within a function body.")
+  (
+   #|
+   ((stmt-asts :initarg :stmt-asts :reader stmt-asts
+   :initform nil :copier :direct
+   :type #+sbcl (list (cons keyword *) *) #-sbcl list
+   :documentation
+   "List of statement ASTs which exist within a function body.")
    ;; TODO: We should split non-statement ASTs into typedefs,
    ;;       structs/classes, and global variables, all of which should
    ;;       have different mutation types defined.  This needs more design.
    (non-stmt-asts :initarg :non-stmt-asts :reader non-stmt-asts
-                  :initform nil :copier :direct
-                  :type #+sbcl (list (cons keyword *) *) #-sbcl list
-                  :documentation
-                  "List of global AST which live outside of any function.")
+   :initform nil :copier :direct
+   :type #+sbcl (list (cons keyword *) *) #-sbcl list
+   :documentation
+   "List of global AST which live outside of any function.")
+   |#
    (functions :initarg :functions :reader functions
               :initform nil :copier :direct
               :type #+sbcl (list (cons keyword *) *) #-sbcl list
@@ -72,26 +86,91 @@
            :initform nil :copier :direct
            :type #+sbcl (list clang-macro *) #-sbcl list
            :documentation "Association list of Names and values of macros.")
+   (tmp-file
+    :initarg :tmp-file :accessor tmp-file
+    :initform nil :copier :direct
+    :type (or null string)
+    :documentation "Full file name of the temporary file
+on which clang was run to get the AST.")
    (symbol-table
-    :initarg :symbol-tanle :accessor symbol-table
+    :initarg :symbol-table :accessor symbol-table
     :initform (make-hash-table :test #'equal)
     :copier copy-hash-table
     :type hash-table
     :documentation "Map from IDs to objects")
+   (name-symbol-table
+    :initarg :name-symbol-table :accessor name-symbol-table
+    :initform (make-hash-table :test #'equal)
+    :copier copy-hash-table
+    :type hash-table
+    :documentation "Map from name strings to declaration objects.")
+   (type-table
+    :initarg :type-table
+    :initform (make-hash-table :test #'equal)
+    :accessor type-table
+    :copier copy-hash-table
+    :type hash-table
+    :documentation "Mapping from qualtype/desugaredType pairs to new-clang-type
+objects.  Used for canonicalization of these objects.")
    (include-dirs
     :initarg :include-dirs
+    :accessor include-dirs
     :initform nil
     :type list
     :copier :direct
     :documentation "List of directories that are where include files are searched for
-(the -I arguments to the C compiler")
-   ))))
-(:documentation
- "C language (C, C++, C#, etc...) ASTs using Clang, C language frontend for LLVM.
+the -I arguments to the C compiler")
+   (compiler :initform *clang-binary*)
+   (hash-counter :initform 1 :initarg :hash-counter
+                 :accessor hash-counter
+                 :type integer
+                 :documentation "A counter used to assign hash values to type objects and
+possibly other things"))
+  (:documentation
+   "C language (C, C++, C#, etc...) ASTs using Clang, C language frontend for LLVM.
    See http://clang.llvm.org/.  This is for ASTs from Clang 9+."))
 
+;;; The INCLUDE-DIRS slot should be in normal form
+;;; Use various methods to ensure this happens
+
+(defmethod initialize-instance :after ((obj new-clang) &rest initargs &key &allow-other-keys)
+  (declare (ignore initargs))
+  (setf (include-dirs obj) (normalize-include-dirs (include-dirs obj)))
+  obj)
+
+(defmethod (setf include-dirs) ((dirs list) (obj new-clang))
+  (let ((additional-include-dirs
+         (flags-to-include-dirs (flags obj))))
+    (setf (slot-value obj 'include-dirs)
+          (normalize-include-dirs
+           (append additional-include-dirs dirs)))))
+
+(defmethod (setf flags) :after ((flags list) (obj new-clang))
+  (let ((additional-include-dirs
+         (flags-to-include-dirs (flags obj))))
+    (setf (slot-value obj 'include-dirs)
+          (remove-duplicates
+           (normalize-include-dirs
+            (append additional-include-dirs
+                    (include-dirs obj)))
+           :test #'equal))))
+
+(defun flags-to-include-dirs (flags)
+  (iter (for e on flags)
+        (let ((x (car e)))
+          (cond
+            ((equal x "-I")
+             (collecting (cadr e)))
+            ((and (equal (subseq x 0 2) "-I")
+                  (> (length x) 2))
+             (collecting (subseq x 2)))))))
+
 
-;;; clang object creation
+;;; Code for adapting tests to use old or new clang front
+;;; ends, controllably
+
+(defparameter *new-clang?* nil
+  "When true, use NEW-CLANG instead of CLANG")
 
 ;;; shared with old clang
 
@@ -150,6 +229,9 @@
 (defun ast-is-class-fun (key)
   (lambda (c) (ast-is-class c key)))
 
+(defun %areplace (key val alist)
+  (cons (cons key val) (remove key alist :key #'car)))
+
 (defmethod copy ((ast new-clang-ast)
                  &key
                    path
@@ -168,17 +250,17 @@
         ;; ID should not be copied -- generate a new one?
         (id (if id-p id (new-clang-ast-id ast)))
         (syn-ctx (if syn-ctx-p syn-ctx (new-clang-ast-syn-ctx ast))))
-    (flet ((%areplace (key val alist)
-             (cons (cons key val) (remove key alist :key #'car))))
-      (when full-stmt-p
-        (setf attrs (%areplace :full-stmt full-stmt attrs)))
-      (when guard-stmt-p
-        (setf attrs (%areplace :guard-stmt guard-stmt attrs)))
-      (when opcode-p
-        (setf attrs (%areplace :opcode opcode attrs)))
-      (make-new-clang-ast :path path :children children
-                          :class class :attrs attrs :id id
-                          :syn-ctx syn-ctx))))
+    (flet () #+nil ((%areplace (key val alist)
+                               (cons (cons key val) (remove key alist :key #'car))))
+          (when full-stmt-p
+            (setf attrs (%areplace :fullstmt full-stmt attrs)))
+          (when guard-stmt-p
+            (setf attrs (%areplace :guardstmt guard-stmt attrs)))
+          (when opcode-p
+            (setf attrs (%areplace :opcode opcode attrs)))
+          (make-new-clang-ast :path path :children children
+                              :class class :attrs attrs :id id
+                              :syn-ctx syn-ctx))))
 
 (defmethod ast-class ((obj new-clang-ast))
   (new-clang-ast-class obj))
@@ -192,6 +274,163 @@
   (with-output-to-string (out)
     (mapc [{write-string _ out} #'source-text] (ast-children ast))))
 
+(defmethod stmt-asts ((obj new-clang))
+  ;; Walk AST, recording all asts at or below :COMPOUNDSTMT asts
+  (let ((result nil))
+    (labels ((%r (a)
+               (when (ast-p a)
+                 (if (eql (ast-class a) :compoundstmt)
+                     (map-ast a (lambda (b) (push b result)))
+                     (mapc #'%r (ast-children a))))))
+      (%r (ast-root obj)))
+    (nreverse result)))
+
+(defmethod non-stmt-asts ((obj new-clang))
+  (let ((result nil))
+    (labels ((%r (a)
+               (when (ast-p a)
+                 (unless (or (function-decl-p a)
+                             (eql (ast-class a) :toplevel))
+                   (push a result)
+                   (mapc #'%r (ast-children a))))))
+      (%r (ast-root obj)))
+    (nreverse result)))
+
+(defmethod prototypes ((obj new-clang))
+  (let ((result nil))
+    (labels ((%r (a)
+               (when (ast-p a)
+                 (if (function-decl-p a)
+                     (push a result)
+                     (mapc #'%r (ast-children a))))))
+      (%r (ast-root obj))
+      (nreverse result))))
+
+(defmethod functions ((obj new-clang))
+  (let ((result nil))
+    (labels ((%r (a)
+               (when (ast-p a)
+                 (if (function-decl-p a)
+                     (when (function-body obj a)
+                       (push a result))
+                     (mapc #'%r (ast-children a))))))
+      (%r (ast-root obj))
+      (nreverse result))))
+
+#|
+(defmethod includes ((obj new-clang))
+(mapcan (lambda (c)
+(when (stringp c)
+(includes-in-string c)))
+(ast-children (ast-root obj))))
+|#
+
+(defmethod ast-includes-in-obj ((obj new-clang) (ast new-clang-ast))
+  (let ((*soft* obj)
+        (tmp-file (tmp-file obj))
+        (file (ast-file obj))
+        (include-dirs (include-dirs obj))
+        (od (original-directory obj)))
+    (mapcar
+     (lambda (s) (normalize-file-for-include s od include-dirs))
+     (delete-duplicates
+      (nconc
+       (unless (or (not file) (equal tmp-file file))
+         (list file))
+       (if-let ((ref (ast-referenced-obj ast)))
+         (if-let ((file (ast-file ref)))
+           (unless (or (not file) (equal file tmp-file))
+             (list file))))
+       (if-let ((type (ast-type ast)))
+         (let ((str (new-clang-type-qual type))
+               (table (name-symbol-table obj)))
+           ;; look up names in str
+           (let ((names (names-in-str str)))
+             (iter (for n in names)
+                   (nconcing
+                    (iter (for v in (gethash n table))
+                          (when v
+                            (nconcing (ast-include-from-type v tmp-file))))))))))
+      :test #'equal))))
+
+(defun ast-include-from-type (v tmp-file)
+  (when (member (ast-class v) '(:typedef))
+    (let ((file (ast-file v)))
+      (unless (equal tmp-file file)
+        (list file)))))
+
+(defgeneric compute-includes (obj)
+  (:documentation "Fill in the INCLUDES slot of OBJ"))
+
+(defmethod compute-includes ((obj new-clang))
+  (let ((includes nil)
+        (*soft* obj))
+    (map-ast (ast-root obj)
+             (lambda (a)
+               (dolist (f (ast-includes-in-obj obj a))
+                 (pushnew f includes :test #'equal))))
+    (setf (includes obj) (nreverse includes))))
+
+(defmethod update-caches ((obj new-clang))
+  (call-next-method)
+  (compute-includes obj))
+
+(defmethod clear-caches ((obj new-clang))
+  (with-slots (includes) obj
+    (setf includes nil))
+  (call-next-method))
+
+(defmethod from-file :after ((obj new-clang) path)
+  nil)
+
+(defun names-in-str (str)
+  "Find all substrings of STR that are C/C++ names"
+  (split-sequence-if-not (lambda (c)
+                           (and (typep c 'standard-char)
+                                (or (alphanumericp c)
+                                    (member c '(#\_ #\: #\< #\>)))))
+                         str
+                         :remove-empty-subseqs t))
+
+
+(defmethod ast-unbound-vals ((ast new-clang-ast))
+  ;; stub
+  nil)
+
+(defmethod ast-unbound-funs ((ast new-clang-ast))
+  ;; stub
+  nil)
+
+(defmethod ast-includes ((ast new-clang-ast))
+  ;; stub
+  nil)
+
+(defmethod ast-macros ((ast new-clang-ast))
+  ;; stub
+  nil)
+
+(defmethod ast-types ((ast new-clang-ast))
+  ;; stub
+  nil)
+
+(defmethod rebind-vars ((ast new-clang-ast)
+                        var-replacements fun-replacements)
+  ;; stub
+  (copy ast))
+
+(defmethod fixup-mutation (operation (current new-clang-ast)
+                           before ast after)
+  (clang-fixup-mutation operation current before ast after))
+
+(defmethod begins-scope ((ast new-clang-ast))
+  (begins-scope* ast))
+
+(defmethod ast-declarations ((ast new-clang-ast))
+  (ast-declarations* ast))
+
+(defmethod ast-var-declarations ((ast new-clang-ast))
+  (ast-var-declarations* ast))
+
 ;;; Structures for various attribute values
 
 (defstruct new-clang-range begin end)
@@ -203,7 +442,43 @@
 things in macro expansion.  SPELLING-LOC is the location
 in the macro defn, EXPANSION-LOC is at the macro use."
   spelling-loc expansion-loc is-macro-arg-expansion)
-(defstruct new-clang-type qual desugared)
+
+;; (defstruct new-clang-type qual desugared)
+(defclass new-clang-type ()
+  ((qual :accessor new-clang-type-qual
+         :initform nil
+         :initarg :qual
+         :documentation "Translation of the qualType attribute
+of clang json type objects")
+   (desugared :accessor new-clang-type-desugared
+              :initform nil
+              :initarg :desugared
+              :documentation "Translation of the desugaredQualType
+attribute of clang json objects")
+   (hash :accessor new-clang-type-hash
+         :initarg :hash
+         :initform (incf (hash-counter *soft*))
+         :documentation "A hash code assigned to type
+objects, for compatibility with old clang"))
+  (:documentation "Objects representing C/C++ types.  Canonicalized
+on QUAL and DESUGARED slots."))
+
+(defmethod initialize-instance :after ((obj new-clang-type) &rest initargs &key hash &allow-other-keys)
+  (declare (ignore initargs))
+  (setf (gethash hash types) obj)
+  obj)
+
+(defun make-new-clang-type (&rest keys &key qual desugared (hash (incf (hash-counter *soft*)))
+                                         &allow-other-keys)
+  (let* ((key (cons qual desugared))
+         (sw *soft*)
+         (table (when sw (type-table *soft*))))
+    (flet ((%make () (apply #'make-instance 'new-clang-type
+                            :hash hash keys)))
+      (if table
+          (or (gethash key table)
+              (setf (gethash key table) (%make)))
+          (%make)))))
 
 ;; Wrapper for values in referencedDecl attribute, when
 ;; storing them in (symbol-table *soft*)
@@ -291,10 +566,10 @@ if no value was found."
                 (concatenate 'string s "/")))
           include-dirs))
 
-(defun normalize-file-for-include (file-string include-dirs)
-  "Returns the normalized version of file-string relative to include-dirs,
-and a value that is T if the string should be in #include \"...\",
-NIL if in #include <...>"
+(defun normalize-file-for-include (file-string original-dir include-dirs)
+  "Returns the normalized version of file-string relative to the original
+directory and the include-dirs, nd a value that is T if the string should
+be in #include \"...\", NIL if in #include <...>"
   (cond
     ;; Empty string is erroneous
     ((string= file-string "")
@@ -308,19 +583,36 @@ NIL if in #include <...>"
     (t
      ;; Otherwise, try to find longest prefix for include-dirs
      ;; Assumes include-dirs is in normal form
-     (let ((max-match 0) (dir nil)
-           (file-len (length file-string)))
-       (iter (for ind in include-dirs)
-             (let ((ind-len (length ind)))
-               (when (< ind-len file-len)
-                 (let ((mm (mismatch ind file-string)))
-                   (when (and (= mm ind-len)
-                              (> ind-len max-match))
-                     (setf max-match ind-len
-                           dir ind))))))
-       (if dir
-           (values (subseq file-string max-match) nil)
-           (values file-string t))))))
+     (let ((file-len (length file-string)))
+       (flet ((%match (ind)
+                "Attempt to match FILE-STRING against IND.  Returns
+the match length if sucessful, NIL if not."
+                (let ((ind-len (length ind)))
+                  (when (< ind-len file-len)
+                    (let ((mm (mismatch ind file-string)))
+                      (when (= mm ind-len) ind-len))))))
+         (let ((om (when original-dir (%match original-dir))))
+           ;; (format t "om = ~a~%" om)
+           (if om
+               (values (concatenate 'string "\"" (subseq file-string om) "\"") t)
+               (let ((max-match 0) (dir nil))
+                 (iter (for ind in include-dirs)
+                       (let ((mm (%match ind)))
+                         ;; (format t "ind = ~a, mm = ~a~%" ind mm)
+                         (when (and mm (> mm max-match))
+                           (setf max-match mm
+                                 dir ind))))
+                 (if dir
+                     (values (concatenate 'string "<" (subseq file-string max-match) ">")
+                             nil)
+                     (values (concatenate 'string "\"" file-string "\"") t))))))))))
+
+(defgeneric original-directory (obj))
+(defmethod original-directory ((obj source))
+  (let ((file (original-file obj)))
+    (when file
+      (namestring (make-pathname :defaults (pathname file)
+                                 :name nil :type nil)))))
 
 ;; (defvar *symbol-table* (make-hash-table :test #'equal)
 ;;   "Table mapping id values to the corresponding nodes.  This should
@@ -497,6 +789,12 @@ NIL indicates no value."))
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :name)) value)
   (and (not (equal value "")) (call-next-method)))
 
+(defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :tagused)) value)
+  (cond
+    ((equal value "struct") :struct)
+    ((equal value "union") :union)
+    (t (call-next-method))))
+
 ;; More conversions
 
 (defun convert-loc-json (loc-json)
@@ -546,8 +844,13 @@ NIL indicates no value."))
   (let ((qual-type (aget :qualtype value))
         (desugared-qual-type (aget :desugaredqualtype value)))
     ;; These should be strings, but convert anyway to canonicalize them
-    (make-new-clang-type :qual (clang-convert-json qual-type)
-                         :desugared (clang-convert-json desugared-qual-type))))
+    (let* ((qual (clang-convert-json qual-type))
+           (desugared (clang-convert-json desugared-qual-type))
+           (key (cons qual desugared))
+           (table (type-table *soft*)))
+      (or (gethash key table)
+          (setf (gethash key table)
+                (make-new-clang-type :qual qual :desugared desugared))))))
 
 (defgeneric clang-to-list (x)
   (:documentation "Convert clang tree structure to list form"))
@@ -714,14 +1017,6 @@ actual source file"))
 
 
 ;;;; Invocation of clang to get json
-
-(defparameter *clang-binary*
-  ;; "/pdietz/clang9-installed/bin/clang"
-  "/clang9/bin/clang"
-  "This is the location clang is installed in the clang9 Docker image")
-;; Install locally by:
-;;  sudo docker cp clang9:/clang9 /clang9
-;; This takes several minutes and uses about 34GB of disk space
 
 (defmethod clang-json ((obj new-clang) &key &allow-other-keys)
   (with-temp-file-of (src-file (ext obj)) (genome obj)
@@ -1051,7 +1346,7 @@ ranges into 'combined' nodes.  Warn when this happens."
 (defmethod update-asts ((obj new-clang))
   ;; Port of this method from clang.lsp, for new class
   (let ((*soft* obj))
-    (with-slots (ast-root genome) obj
+    (with-slots (ast-root genome includes) obj
       (unless genome     ; get genome from existing ASTs if necessary
         ;; (clrhash (symbol-table *soft*))
         (setf genome (genome obj)
@@ -1068,8 +1363,16 @@ ranges into 'combined' nodes.  Warn when this happens."
         (let ((*canonical-string-table* (make-hash-table :test 'equal)))
           (multiple-value-bind (json tmp-file genome-len)
               (clang-json obj)
+            (setf (tmp-file obj) tmp-file)
             (let* ((raw-ast (clang-convert-json-for-file json tmp-file genome-len)))
               (%debug 'clang-convert-json-for-file raw-ast)
+              ;; Store name -> def mappings
+              (maphash (lambda (k v)
+                         (declare (ignore k))
+                         (dolist (a v)
+                           (when (and a (ast-name a))
+                             (push a (gethash (ast-name a) (name-symbol-table obj))))))
+                       (symbol-table obj))
               (let ((ast (remove-non-program-asts raw-ast tmp-file)))
                 (%debug 'remove-non-program-asts ast)
                 (remove-asts-in-classes
@@ -1089,7 +1392,8 @@ ranges into 'combined' nodes.  Warn when this happens."
                 (compute-full-stmt-attrs ast)
                 (compute-guard-stmt-attrs ast)
                 (compute-syn-ctxs ast)
-                (setf ast-root ast)
+                (setf ast-root (update-paths (fix-semicolons ast))
+                      genome nil)
                 obj))))))))
 
 ;;; Macro expansion code
@@ -1306,10 +1610,14 @@ computed at the children"))
 ;; (and that might not otherwise be)
 (defmethod ast-full-stmt ((obj new-clang-ast))
   (ast-attr obj :fullstmt))
+
+(defmethod full-stmt-p ((obj new-clang) (ast new-clang-ast))
+  (declare (ignorable obj))
+  (ast-full-stmt ast))
 #|
 (case (ast-class obj)
-  ((:Function :ReturnStmt :IfStmt :WhileStmt :ForStmt :SwitchStmt :NullStmt :DeclStmt) t)
-  (t (ast-attr obj :fullstmt))))
+((:Function :ReturnStmt :IfStmt :WhileStmt :ForStmt :SwitchStmt :NullStmt :DeclStmt) t)
+(t (ast-attr obj :fullstmt))))
 |#
 
 ;; This field should be filled in by a pass
@@ -1586,3 +1894,104 @@ ast nodes, as needed")
          ((:IfStmt :WhileStmt :ForStmt :DoStmt) t)
          (t nil))))
 
+;;; Logic for extracting #include directives
+
+(let ((scanner (cl-ppcre:create-scanner "^#include\\s+(\\S+)\\s*$")))
+  (defun includes-in-string (str)
+    "Returns a fresh list of the #include payloads in a string"
+    (if (find #\Newline str)
+        (mapcan #'includes-in-string
+                (split-sequence #\Newline str
+                                :remove-empty-subseqs t))
+      ;;; Check if this line begins with #include
+      ;;; If so, pull off the payload
+        (multiple-value-bind (start end reg-begins reg-ends)
+            (cl-ppcre:scan scanner str)
+          (declare (ignore end))
+          (when start
+            (list (subseq str
+                          (elt reg-begins 0)
+                          (elt reg-ends 0))))))))
+
+
+;;; Debugging code
+
+(defgeneric dump-ast (ast print-fn))
+
+(defmethod dump-ast ((ast ast) print-fn)
+  (labels ((%r (a d)
+             ;; (dotimes (i d) (format t " "))
+             (funcall print-fn a d)
+             (let ((d (1+ d)))
+               (dolist (c (ast-children a))
+                 (when (ast-p c) (%r c d))))))
+    (%r ast 0)))
+
+(defmethod dump-ast ((sw parseable) print-fn)
+  (dump-ast (ast-root sw) print-fn))
+
+(defgeneric dump-ast-with-parent (ast print-fn))
+
+(defmethod dump-ast-with-parent ((ast ast) print-fn)
+  (labels ((%r (a d p)
+             (dotimes (i d) (format t " "))
+             (funcall print-fn a p d)
+             (let ((d (1+ d)))
+               (dolist (c (ast-children a))
+                 (when (ast-p c) (%r c d a))))))
+    (%r ast 0 nil)))
+
+(defmethod dump-ast-with-parent ((sw parseable) print-fn)
+  (dump-ast-with-parent (ast-root sw) print-fn))
+
+(defun dump-ast-classes (ast &optional (s *standard-output*))
+  (flet ((%print-class (a d)
+           (let ((class (ast-class a)))
+             (dotimes (i d) (format s " "))
+             (format s "~a~%" class))))
+    (dump-ast ast #'%print-class)))
+
+(defgeneric dump-ast-val (ast val-fn &optional s)
+  (:method (ast val-fn &optional (s *standard-output*))
+    (flet ((%print (a d)
+             (let ((class (ast-class a)))
+               (dotimes (i d) (format s " "))
+               (format s "~a: ~a~%"
+                       class
+                       (funcall val-fn a)))))
+      (dump-ast ast #'%print)))
+  (:method :around ((sw new-clang) val-fn &optional s)
+           (declare (ignorable s))
+           (let ((*soft* sw))
+             (ast-root sw)
+             (call-next-method))))
+
+(defgeneric dump-ast-val-p (ast val-fn &optional s)
+  (:method (ast val-fn &optional (s *standard-output*))
+    (flet ((%print (a p d)
+             (let ((class (ast-class a)))
+               (dotimes (i d) (format s " "))
+               (format s "~a: ~a~%"
+                       class
+                       (funcall val-fn a p)))))
+      (dump-ast-with-parent ast #'%print)))
+  (:method :around ((sw new-clang) val-fn &optional s)
+           (declare (ignorable s))
+           (let ((*soft* sw))
+             (ast-root sw)
+             (call-next-method))))
+
+(defgeneric dump-ast-to-list (ast fn)
+  (:method ((ast ast) fn)
+    (funcall fn ast (mapcar (lambda (a) (dump-ast-to-list a fn))
+                            (remove-if-not #'ast-p (ast-children ast)))))
+  (:method ((sw parseable) fn)
+    (dump-ast-to-list (ast-root sw) fn)))
+
+(defgeneric dump-ast-val-to-list (ast val-fn)
+  (:method (ast val-fn)
+    (dump-ast-to-list
+     ast
+     (lambda (a child-results)
+       (let ((val (funcall val-fn a)))
+         (list (ast-class a) val child-results))))))
