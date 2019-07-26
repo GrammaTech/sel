@@ -40,6 +40,8 @@
 
 (declaim (optimize (debug 3)))
 
+(declaim (special *soft*))
+
 (defparameter *clang-binary*
   ;; "/pdietz/clang9-installed/bin/clang"
   "/clang9/bin/clang"
@@ -465,7 +467,8 @@ on QUAL and DESUGARED slots."))
 
 (defmethod initialize-instance :after ((obj new-clang-type) &rest initargs &key hash &allow-other-keys)
   (declare (ignore initargs))
-  (setf (gethash hash types) obj)
+  (when (boundp '*soft*)
+    (setf (gethash hash (types *soft*)) obj))
   obj)
 
 (defun make-new-clang-type (&rest keys &key qual desugared (hash (incf (hash-counter *soft*)))
