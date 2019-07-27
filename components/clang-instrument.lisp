@@ -861,9 +861,9 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
   ;; Insert log setup code in other-files with an entry point.
   (iter (for obj in (mapcar #'cdr (other-files clang-project)))
         (when-let ((entry (get-entry obj)))
-                  (prepend-to-genome obj +write-trace-forward-declarations+)
-                  (append-to-genome obj +write-trace-implementation+)
-                  (initialize-tracing (make-instance 'clang-instrumenter
+          (prepend-to-genome obj +write-trace-forward-declarations+)
+          (append-to-genome obj +write-trace-implementation+)
+          (initialize-tracing (make-instance 'clang-instrumenter
                                 :software obj
                                 :names names
                                 :types types

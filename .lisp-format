@@ -18,4 +18,6 @@
       '((make-instance 1)
         (if-let 1)
         (if-let* 1)
+        (when-let 1)
+        (when-let* 1)
         (defixture 1)))
