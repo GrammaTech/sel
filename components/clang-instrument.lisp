@@ -41,7 +41,6 @@
 #define __GT_TRACEDB_FORWARD_DECLARATIONS
 
 #include <stdarg.h>
-#include <stdint.h>
 
 enum __type_format {
     __GT_TRACEDB_UNSIGNED,       /* unsigned integer */
@@ -63,20 +62,10 @@ enum __trace_entry_tag {
     __GT_TRACEDB_END_OF_TRACE
 };
 
-typedef struct {
-    /* Index into the string dictionary which gives the name of the type. */
-    uint32_t name_index;
-    /* Data format */
-    enum __type_format format;
-    /* Size in bytes. 0 indicates a variable-sized object. */
-    uint32_t size;
-} __trace_type_description;
-
-typedef struct __trace_buffer_size
-{
-    uint64_t address;
-    uint64_t size;
-} __trace_buffer_size;
+struct __trace_type_description;
+struct __trace_buffer_size;
+typedef struct __trace_type_description __trace_type_description;
+typedef struct __trace_buffer_size __trace_buffer_size;
 
 __attribute__((unused))
 extern void * " +instrument-log-variable-name+ ";
@@ -86,27 +75,31 @@ extern void * " +instrument-log-lock-variable-name+ ";
 __attribute__((unused))
 static void __write_trace_header(void *out, void *lock,
                                  const char **names,
-                                 uint32_t n_names,
+                                 const unsigned long n_names,
                                  const __trace_type_description *types,
-                                 uint32_t n_types);
+                                 const unsigned long n_types);
 
 __attribute__((unused))
-static void __write_trace_id(void *out, void *lock, uint64_t statement_id);
+static void __write_trace_id(void *out,
+                             void *lock,
+                             const unsigned long long statement_id);
 
 __attribute__((unused))
-static void __write_trace_aux(void *out, uint64_t value);
+static void __write_trace_aux(void *out, const unsigned long long value);
 
 __attribute__((unused))
 static void __write_end_entry(void *out, void *lock);
 
 __attribute__((unused))
-static void __write_trace_variables(void *out, uint32_t n_vars, ...);
+static void __write_trace_variables(void *out, const unsigned long n_vars, ...);
 
 __attribute__((unused))
-static void __write_trace_blobs(void *out, uint32_t n_vars, ...);
+static void __write_trace_blobs(void *out, const unsigned long n_vars, ...);
 
 __attribute__((unused))
-static void __write_buffer_size(void *out, void *address, uint64_t size);
+static void __write_buffer_size(void *out,
+                                void *address,
+                                const unsigned long long size);
 
 #endif
 
@@ -126,11 +119,25 @@ static void __write_buffer_size(void *out, void *address, uint64_t size);
 #include <stdio.h>
 #include <string.h>
 
+struct __trace_type_description {
+    /* Index into the string dictionary which gives the name of the type. */
+    uint32_t name_index;
+    /* Data format */
+    enum __type_format format;
+    /* Size in bytes. 0 indicates a variable-sized object. */
+    uint32_t size;
+};
+
+struct __trace_buffer_size {
+    uint64_t address;
+    uint64_t size;
+};
+
 static void __write_trace_header(void *out, void *lock,
                                  const char **names,
-                                 uint32_t n_names,
+                                 const unsigned long n_names,
                                  const __trace_type_description *types,
-                                 uint32_t n_types)
+                                 const unsigned long n_types)
 {
     /* Dictionary of names, as a sequence of NULL-terminated strings */
     uint64_t total_size = 0;
@@ -142,7 +149,7 @@ static void __write_trace_header(void *out, void *lock,
     for (i = 0; i < n_names; i++) {
         total_size += strlen(names[i]) + 1;
     }
-    fwrite(&total_size, sizeof(total_size), 1, (FILE *) out);
+    fwrite(&total_size, sizeof(uint64_t), 1, (FILE *) out);
 
     for (i = 0; i < n_names; i++) {
         fputs(names[i], (FILE *) out);
@@ -150,26 +157,28 @@ static void __write_trace_header(void *out, void *lock,
     }
 
     /* Dictionary of types */
-    fwrite(&n_types, sizeof(n_types), 1, (FILE *) out);
-    fwrite(types, sizeof(*types), n_types, (FILE *) out);
+    fwrite(&n_types, sizeof(uint32_t), 1, (FILE *) out);
+    fwrite(types, sizeof(__trace_type_description), n_types, (FILE *) out);
 
     /* Finished writing trace header */
     pthread_mutex_unlock( (pthread_mutex_t *) lock);
 }
 
-static void __write_trace_id(void *out, void *lock, uint64_t statement_id)
+static void __write_trace_id(void *out,
+                             void *lock,
+                             const unsigned long long statement_id)
 {
     /* Write trace point as single transaction */
     pthread_mutex_lock( (pthread_mutex_t *) lock);
 
     fputc(__GT_TRACEDB_STATEMENT_ID, (FILE *) out);
-    fwrite(&statement_id, sizeof(statement_id), 1, (FILE *) out);
+    fwrite(&statement_id, sizeof(uint64_t), 1, (FILE *) out);
 }
 
-static void __write_trace_aux(void *out, uint64_t value)
+static void __write_trace_aux(void *out, const unsigned long long value)
 {
     fputc(__GT_TRACEDB_AUXILIARY, (FILE *) out);
-    fwrite(&value, sizeof(value), 1, (FILE *) out);
+    fwrite(&value, sizeof(uint64_t), 1, (FILE *) out);
 }
 
 static void __write_end_entry(void *out, void *lock)
@@ -181,7 +190,7 @@ static void __write_end_entry(void *out, void *lock)
     pthread_mutex_unlock( (pthread_mutex_t *) lock);
 }
 
-static void __write_trace_variables(void *out, uint32_t n_vars, ...)
+static void __write_trace_variables(void *out, const unsigned long n_vars, ...)
 {
     va_list ap;
     uint32_t i;
@@ -194,8 +203,8 @@ static void __write_trace_variables(void *out, uint32_t n_vars, ...)
         enum __type_format format = (enum __type_format) va_arg(ap, int);
 
         fputc(__GT_TRACEDB_VARIABLE, (FILE *) out);
-        fwrite(&name_index, sizeof(name_index), 1, (FILE *) out);
-        fwrite(&type_index, sizeof(type_index), 1, (FILE *) out);
+        fwrite(&name_index, sizeof(uint32_t), 1, (FILE *) out);
+        fwrite(&type_index, sizeof(uint32_t), 1, (FILE *) out);
 
         /* This code is tricky because va_args are subject to standard
          promotions: smaller integers become ints, and floats become
@@ -208,25 +217,25 @@ static void __write_trace_variables(void *out, uint32_t n_vars, ...)
           case 1:
               {
                   char val = va_arg(ap, int);
-                  fwrite(&val, sizeof(val), 1, (FILE *) out);
+                  fwrite(&val, sizeof(char), 1, (FILE *) out);
                   break;
               }
           case 2:
               {
                   int16_t val = va_arg(ap, int);
-                  fwrite(&val, sizeof(val), 1, (FILE *) out);
+                  fwrite(&val, sizeof(int16_t), 1, (FILE *) out);
                   break;
               }
           case 4:
               {
                   int32_t val = va_arg(ap, int);
-                  fwrite(&val, sizeof(val), 1, (FILE *) out);
+                  fwrite(&val, sizeof(int32_t), 1, (FILE *) out);
                   break;
               }
           case 8:
               {
                   int64_t val = va_arg(ap, int64_t);
-                  fwrite(&val, sizeof(val), 1, (FILE *) out);
+                  fwrite(&val, sizeof(int64_t), 1, (FILE *) out);
                   break;
               }
           }
@@ -234,19 +243,19 @@ static void __write_trace_variables(void *out, uint32_t n_vars, ...)
         case __GT_TRACEDB_FLOAT:
           if (size == 4) {
               float val = (float)va_arg(ap, double);
-              fwrite(&val, sizeof(val), 1, (FILE *) out);
+              fwrite(&val, sizeof(float), 1, (FILE *) out);
               break;
           }
           else {
               double val = va_arg(ap, double);
-              fwrite(&val, sizeof(val), 1, (FILE *) out);
+              fwrite(&val, sizeof(double), 1, (FILE *) out);
               break;
           }
           break;
         case __GT_TRACEDB_POINTER:
             {
                 void *val = va_arg(ap, void*);
-                fwrite(&val, sizeof(val), 1, (FILE *) out);
+                fwrite(&val, sizeof(void*), 1, (FILE *) out);
             }
             break;
         case __GT_TRACEDB_BLOB:
@@ -257,7 +266,7 @@ static void __write_trace_variables(void *out, uint32_t n_vars, ...)
     }
 }
 
-static void __write_trace_blobs(void *out, uint32_t n_vars, ...)
+static void __write_trace_blobs(void *out, const unsigned long n_vars, ...)
 {
     va_list ap;
     uint32_t i;
@@ -270,14 +279,16 @@ static void __write_trace_blobs(void *out, uint32_t n_vars, ...)
         void *value = va_arg(ap, void*);
 
         fputc(__GT_TRACEDB_VARIABLE, (FILE *) out);
-        fwrite(&name_index, sizeof(name_index), 1, (FILE *) out);
-        fwrite(&type_index, sizeof(type_index), 1, (FILE *) out);
-        fwrite(&size, sizeof(size), 1, (FILE *) out);
+        fwrite(&name_index, sizeof(uint32_t), 1, (FILE *) out);
+        fwrite(&type_index, sizeof(uint32_t), 1, (FILE *) out);
+        fwrite(&size, sizeof(uint32_t), 1, (FILE *) out);
         fwrite(value, size, 1, (FILE *) out);
     }
 }
 
-static void __write_buffer_size(void *out, void *address, uint64_t size)
+static void __write_buffer_size(void *out,
+                                void *address,
+                                const unsigned long long size)
 {
     fputc(__GT_TRACEDB_BUFFER_SIZE, (FILE *) out);
     __trace_buffer_size val = { (uint64_t)address, (uint64_t)size };
