@@ -135,6 +135,7 @@ return non-nil when the test suite should be run and nil otherwise."
 	 (defsuite* (,name :in ,(intern (symbol-name *root-suite*) *package*)
 			   :documentation ,documentation) ()
 	   (let ((,test (find-test ',name)))
+             #'run-child-tests ;; included to suppress compiler note
 	     (cond
 	       ((stefil::test-was-run-p ,test)
 		(warn "Skipped executing already run tests suite ~S"
@@ -152,6 +153,7 @@ return non-nil when the test suite should be run and nil otherwise."
 				:documentation ,documentation)
              ()
 	   (let ((,test (find-test ',long-name)))
+             #'run-child-tests ;; included to suppress compiler note
 	     (cond
 	       ((stefil::test-was-run-p ,test)
 		(warn "Skipped executing already run tests suite ~S"
