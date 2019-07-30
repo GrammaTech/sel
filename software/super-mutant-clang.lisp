@@ -32,7 +32,6 @@
              (error (make-condition 'mutate
                                     :text "Mismatched function names"
                                     :obj mutant)))
-           #+nil
            (unless (eq (ast-void-ret f1) (ast-void-ret f2))
              (error (make-condition 'mutate
                                     :text "Mismatched return types"
