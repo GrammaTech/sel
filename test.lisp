@@ -643,7 +643,7 @@
   `(sel/stefil+:deftest ,name ,args
      (call-with-clang-versions (lambda () ,@body))))
 
-(defun make-clang (&rest key-args &key new-clang-flags flags &allow-other-keys)
+(defun make-clang (&rest key-args &key new-clang-flags &allow-other-keys)
   (if *new-clang?*
       (apply #'make-instance 'new-clang
              :compiler sel/sw/new-clang::*clang-binary*
