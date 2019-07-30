@@ -361,7 +361,7 @@ directories and if files based on their extensions."
                         &key ; NOTE: Maintain list of keyword arguments below.
                           (language (guess-language path) language-p)
                           compiler flags build-command artifacts
-                          compilation-database store-path
+                          compilation-database store-path stored
                           &allow-other-keys)
   "Build a software object from a common superset of language-specific options.
 
@@ -371,14 +371,20 @@ Keyword arguments are as follows:
                          String language is assumed to be a language name to be
                          resolved w/`resolve-language-from-language-and-source'.
                          Symbol language is assumed to be a class in sel/sw
+  STORED --------------- The SW object is a store file, not a source file or directory.
   STORE-PATH ----------- path to the cached store file with the software
   COMPILER ------------- compiler for software object
   BUILD-COMMAND -------- shell command to build project directory
   ARTIFACTS ------------ build-command products
   COMPILATION-DATABASE - clang compilation database
 Other keyword arguments are allowed and are passed through to `make-instance'."
+  ;; Should any of the input parameters be set in the restored objects?
   (when (and store-path (probe-file store-path))
     (return-from create-software (restore store-path)))
+  ;; If a SW named ends in ".store", or the STORE parameter is
+  ;; true, the file will be considered a store file.
+  (when (or stored (equal (pathname-type (pathname path)) "store"))
+    (return-from create-software (restore path)))
   (from-file
    (nest
     ;; These options are interdependent.  Resolve any dependencies and

@@ -68,4 +68,12 @@ techniques."
     :build-pathname "bin/clang-diff-test"
     :entry-point "software-evolution-library/components/clang-diff-test::run-clang-diff-test")
 
-
+(defsystem "software-evolution-library/run-sel-dump-store"
+    :author "Paul F. Dietz and GrammaTech"
+    :licence "GPL V3"
+    :description "Dump store file for a program"
+    :version "0.0.0"
+    :depends-on (software-evolution-library/components/sel-dump-store)
+    :build-operation "asdf:program-op"
+    :build-pathname "bin/sel-dump-store"
+    :entry-point "software-evolution-library/components/sel-dump-store::run-sel-dump-store")
