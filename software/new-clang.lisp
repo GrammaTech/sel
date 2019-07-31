@@ -171,8 +171,9 @@ possibly other things"))
 ;;; Code for adapting tests to use old or new clang front
 ;;; ends, controllably
 
-(defparameter *new-clang?* nil
-  "When true, use NEW-CLANG instead of CLANG")
+;; This is DEFVAR so I can set the var and reload this file
+;; without losing that value, which is useful for debugging.
+(defvar *new-clang?* nil "When true, use NEW-CLANG instead of CLANG")
 
 ;;; shared with old clang
 
@@ -367,7 +368,7 @@ possibly other things"))
 (defmethod compute-includes ((obj new-clang))
   (let ((includes nil)
         (*soft* obj))
-    (map-ast (ast-root obj)
+    (map-ast (slot-value obj 'ast-root)
              (lambda (a)
                (dolist (f (ast-includes-in-obj obj a))
                  (pushnew f includes :test #'equal))))
@@ -375,7 +376,8 @@ possibly other things"))
 
 (defmethod update-caches ((obj new-clang))
   (call-next-method)
-  (compute-includes obj))
+  (compute-includes obj)
+  obj)
 
 (defmethod clear-caches ((obj new-clang))
   (with-slots (includes) obj
@@ -468,7 +470,7 @@ on QUAL and DESUGARED slots."))
 (defmethod initialize-instance :after ((obj new-clang-type) &rest initargs &key hash &allow-other-keys)
   (declare (ignore initargs))
   (when (boundp '*soft*)
-    (setf (gethash hash (types *soft*)) obj))
+    (setf (gethash hash (slot-value *soft* 'types)) obj))
   obj)
 
 (defun make-new-clang-type (&rest keys &key qual desugared (hash (incf (hash-counter *soft*)))
@@ -636,7 +638,8 @@ the match length if sucessful, NIL if not."
   (if *print-readably*
       (call-next-method)
       (print-unreadable-object (obj stream :type t)
-        (format stream "~a~@[ ~a~]" (ast-class obj) (ast-name obj)))))
+        (format stream "~a~@[ ~a~] ~a" (ast-class obj) (ast-name obj)
+                (ast-path obj)))))
 
 (defmethod print-object ((obj new-clang-type) stream)
   (if *print-readably*
@@ -1395,7 +1398,7 @@ ranges into 'combined' nodes.  Warn when this happens."
                 (compute-full-stmt-attrs ast)
                 (compute-guard-stmt-attrs ast)
                 (compute-syn-ctxs ast)
-                (setf ast-root (update-paths (fix-semicolons ast))
+                (setf ast-root (sel/sw/parseable::update-paths (fix-semicolons ast))
                       genome nil)
                 obj))))))))
 
