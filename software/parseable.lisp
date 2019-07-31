@@ -314,7 +314,7 @@ applicative AST tree and clear the genome string."
         :path (reverse path)
         :children (iter (for c in (ast-children tree))
                         (for i upfrom 0)
-                        (collect (if (subtypep (type-of c) 'ast)
+                        (collect (if (typep c 'ast)
                                      (update-paths c (cons i path))
                                      c)))))
 
