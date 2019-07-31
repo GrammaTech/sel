@@ -122,7 +122,8 @@
   (dump-ast-with-parent (ast-root sw) print-fn))
 
 (defun dump-ast-classes (ast &optional (s *standard-output*))
-  (flet ((%print-class (a d)
+  (flet ((%print-class
+             (a d)
            (let ((class (ast-class a)))
              (dotimes (i d) (format s " "))
              (format s "~a~%" class))))
