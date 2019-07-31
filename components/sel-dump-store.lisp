@@ -85,5 +85,3 @@
                           :artifacts artifacts
                           :compilation-database compilation-database)))
     (cl-store:store software software-store)))
-
-

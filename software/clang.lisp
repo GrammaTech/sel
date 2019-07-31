@@ -3853,7 +3853,7 @@ within a function body, return null."))
 (defun position-of-trailing-semicolon (str)
   (let ((pos (position-of-leading-semicolon (reverse str))))
     (and pos (- (length str) pos 1))))
-    
+
 
 ;;; Process a clang ast to move semicolons down to appropriate places
 

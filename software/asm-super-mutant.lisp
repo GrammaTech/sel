@@ -1371,7 +1371,7 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
          (if (intel-syntax-p asm-super)
              (format nil "        mov rbx, qword [rbx + 0x~X]" rbx-pos)
              (format nil "        movq 0x~X(%rbx), %rbx" rbx-pos))))
-    
+
     (insert-new-lines
      asm-variants
      (if (intel-syntax-p asm-super)
@@ -1580,7 +1580,7 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
               (if (eq (asm-line-info-type first-line-info) ':label-decl)
                   (unless
                       (starts-with prefix (asm-line-info-label first-line-info))
-                    
+
                     (setf flines
                           (cons (format nil
                                         "~A~A:"
@@ -1612,7 +1612,7 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
               (iter (for it in inline-targets)
                     (for i from 0)
                     (inline-func asm (first it) (third it) i)))))))))
-            
+
 
 (defun create-target (asm-super)
   "Returns an ASM-HEAP software object which contains only the target lines."

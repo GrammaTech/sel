@@ -59,7 +59,3 @@
     (from-file sw source)
     (with-open-file (s out :direction :output :if-exists :supersede)
       (format s "~a" (source-text (ast-root sw))))))
-
-
-
-
