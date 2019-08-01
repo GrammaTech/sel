@@ -51,23 +51,7 @@
 ;; This takes several minutes and uses about 34GB of disk space
 
 (define-software new-clang (clang-base genome-lines-mixin)
-  (
-   #|
-   ((stmt-asts :initarg :stmt-asts :reader stmt-asts
-   :initform nil :copier :direct
-   :type #+sbcl (list (cons keyword *) *) #-sbcl list
-   :documentation
-   "List of statement ASTs which exist within a function body.")
-   ;; TODO: We should split non-statement ASTs into typedefs,
-   ;;       structs/classes, and global variables, all of which should
-   ;;       have different mutation types defined.  This needs more design.
-   (non-stmt-asts :initarg :non-stmt-asts :reader non-stmt-asts
-   :initform nil :copier :direct
-   :type #+sbcl (list (cons keyword *) *) #-sbcl list
-   :documentation
-   "List of global AST which live outside of any function.")
-   |#
-   (functions :initarg :functions :reader functions
+  ((functions :initarg :functions :reader functions
               :initform nil :copier :direct
               :type #+sbcl (list (cons keyword *) *) #-sbcl list
               :documentation "Complete functions with bodies.")
