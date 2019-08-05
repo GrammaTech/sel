@@ -371,7 +371,6 @@ Keyword arguments are as follows:
                          String language is assumed to be a language name to be
                          resolved w/`resolve-language-from-language-and-source'.
                          Symbol language is assumed to be a class in sel/sw
-  STORED --------------- The SW object is a store file, not a source file or directory.
   STORE-PATH ----------- path to the cached store file with the software
   COMPILER ------------- compiler for software object
   BUILD-COMMAND -------- shell command to build project directory
@@ -381,9 +380,10 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
   ;; Should any of the input parameters be set in the restored objects?
   (when (and store-path (probe-file store-path))
     (return-from create-software (restore store-path)))
-  ;; If a SW named ends in ".store", or the STORE parameter is
-  ;; true, the file will be considered a store file.
-  (when (or stored (equal (pathname-type (pathname path)) "store"))
+  ;; If a SW named ends in ".store", the file will
+  ;; be considered a store file.  Restore it instead
+  ;; of creating a software object from source.
+  (when (equal (pathname-type (pathname path)) "store")
     (return-from create-software (restore path)))
   (from-file
    (nest

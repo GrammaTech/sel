@@ -34,12 +34,6 @@
   (defparameter +command-line-options+
     (append `((("help" #\h #\?) :type boolean :optional t
                :documentation "display help output")
-              (("quiet" #\q) :type boolean :optional t
-               :action #'handle-set-quiet-argument
-               :documentation "set verbosity level to 0")
-              (("verbose" #\V) :type integer :initial-value 2
-               :action #'handle-set-verbose-argument
-               :documentation "verbosity level 0-4")
               (("load" #\l) :type string
                :action #'handle-load
                :documentation "load FILE as lisp code")
@@ -50,16 +44,12 @@
                :action #'handle-out-dir-argument
                :documentation "write final population into DIR"))
             ;; pulled from BI
-            `((("no-store-software" #\S) :type boolean :optional t
-               :documentation "inhibit caching the software")
-              (("language" #\L) :type string :initial-value "c"
+            `((("language" #\L) :type string :initial-value "c"
                :documentation
                "language of input files (e.g. c, c++, java, or javascript)"))
             +clang-command-line-options+
             +project-command-line-options+
-            +clang-project-command-line-options+
-            `((("new-clang" #\N) :type boolean :optional t
-               :documentation "Use new clang front end")))))
+            +clang-project-command-line-options+)))
 
 (define-command sel-dump-store (source &spec +command-line-options+
                                        &aux project-name software-store)
@@ -68,13 +58,11 @@
             "~%Built from SEL ~a, and ~a ~a.~%"
             +software-evolution-library-version+
             (lisp-implementation-type) (lisp-implementation-version))
-  (declare (ignorable quiet verbose new-clang))
   (when help (show-help-for-sel-dump-store))
   (setf out-dir (or out-dir (resolve-out-dir-from-source source))
         project-name (resolve-name-from-source source)
         software-store
-        (unless no-store-software
-          (resolve-store-path-from-out-dir-and-name out-dir project-name)))
+        (resolve-store-path-from-out-dir-and-name out-dir project-name))
   (let ((software
          (create-software source
                           :store-path software-store

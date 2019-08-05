@@ -76,6 +76,7 @@
   (children nil :type list)                  ; Remainder of subtree.
   (stored-hash nil :type (or null fixnum)))
 
+(declaim (ftype (function (t) list) ast-path))
 (defgeneric ast-path (a)
   (:documentation "Genericized version of path reader for AST structs")
   (:method ((a ast-stub)) (ast-internal-path a)))
@@ -873,7 +874,9 @@ in preorder.  The ancestor list is in decreasing order of depth in the AST."))
       (when (ast-p c) (map-ast-with-ancestors c fn ancestors))))
   tree)
 
-(defmethod map-ast-with-ancestors (tree fn &optional ancestors) nil)
+(defmethod map-ast-with-ancestors (tree fn &optional ancestors)
+  (declare (ignore tree fn ancestors))
+  nil)
 
 (defun mapc-ast (ast fn)
   "Apply FN to AST collecting the results with `cons'."

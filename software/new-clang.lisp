@@ -1,6 +1,8 @@
 ;;; new-clang.lisp --- clang software representation
 ;;;
-;;; DOCFIXME
+;;; DOCFIXME Need a page or so introduction to new clang
+;;;   software objects.  Also, update software-evolution.texi
+;;;   to describe the new class.
 ;;;
 ;;; @texi{new-clang}
 (defpackage :software-evolution-library/software/new-clang
@@ -38,9 +40,8 @@
 (in-package :software-evolution-library/software/new-clang)
 (in-readtable :curry-compose-reader-macros)
 
-(declaim (optimize (debug 3)))
-
 (declaim (special *soft*))
+(declaim (special *canonical-string-table* *current-line*))
 
 (defparameter *clang-binary*
   ;; "/pdietz/clang9-installed/bin/clang"
@@ -517,9 +518,6 @@ on QUAL and DESUGARED slots."))
 (defmethod clang-previous-decl ((obj new-clang-ast))
   (aget :PreviousDecl (new-clang-ast-attrs obj)))
 
-(declaim (special *canonical-string-table* *current-line*))
-
-(declaim (special *soft*))
 
 ;;; We cache the last lookup of certain slots, so that repeat values
 ;;; can be omitted in the json.  A special accessor maintains this cache
@@ -879,8 +877,6 @@ NIL indicates no value."))
     `(,@(when qual `((:qual . ,qual)))
         ,@(when ds `((:desugared-type . ,ds))))))
 
-;;; Testing code
-
 (defun dump-symbol-table ()
   "Print the contents of the symbol table"
   (let ((entries nil))
@@ -925,7 +921,6 @@ NIL indicates no value."))
   (if (< x 0)
       (format nil "-0x~(~x~)" (- x))
       (format nil "0x~(~x~)" x)))
-
 
 ;;;;
 
@@ -1343,10 +1338,6 @@ ranges into 'combined' nodes.  Warn when this happens."
               ast-root nil))
       (flet ((%debug (s a &optional (f #'ast-class))
                (declare (ignorable s a f))
-               #+nil
-               (progn
-                 (format t "After ~a:~%" s)
-                 (dump-ast-val a f))
                nil)
              (%p (o)
                (let ((r (ast-range o))) (list r (begin-offset r) (end-offset r)))))
@@ -1902,86 +1893,3 @@ ast nodes, as needed")
             (list (subseq str
                           (elt reg-begins 0)
                           (elt reg-ends 0))))))))
-
-
-;;; Debugging code
-
-(defgeneric dump-ast (ast print-fn))
-
-(defmethod dump-ast ((ast ast) print-fn)
-  (labels ((%r (a d)
-             ;; (dotimes (i d) (format t " "))
-             (funcall print-fn a d)
-             (let ((d (1+ d)))
-               (dolist (c (ast-children a))
-                 (when (ast-p c) (%r c d))))))
-    (%r ast 0)))
-
-(defmethod dump-ast ((sw parseable) print-fn)
-  (dump-ast (ast-root sw) print-fn))
-
-(defgeneric dump-ast-with-parent (ast print-fn))
-
-(defmethod dump-ast-with-parent ((ast ast) print-fn)
-  (labels ((%r (a d p)
-             (dotimes (i d) (format t " "))
-             (funcall print-fn a p d)
-             (let ((d (1+ d)))
-               (dolist (c (ast-children a))
-                 (when (ast-p c) (%r c d a))))))
-    (%r ast 0 nil)))
-
-(defmethod dump-ast-with-parent ((sw parseable) print-fn)
-  (dump-ast-with-parent (ast-root sw) print-fn))
-
-(defun dump-ast-classes (ast &optional (s *standard-output*))
-  (flet ((%print-class (a d)
-           (let ((class (ast-class a)))
-             (dotimes (i d) (format s " "))
-             (format s "~a~%" class))))
-    (dump-ast ast #'%print-class)))
-
-(defgeneric dump-ast-val (ast val-fn &optional s)
-  (:method (ast val-fn &optional (s *standard-output*))
-    (flet ((%print (a d)
-             (let ((class (ast-class a)))
-               (dotimes (i d) (format s " "))
-               (format s "~a: ~a~%"
-                       class
-                       (funcall val-fn a)))))
-      (dump-ast ast #'%print)))
-  (:method :around ((sw new-clang) val-fn &optional s)
-           (declare (ignorable s))
-           (let ((*soft* sw))
-             (ast-root sw)
-             (call-next-method))))
-
-(defgeneric dump-ast-val-p (ast val-fn &optional s)
-  (:method (ast val-fn &optional (s *standard-output*))
-    (flet ((%print (a p d)
-             (let ((class (ast-class a)))
-               (dotimes (i d) (format s " "))
-               (format s "~a: ~a~%"
-                       class
-                       (funcall val-fn a p)))))
-      (dump-ast-with-parent ast #'%print)))
-  (:method :around ((sw new-clang) val-fn &optional s)
-           (declare (ignorable s))
-           (let ((*soft* sw))
-             (ast-root sw)
-             (call-next-method))))
-
-(defgeneric dump-ast-to-list (ast fn)
-  (:method ((ast ast) fn)
-    (funcall fn ast (mapcar (lambda (a) (dump-ast-to-list a fn))
-                            (remove-if-not #'ast-p (ast-children ast)))))
-  (:method ((sw parseable) fn)
-    (dump-ast-to-list (ast-root sw) fn)))
-
-(defgeneric dump-ast-val-to-list (ast val-fn)
-  (:method (ast val-fn)
-    (dump-ast-to-list
-     ast
-     (lambda (a child-results)
-       (let ((val (funcall val-fn a)))
-         (list (ast-class a) val child-results))))))

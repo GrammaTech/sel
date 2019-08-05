@@ -143,6 +143,9 @@ and :SCOPE.
 (defgeneric get-vars-in-scope (software ast &optional keep-globals)
   (:documentation "Return all variables in enclosing scopes."))
 
+;; This function is used by CLANG and NEW-CLANG.  When old CLANG
+;; goes away, move it down into the remaining package, as it is
+;; not generic to all parseables.
 (defgeneric name= (n1 n2)
   (:documentation "Generalized name equality for AST names")
   (:method ((n1 string) (n2 string))

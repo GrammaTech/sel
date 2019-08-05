@@ -94,6 +94,8 @@
            :common-ancestor
            :ancestor-of
            :scopes-between
+           :begins-scope
+           :begins-scope*
            :nesting-depth
            :full-stmt-p
            :block-p
@@ -225,8 +227,6 @@
            :fix-semicolons
            :*make-statement-fn*
            :clang-fixup-mutation
-           :begins-scope
-           :begins-scope*
            :ast-declarations
            :ast-declarations*
            :ast-var-declarations
@@ -523,7 +523,7 @@ for statements")
                        (format nil " ~a " opcode)
                        (second child-asts)))))
     (apply #'make-statement class syn-ctx (if full-stmt (append children (list ";"))
-					      children)
+                                              children)
            :opcode opcode rest)))
 
 (defun make-block (children &rest rest)
@@ -1919,7 +1919,7 @@ type in TYPES.
 
 (defmethod non-stmt-asts :before ((obj clang-base))
   "Ensure the `non-stmt-asts' field is set on OBJ prior to access."
-  (update-caches-if-necessary obj))
+ (update-caches-if-necessary obj))
 
 (defmethod     functions :before ((obj clang-base))
   "Ensure the `functions' field is set on OBJ prior to access."
@@ -2188,6 +2188,9 @@ already in scope, it will keep that name.")
              (format nil "ast ~a ~a" (ast :stmt1) fields)
              (format nil "sexp ~a ~a ~a" (ast :stmt1) fields aux)))))))
 
+;;; This readtable tweak causes SBCL to read strings as base strings
+;;; when possible.  This can greatly reduce memory usage.
+;;; TODO: determine if this should be generalized to all software.
 (defparameter *clang-mutate-readtable*
   (let ((rt (copy-readtable nil)))
     #+sbcl (setf (sb-ext:readtable-base-char-preference rt) :both)
@@ -3876,7 +3879,7 @@ within a function body, return null."))
 		    (position-of-leading-semicolon (cadr p))
                   (when found?
                     (setf (car lc) (concatenate 'string (car lc) prefix))
-                    (setf (cadr p) suffix)))))))))
+		    (setf (cadr p) suffix)))))))))
 
 (defun move-semicolons-into-expr-stmts (ast)
   "CALLEXPRs don't necessarily have their semicolons in them.
@@ -3889,10 +3892,9 @@ Move the semicolon in just one level, but no further"
        do (let ((e (car p))
 		  (lc))
 	      (when (and (ast-p e)
-                         ;; (member (ast-class e) '(:returnstmt :callexpr))
                          (or (ast-full-stmt e) (eql (ast-class e) :field))
-                         (stringp (car (setf lc (last (ast-children e))))))
-		(multiple-value-bind (found? prefix suffix)
+			 (stringp (car (setf lc (last (ast-children e))))))
+                (multiple-value-bind (found? prefix suffix)
 		    (position-of-leading-semicolon (cadr p))
 		  (when found?
 		    (setf (car lc) (concatenate 'string (car lc) prefix)

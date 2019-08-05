@@ -23,40 +23,21 @@
   (defparameter +command-line-options+
     (append `((("help" #\h #\?) :type boolean :optional t
                :documentation "display help output")
-              (("quiet" #\q) :type boolean :optional t
-               :action #'handle-set-quiet-argument
-               :documentation "set verbosity level to 0")
-              (("verbose" #\V) :type integer :initial-value 2
-               :action #'handle-set-verbose-argument
-               :documentation "verbosity level 0-4")
               (("load" #\l) :type string
                :action #'handle-load
                :documentation "load FILE as lisp code")
               (("eval" #\e) :type string
                :action #'handle-eval
-               :documentation "eval STRING as lisp code")
-              (("compiler" #\c) :type string :initial-value ,sel/sw/new-clang::*clang-binary*
-               :documentation "use CC as the C compiler")
-              (("flags" #\F) :type string
-               :action #'handle-comma-delimited-argument
-               :documentation "comma-separated list of compiler flags")))))
+               :documentation "eval STRING as lisp code")))))
 
-(defun include-dirs-to-flags (include-dirs)
-  (mapcar
-   (lambda (d) (format nil "-I~a" d))
-   include-dirs))
-
-(defun make-clang (file &key include-dirs)
-  (let ((obj1 (make-instance 'clang
-                :flags (include-dirs-to-flags include-dirs))))
+(defun make-clang (file &key)
+  (let ((obj1 (make-instance 'clang)))
     (from-file obj1 file)
     obj1))
 
-(defun make-new-clang (file &key include-dirs)
+(defun make-new-clang (file)
   (let ((obj1 (make-instance 'new-clang
-                :flags (include-dirs-to-flags include-dirs)
-                :compiler sel/sw/new-clang::*clang-binary*
-                :include-dirs include-dirs)))
+                :compiler sel/sw/new-clang::*clang-binary*)))
     (from-file obj1 file)
     obj1))
 
@@ -277,7 +258,6 @@ list of children of their parent.  Cannot remove the root."))
             "~%Built from SEL ~a, and ~a ~a.~%"
             +software-evolution-library-version+
             (lisp-implementation-type) (lisp-implementation-version))
-  (declare (ignorable quiet verbose))
   (when help (show-help-for-clang-diff-test))
   ;; Rewrite this to use new-clang class
   (let ((c (make-clang source))

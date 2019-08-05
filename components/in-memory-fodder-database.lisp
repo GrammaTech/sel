@@ -79,7 +79,7 @@ subset of LIMIT objects of the desired kind.
 If AST-CLASS is not nil, it is the name of an AST-CLASS;
 consider only ASTs of that class.
 
-OTherwise, if FULL-STMT is true, consider only full statements.
+Otherwise, if FULL-STMT is true, consider only full statements.
 
 If DECLS is :ONLY, consider only ASTs for which the :IS-DECL
 property is true.
