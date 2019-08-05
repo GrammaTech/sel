@@ -647,6 +647,10 @@
   (if *new-clang?*
       (apply #'make-instance 'new-clang
              :compiler sel/sw/new-clang::*clang-binary*
+             ;; FIXME -- these paths are not portable.
+             ;;   Update these when the Dockerfile for building clang/clang9
+             ;;   is updated, and at that time move the includes into a list
+             ;;   along with *clang-binary*
              :flags (list* "-I" "/usr/include"
                            "-I" "/clang9/lib/clang/10.0.0/include/"
                            new-clang-flags)
@@ -949,6 +953,7 @@
   (:setup
    (setf *soft*
          (from-file (make-clang :compiler "clang++"
+                                ;; FIXME -- these are not portable
                                 :new-clang-flags '("-I" "/usr/include/c++/7.4.0"
                                                    "-I" "/usr/include/x86_64-linux-gnu/c++/7.4.0"))
                     (strings-dir "cpp-strings.cpp"))))
@@ -2579,9 +2584,12 @@
     (let ((includes (includes *headers*)))
       (ast-root *headers*)
       (is (listp includes))
-      ;; This next one was wrong in old Clang, since first.c must
-      ;; be included also
-      ;; (is (= 2 (length includes)))
+      ;; As JR explained, "first.c" is handled
+      ;; differently in the old clang front end, in
+      ;; the types table, not the includes attribute.
+      ;; TODO: determine if it is ok to have "first.c"
+      ;; here instead.
+      (is (= (if *new-clang?* 3 2) (length includes)))
       (is (member "\"second.c\"" includes :test #'equal))
       (is (member "\"third.c\"" includes :test #'equal)))))
 
@@ -2957,8 +2965,7 @@ is not to be found"
 (deftest macro-expansion-has-correct-types ()
   ;; Types inside a macro expansion should be visible. This is trick
   ;; due to the de-aggregating of types done by asts->tree.
-  (let ((obj (make-clang
-              :genome "#define CHARSIZE (sizeof (char))
+  (let ((obj (make-clang :genome "#define CHARSIZE (sizeof (char))
 int x = CHARSIZE;")))
     (is (equalp '("int" "char")
                 (mapcar [#'type-name {find-type obj}]
@@ -9962,11 +9969,11 @@ prints unique counters in the trace"
   ;; Prototype vs. complete function
   (signals mutate
            (genome (make-instance 'super-mutant
-              :mutants
-              (list (from-string (make-clang)
-                                 "void foo() {}")
-                    (from-string (make-clang)
-                                 "void foo();"))))))
+                     :mutants
+                     (list (from-string (make-clang)
+                                        "void foo() {}")
+                           (from-string (make-clang)
+                                        "void foo();"))))))
 
 (deftest super-mutant-genome-detects-mismatched-globals ()
   (let* ((base (from-string (make-clang)
@@ -9974,13 +9981,13 @@ prints unique counters in the trace"
          (variant (copy base)))
     (apply-mutation variant
                     `(clang-replace (:stmt1 . ,(stmt-with-text variant
-                                                 "int b;"))
-                      (:value1 . ,(->> (find-or-add-type variant
-                                                         "char")
-                                       (make-var-decl "b")))))
+                                                               "int b;"))
+                                    (:value1 . ,(->> (find-or-add-type variant
+                                                                       "char")
+                                                     (make-var-decl "b")))))
     (signals mutate
-      (genome (make-instance 'super-mutant
-                :mutants (list base variant))))))
+             (genome (make-instance 'super-mutant
+                       :mutants (list base variant))))))
 
 (deftest super-mutant-genome-detects-delete-function-body ()
   (let* ((base (from-string (make-clang)
@@ -9991,8 +9998,8 @@ prints unique counters in the trace"
     (apply-mutation variant
       `(clang-cut (:stmt1 . ,(stmt-with-text variant "{}"))))
     (signals mutate
-      (genome (make-instance 'super-mutant
-                :mutants (list base variant))))))
+             (genome (make-instance 'super-mutant
+                       :mutants (list base variant))))))
 
 (deftest collate-ast-variants-test ()
   ;; This function is intended to be called on asts, but it only
@@ -10001,63 +10008,63 @@ prints unique counters in the trace"
 
   ;; Simple case: all top-level decls line up
   (is (equal (collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
-                                          ((1 . b1) (2 . b2) (3 . b3))))
+                                     ((1 . b1) (2 . b2) (3 . b3))))
              '((a1 b1) (a2 b2) (a3 b3))))
 
   ;; Deleted AST
   (is (equal (collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
-                                          ((1 . b1) (3 . b3))))
+                                     ((1 . b1) (3 . b3))))
              '((a1 b1) (a2 nil) (a3 b3))))
 
   ;; Inserted AST
   (is (equal (collate-ast-variants '(((1 . a1) (3 . a3))
-                                          ((1 . b1) (2 . b2) (3 . b3))))
+                                     ((1 . b1) (2 . b2) (3 . b3))))
              '((a1 b1) (nil b2) (a3 b3))))
 
   ;; Deleted at beginning
   (is (equal (collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
-                                          ((2 . b2) (3 . b3))))
+                                     ((2 . b2) (3 . b3))))
              '((a1 nil) (a2 b2) (a3 b3))))
 
   ;; Deleted at end
   (is (equal (collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
-                                          ((1 . b1) (2 . b2))))
+                                     ((1 . b1) (2 . b2))))
              '((a1 b1) (a2 b2) (a3 nil))))
 
   ;; Inserted at beginning
   (is (equal (collate-ast-variants '(((2 . a2) (3 . a3))
-                                          ((1 . b1) (2 . b2) (3 . b3))))
+                                     ((1 . b1) (2 . b2) (3 . b3))))
              '((nil b1) (a2 b2) (a3 b3))))
 
   ;; Inserted at end
   (is (equal (collate-ast-variants '(((1 . a1) (2 . a2))
-                                          ((1 . b1) (2 . b2) (3 . b3))))
+                                     ((1 . b1) (2 . b2) (3 . b3))))
              '((a1 b1) (a2 b2) (nil b3))))
 
   ;; Multiple inserted ASTs
   (is (equal (collate-ast-variants '(((1 . a1) (3 . a3))
-                                          ((1 . b1) (2 . b2) (4 . b4)
-                                           (5 . b5) (3 . b3))))
+                                     ((1 . b1) (2 . b2) (4 . b4)
+                                      (5 . b5) (3 . b3))))
              '((a1 b1) (nil b2) (nil b4) (nil b5) (a3 b3))))
 
   ;; 3 variants
   (is (equal (collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
-                                          ((1 . b1) (2 . b2) (3 . b3))
-                                          ((1 . c1) (2 . c2) (3 . c3))))
+                                     ((1 . b1) (2 . b2) (3 . b3))
+                                     ((1 . c1) (2 . c2) (3 . c3))))
              '((a1 b1 c1) (a2 b2 c2) (a3 b3 c3))))
 
   ;; 3 variants with inserts and deletes
   (is (equal (collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
-                                          ((1 . b1) (3 . b3))
-                                          ((1 . c1) (2 . c2) (4 . c4)
-                                           (3 . c3))))
+                                     ((1 . b1) (3 . b3))
+                                     ((1 . c1) (2 . c2) (4 . c4)
+                                      (3 . c3))))
              '((a1 b1 c1) (a2 nil c2) (nil nil c4) (a3 b3 c3))))
 
 
   ;; Swapped ASTs are not merged correctly. This is a known
   ;; limitation.
   (is (equal (collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
-                                          ((2 . b2) (1 . b1) (3 . b3))))
+                                     ((2 . b2) (1 . b1) (3 . b3))))
              '((a1 nil) (a2 b2) (nil b1) (a3 b3)))))
 
 (deftest super-evolve-handles-mutation-failure ()
