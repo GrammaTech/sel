@@ -1061,6 +1061,6 @@ with REPLACEMENT.
 * LOCATION location to be removed in OBJ")
   (:method ((obj parseable) (location ast) &rest args &key &allow-other-keys)
     (apply #'remove-ast obj (ast-path location) args))
-  (:method remove-ast ((obj parseable) (location list) &key &allow-other-keys)
+  (:method ((obj parseable) (location list) &key &allow-other-keys)
     (apply-mutation obj (at-targets (make-instance 'parseable-cut)
                                     (list (cons :stmt1 location))))))
