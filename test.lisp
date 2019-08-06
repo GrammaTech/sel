@@ -810,7 +810,7 @@
          (from-file
           (make-clang
            :flags (list
-                    "-I"
+                   "-I"
                     (namestring (make-pathname :directory +etc-dir+))))
           (make-pathname
            :name "binary_search"
@@ -840,7 +840,7 @@
    (setf *headers*
          (from-file (make-clang
                      :compiler "clang"
-                      :flags (list "-I" (namestring
+                     :flags (list "-I" (namestring
                                          (make-pathname
                                           :directory +headers-dir+))))
                     (headers-dir "main.c"))))
@@ -1973,7 +1973,8 @@
     ((a integer) (b string) (c float) (d boolean)
      &spec +common-command-line-options+)
   "Test that the four supported types can be passed to an endpoint via REST."
-  nil
+  ""
+  (declare (ignorable help quiet verbose load eval out-dir read-seed))
   (format nil "~A: ~D, ~A: ~S, ~A: ~F, ~A: ~A"
           (type-of a) a
           (type-of b) b
@@ -2008,8 +2009,10 @@
 (deftest run-rest-factorial-cl-func-2 ()
   (with-fixture fact-rest-server
     (let ((*standard-output* (make-broadcast-stream)))
-      (is (eql (fact-entry 5 :verbose 3) 120))
-      (is (eql (fact-entry 52235215 :help T) nil)))))
+      ;; This produces a warning that FACT-ENTRY is undefined,
+      ;; but the function is defined by the fixture
+      (is (eql (funcall (symbol-function 'fact-entry) 5 :verbose 3) 120))
+      (is (eql (funcall (symbol-function 'fact-entry) 52235215 :help T) nil)))))
 
 (defun rest-endpoint-test-create-fact-job (client-id json-input)
   "Returns new job name or nil.
@@ -2029,6 +2032,7 @@
 (deftest (run-rest-factorial-remote-1 :long-running) ()
   (with-fixture fact-rest-server
     (multiple-value-bind (cid status) (rest-test-get-new-client)
+      (declare (ignore status))
       (let ((result
              (symbol-name
               (rest-endpoint-test-create-fact-job cid '(("n" . 5))))))
@@ -2038,6 +2042,7 @@
 (deftest (run-rest-factorial-remote-2 :long-running) ()
   (with-fixture fact-rest-server
     (multiple-value-bind (cid status) (rest-test-get-new-client)
+      (declare (ignore status))
       (let* ((*standard-output* (make-broadcast-stream))
              (result
               (symbol-name
@@ -9960,10 +9965,10 @@ prints unique counters in the trace"
   ;; Different return types
   (signals mutate
            (genome (make-instance 'super-mutant
-              :mutants
-              (list (from-string (make-clang)
-                                 "void foo() {}")
-                    (from-string (make-clang)
+                     :mutants
+                     (list (from-string (make-clang)
+                                        "void foo() {}")
+                           (from-string (make-clang)
                                  "int foo() { return 1; }")))))
 
   ;; Prototype vs. complete function
@@ -9986,8 +9991,8 @@ prints unique counters in the trace"
                                                                        "char")
                                                      (make-var-decl "b")))))
     (signals mutate
-             (genome (make-instance 'super-mutant
-                       :mutants (list base variant))))))
+      (genome (make-instance 'super-mutant
+                :mutants (list base variant))))))
 
 (deftest super-mutant-genome-detects-delete-function-body ()
   (let* ((base (from-string (make-clang)
@@ -9998,8 +10003,8 @@ prints unique counters in the trace"
     (apply-mutation variant
       `(clang-cut (:stmt1 . ,(stmt-with-text variant "{}"))))
     (signals mutate
-             (genome (make-instance 'super-mutant
-                       :mutants (list base variant))))))
+      (genome (make-instance 'super-mutant
+                :mutants (list base variant))))))
 
 (deftest collate-ast-variants-test ()
   ;; This function is intended to be called on asts, but it only
