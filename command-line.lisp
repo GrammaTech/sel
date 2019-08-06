@@ -361,7 +361,7 @@ directories and if files based on their extensions."
                         &key ; NOTE: Maintain list of keyword arguments below.
                           (language (guess-language path) language-p)
                           compiler flags build-command artifacts
-                          compilation-database store-path stored
+                          compilation-database store-path
                           &allow-other-keys)
   "Build a software object from a common superset of language-specific options.
 
