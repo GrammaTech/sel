@@ -13,6 +13,7 @@
         :software-evolution-library/software/parseable
         :software-evolution-library/software/clang
         :software-evolution-library/software/new-clang)
+  (:import-from :software-evolution-library/software/new-clang :*soft*)
   (:export :dump-ast :dump-ast-with-parent
            :dump-ast-classes :dump-ast-val
            :dump-ast-val-p :dump-ast-to-list

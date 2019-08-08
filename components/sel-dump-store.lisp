@@ -58,6 +58,7 @@
             "~%Built from SEL ~a, and ~a ~a.~%"
             +software-evolution-library-version+
             (lisp-implementation-type) (lisp-implementation-version))
+  (declare (ignorable load eval))
   (when help (show-help-for-sel-dump-store))
   (setf out-dir (or out-dir (resolve-out-dir-from-source source))
         project-name (resolve-name-from-source source)

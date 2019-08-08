@@ -51,6 +51,7 @@
             "~%Built from SEL ~a, and ~a ~a.~%"
             +software-evolution-library-version+
             (lisp-implementation-type) (lisp-implementation-version))
+  (declare (ignorable eval load))
   (when help (show-help-for-new-clang-round-trip))
   ;; Rewrite this to use new-clang class
   (let ((sw (make-instance 'new-clang :flags flags :compiler compiler)))

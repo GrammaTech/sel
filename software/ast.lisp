@@ -76,7 +76,6 @@
   (children nil :type list)                  ; Remainder of subtree.
   (stored-hash nil :type (or null fixnum)))
 
-(declaim (ftype (function (t) list) ast-path))
 (defgeneric ast-path (a)
   (:documentation "Genericized version of path reader for AST structs")
   (:method ((a ast-stub)) (ast-internal-path a)))
