@@ -459,8 +459,7 @@ to `to-ast`.  E.g.
   (:documentation "Convert alist to struct representation."))
 
 (defgeneric source-text (ast)
-  (:documentation "Source code corresponding to an AST.")
-  (:method ((x null)) ""))
+  (:documentation "Source code corresponding to an AST."))
 
 (defgeneric rebind-vars (ast var-replacements fun-replacements)
   (:documentation
@@ -475,6 +474,8 @@ AST."))
 
 
 ;;; Base implementation of generic functions
+(defmethod source-text ((ast null)) "")
+
 (defmethod source-text ((ast ast))
   "Return the source code corresponding to AST."
   ;; In performance comparison the combination of
