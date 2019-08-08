@@ -16,11 +16,9 @@ stages:
 check-format:
   stage: check-format
   script:
-    - if [ ! "$CI_BUILD_REF_NAME" = "pdietz-2019-08-06" ];
-      then
-           docker pull $DOCKER_REGISTRY/synthesis/sel/${OS}-${LISP}:${CI_BUILD_REF_NAME} && export REF=${CI_BUILD_REF_NAME} || export REF=master;
-           docker build --rm --build-arg=REF=${REF} -f .ci/Dockerfile.formatter .;
-      fi
+    - docker pull $DOCKER_REGISTRY/synthesis/sel/${OS}-${LISP}:${CI_BUILD_REF_NAME} && export REF=${CI_BUILD_REF_NAME} || export REF=master;
+    - docker build --rm --build-arg=REF=${REF} -f .ci/Dockerfile.formatter .;
+  allow_failure: true
 
 .build-template: &build
   script:
