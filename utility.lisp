@@ -114,6 +114,7 @@
    :canonical-pathname
    :merge-pathnames-as-directory
    :merge-pathnames-as-file
+   :truenamestring
    :list-directory
    :walk-directory
    ;; Process wrapper
@@ -142,6 +143,7 @@
    :parse-numbers
    :trim-whitespace
    :trim-right-whitespace
+   :trim-left-whitespace
    :normalize-whitespace
    :escape-string
    :unescape-string
@@ -662,6 +664,9 @@ of DIR and execute BODY"
    (namestring (canonical-pathname (ensure-directory-pathname root-path)))
    ""))
 
+(defun truenamestring (path)
+  (namestring (truename path)))
+
 ;;; TODO: Refactor `in-directory'.  This should probably be combined
 ;;; with `merge-pathnames-as-file' and `merge-pathnames-as-directory'.
 ;;; I believe the behavior of this function (to call
@@ -1144,7 +1149,11 @@ ARGS (including keyword arguments) are passed through to `uiop:launch-program'"
 
 (defun trim-right-whitespace (str)
   (string-right-trim '(#\Space #\Tab #\Newline #\Linefeed)
-		     str))
+                     str))
+
+(defun trim-left-whitespace (str)
+  (string-left-trim '(#\Space #\Tab #\Newline #\Linefeed)
+                    str))
 
 (defun normalize-whitespace (str)
   "Trims leading and trailing whitespace, and reduces all remaining
@@ -2126,13 +2135,13 @@ For example (pairs '(a b c)) => ('(a . b) '(a . c) '(b . c))
 (defun get-next-task (runner)
   (bt:with-recursive-lock-held ((task-runner-jobs-lock runner))
     (if (consp (task-runner-jobs runner))
-	(let ((task (funcall (car (task-runner-jobs runner)))))
-	  (if (null task)                       ;; if no more tasks in that job
-	      (progn
-		(pop (task-runner-jobs runner)) ;; pop the job
-		(incf (task-runner-completed-jobs runner))
-		(get-next-task runner)) ;; and recurse (until no more jobs)
-	      task)))))
+        (let ((task (funcall (car (task-runner-jobs runner)))))
+          (if (null task)                       ;; if no more tasks in that job
+              (progn
+                (pop (task-runner-jobs runner)) ;; pop the job
+                (incf (task-runner-completed-jobs runner))
+                (get-next-task runner)) ;; and recurse (until no more jobs)
+              task)))))
 
 ;;;
 ;;; Add a Job to the JOBS stack.
@@ -2149,7 +2158,7 @@ For example (pairs '(a b c)) => ('(a . b) '(a . c) '(b . c))
 (defun exit-worker (runner)
   (bt:with-lock-held ((task-runner-workers-lock runner))
     (setf (task-runner-workers runner)
-	  (remove (current-thread) (task-runner-workers runner) :test 'equal))))
+          (remove (current-thread) (task-runner-workers runner) :test 'equal))))
 
 ;;;
 ;;; The task executed by each worker thread.
@@ -2190,8 +2199,8 @@ For example (pairs '(a b c)) => ('(a . b) '(a . c) '(b . c))
 ;;
 (defun task-runner-init-jobs (runner)
   (setf (task-runner-jobs runner) nil
-	(task-runner-workers runner) nil
-	(task-runner-results runner) nil))
+        (task-runner-workers runner) nil
+        (task-runner-results runner) nil))
 
 ;;
 ;; Remove all jobs from the jobs stack. This will cause
@@ -2284,7 +2293,7 @@ promises to find the first while `some-task' may return any element satisfying
   (let ((index 0))
     (lambda ()
       (if (<= (incf index) 1)
-	  (task-object task)))))
+          (task-object task)))))
 
 (defmacro run-as-task ((task runner) &body body)
   "Run the body code as a one-off task, which can access task and runner by
@@ -2584,12 +2593,12 @@ that function may be declared.")
 
 (defun sel-copy-array (array)
   (let* ((element-type (array-element-type array))
-	 (fill-pointer (and (array-has-fill-pointer-p array)(fill-pointer array)))
-	 (adjustable (adjustable-array-p array))
-	 (new (make-array (array-dimensions array)
-		:element-type element-type
-		:adjustable adjustable
-		:fill-pointer fill-pointer)))
+         (fill-pointer (and (array-has-fill-pointer-p array)(fill-pointer array)))
+         (adjustable (adjustable-array-p array))
+         (new (make-array (array-dimensions array)
+                          :element-type element-type
+                          :adjustable adjustable
+                          :fill-pointer fill-pointer)))
     (dotimes (i (array-total-size array) new)
       (setf (row-major-aref new i)(row-major-aref array i)))))
 
@@ -2598,7 +2607,7 @@ that function may be declared.")
   (if (arrayp sequence)
       (sel-copy-array sequence)
       (if (listp sequence)
-	  (copy-list sequence))))
+          (copy-list sequence))))
 
 
 ;;;; Iteration helpers
