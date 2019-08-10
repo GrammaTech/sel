@@ -88,6 +88,8 @@ TEST_ARTIFACTS = \
 	test/etc/gcd/gcd \
 	test/etc/gcd/gcd.s
 
+# FIXME: move test binaries into test/bin or bin/test/
+# Extend cl.mk to have a separate build target for test binaries
 BINS = rest-server new-clang-round-trip clang-diff-test sel-dump-store
 
 BIN_TEST_DIR = test/bin
