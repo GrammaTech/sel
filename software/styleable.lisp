@@ -322,17 +322,13 @@ The returned vector will have one entry for each ast class listed in `clang-c-as
 (defgeneric ast-depth (software ast)
   (:documentation "Depth of AST in SOFTWARE. The root node has a depth of 0."))
 
-(defmethod ast-depth ((clang clang-base) ast)
-  "Depth of AST in CLANG. The root node has a depth of 0
-* CLANG software object
-* AST ast pointing to the root of the AST tree in CLANG
-"
-  (1- (length (get-parent-asts clang ast))))
-
 (defvar *ast-depths-cache* (make-hash-table :test #'equal)
   "Cache for computing AST depths")
 
-(defmethod ast-depth :around ((clang clang) ast)
+;;; TODO: determine if this cache is actually saving any time
+;;;  The depth should not be expensive to compute by itself.
+
+(defmethod ast-depth ((clang clang-base) ast)
   "Depth of AST in CLANG. The root node has a depth of 0
 * CLANG software object
 * AST ast pointing to the root of the AST tree in CLANG
@@ -341,22 +337,8 @@ The returned vector will have one entry for each ast class listed in `clang-c-as
          (key (cons (ast-node ast) (ast-children ast)))
          (result (gethash key cache)))
     (or result
-        (setf (gethash key cache) (call-next-method)))))
-#|
-(let* ((result (or (gethash (cons (ast-node ast) (ast-children ast))
-*ast-depths-cache*)
-(call-next-method))))
-(setf (gethash (cons (ast-node ast) (ast-children ast))
-                   *ast-depths-cache*)
-          result)))
-|#
-
-(defmethod ast-depth :around ((clang new-clang) ast)
-  (let* ((cache *ast-depths-cache*)
-         (key (cons (ast-class ast) (ast-children ast)))
-         (result (gethash key cache)))
-    (or result
-        (setf (gethash key cache) (call-next-method)))))
+        (setf (gethash key cache)
+              (1- (length (get-parent-asts clang ast)))))))
 
 (defgeneric max-depth-ast (software asts)
   (:documentation "Return the maximum depth of the ASTS in SOFTWARE."))
@@ -368,8 +350,8 @@ relative to elements in the list of ASTs).
 * CLANG software object
 * ASTS list of ASTs for which to determine the depth
 "
-  (apply #'max
-         (mapcar {ast-depth clang} asts)))
+  ;;; TODO: this could be much more efficient
+  (reduce #'max asts :key {ast-depth clang} :initial-value 0))
 
 (defun merge-max (vec1 meta1 vec2 meta2)
   "Return a new vector of the pair-wise maximums for values in VEC1 and VEC2.
@@ -390,7 +372,7 @@ Metadata, META1 and META2 is ignored."
 (define-feature avg-depth-ast-feature
     "Average depth of nodes in the AST."
   (avg-depth-ast-extractor ((clang clang-base))
-                           "Return 1-element feature vector of the average depth of ASTs in SOFTWARE."
+    "Return 1-element feature vector of the average depth of ASTs in SOFTWARE."
     (if-let ((asts (asts clang)))
       (values (vector (mean (mapcar {ast-depth clang} asts)))
               (length asts))
@@ -538,10 +520,11 @@ hash-table BI-GRAMS.
     (to-feature-vector bi-grams keys)))
 
 (define-feature ast-full-stmt-bi-grams-feature
-    "Number of occurrences of AST node type bi-grams in each full statement in
-an AST."
+    "Number of occurrences of AST node type bi-grams in each full
+     statement in an AST."
   (ast-full-stmt-bi-grams-extractor ((clang clang-base))
-                                    "Return a feature vector counting AST node type bi-grams for full statements."
+                                    "Return a feature vector counting AST node type bi-grams for
+       full statements."
                                     (->> (ast-full-stmt-bi-grams clang)
                                          (bi-grams-hashtable-to-feature clang)
                                          (normalize-vector)))
@@ -550,10 +533,10 @@ an AST."
 (define-feature ast-bi-grams-feature
     "Number of occurrences of AST node type bi-grams in an AST."
   (ast-bi-grams-extractor ((clang clang-base))
-                          "Return a feature vector counting AST node type bi-grams."
-                          (->> (ast-bi-grams clang)
-                               (bi-grams-hashtable-to-feature clang)
-                               (normalize-vector)))
+    "Return a feature vector counting AST node type bi-grams."
+    (->> (ast-bi-grams clang)
+         (bi-grams-hashtable-to-feature clang)
+         (normalize-vector)))
   (merge-normalized))
 
 
@@ -633,8 +616,8 @@ Uses `*clang-c-keywords*'.
 (define-feature ast-keyword-tf-feature
     "Term frequency of keywords in an AST."
   (ast-keyword-tf-extractor ((clang clang-base))
-                            "Return a vector containing term frequencies for all possible keywords in
-SOFTWARE (see also `all-keywords').
+                            "Return a vector containing term frequencies for all possible
+keywords in SOFTWARE (see also `all-keywords').
 
 The returned feature vector will have one entry for each keyword
 listed in `*clang-c-keywords*'.
