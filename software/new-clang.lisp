@@ -52,10 +52,13 @@
 ;; This takes several minutes and uses about 34GB of disk space
 
 (define-software new-clang (clang-base genome-lines-mixin)
-  ((functions :initarg :functions :reader functions
+  (
+   ;; WIP: FUNCTIONS slot is not currently used.  Use or remove.
+   (functions :initarg :functions :reader functions
               :initform nil :copier :direct
               :type #+sbcl (list (cons keyword *) *) #-sbcl list
               :documentation "Complete functions with bodies.")
+   ;; WIP: PROTOTYPES slot is not current used.  Use or remove.
    (prototypes :initarg :prototypes :reader prototypes
                :initform nil :copier :direct
                :type #+sbcl (list (cons keyword *) *) #-sbcl list
@@ -69,6 +72,7 @@
           :copier copy-hash-table
           :type #+sbcl hash-table #-sbcl hash-table
           :documentation "Association list of types keyed by HASH id.")
+   ;;; WIP: not currently used.  Remove or use.
    (macros :initarg :macros :accessor macros
            :initform nil :copier :direct
            :type #+sbcl (list clang-macro *) #-sbcl list
@@ -147,10 +151,10 @@ possibly other things"))
         (let ((x (car e)))
           (cond
             ((equal x "-I")
-             (collecting (cadr e)))
+             (collecting (trim-left-whitespace (cadr e))))
             ((and (equal (subseq x 0 2) "-I")
                   (> (length x) 2))
-             (collecting (subseq x 2)))))))
+             (collecting (trim-left-whitespace (subseq x 2))))))))
 
 
 ;;; Code for adapting tests to use old or new clang front
@@ -313,12 +317,17 @@ possibly other things"))
 (ast-children (ast-root obj))))
 |#
 
+;;; FIXME:  this will fail if a code snippet is pasted from another file
+;;;  without changing the AST-FILE of nodes.  The recommended fix is to
+;;;  to make AST-FILE be NIL if the node is in the current file.  The
+;;;  code below should still work in that case, but it needs to be tested.
+
 (defmethod ast-includes-in-obj ((obj new-clang) (ast new-clang-ast))
   (let ((*soft* obj)
         (tmp-file (tmp-file obj))
         (file (ast-file obj))
         (include-dirs (include-dirs obj))
-        (od (original-directory obj)))
+        (od (absolute-original-directory obj)))
     (mapcar
      (lambda (s) (normalize-file-for-include s od include-dirs))
      (delete-duplicates
@@ -338,7 +347,8 @@ possibly other things"))
                    (nconcing
                     (iter (for v in (gethash n table))
                           (when v
-                            (nconcing (ast-include-from-type v tmp-file))))))))))
+                            (nconcing
+                             (ast-include-from-type v tmp-file))))))))))
       :test #'equal))))
 
 (defun ast-include-from-type (v tmp-file)
@@ -491,7 +501,9 @@ on QUAL and DESUGARED slots."))
     (new-clang-loc-file loc))
   (:method ((loc new-clang-macro-loc) macro?)
     (ast-file*
-     (if (if (new-clang-macro-loc-is-macro-arg-expansion loc) (not macro?) macro?)
+     (if (if (new-clang-macro-loc-is-macro-arg-expansion loc)
+             (not macro?)
+             macro?)
          (new-clang-macro-loc-spelling-loc loc)
          (new-clang-macro-loc-expansion-loc loc))
      macro?))
@@ -553,10 +565,19 @@ if no value was found."
                 (concatenate 'string s "/")))
           include-dirs))
 
+;;; NOTE: will need to make sure this works on Windows also
+;;;  Perhaps it should work on pathnames, not namestrings?
+
 (defun normalize-file-for-include (file-string original-dir include-dirs)
   "Returns the normalized version of file-string relative to the original
 directory and the include-dirs, nd a value that is T if the string should
 be in #include \"...\", NIL if in #include <...>"
+  (assert (or (null original-dir)
+              (eql (car (pathname-directory original-dir))
+                   :absolute))
+          ()
+          "ORIGINAL-DIR must be an absolute filename: ~a"
+          original-dir)
   (cond
     ;; Empty string is erroneous
     ((string= file-string "")
@@ -581,7 +602,8 @@ the match length if sucessful, NIL if not."
          (let ((om (when original-dir (%match original-dir))))
            ;; (format t "om = ~a~%" om)
            (if om
-               (values (concatenate 'string "\"" (subseq file-string om) "\"") t)
+               (values (concatenate 'string "\"" (subseq file-string om) "\"")
+                       t)
                (let ((max-match 0) (dir nil))
                  (iter (for ind in include-dirs)
                        (let ((mm (%match ind)))
@@ -590,13 +612,22 @@ the match length if sucessful, NIL if not."
                            (setf max-match mm
                                  dir ind))))
                  (if dir
-                     (values (concatenate 'string "<" (subseq file-string max-match) ">")
+                     (values (concatenate 'string "<"
+                                          (subseq file-string max-match) ">")
                              nil)
-                     (values (concatenate 'string "\"" file-string "\"") t))))))))))
+                     (values (concatenate 'string "\"" file-string "\"")
+                             t))))))))))
 
 (defgeneric original-directory (obj))
 (defmethod original-directory ((obj source))
   (let ((file (original-file obj)))
+    (when file
+      (namestring (make-pathname :defaults (pathname file)
+                                 :name nil :type nil)))))
+
+(defgeneric absolute-original-directory (obj))
+(defmethod absolute-original-directory ((obj source))
+  (let ((file (absolute-original-file obj)))
     (when file
       (namestring (make-pathname :defaults (pathname file)
                                  :name nil :type nil)))))
@@ -796,7 +827,8 @@ NIL indicates no value."))
         (when (stringp file)
           (setf file (canonicalize-string file)))
         (when (or col file line)
-          (make-new-clang-loc :col col :file file :line line :tok-len tok-len)))))
+          (make-new-clang-loc :col col :file file
+                              :line line :tok-len tok-len)))))
 
 (defun convert-macro-loc-json (loc-json)
   "This is the special case of a LOC that has spelling and expansion locs"
@@ -1188,41 +1220,46 @@ actual source file"))
     (nreverse node-stack)))
 
 
-(defun decorate-ast-with-strings (sw ast) ;; get ast from sw?
-  (let* ((*soft* sw)
-         (genome (genome sw)))
-    (flet ((%decorate (a)
-             ;; At ast node A, split the parts of the source
-             ;; that are not in the children into substrings
-             ;; that are placed between the children.  Do not
-             ;; place strings for children for whom offsets
-             ;; cannot be computed
-             ;; (format t "Decorating ~a~%" a)
-             (let ((children (ast-children a)))
-               (multiple-value-bind (begin end)
-                   (begin-and-end-offsets a)
-                 ;; (format t "B/E offsets of ~a: ~a ~a~%" a begin end)
-                 (when (and begin end)
-                   (let ((i begin))
-                     (setf (ast-children a)
-                           (nconc
-                            (iter (for c in children)
-                                  (when (ast-p c)
-                                    (multiple-value-bind (cbegin cend)
-                                        (begin-and-end-offsets c)
-                                      (when cbegin
-                                        (assert (>= cbegin i) ()
-                                                "Offsets out of order: i = ~a, cbegin = ~a, c = ~a, range = ~a"
-                                                i cbegin c
-                                                (ast-attr c :range))
-                                        ;; (format t "Collecting ~a to ~a for ~a~%" i cbegin c)
-                                        (collect (subseq genome i cbegin))
-                                        (setf i cend))))
-                                  (collect c))
-                            (progn
-                              ;; (format t "Collecting ~a to ~a at end of ~a~%" i end a)
-                              (list (subseq genome i end)))))))))))
-      (map-ast ast #'%decorate)))
+(defun decorate-ast-with-strings (sw ast &aux (*soft* sw)
+                                           (genome (genome sw)))
+  ;; get ast from sw?
+  (labels
+      ((%assert1 (i cbegin c)
+         (assert (>= cbegin i) ()
+                 "Offsets out of order: i = ~a, cbegin = ~a, c = ~a, range = ~a"
+                 i cbegin c
+                 (ast-attr c :range)))
+       (%decorate (a)
+         ;; At ast node A, split the parts of the source
+         ;; that are not in the children into substrings
+         ;; that are placed between the children.  Do not
+         ;; place strings for children for whom offsets
+         ;; cannot be computed
+;;; (format t "Decorating ~a~%" a)
+         (let ((children (ast-children a)))
+           (multiple-value-bind (begin end)
+               (begin-and-end-offsets a)
+;;; (format t "B/E offsets of ~a: ~a ~a~%" a begin end)
+             (when (and begin end)
+               (let ((i begin))
+                 (setf
+                  (ast-children a)
+                  (nconc
+                   (iter
+                    (for c in children)
+                    (when (ast-p c)
+                      (multiple-value-bind (cbegin cend)
+                          (begin-and-end-offsets c)
+                        (when cbegin
+                          (%assert1 i cbegin c)
+;;; (format t "Collecting ~a to ~a for ~a~%" i cbegin c)
+                          (collect (subseq genome i cbegin))
+                          (setf i cend))))
+                    (collect c))
+                   (progn
+;;; (format t "Collecting ~a to ~a at end of ~a~%" i end a)
+                     (list (subseq genome i end)))))))))))
+    (map-ast ast #'%decorate))
   ast)
 
 (defun fix-ancestor-ranges (sw ast)
@@ -1252,7 +1289,8 @@ of the ranges of its children"
                    ;; (format t "Expanding range of ~a from (~a,~a) to (~a,~a)~%" a begin end min-begin max-end)
                    (setf changed? t)
                    (setf (ast-attr a :range)
-                         (make-new-clang-range :begin min-begin :end max-end)))))))
+                         (make-new-clang-range :begin min-begin
+                                               :end max-end)))))))
       ;; Fixpoint for normalization of ranges
       (loop
          (setf changed? nil)
@@ -1260,6 +1298,8 @@ of the ranges of its children"
          (map-ast-postorder ast #'%normalize)
          (unless changed? (return ast))))))
 
+;;; FIXME: refactor this into small functions, for
+;;;  understandability and line length limits
 (defun combine-overlapping-siblings (sw ast)
   "Group sibling nodes with overlapping or out of order
 ranges into 'combined' nodes.  Warn when this happens."
@@ -1458,49 +1498,40 @@ nodes."
 (defun encapsulate-macro-expansions-below-node (a)
   (assert (not (is-macro-expansion-node a)))
   (let ((changed? nil))
-    (flet ()
-      #+nil
-      ((%convert (c)
-                 (format t "Enter %CONVERT on ~a~%" c)
-                 (if (and (ast-p c) (is-macro-expansion-node c))
-                     (let* ((macro-args (macro-expansion-arg-asts c)))
-                       (let ((obj (make-new-clang-ast
-                                   :class :macroexpansion
-                                   :children macro-args)))
-                         ;; (format t "Create :MACROEXPANSION node with children ~a~%" macro-args)
-                         ;; Create a non-macro loc for this node
-                         (setf (ast-range obj)
-                               (macro-range-to-non-macro-range/expansion (ast-range c))
-                               changed? t)
-                         obj))
-                     c)))
-      (setf (ast-range a) (macro-range-to-non-macro-range/expansion (ast-range a)))
-      ;; Must combine subsequences of children that are macro expansion nodes
-      ;; and have the same spelling loc begin into a single macroexpansion node
-      (let* ((children (ast-children a))
-             (new-children
-              (iter (while children)
-                    (if (or (not (ast-p (car children)))
-                            (not (is-macro-expansion-node (car children))))
-                        (collect (pop children))
-                        (collect
-                         (let ((macro-child-segment
-                                (iter (collect (pop children))
-                                      (while (and children
-                                                  (ast-p (car children))
-                                                  (is-macro-expansion-node (car children)))))))
-                           (let ((macro-args (macro-expansion-arg-asts macro-child-segment)))
-                             ;; (format t "Create :MACROEXPANSION node with children ~a~%" macro-args)
-                             (let ((obj (make-new-clang-ast
-                                         :class :macroexpansion
-                                         :children macro-args)))
-                               (setf (ast-range obj)
-                                     (macro-range-to-non-macro-range/expansion (ast-range (car macro-child-segment)))
-                                     changed? t)
-                               obj))))))))
-        (when changed?
-          (shiftf (ast-attr a :old-children) (ast-children a) new-children)
-          new-children)))))
+    (setf (ast-range a)
+          (macro-range-to-non-macro-range/expansion (ast-range a)))
+    ;; Must combine subsequences of children that are macro expansion nodes
+    ;; and have the same spelling loc begin into a single macroexpansion node
+    (let* ((children (ast-children a))
+           (new-children
+            (iter
+             (while children)
+             (if (or (not (ast-p (car children)))
+                     (not (is-macro-expansion-node (car children))))
+                 (collect (pop children))
+                 (collect
+                  (let ((macro-child-segment
+                         (iter
+                          (collect (pop children))
+                          (while children)
+                          (while (ast-p (car children)))
+                          (while (is-macro-expansion-node (car children))))))
+                    (let ((macro-args (macro-expansion-arg-asts
+                                       macro-child-segment)))
+                      ;; (format t "Create :MACROEXPANSION node with children ~a~%" macro-args)
+                      (let ((obj (make-new-clang-ast
+                                  :class :macroexpansion
+                                  :children macro-args)))
+                        (setf (ast-range obj)
+                              (macro-range-to-non-macro-range/expansion
+                               (ast-range (car macro-child-segment)))
+                              changed? t)
+                        obj))))))))
+      (when changed?
+        (shiftf (ast-attr a :old-children)
+                (ast-children a)
+                new-children)
+        new-children))))
 
 (defun macro-expansion-arg-asts (asts)
   "Search down below a for the nodes that are not marked with :from-macro.
@@ -1707,7 +1738,7 @@ determined."
   ;; hairy types
   (let ((pos (position #\( s)))
     (when (and pos (> pos 0))
-      (string-right-trim " " (subseq s 0 (1- pos))))))
+      (trim-right-whitespace (subseq s 0 (1- pos))))))
 
 ;;; Computes some attributes on new clang ast nodes
 
