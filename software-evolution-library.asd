@@ -73,7 +73,7 @@ techniques."
     :licence "GPL V3"
     :description "Dump store file for a program"
     :version "0.0.0"
-    :depends-on (software-evolution-library/components/sel-dump-store)
+    :depends-on (software-evolution-library/components/dump-store)
     :build-operation "asdf:program-op"
-    :build-pathname "bin/sel-dump-store"
+    :build-pathname "bin/dump-store"
     :entry-point "software-evolution-library/components/sel-dump-store::run-sel-dump-store")
