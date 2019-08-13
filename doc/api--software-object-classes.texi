@@ -507,7 +507,6 @@ Class @code{clang}
   @item @refapifunction{make-for-stmt}
   @item @refapifunction{make-if-stmt}
   @item @refapifunction{make-label}
-  @item @refapifunction{make-literal}
   @item @refapifunction{make-operator}
   @item @refapifunction{make-parens}
   @item @refapifunction{make-var-decl}
