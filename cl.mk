@@ -9,6 +9,8 @@
 # DOC_DEPS ----------- Optional additional Makefile targets for doc
 # BINS --------------- Names of binaries to build
 # TEST_ARTIFACTS ----- Name of dependencies for testing
+# TEST_BINS ---------- Name of lisp binaries needed for testing
+# TEST_BIN_DIR ------- Directory of lisp binaries needed for testing
 # LISP_DEPS ---------- Packages require to build CL package
 # TEST_LISP_DEPS ----- Packages require to build CL test package
 # BIN_TEST_DIR ------- Directory holding command-line tests
@@ -113,7 +115,7 @@ bin/%: $(LISP_DEPS) $(MANIFEST)
 	--eval '(sel/utility::with-quiet-compilation (asdf:make :$(PACKAGE_NAME)/run-$* :type :program :monolithic t))' \
 	--eval '(quit)'
 
-test/bin/%: $(LISP_DEPS) $(MANIFEST)
+$(TEST_BIN_DIR)/%: $(LISP_DEPS) $(MANIFEST)
 	@rm -f $@
 	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LISP) $(LISP_FLAGS) \
 	--load $(QUICK_LISP)/setup.lisp \
