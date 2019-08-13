@@ -55,7 +55,7 @@ techniques."
     :version "0.0.0"
     :depends-on (software-evolution-library/components/new-clang-round-trip)
     :build-operation "asdf:program-op"
-    :build-pathname "test/dev-bin/new-clang-round-trip"
+    :build-pathname "test/bin/new-clang-round-trip"
     :entry-point "software-evolution-library/components/new-clang-round-trip::run-new-clang-round-trip")
 
 (defsystem "software-evolution-library/run-clang-diff-test"
@@ -65,7 +65,7 @@ techniques."
     :version "0.0.0"
     :depends-on (software-evolution-library/components/clang-diff-test)
     :build-operation "asdf:program-op"
-    :build-pathname "test/dev-bin/clang-diff-test"
+    :build-pathname "test/bin/clang-diff-test"
     :entry-point "software-evolution-library/components/clang-diff-test::run-clang-diff-test")
 
 (defsystem "software-evolution-library/run-dump-store"
