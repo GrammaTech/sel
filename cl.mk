@@ -113,7 +113,7 @@ bin/%: $(LISP_DEPS) $(MANIFEST)
 	--eval '(sel/utility::with-quiet-compilation (asdf:make :$(PACKAGE_NAME)/run-$* :type :program :monolithic t))' \
 	--eval '(quit)'
 
-test/bin/%: $(LISP_DEPS) $(MANIFEST)
+test/dev-bin/%: $(LISP_DEPS) $(MANIFEST)
 	@rm -f $@
 	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LISP) $(LISP_FLAGS) \
 	--load $(QUICK_LISP)/setup.lisp \
@@ -124,6 +124,9 @@ test/bin/%: $(LISP_DEPS) $(MANIFEST)
 	--eval '(quit)'
 
 bin:
+	mkdir -p $@
+
+test/dev-bin:
 	mkdir -p $@
 
 
@@ -252,7 +255,7 @@ Dockerfile: Dockerfile.$(OS)
 clean:
 	rm -f $(addprefix bin/, $(BINS))
 	rm -f $(TEST_ARTIFACTS)
-	rm -f $(addprefix test/bin/, $(TEST_BINS))
+	rm -f $(addprefix test/dev-bin/, $(TEST_BINS))
 
 more-clean: clean
 	find . -type f -name "*.fasl" -exec rm {} \+
