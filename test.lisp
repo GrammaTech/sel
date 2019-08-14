@@ -779,21 +779,31 @@
   (:setup (unless *clack* (setf *clack* (initialize-clack))))
   (:teardown (clack:stop *clack*)(setf *clack* nil)(setf *rest-client* nil)))
 
-(defixture fact-rest-server
-  (:setup
-   (define-command-rest (fact-entry :environment (*population*))
-       ((n integer) &spec +common-command-line-options+)
-     "Test that canonical REST endpoints work. Computes factorial."
-     #.(format nil
-               "~%Built from SEL ~a, and ~a ~a.~%"
-               +software-evolution-library-version+
-               (lisp-implementation-type) (lisp-implementation-version))
-     (declare (ignorable quiet verbose))
-     (if help
-         (show-help-for-fact-entry)
-         (factorial n)))
-   (unless *clack* (setf *clack* (initialize-clack))))
-  (:teardown (clack:stop *clack*)(setf *clack* nil)(setf *rest-client* nil)))
+(let (old-standard-out old-error-out)
+  (defixture fact-rest-server
+    (:setup
+     (setf old-standard-out *standard-output*
+           old-error-out *error-output*
+           *standard-output* (make-broadcast-stream)
+           *error-output* (make-broadcast-stream))
+     (define-command-rest (fact-entry :environment (*population*))
+         ((n integer) &spec +common-command-line-options+)
+       "Test that canonical REST endpoints work. Computes factorial."
+       #.(format nil
+                 "~%Built from SEL ~a, and ~a ~a.~%"
+                 +software-evolution-library-version+
+                 (lisp-implementation-type) (lisp-implementation-version))
+       (declare (ignorable quiet verbose))
+       (if help
+           (show-help-for-fact-entry)
+           (factorial n)))
+     (unless *clack* (setf *clack* (initialize-clack))))
+    (:teardown
+     (clack:stop *clack*)
+     (setf *clack* nil
+           *rest-client* nil
+           *standard-output* old-standard-out
+           *error-output* old-error-out))))
 
 (defixture gcd-elf
   (:setup

@@ -18,7 +18,7 @@ class SelRest:
     """ This class represents a session with an SEL REST server.
         Upon creation, it registers as a new client with the server.
     """
-    def __init__(self, _urlbase="http://127.0.0.1:9003/"):
+    def __init__(self, _urlbase="http://127.0.0.1:9004/"):
         self._urlbase = _urlbase
         self._client_id = str_result(requests.post(self._url('client'),
                                                    json={'max-population-size' : 1024},
@@ -178,7 +178,6 @@ class SelRest:
                                               'threads' : num_threads},
                                         headers={'Content-Type': 'application/json'}))
 
-    def get_all_async_jobs(self):
     def create_async_job(self, job_name, arguments, func, num_threads):
         """ Create a new async_job, of the requested type, taking, as input:
 
