@@ -442,7 +442,7 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
   (:method ((script pathname))
     (make-instance 'test-case :program-name (namestring script)))
   (:method ((script string))
-    (create-test script))
+    (create-test (split-sequence #\Space script)))
   (:method ((script list))
     (make-instance 'test-case
       :program-name (car script)
