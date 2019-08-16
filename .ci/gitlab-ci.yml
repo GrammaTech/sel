@@ -16,8 +16,9 @@ stages:
 check-format:
   stage: check-format
   script:
-    - docker pull $DOCKER_REGISTRY/synthesis/sel/${OS}-${LISP}:${CI_BUILD_REF_NAME} && export REF=${CI_BUILD_REF_NAME} || export REF=master;
-    - docker build --rm --build-arg=REF=${REF} -f .ci/Dockerfile.formatter .;
+    - export FROM=$DOCKER_REGISTRY/synthesis/sel/arch-sbcl:${CI_BUILD_REF_NAME}
+    - docker pull $FROM;
+    - docker build --rm --build-arg=FROM=$FROM -f .ci/Dockerfile.formatter .;
   allow_failure: true
 
 .build-template: &build

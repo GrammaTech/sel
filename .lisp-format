@@ -2,8 +2,16 @@
 (mapc (lambda (dir) (add-to-list 'load-path dir))
       (directory-files (concat (getenv "QUICK_LISP")
                                "/dists/quicklisp/software/") t "slime-v*"))
-(require 'slime)
-(require 'paredit)
+(defun verbose-require (package)
+  (unless (ignore-errors (require package))
+    (message "Failed to load the package '%S'." package)
+    (message "Ensure %s is installed locally, and then edit your" package)
+    (message "\"~/.lisp-formatrc\" file adding %s to your load path.\n" package)
+    (message "    (add-to-list 'load-path </path/to/%s.el>)\n" package)
+    ;; After printing the messages require again to trigger the error.
+    (require package)))
+(verbose-require 'slime)
+(verbose-require 'paredit)
 
 (set-default 'indent-tabs-mode nil)
 (pushnew 'untabify *lisp-format-fixers*)
