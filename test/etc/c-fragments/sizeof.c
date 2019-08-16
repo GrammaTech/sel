@@ -1,0 +1,1 @@
+a() { sizeof(int); }

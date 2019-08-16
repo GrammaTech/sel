@@ -1,0 +1,1 @@
+x = __alignof(char);
