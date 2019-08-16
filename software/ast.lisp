@@ -37,6 +37,7 @@
            :replace-nth-child
            :fixup-mutation
            :ast-children
+           :ast-nodes-in-subtree
            :ast-equal-p
            :ast-text
            :ast-hash
@@ -882,6 +883,11 @@ in preorder.  The ancestor list is in decreasing order of depth in the AST."))
   "Apply FN to AST collecting the results with `cons'."
   (cons (funcall fn ast)
         (mapcar {mapc-ast _ fn} (remove-if-not #'ast-p (ast-children ast)))))
+
+(defun ast-nodes-in-subtree (ast)
+  (let ((result nil))
+    (map-ast ast (lambda (a) (push a result)))
+    (nreverse result)))
 
 (defgeneric map-ast-postorder (tree fn)
   (:documentation "Apply FN to each node of AST, in postorder."))
