@@ -30,7 +30,11 @@
                :documentation "load FILE as lisp code")
               (("eval" #\e) :type string
                :action #'handle-eval
-               :documentation "eval STRING as lisp code")))))
+               :documentation "eval STRING as lisp code")
+              (("syn-ctx") :type boolean :optional t
+               :documentation "When true, compare the AST-SYN-CTX values")
+              (("types") :type boolean :optional t
+               :documentation "When true, compare the AST-TYPES values")))))
 
 (defun make-clang (file &key)
   (let ((obj1 (make-instance 'clang)))
@@ -143,6 +147,14 @@ list of children of their parent.  Cannot remove the root."))
        (setf (ast-children n) nil)
        t))))
 
+(defun remove-typealias-body (ast)
+  (remove-ast-nodes-if
+   ast
+   (lambda (n anc)
+     (when (and anc (eql (ast-class (car anc)) :typealias))
+       (setf (ast-children n) nil)
+       t))))
+
 ;;; Hack to remove stuff new clang doesn't have
 (defun cleanup-clang (c)
   (remove-var-integer-literals c)
@@ -155,7 +167,8 @@ list of children of their parent.  Cannot remove the root."))
   (remove-constant-case-exprs nc)
   (remove-builtintype nc)
   (remove-var-integer-literals nc)
-  (remove-typedef-body nc))
+  (remove-typedef-body nc)
+  (remove-typealias-body nc))
 
 ;;; Testing function
 
@@ -173,7 +186,7 @@ list of children of their parent.  Cannot remove the root."))
 
 (define-command clang-diff-test
     (source &spec +command-line-options+
-            &aux (fn 'ast-syn-ctx))
+            &aux (fn #'ast-class))
   "Differential testing of clang vs. new-clang"
   #.(format nil
             "~%Built from SEL ~a, and ~a ~a.~%"
@@ -181,6 +194,10 @@ list of children of their parent.  Cannot remove the root."))
             (lisp-implementation-type) (lisp-implementation-version))
   (declare (ignorable eval load))
   (when help (show-help-for-clang-diff-test))
+  (when syn-ctx
+    (setf fn #'ast-syn-ctx))
+  (when types
+    (setf fn #'(lambda (a) (length (ast-types a)))))
   ;; Rewrite this to use new-clang class
   (let ((c (make-clang source))
         (nc (make-new-clang source)))

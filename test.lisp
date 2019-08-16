@@ -1,4 +1,4 @@
-;;; tests.lisp --- tests for the `software-evolution-library' package
+;;; test.lisp --- tests for the `software-evolution-library' package
 (defpackage :software-evolution-library/test
   (:nicknames :sel/test)
   (:use
@@ -2622,9 +2622,11 @@
   (with-fixture headers-clang
     (let ((types (types *headers*)))
       (is (hash-table-p types))
-      (is (equal (list "bar" "char" "char*" "foo" "int")
-                 (sort (mapcar #'type-name (hash-table-values types))
-                       #'string<))))))
+      (is (subsetp (list "bar" "char" "char*" "foo" "int")
+                   (mapcar (lambda (s) (remove #\Space s))
+                           (sort (mapcar #'type-name (hash-table-values types))
+                                 #'string<))
+                   :test #'equal)))))
 
 (deftest update-asts-doesnt-duplicate-includes ()
   (with-fixture headers-clang
@@ -2943,8 +2945,8 @@ is not to be found"
 
 (deftest find-or-add-type-finds-existing-type ()
   (with-fixture gcd-clang
-    (is (eq (find-if [{string= "int"} #'type-name]
-                     (hash-table-values (types *gcd*)))
+    (is (eql (find-if [{string= "int"} #'type-name]
+                      (hash-table-values (types *gcd*)))
             (find-or-add-type *gcd* "int")))))
 
 (deftest find-or-add-type-adds-new-type ()
@@ -2955,13 +2957,13 @@ is not to be found"
       (is new-type "New type created.")
       (is (gethash (type-hash new-type) (types *gcd*))
           "New type is added to software.")
-      (is (eq new-type (find-or-add-type *gcd* "int"))
+      (is (eql new-type (find-or-add-type *gcd* "int"))
           "Repeated call finds same type."))))
 
 (deftest find-or-add-type-parses-pointers ()
   (with-fixture gcd-clang
-    (is (eq (find-or-add-type *gcd* "*char")
-            (find-or-add-type *gcd* "char" :pointer t)))))
+    (is (eql (find-or-add-type *gcd* "*char")
+             (find-or-add-type *gcd* "char" :pointer t)))))
 
 (deftest var-decl-has-correct-types ()
   (let ((obj (make-clang
@@ -2973,9 +2975,10 @@ is not to be found"
     ;; FIXME: if the RHS were "sizeof(int) + sizeof(char)" the decl
     ;; would reference both types, which is incorrect but probably
     ;; harmless.
-    (is (equalp '("int")
+    (is (member "int"
                 (mapcar [#'type-name {find-type obj}]
-                        (ast-types (first (asts obj))))))))
+                        (ast-types (first (asts obj))))
+                :test #'equalp))))
 
 (deftest macro-expansion-has-correct-types ()
   ;; Types inside a macro expansion should be visible. This is trick

@@ -272,7 +272,11 @@
    (macros :initarg :macros :accessor macros
            :initform nil :copier :direct
            :type #+sbcl (list clang-macro *) #-sbcl list
-           :documentation "Association list of Names and values of macros."))
+           :documentation "Association list of Names and values of macros.")
+   ;;; Slots representing options for processing clang software objects
+   (split-lines :initarg :split-lines :reader split-lines
+                :initform nil :copier :direct
+                :documentation "Split top level strings after newlines"))
   (:documentation
    "C language (C, C++, C#, etc...) ASTs using Clang, C language frontend for LLVM.
 See http://clang.llvm.org/."))
@@ -628,7 +632,7 @@ for statements")
                                    (list (format nil "~a ~a = "
                                                  (type-decl-string type) name)
                                          initializer
-					 ";")
+                                         ";")
                                    (list (format nil "~a ~a;"
                                                  (type-decl-string type) name)))
                                :types (list (type-hash type))
@@ -1120,21 +1124,21 @@ MUTATION to SOFTWARE.
 
   (declare (ignorable software))
   (let* ((targets (targets mutation))
-	 (s1 (aget :stmt1 targets))
-	 (s2 (aget :stmt2 targets))
-	 (s1-full? (full-stmt-p software s1))
-	 (s2-full? (full-stmt-p software s2))
-	 (s1-semi? (has-trailing-semicolon-p s1))
-	 (s2-semi? (has-trailing-semicolon-p s2)))
+         (s1 (aget :stmt1 targets))
+         (s2 (aget :stmt2 targets))
+         (s1-full? (full-stmt-p software s1))
+         (s2-full? (full-stmt-p software s2))
+         (s1-semi? (has-trailing-semicolon-p s1))
+         (s2-semi? (has-trailing-semicolon-p s2)))
     `((:set (:stmt1 . ,s1)
-	    ;; (:stmt2 . ,s2)
-	    (:stmt2 . ,(if (or s1-full? s1-semi?)
-			   s2 ;; depending on fixup-mutations to add semis
-			   (remove-semicolon s2))))
+            ;; (:stmt2 . ,s2)
+            (:stmt2 . ,(if (or s1-full? s1-semi?)
+                           s2 ;; depending on fixup-mutations to add semis
+                           (remove-semicolon s2))))
       (:set (:stmt1 . ,s2)
-	    (:stmt2 . ,(if (or s2-full? s2-semi?)
-			   s1 ;; depending on fixup-mutations to add semis
-			   (remove-semicolon s1)))))))
+            (:stmt2 . ,(if (or s2-full? s2-semi?)
+                           s1 ;; depending on fixup-mutations to add semis
+                           (remove-semicolon s1)))))))
 
 (define-mutation clang-swap-full (clang-swap)
   ((targeter :initform {pick-bad-bad _ :filter #'full-stmt-filter}))

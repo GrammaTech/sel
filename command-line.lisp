@@ -191,8 +191,8 @@
   (if (probe-file file)
       file
       (format *error-output*
-	      "~a: No such file or directory~%"
-	      file)))
+              "~a: No such file or directory~%"
+              file)))
 
 (defun resolve-out-dir-from-source (source)
   "Select a reasonable output directory based on SOURCE."
@@ -508,7 +508,9 @@ in SCRIPT.")
        :documentation "use CC as the C compiler")
       (("flags" #\F) :type string
        :action #'handle-comma-delimited-argument
-       :documentation "comma-separated list of compiler flags")))
+       :documentation "comma-separated list of compiler flags")
+      (("split-lines" :type boolean :optional t
+        :documentation "Split top level strings at newlines"))))
   (defparameter +project-command-line-options+
     '((("build-command" #\b) :type string :initial-value "make"
        :documentation "shell command to build project directory")))

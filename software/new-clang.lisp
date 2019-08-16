@@ -181,6 +181,45 @@ possibly other things"))
   ;; aux data
   (aux-data nil :type symbol))
 
+;; Special subclass for :CXXOperatorCallExpr nodes
+(defstruct (cxx-operator-call-expr (:include new-clang-ast))
+  ;; POS is the "actual" position of the operator in the
+  ;; list of child ASTs (ignoring non-AST children).
+  ;; When computing ranges, and when computing
+  ;; source text, put it there.
+  ;; The type FIXNUM is too big; figure out how much
+  ;; smaller this can be made.
+  (pos nil :type (or null fixnum)))
+
+;; (defstruct new-clang-type qual desugared)
+(defclass new-clang-type ()
+  ((qual :accessor new-clang-type-qual
+         :initform nil
+         :initarg :qual
+         :documentation "Translation of the qualType attribute
+of clang json type objects")
+   (desugared :accessor new-clang-type-desugared
+              :initform nil
+              :initarg :desugared
+              :documentation "Translation of the desugaredQualType
+attribute of clang json objects")
+   (hash :accessor new-clang-type-hash
+         :initarg :hash
+         :initform (incf (hash-counter *soft*))
+         :documentation "A hash code assigned to type
+objects, for compatibility with old clang"))
+  (:documentation "Objects representing C/C++ types.  Canonicalized
+on QUAL and DESUGARED slots."))
+
+(defmethod initialize-instance :after ((obj new-clang-type) &rest initargs &key hash &allow-other-keys)
+  (declare (ignore initargs))
+  (when (boundp '*soft*)
+    (setf (gethash hash (slot-value *soft* 'types)) obj))
+  obj)
+
+(defmethod type-hash ((tp new-clang-type))
+  (new-clang-type-hash tp))
+
 (defgeneric ast-attr (ast attr))
 (defmethod ast-attr ((ast new-clang-ast) (attr symbol))
   (let ((attrs (new-clang-ast-attrs ast)))
@@ -218,6 +257,27 @@ possibly other things"))
 (defmethod ast-type ((ast new-clang-ast))
   (ast-attr ast :type))
 
+(defmethod type-name ((ast new-clang-type))
+  (new-clang-type-qual ast))
+
+(defmethod type-decl ((ast new-clang-type))
+  ;; stub
+  "")
+
+(defmethod type-decl-string ((ast new-clang-type) &key qualified)
+  (declare (ignore qualified))
+  (new-clang-type-qual ast))
+
+(defmethod find-or-add-type ((obj new-clang) name &key &allow-other-keys)
+  ;; stub
+  (let ((vals (hash-table-values (types obj))))
+    (or (find name vals :key #'type-name :test #'string=)
+        nil ; stub
+        )))
+
+(defmethod find-type ((obj new-clang) (type new-clang-type))
+  type)
+
 (defun ast-is-class-fun (key)
   (lambda (c) (ast-is-class c key)))
 
@@ -242,17 +302,44 @@ possibly other things"))
         ;; ID should not be copied -- generate a new one?
         (id (if id-p id (new-clang-ast-id ast)))
         (syn-ctx (if syn-ctx-p syn-ctx (new-clang-ast-syn-ctx ast))))
-    (flet () #+nil ((%areplace (key val alist)
-                               (cons (cons key val) (remove key alist :key #'car))))
-          (when full-stmt-p
-            (setf attrs (%areplace :fullstmt full-stmt attrs)))
-          (when guard-stmt-p
-            (setf attrs (%areplace :guardstmt guard-stmt attrs)))
-          (when opcode-p
-            (setf attrs (%areplace :opcode opcode attrs)))
-          (make-new-clang-ast :path path :children children
-                              :class class :attrs attrs :id id
-                              :syn-ctx syn-ctx))))
+    (when full-stmt-p
+      (setf attrs (%areplace :fullstmt full-stmt attrs)))
+    (when guard-stmt-p
+      (setf attrs (%areplace :guardstmt guard-stmt attrs)))
+    (when opcode-p
+      (setf attrs (%areplace :opcode opcode attrs)))
+    (make-new-clang-ast :path path :children children
+                        :class class :attrs attrs :id id
+                        :syn-ctx syn-ctx)))
+
+(defmethod copy ((ast cxx-operator-call-expr)
+                 &key
+                   path
+                   (children nil children-p)
+                   (class nil class-p)
+                   (attrs nil attrs-p)
+                   (id 0 id-p)
+                   (syn-ctx nil syn-ctx-p)
+                   (full-stmt nil full-stmt-p)
+                   (guard-stmt nil guard-stmt-p)
+                   (opcode nil opcode-p)
+                   pos
+                   &allow-other-keys)
+  (let ((children (if children-p children (new-clang-ast-children ast)))
+        (class (if class-p class (new-clang-ast-class ast)))
+        (attrs (if attrs-p attrs (new-clang-ast-attrs ast)))
+        ;; ID should not be copied -- generate a new one?
+        (id (if id-p id (new-clang-ast-id ast)))
+        (syn-ctx (if syn-ctx-p syn-ctx (new-clang-ast-syn-ctx ast))))
+    (when full-stmt-p
+      (setf attrs (%areplace :fullstmt full-stmt attrs)))
+    (when guard-stmt-p
+      (setf attrs (%areplace :guardstmt guard-stmt attrs)))
+    (when opcode-p
+      (setf attrs (%areplace :opcode opcode attrs)))
+    (make-cxx-operator-call-expr :path path :children children
+                                 :class class :attrs attrs :id id
+                                 :syn-ctx syn-ctx :pos pos)))
 
 (defmethod ast-class ((obj new-clang-ast))
   (new-clang-ast-class obj))
@@ -265,6 +352,32 @@ possibly other things"))
 (defmethod source-text ((ast new-clang-ast))
   (with-output-to-string (out)
     (mapc [{write-string _ out} #'source-text] (ast-children ast))))
+(defmethod source-text ((ast cxx-operator-call-expr))
+  (let ((pos (cxx-operator-call-expr-pos ast)))
+    (if pos
+        ;; The operator will always be the first AST child
+        (let* ((c (ast-children ast)))
+          (with-output-to-string (out)
+            ;; Skip leading non-ASTs
+            (iter (while (and c (not (ast-p (car c)))))
+                  (write-string (source-text (pop c)) out))
+            ;; We are now at the operator
+            (let ((op (pop c)))
+              (assert (ast-p op) ()
+                      "~a has no operator"
+                      (ast-class ast))
+              (loop
+                 (when (= pos 0)
+                   (write-string (source-text op) out)
+                   (return))
+                 (when (ast-p (car c))
+                   (decf pos))
+                 (write-string (source-text (pop c)) out))
+              ;; Write out the rest
+              (mapc [{write-string _ out} #'source-text] c))))
+        ;; If we don't know the position of the operator, something
+        ;; has probably gone wrong.  Just write out the AST normally
+        (call-next-method))))
 
 (defmethod stmt-asts ((obj new-clang))
   ;; Walk AST, recording all asts at or below :COMPOUNDSTMT asts
@@ -409,8 +522,42 @@ possibly other things"))
   nil)
 
 (defmethod ast-types ((ast new-clang-ast))
-  ;; stub
-  nil)
+  (ast-types* ast (ast-class ast)))
+
+(defmethod ast-types ((ast string)) nil)
+
+(defgeneric ast-types* (ast class)
+  (:documentation "Dispatch function for computing AST-TYPES
+on various ast classes"))
+
+(defun ast-types*-on-decl (ast)
+  (let ((type (ast-attr ast :type)))
+    (when type (list type))))
+
+(defmethod ast-types* ((ast new-clang-ast) (ast-class (eql :ParmVar)))
+  (ast-types*-on-decl ast))
+
+(defmethod ast-types* ((ast new-clang-ast) (ast-class (eql :Var)))
+  ;; For :Var nodes, we must also include the types in the
+  ;; initializer, if present
+  (let ((nodes (remove ast (ast-nodes-in-subtree ast))))
+    (sort
+     (reduce #'union (mapcar #'ast-types nodes)
+             :initial-value (ast-types*-on-decl ast))
+     #'string<
+     :key #'type-name)))
+
+(defmethod ast-types* ((ast new-clang-ast) (ast-class (eql :Typedef)))
+  (ast-types*-on-decl ast))
+
+(defmethod ast-types* ((ast new-clang-ast) (ast-class symbol))
+  (case ast-class
+    ((:UnaryExprOrTypeTraitExpr
+      :CstyleCastExpr
+      :CXXFunctionalCastExpr
+      :CXXReinterpretCastExpr)
+     (ast-types*-on-decl ast))
+    (t nil)))
 
 (defmethod rebind-vars ((ast new-clang-ast)
                         var-replacements fun-replacements)
@@ -442,39 +589,20 @@ things in macro expansion.  SPELLING-LOC is the location
 in the macro defn, EXPANSION-LOC is at the macro use."
   spelling-loc expansion-loc is-macro-arg-expansion)
 
-;; (defstruct new-clang-type qual desugared)
-(defclass new-clang-type ()
-  ((qual :accessor new-clang-type-qual
-         :initform nil
-         :initarg :qual
-         :documentation "Translation of the qualType attribute
-of clang json type objects")
-   (desugared :accessor new-clang-type-desugared
-              :initform nil
-              :initarg :desugared
-              :documentation "Translation of the desugaredQualType
-attribute of clang json objects")
-   (hash :accessor new-clang-type-hash
-         :initarg :hash
-         :initform (incf (hash-counter *soft*))
-         :documentation "A hash code assigned to type
-objects, for compatibility with old clang"))
-  (:documentation "Objects representing C/C++ types.  Canonicalized
-on QUAL and DESUGARED slots."))
 
-(defmethod initialize-instance :after ((obj new-clang-type) &rest initargs &key hash &allow-other-keys)
-  (declare (ignore initargs))
-  (when (boundp '*soft*)
-    (setf (gethash hash (slot-value *soft* 'types)) obj))
-  obj)
-
-(defun make-new-clang-type (&rest keys &key qual desugared (hash (incf (hash-counter *soft*)))
+(defun make-new-clang-type (&rest keys &key qual desugared
+                                         (hash (incf (hash-counter *soft*)))
                                          &allow-other-keys)
   (let* ((key (cons qual desugared))
          (sw *soft*)
-         (table (when sw (type-table *soft*))))
-    (flet ((%make () (apply #'make-instance 'new-clang-type
-                            :hash hash keys)))
+         (table (when sw (type-table sw))))
+    (flet ((%make ()
+             (apply #'make-instance 'new-clang-type
+                    :hash hash
+                    ;; Do not store desugared if it's the same
+                    ;; as the sugared type
+                    :desugared (and (not (equal qual desugared)) desugared)
+                    keys)))
       (if table
           (or (gethash key table)
               (setf (gethash key table) (%make)))
@@ -519,11 +647,49 @@ on QUAL and DESUGARED slots."))
         ((:EnumDecl) :Enum)
         ((:EnumConstantDecl) :EnumConstant)
         ((:FieldDecl) :Field)
+        ((:FileScopeAsmDecl) :FileScopeAsm)
         ((:LabelDecl) :Label)
         ((:TranslationUnitDecl) :TopLevel)
         ((:ParmVarDecl) :ParmVar)
         ((:TypedefDecl) :Typedef)
+        ((:CXXMethodDecl) :CXXMethod)
+        ((:CXXRecordDecl) :CXXRecord)
+        ((:NamespaceDecl) :Namespace)
+        ((:CXXConstructorDecl) :CXXConstructor)
+        ((:CXXConversionDecl) :CXXConversion)
+        ((:CXXDestructorDecl) :CXXDestructor)
+        ((:AccessSpecDecl) :AccessSpec)
+        ((:ClassTemplateDecl) :ClassTemplate)
+        ((:NonTypeTemplateParmDecl) :NonTypeTemplateParm)
+        ((:TypeAliasDecl) :TypeAlias)
+        ((:FriendDecl) :Friend)
+        ((:LinkageSpecDecl) :LinkageSpec)
+        ((:NameSpaceAliasDecl) :NameSpaceAlias)
+        ((:VarTemplateDecl) :VarTemplate)
+        ((:TemplateTypeParmDecl) :TemplateTypeParm)
+        ((:BindingDecl) :Binding)
+        ((:BlockDecl) :Block)
+        ((:BuiltinTemplateDecl) :BuiltinTemplate)
+        ((:CapturedDecl) :Captured)
+        ((:ClassScopeFunctionSpecializationDecl) :ClassScopeFunctionSpecialization)
+        ((:ClassTemplateSpecializationDecl) :ClassTemplateSpecialization)
+        ((:ConstructorUsingShadowDecl) :ConstructorUsingShadow)
+        ((:DecompositionDecl) :Decomposition)
+        ((:FunctionTemplateDecl) :FunctionTemplate)
+        ((:ImplicitParamDecl) :ImplicitParam)
+        ((:IndirectFieldDecl) :IndirectField)
+        ((:PragmaCommentDecl) :PragmaComment)
         ((:StaticAssertDecl) :StaticAssert)
+        ((:TemplateTemplateParmDecl) :TemplateTemplateParm)
+        ((:TypeAliasTemplateDecl) :TypeAliasTemplate)
+        ((:UnresolvedUsingTypenameDecl) :UnresolvedUsingTypename)
+        ((:UnresolvedUsingValueDecl) :UnresolvedUsingValue)
+        ((:UsingDecl) :Using)
+        ((:UsingDirectiveDecl) :UsingDirective)
+        ((:UsingPackDecl) :UsingPack)
+        ((:UsingShadowDecl) :UsingShadow)
+        ((:VarTemplatePartialSpecializationDecl) :VarTemplatePartialSpecialization)
+        ((:VarTemplateSpecializationDecl) :VarTemplateSpecialization)
         (t sym)))))
 
 (defgeneric clang-previous-decl (obj))
@@ -728,6 +894,13 @@ on json-kind-symbol when special subclasses are wanted."))
   (let ((obj (call-next-method)))
     (setf (ast-children obj) (remove nil (ast-children obj)))
     obj))
+
+(defmethod j2ck (json (json-kind-symbol (eql :CXXOperatorCallExpr)))
+  ;; CXXOperatorCallExprs must be a special subclass, as the children
+  ;; are out of order (the operator is put first even if it is not
+  ;; first in the source file)
+  (let ((obj (make-cxx-operator-call-expr)))
+    (store-slots obj json)))
 
 (defgeneric store-slots (obj json)
   (:documentation "Store values in the json into obj.
@@ -1219,6 +1392,85 @@ actual source file"))
       (mapc-ast ast #'%add))
     (nreverse node-stack)))
 
+(defgeneric compute-operator-positions (sw ast)
+  (:documentation "Compute positions of operators in CXXOperatorCallExpr nodes")
+  (:method (sw (ast new-clang-ast))
+    (map-ast ast #'compute-operator-position)))
+
+(defgeneric compute-operator-position (ast)
+  (:documentation "Compute positions of operators at a CXXOperatorCallExpr node.
+Also, normalize postfix operator++/-- to remove dummy arg")
+  (:method ((ast new-clang-ast)) nil)
+  (:method ((ast cxx-operator-call-expr))
+    (let* ((ac (ast-children ast))
+           (op (first ac))
+           (op-begin (begin-offset op)))
+      ;; The last argument to a ++ or -- is dummy when
+      ;; it's a postfix operator.  Remove it.
+      (when (and (= (length ac) 3)
+                 (let ((rds (ast-reference-decls op)))
+                   (or (member "operator++" rds :key #'ast-name :test #'equal)
+                       (member "operator--" rds :key #'ast-name :test #'equal))))
+        (setf ac (setf (ast-children ast) (subseq ac 0 2))))
+      ;; Position = # of child asts that are before
+      ;; the operator in the source file
+      (let ((rest-offsets (mapcar #'begin-offset (cdr ac))))
+        (when (and op-begin (every #'identity rest-offsets))
+          (setf (cxx-operator-call-expr-pos ast)
+                (count op-begin rest-offsets :test #'>)))))))
+
+(defgeneric put-operators-into-inner-positions (sw ast)
+  (:documentation "Put operators into their inner positions
+in CXXOperatorCallExpr nodes.")
+  (:method (sw (ast new-clang-ast))
+    (map-ast ast #'put-operator-into-inner-position)))
+
+(defgeneric put-operator-into-inner-position (ast)
+  (:documentation "Put operator into its inner position
+in a CXXOperatorCallExpr node.")
+  (:method ((ast new-clang-ast)) nil)
+  (:method ((ast cxx-operator-call-expr))
+    ;; This is pre-stringification, so there should only
+    ;; be ast children
+    (let* ((c (ast-children ast))
+           (op (first c))
+           (pos (cxx-operator-call-expr-pos ast)))
+      (assert (every #'ast-p c))
+      (when pos
+        (assert (< pos (length c)))
+        (setf (ast-children ast)
+              (append (subseq c 1 (1+ pos))
+                      (list op)
+                      (subseq c (1+ pos))))))))
+
+(defgeneric put-operators-into-starting-positions (sw ast)
+  (:documentation "Put operators into their starting positions
+in CXXOperatorCallExpr nodes.")
+  (:method (sw (ast new-clang-ast))
+    (map-ast ast #'put-operator-into-starting-position)))
+
+(defgeneric put-operator-into-starting-position (ast)
+  (:documentation "Put operator into their starting position
+in a CXXOperatorCallExpr node.")
+  (:method ((ast new-clang-ast)) nil)
+  (:method ((ast cxx-operator-call-expr))
+    ;; The AST will have been stringified here, so pos
+    ;; is the position in (remove-if-not #'ast-p (ast-children))
+    (let ((pos (cxx-operator-call-expr-pos ast))
+          (c (ast-children ast)))
+      (when pos
+        (assert (<= 0 pos (1- (length c))))
+        (when (> pos 0)
+          (let ((actual-pos
+                 (let ((count pos))
+                   (position-if (lambda (e)
+                                  (and (ast-p e) (zerop (decf count))))
+                                c))))
+            (setf (ast-children ast)
+                  (append
+                   (list (elt c actual-pos))
+                   (subseq c 0 actual-pos)
+                   (subseq c (1+ actual-pos))))))))))
 
 (defun decorate-ast-with-strings (sw ast &aux (*soft* sw)
                                            (genome (genome sw)))
@@ -1398,6 +1650,8 @@ ranges into 'combined' nodes.  Warn when this happens."
                 (%debug 'remove-non-program-asts ast)
                 (remove-asts-in-classes
                  ast '(:fullcomment :textcomment :paragraphcomment))
+                (compute-operator-positions obj ast)
+                (put-operators-into-inner-positions obj ast)
                 (mark-macro-expansion-nodes ast tmp-file)
                 (%debug 'mark-macro-expansion-nodes ast
                         #'(lambda (o) (let ((r (ast-range o)))
@@ -1407,9 +1661,11 @@ ranges into 'combined' nodes.  Warn when this happens."
                 (%debug 'encapsulate-macro-expansions ast #'%p)
                 (fix-ancestor-ranges obj ast)
                 (%debug 'fix-ancestor-ranges ast #'%p)
+
                 (combine-overlapping-siblings obj ast)
                 (%debug 'combine-overlapping-siblings ast #'%p)
                 (decorate-ast-with-strings obj ast)
+                (put-operators-into-starting-positions obj ast)
                 (compute-full-stmt-attrs ast)
                 (compute-guard-stmt-attrs ast)
                 (compute-syn-ctxs ast)
@@ -1644,61 +1900,64 @@ computed at the children"))
 
 (eval-when (:load-toplevel :compile-toplevel :execute)
   (defparameter *clang-decl-kinds*
-    '(:AccessSpecDecl
-      :BindingDecl
-      :BlockDecl
-      :BuiltinTemplateDecl
-      :CapturedDecl
-      :ClassScopeFunctionSpecializationDecl
-      :ClassTemplateDecl
+    ;; Comment indicates the symbol obtained from
+    ;; the raw json input
+    '(:AccessSpec ;; :AccessSpecDecl
+      :Binding ;; :BindingDecl
+      :Block ;; :BlockDecl
+      :BuiltinTemplate ;; :BuiltinTemplateDecl
+      :Captured ;; :CapturedDecl
+      :ClassScopeFunctionSpecialization ;;
+      :ClassTemplate ;; :ClassTemplateDecl
       :ClassTemplatePartialSpecializationDecl
-      :ClassTemplateSpecializationDecl
-      :ConstructorUsingShadowDecl
-      :CXXConstructorDecl
-      :CXXConversionDecl
-      :CXXDestructorDecl
-      :CXXMethodDecl
-      :CXXRecordDecl
+      :ClassTemplateSpecializationDecl ;;
+      :ConstructorUsingShadowDecl ;;
+      :CXXConstructor ;; :CXXConstructorDecl
+      :CXXConversion ;; :CXXConversionDecl
+      :CXXDestructor ;; :CXXDestructorDecl
+      :CXXMethod ;; :CXXMethodDecl
+      :CXXRecord ;; :CXXRecordDecl
       ;; :DeclRefExpr
       ;; :DeclStmt
       :DecltypeType
-      :DecompositionDecl
+      :Decomposition ;; :DecompositionDecl
       ;; :DependentScopeDeclRefExpr
       :EmptyDecl
       :EnumConstant ;; :EnumConstantDecl
       :Enum ;; :EnumDecl
       :Field ;; :FieldDecl
-      :FileScopeAsmDecl
-      :FriendDecl
+      :FileScopeAsm ;; :FileScopeAsmDecl
+      :Friend ;; :FriendDecl
       :Function ;; :FunctionDecl
-      :FunctionTemplateDecl
-      :ImplicitParamDecl
-      :IndirectFieldDecl
+      :FunctionTemplate ;; :FunctionTemplateDecl
+      :ImplicitParam ;; :ImplicitParamDecl
+      :IndirectField ;; :IndirectFieldDecl
       :Label ;; :LabelDecl
-      :LinkageSpecDecl
-      :NamespaceAliasDecl
-      :NamespaceDecl
-      :NonTypeTemplateParmDecl
+      :LinkageSpec ;; :LinkageSpecDecl
+      :NamespaceAlias ;; :NamespaceAliasDecl
+      :Namespace ;;  :NamespaceDecl
+      :NonTypeTemplateParm ;; :NonTypeTemplateParmDecl
       :ParmVar  ;; :ParmVarDecl
-      :PragmaCommentDecl
+      :PragmaComment ;; :PragmaCommentDecl
       :Record  ;; :RecordDecl
-      :StaticAssertDecl
-      :TemplateTemplateParmDecl
-      :TemplateTypeParmDecl
-      :TranslationUnitDecl
-      :TypeAliasDecl
-      :TypeAliasTemplateDecl
+      :StaticAssert ;; :StaticAssertDecl
+      :TemplateTemplateParm ;; :TemplateTemplateParmDecl
+      :TemplateTypeParm ;; :TemplateTypeParmDecl
+      :TopLevel ;; :TranslationUnitDecl
+      :TypeAlias ;; :TypeAliasDecl
+      :TypeAliasTemplate ;; :TypeAliasTemplateDecl
       :Typedef ;; :TypedefDecl
-      :UnresolvedUsingTypenameDecl
-      :UnresolvedUsingValueDecl
-      :UsingDecl
-      :UsingDirectiveDecl
-      :UsingPackDecl
-      :UsingShadowDecl
+      :UnresolvedUsingTypename ;; :UnresolvedUsingTypenameDecl
+      :UnresolvedUsingValue ;; :UnresolvedUsingValueDecl
+      :Using ;; :UsingDecl
+      :UsingDirective ;; :UsingDirectiveDecl
+      :UsingPack ;; :UsingPackDecl
+      :UsingShadow ;; :UsingShadowDecl
       :Var ;; :VarDecl
-      :VarTemplateDecl
-      :VarTemplatePartialSpecializationDecl
-      :VarTemplateSpecializationDecl)))
+      :VarTemplate ;; :VarTemplateDecl
+      :VarTemplatePartialSpecialization ;; :VarTemplatePartialSpecializationDecl
+      :VarTemplateSpecialization ;; :VarTemplateSpecializationDecl
+      )))
 
 (defmethod ast-is-decl ((obj new-clang-ast))
   (case (ast-class obj)
