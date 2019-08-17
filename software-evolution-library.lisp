@@ -280,9 +280,7 @@ first value from the `phenome' method."
 (defmethod evaluate ((test symbol) (obj software)
                      &rest extra-keys &key &allow-other-keys)
   (declare (ignorable extra-keys))
-  (if (null test)  ;; allow NIL to be passed for the function
-      (setf test 'identity))
-  (evaluate (symbol-function test) obj))
+  (evaluate (symbol-function (or test 'identity)) obj))
 
 (defmethod evaluate ((test function) (obj software)
                      &rest extra-keys &key &allow-other-keys)
