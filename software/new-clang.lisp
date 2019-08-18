@@ -53,12 +53,12 @@
 
 (define-software new-clang (clang-base genome-lines-mixin)
   (
-   ;; WIP: FUNCTIONS slot is not currently used.  Use or remove.
+   ;; TODO: FUNCTIONS slot is not currently used.  Use or remove.
    (functions :initarg :functions :reader functions
               :initform nil :copier :direct
               :type #+sbcl (list (cons keyword *) *) #-sbcl list
               :documentation "Complete functions with bodies.")
-   ;; WIP: PROTOTYPES slot is not current used.  Use or remove.
+   ;; TODO: PROTOTYPES slot is not current used.  Use or remove.
    (prototypes :initarg :prototypes :reader prototypes
                :initform nil :copier :direct
                :type #+sbcl (list (cons keyword *) *) #-sbcl list
@@ -72,7 +72,8 @@
           :copier copy-hash-table
           :type #+sbcl hash-table #-sbcl hash-table
           :documentation "Association list of types keyed by HASH id.")
-   ;;; WIP: not currently used.  Remove or use.
+   ;;; TODO: Not currently used.  Remove or use.  This is carried over
+   ;;;       from the old clang front end.
    (macros :initarg :macros :accessor macros
            :initform nil :copier :direct
            :type #+sbcl (list clang-macro *) #-sbcl list
@@ -112,6 +113,11 @@ objects.  Used for canonicalization of these objects.")
     :documentation "List of directories that are where include files are searched for
 the -I arguments to the C compiler")
    (compiler :initform *clang-binary*)
+   ;;; NOTE: This will give the same hashs to types from different
+   ;;;       source files.  Instead, consider initializing the counter
+   ;;;       in a file-specific way, or compute the hashes from the
+   ;;;       type object themselves (but that could still lead to
+   ;;;       collisions.)
    (hash-counter :initform 1 :initarg :hash-counter
                  :accessor hash-counter
                  :type integer
@@ -193,12 +199,12 @@ possibly other things"))
 
 ;; (defstruct new-clang-type qual desugared)
 (defclass new-clang-type ()
-  ((qual :accessor new-clang-type-qual
+  ((qual :reader new-clang-type-qual
          :initform nil
          :initarg :qual
          :documentation "Translation of the qualType attribute
 of clang json type objects")
-   (desugared :accessor new-clang-type-desugared
+   (desugared :reader new-clang-type-desugared
               :initform nil
               :initarg :desugared
               :documentation "Translation of the desugaredQualType
@@ -276,6 +282,11 @@ on QUAL and DESUGARED slots."))
         )))
 
 (defmethod find-type ((obj new-clang) (type new-clang-type))
+  ;; This looks like a stub, but isn't.
+  ;; What's happening here is that while in old clang
+  ;; find-type was used to look up types from hashes,
+  ;; in the new front end the type objects are there directly.
+  ;; The lookup function just returns the object in that case.
   type)
 
 (defun ast-is-class-fun (key)
@@ -284,18 +295,18 @@ on QUAL and DESUGARED slots."))
 (defun %areplace (key val alist)
   (cons (cons key val) (remove key alist :key #'car)))
 
-(defmethod copy ((ast new-clang-ast)
-                 &key
-                   path
-                   (children nil children-p)
-                   (class nil class-p)
-                   (attrs nil attrs-p)
-                   (id 0 id-p)
-                   (syn-ctx nil syn-ctx-p)
-                   (full-stmt nil full-stmt-p)
-                   (guard-stmt nil guard-stmt-p)
-                   (opcode nil opcode-p)
-                   &allow-other-keys)
+(defun new-clang-ast-copy (ast &key
+                                 (fn #'make-new-clang-ast)
+                                 path
+                                 (children nil children-p)
+                                 (class nil class-p)
+                                 (attrs nil attrs-p)
+                                 (id 0 id-p)
+                                 (syn-ctx nil syn-ctx-p)
+                                 (full-stmt nil full-stmt-p)
+                                 (guard-stmt nil guard-stmt-p)
+                                 (opcode nil opcode-p)
+                                 &allow-other-keys)
   (let ((children (if children-p children (new-clang-ast-children ast)))
         (class (if class-p class (new-clang-ast-class ast)))
         (attrs (if attrs-p attrs (new-clang-ast-attrs ast)))
@@ -308,10 +319,46 @@ on QUAL and DESUGARED slots."))
       (setf attrs (%areplace :guardstmt guard-stmt attrs)))
     (when opcode-p
       (setf attrs (%areplace :opcode opcode attrs)))
-    (make-new-clang-ast :path path :children children
-                        :class class :attrs attrs :id id
-                        :syn-ctx syn-ctx)))
+    (funcall fn :path path :children children
+             :class class :attrs attrs :id id
+             :syn-ctx syn-ctx)))
 
+(defmethod copy ((ast new-clang-ast) &rest args &key &allow-other-keys)
+  (apply #'new-clang-ast-copy ast args))
+
+(defmethod copy ((ast cxx-operator-call-expr) &rest args &key &allow-other-keys)
+  (apply #'new-clang-ast-copy ast :fn #'make-cxx-operator-call-expr args))
+
+#+(or )
+(defmethod copy ((ast new-clang-ast)
+                 &key
+                   path
+                   (children nil children-p)
+                   (class nil class-p)
+                   (attrs nil attrs-p)
+                   (id 0 id-p)
+                   (syn-ctx nil syn-ctx-p)
+                   (full-stmt nil full-stmt-p)
+                   (guard-stmt nil guard-stmt-p)
+                   (opcode nil opcode-p)
+                   &allow-other-keys)
+    (let ((children (if children-p children (new-clang-ast-children ast)))
+          (class (if class-p class (new-clang-ast-class ast)))
+          (attrs (if attrs-p attrs (new-clang-ast-attrs ast)))
+          ;; ID should not be copied -- generate a new one?
+          (id (if id-p id (new-clang-ast-id ast)))
+          (syn-ctx (if syn-ctx-p syn-ctx (new-clang-ast-syn-ctx ast))))
+      (when full-stmt-p
+        (setf attrs (%areplace :fullstmt full-stmt attrs)))
+      (when guard-stmt-p
+        (setf attrs (%areplace :guardstmt guard-stmt attrs)))
+      (when opcode-p
+        (setf attrs (%areplace :opcode opcode attrs)))
+      (make-new-clang-ast :path path :children children
+                          :class class :attrs attrs :id id
+                          :syn-ctx syn-ctx)))
+
+#+(or )
 (defmethod copy ((ast cxx-operator-call-expr)
                  &key
                    path
@@ -325,104 +372,22 @@ on QUAL and DESUGARED slots."))
                    (opcode nil opcode-p)
                    pos
                    &allow-other-keys)
-  (let ((children (if children-p children (new-clang-ast-children ast)))
-        (class (if class-p class (new-clang-ast-class ast)))
-        (attrs (if attrs-p attrs (new-clang-ast-attrs ast)))
-        ;; ID should not be copied -- generate a new one?
-        (id (if id-p id (new-clang-ast-id ast)))
-        (syn-ctx (if syn-ctx-p syn-ctx (new-clang-ast-syn-ctx ast))))
-    (when full-stmt-p
-      (setf attrs (%areplace :fullstmt full-stmt attrs)))
-    (when guard-stmt-p
-      (setf attrs (%areplace :guardstmt guard-stmt attrs)))
-    (when opcode-p
-      (setf attrs (%areplace :opcode opcode attrs)))
-    (make-cxx-operator-call-expr :path path :children children
-                                 :class class :attrs attrs :id id
-                                 :syn-ctx syn-ctx :pos pos)))
+    (let ((children (if children-p children (new-clang-ast-children ast)))
+          (class (if class-p class (new-clang-ast-class ast)))
+          (attrs (if attrs-p attrs (new-clang-ast-attrs ast)))
+          ;; ID should not be copied -- generate a new one?
+          (id (if id-p id (new-clang-ast-id ast)))
+          (syn-ctx (if syn-ctx-p syn-ctx (new-clang-ast-syn-ctx ast))))
+      (when full-stmt-p
+        (setf attrs (%areplace :fullstmt full-stmt attrs)))
+      (when guard-stmt-p
+        (setf attrs (%areplace :guardstmt guard-stmt attrs)))
+      (when opcode-p
+        (setf attrs (%areplace :opcode opcode attrs)))
+      (make-cxx-operator-call-expr :path path :children children
+                                   :class class :attrs attrs :id id
+                                   :syn-ctx syn-ctx :pos pos)))
 
-(defmethod ast-class ((obj new-clang-ast))
-  (new-clang-ast-class obj))
-(defmethod (setf ast-class) (val (obj new-clang-ast))
-  (setf (new-clang-ast-class obj) val))
-(defmethod ast-syn-ctx ((obj new-clang-ast))
-  (new-clang-ast-syn-ctx obj))
-(defmethod (setf ast-syn-ctx) (val (obj new-clang-ast))
-  (setf (new-clang-ast-syn-ctx obj) val))
-(defmethod source-text ((ast new-clang-ast))
-  (with-output-to-string (out)
-    (mapc [{write-string _ out} #'source-text] (ast-children ast))))
-(defmethod source-text ((ast cxx-operator-call-expr))
-  (let ((pos (cxx-operator-call-expr-pos ast)))
-    (if pos
-        ;; The operator will always be the first AST child
-        (let* ((c (ast-children ast)))
-          (with-output-to-string (out)
-            ;; Skip leading non-ASTs
-            (iter (while (and c (not (ast-p (car c)))))
-                  (write-string (source-text (pop c)) out))
-            ;; We are now at the operator
-            (let ((op (pop c)))
-              (assert (ast-p op) ()
-                      "~a has no operator"
-                      (ast-class ast))
-              (loop
-                 (when (= pos 0)
-                   (write-string (source-text op) out)
-                   (return))
-                 (when (ast-p (car c))
-                   (decf pos))
-                 (write-string (source-text (pop c)) out))
-              ;; Write out the rest
-              (mapc [{write-string _ out} #'source-text] c))))
-        ;; If we don't know the position of the operator, something
-        ;; has probably gone wrong.  Just write out the AST normally
-        (call-next-method))))
-
-(defmethod stmt-asts ((obj new-clang))
-  ;; Walk AST, recording all asts at or below :COMPOUNDSTMT asts
-  (let ((result nil))
-    (labels ((%r (a)
-               (when (ast-p a)
-                 (if (eql (ast-class a) :compoundstmt)
-                     (map-ast a (lambda (b) (push b result)))
-                     (mapc #'%r (ast-children a))))))
-      (%r (ast-root obj)))
-    (nreverse result)))
-
-(defmethod non-stmt-asts ((obj new-clang))
-  (let ((result nil))
-    (labels ((%r (a)
-               (when (ast-p a)
-                 (unless (or (function-decl-p a)
-                             (eql (ast-class a) :toplevel))
-                   (push a result)
-                   (mapc #'%r (ast-children a))))))
-      (%r (ast-root obj)))
-    (nreverse result)))
-
-(defmethod prototypes ((obj new-clang))
-  (let ((result nil))
-    (labels ((%r (a)
-               (when (ast-p a)
-                 (if (function-decl-p a)
-                     (push a result)
-                     (mapc #'%r (ast-children a))))))
-      (%r (ast-root obj))
-      (nreverse result))))
-
-(defmethod functions ((obj new-clang))
-  (let ((result nil))
-    (labels ((%r (a)
-               (when (ast-p a)
-                 (if (function-decl-p a)
-                     (when (function-body obj a)
-                       (push a result))
-                     (mapc #'%r (ast-children a))))))
-      (%r (ast-root obj))
-      (nreverse result))))
-
-#|
 (defmethod includes ((obj new-clang))
 (mapcan (lambda (c)
 (when (stringp c)
@@ -531,8 +496,8 @@ on QUAL and DESUGARED slots."))
 on various ast classes"))
 
 (defun ast-types*-on-decl (ast)
-  (let ((type (ast-attr ast :type)))
-    (when type (list type))))
+  (when-let ((type (ast-attr ast :type)))
+    (list type)))
 
 (defmethod ast-types* ((ast new-clang-ast) (ast-class (eql :ParmVar)))
   (ast-types*-on-decl ast))
@@ -880,11 +845,10 @@ on json-kind-symbol when special subclasses are wanted."))
                     (equal v (aget k al2))))))
 
 (defmethod j2ck :around (json json-kind-symbol)
-  (let ((obj (call-next-method)))
-    (when obj
-      (let ((id (new-clang-ast-id obj)))
-        (when (and id (ast-attr obj :loc))
-          (push obj (gethash id (symbol-table *soft*))))))
+  (when-let ((obj (call-next-method)))
+    (let ((id (new-clang-ast-id obj)))
+      (when (and id (ast-attr obj :loc))
+        (push obj (gethash id (symbol-table *soft*)))))
     obj))
 
 (defmethod j2ck :around (json (json-kind-symbol (eql :forstmt)))
@@ -899,8 +863,7 @@ on json-kind-symbol when special subclasses are wanted."))
   ;; CXXOperatorCallExprs must be a special subclass, as the children
   ;; are out of order (the operator is put first even if it is not
   ;; first in the source file)
-  (let ((obj (make-cxx-operator-call-expr)))
-    (store-slots obj json)))
+  (store-slots (make-cxx-operator-call-expr) json))
 
 (defgeneric store-slots (obj json)
   (:documentation "Store values in the json into obj.
@@ -909,8 +872,7 @@ its place."))
 
 (defmethod store-slots ((obj new-clang-ast) (json list))
   (dolist (x json)
-    (let ((slot (car x))
-          (value (cdr x)))
+    (destructuring-bind (slot . value) x
       (setf obj (store-slot obj slot value))))
   obj)
 
@@ -922,10 +884,9 @@ form for SLOT, and stores into OBJ.  Returns OBJ or its replacement."))
   ;; Generic case
   (let ((attrs (new-clang-ast-attrs obj)))
     (assert (null (aget slot attrs)) () "Duplicate slot ~a" slot)
-    (let ((converted-value (convert-slot-value obj slot value)))
-      (when converted-value
-        (setf (new-clang-ast-attrs obj)
-              (append attrs `((,slot . ,converted-value)))))))
+    (when-let ((converted-value (convert-slot-value obj slot value)))
+      (setf (new-clang-ast-attrs obj)
+            (append attrs `((,slot . ,converted-value))))))
   obj)
 
 (defmethod store-slot ((obj new-clang-ast) (slot (eql :kind)) value)
@@ -1632,20 +1593,24 @@ ranges into 'combined' nodes.  Warn when this happens."
                (declare (ignorable s a f))
                nil)
              (%p (o)
-               (let ((r (ast-range o))) (list r (begin-offset r) (end-offset r)))))
+               (let ((r (ast-range o)))
+                 (list r (begin-offset r) (end-offset r)))))
         (let ((*canonical-string-table* (make-hash-table :test 'equal)))
           (multiple-value-bind (json tmp-file genome-len)
               (clang-json obj)
             (setf (tmp-file obj) tmp-file)
-            (let* ((raw-ast (clang-convert-json-for-file json tmp-file genome-len)))
+            (let* ((raw-ast (clang-convert-json-for-file
+                             json tmp-file genome-len)))
               (%debug 'clang-convert-json-for-file raw-ast)
               ;; Store name -> def mappings
-              (maphash (lambda (k v)
-                         (declare (ignore k))
-                         (dolist (a v)
-                           (when (and a (ast-name a))
-                             (push a (gethash (ast-name a) (name-symbol-table obj))))))
-                       (symbol-table obj))
+              (maphash
+               (lambda (k v)
+                 (declare (ignore k))
+                 (dolist (a v)
+                   (when (and a (ast-name a))
+                     (push a (gethash (ast-name a)
+                                      (name-symbol-table obj))))))
+               (symbol-table obj))
               (let ((ast (remove-non-program-asts raw-ast tmp-file)))
                 (%debug 'remove-non-program-asts ast)
                 (remove-asts-in-classes
@@ -1654,9 +1619,10 @@ ranges into 'combined' nodes.  Warn when this happens."
                 (put-operators-into-inner-positions obj ast)
                 (mark-macro-expansion-nodes ast tmp-file)
                 (%debug 'mark-macro-expansion-nodes ast
-                        #'(lambda (o) (let ((r (ast-range o)))
-                                        (list r (begin-offset r) (end-offset r)
-                                              (is-macro-expansion-node o)))))
+                        #'(lambda (o)
+                            (let ((r (ast-range o)))
+                              (list r (begin-offset r) (end-offset r)
+                                    (is-macro-expansion-node o)))))
                 (encapsulate-macro-expansions ast)
                 (%debug 'encapsulate-macro-expansions ast #'%p)
                 (fix-ancestor-ranges obj ast)
@@ -1669,7 +1635,8 @@ ranges into 'combined' nodes.  Warn when this happens."
                 (compute-full-stmt-attrs ast)
                 (compute-guard-stmt-attrs ast)
                 (compute-syn-ctxs ast)
-                (setf ast-root (sel/sw/parseable::update-paths (fix-semicolons ast))
+                (setf ast-root (sel/sw/parseable::update-paths
+                                (fix-semicolons ast))
                       genome nil)
                 obj))))))))
 
@@ -1882,11 +1849,6 @@ computed at the children"))
 (defmethod full-stmt-p ((obj new-clang) (ast new-clang-ast))
   (declare (ignorable obj))
   (ast-full-stmt ast))
-#|
-(case (ast-class obj)
-((:Function :ReturnStmt :IfStmt :WhileStmt :ForStmt :SwitchStmt :NullStmt :DeclStmt) t)
-(t (ast-attr obj :fullstmt))))
-|#
 
 ;; This field should be filled in by a pass
 ;; that marks AST nodes that are guard statements

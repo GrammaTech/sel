@@ -2947,7 +2947,7 @@ is not to be found"
   (with-fixture gcd-clang
     (is (eql (find-if [{string= "int"} #'type-name]
                       (hash-table-values (types *gcd*)))
-            (find-or-add-type *gcd* "int")))))
+             (find-or-add-type *gcd* "int")))))
 
 (deftest find-or-add-type-adds-new-type ()
   (with-fixture gcd-clang
@@ -7770,6 +7770,8 @@ prints unique counters in the trace"
 ;;;; Command-line tests.
 (defsuite command-line-tests "Command line tests")
 
+;;; FIXME: this does not work if (sel/test:test) is run while
+;;; in some directory other than the sel root directory.
 (deftest guess-language-test ()
   (is (eql 'clang (guess-language #P"this/foo.cpp")))
   (is (eql 'json (guess-language #P"this/foo.json")))
