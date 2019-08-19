@@ -48,3 +48,17 @@
         (when-let 1)
         (when-let* 1)
         (defixture 1)))
+
+(defun define-feature-lisp-indent
+    (path state indent-point sexp-column normal-indent)
+  "Indentation function called by `lisp-indent-function' for define-feature."
+  ;; (message "CALLED: %S"
+  ;;          (list 'define-feature-lisp-indent
+  ;;                path state indent-point sexp-column normal-indent))
+  (cond
+   ((equalp path '(2)) 2)   ; Doc string for enclosing define-feature.
+   ((equalp path '(3)) 2)   ; Extractor function definition.
+   ((equalp path '(3 2)) 4) ; Doc string for extractor.
+   ((equalp path '(4)) 2)   ; Merge function definition.
+   (t nil)))                ; Otherwise do the default.
+(put 'define-feature 'lisp-indent-function 'define-feature-lisp-indent)
