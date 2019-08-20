@@ -509,8 +509,8 @@ in SCRIPT.")
       (("flags" #\F) :type string
        :action #'handle-comma-delimited-argument
        :documentation "comma-separated list of compiler flags")
-      (("split-lines" :type boolean :optional t
-        :documentation "Split top level strings at newlines"))))
+      (("split-lines") :type boolean :optional t
+       :documentation "Split top level strings at newlines")))
   (defparameter +project-command-line-options+
     '((("build-command" #\b) :type string :initial-value "make"
        :documentation "shell command to build project directory")))
