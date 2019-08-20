@@ -32,9 +32,15 @@
                :action #'handle-eval
                :documentation "eval STRING as lisp code")
               (("syn-ctx") :type boolean :optional t
-               :documentation "When true, compare the AST-SYN-CTX values")
+               :documentation "Compare the AST-SYN-CTX values")
               (("types") :type boolean :optional t
-               :documentation "When true, compare the AST-TYPES values")))))
+               :documentation "Compare the AST-TYPES values")
+              (("unbound-funs") :type boolean :optional t
+               :documentation "Compare the AST-UNBOUND-FUNS values")
+              (("unbound-vals") :type boolean :optional t
+               :documentation "Compare the AST-UNBOUND-VALS values")
+              (("errors") :type boolean t
+               :documentation "When true, new-clang errors are 'interesting'")))))
 
 (defun make-clang (file &key)
   (let ((obj1 (make-instance 'clang)))
@@ -198,9 +204,21 @@ list of children of their parent.  Cannot remove the root."))
     (setf fn #'ast-syn-ctx))
   (when types
     (setf fn #'(lambda (a) (length (ast-types a)))))
-  ;; Rewrite this to use new-clang class
+  (when unbound-funs
+    (setf fn #'(lambda (a) (length (ast-unbound-funs a)))))
+  (when unbound-vals
+    (setf fn #'(lambda (a) (length (ast-unbound-vals a)))))
   (let ((c (make-clang source))
         (nc (make-new-clang source)))
+    (handler-case (ast-root c)
+      ;; We ignore errors from old clang
+      (error (e) (exit-command clang-diff-test 98 (error e))))
+    (handler-case (ast-root nc)
+      ;; The ERRORS flag indicates we are looking for cases
+      ;; where new-clang fails with an error.
+      (if errors
+          (exit-command clang-diff-test 0 nil)
+          (exit-command clang-diff-test 99 (error e))))
     (handler-case
         (multiple-value-bind (success? diagnostics)
             (check-attr c nc fn)

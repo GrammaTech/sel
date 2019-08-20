@@ -2885,19 +2885,17 @@ included as the first successor."
             (scopes software scope)))))
 
 (defmethod get-ast-types ((software clang-base) (ast ast))
-  "DOCFIXME
-* SOFTWARE DOCFIXME
-* AST DOCFIXME
-"
+  "Compute all the types mentioned in AST.  AST-TYPES is
+the types used at a node; this function closes over all the nodes
+in the AST.  SOFTWARE is the software object to which AST belongs."
   (remove-duplicates (apply #'append (ast-types ast)
                             (mapcar {get-ast-types software}
                                     (get-immediate-children software ast)))))
 
 (defmethod get-unbound-funs ((software clang-base) (ast ast))
-  "DOCFIXME
-* SOFTWARE DOCFIXME
-* AST DOCFIXME
-"
+  "Compute all the unbound funs in AST.   AST-UNBOUND-FUNS is
+the unbound funs at a node; this function closes over all the nodes
+in the AST.  SOFTWARE is the software object to which AST belongs."
   (remove-duplicates (apply #'append (ast-unbound-funs ast)
                             (mapcar {get-unbound-funs software}
                                     (get-immediate-children software ast)))
