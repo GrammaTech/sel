@@ -226,6 +226,14 @@ on QUAL and DESUGARED slots."))
 (defmethod type-hash ((tp new-clang-type))
   (new-clang-type-hash tp))
 
+(defmethod ast-class ((obj new-clang-ast))
+  (new-clang-ast-class obj))
+
+(defmethod source-text ((ast new-clang-ast))
+  (with-output-to-string (out)
+    (mapc [{write-string _ out} #'source-text]
+          (ast-children ast))))
+
 (defgeneric ast-attr (ast attr))
 (defmethod ast-attr ((ast new-clang-ast) (attr symbol))
   (let ((attrs (new-clang-ast-attrs ast)))
@@ -1151,7 +1159,6 @@ actual source file"))
 (defun ncmlimae (x)
   (new-clang-macro-loc-is-macro-arg-expansion x))
 
-
 (defgeneric offset (obj))
 (defmethod offset (obj) nil)
 (defmethod offset ((obj new-clang-loc))
@@ -1168,6 +1175,33 @@ actual source file"))
        (offset spelling-loc)
        (offset expansion-loc)))))
 (defmethod offset ((obj integer)) obj)
+
+(defgeneric (setf offset) (offset obj)
+  (:documentation "Settor for OFFSET"))
+
+(defmethod (setf offset) ((offset integer) (obj new-clang-ast))
+  (let ((range (ast-attr obj :range)))
+    (if range
+        (let ((begin (new-clang-range-begin range)))
+          (if (typep begin '(or null integer))
+              (setf (new-clang-range-begin range) offset)
+              (setf (offset begin) offset)))
+        (progn
+          (setf (ast-attr obj :range)
+                (make-new-clang-range :begin offset))
+          offset))))
+
+(defmethod (setf offset) ((offset integer) (obj new-clang-loc))
+  (multiple-value-bind (line col)
+      (offset-to-line-and-col *soft* offset)
+    (setf (new-clang-loc-line obj) line
+          (new-clang-loc-col obj) col)
+    offset))
+
+(defmethod (setf offset) ((offset integer) (obj new-clang-macro-loc))
+  ;; Do nothing on macro locs
+  ;; It may be possible to do better, but for now just give up
+  offset)
 
 (defgeneric all-offsets (obj))
 (defmethod all-offsets ((obj new-clang-ast))
@@ -1413,6 +1447,62 @@ in a CXXOperatorCallExpr node.")
     (map-ast ast #'%decorate))
   ast)
 
+(defun fix-overlapping-vardecls (sw ast)
+  (map-ast ast (lambda (a) (fix-overlapping-vardecls-at-node sw a))))
+
+(defun fix-overlapping-vardecls-at-node (sw ast)
+  "Separate consecutive, overlapping :VAR nodes so their
+text ranges in the source do not overlap, if possible."
+  ;; This does not exactly reproduce what the old clang
+  ;; front end was doing.  There, the Var nodes were children of
+  ;; each other in some cases.
+  (let ((child-asts (ast-children ast)))
+    (let (prev pos)
+      (when (and (ast-p (car child-asts))
+                 (eql (ast-class (car child-asts)) :var))
+        (setf prev (car child-asts))
+        (setf pos (begin-offset prev))
+        (format t "Starting var: name = ~a~%" (ast-name prev)))
+      (do* ((e (cdr child-asts) (cdr e))
+            (c (car e) (car e)))
+           ((null e))
+        (if (ast-p c)
+            (let ((next-pos (begin-offset c))
+                  (end (end-offset c)))
+              (if (eql (ast-class c) :var)
+                  (progn
+                    (format t "Next var: name = ~a~%" (ast-name c))
+                    (format t "prev = ~a, pos = ~a, (end-offset prev) = ~a, c = ~a, next-pos = ~a, end = ~a~%"
+                            prev pos (end-offset prev) c next-pos end)
+                    (if prev
+                        (if (and next-pos end)
+                            (if (< (end-offset prev) next-pos)
+                                ;; things are fine -- no overlap
+                                (progn
+                                  (format t "Fine -- no overlap~%")
+                                  (setf prev c
+                                        pos next-pos))
+                                ;; There is overlap -- find the next
+                                ;; position
+                                (let ((comma-pos (cpp-scan (genome sw)
+                                                           (lambda (c) (eql c #\,))
+                                                           :start pos
+                                                           :end (1+ end))))
+                                  (format t "Overlap~%")
+                                  (if comma-pos
+                                      (setf pos (1+ comma-pos)
+                                            (offset c) pos
+                                            prev c)
+                                      ;; Failed to find comma; change nothing
+                                      (setf prev c
+                                            pos next-pos))))
+                            (setf prev c
+                                  pos next-pos))))
+                  (setf prev c
+                        pos next-pos)))
+            (setf prev nil pos nil)))))
+  ast)
+
 (defun fix-ancestor-ranges (sw ast)
   "Normalize the ast so the range of each node is a superset
 of the ranges of its children"
@@ -1555,6 +1645,7 @@ ranges into 'combined' nodes.  Warn when this happens."
                  ast '(:fullcomment :textcomment :paragraphcomment))
                 (compute-operator-positions obj ast)
                 (put-operators-into-inner-positions obj ast)
+                (fix-overlapping-vardecls obj ast)
                 (mark-macro-expansion-nodes ast tmp-file)
                 (%debug 'mark-macro-expansion-nodes ast
                         #'(lambda (o)
@@ -2005,7 +2096,7 @@ ast nodes, as needed")
               ((is-loop-or-if-body obj parent) :UnbracedBody)
               ((ast-full-stmt obj) :FullStmt)
               (t :Generic))))
-      (setf (ast-syn-ctx obj) syn-ctx))
+      (setf (new-clang-ast-syn-ctx obj) syn-ctx))
     obj))
 
 (defgeneric fix-var-syn-ctx (ast)
@@ -2015,14 +2106,14 @@ ast nodes, as needed")
           (prev-var? nil))
       (unless (eql (ast-class obj) :toplevel)
         (iter (for c in (ast-children obj))
-              (when (ast-p c)
+              (when (new-clang-ast-p c)
                 (case (ast-class c)
                   ((:Var :ParmVar)
                    ;; This logic makes single element ParmVar lists
                    ;; be :Generic.  Weird, but that's what clang-mutate
                    ;; did
-                   (when prev-var? (setf (ast-syn-ctx prev) :ListElt)
-                         (setf (ast-syn-ctx  c) :FinalListElt))
+                   (when prev-var? (setf (new-clang-ast-syn-ctx prev) :ListElt)
+                         (setf (new-clang-ast-syn-ctx  c) :FinalListElt))
                    (setf ;; (ast-syn-ctx c) :FinalListElt
                     prev c
                     prev-var? t))

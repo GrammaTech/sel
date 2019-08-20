@@ -19,7 +19,8 @@
            :absolute-original-file
            ;; :genome-lines
            :genome-line-offsets
-           :genome-lines-mixin))
+           :genome-lines-mixin
+           :offset-to-line-and-col))
 (in-package :software-evolution-library/software/source)
 (in-readtable :curry-compose-reader-macros)
 
@@ -81,6 +82,33 @@ on the filesystem at BIN."
 
 (defmethod (setf genome) :after (v (obj genome-lines-mixin))
   (slot-makunbound obj 'genome-line-offsets))
+
+(defgeneric offset-to-line-and-col (sw offset)
+  (:documentation "Computes the line and column numbers
+that correspond to an offset."))
+
+(defmethod offset-to-line-and-col ((sw genome-lines-mixin) (offset integer))
+  (offset-to-line-and-col (genome-line-offsets sw) offset))
+
+(defmethod offset-to-line-and-col ((glo vector) (offset integer))
+  (let ((lines (length glo)))
+    (assert (>= offset 0))
+    (if (= lines 0)
+        (values 0 0)
+        (let ((lo 0) (hi (1- lines)))
+          ;; Invariant:  When (< lo hi),
+          ;;  (<= (elt glo lo) offset (elt glo hi))
+          ;;  (where (elt glo lines) = infinity)
+          (iter
+           (assert (<= (elt glo lo) offset))
+           (while (< lo hi))
+           (assert (or (= hi (1- lines)) (< offset (elt glo (1+ hi)))))
+           (let ((mid (floor (+ hi lo 1) 2)))
+             (if (< offset (elt glo mid))
+                 (setf hi (1- mid))
+                 (setf lo mid))))
+          ;; 1-based counts, to be consistent with the json
+          (values (1+ lo) (1+ (- offset (elt glo lo))))))))
 
 (defmethod slot-unbound (class (obj genome-lines-mixin)
                          (slot-name (eql 'genome-line-offsets)))
