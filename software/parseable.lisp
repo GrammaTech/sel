@@ -383,6 +383,7 @@ field indicates the object has changed since the last parse."
   "Return all top-level ASTs in ASTS.
 * ASTS list of ASTs to search for roots
 "
+  #+sbcl (declare (optimize (speed 0))) ;; to avoid compiler note
   (remove-if-not [{= 1} #'length #'ast-path] asts))
 
 (defgeneric ast-at-index (software index)
