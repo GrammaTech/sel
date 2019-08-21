@@ -75,6 +75,12 @@ on the filesystem at BIN."
           (setf bin nil)))
       (values bin errno stderr stdout src))))
 
+;;; NOTE: the following code assumes genome is a string
+;;;  In the Clang json from end, offsets are in bytes, not
+;;;  characters, so the offset computation code needs to be
+;;;  made aware of how many bytes are in each character.
+;;;  This may depend on the external coding of the source file.
+
 (defmethod genome-string ((obj source) &optional stream)
   "Return the source code of OBJ, optionally writing to STREAM"
   (let ((genome (or (genome obj) "")))
@@ -128,15 +134,14 @@ that correspond to an offset."))
     (let ((line-positions
            (iter (while (< pos len))
                  (collecting pos)
-                 (let ((next (search ter s :start2 pos)))
-                   (if next
-                       (prog1 (- next pos)
-                         (setf pos (+ next ter-len)))
-                       ;; Last line was nonempty and did not end in
-                       ;; the expected terminator character(s)
-                       (prog1 (- len pos)
-                         (setf (last-line-terminated? obj) nil
-                               pos len)))))))
+                 (if-let ((next (search ter s :start2 pos)))
+                   (prog1 (- next pos)
+                     (setf pos (+ next ter-len)))
+                   ;; Last line was nonempty and did not end in
+                   ;; the expected terminator character(s)
+                   (prog1 (- len pos)
+                     (setf (last-line-terminated? obj) nil
+                           pos len))))))
       (setf (genome-line-offsets obj) (coerce line-positions 'vector)))))
 
 (defmethod from-file ((obj source) path)

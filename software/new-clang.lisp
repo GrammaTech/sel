@@ -1180,16 +1180,15 @@ actual source file"))
   (:documentation "Settor for OFFSET"))
 
 (defmethod (setf offset) ((offset integer) (obj new-clang-ast))
-  (let ((range (ast-attr obj :range)))
-    (if range
-        (let ((begin (new-clang-range-begin range)))
-          (if (typep begin '(or null integer))
-              (setf (new-clang-range-begin range) offset)
-              (setf (offset begin) offset)))
-        (progn
-          (setf (ast-attr obj :range)
-                (make-new-clang-range :begin offset))
-          offset))))
+  (if-let ((range (ast-attr obj :range)))
+    (let ((begin (new-clang-range-begin range)))
+      (if (typep begin '(or null integer))
+          (setf (new-clang-range-begin range) offset)
+          (setf (offset begin) offset)))
+    (progn
+      (setf (ast-attr obj :range)
+            (make-new-clang-range :begin offset))
+      offset)))
 
 (defmethod (setf offset) ((offset integer) (obj new-clang-loc))
   (multiple-value-bind (line col)
@@ -1462,7 +1461,7 @@ text ranges in the source do not overlap, if possible."
                  (eql (ast-class (car child-asts)) :var))
         (setf prev (car child-asts))
         (setf pos (begin-offset prev))
-        (format t "Starting var: name = ~a~%" (ast-name prev)))
+        #+debug-fix-vardecl (format t "Starting var: name = ~a~%" (ast-name prev)))
       (do* ((e (cdr child-asts) (cdr e))
             (c (car e) (car e)))
            ((null e))
@@ -1471,15 +1470,17 @@ text ranges in the source do not overlap, if possible."
                   (end (end-offset c)))
               (if (eql (ast-class c) :var)
                   (progn
-                    (format t "Next var: name = ~a~%" (ast-name c))
-                    (format t "prev = ~a, pos = ~a, (end-offset prev) = ~a, c = ~a, next-pos = ~a, end = ~a~%"
-                            prev pos (end-offset prev) c next-pos end)
+                    #+debug-fix-vardecl
+                    (progn
+                      (format t "Next var: name = ~a~%" (ast-name c))
+                      (format t "prev = ~a, pos = ~a, (end-offset prev) = ~a, c = ~a, next-pos = ~a, end = ~a~%"
+                              prev pos (end-offset prev) c next-pos end))
                     (if prev
                         (if (and next-pos end)
                             (if (< (end-offset prev) next-pos)
                                 ;; things are fine -- no overlap
                                 (progn
-                                  (format t "Fine -- no overlap~%")
+                                  #+debug-fix-vardecl (format t "Fine -- no overlap~%")
                                   (setf prev c
                                         pos next-pos))
                                 ;; There is overlap -- find the next
@@ -1488,7 +1489,7 @@ text ranges in the source do not overlap, if possible."
                                                            (lambda (c) (eql c #\,))
                                                            :start pos
                                                            :end (1+ end))))
-                                  (format t "Overlap~%")
+                                  #+debug-fix-vardecl (format t "Overlap~%")
                                   (if comma-pos
                                       (setf pos (1+ comma-pos)
                                             (offset c) pos
@@ -2112,8 +2113,9 @@ ast nodes, as needed")
                    ;; This logic makes single element ParmVar lists
                    ;; be :Generic.  Weird, but that's what clang-mutate
                    ;; did
-                   (when prev-var? (setf (new-clang-ast-syn-ctx prev) :ListElt)
-                         (setf (new-clang-ast-syn-ctx  c) :FinalListElt))
+                   (when prev-var?
+                     (setf (new-clang-ast-syn-ctx prev) :ListElt
+                           (new-clang-ast-syn-ctx  c) :FinalListElt))
                    (setf ;; (ast-syn-ctx c) :FinalListElt
                     prev c
                     prev-var? t))

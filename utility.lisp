@@ -552,6 +552,7 @@ USE-ENCODING. "
           (system:make-temp-file-name nil *temp-dir*)
           #-(or sbcl clisp ccl allegro ecl)
           (error "no temporary file backend for this lisp.")))
+    ;; NOTE:  code smell -- two branches of these ifs are dead in SBCL
     (if type
         (if (pathnamep base)
             (namestring (make-pathname :directory (pathname-directory base)
@@ -2753,21 +2754,29 @@ either the end is reached, or a substring satisfying UNTIL-FN
 is found.  Returns NIL on no match, or the satisfying position
 of the match.  If ANGLE-BRACKETS is true then try to handle
 template brackets < and >."
+  ;;
   ;; The typical use case for this is scanning over a vardecl
   ;; looking for either a comma or a semicolon
   ;;
   ;; Handling < > is tricky in C++, since telling template
   ;; brackets apart from comparison or shift operators is difficult.
   ;; This code makes only a partial attempt to get it right.
+  ;;
+  ;; Improvements that could be made:
+  ;;  -- Better handle improperly nested parens/brackets.  For
+  ;;     example,   ( ... < ... ) should close the paren, since
+  ;;     this must mean the < wasn't a bracket
+  ;;  -- Exclude < from processing as a bracket when from the
+  ;;     preceding context it could not be a template bracket.
+  ;;
   (let ((pos start))
     (labels ((inc? (&optional (l 1))
                (when (>= (incf pos l) end)
                  (return-from cpp-scan nil)))
              (cpp-scan* (closing-char)
-               ;; If CLOSING-CHAR is not NIL, it is the closign character
+               ;; If CLOSING-CHAR is not NIL, it is the closing character
                ;; of a pair of matching parens/brackets/braces.
                (loop
-                  ;; (when (= pos end) (return-from cpp-scan nil))
                   (let ((c (elt str pos)))
                     (case c
                       ((#\Space #\Tab #\Newline) (inc?))
