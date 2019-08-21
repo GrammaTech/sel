@@ -36,7 +36,8 @@
            :remove-non-program-asts
            :make-statement-new-clang
            :*new-clang?*
-           :make-new-clang-macroexpand-hook))
+           :make-new-clang-macroexpand-hook
+           :cpp-scan))
 (in-package :software-evolution-library/software/new-clang)
 (in-readtable :curry-compose-reader-macros)
 
@@ -769,7 +770,7 @@ the match length if sucessful, NIL if not."
        (unless (keywordp json-kind-symbol)
          (error "Cannot convert ~a to a json-kind keyword" json-kind))
        (let ((obj (j2ck json json-kind-symbol)))
-         (when inner
+         (when (and obj inner)
            (let ((id (new-clang-ast-id obj)))
              (pushnew obj (gethash id (symbol-table *soft*)))))
          obj)))
@@ -804,6 +805,16 @@ on json-kind-symbol when special subclasses are wanted."))
   (let ((obj (call-next-method)))
     (setf (ast-children obj) (remove nil (ast-children obj)))
     obj))
+
+(defmethod j2ck :around (json (json-kind-symbol (eql :ImplicitListExpr)))
+  ;; We remove :ImplicitValueInitExprs, turning them to NIL.
+  ;; Here, remove those NILs.
+  (let ((obj (call-next-method)))
+    (setf (ast-children obj) (remove nil (ast-children obj)))
+    obj))
+
+(defmethod j2ck (json (json-kind-symbol (eql :ImplicitValueInitExpr)))
+  nil)
 
 (defmethod j2ck (json (json-kind-symbol (eql :CXXOperatorCallExpr)))
   ;; CXXOperatorCallExprs must be a special subclass, as the children
@@ -851,13 +862,13 @@ form for SLOT, and stores into OBJ.  Returns OBJ or its replacement."))
   obj)
 
 (defmethod store-slot ((obj new-clang-ast) (slot (eql :inner)) value)
-  (let ((children (mapcar (lambda (o) (clang-convert-json o :inner t)) value)))
+  (let ((children (remove nil (mapcar (lambda (o) (clang-convert-json o :inner t)) value))))
     ;; (format t "STORE-SLOT on ~a, :INNER with ~A children~%" value (length value))
     (setf (new-clang-ast-children obj) children))
   obj)
 
 (defmethod store-slot ((obj new-clang-ast) (slot (eql :array_filler)) value)
-  (let ((children (mapcar (lambda (o) (clang-convert-json o :inner t)) value)))
+  (let ((children (remove nil (mapcar (lambda (o) (clang-convert-json o :inner t)) value))))
     ;; (setf (ast-attr obj :array-filler) t)
     (setf (new-clang-ast-children obj) children))
   obj)
@@ -2175,3 +2186,91 @@ ast nodes, as needed")
             (list (subseq str
                           (elt reg-begins 0)
                           (elt reg-ends 0))))))))
+
+(defun cpp-scan (str until-fn &key (start 0) (end (length str))
+                                (angle-brackets))
+  "Scan string STR from START to END, skipping over parenthesizd
+C/C++ things, and respecting C/C++ comments and tokens, until
+either the end is reached, or a substring satisfying UNTIL-FN
+is found.  Returns NIL on no match, or the satisfying position
+of the match.  If ANGLE-BRACKETS is true then try to handle
+template brackets < and >."
+  ;;
+  ;; The typical use case for this is scanning over a vardecl
+  ;; looking for either a comma or a semicolon
+  ;;
+  ;; Handling < > is tricky in C++, since telling template
+  ;; brackets apart from comparison or shift operators is difficult.
+  ;; This code makes only a partial attempt to get it right.
+  ;;
+  ;; Improvements that could be made:
+  ;;  -- Better handle improperly nested parens/brackets.  For
+  ;;     example,   ( ... < ... ) should close the paren, since
+  ;;     this must mean the < wasn't a bracket
+  ;;  -- Exclude < from processing as a bracket when from the
+  ;;     preceding context it could not be a template bracket.
+  ;;
+  (let ((pos start))
+    (labels ((inc? (&optional (l 1))
+               (when (>= (incf pos l) end)
+                 (return-from cpp-scan nil)))
+             (cpp-scan* (closing-char)
+               ;; If CLOSING-CHAR is not NIL, it is the closing character
+               ;; of a pair of matching parens/brackets/braces.
+               (loop
+                  (let ((c (elt str pos)))
+                    (case c
+                      ((#\Space #\Tab #\Newline) (inc?))
+                      ((#\() (inc?) (cpp-scan* #\)))
+                      ((#\[) (inc?) (cpp-scan* #\]))
+                      ((#\{) (inc?) (cpp-scan* #\}))
+                      ((#\")
+                       ;; Skip a string constant
+                       (cpp-scan-string-constant))
+                      ((#\') (cpp-scan-char-constant))
+                      ;;
+                      ((#\/)
+                       (inc?)
+                       (case (elt str pos)
+                         ((#\/) (cpp-scan-//-comment))
+                         ((#\*) (cpp-scan-/*-comment))))
+                      (t
+                       (cond ((and (eql c #\<)
+                                   angle-brackets)
+                              (inc?)
+                              (cpp-scan* #\>))
+                             ((eql closing-char c)
+                              (inc?)
+                              (return))
+                             ((and (not closing-char)
+                                   (funcall until-fn c))
+                              (return-from cpp-scan pos))
+                             (t
+                              (inc?))))))))
+             (cpp-scan-string-constant ()
+               (loop
+                  (inc?)
+                  (case (elt str pos)
+                    ((#\") (inc?) (return))
+                    ;; We don't have to parse \X, \U, etc.
+                    ((#\\) (inc?)))))
+             (cpp-scan-char-constant ()
+               (loop
+                  (inc?)
+                  (case (elt str pos)
+                    ((#\') (inc?) (return))
+                    ((#\\) (inc?)))))
+             (cpp-scan-//-comment ()
+               (inc?)
+               (cpp-scan-until (string #\Newline)))
+             (cpp-scan-/*-comment ()
+               (inc?)
+               (cpp-scan-until "*/"))
+             (cpp-scan-until (s)
+               "Scan until a substring equal to S is found"
+               (let ((l (length s)))
+                 (iter (until (string= str s :start1 pos :end1 (+ pos l)))
+                       (inc?))
+                 (inc? l))))
+      (when (< pos end)
+        (cpp-scan* nil)))))
