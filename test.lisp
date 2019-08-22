@@ -2658,9 +2658,6 @@
 (deftest add-type-with-include-test ()
   (with-fixture fib-clang
     (add-type *fib* (make-clang-type :array ""
-                                     :col 1
-                                     :line 48
-                                     :file "\/usr\/include\/stdio.h"
                                      :hash 3346600377836954008
                                      :i-file "<stdio.h>"
                                      :pointer t
