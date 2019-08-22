@@ -21,7 +21,7 @@
         :software-evolution-library/software/source
         :software-evolution-library/software/parseable
 	:eclector.parse-result)
-  (:shadowing-import-from :eclector.parse-result :read)
+  (:shadowing-import-from :eclector.parse-result :read :read-preserving-whitespace)
   (:import-from :uiop :nest)
   (:export :lisp :lisp-ast :lisp-ast-p))
 (in-package :software-evolution-library/software/lisp)
