@@ -2664,7 +2664,6 @@
                                      :i-file "<stdio.h>"
                                      :pointer t
                                      :reqs nil
-                                     :size 8
                                      :name "FILE"))
     (is (equal 1 (length (includes *fib*))))))
 
@@ -9382,7 +9381,6 @@ prints unique counters in the trace"
               (make-clang-type :name "int"
                                :pointer nil
                                :array "[5]"
-                               :size 5
                                :storage-class :None
                                :hash 0
                                :reqs nil)))
@@ -9390,7 +9388,6 @@ prints unique counters in the trace"
               (make-clang-type :name "int"
                                :pointer t
                                :array "[]"
-                               :size nil
                                :storage-class :None
                                :hash 0
                                :reqs nil)))
@@ -9398,7 +9395,6 @@ prints unique counters in the trace"
               (make-clang-type :name "int"
                                :pointer t
                                :array "[5]"
-                               :size 5
                                :storage-class :None
                                :hash 0
                                :reqs nil)))
