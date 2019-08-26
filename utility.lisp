@@ -1412,14 +1412,43 @@ Optional argument OUT specifies an output stream."
      ,@body))
 
 (defmacro if-let* (bindings &body (then-form &optional else-form))
-  (let* ((binding-list (if (and (consp bindings) (symbolp (car bindings)))
-                           (list bindings)
-                           bindings))
-         (variables (mapcar #'car binding-list)))
-    `(let* ,binding-list
-       (if (and ,@variables)
-           ,then-form
-           ,else-form))))
+  "Creates new bindings, and conditionally executes THEN-FORM or ELSE-FORM.
+
+BINDINGS must be either single binding of the form:
+
+ (variable initial-form)
+
+or a list of bindings of the form:
+
+ ((variable-1 initial-form-1)
+  (variable-2 initial-form-2)
+  ...
+  (variable-n initial-form-n))
+
+Each INITIAL-FORM is executed in turn, and the variable bound to the
+corresponding value. INITIAL-FORM expressions can refer to variables
+previously bound by the IF-LET*.
+
+Execution of IF-LET* transitions to ELSE-FORM immediately if any
+INITIAL-FORM evaluates to NIL.  No bindings are present if ELSE-FORM
+is evaluated.  If all INITIAL-FORMs evaluate to true, then THEN-BODY
+is executed."
+  ;; NOTE: Largely adapted form Alexandria's `when-let*'.
+  (with-gensyms  (if-block)
+    (let ((binding-list (if (and (consp bindings) (symbolp (car bindings)))
+                            (list bindings)
+                            bindings)))
+      (labels ((bind (bindings body)
+                 (if bindings
+                     `((let (,(car bindings))
+                         (when ,(caar bindings)
+                           ,@(bind (cdr bindings) body))))
+                     `((return-from ,if-block ,body)))))
+        `(block ,if-block
+           (let (,(car binding-list))
+             (when ,(caar binding-list)
+               ,@(bind (cdr binding-list) then-form)))
+           ,else-form)))))
 
 (defmacro repeatedly (times &rest body)
   (let ((ignored (gensym)))
