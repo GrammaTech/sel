@@ -217,6 +217,8 @@
    :take-until
    :pad
    :chunks
+   :cartesian
+   :cartesian-without-duplicates
    :binary-search
    :tails
    :pairs
@@ -2033,6 +2035,24 @@ from a code snippet.")
                        (length list)
                        (- (length list) size))
      :by size :collect (subseq list i (min (+ i size) (length list)))))
+
+(defun cartesian (lists)
+  "Cartesian product of a set of lists."
+  (cartesian-without-duplicates lists :test (constantly nil)))
+
+(defun cartesian-without-duplicates (lists &key (test #'eql))
+  "Cartesian product of a set of lists, without sets containing duplicates."
+  (labels ((cartesian-nil-duplicates (lists)
+             (if (car lists)
+                 (mappend (lambda (inner)
+                            (mapcar (lambda (outer)
+                                      (if (not (member outer inner :test test))
+                                          (cons outer inner)
+                                          nil))
+                                    (car lists)))
+                          (cartesian-nil-duplicates (cdr lists)))
+                 (list nil))))
+    (remove-if [{> (length lists)} #'length] (cartesian-nil-duplicates lists))))
 
 (defun binary-search (value array &key (low 0)
                                        (high (1- (length array)))

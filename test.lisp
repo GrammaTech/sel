@@ -8002,6 +8002,19 @@ prints unique counters in the trace"
                                   (fitness (restore in))))
              (error (c) (declare (ignorable c)) nil))))))
 
+(deftest cartesian-test ()
+  (is (equal '(()) (cartesian nil)))
+  (is (equal '((1)) (cartesian '((1)))))
+  (is (equal '((1 2) (2 2) (1 3) (2 3))
+             (cartesian '((1 2) (2 3))))))
+
+(deftest cartesian-without-duplicates-test ()
+  (is (equal '(()) (cartesian-without-duplicates nil)))
+  (is (equal '((1)) (cartesian-without-duplicates '((1)))))
+  (is (equal '((1 2) (1 3) (2 3))
+             (cartesian-without-duplicates '((1 2) (2 3))))))
+
+
 
 ;;;; Command-line tests.
 (defsuite command-line-tests "Command line tests")
