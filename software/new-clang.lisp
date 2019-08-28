@@ -36,6 +36,7 @@
            :remove-non-program-asts
            :make-statement-new-clang
            :*new-clang?*
+           :*soft*
            :make-new-clang-macroexpand-hook
            :cpp-scan))
 (in-package :software-evolution-library/software/new-clang)
@@ -55,15 +56,19 @@
 (define-software new-clang (clang-base genome-lines-mixin)
   (
    ;; TODO: FUNCTIONS slot is not currently used.  Use or remove.
+   #|
    (functions :initarg :functions :reader functions
               :initform nil :copier :direct
               :type #+sbcl (list (cons keyword *) *) #-sbcl list
               :documentation "Complete functions with bodies.")
+   |#
    ;; TODO: PROTOTYPES slot is not current used.  Use or remove.
+   #|
    (prototypes :initarg :prototypes :reader prototypes
                :initform nil :copier :direct
                :type #+sbcl (list (cons keyword *) *) #-sbcl list
                :documentation "Function prototypes.")
+   |#
    (includes :initarg :includes :accessor includes
              :initform nil :copier :direct
              :type #+sbcl (list string *) #-sbcl list
@@ -163,6 +168,137 @@ possibly other things"))
                   (> (length x) 2))
              (collecting (trim-left-whitespace (subseq x 2))))))))
 
+(defgeneric map-ast-while (a fn)
+  (:documentation "Apply FN to the nodes of AST A, stopping
+the descent when FN returns NIL"))
+
+(defmethod map-ast-while ((a ast) fn)
+  (when (funcall fn a)
+    (dolist (c (ast-children a))
+      (when (ast-p c) (map-ast-while c fn)))))
+
+(defmethod stmt-asts ((obj new-clang))
+  (let ((stmt-asts nil))
+    (map-ast-while
+     (ast-root obj)
+     (lambda (a)
+       (if (function-decl-p a)
+           (progn
+             (map-ast a (lambda (b)
+                          (unless (or (eql (ast-class b) :ParmVar)
+                                      (function-decl-p b))
+                            (push b stmt-asts))))
+             nil)
+           t)))
+    stmt-asts))
+
+(defmethod non-stmt-asts ((obj new-clang))
+  (let ((non-stmt-asts nil))
+    (map-ast-while
+     (ast-root obj)
+     (lambda (a)
+       (if (function-decl-p a)
+           (progn
+             (map-ast a (lambda (b)
+                          (when (and (not (eql a b))
+                                     (or (eql (ast-class b) :ParmVar)
+                                         (function-decl-p b)))
+                            (push b non-stmt-asts))))
+             nil)
+           t)))
+    non-stmt-asts))
+
+(defmethod functions ((obj new-clang))
+  (let ((functions nil))
+    (map-ast (ast-root obj)
+             (lambda (a)
+               (when (and (function-decl-p a)
+                          (function-body obj a))
+                 (push a functions))))
+    (nreverse functions)))
+
+(defmethod prototypes ((obj new-clang))
+  (let ((protos nil))
+    (map-ast (ast-root obj)
+             (lambda (a)
+               (when (function-decl-p a)
+                 (push a protos))))
+    (nreverse protos)))
+
+(defmethod add-type :around ((sw new-clang) type)
+  (let ((*soft* sw))
+    (call-next-method)))
+
+(defun find-macros-in-ast (ast)
+  (find-macros-in-children (ast-children ast)))
+
+(defun find-macros-in-children (c)
+  ;; Break C up into segments of actual strings
+  (mapcan #'find-macros-in-string
+          (iter (while c)
+                (if (stringp (car c))
+                    (collecting (iter (while (stringp (car c)))
+                                      (concatenating (pop c))))
+                    (pop c)))))
+
+(defun find-macros-in-string (str)
+  "Scan a string for things that look like macros.  Compute
+macro objects from these, returning a list."
+  (let* ((pos 0)
+         (slen (length str))
+         (slen7 (- slen 7))
+         (macros nil))
+    ;; At top of loop, we're at the start of a line
+    (iter (while (<= pos slen7))
+          (if (string= "#define" str :start2 pos :end2 (+ pos 7))
+              ;; Scan for macro
+              (let ((pos2 (+ pos 7)))
+                (iter (when (>= pos2 slen)
+                        (push (build-macro-from-string (subseq str pos pos2))
+                              macros)
+                        (return))
+                      (case (elt str pos2)
+                        (#\Newline
+                         ;; End of macro
+                         (push (build-macro-from-string (subseq str pos pos2))
+                               macros)
+                         (incf pos2)
+                         (return))
+                        (#\\
+                         ;; Skip next character -- skips newline
+                         (incf pos2 2))
+                        (t
+                         (incf pos2))))
+                (setf pos pos2))
+              ;; Skip to end
+              (iter (while (< pos slen))
+                    (let ((c (elt str pos)))
+                      (incf pos)
+                      (when (eql c #\Newline) (return))))))
+    macros))
+
+(defun build-macro-from-string (str)
+  (let ((slen (length str)))
+    (assert (>= slen 7))
+    (assert (string= "#define" str :end2 7))
+    (let ((pos 7))
+      ;; Skip whitespace
+      (iter (while (< pos slen))
+            (while (member (elt str pos) '(#\Space #\Tab #\Newline)))
+            (incf pos))
+      ;; get name
+      (let ((name-start pos) c)
+        (iter (setf c (elt str pos))
+              (while (or (eql c #\_) (alphanumericp c)))
+              (incf pos))
+        ;; [name-start,pos) is the name
+        (let* ((name (subseq str name-start pos))
+               (body (subseq str name-start))
+               (hash (sxhash body)))  ;; improve this hash
+          (make-clang-macro :hash hash :body body :name name))))))
+
+
+
 
 ;;; Code for adapting tests to use old or new clang front
 ;;; ends, controllably
@@ -173,10 +309,11 @@ possibly other things"))
 
 ;;; shared with old clang
 
-(defstruct (new-clang-ast (:include ast-stub)
+(defstruct (new-clang-ast (:include clang-ast-base)
                           (:conc-name new-clang-ast-))
-  ;; Inherit path, children and stored-hash fields
-  ;;  from ast-stub
+  (path nil :type list)                      ; Path to subtree from root of tree.
+  (children nil :type list)                  ; Remainder of subtree.
+  (stored-hash nil :type (or null fixnum))
   ;; Class symbol for this ast node
   (class nil :type symbol)
   ;; Association list of attr name -> value pairs
@@ -186,7 +323,24 @@ possibly other things"))
   ;; Syntactic context
   (syn-ctx nil :type symbol)
   ;; aux data
-  (aux-data nil :type symbol))
+  (aux-data nil :type list))
+
+;;; There are no separate 'node' objects for new-clang
+(defmethod ast-node ((obj new-clang-ast)) obj)
+
+(defmethod ast-path ((obj new-clang-ast))
+  (new-clang-ast-path obj))
+(defmethod (setf ast-path) (value (obj new-clang-ast))
+  (setf (new-clang-ast-path obj) value))
+(defmethod ast-children ((obj new-clang-ast))
+  (new-clang-ast-children obj))
+(defmethod (setf ast-children) (value (obj new-clang-ast))
+  (setf (new-clang-ast-children obj) value))
+(defmethod ast-stored-hash ((obj new-clang-ast))
+  (new-clang-ast-stored-hash obj))
+(defmethod (setf ast-stored-hash) (value (obj new-clang-ast))
+  (setf (new-clang-ast-stored-hash obj) value))
+
 
 ;; Special subclass for :CXXOperatorCallExpr nodes
 (defstruct (cxx-operator-call-expr (:include new-clang-ast))
@@ -198,7 +352,11 @@ possibly other things"))
   ;; smaller this can be made.
   (pos nil :type (or null fixnum)))
 
-;; (defstruct new-clang-type qual desugared)
+;;;
+;;; NOTE: NEW-CLANG-TYPE is not a drop-in replacement for
+;;;  SEL/SW/CLANG:CLANG-TYPE.  The latter contains additional
+;;;  information that is not properly part of a type at all.
+;;;
 (defclass new-clang-type ()
   ((qual :reader new-clang-type-qual
          :initform nil
@@ -210,6 +368,24 @@ of clang json type objects")
               :initarg :desugared
               :documentation "Translation of the desugaredQualType
 attribute of clang json objects")
+   (typedef :accessor new-clang-typedef
+            :initform nil
+            :initarg :typedef
+            :type (or null new-clang-type)
+            :documentation "Type for which this is a typedef of,
+or NIL if this is not a typedef type.")
+   #|
+   (decl :reader new-clang-type-decl
+   :initform nil
+   :initarg :decl
+   :documentation "The node at which the type is declared, if any")
+   |#
+   (nct+-list :accessor new-clang-type-nct+-list
+              :initform nil
+              :initarg :nct+-list
+              :type list
+              :documentation "List of NCT+ objects for this type, with various
+storage classes.")
    (hash :accessor new-clang-type-hash
          :initarg :hash
          :initform (incf (hash-counter *soft*))
@@ -218,17 +394,229 @@ objects, for compatibility with old clang"))
   (:documentation "Objects representing C/C++ types.  Canonicalized
 on QUAL and DESUGARED slots."))
 
-(defmethod initialize-instance :after ((obj new-clang-type) &rest initargs &key hash &allow-other-keys)
-  (declare (ignore initargs))
+(defclass nct+ ()
+  ((type :initarg :type
+         :reader nct+-type
+         :type new-clang-type)
+   (storage-class :initarg :storage-class
+                  :reader type-storage-class
+                  :type (member nil :static :extern :register))
+   (modifiers :initarg :modifers
+              :type integer
+              :reader nct+-modifiers)
+   (array :initarg :array
+          :type string
+          :reader type-array)
+   (name :initarg :name
+         :type string
+         :reader type-name)
+   (i-file :initarg :i-file
+           :type (or null string)
+           :reader type-i-file))
+  (:documentation "Wrapper object that is intended to behave like
+SEL/SW/CLANG:CLANG-TYPE.  This means it must have some information
+that is not strictly speaking about types at all (storage class)."))
+
+(defun make-nct+ (type storage-class ast)
+  (or (find storage-class (new-clang-type-nct+-list type)
+            :key #'type-storage-class)
+      (make-instance 'nct+
+        :type type
+        :storage-class storage-class
+        :i-file (new-clang-i-file *soft* type ast))))
+
+(defmethod scopes :around ((sw new-clang) (ast new-clang-ast))
+  (let ((*soft* sw))
+    (call-next-method)))
+
+(defmethod typedef-type ((obj new-clang) (nct nct+))
+  ;; Must construct an NCT+ for this type
+  (or (when-let ((tp (new-clang-typedef (nct+-type nct))))
+        (or (find nil (new-clang-type-nct+-list tp)
+                  :key #'type-storage-class)
+            (make-nct+ tp nil nil)))
+      nct))
+
+(defmethod type-trace-string ((type nct+) &key qualified)
+  (type-trace-string* type qualified))
+
+(defgeneric new-clang-i-file (obj type ast)
+  (:method ((obj new-clang) (type new-clang-type) ast)
+    ;; Get list of system files needed to handle the types
+    ;; here
+    (let* ((qual-includes
+            (when-let ((qual (new-clang-type-qual type)))
+              (includes-of-names-in-string obj qual)))
+           (desugared-includes
+            (when-let ((desugared (new-clang-type-desugared type)))
+              (includes-of-names-in-string obj desugared)))
+           (includes
+            (remove-duplicates
+             (remove-if (lambda (s) (eql (elt s 0) #\"))
+                        (append qual-includes desugared-includes nil))
+             :test #'equal)))
+      (let ((files (sort includes #'string<))
+            (od (absolute-original-directory obj))
+            (include-dirs (include-dirs obj)))
+        (iter (for f in files)
+              (multiple-value-bind (str local?)
+                  (normalize-file-for-include f od include-dirs)
+                (unless local?
+                  (collecting str))))))))
+
+(defmethod initialize-instance :after ((obj new-clang-type) &key hash &allow-other-keys)
   (when (boundp '*soft*)
     (setf (gethash hash (slot-value *soft* 'types)) obj))
   obj)
 
+(defmethod initialize-instance :after ((obj nct+) &key &allow-other-keys)
+  (pushnew obj (new-clang-type-nct+-list (nct+-type obj)))
+  (compute-nct+-slots obj)
+  obj)
+
 (defmethod type-hash ((tp new-clang-type))
   (new-clang-type-hash tp))
+(defmethod type-hash ((tp+ nct+))
+  (type-hash (nct+-type tp+)))
+
+;;; Pointer, const, volatile, and restrict are indicated by integers
+;;;  in the modifiers slot.
+
+(defconstant +pointer+ 1)
+(defconstant +const+ 2)
+(defconstant +volatile+ 4)
+(defconstant +restrict+ 8)
+
+(defmethod type-pointer ((tp+ nct+))
+  (if (logtest +pointer+ (nct+-modifiers tp+)) t nil))
+(defmethod type-const ((tp+ nct+))
+  (if (logtest +const+ (nct+-modifiers tp+)) t nil))
+(defmethod type-volatile ((tp+ nct+))
+  (if (logtest +volatile+ (nct+-modifiers tp+)) t nil))
+(defmethod type-restrict ((tp+ nct+))
+  (if (logtest +restrict+ (nct+-modifiers tp+)) t nil))
+
+(defgeneric compute-nct+-slots (tp+)
+  (:method ((tp+ nct+))
+    "Fill in the MODIFIERS, ARRAY, and POINTER slots of a NCT+ object"
+    ;; This is only partially working
+    ;; As in the old clang front end, it's not going to get
+    ;; nested array and pointer declarators right in some cases
+    (when-let* ((type (nct+-type tp+))
+                (qual (new-clang-type-qual type)))
+      (multiple-value-bind (pointer const volatile restrict n a)
+          (compute-nct+-properties qual)
+        (with-slots (array name modifiers) tp+
+          (setf array a
+                name n
+                modifiers (logior
+                           (if pointer +pointer+ 0)
+                           (if const +const+ 0)
+                           (if volatile +volatile+ 0)
+                           (if restrict +restrict+ 0))))))))
+
+(defun compute-nct+-properties (name)
+  (multiple-value-bind (name suffix-list)
+      (trim-array-suffixes name)
+    (let ((const nil) const2 volatile volatile2
+          restrict restrict2 pointer)
+      (setf (values const volatile restrict name)
+            (trim-prefix-modifiers name))
+      (setf (values const2 volatile2 restrict2 name)
+            (trim-suffix-modifiers name))
+      (let ((l (length name)))
+        (when (and (> l 0) (eql (elt name (1- l)) #\*))
+          (setf pointer t)
+          (setf name (subseq name 0 (1- l)))))
+      (values pointer
+              (or const const2)
+              (or volatile volatile2)
+              (or restrict restrict2)
+              (string-trim " " name)
+              (format nil "~{[~a]~}" suffix-list)))))
+
+(defun trim-prefix-modifiers (str)
+  "Trim const, volatile, and restrict modifiers from a type name"
+  (let (const volatile restrict
+              (pos 0)
+              (strlen (length str)))
+    (flet ((is-prefix (s)
+             (let ((l (length s)))
+               (when (and (< l (- strlen pos))
+                          (let ((c (elt str (+ pos l))))
+                            (not (alphanumericp c))
+                            (not (eql c #\_)))
+                          (let ((m (string/= s str :start2 pos)))
+                            (or (null m) (eql m l))))
+                 (incf pos l)))))
+      (loop
+         (cond
+           ((>= pos strlen) (return))
+           ((member (elt str pos) '(#\Space #\Tab #\Newline))
+            (incf pos))
+           ((is-prefix "const") (setf const t))
+           ((is-prefix "volatile") (setf volatile t))
+           ((is-prefix "restrict") (setf restrict t))
+           (t (return)))))
+    (values const volatile restrict
+            (if (= pos 0) str (subseq str pos)))))
+
+(defun trim-suffix-modifiers (str)
+  (let* (const volatile restrict
+               (strlen (length str))
+               (pos strlen))
+    (flet ((is-suffix (s)
+             (let ((l (length s)))
+               (when (and (< l pos)
+                          (let ((c (elt str (- pos l 1))))
+                            (not (alphanumericp c))
+                            (not (eql c #\_)))
+                          (let ((m (string/= s str :start2 (- pos l))))
+                            (or (null m) (eql m l))))
+                 (decf pos l)))))
+      (loop
+         (cond
+           ((<= pos 0) (return))
+           ((member (elt str (1- pos)) '(#\Space #\Tab #\Newline))
+            (decf pos))
+           ((is-suffix "const") (setf const t))
+           ((is-suffix "volatile") (setf volatile t))
+           ((is-suffix "restrict") (setf restrict t))
+           (t (return)))))
+    (values const volatile restrict
+            (if (= pos strlen) str (subseq str 0 pos)))))
+
+(defun trim-array-suffixes (str)
+  (let* ((suffixes nil)
+         (len (length str))
+         (pos len)
+         (last-suffix-start len))
+    (block done
+      (iter (while (> pos 0))
+            (decf pos)
+            (while (eql (elt str pos) #\]))
+            (let ((end pos))
+              (iter (unless (> pos 0)
+                      (return-from done))
+                    (decf pos)
+                    (when (eql (elt str pos) #\[)
+                      (setq last-suffix-start pos)
+                      (push (subseq str (1+ pos) end)
+                            suffixes)
+                      (return))))))
+    (if (null suffixes)
+        (values str nil)
+        (values (string-right-trim " " (subseq str 0 last-suffix-start))
+                suffixes))))
 
 (defmethod ast-class ((obj new-clang-ast))
   (new-clang-ast-class obj))
+
+(defmethod ast-syn-ctx ((obj new-clang-ast))
+  (new-clang-ast-syn-ctx obj))
+
+(defmethod ast-in-macro-expansion ((obj new-clang-ast))
+  (eql (ast-class obj) :macroexpansion))
 
 (defmethod source-text ((ast new-clang-ast))
   (with-output-to-string (out)
@@ -275,13 +663,38 @@ on QUAL and DESUGARED slots."))
 (defmethod type-name ((ast new-clang-type))
   (new-clang-type-qual ast))
 
-(defmethod type-decl ((ast new-clang-type))
-  ;; stub
-  "")
+(defmethod type-decl ((obj nct+))
+  (type-decl (nct+-type obj)))
 
-(defmethod type-decl-string ((ast new-clang-type) &key qualified)
-  (declare (ignore qualified))
-  (new-clang-type-qual ast))
+(defmethod type-decl ((type new-clang-type))
+  ;; This is "" for most types.
+  ;; For struct or union types (or classes? no) it is
+  ;; the string for the declaration of that type, pulled from
+  ;; the source text.
+  ""
+  ;; For struct/union types, the qual will be
+  ;;  "struct <name>" or "union <name>"
+  ;; These will be stored in the record-name-table, with key
+  ;; equal to this qual
+  (or (when-let* ((qual (new-clang-type-qual type))
+                  (desugared (new-clang-type-desugared type))
+                  (len (length qual)))
+        (flet ((is-prefix (s)
+                 (let ((slen (length s)))
+                   (and (>= len slen)
+                        (string= s qual :end2 slen)))))
+          (when (or (is-prefix "struct ")
+                    (is-prefix "union "))
+            (when-let* ((table (type-table *soft*))
+                        (record-decl (gethash (cons qual desugared) table)))
+              (concatenate 'string (source-text record-decl)  ";")))))
+      ""))
+
+(defmethod type-decl-string ((obj new-clang-type) &key &allow-other-keys)
+  (new-clang-type-qual obj))
+
+(defmethod type-decl-string ((obj nct+) &key &allow-other-keys)
+  (type-decl-string (nct+-type obj)))
 
 (defmethod find-or-add-type ((obj new-clang) name &key &allow-other-keys)
   ;; stub
@@ -290,7 +703,16 @@ on QUAL and DESUGARED slots."))
         nil ; stub
         )))
 
+#+(or)
 (defmethod find-type ((obj new-clang) (type new-clang-type))
+  ;; This looks like a stub, but isn't.
+  ;; What's happening here is that while in old clang
+  ;; find-type was used to look up types from hashes,
+  ;; in the new front end the type objects are there directly.
+  ;; The lookup function just returns the object in that case.
+  type)
+
+(defmethod find-type ((obj new-clang) (type nct+))
   ;; This looks like a stub, but isn't.
   ;; What's happening here is that while in old clang
   ;; find-type was used to look up types from hashes,
@@ -303,6 +725,9 @@ on QUAL and DESUGARED slots."))
 
 (defun %areplace (key val alist)
   (cons (cons key val) (remove key alist :key #'car)))
+
+(defmethod is-full-stmt-ast ((ast new-clang-ast))
+  (ast-attr ast :fullstmt))
 
 (defun new-clang-ast-copy (ast &key
                                  (fn #'make-new-clang-ast)
@@ -332,16 +757,27 @@ on QUAL and DESUGARED slots."))
              :class class :attrs attrs :id id
              :syn-ctx syn-ctx)))
 
-(defmethod copy ((ast new-clang-ast) &rest args &key &allow-other-keys)
+(defmethod copy ((ast new-clang-ast) &rest args) ;  &key &allow-other-keys)
   (apply #'new-clang-ast-copy ast args))
 
-(defmethod copy ((ast cxx-operator-call-expr) &rest args &key &allow-other-keys)
+(defmethod copy ((ast cxx-operator-call-expr) &rest args) ;  &key &allow-other-keys)
   (apply #'new-clang-ast-copy ast :fn #'make-cxx-operator-call-expr args))
+
+(defmethod remove-file-attr-in-same-file ((obj new-clang))
+  "The FILE attribute is unnecessary when it's the same as the file for this
+object (after include and macro processing have been performed).  Remove the
+attribute when the value is the same as the file of OBJ.  After this is done,
+asts can be transplanted between files without difficulty."
+  (when-let ((tmp-file (tmp-file obj)))
+    (map-ast (ast-root obj)
+             (lambda (a) (remove-ast-file a tmp-file)))))
 
 ;;; FIXME:  this will fail if a code snippet is pasted from another file
 ;;;  without changing the AST-FILE of nodes.  The recommended fix is to
 ;;;  to make AST-FILE be NIL if the node is in the current file.  The
 ;;;  code below should still work in that case, but it needs to be tested.
+;;;
+;;;  This is also needed to make the i-file slot of nct+ work.
 
 (defmethod ast-includes-in-obj ((obj new-clang) (ast new-clang-ast))
   (let ((*soft* obj)
@@ -355,26 +791,29 @@ on QUAL and DESUGARED slots."))
       (nconc
        (unless (or (not file) (equal tmp-file file))
          (list file))
-       (if-let ((ref (ast-referenced-obj ast)))
-         (if-let ((file (ast-file ref)))
-           (unless (or (not file) (equal file tmp-file))
-             (list file))))
-       (if-let ((type (ast-type ast)))
-         (let ((str (new-clang-type-qual type))
-               (table (name-symbol-table obj)))
-           ;; look up names in str
-           (let ((names (names-in-str str)))
-             (iter (for n in names)
-                   (nconcing
-                    (iter (for v in (gethash n table))
-                          (when v
-                            (nconcing
-                             (ast-include-from-type v tmp-file))))))))))
+       (when-let* ((ref (ast-referenced-obj ast))
+                   (file (ast-file ref)))
+         (unless (equal file tmp-file)
+           (list file)))
+       (when-let* ((type (ast-type ast))
+                   (str (new-clang-type-qual type)))
+         (includes-of-names-in-string obj str)))
       :test #'equal))))
+
+(defun includes-of-names-in-string (obj str)
+  (let ((tmp-file (tmp-file obj))
+        (table (name-symbol-table obj))
+        (names (names-in-str str)))
+    (iter (for n in names)
+          (nconcing
+           (iter (for v in (gethash n table))
+                 (when v
+                   (nconcing
+                    (ast-include-from-type v tmp-file))))))))
 
 (defun ast-include-from-type (v tmp-file)
   (when (member (ast-class v) '(:typedef))
-    (let ((file (ast-file v)))
+    (when-let ((file (ast-file v)))
       (unless (equal tmp-file file)
         (list file)))))
 
@@ -390,8 +829,16 @@ on QUAL and DESUGARED slots."))
                  (pushnew f includes :test #'equal))))
     (setf (includes obj) (nreverse includes))))
 
+(defgeneric compute-macros (obj)
+  (:documentation "Fill in the MACROS slot of OBJ"))
+
+(defmethod compute-macros ((obj new-clang))
+  (setf (macros obj) (find-macros-in-children
+                      (ast-children (ast-root obj)))))
+
 (defmethod update-caches ((obj new-clang))
   (call-next-method)
+  (compute-macros obj)
   (compute-includes obj)
   obj)
 
@@ -440,7 +887,7 @@ on various ast classes"))
 
 (defun ast-types*-on-decl (ast)
   (when-let ((type (ast-attr ast :type)))
-    (list type)))
+    (list (make-nct+ type (ast-attr ast :storageclass) ast))))
 
 (defmethod ast-types* ((ast new-clang-ast) (ast-class (eql :ParmVar)))
   (ast-types*-on-decl ast))
@@ -455,12 +902,29 @@ on various ast classes"))
      #'string<
      :key #'type-name)))
 
+(defmethod ast-types* ((ast new-clang-ast) (ast-class (eql :Macroexpansion)))
+  (let ((nodes (remove ast (ast-nodes-in-subtree ast)))
+        (old-child-segment (mapcan #'ast-nodes-in-subtree
+                                   (ast-attr ast :old-child-segment))))
+    (sort
+     (reduce #'union (mapcar #'ast-types (append nodes old-child-segment))
+             :initial-value nil)
+     #'string<
+     :key #'type-name)))
+
+(defmethod ast-types* ((ast new-clang-ast) (ast-class (eql :UnaryExprOrTypeTraitExpr)))
+  (let ((argtype (ast-attr ast :argtype))
+        (types (ast-types*-on-decl ast)))
+    (if argtype
+        (adjoin (make-nct+ argtype nil ast) types)
+        types)))
+
 (defmethod ast-types* ((ast new-clang-ast) (ast-class (eql :Typedef)))
   (ast-types*-on-decl ast))
 
 (defmethod ast-types* ((ast new-clang-ast) (ast-class symbol))
   (case ast-class
-    ((:UnaryExprOrTypeTraitExpr
+    ((;; :UnaryExprOrTypeTraitExpr
       :CstyleCastExpr
       :CXXFunctionalCastExpr
       :CXXReinterpretCastExpr)
@@ -544,6 +1008,21 @@ in the macro defn, EXPANSION-LOC is at the macro use."
          (new-clang-macro-loc-expansion-loc loc))
      macro?))
   (:method (obj macro?) nil))
+
+(defgeneric remove-ast-file (ast file)
+  (:documentation "Removes mentions of FILE from locations in the
+range attribute of AST"))
+(defmethod remove-ast-file ((ast new-clang-ast) file)
+  (remove-ast-file (ast-attr ast :range) file))
+(defmethod remove-ast-file ((r new-clang-range) file)
+  (remove-ast-file (new-clang-range-begin r) file)
+  (remove-ast-file (new-clang-range-end r) file))
+(defmethod remove-ast-file ((loc new-clang-loc) file)
+  (when (equal (new-clang-loc-file loc) file)
+    (setf (new-clang-loc-file loc) nil)))
+(defmethod remove-ast-file ((macro-loc new-clang-macro-loc) file)
+  (remove-ast-file (new-clang-macro-loc-spelling-loc macro-loc) file)
+  (remove-ast-file (new-clang-macro-loc-expansion-loc macro-loc) file))
 
 (defun json-kind-to-keyword (json-kind)
   (when (stringp json-kind)
@@ -794,7 +1273,7 @@ on json-kind-symbol when special subclasses are wanted."))
 (defmethod j2ck :around (json json-kind-symbol)
   (when-let ((obj (call-next-method)))
     (let ((id (new-clang-ast-id obj)))
-      (when (and id (ast-attr obj :loc))
+      (when (ast-attr obj :loc)
         (push obj (gethash id (symbol-table *soft*)))))
     obj))
 
@@ -905,6 +1384,30 @@ NIL indicates no value."))
     ((equal value "union") :union)
     (t (call-next-method))))
 
+(defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :storageClass)) value)
+  (cond
+    ((equal value "static") :static)
+    ((equal value "extern") :extern)
+    ((equal value "register") :register)
+    (t (call-next-method))))
+
+(defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :valueCategory)) (value string))
+  (cond
+    ((equal value "rvalue") :rvalue)
+    ((equal value "lvalue") :lvalue)
+    (t (intern (string-upcase value) :keyword))))
+
+(defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :castKind)) (value string))
+  (cond
+    ((equal value "LValueToRValue") :LValueToRValue)
+    ((equal value "FunctionToPointerDecay") :FunctionToPointerDecay)
+    ((equal value "NullToPointer") :NullToPointer)
+    ((equal value "ArrayToPointerDecay") :ArrayToPointerDecay)
+    ((equal value "BitCast") :BitCast)
+    ((equal value "IntegralCase") :IntegralCast)
+    ((equal value "NoOp") :NoOp)
+    (t (intern (string-upcase value) :keyword))))
+
 ;; More conversions
 
 (defun convert-loc-json (loc-json)
@@ -952,6 +1455,13 @@ NIL indicates no value."))
   (intern (string-upcase value) :keyword))
 
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :type)) (value list))
+  (convert-type-slot-value obj slot value))
+
+(defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :argtype)) (value list))
+  (convert-type-slot-value obj slot value))
+
+(defun convert-type-slot-value (obj slot value)
+  (declare (ignore obj slot))
   (let ((qual-type (aget :qualtype value))
         (desugared-qual-type (aget :desugaredqualtype value)))
     ;; These should be strings, but convert anyway to canonicalize them
@@ -1144,17 +1654,21 @@ actual source file"))
                                                  :text (format nil "~a core dump with ~d, ~s"
                                                                cbin exit stderr)
                                                  :obj obj)))
-                              (unless (zerop exit)
-                                (error
-                                 (make-condition 'mutate
-                                                 :text (format nil "~a exit ~d~%cmd:~s~%stderr:~s"
-                                                               cbin exit
-                                                               (format nil cmd-fmt
-                                                                       cbin
-                                                                       (flags obj)
-                                                                       src-file)
-                                                               stderr)
-                                                 :obj obj)))
+                              (restart-case
+                                  (unless (zerop exit)
+                                    (error
+                                     (make-condition 'mutate
+                                                     :text (format nil "~a exit ~d~%cmd:~s~%stderr:~s"
+                                                                   cbin exit
+                                                                   (format nil cmd-fmt
+                                                                           cbin
+                                                                           (flags obj)
+                                                                           src-file)
+                                                                   stderr)
+                                                     :obj obj)))
+                                (keep-partial-asts ()
+                                  :report "Ignore error retaining partial ASTs for software object."
+                                  nil))
                               (values (let ((*read-default-float-format* 'long-float)
                                             (json:*json-identifier-name-to-lisp* #'string-upcase))
                                         (decode-json-from-string stdout))
@@ -1307,8 +1821,8 @@ actual source file"))
   (let ((end (new-clang-range-end obj)))
     (values (begin-offset obj)
             (when end
-              (if-let ((end-offset (offset end))
-                       (tok-len (tok-len end)))
+              (when-let ((end-offset (offset end))
+                         (tok-len (tok-len end)))
                 (+ end-offset tok-len))))))
 (defmethod begin-and-end-offsets ((obj null)) (values nil nil))
 
@@ -1461,7 +1975,7 @@ in a CXXOperatorCallExpr node.")
   (map-ast ast (lambda (a) (fix-overlapping-vardecls-at-node sw a))))
 
 (defun fix-overlapping-vardecls-at-node (sw ast)
-  "Separate consecutive, overlapping :VAR nodes so their
+  "Separate consecutive, overlapping :VAR and :FIELD nodes so their
 text ranges in the source do not overlap, if possible."
   ;; This does not exactly reproduce what the old clang
   ;; front end was doing.  There, the Var nodes were children of
@@ -1469,7 +1983,7 @@ text ranges in the source do not overlap, if possible."
   (let ((child-asts (ast-children ast)))
     (let (prev pos)
       (when (and (ast-p (car child-asts))
-                 (eql (ast-class (car child-asts)) :var))
+                 (member (ast-class (car child-asts)) '(:var :field)))
         (setf prev (car child-asts))
         (setf pos (begin-offset prev))
         #+debug-fix-vardecl (format t "Starting var: name = ~a~%" (ast-name prev)))
@@ -1479,7 +1993,7 @@ text ranges in the source do not overlap, if possible."
         (if (ast-p c)
             (let ((next-pos (begin-offset c))
                   (end (end-offset c)))
-              (if (eql (ast-class c) :var)
+              (if (member (ast-class c) '(:var :field))
                   (progn
                     #+debug-fix-vardecl
                     (progn
@@ -1621,6 +2135,17 @@ ranges into 'combined' nodes.  Warn when this happens."
              #+cos-debug (format t "Leave %check on ~a~%" a)))
       (map-ast ast #'%check))))
 
+(defgeneric record-typedef-decls (obj ast)
+  (:method ((obj new-clang) (ast new-clang-ast))
+    (declare (ignore obj))
+    (map-ast ast #'record-typedef-decl)))
+
+(defgeneric record-typedef-decl (ast)
+  (:method ((ast new-clang-ast))
+    (when (eql (ast-class ast) :Typedef)
+      (when-let ((type (ast-type ast)))
+        (setf (new-clang-typedef type) ast)))))
+
 (defmethod update-asts ((obj new-clang))
   ;; Port of this method from clang.lsp, for new class
   (let ((*soft* obj))
@@ -1651,6 +2176,7 @@ ranges into 'combined' nodes.  Warn when this happens."
                      (push a (gethash (ast-name a)
                                       (name-symbol-table obj))))))
                (symbol-table obj))
+              (record-typedef-decls obj raw-ast)
               (let ((ast (remove-non-program-asts raw-ast tmp-file)))
                 (%debug 'remove-non-program-asts ast)
                 (remove-asts-in-classes
@@ -1699,7 +2225,7 @@ line currently being processed.  The nodes are marked with attribute
   (let* ((range (ast-attr a :range))
          (begin (and range (new-clang-range-begin range)))
          (end (and range (new-clang-range-end range))))
-    ;; (format t "range = ~a, begin = ~a, end = ~a~%" range begin end)
+    #+mme-debug (format t "range = ~a,~%begin = ~a,~%end = ~a~%" range begin end)
     (cond
       ((and (typep begin 'new-clang-macro-loc)
             (typep end 'new-clang-macro-loc)
@@ -1707,24 +2233,36 @@ line currently being processed.  The nodes are marked with attribute
                            (progn (format t "isMacroArgExpansion is false~%")
                                   t))
                 (and (not (equal file (ast-file a t)))
-                     (progn ;; (format t "file = ~a, (ast-file a t) = ~a~%" file (ast-file a t))
-                       t))
-                (and (< (new-clang-loc-line (new-clang-macro-loc-spelling-loc begin))
-                        *current-line*)
-                     (progn #+nil
-                            (format t "(new-clang-loc-line (new-clang-macro-loc-spelling-loc begin)) = ~a, *current-line* = ~a~%"
-                                    (new-clang-loc-line (new-clang-macro-loc-spelling-loc begin))
-                                    *current-line*)
-                            t))))
+                     (progn #+mme-debug (format t "file = ~a, (ast-file a t) = ~a~%" file (ast-file a t))
+                            t))
+                ;; This detect if there is stuff here from the macro which must
+                ;; be at an earlier line.  However, it didn't detect the case
+                ;; of an identity macro, which introduces nothing new.  Added
+                ;; a case where lines are the same but the columns detect
+                ;; macro expansion
+                (let* ((slb (new-clang-macro-loc-spelling-loc begin))
+                       (spelling-line (new-clang-loc-line slb)))
+                  (and (or (< spelling-line  *current-line*)
+                           (and (= spelling-line *current-line*)
+                                (> (new-clang-loc-col slb)
+                                   (new-clang-loc-col
+                                    (new-clang-macro-loc-expansion-loc begin)))
+                                ;; Mark the node so we know it was a direct macro arg
+                                (setf (ast-attr a :direct-macro-arg) t)))
+                       (progn #+mme-debug
+                              (format t "(new-clang-loc-line (new-clang-macro-loc-spelling-loc begin)) = ~a, *current-line* = ~a~%"
+                                      (new-clang-loc-line (new-clang-macro-loc-spelling-loc begin))
+                                      *current-line*)
+                              t)))))
        ;; It's from a macro, mark it
-       ;; (format t "Marking: ~a~%" a)
+       #+mme-debug (format t "Marking: ~a~%" a)
        (setf (ast-attr a :from-macro) t))
       ((typep begin 'new-clang-loc)
        (setf *current-line* (max *current-line* (or (new-clang-loc-line begin) 0))))
       ((typep begin 'new-clang-macro-loc)
-       (if-let ((spelling-loc (new-clang-macro-loc-spelling-loc begin)))
-         (if-let ((begin-line (new-clang-loc-line spelling-loc)))
-           (setf *current-line* (max *current-line* begin-line))))))))
+       (when-let* ((spelling-loc (new-clang-macro-loc-spelling-loc begin))
+                   (begin-line (new-clang-loc-line spelling-loc)))
+         (setf *current-line* (max *current-line* begin-line)))))))
 
 (defun encapsulate-macro-expansions (a)
   "Given an AST marked with :from-macro annotations, collapse macros into macro
@@ -1781,13 +2319,14 @@ nodes."
                           (while (is-macro-expansion-node (car children))))))
                     (let ((macro-args (macro-expansion-arg-asts
                                        macro-child-segment)))
-                      ;; (format t "Create :MACROEXPANSION node with children ~a~%" macro-args)
+                      #+mme-debug (format t "Create :MACROEXPANSION node with children ~a~%" macro-args)
                       (let ((obj (make-new-clang-ast
                                   :class :macroexpansion
                                   :children macro-args)))
                         (setf (ast-range obj)
                               (macro-range-to-non-macro-range/expansion
                                (ast-range (car macro-child-segment)))
+                              (ast-attr obj :macro-child-segment) macro-child-segment
                               changed? t)
                         obj))))))))
       (when changed?
@@ -1807,7 +2346,11 @@ They, from left to right, become the children of the macro node."
                      (mapc #'%traverse (ast-children x))
                      (push x children)))))
       (dolist (a asts)
-        (mapc #'%traverse (ast-children a))))
+        (if (ast-attr a :direct-macro-arg)
+            (progn
+              (setf (ast-attr a :from-macro) nil)
+              (push a children))
+            (mapc #'%traverse (ast-children a)))))
     (nreverse children)))
 
 
