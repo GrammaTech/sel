@@ -544,7 +544,7 @@ instrumentation of function exit.
 "
   (search +instrument-log-variable-name+ (genome clang)))
 
-(defmethod instrument ((obj clang) &rest args)
+(defmethod instrument ((obj clang-base) &rest args)
   "Instrumentation for clang software objects.
 Creates a CLANG-INSTRUMENTER for OBJ and calls its instrument method.
 
@@ -1008,7 +1008,7 @@ Returns a list of strings containing C source code."))
                   (remove-if #'null)))))))
 
 (defmethod var-instrument
-  (key (instrumenter clang-instrumenter) (ast clang-ast) &key print-strings)
+    (key (instrumenter clang-instrumenter) (ast clang-ast-base) &key print-strings)
   "Generate ASTs for variable instrumentation.
 * KEY a function used to pull the variable list out of AST
 * INSTRUMENTER current instrumentation state
@@ -1054,7 +1054,7 @@ OBJ a clang software object
 * ENV-NAME environment variable from which to read the trace output file
 * CONTAINS-ENTRY does this object contain the entry point?
 "
-  (assert (typep obj 'clang))
+  (assert (typep obj 'clang-base))
 
   (labels ((file-open-str ()
              ;; Open the file at FILE-NAME or in the environment variable
