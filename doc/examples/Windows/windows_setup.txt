@@ -1,0 +1,69 @@
+Windows VM in VirtualBox
+
+This is an example of a Windows OS install which can be used to build
+and run SEL. It is a work in progress.
+
+================================================
+OS Installation
+Install Windows 10 Pro (64-bit). 8 gigs memory, 2 cores, 80 gb hard drive
+Install VirtualBox guest tools for Windows.
+Install SNMP: The GT setup guide instructions no longer work on Windows 10.
+In Powershell (Run as Administrator):
+  Add-WindowsCapability -Online -Name "SNMP.Client~~~~0.0.1.0"
+
+================================================
+Utilities
+Install Chrome browser, make it default browser for Windows.
+Install Git for 64-bit Windows. Accept all defaults.
+Install 7-zip. https://www.7-zip.org/
+Install gnu emacs 26.1 for Windows 64-bit.
+
+================================================
+Common Lisp (CCL)
+Install Clozure CL. https://ccl.clozure.com
+Install quicklisp: quicklisp.org
+Install slime (using CCL instructions: https://trac.clozure.com/ccl/wiki/InstallingSlime)
+In ccl:
+(ql:quickload :asdf)  ; to upgrade version of asdf to 3.3.x, needed for LAUNCH-PROGRAM support
+
+================================================
+Install SEL
+Clone SEL library:
+  git clone git@git.grammatech.com:synthesis/sel.git
+
+================================================
+Install Windows Development Software
+Install Windows 10 SDK:
+https://developer.microsoft.com/en-us/windows/downloads/windows-10-sdk
+
+Visual Studio:
+Install Visual Studio Community Edition 2019
+https://visualstudio.microsoft.com/vs/
+
+Make sure to include C and C++ support in the installation options.
+
+================================================
+Install clang/LLVM 10.0:
+Install Windows 64-bit pre-built binary.
+
+Found it in a snapshot release here: https://llvm.org/builds
+(it is still pre-release)
+
+================================================
+Optional: Install WSL for Linux/bash shell.
+This is not required but a useful enhancement.
+
+In Windows Features control panel:
+Enable Windows Subsystem for Linux (WSL). Restart.
+Go to Microsoft App Store: Install Ubuntu 18.04
+After install, launch it (this will finish the install process)
+Create a user/password.
+sudo apt-get install update
+sudo apt-get install upgrade
+
+Create a shared folder (to access the linux host)
+Assuming shared folder is drive z:, mount it:
+sudo mkdir /mnt/z
+sudo mount -t drvfs Z: /mnt/z
+===============================================
+

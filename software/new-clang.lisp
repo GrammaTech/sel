@@ -69,6 +69,7 @@
 (declaim (special *soft*))
 (declaim (special *canonical-string-table* *current-line*))
 
+#-windows
 (defun get-clang-default-includes ()
   "Retrieve the paths on the default clang system include search path."
   (when (which "clang")
@@ -85,6 +86,25 @@
                                                     (mapcar [#'namestring
                                                              #'ensure-directory-pathname
                                                              #'canonical-pathname])))))))
+#+windows
+(defun get-clang-default-includes ()
+  "Retrieve the paths on the default clang system include search path."
+  (when (which "clang-cl.exe")
+    (with-temp-file-of (bin "cpp") ""
+                       (multiple-value-bind (stdout stderr exit)
+                           (shell "clang-cl.exe -v ~a" bin)
+                         (declare (ignorable stdout exit))
+                         (register-groups-bind (include-search-paths)
+                                               ("(?s)include <...> search starts here:(.*)End of search list"
+                                                stderr)
+                                               (remove ""
+                                                       (->> (split-sequence #\Newline include-search-paths
+                                                                            :remove-empty-subseqs t)
+                                                            (mapcar #'trim-whitespace)
+                                                            (mapcar [#'namestring
+                                                                     #'ensure-directory-pathname
+                                                                     #'canonical-pathname]))
+                                                       :test 'equal))))))
 
 (defvar *clang-default-includes* (get-clang-default-includes)
   "List of paths representing the default clang system includes search path.
@@ -375,7 +395,10 @@ macro objects from these, returning a list."
 
 ;; This is DEFVAR so I can set the var and reload this file
 ;; without losing that value, which is useful for debugging.
-(defvar *new-clang?* nil "When true, use NEW-CLANG instead of CLANG")
+(defvar *new-clang?*
+  #-windows nil
+  #+windows t
+  "When true, use NEW-CLANG instead of CLANG")
 
 ;;; TODO: determine which structure fields should be read-only
 

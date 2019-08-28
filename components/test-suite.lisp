@@ -9,7 +9,7 @@
         :iterate
         :software-evolution-library
         :software-evolution-library/utility)
-  (:shadowing-import-from :uiop :wait-process)
+  #-windows (:shadowing-import-from :uiop :wait-process)
   (:export :*process-sleep-interval*
            :*process-kill-timeout*
            :test-suite
@@ -20,6 +20,8 @@
            :start-test
            :finish-test
            :run-test))
+;; dummy definition for Windows
+#+windows (defun uiop::wait-process (x) 0)
 (in-package :software-evolution-library/components/test-suite)
 (in-readtable :curry-compose-reader-macros)
 
@@ -137,6 +139,7 @@ Some EXTRA-KEYS that may be useful are:
       (when *shell-debug*
         (format t "  cmd: ~{~a ~}~%" real-cmd))
 
+      #-windows
       (make-instance
        'process
        :os-process

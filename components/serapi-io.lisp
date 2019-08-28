@@ -181,6 +181,7 @@ See `insert-reset-point'.")
 (defun make-serapi (&optional (program *sertop-path*) (args *sertop-args*))
   "Start up SerAPI and return a PROCESS object to interact with."
   (note 3 "Creating new serapi instance.")
+  #-windows
   (make-instance 'serapi-process
                  :os-process
                  (apply #'uiop:launch-program (cons program args)

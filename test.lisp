@@ -15,20 +15,20 @@
    :cl-store
    :snooze
    :clack
-   :drakma
+   #-windows :drakma
    #+gt :testbot
-   :trace-db
+   #-windows :trace-db
    :uiop
    ;; TODO: Remove those which aren't actually needed for testing.
    :software-evolution-library
    :software-evolution-library/utility
    :software-evolution-library/command-line
-   :software-evolution-library/command-line-rest
-   :software-evolution-library/rest
+   #-windows :software-evolution-library/command-line-rest
+   #-windows :software-evolution-library/rest
    :software-evolution-library/components/instrument
-   :software-evolution-library/components/clang-instrument
+   #-windows :software-evolution-library/components/clang-instrument
    :software-evolution-library/components/clang-tokens
-   :software-evolution-library/components/condition-synthesis
+   #-windows :software-evolution-library/components/condition-synthesis
    :software-evolution-library/components/fault-loc
    :software-evolution-library/components/fix-compilation
    :software-evolution-library/components/fodder-database
@@ -41,9 +41,9 @@
    :software-evolution-library/components/multi-objective
    :software-evolution-library/components/pliny-fodder-database
    :software-evolution-library/components/searchable
-   :software-evolution-library/components/serapi-io
+   #-windows :software-evolution-library/components/serapi-io
    :software-evolution-library/components/test-suite
-   :software-evolution-library/components/traceable
+   #-windows :software-evolution-library/components/traceable
    :software-evolution-library/software/adaptive-mutation
    :software-evolution-library/software/ancestral
    :software-evolution-library/software/asm
@@ -61,7 +61,7 @@
    :software-evolution-library/software/clang-w-fodder
    :software-evolution-library/software/coq
    :software-evolution-library/software/coq-project
-   :software-evolution-library/software/csurf-asm
+   #-windows  :software-evolution-library/software/csurf-asm
    :software-evolution-library/software/diff
    :software-evolution-library/software/elf
    :software-evolution-library/software/elf-cisc
@@ -84,8 +84,8 @@
    :software-evolution-library/software/styleable
    :software-evolution-library/software/with-exe
    :software-evolution-library/stefil-plus)
-  (:import-from :hunchentoot)
-  (:import-from :osicat :file-permissions :pathname-as-directory)
+  #-windows (:import-from :hunchentoot)
+  #-windows (:import-from :osicat :file-permissions :pathname-as-directory)
   ;; Shadow DEFTEST for control of clang/new-clang in tests
   (:shadow :deftest)
   (:shadowing-import-from :common-lisp :type)
@@ -96,7 +96,7 @@
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:shadowing-import-from :uiop :getenv :quit :parameter-error)
+  (:shadowing-import-from :uiop :getenv :quit #-windows :parameter-error )
   (:shadowing-import-from
    :alexandria
    :appendf :ensure-list :featurep :emptyp
@@ -179,6 +179,7 @@
 (defvar *rest-client*  nil "Client-id (cid) for REST API test client.")
 (defvar *clack-delay* 0.5 "Seconds to delay after starting server")
 
+#-windows
 (defun initialize-clack ()
   (let ((tries 0))
     (handler-bind
@@ -805,10 +806,12 @@
 
   (:teardown (setf *soft* nil)))
 
+#-windows
 (defixture rest-server
   (:setup (unless *clack* (setf *clack* (initialize-clack))))
   (:teardown (clack:stop *clack*)(setf *clack* nil)(setf *rest-client* nil)))
 
+#-windows
 (let (old-standard-out old-error-out)
   (defixture fact-rest-server
     (:setup
@@ -860,11 +863,22 @@
   (:teardown
    (setf *binary-search* nil)))
 
+#-windows
 (defixture gcd-clang
   (:setup
    (setf *gcd*
          (from-file (make-clang :compiler "clang")
                     (gcd-dir "gcd.c"))))
+  (:teardown
+   (setf *gcd* nil)))
+
+#+windows
+(defixture gcd-clang
+  (:setup
+   (setf *gcd*
+         (from-file (make-clang :compiler "clang")
+                    (gcd-dir "gcd.windows.c")))
+   (setf (sel/sw/new-clang::include-dirs *gcd*)(split ";" (uiop:getenv "INCLUDE"))))
   (:teardown
    (setf *gcd* nil)))
 
@@ -1479,7 +1493,7 @@ of the same length"
 
 
 ;;; ASM representation.
-(defsuite asm-tests "ASM representation.")
+(defsuite asm-tests "ASM representation." #+windows nil)
 
 (deftest simple-read ()
   (with-fixture gcd-asm
@@ -2012,8 +2026,10 @@ of the same length"
 
 
 ;;; REST tests
+#-windows
 (defsuite rest-tests "REST API tests.")
 
+#-windows
 (defun rest-test-create-client ()
   "Returns 2 values: new client id or nil, and status.
  Assumes service is running."
@@ -2032,6 +2048,7 @@ of the same length"
 	    (setf result (symbol-name result)))
 	(values result status))))
 
+#-windows
 (defun rest-test-create-software (type cid)
   "Given type of Software object and client-id, returns 2
  values: new software oid or nil, and status.
@@ -2057,7 +2074,7 @@ of the same length"
 	  (setf result (symbol-name result)))
 
       (values result status))))
-
+#-windows
 (defun rest-test-get-new-client ()
   "Always creates a new REST client and returns (1) new client id,
  (2) http status code. The new client id is stored in *rest-client*."
@@ -2066,11 +2083,13 @@ of the same length"
     (setf *rest-client* cid) ; store the new client for further tests
     (values cid status)))
 
+#-windows
 (defun rest-test-get-client ()
   "If REST client already has been created, return it.
  Else, create one and return the client id (cid)."
   (or *rest-client* (rest-test-get-new-client)))
 
+#-windows
 (deftest (rest-create-client :long-running) ()
   ;; test ensures the web service is running and it can create a new client,
   ;; tests Create Client (HTTP POST) method.
@@ -2080,6 +2099,7 @@ of the same length"
       (is (stringp cid))
       (is (string-equal (subseq cid 0 7) "client-")))))
 
+#-windows
 (deftest (rest-create-software :long-running) ()
   ;; test ensures the web service is running and it can create a new software
   ;; object. Tests Create Software (HTTP POST) method.
@@ -2091,6 +2111,7 @@ of the same length"
         (is (eql status 200))
         (is (integerp oid))))))
 
+#-windows
 (define-async-job four-types-1
     ((a integer) (b string) (c float) (d boolean))
   "Test that the four supported types can be passed via REST."
@@ -2100,6 +2121,7 @@ of the same length"
           (type-of c) c
           (type-of d) d))
 
+#-windows
 (deftest run-async-job-func ()
   (let ((result
          (sel/rest:apply-async-job-func 'four-types-1 10 "twenty" 30.1 t)))
@@ -2108,6 +2130,7 @@ of the same length"
     (is (search "30.1" result))
     (is (search " T" result))))
 
+#-windows
 (define-command-rest (four-types-2)
     ((a integer) (b string) (c float) (d boolean)
      &spec +common-command-line-options+)
@@ -2120,6 +2143,7 @@ of the same length"
           (type-of c) c
           (type-of d) d))
 
+#-windows
 (deftest run-rest-command-line-func ()
   (let ((result
          (four-types-2 10 "twenty" 30.1 t)))
@@ -2128,6 +2152,7 @@ of the same length"
     (is (search "30.1" result))
     (is (search " T" result))))
 
+#-windows
 (define-command-rest (fact-entry-cl)
     ((n integer) &spec +common-command-line-options+)
   "Test that canonical REST endpoints work. Computes factorial."
@@ -2140,11 +2165,13 @@ of the same length"
       (show-help-for-fact-entry-cl)
       (factorial n)))
 
+#-windows
 (deftest (run-rest-factorial-cl-func :long-running) ()
   (let ((*standard-output* (make-broadcast-stream)))
     (is (eql (fact-entry-cl 5 :verbose 3) 120))
     (is (eql (fact-entry-cl 52235215 :help T) nil))))
 
+#-windows
 (deftest (run-rest-factorial-cl-func-2 :long-running) ()
   (with-fixture fact-rest-server
     (let ((*standard-output* (make-broadcast-stream)))
@@ -2153,6 +2180,7 @@ of the same length"
       (is (eql (funcall (symbol-function 'fact-entry) 5 :verbose 3) 120))
       (is (eql (funcall (symbol-function 'fact-entry) 52235215 :help T) nil)))))
 
+#-windows
 (defun rest-endpoint-test-create-fact-job (client-id json-input)
   "Returns new job name or nil.
  Assumes service is running."
@@ -2168,6 +2196,7 @@ of the same length"
         (read stream)
         (format nil "Status code ~A" status))))
 
+#-windows
 (deftest (run-rest-factorial-remote-1 :long-running) ()
   (with-fixture fact-rest-server
     (multiple-value-bind (cid status) (rest-test-get-new-client)
@@ -2179,6 +2208,7 @@ of the same length"
         (is (stringp result))
         (is (starts-with-subseq "REST-FACT-ENTRY" result))))))
 
+#-windows
 (deftest (run-rest-factorial-remote-2 :long-running) ()
   (with-fixture fact-rest-server
     (multiple-value-bind (cid status) (rest-test-get-new-client)
@@ -2194,7 +2224,9 @@ of the same length"
 
 
 ;;; CSURF-ASM representation.
-(defsuite csurf-asm-tests "CSURF-ASM representation.")
+#-windows
+(progn
+  (defsuite csurf-asm-tests "CSURF-ASM representation." #+windows nil)
 
 (deftest dynamic-linker-path-has-been-set ()
   (is *dynamic-linker-path* "Ensure `*dynamic-linker-path*' has been set."))
@@ -2251,7 +2283,7 @@ of the same length"
             (phenome *soft* :bin bin))
         (is (zerop errno) "Calc compilation successful.")
         (is (= 4 (parse-number (shell "~a + 2 2" bin)))
-            "Calc executable is executable and functional.")))))
+            "Calc executable is executable and functional."))))))
 
 
 ;;;
@@ -2435,6 +2467,9 @@ of the same length"
 
 ;;; Clang representation.
 (defun clang-mutate-available-p ()
+  #+windows
+  nil
+  #-windows
   (zerop (nth-value 2 (shell "which clang-mutate"))))
 
 (defsuite clang-tests "Clang representation." (clang-mutate-available-p))
@@ -4442,11 +4477,14 @@ int x = CHARSIZE;")))
 
 
 ;;;; Javascript project.
+
+#-windows
+(progn
 (defun npm-available-p ()
   (which "npm"))
 
 (defsuite javascript-project-tests "Javascript project."
-  (npm-available-p))
+  #-windows (npm-available-p) #+windows nil)
 
 (deftest (can-parse-a-javascript-project :long-running) ()
   (with-fixture fib-project-javascript
@@ -4510,7 +4548,7 @@ int x = CHARSIZE;")))
                                               #("b" "number" 0 nil)
                                               #("a" "number" 1 nil)
                                               #("num" "number" 1 nil)))
-                  (nth 11 (aget :trace (get-trace (traces instrumented) 0))))))))
+                  (nth 11 (aget :trace (get-trace (traces instrumented) 0)))))))))
 
 
 ;;;; Range representation.
@@ -4828,6 +4866,8 @@ int x = CHARSIZE;")))
 
 
 ;;; CSURF-ASM ancestry tests.
+#-windows
+(progn
 (defsuite csurf-asm-ancestry "Ancestry tests.")
 
 
@@ -4862,7 +4902,7 @@ int x = CHARSIZE;")))
 
       (is (= 0 (plist-get :id (second (ancestors *soft*)))))
       (is (equal 'from-file
-                 (plist-get :how (second (ancestors *soft*))))))))
+                 (plist-get :how (second (ancestors *soft*)))))))))
 
 
 ;;;; Diff tests.
@@ -7911,8 +7951,9 @@ prints unique counters in the trace"
 
 (deftest which-test ()
   (is (null (which "dsjafpoarue")))
-  (is (not (null (which "ls")))))
+  (is (not (null (which #-windows "ls" #+windows "cmd.exe")))))
 
+#-windows
 (deftest shell-directory-test ()
   (multiple-value-bind (stdout stderr errno)
       (shell "pwd" :directory "/tmp/")
@@ -7920,6 +7961,23 @@ prints unique counters in the trace"
     (is (equal "" stderr))
     (is (zerop errno))))
 
+#+windows
+(deftest shell-directory-test ()
+  (let* ((temp-file (pathname (sel/utility:temp-file-name)))
+         (temp-dir (make-pathname :directory (pathname-directory temp-file)
+                                  :device (pathname-device temp-file))))
+    (multiple-value-bind (stdout stderr errno)
+        (shell "chdir" :directory (namestring temp-dir))
+      (let ((dir (sel/utility:trim-whitespace stdout)))
+        ;; append slash at end if necessary to make it a directory
+        (unless (or (char= (char dir (1- (length dir))) #\\)
+                    (char= (char dir (1- (length dir))) #\/))
+          (setf dir (concatenate 'string dir "/")))
+        (is (equal temp-dir (pathname dir))) ; compare pathnames
+        (is (equal "" stderr))
+        (is (zerop errno))))))
+
+#-windows ; IO-SHELL not yet supported on Windows
 (deftest (read-and-write-shell-files :long-running) ()
   (let ((test-string "Hello world. Hello world. Hello world."))
     (is (nest
@@ -7936,6 +7994,7 @@ prints unique counters in the trace"
                          (read-line in))))
            (error (c) (declare (ignorable c)) nil))))))
 
+#-windows
 (deftest (read-and-write-bytes-shell-files :long-running) ()
   (let ((byte #x25))
     (is (nest
@@ -7951,6 +8010,7 @@ prints unique counters in the trace"
                    (read-byte in))))
            (error (c) (declare (ignorable c)) nil))))))
 
+#-windows
 (deftest (cl-store-read-and-write-shell-files :long-running) ()
   (let ((it (make-instance 'software :fitness 37)))
     (is (nest
@@ -7995,6 +8055,8 @@ prints unique counters in the trace"
           (("C" ,(make-pathname :directory +grep-prj-dir+)) 'clang-project)
           (("java" ,(make-pathname :directory +grep-prj-dir+)) 'java-project))))
 
+
+#-windows
 (deftest (create-software-guesses-clang-project :long-running) ()
   (let ((sw (create-software
              (make-pathname :directory +grep-prj-dir+)
@@ -8181,19 +8243,22 @@ prints unique counters in the trace"
 ;;;; Tests that require bear.
 (defsuite bear-tests "Clang representation."
             (lambda () (zerop (nth-value 2 (shell "which bear")))))
-
+#-windows
 (deftest (able-to-create-a-bear-project :long-running) ()
   (with-fixture grep-bear-project
     (is (equal "make grep" (build-command *project*)))
     (is (equalp '("grep") (artifacts *project*)))
     (is (not (zerop (length (genome *project*)))))))
 
+#-windows
 (deftest (able-to-copy-a-bear-project :long-running) ()
   (with-fixture grep-bear-project
     (is (copy *project*)
         "Able to copy a project built with bear.")))
 
 
+#-windows
+(progn
 ;;;; Condition synthesis tests.
 (defsuite condition-synthesis "Condition synthesis tests."
   (clang-mutate-available-p))
@@ -8375,8 +8440,7 @@ prints unique counters in the trace"
                      (->> (get-immediate-children repaired-prog stmt)
                           (first)
                           (source-text)
-                          (peel-bananas)))))))))
-
+                          (peel-bananas))))))))))
 
 
 ;;;; Selection tests.
@@ -10335,6 +10399,8 @@ int main() { puts(\"~d\"); return 0; }
                (mapcar [#'cdr #'fitness] mutants)))))
 
 
+#-windows
+(progn
 ;;; Test SerAPI (low-level Coq interaction)
 (defun serapi-available-p ()
   (set-serapi-paths)
@@ -10828,7 +10894,7 @@ int main() { puts(\"~d\"); return 0; }
       ;; Complete check result2
       (iter (for expected in '("negb" "orb false" "orb true"
                                "orb (negb false)" "orb (negb true)"))
-            (is (member expected result2-strs :test #'equal))))))
+            (is (member expected result2-strs :test #'equal)))))))
 
 ;;; conflict asts
 (defsuite conflict-ast-tests "Conflict ast tests.")
@@ -10967,7 +11033,6 @@ int main() { puts(\"~d\"); return 0; }
   (is (null (cpp-scan "<,>" #'is-comma :angle-brackets t)))
   (is (eql (cpp-scan "," #'is-comma :angle-brackets t) 0))
   (is (eql (cpp-scan "<>," #'is-comma :angle-brackets t) 2)))
-
 (deftest cpp-scan-skip-first ()
   (is (eql (cpp-scan "()(" (lambda (c) (eql c #\())) 0))
   (is (eql (cpp-scan "()(" (lambda (c) (eql c #\()) :skip-first t) 2))

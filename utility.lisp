@@ -52,7 +52,7 @@
    :appendf :ensure-list :featurep :emptyp
    :if-let :ensure-function :ensure-gethash :copy-file
    :parse-body :simple-style-warning)
-  (:shadowing-import-from :osicat :file-permissions :pathname-as-directory)
+  #-windows (:shadowing-import-from :osicat :file-permissions :pathname-as-directory)
   #+sbcl
   (:shadowing-import-from :sb-sprof :call-graph :node-count :call-graph-nsamples
                           :node-name :*samples* :node-callers :trace-start
@@ -289,7 +289,7 @@
    :some-task-pred
    :some-test-task))
 (in-package :software-evolution-library/utility)
-(cffi:load-foreign-library :libosicat)
+#-windows (cffi:load-foreign-library :libosicat)
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun read-preserving-case (stream char n)
     (declare (ignorable char) (ignorable n))
@@ -408,11 +408,19 @@ Return nil if there are no modified, untracked, or deleted files."
     (dir sb-alien:c-string)
     (prefix sb-alien:c-string)))
 
-#+ccl
+#+(and ccl linux)
 (defun tempnam (dir prefix)
   (ccl:with-filename-cstrs ((base dir) (prefix (or prefix "")))
     (ccl:get-foreign-namestring
      (ccl:external-call "tempnam" :address base :address prefix :address))))
+
+#+(and ccl windows)
+(defun tempnam (dir prefix)
+  (ccl:with-filename-cstrs ((base (or dir "")) (prefix (or prefix "")))
+    (ccl:%get-cstring
+     (ccl:external-call "_tempnam" :address
+                        base :address
+                        prefix :address))))
 
 #+ecl
 (defun tempnam (dir &optional prefix)
@@ -586,7 +594,7 @@ After BODY is executed the temporary file is removed."
 (defmacro with-temp-fifo (spec &rest body)
   `(with-temp-file ,spec
      (ensure-temp-file-free ,(car spec))
-     (osicat-posix:mkfifo ,(car spec)
+     #-windows (osicat-posix:mkfifo ,(car spec)
                           (logior osicat-posix:s-iwusr osicat-posix:s-irusr))
      ,@body))
 
@@ -686,6 +694,10 @@ pathname (i.e., ending in a \"/\")."
      :name (pathname-name path)
      :type (pathname-type path)
      :version (pathname-version path))))
+
+#+windows
+(defun pathname-as-directory (pathname)
+  pathname)
 
 (defun directory-p (pathname)
   "Return a directory version of PATHNAME if it indicates a directory."
@@ -1021,7 +1033,7 @@ Optionally print debug information if `*shell-debug*' is non-nil."
           (format t "  input: ~a~%" input)))
 
       ;; Direct shell execution with `uiop/run-program:run-program'.
-      #-ccl
+      #+(and (not ccl) (not windows))
       (progn
         (setf stdout-str (make-array '(0)
                                      :element-type
@@ -1043,7 +1055,16 @@ Optionally print debug information if `*shell-debug*' is non-nil."
                                             :output stdout
                                             :error-output stderr
                                             run-program-arguments))))))
-      #+ccl
+      #+windows
+      (multiple-value-setq (stdout-str stderr-str errno)
+        (apply #'run-program cmd :force-shell nil
+               :ignore-error-status t
+               :input input
+               :output :string
+               :error-output :string
+               run-program-arguments))
+
+      #+(and ccl (not windows))
       (progn
         (with-temp-file (stdout-file)
           (with-temp-file (stderr-file)
@@ -1073,6 +1094,7 @@ Optionally print debug information if `*shell-debug*' is non-nil."
           (ignore-shell-error () "Ignore error and continue")))
       (values stdout-str stderr-str errno))))
 
+#-windows  ; IO-SHELL not yet supported on Windows
 (defmacro io-shell ((io stream-var shell &rest args) &rest body)
   "Executes BODY with STREAM-VAR holding the input or output of SHELL.
 ARGS (including keyword arguments) are passed through to `uiop:launch-program'."
@@ -1259,13 +1281,16 @@ See 'man 3 termios' for more information."
 ;;; Terminal size with CFFI and ioctl.
 ;;; Adapted from:
 ;;; https://github.com/cffi/cffi/blob/master/examples/gettimeofday.lisp
+#-windows
 (defcstruct winsize (row :short) (col :short) (xpixel :short) (ypixel :short))
 
+#-windows
 (define-foreign-type null-pointer-type ()
   ()
   (:actual-type :pointer)
   (:simple-parser null-pointer))
 
+#-windows
 (defgeneric translate-to-foreign (value type)
   (:method (value (type null-pointer-type))
     (cond
@@ -1273,28 +1298,32 @@ See 'man 3 termios' for more information."
       ((null-pointer-p value) value)
       (t (error "~A is not a null pointer." value)))))
 
+#-windows
 (define-foreign-type ioctl-result-type ()
   ()
   (:actual-type :int)
   (:simple-parser ioctl-result))
 
+#-windows
 (define-condition ioctl (error)
   ((ret :initarg :ret :initform nil :reader ret))
   (:report (lambda (condition stream)
              (format stream "IOCTL call failed with return value ~d"
                      (ret condition)))))
-
+#-windows
 (defgeneric translate-from-foreign (value type)
   (:method (value (type ioctl-result-type))
     (if (minusp value)
         (make-condition 'ioctl :ret value)
         value)))
 
+#-windows
 (defcfun ("ioctl" %ioctl) ioctl-result
   (fd :int)
   (request :int)
   (winsz :pointer))
 
+#-windows
 (defun term-size ()
   "Return terminal size information.
 The following are returned as separate values; rows, columns,
@@ -1309,10 +1338,31 @@ SLIME."
 
 
 ;;;; Shell and command line functions.
+#-windows
 (defun which (file &key (path (getenv "PATH")))
   (iterate (for dir in (split-sequence #\: path))
            (let ((fullpath (merge-pathnames file
                                             (make-pathname :directory dir))))
+             (when (probe-file fullpath)
+               (return fullpath)))))
+#+windows
+(defun convert-backslash-to-slash (str)
+  (let ((new (copy-sequence 'string str)))
+    (dotimes (i (length new) new)
+      (if (char= (aref new i) #\\)
+          (setf (aref new i) #\/)))))
+
+#+windows
+(defun ensure-slash (dir)
+  "Make sure the directory name ends with a slash (or backslash)"
+  (if (member (char dir (- (length dir) 1)) (list #\/ #\\))
+      dir
+      (concatenate 'string dir "\\")))
+
+#+windows
+(defun which (file &key (path (convert-backslash-to-slash (getenv "PATH"))))
+  (iterate (for dir in (remove "" (split-sequence #\; path) :test 'equal))
+           (let ((fullpath (merge-pathnames file (ensure-slash dir))))
              (when (probe-file fullpath)
                (return fullpath)))))
 

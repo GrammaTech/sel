@@ -11,7 +11,7 @@
   (:use :common-lisp
         :software-evolution-library
         :software-evolution-library/utility)
-  (:import-from :osicat :file-permissions)
+  #-windows (:import-from :osicat :file-permissions)
   (:export :file))
 (in-package :software-evolution-library/software/file)
 

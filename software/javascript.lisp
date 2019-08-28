@@ -42,7 +42,7 @@
         :software-evolution-library/software/parseable
         :software-evolution-library/components/formatting)
   (:shadowing-import-from :cl-json :decode-json-from-string)
-  (:shadowing-import-from :osicat :file-permissions)
+  #-windows (:shadowing-import-from :osicat :file-permissions)
   (:export :javascript
            :javascript-mutation
            :javascript-ast
