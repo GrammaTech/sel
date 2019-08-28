@@ -2964,8 +2964,8 @@ is not to be found"
              (find-or-add-type *gcd* "char" :pointer t)))))
 
 (deftest var-decl-has-correct-types ()
-  (let ((obj (make-clang
-               :genome "int x = sizeof(int);")))
+  (let* ((obj (make-clang :genome "int x = sizeof(int);"))
+         (*soft* obj))
     ;; A var decl should always directly reference the type of its
     ;; declaration. This is tricky due to the de-aggregating of types
     ;; done by asts->tree.
@@ -2981,8 +2981,9 @@ is not to be found"
 (deftest macro-expansion-has-correct-types ()
   ;; Types inside a macro expansion should be visible. This is trick
   ;; due to the de-aggregating of types done by asts->tree.
-  (let ((obj (make-clang :genome "#define CHARSIZE (sizeof (char))
-int x = CHARSIZE;")))
+  (let* ((obj (make-clang :genome "#define CHARSIZE (sizeof (char))
+int x = CHARSIZE;"))
+         (*soft* obj))
     (is (equalp '("int" "char")
                 (mapcar [#'type-name {find-type obj}]
                         (get-ast-types obj (first (asts obj))))))))
@@ -3582,7 +3583,7 @@ int x = CHARSIZE;")))
         (is (equal "int"      (type-name var-type1)))
         (is (equal "int"      (type-name var-type2)))
         (is (equal "int"      (type-name var-type3)))
-        (is (equal "int*"     (type-name var-type5)))))))
+        (is (equal "int*"     (remove #\Space (type-name var-type5))))))))
 
 (deftest find-var-type-handles-missing-declaration-type ()
   (with-fixture type-of-var-missing-decl-type-clang
@@ -8544,7 +8545,7 @@ prints unique counters in the trace"
            (iter (for keyword in *clang-c-keywords*)
                  (collect
                   (cons (reduce #'+ (mapcar {search-keyword *variety*
-                                                                    keyword}
+                                                            keyword}
                                                (asts *variety*)))
                            keyword)
                    into counts)
@@ -9022,8 +9023,8 @@ prints unique counters in the trace"
                             (get-immediate-children *contexts*)
                             (first))))
       (apply-mutation-ops *contexts*
-                               `((:cut (:stmt1 . ,location)
-                                       (:value1 . ,replacement)))))
+                          `((:cut (:stmt1 . ,location)
+                                  (:value1 . ,replacement)))))
     (is (eq 0 (->> (find-function *contexts* "trailing_semi_with_whitespace")
                    (count-matching-chars-in-stmt #\;))))))
 
