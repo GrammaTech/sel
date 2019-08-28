@@ -4,4 +4,3 @@ struct foo {
 };
 
 struct foo a;
-
