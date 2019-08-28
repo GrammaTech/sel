@@ -60,7 +60,7 @@
     (flet ((%print (a d)
              (let ((class (ast-class a)))
                (dotimes (i d) (format s " "))
-               (format s "~a: ~a~%"
+               (format s "~a: ~s~%"
                        class
                        (funcall val-fn a)))))
       (dump-ast ast #'%print)))
@@ -75,7 +75,7 @@
     (flet ((%print (a p d)
              (let ((class (ast-class a)))
                (dotimes (i d) (format s " "))
-               (format s "~a: ~a~%"
+               (format s "~a: ~s~%"
                        class
                        (funcall val-fn a p)))))
       (dump-ast-with-parent ast #'%print)))
