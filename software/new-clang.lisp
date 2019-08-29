@@ -108,16 +108,16 @@ on which clang was run to get the AST.")
     :accessor type-table
     :copier copy-hash-table
     :type hash-table
-    :documentation "Mapping from qualtype/desugaredType pairs to new-clang-type
-objects.  Used for canonicalization of these objects.")
+    :documentation "Mapping from qualtype/desugaredType pairs to
+new-clang-type objects.  Used for canonicalization of these objects.")
    (include-dirs
     :initarg :include-dirs
     :accessor include-dirs
     :initform nil
     :type list
     :copier :direct
-    :documentation "List of directories that are where include files are searched for
-the -I arguments to the C compiler")
+    :documentation "List of directories that are where include files
+ are searched for the -I arguments to the C compiler")
    (compiler :initform *clang-binary*)
    ;;; NOTE: This will give the same hashs to types from different
    ;;;       source files.  Instead, consider initializing the counter
@@ -127,17 +127,16 @@ the -I arguments to the C compiler")
    (hash-counter :initform 1 :initarg :hash-counter
                  :accessor hash-counter
                  :type integer
-                 :documentation "A counter used to assign hash values to type objects and
-possibly other things"))
+                 :documentation "A counter used to assign hash values to
+ type objects and possibly other things"))
   (:documentation
-   "C language (C, C++, C#, etc...) ASTs using Clang, C language frontend for LLVM.
-   See http://clang.llvm.org/.  This is for ASTs from Clang 9+."))
+   "C language (C, C++, C#, etc...) ASTs using Clang, C language frontend
+   for LLVM.  See http://clang.llvm.org/.  This is for ASTs from Clang 9+."))
 
 ;;; The INCLUDE-DIRS slot should be in normal form
 ;;; Use various methods to ensure this happens
 
-(defmethod initialize-instance :after ((obj new-clang) &rest initargs &key &allow-other-keys)
-  (declare (ignore initargs))
+(defmethod initialize-instance :after ((obj new-clang) &key &allow-other-keys)
   (setf (include-dirs obj) (normalize-include-dirs (include-dirs obj)))
   obj)
 
@@ -285,12 +284,7 @@ macro objects from these, returning a list."
       ;; Skip whitespace
       (iter (while (< pos slen))
             (while (case (elt str pos)
-                     (#.(remove-duplicates
-                         (loop for s in '("Space" "Tab" "Newline" "Return"
-                                          "Linefeed" "Page")
-                            when (name-char s)
-                            collect it))
-                        t)
+                     (#.+whitespace-chars+ t)
                      (t nil)))
             (incf pos))
       ;; get name
@@ -318,8 +312,8 @@ macro objects from these, returning a list."
 
 (defstruct (new-clang-ast (:include clang-ast-base)
                           (:conc-name new-clang-ast-))
-  (path nil :type list)                      ; Path to subtree from root of tree.
-  (children nil :type list)                  ; Remainder of subtree.
+  (path nil :type list)          ;; Path to subtree from root of tree.
+  (children nil :type list)      ;; Remainder of subtree.
   (stored-hash nil :type (or null fixnum))
   ;; Class symbol for this ast node
   (class nil :type symbol)
@@ -471,7 +465,8 @@ that is not strictly speaking about types at all (storage class)."))
                 (unless local?
                   (collecting str))))))))
 
-(defmethod initialize-instance :after ((obj new-clang-type) &key hash &allow-other-keys)
+(defmethod initialize-instance :after ((obj new-clang-type)
+                                       &key hash &allow-other-keys)
   (when (boundp '*soft*)
     (setf (gethash hash (slot-value *soft* 'types)) obj))
   obj)
@@ -560,12 +555,7 @@ that is not strictly speaking about types at all (storage class)."))
          (cond
            ((>= pos strlen) (return))
            ((case (elt str pos)
-              (#.(remove-duplicates
-                  (loop for s in '("Space" "Tab" "Newline" "Return"
-                                   "Linefeed" "Page")
-                     when (name-char s)
-                     collect it))
-                 t)
+              (#.+whitespace-chars+ t)
               (t nil))
             (incf pos))
            ((is-prefix "const") (setf const t))
@@ -592,12 +582,7 @@ that is not strictly speaking about types at all (storage class)."))
          (cond
            ((<= pos 0) (return))
            ((case (elt str (1- pos))
-              (#.(remove-duplicates
-                  (loop for s in '("Space" "Tab" "Newline" "Return"
-                                   "Linefeed" "Page")
-                     when (name-char s)
-                     collect it))
-                 t)
+              (#.+whitespace-chars+ t)
               (t nil))
             (decf pos))
            ((is-suffix "const") (setf const t))
@@ -1902,14 +1887,16 @@ actual source file"))
     (nreverse node-stack)))
 
 (defgeneric compute-operator-positions (sw ast)
-  (:documentation "Compute positions of operators in CXXOperatorCallExpr nodes")
+  (:documentation "Compute positions of operators in
+CXXOperatorCallExpr nodes")
   (:method (sw (ast new-clang-ast))
     (let ((*soft* sw))
       (map-ast ast #'compute-operator-position))))
 
 (defgeneric compute-operator-position (ast)
-  (:documentation "Compute positions of operators at a CXXOperatorCallExpr node.
-Also, normalize postfix operator++/-- to remove dummy arg")
+  (:documentation "Compute positions of operators at a
+CXXOperatorCallExpr node.   Also, normalize postfix operator++/--
+to remove dummy arg")
   (:method ((ast new-clang-ast)) nil)
   (:method ((ast cxx-operator-call-expr))
     (let* ((ac (ast-children ast))
@@ -1919,8 +1906,9 @@ Also, normalize postfix operator++/-- to remove dummy arg")
       ;; it's a postfix operator.  Remove it.
       (when (and (= (length ac) 3)
                  (let ((rds (ast-reference-decls op)))
-                   (or (member "operator++" rds :key #'ast-name :test #'equal)
-                       (member "operator--" rds :key #'ast-name :test #'equal))))
+                   (flet ((%m (s) (member s rds :key #'ast-name
+                                          :test #'equal)))
+                     (or (%m "operator++") (%m "operator--")))))
         (setf ac (setf (ast-children ast) (subseq ac 0 2))))
       ;; Position = # of child asts that are before
       ;; the operator in the source file
@@ -1990,7 +1978,8 @@ in a CXXOperatorCallExpr node.")
   (labels
       ((%assert1 (i cbegin c)
          (assert (>= cbegin i) ()
-                 "Offsets out of order: i = ~a, cbegin = ~a, c = ~a, range = ~a"
+                 "Offsets out of order: i = ~a,~
+ cbegin = ~a, c = ~a, range = ~a"
                  i cbegin c
                  (ast-attr c :range)))
        (%decorate (a)
@@ -2038,10 +2027,12 @@ text ranges in the source do not overlap, if possible."
   (let ((child-asts (ast-children ast)))
     (let (prev pos)
       (when (and (ast-p (car child-asts))
-                 (member (ast-class (car child-asts)) '(:var :field)))
+                 (member (ast-class (car child-asts))
+                         '(:var :field)))
         (setf prev (car child-asts))
         (setf pos (begin-offset prev))
-        #+debug-fix-vardecl (format t "Starting var: name = ~a~%" (ast-name prev)))
+        #+debug-fix-vardecl (format t "Starting var: name = ~a~%"
+                                    (ast-name prev)))
       (do* ((e (cdr child-asts) (cdr e))
             (c (car e) (car e)))
            ((null e))
@@ -2053,22 +2044,25 @@ text ranges in the source do not overlap, if possible."
                     #+debug-fix-vardecl
                     (progn
                       (format t "Next var: name = ~a~%" (ast-name c))
-                      (format t "prev = ~a, pos = ~a, (end-offset prev) = ~a, c = ~a, next-pos = ~a, end = ~a~%"
+                      (format t "prev = ~a, pos = ~a, (end-offset prev)~
+ = ~a, c = ~a, next-pos = ~a, end = ~a~%"
                               prev pos (end-offset prev) c next-pos end))
                     (if prev
                         (if (and next-pos end)
                             (if (< (end-offset prev) next-pos)
                                 ;; things are fine -- no overlap
                                 (progn
-                                  #+debug-fix-vardecl (format t "Fine -- no overlap~%")
+                                  #+debug-fix-vardecl
+                                  (format t "Fine -- no overlap~%")
                                   (setf prev c
                                         pos next-pos))
                                 ;; There is overlap -- find the next
                                 ;; position
-                                (let ((comma-pos (cpp-scan (genome sw)
-                                                           (lambda (c) (eql c #\,))
-                                                           :start pos
-                                                           :end (1+ end))))
+                                (let ((comma-pos
+                                       (cpp-scan (genome sw)
+                                                 (lambda (c) (eql c #\,))
+                                                 :start pos
+                                                 :end (1+ end))))
                                   #+debug-fix-vardecl (format t "Overlap~%")
                                   (if comma-pos
                                       (setf pos (1+ comma-pos)
@@ -2108,7 +2102,8 @@ of the ranges of its children"
                              (setf max-end cend)))))
                  (unless (and (eql min-begin begin)
                               (eql max-end end))
-                   ;; (format t "Expanding range of ~a from (~a,~a) to (~a,~a)~%" a begin end min-begin max-end)
+                   ;; (format t "Expanding range of ~a from (~a,~a)
+                   ;; to (~a,~a)~%" a begin end min-begin max-end)
                    (setf changed? t)
                    (setf (ast-attr a :range)
                          (make-new-clang-range :begin min-begin
@@ -2137,12 +2132,15 @@ ranges into 'combined' nodes.  Warn when this happens."
                           (0)
                           (1 (list (pop accumulator)))
                           (t
-                           (let ((new-begin (reduce #'min accumulator :key #'begin-offset))
-                                 (new-end (reduce #'max accumulator :key #'extended-end-offset)))
+                           (let ((new-begin (reduce #'min accumulator
+                                                    :key #'begin-offset))
+                                 (new-end (reduce #'max accumulator
+                                                  :key #'extended-end-offset)))
                              (prog1
                                  (if (eql new-begin new-end)
                                      (progn
-                                       #+cos-debug (format t "No combination needed~&")
+                                       #+cos-debug
+                                       (format t "No combination needed~&")
                                        accumulator)
                                      (progn
                                        (setf changed? t)
@@ -2170,22 +2168,26 @@ ranges into 'combined' nodes.  Warn when this happens."
                                      (progn
                                        #+cos-debug
                                        (when accumulator
-                                         (format t "Adding (~a,~a):~%~a~&" cbegin cend
+                                         (format t "Adding (~a,~a):~%~a~&"
+                                                 cbegin cend
                                                  (subseq genome cbegin cend)))
-                                       (setf accumulator (append accumulator (list c))
+                                       (setf accumulator
+                                             (append accumulator (list c))
                                              end (max end cend)))
                                      (progn
                                        #+cos-debug
-                                       (format t "No overlap: cbegin = ~a, cend = ~a~%"
-                                               cbegin cend)
+                                       (format
+                                        t "No overlap: cbegin = ~a, cend = ~a~%"
+                                        cbegin cend)
                                        (appending (%combine))
                                        (setf accumulator (list c)
                                              end cend)))))
                          (%combine))))
                    (when changed?
-                     #+cos-debug (format t "Old-children: ~a~%New-children: ~a~%"
-                                         (ast-children a)
-                                         new-children)
+                     #+cos-debug (format
+                                  t "Old-children: ~a~%New-children: ~a~%"
+                                  (ast-children a)
+                                  new-children)
                      (setf (ast-children a) new-children)))))
              #+cos-debug (format t "Leave %check on ~a~%" a)))
       (map-ast ast #'%check))))
@@ -2280,15 +2282,19 @@ line currently being processed.  The nodes are marked with attribute
   (let* ((range (ast-attr a :range))
          (begin (and range (new-clang-range-begin range)))
          (end (and range (new-clang-range-end range))))
-    #+mme-debug (format t "range = ~a,~%begin = ~a,~%end = ~a~%" range begin end)
+    #+mme-debug (format t "range = ~a,~%begin = ~a,~%end = ~a~%"
+                        range begin end)
     (cond
       ((and (typep begin 'new-clang-macro-loc)
             (typep end 'new-clang-macro-loc)
-            (or #+nil (and (not (new-clang-macro-loc-is-macro-arg-expansion end))
-                           (progn (format t "isMacroArgExpansion is false~%")
-                                  t))
+            (or #+nil (and
+                       (not (new-clang-macro-loc-is-macro-arg-expansion end))
+                       (progn (format t "isMacroArgExpansion is false~%")
+                              t))
                 (and (not (equal file (ast-file a t)))
-                     (progn #+mme-debug (format t "file = ~a, (ast-file a t) = ~a~%" file (ast-file a t))
+                     (progn #+mme-debug
+                            (format t "file = ~a, (ast-file a t) = ~a~%"
+                                    file (ast-file a t))
                             t))
                 ;; This detect if there is stuff here from the macro which must
                 ;; be at an earlier line.  However, it didn't detect the case
@@ -2301,19 +2307,25 @@ line currently being processed.  The nodes are marked with attribute
                            (and (= spelling-line *current-line*)
                                 (> (new-clang-loc-col slb)
                                    (new-clang-loc-col
-                                    (new-clang-macro-loc-expansion-loc begin)))
-                                ;; Mark the node so we know it was a direct macro arg
+                                    (new-clang-macro-loc-expansion-loc
+                                     begin)))
+                                ;; Mark the node so we know it was a
+                                ;; direct macro arg
                                 (setf (ast-attr a :direct-macro-arg) t)))
-                       (progn #+mme-debug
-                              (format t "(new-clang-loc-line (new-clang-macro-loc-spelling-loc begin)) = ~a, *current-line* = ~a~%"
-                                      (new-clang-loc-line (new-clang-macro-loc-spelling-loc begin))
-                                      *current-line*)
-                              t)))))
+                       (progn
+                         #+mme-debug
+                         (format t "~a = ~a, *current-line* = ~a~%"
+                                 "(new-clang-loc-line (ncmlsl begin))"
+                                 (new-clang-loc-line
+                                  (new-clang-macro-loc-spelling-loc begin))
+                                 *current-line*)
+                         t)))))
        ;; It's from a macro, mark it
        #+mme-debug (format t "Marking: ~a~%" a)
        (setf (ast-attr a :from-macro) t))
       ((typep begin 'new-clang-loc)
-       (setf *current-line* (max *current-line* (or (new-clang-loc-line begin) 0))))
+       (setf *current-line* (max *current-line*
+                                 (or (new-clang-loc-line begin) 0))))
       ((typep begin 'new-clang-macro-loc)
        (when-let* ((spelling-loc (new-clang-macro-loc-spelling-loc begin))
                    (begin-line (new-clang-loc-line spelling-loc)))
@@ -2374,14 +2386,18 @@ nodes."
                           (while (is-macro-expansion-node (car children))))))
                     (let ((macro-args (macro-expansion-arg-asts
                                        macro-child-segment)))
-                      #+mme-debug (format t "Create :MACROEXPANSION node with children ~a~%" macro-args)
+                      #+mme-debug
+                      (format t
+                              "Create :MACROEXPANSION node with children ~a~%"
+                              macro-args)
                       (let ((obj (make-new-clang-ast
                                   :class :macroexpansion
                                   :children macro-args)))
                         (setf (ast-range obj)
                               (macro-range-to-non-macro-range/expansion
                                (ast-range (car macro-child-segment)))
-                              (ast-attr obj :macro-child-segment) macro-child-segment
+                              (ast-attr obj :macro-child-segment)
+                              macro-child-segment
                               changed? t)
                         obj))))))))
       (when changed?
@@ -2819,12 +2835,7 @@ template brackets < and >."
                (loop
                   (let ((c (elt str pos)))
                     (case c
-                      (#.(remove-duplicates
-                          (loop for s in '("Space" "Tab" "Newline" "Return"
-                                           "Linefeed" "Page")
-                             when (name-char s)
-                             collect it))
-                         (inc?))
+                      (#.+whitespace-chars+ (inc?))
                       ((#\() (inc?) (cpp-scan* #\)))
                       ((#\[) (inc?) (cpp-scan* #\]))
                       ((#\{) (inc?) (cpp-scan* #\}))
