@@ -61,6 +61,7 @@ permissions and modification time when creating OBJ."
 
 (defmethod (setf genome) :after (new (obj file))
   "Changing a genome sets `modifiedp' to t."
+  (declare (ignorable new))
   (setf (modifiedp obj) t))
 
 (defmethod to-file :after ((obj file) path)

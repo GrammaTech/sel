@@ -2529,7 +2529,7 @@ If there is no trailing semicolon, return the AST unchanged."))
   (:method ((ast ast))
     (member (ast-class ast)
             '(:Function :CXXMethod :CXXConstructor :CXXDestructor)))
-  (:method (x) nil))
+  (:method (x) (declare (ignorable x)) nil))
 
 (defgeneric function-body (software ast)
   (:documentation

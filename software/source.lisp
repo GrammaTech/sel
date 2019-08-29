@@ -87,6 +87,7 @@ on the filesystem at BIN."
     (if stream (write-string genome stream) genome)))
 
 (defmethod (setf genome) :after (v (obj genome-lines-mixin))
+  (declare (ignorable v))
   (slot-makunbound obj 'genome-line-offsets))
 
 (defgeneric offset-to-line-and-col (sw offset)
@@ -105,9 +106,9 @@ that correspond to an offset."))
           ;; Invariant:  When (< lo hi),
           ;;  (<= (elt glo lo) offset (elt glo hi))
           ;;  (where (elt glo lines) = infinity)
-          (iter
+          (loop
            (assert (<= (elt glo lo) offset))
-           (while (< lo hi))
+             (unless (< lo hi) (return))
            (assert (or (= hi (1- lines)) (< offset (elt glo (1+ hi)))))
            (let ((mid (floor (+ hi lo 1) 2)))
              (if (< offset (elt glo mid))
@@ -125,6 +126,7 @@ that correspond to an offset."))
 ;;; be initialized to the right sequence of characters.
 (defmethod slot-unbound (class (obj genome-lines-mixin)
                          (slot-name (eql 'genome-line-offsets)))
+  (declare (ignorable class))
   ;; Compute GENOME-LINES when needed
   ;; (format t "Begin computing genome-lines~%")
   (let* ((s (genome-string obj))
@@ -167,6 +169,7 @@ that correspond to an offset."))
   obj)
 
 (defmethod from-string :before ((obj source) string)
+  (declare (ignorable string))
   (setf (original-file obj) nil
         (absolute-original-file obj) nil))
 

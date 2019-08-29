@@ -667,13 +667,13 @@ that is not strictly speaking about types at all (storage class)."))
 (defmethod ast-name ((obj new-clang-ast)) (ast-attr obj :name))
 
 (defgeneric ast-is-implicit (ast)
-  (:method (ast) nil)
+  (:method (ast) (declare (ignorable ast)) nil)
   (:method ((ast new-clang-ast))
     (or (ast-attr ast :isimplicit)
         (ast-attr ast :implicit))))
 
 (defgeneric ast-is-class (ast key)
-  (:method (ast class) nil)
+  (:method (ast class) (declare (ignorable ast class)) nil)
   (:method ((ast new-clang-ast) (key symbol))
     (and (ast-p ast)
          (eql (ast-class ast) key))))
@@ -868,8 +868,11 @@ asts can be transplanted between files without difficulty."
     (setf includes nil))
   (call-next-method))
 
+#|
 (defmethod from-file :after ((obj new-clang) path)
+(declare (ignorable obj path))
   nil)
+|#
 
 (defun names-in-str (str)
   "Find all substrings of STR that are C/C++ names"
@@ -1019,6 +1022,7 @@ in the macro defn, EXPANSION-LOC is at the macro use."
   (:method ((range new-clang-range) macro?)
     (ast-file* (new-clang-range-begin range) macro?))
   (:method ((loc new-clang-loc) macro?)
+    (declare (ignore macro?))
     (new-clang-loc-file loc))
   (:method ((loc new-clang-macro-loc) macro?)
     (ast-file*
@@ -1028,7 +1032,7 @@ in the macro defn, EXPANSION-LOC is at the macro use."
          (new-clang-macro-loc-spelling-loc loc)
          (new-clang-macro-loc-expansion-loc loc))
      macro?))
-  (:method (obj macro?) nil))
+  (:method (obj macro?) (declare (ignorable obj macro?)) nil))
 
 (defgeneric remove-ast-file (ast file)
   (:documentation "Removes mentions of FILE from locations in the
@@ -1287,6 +1291,7 @@ to a clang-node.  The purpose of this is to enable dispatch
 on json-kind-symbol when special subclasses are wanted."))
 
 (defmethod j2ck (json json-kind-symbol)
+  (declare (ignorable json-kind-symbol))
   (let ((obj (make-new-clang-ast)))
     (store-slots obj json)))
 
@@ -1296,6 +1301,7 @@ on json-kind-symbol when special subclasses are wanted."))
                     (equal v (aget k al2))))))
 
 (defmethod j2ck :around (json json-kind-symbol)
+  (declare (ignorable json json-kind-symbol))
   (when-let ((obj (call-next-method)))
     (let ((id (new-clang-ast-id obj)))
       (when (ast-attr obj :loc)
@@ -1306,6 +1312,7 @@ on json-kind-symbol when special subclasses are wanted."))
   ;; Clang's json has {} for missing for clauses
   ;; cl-json converts these to NIL.  Just remove then,
   ;; as the old clang front end does.
+  (declare (ignorable json json-kind-symbol))
   (let ((obj (call-next-method)))
     (setf (ast-children obj) (remove nil (ast-children obj)))
     obj))
@@ -1313,17 +1320,20 @@ on json-kind-symbol when special subclasses are wanted."))
 (defmethod j2ck :around (json (json-kind-symbol (eql :ImplicitListExpr)))
   ;; We remove :ImplicitValueInitExprs, turning them to NIL.
   ;; Here, remove those NILs.
+  (declare (ignorable json json-kind-symbol))
   (let ((obj (call-next-method)))
     (setf (ast-children obj) (remove nil (ast-children obj)))
     obj))
 
 (defmethod j2ck (json (json-kind-symbol (eql :ImplicitValueInitExpr)))
+  (declare (ignorable json json-kind-symbol))
   nil)
 
 (defmethod j2ck (json (json-kind-symbol (eql :CXXOperatorCallExpr)))
   ;; CXXOperatorCallExprs must be a special subclass, as the children
   ;; are out of order (the operator is put first even if it is not
   ;; first in the source file)
+  (declare (ignorable json-kind-symbol))
   (store-slots (make-cxx-operator-call-expr) json))
 
 (defgeneric store-slots (obj json)
@@ -1351,6 +1361,7 @@ form for SLOT, and stores into OBJ.  Returns OBJ or its replacement."))
   obj)
 
 (defmethod store-slot ((obj new-clang-ast) (slot (eql :kind)) value)
+  (declare (ignorable slot))
   (setf (new-clang-ast-class obj) (json-kind-to-keyword value))
   obj)
 
@@ -1358,6 +1369,7 @@ form for SLOT, and stores into OBJ.  Returns OBJ or its replacement."))
 ;;   (call-next-method))
 
 (defmethod store-slot ((obj new-clang-ast) (slot (eql :definitiondata)) value)
+  (declare (ignorable slot))
   ;; Do not translate this attribute for now
   obj)
 
@@ -1366,12 +1378,14 @@ form for SLOT, and stores into OBJ.  Returns OBJ or its replacement."))
   obj)
 
 (defmethod store-slot ((obj new-clang-ast) (slot (eql :inner)) value)
+  (declare (ignorable slot))
   (let ((children (remove nil (mapcar (lambda (o) (clang-convert-json o :inner t)) value))))
     ;; (format t "STORE-SLOT on ~a, :INNER with ~A children~%" value (length value))
     (setf (new-clang-ast-children obj) children))
   obj)
 
 (defmethod store-slot ((obj new-clang-ast) (slot (eql :array_filler)) value)
+  (declare (ignorable slot))
   (let ((children (remove nil (mapcar (lambda (o) (clang-convert-json o :inner t)) value))))
     ;; (setf (ast-attr obj :array-filler) t)
     (setf (new-clang-ast-children obj) children))
@@ -1383,33 +1397,42 @@ NIL indicates no value."))
 
 (defmethod convert-slot-value ((obj new-clang-ast) (slot symbol) value)
   ;; Default to a context-independent conversion
+  (declare (ignorable obj slot))
   (clang-convert-json value))
 
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :referenceddecl)) value)
+  (declare (ignorable obj slot))
   (clang-convert-json value))
 
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :decl)) value)
+  (declare (ignorable obj slot))
   (clang-convert-json value))
 
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :templateparams)) value)
+  (declare (ignorable obj slot))
   (mapcar #'clang-convert-json value))
 
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :id)) value)
+  (declare (ignorable obj slot))
   (read-c-integer value))
 
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :previousdecl)) value)
+  (declare (ignorable obj slot))
   (read-c-integer value))
 
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :name)) value)
+  (declare (ignorable obj slot))
   (and (not (equal value "")) (call-next-method)))
 
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :tagused)) value)
+  (declare (ignorable obj slot))
   (cond
     ((equal value "struct") :struct)
     ((equal value "union") :union)
     (t (call-next-method))))
 
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :storageClass)) value)
+  (declare (ignorable obj slot))
   (cond
     ((equal value "static") :static)
     ((equal value "extern") :extern)
@@ -1417,12 +1440,14 @@ NIL indicates no value."))
     (t (call-next-method))))
 
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :valueCategory)) (value string))
+  (declare (ignorable obj slot))
   (cond
     ((equal value "rvalue") :rvalue)
     ((equal value "lvalue") :lvalue)
     (t (intern (string-upcase value) :keyword))))
 
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :castKind)) (value string))
+  (declare (ignorable obj slot))
   (cond
     ((equal value "LValueToRValue") :LValueToRValue)
     ((equal value "FunctionToPointerDecay") :FunctionToPointerDecay)
@@ -1632,7 +1657,7 @@ Other keys are allowed but are silently ignored.
       (setf (ast-children ast) new-children)))
   ast)
 
-(defmethod remove-asts-if (ast fn) ast)
+(defmethod remove-asts-if (ast fn) (declare (ignorable fn)) ast)
 
 (defgeneric remove-non-program-asts (ast file)
   (:documentation "Remove ASTs from ast that are not from the
@@ -1710,7 +1735,7 @@ actual source file"))
   (new-clang-macro-loc-is-macro-arg-expansion x))
 
 (defgeneric offset (obj))
-(defmethod offset (obj) nil)
+(defmethod offset (obj) (declare (ignorable obj)) nil)
 (defmethod offset ((obj new-clang-loc))
   (let ((line (new-clang-loc-line obj))
         (col (new-clang-loc-col obj)))
@@ -1768,7 +1793,7 @@ actual source file"))
   (awhen (offset obj)
          (list it)))
 (defmethod all-offsets ((offset integer)) (list offset))
-(defmethod all-offsets (x) nil)
+(defmethod all-offsets (x) (declare (ignorable x))  nil)
 
 (defgeneric begin-offsets (obj)
   (:documentation "List of unique BEGIN offsets in the AST"))
@@ -1805,14 +1830,14 @@ actual source file"))
 (defmethod end-offsets ((offset integer)) (list offset))
 
 (defgeneric begin-offset (obj))
-(defmethod begin-offset (obj) nil)
+(defmethod begin-offset (obj) (declare (ignorable obj)) nil)
 (defmethod begin-offset ((obj new-clang-ast))
   (begin-offset (aget :range (new-clang-ast-attrs obj))))
 (defmethod begin-offset ((obj new-clang-range))
   (offset (new-clang-range-begin obj)))
 
 (defgeneric end-offset (obj))
-(defmethod end-offset (obj) nil)
+(defmethod end-offset (obj) (declare (ignorable obj)) nil)
 (defmethod end-offset ((obj new-clang-ast))
   (end-offset (aget :range (new-clang-ast-attrs obj))))
 (defmethod end-offset ((obj new-clang-range))
@@ -1832,8 +1857,8 @@ actual source file"))
     (if (not (new-clang-macro-loc-is-macro-arg-expansion x))
         (tok-len (new-clang-macro-loc-spelling-loc x))
         (tok-len (new-clang-macro-loc-expansion-loc x))))
-  (:method ((x integer)) 0)
-  (:method (x) nil))
+  (:method ((x integer)) (declare (ignorable x)) 0)
+  (:method (x) (declare (ignorable x)) nil))
 
 ;;; Compute beginning, ending offsets for an ast, other things
 ;;; The end offset is one past the last character in the ast-text
@@ -1849,7 +1874,9 @@ actual source file"))
               (when-let ((end-offset (offset end))
                          (tok-len (tok-len end)))
                 (+ end-offset tok-len))))))
-(defmethod begin-and-end-offsets ((obj null)) (values nil nil))
+(defmethod begin-and-end-offsets ((obj null))
+  (declare (ignorable obj))
+  (values nil nil))
 
 (defun extended-end-offset (x)
   (nth-value 1 (begin-and-end-offsets x)))
@@ -1877,7 +1904,8 @@ actual source file"))
 (defgeneric compute-operator-positions (sw ast)
   (:documentation "Compute positions of operators in CXXOperatorCallExpr nodes")
   (:method (sw (ast new-clang-ast))
-    (map-ast ast #'compute-operator-position)))
+    (let ((*soft* sw))
+      (map-ast ast #'compute-operator-position))))
 
 (defgeneric compute-operator-position (ast)
   (:documentation "Compute positions of operators at a CXXOperatorCallExpr node.
@@ -1904,8 +1932,9 @@ Also, normalize postfix operator++/-- to remove dummy arg")
 (defgeneric put-operators-into-inner-positions (sw ast)
   (:documentation "Put operators into their inner positions
 in CXXOperatorCallExpr nodes.")
-  (:method (sw (ast new-clang-ast))
-    (map-ast ast #'put-operator-into-inner-position)))
+  (:method ((sw new-clang) (ast new-clang-ast))
+    (let ((*soft* sw))
+      (map-ast ast #'put-operator-into-inner-position))))
 
 (defgeneric put-operator-into-inner-position (ast)
   (:documentation "Put operator into its inner position
@@ -1928,13 +1957,14 @@ in a CXXOperatorCallExpr node.")
 (defgeneric put-operators-into-starting-positions (sw ast)
   (:documentation "Put operators into their starting positions
 in CXXOperatorCallExpr nodes.")
-  (:method (sw (ast new-clang-ast))
-    (map-ast ast #'put-operator-into-starting-position)))
+  (:method ((sw new-clang) (ast new-clang-ast))
+    (let ((*soft* sw))
+      (map-ast ast #'put-operator-into-starting-position))))
 
 (defgeneric put-operator-into-starting-position (ast)
   (:documentation "Put operator into their starting position
 in a CXXOperatorCallExpr node.")
-  (:method ((ast new-clang-ast)) nil)
+  (:method ((ast new-clang-ast)) (declare (ignorable ast)) nil)
   (:method ((ast cxx-operator-call-expr))
     ;; The AST will have been stringified here, so pos
     ;; is the position in (remove-if-not #'ast-p (ast-children))
