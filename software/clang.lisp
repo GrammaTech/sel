@@ -114,6 +114,7 @@
            :find-or-add-type
            :type-decl-string
            :type-trace-string
+           :type-trace-string*
            :type-from-trace-string
            :add-macro
            :nullify-asts

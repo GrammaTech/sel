@@ -193,19 +193,17 @@ the descent when FN returns NIL"))
     stmt-asts))
 
 (defmethod non-stmt-asts ((obj new-clang))
-  (let ((non-stmt-asts nil))
+  "Collect a list of all ASTs (except the root) that are not
+in or below function declarations"
+  (let ((non-stmt-asts nil)
+        (root (ast-root obj)))
     (map-ast-while
-     (ast-root obj)
+     root
      (lambda (a)
-       (if (function-decl-p a)
-           (progn
-             (map-ast a (lambda (b)
-                          (when (and (not (eql a b))
-                                     (or (eql (ast-class b) :ParmVar)
-                                         (function-decl-p b)))
-                            (push b non-stmt-asts))))
-             nil)
-           t)))
+       (and (not (function-decl-p a))
+            (progn
+              (unless (eql a root) (push a non-stmt-asts))
+              t))))
     non-stmt-asts))
 
 (defmethod functions ((obj new-clang))
@@ -258,6 +256,7 @@ macro objects from these, returning a list."
                               macros)
                         (return))
                       (case (elt str pos2)
+                        ;; NOTE: Windows
                         (#\Newline
                          ;; End of macro
                          (push (build-macro-from-string (subseq str pos pos2))
@@ -274,6 +273,7 @@ macro objects from these, returning a list."
               (iter (while (< pos slen))
                     (let ((c (elt str pos)))
                       (incf pos)
+                      ;; NOTE: Windows
                       (when (eql c #\Newline) (return))))))
     macros))
 
@@ -284,7 +284,14 @@ macro objects from these, returning a list."
     (let ((pos 7))
       ;; Skip whitespace
       (iter (while (< pos slen))
-            (while (member (elt str pos) '(#\Space #\Tab #\Newline)))
+            (while (case (elt str pos)
+                     (#.(remove-duplicates
+                         (loop for s in '("Space" "Tab" "Newline" "Return"
+                                          "Linefeed" "Page")
+                            when (name-char s)
+                            collect it))
+                        t)
+                     (t nil)))
             (incf pos))
       ;; get name
       (let ((name-start pos) c)
@@ -544,15 +551,22 @@ that is not strictly speaking about types at all (storage class)."))
              (let ((l (length s)))
                (when (and (< l (- strlen pos))
                           (let ((c (elt str (+ pos l))))
-                            (not (alphanumericp c))
-                            (not (eql c #\_)))
+                            (and (not (alphanumericp c))
+                                 (not (eql c #\_))))
                           (let ((m (string/= s str :start2 pos)))
                             (or (null m) (eql m l))))
                  (incf pos l)))))
       (loop
          (cond
            ((>= pos strlen) (return))
-           ((member (elt str pos) '(#\Space #\Tab #\Newline))
+           ((case (elt str pos)
+              (#.(remove-duplicates
+                  (loop for s in '("Space" "Tab" "Newline" "Return"
+                                   "Linefeed" "Page")
+                     when (name-char s)
+                     collect it))
+                 t)
+              (t nil))
             (incf pos))
            ((is-prefix "const") (setf const t))
            ((is-prefix "volatile") (setf volatile t))
@@ -569,15 +583,22 @@ that is not strictly speaking about types at all (storage class)."))
              (let ((l (length s)))
                (when (and (< l pos)
                           (let ((c (elt str (- pos l 1))))
-                            (not (alphanumericp c))
-                            (not (eql c #\_)))
+                            (and (not (alphanumericp c))
+                                 (not (eql c #\_))))
                           (let ((m (string/= s str :start2 (- pos l))))
                             (or (null m) (eql m l))))
                  (decf pos l)))))
       (loop
          (cond
            ((<= pos 0) (return))
-           ((member (elt str (1- pos)) '(#\Space #\Tab #\Newline))
+           ((case (elt str (1- pos))
+              (#.(remove-duplicates
+                  (loop for s in '("Space" "Tab" "Newline" "Return"
+                                   "Linefeed" "Page")
+                     when (name-char s)
+                     collect it))
+                 t)
+              (t nil))
             (decf pos))
            ((is-suffix "const") (setf const t))
            ((is-suffix "volatile") (setf volatile t))
@@ -772,10 +793,8 @@ asts can be transplanted between files without difficulty."
     (map-ast (ast-root obj)
              (lambda (a) (remove-ast-file a tmp-file)))))
 
-;;; FIXME:  this will fail if a code snippet is pasted from another file
-;;;  without changing the AST-FILE of nodes.  The recommended fix is to
-;;;  to make AST-FILE be NIL if the node is in the current file.  The
-;;;  code below should still work in that case, but it needs to be tested.
+;;;  This code is now assuming AST-FILE is not present (or NIL) if
+;;;  the file was the same as the one this AST is in.
 ;;;
 ;;;  This is also needed to make the i-file slot of nct+ work.
 
@@ -789,11 +808,13 @@ asts can be transplanted between files without difficulty."
      (lambda (s) (normalize-file-for-include s od include-dirs))
      (delete-duplicates
       (nconc
+       ;; The tests w. tmp-file here and below may not be
+       ;; necessary, but are kept for safety
        (unless (or (not file) (equal tmp-file file))
          (list file))
        (when-let* ((ref (ast-referenced-obj ast))
                    (file (ast-file ref)))
-         (unless (equal file tmp-file)
+         (unless (or (null file) (equal file tmp-file))
            (list file)))
        (when-let* ((type (ast-type ast))
                    (str (new-clang-type-qual type)))
@@ -1124,6 +1145,10 @@ if no value was found."
 
 ;;; NOTE: will need to make sure this works on Windows also
 ;;;  Perhaps it should work on pathnames, not namestrings?
+
+;;; NOTE: this assumes "..." does NOT search the include path
+;;;  In Clang, this behavior is controlled by command line options,
+;;;  which we'll need to recognize.
 
 (defun normalize-file-for-include (file-string original-dir include-dirs)
   "Returns the normalized version of file-string relative to the original
@@ -2716,6 +2741,7 @@ ast nodes, as needed")
 (let ((scanner (cl-ppcre:create-scanner "^#include\\s+(\\S+)\\s*$")))
   (defun includes-in-string (str)
     "Returns a fresh list of the #include payloads in a string"
+    ;; NOTE: Windows
     (if (find #\Newline str)
         (mapcan #'includes-in-string
                 (split-sequence #\Newline str
@@ -2763,7 +2789,12 @@ template brackets < and >."
                (loop
                   (let ((c (elt str pos)))
                     (case c
-                      ((#\Space #\Tab #\Newline) (inc?))
+                      (#.(remove-duplicates
+                          (loop for s in '("Space" "Tab" "Newline" "Return"
+                                           "Linefeed" "Page")
+                             when (name-char s)
+                             collect it))
+                         (inc?))
                       ((#\() (inc?) (cpp-scan* #\)))
                       ((#\[) (inc?) (cpp-scan* #\]))
                       ((#\{) (inc?) (cpp-scan* #\}))
@@ -2805,6 +2836,7 @@ template brackets < and >."
                     ((#\\) (inc?)))))
              (cpp-scan-//-comment ()
                (inc?)
+               ;; NOTE: Windows
                (cpp-scan-until (string #\Newline)))
              (cpp-scan-/*-comment ()
                (inc?)

@@ -145,6 +145,7 @@
    :trim-right-whitespace
    :trim-left-whitespace
    :normalize-whitespace
+   :+whitespace-chars+
    :escape-string
    :unescape-string
    :make-terminal-raw
@@ -191,6 +192,7 @@
    :random-sample-without-replacement
    :apply-replacements
    :peel-bananas
+   :peel-bananas-or-same
    :unpeel-bananas
    :replace-all
    :aget
@@ -1142,23 +1144,28 @@ ARGS (including keyword arguments) are passed through to `uiop:launch-program'"
           (split-sequence delim string :remove-empty-subseqs t)))
 
 ;;; This duplicates the function hu.dwim.utils:string-trim-whitespace
+
+(define-constant +whitespace-chars+
+    (remove-duplicates
+     (loop for s in '("Space" "Tab" "Newline" "Return"
+                      "Linefeed" "Page")
+        when (name-char s)
+        collect it))
+  :test #'equal)
+
 (defun trim-whitespace (str)
-  (string-trim '(#\Space #\Tab #\Newline #\Linefeed)
-               str))
+  (string-trim +whitespace-chars+ str))
 
 (defun trim-right-whitespace (str)
-  (string-right-trim '(#\Space #\Tab #\Newline #\Linefeed)
-                     str))
+  (string-right-trim +whitespace-chars+ str))
 
 (defun trim-left-whitespace (str)
-  (string-left-trim '(#\Space #\Tab #\Newline #\Linefeed)
-                    str))
+  (string-left-trim +whitespace-chars+ str))
 
 (defun normalize-whitespace (str)
   "Trims leading and trailing whitespace, and reduces all remaining
 sequences of one or more whitespace characters to a single space"
-  (flet ((%whitespacep (c)
-           (member c '(#\Space #\Tab #\Newline #\Linefeed))))
+  (flet ((%whitespacep (c) (member c +whitespace-chars+)))
     (let ((str (trim-whitespace str))
           (element-type (array-element-type str)))
       (let* ((len (length str)))
@@ -1729,6 +1736,10 @@ is replaced with replacement."
 ;;  from a code snippet.
 (defun peel-bananas (text)
   (apply-replacements '(("(|" . "") ("|)" . "")) text))
+
+(defun peel-bananas-or-same (text)
+  (let ((new (peel-bananas text)))
+    (if (equal text new) text new)))
 
 (defun unpeel-bananas (text)
   (concatenate 'string "(|" text "|)"))

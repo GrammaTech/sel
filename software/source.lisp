@@ -116,6 +116,13 @@ that correspond to an offset."))
           ;; 1-based counts, to be consistent with the json
           (values (1+ lo) (1+ (- offset (elt glo lo))))))))
 
+;;; ISSUE: while Common Lisp requires the reader to convert
+;;; line terminators for the external format to Newline, this
+;;; may screw up the counts used by Clang.   So, in that case
+;;; we'll need to fix the 'actual' number of bytes a Newline
+;;; corresponds to in this calculation.  Alternately, have the
+;;; string not undergo this translation somehow, and make TER
+;;; be initialized to the right sequence of characters.
 (defmethod slot-unbound (class (obj genome-lines-mixin)
                          (slot-name (eql 'genome-line-offsets)))
   ;; Compute GENOME-LINES when needed
