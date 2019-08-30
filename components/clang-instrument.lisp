@@ -1020,7 +1020,7 @@ Returns a list of strings containing C source code."))
                                    (typedef-type software)))
                     (name (aget :name var))
                     ;; Don't instrument nameless variables
-                    (has-name (not (emptyp name))))
+                    (has-name (not (emptyp (source-text name)))))
           (collect (cons name type) into names-and-types))
         (finally
          (return (instrument-c-exprs instrumenter names-and-types
