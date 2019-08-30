@@ -198,7 +198,7 @@ list of children of their parent.  Cannot remove the root."))
             "~%Built from SEL ~a, and ~a ~a.~%"
             +software-evolution-library-version+
             (lisp-implementation-type) (lisp-implementation-version))
-  (declare (ignorable eval load))
+  (declare (ignorable eval load split-lines))
   (when help (show-help-for-clang-diff-test))
   (when syn-ctx
     (setf fn #'ast-syn-ctx))
