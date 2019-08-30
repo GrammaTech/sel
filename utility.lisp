@@ -1735,14 +1735,18 @@ is replaced with replacement."
 ;;  Helper function for removing tags identifying DeclRefs
 ;;  from a code snippet.
 (defun peel-bananas (text)
-  (apply-replacements '(("(|" . "") ("|)" . "")) text))
+  (if (string text)
+      (apply-replacements '(("(|" . "") ("|)" . "")) text)
+      text))
 
 (defun peel-bananas-or-same (text)
   (let ((new (peel-bananas text)))
     (if (equal text new) text new)))
 
 (defun unpeel-bananas (text)
-  (concatenate 'string "(|" text "|)"))
+  (if (stringp text)
+      (concatenate 'string "(|" text "|)")
+      text))
 
 (defun aget (item list &key (test #'eql))
   "Get KEY from association list LIST."
