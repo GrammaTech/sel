@@ -586,15 +586,18 @@
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
 (define-software clang-traceable (clang binary-traceable) ())
+(define-software new-clang-traceable (new-clang binary-traceable) ())
 (define-software java-traceable  (java sexp-traceable) ())
 (define-software javascript-traceable  (javascript sexp-traceable) ())
 (define-software javascript-traceable-project  (javascript-project sexp-traceable) ())
 (define-software clang-control-picks (clang) ())
+(define-software new-clang-control-picks (new-clang) ())
 (define-software collect-traces-handles-directory-phenomes-mock
     (source binary-traceable)
   ((phenome-dir :initarg phenome-dir :accessor phenome-dir :initform nil
                 :copier :direct)))
 (define-software clang-styleable-test-class (clang styleable) ())
+(define-software new-clang-styleable-test-class (new-clang styleable) ())
 (define-software mutation-failure-tester (clang) ())
 
 (defvar *soft-mutate-errors* nil
@@ -616,6 +619,11 @@
 (defmethod good-stmts ((obj clang-control-picks))
   (or *good-asts* (stmt-asts obj)))
 (defmethod bad-stmts ((obj clang-control-picks))
+  (or *bad-asts* (stmt-asts obj)))
+
+(defmethod good-stmts ((obj new-clang-control-picks))
+  (or *good-asts* (stmt-asts obj)))
+(defmethod bad-stmts ((obj new-clang-control-picks))
   (or *bad-asts* (stmt-asts obj)))
 
 (defvar *test-mutation-count* 0)
@@ -885,11 +893,20 @@
                                           :type "c"))))
   (:teardown (setf *soft* nil)))
 
+(defun make-clang-control-picks (&rest args &key (compiler "clang-3.7") (flags '("-g -m32 -O0")) new-clang-flags)
+  (if *new-clang?*
+      (make-instance 'new-clang-control-picks
+        :compiler sel/sw/new-clang::*clang-binary*
+        :flags (list* "-I" "/usr/include"
+                      "-I" "/clang9/lib/clang/10.0.0/include/"
+                      new-clang-flags))
+      (apply #'make-instance 'clang-control-picks :allow-other-keys t args)))
+
 (defixture hello-world-clang-control-picks
   (:setup
    (setf *hello-world*
-         (from-file (make-instance 'clang-control-picks :compiler "clang-3.7"
-                                   :flags '("-g -m32 -O0"))
+         (from-file (make-clang-control-picks :compiler "clang-3.7"
+                                              :flags '("-g -m32 -O0"))
                     (hello-world-dir "hello_world.c"))))
   (:teardown
    (setf *hello-world* nil)))
@@ -1058,8 +1075,8 @@
 (defixture scopes-clang
   (:setup
    (setf *scopes*
-         (from-file (make-instance 'clang-control-picks
-                      :compiler "clang" :flags '("-g -m32 -O0"))
+         (from-file (make-clang-control-picks
+                     :compiler "clang" :flags '("-g -m32 -O0"))
                     (scopes-dir "scopes.c"))))
   (:teardown
    (setf *scopes* nil)))
@@ -1067,8 +1084,8 @@
 (defixture scopes2-clang
   (:setup
    (setf *scopes*
-         (from-file (make-instance 'clang-control-picks
-                      :compiler "clang" :flags '("-g -m32 -O0"))
+         (from-file (make-clang-control-picks
+                     :compiler "clang" :flags '("-g -m32 -O0"))
                     (scopes-dir "scopes2.c"))))
   (:teardown
    (setf *scopes* nil)))
@@ -1085,7 +1102,7 @@
 (defixture scopes-cxx-clang
   (:setup
    (setf *scopes*
-         (from-file (make-instance 'clang-control-picks :compiler "clang")
+         (from-file (make-clang-control-picks :compiler "clang")
                     (scopes-dir "scopes.cxx"))))
   (:teardown
    (setf *scopes* nil)))
@@ -3013,7 +3030,7 @@ int x = CHARSIZE;"))
 (defixture gcd-clang-control-picks
   (:setup
    (setf *gcd*
-         (from-file (make-instance 'clang-control-picks :compiler "clang-3.7")
+         (from-file (make-clang-control-picks :compiler "clang-3.7")
                     (gcd-dir "gcd.c"))))
   (:teardown
    (setf *gcd* nil)))
@@ -7361,7 +7378,8 @@ prints unique counters in the trace"
 
 (defixture traceable-gcd
   (:setup (setf *gcd* (from-file
-                       (make-instance 'clang-traceable)
+                       (make-instance (if *new-clang?* 'new-clang-traceable
+                                          'clang-traceable))
                        (make-pathname :name "gcd"
                                       :type "c"
                                       :directory +gcd-dir+)))))
@@ -8640,7 +8658,10 @@ prints unique counters in the trace"
         (is (equal '(1 1) vals))))))
 
 (deftest extract-style-features-no-asts ()
-  (is (-> (from-string (make-instance 'clang-styleable-test-class) "")
+  (is (-> (from-string (make-instance (if *new-clang?*
+                                          'new-clang-styleable-test-class
+                                          'clang-styleable-test-class))
+                       "")
           (extract-baseline-features))
       "extract-baseline-features should not throw an error on empty software"))
 
