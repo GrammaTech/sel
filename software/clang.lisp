@@ -1903,8 +1903,8 @@ type in TYPES.
           (mapc (lambda (include)
                   (adjoining include into m-includes test #'string=))
                 (ast-includes ast))
-          ;; STMT-ASTS and NON-STMT-ASTS are only collected
-          ;; below the last prototype node.
+          ;; STMT-ASTS are only collected below the last prototype node
+          ;; NON-STMT-ASTS are only collected above prototype nodes
           (if (and last-proto (starts-with-subseq (ast-path last-proto)
                                                   (ast-path ast)))
               (unless (or (eq :ParmVar (ast-class ast))
