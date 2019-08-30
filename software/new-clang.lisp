@@ -884,12 +884,6 @@ asts can be transplanted between files without difficulty."
     (setf includes nil))
   (call-next-method))
 
-#|
-(defmethod from-file :after ((obj new-clang) path)
-(declare (ignorable obj path))
-  nil)
-|#
-
 (defun names-in-str (str)
   "Find all substrings of STR that are C/C++ names"
   (split-sequence-if-not (lambda (c)
@@ -899,14 +893,70 @@ asts can be transplanted between files without difficulty."
                          str
                          :remove-empty-subseqs t))
 
+(defmethod get-unbound-vals :around ((sw new-clang) ast)
+  (let ((*soft* sw)) (call-next-method)))
+
+(defmethod get-unbound-funs :around ((sw new-clang) ast)
+  (let ((*soft* sw)) (call-next-method)))
 
 (defmethod ast-unbound-vals ((ast new-clang-ast))
-  ;; stub
+  (ast-unbound-vals* ast (ast-class ast)))
+
+(defmethod ast-unbound-vals ((str string))
+  (declare (ignore str))
   nil)
 
-(defmethod ast-unbound-funs ((ast new-clang-ast))
-  ;; stub
+(defgeneric ast-unbound-vals* (ast class)
+  (:documentation "Implementation function for ast-unbound-vals,
+where class = (ast-class ast)."))
+
+(defmethod ast-unbound-vals* ((ast new-clang-ast) (class (eql :declrefexpr)))
+  (when-let ((obj (ast-referenced-obj ast)))
+    (when (member (ast-class obj) '(:Var :ParmVar))
+      (list obj))))
+
+(defmethod ast-unbound-vals* ((ast new-clang-ast) class)
+  (declare (ignorable ast class))
   nil)
+
+(defgeneric ast-bound-vals (ast)
+  (:documentation "Vars that are bound by an AST")
+  (:method ((x string)) (declare (ignore x)) nil)
+  (:method ((ast new-clang-ast))
+    (ast-bound-vals* ast (ast-class ast))))
+
+(defgeneric ast-bound-vals* (ast class)
+  (:documentation "Implementation funtion for ast-bound-vals,
+where class = (ast-class ast).")
+  (:method ((ast new-clang-ast) c)
+    ;; default method
+    (declare (ignorable c))
+    nil)
+  (:method ((ast new-clang-ast) (c (eql :var)))
+    (list ast))
+  (:method ((ast new-clang-ast) (c (eql :declstmt)))
+    (remove-if-not (lambda (a) (and (ast-p a) (eql (ast-class a) :var)))
+                   (ast-children ast))))
+
+(defmethod ast-unbound-funs ((ast new-clang-ast))
+  (ast-unbound-funs* ast (ast-class ast)))
+
+(defmethod ast-unbound-funs ((str string))
+  (declare (ignore str))
+  nil)
+
+(defgeneric ast-unbound-funs* (ast class)
+  (:documentation "Implementation funtion for ast-unbound-funs,
+where class = (ast-class ast).")
+  (:method (ast class) (declare (ignorable ast class)) nil)
+  (:method ((ast new-clang-ast) class) (declare (ignorable ast class)) nil)
+  (:method ((ast new-clang-ast) (class (eql :declrefexpr)))
+    (declare (ignorable class))
+    (when-let* ((obj (ast-referenced-obj ast)))
+      (when (eql (ast-class obj) :function)
+        (list (list obj (ast-void-ret obj) (ast-varargs obj)
+                    (count-if (lambda (a) (and (ast-p a) (eql (ast-class a) :ParmVar)))
+                              (ast-children obj))))))))
 
 (defmethod ast-includes ((ast new-clang-ast))
   (ast-includes-in-obj *soft* ast))
@@ -1257,10 +1307,6 @@ the match length if sucessful, NIL if not."
     (when file
       (namestring (make-pathname :defaults (pathname file)
                                  :name nil :type nil)))))
-
-;; (defvar *symbol-table* (make-hash-table :test #'equal)
-;;   "Table mapping id values to the corresponding nodes.  This should
-;; be bound for each clang program.")
 
 (defun canonicalize-string (str)
   (if (boundp '*canonical-string-table*)
@@ -2321,7 +2367,19 @@ ranges into 'combined' nodes.  Warn when this happens."
                 (setf ast-root (sel/sw/parseable::update-paths
                                 (fix-semicolons ast))
                       genome nil)
+                (update-symbol-table obj)
                 obj))))))))
+
+(defmethod update-symbol-table ((obj new-clang))
+  ;; When objects are copied in an AST, the mapping from IDs to
+  ;; objects is invalidated.  This functio restores it.
+  (let ((table (symbol-table obj)))
+    (map-ast (ast-root obj)
+             (lambda (a)
+               (when-let ((id (new-clang-ast-id a)))
+                 (setf (gethash id table) (list a))))))
+  obj)
+
 
 ;;; Macro expansion code
 
