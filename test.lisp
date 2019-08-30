@@ -9056,7 +9056,11 @@ prints unique counters in the trace"
 
 
 (defun compare-scopes (result expected)
-  (is (equal (mapcar {mapcar {aget :name}} result)
+  (is (equal (length result) (length expected)))
+  (is (every (lambda (a b)
+               (and (equal (length a) (length b))
+                    (every #'name= a b)))
+             (mapcar {mapcar {aget :name}} result)
              expected))
   (iter (for var-info in (apply #'append result))
         (is (aget :type var-info))
@@ -9269,7 +9273,7 @@ prints unique counters in the trace"
                                      (stmt-starting-with-text *scopes*
                                                               "void bar"))))
       (is (eq 1 (length unbound)))
-      (is (string= "global" (aget :name (car unbound))))
+      (is (name= "global" (aget :name (car unbound))))
       (is (equalp (stmt-with-text *scopes* "int global;")
                   (aget :decl (car unbound))))
       (is (eq (ast-root *scopes*) (aget :scope (car unbound))))
