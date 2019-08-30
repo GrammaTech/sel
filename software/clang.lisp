@@ -3435,7 +3435,8 @@ Returns outermost AST of context.
           (replace-in-target value1 outward-stmt1 outward-value1)
           `((:stmt1 . ,ancestor) (:value1 . ,value1))))))))
 
-(defmethod update-headers-from-ast ((clang clang-base) (ast ast) database)
+(defmethod update-headers-from-ast ((clang clang-base) (ast ast) database
+                                    &aux (*soft* clang))
   "Walk the ast AST in clang object CLANG, adding includes, macros, and types
 that are mentioned at nodes of the AST.  DATABASE is the associated macro/type
 database."
