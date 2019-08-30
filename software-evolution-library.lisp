@@ -144,12 +144,16 @@
    :*fitness-scalar-fn*
    :fitness-scalar
    :ignore-failed-mutation
-   :try-another-mutation))
+   :try-another-mutation
+   *soft*))
 (in-package :software-evolution-library/software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
 
 ;;; Software Object
+
+(defvar *soft* nil "The software object being manipulated.")
+
 (defvar +software-evolution-library-dir+
   (pathname-directory
    #.(or *compile-file-truename*
