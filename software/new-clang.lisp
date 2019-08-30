@@ -42,6 +42,17 @@
 (in-package :software-evolution-library/software/new-clang)
 (in-readtable :curry-compose-reader-macros)
 
+;;; NOTE: *SOFT* is used in various low level functios that need
+;;;  global information about the object that contains an AST.
+;;;  The API does not always provide this object.  The downside
+;;;  of binding *SOFT* is that higher level methods have to make
+;;;  sure they bind it or the accessors don't work.  Tests in
+;;;  test.lisp also must do this.
+;;;
+;;;  Changing APIs to pass the software object down "manually"
+;;;  is another option, and would enable methods to be specialized
+;;;  on that object.
+
 (declaim (special *soft*))
 (declaim (special *canonical-string-table* *current-line*))
 
@@ -296,7 +307,7 @@ macro objects from these, returning a list."
         (let* ((name (subseq str name-start pos))
                (body (subseq str name-start))
                (hash (sxhash body)))  ;; improve this hash
-          (make-clang-macro :hash hash :body body :name name))))))
+          (make-new-clang-macro :hash hash :body body :name name))))))
 
 
 
@@ -308,7 +319,7 @@ macro objects from these, returning a list."
 ;; without losing that value, which is useful for debugging.
 (defvar *new-clang?* nil "When true, use NEW-CLANG instead of CLANG")
 
-;;; shared with old clang
+;;; TODO: determine which structure fields should be read-only
 
 (defstruct (new-clang-ast (:include clang-ast-base)
                           (:conc-name new-clang-ast-))
@@ -325,6 +336,11 @@ macro objects from these, returning a list."
   (syn-ctx nil :type symbol)
   ;; aux data
   (aux-data nil :type list))
+
+;;; TODO: identify which of these generic accessors should be read only,
+;;;  beyond those that refer to read-only fields in new-clang-ast.
+;;;  For those, remove the SETF method, or at least make it error
+;;;  when called.
 
 ;;; There are no separate 'node' objects for new-clang
 (defmethod ast-node ((obj new-clang-ast)) obj)
@@ -425,6 +441,13 @@ that is not strictly speaking about types at all (storage class)."))
         :type type
         :storage-class storage-class
         :i-file (new-clang-i-file *soft* type ast))))
+
+(defstruct (new-clang-macro (:include clang-macro))
+  ;; Spelling loc is the location of the body of the loc
+  ;; Its presence in a clang-macro-loc indicates something
+  ;; is a macroexpansion of this macro.  This may fail
+  ;; if the macro expands into other macros.
+  (spelling-loc nil :type (or integer null) :read-only t))
 
 (defmethod scopes :around ((sw new-clang) (ast new-clang-ast))
   (let ((*soft* sw))
@@ -784,27 +807,32 @@ asts can be transplanted between files without difficulty."
 ;;;  This is also needed to make the i-file slot of nct+ work.
 
 (defmethod ast-includes-in-obj ((obj new-clang) (ast new-clang-ast))
-  (let ((*soft* obj)
-        (tmp-file (tmp-file obj))
-        (file (ast-file obj))
-        (include-dirs (include-dirs obj))
-        (od (absolute-original-directory obj)))
-    (mapcar
-     (lambda (s) (normalize-file-for-include s od include-dirs))
-     (delete-duplicates
-      (nconc
-       ;; The tests w. tmp-file here and below may not be
-       ;; necessary, but are kept for safety
-       (unless (or (not file) (equal tmp-file file))
-         (list file))
-       (when-let* ((ref (ast-referenced-obj ast))
-                   (file (ast-file ref)))
-         (unless (or (null file) (equal file tmp-file))
-           (list file)))
-       (when-let* ((type (ast-type ast))
-                   (str (new-clang-type-qual type)))
-         (includes-of-names-in-string obj str)))
-      :test #'equal))))
+  ;; (format t "Enter ast-includes-in-obj~%")
+  (prog1
+      (let ((*soft* obj)
+            (tmp-file (tmp-file obj))
+            (file (ast-file ast))
+            (include-dirs (include-dirs obj))
+            (od (absolute-original-directory obj)))
+        (mapcar
+         (lambda (s) (normalize-file-for-include s od include-dirs))
+         (delete-duplicates
+          (nconc
+           ;; The tests w. tmp-file here and below may not be
+           ;; necessary, but are kept for safety
+           (unless (or (not file) (equal tmp-file file))
+             (list file))
+           (when-let* ((ref (ast-referenced-obj ast))
+                       (file (ast-file ref)))
+             (unless (or (null file) (equal file tmp-file))
+               (list file)))
+           (when-let* ((type (ast-type ast))
+                       (str (new-clang-type-qual type)))
+             (includes-of-names-in-string obj str)))
+          :test #'equal)))
+    ;; (format t "Leave ast-includes-in-obj~%")
+    ))
+
 
 (defun includes-of-names-in-string (obj str)
   (let ((tmp-file (tmp-file obj))
@@ -817,6 +845,9 @@ asts can be transplanted between files without difficulty."
                    (nconcing
                     (ast-include-from-type v tmp-file))))))))
 
+;;; TODO:  Confirm that restricting this to just :typedef
+;;;  is correct (both in that it replicates what old clang
+;;;  front end did, and it's what's intended.)
 (defun ast-include-from-type (v tmp-file)
   (when (member (ast-class v) '(:typedef))
     (when-let ((file (ast-file v)))
@@ -878,12 +909,37 @@ asts can be transplanted between files without difficulty."
   nil)
 
 (defmethod ast-includes ((ast new-clang-ast))
-  ;; stub
-  nil)
+  (ast-includes-in-obj *soft* ast))
 
 (defmethod ast-macros ((ast new-clang-ast))
-  ;; stub
+  (ast-macros* ast (ast-class ast)))
+
+(defmethod ast-macros ((ast string)) (declare (ignorable ast)) nil)
+
+(defgeneric macros-of-macro-names (macro-names)
+  (:documentation "Computes the macros associated with macro-names")
+  (:method ((macro-names list) &aux (macros (macros *soft*)))
+    (iter (for n in macro-names)
+          (let ((m (find n macros :key #'macro-name :test #'equal)))
+            (when m (collecting (macro-hash m)))))))
+
+(defmethod ast-macros* ((ast new-clang-ast) class)
+  (declare (ignorable class))
+  (union (macros-of-macro-names (ast-attr ast :macro-names))
+         (reduce #'union (ast-children ast)
+                 :key #'ast-macros :initial-value nil)))
+
+(defmethod ast-macros* ((ast new-clang-ast) (class (eql :toplevel)))
+  (declare (ignorable ast class))
   nil)
+
+(defmethod ast-macros* ((ast new-clang-ast) (class (eql :macroexpansion)))
+  (declare (ignorable class))
+  (reduce
+   #'union
+   (cons (macros-of-macro-names (ast-attr ast :macro-names))
+         (mapcar #'ast-macros (ast-attr ast :macro-child-segment)))
+   :initial-value nil))
 
 (defmethod ast-types ((ast new-clang-ast))
   (ast-types* ast (ast-class ast)))
@@ -969,7 +1025,6 @@ on various ast classes"))
 things in macro expansion.  SPELLING-LOC is the location
 in the macro defn, EXPANSION-LOC is at the macro use."
   spelling-loc expansion-loc is-macro-arg-expansion)
-
 
 (defun make-new-clang-type (&rest keys &key qual desugared
                                          (hash (incf (hash-counter *soft*)))
@@ -1866,6 +1921,11 @@ actual source file"))
 (defun extended-end-offset (x)
   (nth-value 1 (begin-and-end-offsets x)))
 
+(defun token (loc)
+  (when-let ((offset (offset loc))
+             (len (tok-len loc)))
+    (subseq (genome *soft*) offset (+ offset len))))
+
 ;;; Given a list of unique offsets for an AST, and
 ;;; the AST, build an alist of (offset . node) pairs, the
 ;;; nodes corresponding to those offsets.  Each should be
@@ -2322,6 +2382,10 @@ line currently being processed.  The nodes are marked with attribute
                          t)))))
        ;; It's from a macro, mark it
        #+mme-debug (format t "Marking: ~a~%" a)
+       ;; Compute the macro name at the expansion site
+       (when-let* ((eloc (new-clang-macro-loc-expansion-loc begin))
+                   (tok (token eloc)))
+         (setf (ast-attr a :macro-names) (list tok)))
        (setf (ast-attr a :from-macro) t))
       ((typep begin 'new-clang-loc)
        (setf *current-line* (max *current-line*
