@@ -795,7 +795,8 @@
                  (lisp-implementation-type) (lisp-implementation-version))
        (declare (ignorable quiet verbose))
        (if help
-           (show-help-for-fact-entry)
+           (let ((*standard-output* (make-broadcast-stream)))
+             (show-help-for-fact-entry))
            (factorial n)))
      (unless *clack* (setf *clack* (initialize-clack))))
     (:teardown
@@ -2043,7 +2044,8 @@
   (with-fixture fact-rest-server
     (multiple-value-bind (cid status) (rest-test-get-new-client)
       (declare (ignore status))
-      (let ((result
+      (let ((*standard-output* (make-broadcast-stream))
+            (result
              (symbol-name
               (rest-endpoint-test-create-fact-job cid '(("n" . 5))))))
         (is (stringp result))
