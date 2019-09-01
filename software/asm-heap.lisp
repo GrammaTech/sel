@@ -237,8 +237,8 @@ or a symbol representing a valid asm-syntax slot value."
 (defun token-label-p (token)
   (and (stringp token)
        (or
-        (starts-with-p token "$")
-        (starts-with-p token ".L"))))
+        (starts-with-subseq "$" token)
+        (starts-with-subseq ".L" token))))
 
 (defun branch-op-p (token)
   "Returns true iff the token represents a jump operation. We assume it
@@ -246,13 +246,13 @@ is a jump operator if the first letter is #\j or #\J. For our purposes
 we are excluding CALL instructions."
   (and (stringp token)
        (let ((tok (string-downcase token)))
-         (or (starts-with-p tok "j")
-             (starts-with-p tok "call")))))
+         (or (starts-with-subseq "j" tok)
+             (starts-with-subseq "call" tok)))))
 
 (defun push-op-p (token)
   "Returns true iff the token represents a push operation."
   (and (stringp token)
-       (starts-with-p (string-downcase token) "push")))
+       (starts-with-subseq "push" (string-downcase token))))
 
 ;;; Given a list of tokens representing the line, returns either of:
 ;;;     :nothing
@@ -840,10 +840,10 @@ those we assume a function name."
     (and
      (is-asm-symbol name)
      (not
-      (or (starts-with-p name "$LOC_")
-	  (starts-with-p name "$BB_FALLTHROUGH_")
-	  (starts-with-p name "$UNK_")
-	  (starts-with-p name ".L"))))))
+      (or (starts-with-subseq "$LOC_" name)
+          (starts-with-subseq "BB_FALLTHROUGH_" name)
+          (starts-with-subseq "UNK_" name)
+          (starts-with-subseq ".L" name))))))
 
 (defun line-is-function-label (asm-line-info)
   "Returns true if the passed line-info represents a name of a function."

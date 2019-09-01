@@ -818,9 +818,9 @@ a symbol, the SYMBOL-NAME of the symbol is used."
                (not (find #\@ text :start start :end end))
 	       (let ((trimmed (string-trim '(#\space #\tab) text)))
                  (or
-                  (starts-with-p trimmed "j")
-                  (starts-with-p trimmed "call")
-                  (starts-with-p trimmed "push") ; we sometimes push a label
+                  (starts-with-subseq "j" trimmed)
+                  (starts-with-subseq "call" trimmed)
+                  (starts-with-subseq "push" trimmed) ; we sometimes push a label
                   (if (intel-syntax-p asm-syntax)
                       (char= #\$ (char trimmed 0))
                       (char= #\. (char trimmed 0))))))

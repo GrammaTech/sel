@@ -191,7 +191,7 @@ return non-nil when the test suite should be run and nil otherwise."
 suite name. If the passed suite name ends with +long-suite-suffix+ it returns
 the argument."
   (let ((str-suite-name (symbol-name suite-name)))
-    (if (ends-with-p str-suite-name +long-suite-suffix+)
+    (if (ends-with-subseq +long-suite-suffix+ str-suite-name)
         suite-name
         (values
          (intern (format nil "~A~A" str-suite-name +long-suite-suffix+))))))

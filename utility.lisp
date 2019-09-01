@@ -285,9 +285,7 @@
    :run-task-and-block
    :some-task
    :some-task-pred
-   :some-test-task
-   :starts-with-p
-   :ends-with-p))
+   :some-test-task))
 (in-package :software-evolution-library/utility)
 (cffi:load-foreign-library :libosicat)
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -2763,13 +2761,3 @@ See http://www.brendangregg.com/FlameGraphs/cpuflamegraphs.html."
 (defun profile-to-flame-graph (&rest args)
   (declare (ignorable args))
   (error "`PROFILE-TO-FLAME-GRAPH' unimplemented for non-SBCL lisps."))
-
-(defun starts-with-p (str1 str2)
-  "Determine whether `str1` starts with `str2`"
-  (let ((p (search str2 str1)))
-    (and p (= 0 p))))
-
-(defun ends-with-p (str1 str2)
-  "Determine whether `str1` ends with `str2`"
-  (let ((p (mismatch str2 str1 :from-end T)))
-    (or (not p) (= 0 p))))
