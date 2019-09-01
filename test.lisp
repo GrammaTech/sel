@@ -1411,7 +1411,7 @@
   (with-fixture gcd-asm
     (is (equal 'asm (type-of *gcd*)))))
 
-(deftest idempotent-read-write ()
+(deftest (idempotent-read-write :long-running) ()
   (let ((a (temp-file-name)))
     (unwind-protect
          (with-fixture gcd-asm
@@ -1427,7 +1427,7 @@
   (with-fixture gcd-asm
     (is (equal-it *gcd* (copy *gcd*) nil '(oid)))))
 
-(deftest idempotent-read-copy-write ()
+(deftest (idempotent-read-copy-write :long-running) ()
   (let ((a (temp-file-name)))
     (unwind-protect
          (with-fixture gcd-asm
@@ -1632,19 +1632,19 @@
 	(is (= 0 ret)))
       (delete-file a))))
 
-(deftest idempotent-asm-heap-read-write-intel ()
+(deftest (idempotent-asm-heap-read-write-intel :long-running) ()
   (with-fixture gcd-asm-heap-intel
     (idempotent-asm-heap-read-write "gcd.s.intel")))
 
-(deftest idempotent-asm-heap-read-write-att ()
+(deftest (idempotent-asm-heap-read-write-att :long-running) ()
   (with-fixture gcd-asm-heap-att
     (idempotent-asm-heap-read-write "gcd.s.att")))
 
-(deftest idempotent-asm-heap-copy-intel ()
+(deftest (idempotent-asm-heap-copy-intel :long-running) ()
   (with-fixture gcd-asm-heap-intel
     (is (equal-it *gcd* (copy *gcd*) nil '(oid)))))
 
-(deftest idempotent-asm-heap-copy-att ()
+(deftest (idempotent-asm-heap-copy-att :long-running) ()
   (with-fixture gcd-asm-heap-att
     (is (equal-it *gcd* (copy *gcd*) nil '(oid)))))
 
@@ -1658,11 +1658,11 @@
 	(is (= 0 ret)))
       (delete-file a))))
 
-(deftest idempotent-asm-heap-read-copy-write-intel ()
+(deftest (idempotent-asm-heap-read-copy-write-intel :long-running) ()
   (with-fixture gcd-asm-heap-intel
     (idempotent-asm-heap-read-write "gcd.s.intel")))
 
-(deftest idempotent-asm-heap-read-copy-write-att ()
+(deftest (idempotent-asm-heap-read-copy-write-att :long-running) ()
   (with-fixture gcd-asm-heap-att
     (idempotent-asm-heap-read-write "gcd.s.att")))
 
@@ -2011,12 +2011,12 @@
       (show-help-for-fact-entry-cl)
       (factorial n)))
 
-(deftest run-rest-factorial-cl-func ()
+(deftest (run-rest-factorial-cl-func :long-running) ()
   (let ((*standard-output* (make-broadcast-stream)))
     (is (eql (fact-entry-cl 5 :verbose 3) 120))
     (is (eql (fact-entry-cl 52235215 :help T) nil))))
 
-(deftest run-rest-factorial-cl-func-2 ()
+(deftest (run-rest-factorial-cl-func-2 :long-running) ()
   (with-fixture fact-rest-server
     (let ((*standard-output* (make-broadcast-stream)))
       ;; This produces a warning that FACT-ENTRY is undefined,
@@ -2313,7 +2313,7 @@
   (with-fixture hello-world-clang
     (is (not (null *hello-world*)))))
 
-(deftest genome-change-clears-clang-software-object-fields ()
+(deftest (genome-change-clears-clang-software-object-fields :long-running) ()
   (with-fixture hello-world-clang
     (is (not (null (stmt-asts *hello-world*))))
     (is (not (null (functions *hello-world*))))
@@ -3992,7 +3992,7 @@ int x = CHARSIZE;")))
                (->> (stmt-with-text *soft* "fibonacci(10);")
                     (get-unbound-funs *soft*))))))
 
-(deftest javascript-instrument-and-collect-traces ()
+(deftest (javascript-instrument-and-collect-traces :long-running) ()
   (with-fixture fib-javascript
     (let ((instrumented (instrument *soft*)))
       (collect-traces instrumented
@@ -4019,7 +4019,7 @@ int x = CHARSIZE;")))
                    (:INPUT "node" :BIN))
                  (get-trace (traces instrumented) 0))))))
 
-(deftest javascript-instrument-and-collect-traces-with-vars ()
+(deftest (javascript-instrument-and-collect-traces-with-vars :long-running) ()
   (with-fixture fib-javascript
     (let ((instrumented
             (instrument *soft*
@@ -4274,12 +4274,13 @@ int x = CHARSIZE;")))
 (defsuite javascript-project-tests "Javascript project."
   (npm-available-p))
 
-(deftest can-parse-a-javascript-project ()
+(deftest (can-parse-a-javascript-project :long-running) ()
   (with-fixture fib-project-javascript
     (is (equal 2 (length (evolve-files *soft*))))
     (is (not (null (asts *soft*))))))
 
-(deftest javascript-project-instrument-uninstrument-is-identity ()
+(deftest (javascript-project-instrument-uninstrument-is-identity
+          :long-running) ()
   (with-fixture fib-project-javascript
     (is (string= (genome *soft*)
                  (genome (uninstrument (instrument (copy *soft*))))))))
@@ -5579,7 +5580,7 @@ Useful for printing or returning differences in the REPL."
                     (function-body *collatz*)
                     (stmt-starting-with-text *collatz* "int collatz"))))))
 
-(deftest enclosing-block-no-compound-stmt-test ()
+(deftest (enclosing-block-no-compound-stmt-test :long-running) ()
   (with-fixture crossover-no-compound-stmt-clang
     (is (equalp (stmt-starting-with-text *soft* "for (j = 0")
                 (->> (stmt-with-text *soft* "printf(\"%d\\n\", i+j);")
@@ -7716,7 +7717,7 @@ prints unique counters in the trace"
     (is (equal "" stderr))
     (is (zerop errno))))
 
-(deftest read-and-write-shell-files ()
+(deftest (read-and-write-shell-files :long-running) ()
   (let ((test-string "Hello world. Hello world. Hello world."))
     (is (nest
          (string= test-string)
@@ -7732,7 +7733,7 @@ prints unique counters in the trace"
                          (read-line in))))
            (error (c) (declare (ignorable c)) nil))))))
 
-(deftest read-and-write-bytes-shell-files ()
+(deftest (read-and-write-bytes-shell-files :long-running) ()
   (let ((byte #x25))
     (is (nest
          (equal byte)
@@ -7747,7 +7748,7 @@ prints unique counters in the trace"
                    (read-byte in))))
            (error (c) (declare (ignorable c)) nil))))))
 
-(deftest cl-store-read-and-write-shell-files ()
+(deftest (cl-store-read-and-write-shell-files :long-running) ()
   (let ((it (make-instance 'software :fitness 37)))
     (is (nest
          (= (fitness it))
@@ -7790,7 +7791,7 @@ prints unique counters in the trace"
           (("C" ,(make-pathname :directory +grep-prj-dir+)) 'clang-project)
           (("java" ,(make-pathname :directory +grep-prj-dir+)) 'java-project))))
 
-(deftest create-software-guesses-clang-project ()
+(deftest (create-software-guesses-clang-project :long-running) ()
   (let ((sw (create-software
              (make-pathname :directory +grep-prj-dir+)
              :build-command
@@ -7831,7 +7832,7 @@ prints unique counters in the trace"
   (with-fixture project
     (signals error (to-file *project* nil))))
 
-(deftest simple-to-from-file-without-project-dir-works ()
+(deftest (simple-to-from-file-without-project-dir-works :long-running) ()
   (with-fixture project
     (setf (project-dir *project*) nil)
     (with-temp-dir (file)
@@ -7886,7 +7887,7 @@ prints unique counters in the trace"
   (is (sel/sw/project::ignored-path-p
        "./src/foo" :only-paths '("etc/*"))))
 
-(deftest project-copy-preserves-permissions ()
+(deftest (project-copy-preserves-permissions :long-running) ()
   ;; Ensure `to-file' preserves permissions on executable files.
   (nest
    (with-fixture grep-project)
@@ -7900,7 +7901,7 @@ prints unique counters in the trace"
                                  :type "sh"
                                  :directory (append dir (list "support")))))))))
 
-(deftest clang-project-test ()
+(deftest (clang-project-test :long-running) ()
   (with-fixture grep-project
     (is (equal "make grep" (build-command *project*)))
     (is (equalp '("grep") (artifacts *project*)))
@@ -10365,7 +10366,7 @@ int main() { puts(\"~d\"); return 0; }
     (is (equal (list nil t nil)
                (mapcar #'is-error (list resp1 resp2 resp3))))))
 
-(deftest can-add-and-lookup-coq-string ()
+(deftest (can-add-and-lookup-coq-string :long-running) ()
   (with-fixture serapi
     (let* ((add-str "Inductive test :=   | T1 : test   | T2 : test.")
            (id (add-coq-string add-str)))
