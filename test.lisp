@@ -893,6 +893,37 @@
                                           :type "c"))))
   (:teardown (setf *soft* nil)))
 
+(defun fully-every (fn seq &rest other-seqs)
+  "A version of EVERY that also checks that all sequences are
+of the same length"
+  (let ((len (length seq)))
+    (and (every (lambda (s) (= (length s) len)) other-seqs)
+         (apply #'every fn seq other-seqs))))
+
+(defun make-clang-type* (&rest args)
+  (if *new-clang?*
+      (apply #'make-new-clang-type* args)
+      (apply #'make-clang-type :allow-other-keys t args)))
+
+(defun make-new-clang-type* (&key array hash i-file pointer reqs name
+                               decl const volatile restrict storage-class
+                               qual (desugared nil desugared-p)
+                               typedef
+                               &allow-other-keys)
+  ;; Still must do:  DECL REQS TYPEDEF
+  (let ((type (make-instance 'new-clang-type
+                :qual qual
+                :desugared (if desugared-p desugared qual)
+                :typedef typedef)))
+    (make-instance 'nct+ :type type
+                   :storage-class storage-class
+                   :modifiers (sel/sw/new-clang::pack-nct+-modifiers
+                               pointer const volatile restrict)
+                   :array array
+                   :name name
+                   :i-file i-file
+                   :compute-slots nil)))
+
 (defun make-clang-control-picks (&rest args &key (compiler "clang-3.7") (flags '("-g -m32 -O0")) new-clang-flags)
   (if *new-clang?*
       (make-instance 'new-clang-control-picks
@@ -2694,8 +2725,8 @@
   (with-fixture hello-world-clang
     (let ((orig-num-asts (size *hello-world*)))
       (add-type *hello-world*
-                     (make-clang-type :decl "struct printf { chocolate cake; }"
-                                      :array "" :hash 0 :name "struct printf"))
+                (make-clang-type :decl "struct printf { chocolate cake; }"
+                                 :array "" :hash 0 :name "struct printf"))
       (is (equal orig-num-asts (size *hello-world*))))))
 
 (deftest add-new-type-changes-genome-and-types ()
@@ -2966,6 +2997,14 @@ is not to be found"
 
 (deftest find-or-add-type-adds-new-type ()
   (with-fixture gcd-clang
+    #+nil
+    (format t "Types:~%~{~a~%~}"
+            (sort
+             (mapcar #'type-name (hash-table-values (types *gcd*)))
+             #'string<))
+    ;; The new clang front end loads a large number of types
+    ;; that are defined in headers, but not used in the program
+    #+nil
     (is (null (find-if [{string= "float"} #'type-name]
                        (hash-table-values (types *gcd*)))))
     (let ((new-type (find-or-add-type *gcd* "int")))
@@ -9151,20 +9190,34 @@ prints unique counters in the trace"
                                            (stmt-starting-with-text *scopes* )))
                     '("global")))))
 
+(defun unbound-funs-equal (result expected)
+  (and (= (length result) (length expected))
+       (every
+        (lambda (r e)
+          (and (consp r) (consp e)
+               (equal (cdr r) (cdr e))
+               (name= (car r) (if *new-clang?*
+                                  (peel-bananas (car e))
+                                  (car e)))))
+        result expected)))
+
 (deftest unbound-funs-are-correct ()
   (with-fixture scopes2-clang
     (is (null (get-unbound-funs *scopes*
                                 (stmt-with-text *scopes* "int global;"))))
-    (is (equal (get-unbound-funs *scopes*
-                                 (stmt-with-text *scopes* "foo(0);"))
-               '(("(|foo|)" t nil 1))))
-    (is (equal (get-unbound-funs *scopes*
-                                 (stmt-with-text *scopes* "bar();"))
-               '(("(|bar|)" t nil 0))))
-    (is (equal (get-unbound-funs *scopes*
-                                 (stmt-starting-with-text *scopes* "void bar"))
-               '(("(|foo|)" t nil 1)
-                 ("(|bar|)" t nil 0))))))
+    (is (unbound-funs-equal
+         (get-unbound-funs *scopes*
+                           (stmt-with-text *scopes* "foo(0);"))
+         '(("(|foo|)" t nil 1))))
+    (is (unbound-funs-equal
+         (get-unbound-funs *scopes*
+                           (stmt-with-text *scopes* "bar();"))
+         '(("(|bar|)" t nil 0))))
+    (is (unbound-funs-equal
+         (get-unbound-funs *scopes*
+                           (stmt-starting-with-text *scopes* "void bar"))
+         '(("(|foo|)" t nil 1)
+           ("(|bar|)" t nil 0))))))
 
 (deftest scopes-type-field-is-correct ()
   (with-fixture scopes-type-field-clang
@@ -9226,9 +9279,10 @@ prints unique counters in the trace"
   (with-fixture scopes2-clang
     (apply-mutation *scopes*
       `(clang-cut (:stmt1 . ,(stmt-with-text *scopes* "foo(0);"))))
-    (is (equal (get-unbound-funs *scopes*
-                                 (stmt-starting-with-text *scopes* "void bar"))
-               '(("(|bar|)" t nil 0))))))
+    (is (unbound-funs-equal
+         (get-unbound-funs *scopes*
+                           (stmt-starting-with-text *scopes* "void bar"))
+         '(("(|bar|)" t nil 0))))))
 
 (deftest insert-statement-updates-unbound-funs ()
   (with-fixture scopes2-clang
@@ -9236,9 +9290,10 @@ prints unique counters in the trace"
       `(clang-insert (:stmt1 . ,(stmt-with-text *scopes* "int b;"))
                      (:stmt2 . ,(stmt-with-text *scopes*
                                                 "bar();"))))
-    (is (equal (get-unbound-funs *scopes*
-                                 (stmt-starting-with-text *scopes* "void foo"))
-               '(("(|bar|)" t nil 0))))))
+    (is (unbound-funs-equal
+         (get-unbound-funs *scopes*
+                           (stmt-starting-with-text *scopes* "void foo"))
+         '(("(|bar|)" t nil 0))))))
 
 (deftest cut-statement-updates-unbound-vals ()
   (with-fixture scopes2-clang
@@ -9256,10 +9311,10 @@ prints unique counters in the trace"
     (let ((unbound (get-unbound-vals *scopes*
                                      (stmt-starting-with-text *scopes*
                                                               "void foo"))))
-      (is (equal (mapcar {aget :name} unbound) '("global" "b")))
-      (is (aget :decl (find-if [{string= "global"} {aget :name}] unbound)))
+      (is (fully-every #'name= (mapcar {aget :name} unbound) '("global" "b")))
+      (is (aget :decl (find-if [{name= "global"} {aget :name}] unbound)))
       ;; b is now undeclared
-      (is (not (aget :decl (find-if [{string= "b"} {aget :name}] unbound)))))))
+      (is (not (aget :decl (find-if [{name= "b"} {aget :name}] unbound)))))))
 
 (deftest insert-statement-updates-unbound-vals ()
   (with-fixture scopes2-clang
