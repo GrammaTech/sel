@@ -1088,10 +1088,10 @@ on various ast classes"))
 
 (defmethod ast-types* ((ast new-clang-ast) (ast-class (eql :Macroexpansion)))
   (let ((nodes (remove ast (ast-nodes-in-subtree ast)))
-        (old-child-segment (mapcan #'ast-nodes-in-subtree
-                                   (ast-attr ast :old-child-segment))))
+        (macro-child-segment (mapcan #'ast-nodes-in-subtree
+                                     (ast-attr ast :macro-child-segment))))
     (sort
-     (reduce #'union (mapcar #'ast-types (append nodes old-child-segment))
+     (reduce #'union (mapcar #'ast-types (append nodes macro-child-segment))
              :initial-value nil)
      #'string<
      :key #'type-name)))
