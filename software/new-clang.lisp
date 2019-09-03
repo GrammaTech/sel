@@ -1528,6 +1528,10 @@ on json-kind-symbol when special subclasses are wanted."))
   (declare (ignorable json-kind-symbol))
   (store-slots (make-cxx-operator-call-expr) json))
 
+(defmethod j2ck (json (json-kind-symbol (eql :ElaboratedType)))
+  (declare (ignorable json json-kind-symbol))
+  nil)
+
 (defgeneric store-slots (obj json)
   (:documentation "Store values in the json into obj.
 Return the object, or another object to be used in
@@ -2363,12 +2367,19 @@ ranges into 'combined' nodes.  Warn when this happens."
                                          (format t "Combined asts are:~%~{~a~%~}" accumulator)
                                          (format t "~a~%" (subseq genome new-begin new-end))
                                          (format t "------------------------------------------------------------~%"))
-                                       (list (make-new-clang-ast
-                                              :class :combined
-                                              :attrs `((:range . ,(make-new-clang-range
-                                                                   :begin new-begin
-                                                                   :end new-end))
-                                                       (:subsumed . ,accumulator))))))
+                                       ;; Special case: there are two nodes, and the second is a typedef
+                                       ;; In that case, make the first a child of the second
+                                       (if (and (= (length accumulator) 2)
+                                                (eql (ast-class (cadr accumulator)) :typedef))
+                                           (progn
+                                             (push (first accumulator) (ast-children (cadr accumulator)))
+                                             (list (cadr accumulator)))
+                                           (list (make-new-clang-ast
+                                                  :class :combined
+                                                  :attrs `((:range . ,(make-new-clang-range
+                                                                       :begin new-begin
+                                                                       :end new-end))
+                                                           (:subsumed . ,accumulator)))))))
                                (setf accumulator nil)))))))
                  (let ((new-children
                         (append
