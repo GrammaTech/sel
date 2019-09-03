@@ -233,9 +233,66 @@ in or below function declarations"
                  (push a protos))))
     (nreverse protos)))
 
+(defmethod binding-for-function ((obj new-clang) functions name arity)
+  (or (random-function-info functions
+                            :original-name name
+                            :arity arity)
+      (error (make-condition 'mutate
+                             :text "No funs found."
+                             :obj obj))))
+
+(defun random-function-info (protos &key original-name arity)
+  "Returns funmction info in the same format as unbound-funs"
+  (when-let ((name (random-function-proto protos :original-name original-name
+                                          :arity arity)))
+    (list name nil (ast-varargs name) (length (ast-args name)))))
+
+(defun random-function-proto (protos &key original-name arity)
+  (let ((matching '())
+        (variadic '())
+        (others   '())
+        (saw-orig nil))
+    (loop :for proto :in protos
+       :do (let ((args (length (ast-args proto))))
+             (when (name= proto original-name)
+               (setf saw-orig t))
+             (cond
+               ((= args arity) (push proto matching))
+               ((and (< args arity)
+                     (ast-varargs proto))
+                (push proto variadic))
+               (t (push proto others)))))
+    (if (and saw-orig (< (random 1.0) *matching-free-function-retains-name-bias*))
+        original-name
+        (random-elt (or matching variadic others '(nil))))))
+
 (defmethod add-type :around ((sw new-clang) type)
+  (declare (ignorable type))
   (let ((*soft* sw))
     (call-next-method)))
+
+(defmethod get-ast-types :around ((sw new-clang) type)
+  (declare (ignorable type))
+  (let ((*soft* sw))
+    (call-next-method)))
+
+(defmethod bind-free-vars :around ((sw new-clang) a1 a2)
+  (declare (ignorable a1 a2))
+  (let ((*soft* sw))
+    (call-next-method)))
+
+(defmethod replace-all ((string string) (part new-clang-ast)
+                        (replacement new-clang-ast) &key (test #'char=))
+  (replace-all string (ast-name part) (ast-name replacement) :test test))
+
+(defmethod replace-all ((string string) (part string)
+                        (replacement new-clang-ast) &key (test #'char=))
+  (replace-all string part (ast-name replacement) :test test))
+
+(defmethod replace-all ((string string) (part new-clang-ast)
+                        replacement &key (test #'char=))
+  (replace-all string (ast-name part) replacement :test test))
+
 
 (defun find-macros-in-ast (ast)
   (find-macros-in-children (ast-children ast)))
@@ -494,9 +551,9 @@ that is not strictly speaking about types at all (storage class)."))
     (setf (gethash hash (slot-value *soft* 'types)) obj))
   obj)
 
-(defmethod initialize-instance :after ((obj nct+) &key &allow-other-keys)
+(defmethod initialize-instance :after ((obj nct+) &key (compute-slots t) &allow-other-keys)
   (pushnew obj (new-clang-type-nct+-list (nct+-type obj)))
-  (compute-nct+-slots obj)
+  (when compute-slots (compute-nct+-slots obj))
   obj)
 
 (defmethod type-hash ((tp new-clang-type))
@@ -534,11 +591,16 @@ that is not strictly speaking about types at all (storage class)."))
         (with-slots (array name modifiers) tp+
           (setf array a
                 name n
-                modifiers (logior
-                           (if pointer +pointer+ 0)
-                           (if const +const+ 0)
-                           (if volatile +volatile+ 0)
-                           (if restrict +restrict+ 0))))))))
+                modifiers
+                (pack-nct+-modifiers
+                 pointer const volatile restrict)))))))
+
+(defun pack-nct+-modifiers (pointer const volatile restrict)
+  (logior
+   (if pointer +pointer+ 0)
+   (if const +const+ 0)
+   (if volatile +volatile+ 0)
+   (if restrict +restrict+ 0)))
 
 (defun compute-nct+-properties (name)
   (multiple-value-bind (name suffix-list)
@@ -716,7 +778,7 @@ that is not strictly speaking about types at all (storage class)."))
                     (is-prefix "union "))
             (when-let* ((table (type-table *soft*))
                         (record-decl (gethash (cons qual desugared) table)))
-              (concatenate 'string (source-text record-decl)  ";")))))
+              (concatenate 'string (new-clang-type-qual record-decl)  ";")))))
       ""))
 
 (defmethod type-decl-string ((obj new-clang-type) &key &allow-other-keys)
@@ -758,39 +820,45 @@ that is not strictly speaking about types at all (storage class)."))
 (defmethod is-full-stmt-ast ((ast new-clang-ast))
   (ast-attr ast :fullstmt))
 
-(defun new-clang-ast-copy (ast &key
-                                 (fn #'make-new-clang-ast)
-                                 path
-                                 (children nil children-p)
-                                 (class nil class-p)
-                                 (attrs nil attrs-p)
-                                 (id 0 id-p)
-                                 (syn-ctx nil syn-ctx-p)
-                                 (full-stmt nil full-stmt-p)
-                                 (guard-stmt nil guard-stmt-p)
-                                 (opcode nil opcode-p)
-                                 &allow-other-keys)
-  (let ((children (if children-p children (new-clang-ast-children ast)))
-        (class (if class-p class (new-clang-ast-class ast)))
-        (attrs (if attrs-p attrs (new-clang-ast-attrs ast)))
-        ;; ID should not be copied -- generate a new one?
-        (id (if id-p id (new-clang-ast-id ast)))
-        (syn-ctx (if syn-ctx-p syn-ctx (new-clang-ast-syn-ctx ast))))
-    (when full-stmt-p
-      (setf attrs (%areplace :fullstmt full-stmt attrs)))
-    (when guard-stmt-p
-      (setf attrs (%areplace :guardstmt guard-stmt attrs)))
-    (when opcode-p
-      (setf attrs (%areplace :opcode opcode attrs)))
-    (funcall fn :path path :children children
+(defun new-clang-ast-copy (ast fn &rest args
+                           &key
+                             referenceddecl
+                             path
+                             (children (new-clang-ast-children ast))
+                             (class (new-clang-ast-class ast))
+                             (attrs (new-clang-ast-attrs ast) attrs-p)
+                             (id (new-clang-ast-id ast))
+                             (syn-ctx (new-clang-ast-syn-ctx ast))
+                             &allow-other-keys)
+  (unless (or (null referenceddecl) (ast-p referenceddecl))
+    (error "Referenceddecl not an AST: ~s~%" referenceddecl))
+  (let (new-attrs)
+    (let ((args2 args))
+      (iter (while args2)
+            (let ((key (pop args2))
+                  (arg (pop args2)))
+              (case key
+                ((path children class id syn-ctx) nil)
+                ((attrs)
+                 (unless attrs-p
+                   (setf attrs-p t
+                         attrs arg)))
+                (t
+                 ;; Otherwise, it's an attribute
+                 (push (cons key arg) new-attrs))))))
+    (iter (for (key . arg) in new-attrs)
+          (setf attrs (%areplace key arg attrs)))
+
+    (funcall fn :allow-other-keys t
+             :path path :children children
              :class class :attrs attrs :id id
              :syn-ctx syn-ctx)))
 
 (defmethod copy ((ast new-clang-ast) &rest args) ;  &key &allow-other-keys)
-  (apply #'new-clang-ast-copy ast args))
+  (apply #'new-clang-ast-copy ast #'make-new-clang-ast args))
 
 (defmethod copy ((ast cxx-operator-call-expr) &rest args) ;  &key &allow-other-keys)
-  (apply #'new-clang-ast-copy ast :fn #'make-cxx-operator-call-expr args))
+  (apply #'new-clang-ast-copy ast #'make-cxx-operator-call-expr args))
 
 (defmethod remove-file-attr-in-same-file ((obj new-clang))
   "The FILE attribute is unnecessary when it's the same as the file for this
@@ -1048,8 +1116,45 @@ on various ast classes"))
 
 (defmethod rebind-vars ((ast new-clang-ast)
                         var-replacements fun-replacements)
-  ;; stub
-  (copy ast))
+  (case (ast-class ast)
+    (:DeclRefExpr
+     #+rebind-vars-debug
+     (progn
+       (format t "REBIND-VARS on DeclRefExpr:~%~a~%~a~%"
+               (source-text ast) (ast-to-list ast))
+       (format t "referenceddecl = ~a~%"
+               (ast-to-list (ast-referenced-obj ast))))
+     (iter (for (old new) in var-replacements)
+           (assert old) (assert new)
+           (when (eql (ast-referenced-obj ast) old)
+             #+rebind-vars-debug
+             (progn
+               (describe ast)
+               (describe old)
+               (describe new)
+               (format t "Replace var ~a~%~a~%with ~a~%"
+                       (source-text ast)
+                       (new-clang-ast-attrs ast)
+                       (ast-name new))
+               (format t "(ast-children ast) = ~a~%" (ast-children ast)))
+             (setf ast (copy ast :referenceddecl new
+                             :ast-children (list (ast-name new))))
+             #+rebind-vars-debug
+             (format t "New ast: ~a~%~a~%" (source-text ast)
+                     (new-clang-ast-attrs ast))))
+     (iter (for (oldf newf) in fun-replacements)
+           (let ((old (first oldf))
+                 (new (first newf)))
+             (assert old) (assert new)
+             (when (eql (ast-referenced-obj ast) old)
+               #+rebind-vars-debug (format t "Replace fun~%")
+               (setf ast (copy ast :referenceddecl new)))))
+     ast)
+    (t (let ((c (mapcar {rebind-vars _ var-replacements fun-replacements}
+                        (ast-children ast))))
+         (if (every #'eql c (ast-children ast))
+             ast
+             (copy ast :children c))))))
 
 (defmethod fixup-mutation (operation (current new-clang-ast)
                            before ast after)
@@ -2555,14 +2660,18 @@ of OBJ")
   (:method ((obj new-clang-ast))
     (let ((rd (ast-attr obj :ReferencedDecl)))
       (when rd
+        (unless (ast-p rd)
+          (format t "In ast-referenced-obj on ~a~%" obj)
+          (describe obj)
+          (format t "ast-attrs = ~a~%" (new-clang-ast-attrs obj))
+          (describe rd)
+          (error "Not an AST: ~a~%" rd))
         (let ((id (new-clang-ast-id rd)))
           (when id
             (let ((defs (gethash id (symbol-table *soft*))))
-              (assert (= (length defs) 1) ()
-                      "ID = 0x~x, NAME = ~a, defs=~a, symbol-table=~a~%"
-                      id (ast-name rd) defs (symbol-table *soft*))
-              (car defs) ;; (ast-file (car defs))
-              )))))))
+              (when (= (length defs) 1)
+                (car defs) ;; (ast-file (car defs))
+                ))))))))
 
 
 ;;; Reimplementations of ast-* functions for nodes
@@ -2620,7 +2729,7 @@ computed at the children"))
 ;; that marks AST nodes that are full statements
 ;; (and that might not otherwise be)
 (defmethod ast-full-stmt ((obj new-clang-ast))
-  (ast-attr obj :fullstmt))
+  (ast-attr obj :full-stmt))
 
 (defmethod full-stmt-p ((obj new-clang) (ast new-clang-ast))
   (declare (ignorable obj))
@@ -2630,7 +2739,7 @@ computed at the children"))
 ;; that marks AST nodes that are guard statements
 ;; (and that might not otherwise be)
 (defmethod ast-guard-stmt ((obj new-clang-ast))
-  (ast-attr obj :guardstmt))
+  (ast-attr obj :guard-stmt))
 
 ;;; 'includes' should be computed from the locations
 ;;; in the subtree.  Need logic to translate back to
@@ -2779,7 +2888,7 @@ the test or is not present."))
   (eql obj (nth-ast-child parent n)))
 
 (defgeneric compute-full-stmt-attr (obj ancestors)
-  (:documentation "Fills in the :FULLSTMT attribute on clang ast
+  (:documentation "Fills in the :FULL-STMT attribute on clang ast
 nodes, as needed.")
   (:method ((obj new-clang-ast) ancestors)
     (let ((parent (car ancestors)))
@@ -2808,14 +2917,14 @@ nodes, as needed.")
                (and (not (eql obj-class :CompoundStmt))
                     (not (eql-nth-ast-child obj parent 0))))
               (t nil))
-          (setf (ast-attr obj :fullstmt) t))))
+          (setf (ast-attr obj :full-stmt) t))))
     obj))
 
 (defun compute-full-stmt-attrs (ast)
   (map-ast-with-ancestors ast #'compute-full-stmt-attr))
 
 (defgeneric compute-guard-stmt-attr (obj ancestors)
-  (:documentation "Fills in the :GUARDSTMT attribute on clang
+  (:documentation "Fills in the :GUARD-STMT attribute on clang
 ast nodes, as needed")
   (:method ((obj new-clang-ast) ancestors)
     (when ancestors
@@ -2824,7 +2933,7 @@ ast nodes, as needed")
           (case (ast-class parent)
             ((:CapturedStmt :CompoundStmt :CXXCatchStmt :DoStmt
                             :ForStmt :IfStmt :SwitchStmt :WhileStmt)
-             (setf (ast-attr obj :GuardStmt) t))))))
+             (setf (ast-attr obj :Guard-Stmt) t))))))
     obj))
 
 (defun compute-guard-stmt-attrs (ast)
