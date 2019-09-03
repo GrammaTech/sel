@@ -281,17 +281,6 @@ in or below function declarations"
   (let ((*soft* sw))
     (call-next-method)))
 
-(defmethod replace-all ((string string) (part new-clang-ast)
-                        (replacement new-clang-ast) &key (test #'char=))
-  (replace-all string (ast-name part) (ast-name replacement) :test test))
-
-(defmethod replace-all ((string string) (part string)
-                        (replacement new-clang-ast) &key (test #'char=))
-  (replace-all string part (ast-name replacement) :test test))
-
-(defmethod replace-all ((string string) (part new-clang-ast)
-                        replacement &key (test #'char=))
-  (replace-all string (ast-name part) replacement :test test))
 
 
 (defun find-macros-in-ast (ast)
@@ -509,6 +498,18 @@ that is not strictly speaking about types at all (storage class)."))
 (defmethod scopes :around ((sw new-clang) (ast new-clang-ast))
   (let ((*soft* sw))
     (call-next-method)))
+
+(defmethod replace-all ((string string) (part new-clang-ast)
+                        (replacement new-clang-ast) &key (test #'char=))
+  (replace-all string (ast-name part) (ast-name replacement) :test test))
+
+(defmethod replace-all ((string string) (part string)
+                        (replacement new-clang-ast) &key (test #'char=))
+  (replace-all string part (ast-name replacement) :test test))
+
+(defmethod replace-all ((string string) (part new-clang-ast)
+                        replacement &key (test #'char=))
+  (replace-all string (ast-name part) replacement :test test))
 
 (defmethod typedef-type ((obj new-clang) (nct nct+))
   ;; Must construct an NCT+ for this type
