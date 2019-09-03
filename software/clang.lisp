@@ -3043,21 +3043,24 @@ in the AST.  SOFTWARE is the software object to which AST belongs."
                              :text "No bound vars in scope."
                              :obj obj))))
 
-(defun binding-for-function (obj functions name arity)
+(defgeneric binding-for-function (obj functions name arity)
+  (:documentation
   "DOCFIXME
 * OBJ DOCFIXME
 * FUNCTIONS DOCFIXME
 * NAME DOCFIXME
 * ARITY DOCFIXME
-"
+"))
+
+(defmethod binding-for-function ((obj clang) functions name arity)
   (or (random-function-info functions
                             :original-name name
                             :arity arity)
       (error (make-condition 'mutate
-                             :text "No bound vars in scope."
+                             :text "No funs found."
                              :obj obj))))
 
-(defmethod bind-free-vars ((clang clang-base) (ast ast) (pt ast))
+(defmethod bind-free-vars ((clang clang-base) ast pt)
   "DOCFIXME
 * CLANG DOCFIXME
 * AST DOCFIXME
@@ -3104,18 +3107,23 @@ the rebinding
     :path (ast-path ast)
     :node (copy (ast-node ast)
                 :unbound-vals
-                (remove-duplicates
-                  (mapcar (lambda (v)
-                            (or (some->> (find-if [{equal v} #'peel-bananas
-                                                   #'car]
-                                                  var-replacements)
-                                         (second)
-                                         (peel-bananas))
-                                v))
-                          (ast-unbound-vals ast))
-                  :test #'equal))
+                (unbound-vals-in-rebinding ast var-replacements))
     :children (mapcar {rebind-vars _ var-replacements fun-replacements}
                       (ast-children ast))))
+
+(defgeneric unbound-vals-in-rebinding (ast var-replacements)
+  (:documentation "Recomputation of UNBOUND-VALS in REBIND-VARS")
+  (:method ((ast clang-ast) var-replacements)
+    (remove-duplicates
+     (mapcar (lambda (v)
+               (or (some->> (find-if [{equal v} #'peel-bananas
+                                      #'car]
+                                     var-replacements)
+                            (second)
+                            (peel-bananas))
+                   v))
+             (ast-unbound-vals ast))
+     :test #'equal)))
 
 (defgeneric delete-decl-stmts (software block replacements)
   (:documentation
