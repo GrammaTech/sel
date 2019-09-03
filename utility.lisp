@@ -1701,14 +1701,12 @@ transformed from an instant to a cumulative probability."
       (find-hashtable-element hash-tbl (random size)))))
 
 ;; From the Common Lisp Cookbook
-(defun replace-all (string part replacement &key (test #'char=))
-  "Returns a new string in which all the occurences of the part
-is replaced with replacement."
-  (assert (and (stringp string)
-               (stringp part)
-               (stringp replacement))
-          (string part replacement)
-          "Arguments to `replace-all' must be strings.")
+(defgeneric replace-all (string part replacement &key test)
+  (:documentation "Returns a new string in which all the
+occurences of the part is replaced with replacement."))
+
+(defmethod replace-all ((string string) (part string)
+                        (replacement string) &key (test #'char=))
   (with-output-to-string (out)
     (loop :with part-length := (length part)
        :for old-pos := 0 :then (+ pos part-length)
@@ -1720,6 +1718,24 @@ is replaced with replacement."
                          :end (or pos (length string)))
        :when pos :do (write-string replacement out)
        :while pos)))
+
+;; Specialization to base strings, which are more space
+;; efficient
+(defmethod replace-all ((string base-string) (part base-string)
+                        (replacement base-string) &key (test #'char=))
+  (coerce
+   (with-output-to-string (out)
+     (loop :with part-length := (length part)
+        :for old-pos := 0 :then (+ pos part-length)
+        :for pos := (search part string
+                            :start2 old-pos
+                            :test test)
+        :do (write-string string out
+                          :start old-pos
+                          :end (or pos (length string)))
+        :when pos :do (write-string replacement out)
+        :while pos))
+   'base-string))
 
 (defun apply-replacements (list str)
   (if (null list)
