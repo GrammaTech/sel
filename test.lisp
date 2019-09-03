@@ -3038,8 +3038,7 @@ is not to be found"
   ;; Types inside a macro expansion should be visible. This is trick
   ;; due to the de-aggregating of types done by asts->tree.
   (let* ((obj (make-clang :genome "#define CHARSIZE (sizeof (char))
-int x = CHARSIZE;"))
-         (*soft* obj))
+int x = CHARSIZE;")))
     (is (equalp '("int" "char")
                 (mapcar [#'type-name {find-type obj}]
                         (get-ast-types obj (first (asts obj))))))))
