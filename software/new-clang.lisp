@@ -2510,6 +2510,8 @@ ranges into 'combined' nodes.  Warn when this happens."
                 (update-symbol-table obj)
                 obj))))))))
 
+;;; TODO: determine if this needs to be invoked when the
+;;;  tree changes
 (defmethod update-symbol-table ((obj new-clang))
   ;; When objects are copied in an AST, the mapping from IDs to
   ;; objects is invalidated.  This function restores it.
