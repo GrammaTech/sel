@@ -910,7 +910,7 @@ of the same length"
                                qual (desugared nil desugared-p)
                                typedef
                                &allow-other-keys)
-  ;; Still must do:  DECL REQS TYPEDEF
+  ;; TODO:  DECL REQS TYPEDEF
   (let ((type (make-instance 'new-clang-type
                 :qual qual
                 :desugared (if desugared-p desugared qual)
@@ -924,7 +924,10 @@ of the same length"
                    :i-file i-file
                    :compute-slots nil)))
 
-(defun make-clang-control-picks (&rest args &key (compiler "clang-3.7") (flags '("-g -m32 -O0")) new-clang-flags)
+(defun make-clang-control-picks (&rest args
+                                 &key (compiler "clang-3.7")
+                                   (flags '("-g -m32 -O0"))
+                                   new-clang-flags)
   (if *new-clang?*
       (make-instance 'new-clang-control-picks
         :compiler sel/sw/new-clang::*clang-binary*
@@ -2997,11 +3000,6 @@ is not to be found"
 
 (deftest find-or-add-type-adds-new-type ()
   (with-fixture gcd-clang
-    #+nil
-    (format t "Types:~%~{~a~%~}"
-            (sort
-             (mapcar #'type-name (hash-table-values (types *gcd*)))
-             #'string<))
     ;; The new clang front end loads a large number of types
     ;; that are defined in headers, but not used in the program
     #+nil

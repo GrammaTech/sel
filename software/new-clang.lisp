@@ -52,6 +52,12 @@
 ;;;  Changing APIs to pass the software object down "manually"
 ;;;  is another option, and would enable methods to be specialized
 ;;;  on that object.
+;;;
+;;;  The best approach may be to add :around methods for generic
+;;;  functions that (1) have a new-clang object as an argument, and (2)
+;;;  are going to access things under that object using accessors
+;;;  that need *soft*.  The :around method will bind *soft* to that
+;;;  new-clang object before invoking the next method.
 
 (declaim (special *soft*))
 (declaim (special *canonical-string-table* *current-line*))
@@ -281,7 +287,9 @@ in or below function declarations"
   (let ((*soft* sw))
     (call-next-method)))
 
-
+(defmethod update-headers-from-ast :around ((sw new-clang) ast database)
+  (let ((*soft* sw))
+    (call-next-method)))
 
 (defun find-macros-in-ast (ast)
   (find-macros-in-children (ast-children ast)))
@@ -554,6 +562,9 @@ that is not strictly speaking about types at all (storage class)."))
 
 (defmethod initialize-instance :after ((obj nct+) &key (compute-slots t) &allow-other-keys)
   (pushnew obj (new-clang-type-nct+-list (nct+-type obj)))
+  ;; The COMPUTE-SLOTS argument is here so we can suppress the automatic initialization
+  ;; of the slots of an nct+ object.  This is needed in the tests in test.lisp.
+  ;; It may be needed in client code that will be manually creating type objects.
   (when compute-slots (compute-nct+-slots obj))
   obj)
 
@@ -758,6 +769,7 @@ that is not strictly speaking about types at all (storage class)."))
 (defmethod type-decl ((obj nct+))
   (type-decl (nct+-type obj)))
 
+;;; WIP
 (defmethod type-decl ((type new-clang-type))
   ;; This is "" for most types.
   ;; For struct or union types (or classes? no) it is
@@ -831,6 +843,8 @@ that is not strictly speaking about types at all (storage class)."))
                              (id (new-clang-ast-id ast))
                              (syn-ctx (new-clang-ast-syn-ctx ast))
                              &allow-other-keys)
+  ;; The value of REFERENCEDDECL is not otherwise explicitly
+  ;; used in this function, but it gets used as part of ARGS
   (unless (or (null referenceddecl) (ast-p referenceddecl))
     (error "Referenceddecl not an AST: ~s~%" referenceddecl))
   (let (new-attrs)
@@ -850,6 +864,9 @@ that is not strictly speaking about types at all (storage class)."))
     (iter (for (key . arg) in new-attrs)
           (setf attrs (%areplace key arg attrs)))
 
+    ;; This call includes :ALLOW-OTHER-KEYS T because
+    ;; FN may be #'make-new-clang-ast, and we cannot
+    ;; add &allow-other-keys to that.
     (funcall fn :allow-other-keys t
              :path path :children children
              :class class :attrs attrs :id id
@@ -916,7 +933,9 @@ asts can be transplanted between files without difficulty."
 
 ;;; TODO:  Confirm that restricting this to just :typedef
 ;;;  is correct (both in that it replicates what old clang
-;;;  front end did, and it's what's intended.)
+;;;  front end did, and it's what's intended.)  Confirm
+;;;  that structs and unions were not producing this in
+;;;  old front end.
 (defun ast-include-from-type (v tmp-file)
   (when (member (ast-class v) '(:typedef))
     (when-let ((file (ast-file v)))
@@ -1182,7 +1201,7 @@ things in macro expansion.  SPELLING-LOC is the location
 in the macro defn, EXPANSION-LOC is at the macro use."
   spelling-loc expansion-loc is-macro-arg-expansion)
 
-(defun make-new-clang-type (&rest keys &key qual desugared
+(defun make-new-clang-type (&rest keys &key qual desugared typedef
                                          (hash (incf (hash-counter *soft*)))
                                          &allow-other-keys)
   (let* ((key (cons qual desugared))
@@ -1194,6 +1213,7 @@ in the macro defn, EXPANSION-LOC is at the macro use."
                     ;; Do not store desugared if it's the same
                     ;; as the sugared type
                     :desugared (and (not (equal qual desugared)) desugared)
+                    :typedef typedef
                     keys)))
       (if table
           (or (gethash key table)
@@ -1517,6 +1537,13 @@ on json-kind-symbol when special subclasses are wanted."))
     (setf (ast-children obj) (remove nil (ast-children obj)))
     obj))
 
+(defmethod j2ck :around (json (json-kind-symbol (eql :typedef)))
+  (declare (ignorable json json-kind-symbol))
+  (let ((obj (call-next-method)))
+    (when-let ((typedef-type (pop (ast-children obj))))
+      (setf (ast-attr obj :typedef-type) typedef-type))
+    obj))
+
 (defmethod j2ck (json (json-kind-symbol (eql :ImplicitValueInitExpr)))
   (declare (ignorable json json-kind-symbol))
   nil)
@@ -1527,10 +1554,6 @@ on json-kind-symbol when special subclasses are wanted."))
   ;; first in the source file)
   (declare (ignorable json-kind-symbol))
   (store-slots (make-cxx-operator-call-expr) json))
-
-(defmethod j2ck (json (json-kind-symbol (eql :ElaboratedType)))
-  (declare (ignorable json json-kind-symbol))
-  nil)
 
 (defgeneric store-slots (obj json)
   (:documentation "Store values in the json into obj.
@@ -2195,7 +2218,7 @@ in a CXXOperatorCallExpr node.")
       ((%assert1 (i cbegin c)
          (assert (>= cbegin i) ()
                  "Offsets out of order: i = ~a,~
- cbegin = ~a, c = ~a, range = ~a"
+                  cbegin = ~a, c = ~a, range = ~a"
                  i cbegin c
                  (ast-attr c :range)))
        (%decorate (a)
@@ -2261,7 +2284,7 @@ text ranges in the source do not overlap, if possible."
                     (progn
                       (format t "Next var: name = ~a~%" (ast-name c))
                       (format t "prev = ~a, pos = ~a, (end-offset prev)~
- = ~a, c = ~a, next-pos = ~a, end = ~a~%"
+                                 = ~a, c = ~a, next-pos = ~a, end = ~a~%"
                               prev pos (end-offset prev) c next-pos end))
                     (if prev
                         (if (and next-pos end)
@@ -2489,7 +2512,7 @@ ranges into 'combined' nodes.  Warn when this happens."
 
 (defmethod update-symbol-table ((obj new-clang))
   ;; When objects are copied in an AST, the mapping from IDs to
-  ;; objects is invalidated.  This functio restores it.
+  ;; objects is invalidated.  This function restores it.
   (let ((table (symbol-table obj)))
     (map-ast (ast-root obj)
              (lambda (a)
@@ -2673,6 +2696,7 @@ of OBJ")
     (let ((rd (ast-attr obj :ReferencedDecl)))
       (when rd
         (unless (ast-p rd)
+          ;; This should never happen
           (format t "In ast-referenced-obj on ~a~%" obj)
           (describe obj)
           (format t "ast-attrs = ~a~%" (new-clang-ast-attrs obj))
@@ -2682,8 +2706,7 @@ of OBJ")
           (when id
             (let ((defs (gethash id (symbol-table *soft*))))
               (when (= (length defs) 1)
-                (car defs) ;; (ast-file (car defs))
-                ))))))))
+                (car defs)))))))))
 
 
 ;;; Reimplementations of ast-* functions for nodes

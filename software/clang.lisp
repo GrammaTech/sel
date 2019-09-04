@@ -55,6 +55,7 @@
            :clang-mutate
            :apply-clang-mutate-ops
            :update-headers-from-snippet
+           :update-headers-from-ast
            :prototypes
            :functions
            :get-entry
@@ -1903,8 +1904,8 @@ type in TYPES.
           (mapc (lambda (include)
                   (adjoining include into m-includes test #'string=))
                 (ast-includes ast))
-          ;; STMT-ASTS are only collected below the last prototype node
-          ;; NON-STMT-ASTS are only collected above prototype nodes
+          ;; stmt-asts are only collected in function bodies and
+          ;; non-stmt-asts are only collected outside of function bodies
           (if (and last-proto (starts-with-subseq (ast-path last-proto)
                                                   (ast-path ast)))
               (unless (or (eq :ParmVar (ast-class ast))
@@ -3060,7 +3061,7 @@ in the AST.  SOFTWARE is the software object to which AST belongs."
                              :text "No funs found."
                              :obj obj))))
 
-(defmethod bind-free-vars ((clang clang-base) ast pt)
+(defmethod bind-free-vars ((clang clang-base) (ast ast) (pt ast))
   "DOCFIXME
 * CLANG DOCFIXME
 * AST DOCFIXME
@@ -3443,8 +3444,7 @@ Returns outermost AST of context.
           (replace-in-target value1 outward-stmt1 outward-value1)
           `((:stmt1 . ,ancestor) (:value1 . ,value1))))))))
 
-(defmethod update-headers-from-ast ((clang clang-base) (ast ast) database
-                                    &aux (*soft* clang))
+(defmethod update-headers-from-ast ((clang clang-base) (ast ast) database)
   "Walk the ast AST in clang object CLANG, adding includes, macros, and types
 that are mentioned at nodes of the AST.  DATABASE is the associated macro/type
 database."

@@ -1750,19 +1750,20 @@ occurences of the part is replaced with replacement."))
 
 ;;  Helper function for removing tags identifying DeclRefs
 ;;  from a code snippet.
-(defun peel-bananas (text)
-  (if (string text)
-      (apply-replacements '(("(|" . "") ("|)" . "")) text)
-      text))
+(defgeneric peel-bananas (text)
+  (:documentation  "Helper function for removing tags identifying DeclRefs
+from a code snippet.")
+  (:method ((text string))
+    (apply-replacements '(("(|" . "") ("|)" . "")) text))
+  (:method (text) test))
 
 (defun peel-bananas-or-same (text)
   (let ((new (peel-bananas text)))
     (if (equal text new) text new)))
 
-(defun unpeel-bananas (text)
-  (if (stringp text)
-      (concatenate 'string "(|" text "|)")
-      text))
+(defgeneric unpeel-bananas (text)
+  (:method ((text string)) (concatenate 'string "(|" text "|)"))
+  (:method (text) text))
 
 (defun aget (item list &key (test #'eql))
   "Get KEY from association list LIST."
