@@ -915,10 +915,7 @@ asts can be transplanted between files without difficulty."
            (when-let* ((type (ast-type ast))
                        (str (new-clang-type-qual type)))
              (includes-of-names-in-string obj str)))
-          :test #'equal)))
-    ;; (format t "Leave ast-includes-in-obj~%")
-    ))
-
+          :test #'equal)))))
 
 (defun includes-of-names-in-string (obj str)
   (let ((tmp-file (tmp-file obj))
@@ -936,6 +933,10 @@ asts can be transplanted between files without difficulty."
 ;;;  front end did, and it's what's intended.)  Confirm
 ;;;  that structs and unions were not producing this in
 ;;;  old front end.
+;;;
+;;;  This should be updated when the json from Clang includes
+;;;  the entire include chain, not just the final file
+;;;  in the chain.
 (defun ast-include-from-type (v tmp-file)
   (when (member (ast-class v) '(:typedef))
     (when-let ((file (ast-file v)))
