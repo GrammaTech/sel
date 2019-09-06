@@ -49,7 +49,7 @@ techniques."
   :entry-point "software-evolution-library/rest::run-rest-server")
 
 (defsystem "software-evolution-library/run-new-clang-round-trip"
-    :author "Paul F. Dietz and GrammaTech"
+    :author "Eric Schulte and GrammaTech"
     :licence "GPL V3"
     :description "Test harness for clang parser/unparser"
     :version "0.0.0"
@@ -59,7 +59,7 @@ techniques."
     :entry-point "software-evolution-library/components/new-clang-round-trip::run-new-clang-round-trip")
 
 (defsystem "software-evolution-library/run-clang-diff-test"
-    :author "Paul F. Dietz and GrammaTech"
+    :author "Eric Schulte and GrammaTech"
     :licence "GPL V3"
     :description "Differential tester for old/new clang front ends"
     :version "0.0.0"
@@ -69,7 +69,7 @@ techniques."
     :entry-point "software-evolution-library/components/clang-diff-test::run-clang-diff-test")
 
 (defsystem "software-evolution-library/run-dump-store"
-    :author "Paul F. Dietz and GrammaTech"
+    :author "Eric Schulte and GrammaTech"
     :licence "GPL V3"
     :description "Dump store file for a program"
     :version "0.0.0"
