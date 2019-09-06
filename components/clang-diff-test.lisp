@@ -1,5 +1,4 @@
 ;;; clang-diff-test.lisp -- differential testing for clang and new clang
-
 (defpackage :software-evolution-library/components/clang-diff-test
   (:nicknames :sel/components/clang-diff-test
               :sel/cp/clang-diff-test)
@@ -19,6 +18,7 @@
                 :dump-ast-val-to-list)
   (:export :clang-diff-test))
 (in-package :software-evolution-library/components/clang-diff-test)
+
 
 ;;; Command line
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -39,8 +39,9 @@
                :documentation "Compare the AST-UNBOUND-FUNS values")
               (("unbound-vals") :type boolean :optional t
                :documentation "Compare the AST-UNBOUND-VALS values")
-              (("errors") :type boolean t
-               :documentation "When true, new-clang errors are 'interesting'")))))
+              (("errors") :type boolean :optional t
+               :documentation
+               "When true, new-clang errors are 'interesting'")))))
 
 (defun make-clang (file &key)
   (let ((obj1 (make-instance 'clang)))
@@ -198,7 +199,7 @@ list of children of their parent.  Cannot remove the root."))
             "~%Built from SEL ~a, and ~a ~a.~%"
             +software-evolution-library-version+
             (lisp-implementation-type) (lisp-implementation-version))
-  (declare (ignorable eval load split-lines))
+  (declare (ignorable eval load))
   (when help (show-help-for-clang-diff-test))
   (when syn-ctx
     (setf fn #'ast-syn-ctx))
@@ -216,9 +217,10 @@ list of children of their parent.  Cannot remove the root."))
     (handler-case (ast-root nc)
       ;; The ERRORS flag indicates we are looking for cases
       ;; where new-clang fails with an error.
-      (if errors
-          (exit-command clang-diff-test 0 nil)
-          (exit-command clang-diff-test 99 (error e))))
+      (error (e)
+        (if errors
+            (exit-command clang-diff-test 0 nil)
+            (exit-command clang-diff-test 99 (error e)))))
     (handler-case
         (multiple-value-bind (success? diagnostics)
             (check-attr c nc fn)
