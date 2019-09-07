@@ -1,8 +1,6 @@
 ;;; lisp.lisp --- software representation of lisp code
 ;;;
-;;; See @code{Eclector/code/parse-result/second-climacs-test.lisp}.
-;;; Note that this requires the @code{wip-parse-result-protocol-2}
-;;; branch of Eclector (see
+;;; Uses Eclector (see
 ;;; @url{https://github.com:robert-strandh/Eclector}).
 ;;;
 ;;; @texi{lisp}
@@ -20,16 +18,15 @@
         :software-evolution-library/software/ast
         :software-evolution-library/software/source
         :software-evolution-library/software/parseable
-	:eclector.parse-result)
-  (:shadowing-import-from :eclector.parse-result :read :read-preserving-whitespace)
+        :eclector.parse-result)
+  (:shadowing-import-from :eclector.parse-result
+   :read :read-preserving-whitespace :read-from-string)
   (:import-from :uiop :nest)
   (:export :lisp :lisp-ast :lisp-ast-p))
 (in-package :software-evolution-library/software/lisp)
 (in-readtable :curry-compose-reader-macros)
 
 
-;;; Differencing adapted from second-climacs-test.lisp in
-;;; wip-parse-result-protocol-2 branch of eclector.
 (defvar *string*)
 
 (defclass result ()
@@ -51,11 +48,11 @@
   (nest (with-slots (start end string-pointer expression children) obj)
         (if *print-readably*
             (format stream "~S" `(make-instance 'expression-result
-                                   :start ,start
-                                   :end ,end
-                                   :string-pointer *string*
-                                   :expression ,expression
-                                   :children (list ,@children))))
+                                                :start ,start
+                                                :end ,end
+                                                :string-pointer *string*
+                                                :expression ,expression
+                                                :children (list ,@children))))
         (print-unreadable-object (obj stream :type t))
         (format stream ":EXPRESSION ~a :CHILDREN ~S" expression children)))
 
@@ -67,10 +64,10 @@
   (nest (with-slots (start end string-pointer reason) obj)
         (if *print-readably*
             (format stream "~S" `(make-instance 'skipped-input-result
-                                   :start ,start
-                                   :end ,end
-                                   :string-pointer *string*
-                                   :reason ,reason)))
+                                                :start ,start
+                                                :end ,end
+                                                :string-pointer *string*
+                                                :reason ,reason)))
         (print-unreadable-object (obj stream :type t))
         (format stream ":REASON ~a :TEXT ~S" reason)
         (if (> (- end start) (- max-length 3))
@@ -80,48 +77,26 @@
              "...")
             (subseq string-pointer start end))))
 
-(defclass second-climacs (parse-result-mixin)
-  ((cache :reader   cache
-          :initform (make-hash-table :test #'eql))))
-
-(defmethod getcache ((position t) (client second-climacs))
-  (gethash position (cache client)))
-
-(defmethod (setf getcache) ((new-value t) (position t) (client second-climacs))
-  (setf (gethash position (cache client)) new-value))
+(defclass client (parse-result-client)
+  ())
 
 (defmethod make-expression-result
-    ((client second-climacs) (result t) (children t) (source cons))
-  (make-instance 'expression-result
-    :expression result
-    :children children
-    :start (car source)
-    :end (cdr source)))
+    ((client client) (result t) (children t) (source cons))
+  (make-instance 'expression-result :expression result
+                                    :children children
+                                    :start (car source)
+                                    :end (cdr source)))
 
 (defmethod make-skipped-input-result
-    ((client second-climacs) stream reason source)
+    ((client client) stream reason source)
   (declare (ignorable client stream))
   (make-instance 'skipped-input-result
     :reason reason :start (car source) :end (cdr source)))
 
-(defmethod eclector.reader:read-common :around
-    ((client second-climacs) input-stream eof-error-p eof-value)
-  (declare (ignorable eof-error-p eof-value))
-  (let ((position (eclector.parse-result:source-position client input-stream)))
-    (if-let ((cached (getcache position client)))
-      (progn
-        (assert (eql (start cached) position))
-        (loop :repeat (- (end cached) position) :do (read-char input-stream))
-        (values (expression cached) cached))
-      (progn
-        (multiple-value-bind (expression parse-result) (call-next-method)
-          (setf (getcache position client) parse-result)
-          (values expression parse-result))))))
-
 (defun read-forms+ (string &key count)
   (check-type count (or null integer))
   (let ((*string* string)
-        (eclector.reader:*client* (make-instance 'second-climacs)))
+        (client (make-instance 'client)))
     (labels
         ((make-space (start end)
            (when (< start end)
@@ -151,7 +126,7 @@
                     :for n :from 0
                     :for form = (if (and count (>= n count))
                                     eof
-                                    (eclector.parse-result:read input nil eof))
+                                    (eclector.parse-result:read client input nil eof))
                     :until (eq form eof) :collect form))
                0 (length string)))))
 
