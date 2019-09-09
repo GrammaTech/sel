@@ -3037,9 +3037,12 @@ is not to be found"
   ;; due to the de-aggregating of types done by asts->tree.
   (let* ((obj (make-clang :genome "#define CHARSIZE (sizeof (char))
 int x = CHARSIZE;")))
-    (is (equalp '("int" "char")
-                (mapcar [#'type-name {find-type obj}]
-                        (get-ast-types obj (first (asts obj))))))))
+    (let ((types
+           (sort (mapcar [#'type-name {find-type obj}]
+                         (get-ast-types obj (first (asts obj))))
+                 #'string<)))
+      (is (or (equal '("char" "int") types)
+              (equal '("char" "int" "unsigned long") types))))))
 
 (deftest able-to-handle-multibyte-characters ()
   (handler-bind (#+sbcl (sb-int:stream-encoding-error
@@ -3625,7 +3628,9 @@ int x = CHARSIZE;")))
             (var-type4 (get-var-type "a" "int a[N][N];"))
             (var-type5 (get-var-type "b" "return 2;")))
         (is (null var-type4))
-        (is (equal "[10][10]" (type-array var-type1)))
+        (if *new-clang?*
+            (is (equal "[10]" (type-array var-type1)))
+            (is (equal "[10][10]" (type-array var-type1))))
         (is (equal ""         (type-array var-type2)))
         (is (equal "[10][10]" (type-array var-type3)))
         (is (equal ""         (type-array var-type5)))
@@ -3633,7 +3638,9 @@ int x = CHARSIZE;")))
         (is (equal t          (type-pointer var-type2)))
         (is (equal nil        (type-pointer var-type3)))
         (is (equal t          (type-pointer var-type5)))
-        (is (equal "int"      (type-name var-type1)))
+        (if *new-clang?*
+            (is (equal "int (*)"      (type-name var-type1)))
+            (is (equal "int"      (type-name var-type1))))
         (is (equal "int"      (type-name var-type2)))
         (is (equal "int"      (type-name var-type3)))
         (is (equal "int*"     (remove #\Space (type-name var-type5))))))))
