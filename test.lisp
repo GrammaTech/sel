@@ -3693,10 +3693,11 @@ int x = CHARSIZE;")))
   (with-fixture assert-clang
     (let* ((copy (copy *soft*))
            (stmt (stmt-with-text copy "assert(argc > 0);")))
-      (is (equalp "assert((|someVal|) > 0);"
+      (is (equalp (peel-banana-tree-nc "assert((|someVal|) > 0);")
                   (->> (rebind-vars stmt
-                                         '(("(|argc|)" "(|someVal|)"))
-                                         nil)
+                                    (peel-banana-tree-nc
+                                     '(("(|argc|)" "(|someVal|)")))
+                                    nil)
                        (source-text)))
           "rebind-vars did not rebind a variable within a macro"))))
 
@@ -9205,6 +9206,19 @@ prints unique counters in the trace"
                                   (car e)))))
         result expected)))
 
+(defgeneric peel-banana-tree (tree)
+  (:method ((tree string)) (peel-bananas tree))
+  (:method ((tree cons))
+    (let ((car (peel-banana-tree (car tree)))
+          (cdr (peel-banana-tree (cdr tree))))
+      (if (and (eql car (car tree)) (eql cdr (cdr tree)))
+          tree
+          (cons car cdr))))
+  (:method (tree) tree))
+
+(defun peel-banana-tree-nc (tree)
+  (if *new-clang?* (peel-banana-tree tree) tree))
+
 (deftest unbound-funs-are-correct ()
   (with-fixture scopes2-clang
     (is (null (get-unbound-funs *scopes*
@@ -10849,4 +10863,13 @@ int main() { puts(\"~d\"); return 0; }
   (is (null (cpp-scan "<,>" #'is-comma :angle-brackets t)))
   (is (eql (cpp-scan "," #'is-comma :angle-brackets t) 0))
   (is (eql (cpp-scan "<>," #'is-comma :angle-brackets t) 2)))
+
+(deftest cpp-scan-skip-first ()
+  (is (eql (cpp-scan "()(" (lambda (c) (eql c #\())) 0))
+  (is (eql (cpp-scan "()(" (lambda (c) (eql c #\()) :skip-first t) 2))
+  (is (eql (cpp-scan "(())(" (lambda (c) (eql c #\()) :skip-first t) 4))
+  (is (eql (cpp-scan "(()(" (lambda (c) (eql c #\()) :start 1 :skip-first t)
+           3))
+  (is (eql (cpp-scan " ()(" (lambda (c) (eql c #\()) :start 1 :skip-first t)
+           3)))
 
