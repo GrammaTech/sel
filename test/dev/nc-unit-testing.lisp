@@ -100,3 +100,10 @@ by GET-AST-TYPES"
                                    (and (not (equal val "")) val)))))
                            (get-ast-types sw a)))))
   (values))
+
+(defmacro nc (&body body)
+  `(let ((*new-clang?* t)) ,@body))
+
+(defmacro wdnc (&body body)
+  `(without-debugging (nc ,@body)))
+y
