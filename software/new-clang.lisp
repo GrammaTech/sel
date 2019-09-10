@@ -489,6 +489,7 @@ SEL/SW/CLANG:CLANG-TYPE.  This means it must have some information
 that is not strictly speaking about types at all (storage class)."))
 
 (defun make-nct+ (type storage-class ast)
+  (assert (typep type 'new-clang-type))
   (or (find storage-class (new-clang-type-nct+-list type)
             :key #'type-storage-class)
       (make-instance 'nct+
@@ -521,7 +522,13 @@ that is not strictly speaking about types at all (storage class)."))
 
 (defmethod typedef-type ((obj new-clang) (nct nct+))
   ;; Must construct an NCT+ for this type
+  #+(or)
+  (let ((tp (nct+-type nct)))
+    (format t "(nct+-type nct) = ~a~%" tp)
+    (format t "(new-clang-typedef ...) = ~a~%"
+            (new-clang-typedef tp)))
   (or (when-let ((tp (new-clang-typedef (nct+-type nct))))
+        (assert (typep tp 'new-clang-type))
         (or (find nil (new-clang-type-nct+-list tp)
                   :key #'type-storage-class)
             (make-nct+ tp nil nil)))
@@ -1138,6 +1145,14 @@ on various ast classes"))
 (defmethod rebind-vars ((ast new-clang-ast)
                         var-replacements fun-replacements)
   (case (ast-class ast)
+    (:macroexpansion
+     ;; Revert back to string-based rebinding
+     (let ((new-children
+            (mapcar #'(lambda (s) (rebind-vars s var-replacements fun-replacements))
+                    (ast-children ast))))
+       (if (equal (ast-children ast) new-children)
+           ast
+           (copy ast :children new-children))))
     (:DeclRefExpr
      #+rebind-vars-debug
      (progn
@@ -2448,7 +2463,14 @@ ranges into 'combined' nodes.  Warn when this happens."
   (:method ((ast new-clang-ast))
     (when (eql (ast-class ast) :Typedef)
       (when-let ((type (ast-type ast)))
-        (setf (new-clang-typedef type) ast)))))
+        (when-let* ((qual (ast-name ast))
+                    (desugared (or (new-clang-type-desugared type)
+                                   (new-clang-type-qual type))))
+          #+(or)
+          (format t "Record typedef for ~a ==> ~a, ~a~%"
+                  (ast-name ast) (new-clang-type-qual type) desugared)
+          (let ((nct+ (make-new-clang-type :qual qual :desugared desugared)))
+            (setf (new-clang-typedef nct+) type)))))))
 
 (defmethod update-asts ((obj new-clang))
   ;; Port of this method from clang.lsp, for new class
@@ -2488,14 +2510,21 @@ ranges into 'combined' nodes.  Warn when this happens."
                 (compute-operator-positions obj ast)
                 (put-operators-into-inner-positions obj ast)
                 (fix-overlapping-vardecls obj ast)
-                (mark-macro-expansion-nodes ast tmp-file)
-                (%debug 'mark-macro-expansion-nodes ast
-                        #'(lambda (o)
-                            (let ((r (ast-range o)))
-                              (list r (begin-offset r) (end-offset r)
-                                    (is-macro-expansion-node o)))))
-                (encapsulate-macro-expansions ast)
-                (%debug 'encapsulate-macro-expansions ast #'%p)
+                (multiple-value-bind (uses table) (find-macro-uses obj ast tmp-file)
+                  (declare (ignorable table uses))
+                  ;; (format t "~{~s~%~}" uses)
+                  (encapsulate-macro-expansions-cheap ast table))
+                ;; Fancier macro mechanism
+                #+(or)
+                (progn
+                  (mark-macro-expansion-nodes ast tmp-file)
+                  (%debug 'mark-macro-expansion-nodes ast
+                          #'(lambda (o)
+                              (let ((r (ast-range o)))
+                                (list r (begin-offset r) (end-offset r)
+                                      (is-macro-expansion-node o)))))
+                  (encapsulate-macro-expansions ast)
+                  (%debug 'encapsulate-macro-expansions ast #'%p))
                 (fix-ancestor-ranges obj ast)
                 (%debug 'fix-ancestor-ranges ast #'%p)
                 (combine-overlapping-siblings obj ast)
@@ -2526,6 +2555,154 @@ ranges into 'combined' nodes.  Warn when this happens."
 
 ;;; Macro expansion code
 
+(defgeneric find-macro-uses (obj a file)
+  (:documentation "Identify the locations at which macros occur in the
+file, and the length of the macro token.  Returns a list of lists.
+The first element of the list is the position of the start of the
+macro name, the second is the length, the third is true
+when the macro has one or more macro parameters that became expressed
+in the AST, and the fourth is the length of the macro expression in
+genome.   Also return a hash table in which the first element
+of these lists maps to the cdr."))
+
+(defmethod find-macro-uses (obj a file)
+  (let ((macro-occurrence-table (make-hash-table))
+        (uses nil))
+    (map-ast a (lambda (x) (find-macro-use-at-node
+                            x file macro-occurrence-table)))
+    (maphash (lambda (k v)
+               (setf (third v)
+                     (compute-macro-extent obj k (first v) (second v)))
+               (push (cons k v) uses))
+             macro-occurrence-table)
+    (values (sort uses #'< :key #'car)
+            macro-occurrence-table)))
+
+(defgeneric compute-macro-extent (obj off len is-arg)
+  (:documentation "Compute the length of a macro occurrence in
+the genome.  IS-ARG, when true, indicates this was a parameterized
+macro.  OBJ is the software object, OFF the starting offset,
+LEN the length of the macro name.")
+  (:method (obj off len is-arg)
+    (let* ((genome (genome obj))
+           (glen (length genome)))
+      (assert (<= 0 off))
+      (assert (< 0 len))
+      (assert (<= (+ off len) (length genome)))
+      (if is-arg
+          (let ((i (+ off len)))
+            ;; Skip over whitespace after macro
+            (iter (while (< i glen))
+                  (while (member (elt genome i) +whitespace-chars+))
+                  (incf i))
+            (if (or (>= i glen)
+                    (not (eql (elt genome i) #\()))
+                len ;; give up; could not find macro arguments
+                (let ((end (cpp-scan genome (constantly t)
+                                     :start i :skip-first t)))
+                  (- end off))))
+          len))))
+
+(defun find-macro-use-at-node (a file table)
+  (when-let ((range (ast-range a)))
+    (flet ((%record (loc)
+             (typecase loc
+               (new-clang-macro-loc
+                (when-let ((eloc (new-clang-macro-loc-expansion-loc loc)))
+                  (when (let ((loc-file (new-clang-loc-file eloc)))
+                          (or (null loc-file) (equal loc-file file)))
+                    (let ((off (offset eloc))
+                          (len (tok-len eloc))
+                          (is-arg (new-clang-macro-loc-is-macro-arg-expansion
+                                   loc)))
+                      (let ((existing (gethash off table)))
+                        (if (null existing)
+                            (setf (gethash off table)
+                                  (list len is-arg nil))
+                            (setf (cadr existing) (or (cadr existing)
+                                                      is-arg)))))))))))
+      (%record (new-clang-range-begin range))
+      (%record (new-clang-range-end range)))))
+
+(defgeneric encapsulate-macro-expansions-cheap (ast table)
+  (:documentation "Replace macro expansions with :MACROEXPANSION
+nodes.  This does not try to find macro arguments.  AST is the root of
+the AST, and TABLE is a mapping from macro use offsets to a list
+containing the length of the macro token and a flag that is T if the
+macro was found to have arguments below it in the AST (so look for a
+'(' character).  Uses cpp-scan to determine the extent of the
+macro.")
+  (:method (ast (table hash-table))
+    (map-ast-while
+     ast
+     (lambda (a) (encapsulate-macro-expansion-cheap-below-node a table)))))
+
+(defun %is-macro-expansion-node (x table)
+  (assert (ast-p x))
+  (when-let* ((range (ast-range x))
+              (begin (new-clang-range-begin range)))
+    (typecase begin
+      (new-clang-macro-loc
+       (when-let* ((eloc (new-clang-macro-loc-expansion-loc begin))
+                   (off (offset eloc))
+                   (len/args (gethash off table)))
+         (cons off len/args))))))
+
+(defgeneric encapsulate-macro-expansion-cheap-below-node (a table)
+  ;; Walk over the children of A, combining those that are from the same
+  ;; macroexpansion into a single macroexpansion node.
+  (:method (a (table hash-table))
+    ;; Scan the children of A, grouping those that are macro expansion
+    ;; nodes of the same offset.
+    (unless (eql (ast-class a) :macroexpansion)
+      (let* ((last-offset nil)
+             (m nil)
+             (macro-child-segment nil)
+             (c (ast-children a))
+             (changed? nil)
+             (new-children
+              (iter (flet ((%collect ()
+                             (when macro-child-segment
+                               (collecting
+                                (let ((obj (make-new-clang-ast
+                                            :class :macroexpansion)))
+                                  (assert m)
+                                  (let ((new-begin (car m))
+                                        (new-end (+ (car m) (fourth m))))
+                                    (setf (ast-range obj)
+                                          (make-new-clang-range
+                                           :begin new-begin
+                                           :end new-end)
+                                          (ast-attr obj :macro-child-segment)
+                                          macro-child-segment
+                                          changed? t))
+                                  obj)))
+                             (setf m nil
+                                   macro-child-segment nil
+                                   last-offset nil)))
+                      (if c
+                          (let ((x (pop c)))
+                            (let ((macro-info (%is-macro-expansion-node x table)))
+                              (if macro-info
+                                  (if (eql (car macro-info) last-offset)
+                                      (setf macro-child-segment
+                                            (append macro-child-segment (list x)))
+                                      ;; start new macro segment
+                                      (progn
+                                        (%collect)
+                                        (setf m macro-info
+                                              last-offset (car macro-info)
+                                              macro-child-segment (list x))))
+                                  (progn
+                                    (%collect)
+                                    (collecting x)))))
+                          (progn
+                            (%collect)
+                            (finish)))))))
+        (when changed?
+          (setf (ast-children a) new-children))
+        t))))
+
 (defgeneric mark-macro-expansion-nodes (a file)
   (:documentation
    "Mark the nodes of an AST that were produced by macroexpansion.
@@ -2548,10 +2725,12 @@ line currently being processed.  The nodes are marked with attribute
     (cond
       ((and (typep begin 'new-clang-macro-loc)
             (typep end 'new-clang-macro-loc)
-            (or #+nil (and
-                       (not (new-clang-macro-loc-is-macro-arg-expansion end))
-                       (progn (format t "isMacroArgExpansion is false~%")
-                              t))
+
+            (or #+mme-debug
+                (and
+                 (not (new-clang-macro-loc-is-macro-arg-expansion end))
+                 (progn (format t "isMacroArgExpansion is false~%")
+                        t))
                 (and (not (equal file (ast-file a t)))
                      (progn #+mme-debug
                             (format t "file = ~a, (ast-file a t) = ~a~%"
@@ -2599,7 +2778,7 @@ line currently being processed.  The nodes are marked with attribute
 (defun encapsulate-macro-expansions (a)
   "Given an AST marked with :from-macro annotations, collapse macros into macro
 nodes."
-  (map-ast a #'encapsulate-macro-expansions-below-node))
+  (map-ast-while a #'encapsulate-macro-expansions-below-node))
 
 (defun is-macro-expansion-node (a)
   (ast-attr a :from-macro))
@@ -2669,7 +2848,8 @@ nodes."
         (shiftf (ast-attr a :old-children)
                 (ast-children a)
                 new-children)
-        new-children))))
+        new-children))
+    (not changed?)))
 
 (defun macro-expansion-arg-asts (asts)
   "Search down below a for the nodes that are not marked with :from-macro.
@@ -3072,6 +3252,7 @@ ast nodes, as needed")
                           (elt reg-ends 0))))))))
 
 (defun cpp-scan (str until-fn &key (start 0) (end (length str))
+                                (skip-first nil)
                                 (angle-brackets))
   "Scan string STR from START to END, skipping over parenthesizd
 C/C++ things, and respecting C/C++ comments and tokens, until
@@ -3096,6 +3277,7 @@ template brackets < and >."
   ;;
   (let ((pos start))
     (labels ((inc? (&optional (l 1))
+               (setf skip-first nil)
                (when (>= (incf pos l) end)
                  (return-from cpp-scan nil)))
              (cpp-scan* (closing-char)
@@ -3103,6 +3285,10 @@ template brackets < and >."
                ;; of a pair of matching parens/brackets/braces.
                (loop
                   (let ((c (elt str pos)))
+                    (when (and (not closing-char)
+                               (not skip-first)
+                               (funcall until-fn c))
+                      (return-from cpp-scan pos))
                     (case c
                       (#.+whitespace-chars+ (inc?))
                       ((#\() (inc?) (cpp-scan* #\)))
@@ -3126,9 +3312,12 @@ template brackets < and >."
                              ((eql closing-char c)
                               (inc?)
                               (return))
+                             #|
                              ((and (not closing-char)
+                             (not skip-first)
                                    (funcall until-fn c))
                               (return-from cpp-scan pos))
+                             |#
                              (t
                               (inc?))))))))
              (cpp-scan-string-constant ()
