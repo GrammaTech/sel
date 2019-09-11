@@ -36,7 +36,7 @@ SOFTWARE."))
 ;;;; if else while do typedef -> . va-arg return goto for offset-of
 ;;;; generic sizeof alignof struct union char-literal int-literal string-literal
 ;;;; float-literal i-literal ... macro
-(defmethod tokens ((clang clang) &optional (roots (roots clang)))
+(defmethod tokens ((clang clang-base) &optional (roots (roots clang)))
   "Return a list of keyword tokens representing the ASTs in SOFTWARE below ROOTS.
 * CLANG software object to tokenize
 * ROOTS limit to tokens below elements of ROOT ASTs in CLANG
@@ -66,7 +66,7 @@ SOFTWARE."))
        ;; "identifier"
        (replace-identifiers (identifiers str)
          (iter (for i in identifiers)
-               (unless (emptyp i)
+               (unless (equal i "") ;; (emptyp i)
                  (setf str (replace-all str i "identifier")))
                (finally (return str))))
        (token-from-string (str)
@@ -77,6 +77,7 @@ SOFTWARE."))
            (t (make-keyword str))))
        (tokenize (root)
          (let ((children (get-immediate-children clang root)))
+           ;; (format t "TOKENIZE:~%root = ~a~%children = ~a~%" root children)
            (switch ((ast-class root) :test #'equal)
              (:AddrLabelExpr
               (assert (<= 2 (length (source-text root))))
@@ -241,7 +242,8 @@ SOFTWARE."))
                      ;; split a-ls on : to get types
                      (types (mapcar [#'token-from-string #'first {split ":\\s*"}]
                                     a-ls)))
-                (assert (= (length types) (1- (length children))))
+                (assert (= (length types) (1- (length children))) ()
+                        "Types = ~a, Children = ~a" types children)
                 (append (list (token-from-string "generic")
                               (token-from-string "("))
                         (tokenize (first children))
@@ -383,6 +385,7 @@ SOFTWARE."))
                       (tokenize (first children))
                       (list (token-from-string ")"))
                       (tokenize (second children))))
+             (:ConstantExpr (tokenize-children children))
              (t (error
                  (make-condition
                      'unhandled-token-class
