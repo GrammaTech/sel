@@ -52,7 +52,7 @@ applied.")
   (unless (member regex (mapcar #'car *compilation-fixers*) :test #'string=)
     (push (cons regex function) *compilation-fixers*)))
 
-(defmethod fix-compilation ((obj clang) max-attempts &aux matches)
+(defmethod fix-compilation ((obj clang-base) max-attempts &aux matches)
   "Fix compilation errors in clang software object OBJ.
 Try to make any changes necessary for that object to compile
 successfully.  This will first employ `clang-tidy', which calls the
@@ -380,7 +380,7 @@ associated element of `*compilation-fixers*'.
  ": undefined reference to `(\\S+)'"
  #'delete-undefined-references)
 
-(defmethod declare-var-as-pointer ((obj clang) match-data)
+(defmethod declare-var-as-pointer ((obj clang-base) match-data)
   "DOCFIXME
 
 * OBJ DOCFIXME
