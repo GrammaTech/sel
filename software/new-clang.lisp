@@ -411,7 +411,10 @@ macro objects from these, returning a list."
   (new-clang-ast-stored-hash obj))
 (defmethod (setf ast-stored-hash) (value (obj new-clang-ast))
   (setf (new-clang-ast-stored-hash obj) value))
-
+(defmethod ast-aux-data ((obj new-clang-ast))
+  (new-clang-ast-aux-data obj))
+(defmethod (setf ast-aux-data) (v (obj new-clang-ast))
+  (setf (new-clang-ast-aux-data obj) v))
 
 ;; Special subclass for :CXXOperatorCallExpr nodes
 (defstruct (cxx-operator-call-expr (:include new-clang-ast))
@@ -525,6 +528,8 @@ that is not strictly speaking about types at all (storage class)."))
   #+(or)
   (let ((tp (nct+-type nct)))
     (format t "(nct+-type nct) = ~a~%" tp)
+    (when tp
+      (describe tp))
     (format t "(new-clang-typedef ...) = ~a~%"
             (new-clang-typedef tp)))
   (or (when-let ((tp (new-clang-typedef (nct+-type nct))))
