@@ -7543,7 +7543,7 @@ prints unique counters in the trace"
   (with-fixture huf-clang
     (let ((type (->> (stmt-with-text *huf* "p = test;")
                      (get-vars-in-scope *huf*)
-                     (find-if [{string= "strbit"} {aget :name}])
+                     (find-if [{name= "strbit"} {aget :name}])
                      (find-var-type *huf*))))
       (is type "Found type for \"strbit\" in huf.")
       (is (string= "[100]" (type-array type))
