@@ -354,7 +354,8 @@ macro objects from these, returning a list."
             (incf pos))
       ;; get name
       (let ((name-start pos) c)
-        (iter (setf c (elt str pos))
+        (iter (while (< pos slen))
+              (setf c (elt str pos))
               (while (or (eql c #\_) (alphanumericp c)))
               (incf pos))
         ;; [name-start,pos) is the name
