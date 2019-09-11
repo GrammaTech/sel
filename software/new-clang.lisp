@@ -1570,6 +1570,28 @@ on json-kind-symbol when special subclasses are wanted."))
   (declare (ignorable json json-kind-symbol))
   nil)
 
+(defmethod j2ck (json (json-kind-symbol (eql :GenericSelectionExpr)))
+  (let* ((inner (aget :inner json)))
+    (if (notevery (lambda (a) (aget :kind a)) inner)
+        ;; Rewrite and try again
+        (let* ((new-inner
+                (cons
+                 (car inner)
+                 (iter (for x in (cddr inner))
+                       (cond
+                         ((aget :kind x) (collect x))
+                         ((aget :associationkind x)
+                          (let ((inner2 (aget :inner x)))
+                            (collect (cadr inner2))))))))
+               (new-json
+                (iter (for x in json)
+                      (collect
+                       (if (and (consp x) (eql (car x) :inner))
+                           `(:inner ,@new-inner)
+                           x)))))
+          (j2ck new-json json-kind-symbol))
+        (call-next-method))))
+
 (defmethod j2ck (json (json-kind-symbol (eql :CXXOperatorCallExpr)))
   ;; CXXOperatorCallExprs must be a special subclass, as the children
   ;; are out of order (the operator is put first even if it is not
