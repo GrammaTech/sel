@@ -1755,7 +1755,7 @@ occurences of the part is replaced with replacement."))
 from a code snippet.")
   (:method ((text string))
     (apply-replacements '(("(|" . "") ("|)" . "")) text))
-  (:method (text) test))
+  (:method (text) text))
 
 (defun peel-bananas-or-same (text)
   (let ((new (peel-bananas text)))
