@@ -820,6 +820,9 @@ that is not strictly speaking about types at all (storage class)."))
         nil ; stub
         )))
 
+(defmethod add-type ((obj new-clang) (type nct+))
+  (sel/sw/clang::add-type* obj type))
+
 #+(or)
 (defmethod find-type ((obj new-clang) (type new-clang-type))
   ;; This looks like a stub, but isn't.
@@ -999,6 +1002,12 @@ asts can be transplanted between files without difficulty."
   (let ((*soft* sw)) (call-next-method)))
 
 (defmethod get-unbound-funs :around ((sw new-clang) ast)
+  (let ((*soft* sw)) (call-next-method)))
+
+(defmethod delete-decl-stmts :around ((sw new-clang) block replacements)
+  (let ((*soft* sw)) (call-next-method)))
+
+(defmethod apply-mutation :around ((sw new-clang) mutation)
   (let ((*soft* sw)) (call-next-method)))
 
 (defmethod ast-unbound-vals ((ast new-clang-ast))
@@ -2959,7 +2968,7 @@ computed at the children"))
     (:DeclStmt
      (reduce #'append (ast-children obj)
              :key #'ast-declares :initial-value nil))
-    ((:ParmVar :Function :Var)
+    ((:ParmVar :Function :Var :Field :Record)
      (when (ast-name obj)
        (list obj)))
     ((:Combined)

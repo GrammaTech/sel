@@ -771,6 +771,9 @@ will not be generated automatically.
 * OBJ software object to modify
 * TYPE type to be added
 "
+  (add-type* obj type))
+
+(defun add-type* (obj type)
   (unless (gethash (type-hash type) (types obj))
     (if (type-i-file type)
       ;; add requisite includes for this type
