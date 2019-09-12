@@ -95,6 +95,30 @@
   (make-instance 'skipped-input-result
     :reason reason :start (car source) :end (cdr source)))
 
+(defmethod eclector.reader:interpret-symbol
+    ((client client) input-stream package-indicator symbol-name internp)
+  (let ((package (case package-indicator
+                   (:current *package*)
+                   (:keyword (find-package "KEYWORD"))
+                   (t        (or (find-package package-indicator)
+                                 ;; Return a fake package for missing packages.
+                                 (find-package :missing)
+                                 (make-package :missing))))))
+    (if internp
+        (intern symbol-name package)
+        (multiple-value-bind (symbol status)
+            (find-symbol symbol-name package)
+          (cond ((null status)
+                 (eclector.base::%reader-error input-stream 'symbol-does-not-exist
+                                               :package package
+                                               :symbol-name symbol-name))
+                ((eq status :internal)
+                 (eclector.base::%reader-error input-stream 'symbol-is-not-external
+                                               :package package
+                                               :symbol-name symbol-name))
+                (t
+                 symbol))))))
+
 (defun read-forms+ (string &key count)
   (check-type count (or null integer))
   (let ((*string* string)
