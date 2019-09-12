@@ -845,6 +845,10 @@ that is not strictly speaking about types at all (storage class)."))
   ;; The lookup function just returns the object in that case.
   type)
 
+(defmethod find-type ((obj new-clang) (name string))
+  (let ((vals (hash-table-values (types obj))))
+    (find name vals :key #'type-name :test #'string=)))
+
 (defun ast-is-class-fun (key)
   (lambda (c) (ast-is-class c key)))
 
