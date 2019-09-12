@@ -913,7 +913,7 @@ Returns a list of strings containing C source code."))
              ((member unqualified-c-type
                       '("char" "int8_t" "wchar_t" "short" "int16_t" "int"
                         "int32_t" "long" "int64_t")
-                      :test #'string=)
+                      :test #'name=)
               (list :__GT_TRACEDB_SIGNED
                     (format nil "sizeof(~a)"
                                 (type-decl-string type :qualified nil))))
@@ -922,13 +922,13 @@ Returns a list of strings containing C source code."))
                       '("unsigned char" "uint8_t" "unsigned short" "uint16_t"
                         "unsigned int" "uint32_t" "unsigned long" "uint64_t"
                         "size_t")
-                      :test #'string=)
+                      :test #'name=)
               (list :__GT_TRACEDB_UNSIGNED
                     (format nil "sizeof(~a)"
                                 (type-decl-string type :qualified nil))))
-             ((string= unqualified-c-type "float")
+             ((name= unqualified-c-type "float")
               '(:__GT_TRACEDB_FLOAT "sizeof(float)"))
-             ((string= unqualified-c-type "double")
+             ((name= unqualified-c-type "double")
               '(:__GT_TRACEDB_FLOAT "sizeof(double)"))
              ;; Otherwise no instrumentation
              (t '(nil nil)))))
@@ -1021,7 +1021,7 @@ Returns a list of strings containing C source code."))
                     (name (aget :name var))
                     ;; Don't instrument nameless variables
                     (has-name (not (emptyp (source-text name)))))
-          (collect (cons name type) into names-and-types))
+          (collect (cons (ast-name name) type) into names-and-types))
         (finally
          (return (instrument-c-exprs instrumenter names-and-types
                                      print-strings)))))
@@ -1076,7 +1076,7 @@ OBJ a clang software object
                          (-<>> (names instrumenter)
                                (hash-table-alist)
                                (sort <> #'< :key #'cdr)
-                               (mapcar #'car)))))
+                               (mapcar [#'ast-text #'car])))))
            (types-initialization-str ()
              (if (zerop (hash-table-count (types instrumenter)))
                  (format nil "const __trace_type_description *~a = NULL"
@@ -1089,7 +1089,7 @@ OBJ a clang software object
                                      :key [{gethash _
                                             (types instrumenter)}
                                            #'car])
-                               (mapcar #'cdr))))))
+                               (mapcar [#'ast-text #'cdr]))))))
 
     (when contains-entry
       ;; Object contains main() so insert setup code. The goal is to

@@ -417,6 +417,8 @@ macro objects from these, returning a list."
 (defmethod (setf ast-aux-data) (v (obj new-clang-ast))
   (setf (new-clang-ast-aux-data obj) v))
 
+(defmethod ast-name ((s string)) s)
+
 ;; Special subclass for :CXXOperatorCallExpr nodes
 (defstruct (cxx-operator-call-expr (:include new-clang-ast))
   ;; POS is the "actual" position of the operator in the
@@ -867,6 +869,7 @@ that is not strictly speaking about types at all (storage class)."))
                              (attrs (new-clang-ast-attrs ast) attrs-p)
                              (id (new-clang-ast-id ast))
                              (syn-ctx (new-clang-ast-syn-ctx ast))
+                             (aux-data (new-clang-ast-aux-data ast))
                              &allow-other-keys)
   ;; The value of REFERENCEDDECL is not otherwise explicitly
   ;; used in this function, but it gets used as part of ARGS
@@ -878,7 +881,7 @@ that is not strictly speaking about types at all (storage class)."))
             (let ((key (pop args2))
                   (arg (pop args2)))
               (case key
-                ((path children class id syn-ctx) nil)
+                ((path children class id syn-ctx aux-data) nil)
                 ((attrs)
                  (unless attrs-p
                    (setf attrs-p t
@@ -895,7 +898,7 @@ that is not strictly speaking about types at all (storage class)."))
     (funcall fn :allow-other-keys t
              :path path :children children
              :class class :attrs attrs :id id
-             :syn-ctx syn-ctx)))
+             :syn-ctx syn-ctx :aux-data aux-data)))
 
 (defmethod copy ((ast new-clang-ast) &rest args) ;  &key &allow-other-keys)
   (apply #'new-clang-ast-copy ast #'make-new-clang-ast args))
