@@ -1701,18 +1701,27 @@ transformed from an instant to a cumulative probability."
       (find-hashtable-element hash-tbl (random size)))))
 
 ;; From the Common Lisp Cookbook
-(defgeneric replace-all (string part replacement &key test)
+(defgeneric replace-all (string part replacement &key test confirm)
   (:documentation "Returns a new string in which all the
-occurences of the part is replaced with replacement."))
+occurences of the part is replaced with replacement.  TEst
+characters with TEST.  "))
 
 (defmethod replace-all ((string string) (part string)
-                        (replacement string) &key (test #'char=))
+                        (replacement string) &key (test #'char=)
+                                               (confirm nil))
   (with-output-to-string (out)
     (loop :with part-length := (length part)
        :for old-pos := 0 :then (+ pos part-length)
-       :for pos := (search part string
-                           :start2 old-pos
-                           :test test)
+       :for pos := (let ((op old-pos)
+                         (p nil))
+                     (loop (setf p (search part string
+                                           :start2 op
+                                           :test test))
+                        (when (or (null p)
+                                  (not confirm)
+                                  (funcall confirm string p part-length))
+                          (return p))
+                        (setf op (1+ p))))
        :do (write-string string out
                          :start old-pos
                          :end (or pos (length string)))
@@ -1722,14 +1731,22 @@ occurences of the part is replaced with replacement."))
 ;; Specialization to base strings, which are more space
 ;; efficient
 (defmethod replace-all ((string base-string) (part base-string)
-                        (replacement base-string) &key (test #'char=))
+                        (replacement base-string) &key (test #'char=)
+                                                    confirm)
   (coerce
    (with-output-to-string (out)
      (loop :with part-length := (length part)
         :for old-pos := 0 :then (+ pos part-length)
-        :for pos := (search part string
-                            :start2 old-pos
-                            :test test)
+        :for pos := (let ((op old-pos)
+                          (p nil))
+                      (loop (setf p (search part string
+                                            :start2 op
+                                            :test test))
+                         (when (or (null p)
+                                   (not confirm)
+                                   (funcall confirm string p part-length))
+                           (return p))
+                         (setf op (1+ p))))
         :do (write-string string out
                           :start old-pos
                           :end (or pos (length string)))
@@ -1737,14 +1754,14 @@ occurences of the part is replaced with replacement."))
         :while pos))
    'base-string))
 
-(defun apply-replacements (list str)
+(defun apply-replacements (list str &key confirm)
   (if (null list)
       str
       (let ((new-str
              ;; If (caar list) is null then `replace-all' can fall
              ;; into an infinite loop.
              (if (and (caar list) (cdar list))
-                 (replace-all str (caar list) (cdar list))
+                 (replace-all str (caar list) (cdar list) :confirm confirm)
                  str)))
         (apply-replacements (cdr list) new-str))))
 

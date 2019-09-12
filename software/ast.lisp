@@ -513,13 +513,26 @@ AST."))
 * FUN-REPLACEMENTS list of old-function-info, new-function-info pairs defining
 the rebinding"
   (reduce (lambda (new-ast replacement)
-            (replace-all new-ast (first replacement) (second replacement)))
+            (replace-all new-ast (first replacement) (second replacement)
+                         :confirm #'confirm-var-rebinding))
           (append var-replacements
                   (mapcar (lambda (fun-replacement)
                             (list (car (first fun-replacement))
                                   (car (second fun-replacement))))
                           fun-replacements))
           :initial-value ast))
+
+(defun confirm-var-rebinding (str pos len)
+  "Confirm that the string from POS to POS+LEN-1 in STR
+is a good identifier."
+  (flet ((%good (i)
+           (let ((c (elt str i)))
+             (and (not (eql c #\_))
+                  (not (alphanumericp c))))))
+    (and (or (= pos 0) (%good (1- pos)))
+         (let ((next (+ pos len)))
+           (or (>= next (length str))
+               (%good next))))))
 
 (defmethod replace-in-ast ((ast ast) replacements &key (test #'equalp))
   "Make arbritrary replacements within AST, returning a new AST.
