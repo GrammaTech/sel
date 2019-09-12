@@ -146,6 +146,11 @@ list of children of their parent.  Cannot remove the root."))
      (and anc (eql (ast-class (car anc)) :var)
           (eql (ast-class n) :IntegerLiteral)))))
 
+(defun remove-var-children (ast)
+  (remove-ast-nodes-if
+   ast
+   (lambda (n anc) (declare (ignore n)) (and anc (eql (ast-class (car anc)) :var)))))
+
 (defun remove-typedef-body (ast)
   (remove-ast-nodes-if
    ast
@@ -162,9 +167,36 @@ list of children of their parent.  Cannot remove the root."))
        (setf (ast-children n) nil)
        t))))
 
+(defun flatten-nested-fields (sw)
+  (map-ast (ast-root sw) #'flatten-nested-fields-in-children))
+
+(defun flatten-nested-fields-in-children (ast)
+  (let ((c (ast-children ast)))
+    (iter (while c)
+          (let ((child (car c)))
+            (when (and (ast-p child)
+                       (eql (ast-class child) :field))
+              (let ((cc (ast-children child))
+                    (pred nil))
+                (format t "Found :FIELD child~%~A~%with children~%~A~%"
+                        child cc)
+                (iter (while cc)
+                      (when (and (ast-p (car cc))
+                                 (eql (ast-class (car cc)) :field))
+                        (return))
+                      (setf pred cc)
+                      (pop cc))
+                (when (and cc pred)
+                  (format t "Flatten~%")
+                  (setf (cdr pred) nil)
+                  (setf (cdr c) (append cc (cdr c)))))))
+          (pop c))))
+
 ;;; Hack to remove stuff new clang doesn't have
 (defun cleanup-clang (c)
-  (remove-var-integer-literals c)
+  (flatten-nested-fields c)
+  ;; (remove-var-integer-literals c)
+  (remove-var-children c)
   (remove-typedef-body c))
 
 ;;; Hack to remove stuff clang doesn't have
@@ -173,7 +205,8 @@ list of children of their parent.  Cannot remove the root."))
   (remove-macro-args nc)
   (remove-constant-case-exprs nc)
   (remove-builtintype nc)
-  (remove-var-integer-literals nc)
+  ;; (remove-var-integer-literals nc)
+  (remove-var-children nc)
   (remove-typedef-body nc)
   (remove-typealias-body nc))
 

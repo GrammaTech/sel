@@ -2675,15 +2675,22 @@ macro.")
      (lambda (a) (encapsulate-macro-expansion-cheap-below-node a table)))))
 
 (defun %is-macro-expansion-node (x table)
+  ;; The logic here:  determine if this entire AST comes from a macroexpansion
+  ;; It does when (1) the start end end locations are macro locs, (2) they
+  ;; come from the SAME macro expansion.  Without this check, and expression
+  ;; like X*Y (where X and Y are macros) will not be handled properly.
   (assert (ast-p x))
   (when-let* ((range (ast-range x))
-              (begin (new-clang-range-begin range)))
-    (typecase begin
-      (new-clang-macro-loc
-       (when-let* ((eloc (new-clang-macro-loc-expansion-loc begin))
-                   (off (offset eloc))
-                   (len/args (gethash off table)))
-         (cons off len/args))))))
+              (begin (new-clang-range-begin range))
+              (end (new-clang-range-end range)))
+    (when (and (typep begin 'new-clang-macro-loc)
+               (typep end 'new-clang-macro-loc))
+      (when-let* ((beloc (new-clang-macro-loc-expansion-loc begin))
+                  (boff (offset beloc))
+                  (eeloc (new-clang-macro-loc-expansion-loc end))
+                  (eoff (offset eeloc))
+                  (len/args (gethash boff table)))
+        (when (eql boff eoff) (cons boff len/args))))))
 
 (defgeneric encapsulate-macro-expansion-cheap-below-node (a table)
   ;; Walk over the children of A, combining those that are from the same
