@@ -6532,8 +6532,8 @@ Useful for printing or returning differences in the REPL."
         (is stmt)
         ;; unbound-vals are updated correctly
         (let ((unbound (mapcar {aget :name} (get-unbound-vals variant stmt))))
-          (is (or (equal unbound '("b"))
-                  (equal unbound '("c")))))))
+          (is (or (fully-every #'name= unbound '("b"))
+                  (fully-every #'name= unbound '("c")))))))
     (let ((variant (copy *scopes*)))
       (apply-mutation
           variant
