@@ -1032,17 +1032,17 @@ Returns a list of strings containing C source code."))
 or NIL if there is no entry point.")
   (:method ((soft software)) nil))
 
-(defmethod get-entry ((obj clang))
+(defmethod get-entry ((obj clang-base))
   "Return the AST of the entry point (main function) in SOFTWARE.
 
 OBJ a clang software object
 "
-  (when-let* ((main (find-if [{string= "main"} {ast-name}]
+  (when-let* ((main (find-if [{name= "main"} {ast-name}]
                              (functions obj)))
               (_1 (equal :Function (ast-class main)))
               (_2 (and (ast-ret main)
                        (member (type-name (find-type obj (ast-ret main)))
-                               '("int" "void") :test #'string=))))
+                               '("int" "void") :test #'name=))))
     (function-body obj main)))
 
 (defun initialize-tracing (instrumenter file-name env-name contains-entry
