@@ -1979,7 +1979,7 @@ actual source file"))
                                 (let ((*trace-output* *standard-output*))
                                   (shell cmd-fmt
                                          cbin
-                                         (flags obj)
+                                         (remove "-c" (flags obj) :test #'equal)
                                          src-file))
                               (when (find exit '(131 132 134 136 139))
                                 (error

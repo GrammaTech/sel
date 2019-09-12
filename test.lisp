@@ -1160,6 +1160,7 @@ of the same length"
    (setf *collatz*
          (from-file (make-clang
                      :compiler "clang"
+                     :new-clang-flags '("-c")
                      :flags '("-m32" "-O0" "-g" "-c"))
                     (collatz-dir "collatz.c"))))
   (:teardown
@@ -1169,8 +1170,9 @@ of the same length"
   (:setup
    (setf *fib*
          (from-file (make-clang
-                      :compiler "clang"
-                      :flags '("-m32" "-O0" "-g" "-c"))
+                     :compiler "clang"
+                     :new-clang-flags '("-c")
+                     :flags '("-m32" "-O0" "-g" "-c"))
                     (fib-dir "fib.c"))))
   (:teardown
    (setf *fib* nil)))
@@ -4955,9 +4957,12 @@ Unless optional argument NO-ERROR is non-nil an error is raised if no
 AST holding STMT is found."
   (when trim
     (setf text (trim-whitespace text)))
-  (or (find-if [{string= text} (if trim #'trim-whitespace #'identity)
-                #'peel-bananas #'source-text]
-               (asts obj))
+  (or (let ((result
+             (find-if [{string= text} (if trim #'trim-whitespace #'identity)
+                       #'peel-bananas #'source-text]
+                      (asts obj))))
+        ;; (format t "~a~%" (ast-text result))
+        result)
       (if no-error
           nil
           (error "`stmt-with-text' failed to find ~S in ~S"
