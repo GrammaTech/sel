@@ -1200,7 +1200,7 @@ on various ast classes"))
                        (ast-name new))
                (format t "(ast-children ast) = ~a~%" (ast-children ast)))
              (setf ast (copy ast :referenceddecl new
-                             :ast-children (list (ast-name new))))
+                             :children (list (ast-name new))))
              #+rebind-vars-debug
              (format t "New ast: ~a~%~a~%" (source-text ast)
                      (new-clang-ast-attrs ast))))
