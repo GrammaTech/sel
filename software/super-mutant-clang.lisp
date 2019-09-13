@@ -172,7 +172,9 @@ true, create a complete function decl which contains the body."
                   (push variants inserts))))))
     (-<>>
      ;; Collect top-level ASTs and their declared identifiers
-     (mapcar [{mapcar (lambda (ast) (cons (ast-declares ast) ast))} #'roots]
+     (mapcar [{mapcar (lambda (ast)
+                        (cons (mapcar #'ast-name (ast-declares ast)) ast))}
+              #'roots]
              mutants)
      (collate-ast-variants)
      (mapcar #'process-ast)
