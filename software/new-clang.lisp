@@ -1692,6 +1692,16 @@ form for SLOT, and stores into OBJ.  Returns OBJ or its replacement."))
   ;; Do not translate this attribute for now
   obj)
 
+(defmethod store-slot ((obj new-clang-ast) (slot (eql :bases)) value)
+  (declare (ignorable slot))
+  ;; Do not translate this attribute for now
+  obj)
+
+(defmethod store-slot ((obj new-clang-ast) (slot (eql :path)) value)
+  (declare (ignorable slot))
+  ;; Do not translate this attribute for now
+  obj)
+
 (defmethod store-slot ((obj new-clang-ast) (slot (eql :id)) value)
   (setf (new-clang-ast-id obj) (convert-slot-value obj slot value))
   obj)
@@ -1700,6 +1710,12 @@ form for SLOT, and stores into OBJ.  Returns OBJ or its replacement."))
   (declare (ignorable slot))
   (let ((children (remove nil (mapcar (lambda (o) (clang-convert-json o :inner t)) value))))
     ;; (format t "STORE-SLOT on ~a, :INNER with ~A children~%" value (length value))
+    (setf (new-clang-ast-children obj) children))
+  obj)
+
+(defmethod store-slot ((obj new-clang-ast) (slot (eql :lookups)) value)
+  (declare (ignorable slot))
+  (let ((children (remove nil (mapcar (lambda (o) (clang-convert-json o :inner t)) value))))
     (setf (new-clang-ast-children obj) children))
   obj)
 
