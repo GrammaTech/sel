@@ -1989,29 +1989,28 @@ actual source file"))
 (defmethod clang-json ((obj new-clang) &key &allow-other-keys)
   (with-temp-file-of (src-file (ext obj)) (genome obj)
                      (let ((cmd-fmt "~a -cc1 -ast-dump=json ~{~a~^ ~} ~a")
-                           (genome-len (length (genome obj)))
-                           (cbin (compiler obj)))
+                           (genome-len (length (genome obj))))
                        (unwind-protect
                             (multiple-value-bind (stdout stderr exit)
                                 (let ((*trace-output* *standard-output*))
                                   (shell cmd-fmt
-                                         cbin
+                                         *clang-binary*
                                          (remove "-c" (flags obj) :test #'equal)
                                          src-file))
                               (when (find exit '(131 132 134 136 139))
                                 (error
                                  (make-condition 'mutate
                                                  :text (format nil "~a core dump with ~d, ~s"
-                                                               cbin exit stderr)
+                                                               *clang-binary* exit stderr)
                                                  :obj obj)))
                               (restart-case
                                   (unless (zerop exit)
                                     (error
                                      (make-condition 'mutate
                                                      :text (format nil "~a exit ~d~%cmd:~s~%stderr:~s"
-                                                                   cbin exit
+                                                                   *clang-binary* exit
                                                                    (format nil cmd-fmt
-                                                                           cbin
+                                                                           *clang-binary*
                                                                            (flags obj)
                                                                            src-file)
                                                                    stderr)
