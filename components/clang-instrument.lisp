@@ -995,7 +995,7 @@ Returns a list of strings containing C source code."))
                   (t
                    (collect
                        (format nil "~a, ~a, ~a, ~a, ~a"
-                               name-index type-index size format expr)
+                               name-index type-index size format (ast-name expr))
                      into var-args))))))
           (finally
            (return
@@ -1040,9 +1040,10 @@ OBJ a clang software object
   (when-let* ((main (find-if [{name= "main"} {ast-name}]
                              (functions obj)))
               (_1 (equal :Function (ast-class main)))
-              (_2 (and (ast-ret main)
-                       (member (type-name (find-type obj (ast-ret main)))
-                               '("int" "void") :test #'name=))))
+              (ret (ast-ret main))
+              (type (find-or-add-type obj ret))
+              (_2 (member (type-name type)
+                          '("int" "void") :test #'name=)))
     (function-body obj main)))
 
 (defun initialize-tracing (instrumenter file-name env-name contains-entry
@@ -1076,7 +1077,7 @@ OBJ a clang software object
                          (-<>> (names instrumenter)
                                (hash-table-alist)
                                (sort <> #'< :key #'cdr)
-                               (mapcar [#'ast-text #'car])))))
+                               (mapcar [#'ast-name #'car])))))
            (types-initialization-str ()
              (if (zerop (hash-table-count (types instrumenter)))
                  (format nil "const __trace_type_description *~a = NULL"

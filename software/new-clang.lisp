@@ -824,8 +824,9 @@ that is not strictly speaking about types at all (storage class)."))
   ;; stub
   (let ((vals (hash-table-values (types obj))))
     (or (find name vals :key #'type-name :test #'string=)
-        nil ; stub
-        )))
+        (if (member name +c-numeric-types+ :test #'equal)
+            (make-nct+ (make-new-clang-type :qual name) nil nil)
+            nil))))
 
 (defmethod add-type ((obj new-clang) (type nct+))
   (sel/sw/clang::add-type* obj type))
@@ -849,6 +850,7 @@ that is not strictly speaking about types at all (storage class)."))
 
 (defmethod find-type ((obj new-clang) (name string))
   (let ((vals (hash-table-values (types obj))))
+    ;; (format t "Types: ~s~%" (mapcar #'type-name vals))
     (find name vals :key #'type-name :test #'string=)))
 
 (defun ast-is-class-fun (key)
