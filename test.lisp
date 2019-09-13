@@ -10230,7 +10230,7 @@ int main() { puts(\"~d\"); return 0; }
          (super (make-instance 'super-mutant :mutants mutants)))
     (evaluate (lambda (obj)
                 ;; Proxies are the same type as mutants
-                (is (eq 'clang (type-of obj)))
+                (is (typep obj 'clang-base))
                 (cons (some->> (phenome obj)
                                (shell)
                                (parse-integer))

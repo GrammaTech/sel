@@ -3230,14 +3230,9 @@ variables to replace use of the variables declared in stmt ID."))
   (or (eql n1 n2)
       (string= (ast-name n1) (ast-name n2))))
 
-(defgeneric clang-type= (t1 t2)
-  (:documentation "Generalized type equality for AST types")
-  (:method ((t1 integer) (t2 integer))
-    (= t1 t2)))
-
 (defun ast-arg-equal (arg1 arg2)
   (and (name= (first arg1) (first arg2))
-       (clang-type= (second arg1) (second arg2))))
+       (equalp (second arg1) (second arg2))))
 
 (defun ast-args-equal (args1 args2)
   "Compare two lists as returned by AST-ARGS"
