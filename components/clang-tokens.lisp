@@ -59,7 +59,7 @@ SOFTWARE."))
          (remove-duplicates
           (append (ast-declares ast)
                   (mapcar {aget :name} (get-vars-in-scope clang ast))
-                  (get-unbound-funs clang ast)
+                  (mapcar #'car (get-unbound-funs clang ast))
                   (mapcar {aget :name} (get-unbound-vals clang ast)))
           :test #'equal))
        ;; replace occurrences of a list of identifiers with the string
