@@ -23,8 +23,8 @@
                           :absolute-pathname-p
                           :directory-exists-p
                           :run-program
-			  :resolve-symlinks
-			  :directory*)
+                          :resolve-symlinks
+                          :directory*)
   (:export :clang-project
            :compilation-database))
 (in-package :software-evolution-library/software/clang-project)
