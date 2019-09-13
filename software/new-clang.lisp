@@ -990,6 +990,9 @@ asts can be transplanted between files without difficulty."
   (setf (macros obj) (find-macros-in-children
                       (ast-children (ast-root obj)))))
 
+(defmethod update-caches :around ((obj new-clang))
+  (let ((*soft* obj)) (call-next-method)))
+
 (defmethod update-caches ((obj new-clang))
   (call-next-method)
   (compute-macros obj)
