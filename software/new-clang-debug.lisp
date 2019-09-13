@@ -90,7 +90,8 @@
     (funcall fn ast (mapcar (lambda (a) (dump-ast-to-list a fn))
                             (remove-if-not #'ast-p (ast-children ast)))))
   (:method ((sw parseable) fn)
-    (dump-ast-to-list (ast-root sw) fn)))
+    (let ((*soft* sw))
+      (dump-ast-to-list (ast-root sw) fn))))
 
 (defgeneric dump-ast-val-to-list (ast val-fn)
   (:method (ast val-fn)
