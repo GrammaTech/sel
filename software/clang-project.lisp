@@ -15,6 +15,7 @@
         :software-evolution-library/software/simple
         :software-evolution-library/software/parseable
         :software-evolution-library/software/clang
+        :software-evolution-library/software/new-clang
         :software-evolution-library/software/project
         :software-evolution-library/software/parseable-project)
   (:shadowing-import-from :uiop
@@ -41,7 +42,8 @@ information on the format of compilation databases."))
 
 (defmethod initialize-instance :after ((clang-project clang-project) &key)
   (setf (component-class clang-project)
-        (or (component-class clang-project) 'clang)))
+        (or (component-class clang-project)
+            (if *new-clang?* 'new-clang 'clang))))
 
 (defmethod collect-evolve-files :before ((obj clang-project))
   "Ensure CLANG-PROJECT has a compilation-database populated."
