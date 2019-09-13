@@ -841,7 +841,7 @@ that is not strictly speaking about types at all (storage class)."))
   (type-decl-string (nct+-type obj)))
 
 (defmethod find-or-add-type ((obj new-clang) name &key &allow-other-keys)
-  ;; stub
+  ;; This should return an NCT+, not a NEW-CLANG-TYPE
   (let ((vals (hash-table-values (types obj))))
     (or (find name vals :key #'type-name :test #'string=)
         (if (member name +c-numeric-types+ :test #'equal)
@@ -851,14 +851,8 @@ that is not strictly speaking about types at all (storage class)."))
 (defmethod add-type ((obj new-clang) (type nct+))
   (sel/sw/clang::add-type* obj type))
 
-#+(or)
 (defmethod find-type ((obj new-clang) (type new-clang-type))
-  ;; This looks like a stub, but isn't.
-  ;; What's happening here is that while in old clang
-  ;; find-type was used to look up types from hashes,
-  ;; in the new front end the type objects are there directly.
-  ;; The lookup function just returns the object in that case.
-  type)
+  (error "SHould not call find-type on new-clang-type objects"))
 
 (defmethod find-type ((obj new-clang) (type nct+))
   ;; This looks like a stub, but isn't.
@@ -871,7 +865,15 @@ that is not strictly speaking about types at all (storage class)."))
 (defmethod find-type ((obj new-clang) (name string))
   (let ((vals (hash-table-values (types obj))))
     ;; (format t "Types: ~s~%" (mapcar #'type-name vals))
-    (find name vals :key #'type-name :test #'string=)))
+    (when-let ((type (find name vals :key #'type-name :test #'string=)))
+      (make-nct+ type nil nil))))
+
+(defmethod find-type :around ((obj new-clang) name)
+  (let* ((*soft* obj)
+         (val (call-next-method)))
+    (unless (typep val '(or null nct+))
+      (error "FIND-TYPE returns an object of a bad type: ~a" val))
+    val))
 
 (defun ast-is-class-fun (key)
   (lambda (c) (ast-is-class c key)))
