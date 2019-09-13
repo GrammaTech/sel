@@ -586,7 +586,8 @@
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
 (define-software clang-traceable (clang binary-traceable) ())
-(define-software new-clang-traceable (new-clang binary-traceable) ())
+(define-software new-clang-traceable (new-clang binary-traceable)
+  ((flags :initform '("-I" "/usr/include" "-I" "/clang9/lib/clang/10.0.0/include/") :copier copy-tree)))
 (define-software java-traceable  (java sexp-traceable) ())
 (define-software javascript-traceable  (javascript sexp-traceable) ())
 (define-software javascript-traceable-project  (javascript-project sexp-traceable) ())
@@ -7434,8 +7435,9 @@ prints unique counters in the trace"
 
 (defixture traceable-gcd
   (:setup (setf *gcd* (from-file
-                       (make-instance (if *new-clang?* 'new-clang-traceable
-                                          'clang-traceable))
+                       (if *new-clang?*
+                           (make-instance 'new-clang-traceable)
+                           (make-instance 'clang-traceable))
                        (make-pathname :name "gcd"
                                       :type "c"
                                       :directory +gcd-dir+)))))
@@ -10884,4 +10886,3 @@ int main() { puts(\"~d\"); return 0; }
            3))
   (is (eql (cpp-scan " ()(" (lambda (c) (eql c #\()) :start 1 :skip-first t)
            3)))
-

@@ -752,7 +752,7 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
 
     obj))
 
-(defmethod uninstrument ((clang clang) &key (num-threads 0))
+(defmethod uninstrument ((clang clang-base) &key (num-threads 0))
   "Remove instrumentation from CLANG"
   (declare (ignorable num-threads))
   (labels ((uninstrument-genome-prologue (clang)
