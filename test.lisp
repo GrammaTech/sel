@@ -586,8 +586,7 @@
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
 (define-software clang-traceable (clang binary-traceable) ())
-(define-software new-clang-traceable (new-clang binary-traceable)
-  ((flags :initform '("-I" "/usr/include" "-I" "/clang9/lib/clang/10.0.0/include/") :copier copy-tree)))
+(define-software new-clang-traceable (new-clang binary-traceable) ())
 (define-software java-traceable  (java sexp-traceable) ())
 (define-software javascript-traceable  (javascript sexp-traceable) ())
 (define-software javascript-traceable-project  (javascript-project sexp-traceable) ())
@@ -656,13 +655,7 @@
   (if *new-clang?*
       (apply #'make-instance 'new-clang
              :compiler sel/sw/new-clang::*clang-binary*
-             ;; FIXME -- these paths are not portable.
-             ;;   Update these when the Dockerfile for building clang/clang9
-             ;;   is updated, and at that time move the includes into a list
-             ;;   along with *clang-binary*
-             :flags (list* "-I" "/usr/include"
-                           "-I" "/clang9/lib/clang/10.0.0/include/"
-                           new-clang-flags)
+             :flags new-clang-flags
              :allow-other-keys t
              key-args)
       (apply #'make-instance 'clang :allow-other-keys t key-args)))
@@ -932,9 +925,7 @@ of the same length"
   (if *new-clang?*
       (make-instance 'new-clang-control-picks
         :compiler sel/sw/new-clang::*clang-binary*
-        :flags (list* "-I" "/usr/include"
-                      "-I" "/clang9/lib/clang/10.0.0/include/"
-                      new-clang-flags))
+        :flags new-clang-flags)
       (apply #'make-instance 'clang-control-picks :allow-other-keys t args)))
 
 (defixture hello-world-clang-control-picks
@@ -1015,10 +1006,7 @@ of the same length"
 (defixture cpp-strings
   (:setup
    (setf *soft*
-         (from-file (make-clang :compiler "clang++"
-                                ;; FIXME -- these are not portable
-                                :new-clang-flags '("-I" "/usr/include/c++/7.4.0"
-                                                   "-I" "/usr/include/x86_64-linux-gnu/c++/7.4.0"))
+         (from-file (make-clang :compiler "clang++")
                     (strings-dir "cpp-strings.cpp"))))
   (:teardown
    (setf *soft* nil)))

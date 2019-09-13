@@ -70,6 +70,25 @@
 ;;  sudo docker cp clang9:/clang9 /clang9
 ;; This takes several minutes and uses about 34GB of disk space
 
+;;;; Retreive the default clang system include search path
+(defun get-clang-default-system-includes-search-path-flags ()
+  (with-temp-file-of (bin "cpp") ""
+                     (multiple-value-bind (stdout stderr exit)
+                         (shell "~a -v ~a" *clang-binary* bin)
+                       (declare (ignorable stdout exit))
+                       (register-groups-bind (include-search-paths)
+                                             ("(?s)include <...> search starts here:(.*)End of search list" stderr)
+                                             (->> (split-sequence #\Newline include-search-paths
+                                                                  :remove-empty-subseqs t)
+                                                  (mapcar #'trim-whitespace)
+                                                  (mappend {list "-I"}))))))
+
+(defparameter *clang-default-system-includes-search-path-flags*
+  (get-clang-default-system-includes-search-path-flags)
+  "List of include flags for the default clang system includes search path.
+This is required as invoking clang -cc1 (required for ast-dump) only invokes
+the clang front-end.  See also: https://clang.llvm.org/docs/FAQ.html#id2.")
+
 (define-software new-clang (clang-base genome-lines-mixin)
   (
    ;; TODO: FUNCTIONS slot is not currently used.  Use or remove.
@@ -1985,44 +2004,46 @@ actual source file"))
 
 
 ;;;; Invocation of clang to get json
-
 (defmethod clang-json ((obj new-clang) &key &allow-other-keys)
   (with-temp-file-of (src-file (ext obj)) (genome obj)
                      (let ((cmd-fmt "~a -cc1 -ast-dump=json ~{~a~^ ~} ~a")
-                           (genome-len (length (genome obj))))
-                       (unwind-protect
-                            (multiple-value-bind (stdout stderr exit)
-                                (let ((*trace-output* *standard-output*))
-                                  (shell cmd-fmt
-                                         *clang-binary*
-                                         (remove "-c" (flags obj) :test #'equal)
-                                         src-file))
-                              (when (find exit '(131 132 134 136 139))
-                                (error
-                                 (make-condition 'mutate
-                                                 :text (format nil "~a core dump with ~d, ~s"
-                                                               *clang-binary* exit stderr)
-                                                 :obj obj)))
-                              (restart-case
-                                  (unless (zerop exit)
-                                    (error
-                                     (make-condition 'mutate
-                                                     :text (format nil "~a exit ~d~%cmd:~s~%stderr:~s"
-                                                                   *clang-binary* exit
-                                                                   (format nil cmd-fmt
-                                                                           *clang-binary*
-                                                                           (flags obj)
-                                                                           src-file)
-                                                                   stderr)
-                                                     :obj obj)))
-                                (keep-partial-asts ()
-                                  :report "Ignore error retaining partial ASTs for software object."
-                                  nil))
-                              (values (let ((*read-default-float-format* 'long-float)
-                                            (json:*json-identifier-name-to-lisp* #'string-upcase))
-                                        (decode-json-from-string stdout))
-                                      src-file
-                                      genome-len))))))
+                           (genome-len (length (genome obj)))
+                           (flags (append (remove "-c" (flags obj) :test #'equal)
+                                          *clang-default-system-includes-search-path-flags*)))
+                       (multiple-value-bind (stdout stderr exit)
+                           (let ((*trace-output* *standard-output*))
+                             (shell cmd-fmt
+                                    *clang-binary*
+                                    flags
+                                    src-file))
+                         (when (find exit '(131 132 134 136 139))
+                           (error
+                            (make-condition 'mutate
+                                            :text (format nil "~a core dump with ~d, ~s"
+                                                          *clang-binary* exit stderr)
+                                            :obj obj)))
+                         (restart-case
+                             (unless (zerop exit)
+                               (error
+                                (make-condition 'mutate
+                                                :text (format nil
+                                                              "~a exit ~d~%cmd:~s~%stderr:~s"
+                                                              *clang-binary* exit
+                                                              (format nil cmd-fmt
+                                                                      *clang-binary*
+                                                                      flags
+                                                                      src-file)
+                                                              stderr)
+                                                :obj obj)))
+                           (keep-partial-asts ()
+                             :report "Ignore error retaining partial ASTs for software object."
+                             nil))
+                         (values (let ((*read-default-float-format* 'long-float)
+                                       (json:*json-identifier-name-to-lisp* #'string-upcase))
+                                   (decode-json-from-string stdout))
+                                 src-file
+                                 genome-len)))))
+
 
 ;;; Offsets into the genome
 
