@@ -654,7 +654,8 @@
 (defun make-clang (&rest key-args &key new-clang-flags &allow-other-keys)
   (if *new-clang?*
       (apply #'make-instance 'new-clang
-             :compiler sel/sw/new-clang::*clang-binary*
+             :compiler (or (plist-get :compiler key-args)
+                           sel/sw/new-clang::*clang-binary*)
              :flags new-clang-flags
              :allow-other-keys t
              key-args)

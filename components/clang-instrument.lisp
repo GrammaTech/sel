@@ -895,6 +895,7 @@ Returns a list of strings containing C source code."))
   (labels
       ((string-type-p (type)
          (or (string= (type-name type) "string")
+             (string= (type-name type) "std::string")
              (and (string= (type-name type) "char")
                   (array-or-pointer-type type))))
 
@@ -985,7 +986,8 @@ Returns a list of strings containing C source code."))
 
                   ;; C++ string
                   ((and print-strings
-                        (string= "string" (type-name type)))
+                        (or (string= "string" (type-name type))
+                            (string= "std::string" (type-name type))))
                    (collect (format nil
                                     "~d, ~d, (~a).length(), (~a).c_str()"
                                     name-index type-index expr expr)
