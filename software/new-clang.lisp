@@ -942,29 +942,27 @@ asts can be transplanted between files without difficulty."
 ;;;  This is also needed to make the i-file slot of nct+ work.
 
 (defmethod ast-includes-in-obj ((obj new-clang) (ast new-clang-ast))
-  ;; (format t "Enter ast-includes-in-obj~%")
-  (prog1
-      (let ((*soft* obj)
-            (tmp-file (tmp-file obj))
-            (file (ast-file ast))
-            (include-dirs (include-dirs obj))
-            (od (absolute-original-directory obj)))
-        (mapcar
-         (lambda (s) (normalize-file-for-include s od include-dirs))
-         (delete-duplicates
-          (nconc
-           ;; The tests w. tmp-file here and below may not be
-           ;; necessary, but are kept for safety
-           (unless (or (not file) (equal tmp-file file))
-             (list file))
-           (when-let* ((ref (ast-referenced-obj ast))
-                       (file (ast-file ref)))
-             (unless (or (null file) (equal file tmp-file))
-               (list file)))
-           (when-let* ((type (ast-type ast))
-                       (str (new-clang-type-qual type)))
-             (includes-of-names-in-string obj str)))
-          :test #'equal)))))
+  (let ((*soft* obj)
+        (tmp-file (tmp-file obj))
+        (file (ast-file ast))
+        (include-dirs (include-dirs obj))
+        (od (absolute-original-directory obj)))
+    (mapcar
+     (lambda (s) (normalize-file-for-include s od include-dirs))
+     (delete-duplicates
+      (nconc
+       ;; The tests w. tmp-file here and below may not be
+       ;; necessary, but are kept for safety
+       (unless (or (not file) (equal tmp-file file))
+         (list file))
+       (when-let* ((ref (ast-referenced-obj ast))
+                   (file (ast-file ref)))
+         (unless (or (null file) (equal file tmp-file))
+           (list file)))
+       (when-let* ((type (ast-type ast))
+                   (str (new-clang-type-qual type)))
+         (includes-of-names-in-string obj str)))
+      :test #'equal))))
 
 (defun includes-of-names-in-string (obj str)
   (let ((tmp-file (tmp-file obj))
