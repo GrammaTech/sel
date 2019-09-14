@@ -1946,7 +1946,7 @@ NIL indicates no value."))
 (declaim (special *make-statement-fn*))
 
 (defun make-statement-new-clang (class syn-ctx children
-                                 &key full-stmt guard-stmt opcode
+                                 &key full-stmt guard-stmt opcode declares
                                    aux-data
                                    &allow-other-keys)
   "Create a statement AST of the NEW-CLANG type.
@@ -1957,15 +1957,19 @@ NIL indicates no value."))
 * FULL-STMT boolean indicating if the AST represents a complete statement
 * GUARD-STMT  boolean indicating if the AST is a control-flow predicate
 * OPCODE name of the operation for Unary/BinaryOp AST nodes
+* DECLARES identifiers declared by the AST node
 
 Other keys are allowed but are silently ignored.
 "
   (let ((attrs nil))
-    (macrolet ((%push (a &aux (k (intern (string a) :keyword)))
-                 `(when ,a (push (cons ,k ,a) attrs))))
-      (%push full-stmt)
-      (%push guard-stmt)
-      (%push opcode))
+    (macrolet ((%push (k v)
+                 `(when ,v (push (cons ,k ,v) attrs))))
+      (%push :full-stmt full-stmt)
+      (%push :guard-stmt guard-stmt)
+      (%push :opcode opcode)
+      (%push :name (when (= (length declares) 1)
+                     ;; new-clang name attribute is not aggregated
+                     (car declares))))
     (make-new-clang-ast
      :path nil
      :children children
