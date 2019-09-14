@@ -72,16 +72,17 @@
 
 ;;;; Retreive the default clang system include search path
 (defun get-clang-default-system-includes-search-path-flags ()
-  (with-temp-file-of (bin "cpp") ""
-                     (multiple-value-bind (stdout stderr exit)
-                         (shell "~a -v ~a" *clang-binary* bin)
-                       (declare (ignorable stdout exit))
-                       (register-groups-bind (include-search-paths)
-                                             ("(?s)include <...> search starts here:(.*)End of search list" stderr)
-                                             (->> (split-sequence #\Newline include-search-paths
-                                                                  :remove-empty-subseqs t)
-                                                  (mapcar #'trim-whitespace)
-                                                  (mappend {list "-I"}))))))
+  (when (which *clang-binary*)
+    (with-temp-file-of (bin "cpp") ""
+                       (multiple-value-bind (stdout stderr exit)
+                           (shell "~a -v ~a" *clang-binary* bin)
+                         (declare (ignorable stdout exit))
+                         (register-groups-bind (include-search-paths)
+                                               ("(?s)include <...> search starts here:(.*)End of search list" stderr)
+                                               (->> (split-sequence #\Newline include-search-paths
+                                                                    :remove-empty-subseqs t)
+                                                    (mapcar #'trim-whitespace)
+                                                    (mappend {list "-I"})))))))
 
 (defvar *clang-default-system-includes-search-path-flags*
   (get-clang-default-system-includes-search-path-flags)
