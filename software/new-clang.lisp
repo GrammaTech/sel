@@ -62,7 +62,7 @@
 (declaim (special *soft*))
 (declaim (special *canonical-string-table* *current-line*))
 
-(defparameter *clang-binary*
+(defvar *clang-binary*
   ;; "/pdietz/clang9-installed/bin/clang"
   "/clang9/bin/clang"
   "This is the location clang is installed in the clang9 Docker image")
@@ -83,7 +83,7 @@
                                                   (mapcar #'trim-whitespace)
                                                   (mappend {list "-I"}))))))
 
-(defparameter *clang-default-system-includes-search-path-flags*
+(defvar *clang-default-system-includes-search-path-flags*
   (get-clang-default-system-includes-search-path-flags)
   "List of include flags for the default clang system includes search path.
 This is required as invoking clang -cc1 (required for ast-dump) only invokes
