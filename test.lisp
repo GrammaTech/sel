@@ -3523,7 +3523,7 @@ int x = CHARSIZE;")))
         `(clang-replace
           (:stmt1 . ,(find-if [{eq :StringLiteral} #'ast-class]
                               (asts variant)))
-          (:literal1 . ,(make-literal "Hello, mutate!"))))
+          (:literal1 . ,(to-ast 'clang-ast `(:StringLiteral "Hello, mutate!")))))
       (is (= (size variant)
              (size *hello-world*)))
       (is (string/= (genome variant)
