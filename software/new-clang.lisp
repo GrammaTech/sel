@@ -1248,7 +1248,10 @@ on various ast classes"))
                #+rebind-vars-debug (format t "Replace fun~%")
                (setf ast (copy ast :referenceddecl new)))))
      ast)
-    (t (let ((c (mapcar {rebind-vars _ var-replacements fun-replacements}
+    (t (let ((c (mapcar (lambda (c)
+                          (cond ((stringp c) c)
+                                (t (rebind-vars c var-replacements
+                                                fun-replacements))))
                         (ast-children ast))))
          (if (every #'eql c (ast-children ast))
              ast

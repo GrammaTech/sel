@@ -6340,7 +6340,6 @@ Useful for printing or returning differences in the REPL."
                                          a-stmt a-stmt
                                          b-stmt1 b-stmt2)
         (declare (ignorable a-pts b-pts effective-a-pts))
-	;; (format t "~A~%" (genome variant))
         (is ok)
         (is (phenome-p variant))
         (is (> (length (asts variant))
