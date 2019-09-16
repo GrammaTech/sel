@@ -2564,13 +2564,13 @@ ranges into 'combined' nodes.  Warn when this happens."
                                          (format t "Combined asts are:~%~{~a~%~}" accumulator)
                                          (format t "~a~%" (subseq genome new-begin new-end))
                                          (format t "------------------------------------------------------------~%"))
-                                       ;; Special case: there are two nodes, and the second is a typedef
-                                       ;; In that case, make the first a child of the second
+                                       ;; Special case: there are two nodes, and the first is a typedef
+                                       ;; In that case, make the second a child of the first
                                        (if (and (= (length accumulator) 2)
-                                                (eql (ast-class (cadr accumulator)) :typedef))
+                                                (eql (ast-class (car accumulator)) :typedef))
                                            (progn
-                                             (push (first accumulator) (ast-children (cadr accumulator)))
-                                             (list (cadr accumulator)))
+                                             (push (cadr accumulator) (ast-children (car accumulator)))
+                                             (list (car accumulator)))
                                            (list (make-new-clang-ast
                                                   :class :combined
                                                   :attrs `((:range . ,(make-new-clang-range
