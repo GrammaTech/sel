@@ -504,7 +504,7 @@ on QUAL and DESUGARED slots."))
          :type new-clang-type)
    (storage-class :initarg :storage-class
                   :reader type-storage-class
-                  :type (member nil :static :extern :register))
+                  :type (member :none :static :extern :register :__private_extern__))
    (modifiers :initarg :modifers
               :type integer
               :reader nct+-modifiers)
@@ -527,6 +527,7 @@ that is not strictly speaking about types at all (storage class)."))
 
 (defun make-nct+ (type storage-class ast)
   (assert (typep type 'new-clang-type))
+  (setf storage-class (or storage-class :none))
   (or (find storage-class (new-clang-type-nct+-list type)
             :key #'type-storage-class)
       (make-instance 'nct+
@@ -573,7 +574,7 @@ that is not strictly speaking about types at all (storage class)."))
             (new-clang-typedef tp)))
   (or (when-let ((tp (new-clang-typedef (nct+-type nct))))
         (assert (typep tp 'new-clang-type))
-        (or (find nil (new-clang-type-nct+-list tp)
+        (or (find :none (new-clang-type-nct+-list tp)
                   :key #'type-storage-class)
             (make-nct+ tp nil nil)))
       nct))
@@ -1804,9 +1805,11 @@ NIL indicates no value."))
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :storageClass)) value)
   (declare (ignorable obj slot))
   (cond
+    ((equal value "auto") :auto)
     ((equal value "static") :static)
     ((equal value "extern") :extern)
     ((equal value "register") :register)
+    ((equal value "__private_extern__") :__PRIVATE_EXTERN__)
     (t (call-next-method))))
 
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :valueCategory)) (value string))
