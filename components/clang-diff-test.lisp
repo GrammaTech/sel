@@ -58,9 +58,10 @@
 
 (declaim (special *diff-result-equal-diff*))
 
-(defgeneric diff-result-equal (s1 s2))
+(defgeneric diff-result-equal (s1 s2 &key &allow-other-keys))
 
-(defmethod diff-result-equal :around (s1 s2)
+(defmethod diff-result-equal :around (s1 s2 &rest args)
+  (declare (ignorable args))
   (let ((v (call-next-method)))
     ;; Push up to five contexts onto this special variable
     ;; so differences can be located
@@ -69,22 +70,25 @@
     v))
 
 ;;; ugh
-(defmethod diff-result-equal ((s1 (eql :nil)) (s2 (eql nil))) t)
+(defmethod diff-result-equal ((s1 (eql :nil)) (s2 (eql nil)) &key &allow-other-keys) t)
 
-(defmethod diff-result-equal ((s1 cons) (s2 cons))
-  (or (eql (car s1) :combined)
-      (eql (car s2) :combined)
-      (and (consp (car s2))
-           (eql (caar s2) :combined)
-           (= (length s2) 1))
-      (and (eql (car s2) :constantexpr)
-           (not (eql (car s1) :constantexpr))
-           (= (length (caddr s2)) 1)
-           (diff-result-equal s1 (caaddr s2)))
-      (and (= (length s1) (length s2))
-           (every #'diff-result-equal s1 s2))))
+(defmethod diff-result-equal ((s1 cons) (s2 cons) &rest args &key loose &allow-other-keys)
+  (let ((l1 (length s1))
+        (l2 (length s2)))
+    (or (eql (car s1) :combined)
+        (eql (car s2) :combined)
+        (and (consp (car s2))
+             (eql (caar s2) :combined)
+             (= l2 1))
+        (and (eql (car s2) :constantexpr)
+             (not (eql (car s1) :constantexpr))
+             (= (length (caddr s2)) 1)
+             (diff-result-equal s1 (caaddr s2)))
+        (and (or loose (= l1 l2))
+             (every #'(lambda (a b) (apply #'diff-result-equal a b args))
+                    s1 s2)))))
 
-(defmethod diff-result-equal (s1 s2)
+(defmethod diff-result-equal (s1 s2 &key &allow-other-keys)
   (equal s1 s2))
 
 (defgeneric remove-ast-nodes-if (ast pred &optional ancestors)
@@ -151,6 +155,11 @@ list of children of their parent.  Cannot remove the root."))
    ast
    (lambda (n anc) (declare (ignore n)) (and anc (eql (ast-class (car anc)) :var)))))
 
+(defun remove-parmvar-children (ast)
+  (remove-ast-nodes-if
+   ast
+   (lambda (n anc) (declare (ignore n)) (and anc (eql (ast-class (car anc)) :parmvar)))))
+
 (defun remove-typedef-body (ast)
   (remove-ast-nodes-if
    ast
@@ -194,6 +203,7 @@ list of children of their parent.  Cannot remove the root."))
   (flatten-nested-fields c)
   ;; (remove-var-integer-literals c)
   (remove-var-children c)
+  (remove-parmvar-children c)
   (remove-typedef-body c))
 
 ;;; Hack to remove stuff clang doesn't have
@@ -204,18 +214,19 @@ list of children of their parent.  Cannot remove the root."))
   (remove-builtintype nc)
   ;; (remove-var-integer-literals nc)
   (remove-var-children nc)
+  (remove-parmvar-children nc)
   (remove-typedef-body nc)
   (remove-typealias-body nc))
 
 ;;; Testing function
 
-(defun check-attr (c nc fn)
+(defun check-attr (c nc fn &key loose)
   (cleanup-clang c)
   (cleanup-new-clang nc)
   (let ((*diff-result-equal-diff* nil))
     (let ((cl (dump-ast-val-to-list c fn))
           (ncl (dump-ast-val-to-list nc fn)))
-      (if (diff-result-equal cl ncl)
+      (if (diff-result-equal cl ncl :loose loose)
           t
           (values nil *diff-result-equal-diff*)))))
 

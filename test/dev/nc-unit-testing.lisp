@@ -48,6 +48,12 @@
   (dump-ast-val *a* #'ast-types)
   (values))
 
+(defun l3 (file fn)
+  (l file)
+  (dump-ast-val *oa* fn)
+  (dump-ast-val *a* fn)
+  (values))
+
 (defun on-types (sw fn)
   (lambda (a)
     (mapcar (lambda (id) (if-let ((tp (find-type sw id))) (funcall fn tp)))
@@ -106,3 +112,15 @@ by GET-AST-TYPES"
 
 (defmacro wdnc (&body body)
   `(without-debugging (nc ,@body)))
+
+;;; Differential testing
+
+(defun dt (files fn &key loose)
+  (loop for d in files
+     do (handler-case
+            (progn (l d)
+                   (multiple-value-bind (good? diff)
+                       (sel/cp/clang-diff-test::check-attr *oa* *a* fn :loose loose)
+                     (declare (ignore diff))
+                     (format t "~d: ~a~%" d good?)))
+          (error (e) (format t "~d: ~a" d e)))))
