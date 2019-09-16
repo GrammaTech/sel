@@ -2986,9 +2986,12 @@ is not to be found"
 
 (deftest find-or-add-type-finds-existing-type ()
   (with-fixture gcd-clang
+    #+(OR)
     (is (eql (find-if [{string= "int"} #'type-name]
                       (hash-table-values (types *gcd*)))
-             (find-or-add-type *gcd* "int")))))
+             (find-or-add-type *gcd* "int")))
+    (is (find (find-or-add-type *gcd* "int")
+              (hash-table-values (types *gcd*))))))
 
 (deftest find-or-add-type-adds-new-type ()
   (with-fixture gcd-clang
@@ -9680,9 +9683,10 @@ prints unique counters in the trace"
                              (nth 1 roots)
                              (nth 3 roots)))
            (token-lists (iter (for root in test-roots)
-                              (collect (tokens *variety* (list root))
-                                into token-lists)
-                              (finally (return token-lists)))))
+                              (when root
+                                (collect (tokens *variety* (list root))
+                                         into token-lists)
+                                (finally (return token-lists))))))
       (is (= 3 (length token-lists)))
       (is (equal (nth 0 token-lists)
                  ;; [0 ... 1 ].y = 1.0

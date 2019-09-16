@@ -113,8 +113,14 @@ the clang front-end.  See also: https://clang.llvm.org/docs/FAQ.html#id2.")
    (types :initarg :types :accessor types
           :initform (make-hash-table :test 'equal)
           :copier copy-hash-table
-          :type #+sbcl hash-table #-sbcl hash-table
-          :documentation "Association list of types keyed by HASH id.")
+          :type hash-table
+          :documentation "Hash table of types keyed by .....")
+   (base-types :initarg :base-types :accessor base-types
+               :initform (make-hash-table :test 'equal)
+               :copier copy-hash-table
+               :type hash-table
+               :documentation "Hash table of underlying types (without
+storage class or other modifiers")
    ;;; TODO: Not currently used.  Remove or use.  This is carried over
    ;;;       from the old clang front end.
    (macros :initarg :macros :accessor macros
@@ -139,6 +145,7 @@ on which clang was run to get the AST.")
     :copier copy-hash-table
     :type hash-table
     :documentation "Map from name strings to declaration objects.")
+   ;; Get rid of this?
    (type-table
     :initarg :type-table
     :initform (make-hash-table :test #'equal)
@@ -507,6 +514,10 @@ on QUAL and DESUGARED slots."))
    (name :initarg :name
          :type string
          :reader type-name)
+   (hash :accessor nct+-hash
+         :initarg :hash
+         :initform (incf (hash-counter *soft*))
+         :documentation "A hash code assigned to nct+ objects")
    (i-file :initarg :i-file
            :type (or null string)
            :reader type-i-file))
@@ -597,21 +608,26 @@ that is not strictly speaking about types at all (storage class)."))
 (defmethod initialize-instance :after ((obj new-clang-type)
                                        &key hash &allow-other-keys)
   (when (boundp '*soft*)
-    (setf (gethash hash (slot-value *soft* 'types)) obj))
+    (setf (gethash hash (slot-value *soft* 'base-types)) obj))
   obj)
 
 (defmethod initialize-instance :after ((obj nct+) &key (compute-slots t) &allow-other-keys)
+  ;; (format t "INITIALIZE INSTANCE on ~a~%" obj)
   (pushnew obj (new-clang-type-nct+-list (nct+-type obj)))
+  ;; (format t "PUSH ONTO NCT+LIST of ~a~%" (nct+-type obj))
   ;; The COMPUTE-SLOTS argument is here so we can suppress the automatic initialization
   ;; of the slots of an nct+ object.  This is needed in the tests in test.lisp.
   ;; It may be needed in client code that will be manually creating type objects.
   (when compute-slots (compute-nct+-slots obj))
+  (setf (gethash (nct+-hash obj) (slot-value *soft* 'types)) obj)
   obj)
 
 (defmethod type-hash ((tp new-clang-type))
   (new-clang-type-hash tp))
-(defmethod type-hash ((tp+ nct+))
-  (type-hash (nct+-type tp+)))
+;; (defmethod type-hash ((tp+ nct+))
+;;   (type-hash (nct+-type tp+)))
+(defmethod type-hash ((n nct+))
+  (nct+-hash n))
 
 ;;; Pointer, const, volatile, and restrict are indicated by integers
 ;;;  in the modifiers slot.
@@ -840,13 +856,21 @@ that is not strictly speaking about types at all (storage class)."))
 (defmethod type-decl-string ((obj nct+) &key &allow-other-keys)
   (type-decl-string (nct+-type obj)))
 
-(defmethod find-or-add-type ((obj new-clang) name &key &allow-other-keys)
+(defmethod find-or-add-type ((obj new-clang) (name string) &key &allow-other-keys)
   ;; This should return an NCT+, not a NEW-CLANG-TYPE
-  (let ((vals (hash-table-values (types obj))))
-    (or (find name vals :key #'type-name :test #'string=)
-        (if (member name +c-numeric-types+ :test #'equal)
-            (make-nct+ (make-new-clang-type :qual name) nil nil)
-            nil))))
+  (let ((vals (hash-table-values (base-types obj))))
+    (if-let ((type (find name vals :key #'type-name :test #'string=)))
+      (make-nct+ type nil nil)
+      (if (member name +c-numeric-types+ :test #'equal)
+          (make-nct+ (make-new-clang-type :qual name) nil nil)
+          nil))))
+
+(defmethod find-or-add-type :around ((obj new-clang) name &key &allow-other-keys)
+  (let* ((*soft* obj)
+         (val (call-next-method)))
+    (unless (typep val '(or null nct+))
+      (error "Return value not of correct type: ~a" val))
+    val))
 
 (defmethod add-type ((obj new-clang) (type nct+))
   (sel/sw/clang::add-type* obj type))
@@ -863,7 +887,7 @@ that is not strictly speaking about types at all (storage class)."))
   type)
 
 (defmethod find-type ((obj new-clang) (name string))
-  (let ((vals (hash-table-values (types obj))))
+  (let ((vals (hash-table-values (base-types obj))))
     ;; (format t "Types: ~s~%" (mapcar #'type-name vals))
     (when-let ((type (find name vals :key #'type-name :test #'string=)))
       (make-nct+ type nil nil))))
@@ -1299,7 +1323,10 @@ in the macro defn, EXPANSION-LOC is at the macro use."
                     keys)))
       (if table
           (or (gethash key table)
-              (setf (gethash key table) (%make)))
+              (let ((type (%make)))
+                (setf (gethash key table) type)
+                (make-nct+ type nil nil)
+                type))
           (%make)))))
 
 ;; Wrapper for values in referencedDecl attribute, when

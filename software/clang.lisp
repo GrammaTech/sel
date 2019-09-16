@@ -780,14 +780,16 @@ will not be generated automatically.
       (add-include obj (type-i-file type))
       ;; only add to the genome if there isn't a type with the same type-decl
       ;; already known
-      (unless (or (not (type-decl type))
-                  (member (type-decl type)
-                          (hash-table-values (types obj))
-                          :key #'type-decl
-                          :test #'string=))
-        ;; FIXME: ideally this would insert an AST for the type decl
-        ;; instead of just adding the text.
-        (prepend-to-genome obj (type-decl type))))
+      (let ((td (type-decl type)))
+        (unless (or (not td)
+                    (equal td "")
+                    (member (type-decl type)
+                            (hash-table-values (types obj))
+                            :key #'type-decl
+                            :test #'string=))
+          ;; FIXME: ideally this would insert an AST for the type decl
+          ;; instead of just adding the text.
+          (prepend-to-genome obj (type-decl type)))))
     ;; always add type with new hash to types hashtable
     (setf (gethash (type-hash type) (types obj)) type))
   obj)
