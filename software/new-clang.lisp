@@ -2519,18 +2519,20 @@ ranges into 'combined' nodes.  Warn when this happens."
              (let ((end 0)
                    changed? accumulator)
                (flet ((%sorted-children (children)
-                        (sort children
-                              (lambda (a b)
-                                (bind (((:values a-begin a-end)
-                                        (begin-and-end-offsets a))
-                                       ((:values b-begin b-end)
-                                        (begin-and-end-offsets b)))
-                                      ;; If ASTs start at the same place, put the
-                                      ;; larger one first so parent-child combining
-                                      ;; below works nicely.
-                                      (if (= a-begin b-begin)
-                                          (> a-end b-end)
-                                          (< a-begin b-begin))))))
+                        (stable-sort
+                         children
+                         (lambda (a b)
+                           (bind (((:values a-begin a-end)
+                                   (begin-and-end-offsets a))
+                                  ((:values b-begin b-end)
+                                   (begin-and-end-offsets b)))
+                                 ;; If ASTs start at the same place, put the
+                                 ;; larger one first so parent-child combining
+                                 ;; below works nicely.
+                                 (cond ((or (null b-begin) (null b-end)) t)
+                                       ((or (null a-begin) (null a-end)) nil)
+                                       ((= a-begin b-begin) (> a-end b-end))
+                                       (t (< a-begin b-begin)))))))
                       (%combine ()
                         (case (length accumulator)
                           (0)
