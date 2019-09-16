@@ -2518,7 +2518,20 @@ ranges into 'combined' nodes.  Warn when this happens."
              #+cos-debug (format t "Enter %check on ~a~%" a)
              (let ((end 0)
                    changed? accumulator)
-               (flet ((%combine ()
+               (flet ((%sorted-children (children)
+                        (sort children
+                              (lambda (a b)
+                                (bind (((:values a-begin a-end)
+                                        (begin-and-end-offsets a))
+                                       ((:values b-begin b-end)
+                                        (begin-and-end-offsets b)))
+                                      ;; If ASTs start at the same place, put the
+                                      ;; larger one first so parent-child combining
+                                      ;; below works nicely.
+                                      (if (= a-begin b-begin)
+                                          (> a-end b-end)
+                                          (< a-begin b-begin))))))
+                      (%combine ()
                         (case (length accumulator)
                           (0)
                           (1 (list (pop accumulator)))
@@ -2558,7 +2571,8 @@ ranges into 'combined' nodes.  Warn when this happens."
                                (setf accumulator nil)))))))
                  (let ((new-children
                         (append
-                         (iter (for c in (ast-children a))
+                         ;; Find child ASTs and sort them in textual order.
+                         (iter (for c in (%sorted-children (ast-children a)))
                                #+cos-debug (format t "end = ~a~%" end)
                                (multiple-value-bind (cbegin cend)
                                    (begin-and-end-offsets c)
