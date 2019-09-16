@@ -3062,7 +3062,7 @@ of OBJ")
 
 (defmethod map-ast ((ast new-clang-ast) fn)
   (case (ast-class ast)
-    (:combine (mapcar {map-ast _ fn} (ast-attr ast :subsumed)))
+    (:combined (mapcar {map-ast _ fn} (ast-attr ast :subsumed)))
     (t (call-next-method))))
 
 (defgeneric map-ast-sets (ast fn &key key test)
