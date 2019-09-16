@@ -64,7 +64,7 @@
                        class
                        (funcall val-fn a)))))
       (dump-ast ast #'%print)))
-  (:method :around ((sw new-clang) val-fn &optional s)
+  (:method :around ((sw clang-base) val-fn &optional s)
            (declare (ignorable s))
            (let ((*soft* sw))
              (ast-root sw)
