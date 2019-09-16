@@ -50,7 +50,6 @@
            :to-ast
            :ast-later-p
            :map-ast
-           :map-ast
            :map-ast-postorder
            :map-ast-with-ancestors
            :mapc-ast
