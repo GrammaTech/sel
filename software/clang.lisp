@@ -204,7 +204,9 @@
            :make-clang-macro
            :copy-clang-macro
            ;; FIXME: Clang literal building.
+           :*make-statement-fn*
            :make-statement
+           :make-statement*
            :make-literal
            :make-operator
            :make-block
@@ -221,7 +223,6 @@
            :make-switch-stmt
            :make-break-stmt
            :fix-semicolons
-           :*make-statement-fn*
            :clang-fixup-mutation
            :ast-declarations
            :ast-declarations*

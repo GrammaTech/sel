@@ -643,9 +643,12 @@
 
 (defun call-with-clang-versions (fn)
   (if *new-clang?*
-      (let ((*make-statement-fn* #'make-statement-new-clang))
+      (prog2
+          (setf *make-statement-fn* #'make-statement-new-clang)
         (funcall fn))
-      (funcall fn)))
+      (prog2
+          (setf *make-statement-fn* #'make-statement*)
+          (funcall fn))))
 
 (defmacro deftest (name args &body body)
   `(sel/stefil+:deftest ,name ,args
