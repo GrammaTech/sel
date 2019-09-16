@@ -1329,10 +1329,6 @@ in the macro defn, EXPANSION-LOC is at the macro use."
                 type))
           (%make)))))
 
-;; Wrapper for values in referencedDecl attribute, when
-;; storing them in (symbol-table *soft*)
-(defstruct reference-entry obj)
-
 ;;; AST-FILE was used for two things: to identify non-source
 ;;; code that clang stuck in, and to identify macros
 ;;; These two functions needed to be separated.
@@ -1599,9 +1595,17 @@ the match length if sucessful, NIL if not."
        (unless (keywordp json-kind-symbol)
          (error "Cannot convert ~a to a json-kind keyword" json-kind))
        (let ((obj (j2ck json json-kind-symbol)))
-         (when (and obj inner)
-           (let ((id (new-clang-ast-id obj)))
-             (pushnew obj (gethash id (symbol-table *soft*)))))
+         (when obj
+           ;; What is happening here:
+           ;;  If INNER is NIL, this is not an actual defn of the object
+           ;;  But we want to store it anyway in that case if nothing is
+           ;;  there, because there may not be a real definition.  The
+           ;;  real definition always overrites the stub.
+           (let* ((id (new-clang-ast-id obj))
+                  (table (symbol-table *soft*))
+                  (existing (gethash id table)))
+             (when (or (not existing) inner)
+               (setf (gethash id table) (list obj)))))
          obj)))
     (string (canonicalize-string json))
     (t json)))

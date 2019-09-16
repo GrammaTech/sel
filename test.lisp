@@ -249,6 +249,10 @@
   :test #'equalp
   :documentation "Location of the scopes example directory")
 
+(define-constant +unbound-fun-dir+ (append +etc-dir+ (list "unbound-fun"))
+  :test #'equalp
+  :documentation "Location of the unbound-fun example directory")
+
 (define-constant +clang-crossover-dir+
     (append +etc-dir+ (list "clang-crossover"))
   :test #'equalp
@@ -433,6 +437,11 @@
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
                  :directory +scopes-dir+))
+
+(defun unbound-fun-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +unbound-fun-dir+))
 
 (defun clang-crossover-dir (filename)
   (make-pathname :name (pathname-name filename)
@@ -1369,6 +1378,14 @@ of the same length"
    (setf *soft*
          (from-file (make-clang)
                     (typedef-type-dir "typedef-type.c"))))
+  (:teardown
+   (setf *soft* nil)))
+
+(defixture unbound-fun-clang
+  (:setup
+   (setf *soft*
+         (from-file (make-clang)
+                    (unbound-fun-dir "unbound-fun.c"))))
   (:teardown
    (setf *soft* nil)))
 
@@ -9244,6 +9261,13 @@ prints unique counters in the trace"
                            (stmt-starting-with-text *scopes* "void bar"))
          '(("(|foo|)" t nil 1)
            ("(|bar|)" t nil 0))))))
+
+(deftest unbound-fun-not-defined ()
+  (with-fixture unbound-fun-clang
+    (is (unbound-funs-equal
+         (get-unbound-funs *soft*
+                           (stmt-with-text *soft* "g();"))
+         '(("(|g|)" nil nil 0))))))
 
 (deftest scopes-type-field-is-correct ()
   (with-fixture scopes-type-field-clang
