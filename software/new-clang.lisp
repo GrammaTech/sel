@@ -525,7 +525,7 @@ on QUAL and DESUGARED slots."))
 SEL/SW/CLANG:CLANG-TYPE.  This means it must have some information
 that is not strictly speaking about types at all (storage class)."))
 
-(defun make-nct+ (type storage-class ast)
+(defun make-nct+ (type &key storage-class ast)
   (assert (typep type 'new-clang-type))
   (setf storage-class (or storage-class :none))
   (or (find storage-class (new-clang-type-nct+-list type)
@@ -576,7 +576,7 @@ that is not strictly speaking about types at all (storage class)."))
         (assert (typep tp 'new-clang-type))
         (or (find :none (new-clang-type-nct+-list tp)
                   :key #'type-storage-class)
-            (make-nct+ tp nil nil)))
+            (make-nct+ tp)))
       nct))
 
 (defmethod type-trace-string ((type nct+) &key qualified)
@@ -861,9 +861,9 @@ that is not strictly speaking about types at all (storage class)."))
   ;; This should return an NCT+, not a NEW-CLANG-TYPE
   (let ((vals (hash-table-values (base-types obj))))
     (if-let ((type (find name vals :key #'type-name :test #'string=)))
-      (make-nct+ type nil nil)
+      (make-nct+ type)
       (if (member name +c-numeric-types+ :test #'equal)
-          (make-nct+ (make-new-clang-type :qual name) nil nil)
+          (make-nct+ (make-new-clang-type :qual name))
           nil))))
 
 (defmethod find-or-add-type :around ((obj new-clang) name &key &allow-other-keys)
@@ -891,7 +891,7 @@ that is not strictly speaking about types at all (storage class)."))
   (let ((vals (hash-table-values (base-types obj))))
     ;; (format t "Types: ~s~%" (mapcar #'type-name vals))
     (when-let ((type (find name vals :key #'type-name :test #'string=)))
-      (make-nct+ type nil nil))))
+      (make-nct+ type))))
 
 (defmethod find-type :around ((obj new-clang) name)
   (let* ((*soft* obj)
@@ -1186,7 +1186,9 @@ on various ast classes"))
 
 (defun ast-types*-on-decl (ast)
   (when-let ((type (ast-attr ast :type)))
-    (list (make-nct+ type (ast-attr ast :storageclass) ast))))
+    (list (make-nct+ type
+                     :storage-class (ast-attr ast :storageclass)
+                     :ast ast))))
 
 (defmethod ast-types* ((ast new-clang-ast) (ast-class (eql :ParmVar)))
   (ast-types*-on-decl ast))
@@ -1215,7 +1217,7 @@ on various ast classes"))
   (let ((argtype (ast-attr ast :argtype))
         (types (ast-types*-on-decl ast)))
     (if argtype
-        (adjoin (make-nct+ argtype nil ast) types)
+        (adjoin (make-nct+ argtype :ast ast) types)
         types)))
 
 (defmethod ast-types* ((ast new-clang-ast) (ast-class (eql :Typedef)))
@@ -1326,7 +1328,7 @@ in the macro defn, EXPANSION-LOC is at the macro use."
           (or (gethash key table)
               (let ((type (%make)))
                 (setf (gethash key table) type)
-                (make-nct+ type nil nil)
+                (make-nct+ type)
                 type))
           (%make)))))
 
