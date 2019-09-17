@@ -312,6 +312,6 @@ appendix holds each individual package's API in turn.
 @section sel-cp-test-suite
 @include sel-cp-test-suite-api.texi
 
-@node sel-cp-traceable, General Lisp Advice, sel-cp-test-suite, SEL Packages
+@node sel-cp-traceable, SEL API, sel-cp-test-suite, SEL Packages
 @section sel-cp-traceable
 @include sel-cp-traceable-api.texi

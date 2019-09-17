@@ -101,9 +101,10 @@ Engineering (SBSE) techniques.
 
 Appendices
 * SEL API::                     Public functions, variables, and macros
-* General Lisp Advice::         Information for those new to Common Lisp
-* SEL Coding Standards::        Guidance for contribution to SEL
 * ChangeLog::                   Chronological log of notable changes by version
+* General Lisp Advice::         Information for those new to Common Lisp
+* SEL Coding Standards::        Development guidelines for SEL
+* Contributing::                Process for contributing to SEL
 * Licensing::                   Licensing for SEL and for this documentation.
 * Index::                       Complete index.
 
@@ -1492,7 +1493,11 @@ with the following.
 @appendix SEL API
 @include sel-api.texi
 
-@node General Lisp Advice, Getting Started with Lisp, SEL API, Top
+@node ChangeLog, General Lisp Advice, SEL API, Top
+@appendix ChangeLog
+@include changelog.texi
+
+@node General Lisp Advice, Getting Started with Lisp, ChangeLog, Top
 @appendix General Lisp Advice
 @include general-lisp-advice.texi
 
@@ -1500,11 +1505,11 @@ with the following.
 @appendix SEL Coding Standards
 @include sel-coding-standards.texi
 
-@node ChangeLog, Licensing, SEL Coding Standards, Top
-@appendix ChangeLog
-@include changelog.texi
+@node Contributing, Licensing, SEL Coding Standards, Top
+@appendix Contributing
+@include contributing.texi
 
-@node Licensing, Copying, ChangeLog, Top
+@node Licensing, Copying, Contributing, Top
 @appendix Licensing
 @menu
 * Copying::                     The GNU General Public License gives
