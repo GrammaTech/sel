@@ -1,0 +1,157 @@
+@menu
+* Getting Started with Lisp::
+* Additional Lisp Resources::
+* General Lisp Debugging Advice::
+@end menu
+
+
+@node Getting Started with Lisp, Additional Lisp Resources, General Lisp Advice, General Lisp Advice
+@appendixsec Getting Started with Lisp
+
+TLDR; If you're new to common lisp an easy to use IDE is
+@url{https://portacle.github.io/, Portacle}.
+
+We recommend the following Common Lisp resources.
+
+@itemize
+
+@item
+The @url{http://cliki.net/Getting+Started,Getting Started} guide provided on @url{http://cliki.net/,CLiki}, the Common Lisp wiki.
+
+This is a fairly complete guide to starting out with Lisp in general
+and Common Lisp in particular.
+
+@item
+The web site @url{http://articulate-lisp.com/,Articulate Common Lisp},
+includes a comprehensive startup guide and introduction to the lisp
+language.
+
+This includes sections on choosing an
+@url{http://articulate-lisp.com/implementations/summary.html,
+implementation}, using @url{http://articulate-lisp.com/quicklisp.html,
+Quicklisp}, and defining new libraries with
+@url{http://articulate-lisp.com/project/new-project.html, ASDF}.
+
+@item @url{http://www.gigamonkeys.com/book/,Practical Common Lisp}.
+
+Especially, @url{
+http://www.gigamonkeys.com/book/lather-rinse-repeat-a-tour-of-the-repl.html,
+Chapter 2} describes how to get Emacs and Slime working.
+
+@end itemize
+
+
+We strongly recommend that you use Emacs: no other editor has such
+strong integration into the Lisp process (useful for finding function
+definitions, automatically displaying information, compiling,
+highlighting compiler warnings, evaluating, etc...).
+Install Emacs @url{http://emacswiki.org/emacs/ParEdit,ParEdit} for
+additional Lisp authoring support.
+
+If you prefer to use VIM, we recommend installing
+@url{https://github.com/vim-scripts/paredit.vim,paredit.vim}.
+
+
+
+
+@node Additional Lisp Resources, General Lisp Debugging Advice, Getting Started with Lisp, General Lisp Advice
+
+@appendixsec Additional Lisp Resources
+
+@itemize
+
+@item
+The @code{#lisp} IRC room on the @url{https://freenode.net/,freenode}
+IRC server.
+
+
+@item
+@url{http://www.cliki.net/slime-howto,Introduction to Slime}
+
+@item
+@url{https://www.emacswiki.org/emacs/ParEdit,Introduction to ParEdit}
+
+@item
+@url{https://melpa.org/#/getting-started,Introduction to Melpa}
+
+@item
+@url{http://malisper.me/2015/07/07/debugging-lisp-part-1-recompilation/,Debugging Lisp}
+
+@item
+@url{http://www.gigamonkeys.com/book/,Practical Common Lisp Book}
+
+@item
+@url{https://www.csee.umbc.edu/courses/331/resources/lisp/onLisp/,On Lisp}
+
+@item
+@url{https://github.com/eschulte/curry-compose-reader-macros,
+     Curry compose reader macros@comma{} aka@comma{} those weird @code{[@{@}]} and @code{@guillemotleft{}@guillemotright{}} symbols}
+
+@item
+We prefer @code{iter} over @code{loop}. See
+@url{https://sites.google.com/site/sabraonthehill/loop-v-iter#TOC-Collect,
+     @code{loop} vs. @code{iter}} for a comparison.
+
+@item
+@url{https://common-lisp.net/project/iterate/doc/index.html,
+     @code{iter} in detail}
+
+@item
+@url{https://common-lisp.net/project/metabang-bind/user-guide.html,
+     Using @code{bind}}
+
+@end itemize
+
+
+@node General Lisp Debugging Advice, SEL Coding Standards, Additional Lisp Resources, General Lisp Advice
+@appendixsec General Lisp Debugging Advice
+
+
+@subsection Log all interaction with the system shell
+
+For problems related to the execution of external commands turn on
+logging of all execution of shell commands by SEL.  This may be done
+by setting the `*shell-debug*` variable to a non-nil value.
+
+@lisp
+(setq *shell-debug* t)
+@end lisp
+
+All subsequent executions of @code{shell} will now print logging
+information.
+
+
+@subsection Tracing specific functions
+
+Common Lisp provides support for function-level tracing.  This may be
+enabled and disabled using the @code{cl-user::trace} and
+@code{cl-user::untrace} functions respectively, as shown in the
+following.
+
+@lisp
+    CL-USER> (in-package :software-evolution-library/test)
+    #<PACKAGE "SOFTWARE-EVOLUTION-LIBRARY/TEST">
+    SE-TEST> (hello-world-clang)
+    T
+    SE-TEST> (cl-user::trace snippet->clang-type)
+    (SNIPPET->CLANG-TYPE)
+    SE-TEST> (update-asts *hello-world*)
+      0: (SNIPPET->CLANG-TYPE
+          ((:ARRAY . "") (:COL . 0) (:DECL . "") (:FILE . "")
+           (:HASH . 342363981814211589) (:LINE . 0) (:POINTER . T) (:REQS)
+           (:SIZE . 4) (:TYPE . "char")))
+      0: SNIPPET->CLANG-TYPE returned
+           #S(CLANG-TYPE
+              :ARRAY ""
+              :COL 0
+    ;;;...
+    #<CLANG @{1003AD88D3@}>
+    SE-TEST>
+@end lisp
+
+
+@subsection Use extra verbosity in command-line tools
+
+Many command-line tools compiled from @code{sel} support various levels of
+verbosity in their output.  The simplest first step in debugging these
+tools should be to maximize the level of verbosity, e.g. @code{-v 5}.
