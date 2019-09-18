@@ -108,7 +108,8 @@ by GET-AST-TYPES"
   (values))
 
 (defmacro nc (&body body)
-  `(let ((*new-clang?* t)) ,@body))
+  `(let ((*new-clang?* t) (*make-statement-fn* #'make-statement-new-clang))
+     ,@body))
 
 (defmacro wdnc (&body body)
   `(without-debugging (nc ,@body)))
