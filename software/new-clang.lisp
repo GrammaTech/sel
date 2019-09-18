@@ -401,7 +401,7 @@ macro objects from these, returning a list."
 
 ;; This is DEFVAR so I can set the var and reload this file
 ;; without losing that value, which is useful for debugging.
-(defvar *new-clang?* t "When true, use NEW-CLANG instead of CLANG")
+(defvar *new-clang?* nil "When true, use NEW-CLANG instead of CLANG")
 
 ;;; TODO: determine which structure fields should be read-only
 
