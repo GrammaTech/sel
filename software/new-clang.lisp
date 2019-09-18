@@ -316,6 +316,7 @@ in or below function declarations"
     (call-next-method)))
 
 (defmethod update-headers-from-ast :around ((sw new-clang) ast database)
+  (declare (ignorable ast database))
   (let ((*soft* sw))
     (call-next-method)))
 
@@ -526,7 +527,7 @@ on QUAL and DESUGARED slots."))
 SEL/SW/CLANG:CLANG-TYPE.  This means it must have some information
 that is not strictly speaking about types at all (storage class)."))
 
-(defun make-nct+ (type &key storage-class ast)
+(defun make-nct+ (type &key storage-class)
   (assert (typep type 'new-clang-type))
   (setf storage-class (or storage-class :none))
   (or (find storage-class (new-clang-type-nct+-list type)
@@ -534,7 +535,7 @@ that is not strictly speaking about types at all (storage class)."))
       (make-instance 'nct+
         :type type
         :storage-class storage-class
-        :i-file (new-clang-i-file *soft* type ast))))
+        :i-file (new-clang-i-file *soft* type))))
 
 (defstruct (new-clang-macro (:include clang-macro))
   ;; Spelling loc is the location of the body of the loc
@@ -583,8 +584,8 @@ that is not strictly speaking about types at all (storage class)."))
 (defmethod type-trace-string ((type nct+) &key qualified)
   (type-trace-string* type qualified))
 
-(defgeneric new-clang-i-file (obj type ast)
-  (:method ((obj new-clang) (type new-clang-type) ast)
+(defgeneric new-clang-i-file (obj type)
+  (:method ((obj new-clang) (type new-clang-type))
     ;; Get list of system files needed to handle the types
     ;; here
     (let* ((qual-includes
@@ -868,6 +869,7 @@ that is not strictly speaking about types at all (storage class)."))
           nil))))
 
 (defmethod find-or-add-type :around ((obj new-clang) name &key &allow-other-keys)
+  (declare (ignorable name))
   (let* ((*soft* obj)
          (val (call-next-method)))
     (unless (typep val '(or null nct+))
@@ -895,6 +897,7 @@ that is not strictly speaking about types at all (storage class)."))
       (make-nct+ type))))
 
 (defmethod find-type :around ((obj new-clang) name)
+  (declare (ignorable name))
   (let* ((*soft* obj)
          (val (call-next-method)))
     (unless (typep val '(or null nct+))
@@ -1062,15 +1065,19 @@ asts can be transplanted between files without difficulty."
                          :remove-empty-subseqs t))
 
 (defmethod get-unbound-vals :around ((sw new-clang) ast)
+  (declare (ignorable ast))
   (let ((*soft* sw)) (call-next-method)))
 
 (defmethod get-unbound-funs :around ((sw new-clang) ast)
+  (declare (ignorable ast))
   (let ((*soft* sw)) (call-next-method)))
 
 (defmethod delete-decl-stmts :around ((sw new-clang) block replacements)
+  (declare (ignorable block replacements))
   (let ((*soft* sw)) (call-next-method)))
 
 (defmethod apply-mutation :around ((sw new-clang) mutation)
+  (declare (ignorable mutation))
   (let ((*soft* sw)) (call-next-method)))
 
 (defmethod ast-unbound-vals ((ast new-clang-ast))
@@ -1188,8 +1195,7 @@ on various ast classes"))
 (defun ast-types*-on-decl (ast)
   (when-let ((type (ast-attr ast :type)))
     (list (make-nct+ type
-                     :storage-class (ast-attr ast :storageclass)
-                     :ast ast))))
+                     :storage-class (ast-attr ast :storageclass)))))
 
 (defmethod ast-types* ((ast new-clang-ast) (ast-class (eql :ParmVar)))
   (ast-types*-on-decl ast))
@@ -1218,7 +1224,7 @@ on various ast classes"))
   (let ((argtype (ast-attr ast :argtype))
         (types (ast-types*-on-decl ast)))
     (if argtype
-        (adjoin (make-nct+ argtype :ast ast) types)
+        (adjoin (make-nct+ argtype) types)
         types)))
 
 (defmethod ast-types* ((ast new-clang-ast) (ast-class (eql :Typedef)))
@@ -1245,36 +1251,16 @@ on various ast classes"))
            ast
            (copy ast :children new-children))))
     (:DeclRefExpr
-     #+rebind-vars-debug
-     (progn
-       (format t "REBIND-VARS on DeclRefExpr:~%~a~%~a~%"
-               (source-text ast) (ast-to-list ast))
-       (format t "referenceddecl = ~a~%"
-               (ast-to-list (ast-referenced-obj ast))))
      (iter (for (old new) in var-replacements)
            (assert old) (assert new)
            (when (eql (ast-referenced-obj ast) old)
-             #+rebind-vars-debug
-             (progn
-               (describe ast)
-               (describe old)
-               (describe new)
-               (format t "Replace var ~a~%~a~%with ~a~%"
-                       (source-text ast)
-                       (new-clang-ast-attrs ast)
-                       (ast-name new))
-               (format t "(ast-children ast) = ~a~%" (ast-children ast)))
              (setf ast (copy ast :referenceddecl new
-                             :children (list (ast-name new))))
-             #+rebind-vars-debug
-             (format t "New ast: ~a~%~a~%" (source-text ast)
-                     (new-clang-ast-attrs ast))))
+                             :children (list (ast-name new))))))
      (iter (for (oldf newf) in fun-replacements)
            (let ((old (first oldf))
                  (new (first newf)))
              (assert old) (assert new)
              (when (eql (ast-referenced-obj ast) old)
-               #+rebind-vars-debug (format t "Replace fun~%")
                (setf ast (copy ast :referenceddecl new)))))
      ast)
     (t (let ((c (mapcar (lambda (c)
@@ -1727,17 +1713,17 @@ form for SLOT, and stores into OBJ.  Returns OBJ or its replacement."))
 ;;   (call-next-method))
 
 (defmethod store-slot ((obj new-clang-ast) (slot (eql :definitiondata)) value)
-  (declare (ignorable slot))
+  (declare (ignorable slot value))
   ;; Do not translate this attribute for now
   obj)
 
 (defmethod store-slot ((obj new-clang-ast) (slot (eql :bases)) value)
-  (declare (ignorable slot))
+  (declare (ignorable slot value))
   ;; Do not translate this attribute for now
   obj)
 
 (defmethod store-slot ((obj new-clang-ast) (slot (eql :path)) value)
-  (declare (ignorable slot))
+  (declare (ignorable slot value))
   ;; Do not translate this attribute for now
   obj)
 
@@ -1876,9 +1862,6 @@ NIL indicates no value."))
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :range)) value)
   (declare (ignorable obj slot))
   (convert-range-json value))
-
-(defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :valuecategory)) (value string))
-  (intern (string-upcase value) :keyword))
 
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :type)) (value list))
   (convert-type-slot-value obj slot value))

@@ -145,7 +145,7 @@ and :SCOPE.
 (defgeneric get-vars-in-scope (software ast &optional keep-globals)
   (:documentation "Return all variables in enclosing scopes."))
 
-;; This function is used by CLANG and NEW-CLANG.  When old CLANG
+;; These name functions are used by CLANG and NEW-CLANG.  When old CLANG
 ;; goes away, move it down into the remaining package, as it is
 ;; not generic to all parseables.
 (defgeneric name= (n1 n2)
@@ -156,7 +156,7 @@ and :SCOPE.
 (defgeneric name-emptyp (n)
   (:documentation "Generalized name emptiness check")
   (:method ((n sequence)) (emptyp n))
-  (:method (n) nil))
+  (:method (n) (declare (ignorable n)) nil))
 
 (defun equal-with-name= (n1 n2)
   (if (consp n1)

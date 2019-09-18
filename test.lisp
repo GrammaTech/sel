@@ -917,7 +917,8 @@ of the same length"
                                qual (desugared nil desugared-p)
                                typedef
                                &allow-other-keys)
-  ;; TODO:  DECL REQS TYPEDEF
+  ;; TODO:  HASH DECL REQS TYPEDEF
+  (declare (ignorable hash decl reqs typedef))
   (let ((type (make-instance 'new-clang-type
                 :qual qual
                 :desugared (if desugared-p desugared qual)
@@ -931,10 +932,8 @@ of the same length"
                    :i-file i-file
                    :compute-slots nil)))
 
-(defun make-clang-control-picks (&rest args
-                                 &key (compiler "clang-3.7")
-                                   (flags '("-g -m32 -O0"))
-                                   new-clang-flags)
+(defun make-clang-control-picks (&rest args &key new-clang-flags
+                                              &allow-other-keys)
   (if *new-clang?*
       (make-instance 'new-clang-control-picks
         :compiler sel/sw/new-clang::*clang-binary*

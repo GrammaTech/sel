@@ -2526,10 +2526,6 @@ If there is no trailing semicolon, return the AST unchanged."))
 
 
 ;;; AST Utility functions
-(defgeneric function-body (software ast)
-  (:documentation
-   "If AST is a function, return the AST representing its body."))
-
 (defgeneric function-decl-p (ast)
   (:documentation
    "Is AST a function (or method/constructor/destructor) decl?")
@@ -3896,7 +3892,7 @@ within a function body, return null."))
 ;;; Process a clang ast to move semicolons down to appropriate places
 
 (defgeneric is-full-stmt-ast (ast)
-  (:method (ast) nil)
+  (:method (ast) (declare (ignorable ast)) nil)
   (:method ((ast clang-ast))
     (ast-full-stmt (ast-node ast))))
 
