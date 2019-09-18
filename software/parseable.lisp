@@ -75,7 +75,9 @@
            :remove-ast
            ;; Restarts
            :expand-stmt-pool
-           :name=))
+           :name=
+           :name-emptyp
+           :equal-with-name=))
 (in-package :software-evolution-library/software/parseable)
 (in-readtable :curry-compose-reader-macros)
 
@@ -150,6 +152,18 @@ and :SCOPE.
   (:documentation "Generalized name equality for AST names")
   (:method ((n1 string) (n2 string))
     (string= n1 n2)))
+
+(defgeneric name-emptyp (n)
+  (:documentation "Generalized name emptiness check")
+  (:method ((n sequence)) (emptyp n))
+  (:method (n) nil))
+
+(defun equal-with-name= (n1 n2)
+  (if (consp n1)
+      (and (consp n2)
+           (equal-with-name= (car n1) (car n2))
+           (equal-with-name= (cdr n1) (cdr n2)))
+      (name= n1 n2)))
 
 (defgeneric update-asts (software)
   (:documentation "Update the store of asts associated with SOFTWARE.
