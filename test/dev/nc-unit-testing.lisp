@@ -108,8 +108,16 @@ by GET-AST-TYPES"
   (values))
 
 (defmacro nc (&body body)
-  `(let ((*new-clang?* t) (*make-statement-fn* #'make-statement-new-clang))
-     ,@body))
+  (let ((v1 (gensym)) (v2 (gensym)))
+    `(let ((,v1 *new-clang?*)
+           (,v2 *make-statement-fn*))
+       (unwind-protect
+            (progn
+              (setf *new-clang?* t
+                    *make-statement-fn* #'make-statement-new-clang)
+              (let ()
+                ,@body))
+         (setf *new-clang?* ,v1 *make-statement-fn* ,v2)))))
 
 (defmacro wdnc (&body body)
   `(without-debugging (nc ,@body)))
