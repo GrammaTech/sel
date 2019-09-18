@@ -3198,7 +3198,7 @@ computed at the children"))
     (t nil)))
 
 (defmethod ast-opcode ((obj new-clang-ast))
-  (or (ast-attr obj :opcode) ""))
+  (ast-attr obj :opcode))
 
 (defmethod ast-ret ((obj new-clang-ast))
   (case (ast-class obj)
