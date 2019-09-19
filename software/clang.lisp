@@ -381,6 +381,8 @@ methods")
   (reqs nil :type list)
   (name nil :type string))
 
+(defmethod ast-name ((x null)) nil)
+
 ;; Convert the accessors to generic functions
 ;; so other implementations can coexist.
 
