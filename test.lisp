@@ -9702,35 +9702,6 @@ prints unique counters in the trace"
                                ;; < 8)
                                "<" "int-literal" ")")))))))
 
-(deftest (designatedinitexpr-tokens :long-running) ()
-  (with-fixture variety-clang
-    (let* ((roots (remove-if-not {eq :DesignatedInitExpr}
-                                 (asts *variety*)
-                                 :key #'ast-class))
-           (test-roots (list (nth 0 roots)
-                             (nth 1 roots)
-                             (nth 3 roots)))
-           (token-lists (iter (for root in test-roots)
-                              (when root
-                                (collect (tokens *variety* (list root))
-                                         into token-lists)
-                                (finally (return token-lists))))))
-      (is (= 3 (length token-lists)))
-      (is (equal (nth 0 token-lists)
-                 ;; [0 ... 1 ].y = 1.0
-                 (mapcar #'make-keyword
-                         (list "[" "int-literal" "..." "int-literal" "]"
-                               "." "identifier" "=" "float-literal"))))
-      (is (equal (nth 1 token-lists)
-                 ;; [1].x = 2.0
-                 (mapcar #'make-keyword
-                         (list "[" "int-literal" "]" "." "identifier"
-                               "=" "float-literal"))))
-      (is (equal (nth 2 token-lists)
-                 ;; .y = 2.0
-                 (mapcar #'make-keyword
-                         (list "." "identifier" "=" "float-literal")))))))
-
 (deftest (function-tokens :long-running) ()
   (with-fixture variety-clang
     (let* ((root (stmt-starting-with-text *variety* "int add3"))
