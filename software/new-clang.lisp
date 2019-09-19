@@ -782,8 +782,13 @@ that is not strictly speaking about types at all (storage class)."))
 
 (defmethod source-text ((ast new-clang-ast))
   (with-output-to-string (out)
-    (mapc [{write-string _ out} #'source-text]
-          (ast-children ast))))
+    (if (eq :Combined (ast-class ast))
+        ;; Combined nodes are a special case as the
+        ;; child node source text ranges overlap
+        (write-string (ast-attr ast :source-text) out)
+        ;; For normal ASTs, just collect the child node source
+        (mapc [{write-string _ out} #'source-text]
+              (ast-children ast)))))
 
 (defgeneric ast-attr (ast attr))
 (defmethod ast-attr ((ast new-clang-ast) (attr symbol))
@@ -2565,7 +2570,11 @@ ranges into 'combined' nodes.  Warn when this happens."
                                                   :children accumulator
                                                   :attrs `((:range . ,(make-new-clang-range
                                                                        :begin new-begin
-                                                                       :end new-end))))))))
+                                                                       :end new-end))
+                                                           (:source-text .
+                                                                         ,(subseq genome
+                                                                                  new-begin
+                                                                                  new-end))))))))
                                (setf accumulator nil)))))))
                  (unless (eq :combined (ast-class a))
                    (let ((new-children
