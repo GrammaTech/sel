@@ -2366,6 +2366,8 @@ in a CXXOperatorCallExpr node.")
                   cbegin = ~a, c = ~a, range = ~a"
                  i cbegin c
                  (ast-attr c :range)))
+       (%safe-subseq (seq start end)
+         (subseq seq start (if (<= end start) start end)))
        (%decorate (a)
          ;; At ast node A, split the parts of the source
          ;; that are not in the children into substrings
@@ -2388,14 +2390,15 @@ in a CXXOperatorCallExpr node.")
                       (multiple-value-bind (cbegin cend)
                           (begin-and-end-offsets c)
                         (when cbegin
-                          (%assert1 i cbegin c)
+                          (unless (eq :Combined (ast-class a))
+                            (%assert1 i cbegin c))
 ;;; (format t "Collecting ~a to ~a for ~a~%" i cbegin c)
-                          (collect (subseq genome i cbegin))
+                          (collect (%safe-subseq genome i cbegin))
                           (setf i cend))))
                     (collect c))
                    (progn
 ;;; (format t "Collecting ~a to ~a at end of ~a~%" i end a)
-                     (list (subseq genome i end)))))))))))
+                     (list (%safe-subseq genome i end)))))))))))
     (map-ast ast #'%decorate))
   ast)
 
@@ -2559,43 +2562,44 @@ ranges into 'combined' nodes.  Warn when this happens."
                                              (list (car accumulator)))
                                            (list (make-new-clang-ast
                                                   :class :combined
+                                                  :children accumulator
                                                   :attrs `((:range . ,(make-new-clang-range
                                                                        :begin new-begin
-                                                                       :end new-end))
-                                                           (:subsumed . ,accumulator)))))))
+                                                                       :end new-end))))))))
                                (setf accumulator nil)))))))
-                 (let ((new-children
-                        (append
-                         ;; Find child ASTs and sort them in textual order.
-                         (iter (for c in (%sorted-children (ast-children a)))
-                               #+cos-debug (format t "end = ~a~%" end)
-                               (multiple-value-bind (cbegin cend)
-                                   (begin-and-end-offsets c)
-                                 (if (and cbegin end cend (< cbegin end))
-                                     (progn
-                                       #+cos-debug
-                                       (when accumulator
-                                         (format t "Adding (~a,~a):~%~a~&"
-                                                 cbegin cend
-                                                 (subseq genome cbegin cend)))
-                                       (setf accumulator
-                                             (append accumulator (list c))
-                                             end (max end cend)))
-                                     (progn
-                                       #+cos-debug
-                                       (format
-                                        t "No overlap: cbegin = ~a, cend = ~a~%"
-                                        cbegin cend)
-                                       (appending (%combine))
-                                       (setf accumulator (list c)
-                                             end cend)))))
-                         (%combine))))
-                   (when changed?
-                     #+cos-debug (format
-                                  t "Old-children: ~a~%New-children: ~a~%"
-                                  (ast-children a)
-                                  new-children)
-                     (setf (ast-children a) new-children)))))
+                 (unless (eq :combined (ast-class a))
+                   (let ((new-children
+                          (append
+                           ;; Find child ASTs and sort them in textual order.
+                           (iter (for c in (%sorted-children (ast-children a)))
+                                 #+cos-debug (format t "end = ~a~%" end)
+                                 (multiple-value-bind (cbegin cend)
+                                     (begin-and-end-offsets c)
+                                   (if (and cbegin end cend (< cbegin end))
+                                       (progn
+                                         #+cos-debug
+                                         (when accumulator
+                                           (format t "Adding (~a,~a):~%~a~&"
+                                                   cbegin cend
+                                                   (subseq genome cbegin cend)))
+                                         (setf accumulator
+                                               (append accumulator (list c))
+                                               end (max end cend)))
+                                       (progn
+                                         #+cos-debug
+                                         (format
+                                          t "No overlap: cbegin = ~a, cend = ~a~%"
+                                          cbegin cend)
+                                         (appending (%combine))
+                                         (setf accumulator (list c)
+                                               end cend)))))
+                           (%combine))))
+                     (when changed?
+                       #+cos-debug (format
+                                    t "Old-children: ~a~%New-children: ~a~%"
+                                    (ast-children a)
+                                    new-children)
+                       (setf (ast-children a) new-children))))))
              #+cos-debug (format t "Leave %check on ~a~%" a)))
       (map-ast ast #'%check))))
 
@@ -3046,11 +3050,6 @@ of OBJ")
 
 ;;; Reimplementations of ast-* functions for nodes
 
-(defmethod map-ast ((ast new-clang-ast) fn)
-  (case (ast-class ast)
-    (:combined (mapcar {map-ast _ fn} (ast-attr ast :subsumed)))
-    (t (call-next-method))))
-
 (defgeneric map-ast-sets (ast fn &key key test)
   (:documentation
    "Evaluates FN at the nodes of AST, returning a list of
@@ -3087,7 +3086,7 @@ computed at the children"))
      (when (ast-name obj)
        (list obj)))
     ((:Combined)
-     (reduce #'append (ast-attr obj :subsumed)
+     (reduce #'append (ast-children obj)
              :key #'ast-declares :initial-value nil))
     ;; More cases here
     (t nil)))
