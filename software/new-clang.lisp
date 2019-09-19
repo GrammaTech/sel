@@ -939,8 +939,8 @@ that is not strictly speaking about types at all (storage class)."))
             (let ((key (pop args2))
                   (arg (pop args2)))
               (case key
-                ((path children class id syn-ctx aux-data) nil)
-                ((attrs)
+                ((:path :children :class :id :syn-ctx :aux-data) nil)
+                ((:attrs)
                  (unless attrs-p
                    (setf attrs-p t
                          attrs arg)))
