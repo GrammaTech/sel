@@ -31,12 +31,12 @@
 ;;; *A* and *OA* are the new and the 'original' clang objects for a file
 (declaim (special *a* *oa*))
 
-(defun l (file)
+(defun l (file &rest args)
   (let ((*new-clang?* t))
     ;; MAKE-CLANG is defined in test.lisp
-    (setf *a* (from-file (make-clang) file)))
+    (setf *a* (from-file (apply #'make-clang args) file)))
   (let ((*new-clang?* nil))
-    (setf *oa* (from-file (make-clang) file)))
+    (setf *oa* (from-file (apply #'make-clang args) file)))
   (values *a* *oa*))
 
 (when (find-package :sel/sw/new-clang-debug)
