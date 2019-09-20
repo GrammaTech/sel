@@ -37,6 +37,7 @@
            :replace-nth-child
            :fixup-mutation
            :ast-children
+           :ast-annotations
            :ast-nodes-in-subtree
            :ast-equal-p
            :ast-text
@@ -75,6 +76,7 @@
   "Base type of sub-tree of an applicative AST tree."
   (path nil :type list)                      ; Path to subtree from root of tree.
   (children nil :type list)                  ; Remainder of subtree.
+  (annotations nil :type list)
   (stored-hash nil :type (or null fixnum)))
 
 (defgeneric ast-path (a)
@@ -89,6 +91,12 @@
 (defgeneric (setf ast-children) (v a)
   (:documentation "Genericized version of children writer for AST structs")
   (:method ((v list) (a ast-stub)) (setf (ast-internal-children a) v)))
+(defgeneric ast-annotations (a)
+  (:documentation "Genericized version of annotations reader for AST structs")
+  (:method ((a ast-stub)) (ast-internal-annotations a)))
+(defgeneric (setf ast-annotations) (v a)
+  (:documentation "Genericized version of annotations writer for AST structs")
+  (:method ((v list) (a ast-stub)) (setf (ast-internal-annotations a) v)))
 (defgeneric ast-stored-hash (a)
   (:documentation "Genericized version of stored-hash reader for AST structs")
   (:method ((a ast-stub)) (ast-internal-stored-hash a)))
@@ -265,14 +273,16 @@ PRINT-OBJECT method on AST structures.")
              (path nil :type list)           ;; Path to subtree from root of tree.
              (node nil :type (or ast-node string null)) ;; Pointer to immutable AST data.
              (children nil :type list)                  ;; Remainder of subtree.
+             (annotations nil :type list)
              (stored-hash nil :type (or null fixnum))
              )
            ;; Copy method for light weight copies of wrapper only.
            (defmethod copy
                ((,obj ,name)
                 &key path
-                     (children nil children-supplied-p)
-                     ,@(mapcar (lambda (name)
+                  (children nil children-supplied-p)
+                  annotations
+                  ,@(mapcar (lambda (name)
                                  `(,name nil ,(symbol-cat name 'supplied-p)))
                                slot-names))
              (,(symbol-cat 'make name)
@@ -291,7 +301,9 @@ PRINT-OBJECT method on AST structures.")
                         (,(symbol-cat name 'node) ,obj))
                :children (if children-supplied-p
                              children
-                             (ast-children ,obj))))
+                             (ast-children ,obj))
+               :annotations annotations))
+
            ;; Define accessors for internal fields on outer structure
            (defmethod ast-path ((,obj ,name))
              (,(symbol-cat name 'path) ,obj))
@@ -305,6 +317,10 @@ PRINT-OBJECT method on AST structures.")
              (,(symbol-cat name 'children) ,obj))
            (defmethod (setf ast-children) ((v list) (,obj ,name))
              (setf (,(symbol-cat name 'children) ,obj) v))
+           (defmethod ast-annotations ((,obj, name))
+             (,(symbol-cat name 'annotations) ,obj))
+           (defmethod (setf ast-annotations) ((v list) (,obj ,name))
+             (setf (,(symbol-cat name 'annotations) ,obj) v))
            (defmethod ast-stored-hash ((,obj ,name))
              (,(symbol-cat name 'stored-hash) ,obj))
            (defmethod (setf ast-stored-hash) (v (,obj ,name))
@@ -351,6 +367,7 @@ list."
                              (path nil path-provided-p)
                              (node nil node-provided-p)
                              (children nil children-provided-p)
+                             (annotations nil annotations-provided-p)
                              (stored-hash nil stored-hash-provided-p)
                              (child-alist nil child-alist-provided-p)
                              (default-children nil default-children-provided-p))
@@ -360,6 +377,7 @@ list."
     (when path-provided-p (list :path path))
     (when node-provided-p (list :node node))
     (when children-provided-p (list :children children))
+    (when annotations-provided-p (list :annotations annotations))
     (when stored-hash-provided-p (list :stored-hash stored-hash))
     (list :child-alist (if child-alist-provided-p
                            child-alist

@@ -112,6 +112,14 @@ in each thread and then initialize *BUILD-DIR* in each thread by
 calling `{to-file _ *BUILD_DIR*}' against a base software
 object (e.g., the original program).")
 
+(defvar *ast-annotations-file* nil
+  "File specified by the user indicating AST annotations that should
+be made when creating software objects, to be used, for instance, for
+fault localization.  The format is \":tag <location>\" where :tag
+matches a predefined AST node field to be marked and <location>
+specifies a filter for a given node type (e.g., file and line number:
+\"file.c 25\").")
+
 (defun ignored-path-p (path &key ignore-paths only-paths
                        &aux (canonical-path (canonical-pathname path)))
   (flet ((included (files)

@@ -16,6 +16,7 @@
         :software-evolution-library/software/parseable
         ;; TODO: Remove clang dependency (might require another package).
         :software-evolution-library/software/clang
+        :software-evolution-library/software/new-clang
         :software-evolution-library/software/project
         :software-evolution-library/components/test-suite)
   (:export :stmts-in-file
@@ -25,7 +26,8 @@
            :rinard-incremental
            :rinard-write-out
            :rinard-read-in
-           :collect-fault-loc-traces))
+           :collect-fault-loc-traces
+           :fl-only-on-bad-traces))
 (in-package :software-evolution-library/components/fault-loc)
 (in-readtable :curry-compose-reader-macros)
 
@@ -308,3 +310,21 @@ which maps (test-casel: position)"
   ;;          (format t "~S : ~S~%" x (pp-stmt-counts val)))))
 
   (fix-string-fields stmt-counts)))
+
+(defun good-trace-count (stmt)
+  (length (remove-if-not (lambda (elt) (equal :good elt)) (flatten (ast-annotations stmt)))))
+
+(defun bad-trace-count (stmt)
+  (length (remove-if-not (lambda (elt) (equal :bad elt)) (flatten (ast-annotations stmt)))))
+
+;; return stmts that ONLY occur on bad traces
+(defmethod fl-only-on-bad-traces ((obj clang-base))
+  ;; annotations are deployed on AST objects, thus anything that implements
+  ;; "ast-root" and "stmt-asts" can use FL (this should be anything "clang" or below).
+  (let* ((ast (ast-root obj))
+         (stmts (stmt-asts ast)))
+    (remove-if-not (lambda (stmt) (and (> (bad-trace-count stmt) 0)
+                                       (= 0 (good-trace-count stmt))))
+                   stmts)))
+
+

@@ -191,6 +191,9 @@ front end."
   (assert (> *tournament-size* 1) (*tournament-size*)
           "Tournament size must be >1"))
 
+(defun handle-ast-annotations-argument (path)
+  (setf *ast-annotations-file* path))
+
 (defun resolve-file (file)
   "Ensure file is an actual file that exists on the filesystem."
   (if (probe-file file)
@@ -373,7 +376,7 @@ directories and if files based on their extensions."
                         &key ; NOTE: Maintain list of keyword arguments below.
                           (language (guess-language path) language-p)
                           compiler flags build-command artifacts
-                          compilation-database store-path
+                          ast-annotations compilation-database store-path
                           &allow-other-keys)
   "Build a software object from a common superset of language-specific options.
 
@@ -387,6 +390,7 @@ Keyword arguments are as follows:
   COMPILER ------------- compiler for software object
   BUILD-COMMAND -------- shell command to build project directory
   ARTIFACTS ------------ build-command products
+  AST-ANNOTATIONS ------ user-specified ast annotations
   COMPILATION-DATABASE - clang compilation database
 Other keyword arguments are allowed and are passed through to `make-instance'."
   ;; Should any of the input parameters be set in the restored objects?
@@ -433,12 +437,15 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
                             (cdr build-command-list))
                     build-command))))
            (artifacts
-            (when (subtypep language 'project) artifacts))))
+            (when (subtypep language 'project) artifacts))
+           (ast-annotations
+            (when (subtypep language 'project) ast-annotations))))
+
     (apply #'make-instance language)
     (apply #'append
            (plist-drop-if ; Any other keyword arguments are passed through.
             {member _ (list :language :compiler :flags :build-command :artifacts
-                            :compilation-database :store-path)}
+                            :ast-annotations :compilation-database :store-path)}
             (copy-seq rest)))
     (remove-if-not #'second)
     `((:allow-other-keys t)
@@ -446,6 +453,7 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
       (:flags ,flags)
       (:build-command ,build-command)
       (:artifacts ,artifacts)
+      (:ast-annotations ,ast-annotations)
       (:compilation-database ,compilation-database)))
    path))
 
@@ -528,7 +536,10 @@ in SCRIPT.")
        :documentation "Split top level strings at newlines")))
   (defparameter +project-command-line-options+
     '((("build-command" #\b) :type string :initial-value "make"
-       :documentation "shell command to build project directory")))
+       :documentation "shell command to build project directory")
+      (("ast-annotations" #\A) :type string
+       :action #'handle-ast-annotations-argument
+       :documentation "annotate asts from static file spec")))
   (defparameter +clang-project-command-line-options+
     '((("artifacts" #\a) :type string
        :action #'handle-comma-delimited-argument

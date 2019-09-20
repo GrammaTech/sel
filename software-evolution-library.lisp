@@ -779,6 +779,9 @@ by `compose-mutations', `sequence-mutations' first targets and applies A and the
 (defmethod at-targets ((mut mutation) targets &key (object (object mut)))
   (make-instance (type-of mut) :object object :targets targets))
 
+(defgeneric decorate-with-annotations (software ast)
+  (:documentation "Read in and decorate IR with user-provided annotations."))
+
 (defmethod mutation-key ((obj software) (mutation mutation))
   (declare (ignorable obj)) (type-of mutation))
 

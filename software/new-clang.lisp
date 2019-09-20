@@ -1054,6 +1054,7 @@ that is not strictly speaking about types at all (storage class)."))
                              (class (new-clang-ast-class ast))
                              (attrs (new-clang-ast-attrs ast) attrs-p)
                              (id (new-clang-ast-id ast))
+                             (annotations nil annotations-p)
                              (syn-ctx (new-clang-ast-syn-ctx ast))
                              (aux-data (new-clang-ast-aux-data ast))
                              &allow-other-keys)
@@ -1084,6 +1085,7 @@ that is not strictly speaking about types at all (storage class)."))
     (funcall fn :allow-other-keys t
              :path path :children children
              :class class :attrs attrs :id id
+             :annotations annotations
              :syn-ctx syn-ctx :aux-data aux-data)))
 
 (defmethod copy ((ast new-clang-ast) &rest args) ;  &key &allow-other-keys)
@@ -2826,6 +2828,7 @@ ranges into 'combined' nodes.  Warn when this happens."
                 (compute-full-stmt-attrs ast)
                 (compute-guard-stmt-attrs ast)
                 (compute-syn-ctxs ast)
+                (decorate-with-annotations obj ast)
                 (setf ast-root (sel/sw/parseable::update-paths
                                 (fix-semicolons ast))
                       genome nil)
@@ -3676,3 +3679,41 @@ template brackets < and >."
                  (inc? l))))
       (when (< pos end)
         (cpp-scan* nil)))))
+
+;; Note: annotation lines for new-clang objects must have the following format:
+;; "source_file.c" 14 :tag   (i.e., "file line-num annotations...")
+(defun match-ast-file-line (ast ann-line)
+  (let ((loc (new-clang-range-begin (ast-range ast))))
+    (if (numberp loc)
+        nil  ; the root node has "0" for a range
+        (let ((line (new-clang-loc-line loc))
+              (ann-line (nth 1 ann-line)))
+          (equal ann-line line)))))
+
+(defun append-annotations (ast anns-lst)
+  "Translates user-supplied annotation string to actual new-clang-ast field
+and sets the annotation accordingly, based on type"
+  (let* ((cur-anns (ast-annotations ast))
+                                        ;pull off the location info
+         (stripped-anns-lst (mapcar #'(lambda (elt) (cdr (cdr elt))) anns-lst)))
+    (setf (ast-annotations ast) (append stripped-anns-lst cur-anns))))
+
+;;new-clang annotation format is (file line <arbitrary-annotations>)
+(defmethod decorate-with-annotations (obj ast)
+  (when *ast-annotations-file*
+    (let* ((cur-file (original-file obj))
+           (all-anns (with-open-file (stream *ast-annotations-file*)
+                       (loop :for line = (read stream nil :done)
+                          :while (not (eq line :done))
+                          :collect line)))
+           (filt-anns (remove-if-not  ; only keep annotations for this file
+                       (lambda (line) (search (string-downcase (string (nth 0 line)))
+                                              (string-downcase (string cur-file))))
+                       all-anns)))
+      (mapcar (lambda (stmt) (let ((elts (remove-if-not
+                                          (lambda (line)
+                                            (match-ast-file-line stmt line))
+                                          filt-anns)))
+                               (when elts
+                                 (append-annotations stmt elts))))
+              (stmt-asts ast)))))
