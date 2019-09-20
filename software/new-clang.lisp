@@ -31,6 +31,8 @@
   (:import-from :anaphora :awhen :it)
   (:export :new-clang
            :new-clang-ast
+           :symbol-table
+           :name-symbol-table
            :combine-overlapping-siblings
            :decorate-ast-with-strings
            :clang-convert-json-for-file
