@@ -92,61 +92,22 @@ This is required as invoking clang -cc1 (required for ast-dump) only invokes
 the clang front-end.  See also: https://clang.llvm.org/docs/FAQ.html#id2.")
 
 (define-software new-clang (clang-base genome-lines-mixin)
-  (
-   ;; TODO: FUNCTIONS slot is not currently used.  Use or remove.
-   #|
-   (functions :initarg :functions :reader functions
-              :initform nil :copier :direct
-              :type #+sbcl (list (cons keyword *) *) #-sbcl list
-              :documentation "Complete functions with bodies.")
-   |#
-   ;; TODO: PROTOTYPES slot is not current used.  Use or remove.
-   #|
-   (prototypes :initarg :prototypes :reader prototypes
-               :initform nil :copier :direct
-               :type #+sbcl (list (cons keyword *) *) #-sbcl list
-               :documentation "Function prototypes.")
-   |#
-   (includes :initarg :includes :accessor includes
-             :initform nil :copier :direct
-             :type #+sbcl (list string *) #-sbcl list
-             :documentation "Names of included includes.")
-   (types :initarg :types :accessor types
-          :initform (make-hash-table :test 'equal)
-          :copier copy-hash-table
-          :type hash-table
-          :documentation "Hash table of types keyed by .....")
-   (base-types :initarg :base-types :accessor base-types
-               :initform (make-hash-table :test 'equal)
-               :copier copy-hash-table
-               :type hash-table
-               :documentation "Hash table of underlying types (without
-storage class or other modifiers")
-   ;;; TODO: Not currently used.  Remove or use.  This is carried over
-   ;;;       from the old clang front end.
-   (macros :initarg :macros :accessor macros
-           :initform nil :copier :direct
-           :type #+sbcl (list clang-macro *) #-sbcl list
-           :documentation "Association list of Names and values of macros.")
-   (tmp-file
-    :initarg :tmp-file :accessor tmp-file
-    :initform nil :copier :direct
-    :type (or null string)
-    :documentation "Full file name of the temporary file
-on which clang was run to get the AST.")
+  (;; FIXME: Need to cache invalidate and re-populate properly.
    (symbol-table
     :initarg :symbol-table :accessor symbol-table
     :initform (make-hash-table :test #'equal)
     :copier copy-hash-table
     :type hash-table
     :documentation "Map from IDs to objects")
+   ;; FIXME: Need to cache invalidate and re-populate properly.
    (name-symbol-table
     :initarg :name-symbol-table :accessor name-symbol-table
     :initform (make-hash-table :test #'equal)
     :copier copy-hash-table
     :type hash-table
     :documentation "Map from name strings to declaration objects.")
-   ;; Get rid of this?
+   ;; FIXME: Get rid of this?
+   ;; FIXME: Need to cache invalidate and re-populate properly.
    (type-table
     :initarg :type-table
     :initform (make-hash-table :test #'equal)
@@ -155,6 +116,19 @@ on which clang was run to get the AST.")
     :type hash-table
     :documentation "Mapping from qualtype/desugaredType pairs to
 new-clang-type objects.  Used for canonicalization of these objects.")
+   ;; FIXME: Need to cache invalidate and re-populate properly.
+   (base-types :initarg :base-types :accessor base-types
+               :initform (make-hash-table :test 'equal)
+               :copier copy-hash-table
+               :type hash-table
+               :documentation "Hash table of underlying types (without
+storage class or other modifiers")
+   (tmp-file
+    :initarg :tmp-file :accessor tmp-file
+    :initform nil :copier :direct
+    :type (or null string)
+    :documentation "Full file name of the temporary file
+on which clang was run to get the AST.")
    (include-dirs
     :initarg :include-dirs
     :accessor include-dirs

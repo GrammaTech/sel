@@ -232,7 +232,19 @@
 (in-readtable :curry-compose-reader-macros)
 
 (define-software clang-base (parseable)
-  ()
+  ((includes :initarg :includes :accessor includes
+             :initform nil :copier :direct
+             :type #+sbcl (list string *) #-sbcl list
+             :documentation "Names of included includes.")
+   (types :initarg :types :accessor types
+          :initform (make-hash-table :test 'equal)
+          :copier copy-hash-table
+          :type #+sbcl hash-table #-sbcl hash-table
+          :documentation "Hash table of types keyed by HASH id.")
+   (macros :initarg :macros :accessor macros
+           :initform nil :copier :direct
+           :type list
+           :documentation "List of macros."))
   (:documentation "Base class for C/C++ objects parsed with Clang front end"))
 
 (define-software clang (clang-base)
@@ -256,24 +268,7 @@
    (prototypes :initarg :prototypes :reader prototypes
                :initform nil :copier :direct
                :type #+sbcl (list (cons keyword *) *) #-sbcl list
-               :documentation "Function prototypes.")
-   (includes :initarg :includes :accessor includes
-             :initform nil :copier :direct
-             :type #+sbcl (list string *) #-sbcl list
-             :documentation "Names of included includes.")
-   (types :initarg :types :accessor types
-          :initform (make-hash-table :test 'equal)
-          :copier copy-hash-table
-          :type #+sbcl hash-table #-sbcl hash-table
-          :documentation "Association list of types keyed by HASH id.")
-   (macros :initarg :macros :accessor macros
-           :initform nil :copier :direct
-           :type #+sbcl (list clang-macro *) #-sbcl list
-           :documentation "Association list of Names and values of macros.")
-   ;;; Slots representing options for processing clang software objects
-   (split-lines :initarg :split-lines :reader split-lines
-                :initform nil :copier :direct
-                :documentation "Split top level strings after newlines"))
+               :documentation "Function prototypes."))
   (:documentation
    "C language (C, C++, C#, etc...) ASTs using Clang, C language frontend for LLVM.
 See http://clang.llvm.org/."))
@@ -1949,20 +1944,8 @@ type in TYPES.
     (setf types (make-hash-table :test 'equal)
           macros nil)))
 
-(defmethod     stmt-asts :before ((obj clang-base))
-  "Ensure the `stmt-asts' field is set on OBJ prior to access."
-  (update-caches-if-necessary obj))
-
-(defmethod non-stmt-asts :before ((obj clang-base))
-  "Ensure the `non-stmt-asts' field is set on OBJ prior to access."
- (update-caches-if-necessary obj))
-
-(defmethod     functions :before ((obj clang-base))
-  "Ensure the `functions' field is set on OBJ prior to access."
-  (update-caches-if-necessary obj))
-
-(defmethod    prototypes :before ((obj clang-base))
-  "Ensure the `prototypes' field is set on OBJ prior to access."
+(defmethod        macros :before ((obj clang-base))
+  "Ensure the `macros' field is set on OBJ prior to access."
   (update-caches-if-necessary obj))
 
 (defmethod      includes :before ((obj clang-base))
@@ -1973,8 +1956,20 @@ type in TYPES.
   "Ensure the `types' field is set on OBJ prior to access."
   (update-caches-if-necessary obj))
 
-(defmethod        macros :before ((obj clang-base))
-  "Ensure the `macros' field is set on OBJ prior to access."
+(defmethod     stmt-asts :before ((obj clang))
+  "Ensure the `stmt-asts' field is set on OBJ prior to access."
+  (update-caches-if-necessary obj))
+
+(defmethod non-stmt-asts :before ((obj clang))
+  "Ensure the `non-stmt-asts' field is set on OBJ prior to access."
+  (update-caches-if-necessary obj))
+
+(defmethod     functions :before ((obj clang))
+  "Ensure the `functions' field is set on OBJ prior to access."
+  (update-caches-if-necessary obj))
+
+(defmethod    prototypes :before ((obj clang))
+  "Ensure the `prototypes' field is set on OBJ prior to access."
   (update-caches-if-necessary obj))
 
 (defmethod recontextualize ((clang clang-base) (ast ast) (pt ast))
