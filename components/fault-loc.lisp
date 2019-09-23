@@ -323,8 +323,8 @@ which maps (test-casel: position)"
   ;; "ast-root" and "stmt-asts" can use FL (this should be anything "clang" or below).
   (let* ((ast (ast-root obj))
          (stmts (stmt-asts ast)))
-    (remove-if-not (lambda (stmt) (and (> (bad-trace-count stmt) 0)
-                                       (= 0 (good-trace-count stmt))))
-                   stmts)))
-
-
+    (loop for stmt in stmts
+       collect (if (and (> (bad-trace-count stmt) 0)
+                        (= 0 (good-trace-count stmt)))
+                   (cons stmt 1.0)
+                   (cons stmt 0.1)))))
