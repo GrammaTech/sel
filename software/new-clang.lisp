@@ -45,7 +45,8 @@
            :nct+
            :type-i-file
            :make-new-clang-macroexpand-hook
-           :cpp-scan))
+           :cpp-scan
+           :ast-start-line))
 (in-package :software-evolution-library/software/new-clang)
 (in-readtable :curry-compose-reader-macros)
 
@@ -233,6 +234,21 @@ the descent when FN returns NIL"))
            t)))
     stmt-asts))
 
+(defmethod stmt-asts ((obj new-clang-ast))
+  (let ((stmt-asts nil))
+    (map-ast-while
+     obj
+     (lambda (a)
+       (if (function-decl-p a)
+           (progn
+             (map-ast a (lambda (b)
+                          (unless (or (eql (ast-class b) :ParmVar)
+                                      (function-decl-p b))
+                            (push b stmt-asts))))
+             nil)
+           t)))
+    stmt-asts))
+
 (defmethod non-stmt-asts ((obj new-clang))
   "Collect a list of all ASTs (except the root) that are not
 in or below function declarations"
@@ -409,6 +425,7 @@ macro objects from these, returning a list."
                           (:conc-name new-clang-ast-))
   (path nil :type list)          ;; Path to subtree from root of tree.
   (children nil :type list)      ;; Remainder of subtree.
+  (annotations nil :type list)
   (stored-hash nil :type (or null fixnum))
   ;; Class symbol for this ast node
   (class nil :type symbol)
@@ -437,6 +454,10 @@ macro objects from these, returning a list."
   (new-clang-ast-children obj))
 (defmethod (setf ast-children) (value (obj new-clang-ast))
   (setf (new-clang-ast-children obj) value))
+(defmethod ast-annotations ((obj new-clang-ast))
+  (new-clang-ast-annotations obj))
+(defmethod (setf ast-annotations) (value (obj new-clang-ast))
+  (setf (new-clang-ast-annotations obj) value))
 (defmethod ast-stored-hash ((obj new-clang-ast))
   (new-clang-ast-stored-hash obj))
 (defmethod (setf ast-stored-hash) (value (obj new-clang-ast))
@@ -915,6 +936,12 @@ that is not strictly speaking about types at all (storage class)."))
 (defun ast-range (ast) (ast-attr ast :range))
 (defun (setf ast-range) (val ast) (setf (ast-attr ast :range) val))
 
+(defun ast-start-line (ast)
+  (let ((loc (new-clang-range-begin (ast-range ast))))
+    (if (numberp loc)
+        nil  ; the root node has "0" for a range
+        (new-clang-loc-line loc))))
+
 (defmethod ast-name ((obj new-clang-ast)) (ast-attr obj :name))
 
 (defgeneric ast-is-implicit (ast)
@@ -1054,7 +1081,7 @@ that is not strictly speaking about types at all (storage class)."))
                              (class (new-clang-ast-class ast))
                              (attrs (new-clang-ast-attrs ast) attrs-p)
                              (id (new-clang-ast-id ast))
-                             (annotations nil annotations-p)
+                             (annotations (new-clang-ast-annotations ast))
                              (syn-ctx (new-clang-ast-syn-ctx ast))
                              (aux-data (new-clang-ast-aux-data ast))
                              &allow-other-keys)

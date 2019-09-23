@@ -9983,11 +9983,13 @@ prints unique counters in the trace"
       (is (equal tokens while-tokens)))))
 
 (deftest annotations-with-fault-loc ()
+  (setf *new-clang?* t)
   (setf *ast-annotations-file* "test/etc/gcd/gcd-fault-loc")
   (with-fixture gcd-clang
     (let* ((bad-stmts (fl-only-on-bad-traces *gcd*))
-           (bad-lines (mapcar #'ast-start-line bad-stmts)))
-      (is (equal bad-lines (list 11 12))))))
+           (bad-lines (remove-duplicates (sort (mapcar #'ast-start-line bad-stmts) #'<))))
+      (note 0 "bad-stmts: ~a" bad-lines)
+      (is (equal bad-lines (list 17 18 19 20 21 24))))))
 
 #+nil
 (deftest rinard-fault-loc ()
