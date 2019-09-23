@@ -9992,6 +9992,7 @@ prints unique counters in the trace"
                                      collect (when (equal (cdr tup) 1.0)
                                                (car tup)))))
            (bad-lines (remove-duplicates (sort (mapcar #'ast-start-line bad-stmts) #'<))))
+      (setf *new-clang?* nil) ; set back
       (is (equal bad-lines (list 17 18 19 20 21 24))))))
 
 #+nil
