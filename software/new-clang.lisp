@@ -234,21 +234,6 @@ the descent when FN returns NIL"))
            t)))
     stmt-asts))
 
-(defmethod stmt-asts ((obj new-clang-ast))
-  (let ((stmt-asts nil))
-    (map-ast-while
-     obj
-     (lambda (a)
-       (if (function-decl-p a)
-           (progn
-             (map-ast a (lambda (b)
-                          (unless (or (eql (ast-class b) :ParmVar)
-                                      (function-decl-p b))
-                            (push b stmt-asts))))
-             nil)
-           t)))
-    stmt-asts))
-
 (defmethod non-stmt-asts ((obj new-clang))
   "Collect a list of all ASTs (except the root) that are not
 in or below function declarations"
@@ -489,6 +474,22 @@ depending on CLASS"))
               :children children
               :allow-other-keys t
               keys))))
+
+;; AST-based stmt-asts to avoid cyclical update-asts -> stmt-asts -> etc.
+(defmethod stmt-asts ((obj new-clang-ast))
+  (let ((stmt-asts nil))
+    (map-ast-while
+     obj
+     (lambda (a)
+       (if (function-decl-p a)
+           (progn
+             (map-ast a (lambda (b)
+                          (unless (or (eql (ast-class b) :ParmVar)
+                                      (function-decl-p b))
+                            (push b stmt-asts))))
+             nil)
+           t)))
+    stmt-asts))
 
 ;; Special subclass for :CXXOperatorCallExpr nodes
 (defstruct (cxx-operator-call-expr (:include new-clang-ast))
