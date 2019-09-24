@@ -576,7 +576,7 @@ that is not strictly speaking about types at all (storage class)."))
                         (append qual-includes desugared-includes nil))
              :test #'equal)))
       (let ((files (sort includes #'string<))
-            (od (absolute-original-directory obj))
+            (od (original-directory obj))
             (include-dirs (include-dirs obj)))
         (iter (for f in files)
               (multiple-value-bind (str local?)
@@ -959,7 +959,7 @@ asts can be transplanted between files without difficulty."
         (tmp-file (tmp-file obj))
         (file (ast-file ast))
         (include-dirs (include-dirs obj))
-        (od (absolute-original-directory obj)))
+        (od (original-directory obj)))
     (mapcar
      (lambda (s) (normalize-file-for-include s od include-dirs))
      (delete-duplicates
@@ -1499,13 +1499,6 @@ the match length if sucessful, NIL if not."
 (defgeneric original-directory (obj))
 (defmethod original-directory ((obj source))
   (let ((file (original-file obj)))
-    (when file
-      (namestring (make-pathname :defaults (pathname file)
-                                 :name nil :type nil)))))
-
-(defgeneric absolute-original-directory (obj))
-(defmethod absolute-original-directory ((obj source))
-  (let ((file (absolute-original-file obj)))
     (when file
       (namestring (make-pathname :defaults (pathname file)
                                  :name nil :type nil)))))

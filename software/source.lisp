@@ -16,7 +16,6 @@
            :flags
            :raw-size
            :original-file
-           :absolute-original-file
            ;; :genome-lines
            :genome-line-offsets
            :genome-lines-mixin
@@ -40,11 +39,6 @@
    ;;   currently need to replicate here.
    (original-file :initarg :original-file :accessor original-file
                   :initform nil :copier :direct)
-   (absolute-original-file
-    :initarg :absolute-original-file
-    :accessor absolute-original-file
-    :initform nil
-    :copier :direct)
    (raw-size :initarg :size     :accessor raw-size :initform nil
              :copier :none))
   (:documentation "Raw source code software representation."))
@@ -160,8 +154,7 @@ that correspond to an offset."))
   obj)
 
 (defmethod from-file :before ((obj source) path)
-  (setf (original-file obj) (namestring path)
-        (absolute-original-file obj) (truenamestring path)))
+  (setf (original-file obj) (truenamestring path)))
 
 (defmethod from-string ((obj source) string)
   "Initialize OBJ with the contents of STRING."
@@ -170,8 +163,7 @@ that correspond to an offset."))
 
 (defmethod from-string :before ((obj source) string)
   (declare (ignorable string))
-  (setf (original-file obj) nil
-        (absolute-original-file obj) nil))
+  (setf (original-file obj) nil))
 
 (defmethod size ((obj source))
   "Return the size of OBJ"
