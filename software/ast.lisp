@@ -22,6 +22,7 @@
   (:export :ast
            :ast-stub
            :ast-p
+           :*ast-annotations-file*
            :define-ast
            :define-immutable-node-struct
            :to-alist
@@ -107,6 +108,14 @@
 (defparameter *ast-print-cutoff* 20
   "Maximum number of characters to print for TEXT in
 PRINT-OBJECT method on AST structures.")
+
+(defvar *ast-annotations-file* nil
+  "File specified by the user indicating AST annotations that should
+be made when creating software objects, to be used, for instance, for
+fault localization.  The format is \":tag <location>\" where :tag
+matches a predefined AST node field to be marked and <location>
+specifies a filter for a given node type (e.g., file and line number:
+\"file.c 25\").")
 
 (defmethod print-object ((obj ast-stub) stream &aux (cutoff *ast-print-cutoff*))
   (if *print-readably*
