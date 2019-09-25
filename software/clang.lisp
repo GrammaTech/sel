@@ -224,6 +224,7 @@
            :make-break-stmt
            :fix-semicolons
            :clang-fixup-mutation
+           :parse-source-snippet-clang-common
            :ast-declarations
            :ast-declarations*
            :ast-var-declarations
@@ -3758,29 +3759,12 @@ within a function body, return null."))
 
 
 ;;; Support for parsing a string directly into free-floating ASTs.
-(defmethod parse-source-snippet ((type (eql :clang))
-                                 (snippet string)
-                                 &key unbound-vals includes macros preamble
-                                   top-level keep-comments)
-  "Build ASTs for SNIPPET, returning a list of root asts.
-
-* SNIPPET may include one or more full statements. It should compile in
-  a context where all UNBOUND-VALS are defined and all INCLUDES are
-  included.
-
-* UNBOUND-VALS should have the form ((name clang-type) ... )
-
-* INCLUDES is a list of files to include.
-
-* MACROS is a list of macros to define
-
-* PREAMBLE source to add prior to snippet
-
-* TOP-LEVEL indicates that the snippet is a construct which can exist
-  outside a function body, such as a type or function declaration.
-
-* KEEP-COMMENTS indicates comments should be retained
-"
+(defun parse-source-snippet-clang-common (type snippet
+                                          &key unbound-vals includes macros
+                                            preamble top-level keep-comments)
+  "Build ASTs for SNIPPET, returning a list of root asts.  This function
+contains logic common to both clang and new-clang implementations.
+Arguments are identical to PARSE-SOURCE-SNIPPET."
   (labels ((has-comment-p (text)
              (and (stringp text)
                   (or (and (search "/*" text)
@@ -3817,7 +3801,7 @@ within a function body, return null."))
                                     "int __snippet_marker;~%~a~%"
                                     "void main() {int __snippet_marker; ~a;~%}")
                                 snippet))
-               (obj (make-instance 'clang
+               (obj (make-instance (find-symbol (symbol-name type))
                       :flags (list "-Wno-everything")
                       :genome (concatenate 'string
                                            dependency-source
@@ -3844,6 +3828,38 @@ within a function body, return null."))
                       (length block-children))))
       ;; If error parsing simply return nil.
       (mutate (e) (declare (ignorable e)) nil))))
+
+(defmethod parse-source-snippet ((type (eql :clang))
+                                 (snippet string)
+                                 &key unbound-vals includes macros preamble
+                                   top-level keep-comments)
+  "Build ASTs for SNIPPET, returning a list of root asts.
+
+* SNIPPET may include one or more full statements. It should compile in
+  a context where all UNBOUND-VALS are defined and all INCLUDES are
+  included.
+
+* UNBOUND-VALS should have the form ((name clang-type) ... )
+
+* INCLUDES is a list of files to include.
+
+* MACROS is a list of macros to define
+
+* PREAMBLE source to add prior to snippet
+
+* TOP-LEVEL indicates that the snippet is a construct which can exist
+  outside a function body, such as a type or function declaration.
+
+* KEEP-COMMENTS indicates comments should be retained
+"
+  (parse-source-snippet-clang-common type snippet
+                                     :unbound-vals unbound-vals
+                                     :includes includes
+                                     :macros macros
+                                     :preamble preamble
+                                     :top-level top-level
+                                     :keep-comments keep-comments))
+
 
 ;;; Function to find the position of a semicolon, if any
 ;;; Skip over C and C++ style comments

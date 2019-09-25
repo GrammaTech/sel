@@ -3352,6 +3352,39 @@ ast nodes, as needed")
             (list (subseq str
                           (elt reg-begins 0)
                           (elt reg-ends 0))))))))
+
+
+(defmethod parse-source-snippet ((type (eql :new-clang))
+                                 (snippet string)
+                                 &key unbound-vals includes macros preamble
+                                   top-level keep-comments)
+  "Build ASTs for SNIPPET, returning a list of root asts.
+
+* SNIPPET may include one or more full statements. It should compile in
+  a context where all UNBOUND-VALS are defined and all INCLUDES are
+  included.
+
+* UNBOUND-VALS should have the form ((name clang-type) ... )
+
+* INCLUDES is a list of files to include.
+
+* MACROS is a list of macros to define
+
+* PREAMBLE source to add prior to snippet
+
+* TOP-LEVEL indicates that the snippet is a construct which can exist
+  outside a function body, such as a type or function declaration.
+
+* KEEP-COMMENTS indicates comments should be retained
+"
+  (parse-source-snippet-clang-common type snippet
+                                     :unbound-vals unbound-vals
+                                     :includes includes
+                                     :macros macros
+                                     :preamble preamble
+                                     :top-level top-level
+                                     :keep-comments keep-comments))
+
 
 (defun cpp-scan (str until-fn &key (start 0) (end (length str))
                                 (skip-first nil)
