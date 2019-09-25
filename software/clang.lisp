@@ -282,9 +282,6 @@ expanded relative to DIR.
 * DIR base directory for all relative paths
 * FLAGS list of compiler flags
 "
-  (when (pathnamep dir)
-    (setf dir (namestring (make-pathname :defaults dir
-                                         :name nil :type nil))))
   (labels ((split-flags (flags)
              (nest (remove-if #'emptyp)
                    (mappend (lambda (flag) ; Split leading "L".
@@ -298,12 +295,14 @@ expanded relative to DIR.
                             flags))))
     (iter (for f in (split-flags flags))
           (for p previous f)
-          (collect (if (or (string= p "-I") (string= p "-L"))
+          (collect (if (and dir (or (string= p "-I") (string= p "-L")))
                        ;; Ensure include/library paths
                        ;; point to the correct location
                        ;; and not a temporary build directory.
                        (if (absolute-pathname-p f)
-                           f
+                           (nest (namestring)
+                                 (ensure-directory-pathname)
+                                 (canonical-pathname f))
                            (nest (namestring)
                                  (canonical-pathname)
                                  (merge-pathnames-as-directory
@@ -317,8 +316,8 @@ expanded relative to DIR.
 (defmethod from-file ((obj clang-base) path)
   "Initialize OBJ with the contents of PATH."
   (setf path (if (absolute-pathname-p path)
-                 path
-                 (merge-pathnames-as-file (truename ".") path)))
+                 (namestring path)
+                 (truenamestring path)))
   (setf (genome obj) (file-to-string path))
   (setf (ext obj) (pathname-type (pathname path)))
   (setf (flags obj) (nest (normalize-flags (pathname-directory-pathname path))

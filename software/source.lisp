@@ -7,6 +7,7 @@
         :named-readtables
         :curry-compose-reader-macros
         :iterate
+        :uiop/pathname
         :split-sequence
         :software-evolution-library
         :software-evolution-library/utility)
@@ -16,6 +17,7 @@
            :flags
            :raw-size
            :original-file
+           :original-directory
            ;; :genome-lines
            :genome-line-offsets
            :genome-lines-mixin
@@ -164,6 +166,12 @@ that correspond to an offset."))
 (defmethod from-string :before ((obj source) string)
   (declare (ignorable string))
   (setf (original-file obj) nil))
+
+(defgeneric original-directory (obj)
+  (:documentation "Return the original directory OBJ was populated from.")
+  (:method ((obj source))
+    (when-let ((file (original-file obj)))
+      (namestring (pathname-directory-pathname file)))))
 
 (defmethod size ((obj source))
   "Return the size of OBJ"

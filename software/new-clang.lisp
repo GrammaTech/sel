@@ -73,25 +73,28 @@
 ;;  sudo docker cp clang9:/clang9 /clang9
 ;; This takes several minutes and uses about 34GB of disk space
 
-;;;; Retreive the default clang system include search path
-(defun get-clang-default-system-includes-search-path-flags ()
+(defun get-clang-default-includes ()
+  "Retrieve the paths on the default clang system include search path."
   (when (which *clang-binary*)
     (with-temp-file-of (bin "cpp") ""
                        (multiple-value-bind (stdout stderr exit)
                            (shell "~a -v ~a" *clang-binary* bin)
                          (declare (ignorable stdout exit))
                          (register-groups-bind (include-search-paths)
-                                               ("(?s)include <...> search starts here:(.*)End of search list" stderr)
+                                               ("(?s)include <...> search starts here:(.*)End of search list"
+                                                stderr)
                                                (->> (split-sequence #\Newline include-search-paths
                                                                     :remove-empty-subseqs t)
                                                     (mapcar #'trim-whitespace)
-                                                    (mappend {list "-I"})))))))
+                                                    (mapcar [#'namestring
+                                                             #'ensure-directory-pathname
+                                                             #'canonical-pathname])))))))
 
-(defvar *clang-default-system-includes-search-path-flags*
-  (get-clang-default-system-includes-search-path-flags)
-  "List of include flags for the default clang system includes search path.
-This is required as invoking clang -cc1 (required for ast-dump) only invokes
-the clang front-end.  See also: https://clang.llvm.org/docs/FAQ.html#id2.")
+(defvar *clang-default-includes* (get-clang-default-includes)
+  "List of paths representing the default clang system includes search path.
+These are required as -I flags as invoking clang -cc1 (required for ast-dump)
+only invokes the clang front-end.
+See also: https://clang.llvm.org/docs/FAQ.html#id2.")
 
 (define-software new-clang (clang-base genome-lines-mixin)
   (;; FIXME: Need to cache invalidate and re-populate properly.
@@ -131,14 +134,6 @@ storage class or other modifiers")
     :type (or null string)
     :documentation "Full file name of the temporary file
 on which clang was run to get the AST.")
-   (include-dirs
-    :initarg :include-dirs
-    :accessor include-dirs
-    :initform nil
-    :type list
-    :copier :direct
-    :documentation "List of directories that are where include files
- are searched for the -I arguments to the C compiler")
    (compiler :initform *clang-binary*)
    ;;; NOTE: This will give the same hashs to types from different
    ;;;       source files.  Instead, consider initializing the counter
@@ -158,35 +153,29 @@ on which clang was run to get the AST.")
 ;;; Use various methods to ensure this happens
 
 (defmethod initialize-instance :after ((obj new-clang) &key &allow-other-keys)
-  (setf (include-dirs obj) (normalize-include-dirs (include-dirs obj)))
+  "Wrapper after the constructor to ensure the flags are in a normalized form
+with absolute, canonical paths."
+  (setf (slot-value obj 'flags)
+        (normalize-flags (original-directory obj)
+                         (flags obj)))
   obj)
 
-(defmethod (setf include-dirs) ((dirs list) (obj new-clang))
-  (let ((additional-include-dirs
-         (flags-to-include-dirs (flags obj))))
-    (setf (slot-value obj 'include-dirs)
-          (normalize-include-dirs
-           (append additional-include-dirs dirs)))))
-
 (defmethod (setf flags) :after ((flags list) (obj new-clang))
-  (let ((additional-include-dirs
-         (flags-to-include-dirs (flags obj))))
-    (setf (slot-value obj 'include-dirs)
-          (remove-duplicates
-           (normalize-include-dirs
-            (append additional-include-dirs
-                    (include-dirs obj)))
-           :test #'equal))))
+  "Wrapper after the flags setf to ensure the flags are in a
+normalized form with absolute, canonical paths."
+  (declare (ignorable flags))
+  (setf (slot-value obj 'flags)
+        (normalize-flags (original-directory obj)
+                         (flags obj))))
 
 (defun flags-to-include-dirs (flags)
-  (iter (for e on flags)
-        (let ((x (car e)))
-          (cond
-            ((equal x "-I")
-             (collecting (trim-left-whitespace (cadr e))))
-            ((and (equal (subseq x 0 2) "-I")
-                  (> (length x) 2))
-             (collecting (trim-left-whitespace (subseq x 2))))))))
+  "Return the listing of include search paths in FLAGS
+
+* FLAGS: list of normalized compiler flags"
+  (iter (for f in flags)
+        (for p previous f)
+        (when (string= p "-I")
+          (collect f))))
 
 (defgeneric map-ast-while (a fn)
   (:documentation "Apply FN to the nodes of AST A, stopping
@@ -511,7 +500,8 @@ that is not strictly speaking about types at all (storage class)."))
       (make-instance 'nct+
         :type type
         :storage-class storage-class
-        :i-file (new-clang-i-file *soft* type))))
+        ;; FIXME: `new-clang-i-file` returns a list
+        :i-file (first (new-clang-i-file *soft* type)))))
 
 (defstruct (new-clang-macro (:include clang-macro))
   ;; Spelling loc is the location of the body of the loc
@@ -577,7 +567,8 @@ that is not strictly speaking about types at all (storage class)."))
              :test #'equal)))
       (let ((files (sort includes #'string<))
             (od (original-directory obj))
-            (include-dirs (include-dirs obj)))
+            (include-dirs (append (flags-to-include-dirs (flags obj))
+                                  *clang-default-includes*)))
         (iter (for f in files)
               (multiple-value-bind (str local?)
                   (normalize-file-for-include f od include-dirs)
@@ -954,28 +945,35 @@ asts can be transplanted between files without difficulty."
 ;;;
 ;;;  This is also needed to make the i-file slot of nct+ work.
 
-(defmethod ast-includes-in-obj ((obj new-clang) (ast new-clang-ast))
-  (let ((*soft* obj)
-        (tmp-file (tmp-file obj))
-        (file (ast-file ast))
-        (include-dirs (include-dirs obj))
-        (od (original-directory obj)))
-    (mapcar
-     (lambda (s) (normalize-file-for-include s od include-dirs))
-     (delete-duplicates
-      (nconc
-       ;; The tests w. tmp-file here and below may not be
-       ;; necessary, but are kept for safety
-       (unless (or (not file) (equal tmp-file file))
-         (list file))
-       (when-let* ((ref (ast-referenced-obj ast))
-                   (file (ast-file ref)))
-         (unless (or (null file) (equal file tmp-file))
-           (list file)))
-       (when-let* ((type (ast-type ast))
-                   (str (new-clang-type-qual type)))
-         (includes-of-names-in-string obj str)))
-      :test #'equal))))
+(defmethod ast-includes-in-obj ((obj new-clang) (ast new-clang-ast)
+                                &aux (includes nil) (*soft* obj))
+  (labels ((ast-includes-in-child (child)
+             (let ((tmp-file (tmp-file obj))
+                   (file (ast-file child))
+                   (include-dirs (append (flags-to-include-dirs (flags obj))
+                                         *clang-default-includes*))
+                   (od (original-directory obj)))
+               (mapcar
+                (lambda (s) (normalize-file-for-include s od include-dirs))
+                (delete-duplicates
+                 (nconc
+                  ;; The tests w. tmp-file here and below may not be
+                  ;; necessary, but are kept for safety
+                  (unless (or (not file) (equal tmp-file file))
+                    (list file))
+                  (when-let* ((ref (ast-referenced-obj child))
+                              (file (ast-file ref)))
+                    (unless (or (null file) (equal file tmp-file))
+                      (list file)))
+                  (when-let* ((type (ast-type child))
+                              (str (new-clang-type-qual type)))
+                    (includes-of-names-in-string obj str)))
+                 :test #'equal)))))
+    (map-ast ast
+             (lambda (c)
+               (dolist (f (ast-includes-in-child c))
+                 (pushnew f includes :test #'equal))))
+    (nreverse includes)))
 
 (defun includes-of-names-in-string (obj str)
   (let ((tmp-file (tmp-file obj))
@@ -1007,13 +1005,7 @@ asts can be transplanted between files without difficulty."
   (:documentation "Fill in the INCLUDES slot of OBJ"))
 
 (defmethod compute-includes ((obj new-clang))
-  (let ((includes nil)
-        (*soft* obj))
-    (map-ast (slot-value obj 'ast-root)
-             (lambda (a)
-               (dolist (f (ast-includes-in-obj obj a))
-                 (pushnew f includes :test #'equal))))
-    (setf (includes obj) (nreverse includes))))
+  (setf (includes obj) (ast-includes-in-obj obj (ast-root obj))))
 
 (defgeneric compute-macros (obj)
   (:documentation "Fill in the MACROS slot of OBJ"))
@@ -1427,18 +1419,6 @@ if no value was found."
 ;;; Question on this: are IDs unique between files?
 ;;; Or do we need keys that include file names?
 
-;;; Normalize a file for "include" processing vs. a list of
-;;; include dirs.
-
-(defun normalize-include-dirs (include-dirs)
-  "Put include directory strings into normal form"
-  (setf include-dirs (remove "" include-dirs :test #'string=))
-  (mapcar (lambda (s)
-            (if (eql (elt s (1- (length s))) #\/)
-                s
-                (concatenate 'string s "/")))
-          include-dirs))
-
 ;;; NOTE: will need to make sure this works on Windows also
 ;;;  Perhaps it should work on pathnames, not namestrings?
 
@@ -1489,19 +1469,12 @@ the match length if sucessful, NIL if not."
                          (when (and mm (> mm max-match))
                            (setf max-match mm
                                  dir ind))))
-                 (if dir
+                 (if (find dir *clang-default-includes* :test #'equal)
                      (values (concatenate 'string "<"
                                           (subseq file-string max-match) ">")
                              nil)
                      (values (concatenate 'string "\"" file-string "\"")
                              t))))))))))
-
-(defgeneric original-directory (obj))
-(defmethod original-directory ((obj source))
-  (let ((file (original-file obj)))
-    (when file
-      (namestring (make-pathname :defaults (pathname file)
-                                 :name nil :type nil)))))
 
 (defun canonicalize-string (str)
   (if (boundp '*canonical-string-table*)
@@ -2027,7 +2000,7 @@ actual source file"))
                      (let ((cmd-fmt "~a -cc1 -ast-dump=json ~{~a~^ ~} ~a")
                            (genome-len (length (genome obj)))
                            (flags (append (remove "-c" (flags obj) :test #'equal)
-                                          *clang-default-system-includes-search-path-flags*)))
+                                          (mappend {list "-I"} *clang-default-includes*))))
                        (multiple-value-bind (stdout stderr exit)
                            (let ((*trace-output* *standard-output*))
                              (shell cmd-fmt
