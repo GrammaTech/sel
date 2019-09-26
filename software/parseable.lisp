@@ -106,9 +106,6 @@ See the documentation of `update-asts' for required invariants.")
 (defgeneric asts (obj)
   (:documentation "Return a list of all asts in OBJ."))
 
-(defmethod ast-to-list ((obj parseable))
-  (ast-to-list (ast-root obj)))
-
 (defgeneric get-ast (obj path)
   (:documentation "Return the AST in OBJ at the given PATH."))
 
