@@ -575,7 +575,7 @@ that is not strictly speaking about types at all (storage class)."))
 (defmethod initialize-instance :after ((obj nct+) &key &allow-other-keys)
   ;; (format t "INITIALIZE INSTANCE on ~a~%" obj)
   (pushnew obj (new-clang-type-nct+-list (nct+-type obj)))
-  ;; (format t "PUSH ONTO NCT+LIST of ~a~%" (nct+-type obj))
+  ;; (format t "PUSH ONTO NCT+-LIST of ~a~%" (nct+-type obj))
   (setf (gethash (nct+-hash obj) (slot-value *soft* 'types)) obj)
   obj)
 
@@ -877,6 +877,7 @@ that is not strictly speaking about types at all (storage class)."))
   ;; NAME is a trace name, not a name from clang json
   ;; Trace names have different format, with * and [...] before the type
   ;; name2
+  (update-caches-if-necessary obj)
   (let ((name (apply #'trace-string-to-clang-json-string trace-name args))
         (vals (hash-table-values (base-types obj))))
     ;; (format t "Name = ~s~%" name)
@@ -1079,7 +1080,8 @@ asts can be transplanted between files without difficulty."
                       (ast-children (ast-root obj)))))
 
 (defmethod update-caches :around ((obj new-clang))
-  (let ((*soft* obj)) (call-next-method)))
+  (let ((*soft* obj))
+    (call-next-method)))
 
 (defmethod update-caches ((obj new-clang))
   (call-next-method)
@@ -2654,6 +2656,13 @@ ranges into 'combined' nodes.  Warn when this happens."
         ;; (clrhash (symbol-table *soft*))
         (setf genome (genome obj)
               ast-root nil))
+      (with-slots (symbol-table name-symbol-table type-table base-types types)
+          obj
+        (setf symbol-table (make-hash-table :test #'equal)
+              name-symbol-table (make-hash-table :test #'equal)
+              type-table (make-hash-table :test #'equal)
+              base-types (make-hash-table :test #'equal)
+              types (make-hash-table)))
       (flet ((%debug (s a &optional (f #'ast-class))
                (declare (ignorable s a f))
                nil)
