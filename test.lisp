@@ -2916,7 +2916,7 @@ is not to be found"
   (with-fixture no-mutation-targets-clang
     (signals no-mutation-targets (pick-rename-variable *soft*))))
 
-(deftest cpp-strings-works ()
+(deftest (cpp-strings-works :long-running) ()
   ;; On this example, clang-mutate generates ASTs that are out of
   ;; order. Check that asts->tree handles this case correctly.
   (with-fixture cpp-strings
