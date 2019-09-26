@@ -1218,7 +1218,21 @@ on various ast classes"))
     (:macroexpansion
      ;; Revert back to string-based rebinding
      (let ((new-children
-            (mapcar #'(lambda (s) (rebind-vars s var-replacements fun-replacements))
+            (mapcar (lambda (s)
+                      (reduce
+                       (lambda-bind (text (old new))
+                                    (regex-replace-all
+                                     (format nil "(^|[^A-Za-z0-9_]+)~
+                                         (~a)~
+                                         ([^A-Za-z0-9_]+|$)"
+                                             (ast-name old))
+                                     text
+                                     (format nil "\\1~a\\3" (ast-name new))))
+                       (append var-replacements
+                               (mapcar (lambda-bind ((oldf newf))
+                                                    (list (first oldf) (first newf)))
+                                       fun-replacements))
+                       :initial-value s))
                     (ast-children ast))))
        (if (equal (ast-children ast) new-children)
            ast
