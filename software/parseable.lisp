@@ -103,9 +103,6 @@ See the documentation of `update-asts' for required invariants.")
 (defgeneric roots (obj)
   (:documentation "Return all top-level ASTs in OBJ."))
 
-(defgeneric asts (obj)
-  (:documentation "Return a list of all asts in OBJ."))
-
 (defgeneric get-ast (obj path)
   (:documentation "Return the AST in OBJ at the given PATH."))
 
