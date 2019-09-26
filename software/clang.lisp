@@ -117,6 +117,7 @@
            :type-trace-string
            :type-trace-string*
            :type-from-trace-string
+           :type-from-trace-string*
            :add-macro
            :nullify-asts
            :keep-partial-asts

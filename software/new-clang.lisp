@@ -445,12 +445,17 @@ attribute of clang json objects")
             :type (or null new-clang-type)
             :documentation "Type for which this is a typedef of,
 or NIL if this is not a typedef type.")
-   #|
-   (decl :reader new-clang-type-decl
-   :initform nil
-   :initarg :decl
-   :documentation "The node at which the type is declared, if any")
-   |#
+
+   ;; Slots filled in by parsing the qual or desugred type
+   (modifiers :initarg :modifers
+              :type integer
+              :reader new-clang-type-modifiers)
+   (array :initarg :array
+          :type string
+          :reader type-array)
+   (name :initarg :name
+         :type string
+         :reader type-name)
    (nct+-list :accessor new-clang-type-nct+-list
               :initform nil
               :initarg :nct+-list
@@ -472,6 +477,7 @@ on QUAL and DESUGARED slots."))
    (storage-class :initarg :storage-class
                   :reader type-storage-class
                   :type (member :none :static :extern :register :__private_extern__))
+   #|
    (modifiers :initarg :modifers
               :type integer
               :reader nct+-modifiers)
@@ -481,6 +487,7 @@ on QUAL and DESUGARED slots."))
    (name :initarg :name
          :type string
          :reader type-name)
+   |#
    (hash :accessor nct+-hash
          :initarg :hash
          :initform (incf (hash-counter *soft*))
@@ -562,18 +569,27 @@ that is not strictly speaking about types at all (storage class)."))
                                        &key hash &allow-other-keys)
   (when (boundp '*soft*)
     (setf (gethash hash (slot-value *soft* 'base-types)) obj))
+  (make-nct+ obj)
   obj)
 
-(defmethod initialize-instance :after ((obj nct+) &key (compute-slots t) &allow-other-keys)
+(defmethod initialize-instance :after ((obj nct+) &key &allow-other-keys)
   ;; (format t "INITIALIZE INSTANCE on ~a~%" obj)
   (pushnew obj (new-clang-type-nct+-list (nct+-type obj)))
   ;; (format t "PUSH ONTO NCT+LIST of ~a~%" (nct+-type obj))
-  ;; The COMPUTE-SLOTS argument is here so we can suppress the automatic initialization
-  ;; of the slots of an nct+ object.  This is needed in the tests in test.lisp.
-  ;; It may be needed in client code that will be manually creating type objects.
-  (when compute-slots (compute-nct+-slots obj))
   (setf (gethash (nct+-hash obj) (slot-value *soft* 'types)) obj)
   obj)
+
+(defun find-nct+ (type pointer const volatile restrict name array storage-class)
+  "Finds the NCT+ associated with TYPE that has a particular set of properties"
+  (declare (ignore name))
+  (find-if (lambda (n+)
+             (and (equal (type-pointer n+) pointer)
+                  (equal (type-const n+) const)
+                  (equal (type-volatile n+) volatile)
+                  (equal (type-restrict n+) restrict)
+                  (equal (type-array n+) array)
+                  (equal (type-storage-class n+) storage-class)))
+           (new-clang-type-nct+-list type)))
 
 (defmethod type-hash ((tp new-clang-type))
   (new-clang-type-hash tp))
@@ -590,15 +606,55 @@ that is not strictly speaking about types at all (storage class)."))
 (defconstant +volatile+ 4)
 (defconstant +restrict+ 8)
 
-(defmethod type-pointer ((tp+ nct+))
-  (if (logtest +pointer+ (nct+-modifiers tp+)) t nil))
-(defmethod type-const ((tp+ nct+))
-  (if (logtest +const+ (nct+-modifiers tp+)) t nil))
-(defmethod type-volatile ((tp+ nct+))
-  (if (logtest +volatile+ (nct+-modifiers tp+)) t nil))
-(defmethod type-restrict ((tp+ nct+))
-  (if (logtest +restrict+ (nct+-modifiers tp+)) t nil))
+(defmethod type-name ((tp+ nct+))
+  (type-name (nct+-type tp+)))
 
+(defmethod type-array ((tp+ nct+))
+  (type-array (nct+-type tp+)))
+
+(defmethod type-pointer ((tp+ nct+))
+  (type-pointer (nct+-type tp+)))
+(defmethod type-pointer ((tp new-clang-type))
+  (if (logtest +pointer+ (new-clang-type-modifiers tp)) t nil))
+
+(defmethod type-const ((tp+ nct+))
+  (type-const (nct+-type tp+)))
+(defmethod type-const ((tp new-clang-type))
+  (if (logtest +const+ (new-clang-type-modifiers tp)) t nil))
+
+(defmethod type-volatile ((tp+ nct+))
+  (type-volatile (nct+-type tp+)))
+(defmethod type-volatile ((tp new-clang-type))
+  (if (logtest +volatile+ (new-clang-type-modifiers tp)) t nil))
+
+(defmethod type-restrict ((tp+ nct+))
+  (type-restrict (nct+-type tp+)))
+(defmethod type-restrict ((tp new-clang-type))
+  (if (logtest +restrict+ (new-clang-type-modifiers tp)) t nil))
+
+(defmethod slot-unbound (class (obj new-clang-type) (slot (eql 'array)))
+  (compute-new-clang-type-slots obj)
+  (slot-value obj slot))
+(defmethod slot-unbound (class (obj new-clang-type) (slot (eql 'name)))
+  (compute-new-clang-type-slots obj)
+  (slot-value obj slot))
+(defmethod slot-unbound (class (obj new-clang-type) (slot (eql 'modifiers)))
+  (compute-new-clang-type-slots obj)
+  (slot-value obj slot))
+
+(defgeneric compute-new-clang-type-slots (tp)
+  (:method ((tp new-clang-type))
+    ;; Fill in various slots in new-clang-type object
+    (multiple-value-bind (pointer const volatile restrict n a)
+        (compute-nct+-properties (or ;; (new-clang-type-desugared tp)
+                                  (new-clang-type-qual tp)))
+      (with-slots (array name modifiers) tp
+        (setf array a
+              name n
+              modifiers
+              (pack-nct+-modifiers
+               pointer const volatile restrict))))))
+#|
 (defgeneric compute-nct+-slots (tp+)
   (:method ((tp+ nct+))
     "Fill in the MODIFIERS, ARRAY, and POINTER slots of a NCT+ object"
@@ -615,6 +671,7 @@ that is not strictly speaking about types at all (storage class)."))
                 modifiers
                 (pack-nct+-modifiers
                  pointer const volatile restrict)))))))
+|#
 
 (defun pack-nct+-modifiers (pointer const volatile restrict)
   (logior
@@ -777,9 +834,6 @@ that is not strictly speaking about types at all (storage class)."))
 (defmethod ast-type ((ast new-clang-ast))
   (ast-attr ast :type))
 
-(defmethod type-name ((ast new-clang-type))
-  (new-clang-type-qual ast))
-
 (defmethod type-decl ((obj nct+))
   (type-decl (nct+-type obj)))
 
@@ -804,7 +858,8 @@ that is not strictly speaking about types at all (storage class)."))
           (when (or (is-prefix "struct ")
                     (is-prefix "union "))
             (when-let* ((table (type-table *soft*))
-                        (record-decl (gethash (cons qual desugared) table)))
+                        (record-decl (gethash qual ; (cons qual desugared)
+                                              table)))
               (concatenate 'string (new-clang-type-qual record-decl)  ";")))))
       ""))
 
@@ -814,14 +869,37 @@ that is not strictly speaking about types at all (storage class)."))
 (defmethod type-decl-string ((obj nct+) &key &allow-other-keys)
   (type-decl-string (nct+-type obj)))
 
-(defmethod find-or-add-type ((obj new-clang) (name string) &key &allow-other-keys)
-  ;; This should return an NCT+, not a NEW-CLANG-TYPE
-  (let ((vals (hash-table-values (base-types obj))))
-    (if-let ((type (find name vals :key #'type-name :test #'string=)))
-      (make-nct+ type)
-      (if (member name +c-numeric-types+ :test #'equal)
-          (make-nct+ (make-new-clang-type :qual name))
-          nil))))
+(defmethod find-or-add-type ((obj new-clang) (trace-name string)
+                             &rest args &key &allow-other-keys)
+  ;; NAME is a trace name, not a name from clang json
+  ;; Trace names have different format, with * and [...] before the type
+  ;; name2
+  (let ((name (apply #'trace-string-to-clang-json-string trace-name args))
+        (vals (hash-table-values (base-types obj))))
+    ;; (format t "Name = ~s~%" name)
+    ;; (format t "Names:~%~s~%" (mapcar #'type-name vals))
+    (let ((type (or (find name vals :key #'new-clang-type-qual
+                          :test #'string=)
+                    (make-new-clang-type :qual name))))
+      (or (find :none (new-clang-type-nct+-list type) :key #'type-storage-class)
+          (make-nct+ type)))))
+
+(defun trace-string-to-clang-json-string
+    (trace-string &key storage-class const pointer volatile restrict name array &allow-other-keys)
+  (let ((alist (type-from-trace-string* (lambda (&rest args) args) trace-string)))
+    (string-right-trim
+     " "
+     (format
+      nil
+      "~@[~(~a~) ~]~:[~;const ~]~:[~;volatile ~]~:[~;restrict ~]~a ~:[~;*~]~@[~a~]"
+      (let ((sc (or storage-class (getf alist :storage-class))))
+        (if (eql sc :none) nil sc))
+      (or const (getf alist :const))
+      (or volatile (getf alist :volatile))
+      (or restrict (getf alist :restrict))
+      (or name (getf alist :name))
+      (or pointer (getf alist :pointer))
+      (or array (getf alist :array))))))
 
 (defmethod find-or-add-type :around ((obj new-clang) name &key &allow-other-keys)
   (declare (ignorable name))
@@ -1266,7 +1344,7 @@ in the macro defn, EXPANSION-LOC is at the macro use."
 (defun make-new-clang-type (&rest keys &key qual desugared typedef
                                          (hash (incf (hash-counter *soft*)))
                                          &allow-other-keys)
-  (let* ((key (cons qual desugared))
+  (let* ((key qual)
          (sw *soft*)
          (table (when sw (type-table sw))))
     (flet ((%make ()
@@ -1816,7 +1894,7 @@ NIL indicates no value."))
     ;; These should be strings, but convert anyway to canonicalize them
     (let* ((qual (clang-convert-json qual-type))
            (desugared (clang-convert-json desugared-qual-type))
-           (key (cons qual desugared))
+           (key qual) ; (cons qual desugared))
            (table (type-table *soft*)))
       (or (gethash key table)
           (setf (gethash key table)
@@ -2562,8 +2640,8 @@ ranges into 'combined' nodes.  Warn when this happens."
           #+(or)
           (format t "Record typedef for ~a ==> ~a, ~a~%"
                   (ast-name ast) (new-clang-type-qual type) desugared)
-          (let ((nct+ (make-new-clang-type :qual qual :desugared desugared)))
-            (setf (new-clang-typedef nct+) type)))))))
+          (let ((tp (make-new-clang-type :qual qual :desugared desugared)))
+            (setf (new-clang-typedef tp) type)))))))
 
 (defmethod update-asts ((obj new-clang))
   ;; Port of this method from clang.lsp, for new class
