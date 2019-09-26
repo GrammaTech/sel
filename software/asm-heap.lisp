@@ -109,7 +109,6 @@
 (define-software asm-heap (asm)
   ((line-heap :initarg :line-heap :accessor line-heap)
    (function-index :initarg :function-index :initform nil
-                   :accessor function-index
                    :documentation "Create this on demand.")
    (function-bounds-file
     :initarg :function-bounds-file

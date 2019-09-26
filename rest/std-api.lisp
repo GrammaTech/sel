@@ -240,15 +240,6 @@
 (in-readtable :curry-compose-reader-macros)
 
 
-(defun convert-symbol (string)
-  "If a string contains '::' then convert it to a symbol if possible."
-  (if (and (stringp string)(search "::" string))
-      (let ((sym (read-from-string string)))
-        (if (symbolp sym)
-            sym
-            string))
-      string))
-
 ;;;; REST Routes
 
 ;;;; Software Routes

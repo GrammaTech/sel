@@ -1266,11 +1266,12 @@ See 'man 3 termios' for more information."
   (:actual-type :pointer)
   (:simple-parser null-pointer))
 
-(defmethod translate-to-foreign (value (type null-pointer-type))
-  (cond
-    ((null value) (null-pointer))
-    ((null-pointer-p value) value)
-    (t (error "~A is not a null pointer." value))))
+(defgeneric translate-to-foreign (value type)
+  (:method (value (type null-pointer-type))
+    (cond
+      ((null value) (null-pointer))
+      ((null-pointer-p value) value)
+      (t (error "~A is not a null pointer." value)))))
 
 (define-foreign-type ioctl-result-type ()
   ()
@@ -1283,10 +1284,11 @@ See 'man 3 termios' for more information."
              (format stream "IOCTL call failed with return value ~d"
                      (ret condition)))))
 
-(defmethod translate-from-foreign (value (type ioctl-result-type))
-  (if (minusp value)
-      (make-condition 'ioctl :ret value)
-      value))
+(defgeneric translate-from-foreign (value type)
+  (:method (value (type ioctl-result-type))
+    (if (minusp value)
+        (make-condition 'ioctl :ret value)
+        value)))
 
 (defcfun ("ioctl" %ioctl) ioctl-result
   (fd :int)
@@ -1978,48 +1980,58 @@ For example (pairs '(a b c)) => ('(a . b) '(a . c) '(b . c))
     (format stream " to ")
     (prin1 (end obj) stream)))
 
-(defmethod source-< ((a source-location) (b source-location))
-  (or (< (line a) (line b))
-      (and (= (line a) (line b))
-           (< (column a) (column b)))))
+(defgeneric source-< (a b)
+  (:documentation "Return true if source location A comes strictly before B.")
+  (:method ((a source-location) (b source-location))
+    (or (< (line a) (line b))
+        (and (= (line a) (line b))
+             (< (column a) (column b))))))
 
-(defmethod source-<= ((a source-location) (b source-location))
-  (or (< (line a) (line b))
-      (and (= (line a) (line b))
-           (<= (column a) (column b)))))
+(defgeneric source-<= (a b)
+  (:documentation "Return true if source location A is equal to or comes
+before B.")
+  (:method ((a source-location) (b source-location))
+    (or (< (line a) (line b))
+        (and (= (line a) (line b))
+             (<= (column a) (column b))))))
 
-(defmethod source-> ((a source-location) (b source-location))
-  (or (> (line a) (line b))
-      (and (= (line a) (line b))
-           (> (column a) (column b)))))
+(defgeneric source-> (a b)
+  (:documentation "Return true if source location A comes strictly after B.")
+  (:method ((a source-location) (b source-location))
+    (or (> (line a) (line b))
+        (and (= (line a) (line b))
+             (> (column a) (column b))))))
 
-(defmethod source->= ((a source-location) (b source-location))
-  (or (> (line a) (line b))
-      (and (= (line a) (line b))
-           (>= (column a) (column b)))))
+(defgeneric source->= (a b)
+  (:documentation "Return true if source location A is equal to or comes
+after B.")
+  (:method ((a source-location) (b source-location))
+    (or (> (line a) (line b))
+        (and (= (line a) (line b))
+             (>= (column a) (column b))))))
 
-(defmethod contains ((range source-range) (location source-location))
-  (and (source-<= (begin range) location)
-       (source->= (end range) location)))
+(defgeneric contains (range location)
+  (:documentation "Return true if RANGE fully subsumes LOCATION.")
+  (:method ((range source-range) (location source-location))
+    (and (source-<= (begin range) location)
+         (source->= (end range) location)))
+  (:method ((a-range source-range) (b-range source-range))
+    (and (source-<= (begin a-range) (begin b-range))
+         (source->= (end a-range) (end b-range))))
+  (:method ((range range) point)
+    (and (<= (begin range) point) (>= (end range) point)))
+  (:method ((a-range range) (b-range range))
+    (and (<= (begin a-range) (begin b-range))
+         (>= (end a-range) (end b-range)))))
 
-(defmethod contains ((a-range source-range) (b-range source-range))
-  (and (source-<= (begin a-range) (begin b-range))
-       (source->= (end a-range) (end b-range))))
-
-(defmethod contains ((range range) point)
-  (and (<= (begin range) point) (>= (end range) point)))
-
-(defmethod contains((a-range range) (b-range range))
-  (and (<= (begin a-range) (begin b-range))
-       (>= (end a-range) (end b-range))))
-
-(defmethod intersects ((a-range source-range) (b-range source-range))
-  (and (source-< (begin a-range) (end b-range))
-       (source-> (end a-range) (begin b-range))))
-
-(defmethod intersects ((a-range range) (b-range range))
-  (and (< (begin a-range) (end b-range))
-       (> (end a-range) (begin b-range))))
+(defgeneric intersects (a-range b-range)
+  (:documentation "Return true if A-RANGE and B-RANGE intersect.")
+  (:method ((a-range source-range) (b-range source-range))
+    (and (source-< (begin a-range) (end b-range))
+         (source-> (end a-range) (begin b-range))))
+  (:method ((a-range range) (b-range range))
+    (and (< (begin a-range) (end b-range))
+         (> (end a-range) (begin b-range)))))
 
 
 ;;; Functions to run multiple tasks (such as mutations and fitness

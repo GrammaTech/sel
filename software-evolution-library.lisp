@@ -491,7 +491,7 @@ Each crossover and mutation will be paired with one of the following tags;
      software-a cross-point-a crossed software-b cross-point-b
      (first result))))
 
-(defmethod classify (new &rest old)
+(defun classify (new &rest old)
   "Classify the fitness of NEW as :BETTER, :WORSE, :SAME, or :DEAD when
 compared to OLD.  NEW and OLD must have fitness populated."
   (let ((fit (fitness new))
@@ -919,7 +919,7 @@ Default selection function for `tournament'."
       (crossover a b)
       (values (copy a) nil nil)))
 
-(defmethod new-individual (&optional (a (tournament)) (b (tournament)))
+(defun new-individual (&optional (a (tournament)) (b (tournament)))
   "Generate a new individual from *POPULATION*."
   (multiple-value-bind (crossed a-point b-point) (crossed a b)
     ;; NOTE: This `copy' call is only needed for `analyze-mutation'.

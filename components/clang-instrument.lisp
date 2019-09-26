@@ -1121,7 +1121,7 @@ OBJ a clang software object
 
 
 ;;;; Command line
-(defun handle-trace-file-argument (trace-file)
+(defun handle-trace-output-file-argument (trace-file)
   (cond ((string= "stdout" trace-file) :stdout)
         ((string= "stderr" trace-file) :stderr)
         (t trace-file)))
@@ -1134,7 +1134,7 @@ OBJ a clang software object
                :documentation "also save a copy of the original")
               (("trace-file" #\t) :type string :optional t
                :initial-value "stderr"
-               :action #'handle-trace-file-argument
+               :action #'handle-trace-output-file-argument
                :documentation "instrumented to write trace to FILE")
               (("variables" #\v) :type boolean :optional t
                :documentation "write unbound variables to trace")
