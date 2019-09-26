@@ -57,10 +57,12 @@ SOFTWARE."))
          (cdr (mappend {cons (token-from-string ",")} ls)))
        (idents (clang ast)
          (remove-duplicates
-          (append (ast-declares ast)
-                  (mapcar {aget :name} (get-vars-in-scope clang ast))
-                  (mapcar #'car (get-unbound-funs clang ast))
-                  (mapcar {aget :name} (get-unbound-vals clang ast)))
+          (append (mapcar #'ast-name (ast-declares ast))
+                  (mapcar [#'ast-name {aget :name}]
+                          (get-vars-in-scope clang ast))
+                  (mapcar [#'ast-name #'car] (get-unbound-funs clang ast))
+                  (mapcar [#'ast-name {aget :name}]
+                          (get-unbound-vals clang ast)))
           :test #'equal))
        ;; replace occurrences of a list of identifiers with the string
        ;; "identifier"

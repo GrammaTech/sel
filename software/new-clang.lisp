@@ -514,23 +514,6 @@ that is not strictly speaking about types at all (storage class)."))
   (let ((*soft* sw))
     (call-next-method)))
 
-(defmethod replace-all ((string string) (part new-clang-ast)
-                        (replacement new-clang-ast) &key (test #'char=)
-                                                      confirm)
-  (replace-all string (ast-name part) (ast-name replacement)
-               :test test :confirm confirm))
-
-(defmethod replace-all ((string string) (part string)
-                        (replacement new-clang-ast) &key (test #'char=)
-                                                      confirm)
-  (replace-all string part (ast-name replacement)
-               :test test :confirm confirm))
-
-(defmethod replace-all ((string string) (part new-clang-ast)
-                        replacement &key (test #'char=) confirm)
-  (replace-all string (ast-name part) replacement
-               :test test :confirm confirm))
-
 (defmethod typedef-type ((obj new-clang) (nct nct+))
   ;; Must construct an NCT+ for this type
   #+(or)
