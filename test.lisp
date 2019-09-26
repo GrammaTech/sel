@@ -3025,8 +3025,17 @@ is not to be found"
       (is new-type "New type created.")
       (is (gethash (type-hash new-type) (types *gcd*))
           "New type is added to software.")
-      (is (eql new-type (find-or-add-type *gcd* "int"))
-          "Repeated call finds same type."))))
+      (let ((itp (find-or-add-type *gcd* "int")))
+        (is (not (type-pointer itp))
+            "int type should not a pointer type")
+        (is (not (type-const itp))
+            "int type should not a const type")
+        (is (not (type-volatile itp))
+            "int type should not a volatile type")
+        (is (eql (type-storage-class itp) :none)
+            "int type should have no storage class")
+        (is (eql new-type itp)
+            "Repeated call finds same type.")))))
 
 (deftest find-or-add-type-parses-pointers ()
   (with-fixture gcd-clang
@@ -5158,7 +5167,6 @@ Useful for printing or returning differences in the REPL."
 ;;;; Fix compilation tests.
 (defsuite fix-compilation-tests "Fix compilation tests."
             (clang-mutate-available-p))
-
 
 (defvar *broken-clang* nil "")
 (defvar *broken-gcc* nil "")
