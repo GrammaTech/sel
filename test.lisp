@@ -1929,7 +1929,7 @@ of the same length"
 (deftest run-factorial-cl-func ()
   (let ((*standard-output* (make-broadcast-stream)))
     (is (eql (fact-cl-entry 5 :verbose 3) 120))
-    #|(is (eql (fact-cl-entry 52235215 :help T) nil))|#))
+    (is (eql (fact-cl-entry 52235215 :help T) nil))))
 
 
 ;;; REST tests
