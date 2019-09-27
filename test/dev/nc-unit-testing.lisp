@@ -107,6 +107,18 @@ by GET-AST-TYPES"
                            (get-ast-types sw a)))))
   (values))
 
+(defmethod dump-typedefs ((sw new-clang))
+  (maphash
+   (lambda (k v)
+     (declare (ignore k))
+     (let* ((tp (sel/sw/new-clang::nct+-type v))
+            (td (sel/sw/new-clang::new-clang-typedef tp)))
+       (when td
+         (format t "~a is typedefed to ~a~%"
+                 (type-name tp)
+                 (type-name td)))))
+   (types sw)))
+
 (defmacro nc (&body body)
   (let ((v1 (gensym)) (v2 (gensym)))
     `(let ((,v1 *new-clang?*)
