@@ -317,7 +317,8 @@ which maps (test-casel: position)"
 (defun bad-trace-count (stmt)
   (length (remove-if-not (lambda (elt) (equal :bad elt)) (flatten (ast-annotations stmt)))))
 
-;; return stmts that ONLY occur on bad traces
+;; prioritize stmts that ONLY occur on bad traces
+;; return list of "stmt, suspect" pairs and add pair to each ast's annotation list
 (defmethod fl-only-on-bad-traces ((obj clang-base))
   ;; annotations are deployed on AST objects, thus anything that implements
   ;; "ast-root" and "stmt-asts" can use FL (this should be anything "clang" or below).
@@ -326,5 +327,13 @@ which maps (test-casel: position)"
     (loop for stmt in stmts
        collect (if (and (> (bad-trace-count stmt) 0)
                         (= 0 (good-trace-count stmt)))
-                   (cons stmt 1.0)
-                   (cons stmt 0.1)))))
+                   (progn
+                     (setf (ast-annotations stmt)
+                           (append (ast-annotations stmt)
+                                   (list (cons :fl-weight 1.0))))
+                     (cons stmt 1.0))
+                   (progn
+                     (setf (ast-annotations stmt)
+                           (append (ast-annotations stmt)
+                                   (list (cons :fl-weight 0.1))))
+                     (cons stmt 0.1))))))

@@ -29,6 +29,7 @@
         :software-evolution-library/software/source
         :software-evolution-library/software/project
         :software-evolution-library/software/clang
+        :software-evolution-library/software/ast
         :software-evolution-library/software/new-clang
         :software-evolution-library/software/javascript
         :software-evolution-library/software/java
@@ -439,8 +440,10 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
            (artifacts
             (when (subtypep language 'project) artifacts))
            (ast-annotations
-            (when (subtypep language 'project) ast-annotations))))
-
+            ;; we may have already set this from the command line args, but this
+            ;; function is another entrypoint into SEL, re-set
+            (when (subtypep language 'software)
+              (handle-ast-annotations-argument ast-annotations)))))
     (apply #'make-instance language)
     (apply #'append
            (plist-drop-if ; Any other keyword arguments are passed through.

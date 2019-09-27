@@ -735,19 +735,44 @@ FIRST-POOL and SECOND-POOL are methods on SOFTWARE which return a list
 of ASTs.  An optional filter function having the signature 'f ast
 &optional first-pick', may be passed, returning true if the given AST
 should be included as a possible pick or false (nil) otherwise."
-  (let ((first-pick (some-> (mutation-targets software :filter filter
-                                                   :stmt-pool first-pool)
-                            (random-elt))))
+  (let* ((first-pick (some-> (filter-fault-loc
+                              (mutation-targets software :filter filter
+                                                :stmt-pool first-pool))
+                             (random-elt))))
     (if (null second-pool)
         (list (cons :stmt1 first-pick))
         (list (cons :stmt1 first-pick)
-              (cons :stmt2 (some-> (mutation-targets software
-                                                     :filter (lambda (ast)
-                                                               (if filter
-                                                                   (funcall filter ast first-pick)
-                                                                   t))
-                                                     :stmt-pool second-pool)
+              (cons :stmt2 (some-> (filter-fault-loc
+                                    (mutation-targets software
+                                                      :filter (lambda (ast)
+                                                                (if filter
+                                                                    (funcall filter ast first-pick)
+                                                                    t))
+                                                      :stmt-pool second-pool))
                                    (random-elt)))))))
+
+(defun filter-fault-loc (pool)
+  "AST nodes in 'pool' may be annotated with 'fl-weight' tags, indicating how
+suspect individual nodes are from 0 (not suspect) to 1 (fully suspect).
+If these tags are present, randomly generate a cutoff and filter out
+nodes below that cutoff.  This can result in an empty set -- in this case,
+return the original pool."
+
+  (if (member :fl-weight (flatten (mapcar #'ast-annotations pool)))
+      (labels ((fl-weight (ast)
+                 (let ((elt (find-if (lambda (ann) (member :fl-weight ann))
+                                     (ast-annotations ast))))
+                   elt)))
+
+        (let* ((cutoff (random 1.0))
+               (filtered-lst (remove-if-not (lambda (stmt)
+                                              (> (cdr (fl-weight stmt)) cutoff))
+                                            pool)))
+          (if filtered-lst  ;if non-empty
+              filtered-lst  ;return it
+              pool)))       ;otherwise original set
+      pool))  ;if no fl-weights, return pool as-is
+
 
 (defmethod pick-bad-good ((software parseable) &key filter
                           (bad-pool #'bad-asts) (good-pool #'good-asts))
