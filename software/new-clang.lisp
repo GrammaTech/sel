@@ -40,6 +40,7 @@
            :make-statement-new-clang
            :*new-clang?*
            :*soft*
+           :type-i-file
            :make-new-clang-macroexpand-hook
            :cpp-scan))
 (in-package :software-evolution-library/software/new-clang)

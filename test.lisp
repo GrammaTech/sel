@@ -2397,7 +2397,12 @@ of the same length"
     (is (null  (includes *hello-world*)))
     (is (null  (macros *hello-world*)))
     (is (null  (fitness *hello-world*)))
-    (is (zerop (hash-table-count (types *hello-world*))))))
+    ;; This is not zero for new clang, as it contains
+    ;; builtins
+    (if *new-clang?*
+        (is (zerop (count-if #'type-i-file
+                             (hash-table-values (types *hello-world*)))))
+        (is (zerop (hash-table-count (types *hello-world*)))))))
 
 (deftest normalize-flags-test ()
   (is (equal (normalize-flags "/foo/" (list "-Wall"))
