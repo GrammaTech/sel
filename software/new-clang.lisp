@@ -445,6 +445,11 @@ attribute of clang json objects")
             :type (or null new-clang-type)
             :documentation "Type for which this is a typedef of,
 or NIL if this is not a typedef type.")
+   (base :accessor new-clang-base
+         :initarg :base
+         :type (or null new-clang-type)
+         :documentation "The unadorned type for this type (without
+modifiers or array, or NIL if this is its own base type")
 
    ;; Slots filled in by parsing the qual or desugred type
    (modifiers :initarg :modifers
@@ -453,6 +458,7 @@ or NIL if this is not a typedef type.")
    (array :initarg :array
           :type string
           :reader type-array)
+   ;; Name is the underlying name sans the modifiers and array
    (name :initarg :name
          :type string
          :reader type-name)
@@ -499,6 +505,15 @@ on QUAL and DESUGARED slots."))
 SEL/SW/CLANG:CLANG-TYPE.  This means it must have some information
 that is not strictly speaking about types at all (storage class)."))
 
+(defmethod slot-unbound (class (obj new-clang-type) (slot (eql 'base)))
+  (let ((val
+         (if (and (eql (new-clang-type-modifiers obj) 0)
+                  (let ((array (type-array obj)))
+                    (or (null array) (equal array ""))))
+             nil
+             (make-new-clang-type :qual (type-name obj)))))
+    (setf (slot-value obj slot) val)))
+
 (defun make-nct+ (type &key storage-class)
   (assert (typep type 'new-clang-type))
   (setf storage-class (or storage-class :none))
@@ -521,7 +536,7 @@ that is not strictly speaking about types at all (storage class)."))
   (let ((*soft* sw))
     (call-next-method)))
 
-(defmethod typedef-type ((obj new-clang) (nct nct+))
+(defmethod typedef-type ((obj new-clang) (nct nct+) &aux (*soft* obj))
   ;; Must construct an NCT+ for this type
   #+(or)
   (let ((tp (nct+-type nct)))
@@ -532,9 +547,37 @@ that is not strictly speaking about types at all (storage class)."))
             (new-clang-typedef tp)))
   (or (when-let ((tp (new-clang-typedef (nct+-type nct))))
         (assert (typep tp 'new-clang-type))
-        (or (find :none (new-clang-type-nct+-list tp)
-                  :key #'type-storage-class)
-            (make-nct+ tp)))
+        (typedef-type obj
+                      (or (find :none (new-clang-type-nct+-list tp)
+                                :key #'type-storage-class)
+                          (make-nct+ tp))))
+      ;; This case handles types like
+      ;;   T *
+      ;; where T is typedefed to some other type.
+      ;;
+      ;; This is not quite right, as it does not chase
+      ;; down a chain of typedefs in T.  It also will
+      ;; give up when T is typedefed to something that is
+      ;; directly a pointer or array type.
+      (when-let* ((tp0 (nct+-type nct))
+                  (tp (new-clang-base (nct+-type nct)))
+                  (tp2 (new-clang-typedef tp)))
+        (when (and (eql (new-clang-type-modifiers tp) 0)
+                   (member (type-array tp2) '(nil "") :test #'equal))
+          ;; Find the T' that T corresponds to, then figure
+          ;; out what the name should be.  Recontruct the name
+          ;; using the keyword arguments to
+          ;; trace-string-to-clang-json-string
+          (let ((tp3 (make-new-clang-type
+                      :qual (trace-string-to-clang-json-string
+                             (type-name tp2)
+                             :pointer (type-pointer tp0)
+                             :const (type-const tp0)
+                             :volatile (type-restrict tp0)
+                             :restrict (type-restrict tp0)
+                             :array (type-array tp0)))))
+            (or (find :none (new-clang-type-nct+-list tp3))
+                (make-nct+ tp3)))))
       nct))
 
 (defmethod type-trace-string ((type nct+) &key qualified)
