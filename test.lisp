@@ -7555,16 +7555,43 @@ prints unique counters in the trace"
     (is (and (hash-table-p (types *huf*))
              (not (zerop (hash-table-count (types *huf*)))))
         "Huf software object has a type database.")
-    (is (= 9 (count-if «and #'type-pointer
-                            [#'not {find #\(} #'type-name]»
+    (let ((pointer-types
+           (remove-if-not
+            «and #'type-pointer
+                 [#'not #'type-const]
+                 [#'not {find #\(} #'type-name]»
+            (hash-table-values (types *huf*)))))
+      (is (subsetp '("char" "heap_t" "int" "huffcode_t"
+                     "huffcode_t*" "long" "void")
+                   (mapcar [{remove #\Space} #'type-name]
+                           pointer-types)
+                   :test #'equal)
+          "Huf has seven expected pointer types"))
+    (let ((const-pointer-types
+           (remove-if-not
+            «and #'type-pointer
+                 #'type-const
+                 [#'not {find #\(} #'type-name]»
+            (hash-table-values (types *huf*)))))
+      (is (subsetp '("char" "void")
+                   (mapcar [{remove #\Space} #'type-name]
+                           const-pointer-types)
+                   :test #'equal)
+          "Huf has two expected pointer types"))
+    (let ((array-types
+           (remove-if
+            [#'emptyp #'type-array]
+            (hash-table-values (types *huf*)))))
+      (is (>= (count "int" array-types :key #'type-name :test #'equal) 1)
+          "Huf has at least 1 int array type")
+      (is (>= (count "char" array-types :key #'type-name :test #'equal) 3)
+          "Huf has at least 3 char array types")
+      (is (>= (count "long" array-types :key #'type-name :test #'equal) 2)
+          "Huf has at least 2 long array types"))
+    (is (<= 3 (count-if [{string= "int"} #'type-name]
                        (hash-table-values (types *huf*))))
-        "Huf has nine pointer types.")
-    (is (= 6 (count-if [#'not #'emptyp #'type-array]
-                       (hash-table-values (types *huf*))))
-        "Huf has six array types.")
-    (is (= 3 (count-if [{string= "int"} #'type-name]
-                       (hash-table-values (types *huf*))))
-        "Huf has three different \"int\" types (some are array and pointer).")))
+        "Huf has at least three different \"int\" types ~
+         (some are array and pointer).")))
 
 (deftest (huf-finds-type-info-for-variables :long-running) ()
   (with-fixture huf-clang
