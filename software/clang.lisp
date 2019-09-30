@@ -309,7 +309,7 @@ expanded relative to DIR.
                                  (canonical-pathname)
                                  (merge-pathnames-as-directory
                                   (make-pathname :directory
-                                                 dir)
+                                                 (pathname-directory dir))
                                   (make-pathname :directory
                                                  (list :relative f)))))
                        ;; Pass the flag thru.
