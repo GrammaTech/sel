@@ -507,13 +507,13 @@ SEL/SW/CLANG:CLANG-TYPE.  This means it must have some information
 that is not strictly speaking about types at all (storage class)."))
 
 (defmethod slot-unbound (class (obj new-clang-type) (slot (eql 'base)))
-  (let ((val
-         (if (and (eql (new-clang-type-modifiers obj) 0)
-                  (let ((array (type-array obj)))
-                    (or (null array) (equal array ""))))
-             nil
-             (make-new-clang-type :qual (type-name obj)))))
-    (setf (slot-value obj slot) val)))
+  (declare (ignorable class))
+  (setf (slot-value obj slot)
+        (if (and (eql (new-clang-type-modifiers obj) 0)
+                 (let ((array (type-array obj)))
+                   (or (null array) (equal array ""))))
+            nil
+            (make-new-clang-type :qual (type-name obj)))))
 
 (defun make-nct+ (type &key storage-class)
   (assert (typep type 'new-clang-type))
