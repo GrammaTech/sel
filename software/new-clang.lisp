@@ -2620,13 +2620,26 @@ ranges into 'combined' nodes.  Warn when this happens."
                                          (format t "Combined asts are:~%~{~a~%~}" accumulator)
                                          (format t "~a~%" (subseq genome new-begin new-end))
                                          (format t "------------------------------------------------------------~%"))
-                                       ;; Special case: there are two nodes, and the first is a typedef
-                                       ;; In that case, make the second a child of the first
                                        (if (and (= (length accumulator) 2)
                                                 (eql (ast-class (car accumulator)) :typedef))
+                                           ;; Special case: there are two nodes, and the first is a typedef
+                                           ;; In that case, make the second a child of the first
                                            (progn
                                              (push (cadr accumulator) (ast-children (car accumulator)))
                                              (list (car accumulator)))
+                                           ;; Otherwise, create a "Combined" node with the children as the
+                                           ;; overlapping ASTs.  Previously, the overlapping children
+                                           ;; where stored in a "subsumed" attribute instead of as
+                                           ;; the children field.  However, this led to issue when writing
+                                           ;; out the file as `source-text` relies on the children field.
+                                           ;; Further, it required special case logic for all methods
+                                           ;; which call `ast-children` (e.g. replace-in-ast,
+                                           ;; replace-nth-child, remove-ast, replace-ast, insert-ast,
+                                           ;; map-ast, map-ast-strings, map-ast-with-ancestor,
+                                           ;; get-immediate-children, etc.).  By making the overlapping
+                                           ;; nodes children of the combined node, we only need special
+                                           ;; case logic when writing out the source text of the combined
+                                           ;; AST which is less error-prone than the converse.
                                            (list (make-new-clang-ast
                                                   :class :combined
                                                   :children accumulator
