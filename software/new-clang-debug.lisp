@@ -14,6 +14,8 @@
         :software-evolution-library/software/clang
         :software-evolution-library/software/new-clang)
   (:import-from :software-evolution-library/software/new-clang :*soft*)
+  (:shadowing-import-from :software-evolution-library/software/project
+                          :project :evolve-files)
   (:export :dump-ast :dump-ast-with-parent
            :dump-ast-classes :dump-ast-val
            :dump-ast-val-p :dump-ast-to-list
@@ -56,6 +58,9 @@
     (dump-ast ast #'%print-class)))
 
 (defgeneric dump-ast-val (ast val-fn &optional s)
+  (:method ((sw project) val-fn &optional (s *standard-output*))
+    (loop for (path . obj) in (evolve-files sw)
+       do (dump-ast-val obj val-fn s)))
   (:method (ast val-fn &optional (s *standard-output*))
     (flet ((%print (a d)
              (let ((class (ast-class a)))
@@ -71,6 +76,9 @@
              (call-next-method))))
 
 (defgeneric dump-ast-val-p (ast val-fn &optional s)
+  (:method ((sw project) val-fn &optional (s *standard-output*))
+    (loop for (path . obj) in (evolve-files sw)
+       do (dump-ast-val-p obj val-fn s)))
   (:method (ast val-fn &optional (s *standard-output*))
     (flet ((%print (a p d)
              (let ((class (ast-class a)))
