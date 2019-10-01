@@ -409,7 +409,8 @@ list."
 ;;; There should be functions for stripping conflict nodes out of a tree,
 ;;; based on option keys.
 
-(defun to-ast (ast-type spec)
+(defgeneric to-ast (ast-type spec)
+  (:documentation
   "Walk a potentially recursive AST SPEC creating an AST-TYPE AST.
 A SPEC should have the form
 
@@ -422,7 +423,9 @@ to `to-ast`.  E.g.
   (to-ast 'clang-ast (:callexpr (:implicitcastexpr
                                  :includes '(\"<string.h>\")
                                  \"\" \"(|strcpy|)\" \"\")
-                                \"(\" \"arg-1\" \",\" \"arg-2\" \")\"))"
+                                \"(\" \"arg-1\" \",\" \"arg-2\" \")\"))"))
+
+(defmethod to-ast (ast-type spec)
   (labels ((convert-to-node (spec)
              (destructuring-bind (class &rest options-and-children) spec
                (multiple-value-bind (keys children)
