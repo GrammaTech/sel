@@ -48,6 +48,7 @@
            :conflict-ast-default-children
            :combine-conflict-asts
            :to-ast
+           :to-ast*
            :ast-later-p
            :map-ast
            :map-ast-postorder
@@ -425,7 +426,7 @@ to `to-ast`.  E.g.
                                  \"\" \"(|strcpy|)\" \"\")
                                 \"(\" \"arg-1\" \",\" \"arg-2\" \")\"))"))
 
-(defmethod to-ast (ast-type spec)
+(defun to-ast* (spec fn)
   (labels ((convert-to-node (spec)
              (destructuring-bind (class &rest options-and-children) spec
                (multiple-value-bind (keys children)
@@ -441,17 +442,23 @@ to `to-ast`.  E.g.
                                  (collect item into children)))
                          (setf previous item)
                          (finally (return (values keys children))))
-                 (funcall (symbol-cat-in-package (symbol-package ast-type)
-                                                 'make ast-type)
-                   :node (apply (symbol-cat-in-package (symbol-package ast-type)
-                                                       'make ast-type 'node)
-                                :class (if (keywordp class)
-                                           class
-                                           (intern (symbol-name class) "KEYWORD"))
-                                keys)
-                   :children children)))))
+                 (funcall fn class keys children)))))
     (convert-to-node spec)))
 
+(defmethod to-ast (ast-type spec)
+  (let ((make-fn (symbol-cat-in-package (symbol-package ast-type)
+                                        'make ast-type))
+        (make-node-fn (symbol-cat-in-package (symbol-package ast-type)
+                                             'make ast-type 'node)))
+    (to-ast* spec
+             (lambda (class keys children)
+               (funcall make-fn
+                        :node (apply make-node-fn
+                                     :class (if (keywordp class)
+                                                class
+                                                (intern (symbol-name class) "KEYWORD"))
+                                     keys)
+                        :children children)))))
 
 ;;; Generic functions on ASTs
 (defgeneric to-alist (struct)

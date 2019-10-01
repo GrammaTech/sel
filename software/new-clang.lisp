@@ -424,6 +424,16 @@ macro objects from these, returning a list."
   (declare (ignorable ast-type))
   (to-ast (if *new-clang?* 'new-clang-ast 'clang-ast) s))
 
+(defmethod to-ast ((ast-type (eql 'new-clang-ast)) spec)
+  (to-ast* spec
+           (lambda (class keys children)
+             (apply
+              #'make-new-clang-ast
+              :class class
+              :children children
+              :allow-other-keys t
+              keys))))
+
 ;; Special subclass for :CXXOperatorCallExpr nodes
 (defstruct (cxx-operator-call-expr (:include new-clang-ast))
   ;; POS is the "actual" position of the operator in the
