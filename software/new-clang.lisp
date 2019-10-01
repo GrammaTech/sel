@@ -147,7 +147,11 @@ on which clang was run to get the AST.")
                  :accessor hash-counter
                  :type integer
                  :documentation "A counter used to assign hash values to
- type objects and possibly other things"))
+ type objects and possibly other things")
+   (json-file :initform nil :initarg :json-file
+              :accessor json-file
+              :documentation "When non-nil, read the json from this file
+instead of invoking clang"))
   (:documentation
    "C language (C, C++, C#, etc...) ASTs using Clang, C language frontend
    for LLVM.  See http://clang.llvm.org/.  This is for ASTs from Clang 9+."))
@@ -415,6 +419,10 @@ macro objects from these, returning a list."
   (setf (new-clang-ast-aux-data obj) v))
 
 (defmethod ast-name ((s string)) s)
+
+(defmethod to-ast ((ast-type (eql 'clang)) s)
+  (declare (ignorable ast-type))
+  (to-ast (if *new-clang?* 'new-clang-ast 'clang-ast) s))
 
 ;; Special subclass for :CXXOperatorCallExpr nodes
 (defstruct (cxx-operator-call-expr (:include new-clang-ast))
@@ -2125,10 +2133,12 @@ actual source file"))
                                           (mappend {list "-I"} *clang-default-includes*))))
                        (multiple-value-bind (stdout stderr exit)
                            (let ((*trace-output* *standard-output*))
-                             (shell cmd-fmt
-                                    *clang-binary*
-                                    flags
-                                    src-file))
+                             (if (json-file obj)
+                                 (shell "cat ~a" (namestring (json-file obj)))
+                                 (shell cmd-fmt
+                                        *clang-binary*
+                                        flags
+                                        src-file)))
                          (when (find exit '(131 132 134 136 139))
                            (error
                             (make-condition 'mutate
