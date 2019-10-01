@@ -39,6 +39,17 @@
     (setf *oa* (from-file (apply #'make-clang args) file)))
   (values *a* *oa*))
 
+(defun make-clang-project (&rest args)
+  (apply #'make-instance 'sel/sw/clang-project::clang-project args))
+
+(defun lp (dir &rest args)
+  (let ((*new-clang?* t))
+    ;; MAKE-CLANG is defined in test.lisp
+    (setf *a* (from-file (apply #'make-clang-project args) dir)))
+  (let ((*new-clang?* nil))
+    (setf *oa* (from-file (apply #'make-clang-project args) dir)))
+  (values *a* *oa*))
+
 (when (find-package :sel/sw/new-clang-debug)
   (import (intern "DUMP-AST-VAL" :sel/sw/new-clang-debug)))
 
