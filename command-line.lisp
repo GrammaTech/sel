@@ -311,7 +311,7 @@ inspecting the value of `*lisp-interaction*'."
 with a language.")
   (:method ((language symbol))
     ;; FIXME:  never use INTERN without an explicit package
-    (intern (concatenate 'string (symbol-name guess) "-PROJECT")))
+    (intern (concatenate 'string (symbol-name language) "-PROJECT")))
   (:method ((language (eql 'new-clang))) 'clang-project))
 
 (defun guess-language (&rest sources)
