@@ -184,6 +184,16 @@ normalized form with absolute, canonical paths."
         (when (string= p "-I")
           (collect f))))
 
+(defun clang-frontend-flags (flags)
+  "Return the subset of flags required for parsing a source file
+using the clang front-end.
+
+* FLAGS: list of normalized compiler flags"
+  (iter (for f in flags)
+        (for p previous f)
+        (when (or (string= p "-I") (string= p "-D"))
+          (appending (list p f)))))
+
 (defgeneric map-ast-while (a fn)
   (:documentation "Apply FN to the nodes of AST A, stopping
 the descent when FN returns NIL"))
@@ -681,8 +691,6 @@ that is not strictly speaking about types at all (storage class)."))
 
 (defmethod type-hash ((tp new-clang-type))
   (new-clang-type-hash tp))
-;; (defmethod type-hash ((tp+ nct+))
-;;   (type-hash (nct+-type tp+)))
 (defmethod type-hash ((n nct+))
   (nct+-hash n))
 
@@ -737,32 +745,13 @@ that is not strictly speaking about types at all (storage class)."))
   (:method ((tp new-clang-type))
     ;; Fill in various slots in new-clang-type object
     (multiple-value-bind (pointer const volatile restrict n a)
-        (compute-nct+-properties (or ;; (new-clang-type-desugared tp)
-                                  (new-clang-type-qual tp)))
+        (compute-nct+-properties (new-clang-type-qual tp))
       (with-slots (array name modifiers) tp
         (setf array a
               name n
               modifiers
               (pack-nct+-modifiers
                pointer const volatile restrict))))))
-#|
-(defgeneric compute-nct+-slots (tp+)
-  (:method ((tp+ nct+))
-    "Fill in the MODIFIERS, ARRAY, and POINTER slots of a NCT+ object"
-    ;; This is only partially working
-    ;; As in the old clang front end, it's not going to get
-    ;; nested array and pointer declarators right in some cases
-    (when-let* ((type (nct+-type tp+))
-                (qual (new-clang-type-qual type)))
-      (multiple-value-bind (pointer const volatile restrict n a)
-          (compute-nct+-properties qual)
-        (with-slots (array name modifiers) tp+
-          (setf array a
-                name n
-                modifiers
-                (pack-nct+-modifiers
-                 pointer const volatile restrict)))))))
-|#
 
 (defun pack-nct+-modifiers (pointer const volatile restrict)
   (logior
@@ -949,8 +938,7 @@ that is not strictly speaking about types at all (storage class)."))
           (when (or (is-prefix "struct ")
                     (is-prefix "union "))
             (when-let* ((table (type-table *soft*))
-                        (record-decl (gethash qual ; (cons qual desugared)
-                                              table)))
+                        (record-decl (gethash qual table)))
               (concatenate 'string (new-clang-type-qual record-decl)  ";")))))
       ""))
 
@@ -959,6 +947,14 @@ that is not strictly speaking about types at all (storage class)."))
 
 (defmethod type-decl-string ((obj nct+) &key &allow-other-keys)
   (type-decl-string (nct+-type obj)))
+
+(defmethod find-or-add-type :around ((obj new-clang) name &key &allow-other-keys)
+  (declare (ignorable name))
+  (let* ((*soft* obj)
+         (val (call-next-method)))
+    (unless (typep val '(or null nct+))
+      (error "Return value not of correct type: ~a" val))
+    val))
 
 (defmethod find-or-add-type ((obj new-clang) (trace-name string)
                              &rest args &key &allow-other-keys)
@@ -977,8 +973,10 @@ that is not strictly speaking about types at all (storage class)."))
           (make-nct+ type)))))
 
 (defun trace-string-to-clang-json-string
-    (trace-string &key storage-class const pointer volatile restrict name array &allow-other-keys)
-  (let ((alist (type-from-trace-string* (lambda (&rest args) args) trace-string)))
+    (trace-string &key storage-class const pointer volatile restrict name array
+                    &allow-other-keys)
+  (let ((alist (type-from-trace-string*
+                (lambda (&rest args) args) trace-string)))
     (string-right-trim
      " "
      (format
@@ -993,19 +991,11 @@ that is not strictly speaking about types at all (storage class)."))
       (or pointer (getf alist :pointer))
       (or array (getf alist :array))))))
 
-(defmethod find-or-add-type :around ((obj new-clang) name &key &allow-other-keys)
-  (declare (ignorable name))
-  (let* ((*soft* obj)
-         (val (call-next-method)))
-    (unless (typep val '(or null nct+))
-      (error "Return value not of correct type: ~a" val))
-    val))
-
 (defmethod add-type ((obj new-clang) (type nct+))
   (sel/sw/clang::add-type* obj type))
 
 (defmethod find-type ((obj new-clang) (type new-clang-type))
-  (error "SHould not call find-type on new-clang-type objects"))
+  (error "Should not call find-type on new-clang-type objects"))
 
 (defmethod find-type ((obj new-clang) (type nct+))
   ;; This looks like a stub, but isn't.
@@ -1695,18 +1685,17 @@ the match length if sucessful, NIL if not."
                                   :unknown)))
        (unless (keywordp json-kind-symbol)
          (error "Cannot convert ~a to a json-kind keyword" json-kind))
-       (let ((obj (j2ck json json-kind-symbol)))
-         (when obj
-           ;; What is happening here:
-           ;;  If INNER is NIL, this is not an actual defn of the object
-           ;;  But we want to store it anyway in that case if nothing is
-           ;;  there, because there may not be a real definition.  The
-           ;;  real definition always overrites the stub.
-           (let* ((id (new-clang-ast-id obj))
-                  (table (symbol-table *soft*))
-                  (existing (gethash id table)))
-             (when (or (not existing) inner)
-               (setf (gethash id table) (list obj)))))
+       (when-let ((obj (j2ck json json-kind-symbol)))
+         ;; What is happening here:
+         ;;  If INNER is NIL, this is not an actual defn of the object
+         ;;  But we want to store it anyway in that case if nothing is
+         ;;  there, because there may not be a real definition.  The
+         ;;  real definition always overrites the stub.
+         (let* ((id (new-clang-ast-id obj))
+                (table (symbol-table *soft*))
+                (existing (gethash id table)))
+           (when (or (not existing) inner)
+             (setf (gethash id table) (list obj))))
          obj)))
     (string (canonicalize-string json))
     (t json)))
@@ -1987,7 +1976,7 @@ NIL indicates no value."))
     ;; These should be strings, but convert anyway to canonicalize them
     (let* ((qual (clang-convert-json qual-type))
            (desugared (clang-convert-json desugared-qual-type))
-           (key qual) ; (cons qual desugared))
+           (key qual)
            (table (type-table *soft*)))
       (or (gethash key table)
           (setf (gethash key table)
@@ -2163,7 +2152,7 @@ actual source file"))
   (with-temp-file-of (src-file (ext obj)) (genome obj)
                      (let ((cmd-fmt "~a -cc1 -ast-dump=json ~{~a~^ ~} ~a")
                            (genome-len (length (genome obj)))
-                           (flags (append (remove "-c" (flags obj) :test #'equal)
+                           (flags (append (clang-frontend-flags (flags obj))
                                           (mappend {list "-I"} *clang-default-includes*))))
                        (multiple-value-bind (stdout stderr exit)
                            (let ((*trace-output* *standard-output*))
@@ -2765,7 +2754,8 @@ ranges into 'combined' nodes.  Warn when this happens."
               name-symbol-table (make-hash-table :test #'equal)
               type-table (make-hash-table :test #'equal)
               base-types (make-hash-table :test #'equal)
-              types (make-hash-table)))
+              types (make-hash-table :test #'equal)))
+
       (flet ((%debug (s a &optional (f #'ast-class))
                (declare (ignorable s a f))
                nil)
@@ -2974,11 +2964,13 @@ macro.")
                                    last-offset nil)))
                       (if c
                           (let ((x (pop c)))
-                            (let ((macro-info (%is-macro-expansion-node x table)))
+                            (let ((macro-info (%is-macro-expansion-node
+                                               x table)))
                               (if macro-info
                                   (if (eql (car macro-info) last-offset)
                                       (setf macro-child-segment
-                                            (append macro-child-segment (list x)))
+                                            (append macro-child-segment
+                                                    (list x)))
                                       ;; start new macro segment
                                       (progn
                                         (%collect)

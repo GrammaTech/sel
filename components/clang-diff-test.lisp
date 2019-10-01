@@ -70,9 +70,11 @@
     v))
 
 ;;; ugh
-(defmethod diff-result-equal ((s1 (eql :nil)) (s2 (eql nil)) &key &allow-other-keys) t)
+(defmethod diff-result-equal ((s1 (eql nil)) (s2 (eql nil))
+                              &key &allow-other-keys) t)
 
-(defmethod diff-result-equal ((s1 cons) (s2 cons) &rest args &key loose &allow-other-keys)
+(defmethod diff-result-equal ((s1 cons) (s2 cons) &rest args
+                              &key loose &allow-other-keys)
   (let ((l1 (length s1))
         (l2 (length s2)))
     (or (eql (car s1) :combined)
@@ -153,12 +155,16 @@ list of children of their parent.  Cannot remove the root."))
 (defun remove-var-children (ast)
   (remove-ast-nodes-if
    ast
-   (lambda (n anc) (declare (ignore n)) (and anc (eql (ast-class (car anc)) :var)))))
+   (lambda (n anc)
+     (declare (ignore n))
+     (and anc (eql (ast-class (car anc)) :var)))))
 
 (defun remove-parmvar-children (ast)
   (remove-ast-nodes-if
    ast
-   (lambda (n anc) (declare (ignore n)) (and anc (eql (ast-class (car anc)) :parmvar)))))
+   (lambda (n anc)
+     (declare (ignore n))
+     (and anc (eql (ast-class (car anc)) :parmvar)))))
 
 (defun remove-typedef-body (ast)
   (remove-ast-nodes-if

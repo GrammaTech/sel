@@ -237,7 +237,7 @@
   ((includes :initarg :includes :accessor includes
              :initform nil :copier :direct
              :type #+sbcl (list string *) #-sbcl list
-             :documentation "Names of included includes.")
+             :documentation "Names of headers included.")
    (types :initarg :types :accessor types
           :initform (make-hash-table :test 'equal)
           :copier copy-hash-table

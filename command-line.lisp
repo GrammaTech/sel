@@ -121,7 +121,6 @@
 (defun handle-new-clang-argument (new-clang-p)
   "Handler for --new-clang argument.  If true, use new clang
 front end."
-  (format t "handle-new-clang-argument: ~a~%" new-clang-p)
   (setf *new-clang?* new-clang-p))
 
 (defun handle-load (path)

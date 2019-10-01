@@ -446,19 +446,18 @@ to `to-ast`.  E.g.
     (convert-to-node spec)))
 
 (defmethod to-ast (ast-type spec)
-  (let ((make-fn (symbol-cat-in-package (symbol-package ast-type)
-                                        'make ast-type))
-        (make-node-fn (symbol-cat-in-package (symbol-package ast-type)
-                                             'make ast-type 'node)))
-    (to-ast* spec
-             (lambda (class keys children)
-               (funcall make-fn
-                        :node (apply make-node-fn
-                                     :class (if (keywordp class)
-                                                class
-                                                (intern (symbol-name class) "KEYWORD"))
-                                     keys)
-                        :children children)))))
+  (to-ast* spec
+           (lambda (class keys children)
+             (funcall (symbol-cat-in-package (symbol-package ast-type)
+                                             'make ast-type)
+                      :node (apply (symbol-cat-in-package (symbol-package ast-type)
+                                                          'make ast-type 'node)
+                                   :class (if (keywordp class)
+                                              class
+                                              (intern (symbol-name class) "KEYWORD"))
+                                   keys)
+                      :children children))))
+
 
 ;;; Generic functions on ASTs
 (defgeneric to-alist (struct)
@@ -522,26 +521,13 @@ AST."))
 * FUN-REPLACEMENTS list of old-function-info, new-function-info pairs defining
 the rebinding"
   (reduce (lambda (new-ast replacement)
-            (replace-all new-ast (first replacement) (second replacement)
-                         :confirm #'confirm-var-rebinding))
+            (replace-all new-ast (first replacement) (second replacement)))
           (append var-replacements
                   (mapcar (lambda (fun-replacement)
                             (list (car (first fun-replacement))
                                   (car (second fun-replacement))))
                           fun-replacements))
           :initial-value ast))
-
-(defun confirm-var-rebinding (str pos len)
-  "Confirm that the string from POS to POS+LEN-1 in STR
-is a good identifier."
-  (flet ((%good (i)
-           (let ((c (elt str i)))
-             (and (not (eql c #\_))
-                  (not (alphanumericp c))))))
-    (and (or (= pos 0) (%good (1- pos)))
-         (let ((next (+ pos len)))
-           (or (>= next (length str))
-               (%good next))))))
 
 (defmethod replace-in-ast ((ast ast) replacements &key (test #'equalp))
   "Make arbritrary replacements within AST, returning a new AST.

@@ -663,12 +663,11 @@
   `(sel/stefil+:deftest ,name ,args
      (call-with-clang-versions (lambda () ,@body))))
 
-(defun make-clang (&rest key-args &key new-clang-flags &allow-other-keys)
+(defun make-clang (&rest key-args)
   (if *new-clang?*
       (apply #'make-instance 'new-clang
              :compiler (or (plist-get :compiler key-args)
                            sel/sw/new-clang::*clang-binary*)
-             :flags new-clang-flags
              :allow-other-keys t
              key-args)
       (apply #'make-instance 'clang :allow-other-keys t key-args)))
@@ -932,12 +931,13 @@ of the same length"
                    :i-file i-file
                    :compute-slots nil)))
 
-(defun make-clang-control-picks (&rest args &key new-clang-flags
-                                              &allow-other-keys)
+(defun make-clang-control-picks (&rest args)
   (if *new-clang?*
-      (make-instance 'new-clang-control-picks
-        :compiler sel/sw/new-clang::*clang-binary*
-        :flags new-clang-flags)
+      (apply #'make-instance 'new-clang-control-picks
+             :compiler (or (plist-get :compiler args)
+                           sel/sw/new-clang::*clang-binary*)
+             :allow-other-keys t
+             args)
       (apply #'make-instance 'clang-control-picks :allow-other-keys t args)))
 
 (defixture hello-world-clang-control-picks
@@ -1161,7 +1161,6 @@ of the same length"
    (setf *collatz*
          (from-file (make-clang
                      :compiler "clang"
-                     :new-clang-flags '("-c")
                      :flags '("-m32" "-O0" "-g" "-c"))
                     (collatz-dir "collatz.c"))))
   (:teardown
@@ -1172,7 +1171,6 @@ of the same length"
    (setf *fib*
          (from-file (make-clang
                      :compiler "clang"
-                     :new-clang-flags '("-c")
                      :flags '("-m32" "-O0" "-g" "-c"))
                     (fib-dir "fib.c"))))
   (:teardown
@@ -1663,10 +1661,8 @@ of the same length"
         (declare (ignorable cross-b))
         (cond
           ((= cross-a 20)
-           ;; (format t "EQUAL 20~%")
            (is (= (size crossed) (- (size *gcd*) 40))))
           ((= cross-a 60)
-           ;; (format t "EQUAL 60~%")
            (is (= (size crossed) (+ (size *gcd*) 40))))
           (t (is (= (size crossed) (size *gcd*)))))))))
 
@@ -3658,9 +3654,7 @@ int x = CHARSIZE;")))
             (var-type4 (get-var-type "a" "int a[N][N];"))
             (var-type5 (get-var-type "b" "return 2;")))
         (is (null var-type4))
-        (if *new-clang?*
-            (is (equal "[10]" (type-array var-type1)))
-            (is (equal "[10][10]" (type-array var-type1))))
+        (is (equal (if *new-clang?* "[10]" "[10][10]") (type-array var-type1)))
         (is (equal ""         (type-array var-type2)))
         (is (equal "[10][10]" (type-array var-type3)))
         (is (equal ""         (type-array var-type5)))
@@ -3668,9 +3662,7 @@ int x = CHARSIZE;")))
         (is (equal t          (type-pointer var-type2)))
         (is (equal nil        (type-pointer var-type3)))
         (is (equal t          (type-pointer var-type5)))
-        (if *new-clang?*
-            (is (equal "int (*)"      (type-name var-type1)))
-            (is (equal "int"      (type-name var-type1))))
+        (is (equal (if *new-clang?* "int (*)" "int") (type-name var-type1)))
         (is (equal "int"      (type-name var-type2)))
         (is (equal "int"      (type-name var-type3)))
         (is (equal "int*"     (remove #\Space (type-name var-type5))))))))
@@ -3728,15 +3720,27 @@ int x = CHARSIZE;")))
 
 (deftest rebind-vars-in-macro-test ()
   (with-fixture assert-clang
-    (let* ((copy (copy *soft*))
-           (stmt (stmt-with-text copy "assert(argc > 0);")))
-      (is (equalp (peel-banana-tree-nc "assert((|someVal|) > 0);")
-                  (->> (rebind-vars stmt
-                                    (peel-banana-tree-nc
-                                     '(("(|argc|)" "(|someVal|)")))
-                                    nil)
-                       (source-text)))
-          "rebind-vars did not rebind a variable within a macro"))))
+    (labels ((peel-banana-tree (tree)
+               (if *new-clang?*
+                   (cond ((stringp tree)
+                          (peel-bananas tree))
+                         ((consp tree)
+                          (let ((car (peel-banana-tree (car tree)))
+                                (cdr (peel-banana-tree (cdr tree))))
+                            (if (and (eql car (car tree)) (eql cdr (cdr tree)))
+                                tree
+                                (cons car cdr))))
+                         (t tree))
+                   tree)))
+      (let* ((copy (copy *soft*))
+             (stmt (stmt-with-text copy "assert(argc > 0);")))
+        (is (equalp (peel-banana-tree "assert((|someVal|) > 0);")
+                    (->> (rebind-vars stmt
+                                      (peel-banana-tree
+                                       '(("(|argc|)" "(|someVal|)")))
+                                      nil)
+                         (source-text)))
+            "rebind-vars did not rebind a variable within a macro")))))
 
 
 ;;;; Java representation.
@@ -4989,7 +4993,6 @@ AST holding STMT is found."
              (find-if [{string= text} (if trim #'trim-whitespace #'identity)
                        #'peel-bananas #'source-text]
                       (asts obj))))
-        ;; (format t "~a~%" (ast-text result))
         result)
       (if no-error
           nil
@@ -9273,19 +9276,6 @@ prints unique counters in the trace"
                                   (car e)))))
         result expected)))
 
-(defgeneric peel-banana-tree (tree)
-  (:method ((tree string)) (peel-bananas tree))
-  (:method ((tree cons))
-    (let ((car (peel-banana-tree (car tree)))
-          (cdr (peel-banana-tree (cdr tree))))
-      (if (and (eql car (car tree)) (eql cdr (cdr tree)))
-          tree
-          (cons car cdr))))
-  (:method (tree) tree))
-
-(defun peel-banana-tree-nc (tree)
-  (if *new-clang?* (peel-banana-tree tree) tree))
-
 (deftest unbound-funs-are-correct ()
   (with-fixture scopes2-clang
     (is (null (get-unbound-funs *scopes*
@@ -9895,8 +9885,6 @@ prints unique counters in the trace"
                    (bad-stmts (mapcar #'cdar (rinard 5 instrumented
                                                      trace-results)))
                    (gold-set-prefix (list 54 23 12 10 4)))
-              ;; (format t "BAD:  ~{~a~^,~}~%" bad-stmts)
-              ;; (format t "GOLD: ~{~a~^,~}~%" gold-set-prefix)
               (is (equal bad-stmts gold-set-prefix)))))))))
 
 (defsuite clang-super-mutants "Super mutants of clang objects."
