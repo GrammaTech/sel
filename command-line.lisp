@@ -121,6 +121,7 @@
 (defun handle-new-clang-argument (new-clang-p)
   "Handler for --new-clang argument.  If true, use new clang
 front end."
+  (format t "handle-new-clang-argument: ~a~%" new-clang-p)
   (setf *new-clang?* new-clang-p))
 
 (defun handle-load (path)
@@ -305,6 +306,14 @@ inspecting the value of `*lisp-interaction*'."
        (return-from ,command-name ,interactive-return-val)
        (quit ,errno)))
 
+(defgeneric language-to-project (language)
+  (:documentation "The name of the project class associated
+with a language.")
+  (:method ((language symbol))
+    ;; FIXME:  never use INTERN without an explicit package
+    (intern (concatenate 'string (symbol-name guess) "-PROJECT")))
+  (:method ((language (eql 'new-clang))) 'clang-project))
+
 (defun guess-language (&rest sources)
   "Guess the SEL software object class that best matches SOURCES.
 SOURCES should be a collection of paths.  The result is determined
@@ -319,20 +328,19 @@ directories and if files based on their extensions."
                                (when-let ((guess (guess-helper
                                                   (directory-files source)
                                                   t)))
-                                 (intern
-                                  (concatenate 'string
-                                    (symbol-name guess) "-PROJECT"))))
+                                 (language-to-project guess)))
                            (second)
                            (find-if
                             (lambda (pair)
                               (member (pathname-type source) (car pair)
                                       :test #'equalp)))
                            ;; List of extensions and associated sel/sw class.
-                           '((("lisp") lisp)
+                           `((("lisp") lisp)
                              (("java") java)
                              (("js") javascript)
                              (("json") json)
-                             (("c" "cpp" "cc" "cxx") clang)
+                             (("c" "cpp" "cc" "cxx")
+                              ,(if *new-clang?* 'new-clang 'clang))
                              ;; We cannot parse header files, as they
                              ;; don't have entries in the compile
                              ;; commands database.  Treat them as
@@ -514,7 +522,7 @@ in SCRIPT.")
       (("flags" #\F) :type string
        :action #'handle-comma-delimited-argument
        :documentation "comma-separated list of compiler flags")
-      (("new-clang") :type boolean :optional t
+      (("new-clang") :type boolean
        :action #'handle-new-clang-argument
        :documentation "Use new clang front end")
       (("split-lines" #\L) :type boolean :optional t
