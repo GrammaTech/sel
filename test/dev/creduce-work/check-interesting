@@ -1,5 +1,0 @@
-#!/bin/bash
-# SEL=/pdietz/quicklisp/local-projects/sel
-$SEL/test/dev-bin/clang-diff-test --types $FILE 2>&1
-exit $?
-
