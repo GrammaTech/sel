@@ -118,6 +118,11 @@
 (defun handle-swank-port-argument (port)
   (create-server :port port :style :spawn :dont-close t))
 
+(defun handle-new-clang-argument (new-clang-p)
+  "Handler for --new-clang argument.  If true, use new clang
+front end."
+  (setf *new-clang?* new-clang-p))
+
 (defun handle-load (path)
   (load path
         :external-format (encoding-external-format (detect-encoding path))))
@@ -509,6 +514,9 @@ in SCRIPT.")
       (("flags" #\F) :type string
        :action #'handle-comma-delimited-argument
        :documentation "comma-separated list of compiler flags")
+      (("new-clang") :type boolean :optional t
+       :action #'handle-new-clang-argument
+       :documentation "Use new clang front end")
       (("split-lines" #\L) :type boolean :optional t
        :documentation "Split top level strings at newlines")))
   (defparameter +project-command-line-options+
