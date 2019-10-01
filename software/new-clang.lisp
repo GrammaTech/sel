@@ -424,12 +424,19 @@ macro objects from these, returning a list."
   (declare (ignorable ast-type))
   (to-ast (if *new-clang?* 'new-clang-ast 'clang-ast) s))
 
+(defgeneric make-new-clang-ast* (class &rest args &key &allow-other-keys)
+  (:documentation "Make a new-clang-ast node or a subclass of new-clang-ast,
+depending on CLASS"))
+
+(defmethod make-new-clang-ast* (class &rest args &key &allow-other-keys)
+  (apply #'make-new-clang-ast :class class args))
+
 (defmethod to-ast ((ast-type (eql 'new-clang-ast)) spec)
   (to-ast* spec
            (lambda (class keys children)
              (apply
-              #'make-new-clang-ast
-              :class class
+              #'make-new-clang-ast*
+              class
               :children children
               :allow-other-keys t
               keys))))
@@ -443,6 +450,23 @@ macro objects from these, returning a list."
   ;; The type FIXNUM is too big; figure out how much
   ;; smaller this can be made.
   (pos nil :type (or null fixnum)))
+
+(defmethod make-new-clang-ast* ((class (eql :cxxoperatorcallexpr)) &rest args
+                                &key &allow-other-keys)
+  (apply #'make-cxx-operator-call-expr :class class args))
+
+(defmethod make-new-clang-ast* ((class (eql :macroexpansion)) &rest args
+                                &key children false-children &allow-other-keys)
+  ;; :FALSE-CHILDREN is the list of ersatz children below the macroexpansion node
+  ;; They are not used for computing the source-text of the node
+  (assert (listp children))
+  (assert (= (length children) 1))
+  (apply #'make-new-clang-ast
+         :class :macroexpansion
+         :children false-children
+         :source-text (car children)
+         :allow-other-keys t
+         args))
 
 ;;;
 ;;; NOTE: NEW-CLANG-TYPE is not a drop-in replacement for
