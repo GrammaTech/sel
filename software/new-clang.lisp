@@ -38,6 +38,7 @@
            :clang-convert-json-for-file
            :remove-non-program-asts
            :make-statement-new-clang
+           :make-new-clang-macro
            :*new-clang?*
            :*soft*
            :type-i-file
