@@ -16,7 +16,6 @@
         :iterate
         :split-sequence
         :cl-ppcre
-        :cl-json
         :uiop/pathname
         :software-evolution-library
         :software-evolution-library/utility
@@ -2233,7 +2232,8 @@ actual source file"))
                                                               exit
                                                               (format nil cmd-fmt
                                                                       flags
-                                                                      src-file)
+                                                                      src-file
+                                                                      filter)
                                                               stderr)
                                                 :obj obj)))
                            (keep-partial-asts ()
