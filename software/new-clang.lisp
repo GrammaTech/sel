@@ -69,20 +69,12 @@
 (declaim (special *soft*))
 (declaim (special *canonical-string-table* *current-line*))
 
-(defvar *clang-binary*
-  ;; "/pdietz/clang9-installed/bin/clang"
-  "/clang9/bin/clang"
-  "This is the location clang is installed in the clang9 Docker image")
-;; Install locally by:
-;;  sudo docker cp clang9:/clang9 /clang9
-;; This takes several minutes and uses about 34GB of disk space
-
 (defun get-clang-default-includes ()
   "Retrieve the paths on the default clang system include search path."
-  (when (which *clang-binary*)
+  (when (which "clang")
     (with-temp-file-of (bin "cpp") ""
                        (multiple-value-bind (stdout stderr exit)
-                           (shell "~a -v ~a" *clang-binary* bin)
+                           (shell "clang -v ~a" bin)
                          (declare (ignorable stdout exit))
                          (register-groups-bind (include-search-paths)
                                                ("(?s)include <...> search starts here:(.*)End of search list"
@@ -138,7 +130,6 @@ storage class or other modifiers")
     :type (or null string)
     :documentation "Full file name of the temporary file
 on which clang was run to get the AST.")
-   (compiler :initform *clang-binary*)
    ;;; NOTE: This will give the same hashs to types from different
    ;;;       source files.  Instead, consider initializing the counter
    ;;;       in a file-specific way, or compute the hashes from the
@@ -2151,7 +2142,7 @@ actual source file"))
 ;;;; Invocation of clang to get json
 (defmethod clang-json ((obj new-clang) &key &allow-other-keys)
   (with-temp-file-of (src-file (ext obj)) (genome obj)
-                     (let ((cmd-fmt "~a -cc1 -ast-dump=json ~{~a~^ ~} ~a")
+                     (let ((cmd-fmt "clang -cc1 -ast-dump=json ~{~a~^ ~} ~a")
                            (genome-len (length (genome obj)))
                            (flags (append (clang-frontend-flags (flags obj))
                                           (mappend {list "-I"} *clang-default-includes*))))
@@ -2160,24 +2151,22 @@ actual source file"))
                              (if (json-file obj)
                                  (shell "cat ~a" (namestring (json-file obj)))
                                  (shell cmd-fmt
-                                        *clang-binary*
                                         flags
                                         src-file)))
                          (when (find exit '(131 132 134 136 139))
                            (error
                             (make-condition 'mutate
-                                            :text (format nil "~a core dump with ~d, ~s"
-                                                          *clang-binary* exit stderr)
+                                            :text (format nil "clang core dump with ~d, ~s"
+                                                          exit stderr)
                                             :obj obj)))
                          (restart-case
                              (unless (zerop exit)
                                (error
                                 (make-condition 'mutate
                                                 :text (format nil
-                                                              "~a exit ~d~%cmd:~s~%stderr:~s"
-                                                              *clang-binary* exit
+                                                              "clang exit ~d~%cmd:~s~%stderr:~s"
+                                                              exit
                                                               (format nil cmd-fmt
-                                                                      *clang-binary*
                                                                       flags
                                                                       src-file)
                                                               stderr)

@@ -664,13 +664,7 @@
      (call-with-clang-versions (lambda () ,@body))))
 
 (defun make-clang (&rest key-args)
-  (if *new-clang?*
-      (apply #'make-instance 'new-clang
-             :compiler (or (plist-get :compiler key-args)
-                           sel/sw/new-clang::*clang-binary*)
-             :allow-other-keys t
-             key-args)
-      (apply #'make-instance 'clang :allow-other-keys t key-args)))
+  (apply #'make-instance (if *new-clang?* 'new-clang 'clang) key-args))
 
 ;;;
 ;;; Task support
@@ -932,13 +926,10 @@ of the same length"
                    :compute-slots nil)))
 
 (defun make-clang-control-picks (&rest args)
-  (if *new-clang?*
-      (apply #'make-instance 'new-clang-control-picks
-             :compiler (or (plist-get :compiler args)
-                           sel/sw/new-clang::*clang-binary*)
-             :allow-other-keys t
-             args)
-      (apply #'make-instance 'clang-control-picks :allow-other-keys t args)))
+  (apply #'make-instance
+         (if *new-clang?* 'new-clang-control-picks 'clang-control-picks)
+         :allow-other-keys t
+         args))
 
 (defixture hello-world-clang-control-picks
   (:setup

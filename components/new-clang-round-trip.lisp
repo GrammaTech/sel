@@ -32,7 +32,7 @@
               (("eval" #\e) :type string
                :action #'handle-eval
                :documentation "eval STRING as lisp code")
-              (("compiler" #\c) :type string :initial-value ,sel/sw/new-clang::*clang-binary*
+              (("compiler" #\c) :type string :initial-value "clang"
                :documentation "use CC as the C compiler")
               (("flags" #\F) :type string
                :action #'handle-comma-delimited-argument

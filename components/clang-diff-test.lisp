@@ -44,15 +44,11 @@
                "When true, new-clang errors are 'interesting'")))))
 
 (defun make-clang (file &key)
-  (let ((obj1 (make-instance 'clang)))
-    (from-file obj1 file)
-    obj1))
+  (from-file (make-instance 'clang) file))
 
 (defun make-new-clang (file)
-  (let ((obj1 (make-instance 'new-clang
-                :compiler sel/sw/new-clang::*clang-binary*)))
-    (from-file obj1 file)
-    obj1))
+  (from-file (make-instance 'new-clang) file))
+
 
 ;;; Utility functions
 
