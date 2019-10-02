@@ -42,6 +42,7 @@
            :make-new-clang-macro
            :*new-clang?*
            :*soft*
+           :nct+
            :type-i-file
            :make-new-clang-macroexpand-hook
            :cpp-scan))
