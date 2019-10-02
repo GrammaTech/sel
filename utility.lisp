@@ -1870,6 +1870,11 @@ from a code snippet.")
   "Get KEY from association list LIST."
   (cdr (assoc item list :test test)))
 
+(define-compiler-macro aget (&whole whole item list &key (test '#'eql test-p))
+  (if  (constantp item)
+       `(cdr (assoc ,item ,list :test ,test))
+       whole))
+
 (define-setf-expander aget (item list &key (test ''eql) &environment env)
   (multiple-value-bind (dummies vals stores store-form access-form)
       (get-setf-expansion list env)
