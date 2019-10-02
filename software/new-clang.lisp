@@ -29,6 +29,8 @@
         :software-evolution-library/software/clang)
   (:import-from :uiop :nest)
   (:import-from :anaphora :awhen :it)
+  (:import-from :jsown)
+  (:import-from :string-case :string-case)
   (:export :new-clang
            :new-clang-ast
            :new-clang-range-begin
@@ -2203,17 +2205,19 @@ actual source file"))
 ;;;; Invocation of clang to get json
 (defmethod clang-json ((obj new-clang) &key &allow-other-keys)
   (with-temp-file-of (src-file (ext obj)) (genome obj)
-                     (let ((cmd-fmt "clang -cc1 -ast-dump=json ~{~a~^ ~} ~a")
+                     (let ((cmd-fmt "clang -cc1 -ast-dump=json ~{~a~^ ~} ~a ~a")
+                           (filter "| sed -e \"s/  *//\"")
                            (genome-len (length (genome obj)))
                            (flags (append (clang-frontend-flags (flags obj))
                                           (mappend {list "-I"} *clang-default-includes*))))
                        (multiple-value-bind (stdout stderr exit)
                            (let ((*trace-output* *standard-output*))
                              (if (json-file obj)
-                                 (shell "cat ~a" (namestring (json-file obj)))
+                                 (shell "cat ~a ~a" (namestring (json-file obj)) filter)
                                  (shell cmd-fmt
                                         flags
-                                        src-file)))
+                                        src-file
+                                        filter)))
                          (when (find exit '(131 132 134 136 139))
                            (error
                             (make-condition 'mutate
@@ -2235,11 +2239,49 @@ actual source file"))
                            (keep-partial-asts ()
                              :report "Ignore error retaining partial ASTs for software object."
                              nil))
-                         (values (let ((*read-default-float-format* 'long-float)
-                                       (json:*json-identifier-name-to-lisp* #'string-upcase))
-                                   (decode-json-from-string stdout))
+                         (values (convert-jsown-tree (jsown:parse stdout))
                                  src-file
                                  genome-len)))))
+
+(defun convert-jsown-tree (jt)
+  "Converts the tree representation from JSOWN into something similar to
+output from CL-JSON"
+  (typecase jt
+    ((cons (eql :obj) t)
+     (convert-jsown-obj (cdr jt)))
+    (cons
+     (cons (convert-jsown-tree (car jt))
+           (convert-jsown-tree (cdr jt))))
+    (t jt)))
+
+(defun convert-jsown-obj (key-alist)
+  (iter (for (key . val) in key-alist)
+        (collect (cons (jsown-str-to-keyword key)
+                       (convert-jsown-tree val)))))
+
+;;; The STRING-CASE macro is much faster than just calling INTERN
+;;; on the string, when one of these common arguments is seen.
+(defun jsown-str-to-keyword (str)
+  (macrolet ((%m (s)
+               (let ((names '("id" "tokLen" "col" "kind" "qualType"
+                              "type" "file" "range" "end" "begin"
+                              "includedFrom" "line" "valueCategory"
+                              "inner" "name" "loc" "castKind"
+                              "referencedDecl" "spellingLoc"
+                              "expansionLoc" "desugaredQualType")))
+                 `(string-case (,s)
+                               ,@(iter (for n in names)
+                                       (collect (list n (intern (string-upcase n)
+                                                                :keyword))))
+                               (t (intern (string-upcase ,s) :keyword))))))
+    ;; Allow common cases to be optimized for particular
+    ;; string types
+    (typecase str
+      (simple-base-string (%m str))
+      ((and simple-string
+            (vector character))
+       (%m str))
+      (t (intern (string-upcase str) :keyword)))))
 
 
 ;;; Offsets into the genome
