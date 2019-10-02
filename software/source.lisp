@@ -83,7 +83,11 @@ on the filesystem at BIN."
     (if stream (write-string genome stream) genome)))
 
 (defmethod (setf genome) :after (v (obj genome-lines-mixin))
-  (declare (ignorable v))
+  ;; (declare (ignorable v))
+  (unless (typep v 'simple-base-string)
+    (when (every (lambda (c) (typep c 'base-char)) v)
+      (setf (slot-value obj 'genome)
+            (coerce v 'simple-base-string))))
   (slot-makunbound obj 'genome-line-offsets))
 
 (defgeneric offset-to-line-and-col (sw offset)
