@@ -2339,129 +2339,50 @@ output from CL-JSON"
 
 ;;; Offsets into the genome
 
-;; Vector giving offsets for the start of each line
-;; This is obtained from a sw object using genome-line-offsets
-;; (declaim (special *offsets*))
-
-(defun ncmlimae (x)
-  (new-clang-macro-loc-is-macro-arg-expansion x))
-
-(defgeneric offset (obj))
-(defmethod offset (obj) (declare (ignorable obj)) nil)
-(defmethod offset ((obj new-clang-loc))
-  (let ((line (new-clang-loc-line obj))
-        (col (new-clang-loc-col obj)))
-    (when (and line col)
-      (+ (elt (genome-line-offsets *soft*) (1- line)) col -1))))
-(defmethod offset ((obj new-clang-macro-loc))
-  (let ((spelling-loc (new-clang-macro-loc-spelling-loc obj))
-        (expansion-loc (new-clang-macro-loc-expansion-loc obj)))
-    (when (typep expansion-loc 'new-clang-loc)
-      (if ;; (new-clang-macro-loc-is-macro-arg-expansion obj)
-       (ncmlimae obj)
-       (offset spelling-loc)
-       (offset expansion-loc)))))
-(defmethod offset ((obj integer)) obj)
+(defgeneric offset (obj)
+  (:method ((obj new-clang-loc))
+    (let ((line (new-clang-loc-line obj))
+          (col (new-clang-loc-col obj)))
+      (when (and line col)
+        (+ (elt (genome-line-offsets *soft*) (1- line)) col -1))))
+  (:method ((obj new-clang-macro-loc))
+    (let ((spelling-loc (new-clang-macro-loc-spelling-loc obj))
+          (expansion-loc (new-clang-macro-loc-expansion-loc obj)))
+      (when (typep expansion-loc 'new-clang-loc)
+        (if (new-clang-macro-loc-is-macro-arg-expansion obj)
+            (offset spelling-loc)
+            (offset expansion-loc)))))
+  (:method ((obj integer)) obj))
 
 (defgeneric (setf offset) (offset obj)
-  (:documentation "Settor for OFFSET"))
-
-(defmethod (setf offset) ((offset integer) (obj new-clang-ast))
-  (if-let ((range (ast-attr obj :range)))
-    (let ((begin (new-clang-range-begin range)))
-      (if (typep begin '(or null integer))
-          (setf (new-clang-range-begin range) offset)
-          (setf (offset begin) offset)))
-    (progn
-      (setf (ast-attr obj :range)
-            (make-new-clang-range :begin offset))
+  (:method ((offset integer) (obj new-clang-ast))
+    (if-let ((range (ast-attr obj :range)))
+      (let ((begin (new-clang-range-begin range)))
+        (if (typep begin '(or null integer))
+            (setf (new-clang-range-begin range) offset)
+            (setf (offset begin) offset)))
+      (progn
+        (setf (ast-attr obj :range)
+              (make-new-clang-range :begin offset))
+        offset)))
+  (:method ((offset integer) (obj new-clang-loc))
+    (multiple-value-bind (line col)
+        (offset-to-line-and-col *soft* offset)
+      (setf (new-clang-loc-line obj) line
+            (new-clang-loc-col obj) col)
       offset)))
 
-(defmethod (setf offset) ((offset integer) (obj new-clang-loc))
-  (multiple-value-bind (line col)
-      (offset-to-line-and-col *soft* offset)
-    (setf (new-clang-loc-line obj) line
-          (new-clang-loc-col obj) col)
-    offset))
+(defgeneric begin-offset (obj)
+  (:method ((obj new-clang-ast))
+    (begin-offset (aget :range (new-clang-ast-attrs obj))))
+  (:method ((obj new-clang-range))
+    (offset (new-clang-range-begin obj))))
 
-(defmethod (setf offset) ((offset integer) (obj new-clang-macro-loc))
-  ;; Do nothing on macro locs
-  ;; It may be possible to do better, but for now just give up
-  offset)
-
-(defgeneric all-offsets (obj))
-(defmethod all-offsets ((obj new-clang-ast))
-  (append
-   (let ((range (aget :range (new-clang-ast-attrs obj))))
-     (all-offsets range))
-   (reduce #'append
-           (ast-children obj)
-           :key #'all-offsets
-           :initial-value nil)))
-(defmethod all-offsets ((obj new-clang-range))
-  (append (all-offsets (new-clang-range-begin obj))
-          (all-offsets (new-clang-range-end obj))))
-(defmethod all-offsets ((obj new-clang-loc))
-  (awhen (offset obj)
-         (list it)))
-(defmethod all-offsets ((offset integer)) (list offset))
-(defmethod all-offsets (x) (declare (ignorable x))  nil)
-
-(defgeneric begin-offsets (obj)
-  (:documentation "List of unique BEGIN offsets in the AST"))
-(defmethod begin-offsets ((obj new-clang-ast))
-  (append
-   (let ((range (ast-attr obj :range)))
-     (begin-offsets range)
-     (reduce #'append
-             (ast-children obj)
-             :key #'begin-offsets
-             :initial-value nil))))
-(defmethod begin-offsets ((obj new-clang-range))
-  (begin-offsets (new-clang-range-begin obj)))
-(defmethod begin-offsets ((obj new-clang-loc))
-  (awhen (offset obj)
-         (list it)))
-(defmethod begin-offsets ((offset integer)) (list offset))
-
-(defgeneric end-offsets (obj)
-  (:documentation "List of unique END offsets in the AST"))
-(defmethod end-offsets ((obj new-clang-ast))
-  (append
-   (let ((range (ast-attr obj :range)))
-     (end-offsets range)
-     (reduce #'append
-             (ast-children obj)
-             :key #'end-offsets
-             :initial-value nil))))
-(defmethod end-offsets ((obj new-clang-range))
-  (end-offsets (new-clang-range-end obj)))
-(defmethod end-offsets ((obj new-clang-loc))
-  (awhen (offset obj)
-         (list it)))
-(defmethod end-offsets ((offset integer)) (list offset))
-
-(defgeneric begin-offset (obj))
-(defmethod begin-offset (obj) (declare (ignorable obj)) nil)
-(defmethod begin-offset ((obj new-clang-ast))
-  (begin-offset (aget :range (new-clang-ast-attrs obj))))
-(defmethod begin-offset ((obj new-clang-range))
-  (offset (new-clang-range-begin obj)))
-
-(defgeneric end-offset (obj))
-(defmethod end-offset (obj) (declare (ignorable obj)) nil)
-(defmethod end-offset ((obj new-clang-ast))
-  (end-offset (aget :range (new-clang-ast-attrs obj))))
-(defmethod end-offset ((obj new-clang-range))
-  (offset (new-clang-range-end obj)))
-
-(defun unique-offsets (offsets)
-  (sort (remove-duplicates offsets) #'<))
-
-(defun all-unique-offsets (sw obj)
-  (unique-offsets
-   (let ((*soft* sw))
-     (all-offsets obj))))
+(defgeneric end-offset (obj)
+  (:method ((obj new-clang-ast))
+    (end-offset (aget :range (new-clang-ast-attrs obj))))
+  (:method ((obj new-clang-range))
+    (offset (new-clang-range-end obj))))
 
 (defgeneric tok-len (x)
   (:method ((x new-clang-loc)) (new-clang-loc-tok-len x))
@@ -2475,20 +2396,20 @@ output from CL-JSON"
 ;;; Compute beginning, ending offsets for an ast, other things
 ;;; The end offset is one past the last character in the ast-text
 ;;; for the ast
-(defgeneric begin-and-end-offsets (x))
-(defmethod begin-and-end-offsets ((obj new-clang-ast))
-  (let ((range (ast-attr obj :range)))
-    (begin-and-end-offsets range)))
-(defmethod begin-and-end-offsets ((obj new-clang-range))
-  (let ((end (new-clang-range-end obj)))
-    (values (begin-offset obj)
-            (when end
-              (when-let ((end-offset (offset end))
-                         (tok-len (tok-len end)))
-                (+ end-offset tok-len))))))
-(defmethod begin-and-end-offsets ((obj null))
-  (declare (ignorable obj))
-  (values nil nil))
+(defgeneric begin-and-end-offsets (x)
+  (:method ((obj new-clang-ast))
+    (let ((range (ast-attr obj :range)))
+      (begin-and-end-offsets range)))
+  (:method ((obj new-clang-range))
+    (let ((end (new-clang-range-end obj)))
+      (values (begin-offset obj)
+              (when end
+                (when-let ((end-offset (offset end))
+                           (tok-len (tok-len end)))
+                  (+ end-offset tok-len))))))
+  (:method ((obj null))
+    (declare (ignorable obj))
+    (values nil nil)))
 
 (defun extended-end-offset (x)
   (nth-value 1 (begin-and-end-offsets x)))
@@ -2604,9 +2525,7 @@ in a CXXOperatorCallExpr node.")
                    (subseq c 0 actual-pos)
                    (subseq c (1+ actual-pos))))))))))
 
-(defun decorate-ast-with-strings (sw ast &aux (*soft* sw)
-                                           (genome (genome sw)))
-  ;; get ast from sw?
+(defun decorate-ast-with-strings (sw ast &aux (genome (genome sw)))
   (labels
       ((%assert1 (i cbegin c)
          (assert (>= cbegin i) ()
@@ -2622,11 +2541,9 @@ in a CXXOperatorCallExpr node.")
          ;; that are placed between the children.  Do not
          ;; place strings for children for whom offsets
          ;; cannot be computed
-;;; (format t "Decorating ~a~%" a)
          (let ((children (ast-children a)))
            (multiple-value-bind (begin end)
                (begin-and-end-offsets a)
-;;; (format t "B/E offsets of ~a: ~a ~a~%" a begin end)
              (when (and begin end)
                (let ((i begin))
                  (setf
@@ -2640,13 +2557,10 @@ in a CXXOperatorCallExpr node.")
                         (when cbegin
                           (unless (eq :Combined (ast-class a))
                             (%assert1 i cbegin c))
-;;; (format t "Collecting ~a to ~a for ~a~%" i cbegin c)
                           (collect (%safe-subseq genome i cbegin))
                           (setf i cend))))
                     (collect c))
-                   (progn
-;;; (format t "Collecting ~a to ~a at end of ~a~%" i end a)
-                     (list (%safe-subseq genome i end)))))))))))
+                   (list (%safe-subseq genome i end))))))))))
     (map-ast ast #'%decorate))
   ast)
 
@@ -2665,9 +2579,7 @@ text ranges in the source do not overlap, if possible."
                  (member (ast-class (car child-asts))
                          '(:var :field)))
         (setf prev (car child-asts))
-        (setf pos (begin-offset prev))
-        #+debug-fix-vardecl (format t "Starting var: name = ~a~%"
-                                    (ast-name prev)))
+        (setf pos (begin-offset prev)))
       (do* ((e (cdr child-asts) (cdr e))
             (c (car e) (car e)))
            ((null e))
@@ -2676,21 +2588,11 @@ text ranges in the source do not overlap, if possible."
                   (end (end-offset c)))
               (if (member (ast-class c) '(:var :field))
                   (progn
-                    #+debug-fix-vardecl
-                    (progn
-                      (format t "Next var: name = ~a~%" (ast-name c))
-                      (format t "prev = ~a, pos = ~a, (end-offset prev)~
-                                 = ~a, c = ~a, next-pos = ~a, end = ~a~%"
-                              prev pos (end-offset prev) c next-pos end))
                     (if prev
                         (if (and next-pos end)
                             (if (< (end-offset prev) next-pos)
                                 ;; things are fine -- no overlap
-                                (progn
-                                  #+debug-fix-vardecl
-                                  (format t "Fine -- no overlap~%")
-                                  (setf prev c
-                                        pos next-pos))
+                                (setf prev c pos next-pos)
                                 ;; There is overlap -- find the next
                                 ;; position
                                 (let ((comma-pos
@@ -2698,7 +2600,6 @@ text ranges in the source do not overlap, if possible."
                                                  (lambda (c) (eql c #\,))
                                                  :start pos
                                                  :end (1+ end))))
-                                  #+debug-fix-vardecl (format t "Overlap~%")
                                   (if comma-pos
                                       (setf pos (1+ comma-pos)
                                             (offset c) pos
@@ -2759,7 +2660,6 @@ ranges into 'combined' nodes.  Warn when this happens."
         (genome (genome sw)))
     (declare (ignorable genome))
     (flet ((%check (a)
-             #+cos-debug (format t "Enter %check on ~a~%" a)
              (let ((end 0)
                    changed? accumulator)
                (flet ((%sorted-children (children)
@@ -2787,85 +2687,57 @@ ranges into 'combined' nodes.  Warn when this happens."
                                  (new-end (reduce #'max accumulator
                                                   :key #'extended-end-offset)))
                              (prog1
-                                 (if (eql new-begin new-end)
-                                     (progn
-                                       #+cos-debug
-                                       (format t "No combination needed~&")
-                                       accumulator)
-                                     (progn
-                                       (setf changed? t)
-                                       #+cos-debug
+                                 (unless (eql new-begin new-end)
+                                   (setf changed? t)
+                                   (if (and (= (length accumulator) 2)
+                                            (eql (ast-class (car accumulator)) :typedef))
+                                       ;; Special case: there are two nodes, and the first is a typedef
+                                       ;; In that case, make the second a child of the first
                                        (progn
-                                         (format t "Combining ~a overlapping asts over [~a,~a):~%"
-                                                 (length accumulator) new-begin new-end)
-                                         (format t "Combined asts are:~%~{~a~%~}" accumulator)
-                                         (format t "~a~%" (subseq genome new-begin new-end))
-                                         (format t "------------------------------------------------------------~%"))
-                                       (if (and (= (length accumulator) 2)
-                                                (eql (ast-class (car accumulator)) :typedef))
-                                           ;; Special case: there are two nodes, and the first is a typedef
-                                           ;; In that case, make the second a child of the first
-                                           (progn
-                                             (push (cadr accumulator) (ast-children (car accumulator)))
-                                             (list (car accumulator)))
-                                           ;; Otherwise, create a "Combined" node with the children as the
-                                           ;; overlapping ASTs.  Previously, the overlapping children
-                                           ;; where stored in a "subsumed" attribute instead of as
-                                           ;; the children field.  However, this led to issue when writing
-                                           ;; out the file as `source-text` relies on the children field.
-                                           ;; Further, it required special case logic for all methods
-                                           ;; which call `ast-children` (e.g. replace-in-ast,
-                                           ;; replace-nth-child, remove-ast, replace-ast, insert-ast,
-                                           ;; map-ast, map-ast-strings, map-ast-with-ancestor,
-                                           ;; get-immediate-children, etc.).  By making the overlapping
-                                           ;; nodes children of the combined node, we only need special
-                                           ;; case logic when writing out the source text of the combined
-                                           ;; AST which is less error-prone than the converse.
-                                           (list (make-new-clang-ast
-                                                  :class :combined
-                                                  :children accumulator
-                                                  :attrs `((:range . ,(make-new-clang-range
-                                                                       :begin new-begin
-                                                                       :end new-end))
-                                                           (:source-text .
-                                                                         ,(subseq genome
-                                                                                  new-begin
-                                                                                  new-end))))))))
+                                         (push (cadr accumulator) (ast-children (car accumulator)))
+                                         (list (car accumulator)))
+                                       ;; Otherwise, create a "Combined" node with the children as the
+                                       ;; overlapping ASTs.  Previously, the overlapping children
+                                       ;; where stored in a "subsumed" attribute instead of as
+                                       ;; the children field.  However, this led to issue when writing
+                                       ;; out the file as `source-text` relies on the children field.
+                                       ;; Further, it required special case logic for all methods
+                                       ;; which call `ast-children` (e.g. replace-in-ast,
+                                       ;; replace-nth-child, remove-ast, replace-ast, insert-ast,
+                                       ;; map-ast, map-ast-strings, map-ast-with-ancestor,
+                                       ;; get-immediate-children, etc.).  By making the overlapping
+                                       ;; nodes children of the combined node, we only need special
+                                       ;; case logic when writing out the source text of the combined
+                                       ;; AST which is less error-prone than the converse.
+                                       (list (make-new-clang-ast
+                                              :class :combined
+                                              :children accumulator
+                                              :attrs `((:range . ,(make-new-clang-range
+                                                                   :begin new-begin
+                                                                   :end new-end))
+                                                       (:source-text .
+                                                                     ,(subseq genome
+                                                                              new-begin
+                                                                              new-end)))))))
                                (setf accumulator nil)))))))
                  (unless (eq :combined (ast-class a))
                    (let ((new-children
                           (append
                            ;; Find child ASTs and sort them in textual order.
                            (iter (for c in (%sorted-children (ast-children a)))
-                                 #+cos-debug (format t "end = ~a~%" end)
                                  (multiple-value-bind (cbegin cend)
                                      (begin-and-end-offsets c)
                                    (if (and cbegin end cend (< cbegin end))
+                                       (setf accumulator
+                                             (append accumulator (list c))
+                                             end (max end cend))
                                        (progn
-                                         #+cos-debug
-                                         (when accumulator
-                                           (format t "Adding (~a,~a):~%~a~&"
-                                                   cbegin cend
-                                                   (subseq genome cbegin cend)))
-                                         (setf accumulator
-                                               (append accumulator (list c))
-                                               end (max end cend)))
-                                       (progn
-                                         #+cos-debug
-                                         (format
-                                          t "No overlap: cbegin = ~a, cend = ~a~%"
-                                          cbegin cend)
                                          (appending (%combine))
                                          (setf accumulator (list c)
                                                end cend)))))
                            (%combine))))
                      (when changed?
-                       #+cos-debug (format
-                                    t "Old-children: ~a~%New-children: ~a~%"
-                                    (ast-children a)
-                                    new-children)
-                       (setf (ast-children a) new-children))))))
-             #+cos-debug (format t "Leave %check on ~a~%" a)))
+                       (setf (ast-children a) new-children))))))))
       (map-ast ast #'%check))))
 
 (defgeneric record-typedef-decls (obj ast)
