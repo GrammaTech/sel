@@ -757,16 +757,16 @@ suspect individual nodes are from 0 (not suspect) to 1 (fully suspect).
 If these tags are present, randomly generate a cutoff and filter out
 nodes below that cutoff.  This can result in an empty set -- in this case,
 return the original pool."
-
   (if (member :fl-weight (flatten (mapcar #'ast-annotations pool)))
       (labels ((fl-weight (ast)
-                 (let ((elt (find-if (lambda (ann) (member :fl-weight ann))
-                                     (ast-annotations ast))))
-                   elt)))
+                 (let ((elt (find :fl-weight (ast-annotations ast) :key #'car)))
 
+                   (if elt (cdr elt) 0.5)))) ; if no FL info, return 0.5
+                                        ; Note: this gives "even chance" on picking things that didn't
+                                        ; appear in the trace -- should adjust based on needs/strategy
         (let* ((cutoff (random 1.0))
                (filtered-lst (remove-if-not (lambda (stmt)
-                                              (> (cdr (fl-weight stmt)) cutoff))
+                                              (> (fl-weight stmt) cutoff))
                                             pool)))
           (if filtered-lst  ;if non-empty
               filtered-lst  ;return it

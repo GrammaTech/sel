@@ -58,9 +58,14 @@ on the filesystem at BIN."
   #-ccl (declare (values t fixnum string string string))
   (setf bin (namestring bin))
   (with-temp-file-of (src (ext obj)) (genome-string obj)
-    (multiple-value-bind (stdout stderr errno)
+                     (multiple-value-bind (stdout stderr errno)
         (shell "~a ~a -o ~a ~{~a~^ ~}" (compiler obj) src bin (flags obj))
-      (restart-case
+                                        ;       (shell "cp ~a ~aBAK" src src)
+                                        ;       (shell "cp ~a ~aBAK" bin bin)
+                                        ;       (note 0 "SRC: ~a (cp ~a ~aBAK)" src src src)
+                                        ;       (note 0 "BIN: ~a (cp ~a ~aBAK)" bin bin bin)
+
+                       (restart-case
           (unless (zerop errno)
             (error (make-condition 'phenome :text stderr :obj obj :loc src)))
         (retry-project-build ()

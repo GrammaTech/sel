@@ -3711,6 +3711,7 @@ template brackets < and >."
 ;; Note: annotation lines for new-clang objects must have the following format:
 ;; "source_file.c" 14 :tag   (i.e., "file line-num annotations...")
 (defun match-ast-file-line (ast ann-line)
+  "Given a file/line-based annotation, match against ast location info."
   (let ((loc (new-clang-range-begin (ast-range ast))))
     (if (numberp loc)
         nil  ; the root node has "0" for a range
@@ -3726,8 +3727,20 @@ and sets the annotation accordingly, based on type"
          (stripped-anns-lst (mapcar #'(lambda (elt) (cdr (cdr elt))) anns-lst)))
     (setf (ast-annotations ast) (append stripped-anns-lst cur-anns))))
 
+(defun annotate-line-nums (ast)
+  "Add line numbers to annotations, generally for debugging purposes"
+  (let* ((cur-anns (ast-annotations ast)))
+                                        ;pull off the location info
+    (let ((loc (new-clang-range-begin (ast-range ast))))
+      (unless (numberp loc)
+        (let* ((line (new-clang-loc-line loc))
+               (more-anns (append (list (cons :line line)) cur-anns)))
+          (setf (ast-annotations ast) more-anns))))))
+
 ;;new-clang annotation format is (file line <arbitrary-annotations>)
 (defmethod decorate-with-annotations (obj ast)
+  "When *ast-annotations-file* is set, read and decorate obj asts
+with the associated annotations, filtering on file/line location info."
   (when *ast-annotations-file*
     (let* ((cur-file (original-file obj))
            (all-anns (with-open-file (stream *ast-annotations-file*)

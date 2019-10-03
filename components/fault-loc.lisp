@@ -19,7 +19,8 @@
         :software-evolution-library/software/new-clang
         :software-evolution-library/software/project
         :software-evolution-library/components/test-suite)
-  (:export :stmts-in-file
+  (:export :*fl-strategy*
+           :stmts-in-file
            :error-funcs
            :rinard
            :rinard-compare
@@ -27,9 +28,14 @@
            :rinard-write-out
            :rinard-read-in
            :collect-fault-loc-traces
+           :perform-fl
+           :fl-tarantula
            :fl-only-on-bad-traces))
 (in-package :software-evolution-library/components/fault-loc)
 (in-readtable :curry-compose-reader-macros)
+
+;; The strategy to employ when marking AST nodes with 'suspect' weights
+                                        ;(defvar *fl-strategy* #'fl-tarantula)
 
 (defgeneric collect-fault-loc-traces (bin test-suite read-trace-fn
                                       &optional fl-neg-test)
@@ -317,11 +323,34 @@ which maps (test-casel: position)"
 (defun bad-trace-count (stmt)
   (length (remove-if-not (lambda (elt) (equal :bad elt)) (flatten (ast-annotations stmt)))))
 
+;; Annotations are deployed on AST objects, thus anything that implements
+;; "ast-root" and "stmt-asts" can use FL (this should be anything "clang" or below).
+;; This function serves to as an interface to hide the chosen fault loc strategy
+(defmethod perform-fl ((obj clang-base))
+  (fl-tarantula obj))
+                                        ;  (fl-only-on-bad-traces obj))
+
+;; Implement well-known Tarantula "score" by Jones et al. -- note: here
+;; we use the inverse, scoring "suspect" statements high rather than low.
+(defmethod fl-tarantula ((obj clang-base))
+  (let* ((ast (ast-root obj))
+         (stmts (stmt-asts ast)))
+    (loop for stmt in stmts
+       collect
+         (let* ((bad (bad-trace-count stmt))
+                (good (good-trace-count stmt)))
+           (when (or (> bad 0) (> good 0)) ;any trace info
+             (let ((score (/ (float (bad-trace-count stmt))
+                             (float (+ (bad-trace-count stmt)
+                                       (good-trace-count stmt))))))
+               (progn (setf (ast-annotations stmt)
+                            (append (ast-annotations stmt)
+                                    (list (cons :fl-weight score))))
+                      (cons stmt score))))))))
+
 ;; prioritize stmts that ONLY occur on bad traces
 ;; return list of "stmt, suspect" pairs and add pair to each ast's annotation list
 (defmethod fl-only-on-bad-traces ((obj clang-base))
-  ;; annotations are deployed on AST objects, thus anything that implements
-  ;; "ast-root" and "stmt-asts" can use FL (this should be anything "clang" or below).
   (let* ((ast (ast-root obj))
          (stmts (stmt-asts ast)))
     (loop for stmt in stmts
@@ -337,3 +366,4 @@ which maps (test-casel: position)"
                            (append (ast-annotations stmt)
                                    (list (cons :fl-weight 0.1))))
                      (cons stmt 0.1))))))
+
