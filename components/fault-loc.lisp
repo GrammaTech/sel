@@ -19,8 +19,7 @@
         :software-evolution-library/software/new-clang
         :software-evolution-library/software/project
         :software-evolution-library/components/test-suite)
-  (:export :*fl-strategy*
-           :stmts-in-file
+  (:export :stmts-in-file
            :error-funcs
            :rinard
            :rinard-compare
@@ -33,9 +32,6 @@
            :fl-only-on-bad-traces))
 (in-package :software-evolution-library/components/fault-loc)
 (in-readtable :curry-compose-reader-macros)
-
-;; The strategy to employ when marking AST nodes with 'suspect' weights
-                                        ;(defvar *fl-strategy* #'fl-tarantula)
 
 (defgeneric collect-fault-loc-traces (bin test-suite read-trace-fn
                                       &optional fl-neg-test)
