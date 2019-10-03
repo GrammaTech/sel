@@ -438,9 +438,9 @@ which the ast sits, if that is useful for computing the includes.")
   (declare (ignorable ast-class ast))
   t)
 
-(defun make-statement (&rest args)
-  (declare (special *make-statement-fn*))
-  (apply *make-statement-fn* args))
+;; (defun make-statement (&rest args)
+;;  (declare (special *make-statement-fn*))
+;;  (apply *make-statement-fn* args))
 
 (defun make-statement* (class syn-ctx children
                         &key expr-type full-stmt guard-stmt opcode

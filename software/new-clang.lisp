@@ -2120,7 +2120,11 @@ NIL indicates no value."))
 
 ;;;;
 
-(declaim (special *make-statement-fn*))
+(defun make-statement (&rest args)
+  (apply (if *new-clang?*
+             #'make-statement-new-clang
+             #'sel/sw/clang::make-statement*)
+         args))
 
 (defun make-statement-new-clang (class syn-ctx children
                                  &key full-stmt guard-stmt opcode declares
