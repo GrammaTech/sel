@@ -258,6 +258,7 @@
            :evaluate-asm
            :leaf-functions
            :parse-sanity-file
+           :restore-original-addresses
            :*optimize-included-lines*
            :*inline-included-lines*
            :*size-affects-fitness*
@@ -268,7 +269,6 @@
 
 (in-package :software-evolution-library/software/asm-super-mutant)
 (in-readtable :curry-compose-reader-macros)
-
 (define-software asm-super-mutant (asm-heap super-mutant)
   ((input-spec
     :initarg :input-spec
@@ -1225,11 +1225,6 @@ a symbol, the SYMBOL-NAME of the symbol is used."
                                            (> addr (- rsp-val
                                                       *system-stack-size*)))))
                                   (input-specification-mem spec)))))))
-#|
-need to do same for output-spec
-
-|#
-
 
 (defun add-bss-section (asm-variants asm-super)
   ;; if bss section found, add it
@@ -1570,6 +1565,10 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
 ;;;
 (defun generate-file (asm-super output-path number-of-variants)
   (let ((asm-variants (make-instance 'asm-heap :super-owner asm-super)))
+    (if (input-spec asm-super)
+        (remove-mem-below-sp (input-spec asm-super)))
+    (if (output-spec asm-super)
+        (remove-mem-below-sp (output-spec asm-super)))
     (setf (lines asm-variants) (list))  ;; empty heap
     (add-prolog asm-variants number-of-variants (target-info asm-super)
 		(asm-syntax asm-super))
@@ -1988,14 +1987,20 @@ not included in the disassembly file). Returns a vector of var-rec."
 	     (find "b" (var-table asm-super) :test 'equal :key 'var-rec-type)))
 	(var-rec-address first-bss-var))))
 
+(defun restore-original-addresses (asm)
+  "If any rip-relative addresses have been converted to
+absolute, for evaluation, restore them to the original
+instructions."
+  (dotimes (i (length (genome asm)))
+    (restore-rip-relative-address asm i)))
+
 (defmethod to-file :before ((asm asm-heap) file)
   "Save the assembly for ASM to FILE.
 If any rip-relative addresses have been converted to
 absolute, for evaluation, restore them to the original
 instructions."
   ;; ensure any rip-relative addresses are converted to absolute
-  (dotimes (i (length (genome asm)))
-    (restore-rip-relative-address asm i)))
+  (restore-original-addresses asm))
 
 (defparameter *rip-rel-pattern* "[0-9A-Fa-fxX]*\\(\\%rip\\)"
   "Pattern matches rip-relative addresses in AT&T.

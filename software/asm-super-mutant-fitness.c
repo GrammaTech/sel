@@ -40,6 +40,9 @@ extern vfunc variant_table[]; // 0-terminated array of variant
 #define PAGE_SIZE 4096
 #define PAGE_MASK 0xfffffffffffff000
 
+// allocate pages for the first 16k of stack (below current rsp)
+#define INIT_STACK_PAGES (0x4000 / PAGE_SIZE)
+
 extern unsigned long input_regs[];
 extern unsigned long output_regs[];
 extern unsigned long input_mem[];
@@ -256,8 +259,19 @@ int map_input_pages(unsigned long* p) {
 }
 
 int init_pages() {
-    // map the initial stack page
-    map_output_page((unsigned long*)(input_regs[RSP_position(live_input_registers)]));
+    // map the initial stack page and another 1 meg of stack pages
+    int rsp_index = RSP_position(live_input_registers);
+    
+    for (int i = 0; i < num_tests; i++) {
+        unsigned long stack_pos =
+            input_regs[(i * num_input_registers) + rsp_index];
+
+        for (int i = 0; i < INIT_STACK_PAGES; i++) {
+            map_output_page((unsigned long*)stack_pos);
+            stack_pos -= PAGE_SIZE;
+        }
+    }
+    
     int ret =  map_input_pages(input_mem); // map pages indicated by
                                            // the memory i/o
     ret |= map_output_pages(output_mem);
