@@ -365,7 +365,7 @@ int check_results(int variant, int test) {
     // skip to the indicated test, by advancing past (test - 1) 0
     // words (qwords containing 0)
     unsigned long count = test;
-    while (count > 0) {
+    while (count > 0 && *p != 0) {
         do { p += 3; } while (*p != 0);
         p++;  // advance p to start of next test data
         count--;

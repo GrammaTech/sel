@@ -650,8 +650,19 @@
 	  ((null line)
            (when (or
                   (> (length (input-specification-regs output-spec)) 0)
-                  (> (length (input-specification-mem output-spec)) 0))
-	     (vector-push-extend output-spec (output-spec super-asm))))
+                  (> (length (input-specification-regs input-spec)) 0)
+                  (> (length (input-specification-mem output-spec)) 0)
+                  (> (length (input-specification-mem input-spec)) 0))
+             ;; ensure callee-saved registers are preserved
+             (create-required-reg-specs input-spec output-spec)
+             (setf (input-specification-regs input-spec)
+                   (sort-reg-contents
+                    (input-specification-regs input-spec)))
+             (setf (input-specification-regs output-spec)
+                   (sort-reg-contents
+                    (input-specification-regs output-spec)))
+             (vector-push-extend input-spec (input-spec super-asm))
+             (vector-push-extend output-spec (output-spec super-asm))))
 	(cond ((zerop (length line))) ; do nothing, empty line
 	      ((search "Input data" line)
                ;; store the previous input/output set (if any)
@@ -661,7 +672,8 @@
                  ;; ensure callee-saved registers are preserved
                  (create-required-reg-specs input-spec output-spec)
                  (setf (input-specification-regs input-spec)
-                       (sort-reg-contents (input-specification-regs input-spec)))
+                       (sort-reg-contents
+                        (input-specification-regs input-spec)))
                  (setf (input-specification-regs output-spec)
                        (sort-reg-contents
                         (input-specification-regs output-spec)))
