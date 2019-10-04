@@ -1,0 +1,11 @@
+re_set_syntax:
+            pushq %rbp # orig ea=0x402d09
+            movq %rsp,%rbp # orig ea=0x402d0a
+            movl %edi,-20(%rbp) # orig ea=0x402d0d
+            movl 2193226(%rip),%eax # orig ea=0x402d10
+            movl %eax,-4(%rbp) # orig ea=0x402d16
+            movl -20(%rbp),%eax # orig ea=0x402d19
+            movl %eax,2193214(%rip) # orig ea=0x402d1c
+            movl -4(%rbp),%eax # orig ea=0x402d22
+            popq %rbp # orig ea=0x402d25
+            retq  # orig ea=0x402d26
