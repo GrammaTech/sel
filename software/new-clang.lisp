@@ -427,6 +427,32 @@ macro objects from these, returning a list."
   ;; aux data
   (aux-data nil :type list))
 
+(defmethod to-alist ((ast new-clang-ast))
+  (flet ((%p (key fn)
+           (let ((v (funcall fn ast)))
+             (when v
+               (list (cons key v))))))
+    (append (%p ':class #'new-clang-ast-class)
+            ;; (%p ':name #'ast-name)
+            (%p ':id #'new-clang-ast-id)
+            ;; Always include :attrs, as it distinguishes
+            ;; new-clang from (old) clang serialized asts
+            `((:attrs . ,(new-clang-ast-attrs ast)))
+            (%p ':syn-ctx #'new-clang-ast-syn-ctx)
+            (%p ':aux-data #'new-clang-ast-aux-data))))
+
+(defmethod from-alist ((obj (eql 'new-clang-ast)) alist)
+  (let ((class (aget :class alist))
+        (id (aget :id alist))
+        (attrs (aget :attrs alist))
+        (syn-ctx (aget :syn-ctx alist))
+        (aux-data (aget :aux-data alist)))
+    (make-new-clang-ast :class class
+                        :id id
+                        :attrs attrs
+                        :syn-ctx syn-ctx
+                        :aux-data aux-data)))
+
 ;;; TODO: identify which of these generic accessors should be read only,
 ;;;  beyond those that refer to read-only fields in new-clang-ast.
 ;;;  For those, remove the SETF method, or at least make it error
