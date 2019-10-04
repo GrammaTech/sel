@@ -798,13 +798,24 @@ that is not strictly speaking about types at all (storage class)."))
   (if (logtest +restrict+ (new-clang-type-modifiers tp)) t nil))
 
 (defmethod type-reqs ((tp+ nct+))
-  (remove-duplicates
-   (mapcar #'make-nct+ (type-reqs (nct+-type tp+)))))
+  (mapcar #'make-nct+
+          (remove-duplicates
+           (type-reqs (nct+-type tp+)))))
 (defmethod slot-unbound (class (obj new-clang-type) (slot (eql 'reqs)))
   ;; Find all the types required by this type
   ;; Currently, this is a stub
   ;; The proper implemenetation must walk over the type
-  (setf (slot-value obj slot) nil))  ;; stub
+  (setf (slot-value obj slot) nil)) ;; stub
+
+(defun type-substrings (str)
+  "Returns substrings of STR that are possibly relevant as types"
+  (let ((result nil))
+    (cl-ppcre:do-matches
+        (s e
+           "((struct|union)[ ]+|)[a-zA-Z_:][a-zA-Z_0-9:]*"
+           str)
+      (push (subseq str s e) result))
+    (nreverse result)))
 
 (defmethod slot-unbound (class (obj new-clang-type) (slot (eql 'array)))
   (declare (ignorable class))
