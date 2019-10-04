@@ -593,7 +593,12 @@ storage classes.")
          :initarg :hash
          :initform (incf (hash-counter *soft*))
          :documentation "A hash code assigned to type
-objects, for compatibility with old clang"))
+objects, for compatibility with old clang")
+   (reqs :accessor type-reqs
+         :initarg :reqs
+         :type list ;; of new-clang-type objects
+         :documentation "List of types that are required to understand
+this type."))
   (:documentation "Objects representing C/C++ types.  Canonicalized
 on QUAL and DESUGARED slots."))
 
@@ -689,16 +694,14 @@ that is not strictly speaking about types at all (storage class)."))
           ;; out what the name should be.  Recontruct the name
           ;; using the keyword arguments to
           ;; trace-string-to-clang-json-string
-          (let ((tp3 (make-new-clang-type
+          (make-nct+ (make-new-clang-type
                       :qual (trace-string-to-clang-json-string
                              (type-name tp2)
                              :pointer (type-pointer tp0)
                              :const (type-const tp0)
                              :volatile (type-restrict tp0)
                              :restrict (type-restrict tp0)
-                             :array (type-array tp0)))))
-            (or (find :none (new-clang-type-nct+-list tp3))
-                (make-nct+ tp3)))))
+                             :array (type-array tp0))))))
       nct))
 
 (defmethod type-trace-string ((type nct+) &key qualified)
@@ -793,6 +796,15 @@ that is not strictly speaking about types at all (storage class)."))
   (type-restrict (nct+-type tp+)))
 (defmethod type-restrict ((tp new-clang-type))
   (if (logtest +restrict+ (new-clang-type-modifiers tp)) t nil))
+
+(defmethod type-reqs ((tp+ nct+))
+  (remove-duplicates
+   (mapcar #'make-nct+ (type-reqs (nct+-type tp+)))))
+(defmethod slot-unbound (class (obj new-clang-type) (slot (eql 'reqs)))
+  ;; Find all the types required by this type
+  ;; Currently, this is a stub
+  ;; The proper implemenetation must walk over the type
+  (setf (slot-value obj slot) nil))  ;; stub
 
 (defmethod slot-unbound (class (obj new-clang-type) (slot (eql 'array)))
   (declare (ignorable class))
