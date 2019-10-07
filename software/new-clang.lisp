@@ -73,7 +73,7 @@
 ;;;  new-clang object before invoking the next method.
 
 (declaim (special *soft*))
-(declaim (special *canonical-string-table* *current-line*))
+(declaim (special *canonical-string-table* *current-offset*))
 
 #-windows
 (defun get-clang-default-includes ()
@@ -121,7 +121,7 @@ These are required as -I flags as invoking clang -cc1 (required for ast-dump)
 only invokes the clang front-end.
 See also: https://clang.llvm.org/docs/FAQ.html#id2.")
 
-(define-software new-clang (clang-base genome-lines-mixin)
+(define-software new-clang (clang-base)
   (;; FIXME: Need to cache invalidate and re-populate properly.
    (symbol-table
     :initarg :symbol-table :accessor symbol-table
@@ -1515,18 +1515,76 @@ on various ast classes"))
 (defmethod ast-var-declarations ((ast new-clang-ast))
   (ast-var-declarations* ast))
 
-;;; Structures for various attribute values
+
+;;; Structures and functions relating to genome locations.
 
-(defstruct new-clang-range begin end)
-;; Locations may also be integers, which represent absolute
-;; character positions in source genome
-(defstruct new-clang-loc col file line tok-len)
+(defstruct new-clang-loc
+  "Structure used to represent a location within a clang-parseable file."
+  (file nil :type (or null string))
+  (offset 0 :type (or null integer))
+  (tok-len 0 :type (or null integer)))
+
 (defstruct new-clang-macro-loc
   "Structure used to represent :begin/:end entries for
 things in macro expansion.  SPELLING-LOC is the location
 in the macro defn, EXPANSION-LOC is at the macro use."
-  spelling-loc expansion-loc is-macro-arg-expansion)
+  (spelling-loc nil :type (or null new-clang-loc))
+  (expansion-loc nil :type (or null new-clang-loc))
+  (is-macro-arg-expansion nil :type boolean))
 
+(defstruct new-clang-range
+  "Structure used to represent the begin and end location of an AST."
+  (begin nil :type (or null new-clang-loc new-clang-macro-loc))
+  (end nil :type (or null new-clang-loc new-clang-macro-loc)))
+
+(defgeneric offset (obj)
+  (:method ((obj new-clang-loc))
+    (new-clang-loc-offset obj))
+  (:method ((obj new-clang-macro-loc))
+    (if (new-clang-macro-loc-is-macro-arg-expansion obj)
+        (offset (new-clang-macro-loc-spelling-loc obj))
+        (offset (new-clang-macro-loc-expansion-loc obj)))))
+
+(defgeneric (setf offset) (offset obj)
+  (:method ((offset integer) (obj new-clang-ast))
+    (setf (offset (new-clang-range-begin (ast-attr obj :range))) offset))
+  (:method ((offset integer) (obj new-clang-loc))
+    (setf (new-clang-loc-offset obj) offset)))
+
+(defgeneric begin-offset (obj)
+  (:method ((obj new-clang-ast))
+    (begin-offset (aget :range (new-clang-ast-attrs obj))))
+  (:method ((obj new-clang-range))
+    (offset (new-clang-range-begin obj))))
+
+(defgeneric end-offset (obj)
+  (:method ((obj new-clang-ast))
+    (end-offset (aget :range (new-clang-ast-attrs obj))))
+  (:method ((obj new-clang-range))
+    (offset (new-clang-range-end obj))))
+
+(defgeneric tok-len (x)
+  (:method ((x new-clang-loc)) (new-clang-loc-tok-len x))
+  (:method ((x new-clang-macro-loc))
+    (if (not (new-clang-macro-loc-is-macro-arg-expansion x))
+        (tok-len (new-clang-macro-loc-spelling-loc x))
+        (tok-len (new-clang-macro-loc-expansion-loc x)))))
+
+;;; Compute beginning, ending offsets for an ast, other things
+;;; The end offset is one past the last character in the ast-text
+;;; for the ast
+(defgeneric begin-and-end-offsets (x)
+  (:method ((obj new-clang-ast))
+    (begin-and-end-offsets (ast-attr obj :range)))
+  (:method ((obj new-clang-range))
+    (values (offset (new-clang-range-begin obj))
+            (+ (offset (new-clang-range-end obj))
+               (tok-len (new-clang-range-end obj))))))
+
+(defun extended-end-offset (x)
+  (nth-value 1 (begin-and-end-offsets x)))
+
+
 (defun make-new-clang-type (&rest keys &key qual desugared typedef
                                          (hash (incf (hash-counter *soft*)))
                                          &allow-other-keys)
@@ -1771,9 +1829,14 @@ the match length if sucessful, NIL if not."
   ;; in the same order they appear in the json, fortunately.
   (let* ((*aget-cache* nil)
          (ast (clang-convert-json json :file file)))
-    (unless (ast-attr ast :range)
-      (let ((range (make-new-clang-range :begin 0 :end genome-len)))
-        (setf (ast-attr ast :range) range)))
+    (setf (ast-attr ast :range)
+          (make-new-clang-range
+           :begin (make-new-clang-loc
+                   :file file
+                   :offset 0)
+           :end (make-new-clang-loc
+                 :file file
+                 :offset genome-len)))
     ast))
 
 (defun clang-convert-json (json &key inner file)
@@ -2029,15 +2092,10 @@ NIL indicates no value."))
   "Special handler for values of loc attributes"
   (if (aget :spellingloc loc-json)
       (convert-macro-loc-json loc-json)
-      (let ((col (aget :col loc-json))
-            (file (cached-aget :file loc-json))
-            (line (cached-aget :line loc-json))
-            (tok-len (aget :toklen loc-json)))
-        (when (stringp file)
-          (setf file (canonicalize-string file)))
-        (when (or col file line)
-          (make-new-clang-loc :col col :file file
-                              :line line :tok-len tok-len)))))
+      (make-new-clang-loc
+       :file (canonicalize-string (cached-aget :file loc-json))
+       :offset (cached-aget :offset loc-json)
+       :tok-len (cached-aget :toklen loc-json))))
 
 (defun convert-macro-loc-json (loc-json)
   "This is the special case of a LOC that has spelling and expansion locs"
@@ -2055,8 +2113,8 @@ NIL indicates no value."))
   "Special handler for values of range attributes"
   (let ((begin (convert-loc-json (aget :begin range-json)))
         (end (convert-loc-json (aget :end range-json))))
-    (if (or begin end)
-        (make-new-clang-range :begin begin :end end))))
+    (when (or begin end)
+      (make-new-clang-range :begin begin :end end))))
 
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :loc)) value)
   (declare (ignorable obj slot))
@@ -2112,9 +2170,9 @@ NIL indicates no value."))
         ,@(when end `((:end . ,(clang-to-list end)))))))
 
 (defmethod clang-to-list ((l new-clang-loc))
-  `((:col . ,(new-clang-loc-col l))
-    (:file . ,(new-clang-loc-file l))
-    (:line . ,(new-clang-loc-line l))))
+  `((:file . ,(new-clang-loc-file l))
+    (:tok-len . ,(new-clang-loc-tok-len l))
+    (:offset . ,(new-clang-loc-offset l))))
 
 (defmethod clang-to-list ((ct new-clang-type))
   (let ((qual (new-clang-type-qual ct))
@@ -2320,7 +2378,7 @@ output from CL-JSON"
                               "type" "file" "range" "end" "begin"
                               "includedFrom" "line" "valueCategory"
                               "inner" "name" "loc" "castKind"
-                              "referencedDecl" "spellingLoc"
+                              "referencedDecl" "spellingLoc" "offset"
                               "expansionLoc" "desugaredQualType")))
                  `(string-case (,s)
                                ,@(iter (for n in names)
@@ -2335,109 +2393,6 @@ output from CL-JSON"
             (vector character))
        (%m str))
       (t (intern (string-upcase str) :keyword)))))
-
-
-;;; Offsets into the genome
-
-(defgeneric offset (obj)
-  (:method ((obj new-clang-loc))
-    (let ((line (new-clang-loc-line obj))
-          (col (new-clang-loc-col obj)))
-      (when (and line col)
-        (+ (elt (genome-line-offsets *soft*) (1- line)) col -1))))
-  (:method ((obj new-clang-macro-loc))
-    (let ((spelling-loc (new-clang-macro-loc-spelling-loc obj))
-          (expansion-loc (new-clang-macro-loc-expansion-loc obj)))
-      (when (typep expansion-loc 'new-clang-loc)
-        (if (new-clang-macro-loc-is-macro-arg-expansion obj)
-            (offset spelling-loc)
-            (offset expansion-loc)))))
-  (:method ((obj integer)) obj))
-
-(defgeneric (setf offset) (offset obj)
-  (:method ((offset integer) (obj new-clang-ast))
-    (if-let ((range (ast-attr obj :range)))
-      (let ((begin (new-clang-range-begin range)))
-        (if (typep begin '(or null integer))
-            (setf (new-clang-range-begin range) offset)
-            (setf (offset begin) offset)))
-      (progn
-        (setf (ast-attr obj :range)
-              (make-new-clang-range :begin offset))
-        offset)))
-  (:method ((offset integer) (obj new-clang-loc))
-    (multiple-value-bind (line col)
-        (offset-to-line-and-col *soft* offset)
-      (setf (new-clang-loc-line obj) line
-            (new-clang-loc-col obj) col)
-      offset)))
-
-(defgeneric begin-offset (obj)
-  (:method ((obj new-clang-ast))
-    (begin-offset (aget :range (new-clang-ast-attrs obj))))
-  (:method ((obj new-clang-range))
-    (offset (new-clang-range-begin obj))))
-
-(defgeneric end-offset (obj)
-  (:method ((obj new-clang-ast))
-    (end-offset (aget :range (new-clang-ast-attrs obj))))
-  (:method ((obj new-clang-range))
-    (offset (new-clang-range-end obj))))
-
-(defgeneric tok-len (x)
-  (:method ((x new-clang-loc)) (new-clang-loc-tok-len x))
-  (:method ((x new-clang-macro-loc))
-    (if (not (new-clang-macro-loc-is-macro-arg-expansion x))
-        (tok-len (new-clang-macro-loc-spelling-loc x))
-        (tok-len (new-clang-macro-loc-expansion-loc x))))
-  (:method ((x integer)) (declare (ignorable x)) 0)
-  (:method (x) (declare (ignorable x)) nil))
-
-;;; Compute beginning, ending offsets for an ast, other things
-;;; The end offset is one past the last character in the ast-text
-;;; for the ast
-(defgeneric begin-and-end-offsets (x)
-  (:method ((obj new-clang-ast))
-    (let ((range (ast-attr obj :range)))
-      (begin-and-end-offsets range)))
-  (:method ((obj new-clang-range))
-    (let ((end (new-clang-range-end obj)))
-      (values (begin-offset obj)
-              (when end
-                (when-let ((end-offset (offset end))
-                           (tok-len (tok-len end)))
-                  (+ end-offset tok-len))))))
-  (:method ((obj null))
-    (declare (ignorable obj))
-    (values nil nil)))
-
-(defun extended-end-offset (x)
-  (nth-value 1 (begin-and-end-offsets x)))
-
-(defun token (loc)
-  (when-let ((offset (offset loc))
-             (len (tok-len loc)))
-    (subseq (genome *soft*) offset (+ offset len))))
-
-;;; Given a list of unique offsets for an AST, and
-;;; the AST, build an alist of (offset . node) pairs, the
-;;; nodes corresponding to those offsets.  Each should be
-;;; the 'last' (in a preodered traversal) node with that
-;;; beginning offset
-
-(defun sorted-list-p (list &optional (cmp-fn #'<=))
-  (every cmp-fn list (cdr list)))
-
-(defun compute-last-nodes-with-offsets (ast)
-  (let ((node-stack nil))
-    (flet ((%add (a)
-             (let ((offset (begin-offset a)))
-               (when offset
-                 (if (eql offset (caar node-stack))
-                     (setf (cdar node-stack) a)
-                     (push (cons offset a) node-stack))))))
-      (mapc-ast ast #'%add))
-    (nreverse node-stack)))
 
 (defgeneric compute-operator-positions (sw ast)
   (:documentation "Compute positions of operators in
@@ -2544,14 +2499,14 @@ in a CXXOperatorCallExpr node.")
          (let ((children (ast-children a)))
            (multiple-value-bind (begin end)
                (begin-and-end-offsets a)
-             (when (and begin end)
+             (when (and begin end (equal (ast-file a) (tmp-file sw)))
                (let ((i begin))
                  (setf
                   (ast-children a)
                   (nconc
                    (iter
                     (for c in children)
-                    (when (ast-p c)
+                    (when (and (ast-p c) (equal (ast-file a) (ast-file c)))
                       (multiple-value-bind (cbegin cend)
                           (begin-and-end-offsets c)
                         (when cbegin
@@ -2625,7 +2580,7 @@ of the ranges of its children"
                (let ((min-begin begin)
                      (max-end end))
                  (iter (for c in (ast-children a))
-                       (when (ast-p c)
+                       (when (and (ast-p c) (equal (ast-file a) (ast-file c)))
                          (multiple-value-bind (cbegin cend)
                              (begin-and-end-offsets c)
                            (when (and cbegin
@@ -2638,12 +2593,15 @@ of the ranges of its children"
                              (setf max-end cend)))))
                  (unless (and (eql min-begin begin)
                               (eql max-end end))
-                   ;; (format t "Expanding range of ~a from (~a,~a)
-                   ;; to (~a,~a)~%" a begin end min-begin max-end)
                    (setf changed? t)
                    (setf (ast-attr a :range)
-                         (make-new-clang-range :begin min-begin
-                                               :end max-end)))))))
+                         (make-new-clang-range
+                          :begin (make-new-clang-loc
+                                  :file (ast-file a)
+                                  :offset min-begin)
+                          :end (make-new-clang-loc
+                                :file (ast-file a)
+                                :offset max-end))))))))
       ;; Fixpoint for normalization of ranges
       (loop
          (setf changed? nil)
@@ -2712,9 +2670,14 @@ ranges into 'combined' nodes.  Warn when this happens."
                                        (list (make-new-clang-ast
                                               :class :combined
                                               :children accumulator
-                                              :attrs `((:range . ,(make-new-clang-range
-                                                                   :begin new-begin
-                                                                   :end new-end))
+                                              :attrs `((:range .
+                                                               ,(make-new-clang-range
+                                                                 :begin (make-new-clang-loc
+                                                                         :file (ast-file (car accumulator))
+                                                                         :offset new-begin)
+                                                                 :end (make-new-clang-loc
+                                                                       :file (ast-file (car accumulator))
+                                                                       :offset new-end)))
                                                        (:source-text .
                                                                      ,(subseq genome
                                                                               new-begin
@@ -2727,7 +2690,8 @@ ranges into 'combined' nodes.  Warn when this happens."
                            (iter (for c in (%sorted-children (ast-children a)))
                                  (multiple-value-bind (cbegin cend)
                                      (begin-and-end-offsets c)
-                                   (if (and cbegin end cend (< cbegin end))
+                                   (if (and cbegin end cend (< cbegin end)
+                                            (equal (ast-file a) (ast-file c)))
                                        (setf accumulator
                                              (append accumulator (list c))
                                              end (max end cend))
@@ -2975,8 +2939,12 @@ macro.")
                                         (new-end (+ (car m) (fourth m))))
                                     (setf (ast-range obj)
                                           (make-new-clang-range
-                                           :begin new-begin
-                                           :end new-end)
+                                           :begin (make-new-clang-loc
+                                                   :file (ast-file a)
+                                                   :offset new-begin)
+                                           :end (make-new-clang-loc
+                                                 :file (ast-file a)
+                                                 :offset new-end))
                                           (ast-attr obj :macro-child-segment)
                                           macro-child-segment
                                           changed? t))
@@ -3017,69 +2985,44 @@ line currently being processed.  The nodes are marked with attribute
 :from-macro"))
 
 (defmethod mark-macro-expansion-nodes (a file)
-  (let ((*current-line* 0))
+  (let ((*current-offset* 0))
     (map-ast a #'(lambda (x) (mark-macro-expansion-at-node x file)))))
 
 (defun mark-macro-expansion-at-node (a file)
   "Determine if this node is a macro expansion.  Possibly advance
-*current-line* if it is not."
+*current-offset* if it is not."
   (let* ((range (ast-attr a :range))
          (begin (and range (new-clang-range-begin range)))
          (end (and range (new-clang-range-end range))))
-    #+mme-debug (format t "range = ~a,~%begin = ~a,~%end = ~a~%"
-                        range begin end)
     (cond
       ((and (typep begin 'new-clang-macro-loc)
             (typep end 'new-clang-macro-loc)
-
-            (or #+mme-debug
-                (and
-                 (not (new-clang-macro-loc-is-macro-arg-expansion end))
-                 (progn (format t "isMacroArgExpansion is false~%")
-                        t))
-                (and (not (equal file (ast-file a t)))
-                     (progn #+mme-debug
-                            (format t "file = ~a, (ast-file a t) = ~a~%"
-                                    file (ast-file a t))
-                            t))
-                ;; This detect if there is stuff here from the macro which must
-                ;; be at an earlier line.  However, it didn't detect the case
-                ;; of an identity macro, which introduces nothing new.  Added
-                ;; a case where lines are the same but the columns detect
-                ;; macro expansion
-                (let* ((slb (new-clang-macro-loc-spelling-loc begin))
-                       (spelling-line (new-clang-loc-line slb)))
-                  (and (or (< spelling-line  *current-line*)
-                           (and (= spelling-line *current-line*)
-                                (> (new-clang-loc-col slb)
-                                   (new-clang-loc-col
-                                    (new-clang-macro-loc-expansion-loc
-                                     begin)))
-                                ;; Mark the node so we know it was a
-                                ;; direct macro arg
-                                (setf (ast-attr a :direct-macro-arg) t)))
-                       (progn
-                         #+mme-debug
-                         (format t "~a = ~a, *current-line* = ~a~%"
-                                 "(new-clang-loc-line (ncmlsl begin))"
-                                 (new-clang-loc-line
-                                  (new-clang-macro-loc-spelling-loc begin))
-                                 *current-line*)
-                         t)))))
+            (or (not (equal file (ast-file a t)))
+                (< (new-clang-loc-offset
+                    (new-clang-macro-loc-spelling-loc begin))
+                   *current-offset*)
+                (new-clang-macro-loc-is-macro-arg-expansion
+                 (new-clang-macro-loc-expansion-loc begin))))
        ;; It's from a macro, mark it
-       #+mme-debug (format t "Marking: ~a~%" a)
        ;; Compute the macro name at the expansion site
-       (when-let* ((eloc (new-clang-macro-loc-expansion-loc begin))
-                   (tok (token eloc)))
-         (setf (ast-attr a :macro-names) (list tok)))
-       (setf (ast-attr a :from-macro) t))
+       (when-let ((eloc (new-clang-macro-loc-expansion-loc begin)))
+         (setf (ast-attr a :macro-names)
+               (subseq (genome *soft*)
+                       (offset eloc)
+                       (+ (offset eloc) (tok-len eloc)))))
+       (if (new-clang-macro-loc-is-macro-arg-expansion
+            (new-clang-macro-loc-expansion-loc begin))
+           (setf (ast-attr a :direct-macro-arg) t)
+           (setf (ast-attr a :from-macro) t)))
       ((typep begin 'new-clang-loc)
-       (setf *current-line* (max *current-line*
-                                 (or (new-clang-loc-line begin) 0))))
+       (setf *current-offset*
+             (max *current-offset*
+                  (or (new-clang-loc-offset begin) 0))))
       ((typep begin 'new-clang-macro-loc)
-       (when-let* ((spelling-loc (new-clang-macro-loc-spelling-loc begin))
-                   (begin-line (new-clang-loc-line spelling-loc)))
-         (setf *current-line* (max *current-line* begin-line)))))))
+       (setf *current-offset*
+             (max *current-offset*
+                  (new-clang-loc-offset
+                   (new-clang-macro-loc-spelling-loc begin))))))))
 
 (defun encapsulate-macro-expansions (a)
   "Given an AST marked with :from-macro annotations, collapse macros into macro
@@ -3136,10 +3079,6 @@ nodes."
                           (while (is-macro-expansion-node (car children))))))
                     (let ((macro-args (macro-expansion-arg-asts
                                        macro-child-segment)))
-                      #+mme-debug
-                      (format t
-                              "Create :MACROEXPANSION node with children ~a~%"
-                              macro-args)
                       (let ((obj (make-new-clang-ast
                                   :class :macroexpansion
                                   :children macro-args)))
@@ -3169,9 +3108,7 @@ They, from left to right, become the children of the macro node."
                      (push x children)))))
       (dolist (a asts)
         (if (ast-attr a :direct-macro-arg)
-            (progn
-              (setf (ast-attr a :from-macro) nil)
-              (push a children))
+            (push a children)
             (mapc #'%traverse (ast-children a)))))
     (nreverse children)))
 
