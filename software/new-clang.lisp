@@ -2931,7 +2931,6 @@ ranges into 'combined' nodes.  Warn when this happens."
                  ast '(:fullcomment :textcomment :paragraphcomment))
                 (compute-operator-positions obj ast)
                 (put-operators-into-inner-positions obj ast)
-                (fix-overlapping-vardecls obj ast)
                 (multiple-value-bind (uses table) (find-macro-uses obj ast tmp-file)
                   (declare (ignorable table uses))
                   ;; (format t "~{~s~%~}" uses)
@@ -2947,6 +2946,11 @@ ranges into 'combined' nodes.  Warn when this happens."
                                       (is-macro-expansion-node o)))))
                   (encapsulate-macro-expansions ast)
                   (%debug 'encapsulate-macro-expansions ast #'%p))
+
+                ;; This was previously before macro expansion encapsulation, but
+                ;; that caused failures
+                (fix-overlapping-vardecls obj ast)
+
                 (fix-ancestor-ranges obj ast)
                 (%debug 'fix-ancestor-ranges ast #'%p)
                 (combine-overlapping-siblings obj ast)
