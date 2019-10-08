@@ -805,6 +805,7 @@ that is not strictly speaking about types at all (storage class)."))
   ;; Find all the types required by this type
   ;; Currently, this is a stub
   ;; The proper implemenetation must walk over the type
+  (declare (ignorable class))
   (setf (slot-value obj slot) nil)) ;; stub
 
 (defun type-substrings (str)
@@ -2389,6 +2390,7 @@ output from CL-JSON"
     ;; string types
     (typecase str
       (simple-base-string (%m str))
+      #-ccl
       ((and simple-string
             (vector character))
        (%m str))
