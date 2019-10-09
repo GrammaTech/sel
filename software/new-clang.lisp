@@ -30,6 +30,7 @@
   (:import-from :anaphora :awhen :it)
   (:import-from :jsown)
   (:import-from :string-case :string-case)
+  (:import-from :babel :string-size-in-octets)
   (:export :new-clang
            :new-clang-ast
            :new-clang-range-begin
@@ -2313,6 +2314,62 @@ actual source file"))
   (remove-asts-if ast (lambda (o) (member (ast-class o) classes))))
 
 
+;; Multibyte character handling
+(defun multibyte-characters (str)
+  "Return a listing of multibyte character byte offsets and their length in STR."
+  (iter (for c in-string str)
+        (with byte = 0)
+        (for len = (string-size-in-octets (make-string 1 :initial-element c)))
+        (incf byte len)
+        (when (> len 1)
+          (collecting (cons byte (1- len))))))
+
+(defun fix-multibyte-characters (ast-root genome file
+                                 &aux (mb-chars (multibyte-characters genome)))
+  "Convert AST range begin/ends in AST-ROOT from byte offsets to character
+offsets to support source text with multibyte characters.
+
+* AST-ROOT root of the AST tree for GENOME
+* GENOME string with the source text of the program
+* FILE filesystem location where GENOME was parsed from"
+  (labels
+      ((byte-offset-to-chars (offset)
+         "Convert the given byte OFFSET to a character offset."
+         (- offset
+            (iter (for (pos . incr) in mb-chars)
+                  (while (<= pos offset))
+                  (summing incr))))
+       (byte-loc-to-chars (loc)
+         "Convert the given LOC using byte offsets to one using character offsets."
+         (cond ((typep loc 'new-clang-macro-loc)
+                (make-new-clang-macro-loc
+                 :spelling-loc
+                 (byte-loc-to-chars (new-clang-macro-loc-spelling-loc loc))
+                 :expansion-loc
+                 (byte-loc-to-chars (new-clang-macro-loc-expansion-loc loc))
+                 :is-macro-arg-expansion
+                 (new-clang-macro-loc-is-macro-arg-expansion loc)))
+               ((equal (ast-file loc) file)
+                (make-new-clang-loc
+                 :file (new-clang-loc-file loc)
+                 :offset (byte-offset-to-chars (new-clang-loc-offset loc))
+                 :tok-len (- (byte-offset-to-chars
+                              (+ (new-clang-loc-offset loc)
+                                 (new-clang-loc-tok-len loc)))
+                             (byte-offset-to-chars (new-clang-loc-offset loc)))))
+               (t loc))))
+    (map-ast ast-root
+             (lambda (ast)
+               (when-let ((_ (and (not (eq :TopLevel (ast-class ast)))
+                                  (equal (ast-file ast) file)))
+                          (begin (new-clang-range-begin (ast-range ast)))
+                          (end (new-clang-range-end (ast-range ast))))
+                 (setf (ast-attr ast :range)
+                       (make-new-clang-range
+                        :begin (byte-loc-to-chars begin)
+                        :end (byte-loc-to-chars end))))))))
+
+
 ;;;; Invocation of clang to get json
 (defmethod clang-json ((obj new-clang) &key &allow-other-keys)
   (with-temp-file-of (src-file (ext obj)) (genome obj)
@@ -2767,6 +2824,7 @@ ranges into 'combined' nodes.  Warn when this happens."
                 (%debug 'remove-non-program-asts ast)
                 (remove-asts-in-classes
                  ast '(:fullcomment :textcomment :paragraphcomment))
+                (fix-multibyte-characters ast genome tmp-file)
                 (compute-operator-positions obj ast)
                 (put-operators-into-inner-positions obj ast)
                 (multiple-value-bind (uses table) (find-macro-uses obj ast tmp-file)

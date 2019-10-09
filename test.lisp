@@ -3184,9 +3184,9 @@ int x = CHARSIZE;")))
                            (declare (ignorable c))
                            (invoke-restart 'use-encoding :utf-8))))
     (with-fixture unicode-clang
-      (is (stmt-with-text *soft* "int x = 0" :no-error t))
-      (is (stmt-with-text *soft* "\"2 bytes: Δ\"" :no-error t))
-      (is (stmt-with-text *soft* "int y = 1" :no-error t))
+      (is (stmt-starting-with-text *soft* "int x = 0"))
+      (is (stmt-starting-with-text *soft* "\"2 bytes: Δ\""))
+      (is (stmt-starting-with-text *soft* "int y = 1"))
       (is (string= (genome *soft*)
                    (file-to-string (unicode-dir "unicode.c")))))))
 
