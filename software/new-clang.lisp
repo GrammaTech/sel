@@ -1127,9 +1127,6 @@ that is not strictly speaking about types at all (storage class)."))
 (defun ast-is-class-fun (key)
   (lambda (c) (ast-is-class c key)))
 
-(defun %areplace (key val alist)
-  (cons (cons key val) (remove key alist :key #'car)))
-
 (defmethod is-full-stmt-ast ((ast new-clang-ast))
   (ast-attr ast :fullstmt))
 
@@ -1163,7 +1160,7 @@ that is not strictly speaking about types at all (storage class)."))
                  ;; Otherwise, it's an attribute
                  (push (cons key arg) new-attrs))))))
     (iter (for (key . arg) in new-attrs)
-          (setf attrs (%areplace key arg attrs)))
+          (setf attrs (areplace key arg attrs)))
 
     ;; This call includes :ALLOW-OTHER-KEYS T because
     ;; FN may be #'make-new-clang-ast, and we cannot

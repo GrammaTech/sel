@@ -199,6 +199,7 @@
    :unpeel-bananas
    :replace-all
    :aget
+   :areplace
    :alist
    :alist-merge
    :adrop
@@ -1874,6 +1875,10 @@ from a code snippet.")
   (if (constantp item)
       `(cdr (assoc ,item ,list :test ,test))
       whole))
+
+(defun areplace (key val alist &key (test #'eql))
+  "Replace the value of KEY in the association list ALIST with VAL."
+  (cons (cons key val) (remove key alist :key #'car :test test)))
 
 (define-setf-expander aget (item list &key (test ''eql) &environment env)
   (multiple-value-bind (dummies vals stores store-form access-form)
