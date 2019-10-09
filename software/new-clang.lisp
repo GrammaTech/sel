@@ -2141,55 +2141,6 @@ NIL indicates no value."))
       (or (gethash key table)
           (setf (gethash key table)
                 (make-new-clang-type :qual qual :desugared desugared))))))
-
-(defgeneric clang-to-list (x)
-  (:documentation "Convert clang tree structure to list form"))
-
-(defun clang-alist-to-list (alist)
-  (mapcar (lambda (p)
-            (cons (car p) (clang-to-list (cdr p))))
-          alist))
-
-(defmethod clang-to-list ((x new-clang-ast))
-  `((:id . ,(int-to-c-hex (new-clang-ast-id x)))
-    (:kind . ,(new-clang-ast-class x))
-    ,@(clang-alist-to-list (new-clang-ast-attrs x))
-    ,@(let ((inner (mapcar #'clang-to-list (new-clang-ast-children x))))
-        (when inner
-          `((:inner ,@inner))))))
-
-(defmethod clang-to-list ((x t)) x)
-(defmethod clang-to-list ((x list))
-  (mapcar #'clang-to-list x))
-
-(defmethod clang-to-list ((r new-clang-range))
-  (let ((begin (new-clang-range-begin r))
-        (end (new-clang-range-end r)))
-    `(,@(when begin `((:begin . ,(clang-to-list begin))))
-        ,@(when end `((:end . ,(clang-to-list end)))))))
-
-(defmethod clang-to-list ((l new-clang-loc))
-  `((:file . ,(new-clang-loc-file l))
-    (:tok-len . ,(new-clang-loc-tok-len l))
-    (:offset . ,(new-clang-loc-offset l))))
-
-(defmethod clang-to-list ((ct new-clang-type))
-  (let ((qual (new-clang-type-qual ct))
-        (ds (new-clang-type-desugared ct)))
-    `(,@(when qual `((:qual . ,qual)))
-        ,@(when ds `((:desugared-type . ,ds))))))
-
-(defun dump-symbol-table ()
-  "Print the contents of the symbol table"
-  (let ((entries nil))
-    (maphash (lambda (k v) (push (cons k v) entries))
-             (symbol-table *soft*))
-    (setf entries (sort entries #'< :key #'car))
-    (loop for (k . v) in entries
-       do (format t "~a ==> ~s~%"
-                  (int-to-c-hex k)
-                  (clang-to-list v))))
-  (values))
 
 (defun read-c-integer (str)
   ;; Does not handle U, L
