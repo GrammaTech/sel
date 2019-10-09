@@ -397,8 +397,6 @@ macro objects from these, returning a list."
                (hash (sxhash body)))  ;; improve this hash
           (make-new-clang-macro :hash hash :body body :name name))))))
 
-
-
 
 ;;; Code for adapting tests to use old or new clang front
 ;;; ends, controllably
@@ -1974,9 +1972,6 @@ form for SLOT, and stores into OBJ.  Returns OBJ or its replacement."))
   (setf (new-clang-ast-class obj) (json-kind-to-keyword value))
   obj)
 
-;; (defmethod store-slot ((obj new-clang-ast) (slot (eql :id)) value)
-;;   (call-next-method))
-
 (defmethod store-slot ((obj new-clang-ast) (slot (eql :definitiondata)) value)
   (declare (ignorable slot value))
   ;; Do not translate this attribute for now
@@ -1998,22 +1993,20 @@ form for SLOT, and stores into OBJ.  Returns OBJ or its replacement."))
 
 (defmethod store-slot ((obj new-clang-ast) (slot (eql :inner)) value)
   (declare (ignorable slot))
-  (let ((children (remove nil (mapcar (lambda (o) (clang-convert-json o :inner t)) value))))
-    ;; (format t "STORE-SLOT on ~a, :INNER with ~A children~%" value (length value))
-    (setf (new-clang-ast-children obj) children))
+  (setf (new-clang-ast-children obj)
+        (remove nil (mapcar (lambda (o) (clang-convert-json o :inner t)) value)))
   obj)
 
 (defmethod store-slot ((obj new-clang-ast) (slot (eql :lookups)) value)
   (declare (ignorable slot))
-  (let ((children (remove nil (mapcar (lambda (o) (clang-convert-json o :inner t)) value))))
-    (setf (new-clang-ast-children obj) children))
+  (setf (new-clang-ast-children obj)
+        (remove nil (mapcar (lambda (o) (clang-convert-json o :inner t)) value)))
   obj)
 
 (defmethod store-slot ((obj new-clang-ast) (slot (eql :array_filler)) value)
   (declare (ignorable slot))
-  (let ((children (remove nil (mapcar (lambda (o) (clang-convert-json o :inner t)) value))))
-    ;; (setf (ast-attr obj :array-filler) t)
-    (setf (new-clang-ast-children obj) children))
+  (setf (new-clang-ast-children obj)
+        (remove nil (mapcar (lambda (o) (clang-convert-json o :inner t)) value)))
   obj)
 
 (defgeneric convert-slot-value (obj slot value)
@@ -2176,7 +2169,6 @@ NIL indicates no value."))
       (format nil "0x~(~x~)" x)))
 
 ;;;;
-
 (defun make-statement (&rest args)
   (apply (if *new-clang?*
              #'make-statement-new-clang
