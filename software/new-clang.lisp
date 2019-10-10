@@ -86,6 +86,7 @@
 
 (declaim (special *soft*))
 (declaim (special *canonical-string-table*))
+(declaim (special *aget-cache*))
 
 #-windows
 (defun get-clang-default-includes ()
@@ -1875,96 +1876,91 @@ computed at the children"))
       (or array (getf alist :array))))))
 
 
+;;; Invocation of clang to get json
 
-(defun json-kind-to-keyword (json-kind)
-  (when (stringp json-kind)
-    (let ((sym (intern (string-upcase json-kind) :keyword)))
-      (case sym
-        ((:AccessSpecDecl) :AccessSpec)
-        ((:BindingDecl) :Binding)
-        ((:BlockDecl) :Block)
-        ((:BuiltinTemplateDecl) :BuiltinTemplate)
-        ((:CXXConstructorDecl) :CXXConstructor)
-        ((:CXXConversionDecl) :CXXConversion)
-        ((:CXXDestructorDecl) :CXXDestructor)
-        ((:CXXMethodDecl) :CXXMethod)
-        ((:CXXRecordDecl) :CXXRecord)
-        ((:CapturedDecl) :Captured)
-        ((:ClassScopeFunctionSpecializationDecl) :ClassScopeFunctionSpecialization)
-        ((:ClassTemplateDecl) :ClassTemplate)
-        ((:ClassTemplateSpecializationDecl) :ClassTemplateSpecialization)
-        ((:ConstructorUsingShadowDecl) :ConstructorUsingShadow)
-        ((:DecompositionDecl) :Decomposition)
-        ;; ((:EmptyDecl) :Empty)
-        ((:EnumConstantDecl) :EnumConstant)
-        ((:EnumDecl) :Enum)
-        ;; ((:ExternCContextDecl) :ExternCContext)
-        ((:FieldDecl) :Field)
-        ((:FileScopeAsmDecl) :FileScopeAsm)
-        ((:FriendDecl) :Friend)
-        ((:FriendTemplateDecl) :FriendTemplate)
-        ((:FunctionDecl) :Function)
-        ((:FunctionTemplateDecl) :FunctionTemplate)
-        ((:ImplicitParamDecl) :ImplicitParam)
-        ;; ((:ImportDecl) :Import)
-        ((:IndirectFieldDecl) :IndirectField)
-        ((:LabelDecl) :Label)
-        ((:LinkageSpecDecl) :LinkageSpec)
-        ((:NameSpaceAliasDecl) :NameSpaceAlias)
-        ((:NamespaceDecl) :Namespace)
-        ((:NonTypeTemplateParmDecl) :NonTypeTemplateParm)
-        ((:ParmVarDecl) :ParmVar)
-        ((:PragmaCommentDecl) :PragmaComment)
-        ((:RecordDecl) :Record)
-        ((:StaticAssertDecl) :StaticAssert)
-        ((:TemplateTemplateParmDecl) :TemplateTemplateParm)
-        ((:TemplateTypeParmDecl) :TemplateTypeParm)
-        ((:TranslationUnitDecl) :TopLevel)
-        ((:TypeAliasDecl) :TypeAlias)
-        ((:TypeAliasTemplateDecl) :TypeAliasTemplate)
-        ((:TypedefDecl) :Typedef)
-        ((:UnresolvedUsingTypenameDecl) :UnresolvedUsingTypename)
-        ((:UnresolvedUsingValueDecl) :UnresolvedUsingValue)
-        ((:UsingDecl) :Using)
-        ((:UsingDirectiveDecl) :UsingDirective)
-        ((:UsingPackDecl) :UsingPack)
-        ((:UsingShadowDecl) :UsingShadow)
-        ((:VarDecl) :Var)
-        ((:VarTemplateDecl) :VarTemplate)
-        ((:VarTemplatePartialSpecializationDecl) :VarTemplatePartialSpecialization)
-        ((:VarTemplateSpecializationDecl) :VarTemplateSpecialization)
-        (t sym)))))
+(defmethod clang-json ((obj new-clang) &key &allow-other-keys)
+  (with-temp-file-of (src-file (ext obj)) (genome obj)
+                     (let ((cmd-fmt "clang -cc1 -ast-dump=json ~{~a~^ ~} ~a ~a")
+                           (filter "| sed -e \"s/  *//\"")
+                           (genome-len (length (genome obj)))
+                           (flags (append (clang-frontend-flags (flags obj))
+                                          (mappend {list "-I"} *clang-default-includes*))))
+                       (multiple-value-bind (stdout stderr exit)
+                           (let ((*trace-output* *standard-output*))
+                             (if (json-file obj)
+                                 (shell "cat ~a ~a" (namestring (json-file obj)) filter)
+                                 (shell cmd-fmt
+                                        flags
+                                        src-file
+                                        filter)))
+                         (when (find exit '(131 132 134 136 139))
+                           (error
+                            (make-condition 'mutate
+                                            :text (format nil "clang core dump with ~d, ~s"
+                                                          exit stderr)
+                                            :obj obj)))
+                         (restart-case
+                             (unless (zerop exit)
+                               (error
+                                (make-condition 'mutate
+                                                :text (format nil
+                                                              "clang exit ~d~%cmd:~s~%stderr:~s"
+                                                              exit
+                                                              (format nil cmd-fmt
+                                                                      flags
+                                                                      src-file
+                                                                      filter)
+                                                              stderr)
+                                                :obj obj)))
+                           (keep-partial-asts ()
+                             :report "Ignore error retaining partial ASTs for software object."
+                             nil))
+                         (values (convert-jsown-tree (jsown:parse stdout))
+                                 src-file
+                                 genome-len)))))
 
-(defgeneric clang-previous-decl (obj))
-(defmethod clang-previous-decl ((obj new-clang-ast))
-  (aget :PreviousDecl (new-clang-ast-attrs obj)))
+(defun convert-jsown-tree (jt)
+  "Converts the tree representation from JSOWN into something similar to
+output from CL-JSON"
+  (typecase jt
+    ((cons (eql :obj) t)
+     (convert-jsown-obj (cdr jt)))
+    (cons
+     (cons (convert-jsown-tree (car jt))
+           (convert-jsown-tree (cdr jt))))
+    (t jt)))
 
-;;; We cache the last lookup of certain slots, so that repeat values
-;;; can be omitted in the json.  A special accessor maintains this cache
+(defun convert-jsown-obj (key-alist)
+  (iter (for (key . val) in key-alist)
+        (collect (cons (jsown-str-to-keyword key)
+                       (convert-jsown-tree val)))))
 
-(declaim (special *aget-cache*))
-(defun cached-aget (key alist)
-  "Cached aget looks up the value, then uses the cached valued
-if no value was found."
-  (if (boundp '*aget-cache*)
-      (let ((value (aget key alist))
-            (cache *aget-cache*))
-        (if value
-            (let ((p (assoc key cache)))
-              (if p (setf (cdr p) value)
-                  (setf *aget-cache* (cons (cons key value) cache)))
-              value)
-            (aget key cache)))
-      (let ((*aget-cache* nil))
-        (cached-aget key alist))))
+;;; The STRING-CASE macro is much faster than just calling INTERN
+;;; on the string, when one of these common arguments is seen.
+(defun jsown-str-to-keyword (str)
+  (macrolet ((%m (s)
+               (let ((names '("id" "tokLen" "col" "kind" "qualType"
+                              "type" "file" "range" "end" "begin"
+                              "includedFrom" "line" "valueCategory"
+                              "inner" "name" "loc" "castKind"
+                              "referencedDecl" "spellingLoc" "offset"
+                              "expansionLoc" "desugaredQualType")))
+                 `(string-case (,s)
+                               ,@(iter (for n in names)
+                                       (collect (list n (intern (string-upcase n)
+                                                                :keyword))))
+                               (t (intern (string-upcase ,s) :keyword))))))
+    ;; Allow common cases to be optimized for particular
+    ;; string types
+    (typecase str
+      (simple-base-string (%m str))
+      #-ccl
+      ((and simple-string
+            (vector character))
+       (%m str))
+      (t (intern (string-upcase str) :keyword)))))
 
-(defun canonicalize-string (str)
-  (if (boundp '*canonical-string-table*)
-      (let ((table *canonical-string-table*))
-        (or (gethash str table)
-            (setf (gethash str table) str)))
-      str))
-
+
 ;;; Json conversion
 
 (defun clang-convert-json-for-file (json file genome-len)
@@ -2021,11 +2017,6 @@ on json-kind-symbol when special subclasses are wanted."))
   (declare (ignorable json-kind-symbol))
   (let ((obj (make-new-clang-ast)))
     (store-slots obj json)))
-
-(defun alist-subsumed (al1 al2)
-  (iter (for (k . v) in al1)
-        (always (or (equal v "")
-                    (equal v (aget k al2))))))
 
 (defmethod j2ck :around (json json-kind-symbol)
   (declare (ignorable json json-kind-symbol))
@@ -2285,6 +2276,91 @@ NIL indicates no value."))
           (setf (gethash key table)
                 (make-new-clang-type :qual qual :desugared desugared))))))
 
+;; Helpers for JSON conversion
+(defun json-kind-to-keyword (json-kind)
+  (when (stringp json-kind)
+    (let ((sym (intern (string-upcase json-kind) :keyword)))
+      (case sym
+        ((:AccessSpecDecl) :AccessSpec)
+        ((:BindingDecl) :Binding)
+        ((:BlockDecl) :Block)
+        ((:BuiltinTemplateDecl) :BuiltinTemplate)
+        ((:CXXConstructorDecl) :CXXConstructor)
+        ((:CXXConversionDecl) :CXXConversion)
+        ((:CXXDestructorDecl) :CXXDestructor)
+        ((:CXXMethodDecl) :CXXMethod)
+        ((:CXXRecordDecl) :CXXRecord)
+        ((:CapturedDecl) :Captured)
+        ((:ClassScopeFunctionSpecializationDecl) :ClassScopeFunctionSpecialization)
+        ((:ClassTemplateDecl) :ClassTemplate)
+        ((:ClassTemplateSpecializationDecl) :ClassTemplateSpecialization)
+        ((:ConstructorUsingShadowDecl) :ConstructorUsingShadow)
+        ((:DecompositionDecl) :Decomposition)
+        ;; ((:EmptyDecl) :Empty)
+        ((:EnumConstantDecl) :EnumConstant)
+        ((:EnumDecl) :Enum)
+        ;; ((:ExternCContextDecl) :ExternCContext)
+        ((:FieldDecl) :Field)
+        ((:FileScopeAsmDecl) :FileScopeAsm)
+        ((:FriendDecl) :Friend)
+        ((:FriendTemplateDecl) :FriendTemplate)
+        ((:FunctionDecl) :Function)
+        ((:FunctionTemplateDecl) :FunctionTemplate)
+        ((:ImplicitParamDecl) :ImplicitParam)
+        ;; ((:ImportDecl) :Import)
+        ((:IndirectFieldDecl) :IndirectField)
+        ((:LabelDecl) :Label)
+        ((:LinkageSpecDecl) :LinkageSpec)
+        ((:NameSpaceAliasDecl) :NameSpaceAlias)
+        ((:NamespaceDecl) :Namespace)
+        ((:NonTypeTemplateParmDecl) :NonTypeTemplateParm)
+        ((:ParmVarDecl) :ParmVar)
+        ((:PragmaCommentDecl) :PragmaComment)
+        ((:RecordDecl) :Record)
+        ((:StaticAssertDecl) :StaticAssert)
+        ((:TemplateTemplateParmDecl) :TemplateTemplateParm)
+        ((:TemplateTypeParmDecl) :TemplateTypeParm)
+        ((:TranslationUnitDecl) :TopLevel)
+        ((:TypeAliasDecl) :TypeAlias)
+        ((:TypeAliasTemplateDecl) :TypeAliasTemplate)
+        ((:TypedefDecl) :Typedef)
+        ((:UnresolvedUsingTypenameDecl) :UnresolvedUsingTypename)
+        ((:UnresolvedUsingValueDecl) :UnresolvedUsingValue)
+        ((:UsingDecl) :Using)
+        ((:UsingDirectiveDecl) :UsingDirective)
+        ((:UsingPackDecl) :UsingPack)
+        ((:UsingShadowDecl) :UsingShadow)
+        ((:VarDecl) :Var)
+        ((:VarTemplateDecl) :VarTemplate)
+        ((:VarTemplatePartialSpecializationDecl) :VarTemplatePartialSpecialization)
+        ((:VarTemplateSpecializationDecl) :VarTemplateSpecialization)
+        (t sym)))))
+
+;;; We cache the last lookup of certain slots, so that repeat values
+;;; can be omitted in the json.  A special accessor maintains this cache
+
+(defun cached-aget (key alist)
+  "Cached aget looks up the value, then uses the cached valued
+if no value was found."
+  (if (boundp '*aget-cache*)
+      (let ((value (aget key alist))
+            (cache *aget-cache*))
+        (if value
+            (let ((p (assoc key cache)))
+              (if p (setf (cdr p) value)
+                  (setf *aget-cache* (cons (cons key value) cache)))
+              value)
+            (aget key cache)))
+      (let ((*aget-cache* nil))
+        (cached-aget key alist))))
+
+(defun canonicalize-string (str)
+  (if (boundp '*canonical-string-table*)
+      (let ((table *canonical-string-table*))
+        (or (gethash str table)
+            (setf (gethash str table) str)))
+      str))
+
 (defun read-c-integer (str)
   ;; Does not handle U, L
   (assert (string str))
@@ -2317,90 +2393,6 @@ NIL indicates no value."))
   (if (< x 0)
       (format nil "-0x~(~x~)" (- x))
       (format nil "0x~(~x~)" x)))
-
-
-;;;; Invocation of clang to get json
-(defmethod clang-json ((obj new-clang) &key &allow-other-keys)
-  (with-temp-file-of (src-file (ext obj)) (genome obj)
-                     (let ((cmd-fmt "clang -cc1 -ast-dump=json ~{~a~^ ~} ~a ~a")
-                           (filter "| sed -e \"s/  *//\"")
-                           (genome-len (length (genome obj)))
-                           (flags (append (clang-frontend-flags (flags obj))
-                                          (mappend {list "-I"} *clang-default-includes*))))
-                       (multiple-value-bind (stdout stderr exit)
-                           (let ((*trace-output* *standard-output*))
-                             (if (json-file obj)
-                                 (shell "cat ~a ~a" (namestring (json-file obj)) filter)
-                                 (shell cmd-fmt
-                                        flags
-                                        src-file
-                                        filter)))
-                         (when (find exit '(131 132 134 136 139))
-                           (error
-                            (make-condition 'mutate
-                                            :text (format nil "clang core dump with ~d, ~s"
-                                                          exit stderr)
-                                            :obj obj)))
-                         (restart-case
-                             (unless (zerop exit)
-                               (error
-                                (make-condition 'mutate
-                                                :text (format nil
-                                                              "clang exit ~d~%cmd:~s~%stderr:~s"
-                                                              exit
-                                                              (format nil cmd-fmt
-                                                                      flags
-                                                                      src-file
-                                                                      filter)
-                                                              stderr)
-                                                :obj obj)))
-                           (keep-partial-asts ()
-                             :report "Ignore error retaining partial ASTs for software object."
-                             nil))
-                         (values (convert-jsown-tree (jsown:parse stdout))
-                                 src-file
-                                 genome-len)))))
-
-(defun convert-jsown-tree (jt)
-  "Converts the tree representation from JSOWN into something similar to
-output from CL-JSON"
-  (typecase jt
-    ((cons (eql :obj) t)
-     (convert-jsown-obj (cdr jt)))
-    (cons
-     (cons (convert-jsown-tree (car jt))
-           (convert-jsown-tree (cdr jt))))
-    (t jt)))
-
-(defun convert-jsown-obj (key-alist)
-  (iter (for (key . val) in key-alist)
-        (collect (cons (jsown-str-to-keyword key)
-                       (convert-jsown-tree val)))))
-
-;;; The STRING-CASE macro is much faster than just calling INTERN
-;;; on the string, when one of these common arguments is seen.
-(defun jsown-str-to-keyword (str)
-  (macrolet ((%m (s)
-               (let ((names '("id" "tokLen" "col" "kind" "qualType"
-                              "type" "file" "range" "end" "begin"
-                              "includedFrom" "line" "valueCategory"
-                              "inner" "name" "loc" "castKind"
-                              "referencedDecl" "spellingLoc" "offset"
-                              "expansionLoc" "desugaredQualType")))
-                 `(string-case (,s)
-                               ,@(iter (for n in names)
-                                       (collect (list n (intern (string-upcase n)
-                                                                :keyword))))
-                               (t (intern (string-upcase ,s) :keyword))))))
-    ;; Allow common cases to be optimized for particular
-    ;; string types
-    (typecase str
-      (simple-base-string (%m str))
-      #-ccl
-      ((and simple-string
-            (vector character))
-       (%m str))
-      (t (intern (string-upcase str) :keyword)))))
 
 
 ;;; Massaging ASTs into proper form after parsing
