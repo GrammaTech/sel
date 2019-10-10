@@ -85,7 +85,7 @@
 ;;;  new-clang object before invoking the next method.
 
 (declaim (special *soft*))
-(declaim (special *canonical-string-table* *current-offset*))
+(declaim (special *canonical-string-table*))
 
 #-windows
 (defun get-clang-default-includes ()
@@ -2320,132 +2320,6 @@ NIL indicates no value."))
       (format nil "0x~(~x~)" x)))
 
 
-;;;; Massaging the AST to put it into the right form
-
-(defgeneric remove-non-program-asts (ast file)
-  (:documentation "Remove ASTs from ast that are not from the
-actual source file"))
-
-(defun is-non-program-ast (a file)
-  (let ((f (ast-file a)))
-    (and f (not (equal file f)))))
-
-(defmethod remove-non-program-asts ((ast ast) (file string))
-  (flet ((%non-program (a) (is-non-program-ast a file)))
-    ;; Remove asts based on FILE only at the top level
-    ;; This could fail on #include inside other forms,
-    ;; but we have trouble with macroexpansion there.
-    ;; TO BE FIXED
-    (setf (ast-children ast)
-          (remove-if #'%non-program (ast-children ast))))
-  ;; Implicit ASTs are introduced, for example, in declarations
-  ;; of builtin functions that omit argument types.
-  (remove-asts-if ast #'ast-is-implicit)
-  ast)
-
-(defun remove-asts-in-classes (ast classes)
-  (remove-asts-if ast (lambda (o) (member (ast-class o) classes))))
-
-(defun line-offsets (str)
-  (cons 0 (iter (with byte = 0)
-                (for c in-string str)
-                (incf byte (string-size-in-octets (make-string 1 :initial-element c)))
-                (when (eq c #\Newline)
-                  (collect byte)))))
-
-(defun convert-line-and-col-to-byte-offsets
-    (ast-root genome file &aux (line-offsets (line-offsets genome)))
-  "Convert AST range begin/ends in AST-ROOT from line and column pairs to
-byte offsets.
-
-* AST-ROOT root of the AST tree for GENOME
-* GENOME string with the source text of the program
-* FILE filesystem location where GENOME was parsed from"
-  (labels
-      ((to-byte-offset (line col)
-         (+ (1- col) (nth (1- line) line-offsets)))
-       (convert-to-byte-offsets (loc)
-         (cond ((typep loc 'new-clang-macro-loc)
-                (make-new-clang-macro-loc
-                 :spelling-loc
-                 (convert-to-byte-offsets (new-clang-macro-loc-spelling-loc loc))
-                 :expansion-loc
-                 (convert-to-byte-offsets (new-clang-macro-loc-expansion-loc loc))
-                 :is-macro-arg-expansion
-                 (new-clang-macro-loc-is-macro-arg-expansion loc)))
-               ((equal (ast-file loc) file)
-                (make-new-clang-loc
-                 :file (new-clang-loc-file loc)
-                 :offset (to-byte-offset (new-clang-loc-line loc)
-                                         (new-clang-loc-col loc))
-                 :tok-len (new-clang-loc-tok-len loc)))
-               (t loc))))
-    (map-ast ast-root
-             (lambda (ast)
-               (when-let ((_ (and (not (eq :TopLevel (ast-class ast)))
-                                  (equal (ast-file ast) file)))
-                          (begin (new-clang-range-begin (ast-range ast)))
-                          (end (new-clang-range-end (ast-range ast))))
-                 (setf (ast-attr ast :range)
-                       (make-new-clang-range
-                        :begin (convert-to-byte-offsets begin)
-                        :end (convert-to-byte-offsets end))))))))
-
-(defun multibyte-characters (str)
-  "Return a listing of multibyte character byte offsets and their length in STR."
-  (iter (for c in-string str)
-        (with byte = 0)
-        (for len = (string-size-in-octets (make-string 1 :initial-element c)))
-        (incf byte len)
-        (when (> len 1)
-          (collecting (cons byte (1- len))))))
-
-(defun fix-multibyte-characters (ast-root genome file
-                                 &aux (mb-chars (multibyte-characters genome)))
-  "Convert AST range begin/ends in AST-ROOT from byte offsets to character
-offsets to support source text with multibyte characters.
-
-* AST-ROOT root of the AST tree for GENOME
-* GENOME string with the source text of the program
-* FILE filesystem location where GENOME was parsed from"
-  (labels
-      ((byte-offset-to-chars (offset)
-         "Convert the given byte OFFSET to a character offset."
-         (- offset
-            (iter (for (pos . incr) in mb-chars)
-                  (while (<= pos offset))
-                  (summing incr))))
-       (byte-loc-to-chars (loc)
-         "Convert the given LOC using byte offsets to one using character offsets."
-         (cond ((typep loc 'new-clang-macro-loc)
-                (make-new-clang-macro-loc
-                 :spelling-loc
-                 (byte-loc-to-chars (new-clang-macro-loc-spelling-loc loc))
-                 :expansion-loc
-                 (byte-loc-to-chars (new-clang-macro-loc-expansion-loc loc))
-                 :is-macro-arg-expansion
-                 (new-clang-macro-loc-is-macro-arg-expansion loc)))
-               ((equal (ast-file loc) file)
-                (make-new-clang-loc
-                 :file (new-clang-loc-file loc)
-                 :offset (byte-offset-to-chars (new-clang-loc-offset loc))
-                 :tok-len (- (byte-offset-to-chars
-                              (+ (new-clang-loc-offset loc)
-                                 (new-clang-loc-tok-len loc)))
-                             (byte-offset-to-chars (new-clang-loc-offset loc)))))
-               (t loc))))
-    (map-ast ast-root
-             (lambda (ast)
-               (when-let ((_ (and (not (eq :TopLevel (ast-class ast)))
-                                  (equal (ast-file ast) file)))
-                          (begin (new-clang-range-begin (ast-range ast)))
-                          (end (new-clang-range-end (ast-range ast))))
-                 (setf (ast-attr ast :range)
-                       (make-new-clang-range
-                        :begin (byte-loc-to-chars begin)
-                        :end (byte-loc-to-chars end))))))))
-
-
 ;;;; Invocation of clang to get json
 (defmethod clang-json ((obj new-clang) &key &allow-other-keys)
   (with-temp-file-of (src-file (ext obj)) (genome obj)
@@ -2529,315 +2403,8 @@ output from CL-JSON"
        (%m str))
       (t (intern (string-upcase str) :keyword)))))
 
-(defgeneric compute-operator-positions (sw ast)
-  (:documentation "Compute positions of operators in
-CXXOperatorCallExpr nodes")
-  (:method (sw (ast new-clang-ast))
-    (let ((*soft* sw))
-      (map-ast ast #'compute-operator-position))))
-
-(defgeneric compute-operator-position (ast)
-  (:documentation "Compute positions of operators at a
-CXXOperatorCallExpr node.   Also, normalize postfix operator++/--
-to remove dummy arg")
-  (:method ((ast new-clang-ast)) nil)
-  (:method ((ast cxx-operator-call-expr))
-    (let* ((ac (ast-children ast))
-           (op (first ac))
-           (op-begin (begin-offset op)))
-      ;; The last argument to a ++ or -- is dummy when
-      ;; it's a postfix operator.  Remove it.
-      (when (and (= (length ac) 3)
-                 (let ((rds (ast-reference-decls op)))
-                   (flet ((%m (s) (member s rds :key #'ast-name
-                                          :test #'equal)))
-                     (or (%m "operator++") (%m "operator--")))))
-        (setf ac (setf (ast-children ast) (subseq ac 0 2))))
-      ;; Position = # of child asts that are before
-      ;; the operator in the source file
-      (let ((rest-offsets (mapcar #'begin-offset (cdr ac))))
-        (when (and op-begin (every #'identity rest-offsets))
-          (setf (cxx-operator-call-expr-pos ast)
-                (count op-begin rest-offsets :test #'>)))))))
-
-(defgeneric put-operators-into-inner-positions (sw ast)
-  (:documentation "Put operators into their inner positions
-in CXXOperatorCallExpr nodes.")
-  (:method ((sw new-clang) (ast new-clang-ast))
-    (let ((*soft* sw))
-      (map-ast ast #'put-operator-into-inner-position))))
-
-(defgeneric put-operator-into-inner-position (ast)
-  (:documentation "Put operator into its inner position
-in a CXXOperatorCallExpr node.")
-  (:method ((ast new-clang-ast)) nil)
-  (:method ((ast cxx-operator-call-expr))
-    ;; This is pre-stringification, so there should only
-    ;; be ast children
-    (let* ((c (ast-children ast))
-           (op (first c))
-           (pos (cxx-operator-call-expr-pos ast)))
-      (assert (every #'ast-p c))
-      (when pos
-        (assert (< pos (length c)))
-        (setf (ast-children ast)
-              (append (subseq c 1 (1+ pos))
-                      (list op)
-                      (subseq c (1+ pos))))))))
-
-(defgeneric put-operators-into-starting-positions (sw ast)
-  (:documentation "Put operators into their starting positions
-in CXXOperatorCallExpr nodes.")
-  (:method ((sw new-clang) (ast new-clang-ast))
-    (let ((*soft* sw))
-      (map-ast ast #'put-operator-into-starting-position))))
-
-(defgeneric put-operator-into-starting-position (ast)
-  (:documentation "Put operator into their starting position
-in a CXXOperatorCallExpr node.")
-  (:method ((ast new-clang-ast)) (declare (ignorable ast)) nil)
-  (:method ((ast cxx-operator-call-expr))
-    ;; The AST will have been stringified here, so pos
-    ;; is the position in (remove-if-not #'ast-p (ast-children))
-    (let ((pos (cxx-operator-call-expr-pos ast))
-          (c (ast-children ast)))
-      (when pos
-        (assert (<= 0 pos (1- (length c))))
-        (when (> pos 0)
-          (let ((actual-pos
-                 (let ((count pos))
-                   (position-if (lambda (e)
-                                  (and (ast-p e) (zerop (decf count))))
-                                c))))
-            (setf (ast-children ast)
-                  (append
-                   (list (elt c actual-pos))
-                   (subseq c 0 actual-pos)
-                   (subseq c (1+ actual-pos))))))))))
-
-(defun decorate-ast-with-strings (sw ast &aux (genome (genome sw)))
-  (labels
-      ((%assert1 (i cbegin c)
-         (assert (>= cbegin i) ()
-                 "Offsets out of order: i = ~a,~
-                  cbegin = ~a, c = ~a, range = ~a"
-                 i cbegin c
-                 (ast-attr c :range)))
-       (%safe-subseq (seq start end)
-         (subseq seq start (if (<= end start) start end)))
-       (%decorate (a)
-         ;; At ast node A, split the parts of the source
-         ;; that are not in the children into substrings
-         ;; that are placed between the children.  Do not
-         ;; place strings for children for whom offsets
-         ;; cannot be computed
-         (let ((children (ast-children a)))
-           (multiple-value-bind (begin end)
-               (begin-and-end-offsets a)
-             (when (and begin end (equal (ast-file a) (tmp-file sw)))
-               (let ((i begin))
-                 (setf
-                  (ast-children a)
-                  (nconc
-                   (iter
-                    (for c in children)
-                    (when (and (ast-p c) (equal (ast-file a) (ast-file c)))
-                      (multiple-value-bind (cbegin cend)
-                          (begin-and-end-offsets c)
-                        (when cbegin
-                          (unless (eq :Combined (ast-class a))
-                            (%assert1 i cbegin c))
-                          (collect (%safe-subseq genome i cbegin))
-                          (setf i cend))))
-                    (collect c))
-                   (list (%safe-subseq genome i end))))))))))
-    (map-ast ast #'%decorate))
-  ast)
-
-(defun fix-overlapping-vardecls (sw ast)
-  (map-ast ast (lambda (a) (fix-overlapping-vardecls-at-node sw a))))
-
-(defun fix-overlapping-vardecls-at-node (sw ast)
-  "Separate consecutive, overlapping :VAR and :FIELD nodes so their
-text ranges in the source do not overlap, if possible."
-  ;; This does not exactly reproduce what the old clang
-  ;; front end was doing.  There, the Var nodes were children of
-  ;; each other in some cases.
-  (let ((child-asts (ast-children ast)))
-    (let (prev pos)
-      (when (and (ast-p (car child-asts))
-                 (member (ast-class (car child-asts))
-                         '(:var :field)))
-        (setf prev (car child-asts))
-        (setf pos (begin-offset prev)))
-      (do* ((e (cdr child-asts) (cdr e))
-            (c (car e) (car e)))
-           ((null e))
-        (if (ast-p c)
-            (let ((next-pos (begin-offset c))
-                  (end (end-offset c)))
-              (if (member (ast-class c) '(:var :field))
-                  (progn
-                    (if prev
-                        (if (and next-pos end)
-                            (if (< (end-offset prev) next-pos)
-                                ;; things are fine -- no overlap
-                                (setf prev c pos next-pos)
-                                ;; There is overlap -- find the next
-                                ;; position
-                                (let ((comma-pos
-                                       (cpp-scan (genome sw)
-                                                 (lambda (c) (eql c #\,))
-                                                 :start pos
-                                                 :end (1+ end))))
-                                  (if comma-pos
-                                      (setf pos (1+ comma-pos)
-                                            (offset c) pos
-                                            prev c)
-                                      ;; Failed to find comma; change nothing
-                                      (setf prev c
-                                            pos next-pos))))
-                            (setf prev c
-                                  pos next-pos))))
-                  (setf prev c
-                        pos next-pos)))
-            (setf prev nil pos nil)))))
-  ast)
-
-(defun fix-ancestor-ranges (sw ast)
-  "Normalize the ast so the range of each node is a superset
-of the ranges of its children"
-  (let ((*soft* sw)
-        changed?)
-    (flet ((%normalize (a)
-             (multiple-value-bind (begin end)
-                 (begin-and-end-offsets a)
-               (let ((min-begin begin)
-                     (max-end end))
-                 (iter (for c in (ast-children a))
-                       (when (and (ast-p c) (equal (ast-file a) (ast-file c)))
-                         (multiple-value-bind (cbegin cend)
-                             (begin-and-end-offsets c)
-                           (when (and cbegin
-                                      (or (null min-begin)
-                                          (> min-begin cbegin)))
-                             (setf min-begin cbegin))
-                           (when (and cend
-                                      (or (null max-end)
-                                          (< max-end cend)))
-                             (setf max-end cend)))))
-                 (unless (and (eql min-begin begin)
-                              (eql max-end end))
-                   (setf changed? t)
-                   (setf (ast-attr a :range)
-                         (make-new-clang-range
-                          :begin (make-new-clang-loc
-                                  :file (ast-file a)
-                                  :offset min-begin)
-                          :end (make-new-clang-loc
-                                :file (ast-file a)
-                                :offset max-end))))))))
-      ;; Fixpoint for normalization of ranges
-      (loop
-         (setf changed? nil)
-         (map-ast ast #'%normalize)
-         (map-ast-postorder ast #'%normalize)
-         (unless changed? (return ast))))))
-
-;;; FIXME: refactor this into small functions, for
-;;;  understandability and line length limits
-(defun combine-overlapping-siblings (sw ast)
-  "Group sibling nodes with overlapping or out of order
-ranges into 'combined' nodes.  Warn when this happens."
-  (let ((*soft* sw)
-        (genome (genome sw)))
-    (declare (ignorable genome))
-    (flet ((%check (a)
-             (let ((end 0)
-                   changed? accumulator)
-               (flet ((%sorted-children (children)
-                        (stable-sort
-                         children
-                         (lambda (a b)
-                           (bind (((:values a-begin a-end)
-                                   (begin-and-end-offsets a))
-                                  ((:values b-begin b-end)
-                                   (begin-and-end-offsets b)))
-                                 ;; If ASTs start at the same place, put the
-                                 ;; larger one first so parent-child combining
-                                 ;; below works nicely.
-                                 (cond ((or (null b-begin) (null b-end)) t)
-                                       ((or (null a-begin) (null a-end)) nil)
-                                       ((= a-begin b-begin) (> a-end b-end))
-                                       (t (< a-begin b-begin)))))))
-                      (%combine ()
-                        (case (length accumulator)
-                          (0)
-                          (1 (list (pop accumulator)))
-                          (t
-                           (let ((new-begin (reduce #'min accumulator
-                                                    :key #'begin-offset))
-                                 (new-end (reduce #'max accumulator
-                                                  :key #'extended-end-offset)))
-                             (prog1
-                                 (unless (eql new-begin new-end)
-                                   (setf changed? t)
-                                   (if (and (= (length accumulator) 2)
-                                            (eql (ast-class (car accumulator)) :typedef))
-                                       ;; Special case: there are two nodes, and the first is a typedef
-                                       ;; In that case, make the second a child of the first
-                                       (progn
-                                         (push (cadr accumulator) (ast-children (car accumulator)))
-                                         (list (car accumulator)))
-                                       ;; Otherwise, create a "Combined" node with the children as the
-                                       ;; overlapping ASTs.  Previously, the overlapping children
-                                       ;; where stored in a "subsumed" attribute instead of as
-                                       ;; the children field.  However, this led to issue when writing
-                                       ;; out the file as `source-text` relies on the children field.
-                                       ;; Further, it required special case logic for all methods
-                                       ;; which call `ast-children` (e.g. replace-in-ast,
-                                       ;; replace-nth-child, remove-ast, replace-ast, insert-ast,
-                                       ;; map-ast, map-ast-strings, map-ast-with-ancestor,
-                                       ;; get-immediate-children, etc.).  By making the overlapping
-                                       ;; nodes children of the combined node, we only need special
-                                       ;; case logic when writing out the source text of the combined
-                                       ;; AST which is less error-prone than the converse.
-                                       (list (make-new-clang-ast
-                                              :class :combined
-                                              :children accumulator
-                                              :attrs `((:range .
-                                                               ,(make-new-clang-range
-                                                                 :begin (make-new-clang-loc
-                                                                         :file (ast-file (car accumulator))
-                                                                         :offset new-begin)
-                                                                 :end (make-new-clang-loc
-                                                                       :file (ast-file (car accumulator))
-                                                                       :offset new-end)))
-                                                       (:source-text .
-                                                                     ,(subseq genome
-                                                                              new-begin
-                                                                              new-end)))))))
-                               (setf accumulator nil)))))))
-                 (unless (eq :combined (ast-class a))
-                   (let ((new-children
-                          (append
-                           ;; Find child ASTs and sort them in textual order.
-                           (iter (for c in (%sorted-children (ast-children a)))
-                                 (multiple-value-bind (cbegin cend)
-                                     (begin-and-end-offsets c)
-                                   (if (and cbegin end cend (< cbegin end)
-                                            (equal (ast-file a) (ast-file c)))
-                                       (setf accumulator
-                                             (append accumulator (list c))
-                                             end (max end cend))
-                                       (progn
-                                         (appending (%combine))
-                                         (setf accumulator (list c)
-                                               end cend)))))
-                           (%combine))))
-                     (when changed?
-                       (setf (ast-children a) new-children))))))))
-      (map-ast ast #'%check))))
+
+;;; Massaging ASTs into proper form after parsing
 
 (defgeneric record-typedef-decls (obj ast)
   (:method ((obj new-clang) (ast new-clang-ast))
@@ -2857,103 +2424,7 @@ ranges into 'combined' nodes.  Warn when this happens."
           (let ((tp (make-new-clang-type :qual qual :desugared desugared)))
             (setf (new-clang-typedef tp) type)))))))
 
-(defmethod update-asts ((obj new-clang))
-  ;; Port of this method from clang.lsp, for new class
-  (let ((*soft* obj))
-    (with-slots (ast-root genome includes) obj
-      (unless genome     ; get genome from existing ASTs if necessary
-        ;; (clrhash (symbol-table *soft*))
-        (setf genome (genome obj)
-              ast-root nil))
-      (with-slots (symbol-table name-symbol-table type-table base-types types)
-          obj
-        (setf symbol-table (make-hash-table :test #'equal)
-              name-symbol-table (make-hash-table :test #'equal)
-              type-table (make-hash-table :test #'equal)
-              base-types (make-hash-table :test #'equal)
-              types (make-hash-table :test #'equal)))
-
-      (flet ((%debug (s a &optional (f #'ast-class))
-               (declare (ignorable s a f))
-               nil)
-             (%p (o)
-               (let ((r (ast-range o)))
-                 (list r (begin-offset r) (end-offset r)))))
-        (let ((*canonical-string-table* (make-hash-table :test 'equal)))
-          (multiple-value-bind (json tmp-file genome-len)
-              (clang-json obj)
-            (setf (tmp-file obj) tmp-file)
-            (let* ((raw-ast (clang-convert-json-for-file
-                             json tmp-file genome-len)))
-              (%debug 'clang-convert-json-for-file raw-ast)
-              ;; Store name -> def mappings
-              (maphash
-               (lambda (k v)
-                 (declare (ignore k))
-                 (dolist (a v)
-                   (when (and a (ast-name a))
-                     (push a (gethash (ast-name a)
-                                      (name-symbol-table obj))))))
-               (symbol-table obj))
-              (record-typedef-decls obj raw-ast)
-              (let ((ast (remove-non-program-asts raw-ast tmp-file)))
-                (%debug 'remove-non-program-asts ast)
-                (remove-asts-in-classes
-                 ast '(:fullcomment :textcomment :paragraphcomment))
-                (convert-line-and-col-to-byte-offsets ast genome tmp-file)
-                (fix-multibyte-characters ast genome tmp-file)
-                (compute-operator-positions obj ast)
-                (put-operators-into-inner-positions obj ast)
-                (multiple-value-bind (uses table) (find-macro-uses obj ast tmp-file)
-                  (declare (ignorable table uses))
-                  ;; (format t "~{~s~%~}" uses)
-                  (encapsulate-macro-expansions-cheap ast table))
-                ;; Fancier macro mechanism
-                #+(or)
-                (progn
-                  (mark-macro-expansion-nodes ast tmp-file)
-                  (%debug 'mark-macro-expansion-nodes ast
-                          #'(lambda (o)
-                              (let ((r (ast-range o)))
-                                (list r (begin-offset r) (end-offset r)
-                                      (is-macro-expansion-node o)))))
-                  (encapsulate-macro-expansions ast)
-                  (%debug 'encapsulate-macro-expansions ast #'%p))
-
-                ;; This was previously before macro expansion encapsulation, but
-                ;; that caused failures
-                (fix-overlapping-vardecls obj ast)
-
-                (fix-ancestor-ranges obj ast)
-                (%debug 'fix-ancestor-ranges ast #'%p)
-                (combine-overlapping-siblings obj ast)
-                (%debug 'combine-overlapping-siblings ast #'%p)
-                (decorate-ast-with-strings obj ast)
-                (put-operators-into-starting-positions obj ast)
-                (compute-full-stmt-attrs ast)
-                (compute-guard-stmt-attrs ast)
-                (compute-syn-ctxs ast)
-                (setf ast-root (sel/sw/parseable::update-paths
-                                (fix-semicolons ast))
-                      genome nil)
-                (update-symbol-table obj)
-                obj))))))))
-
-;;; TODO: determine if this needs to be invoked when the
-;;;  tree changes
-(defmethod update-symbol-table ((obj new-clang))
-  ;; When objects are copied in an AST, the mapping from IDs to
-  ;; objects is invalidated.  This function restores it.
-  (let ((table (symbol-table obj)))
-    (map-ast (ast-root obj)
-             (lambda (a)
-               (when-let ((id (new-clang-ast-id a)))
-                 (setf (gethash id table) (list a))))))
-  obj)
-
-
 ;;; Macro expansion code
-
 (defgeneric find-macro-uses (obj a file)
   (:documentation "Identify the locations at which macros occur in the
 file, and the length of the macro token.  Returns a list of lists.
@@ -3114,182 +2585,439 @@ macro.")
           (setf (ast-children a) new-children))
         t))))
 
-(defgeneric mark-macro-expansion-nodes (a file)
-  (:documentation
-   "Mark the nodes of an AST that were produced by macroexpansion.
-These will be recognized because their spelling-loc lines precede the
-line currently being processed.  The nodes are marked with attribute
-:from-macro"))
+(defun fix-overlapping-vardecls (sw ast)
+  (map-ast ast (lambda (a) (fix-overlapping-vardecls-at-node sw a))))
 
-(defmethod mark-macro-expansion-nodes (a file)
-  (let ((*current-offset* 0))
-    (map-ast a #'(lambda (x) (mark-macro-expansion-at-node x file)))))
+(defun fix-overlapping-vardecls-at-node (sw ast)
+  "Separate consecutive, overlapping :VAR and :FIELD nodes so their
+text ranges in the source do not overlap, if possible."
+  ;; This does not exactly reproduce what the old clang
+  ;; front end was doing.  There, the Var nodes were children of
+  ;; each other in some cases.
+  (let ((child-asts (ast-children ast)))
+    (let (prev pos)
+      (when (and (ast-p (car child-asts))
+                 (member (ast-class (car child-asts))
+                         '(:var :field)))
+        (setf prev (car child-asts))
+        (setf pos (begin-offset prev)))
+      (do* ((e (cdr child-asts) (cdr e))
+            (c (car e) (car e)))
+           ((null e))
+        (if (ast-p c)
+            (let ((next-pos (begin-offset c))
+                  (end (end-offset c)))
+              (if (member (ast-class c) '(:var :field))
+                  (progn
+                    (if prev
+                        (if (and next-pos end)
+                            (if (< (end-offset prev) next-pos)
+                                ;; things are fine -- no overlap
+                                (setf prev c pos next-pos)
+                                ;; There is overlap -- find the next
+                                ;; position
+                                (let ((comma-pos
+                                       (cpp-scan (genome sw)
+                                                 (lambda (c) (eql c #\,))
+                                                 :start pos
+                                                 :end (1+ end))))
+                                  (if comma-pos
+                                      (setf pos (1+ comma-pos)
+                                            (offset c) pos
+                                            prev c)
+                                      ;; Failed to find comma; change nothing
+                                      (setf prev c
+                                            pos next-pos))))
+                            (setf prev c
+                                  pos next-pos))))
+                  (setf prev c
+                        pos next-pos)))
+            (setf prev nil pos nil)))))
+  ast)
 
-(defun mark-macro-expansion-at-node (a file)
-  "Determine if this node is a macro expansion.  Possibly advance
-*current-offset* if it is not."
-  (let* ((range (ast-attr a :range))
-         (begin (and range (new-clang-range-begin range)))
-         (end (and range (new-clang-range-end range))))
-    (cond
-      ((and (typep begin 'new-clang-macro-loc)
-            (typep end 'new-clang-macro-loc)
-            (or (not (equal file (ast-file a t)))
-                (< (new-clang-loc-offset
-                    (new-clang-macro-loc-spelling-loc begin))
-                   *current-offset*)
-                (new-clang-macro-loc-is-macro-arg-expansion
-                 (new-clang-macro-loc-expansion-loc begin))))
-       ;; It's from a macro, mark it
-       ;; Compute the macro name at the expansion site
-       (when-let ((eloc (new-clang-macro-loc-expansion-loc begin)))
-         (setf (ast-attr a :macro-names)
-               (subseq (genome *soft*)
-                       (offset eloc)
-                       (+ (offset eloc) (tok-len eloc)))))
-       (if (new-clang-macro-loc-is-macro-arg-expansion
-            (new-clang-macro-loc-expansion-loc begin))
-           (setf (ast-attr a :direct-macro-arg) t)
-           (setf (ast-attr a :from-macro) t)))
-      ((typep begin 'new-clang-loc)
-       (setf *current-offset*
-             (max *current-offset*
-                  (or (new-clang-loc-offset begin) 0))))
-      ((typep begin 'new-clang-macro-loc)
-       (setf *current-offset*
-             (max *current-offset*
-                  (new-clang-loc-offset
-                   (new-clang-macro-loc-spelling-loc begin))))))))
+(defgeneric remove-non-program-asts (ast file)
+  (:documentation "Remove ASTs from ast that are not from the
+actual source file"))
 
-(defun encapsulate-macro-expansions (a)
-  "Given an AST marked with :from-macro annotations, collapse macros into macro
-nodes."
-  (map-ast-while a #'encapsulate-macro-expansions-below-node))
+(defun is-non-program-ast (a file)
+  (let ((f (ast-file a)))
+    (and f (not (equal file f)))))
 
-(defun is-macro-expansion-node (a)
-  (ast-attr a :from-macro))
+(defmethod remove-non-program-asts ((ast ast) (file string))
+  (flet ((%non-program (a) (is-non-program-ast a file)))
+    ;; Remove asts based on FILE only at the top level
+    ;; This could fail on #include inside other forms,
+    ;; but we have trouble with macroexpansion there.
+    ;; TO BE FIXED
+    (setf (ast-children ast)
+          (remove-if #'%non-program (ast-children ast))))
+  ;; Implicit ASTs are introduced, for example, in declarations
+  ;; of builtin functions that omit argument types.
+  (remove-asts-if ast #'ast-is-implicit)
+  ast)
 
-(defun macro-loc-expansion-to-loc (mloc)
-  (typecase mloc
-    (new-clang-macro-loc (new-clang-macro-loc-expansion-loc mloc))
-    (t mloc)))
+(defun remove-asts-in-classes (ast classes)
+  (remove-asts-if ast (lambda (o) (member (ast-class o) classes))))
 
-(defun macro-loc-spelling-to-loc (mloc)
-  (typecase mloc
-    (new-clang-macro-loc (new-clang-macro-loc-spelling-loc mloc))
-    (t mloc)))
+(defun line-offsets (str)
+  "Return a list with containing the byte offsets of each new line in STR."
+  (cons 0 (iter (with byte = 0)
+                (for c in-string str)
+                (incf byte (string-size-in-octets (make-string 1 :initial-element c)))
+                (when (eq c #\Newline)
+                  (collect byte)))))
 
-(defgeneric macro-range-to-non-macro-range/expansion (r)
-  (:method ((r new-clang-range))
-    (let* ((begin (macro-loc-expansion-to-loc (new-clang-range-begin r)))
-           (end (macro-loc-expansion-to-loc (new-clang-range-end r))))
-      (make-new-clang-range :begin begin :end end)))
-  (:method (r) r))
+(defun convert-line-and-col-to-byte-offsets
+    (ast-root genome file &aux (line-offsets (line-offsets genome)))
+  "Convert AST range begin/ends in AST-ROOT from line and column pairs to
+byte offsets.
 
-(defgeneric macro-range-to-non-macro-range/spelling (r)
-  (:method ((r new-clang-range))
-    (let* ((begin (macro-loc-spelling-to-loc (new-clang-range-begin r)))
-           (end (macro-loc-spelling-to-loc (new-clang-range-end r))))
-      (make-new-clang-range :begin begin :end end)))
-  (:method (r) r))
+* AST-ROOT root of the AST tree for GENOME
+* GENOME string with the source text of the program
+* FILE filesystem location where GENOME was parsed from"
+  (labels
+      ((to-byte-offset (line col)
+         (+ (1- col) (nth (1- line) line-offsets)))
+       (convert-to-byte-offsets (loc)
+         (cond ((typep loc 'new-clang-macro-loc)
+                (make-new-clang-macro-loc
+                 :spelling-loc
+                 (convert-to-byte-offsets (new-clang-macro-loc-spelling-loc loc))
+                 :expansion-loc
+                 (convert-to-byte-offsets (new-clang-macro-loc-expansion-loc loc))
+                 :is-macro-arg-expansion
+                 (new-clang-macro-loc-is-macro-arg-expansion loc)))
+               ((equal (ast-file loc) file)
+                (make-new-clang-loc
+                 :file (new-clang-loc-file loc)
+                 :offset (to-byte-offset (new-clang-loc-line loc)
+                                         (new-clang-loc-col loc))
+                 :tok-len (new-clang-loc-tok-len loc)))
+               (t loc))))
+    (map-ast ast-root
+             (lambda (ast)
+               (when-let ((_ (and (not (eq :TopLevel (ast-class ast)))
+                                  (equal (ast-file ast) file)))
+                          (begin (new-clang-range-begin (ast-range ast)))
+                          (end (new-clang-range-end (ast-range ast))))
+                 (setf (ast-attr ast :range)
+                       (make-new-clang-range
+                        :begin (convert-to-byte-offsets begin)
+                        :end (convert-to-byte-offsets end))))))))
 
-(defun encapsulate-macro-expansions-below-node (a)
-  (assert (not (is-macro-expansion-node a)))
-  (let ((changed? nil))
-    (setf (ast-range a)
-          (macro-range-to-non-macro-range/expansion (ast-range a)))
-    ;; Must combine subsequences of children that are macro expansion nodes
-    ;; and have the same spelling loc begin into a single macroexpansion node
-    (let* ((children (ast-children a))
-           (new-children
-            (iter
-             (while children)
-             (if (or (not (ast-p (car children)))
-                     (not (is-macro-expansion-node (car children))))
-                 (collect (pop children))
-                 (collect
-                  (let ((macro-child-segment
-                         (iter
-                          (collect (pop children))
-                          (while children)
-                          (while (ast-p (car children)))
-                          (while (is-macro-expansion-node (car children))))))
-                    (let ((macro-args (macro-expansion-arg-asts
-                                       macro-child-segment)))
-                      (let ((obj (make-new-clang-ast
-                                  :class :macroexpansion
-                                  :children macro-args)))
-                        (setf (ast-range obj)
-                              (macro-range-to-non-macro-range/expansion
-                               (ast-range (car macro-child-segment)))
-                              (ast-attr obj :macro-child-segment)
-                              macro-child-segment
-                              changed? t)
-                        obj))))))))
-      (when changed?
-        (shiftf (ast-attr a :old-children)
-                (ast-children a)
-                new-children)
-        new-children))
-    (not changed?)))
+(defun multibyte-characters (str)
+  "Return a listing of multibyte character byte offsets and their length in STR."
+  (iter (for c in-string str)
+        (with byte = 0)
+        (for len = (string-size-in-octets (make-string 1 :initial-element c)))
+        (incf byte len)
+        (when (> len 1)
+          (collecting (cons byte (1- len))))))
 
-(defun macro-expansion-arg-asts (asts)
-  "Search down below a for the nodes that are not marked with :from-macro.
-They, from left to right, become the children of the macro node."
-  (dolist (a asts) (assert (ast-attr a :from-macro)))
-  (let ((children nil))
-    (labels ((%traverse (x)
-               (when (new-clang-ast-p x)
-                 (if (ast-attr x :from-macro)
-                     (mapc #'%traverse (ast-children x))
-                     (push x children)))))
-      (dolist (a asts)
-        (if (ast-attr a :direct-macro-arg)
-            (push a children)
-            (mapc #'%traverse (ast-children a)))))
-    (nreverse children)))
+(defun fix-multibyte-characters (ast-root genome file
+                                 &aux (mb-chars (multibyte-characters genome)))
+  "Convert AST range begin/ends in AST-ROOT from byte offsets to character
+offsets to support source text with multibyte characters.
 
-
-;;; Computes some attributes on new clang ast nodes
+* AST-ROOT root of the AST tree for GENOME
+* GENOME string with the source text of the program
+* FILE filesystem location where GENOME was parsed from"
+  (labels
+      ((byte-offset-to-chars (offset)
+         "Convert the given byte OFFSET to a character offset."
+         (- offset
+            (iter (for (pos . incr) in mb-chars)
+                  (while (<= pos offset))
+                  (summing incr))))
+       (byte-loc-to-chars (loc)
+         "Convert the given LOC using byte offsets to one using character offsets."
+         (cond ((typep loc 'new-clang-macro-loc)
+                (make-new-clang-macro-loc
+                 :spelling-loc
+                 (byte-loc-to-chars (new-clang-macro-loc-spelling-loc loc))
+                 :expansion-loc
+                 (byte-loc-to-chars (new-clang-macro-loc-expansion-loc loc))
+                 :is-macro-arg-expansion
+                 (new-clang-macro-loc-is-macro-arg-expansion loc)))
+               ((equal (ast-file loc) file)
+                (make-new-clang-loc
+                 :file (new-clang-loc-file loc)
+                 :offset (byte-offset-to-chars (new-clang-loc-offset loc))
+                 :tok-len (- (byte-offset-to-chars
+                              (+ (new-clang-loc-offset loc)
+                                 (new-clang-loc-tok-len loc)))
+                             (byte-offset-to-chars (new-clang-loc-offset loc)))))
+               (t loc))))
+    (map-ast ast-root
+             (lambda (ast)
+               (when-let ((_ (and (not (eq :TopLevel (ast-class ast)))
+                                  (equal (ast-file ast) file)))
+                          (begin (new-clang-range-begin (ast-range ast)))
+                          (end (new-clang-range-end (ast-range ast))))
+                 (setf (ast-attr ast :range)
+                       (make-new-clang-range
+                        :begin (byte-loc-to-chars begin)
+                        :end (byte-loc-to-chars end))))))))
 
-(defgeneric nth-ast-child (obj n)
-  (:documentation
-   "Returns the Nth child of OBJ that is an AST, starting
-at zero, or NIL if there is none."))
+(defgeneric compute-operator-positions (sw ast)
+  (:documentation "Compute positions of operators in
+CXXOperatorCallExpr nodes")
+  (:method (sw (ast new-clang-ast))
+    (let ((*soft* sw))
+      (map-ast ast #'compute-operator-position))))
 
-(defmethod nth-ast-child ((obj new-clang-ast) n)
-  (declare (type (and fixnum (integer 0)) n))
-  (let ((children (ast-children obj)))
-    (loop
-       (unless children (return nil))
-       (let ((next-child (pop children)))
-         (when (or (null next-child) ;; NIL is considered an AST
-                   (ast-p next-child))
-           (if (<= n 0)
-               (return next-child)
-               (decf n)))))))
+(defgeneric compute-operator-position (ast)
+  (:documentation "Compute positions of operators at a
+CXXOperatorCallExpr node.   Also, normalize postfix operator++/--
+to remove dummy arg")
+  (:method ((ast new-clang-ast)) nil)
+  (:method ((ast cxx-operator-call-expr))
+    (let* ((ac (ast-children ast))
+           (op (first ac))
+           (op-begin (begin-offset op)))
+      ;; The last argument to a ++ or -- is dummy when
+      ;; it's a postfix operator.  Remove it.
+      (when (and (= (length ac) 3)
+                 (let ((rds (ast-reference-decls op)))
+                   (flet ((%m (s) (member s rds :key #'ast-name
+                                          :test #'equal)))
+                     (or (%m "operator++") (%m "operator--")))))
+        (setf ac (setf (ast-children ast) (subseq ac 0 2))))
+      ;; Position = # of child asts that are before
+      ;; the operator in the source file
+      (let ((rest-offsets (mapcar #'begin-offset (cdr ac))))
+        (when (and op-begin (every #'identity rest-offsets))
+          (setf (cxx-operator-call-expr-pos ast)
+                (count op-begin rest-offsets :test #'>)))))))
 
-(defgeneric pos-ast-child (child obj &key child-fn test)
-  (:documentation
-   "Returns the position of CHILD in the child list of OBJ (with children
-failing the CHILD-FN test omitted, or NIL if CHILD does not satisfy
-the test or is not present."))
+(defgeneric put-operators-into-inner-positions (sw ast)
+  (:documentation "Put operators into their inner positions
+in CXXOperatorCallExpr nodes.")
+  (:method ((sw new-clang) (ast new-clang-ast))
+    (let ((*soft* sw))
+      (map-ast ast #'put-operator-into-inner-position))))
 
-(defmethod pos-ast-child (child (obj new-clang-ast)
-                          &key (child-fn (complement #'stringp))
-                            (test #'eql))
-  (let ((pos 0)
-        (children (ast-children obj)))
-    (loop
-       (unless children (return nil))
-       (let ((next-child (pop children)))
-         (when (funcall child-fn next-child)
-           (when (funcall test child next-child)
-             (return pos))
-           (incf pos))))))
+(defgeneric put-operator-into-inner-position (ast)
+  (:documentation "Put operator into its inner position
+in a CXXOperatorCallExpr node.")
+  (:method ((ast new-clang-ast)) nil)
+  (:method ((ast cxx-operator-call-expr))
+    ;; This is pre-stringification, so there should only
+    ;; be ast children
+    (let* ((c (ast-children ast))
+           (op (first c))
+           (pos (cxx-operator-call-expr-pos ast)))
+      (assert (every #'ast-p c))
+      (when pos
+        (assert (< pos (length c)))
+        (setf (ast-children ast)
+              (append (subseq c 1 (1+ pos))
+                      (list op)
+                      (subseq c (1+ pos))))))))
 
-(defun eql-nth-ast-child (obj parent n)
-  (eql obj (nth-ast-child parent n)))
+(defun fix-ancestor-ranges (sw ast)
+  "Normalize the ast so the range of each node is a superset
+of the ranges of its children"
+  (let ((*soft* sw)
+        changed?)
+    (flet ((%normalize (a)
+             (multiple-value-bind (begin end)
+                 (begin-and-end-offsets a)
+               (let ((min-begin begin)
+                     (max-end end))
+                 (iter (for c in (ast-children a))
+                       (when (and (ast-p c) (equal (ast-file a) (ast-file c)))
+                         (multiple-value-bind (cbegin cend)
+                             (begin-and-end-offsets c)
+                           (when (and cbegin
+                                      (or (null min-begin)
+                                          (> min-begin cbegin)))
+                             (setf min-begin cbegin))
+                           (when (and cend
+                                      (or (null max-end)
+                                          (< max-end cend)))
+                             (setf max-end cend)))))
+                 (unless (and (eql min-begin begin)
+                              (eql max-end end))
+                   (setf changed? t)
+                   (setf (ast-attr a :range)
+                         (make-new-clang-range
+                          :begin (make-new-clang-loc
+                                  :file (ast-file a)
+                                  :offset min-begin)
+                          :end (make-new-clang-loc
+                                :file (ast-file a)
+                                :offset max-end))))))))
+      ;; Fixpoint for normalization of ranges
+      (loop
+         (setf changed? nil)
+         (map-ast ast #'%normalize)
+         (map-ast-postorder ast #'%normalize)
+         (unless changed? (return ast))))))
+
+;;; FIXME: refactor this into small functions, for
+;;;  understandability and line length limits
+(defun combine-overlapping-siblings (sw ast)
+  "Group sibling nodes with overlapping or out of order
+ranges into 'combined' nodes.  Warn when this happens."
+  (let ((*soft* sw)
+        (genome (genome sw)))
+    (declare (ignorable genome))
+    (flet ((%check (a)
+             (let ((end 0)
+                   changed? accumulator)
+               (flet ((%sorted-children (children)
+                        (stable-sort
+                         children
+                         (lambda (a b)
+                           (bind (((:values a-begin a-end)
+                                   (begin-and-end-offsets a))
+                                  ((:values b-begin b-end)
+                                   (begin-and-end-offsets b)))
+                                 ;; If ASTs start at the same place, put the
+                                 ;; larger one first so parent-child combining
+                                 ;; below works nicely.
+                                 (cond ((or (null b-begin) (null b-end)) t)
+                                       ((or (null a-begin) (null a-end)) nil)
+                                       ((= a-begin b-begin) (> a-end b-end))
+                                       (t (< a-begin b-begin)))))))
+                      (%combine ()
+                        (case (length accumulator)
+                          (0)
+                          (1 (list (pop accumulator)))
+                          (t
+                           (let ((new-begin (reduce #'min accumulator
+                                                    :key #'begin-offset))
+                                 (new-end (reduce #'max accumulator
+                                                  :key #'extended-end-offset)))
+                             (prog1
+                                 (unless (eql new-begin new-end)
+                                   (setf changed? t)
+                                   (if (and (= (length accumulator) 2)
+                                            (eql (ast-class (car accumulator)) :typedef))
+                                       ;; Special case: there are two nodes, and the first is a typedef
+                                       ;; In that case, make the second a child of the first
+                                       (progn
+                                         (push (cadr accumulator) (ast-children (car accumulator)))
+                                         (list (car accumulator)))
+                                       ;; Otherwise, create a "Combined" node with the children as the
+                                       ;; overlapping ASTs.  Previously, the overlapping children
+                                       ;; where stored in a "subsumed" attribute instead of as
+                                       ;; the children field.  However, this led to issue when writing
+                                       ;; out the file as `source-text` relies on the children field.
+                                       ;; Further, it required special case logic for all methods
+                                       ;; which call `ast-children` (e.g. replace-in-ast,
+                                       ;; replace-nth-child, remove-ast, replace-ast, insert-ast,
+                                       ;; map-ast, map-ast-strings, map-ast-with-ancestor,
+                                       ;; get-immediate-children, etc.).  By making the overlapping
+                                       ;; nodes children of the combined node, we only need special
+                                       ;; case logic when writing out the source text of the combined
+                                       ;; AST which is less error-prone than the converse.
+                                       (list (make-new-clang-ast
+                                              :class :combined
+                                              :children accumulator
+                                              :attrs `((:range .
+                                                               ,(make-new-clang-range
+                                                                 :begin (make-new-clang-loc
+                                                                         :file (ast-file (car accumulator))
+                                                                         :offset new-begin)
+                                                                 :end (make-new-clang-loc
+                                                                       :file (ast-file (car accumulator))
+                                                                       :offset new-end)))
+                                                       (:source-text .
+                                                                     ,(subseq genome
+                                                                              new-begin
+                                                                              new-end)))))))
+                               (setf accumulator nil)))))))
+                 (unless (eq :combined (ast-class a))
+                   (let ((new-children
+                          (append
+                           ;; Find child ASTs and sort them in textual order.
+                           (iter (for c in (%sorted-children (ast-children a)))
+                                 (multiple-value-bind (cbegin cend)
+                                     (begin-and-end-offsets c)
+                                   (if (and cbegin end cend (< cbegin end)
+                                            (equal (ast-file a) (ast-file c)))
+                                       (setf accumulator
+                                             (append accumulator (list c))
+                                             end (max end cend))
+                                       (progn
+                                         (appending (%combine))
+                                         (setf accumulator (list c)
+                                               end cend)))))
+                           (%combine))))
+                     (when changed?
+                       (setf (ast-children a) new-children))))))))
+      (map-ast ast #'%check))))
+
+(defun decorate-ast-with-strings (sw ast &aux (genome (genome sw)))
+  (labels
+      ((%assert1 (i cbegin c)
+         (assert (>= cbegin i) ()
+                 "Offsets out of order: i = ~a,~
+                  cbegin = ~a, c = ~a, range = ~a"
+                 i cbegin c
+                 (ast-attr c :range)))
+       (%safe-subseq (seq start end)
+         (subseq seq start (if (<= end start) start end)))
+       (%decorate (a)
+         ;; At ast node A, split the parts of the source
+         ;; that are not in the children into substrings
+         ;; that are placed between the children.  Do not
+         ;; place strings for children for whom offsets
+         ;; cannot be computed
+         (let ((children (ast-children a)))
+           (multiple-value-bind (begin end)
+               (begin-and-end-offsets a)
+             (when (and begin end (equal (ast-file a) (tmp-file sw)))
+               (let ((i begin))
+                 (setf
+                  (ast-children a)
+                  (nconc
+                   (iter
+                    (for c in children)
+                    (when (and (ast-p c) (equal (ast-file a) (ast-file c)))
+                      (multiple-value-bind (cbegin cend)
+                          (begin-and-end-offsets c)
+                        (when cbegin
+                          (unless (eq :Combined (ast-class a))
+                            (%assert1 i cbegin c))
+                          (collect (%safe-subseq genome i cbegin))
+                          (setf i cend))))
+                    (collect c))
+                   (list (%safe-subseq genome i end))))))))))
+    (map-ast ast #'%decorate))
+  ast)
+
+(defgeneric put-operators-into-starting-positions (sw ast)
+  (:documentation "Put operators into their starting positions
+in CXXOperatorCallExpr nodes.")
+  (:method ((sw new-clang) (ast new-clang-ast))
+    (let ((*soft* sw))
+      (map-ast ast #'put-operator-into-starting-position))))
+
+(defgeneric put-operator-into-starting-position (ast)
+  (:documentation "Put operator into their starting position
+in a CXXOperatorCallExpr node.")
+  (:method ((ast new-clang-ast)) (declare (ignorable ast)) nil)
+  (:method ((ast cxx-operator-call-expr))
+    ;; The AST will have been stringified here, so pos
+    ;; is the position in (remove-if-not #'ast-p (ast-children))
+    (let ((pos (cxx-operator-call-expr-pos ast))
+          (c (ast-children ast)))
+      (when pos
+        (assert (<= 0 pos (1- (length c))))
+        (when (> pos 0)
+          (let ((actual-pos
+                 (let ((count pos))
+                   (position-if (lambda (e)
+                                  (and (ast-p e) (zerop (decf count))))
+                                c))))
+            (setf (ast-children ast)
+                  (append
+                   (list (elt c actual-pos))
+                   (subseq c 0 actual-pos)
+                   (subseq c (1+ actual-pos))))))))))
 
 (defgeneric compute-full-stmt-attr (obj ancestors)
   (:documentation "Fills in the :FULL-STMT attribute on clang ast
@@ -3386,6 +3114,118 @@ ast nodes, as needed")
   (map-ast-with-ancestors ast #'compute-syn-ctx)
   (map-ast ast #'fix-var-syn-ctx))
 
+;;; TODO: determine if this needs to be invoked when the
+;;;  tree changes
+(defmethod update-symbol-table ((obj new-clang))
+  ;; When objects are copied in an AST, the mapping from IDs to
+  ;; objects is invalidated.  This function restores it.
+  (let ((table (symbol-table obj)))
+    (map-ast (ast-root obj)
+             (lambda (a)
+               (when-let ((id (new-clang-ast-id a)))
+                 (setf (gethash id table) (list a))))))
+  obj)
+
+(defmethod update-asts ((obj new-clang))
+  ;; Port of this method from clang.lsp, for new class
+  (let ((*soft* obj)
+        (*canonical-string-table* (make-hash-table :test 'equal)))
+    (with-slots (ast-root genome includes) obj
+      (unless genome     ; get genome from existing ASTs if necessary
+        ;; (clrhash (symbol-table *soft*))
+        (setf genome (genome obj)
+              ast-root nil))
+      (with-slots (symbol-table name-symbol-table type-table base-types types)
+          obj
+        (setf symbol-table (make-hash-table :test #'equal)
+              name-symbol-table (make-hash-table :test #'equal)
+              type-table (make-hash-table :test #'equal)
+              base-types (make-hash-table :test #'equal)
+              types (make-hash-table :test #'equal)))
+
+      (multiple-value-bind (json tmp-file genome-len)
+          (clang-json obj)
+        (setf (tmp-file obj) tmp-file)
+        (let* ((raw-ast (clang-convert-json-for-file
+                         json tmp-file genome-len)))
+          ;; Store name -> def mappings
+          (maphash
+           (lambda (k v)
+             (declare (ignore k))
+             (dolist (a v)
+               (when (and a (ast-name a))
+                 (push a (gethash (ast-name a)
+                                  (name-symbol-table obj))))))
+           (symbol-table obj))
+          (record-typedef-decls obj raw-ast)
+          (let ((ast (remove-non-program-asts raw-ast tmp-file)))
+            (remove-asts-in-classes
+             ast '(:fullcomment :textcomment :paragraphcomment))
+            (convert-line-and-col-to-byte-offsets ast genome tmp-file)
+            (fix-multibyte-characters ast genome tmp-file)
+            (compute-operator-positions obj ast)
+            (put-operators-into-inner-positions obj ast)
+            (multiple-value-bind (uses table) (find-macro-uses obj ast tmp-file)
+              (declare (ignorable table uses))
+              (encapsulate-macro-expansions-cheap ast table))
+            ;; This was previously before macro expansion encapsulation, but
+            ;; that caused failures
+            (fix-overlapping-vardecls obj ast)
+            (fix-ancestor-ranges obj ast)
+            (combine-overlapping-siblings obj ast)
+            (decorate-ast-with-strings obj ast)
+            (put-operators-into-starting-positions obj ast)
+            (compute-full-stmt-attrs ast)
+            (compute-guard-stmt-attrs ast)
+            (compute-syn-ctxs ast)
+            (setf ast-root (sel/sw/parseable::update-paths
+                            (fix-semicolons ast))
+                  genome nil)
+            (update-symbol-table obj)
+            obj))))))
+
+
+;;; Helper methods for computing attributes on new clang ast nodes
+
+(defgeneric nth-ast-child (obj n)
+  (:documentation
+   "Returns the Nth child of OBJ that is an AST, starting
+at zero, or NIL if there is none."))
+
+(defmethod nth-ast-child ((obj new-clang-ast) n)
+  (declare (type (and fixnum (integer 0)) n))
+  (let ((children (ast-children obj)))
+    (loop
+       (unless children (return nil))
+       (let ((next-child (pop children)))
+         (when (or (null next-child) ;; NIL is considered an AST
+                   (ast-p next-child))
+           (if (<= n 0)
+               (return next-child)
+               (decf n)))))))
+
+(defgeneric pos-ast-child (child obj &key child-fn test)
+  (:documentation
+   "Returns the position of CHILD in the child list of OBJ (with children
+failing the CHILD-FN test omitted, or NIL if CHILD does not satisfy
+the test or is not present."))
+
+(defmethod pos-ast-child (child (obj new-clang-ast)
+                          &key (child-fn (complement #'stringp))
+                            (test #'eql))
+  (let ((pos 0)
+        (children (ast-children obj)))
+    (loop
+       (unless children (return nil))
+       (let ((next-child (pop children)))
+         (when (funcall child-fn next-child)
+           (when (funcall test child next-child)
+             (return pos))
+           (incf pos))))))
+
+(defun eql-nth-ast-child (obj parent n)
+  (eql obj (nth-ast-child parent n)))
+
 (defun is-single-line-stmt (s p)
   ;; ported from clang mutate, where there is this comment:
   ;;  Return true if the clang::Stmt is a statement in the C++ grammar
@@ -3418,6 +3258,8 @@ ast nodes, as needed")
          (t nil))))
 
 
+;;; Parsing a source code snippet
+
 (defmethod parse-source-snippet ((type (eql :new-clang))
                                  (snippet string)
                                  &key unbound-vals includes macros preamble
