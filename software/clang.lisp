@@ -3903,27 +3903,23 @@ Arguments are identical to PARSE-SOURCE-SNIPPET."
 
 ;;; Process a clang ast to move semicolons down to appropriate places
 
-(defgeneric is-full-stmt-ast (ast)
-  (:method (ast) (declare (ignorable ast)) nil)
-  (:method ((ast clang-ast))
-    (ast-full-stmt (ast-node ast))))
-
 (defun move-semicolons-into-full-stmts (children)
   "Given a list of children of an AST node, move semicolons from strings in the list
    they are in into preceding full stmt nodes.  Applied in preorder, this can migrate
    semicolons multiple levels down the tree."
   (loop for p on children
      do (let ((e (car p)))
-	  (when (and (is-full-stmt-ast e)
-		     (stringp (cadr p)))
-	    (let ((e-children (ast-children e))
-		  (lc))
-	      (when (stringp (car (setf lc (last e-children))))
-		(multiple-value-bind (found? prefix suffix)
-		    (position-of-leading-semicolon (cadr p))
+          (when (and (ast-p e)
+                     (ast-full-stmt e)
+                     (stringp (cadr p)))
+            (let ((e-children (ast-children e))
+                  (lc))
+              (when (stringp (car (setf lc (last e-children))))
+                (multiple-value-bind (found? prefix suffix)
+                    (position-of-leading-semicolon (cadr p))
                   (when found?
                     (setf (car lc) (concatenate 'string (car lc) prefix))
-		    (setf (cadr p) suffix)))))))))
+                    (setf (cadr p) suffix)))))))))
 
 (defun move-semicolons-into-expr-stmts (ast)
   "CALLEXPRs don't necessarily have their semicolons in them.

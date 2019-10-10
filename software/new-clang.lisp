@@ -56,6 +56,14 @@
 (in-package :software-evolution-library/software/new-clang)
 (in-readtable :curry-compose-reader-macros)
 
+
+;;; Code for adapting tests to use old or new clang front
+;;; ends, controllably
+
+;; This is DEFVAR so I can set the var and reload this file
+;; without losing that value, which is useful for debugging.
+(defvar *new-clang?* nil "When true, use NEW-CLANG instead of CLANG")
+
 ;;; NOTE: *SOFT* is used in various low level functios that need
 ;;;  global information about the object that contains an AST.
 ;;;  The API does not always provide this object.  The downside
@@ -215,15 +223,6 @@ using the clang front-end.
         (for p previous f)
         (when (or (string= p "-I") (string= p "-D"))
           (appending (list p f)))))
-
-(defgeneric map-ast-while (a fn)
-  (:documentation "Apply FN to the nodes of AST A, stopping
-the descent when FN returns NIL"))
-
-(defmethod map-ast-while ((a ast) fn)
-  (when (funcall fn a)
-    (dolist (c (ast-children a))
-      (when (ast-p c) (map-ast-while c fn)))))
 
 (defmethod stmt-asts ((obj new-clang))
   (let ((stmt-asts nil))
@@ -398,18 +397,7 @@ macro objects from these, returning a list."
           (make-new-clang-macro :hash hash :body body :name name))))))
 
 
-;;; Code for adapting tests to use old or new clang front
-;;; ends, controllably
-
-;; This is DEFVAR so I can set the var and reload this file
-;; without losing that value, which is useful for debugging.
-(defvar *new-clang?*
-  #-windows nil
-  #+windows t
-  "When true, use NEW-CLANG instead of CLANG")
-
-;;; TODO: determine which structure fields should be read-only
-
+;;; AST structures.
 (defstruct (new-clang-ast (:include clang-ast-base)
                           (:conc-name new-clang-ast-))
   (path nil :type list)          ;; Path to subtree from root of tree.
@@ -425,6 +413,126 @@ macro objects from these, returning a list."
   (syn-ctx nil :type symbol)
   ;; aux data
   (aux-data nil :type list))
+
+;; Special subclass for :CXXOperatorCallExpr nodes
+(defstruct (cxx-operator-call-expr (:include new-clang-ast))
+  ;; POS is the "actual" position of the operator in the
+  ;; list of child ASTs (ignoring non-AST children).
+  ;; When computing ranges, and when computing
+  ;; source text, put it there.
+  ;; The type FIXNUM is too big; figure out how much
+  ;; smaller this can be made.
+  (pos nil :type (or null fixnum)))
+
+
+;;; Structures and functions relating to genome locations.
+
+(defstruct new-clang-loc
+  "Structure used to represent a location within a clang-parseable file."
+  (file nil :type (or null string))
+  (offset 0 :type (or null integer))
+  (tok-len 0 :type (or null integer)))
+
+(defstruct new-clang-macro-loc
+  "Structure used to represent :begin/:end entries for
+things in macro expansion.  SPELLING-LOC is the location
+in the macro defn, EXPANSION-LOC is at the macro use."
+  (spelling-loc nil :type (or null new-clang-loc))
+  (expansion-loc nil :type (or null new-clang-loc))
+  (is-macro-arg-expansion nil :type boolean))
+
+(defstruct new-clang-range
+  "Structure used to represent the begin and end location of an AST."
+  (begin nil :type (or null new-clang-loc new-clang-macro-loc))
+  (end nil :type (or null new-clang-loc new-clang-macro-loc)))
+
+(defgeneric offset (obj)
+  (:method ((obj new-clang-loc))
+    (new-clang-loc-offset obj))
+  (:method ((obj new-clang-macro-loc))
+    (if (new-clang-macro-loc-is-macro-arg-expansion obj)
+        (offset (new-clang-macro-loc-spelling-loc obj))
+        (offset (new-clang-macro-loc-expansion-loc obj)))))
+
+(defgeneric (setf offset) (offset obj)
+  (:method ((offset integer) (obj new-clang-ast))
+    (setf (offset (new-clang-range-begin (ast-attr obj :range))) offset))
+  (:method ((offset integer) (obj new-clang-loc))
+    (setf (new-clang-loc-offset obj) offset)))
+
+(defgeneric begin-offset (obj)
+  (:method ((obj new-clang-ast))
+    (begin-offset (aget :range (new-clang-ast-attrs obj))))
+  (:method ((obj new-clang-range))
+    (offset (new-clang-range-begin obj))))
+
+(defgeneric end-offset (obj)
+  (:method ((obj new-clang-ast))
+    (end-offset (aget :range (new-clang-ast-attrs obj))))
+  (:method ((obj new-clang-range))
+    (offset (new-clang-range-end obj))))
+
+(defgeneric tok-len (x)
+  (:method ((x new-clang-loc)) (new-clang-loc-tok-len x))
+  (:method ((x new-clang-macro-loc))
+    (if (not (new-clang-macro-loc-is-macro-arg-expansion x))
+        (tok-len (new-clang-macro-loc-spelling-loc x))
+        (tok-len (new-clang-macro-loc-expansion-loc x)))))
+
+;;; Compute beginning, ending offsets for an ast, other things
+;;; The end offset is one past the last character in the ast-text
+;;; for the ast
+(defgeneric begin-and-end-offsets (x)
+  (:method ((obj new-clang-ast))
+    (begin-and-end-offsets (ast-attr obj :range)))
+  (:method ((obj new-clang-range))
+    (values (offset (new-clang-range-begin obj))
+            (+ (offset (new-clang-range-end obj))
+               (tok-len (new-clang-range-end obj))))))
+
+(defun extended-end-offset (x)
+  (nth-value 1 (begin-and-end-offsets x)))
+
+
+;;; AST creation mechanisms
+
+(defgeneric make-new-clang-ast* (class &rest args &key &allow-other-keys)
+  (:documentation "Make a new-clang-ast node or a subclass of new-clang-ast,
+depending on CLASS"))
+
+(defmethod make-new-clang-ast* (class &rest args &key &allow-other-keys)
+  (apply #'make-new-clang-ast :class class args))
+
+(defmethod to-ast ((ast-type (eql 'clang)) s)
+  (declare (ignorable ast-type))
+  (to-ast (if *new-clang?* 'new-clang-ast 'clang-ast) s))
+
+(defmethod to-ast ((ast-type (eql 'new-clang-ast)) spec)
+  (to-ast* spec
+           (lambda (class keys children)
+             (apply
+              #'make-new-clang-ast*
+              class
+              :children children
+              :allow-other-keys t
+              keys))))
+
+(defmethod make-new-clang-ast* ((class (eql :cxxoperatorcallexpr)) &rest args
+                                &key &allow-other-keys)
+  (apply #'make-cxx-operator-call-expr :class class args))
+
+(defmethod make-new-clang-ast* ((class (eql :macroexpansion)) &rest args
+                                &key children false-children &allow-other-keys)
+  ;; :FALSE-CHILDREN is the list of ersatz children below the macroexpansion node
+  ;; They are not used for computing the source-text of the node
+  (assert (listp children))
+  (assert (= (length children) 1))
+  (apply #'make-new-clang-ast
+         :class :macroexpansion
+         :children false-children
+         :source-text (car children)
+         :allow-other-keys t
+         args))
 
 (defmethod to-alist ((ast new-clang-ast))
   (flet ((%p (key fn)
@@ -452,6 +560,56 @@ macro objects from these, returning a list."
                         :syn-ctx syn-ctx
                         :aux-data aux-data)))
 
+(defun new-clang-ast-copy (ast fn &rest args
+                           &key
+                             referenceddecl
+                             path
+                             (children (new-clang-ast-children ast))
+                             (class (new-clang-ast-class ast))
+                             (attrs (new-clang-ast-attrs ast) attrs-p)
+                             (id (new-clang-ast-id ast))
+                             (syn-ctx (new-clang-ast-syn-ctx ast))
+                             (aux-data (new-clang-ast-aux-data ast))
+                             &allow-other-keys)
+  ;; The value of REFERENCEDDECL is not otherwise explicitly
+  ;; used in this function, but it gets used as part of ARGS
+  (unless (or (null referenceddecl) (ast-p referenceddecl))
+    (error "Referenceddecl not an AST: ~s~%" referenceddecl))
+  (let (new-attrs)
+    (let ((args2 args))
+      (iter (while args2)
+            (let ((key (pop args2))
+                  (arg (pop args2)))
+              (case key
+                ((:path :children :class :id :syn-ctx :aux-data) nil)
+                ((:attrs)
+                 (unless attrs-p
+                   (setf attrs-p t
+                         attrs arg)))
+                (t
+                 ;; Otherwise, it's an attribute
+                 (push (cons key arg) new-attrs))))))
+    (iter (for (key . arg) in new-attrs)
+          (setf attrs (areplace key arg attrs)))
+
+    ;; This call includes :ALLOW-OTHER-KEYS T because
+    ;; FN may be #'make-new-clang-ast, and we cannot
+    ;; add &allow-other-keys to that.
+    (funcall fn :allow-other-keys t
+             :path path :children children
+             :class class :attrs attrs :id id
+             :syn-ctx syn-ctx :aux-data aux-data)))
+
+(defmethod copy ((ast new-clang-ast) &rest args) ;  &key &allow-other-keys)
+  (apply #'new-clang-ast-copy ast #'make-new-clang-ast args))
+
+(defmethod copy ((ast cxx-operator-call-expr) &rest args) ;  &key &allow-other-keys)
+  (apply #'new-clang-ast-copy ast #'make-cxx-operator-call-expr args))
+
+
+
+;;; AST fields
+;;;
 ;;; TODO: identify which of these generic accessors should be read only,
 ;;;  beyond those that refer to read-only fields in new-clang-ast.
 ;;;  For those, remove the SETF method, or at least make it error
@@ -476,73 +634,437 @@ macro objects from these, returning a list."
   (new-clang-ast-aux-data obj))
 (defmethod (setf ast-aux-data) (v (obj new-clang-ast))
   (setf (new-clang-ast-aux-data obj) v))
+(defgeneric ast-attr (ast attr))
+(defmethod ast-attr ((ast new-clang-ast) (attr symbol))
+  (let ((attrs (new-clang-ast-attrs ast)))
+    (aget attr attrs)))
+(defgeneric (setf ast-attr) (v ast attr))
+(defmethod (setf ast-attr) (v (ast new-clang-ast) (attr symbol))
+  (let* ((attrs (new-clang-ast-attrs ast))
+         (p (assoc attr attrs)))
+    (if p (setf (cdr p) v)
+        (setf (new-clang-ast-attrs ast)
+              (cons (cons attr v) attrs)))
+    v))
 
 (defmethod ast-name ((s string)) s)
+(defmethod ast-name ((obj new-clang-ast)) (ast-attr obj :name))
 
-(defmethod to-ast ((ast-type (eql 'clang)) s)
-  (declare (ignorable ast-type))
-  (to-ast (if *new-clang?* 'new-clang-ast 'clang-ast) s))
+(defmethod ast-class ((obj new-clang-ast))
+  (new-clang-ast-class obj))
 
-(defgeneric make-new-clang-ast* (class &rest args &key &allow-other-keys)
-  (:documentation "Make a new-clang-ast node or a subclass of new-clang-ast,
-depending on CLASS"))
+(defmethod ast-syn-ctx ((obj new-clang-ast))
+  (new-clang-ast-syn-ctx obj))
 
-(defmethod make-new-clang-ast* (class &rest args &key &allow-other-keys)
-  (apply #'make-new-clang-ast :class class args))
+(defmethod ast-in-macro-expansion ((obj new-clang-ast))
+  (eql (ast-class obj) :macroexpansion))
 
-(defmethod to-ast ((ast-type (eql 'new-clang-ast)) spec)
-  (to-ast* spec
-           (lambda (class keys children)
-             (apply
-              #'make-new-clang-ast*
-              class
-              :children children
-              :allow-other-keys t
-              keys))))
+(defun ast-range (ast) (ast-attr ast :range))
+(defun (setf ast-range) (val ast) (setf (ast-attr ast :range) val))
 
-;; AST-based stmt-asts to avoid cyclical update-asts -> stmt-asts -> etc.
-(defmethod stmt-asts ((obj new-clang-ast))
-  (let ((stmt-asts nil))
-    (map-ast-while
-     obj
-     (lambda (a)
-       (if (function-decl-p a)
-           (progn
-             (map-ast a (lambda (b)
-                          (unless (or (eql (ast-class b) :ParmVar)
-                                      (function-decl-p b))
-                            (push b stmt-asts))))
-             nil)
-           t)))
-    stmt-asts))
+(defgeneric ast-is-implicit (ast)
+  (:method (ast) (declare (ignorable ast)) nil)
+  (:method ((ast new-clang-ast))
+    (or (ast-attr ast :isimplicit)
+        (ast-attr ast :implicit))))
 
-;; Special subclass for :CXXOperatorCallExpr nodes
-(defstruct (cxx-operator-call-expr (:include new-clang-ast))
-  ;; POS is the "actual" position of the operator in the
-  ;; list of child ASTs (ignoring non-AST children).
-  ;; When computing ranges, and when computing
-  ;; source text, put it there.
-  ;; The type FIXNUM is too big; figure out how much
-  ;; smaller this can be made.
-  (pos nil :type (or null fixnum)))
+(defgeneric ast-is-class (ast key)
+  (:method (ast class) (declare (ignorable ast class)) nil)
+  (:method ((ast new-clang-ast) (key symbol))
+    (and (ast-p ast)
+         (eql (ast-class ast) key))))
 
-(defmethod make-new-clang-ast* ((class (eql :cxxoperatorcallexpr)) &rest args
-                                &key &allow-other-keys)
-  (apply #'make-cxx-operator-call-expr :class class args))
+(defmethod ast-type ((ast new-clang-ast))
+  (ast-attr ast :type))
 
-(defmethod make-new-clang-ast* ((class (eql :macroexpansion)) &rest args
-                                &key children false-children &allow-other-keys)
-  ;; :FALSE-CHILDREN is the list of ersatz children below the macroexpansion node
-  ;; They are not used for computing the source-text of the node
-  (assert (listp children))
-  (assert (= (length children) 1))
-  (apply #'make-new-clang-ast
-         :class :macroexpansion
-         :children false-children
-         :source-text (car children)
-         :allow-other-keys t
-         args))
+(defmethod ast-unbound-vals ((ast new-clang-ast))
+  (ast-unbound-vals* ast (ast-class ast)))
 
+(defmethod ast-unbound-vals ((str string))
+  (declare (ignore str))
+  nil)
+
+(defgeneric ast-unbound-vals* (ast class)
+  (:documentation "Implementation function for ast-unbound-vals,
+where class = (ast-class ast)."))
+
+(defmethod ast-unbound-vals* ((ast new-clang-ast) (class (eql :declrefexpr)))
+  (when-let ((obj (ast-referenced-obj ast)))
+    (when (member (ast-class obj) '(:Var :ParmVar))
+      (list obj))))
+
+(defmethod ast-unbound-vals* ((ast new-clang-ast) (class (eql :macroexpansion)))
+  (let ((children (ast-attr ast :macro-child-segment))
+        (bound nil)
+        (unbound nil))
+    (dolist (c children)
+      (map-ast c (lambda (a)
+                   (setf bound (append (ast-declarations a) bound))
+                   (setf unbound (append (ast-unbound-vals a) unbound)))))
+    (set-difference (remove-duplicates unbound)
+                    (remove-duplicates bound))))
+
+(defmethod ast-unbound-vals* ((ast new-clang-ast) class)
+  (declare (ignorable ast class))
+  nil)
+
+(defgeneric ast-bound-vals (ast)
+  (:documentation "Vars that are bound by an AST")
+  (:method ((x string)) (declare (ignore x)) nil)
+  (:method ((ast new-clang-ast))
+    (ast-bound-vals* ast (ast-class ast))))
+
+(defgeneric ast-bound-vals* (ast class)
+  (:documentation "Implementation funtion for ast-bound-vals,
+where class = (ast-class ast).")
+  (:method ((ast new-clang-ast) c)
+    ;; default method
+    (declare (ignorable c))
+    nil)
+  (:method ((ast new-clang-ast) (c (eql :var)))
+    (list ast))
+  (:method ((ast new-clang-ast) (c (eql :declstmt)))
+    (remove-if-not (lambda (a) (and (ast-p a) (eql (ast-class a) :var)))
+                   (ast-children ast))))
+
+(defmethod ast-unbound-funs ((ast new-clang-ast))
+  (ast-unbound-funs* ast (ast-class ast)))
+
+(defmethod ast-unbound-funs ((str string))
+  (declare (ignore str))
+  nil)
+
+(defgeneric ast-unbound-funs* (ast class)
+  (:documentation "Implementation funtion for ast-unbound-funs,
+where class = (ast-class ast).")
+  (:method (ast class) (declare (ignorable ast class)) nil)
+  (:method ((ast new-clang-ast) class) (declare (ignorable ast class)) nil)
+  (:method ((ast new-clang-ast) (class (eql :declrefexpr)))
+    (declare (ignorable class))
+    (when-let* ((obj (ast-referenced-obj ast)))
+      (when (eql (ast-class obj) :function)
+        (list (list obj (ast-void-ret obj) (ast-varargs obj)
+                    (count-if (lambda (a) (and (ast-p a) (eql (ast-class a) :ParmVar)))
+                              (ast-children obj))))))))
+
+(defmethod ast-includes-in-obj ((obj new-clang) (ast new-clang-ast)
+                                &aux (includes nil) (*soft* obj))
+  ;;;  This code is now assuming AST-FILE is not present (or NIL) if
+  ;;;  the file was the same as the one this AST is in.
+  ;;;
+  ;;;  This is also needed to make the i-file slot of nct+ work.
+  (labels ((ast-includes-in-child (child)
+             (let ((tmp-file (tmp-file obj))
+                   (file (ast-file child))
+                   (include-dirs (append (flags-to-include-dirs (flags obj))
+                                         *clang-default-includes*))
+                   (od (original-directory obj)))
+               (mapcar
+                (lambda (s) (normalize-file-for-include s od include-dirs))
+                (delete-duplicates
+                 (nconc
+                  ;; The tests w. tmp-file here and below may not be
+                  ;; necessary, but are kept for safety
+                  (unless (or (not file) (equal tmp-file file))
+                    (list file))
+                  (when-let* ((ref (ast-referenced-obj child))
+                              (file (ast-file ref)))
+                    (unless (or (null file) (equal file tmp-file))
+                      (list file)))
+                  (when-let* ((type (ast-type child))
+                              (str (new-clang-type-qual type)))
+                    (includes-of-names-in-string obj str)))
+                 :test #'equal)))))
+    (map-ast ast
+             (lambda (c)
+               (dolist (f (ast-includes-in-child c))
+                 (pushnew f includes :test #'equal))))
+    (nreverse includes)))
+
+(defmethod ast-includes ((ast new-clang-ast))
+  (ast-includes-in-obj *soft* ast))
+
+(defmethod ast-macros ((ast new-clang-ast))
+  (ast-macros* ast (ast-class ast)))
+
+(defmethod ast-macros ((ast string)) (declare (ignorable ast)) nil)
+
+(defmethod ast-macros* ((ast new-clang-ast) class)
+  (declare (ignorable class))
+  (union (macros-of-macro-names (ast-attr ast :macro-names))
+         (reduce #'union (ast-children ast)
+                 :key #'ast-macros :initial-value nil)))
+
+(defmethod ast-macros* ((ast new-clang-ast) (class (eql :toplevel)))
+  (declare (ignorable ast class))
+  nil)
+
+(defmethod ast-macros* ((ast new-clang-ast) (class (eql :macroexpansion)))
+  (declare (ignorable class))
+  (reduce
+   #'union
+   (cons (macros-of-macro-names (ast-attr ast :macro-names))
+         (mapcar #'ast-macros (ast-attr ast :macro-child-segment)))
+   :initial-value nil))
+
+(defmethod ast-types ((ast string)) nil)
+(defmethod ast-types ((ast new-clang-ast))
+  (ast-types* ast (ast-class ast)))
+(defun ast-types*-on-decl (ast)
+  (when-let ((type (ast-attr ast :type)))
+    (list (make-nct+ type
+                     :storage-class (ast-attr ast :storageclass)))))
+
+(defgeneric ast-types* (ast class)
+  (:documentation "Dispatch function for computing AST-TYPES
+on various ast classes"))
+
+(defmethod ast-types* ((ast new-clang-ast) (ast-class (eql :ParmVar)))
+  (ast-types*-on-decl ast))
+
+(defmethod ast-types* ((ast new-clang-ast) (ast-class (eql :Var)))
+  ;; For :Var nodes, we must also include the types in the
+  ;; initializer, if present
+  (let ((nodes (remove ast (ast-nodes-in-subtree ast))))
+    (sort
+     (reduce #'union (mapcar #'ast-types nodes)
+             :initial-value (ast-types*-on-decl ast))
+     #'string<
+     :key #'type-name)))
+
+(defmethod ast-types* ((ast new-clang-ast) (ast-class (eql :Macroexpansion)))
+  (let ((nodes (remove ast (ast-nodes-in-subtree ast)))
+        (macro-child-segment (mapcan #'ast-nodes-in-subtree
+                                     (ast-attr ast :macro-child-segment))))
+    (sort
+     (reduce #'union (mapcar #'ast-types (append nodes macro-child-segment))
+             :initial-value nil)
+     #'string<
+     :key #'type-name)))
+
+(defmethod ast-types* ((ast new-clang-ast) (ast-class (eql :UnaryExprOrTypeTraitExpr)))
+  (let ((argtype (ast-attr ast :argtype))
+        (types (ast-types*-on-decl ast)))
+    (if argtype
+        (adjoin (make-nct+ argtype) types)
+        types)))
+
+(defmethod ast-types* ((ast new-clang-ast) (ast-class (eql :Typedef)))
+  (ast-types*-on-decl ast))
+
+(defmethod ast-types* ((ast new-clang-ast) (ast-class symbol))
+  (case ast-class
+    ((;; :UnaryExprOrTypeTraitExpr
+      :CstyleCastExpr
+      :CXXFunctionalCastExpr
+      :CXXReinterpretCastExpr)
+     (ast-types*-on-decl ast))
+    (t nil)))
+
+(defmethod ast-declarations ((ast new-clang-ast))
+  (ast-declarations* ast))
+
+(defmethod ast-var-declarations ((ast new-clang-ast))
+  (ast-var-declarations* ast))
+
+;;; AST-FILE was used for two things: to identify non-source
+;;; code that clang stuck in, and to identify macros
+;;; These two functions needed to be separated.
+(defun ast-file (ast &optional macro?)
+  (ast-file* ast macro?))
+
+(defgeneric ast-file* (ast macro?)
+  (:documentation "The file name associated with an AST node")
+  (:method ((ast new-clang-ast) macro?)
+    (ast-file* (ast-attr ast :range) macro?))
+  (:method ((range new-clang-range) macro?)
+    (ast-file* (new-clang-range-begin range) macro?))
+  (:method ((loc new-clang-loc) macro?)
+    (declare (ignore macro?))
+    (new-clang-loc-file loc))
+  (:method ((loc new-clang-macro-loc) macro?)
+    (ast-file*
+     (if (if (new-clang-macro-loc-is-macro-arg-expansion loc)
+             (not macro?)
+             macro?)
+         (new-clang-macro-loc-spelling-loc loc)
+         (new-clang-macro-loc-expansion-loc loc))
+     macro?))
+  (:method (obj macro?) (declare (ignorable obj macro?)) nil))
+
+;; returns ast nodes, not strings
+(defmethod ast-args ((obj new-clang-ast))
+  (mapcar
+   (lambda (o) (list o (ast-type o)))
+   (remove-if-not (lambda (c) (ast-is-class c :ParmVar))
+                  (ast-children obj))))
+
+(defmethod ast-declares ((obj new-clang-ast))
+  (case (ast-class obj)
+    (:DeclStmt
+     (reduce #'append (ast-children obj)
+             :key #'ast-declares :initial-value nil))
+    ((:ParmVar :Function :Var :Field :Record :TypeDef)
+     (when (ast-name obj)
+       (list obj)))
+    ((:Combined)
+     (reduce #'append (ast-children obj)
+             :key #'ast-declares :initial-value nil))
+    ;; More cases here
+    (t nil)))
+
+(defmethod ast-expr-type ((obj new-clang-ast))
+  (ast-attr obj :type))
+
+;; This field should be filled in by a pass
+;; that marks AST nodes that are full statements
+;; (and that might not otherwise be)
+(defmethod ast-full-stmt ((obj new-clang-ast))
+  (ast-attr obj :full-stmt))
+
+(defmethod full-stmt-p ((obj new-clang) (ast new-clang-ast))
+  (declare (ignorable obj))
+  (ast-full-stmt ast))
+
+;; This field should be filled in by a pass
+;; that marks AST nodes that are guard statements
+;; (and that might not otherwise be)
+(defmethod ast-guard-stmt ((obj new-clang-ast))
+  (ast-attr obj :guard-stmt))
+
+(eval-when (:load-toplevel :compile-toplevel :execute)
+  (defparameter *clang-decl-kinds*
+    ;; Comment indicates the symbol obtained from
+    ;; the raw json input
+    '(:AccessSpec ;; :AccessSpecDecl
+      :Binding ;; :BindingDecl
+      :Block ;; :BlockDecl
+      :BuiltinTemplate ;; :BuiltinTemplateDecl
+      :Captured ;; :CapturedDecl
+      :ClassScopeFunctionSpecialization ;;
+      :ClassTemplate ;; :ClassTemplateDecl
+      :ClassTemplatePartialSpecializationDecl
+      :ClassTemplateSpecializationDecl ;;
+      :ConstructorUsingShadowDecl ;;
+      :CXXConstructor ;; :CXXConstructorDecl
+      :CXXConversion ;; :CXXConversionDecl
+      :CXXDestructor ;; :CXXDestructorDecl
+      :CXXMethod ;; :CXXMethodDecl
+      :CXXRecord ;; :CXXRecordDecl
+      ;; :DeclRefExpr
+      ;; :DeclStmt
+      :DecltypeType
+      :Decomposition ;; :DecompositionDecl
+      ;; :DependentScopeDeclRefExpr
+      :EmptyDecl
+      :EnumConstant ;; :EnumConstantDecl
+      :Enum ;; :EnumDecl
+      :Field ;; :FieldDecl
+      :FileScopeAsm ;; :FileScopeAsmDecl
+      :Friend ;; :FriendDecl
+      :Function ;; :FunctionDecl
+      :FunctionTemplate ;; :FunctionTemplateDecl
+      :ImplicitParam ;; :ImplicitParamDecl
+      :IndirectField ;; :IndirectFieldDecl
+      :Label ;; :LabelDecl
+      :LinkageSpec ;; :LinkageSpecDecl
+      :NamespaceAlias ;; :NamespaceAliasDecl
+      :Namespace ;;  :NamespaceDecl
+      :NonTypeTemplateParm ;; :NonTypeTemplateParmDecl
+      :ParmVar  ;; :ParmVarDecl
+      :PragmaComment ;; :PragmaCommentDecl
+      :Record  ;; :RecordDecl
+      :StaticAssert ;; :StaticAssertDecl
+      :TemplateTemplateParm ;; :TemplateTemplateParmDecl
+      :TemplateTypeParm ;; :TemplateTypeParmDecl
+      :TopLevel ;; :TranslationUnitDecl
+      :TypeAlias ;; :TypeAliasDecl
+      :TypeAliasTemplate ;; :TypeAliasTemplateDecl
+      :Typedef ;; :TypedefDecl
+      :UnresolvedUsingTypename ;; :UnresolvedUsingTypenameDecl
+      :UnresolvedUsingValue ;; :UnresolvedUsingValueDecl
+      :Using ;; :UsingDecl
+      :UsingDirective ;; :UsingDirectiveDecl
+      :UsingPack ;; :UsingPackDecl
+      :UsingShadow ;; :UsingShadowDecl
+      :Var ;; :VarDecl
+      :VarTemplate ;; :VarTemplateDecl
+      :VarTemplatePartialSpecialization ;; :VarTemplatePartialSpecializationDecl
+      :VarTemplateSpecialization))) ;; :VarTemplateSpecializationDecl
+
+(defmethod ast-is-decl ((obj new-clang-ast))
+  (case (ast-class obj)
+    (#.*clang-decl-kinds* t)
+    (t nil)))
+
+(defmethod ast-opcode ((obj new-clang-ast))
+  (ast-attr obj :opcode))
+
+(defmethod ast-ret ((obj new-clang-ast))
+  (case (ast-class obj)
+    (:Function
+     (let ((type (new-clang-type-qual (ast-type obj))))
+       (ret-type-of-function-type type)))
+    ;; Others?
+    (t nil)))
+
+(defmethod ast-void-ret ((obj new-clang-ast))
+  (equal "void" (ast-ret obj)))
+
+(defun ast-reference-decls (ast)
+  (map-ast-sets ast #'reference-decls-at-ast :key #'new-clang-ast-id))
+
+(defmethod ast-varargs ((obj new-clang-ast))
+  ;; Should just be :FunctionDecl objects
+  (ast-attr obj :variadic))
+
+;; Helpers for the "ast-*" functions above
+(defgeneric macros-of-macro-names (macro-names)
+  (:documentation "Computes the macros associated with macro-names")
+  (:method ((macro-names list) &aux (macros (macros *soft*)))
+    (iter (for n in macro-names)
+          (let ((m (find n macros :key #'macro-name :test #'equal)))
+            (when m (collecting (macro-hash m)))))))
+
+(defun reference-decls-at-ast (a)
+  (let ((rd (ast-attr a :referencedDecl)))
+    (when rd (list rd))))
+
+(defun ret-type-of-function-type (s)
+  "Returns a string that is the return type of the function type
+given in the string S. Return nil if the return type cannot be
+determined."
+  ;; This is grossly incomplete now, and will fail on some
+  ;; hairy types
+  (let ((pos (position #\( s)))
+    (when (and pos (> pos 0))
+      (trim-right-whitespace (subseq s 0 (1- pos))))))
+
+(defmethod source-text ((ast new-clang-ast))
+  (with-output-to-string (out)
+    (if (eq :Combined (ast-class ast))
+        ;; Combined nodes are a special case as the
+        ;; child node source text ranges overlap
+        (write-string (ast-attr ast :source-text) out)
+        ;; For normal ASTs, just collect the child node source
+        (mapc [{write-string _ out} #'source-text]
+              (ast-children ast)))))
+
+;;; TODO: This function should be removed when we unify
+;;;       new-clang-range with sel/utility:range.
+(defun within-ast-range (range line)
+  "Test whether the supplied line is within a range."
+  (and (>= line (new-clang-loc-line (new-clang-range-begin range)))
+       (<= line (new-clang-loc-line (new-clang-range-end range)))))
+
+;;; TODO: This function should be removed when we unify
+;;;       new-clang-range with sel/utility:range.
+(defun ast-range-str (range)
+  "Return a short string-rep for the supplied range."
+  (format nil "[~a, ~a]" (new-clang-loc-line (new-clang-range-begin range))
+          (new-clang-loc-line (new-clang-range-end range))))
+
+
 ;;;
 ;;; NOTE: NEW-CLANG-TYPE is not a drop-in replacement for
 ;;;  SEL/SW/CLANG:CLANG-TYPE.  The latter contains additional
@@ -610,14 +1132,14 @@ on QUAL and DESUGARED slots."))
                   :type (member :none :static :extern :register :__private_extern__))
    #|
    (modifiers :initarg :modifers
-              :type integer
-              :reader nct+-modifiers)
+   :type integer
+   :reader nct+-modifiers)
    (array :initarg :array
-          :type string
-          :reader type-array)
+   :type string
+   :reader type-array)
    (name :initarg :name
-         :type string
-         :reader type-name)
+   :type string
+   :reader type-name)
    |#
    (hash :accessor nct+-hash
          :initarg :hash
@@ -947,76 +1469,6 @@ that is not strictly speaking about types at all (storage class)."))
         (values (string-right-trim " " (subseq str 0 last-suffix-start))
                 suffixes))))
 
-(defmethod ast-class ((obj new-clang-ast))
-  (new-clang-ast-class obj))
-
-(defmethod ast-syn-ctx ((obj new-clang-ast))
-  (new-clang-ast-syn-ctx obj))
-
-(defmethod ast-in-macro-expansion ((obj new-clang-ast))
-  (eql (ast-class obj) :macroexpansion))
-
-(defmethod source-text ((ast new-clang-ast))
-  (with-output-to-string (out)
-    (if (eq :Combined (ast-class ast))
-        ;; Combined nodes are a special case as the
-        ;; child node source text ranges overlap
-        (write-string (ast-attr ast :source-text) out)
-        ;; For normal ASTs, just collect the child node source
-        (mapc [{write-string _ out} #'source-text]
-              (ast-children ast)))))
-
-(defgeneric ast-attr (ast attr))
-(defmethod ast-attr ((ast new-clang-ast) (attr symbol))
-  (let ((attrs (new-clang-ast-attrs ast)))
-    (aget attr attrs)))
-
-(defun ast-attr-fn (attr)
-  (lambda (obj) (ast-attr obj attr)))
-
-(defgeneric (setf ast-attr) (v ast attr))
-(defmethod (setf ast-attr) (v (ast new-clang-ast) (attr symbol))
-  (let* ((attrs (new-clang-ast-attrs ast))
-         (p (assoc attr attrs)))
-    (if p (setf (cdr p) v)
-        (setf (new-clang-ast-attrs ast)
-              (cons (cons attr v) attrs)))
-    v))
-
-(defun ast-range (ast) (ast-attr ast :range))
-(defun (setf ast-range) (val ast) (setf (ast-attr ast :range) val))
-
-;;; TODO: This function should be removed when we unify
-;;;       new-clang-range with sel/utility:range.
-(defun within-ast-range (range line)
-  "Test whether the supplied line is within a range."
-  (and (>= line (new-clang-loc-line (new-clang-range-begin range)))
-       (<= line (new-clang-loc-line (new-clang-range-end range)))))
-
-;;; TODO: This function should be removed when we unify
-;;;       new-clang-range with sel/utility:range.
-(defun ast-range-str (range)
-  "Return a short string-rep for the supplied range."
-  (format nil "[~a, ~a]" (new-clang-loc-line (new-clang-range-begin range))
-          (new-clang-loc-line (new-clang-range-end range))))
-
-(defmethod ast-name ((obj new-clang-ast)) (ast-attr obj :name))
-
-(defgeneric ast-is-implicit (ast)
-  (:method (ast) (declare (ignorable ast)) nil)
-  (:method ((ast new-clang-ast))
-    (or (ast-attr ast :isimplicit)
-        (ast-attr ast :implicit))))
-
-(defgeneric ast-is-class (ast key)
-  (:method (ast class) (declare (ignorable ast class)) nil)
-  (:method ((ast new-clang-ast) (key symbol))
-    (and (ast-p ast)
-         (eql (ast-class ast) key))))
-
-(defmethod ast-type ((ast new-clang-ast))
-  (ast-attr ast :type))
-
 (defmethod type-decl ((obj nct+))
   (type-decl (nct+-type obj)))
 
@@ -1122,58 +1574,6 @@ that is not strictly speaking about types at all (storage class)."))
       (error "FIND-TYPE returns an object of a bad type: ~a" val))
     val))
 
-(defun ast-is-class-fun (key)
-  (lambda (c) (ast-is-class c key)))
-
-(defmethod is-full-stmt-ast ((ast new-clang-ast))
-  (ast-attr ast :fullstmt))
-
-(defun new-clang-ast-copy (ast fn &rest args
-                           &key
-                             referenceddecl
-                             path
-                             (children (new-clang-ast-children ast))
-                             (class (new-clang-ast-class ast))
-                             (attrs (new-clang-ast-attrs ast) attrs-p)
-                             (id (new-clang-ast-id ast))
-                             (syn-ctx (new-clang-ast-syn-ctx ast))
-                             (aux-data (new-clang-ast-aux-data ast))
-                             &allow-other-keys)
-  ;; The value of REFERENCEDDECL is not otherwise explicitly
-  ;; used in this function, but it gets used as part of ARGS
-  (unless (or (null referenceddecl) (ast-p referenceddecl))
-    (error "Referenceddecl not an AST: ~s~%" referenceddecl))
-  (let (new-attrs)
-    (let ((args2 args))
-      (iter (while args2)
-            (let ((key (pop args2))
-                  (arg (pop args2)))
-              (case key
-                ((:path :children :class :id :syn-ctx :aux-data) nil)
-                ((:attrs)
-                 (unless attrs-p
-                   (setf attrs-p t
-                         attrs arg)))
-                (t
-                 ;; Otherwise, it's an attribute
-                 (push (cons key arg) new-attrs))))))
-    (iter (for (key . arg) in new-attrs)
-          (setf attrs (areplace key arg attrs)))
-
-    ;; This call includes :ALLOW-OTHER-KEYS T because
-    ;; FN may be #'make-new-clang-ast, and we cannot
-    ;; add &allow-other-keys to that.
-    (funcall fn :allow-other-keys t
-             :path path :children children
-             :class class :attrs attrs :id id
-             :syn-ctx syn-ctx :aux-data aux-data)))
-
-(defmethod copy ((ast new-clang-ast) &rest args) ;  &key &allow-other-keys)
-  (apply #'new-clang-ast-copy ast #'make-new-clang-ast args))
-
-(defmethod copy ((ast cxx-operator-call-expr) &rest args) ;  &key &allow-other-keys)
-  (apply #'new-clang-ast-copy ast #'make-cxx-operator-call-expr args))
-
 (defmethod remove-file-attr-in-same-file ((obj new-clang))
   "The FILE attribute is unnecessary when it's the same as the file for this
 object (after include and macro processing have been performed).  Remove the
@@ -1182,41 +1582,6 @@ asts can be transplanted between files without difficulty."
   (when-let ((tmp-file (tmp-file obj)))
     (map-ast (ast-root obj)
              (lambda (a) (remove-ast-file a tmp-file)))))
-
-;;;  This code is now assuming AST-FILE is not present (or NIL) if
-;;;  the file was the same as the one this AST is in.
-;;;
-;;;  This is also needed to make the i-file slot of nct+ work.
-
-(defmethod ast-includes-in-obj ((obj new-clang) (ast new-clang-ast)
-                                &aux (includes nil) (*soft* obj))
-  (labels ((ast-includes-in-child (child)
-             (let ((tmp-file (tmp-file obj))
-                   (file (ast-file child))
-                   (include-dirs (append (flags-to-include-dirs (flags obj))
-                                         *clang-default-includes*))
-                   (od (original-directory obj)))
-               (mapcar
-                (lambda (s) (normalize-file-for-include s od include-dirs))
-                (delete-duplicates
-                 (nconc
-                  ;; The tests w. tmp-file here and below may not be
-                  ;; necessary, but are kept for safety
-                  (unless (or (not file) (equal tmp-file file))
-                    (list file))
-                  (when-let* ((ref (ast-referenced-obj child))
-                              (file (ast-file ref)))
-                    (unless (or (null file) (equal file tmp-file))
-                      (list file)))
-                  (when-let* ((type (ast-type child))
-                              (str (new-clang-type-qual type)))
-                    (includes-of-names-in-string obj str)))
-                 :test #'equal)))))
-    (map-ast ast
-             (lambda (c)
-               (dolist (f (ast-includes-in-child c))
-                 (pushnew f includes :test #'equal))))
-    (nreverse includes)))
 
 (defun includes-of-names-in-string (obj str)
   (let ((tmp-file (tmp-file obj))
@@ -1297,165 +1662,6 @@ asts can be transplanted between files without difficulty."
   (declare (ignorable mutation))
   (let ((*soft* sw)) (call-next-method)))
 
-(defmethod ast-unbound-vals ((ast new-clang-ast))
-  (ast-unbound-vals* ast (ast-class ast)))
-
-(defmethod ast-unbound-vals ((str string))
-  (declare (ignore str))
-  nil)
-
-(defgeneric ast-unbound-vals* (ast class)
-  (:documentation "Implementation function for ast-unbound-vals,
-where class = (ast-class ast)."))
-
-(defmethod ast-unbound-vals* ((ast new-clang-ast) (class (eql :declrefexpr)))
-  (when-let ((obj (ast-referenced-obj ast)))
-    (when (member (ast-class obj) '(:Var :ParmVar))
-      (list obj))))
-
-(defmethod ast-unbound-vals* ((ast new-clang-ast) (class (eql :macroexpansion)))
-  (let ((children (ast-attr ast :macro-child-segment))
-        (bound nil)
-        (unbound nil))
-    (dolist (c children)
-      (map-ast c (lambda (a)
-                   (setf bound (append (ast-declarations a) bound))
-                   (setf unbound (append (ast-unbound-vals a) unbound)))))
-    (set-difference (remove-duplicates unbound)
-                    (remove-duplicates bound))))
-
-(defmethod ast-unbound-vals* ((ast new-clang-ast) class)
-  (declare (ignorable ast class))
-  nil)
-
-(defgeneric ast-bound-vals (ast)
-  (:documentation "Vars that are bound by an AST")
-  (:method ((x string)) (declare (ignore x)) nil)
-  (:method ((ast new-clang-ast))
-    (ast-bound-vals* ast (ast-class ast))))
-
-(defgeneric ast-bound-vals* (ast class)
-  (:documentation "Implementation funtion for ast-bound-vals,
-where class = (ast-class ast).")
-  (:method ((ast new-clang-ast) c)
-    ;; default method
-    (declare (ignorable c))
-    nil)
-  (:method ((ast new-clang-ast) (c (eql :var)))
-    (list ast))
-  (:method ((ast new-clang-ast) (c (eql :declstmt)))
-    (remove-if-not (lambda (a) (and (ast-p a) (eql (ast-class a) :var)))
-                   (ast-children ast))))
-
-(defmethod ast-unbound-funs ((ast new-clang-ast))
-  (ast-unbound-funs* ast (ast-class ast)))
-
-(defmethod ast-unbound-funs ((str string))
-  (declare (ignore str))
-  nil)
-
-(defgeneric ast-unbound-funs* (ast class)
-  (:documentation "Implementation funtion for ast-unbound-funs,
-where class = (ast-class ast).")
-  (:method (ast class) (declare (ignorable ast class)) nil)
-  (:method ((ast new-clang-ast) class) (declare (ignorable ast class)) nil)
-  (:method ((ast new-clang-ast) (class (eql :declrefexpr)))
-    (declare (ignorable class))
-    (when-let* ((obj (ast-referenced-obj ast)))
-      (when (eql (ast-class obj) :function)
-        (list (list obj (ast-void-ret obj) (ast-varargs obj)
-                    (count-if (lambda (a) (and (ast-p a) (eql (ast-class a) :ParmVar)))
-                              (ast-children obj))))))))
-
-(defmethod ast-includes ((ast new-clang-ast))
-  (ast-includes-in-obj *soft* ast))
-
-(defmethod ast-macros ((ast new-clang-ast))
-  (ast-macros* ast (ast-class ast)))
-
-(defmethod ast-macros ((ast string)) (declare (ignorable ast)) nil)
-
-(defgeneric macros-of-macro-names (macro-names)
-  (:documentation "Computes the macros associated with macro-names")
-  (:method ((macro-names list) &aux (macros (macros *soft*)))
-    (iter (for n in macro-names)
-          (let ((m (find n macros :key #'macro-name :test #'equal)))
-            (when m (collecting (macro-hash m)))))))
-
-(defmethod ast-macros* ((ast new-clang-ast) class)
-  (declare (ignorable class))
-  (union (macros-of-macro-names (ast-attr ast :macro-names))
-         (reduce #'union (ast-children ast)
-                 :key #'ast-macros :initial-value nil)))
-
-(defmethod ast-macros* ((ast new-clang-ast) (class (eql :toplevel)))
-  (declare (ignorable ast class))
-  nil)
-
-(defmethod ast-macros* ((ast new-clang-ast) (class (eql :macroexpansion)))
-  (declare (ignorable class))
-  (reduce
-   #'union
-   (cons (macros-of-macro-names (ast-attr ast :macro-names))
-         (mapcar #'ast-macros (ast-attr ast :macro-child-segment)))
-   :initial-value nil))
-
-(defmethod ast-types ((ast new-clang-ast))
-  (ast-types* ast (ast-class ast)))
-
-(defmethod ast-types ((ast string)) nil)
-
-(defgeneric ast-types* (ast class)
-  (:documentation "Dispatch function for computing AST-TYPES
-on various ast classes"))
-
-(defun ast-types*-on-decl (ast)
-  (when-let ((type (ast-attr ast :type)))
-    (list (make-nct+ type
-                     :storage-class (ast-attr ast :storageclass)))))
-
-(defmethod ast-types* ((ast new-clang-ast) (ast-class (eql :ParmVar)))
-  (ast-types*-on-decl ast))
-
-(defmethod ast-types* ((ast new-clang-ast) (ast-class (eql :Var)))
-  ;; For :Var nodes, we must also include the types in the
-  ;; initializer, if present
-  (let ((nodes (remove ast (ast-nodes-in-subtree ast))))
-    (sort
-     (reduce #'union (mapcar #'ast-types nodes)
-             :initial-value (ast-types*-on-decl ast))
-     #'string<
-     :key #'type-name)))
-
-(defmethod ast-types* ((ast new-clang-ast) (ast-class (eql :Macroexpansion)))
-  (let ((nodes (remove ast (ast-nodes-in-subtree ast)))
-        (macro-child-segment (mapcan #'ast-nodes-in-subtree
-                                     (ast-attr ast :macro-child-segment))))
-    (sort
-     (reduce #'union (mapcar #'ast-types (append nodes macro-child-segment))
-             :initial-value nil)
-     #'string<
-     :key #'type-name)))
-
-(defmethod ast-types* ((ast new-clang-ast) (ast-class (eql :UnaryExprOrTypeTraitExpr)))
-  (let ((argtype (ast-attr ast :argtype))
-        (types (ast-types*-on-decl ast)))
-    (if argtype
-        (adjoin (make-nct+ argtype) types)
-        types)))
-
-(defmethod ast-types* ((ast new-clang-ast) (ast-class (eql :Typedef)))
-  (ast-types*-on-decl ast))
-
-(defmethod ast-types* ((ast new-clang-ast) (ast-class symbol))
-  (case ast-class
-    ((;; :UnaryExprOrTypeTraitExpr
-      :CstyleCastExpr
-      :CXXFunctionalCastExpr
-      :CXXReinterpretCastExpr)
-     (ast-types*-on-decl ast))
-    (t nil)))
-
 (defmethod rebind-vars ((ast new-clang-ast)
                         var-replacements fun-replacements)
   (case (ast-class ast)
@@ -1506,81 +1712,6 @@ on various ast classes"))
 (defmethod begins-scope ((ast new-clang-ast))
   (begins-scope* ast))
 
-(defmethod ast-declarations ((ast new-clang-ast))
-  (ast-declarations* ast))
-
-(defmethod ast-var-declarations ((ast new-clang-ast))
-  (ast-var-declarations* ast))
-
-
-;;; Structures and functions relating to genome locations.
-
-(defstruct new-clang-loc
-  "Structure used to represent a location within a clang-parseable file."
-  (file nil :type (or null string))
-  (offset 0 :type (or null integer))
-  (tok-len 0 :type (or null integer)))
-
-(defstruct new-clang-macro-loc
-  "Structure used to represent :begin/:end entries for
-things in macro expansion.  SPELLING-LOC is the location
-in the macro defn, EXPANSION-LOC is at the macro use."
-  (spelling-loc nil :type (or null new-clang-loc))
-  (expansion-loc nil :type (or null new-clang-loc))
-  (is-macro-arg-expansion nil :type boolean))
-
-(defstruct new-clang-range
-  "Structure used to represent the begin and end location of an AST."
-  (begin nil :type (or null new-clang-loc new-clang-macro-loc))
-  (end nil :type (or null new-clang-loc new-clang-macro-loc)))
-
-(defgeneric offset (obj)
-  (:method ((obj new-clang-loc))
-    (new-clang-loc-offset obj))
-  (:method ((obj new-clang-macro-loc))
-    (if (new-clang-macro-loc-is-macro-arg-expansion obj)
-        (offset (new-clang-macro-loc-spelling-loc obj))
-        (offset (new-clang-macro-loc-expansion-loc obj)))))
-
-(defgeneric (setf offset) (offset obj)
-  (:method ((offset integer) (obj new-clang-ast))
-    (setf (offset (new-clang-range-begin (ast-attr obj :range))) offset))
-  (:method ((offset integer) (obj new-clang-loc))
-    (setf (new-clang-loc-offset obj) offset)))
-
-(defgeneric begin-offset (obj)
-  (:method ((obj new-clang-ast))
-    (begin-offset (aget :range (new-clang-ast-attrs obj))))
-  (:method ((obj new-clang-range))
-    (offset (new-clang-range-begin obj))))
-
-(defgeneric end-offset (obj)
-  (:method ((obj new-clang-ast))
-    (end-offset (aget :range (new-clang-ast-attrs obj))))
-  (:method ((obj new-clang-range))
-    (offset (new-clang-range-end obj))))
-
-(defgeneric tok-len (x)
-  (:method ((x new-clang-loc)) (new-clang-loc-tok-len x))
-  (:method ((x new-clang-macro-loc))
-    (if (not (new-clang-macro-loc-is-macro-arg-expansion x))
-        (tok-len (new-clang-macro-loc-spelling-loc x))
-        (tok-len (new-clang-macro-loc-expansion-loc x)))))
-
-;;; Compute beginning, ending offsets for an ast, other things
-;;; The end offset is one past the last character in the ast-text
-;;; for the ast
-(defgeneric begin-and-end-offsets (x)
-  (:method ((obj new-clang-ast))
-    (begin-and-end-offsets (ast-attr obj :range)))
-  (:method ((obj new-clang-range))
-    (values (offset (new-clang-range-begin obj))
-            (+ (offset (new-clang-range-end obj))
-               (tok-len (new-clang-range-end obj))))))
-
-(defun extended-end-offset (x)
-  (nth-value 1 (begin-and-end-offsets x)))
-
 
 (defun make-new-clang-type (&rest keys &key qual desugared typedef
                                          (hash (incf (hash-counter *soft*)))
@@ -1603,32 +1734,6 @@ in the macro defn, EXPANSION-LOC is at the macro use."
                 (make-nct+ type)
                 type))
           (%make)))))
-
-;;; AST-FILE was used for two things: to identify non-source
-;;; code that clang stuck in, and to identify macros
-;;; These two functions needed to be separated.
-
-(defun ast-file (ast &optional macro?)
-  (ast-file* ast macro?))
-
-(defgeneric ast-file* (ast macro?)
-  (:documentation "The file name associated with an AST node")
-  (:method ((ast new-clang-ast) macro?)
-    (ast-file* (ast-attr ast :range) macro?))
-  (:method ((range new-clang-range) macro?)
-    (ast-file* (new-clang-range-begin range) macro?))
-  (:method ((loc new-clang-loc) macro?)
-    (declare (ignore macro?))
-    (new-clang-loc-file loc))
-  (:method ((loc new-clang-macro-loc) macro?)
-    (ast-file*
-     (if (if (new-clang-macro-loc-is-macro-arg-expansion loc)
-             (not macro?)
-             macro?)
-         (new-clang-macro-loc-spelling-loc loc)
-         (new-clang-macro-loc-expansion-loc loc))
-     macro?))
-  (:method (obj macro?) (declare (ignorable obj macro?)) nil))
 
 (defgeneric remove-ast-file (ast file)
   (:documentation "Removes mentions of FILE from locations in the
@@ -3137,6 +3242,15 @@ of OBJ")
 
 ;;; Reimplementations of ast-* functions for nodes
 
+(defgeneric map-ast-while (a fn)
+  (:documentation "Apply FN to the nodes of AST A, stopping
+the descent when FN returns NIL"))
+
+(defmethod map-ast-while ((a ast) fn)
+  (when (funcall fn a)
+    (dolist (c (ast-children a))
+      (when (ast-p c) (map-ast-while c fn)))))
+
 (defgeneric map-ast-sets (ast fn &key key test)
   (:documentation
    "Evaluates FN at the nodes of AST, returning a list of
@@ -3157,150 +3271,6 @@ computed at the children"))
                        child-sets :initial-value here))))
     (%recurse ast)))
 
-;; returns ast nodes, not strings
-(defmethod ast-args ((obj new-clang-ast))
-  (mapcar
-   (lambda (o) (list o (ast-type o)))
-   (remove-if-not (ast-is-class-fun :ParmVar)
-                  (ast-children obj))))
-
-(defmethod ast-declares ((obj new-clang-ast))
-  (case (ast-class obj)
-    (:DeclStmt
-     (reduce #'append (ast-children obj)
-             :key #'ast-declares :initial-value nil))
-    ((:ParmVar :Function :Var :Field :Record :TypeDef)
-     (when (ast-name obj)
-       (list obj)))
-    ((:Combined)
-     (reduce #'append (ast-children obj)
-             :key #'ast-declares :initial-value nil))
-    ;; More cases here
-    (t nil)))
-
-(defmethod ast-expr-type ((obj new-clang-ast))
-  (ast-attr obj :type))
-
-;; This field should be filled in by a pass
-;; that marks AST nodes that are full statements
-;; (and that might not otherwise be)
-(defmethod ast-full-stmt ((obj new-clang-ast))
-  (ast-attr obj :full-stmt))
-
-(defmethod full-stmt-p ((obj new-clang) (ast new-clang-ast))
-  (declare (ignorable obj))
-  (ast-full-stmt ast))
-
-;; This field should be filled in by a pass
-;; that marks AST nodes that are guard statements
-;; (and that might not otherwise be)
-(defmethod ast-guard-stmt ((obj new-clang-ast))
-  (ast-attr obj :guard-stmt))
-
-;;; 'includes' should be computed from the locations
-;;; in the subtree.  Need logic to translate back to
-;;; relative paths.
-
-(eval-when (:load-toplevel :compile-toplevel :execute)
-  (defparameter *clang-decl-kinds*
-    ;; Comment indicates the symbol obtained from
-    ;; the raw json input
-    '(:AccessSpec ;; :AccessSpecDecl
-      :Binding ;; :BindingDecl
-      :Block ;; :BlockDecl
-      :BuiltinTemplate ;; :BuiltinTemplateDecl
-      :Captured ;; :CapturedDecl
-      :ClassScopeFunctionSpecialization ;;
-      :ClassTemplate ;; :ClassTemplateDecl
-      :ClassTemplatePartialSpecializationDecl
-      :ClassTemplateSpecializationDecl ;;
-      :ConstructorUsingShadowDecl ;;
-      :CXXConstructor ;; :CXXConstructorDecl
-      :CXXConversion ;; :CXXConversionDecl
-      :CXXDestructor ;; :CXXDestructorDecl
-      :CXXMethod ;; :CXXMethodDecl
-      :CXXRecord ;; :CXXRecordDecl
-      ;; :DeclRefExpr
-      ;; :DeclStmt
-      :DecltypeType
-      :Decomposition ;; :DecompositionDecl
-      ;; :DependentScopeDeclRefExpr
-      :EmptyDecl
-      :EnumConstant ;; :EnumConstantDecl
-      :Enum ;; :EnumDecl
-      :Field ;; :FieldDecl
-      :FileScopeAsm ;; :FileScopeAsmDecl
-      :Friend ;; :FriendDecl
-      :Function ;; :FunctionDecl
-      :FunctionTemplate ;; :FunctionTemplateDecl
-      :ImplicitParam ;; :ImplicitParamDecl
-      :IndirectField ;; :IndirectFieldDecl
-      :Label ;; :LabelDecl
-      :LinkageSpec ;; :LinkageSpecDecl
-      :NamespaceAlias ;; :NamespaceAliasDecl
-      :Namespace ;;  :NamespaceDecl
-      :NonTypeTemplateParm ;; :NonTypeTemplateParmDecl
-      :ParmVar  ;; :ParmVarDecl
-      :PragmaComment ;; :PragmaCommentDecl
-      :Record  ;; :RecordDecl
-      :StaticAssert ;; :StaticAssertDecl
-      :TemplateTemplateParm ;; :TemplateTemplateParmDecl
-      :TemplateTypeParm ;; :TemplateTypeParmDecl
-      :TopLevel ;; :TranslationUnitDecl
-      :TypeAlias ;; :TypeAliasDecl
-      :TypeAliasTemplate ;; :TypeAliasTemplateDecl
-      :Typedef ;; :TypedefDecl
-      :UnresolvedUsingTypename ;; :UnresolvedUsingTypenameDecl
-      :UnresolvedUsingValue ;; :UnresolvedUsingValueDecl
-      :Using ;; :UsingDecl
-      :UsingDirective ;; :UsingDirectiveDecl
-      :UsingPack ;; :UsingPackDecl
-      :UsingShadow ;; :UsingShadowDecl
-      :Var ;; :VarDecl
-      :VarTemplate ;; :VarTemplateDecl
-      :VarTemplatePartialSpecialization ;; :VarTemplatePartialSpecializationDecl
-      :VarTemplateSpecialization ;; :VarTemplateSpecializationDecl
-      )))
-
-(defmethod ast-is-decl ((obj new-clang-ast))
-  (case (ast-class obj)
-    (#.*clang-decl-kinds* t)
-    (t nil)))
-
-(defmethod ast-opcode ((obj new-clang-ast))
-  (ast-attr obj :opcode))
-
-(defmethod ast-ret ((obj new-clang-ast))
-  (case (ast-class obj)
-    (:Function
-     (let ((type (new-clang-type-qual (ast-type obj))))
-       (ret-type-of-function-type type)))
-    ;; Others?
-    (t nil)))
-
-(defmethod ast-void-ret ((obj new-clang-ast))
-  (equal "void" (ast-ret obj)))
-
-(defun reference-decls-at-ast (a)
-  (let ((rd (ast-attr a :referencedDecl)))
-    (when rd (list rd))))
-
-(defun ast-reference-decls (ast)
-  (map-ast-sets ast #'reference-decls-at-ast :key #'new-clang-ast-id))
-
-(defmethod ast-varargs ((obj new-clang-ast))
-  ;; Should just be :FunctionDecl objects
-  (ast-attr obj :variadic))
-
-(defun ret-type-of-function-type (s)
-  "Returns a string that is the return type of the function type
-given in the string S. Return nil if the return type cannot be
-determined."
-  ;; This is grossly incomplete now, and will fail on some
-  ;; hairy types
-  (let ((pos (position #\( s)))
-    (when (and pos (> pos 0))
-      (trim-right-whitespace (subseq s 0 (1- pos))))))
 
 ;;; Computes some attributes on new clang ast nodes
 
