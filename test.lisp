@@ -953,13 +953,13 @@ of the same length"
   (let ((type (make-instance 'new-clang-type
                 :qual qual
                 :desugared (if desugared-p desugared qual)
+                :name name
+                :modifiers (sel/sw/new-clang::pack-type-modifiers
+                            pointer const volatile restrict)
+                :array array
                 :typedef typedef)))
     (make-instance 'nct+ :type type
                    :storage-class storage-class
-                   :modifiers (sel/sw/new-clang::pack-nct+-modifiers
-                               pointer const volatile restrict)
-                   :array array
-                   :name name
                    :i-file i-file
                    :compute-slots nil)))
 

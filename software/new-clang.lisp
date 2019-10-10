@@ -1706,22 +1706,22 @@ computed at the children"))
   (:method ((tp new-clang-type))
     ;; Fill in various slots in new-clang-type object
     (multiple-value-bind (pointer const volatile restrict n a)
-        (compute-nct+-properties (new-clang-type-qual tp))
+        (compute-type-properties (new-clang-type-qual tp))
       (with-slots (array name modifiers) tp
         (setf array a
               name n
               modifiers
-              (pack-nct+-modifiers
+              (pack-type-modifiers
                pointer const volatile restrict))))))
 
-(defun pack-nct+-modifiers (pointer const volatile restrict)
+(defun pack-type-modifiers (pointer const volatile restrict)
   (logior
    (if pointer +pointer+ 0)
    (if const +const+ 0)
    (if volatile +volatile+ 0)
    (if restrict +restrict+ 0)))
 
-(defun compute-nct+-properties (name)
+(defun compute-type-properties (name)
   (multiple-value-bind (name suffix-list)
       (trim-array-suffixes name)
     (let ((const nil) const2 volatile volatile2
