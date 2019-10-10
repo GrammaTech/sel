@@ -647,6 +647,8 @@ macro objects from these, returning a list."
 (defstruct new-clang-loc
   "Structure used to represent a location within a clang-parseable file."
   (file nil :type (or null string))
+  (line nil :type (or null integer))
+  (col nil :type (or null integer))
   (offset 0 :type (or null integer))
   (tok-len 0 :type (or null integer)))
 
@@ -2234,7 +2236,8 @@ NIL indicates no value."))
       (convert-macro-loc-json loc-json)
       (make-new-clang-loc
        :file (canonicalize-string (cached-aget :file loc-json))
-       :offset (cached-aget :offset loc-json)
+       :line (cached-aget :line loc-json)
+       :col (cached-aget :col loc-json)
        :tok-len (cached-aget :toklen loc-json))))
 
 (defun convert-macro-loc-json (loc-json)
@@ -2342,6 +2345,51 @@ actual source file"))
 
 (defun remove-asts-in-classes (ast classes)
   (remove-asts-if ast (lambda (o) (member (ast-class o) classes))))
+
+(defun line-offsets (str)
+  (cons 0 (iter (with byte = 0)
+                (for c in-string str)
+                (incf byte (string-size-in-octets (make-string 1 :initial-element c)))
+                (when (eq c #\Newline)
+                  (collect byte)))))
+
+(defun convert-line-and-col-to-byte-offsets
+    (ast-root genome file &aux (line-offsets (line-offsets genome)))
+  "Convert AST range begin/ends in AST-ROOT from line and column pairs to
+byte offsets.
+
+* AST-ROOT root of the AST tree for GENOME
+* GENOME string with the source text of the program
+* FILE filesystem location where GENOME was parsed from"
+  (labels
+      ((to-byte-offset (line col)
+         (+ (1- col) (nth (1- line) line-offsets)))
+       (convert-to-byte-offsets (loc)
+         (cond ((typep loc 'new-clang-macro-loc)
+                (make-new-clang-macro-loc
+                 :spelling-loc
+                 (convert-to-byte-offsets (new-clang-macro-loc-spelling-loc loc))
+                 :expansion-loc
+                 (convert-to-byte-offsets (new-clang-macro-loc-expansion-loc loc))
+                 :is-macro-arg-expansion
+                 (new-clang-macro-loc-is-macro-arg-expansion loc)))
+               ((equal (ast-file loc) file)
+                (make-new-clang-loc
+                 :file (new-clang-loc-file loc)
+                 :offset (to-byte-offset (new-clang-loc-line loc)
+                                         (new-clang-loc-col loc))
+                 :tok-len (new-clang-loc-tok-len loc)))
+               (t loc))))
+    (map-ast ast-root
+             (lambda (ast)
+               (when-let ((_ (and (not (eq :TopLevel (ast-class ast)))
+                                  (equal (ast-file ast) file)))
+                          (begin (new-clang-range-begin (ast-range ast)))
+                          (end (new-clang-range-end (ast-range ast))))
+                 (setf (ast-attr ast :range)
+                       (make-new-clang-range
+                        :begin (convert-to-byte-offsets begin)
+                        :end (convert-to-byte-offsets end))))))))
 
 (defun multibyte-characters (str)
   "Return a listing of multibyte character byte offsets and their length in STR."
@@ -2852,6 +2900,7 @@ ranges into 'combined' nodes.  Warn when this happens."
                 (%debug 'remove-non-program-asts ast)
                 (remove-asts-in-classes
                  ast '(:fullcomment :textcomment :paragraphcomment))
+                (convert-line-and-col-to-byte-offsets ast genome tmp-file)
                 (fix-multibyte-characters ast genome tmp-file)
                 (compute-operator-positions obj ast)
                 (put-operators-into-inner-positions obj ast)
