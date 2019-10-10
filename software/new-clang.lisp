@@ -295,6 +295,26 @@ that is not strictly speaking about types at all (storage class)."))
   ;; if the macro expands into other macros.
   (spelling-loc nil :type (or integer null) :read-only t))
 
+(defmethod print-object ((obj new-clang-ast) stream)
+  "Print a representation of the clang-ast-node OBJ to STREAM.
+* OBJ clang-ast to print
+* STREAM stream to print OBJ to
+"
+  (if *print-readably*
+      (call-next-method)
+      (print-unreadable-object (obj stream :type t)
+        (format stream "~a~@[ ~a~] ~a" (ast-class obj) (ast-name obj)
+                (ast-path obj)))))
+
+(defmethod print-object ((obj new-clang-type) stream)
+  (if *print-readably*
+      (call-next-method)
+      (print-unreadable-object (obj stream :type t)
+        (format stream "~{~a~^ ~}"
+                (append (let ((qual (new-clang-type-qual obj)))
+                          (when qual (list ":QUAL" qual)))
+                        (let ((desugared (new-clang-type-desugared obj)))
+                          (when desugared (list ":DESUGARED" desugared))))))))
 
 
 ;;; new-clang software interface
@@ -1944,27 +1964,6 @@ if no value was found."
         (or (gethash str table)
             (setf (gethash str table) str)))
       str))
-
-(defmethod print-object ((obj new-clang-ast) stream)
-  "Print a representation of the clang-ast-node OBJ to STREAM.
-* OBJ clang-ast to print
-* STREAM stream to print OBJ to
-"
-  (if *print-readably*
-      (call-next-method)
-      (print-unreadable-object (obj stream :type t)
-        (format stream "~a~@[ ~a~] ~a" (ast-class obj) (ast-name obj)
-                (ast-path obj)))))
-
-(defmethod print-object ((obj new-clang-type) stream)
-  (if *print-readably*
-      (call-next-method)
-      (print-unreadable-object (obj stream :type t)
-        (format stream "~{~a~^ ~}"
-                (append (let ((qual (new-clang-type-qual obj)))
-                          (when qual (list ":QUAL" qual)))
-                        (let ((desugared (new-clang-type-desugared obj)))
-                          (when desugared (list ":DESUGARED" desugared))))))))
 
 ;;; Json conversion
 
