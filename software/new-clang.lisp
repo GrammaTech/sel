@@ -1728,7 +1728,8 @@ computed at the children"))
               (format nil "~{[~a]~}" suffix-list)))))
 
 (defun trim-prefix-modifiers (str)
-  "Trim const, volatile, and restrict modifiers from a type name"
+  "Trim const, volatile, restrict, and keyword (class, struct, etc.)
+modifiers from a type name"
   (let (const volatile restrict
               (pos 0)
               (strlen (length str)))
@@ -1751,6 +1752,10 @@ computed at the children"))
            ((is-prefix "const") (setf const t))
            ((is-prefix "volatile") (setf volatile t))
            ((is-prefix "restrict") (setf restrict t))
+           ((is-prefix "struct") t)
+           ((is-prefix "typedef") t)
+           ((is-prefix "class") t)
+           ((is-prefix "union") t)
            (t (return)))))
     (values const volatile restrict
             (if (= pos 0) str (subseq str pos)))))
@@ -1805,25 +1810,33 @@ computed at the children"))
         (values (string-right-trim " " (subseq str 0 last-suffix-start))
                 suffixes))))
 
+(defgeneric find-type-declaration (obj type)
+  (:documentation "Return the AST in OBJ declaring TYPE.")
+  (:method ((obj new-clang) (type new-clang-type))
+    (when-let* ((qual (new-clang-type-qual type))
+                (ast-classes (cond ((or (starts-with-subseq "struct " qual)
+                                        (starts-with-subseq "class " qual))
+                                    (list :CXXRecord :Record))
+                                   ((starts-with-subseq "union " qual)
+                                    :Union)
+                                   ((starts-with-subseq "typedef " qual)
+                                    :Typedef)
+                                   (t nil))))
+      (car (remove-if-not [{member _ ast-classes} #'ast-class]
+                          (gethash (type-name type)
+                                   (name-symbol-table obj)))))))
+
 (defmethod type-decl ((obj nct+))
   (type-decl (nct+-type obj)))
 (defmethod type-decl ((type new-clang-type))
   (type-decl* *soft* type))
 
 (defgeneric type-decl* (obj type)
-  (:documentation "Return the type declaration of TYPE.")
+  (:documentation "Return the source text of the type declaration of TYPE.")
   (:method ((obj new-clang) (type new-clang-type)
-            &aux (qual (new-clang-type-qual type)))
-    ;; This is "" for most types.
-    ;; For struct/union types, the qual will be
-    ;;  "struct <name>" or "union <name>"
-    ;; These will be stored in the record-name-table, with key
-    ;; equal to this qual
-    (if (and qual
-             (or (starts-with-subseq "struct " qual)
-                 (starts-with-subseq "union " qual)))
-        (concatenate 'string
-                     (new-clang-type-qual (gethash qual (type-table obj))) ";")
+            &aux (decl (find-type-declaration obj type)))
+    (if decl
+        (source-text decl)
         "")))
 
 (defmethod type-decl-string ((obj new-clang-type) &key &allow-other-keys)
@@ -3089,6 +3102,11 @@ ast nodes, as needed")
 (defmethod update-symbol-table ((obj new-clang))
   ;; When objects are copied in an AST, the mapping from IDs to
   ;; objects is invalidated.  This function restores it.
+  (maphash (lambda (id asts)
+             (setf (gethash id (symbol-table obj))
+                   (remove-if [{equal (tmp-file obj)} #'ast-file]
+                              asts)))
+           (symbol-table obj))
   (map-ast (ast-root obj)
            (lambda (a)
              (when-let ((id (new-clang-ast-id a)))
