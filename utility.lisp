@@ -1071,8 +1071,22 @@ Optionally print debug information if `*shell-debug*' is non-nil."
       (setq input
             (if (stringp input-arg)
                 (make-string-input-stream input-arg)
-                input-arg))
-      (setq run-program-arguments (plist-drop :input run-program-arguments)))
+                input-arg)))
+    (setq run-program-arguments (plist-drop :input run-program-arguments))
+    ;; Manual handling of :bash keyword argument.
+    (when (plist-get :bash run-program-arguments)
+      ;; Use bash instead of /bin/sh, this means setting bash -c "<command>"
+      ;; with appropriate string escaping.  Use a formatter function instead
+      ;; of a control-string.
+      (setf control-string
+            (let ((cs control-string))
+              (lambda (stream &rest args)
+                (format stream "~a"
+                        (concatenate 'string "bash -c \""
+                                     (escape-chars "$\\\""
+                                                   (apply #'format nil cs args))
+                                     "\""))))))
+    (setq run-program-arguments (plist-drop :bash run-program-arguments))
     (let ((cmd (apply #'format (list* nil control-string format-arguments)))
           (stdout-str nil)
           (stderr-str nil)
@@ -1259,6 +1273,17 @@ sequences of one or more whitespace characters to a single space"
                                 out (1+ out)
                                 w-start nil))))
               (subseq result 0 out)))))))
+
+(defun escape-chars (chars str)
+  "Returns a fresh string that is the same as str, except that
+every character that occurs in CHARS is preceded by a backslash."
+  (declare (type string str))
+  (with-output-to-string (s)
+    (map nil (lambda (c)
+               (if (find c chars)
+                   (format s "\\~a" c)
+                   (format s "~a" c)))
+         str)))
 
 (defun escape-string (str)
   "Return a copy of STR with special characters escaped before output to SerAPI.
@@ -1871,9 +1896,11 @@ from a code snippet.")
   "Get KEY from association list LIST."
   (cdr (assoc item list :test test)))
 
-(define-compiler-macro aget (&whole whole item list &key (test '#'eql))
+(define-compiler-macro aget (&whole whole item list &key (test '#'eql test-p))
   (if (constantp item)
-      `(cdr (assoc ,item ,list :test ,test))
+      (if test-p
+          `(cdr (assoc ,item ,list :test ,test))
+          `(cdr (assoc ,item ,list)))
       whole))
 
 (defun areplace (key val alist &key (test #'eql))
