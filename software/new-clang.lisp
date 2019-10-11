@@ -47,6 +47,7 @@
            :*new-clang?*
            :*soft*
            :nct+
+           :nct+-type
            :type-i-file
            :make-new-clang-macroexpand-hook
            :cpp-scan
@@ -248,6 +249,9 @@ modifiers or array, or NIL if this is its own base type")
    (array :initarg :array
           :type string
           :reader type-array)
+   (i-file :initarg :i-file
+           :type (or null string)
+           :reader type-i-file)
    ;; Name is the underlying name sans the modifiers and array
    (name :initarg :name
          :type string
@@ -281,10 +285,7 @@ on QUAL and DESUGARED slots."))
    (hash :accessor nct+-hash
          :initarg :hash
          :initform (incf (hash-counter *soft*))
-         :documentation "A hash code assigned to nct+ objects")
-   (i-file :initarg :i-file
-           :type (or null string)
-           :reader type-i-file))
+         :documentation "A hash code assigned to nct+ objects"))
   (:documentation "Wrapper object that is intended to behave like
 SEL/SW/CLANG:CLANG-TYPE.  This means it must have some information
 that is not strictly speaking about types at all (storage class)."))
@@ -1515,6 +1516,8 @@ computed at the children"))
                     ;; as the sugared type
                     :desugared (and (not (equal qual desugared)) desugared)
                     :typedef typedef
+                    ;; FIXME: `new-clang-i-file` returns a list
+                    :i-file (first (new-clang-i-file sw qual desugared))
                     keys)))
       (if table
           (or (gethash key table)
@@ -1525,15 +1528,9 @@ computed at the children"))
           (%make)))))
 
 (defun make-nct+ (type &key storage-class)
-  (assert (typep type 'new-clang-type))
-  (setf storage-class (or storage-class :none))
-  (or (find storage-class (new-clang-type-nct+-list type)
+  (or (find (or storage-class :none) (new-clang-type-nct+-list type)
             :key #'type-storage-class)
-      (make-instance 'nct+
-        :type type
-        :storage-class storage-class
-        ;; FIXME: `new-clang-i-file` returns a list
-        :i-file (first (new-clang-i-file *soft* type)))))
+      (make-instance 'nct+ :type type :storage-class (or storage-class :none))))
 
 (defmethod initialize-instance :after ((obj new-clang-type)
                                        &key hash &allow-other-keys)
@@ -1584,29 +1581,29 @@ computed at the children"))
                              :array (type-array tp0))))))
       nct))
 
-(defgeneric new-clang-i-file (obj type)
-  (:method ((obj new-clang) (type new-clang-type))
+(defgeneric new-clang-i-file (obj qual desugared)
+  (:method ((obj new-clang) qual desugared)
     ;; Get list of system files needed to handle the types
     ;; here
     (let* ((qual-includes
-            (when-let ((qual (new-clang-type-qual type)))
+            (when qual
               (includes-of-names-in-string obj qual)))
            (desugared-includes
-            (when-let ((desugared (new-clang-type-desugared type)))
+            (when desugared
               (includes-of-names-in-string obj desugared)))
            (includes
-            (remove-duplicates
-             (remove-if (lambda (s) (eql (elt s 0) #\"))
-                        (append qual-includes desugared-includes nil))
-             :test #'equal)))
-      (let ((files (sort includes #'string<))
-            (include-dirs (append (flags-to-include-dirs (flags obj))
-                                  *clang-default-includes*)))
-        (iter (for f in files)
-              (multiple-value-bind (str local?)
-                  (normalize-file-for-include f include-dirs)
-                (unless local?
-                  (collecting str))))))))
+            (sort (remove-duplicates
+                   (remove-if (lambda (s) (eql (elt s 0) #\"))
+                              (append qual-includes desugared-includes nil))
+                   :test #'equal)
+                  #'string<))
+           (include-dirs (append (flags-to-include-dirs (flags obj))
+                                 *clang-default-includes*)))
+      (iter (for f in includes)
+            (multiple-value-bind (str local?)
+                (normalize-file-for-include f include-dirs)
+              (unless local?
+                (collecting str)))))))
 
 (defun find-nct+ (type pointer const volatile restrict name array storage-class)
   "Finds the NCT+ associated with TYPE that has a particular set of properties"

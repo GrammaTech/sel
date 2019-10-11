@@ -956,11 +956,11 @@ of the same length"
                 :name name
                 :modifiers (sel/sw/new-clang::pack-type-modifiers
                             pointer const volatile restrict)
+                :i-file i-file
                 :array array
                 :typedef typedef)))
     (make-instance 'nct+ :type type
                    :storage-class storage-class
-                   :i-file i-file
                    :compute-slots nil)))
 
 (defun make-clang-control-picks (&rest args)
@@ -2504,7 +2504,7 @@ of the same length"
     ;; This is not zero for new clang, as it contains
     ;; builtins
     (if *new-clang?*
-        (is (zerop (count-if #'type-i-file
+        (is (zerop (count-if [#'type-i-file #'nct+-type]
                              (hash-table-values (types *hello-world*)))))
         (is (zerop (hash-table-count (types *hello-world*)))))))
 
