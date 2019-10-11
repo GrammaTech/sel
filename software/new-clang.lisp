@@ -1036,10 +1036,9 @@ where class = (ast-class ast).")
              (let ((tmp-file (tmp-file obj))
                    (file (ast-file child))
                    (include-dirs (append (flags-to-include-dirs (flags obj))
-                                         *clang-default-includes*))
-                   (od (original-directory obj)))
+                                         *clang-default-includes*)))
                (mapcar
-                (lambda (s) (normalize-file-for-include s od include-dirs))
+                (lambda (s) (normalize-file-for-include s include-dirs))
                 (delete-duplicates
                  (nconc
                   ;; The tests w. tmp-file here and below may not be
@@ -1383,19 +1382,13 @@ determined."
 ;;;  In Clang, this behavior is controlled by command line options,
 ;;;  which we'll need to recognize.
 
-(defun normalize-file-for-include (file-string original-dir include-dirs)
-  "Returns the normalized version of file-string relative to the original
-directory and the include-dirs, nd a value that is T if the string should
-be in #include \"...\", NIL if in #include <...>"
-  (assert (or (null original-dir)
-              (eql (car (pathname-directory original-dir))
-                   :absolute))
-          ()
-          "ORIGINAL-DIR must be an absolute filename: ~a"
-          original-dir)
+(defun normalize-file-for-include (file-string include-dirs)
+  "Returns the normalized version of file-string relative to the include-dirs,
+and a value that is T if the string should be in #include \"...\", NIL if in
+#include <...>"
   (cond
     ;; Empty string is erroneous
-    ((string= file-string "")
+    ((emptyp file-string)
      (error "normalize-file-for-include given an empty string"))
     ;; If it starts with ./, it's a local file
     ((eql (search "./" file-string) 0)
@@ -1406,7 +1399,9 @@ be in #include \"...\", NIL if in #include <...>"
     (t
      ;; Otherwise, try to find longest prefix for include-dirs
      ;; Assumes include-dirs is in normal form
-     (let ((file-len (length file-string)))
+     (let ((file-len (length file-string))
+           (max-match 0)
+           (dir nil))
        (flet ((%match (ind)
                 "Attempt to match FILE-STRING against IND.  Returns
 the match length if sucessful, NIL if not."
@@ -1414,24 +1409,19 @@ the match length if sucessful, NIL if not."
                   (when (< ind-len file-len)
                     (let ((mm (mismatch ind file-string)))
                       (when (= mm ind-len) ind-len))))))
-         (let ((om (when original-dir (%match original-dir))))
-           ;; (format t "om = ~a~%" om)
-           (if om
-               (values (concatenate 'string "\"" (subseq file-string om) "\"")
-                       t)
-               (let ((max-match 0) (dir nil))
-                 (iter (for ind in include-dirs)
-                       (let ((mm (%match ind)))
-                         ;; (format t "ind = ~a, mm = ~a~%" ind mm)
-                         (when (and mm (> mm max-match))
-                           (setf max-match mm
-                                 dir ind))))
-                 (if (find dir *clang-default-includes* :test #'equal)
-                     (values (concatenate 'string "<"
-                                          (subseq file-string max-match) ">")
-                             nil)
-                     (values (concatenate 'string "\"" file-string "\"")
-                             t))))))))))
+         (iter (for ind in include-dirs)
+               (let ((mm (%match ind)))
+                 ;; (format t "ind = ~a, mm = ~a~%" ind mm)
+                 (when (and mm (> mm max-match))
+                   (setf max-match mm
+                         dir ind))))
+         (if (find dir *clang-default-includes* :test #'equal)
+             (values (concatenate 'string
+                                  "<" (subseq file-string max-match) ">")
+                     nil)
+             (values (concatenate 'string
+                                  "\"" (subseq file-string max-match) "\"")
+                     t)))))))
 
 (defmethod source-text ((ast new-clang-ast))
   (with-output-to-string (out)
@@ -1610,12 +1600,11 @@ computed at the children"))
                         (append qual-includes desugared-includes nil))
              :test #'equal)))
       (let ((files (sort includes #'string<))
-            (od (original-directory obj))
             (include-dirs (append (flags-to-include-dirs (flags obj))
                                   *clang-default-includes*)))
         (iter (for f in files)
               (multiple-value-bind (str local?)
-                  (normalize-file-for-include f od include-dirs)
+                  (normalize-file-for-include f include-dirs)
                 (unless local?
                   (collecting str))))))))
 
