@@ -1807,31 +1807,24 @@ computed at the children"))
 
 (defmethod type-decl ((obj nct+))
   (type-decl (nct+-type obj)))
-
-;;; WIP
 (defmethod type-decl ((type new-clang-type))
-  ;; This is "" for most types.
-  ;; For struct or union types (or classes? no) it is
-  ;; the string for the declaration of that type, pulled from
-  ;; the source text.
-  ""
-  ;; For struct/union types, the qual will be
-  ;;  "struct <name>" or "union <name>"
-  ;; These will be stored in the record-name-table, with key
-  ;; equal to this qual
-  (or (when-let* ((qual (new-clang-type-qual type))
-                  (desugared (new-clang-type-desugared type))
-                  (len (length qual)))
-        (flet ((is-prefix (s)
-                 (let ((slen (length s)))
-                   (and (>= len slen)
-                        (string= s qual :end2 slen)))))
-          (when (or (is-prefix "struct ")
-                    (is-prefix "union "))
-            (when-let* ((table (type-table *soft*))
-                        (record-decl (gethash qual table)))
-              (concatenate 'string (new-clang-type-qual record-decl)  ";")))))
-      ""))
+  (type-decl* *soft* type))
+
+(defgeneric type-decl* (obj type)
+  (:documentation "Return the type declaration of TYPE.")
+  (:method ((obj new-clang) (type new-clang-type)
+            &aux (qual (new-clang-type-qual type)))
+    ;; This is "" for most types.
+    ;; For struct/union types, the qual will be
+    ;;  "struct <name>" or "union <name>"
+    ;; These will be stored in the record-name-table, with key
+    ;; equal to this qual
+    (if (and qual
+             (or (starts-with-subseq "struct " qual)
+                 (starts-with-subseq "union " qual)))
+        (concatenate 'string
+                     (new-clang-type-qual (gethash qual (type-table obj))) ";")
+        "")))
 
 (defmethod type-decl-string ((obj new-clang-type) &key &allow-other-keys)
   (new-clang-type-qual obj))
