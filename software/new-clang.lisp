@@ -3089,11 +3089,21 @@ ast nodes, as needed")
 (defmethod update-symbol-table ((obj new-clang))
   ;; When objects are copied in an AST, the mapping from IDs to
   ;; objects is invalidated.  This function restores it.
-  (let ((table (symbol-table obj)))
-    (map-ast (ast-root obj)
-             (lambda (a)
-               (when-let ((id (new-clang-ast-id a)))
-                 (setf (gethash id table) (list a))))))
+  (map-ast (ast-root obj)
+           (lambda (a)
+             (when-let ((id (new-clang-ast-id a)))
+               (setf (gethash id (symbol-table obj)) (list a)))))
+  obj)
+
+(defmethod update-name-symbol-table ((obj new-clang))
+  ;; Store name -> def mappings
+  (maphash (lambda (k v)
+             (declare (ignore k))
+             (iter (for ast in v)
+                   (when (and ast (ast-name ast))
+                     (push ast (gethash (ast-name ast)
+                                        (name-symbol-table obj))))))
+           (symbol-table obj))
   obj)
 
 (defmethod update-asts ((obj new-clang))
@@ -3118,15 +3128,6 @@ ast nodes, as needed")
         (setf (tmp-file obj) tmp-file)
         (let* ((raw-ast (clang-convert-json-for-file
                          json tmp-file genome-len)))
-          ;; Store name -> def mappings
-          (maphash
-           (lambda (k v)
-             (declare (ignore k))
-             (dolist (a v)
-               (when (and a (ast-name a))
-                 (push a (gethash (ast-name a)
-                                  (name-symbol-table obj))))))
-           (symbol-table obj))
           (record-typedef-decls obj raw-ast)
           (let ((ast (remove-non-program-asts raw-ast tmp-file)))
             (remove-asts-in-classes
@@ -3152,6 +3153,7 @@ ast nodes, as needed")
                             (fix-semicolons ast))
                   genome nil)
             (update-symbol-table obj)
+            (update-name-symbol-table obj)
             obj))))))
 
 
