@@ -362,7 +362,7 @@ using the clang front-end.
                             (push b stmt-asts))))
              nil)
            t)))
-    stmt-asts))
+    (nreverse stmt-asts)))
 
 (defmethod non-stmt-asts ((obj new-clang))
   "Collect a list of all ASTs (except the root) that are not
@@ -376,7 +376,7 @@ in or below function declarations"
             (progn
               (unless (eql a root) (push a non-stmt-asts))
               t))))
-    non-stmt-asts))
+    (nreverse non-stmt-asts)))
 
 (defmethod functions ((obj new-clang))
   (let ((functions nil))
