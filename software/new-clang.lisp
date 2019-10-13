@@ -230,7 +230,7 @@ attribute of clang json objects")
             :type (or null new-clang-type)
             :documentation "Type for which this is a typedef of,
 or NIL if this is not a typedef type.")
-   (base :accessor new-clang-base
+   (base :accessor new-clang-type-base
          :initarg :base
          :type (or null new-clang-type)
          :documentation "The unadorned type for this type (without
@@ -1527,6 +1527,42 @@ computed at the children"))
   (setf (gethash (nct+-hash obj) (slot-value *soft* 'types)) obj)
   obj)
 
+(defmethod to-alist ((new-clang-type new-clang-type))
+  (flet ((%p (key fn)
+           (when-let ((v (funcall fn new-clang-type)))
+             (list (cons key v)))))
+    (append (%p ':qual #'new-clang-type-qual)
+            (%p ':desugared #'new-clang-type-desugared)
+            (%p ':typedef #'new-clang-typedef)
+            (%p ':base #'new-clang-type-base)
+            (%p ':modifiers #'new-clang-type-modifiers)
+            (%p ':array #'type-array)
+            (%p ':i-file #'type-i-file)
+            (%p ':name #'type-name)
+            (%p ':hash #'new-clang-type-hash))))
+
+(defmethod to-alist ((nct nct+))
+  (flet ((%p (key fn)
+           (when-let ((v (funcall fn nct)))
+             (list (cons key v)))))
+    (append (%p ':type [#'to-alist #'nct+-type])
+            (%p ':storage-class #'type-storage-class))))
+
+(defmethod from-alist ((obj (eql 'new-clang-type)) alist)
+  (make-new-clang-type :qual (aget :qual alist)
+                       :desugared (aget :desugared alist)
+                       :typedef (aget :typedef alist)
+                       :base (aget :base alist)
+                       :modifiers (aget :modifiers alist)
+                       :array (aget :array alist)
+                       :i-file (aget :i-file alist)
+                       :name (aget :name alist)
+                       :hash (aget :hash alist)))
+
+(defmethod from-alist ((nct+ (eql 'nct+)) alist)
+  (make-nct+ (from-alist 'new-clang-type (aget :type alist))
+             :storage-class (aget :storage-class alist)))
+
 (defmethod typedef-type ((obj new-clang) (nct nct+) &aux (*soft* obj))
   ;; Must construct an NCT+ for this type
   (or (when-let ((tp (new-clang-typedef (nct+-type nct))))
@@ -1544,7 +1580,7 @@ computed at the children"))
       ;; give up when T is typedefed to something that is
       ;; directly a pointer or array type.
       (when-let* ((tp0 (nct+-type nct))
-                  (tp (new-clang-base (nct+-type nct)))
+                  (tp (new-clang-type-base (nct+-type nct)))
                   (tp2 (new-clang-typedef tp)))
         (when (and (eql (new-clang-type-modifiers tp) 0)
                    (member (type-array tp2) '(nil "") :test #'equal))
