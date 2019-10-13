@@ -3169,9 +3169,8 @@ ast nodes, as needed")
             (fix-multibyte-characters ast genome tmp-file)
             (compute-operator-positions obj ast)
             (put-operators-into-inner-positions obj ast)
-            (multiple-value-bind (uses table) (find-macro-uses obj ast tmp-file)
-              (declare (ignorable table uses))
-              (encapsulate-macro-expansions-cheap ast table))
+            (encapsulate-macro-expansions-cheap
+             ast (nth-value 1 (find-macro-uses obj ast tmp-file)))
             ;; This was previously before macro expansion encapsulation, but
             ;; that caused failures
             (fix-overlapping-vardecls obj ast)
