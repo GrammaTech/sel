@@ -163,13 +163,6 @@ See also: https://clang.llvm.org/docs/FAQ.html#id2.")
     :type hash-table
     :documentation "Mapping from qualtype/desugaredType pairs to
 new-clang-type objects.  Used for canonicalization of these objects.")
-   ;; FIXME: Need to cache invalidate and re-populate properly.
-   (base-types :initarg :base-types :accessor base-types
-               :initform (make-hash-table :test 'equal)
-               :copier copy-hash-table
-               :type hash-table
-               :documentation "Hash table of underlying types (without
-storage class or other modifiers")
    (tmp-file
     :initarg :tmp-file :accessor tmp-file
     :initform nil :copier :direct
@@ -561,10 +554,9 @@ in or below function declarations"
   type)
 
 (defmethod find-type ((obj new-clang) (name string))
-  (let ((vals (hash-table-values (base-types obj))))
-    ;; (format t "Types: ~s~%" (mapcar #'type-name vals))
-    (when-let ((type (find name vals :key #'type-name :test #'string=)))
-      (make-nct+ type))))
+  (when-let ((type (find name (hash-table-values (type-table obj))
+                         :key #'type-name :test #'string=)))
+    (make-nct+ type)))
 
 (defmethod add-type ((obj new-clang) (type nct+))
   (sel/sw/clang::add-type* obj type))
@@ -583,15 +575,13 @@ in or below function declarations"
   ;; Trace names have different format, with * and [...] before the type
   ;; name2
   (update-caches-if-necessary obj)
-  (let ((name (apply #'trace-string-to-clang-json-string trace-name args))
-        (vals (hash-table-values (base-types obj))))
-    ;; (format t "Name = ~s~%" name)
-    ;; (format t "Names:~%~s~%" (mapcar #'type-name vals))
-    (let ((type (or (find name vals :key #'new-clang-type-qual
-                          :test #'string=)
-                    (make-new-clang-type :qual name))))
-      (or (find :none (new-clang-type-nct+-list type) :key #'type-storage-class)
-          (make-nct+ type)))))
+  (let* ((name (apply #'trace-string-to-clang-json-string trace-name args))
+         (vals (hash-table-values (type-table obj)))
+         (type (or (find name vals :key #'new-clang-type-qual
+                         :test #'string=)
+                   (make-new-clang-type :qual name))))
+    (or (find :none (new-clang-type-nct+-list type) :key #'type-storage-class)
+        (make-nct+ type))))
 
 (defun find-macros-in-children (c)
   ;; Break C up into segments of actual strings
@@ -1534,15 +1524,11 @@ computed at the children"))
 
 (defmethod initialize-instance :after ((obj new-clang-type)
                                        &key hash &allow-other-keys)
-  (when (boundp '*soft*)
-    (setf (gethash hash (slot-value *soft* 'base-types)) obj))
   (make-nct+ obj)
   obj)
 
 (defmethod initialize-instance :after ((obj nct+) &key &allow-other-keys)
-  ;; (format t "INITIALIZE INSTANCE on ~a~%" obj)
   (pushnew obj (new-clang-type-nct+-list (nct+-type obj)))
-  ;; (format t "PUSH ONTO NCT+-LIST of ~a~%" (nct+-type obj))
   (setf (gethash (nct+-hash obj) (slot-value *soft* 'types)) obj)
   obj)
 
@@ -3133,12 +3119,11 @@ ast nodes, as needed")
         ;; (clrhash (symbol-table *soft*))
         (setf genome (genome obj)
               ast-root nil))
-      (with-slots (symbol-table name-symbol-table type-table base-types types)
+      (with-slots (symbol-table name-symbol-table type-table types)
           obj
         (setf symbol-table (make-hash-table :test #'equal)
               name-symbol-table (make-hash-table :test #'equal)
               type-table (make-hash-table :test #'equal)
-              base-types (make-hash-table :test #'equal)
               types (make-hash-table :test #'equal)))
 
       (multiple-value-bind (json tmp-file genome-len)
