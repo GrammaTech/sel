@@ -1295,10 +1295,6 @@ of OBJ")
       (when rd
         (unless (ast-p rd)
           ;; This should never happen
-          (format t "In ast-referenced-obj on ~a~%" obj)
-          (describe obj)
-          (format t "ast-attrs = ~a~%" (new-clang-ast-attrs obj))
-          (describe rd)
           (error "Not an AST: ~a~%" rd))
         (let ((id (new-clang-ast-id rd)))
           (when id
@@ -1402,7 +1398,6 @@ the match length if sucessful, NIL if not."
                       (when (= mm ind-len) ind-len))))))
          (iter (for ind in include-dirs)
                (let ((mm (%match ind)))
-                 ;; (format t "ind = ~a, mm = ~a~%" ind mm)
                  (when (and mm (> mm max-match))
                    (setf max-match mm
                          dir ind))))
@@ -1523,7 +1518,7 @@ computed at the children"))
       (make-instance 'nct+ :type type :storage-class (or storage-class :none))))
 
 (defmethod initialize-instance :after ((obj new-clang-type)
-                                       &key hash &allow-other-keys)
+                                       &key &allow-other-keys)
   (make-nct+ obj)
   obj)
 
@@ -2382,16 +2377,15 @@ if no value was found."
 
 (defgeneric record-typedef-decl (ast)
   (:method ((ast new-clang-ast))
-    (when (eql (ast-class ast) :Typedef)
-      (when-let ((type (ast-type ast)))
-        (when-let* ((qual (ast-name ast))
-                    (desugared (or (new-clang-type-desugared type)
-                                   (new-clang-type-qual type))))
-          #+(or)
-          (format t "Record typedef for ~a ==> ~a, ~a~%"
-                  (ast-name ast) (new-clang-type-qual type) desugared)
-          (let ((tp (make-new-clang-type :qual qual :desugared desugared)))
-            (setf (new-clang-typedef tp) type)))))))
+    (when-let* ((_ (eql (ast-class ast) :TypeDef))
+                (type (ast-type ast))
+                (qual (ast-name ast))
+                (desugared (or (new-clang-type-desugared type)
+                               (new-clang-type-qual type))))
+      (setf (new-clang-typedef (make-new-clang-type
+                                :qual qual
+                                :desugared desugared))
+            type))))
 
 ;;; Macro expansion code
 (defgeneric find-macro-uses (obj a file)

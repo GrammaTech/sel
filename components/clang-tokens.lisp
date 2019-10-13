@@ -79,7 +79,6 @@ SOFTWARE."))
            (t (make-keyword str))))
        (tokenize (root)
          (let ((children (get-immediate-children clang root)))
-           ;; (format t "TOKENIZE:~%root = ~a~%children = ~a~%" root children)
            (switch ((ast-class root) :test #'equal)
              (:AddrLabelExpr
               (assert (<= 2 (length (source-text root))))

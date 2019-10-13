@@ -228,8 +228,6 @@ value is passed to TEST."
          (bp
           (position-extremum-rand (contexts b context) #'>
                                   [#'mean {mapcar test a-ctx} {mapcar key}])))
-    ;; Debugging, print the matched sequences
-    ;; (format t "~S -- ~S~%" a-ctx (mapcar key (context b bp context)))
     (list ap bp)))
 
 (defmethod synapsing-crossover ((a simple) (b simple)
