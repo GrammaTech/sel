@@ -3113,22 +3113,6 @@ ast nodes, as needed")
   (map-ast-with-ancestors ast #'compute-syn-ctx)
   (map-ast ast #'fix-var-syn-ctx))
 
-;;; TODO: determine if this needs to be invoked when the
-;;;  tree changes
-(defmethod update-symbol-table ((obj new-clang))
-  ;; When objects are copied in an AST, the mapping from IDs to
-  ;; objects is invalidated.  This function restores it.
-  (maphash (lambda (id asts)
-             (setf (gethash id (symbol-table obj))
-                   (remove-if [{equal (tmp-file obj)} #'ast-file]
-                              asts)))
-           (symbol-table obj))
-  (map-ast (ast-root obj)
-           (lambda (a)
-             (when-let ((id (new-clang-ast-id a)))
-               (setf (gethash id (symbol-table obj)) (list a)))))
-  obj)
-
 (defmethod update-name-symbol-table ((obj new-clang))
   ;; Store name -> def mappings
   (maphash (lambda (k v)
@@ -3136,9 +3120,21 @@ ast nodes, as needed")
              (iter (for ast in v)
                    (when (and ast (ast-name ast))
                      (push ast (gethash (ast-name ast)
-                                        (name-symbol-table obj))))))
-           (symbol-table obj))
+                                        (slot-value obj 'name-symbol-table))))))
+           (slot-value obj 'symbol-table))
   obj)
+
+(defmethod update-paths
+    ((ast new-clang-ast) &optional path)
+  "Modify AST in place with all paths updated to begin at PATH"
+  (setf (ast-path ast) (reverse path)
+        (ast-children ast)
+        (iter (for c in (ast-children ast))
+              (for i upfrom 0)
+              (collect (if (typep c 'ast)
+                           (update-paths c (cons i path))
+                           c))))
+  ast)
 
 (defmethod update-asts ((obj new-clang))
   ;; Port of this method from clang.lsp, for new class
@@ -3161,6 +3157,7 @@ ast nodes, as needed")
         (setf (tmp-file obj) tmp-file)
         (let* ((raw-ast (clang-convert-json-for-file
                          json tmp-file genome-len)))
+          (update-name-symbol-table obj)
           (record-typedef-decls obj raw-ast)
           (let ((ast (remove-non-program-asts raw-ast tmp-file)))
             (remove-asts-in-classes
@@ -3181,11 +3178,10 @@ ast nodes, as needed")
             (compute-full-stmt-attrs ast)
             (compute-guard-stmt-attrs ast)
             (compute-syn-ctxs ast)
-            (setf ast-root (sel/sw/parseable::update-paths
-                            (fix-semicolons ast))
+            (fix-semicolons ast)
+            (update-paths ast)
+            (setf ast-root ast
                   genome nil)
-            (update-symbol-table obj)
-            (update-name-symbol-table obj)
             obj))))))
 
 

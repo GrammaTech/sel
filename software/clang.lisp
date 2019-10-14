@@ -3948,10 +3948,6 @@ Move the semicolon in just one level, but no further"
      (has-trailing-semicolon-p (lastcar (ast-children ast))))
     (t nil)))
 
-(defun add-semicolon-to-expr (ast)
-  "Add a semicolon to the end of AST"
-  (copy ast :children ast :full-stmt t))
-
 (defun fix-semicolons-ast (ast)
   "Move semicolons into the appropriate stmt nodes in the children of node AST"
   (move-semicolons-into-expr-stmts ast)
