@@ -1631,14 +1631,6 @@ computed at the children"))
   (declare (ignorable class))
   (setf (slot-value obj slot) nil)) ;; stub
 
-(defmethod slot-unbound (class (obj new-clang-type) (slot (eql 'base)))
-  (declare (ignorable class))
-  (setf (slot-value obj slot)
-        (if (and (eql (new-clang-type-modifiers obj) 0)
-                 (let ((array (type-array obj)))
-                   (or (null array) (equal array ""))))
-            nil
-            (make-new-clang-type :qual (type-name obj)))))
 (defmethod slot-unbound (class (obj new-clang-type) (slot (eql 'array)))
   (declare (ignorable class))
   (compute-new-clang-type-slots obj)
