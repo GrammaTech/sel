@@ -1576,18 +1576,6 @@ computed at the children"))
               (unless local?
                 (collecting str)))))))
 
-(defun find-nct+ (type pointer const volatile restrict name array storage-class)
-  "Finds the NCT+ associated with TYPE that has a particular set of properties"
-  (declare (ignore name))
-  (find-if (lambda (n+)
-             (and (equal (type-pointer n+) pointer)
-                  (equal (type-const n+) const)
-                  (equal (type-volatile n+) volatile)
-                  (equal (type-restrict n+) restrict)
-                  (equal (type-array n+) array)
-                  (equal (type-storage-class n+) storage-class)))
-           (new-clang-type-nct+-list type)))
-
 (defmethod type-hash ((tp+ nct+))
   (sxhash (concatenate 'string
                        (new-clang-type-qual (nct+-type tp+))
