@@ -286,10 +286,6 @@ expanded relative to DIR.
 "
   (labels ((split-flags (flags)
              (nest (remove-if #'emptyp)
-                   (mappend (lambda (flag) ; Split leading "D".
-                              (split-sequence #\Space
-                                              (replace-all flag "-D" "-D ")
-                                              :remove-empty-subseqs t)))
                    (mappend (lambda (flag) ; Split leading "L".
                               (split-sequence #\Space
                                 (replace-all flag "-L" "-L ")

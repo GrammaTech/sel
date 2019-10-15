@@ -347,7 +347,12 @@ using the clang front-end.
   (iter (for f in flags)
         (for p previous f)
         (when (or (string= p "-I") (string= p "-D"))
-          (appending (list p f)))))
+          (appending (list p f)))
+        (when (and (not (string= f "-D"))
+                   (not (string= f "\"-D\""))
+                   (or (starts-with-subseq "-D" f)
+                       (starts-with-subseq "\"-D" f)))
+          (appending (list f)))))
 
 (defmethod stmt-asts ((obj new-clang))
   (let ((stmt-asts nil))
