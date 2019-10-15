@@ -169,16 +169,6 @@ new-clang-type objects.  Used for canonicalization of these objects.")
     :type (or null string)
     :documentation "Full file name of the temporary file
 on which clang was run to get the AST.")
-   ;;; NOTE: This will give the same hashs to types from different
-   ;;;       source files.  Instead, consider initializing the counter
-   ;;;       in a file-specific way, or compute the hashes from the
-   ;;;       type object themselves (but that could still lead to
-   ;;;       collisions.)
-   (hash-counter :initform 1 :initarg :hash-counter
-                 :accessor hash-counter
-                 :type integer
-                 :documentation "A counter used to assign hash values to
- type objects and possibly other things")
    (json-file :initform nil :initarg :json-file
               :accessor json-file
               :documentation "When non-nil, read the json from this file
@@ -224,19 +214,8 @@ of clang json type objects")
               :initarg :desugared
               :documentation "Translation of the desugaredQualType
 attribute of clang json objects")
-   (typedef :accessor new-clang-typedef
-            :initform nil
-            :initarg :typedef
-            :type (or null new-clang-type)
-            :documentation "Type for which this is a typedef of,
-or NIL if this is not a typedef type.")
-   (base :accessor new-clang-type-base
-         :initarg :base
-         :type (or null new-clang-type)
-         :documentation "The unadorned type for this type (without
-modifiers or array, or NIL if this is its own base type")
    ;; Slots filled in by parsing the qual or desugred type
-   (modifiers :initarg :modifers
+   (modifiers :initarg :modifiers
               :type integer
               :reader new-clang-type-modifiers)
    (array :initarg :array
@@ -255,11 +234,6 @@ modifiers or array, or NIL if this is its own base type")
               :type list
               :documentation "List of NCT+ objects for this type, with various
 storage classes.")
-   (hash :accessor new-clang-type-hash
-         :initarg :hash
-         :initform (incf (hash-counter *soft*))
-         :documentation "A hash code assigned to type
-objects, for compatibility with old clang")
    (reqs :accessor type-reqs
          :initarg :reqs
          :type list ;; of new-clang-type objects
@@ -274,11 +248,7 @@ on QUAL and DESUGARED slots."))
          :type new-clang-type)
    (storage-class :initarg :storage-class
                   :reader type-storage-class
-                  :type (member :none :static :extern :register :__private_extern__))
-   (hash :accessor nct+-hash
-         :initarg :hash
-         :initform (incf (hash-counter *soft*))
-         :documentation "A hash code assigned to nct+ objects"))
+                  :type (member :none :static :extern :register :__private_extern__)))
   (:documentation "Wrapper object that is intended to behave like
 SEL/SW/CLANG:CLANG-TYPE.  This means it must have some information
 that is not strictly speaking about types at all (storage class)."))
@@ -1493,19 +1463,16 @@ computed at the children"))
 ;;;  information that is not properly part of a type at all.
 ;;;
 
-(defun make-new-clang-type (&rest keys &key qual desugared typedef
-                                         (hash (incf (hash-counter *soft*)))
-                                         &allow-other-keys)
+(defun make-new-clang-type (&rest keys
+                            &key qual desugared &allow-other-keys)
   (let* ((key qual)
          (sw *soft*)
          (table (when sw (type-table sw))))
     (flet ((%make ()
              (apply #'make-instance 'new-clang-type
-                    :hash hash
                     ;; Do not store desugared if it's the same
                     ;; as the sugared type
                     :desugared (and (not (equal qual desugared)) desugared)
-                    :typedef typedef
                     ;; FIXME: `new-clang-i-file` returns a list
                     :i-file (first (new-clang-i-file sw qual desugared))
                     keys)))
@@ -1529,7 +1496,7 @@ computed at the children"))
 
 (defmethod initialize-instance :after ((obj nct+) &key &allow-other-keys)
   (pushnew obj (new-clang-type-nct+-list (nct+-type obj)))
-  (setf (gethash (nct+-hash obj) (slot-value *soft* 'types)) obj)
+  (setf (gethash (type-hash obj) (slot-value *soft* 'types)) obj)
   obj)
 
 (defmethod to-alist ((new-clang-type new-clang-type))
@@ -1538,13 +1505,10 @@ computed at the children"))
              (list (cons key v)))))
     (append (%p ':qual #'new-clang-type-qual)
             (%p ':desugared #'new-clang-type-desugared)
-            (%p ':typedef #'new-clang-typedef)
-            (%p ':base #'new-clang-type-base)
             (%p ':modifiers #'new-clang-type-modifiers)
             (%p ':array #'type-array)
             (%p ':i-file #'type-i-file)
-            (%p ':name #'type-name)
-            (%p ':hash #'new-clang-type-hash))))
+            (%p ':name #'type-name))))
 
 (defmethod to-alist ((nct nct+))
   (flet ((%p (key fn)
@@ -1556,52 +1520,37 @@ computed at the children"))
 (defmethod from-alist ((obj (eql 'new-clang-type)) alist)
   (make-new-clang-type :qual (aget :qual alist)
                        :desugared (aget :desugared alist)
-                       :typedef (aget :typedef alist)
                        :base (aget :base alist)
                        :modifiers (aget :modifiers alist)
                        :array (aget :array alist)
                        :i-file (aget :i-file alist)
-                       :name (aget :name alist)
-                       :hash (aget :hash alist)))
+                       :name (aget :name alist)))
 
 (defmethod from-alist ((nct+ (eql 'nct+)) alist)
   (make-nct+ (from-alist 'new-clang-type (aget :type alist))
              :storage-class (aget :storage-class alist)))
 
-(defmethod typedef-type ((obj new-clang) (nct nct+) &aux (*soft* obj))
-  ;; Must construct an NCT+ for this type
-  (or (when-let ((tp (new-clang-typedef (nct+-type nct))))
-        (assert (typep tp 'new-clang-type))
-        (typedef-type obj
-                      (or (find :none (new-clang-type-nct+-list tp)
-                                :key #'type-storage-class)
-                          (make-nct+ tp))))
-      ;; This case handles types like
-      ;;   T *
-      ;; where T is typedefed to some other type.
-      ;;
-      ;; This is not quite right, as it does not chase
-      ;; down a chain of typedefs in T.  It also will
-      ;; give up when T is typedefed to something that is
-      ;; directly a pointer or array type.
-      (when-let* ((tp0 (nct+-type nct))
-                  (tp (new-clang-type-base (nct+-type nct)))
-                  (tp2 (new-clang-typedef tp)))
-        (when (and (eql (new-clang-type-modifiers tp) 0)
-                   (member (type-array tp2) '(nil "") :test #'equal))
-          ;; Find the T' that T corresponds to, then figure
-          ;; out what the name should be.  Recontruct the name
-          ;; using the keyword arguments to
-          ;; trace-string-to-clang-json-string
-          (make-nct+ (make-new-clang-type
-                      :qual (trace-string-to-clang-json-string
-                             (type-name tp2)
-                             :pointer (type-pointer tp0)
-                             :const (type-const tp0)
-                             :volatile (type-restrict tp0)
-                             :restrict (type-restrict tp0)
-                             :array (type-array tp0))))))
-      nct))
+(defmethod typedef-type ((obj new-clang) (nct nct+)
+                         &aux (mods (new-clang-type-modifiers (nct+-type nct)))
+                           (array (type-array (nct+-type nct)))
+                           (*soft* obj))
+  (labels ((typedef-type-helper (nct)
+             (if-let ((typedef-nct
+                       (some-<>> (find-type-declaration obj (nct+-type nct))
+                                 (ast-type)
+                                 (new-clang-type-nct+-list)
+                                 (find :none <> :key #'type-storage-class))))
+               (typedef-type-helper typedef-nct)
+               (make-instance 'nct+
+                 :type (make-instance 'new-clang-type
+                         :qual (new-clang-type-qual (nct+-type nct))
+                         :desugared (new-clang-type-desugared (nct+-type nct))
+                         :modifiers (logior mods (new-clang-type-modifiers (nct+-type nct)))
+                         :array (concatenate 'string (type-array (nct+-type nct)) array)
+                         :i-file (type-i-file (nct+-type nct))
+                         :name (type-name (nct+-type nct)))
+                 :storage-class (type-storage-class nct)))))
+    (typedef-type-helper nct)))
 
 (defgeneric new-clang-i-file (obj qual desugared)
   (:method ((obj new-clang) qual desugared)
@@ -1639,10 +1588,15 @@ computed at the children"))
                   (equal (type-storage-class n+) storage-class)))
            (new-clang-type-nct+-list type)))
 
+(defmethod type-hash ((tp+ nct+))
+  (sxhash (concatenate 'string
+                       (new-clang-type-qual (nct+-type tp+))
+                       (or (new-clang-type-desugared (nct+-type tp+)) "")
+                       (symbol-name (type-storage-class tp+)))))
 (defmethod type-hash ((tp new-clang-type))
-  (new-clang-type-hash tp))
-(defmethod type-hash ((n nct+))
-  (nct+-hash n))
+  (sxhash (concatenate 'string
+                       (new-clang-type-qual tp)
+                       (or (new-clang-type-desugared tp) ""))))
 
 ;;; Pointer, const, volatile, and restrict are indicated by integers
 ;;;  in the modifiers slot.
@@ -1841,9 +1795,7 @@ modifiers from a type name"
                                     (list :CXXRecord :Record))
                                    ((starts-with-subseq "union " qual)
                                     (list :Union))
-                                   ((not (null (new-clang-type-desugared tp)))
-                                    (list :Typedef))
-                                   (t nil))))
+                                   (t (list :Typedef)))))
       (car (remove-if-not [{member _ ast-classes} #'ast-class]
                           (gethash (type-name tp)
                                    (name-symbol-table obj)))))))
@@ -2410,23 +2362,6 @@ if no value was found."
 
 
 ;;; Massaging ASTs into proper form after parsing
-
-(defgeneric record-typedef-decls (obj ast)
-  (:method ((obj new-clang) (ast new-clang-ast))
-    (declare (ignore obj))
-    (map-ast ast #'record-typedef-decl)))
-
-(defgeneric record-typedef-decl (ast)
-  (:method ((ast new-clang-ast))
-    (when-let* ((_ (eql (ast-class ast) :TypeDef))
-                (type (ast-type ast))
-                (qual (ast-name ast))
-                (desugared (or (new-clang-type-desugared type)
-                               (new-clang-type-qual type))))
-      (setf (new-clang-typedef (make-new-clang-type
-                                :qual qual
-                                :desugared desugared))
-            type))))
 
 ;;; Macro expansion code
 (defgeneric find-macro-uses (obj a file)
@@ -3163,7 +3098,6 @@ ast nodes, as needed")
         (let* ((raw-ast (clang-convert-json-for-file
                          json tmp-file genome-len)))
           (update-name-symbol-table obj)
-          (record-typedef-decls obj raw-ast)
           (let ((ast (remove-non-program-asts raw-ast tmp-file)))
             (remove-asts-in-classes
              ast '(:fullcomment :textcomment :paragraphcomment))
