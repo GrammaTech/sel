@@ -1489,71 +1489,6 @@ computed at the children"))
                 type))
           (%make)))))
 
-(defmethod j2ck :around (json (json-kind-symbol (eql :typedef)))
-  (declare (ignorable json json-kind-symbol))
-  (let ((obj (call-next-method)))
-    (when-let ((typedef-type (pop (ast-children obj))))
-      (setf (ast-attr obj :typedef-type) typedef-type))
-    obj))
-
-(defmethod j2ck (json (json-kind-symbol (eql :ImplicitValueInitExpr)))
-  (declare (ignorable json json-kind-symbol))
-  nil)
-
-;;; Do not save structured comments
-(defmethod j2ck (json (json-kind-symbol (eql :TextComment)))
-  (declare (ignorable json json-kind-symbol))
-  nil)
-
-(defmethod j2ck (json (json-kind-symbol (eql :InlineCommandComment)))
-  (declare (ignorable json json-kind-symbol))
-  nil)
-
-(defmethod j2ck (json (json-kind-symbol (eql :ParamCommandComment)))
-  (declare (ignorable json json-kind-symbol))
-  nil)
-
-(defmethod j2ck (json (json-kind-symbol (eql :BlockCommandComment)))
-  (declare (ignorable json json-kind-symbol))
-  nil)
-
-(defmethod j2ck (json (json-kind-symbol (eql :ParagraphComment)))
-  (declare (ignorable json json-kind-symbol))
-  nil)
-
-(defmethod j2ck (json (json-kind-symbol (eql :FullComment)))
-  (declare (ignorable json json-kind-symbol))
-  nil)
-
-(defmethod j2ck (json (json-kind-symbol (eql :GenericSelectionExpr)))
-  (let* ((inner (aget :inner json)))
-    (if (notevery (lambda (a) (aget :kind a)) inner)
-        ;; Rewrite and try again
-        (let* ((new-inner
-                (cons
-                 (car inner)
-                 (iter (for x in (cddr inner))
-                       (cond
-                         ((aget :kind x) (collect x))
-                         ((aget :associationkind x)
-                          (let ((inner2 (aget :inner x)))
-                            (collect (cadr inner2))))))))
-               (new-json
-                (iter (for x in json)
-                      (collect
-                       (if (and (consp x) (eql (car x) :inner))
-                           `(:inner ,@new-inner)
-                           x)))))
-          (j2ck new-json json-kind-symbol))
-        (call-next-method))))
-
-(defmethod j2ck (json (json-kind-symbol (eql :CXXOperatorCallExpr)))
-  ;; CXXOperatorCallExprs must be a special subclass, as the children
-  ;; are out of order (the operator is put first even if it is not
-  ;; first in the source file)
-  (declare (ignorable json-kind-symbol))
-  (store-slots (make-cxx-operator-call-expr) json))
-
 (defun make-nct+ (type &key storage-class)
   (or (find (or storage-class :none) (new-clang-type-nct+-list type)
             :key #'type-storage-class)
@@ -1894,11 +1829,11 @@ modifiers from a type name"
 
 (defmethod clang-json ((obj new-clang) &key &allow-other-keys)
   (with-temp-file-of (src-file (ext obj)) (genome obj)
-                     (let* ((cmd-fmt "clang -cc1 -ast-dump=json ~{~a~^ ~} ~a ~a")
-                            (filter "| sed -e \"s/  *//\" ; exit ${PIPESTATUS[0]}")
-                            (genome-len (length (genome obj)))
-                            (flags (append (clang-frontend-flags (flags obj))
-                                           (mappend {list "-I"} *clang-default-includes*))))
+                     (let ((cmd-fmt "clang -cc1 -ast-dump=json ~{~a~^ ~} ~a ~a")
+                           (filter "| sed -e \"s/  *//\" ; exit ${PIPESTATUS[0]}")
+                           (genome-len (length (genome obj)))
+                           (flags (append (clang-frontend-flags (flags obj))
+                                          (mappend {list "-I"} *clang-default-includes*))))
                        (multiple-value-bind (stdout stderr exit)
                            (let ((*trace-output* *standard-output*))
                              (if (json-file obj)
