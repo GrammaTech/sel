@@ -36,6 +36,7 @@
            :new-clang-range-begin
            :new-clang-loc-line
            :make-new-clang-ast
+           :ast-id
            :symbol-table
            :name-symbol-table
            :combine-overlapping-siblings
@@ -865,6 +866,8 @@ Other keys are allowed but are silently ignored.
 ;;; There are no separate 'node' objects for new-clang
 (defmethod ast-node ((obj new-clang-ast)) obj)
 
+(defmethod ast-id ((obj new-clang-ast))
+  (new-clang-ast-id obj))
 (defmethod ast-path ((obj new-clang-ast))
   (new-clang-ast-path obj))
 (defmethod (setf ast-path) (value (obj new-clang-ast))
