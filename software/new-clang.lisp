@@ -1859,9 +1859,7 @@ modifiers from a type name"
   (:documentation "Return the source text of the type declaration of TYPE.")
   (:method ((obj new-clang) (type new-clang-type)
             &aux (decl (find-type-declaration obj type)))
-    (if decl
-        (source-text decl)
-        "")))
+    (source-text decl)))
 
 (defmethod type-decl-string ((obj new-clang-type) &key &allow-other-keys)
   (new-clang-type-qual obj))
