@@ -584,11 +584,8 @@ file location, if any."))
    (obj  :initarg :obj  :initform nil :reader obj)
    (op   :initarg :op   :initform nil :reader op))
   (:report (lambda (condition stream)
-             (if (op condition)
-                 (format stream "No targets error ~a applying ~S to ~S"
-                         (text condition) (op condition) (obj condition))
-                 (format stream "No targets error ~a on ~S"
-                         (text condition) (obj condition)))))
+             (format stream "No targets error ~a ~:[on~;~:*applying ~S to~] ~S"
+                     (text condition) (op condition) (obj condition))))
   (:documentation
    "This is a particularly benign form of mutation error.
 A common restart is `ignore-failed-mutation'."))
