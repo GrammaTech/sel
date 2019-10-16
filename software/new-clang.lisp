@@ -2747,12 +2747,11 @@ offsets to support source text with multibyte characters.
                         :begin (byte-loc-to-chars begin)
                         :end (byte-loc-to-chars end))))))))
 
-(defgeneric compute-operator-positions (sw ast)
+(defgeneric compute-operator-positions (ast)
   (:documentation "Compute positions of operators in
 CXXOperatorCallExpr nodes")
-  (:method (sw (ast new-clang-ast))
-    (let ((*soft* sw))
-      (map-ast ast #'compute-operator-position))))
+  (:method ((ast new-clang-ast))
+    (map-ast ast #'compute-operator-position)))
 
 (defgeneric compute-operator-position (ast)
   (:documentation "Compute positions of operators at a
@@ -2782,8 +2781,7 @@ to remove dummy arg")
   (:documentation "Put operators into their inner positions
 in CXXOperatorCallExpr nodes.")
   (:method ((sw new-clang) (ast new-clang-ast))
-    (let ((*soft* sw))
-      (map-ast ast #'put-operator-into-inner-position))))
+    (map-ast ast #'put-operator-into-inner-position)))
 
 (defgeneric put-operator-into-inner-position (ast)
   (:documentation "Put operator into its inner position
@@ -2803,11 +2801,10 @@ in a CXXOperatorCallExpr node.")
                       (list op)
                       (subseq c (1+ pos))))))))
 
-(defun fix-ancestor-ranges (sw ast)
+(defun fix-ancestor-ranges (ast)
   "Normalize the ast so the range of each node is a superset
 of the ranges of its children"
-  (let ((*soft* sw)
-        changed?)
+  (let (changed?)
     (flet ((%normalize (a)
              (multiple-value-bind (begin end)
                  (begin-and-end-offsets a)
@@ -2845,98 +2842,95 @@ of the ranges of its children"
 
 ;;; FIXME: refactor this into small functions, for
 ;;;  understandability and line length limits
-(defun combine-overlapping-siblings (sw ast)
+(defun combine-overlapping-siblings (sw ast &aux (genome (genome sw)))
   "Group sibling nodes with overlapping or out of order
 ranges into 'combined' nodes.  Warn when this happens."
-  (let ((*soft* sw)
-        (genome (genome sw)))
-    (declare (ignorable genome))
-    (flet ((%check (a)
-             (let ((end 0)
-                   changed? accumulator)
-               (flet ((%sorted-children (children)
-                        (stable-sort
-                         children
-                         (lambda (a b)
-                           (bind (((:values a-begin a-end)
-                                   (begin-and-end-offsets a))
-                                  ((:values b-begin b-end)
-                                   (begin-and-end-offsets b)))
-                                 ;; If ASTs start at the same place, put the
-                                 ;; larger one first so parent-child combining
-                                 ;; below works nicely.
-                                 (cond ((or (null b-begin) (null b-end)) t)
-                                       ((or (null a-begin) (null a-end)) nil)
-                                       ((= a-begin b-begin) (> a-end b-end))
-                                       (t (< a-begin b-begin)))))))
-                      (%combine ()
-                        (case (length accumulator)
-                          (0)
-                          (1 (list (pop accumulator)))
-                          (t
-                           (let ((new-begin (reduce #'min accumulator
-                                                    :key #'begin-offset))
-                                 (new-end (reduce #'max accumulator
-                                                  :key #'extended-end-offset)))
-                             (prog1
-                                 (unless (eql new-begin new-end)
-                                   (setf changed? t)
-                                   (if (and (= (length accumulator) 2)
-                                            (eql (ast-class (car accumulator)) :typedef))
-                                       ;; Special case: there are two nodes, and the first is a typedef
-                                       ;; In that case, make the second a child of the first
-                                       (progn
-                                         (push (cadr accumulator) (ast-children (car accumulator)))
-                                         (list (car accumulator)))
-                                       ;; Otherwise, create a "Combined" node with the children as the
-                                       ;; overlapping ASTs.  Previously, the overlapping children
-                                       ;; where stored in a "subsumed" attribute instead of as
-                                       ;; the children field.  However, this led to issue when writing
-                                       ;; out the file as `source-text` relies on the children field.
-                                       ;; Further, it required special case logic for all methods
-                                       ;; which call `ast-children` (e.g. replace-in-ast,
-                                       ;; replace-nth-child, remove-ast, replace-ast, insert-ast,
-                                       ;; map-ast, map-ast-strings, map-ast-with-ancestor,
-                                       ;; get-immediate-children, etc.).  By making the overlapping
-                                       ;; nodes children of the combined node, we only need special
-                                       ;; case logic when writing out the source text of the combined
-                                       ;; AST which is less error-prone than the converse.
-                                       (list (make-new-clang-ast
-                                              :class :combined
-                                              :children accumulator
-                                              :attrs `((:range .
-                                                               ,(make-new-clang-range
-                                                                 :begin (make-new-clang-loc
-                                                                         :file (ast-file (car accumulator))
-                                                                         :offset new-begin)
-                                                                 :end (make-new-clang-loc
+  (flet ((%check (a)
+           (let ((end 0)
+                 changed? accumulator)
+             (flet ((%sorted-children (children)
+                      (stable-sort
+                       children
+                       (lambda (a b)
+                         (bind (((:values a-begin a-end)
+                                 (begin-and-end-offsets a))
+                                ((:values b-begin b-end)
+                                 (begin-and-end-offsets b)))
+                               ;; If ASTs start at the same place, put the
+                               ;; larger one first so parent-child combining
+                               ;; below works nicely.
+                               (cond ((or (null b-begin) (null b-end)) t)
+                                     ((or (null a-begin) (null a-end)) nil)
+                                     ((= a-begin b-begin) (> a-end b-end))
+                                     (t (< a-begin b-begin)))))))
+                    (%combine ()
+                      (case (length accumulator)
+                        (0)
+                        (1 (list (pop accumulator)))
+                        (t
+                         (let ((new-begin (reduce #'min accumulator
+                                                  :key #'begin-offset))
+                               (new-end (reduce #'max accumulator
+                                                :key #'extended-end-offset)))
+                           (prog1
+                               (unless (eql new-begin new-end)
+                                 (setf changed? t)
+                                 (if (and (= (length accumulator) 2)
+                                          (eql (ast-class (car accumulator)) :typedef))
+                                     ;; Special case: there are two nodes, and the first is a typedef
+                                     ;; In that case, make the second a child of the first
+                                     (progn
+                                       (push (cadr accumulator) (ast-children (car accumulator)))
+                                       (list (car accumulator)))
+                                     ;; Otherwise, create a "Combined" node with the children as the
+                                     ;; overlapping ASTs.  Previously, the overlapping children
+                                     ;; where stored in a "subsumed" attribute instead of as
+                                     ;; the children field.  However, this led to issue when writing
+                                     ;; out the file as `source-text` relies on the children field.
+                                     ;; Further, it required special case logic for all methods
+                                     ;; which call `ast-children` (e.g. replace-in-ast,
+                                     ;; replace-nth-child, remove-ast, replace-ast, insert-ast,
+                                     ;; map-ast, map-ast-strings, map-ast-with-ancestor,
+                                     ;; get-immediate-children, etc.).  By making the overlapping
+                                     ;; nodes children of the combined node, we only need special
+                                     ;; case logic when writing out the source text of the combined
+                                     ;; AST which is less error-prone than the converse.
+                                     (list (make-new-clang-ast
+                                            :class :combined
+                                            :children accumulator
+                                            :attrs `((:range .
+                                                             ,(make-new-clang-range
+                                                               :begin (make-new-clang-loc
                                                                        :file (ast-file (car accumulator))
-                                                                       :offset new-end)))
-                                                       (:source-text .
-                                                                     ,(subseq genome
-                                                                              new-begin
-                                                                              new-end)))))))
-                               (setf accumulator nil)))))))
-                 (unless (eq :combined (ast-class a))
-                   (let ((new-children
-                          (append
-                           ;; Find child ASTs and sort them in textual order.
-                           (iter (for c in (%sorted-children (ast-children a)))
-                                 (multiple-value-bind (cbegin cend)
-                                     (begin-and-end-offsets c)
-                                   (if (and cbegin end cend (< cbegin end)
-                                            (equal (ast-file a) (ast-file c)))
-                                       (setf accumulator
-                                             (append accumulator (list c))
-                                             end (max end cend))
-                                       (progn
-                                         (appending (%combine))
-                                         (setf accumulator (list c)
-                                               end cend)))))
-                           (%combine))))
-                     (when changed?
-                       (setf (ast-children a) new-children))))))))
-      (map-ast ast #'%check))))
+                                                                       :offset new-begin)
+                                                               :end (make-new-clang-loc
+                                                                     :file (ast-file (car accumulator))
+                                                                     :offset new-end)))
+                                                     (:source-text .
+                                                                   ,(subseq genome
+                                                                            new-begin
+                                                                            new-end)))))))
+                             (setf accumulator nil)))))))
+               (unless (eq :combined (ast-class a))
+                 (let ((new-children
+                        (append
+                         ;; Find child ASTs and sort them in textual order.
+                         (iter (for c in (%sorted-children (ast-children a)))
+                               (multiple-value-bind (cbegin cend)
+                                   (begin-and-end-offsets c)
+                                 (if (and cbegin end cend (< cbegin end)
+                                          (equal (ast-file a) (ast-file c)))
+                                     (setf accumulator
+                                           (append accumulator (list c))
+                                           end (max end cend))
+                                     (progn
+                                       (appending (%combine))
+                                       (setf accumulator (list c)
+                                             end cend)))))
+                         (%combine))))
+                   (when changed?
+                     (setf (ast-children a) new-children))))))))
+    (map-ast ast #'%check)))
 
 (defun decorate-ast-with-strings (sw ast &aux (genome (genome sw)))
   (labels
@@ -2981,8 +2975,7 @@ ranges into 'combined' nodes.  Warn when this happens."
   (:documentation "Put operators into their starting positions
 in CXXOperatorCallExpr nodes.")
   (:method ((sw new-clang) (ast new-clang-ast))
-    (let ((*soft* sw))
-      (map-ast ast #'put-operator-into-starting-position))))
+    (map-ast ast #'put-operator-into-starting-position)))
 
 (defgeneric put-operator-into-starting-position (ast)
   (:documentation "Put operator into their starting position
@@ -3131,7 +3124,6 @@ ast nodes, as needed")
         (*canonical-string-table* (make-hash-table :test 'equal)))
     (with-slots (ast-root genome includes) obj
       (unless genome     ; get genome from existing ASTs if necessary
-        ;; (clrhash (symbol-table *soft*))
         (setf genome (genome obj)
               ast-root nil))
       (with-slots (symbol-table name-symbol-table type-table types)
@@ -3152,14 +3144,14 @@ ast nodes, as needed")
              ast '(:fullcomment :textcomment :paragraphcomment))
             (convert-line-and-col-to-byte-offsets ast genome tmp-file)
             (fix-multibyte-characters ast genome tmp-file)
-            (compute-operator-positions obj ast)
+            (compute-operator-positions ast)
             (put-operators-into-inner-positions obj ast)
             (encapsulate-macro-expansions-cheap
              ast (nth-value 1 (find-macro-uses obj ast tmp-file)))
             ;; This was previously before macro expansion encapsulation, but
             ;; that caused failures
             (fix-overlapping-vardecls obj ast)
-            (fix-ancestor-ranges obj ast)
+            (fix-ancestor-ranges ast)
             (combine-overlapping-siblings obj ast)
             (decorate-ast-with-strings obj ast)
             (put-operators-into-starting-positions obj ast)
