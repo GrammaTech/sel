@@ -324,7 +324,9 @@ which maps (test-casel: position)"
 ;; This function serves to as an interface to hide the chosen fault loc strategy
 (defmethod perform-fl ((obj clang-base))
   (fl-tarantula obj))
-                                        ;  (fl-only-on-bad-traces obj))
+
+(defmethod perform-fl ((obj project))
+  (mapcar #'fl-tarantula (mapcar #'cdr (evolve-files obj))))
 
 ;; Implement well-known Tarantula "score" by Jones et al. -- note: here
 ;; we use the inverse, scoring "suspect" statements high rather than low.

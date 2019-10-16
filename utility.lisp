@@ -95,6 +95,9 @@
    :current-git-commit
    :current-git-branch
    :current-git-status
+   :is-git-repo
+   :clone-git-repo
+   :probe-file-or-clone
    :*temp-dir*
    :temp-file-name
    :with-temp-file
@@ -400,6 +403,22 @@ Return nil if there are no modified, untracked, or deleted files."
                   (read-from-string line nil)
                 (list (make-keyword status) (subseq line point))))
             (split-sequence #\Newline stdout :remove-empty-subseqs t))))
+
+(defun is-git-repo (url)
+  (cl-ppcre:scan "\\.git$" url))
+
+(defun clone-git-repo (url path)
+  "Clones a repo at the supplied URL into the supplied path -- Note,
+the path must be absolute and have a trailing slash, as per git convention."
+  (multiple-value-bind (stdout stderr errno)
+      (shell "git clone ~a ~a" url path)
+    (declare (ignorable stdout))
+    (unless (zerop errno)
+      (note 0 "git checkout failed: ~a" stderr)
+      (note 0 "cmd: git --work-tree=~a checkout ~a" path url))))
+
+(defun push-git-repo (path)
+  ())
 
 #+sbcl
 (locally (declare (sb-ext:muffle-conditions sb-ext:compiler-note))
