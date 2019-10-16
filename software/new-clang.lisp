@@ -1920,7 +1920,7 @@ output from CL-JSON"
   ;; be converted left to right.  cl-json produces alists
   ;; in the same order they appear in the json, fortunately.
   (let* ((*aget-cache* nil)
-         (ast (clang-convert-json json :file file)))
+         (ast (clang-convert-json json)))
     (setf (ast-attr ast :range)
           (make-new-clang-range
            :begin (make-new-clang-loc
@@ -1931,9 +1931,8 @@ output from CL-JSON"
                  :offset genome-len)))
     ast))
 
-(defun clang-convert-json (json &key inner file)
+(defun clang-convert-json (json &key inner)
   "Convert json data in list form to data structures using NEW-CLANG-AST"
-  (declare (ignorable file))
   (typecase json
     (null nil)
     (cons
