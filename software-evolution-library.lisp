@@ -62,6 +62,7 @@
    :pick-bad
    :mutation-targets
    :mutate
+   :located-mutate
    :no-mutation-targets
    :pick-mutation-type
    :create-super
@@ -144,7 +145,8 @@
    :*fitness-scalar-fn*
    :fitness-scalar
    :ignore-failed-mutation
-   :try-another-mutation))
+   :try-another-mutation
+   :original-file))
 (in-package :software-evolution-library/software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
@@ -548,11 +550,8 @@ elements.")
    (obj  :initarg :obj  :initform nil :reader obj)
    (loc  :initarg :loc  :initform nil :reader loc))
   (:report (lambda (condition stream)
-             (if (loc condition)
-                 (format stream "Phenome error ~S on ~S in ~a."
-                         (text condition) (obj condition) (loc condition))
-                 (format stream "Phenome error ~S on ~S."
-                         (text condition) (obj condition)))))
+             (format stream "Phenome error ~S on ~S~@[ in ~A~]."
+                     (text condition) (obj condition) (loc condition))))
   (:documentation "DOCFIXME"))
 
 (define-condition mutate (error)
@@ -560,15 +559,25 @@ elements.")
    (obj  :initarg :obj  :initform nil :reader obj)
    (op   :initarg :op   :initform nil :reader op))
   (:report (lambda (condition stream)
-             (if (op condition)
-                 (format stream "Mutation error, ~a, applying ~S to ~S"
-                         (text condition) (op condition) (obj condition))
-                 (format stream "Mutation error, ~a, on ~S"
-                         (text condition) (obj condition)))))
+             (format stream "Mutation error, ~a, ~:[on~;~:*applying ~S to~] ~S"
+                     (text condition) (op condition) (obj condition))))
   (:documentation
    "Mutation errors are thrown when a mutation fails.
 These may often be safely ignored.  A common restart is
 `ignore-failed-mutation'."))
+
+(defgeneric original-file (obj)
+  (:method (obj) nil))
+
+(define-condition located-mutate (mutate)
+  ()
+  (:report (lambda (condition stream)
+             (format stream "Mutation error, ~a, ~:[on~;~:*applying ~S to~] ~S~@[ (~S)~]"
+                     (text condition) (op condition)
+                     (obj condition)
+                     (original-file (obj condition)))))
+  (:documentation "Version of MUTATE condition that also reports the original
+file location, if any."))
 
 (define-condition no-mutation-targets (mutate)
   ((text :initarg :text :initform nil :reader text)
