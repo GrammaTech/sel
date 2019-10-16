@@ -664,7 +664,9 @@ in the macro defn, EXPANSION-LOC is at the macro use."
   (:method ((offset integer) (obj new-clang-ast))
     (setf (offset (new-clang-range-begin (ast-attr obj :range))) offset))
   (:method ((offset integer) (obj new-clang-loc))
-    (setf (new-clang-loc-offset obj) offset)))
+    (setf (new-clang-loc-offset obj) offset))
+  (:method ((offset integer) (obj new-clang-macro-loc))
+    (setf (offset (new-clang-macro-loc-expansion-loc obj)) offset)))
 
 (defgeneric begin-offset (obj)
   (:method ((obj new-clang-ast))
@@ -1907,14 +1909,14 @@ modifiers from a type name"
                                         :bash t)))
                          (when (find exit '(131 132 134 136 139))
                            (error
-                            (make-condition 'mutate
+                            (make-condition 'located-mutate
                                             :text (format nil "clang core dump with ~d, ~s"
                                                           exit stderr)
                                             :obj obj)))
                          (restart-case
                              (unless (zerop exit)
                                (error
-                                (make-condition 'mutate
+                                (make-condition 'located-mutate
                                                 :text (format nil
                                                               "clang exit ~d~%cmd:~s~%stderr:~s"
                                                               exit
