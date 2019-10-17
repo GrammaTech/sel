@@ -1,6 +1,8 @@
 ;;;; fault-loc.lisp -- fault localization
+;;;
 ;;; Fault localization functions operate on execution traces generated
 ;;; by the instrument method.
+;;;
 (defpackage :software-evolution-library/components/fault-loc
   (:nicknames :sel/components/fault-loc :sel/cp/fault-loc)
   (:use :common-lisp
@@ -19,8 +21,7 @@
         :software-evolution-library/software/new-clang
         :software-evolution-library/software/project
         :software-evolution-library/components/test-suite)
-  (:export :stmts-in-file
-           :error-funcs
+  (:export :error-funcs
            :rinard
            :rinard-compare
            :rinard-incremental
@@ -51,12 +52,6 @@ No assumptions are made about the format or contents of the traces."))
 
 (defmethod collect-fault-loc-traces (bin test-suite read-trace-fn
                                      &optional fl-neg-test)
-  "DOCFIXME
-* BIN DOCFIXME
-* TEST-SUITE DOCFIXME
-* READ-TRACE-FN DOCFIXME
-* FL-NEG-TEST DOCFIXME
-"
   (iter (for test in (test-cases test-suite))
         (note 3 "Begin running test ~a" test)
         (let* ((f (evaluate bin test :output :stream :error :stream))
@@ -72,13 +67,6 @@ No assumptions are made about the format or contents of the traces."))
                 (funcall read-trace-fn accumulated-result is-good-trace test))
           (finally (return accumulated-result)))))
 
-(defun stmts-in-file (trace file-id)
-  "DOCFIXME
-* TRACE DOCFIXME
-* FILE-ID DOCFIXME
-"
-  (remove-if-not [{= file-id} {aget :f}] trace))
-
 (defun error-funcs (software bad-traces good-traces)
   "Find statements which call error functions.
 
@@ -86,7 +74,9 @@ Error functions are defined as functions which are only called during
 bad runs. Such functions often contain error-handling code which is
 not itself faulty, so it's useful to identify their callers instead."
   (labels
-      ((call-sites (obj neg-test-stmts error-funcs)
+      ((stmts-in-file (trace file-id)
+         (remove-if-not [{= file-id} {aget :f}] trace))
+       (call-sites (obj neg-test-stmts error-funcs)
          (remove-if-not (lambda (x)
                           (remove-if-not
                            (lambda (y)
