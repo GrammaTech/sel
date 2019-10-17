@@ -42,7 +42,6 @@
            :combine-overlapping-siblings
            :decorate-ast-with-strings
            :clang-convert-json-for-file
-           :remove-non-program-asts
            :make-statement-new-clang
            :make-new-clang-macro
            :*new-clang?*
@@ -2573,9 +2572,6 @@ actual source file"))
     ;; TO BE FIXED
     (setf (ast-children ast)
           (remove-if #'%non-program (ast-children ast))))
-  ;; Implicit ASTs are introduced, for example, in declarations
-  ;; of builtin functions that omit argument types.
-  (remove-asts-if ast #'ast-is-implicit)
   ast)
 
 (defun remove-asts-in-classes (ast classes)
@@ -3082,6 +3078,7 @@ ast nodes, as needed")
           (let ((ast (remove-non-program-asts raw-ast tmp-file)))
             (remove-asts-in-classes
              ast '(:fullcomment :textcomment :paragraphcomment))
+            (remove-asts-if ast #'ast-is-implicit)
             (convert-line-and-col-to-byte-offsets ast genome tmp-file)
             (fix-multibyte-characters ast genome tmp-file)
             (compute-operator-positions ast)
