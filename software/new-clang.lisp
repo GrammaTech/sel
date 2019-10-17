@@ -2002,6 +2002,30 @@ on json-kind-symbol when special subclasses are wanted."))
   (declare (ignorable json json-kind-symbol))
   nil)
 
+(defmethod j2ck (json (json-kind-symbol (eql :TextComment)))
+  (declare (ignorable json json-kind-symbol))
+  nil)
+
+(defmethod j2ck (json (json-kind-symbol (eql :ParagraphComment)))
+  (declare (ignorable json json-kind-symbol))
+  nil)
+
+(defmethod j2ck (json (json-kind-symbol (eql :FullComment)))
+  (declare (ignorable json json-kind-symbol))
+  nil)
+
+(defmethod j2ck (json (json-kind-symbol (eql :InlineCommandComment)))
+  (declare (ignorable json json-kind-symbol))
+  nil)
+
+(defmethod j2ck (json (json-kind-symbol (eql :BlockCommandComment)))
+  (declare (ignorable json json-kind-symbol))
+  nil)
+
+(defmethod j2ck (json (json-kind-symbol (eql :ParamCommandComment)))
+  (declare (ignorable json json-kind-symbol))
+  nil)
+
 (defmethod j2ck (json (json-kind-symbol (eql :GenericSelectionExpr)))
   (let* ((inner (aget :inner json)))
     (if (notevery (lambda (a) (aget :kind a)) inner)
