@@ -746,7 +746,7 @@ depending on CLASS"))
             (%p ':id #'new-clang-ast-id)
             ;; Always include :attrs, as it distinguishes
             ;; new-clang from (old) clang serialized asts
-            `((:attrs . ,(new-clang-ast-attrs ast)))
+            (%p ':attrs #'new-clang-ast-attrs)
             (%p ':syn-ctx #'new-clang-ast-syn-ctx)
             (%p ':aux-data #'new-clang-ast-aux-data))))
 
