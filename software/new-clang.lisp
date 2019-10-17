@@ -2866,6 +2866,12 @@ ranges into 'combined' nodes.  Warn when this happens."
                      (setf (ast-children a) new-children))))))))
     (map-ast ast #'%check)))
 
+(defmethod append-string-to-node ((a new-clang-ast) (str string))
+  (if (eq (ast-class a) :combined)
+      (setf (ast-attr a :source-text)
+            (concatenate 'string (ast-attr a :source-text) str))
+      (call-next-method)))
+
 (defun decorate-ast-with-strings (sw ast &aux (genome (genome sw)))
   (labels
       ((%assert1 (i cbegin c)

@@ -229,7 +229,8 @@
            :ast-declarations
            :ast-declarations*
            :ast-var-declarations
-           :ast-var-declarations*))
+           :ast-var-declarations*
+           :append-string-to-node))
 (in-package :software-evolution-library/software/clang)
 (in-readtable :curry-compose-reader-macros)
 
@@ -3918,7 +3919,8 @@ Arguments are identical to PARSE-SOURCE-SNIPPET."
                 (multiple-value-bind (found? prefix suffix)
                     (position-of-leading-semicolon (cadr p))
                   (when found?
-                    (setf (car lc) (concatenate 'string (car lc) prefix))
+                    (append-string-to-node e prefix)
+                    ;; (setf (car lc) (concatenate 'string (car lc) prefix))
                     (setf (cadr p) suffix)))))))))
 
 (defun move-semicolons-into-expr-stmts (ast)
@@ -3937,8 +3939,24 @@ Move the semicolon in just one level, but no further"
                 (multiple-value-bind (found? prefix suffix)
 		    (position-of-leading-semicolon (cadr p))
 		  (when found?
-		    (setf (car lc) (concatenate 'string (car lc) prefix)
-                          (cadr p) suffix)))))))) ;; )
+                    ;; (setf (car lc) (concatenate 'string (car lc) prefix))
+                    (append-string-to-node e prefix)
+                    (setf (cadr p) suffix)))))))) ;; )
+
+;;; This is made generic because SOURCE-TEXT and AST-TEXT may
+;;; be specialized for particular node types.  In particular,
+;;; :COMBINED NEW-CLANG-ASTs must be handled differently.
+(defgeneric append-string-to-node (a str)
+  (:documentation "Attach STR to the end of the text for a node")
+  (:method ((a ast) (str string))
+    ;; default method
+    (let ((c (ast-children a)))
+      (if (null c)
+          (setf (ast-children a) (list str))
+          (let ((lc (last c)))
+            (if (stringp (car lc))
+                (setf (car lc) (concatenate 'string (car lc) str))
+                (setf (cdr lc) (list str))))))))
 
 (defun has-trailing-semicolon-p (ast)
   (typecase ast
