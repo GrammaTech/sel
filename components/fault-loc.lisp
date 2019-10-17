@@ -68,10 +68,10 @@ No assumptions are made about the format or contents of the traces."))
           (finally (return accumulated-result)))))
 
 (defun error-funcs (software bad-traces good-traces)
-  "Find statements which call error functions.
+  "Find statements which call functions which are only called during bad runs.
 
-Error functions are defined as functions which are only called during
-bad runs. Such functions often contain error-handling code which is
+We call functions which are only called during bad runs \"error
+functions.\" Such functions often contain error-handling code which is
 not itself faulty, so it's useful to identify their callers instead."
   (labels
       ((stmts-in-file (trace file-id)
