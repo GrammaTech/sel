@@ -437,20 +437,34 @@ in or below function declarations"
   (declare (ignorable mutation))
   (let ((*soft* sw)) (call-next-method)))
 
+(defmethod symbol-table :before ((obj new-clang))
+  (update-caches-if-necessary obj))
+
+(defmethod names-symbol-table :before ((obj new-clang))
+  (update-caches-if-necessary obj))
+
 (defmethod update-caches :around ((obj new-clang))
   (let ((*soft* obj))
     (call-next-method)))
 
 (defmethod update-caches ((obj new-clang))
   (call-next-method)
-  (with-slots (includes macros) obj
-    (setf includes (ast-includes-in-obj obj (ast-root obj)))
-    (setf macros (find-macros-in-children (ast-children (ast-root obj)))))
+  (with-slots (includes macros symbol-table name-symbol-table) obj
+    (setf symbol-table
+          (update-symbol-table symbol-table (ast-root obj)))
+    (setf name-symbol-table
+          (update-name-symbol-table name-symbol-table symbol-table))
+    (setf includes
+          (ast-includes-in-obj obj (ast-root obj)))
+    (setf macros
+          (find-macros-in-children (ast-children (ast-root obj)))))
   obj)
 
 (defmethod clear-caches ((obj new-clang))
-  (with-slots (includes) obj
-    (setf includes nil))
+  (with-slots (includes symbol-table name-symbol-table) obj
+    (setf includes nil)
+    (setf symbol-table (clear-symbol-table symbol-table))
+    (setf name-symbol-table (clear-symbol-table name-symbol-table)))
   (call-next-method))
 
 (defmethod rebind-vars ((ast new-clang-ast)
@@ -621,6 +635,48 @@ macro objects from these, returning a list."
                (body (subseq str name-start))
                (hash (sxhash body)))  ;; improve this hash
           (make-new-clang-macro :hash hash :body body :name name))))))
+
+(defun update-symbol-table (symbol-table ast-root)
+  "Populate SYMBOL-TABLE with a mapping of AST ID -> AST(s) for all of
+the decl ASTs in AST-ROOT."
+  (labels ((symbol-ast-p (ast)
+             "Return TRUE is AST should be included in the symbol table."
+             (and ast
+                  (ast-is-decl ast)
+                  (not (eq :TopLevel (ast-class ast))))))
+    (map-ast ast-root
+             (lambda (ast &aux (referenced (ast-attr ast :referenceddecl)))
+               (when (symbol-ast-p ast)
+                 (setf (gethash (ast-id ast) symbol-table)
+                       (list ast)))
+               (when (and (symbol-ast-p referenced)
+                          (null (gethash (ast-id referenced) symbol-table)))
+                 (setf (gethash (ast-id referenced) symbol-table)
+                       (list referenced)))))
+    symbol-table))
+
+(defun update-name-symbol-table (name-symbol-table symbol-table)
+  "Populate NAME-SYMBOL-TABLE with a mapping of AST name -> symbol ASTs
+using the existing SYMBOL-TABLE."
+  (setf name-symbol-table
+        (iter (with ht = (make-hash-table :test #'equalp))
+              (for (id asts) in-hashtable symbol-table)
+              (declare (ignorable id))
+              (iter (for ast in asts)
+                    (when (and ast (ast-name ast))
+                      (push ast (gethash (ast-name ast) ht))))
+              (finally (return ht))))
+  name-symbol-table)
+
+(defun clear-symbol-table (symbol-table)
+  "Remove entries for the current file from the SYMBOL-TABLE."
+  (maphash (lambda (k asts)
+             (setf (gethash k symbol-table)
+                   (remove-if [#'null #'ast-file] asts))
+             (when (null (gethash k symbol-table))
+               (remhash k symbol-table)))
+           symbol-table)
+  symbol-table)
 
 
 ;;; Structures and functions relating to genome locations.
@@ -1918,7 +1974,7 @@ output from CL-JSON"
                  :offset genome-len)))
     ast))
 
-(defun clang-convert-json (json &key inner)
+(defun clang-convert-json (json)
   "Convert json data in list form to data structures using NEW-CLANG-AST"
   (typecase json
     (null nil)
@@ -1929,18 +1985,7 @@ output from CL-JSON"
                                   :unknown)))
        (unless (keywordp json-kind-symbol)
          (error "Cannot convert ~a to a json-kind keyword" json-kind))
-       (when-let ((obj (j2ck json json-kind-symbol)))
-         ;; What is happening here:
-         ;;  If INNER is NIL, this is not an actual defn of the object
-         ;;  But we want to store it anyway in that case if nothing is
-         ;;  there, because there may not be a real definition.  The
-         ;;  real definition always overrites the stub.
-         (let* ((id (new-clang-ast-id obj))
-                (table (symbol-table *soft*))
-                (existing (gethash id table)))
-           (when (or (not existing) inner)
-             (setf (gethash id table) (list obj))))
-         obj)))
+       (j2ck json json-kind-symbol)))
     (string (canonicalize-string json))
     (t json)))
 
@@ -1953,14 +1998,6 @@ on json-kind-symbol when special subclasses are wanted."))
   (declare (ignorable json-kind-symbol))
   (let ((obj (make-new-clang-ast)))
     (store-slots obj json)))
-
-(defmethod j2ck :around (json json-kind-symbol)
-  (declare (ignorable json json-kind-symbol))
-  (when-let ((obj (call-next-method)))
-    (let ((id (new-clang-ast-id obj)))
-      (when (ast-attr obj :loc)
-        (push obj (gethash id (symbol-table *soft*)))))
-    obj))
 
 (defmethod j2ck :around (json (json-kind-symbol (eql :forstmt)))
   ;; Clang's json has {} for missing for clauses
@@ -2094,19 +2131,19 @@ form for SLOT, and stores into OBJ.  Returns OBJ or its replacement."))
 (defmethod store-slot ((obj new-clang-ast) (slot (eql :inner)) value)
   (declare (ignorable slot))
   (setf (new-clang-ast-children obj)
-        (remove nil (mapcar (lambda (o) (clang-convert-json o :inner t)) value)))
+        (remove nil (mapcar (lambda (o) (clang-convert-json o)) value)))
   obj)
 
 (defmethod store-slot ((obj new-clang-ast) (slot (eql :lookups)) value)
   (declare (ignorable slot))
   (setf (new-clang-ast-children obj)
-        (remove nil (mapcar (lambda (o) (clang-convert-json o :inner t)) value)))
+        (remove nil (mapcar (lambda (o) (clang-convert-json o)) value)))
   obj)
 
 (defmethod store-slot ((obj new-clang-ast) (slot (eql :array_filler)) value)
   (declare (ignorable slot))
   (setf (new-clang-ast-children obj)
-        (remove nil (mapcar (lambda (o) (clang-convert-json o :inner t)) value)))
+        (remove nil (mapcar (lambda (o) (clang-convert-json o)) value)))
   obj)
 
 (defgeneric convert-slot-value (obj slot value)
@@ -3070,17 +3107,6 @@ ast nodes, as needed")
   (map-ast-with-ancestors ast #'compute-syn-ctx)
   (map-ast ast #'fix-var-syn-ctx))
 
-(defmethod update-name-symbol-table ((obj new-clang))
-  ;; Store name -> def mappings
-  (maphash (lambda (k v)
-             (declare (ignore k))
-             (iter (for ast in v)
-                   (when (and ast (ast-name ast))
-                     (push ast (gethash (ast-name ast)
-                                        (slot-value obj 'name-symbol-table))))))
-           (slot-value obj 'symbol-table))
-  obj)
-
 (defmethod update-paths
     ((ast new-clang-ast) &optional path)
   "Modify AST in place with all paths updated to begin at PATH"
@@ -3097,22 +3123,23 @@ ast nodes, as needed")
   ;; Port of this method from clang.lsp, for new class
   (let ((*soft* obj)
         (*canonical-string-table* (make-hash-table :test 'equal)))
-    (with-slots (ast-root genome includes) obj
+    (with-slots (ast-root genome includes
+                          symbol-table name-symbol-table type-table types) obj
       (unless genome     ; get genome from existing ASTs if necessary
         (setf genome (genome obj)
               ast-root nil))
-      (with-slots (symbol-table name-symbol-table type-table types)
-          obj
-        (setf symbol-table (make-hash-table :test #'equal)
-              name-symbol-table (make-hash-table :test #'equal)
-              type-table (make-hash-table :test #'equal)
-              types (make-hash-table :test #'equal)))
+
+      (setf symbol-table (make-hash-table :test #'equal)
+            name-symbol-table (make-hash-table :test #'equal)
+            type-table (make-hash-table :test #'equal)
+            types (make-hash-table :test #'equal))
 
       (multiple-value-bind (json tmp-file genome-len)
           (clang-json obj)
         (let* ((raw-ast (clang-convert-json-for-file
                          json tmp-file genome-len)))
-          (update-name-symbol-table obj)
+          (update-symbol-table symbol-table raw-ast)
+          (update-name-symbol-table name-symbol-table symbol-table)
           (let ((ast (remove-non-program-asts raw-ast tmp-file)))
             (remove-asts-if ast #'ast-is-implicit)
             (remove-file-from-asts ast tmp-file)
