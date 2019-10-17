@@ -163,12 +163,6 @@ See also: https://clang.llvm.org/docs/FAQ.html#id2.")
     :type hash-table
     :documentation "Mapping from qualtype/desugaredType pairs to
 new-clang-type objects.  Used for canonicalization of these objects.")
-   (tmp-file
-    :initarg :tmp-file :accessor tmp-file
-    :initform nil :copier :direct
-    :type (or null string)
-    :documentation "Full file name of the temporary file
-on which clang was run to get the AST.")
    (json-file :initform nil :initarg :json-file
               :accessor json-file
               :documentation "When non-nil, read the json from this file
@@ -1003,22 +997,18 @@ where class = (ast-class ast).")
   ;;;
   ;;;  This is also needed to make the i-file slot of nct+ work.
   (labels ((ast-includes-in-child (child)
-             (let ((tmp-file (tmp-file obj))
-                   (file (ast-file child))
+             (let ((file (ast-file child))
                    (include-dirs (append (flags-to-include-dirs (flags obj))
                                          *clang-default-includes*)))
                (mapcar
                 (lambda (s) (normalize-file-for-include s include-dirs))
                 (delete-duplicates
                  (nconc
-                  ;; The tests w. tmp-file here and below may not be
-                  ;; necessary, but are kept for safety
-                  (unless (or (not file) (equal tmp-file file))
+                  (when file
                     (list file))
                   (when-let* ((ref (ast-referenced-obj child))
                               (file (ast-file ref)))
-                    (unless (or (null file) (equal file tmp-file))
-                      (list file)))
+                    (list file))
                   (when-let* ((type (ast-type child))
                               (str (new-clang-type-qual type)))
                     (includes-of-names-in-string obj str)))
@@ -1313,15 +1303,14 @@ determined."
                          :remove-empty-subseqs t))
 
 (defun includes-of-names-in-string (obj str)
-  (let ((tmp-file (tmp-file obj))
-        (table (name-symbol-table obj))
+  (let ((table (name-symbol-table obj))
         (names (names-in-str str)))
     (iter (for n in names)
           (nconcing
            (iter (for v in (gethash n table))
                  (when v
                    (nconcing
-                    (ast-include-from-type v tmp-file))))))))
+                    (ast-include-from-type v))))))))
 
 ;;; TODO:  Confirm that restricting this to just :typedef
 ;;;  is correct (both in that it replicates what old clang
@@ -1332,11 +1321,10 @@ determined."
 ;;;  This should be updated when the json from Clang includes
 ;;;  the entire include chain, not just the final file
 ;;;  in the chain.
-(defun ast-include-from-type (v tmp-file)
-  (when (member (ast-class v) '(:typedef))
-    (when-let ((file (ast-file v)))
-      (unless (equal tmp-file file)
-        (list file)))))
+(defun ast-include-from-type (v)
+  (when-let ((_ (member (ast-class v) '(:typedef)))
+             (file (ast-file v)))
+    (list file)))
 
 ;;; Question on this: are IDs unique between files?
 ;;; Or do we need keys that include file names?
@@ -2370,7 +2358,7 @@ if no value was found."
 ;;; Massaging ASTs into proper form after parsing
 
 ;;; Macro expansion code
-(defgeneric find-macro-uses (obj a file)
+(defgeneric find-macro-uses (obj a)
   (:documentation "Identify the locations at which macros occur in the
 file, and the length of the macro token.  Returns a list of lists.
 The first element of the list is the position of the start of the
@@ -2380,11 +2368,11 @@ in the AST, and the fourth is the length of the macro expression in
 genome.   Also return a hash table in which the first element
 of these lists maps to the cdr."))
 
-(defmethod find-macro-uses (obj a file)
+(defmethod find-macro-uses (obj a)
   (let ((macro-occurrence-table (make-hash-table))
         (uses nil))
     (map-ast a (lambda (x) (find-macro-use-at-node
-                            x file macro-occurrence-table)))
+                            x macro-occurrence-table)))
     (maphash (lambda (k v)
                (setf (third v)
                      (compute-macro-extent obj k (first v) (second v)))
@@ -2418,14 +2406,13 @@ LEN the length of the macro name.")
                   (- end off))))
           len))))
 
-(defun find-macro-use-at-node (a file table)
+(defun find-macro-use-at-node (a table)
   (when-let ((range (ast-range a)))
     (flet ((%record (loc)
              (typecase loc
                (new-clang-macro-loc
                 (when-let ((eloc (new-clang-macro-loc-expansion-loc loc)))
-                  (when (let ((loc-file (new-clang-loc-file eloc)))
-                          (or (null loc-file) (equal loc-file file)))
+                  (when (null (new-clang-loc-file eloc))
                     (let ((off (offset eloc))
                           (len (tok-len eloc))
                           (is-arg (new-clang-macro-loc-is-macro-arg-expansion
@@ -2595,11 +2582,44 @@ actual source file"))
     ;; but we have trouble with macroexpansion there.
     ;; TO BE FIXED
     (setf (ast-children ast)
-          (remove-if #'%non-program (ast-children ast))))
+          (remove-if #'%non-program (ast-children ast)))
+    (remove-asts-if #'%non-program ast))
   ast)
 
 (defun remove-asts-in-classes (ast classes)
   (remove-asts-if ast (lambda (o) (member (ast-class o) classes))))
+
+(defun remove-file-from-asts (ast-root tmp-file)
+  "Remove the file attribute from the ASTs in AST-ROOT which are located
+in TMP-FILE (the original genome)."
+  (labels
+      ((remove-file-from-loc (loc)
+         (cond ((typep loc 'new-clang-macro-loc)
+                (make-new-clang-macro-loc
+                 :spelling-loc
+                 (remove-file-from-loc (new-clang-macro-loc-spelling-loc loc))
+                 :expansion-loc
+                 (remove-file-from-loc (new-clang-macro-loc-expansion-loc loc))
+                 :is-macro-arg-expansion
+                 (new-clang-macro-loc-is-macro-arg-expansion loc)))
+               ((and loc (equal tmp-file (ast-file loc)))
+                (make-new-clang-loc
+                 :line (new-clang-loc-line loc)
+                 :col (new-clang-loc-col loc)
+                 :offset (new-clang-loc-offset loc)
+                 :tok-len (new-clang-loc-tok-len loc)))
+               (t loc))))
+    (map-ast ast-root
+             (lambda (ast)
+               (when (equal (ast-file ast) tmp-file)
+                 (setf (ast-attr ast :range)
+                       (make-new-clang-range
+                        :begin (nest (remove-file-from-loc)
+                                     (new-clang-range-begin)
+                                     (ast-range ast))
+                        :end (nest (remove-file-from-loc)
+                                   (new-clang-range-end)
+                                   (ast-range ast)))))))))
 
 (defun line-offsets (str)
   "Return a list with containing the byte offsets of each new line in STR."
@@ -2610,13 +2630,12 @@ actual source file"))
                   (collect byte)))))
 
 (defun convert-line-and-col-to-byte-offsets
-    (ast-root genome file &aux (line-offsets (line-offsets genome)))
+    (ast-root genome &aux (line-offsets (line-offsets genome)))
   "Convert AST range begin/ends in AST-ROOT from line and column pairs to
 byte offsets.
 
 * AST-ROOT root of the AST tree for GENOME
-* GENOME string with the source text of the program
-* FILE filesystem location where GENOME was parsed from"
+* GENOME string with the source text of the program"
   (labels
       ((to-byte-offset (line col)
          (+ (1- col) (nth (1- line) line-offsets)))
@@ -2629,9 +2648,8 @@ byte offsets.
                  (convert-to-byte-offsets (new-clang-macro-loc-expansion-loc loc))
                  :is-macro-arg-expansion
                  (new-clang-macro-loc-is-macro-arg-expansion loc)))
-               ((equal (ast-file loc) file)
+               ((null (ast-file loc))
                 (make-new-clang-loc
-                 :file (new-clang-loc-file loc)
                  :offset (to-byte-offset (new-clang-loc-line loc)
                                          (new-clang-loc-col loc))
                  :tok-len (new-clang-loc-tok-len loc)))
@@ -2639,7 +2657,7 @@ byte offsets.
     (map-ast ast-root
              (lambda (ast)
                (when-let ((_ (and (not (eq :TopLevel (ast-class ast)))
-                                  (equal (ast-file ast) file)))
+                                  (null (ast-file ast))))
                           (begin (new-clang-range-begin (ast-range ast)))
                           (end (new-clang-range-end (ast-range ast))))
                  (setf (ast-attr ast :range)
@@ -2656,14 +2674,13 @@ byte offsets.
         (when (> len 1)
           (collecting (cons byte (1- len))))))
 
-(defun fix-multibyte-characters (ast-root genome file
+(defun fix-multibyte-characters (ast-root genome
                                  &aux (mb-chars (multibyte-characters genome)))
   "Convert AST range begin/ends in AST-ROOT from byte offsets to character
 offsets to support source text with multibyte characters.
 
 * AST-ROOT root of the AST tree for GENOME
-* GENOME string with the source text of the program
-* FILE filesystem location where GENOME was parsed from"
+* GENOME string with the source text of the program"
   (labels
       ((byte-offset-to-chars (offset)
          "Convert the given byte OFFSET to a character offset."
@@ -2681,9 +2698,8 @@ offsets to support source text with multibyte characters.
                  (byte-loc-to-chars (new-clang-macro-loc-expansion-loc loc))
                  :is-macro-arg-expansion
                  (new-clang-macro-loc-is-macro-arg-expansion loc)))
-               ((equal (ast-file loc) file)
+               ((null (ast-file loc))
                 (make-new-clang-loc
-                 :file (new-clang-loc-file loc)
                  :offset (byte-offset-to-chars (new-clang-loc-offset loc))
                  :tok-len (- (byte-offset-to-chars
                               (+ (new-clang-loc-offset loc)
@@ -2693,7 +2709,7 @@ offsets to support source text with multibyte characters.
     (map-ast ast-root
              (lambda (ast)
                (when-let ((_ (and (not (eq :TopLevel (ast-class ast)))
-                                  (equal (ast-file ast) file)))
+                                  (null (ast-file ast))))
                           (begin (new-clang-range-begin (ast-range ast)))
                           (end (new-clang-range-end (ast-range ast))))
                  (setf (ast-attr ast :range)
@@ -2911,14 +2927,14 @@ ranges into 'combined' nodes.  Warn when this happens."
          (let ((children (ast-children a)))
            (multiple-value-bind (begin end)
                (begin-and-end-offsets a)
-             (when (and begin end (equal (ast-file a) (tmp-file sw)))
+             (when (and begin end (null (ast-file a)))
                (let ((i begin))
                  (setf
                   (ast-children a)
                   (nconc
                    (iter
                     (for c in children)
-                    (when (and (ast-p c) (equal (ast-file a) (ast-file c)))
+                    (when (and (ast-p c) (null (ast-file c)))
                       (multiple-value-bind (cbegin cend)
                           (begin-and-end-offsets c)
                         (when cbegin
@@ -3095,7 +3111,6 @@ ast nodes, as needed")
 
       (multiple-value-bind (json tmp-file genome-len)
           (clang-json obj)
-        (setf (tmp-file obj) tmp-file)
         (let* ((raw-ast (clang-convert-json-for-file
                          json tmp-file genome-len)))
           (update-name-symbol-table obj)
@@ -3103,12 +3118,13 @@ ast nodes, as needed")
             (remove-asts-in-classes
              ast '(:fullcomment :textcomment :paragraphcomment))
             (remove-asts-if ast #'ast-is-implicit)
-            (convert-line-and-col-to-byte-offsets ast genome tmp-file)
-            (fix-multibyte-characters ast genome tmp-file)
+            (remove-file-from-asts ast tmp-file)
+            (convert-line-and-col-to-byte-offsets ast genome)
+            (fix-multibyte-characters ast genome)
             (compute-operator-positions ast)
             (put-operators-into-inner-positions obj ast)
             (encapsulate-macro-expansions-cheap
-             ast (nth-value 1 (find-macro-uses obj ast tmp-file)))
+             ast (nth-value 1 (find-macro-uses obj ast)))
             ;; This was previously before macro expansion encapsulation, but
             ;; that caused failures
             (fix-overlapping-vardecls obj ast)
