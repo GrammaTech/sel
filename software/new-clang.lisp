@@ -2582,8 +2582,7 @@ actual source file"))
     ;; but we have trouble with macroexpansion there.
     ;; TO BE FIXED
     (setf (ast-children ast)
-          (remove-if #'%non-program (ast-children ast)))
-    (remove-asts-if #'%non-program ast))
+          (remove-if #'%non-program (ast-children ast))))
   ast)
 
 (defun remove-asts-in-classes (ast classes)
