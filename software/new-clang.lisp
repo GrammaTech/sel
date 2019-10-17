@@ -3115,8 +3115,6 @@ ast nodes, as needed")
                          json tmp-file genome-len)))
           (update-name-symbol-table obj)
           (let ((ast (remove-non-program-asts raw-ast tmp-file)))
-            (remove-asts-in-classes
-             ast '(:fullcomment :textcomment :paragraphcomment))
             (remove-asts-if ast #'ast-is-implicit)
             (remove-file-from-asts ast tmp-file)
             (convert-line-and-col-to-byte-offsets ast genome)
