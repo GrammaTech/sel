@@ -1831,11 +1831,11 @@ modifiers from a type name"
 (defmethod type-decl ((type new-clang-type))
   (type-decl* *soft* type))
 
-(defgeneric type-decl* (obj type)
-  (:documentation "Return the source text of the type declaration of TYPE.")
-  (:method ((obj new-clang) (type new-clang-type)
-            &aux (decl (find-type-declaration obj type)))
-    (source-text decl)))
+(defmethod type-decl* ((obj new-clang) (tp+ nct+))
+  (type-decl* obj (nct+-type tp+)))
+(defmethod type-decl* ((obj new-clang) (tp new-clang-type)
+                       &aux (decl (find-type-declaration obj tp)))
+  (source-text decl))
 
 (defmethod type-decl-string ((obj new-clang-type) &key &allow-other-keys)
   (new-clang-type-qual obj))
