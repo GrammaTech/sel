@@ -9986,7 +9986,7 @@ prints unique counters in the trace"
   (setf *new-clang?* t)
   (setf *ast-annotations-file* "test/etc/gcd/gcd-fault-loc")
   (with-fixture gcd-clang
-    (let* ((bad-stmts-weights (fl-only-on-bad-traces *gcd*))
+    (let* ((bad-stmts-weights (fault-loc-only-on-bad-traces *gcd*))
            (bad-stmts (remove nil (loop for tup in bad-stmts-weights
                                         ;when weighted at 1.0
                                      collect (when (equal (cdr tup) 1.0)
