@@ -398,11 +398,6 @@ in or below function declarations"
         original-name
         (random-elt (or matching variadic others '(nil))))))
 
-(defmethod add-type :around ((sw new-clang) type)
-  (declare (ignorable type))
-  (let ((*soft* sw))
-    (call-next-method)))
-
 (defmethod scopes :around ((sw new-clang) (ast new-clang-ast))
   (let ((*soft* sw))
     (call-next-method)))
@@ -544,7 +539,7 @@ in or below function declarations"
     (make-nct+ type)))
 
 (defmethod add-type ((obj new-clang) (type nct+))
-  (sel/sw/clang::add-type* obj type))
+  (add-type* obj type))
 
 (defmethod find-or-add-type :around ((obj new-clang) name &key &allow-other-keys)
   (declare (ignorable name))
