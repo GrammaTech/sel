@@ -938,31 +938,6 @@ of the same length"
     (and (every (lambda (s) (= (length s) len)) other-seqs)
          (apply #'every fn seq other-seqs))))
 
-(defun make-clang-type* (&rest args)
-  (if *new-clang?*
-      (apply #'make-new-clang-type* args)
-      (apply #'make-clang-type :allow-other-keys t args)))
-
-(defun make-new-clang-type* (&key array hash i-file pointer reqs name
-                               decl const volatile restrict storage-class
-                               qual (desugared nil desugared-p)
-                               typedef
-                               &allow-other-keys)
-  ;; TODO:  HASH DECL REQS TYPEDEF
-  (declare (ignorable hash decl reqs typedef))
-  (let ((type (make-instance 'new-clang-type
-                :qual qual
-                :desugared (if desugared-p desugared qual)
-                :name name
-                :modifiers (sel/sw/new-clang::pack-type-modifiers
-                            pointer const volatile restrict)
-                :i-file i-file
-                :array array
-                :typedef typedef)))
-    (make-instance 'nct+ :type type
-                   :storage-class storage-class
-                   :compute-slots nil)))
-
 (defun make-clang-control-picks (&rest args)
   (apply #'make-instance
          (if *new-clang?* 'new-clang-control-picks 'clang-control-picks)
