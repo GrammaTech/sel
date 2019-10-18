@@ -27,9 +27,9 @@
            :rinard-write-out
            :rinard-read-in
            :collect-fault-loc-traces
-           :perform-fl
-           :fl-tarantula
-           :fl-only-on-bad-traces))
+           :perform-fault-loc
+           :fault-loc-tarantula
+           :fault-loc-only-on-bad-traces))
 (in-package :software-evolution-library/components/fault-loc)
 (in-readtable :curry-compose-reader-macros)
 
@@ -322,15 +322,15 @@ which maps (test-casel: position)"
 ;; Annotations are deployed on AST objects, thus anything that implements
 ;; "ast-root" and "stmt-asts" can use FL (this should be anything "clang" or below).
 ;; This function serves to as an interface to hide the chosen fault loc strategy
-(defmethod perform-fl ((obj clang-base))
-  (fl-tarantula obj))
+(defmethod perform-fault-loc ((obj clang-base))
+  (fault-loc-tarantula obj))
 
-(defmethod perform-fl ((obj project))
-  (mapcar #'fl-tarantula (mapcar #'cdr (evolve-files obj))))
+(defmethod perform-fault-loc ((obj project))
+  (mapcar #'fault-loc-tarantula (mapcar #'cdr (evolve-files obj))))
 
 ;; Implement well-known Tarantula "score" by Jones et al. -- note: here
 ;; we use the inverse, scoring "suspect" statements high rather than low.
-(defmethod fl-tarantula ((obj clang-base))
+(defmethod fault-loc-tarantula ((obj clang-base))
   (let* ((ast (ast-root obj))
          (stmts (stmt-asts ast)))
     (loop for stmt in stmts
@@ -348,7 +348,7 @@ which maps (test-casel: position)"
 
 ;; prioritize stmts that ONLY occur on bad traces
 ;; return list of "stmt, suspect" pairs and add pair to each ast's annotation list
-(defmethod fl-only-on-bad-traces ((obj clang-base))
+(defmethod fault-loc-only-on-bad-traces ((obj clang-base))
   (let* ((ast (ast-root obj))
          (stmts (stmt-asts ast)))
     (loop for stmt in stmts

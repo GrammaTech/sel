@@ -97,7 +97,7 @@
    :current-git-status
    :is-git-repo
    :clone-git-repo
-   :probe-file-or-clone
+   :push-git-repo
    :*temp-dir*
    :temp-file-name
    :with-temp-file
@@ -418,7 +418,13 @@ the path must be absolute and have a trailing slash, as per git convention."
       (note 0 "cmd: git --work-tree=~a checkout ~a" path url))))
 
 (defun push-git-repo (path)
-  ())
+  (multiple-value-bind (stdout stderr errno)
+      (shell "cd ~a && git checkout -b SEL && git commit -m \"SEL-based changes\" * && git push --set-upstream origin SEL" path)
+    (unless (zerop errno)
+      (note 0 "git push failed:")
+      (note 0 "  cmd: cd ~a && git checkout -b SEL && git commit -m \"SEL-based changes\" && git push --set-upstream origin SEL" path)
+      (note 0 "  stdout: ~a" stdout)
+      (note 0 "  stderr: ~a" stderr))))
 
 #+sbcl
 (locally (declare (sb-ext:muffle-conditions sb-ext:compiler-note))
