@@ -1567,17 +1567,18 @@ computed at the children"))
             (%p ':storage-class #'type-storage-class))))
 
 (defmethod from-alist ((obj (eql 'new-clang-type)) alist)
-  (make-new-clang-type :qual (aget :qual alist)
-                       :desugared (aget :desugared alist)
-                       :base (aget :base alist)
-                       :modifiers (aget :modifiers alist)
-                       :array (aget :array alist)
-                       :i-file (aget :i-file alist)
-                       :name (aget :name alist)))
+  (make-instance 'new-clang-type
+    :qual (aget :qual alist)
+    :desugared (aget :desugared alist)
+    :modifiers (aget :modifiers alist)
+    :array (aget :array alist)
+    :i-file (aget :i-file alist)
+    :name (aget :name alist)))
 
 (defmethod from-alist ((nct+ (eql 'nct+)) alist)
-  (make-nct+ (from-alist 'new-clang-type (aget :type alist))
-             :storage-class (aget :storage-class alist)))
+  (make-instance 'nct+
+    :type (from-alist 'new-clang-type (aget :type alist))
+    :storage-class (aget :storage-class alist)))
 
 (defmethod typedef-type ((obj new-clang) (nct nct+)
                          &aux (mods (new-clang-type-modifiers (nct+-type nct)))
