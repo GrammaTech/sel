@@ -242,6 +242,7 @@ on QUAL and DESUGARED slots."))
          :type new-clang-type)
    (storage-class :initarg :storage-class
                   :reader type-storage-class
+                  :initform :none
                   :type (member :none :static :extern :register :__private_extern__)))
   (:documentation "Wrapper object that is intended to behave like
 SEL/SW/CLANG:CLANG-TYPE.  This means it must have some information
