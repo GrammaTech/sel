@@ -514,17 +514,6 @@ in or below function declarations"
                            before ast after)
   (clang-fixup-mutation operation current before ast after))
 
-(defmethod find-type :around ((obj new-clang) name)
-  (declare (ignorable name))
-  (let* ((*soft* obj)
-         (val (call-next-method)))
-    (unless (typep val '(or null nct+))
-      (error "FIND-TYPE returns an object of a bad type: ~a" val))
-    val))
-
-(defmethod find-type ((obj new-clang) (type new-clang-type))
-  (error "Should not call find-type on new-clang-type objects"))
-
 (defmethod find-type ((obj new-clang) (type nct+))
   ;; This looks like a stub, but isn't.
   ;; What's happening here is that while in old clang
@@ -532,11 +521,6 @@ in or below function declarations"
   ;; in the new front end the type objects are there directly.
   ;; The lookup function just returns the object in that case.
   type)
-
-(defmethod find-type ((obj new-clang) (name string))
-  (when-let ((type (find name (hash-table-values (type-table obj))
-                         :key #'type-name :test #'string=)))
-    (make-nct+ type)))
 
 (defmethod add-type ((obj new-clang) (type nct+))
   (add-type* obj type))
@@ -1300,7 +1284,7 @@ on various ast classes"))
     (t nil)))
 
 (defmethod ast-void-ret ((obj new-clang-ast))
-  (equal "void" (ast-ret obj)))
+  (equal "void" (new-clang-type-qual (nct+-type (ast-ret obj)))))
 
 (defun ast-reference-decls (ast)
   (map-ast-sets ast #'reference-decls-at-ast :key #'new-clang-ast-id))
@@ -1344,7 +1328,9 @@ determined."
   ;; hairy types
   (let ((pos (position #\( s)))
     (when (and pos (> pos 0))
-      (trim-right-whitespace (subseq s 0 (1- pos))))))
+      (make-instance 'nct+
+        :type (make-instance 'new-clang-type
+                :qual (trim-right-whitespace (subseq s 0 (1- pos))))))))
 
 (defun names-in-str (str)
   "Find all substrings of STR that are C/C++ names"
@@ -1541,7 +1527,8 @@ computed at the children"))
 
 (defmethod initialize-instance :after ((obj nct+) &key &allow-other-keys)
   (pushnew obj (new-clang-type-nct+-list (nct+-type obj)))
-  (setf (gethash (type-hash obj) (slot-value *soft* 'types)) obj)
+  (when *soft*
+    (setf (gethash (type-hash obj) (slot-value *soft* 'types)) obj))
   obj)
 
 (defmethod to-alist ((new-clang-type new-clang-type))

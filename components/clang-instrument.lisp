@@ -1041,16 +1041,11 @@ OBJ a clang software object
 "
   (when-let* ((main (find-if [{name= "main"} {ast-name}]
                              (functions obj)))
-              (_1 (equal :Function (ast-class main)))
-              (ret (ast-ret main)))
-    ;; This is ugly.  It's because ast-ret is returning
-    ;; a string in new-clang, and the type doesn't necessarily
-    ;; exist
-    (when (or (member ret '("int" "void") :test #'equal)
-              (when-let ((type (find-type obj ret)))
-                (member (type-name type)
-                        '("int" "void") :test #'name=)))
-      (function-body obj main))))
+              (return-type (find-type obj (ast-ret main)))
+              (_ (and (equal :Function (ast-class main))
+                      (member (type-name return-type)
+                              '("int" "void") :test #'name=))))
+    (function-body obj main)))
 
 (defun initialize-tracing (instrumenter file-name env-name contains-entry
                            &aux (obj (software instrumenter)))
