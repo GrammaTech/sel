@@ -48,7 +48,6 @@
            :*soft*
            :nct+
            :nct+-type
-           :type-i-file
            :make-new-clang-macroexpand-hook
            :cpp-scan
            :ast-attr
@@ -217,7 +216,8 @@ attribute of clang json objects")
           :reader type-array)
    (i-file :initarg :i-file
            :type (or null string)
-           :reader type-i-file)
+           :reader new-clang-type-i-file
+           :initform nil)
    ;; Name is the underlying name sans the modifiers and array
    (name :initarg :name
          :type string
@@ -525,27 +525,19 @@ in or below function declarations"
 (defmethod add-type ((obj new-clang) (type nct+))
   (add-type* obj type))
 
-(defmethod find-or-add-type :around ((obj new-clang) name &key &allow-other-keys)
-  (declare (ignorable name))
-  (let* ((*soft* obj)
-         (val (call-next-method)))
-    (unless (typep val '(or null nct+))
-      (error "Return value not of correct type: ~a" val))
-    val))
-
-(defmethod find-or-add-type ((obj new-clang) (trace-name string)
-                             &rest args &key &allow-other-keys)
+(defmethod find-or-add-type
+    ((obj new-clang) (trace-name string)
+     &rest args &key &allow-other-keys
+     &aux (name (apply #'trace-string-to-clang-json-string trace-name args)))
   ;; NAME is a trace name, not a name from clang json
   ;; Trace names have different format, with * and [...] before the type
   ;; name2
   (update-caches-if-necessary obj)
-  (let* ((name (apply #'trace-string-to-clang-json-string trace-name args))
-         (vals (hash-table-values (type-table obj)))
-         (type (or (find name vals :key #'new-clang-type-qual
-                         :test #'string=)
-                   (make-new-clang-type :qual name))))
-    (or (find :none (new-clang-type-nct+-list type) :key #'type-storage-class)
-        (make-nct+ type))))
+  (or (first (remove-if-not {string= name}
+                            (hash-table-values (types obj))
+                            :key [#'new-clang-type-qual #'nct+-type]))
+      (add-type obj (make-instance 'nct+
+                      :type (make-instance 'new-clang-type :qual name)))))
 
 (defun find-macros-in-children (c)
   ;; Break C up into segments of actual strings
@@ -1608,6 +1600,11 @@ computed at the children"))
                 (normalize-file-for-include f include-dirs)
               (unless local?
                 (collecting str)))))))
+
+(defmethod type-i-file ((tp+ nct+))
+  (type-i-file (nct+-type tp+)))
+(defmethod type-i-file ((tp new-clang-type))
+  (new-clang-type-i-file tp))
 
 (defmethod type-hash ((tp+ nct+))
   (sxhash (concatenate 'string

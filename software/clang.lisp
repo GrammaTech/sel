@@ -793,7 +793,7 @@ will not be generated automatically.
           (prepend-to-genome obj td))))
     ;; always add type with new hash to types hashtable
     (setf (gethash (type-hash type) (types obj)) type))
-  obj)
+  type)
 
 (defmethod add-type ((obj clang-base) (type null))
   "Add TYPE to `types' of OBJ, unique by hash.
@@ -858,7 +858,7 @@ will not be generated automatically.
                       [{eq (type-restrict type)} #'type-restrict]
                       [{eq (type-storage-class type)} #'type-storage-class]»
                  (hash-table-values (types obj)))
-        (progn (add-type obj type) type))))
+        (add-type obj type) type)))
 
 (defgeneric declared-type (ast variable-name)
   (:documentation "Guess the type of the VARIABLE-NAME in AST.
