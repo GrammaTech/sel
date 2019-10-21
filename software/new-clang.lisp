@@ -532,7 +532,6 @@ in or below function declarations"
   ;; NAME is a trace name, not a name from clang json
   ;; Trace names have different format, with * and [...] before the type
   ;; name2
-  (update-caches-if-necessary obj)
   (or (first (remove-if-not {string= name}
                             (hash-table-values (types obj))
                             :key [#'new-clang-type-qual #'nct+-type]))
