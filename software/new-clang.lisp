@@ -705,9 +705,12 @@ in the macro defn, EXPANSION-LOC is at the macro use."
 (defgeneric tok-len (x)
   (:method ((x new-clang-loc)) (new-clang-loc-tok-len x))
   (:method ((x new-clang-macro-loc))
+    #|
     (if (not (new-clang-macro-loc-is-macro-arg-expansion x))
-        (tok-len (new-clang-macro-loc-spelling-loc x))
-        (tok-len (new-clang-macro-loc-expansion-loc x)))))
+    (tok-len (new-clang-macro-loc-spelling-loc x))
+    (tok-len (new-clang-macro-loc-expansion-loc x)))
+    |#
+    (tok-len (new-clang-macro-loc-expansion-loc x))))
 
 ;;; Compute beginning, ending offsets for an ast, other things
 ;;; The end offset is one past the last character in the ast-text
@@ -2812,6 +2815,9 @@ of the ranges of its children"
                  (unless (and (eql min-begin begin)
                               (eql max-end end))
                    (setf changed? t)
+                   #+(or)
+                   (format t "Change range of ~a to ~a, ~a~%"
+                           a min-begin max-end)
                    (setf (ast-attr a :range)
                          (make-new-clang-range
                           :begin (make-new-clang-loc
