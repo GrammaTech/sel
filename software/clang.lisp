@@ -3921,35 +3921,31 @@ Arguments are identical to PARSE-SOURCE-SNIPPET."
           (when (and (ast-p e)
                      (ast-full-stmt e)
                      (stringp (cadr p)))
-            (let ((e-children (ast-children e))
-                  (lc))
-              (when (stringp (car (setf lc (last e-children))))
+            (let ((e-children (ast-children e)))
+              (when (stringp (lastcar e-children))
                 (multiple-value-bind (found? prefix suffix)
                     (position-of-leading-semicolon (cadr p))
                   (when found?
                     (append-string-to-node e prefix)
-                    ;; (setf (car lc) (concatenate 'string (car lc) prefix))
                     (setf (cadr p) suffix)))))))))
 
 (defun move-semicolons-into-expr-stmts (ast)
   "CALLEXPRs don't necessarily have their semicolons in them.
 Move the semicolon in just one level, but no further"
-;;; Previously this was just for call-exprs in compoundstmts,
-;;; but new clang needs more
+  ;;; Previously this was just for call-exprs in compoundstmts,
+  ;;; but new clang needs more
   ;;  (when (eql (ast-class ast) :compoundstmt)
   (let ((children (ast-children ast)))
     (loop for p on children
-       do (let ((e (car p))
-		  (lc))
-	      (when (and (ast-p e)
-                         (or (ast-full-stmt e) (eql (ast-class e) :field))
-			 (stringp (car (setf lc (last (ast-children e))))))
-                (multiple-value-bind (found? prefix suffix)
-		    (position-of-leading-semicolon (cadr p))
-		  (when found?
-                    ;; (setf (car lc) (concatenate 'string (car lc) prefix))
-                    (append-string-to-node e prefix)
-                    (setf (cadr p) suffix)))))))) ;; )
+       do (let ((e (car p)))
+            (when (and (ast-p e)
+                       (or (ast-full-stmt e) (eql (ast-class e) :field))
+                       (stringp (lastcar (ast-children e))))
+              (multiple-value-bind (found? prefix suffix)
+                  (position-of-leading-semicolon (cadr p))
+                (when found?
+                  (append-string-to-node e prefix)
+                  (setf (cadr p) suffix))))))))
 
 ;;; This is made generic because SOURCE-TEXT and AST-TEXT may
 ;;; be specialized for particular node types.  In particular,
