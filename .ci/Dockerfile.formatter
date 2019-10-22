@@ -1,4 +1,4 @@
-ARG FROM=docker.grammatech.com/synthesis/sel/arch-sbcl
+ARG FROM=docker.grammatech.com/synthesis/sel/arch-sbcl:master
 FROM ${FROM}
 
 RUN pacman --noconfirm -Sy archlinux-keyring && pacman -Sy --noconfirm base-devel git emacs
