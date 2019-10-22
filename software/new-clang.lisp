@@ -85,8 +85,9 @@
 ;;;  new-clang object before invoking the next method.
 
 (declaim (special *soft*))
-(declaim (special *canonical-string-table*))
 (declaim (special *aget-cache*))
+(declaim (special *canonical-string-table*))
+(declaim (special *canonical-new-clang-type-table*))
 
 #-windows
 (defun get-clang-default-includes ()
@@ -152,16 +153,6 @@ See also: https://clang.llvm.org/docs/FAQ.html#id2.")
     :copier copy-hash-table
     :type hash-table
     :documentation "Map from name strings to declaration objects.")
-   ;; FIXME: Get rid of this?
-   ;; FIXME: Need to cache invalidate and re-populate properly.
-   (type-table
-    :initarg :type-table
-    :initform (make-hash-table :test #'equal)
-    :accessor type-table
-    :copier copy-hash-table
-    :type hash-table
-    :documentation "Mapping from qualtype/desugaredType pairs to
-new-clang-type objects.  Used for canonicalization of these objects.")
    (json-file :initform nil :initarg :json-file
               :accessor json-file
               :documentation "When non-nil, read the json from this file
@@ -222,12 +213,6 @@ attribute of clang json objects")
    (name :initarg :name
          :type string
          :reader type-name)
-   (nct+-list :accessor new-clang-type-nct+-list
-              :initform nil
-              :initarg :nct+-list
-              :type list
-              :documentation "List of NCT+ objects for this type, with various
-storage classes.")
    (reqs :accessor type-reqs
          :initarg :reqs
          :type list ;; of new-clang-type objects
@@ -402,11 +387,6 @@ in or below function declarations"
   (let ((*soft* sw))
     (call-next-method)))
 
-(defmethod get-ast-types :around ((sw new-clang) type)
-  (declare (ignorable type))
-  (let ((*soft* sw))
-    (call-next-method)))
-
 (defmethod get-unbound-vals :around ((sw new-clang) ast)
   (declare (ignorable ast))
   (let ((*soft* sw)) (call-next-method)))
@@ -414,6 +394,12 @@ in or below function declarations"
 (defmethod get-unbound-funs :around ((sw new-clang) ast)
   (declare (ignorable ast))
   (let ((*soft* sw)) (call-next-method)))
+
+(defmethod get-ast-types ((software new-clang) (ast new-clang-ast))
+  (remove-duplicates (apply #'append (ast-types ast)
+                            (mapcar {get-ast-types software}
+                                    (get-immediate-children software ast)))
+                     :key #'type-hash))
 
 (defmethod bind-free-vars :around ((sw new-clang) a1 a2)
   (declare (ignorable a1 a2))
@@ -445,11 +431,13 @@ in or below function declarations"
 
 (defmethod update-caches ((obj new-clang))
   (call-next-method)
-  (with-slots (includes macros symbol-table name-symbol-table) obj
+  (with-slots (includes macros types symbol-table name-symbol-table) obj
     (setf symbol-table
           (update-symbol-table symbol-table (ast-root obj)))
     (setf name-symbol-table
           (update-name-symbol-table name-symbol-table symbol-table))
+    (setf types
+          (update-type-table types symbol-table (ast-root obj)))
     (setf includes
           (ast-includes-in-obj obj (ast-root obj)))
     (setf macros
@@ -457,9 +445,10 @@ in or below function declarations"
   obj)
 
 (defmethod clear-caches ((obj new-clang))
-  (with-slots (includes macros symbol-table name-symbol-table) obj
+  (with-slots (includes macros types symbol-table name-symbol-table) obj
     (setf includes nil)
     (setf macros nil)
+    (setf types (make-hash-table))
     (setf symbol-table (clear-symbol-table symbol-table))
     (setf name-symbol-table (clear-symbol-table name-symbol-table)))
   (call-next-method))
@@ -649,6 +638,34 @@ using the existing SYMBOL-TABLE."
                (remhash k symbol-table)))
            symbol-table)
   symbol-table)
+
+(defun update-type-table (types symbol-table ast-root)
+  "Populate TYPES with a mapping of type-hash -> NCT+ objects using the
+ASTs in the existing SYMBOL-TABLE and AST-ROOT tree."
+  (labels ((get-nct+-type (ast)
+             (when-let* ((tp (ast-type ast))
+                         (storage-class (or (ast-attr ast :storage-class)
+                                            :none))
+                         (tp+ (make-instance 'nct+
+                                :type tp
+                                :storage-class storage-class)))
+               tp+)))
+    ;; Populate from the symbol table containing decls in header files
+    ;; outside the current file.
+    (maphash (lambda (id asts)
+               (declare (ignorable id))
+               (iter (for ast in asts)
+                     (when-let* ((tp+ (get-nct+-type ast))
+                                 (_ (null (gethash (type-hash tp+) types))))
+                       (setf (gethash (type-hash tp+) types) tp+))))
+             symbol-table)
+    ;; Populate from the AST ROOT all types in the current file.
+    (map-ast ast-root
+             (lambda (ast)
+               (when-let* ((tp+ (get-nct+-type ast))
+                           (_ (null (gethash (type-hash tp+) types))))
+                 (setf (gethash (type-hash tp+) types) tp+))))
+    types))
 
 
 ;;; Structures and functions relating to genome locations.
@@ -1080,9 +1097,9 @@ where class = (ast-class ast).")
 (defmethod ast-types ((ast new-clang-ast))
   (ast-types* ast (ast-class ast)))
 (defun ast-types*-on-decl (ast)
-  (when-let ((type (ast-attr ast :type)))
-    (list (make-nct+ type
-                     :storage-class (ast-attr ast :storageclass)))))
+  (when-let ((tp (ast-attr ast :type))
+             (storage-class (or (ast-attr ast :storageclass) :none)))
+    (list (make-instance 'nct+ :type tp :storage-class storage-class))))
 
 (defgeneric ast-types* (ast class)
   (:documentation "Dispatch function for computing AST-TYPES
@@ -1096,7 +1113,8 @@ on various ast classes"))
   ;; initializer, if present
   (let ((nodes (remove ast (ast-nodes-in-subtree ast))))
     (sort
-     (reduce #'union (mapcar #'ast-types nodes)
+     (reduce (lambda (a b) (union a b :key #'type-hash))
+             (mapcar #'ast-types nodes)
              :initial-value (ast-types*-on-decl ast))
      #'string<
      :key #'type-name)))
@@ -1106,7 +1124,8 @@ on various ast classes"))
         (macro-child-segment (mapcan #'ast-nodes-in-subtree
                                      (ast-attr ast :macro-child-segment))))
     (sort
-     (reduce #'union (mapcar #'ast-types (append nodes macro-child-segment))
+     (reduce (lambda (a b) (union a b :key #'type-hash))
+             (mapcar #'ast-types (append nodes macro-child-segment))
              :initial-value nil)
      #'string<
      :key #'type-name)))
@@ -1115,7 +1134,7 @@ on various ast classes"))
   (let ((argtype (ast-attr ast :argtype))
         (types (ast-types*-on-decl ast)))
     (if argtype
-        (adjoin (make-nct+ argtype) types)
+        (adjoin (make-instance 'nct+ :type argtype) types :key #'type-hash)
         types)))
 
 (defmethod ast-types* ((ast new-clang-ast) (ast-class (eql :Typedef)))
@@ -1488,43 +1507,6 @@ computed at the children"))
 ;;;  information that is not properly part of a type at all.
 ;;;
 
-(defun make-new-clang-type (&rest keys
-                            &key qual desugared &allow-other-keys)
-  (let* ((key qual)
-         (sw *soft*)
-         (table (when sw (type-table sw))))
-    (flet ((%make ()
-             (apply #'make-instance 'new-clang-type
-                    ;; Do not store desugared if it's the same
-                    ;; as the sugared type
-                    :desugared (and (not (equal qual desugared)) desugared)
-                    ;; FIXME: `new-clang-i-file` returns a list
-                    :i-file (first (new-clang-i-file sw qual desugared))
-                    keys)))
-      (if table
-          (or (gethash key table)
-              (let ((type (%make)))
-                (setf (gethash key table) type)
-                (make-nct+ type)
-                type))
-          (%make)))))
-
-(defun make-nct+ (type &key storage-class)
-  (or (find (or storage-class :none) (new-clang-type-nct+-list type)
-            :key #'type-storage-class)
-      (make-instance 'nct+ :type type :storage-class (or storage-class :none))))
-
-(defmethod initialize-instance :after ((obj new-clang-type)
-                                       &key &allow-other-keys)
-  (make-nct+ obj)
-  obj)
-
-(defmethod initialize-instance :after ((obj nct+) &key &allow-other-keys)
-  (pushnew obj (new-clang-type-nct+-list (nct+-type obj)))
-  (when *soft*
-    (setf (gethash (type-hash obj) (slot-value *soft* 'types)) obj))
-  obj)
-
 (defmethod to-alist ((new-clang-type new-clang-type))
   (flet ((%p (key fn)
            (when-let ((v (funcall fn new-clang-type)))
@@ -1559,14 +1541,12 @@ computed at the children"))
 
 (defmethod typedef-type ((obj new-clang) (nct nct+)
                          &aux (mods (new-clang-type-modifiers (nct+-type nct)))
-                           (array (type-array (nct+-type nct)))
-                           (*soft* obj))
+                           (array (type-array (nct+-type nct))))
   (labels ((typedef-type-helper (nct)
              (if-let ((typedef-nct
                        (some-<>> (find-type-declaration obj (nct+-type nct))
                                  (ast-type)
-                                 (new-clang-type-nct+-list)
-                                 (find :none <> :key #'type-storage-class))))
+                                 (make-instance 'nct+ :type))))
                (typedef-type-helper typedef-nct)
                (make-instance 'nct+
                  :type (make-instance 'new-clang-type
@@ -1653,7 +1633,7 @@ computed at the children"))
   (if (logtest +restrict+ (new-clang-type-modifiers tp)) t nil))
 
 (defmethod type-reqs ((tp+ nct+))
-  (mapcar #'make-nct+
+  (mapcar {make-instance 'nct+ :type}
           (remove-duplicates
            (type-reqs (nct+-type tp+)))))
 (defmethod slot-unbound (class (obj new-clang-type) (slot (eql 'reqs)))
@@ -2246,16 +2226,9 @@ NIL indicates no value."))
 
 (defun convert-type-slot-value (obj slot value)
   (declare (ignore obj slot))
-  (let ((qual-type (aget :qualtype value))
-        (desugared-qual-type (aget :desugaredqualtype value)))
-    ;; These should be strings, but convert anyway to canonicalize them
-    (let* ((qual (clang-convert-json qual-type))
-           (desugared (clang-convert-json desugared-qual-type))
-           (key qual)
-           (table (type-table *soft*)))
-      (or (gethash key table)
-          (setf (gethash key table)
-                (make-new-clang-type :qual qual :desugared desugared))))))
+  ;; These should be strings, but convert anyway to canonicalize them
+  (canonicalize-type (clang-convert-json (aget :qualtype value))
+                     (clang-convert-json (aget :desugaredqualtype value))))
 
 ;; Helpers for JSON conversion
 (defun json-kind-to-keyword (json-kind)
@@ -2341,6 +2314,17 @@ if no value was found."
         (or (gethash str table)
             (setf (gethash str table) str)))
       str))
+
+(defun canonicalize-type (qual desugared)
+  (if (boundp '*canonical-new-clang-type-table*)
+      (or (gethash qual *canonical-new-clang-type-table*)
+          (setf (gethash qual *canonical-new-clang-type-table*)
+                (make-instance 'new-clang-type
+                  :qual qual
+                  :desugared desugared)))
+      (make-instance 'new-clang-type
+        :qual qual
+        :desugared desugared)))
 
 (defun read-c-integer (str)
   ;; Does not handle U, L
@@ -3109,17 +3093,17 @@ ast nodes, as needed")
 (defmethod update-asts ((obj new-clang))
   ;; Port of this method from clang.lsp, for new class
   (let ((*soft* obj)
-        (*canonical-string-table* (make-hash-table :test 'equal)))
-    (with-slots (ast-root genome includes
-                          symbol-table name-symbol-table type-table types) obj
+        (*canonical-string-table* (make-hash-table :test 'equal))
+        (*canonical-new-clang-type-table* (make-hash-table :test 'equal)))
+    (with-slots (ast-root genome includes types
+                          symbol-table name-symbol-table) obj
       (unless genome     ; get genome from existing ASTs if necessary
         (setf genome (genome obj)
               ast-root nil))
 
-      (setf symbol-table (make-hash-table :test #'equal)
-            name-symbol-table (make-hash-table :test #'equal)
-            type-table (make-hash-table :test #'equal)
-            types (make-hash-table :test #'equal))
+      (setf types (make-hash-table)
+            symbol-table (make-hash-table :test #'equal)
+            name-symbol-table (make-hash-table :test #'equal))
 
       (multiple-value-bind (json tmp-file genome-len)
           (clang-json obj)
@@ -3128,6 +3112,7 @@ ast nodes, as needed")
           (update-symbol-table symbol-table raw-ast)
           (update-name-symbol-table name-symbol-table symbol-table)
           (let ((ast (remove-non-program-asts raw-ast tmp-file)))
+            (update-type-table types symbol-table ast)
             (remove-asts-if ast #'ast-is-implicit)
             (remove-file-from-asts ast tmp-file)
             (convert-line-and-col-to-byte-offsets ast genome)
