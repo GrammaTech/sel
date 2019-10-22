@@ -242,7 +242,7 @@
              :type #+sbcl (list string *) #-sbcl list
              :documentation "Names of headers included.")
    (types :initarg :types :accessor types
-          :initform (make-hash-table :test 'equal)
+          :initform (make-hash-table)
           :copier copy-hash-table
           :type #+sbcl hash-table #-sbcl hash-table
           :documentation "Hash table of types keyed by HASH id.")
