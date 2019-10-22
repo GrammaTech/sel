@@ -411,10 +411,6 @@ in or below function declarations"
   (let ((*soft* sw))
     (call-next-method)))
 
-(defmethod delete-decl-stmts :around ((sw new-clang) block replacements)
-  (declare (ignorable block replacements))
-  (let ((*soft* sw)) (call-next-method)))
-
 (defmethod apply-mutation :around ((sw new-clang) mutation)
   (declare (ignorable mutation))
   (let ((*soft* sw)) (call-next-method)))
@@ -424,10 +420,6 @@ in or below function declarations"
 
 (defmethod names-symbol-table :before ((obj new-clang))
   (update-caches-if-necessary obj))
-
-(defmethod update-caches :around ((obj new-clang))
-  (let ((*soft* obj))
-    (call-next-method)))
 
 (defmethod update-caches ((obj new-clang))
   (call-next-method)
@@ -3092,8 +3084,7 @@ ast nodes, as needed")
 
 (defmethod update-asts ((obj new-clang))
   ;; Port of this method from clang.lsp, for new class
-  (let ((*soft* obj)
-        (*canonical-string-table* (make-hash-table :test 'equal))
+  (let ((*canonical-string-table* (make-hash-table :test 'equal))
         (*canonical-new-clang-type-table* (make-hash-table :test 'equal)))
     (with-slots (ast-root genome includes types
                           symbol-table name-symbol-table) obj

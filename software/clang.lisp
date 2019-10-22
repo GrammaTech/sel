@@ -1915,7 +1915,7 @@ type in TYPES.
             (setf last-proto ast))
           (mapc (lambda (include)
                   (adjoining include into m-includes test #'string=))
-                (ast-includes ast))
+                (ast-includes-in-obj obj ast))
           ;; stmt-asts are only collected in function bodies and
           ;; non-stmt-asts are only collected outside of function bodies
           (if (and last-proto (starts-with-subseq (ast-path last-proto)
