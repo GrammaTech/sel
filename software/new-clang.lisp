@@ -3093,35 +3093,36 @@ ast nodes, as needed")
 
       (multiple-value-bind (json tmp-file genome-len)
           (clang-json obj)
-        (let* ((raw-ast (clang-convert-json-for-file
-                         json tmp-file genome-len)))
-          (update-symbol-table symbol-table raw-ast)
+        (let ((ast (clang-convert-json-for-file json tmp-file genome-len)))
+          ;; Populate and massage auxilliary fields such as symbol tables
+          ;; and types.
+          (update-symbol-table symbol-table ast)
           (update-name-symbol-table name-symbol-table symbol-table)
-          (let ((ast (remove-non-program-asts raw-ast tmp-file)))
-            (update-type-table types symbol-table ast)
-            (remove-asts-if ast #'ast-is-implicit)
-            (remove-file-from-asts ast tmp-file)
-            (convert-line-and-col-to-byte-offsets ast genome)
-            (fix-multibyte-characters ast genome)
-            (compute-operator-positions ast)
-            (put-operators-into-inner-positions obj ast)
-            (encapsulate-macro-expansions-cheap
-             ast (nth-value 1 (find-macro-uses obj ast)))
-            ;; This was previously before macro expansion encapsulation, but
-            ;; that caused failures
-            (fix-overlapping-vardecls obj ast)
-            (fix-ancestor-ranges ast)
-            (combine-overlapping-siblings obj ast)
-            (decorate-ast-with-strings obj ast)
-            (put-operators-into-starting-positions obj ast)
-            (compute-full-stmt-attrs ast)
-            (compute-guard-stmt-attrs ast)
-            (compute-syn-ctxs ast)
-            (fix-semicolons ast)
-            (update-paths ast)
-            (setf ast-root ast
-                  genome nil)
-            obj))))))
+          (remove-non-program-asts ast tmp-file)
+          (update-type-table types symbol-table ast)
+
+          ;; Massage the ASTs identified by clang.
+          (remove-asts-if ast #'ast-is-implicit)
+          (remove-file-from-asts ast tmp-file)
+          (convert-line-and-col-to-byte-offsets ast genome)
+          (fix-multibyte-characters ast genome)
+          (compute-operator-positions ast)
+          (put-operators-into-inner-positions obj ast)
+          (encapsulate-macro-expansions-cheap
+           ast (nth-value 1 (find-macro-uses obj ast)))
+          (fix-overlapping-vardecls obj ast) ; must be after macro encapsulation
+          (fix-ancestor-ranges ast)
+          (combine-overlapping-siblings obj ast)
+          (decorate-ast-with-strings obj ast)
+          (put-operators-into-starting-positions obj ast)
+          (compute-full-stmt-attrs ast)
+          (compute-guard-stmt-attrs ast)
+          (compute-syn-ctxs ast)
+          (fix-semicolons ast)
+          (update-paths ast)
+          (setf ast-root ast
+                genome nil)
+          obj)))))
 
 
 ;;; Helper methods for computing attributes on new clang ast nodes
