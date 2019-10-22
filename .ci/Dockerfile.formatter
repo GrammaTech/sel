@@ -4,7 +4,7 @@ FROM ${FROM}
 RUN pacman --noconfirm -Sy archlinux-keyring && pacman -Sy --noconfirm base-devel git emacs
 RUN sed -i "s/^\(OPT_LONG=(\)/\1'asroot' /;s/EUID == 0/1 == 0/" /usr/bin/makepkg
 RUN git clone --depth 1 https://aur.archlinux.org/yay.git /yay-aur
-RUN sed -i "s|^  make|  sed -i 's/os.Geteuid()/1/' main.go install.go\\n  make|" /yay-aur/PKGBUILD
+RUN sed -i "s|^  cd \"\$srcdir/\$pkgname-\$pkgver\"|&\\n  sed -i 's/os.Geteuid()/1/' main.go install.go|" /yay-aur/PKGBUILD
 RUN cd /yay-aur && makepkg --noconfirm -si
 RUN yay --noconfirm -Sy aur/slime aur/emacs-paredit
 
