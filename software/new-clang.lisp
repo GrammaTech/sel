@@ -1784,11 +1784,6 @@ modifiers from a type name"
                           (gethash (type-name tp)
                                    (name-symbol-table obj)))))))
 
-(defmethod type-decl ((obj nct+))
-  (type-decl (nct+-type obj)))
-(defmethod type-decl ((type new-clang-type))
-  (type-decl* *soft* type))
-
 (defmethod type-decl* ((obj new-clang) (tp+ nct+))
   (type-decl* obj (nct+-type tp+)))
 (defmethod type-decl* ((obj new-clang) (tp new-clang-type)
