@@ -2332,26 +2332,17 @@ if no value was found."
 ;;; Macro expansion code
 (defgeneric find-macro-uses (obj a)
   (:documentation "Identify the locations at which macros occur in the
-file, and the length of the macro token.  Returns a list of lists.
+file, and the length of the macro token.  Returns a hash table mapping
+macro offsets to a list with additional information on the macro.
 The first element of the list is the position of the start of the
 macro name, the second is the length, the third is true
 when the macro has one or more macro parameters that became expressed
 in the AST, and the fourth is the length of the macro expression in
-genome.   Also return a hash table in which the first element
-of these lists maps to the cdr."))
+genome."))
 
-(defmethod find-macro-uses (obj a)
-  (let ((macro-occurrence-table (make-hash-table))
-        (uses nil))
-    (map-ast a (lambda (x) (find-macro-use-at-node
-                            x macro-occurrence-table)))
-    (maphash (lambda (k v)
-               (setf (third v)
-                     (compute-macro-extent obj k (first v) (second v)))
-               (push (cons k v) uses))
-             macro-occurrence-table)
-    (values (sort uses #'< :key #'car)
-            macro-occurrence-table)))
+(defmethod find-macro-uses (obj a &aux (macro-table (make-hash-table)))
+  (map-ast a (lambda (x) (find-macro-use-at-node obj x macro-table)))
+  macro-table)
 
 (defgeneric compute-macro-extent (obj off len is-arg)
   (:documentation "Compute the length of a macro occurrence in
@@ -2378,23 +2369,21 @@ LEN the length of the macro name.")
                   (- end off))))
           len))))
 
-(defun find-macro-use-at-node (a table)
+(defun find-macro-use-at-node (obj a table)
   (when-let ((range (ast-range a)))
     (flet ((%record (loc)
-             (typecase loc
-               (new-clang-macro-loc
-                (when-let ((eloc (new-clang-macro-loc-expansion-loc loc)))
-                  (when (null (new-clang-loc-file eloc))
-                    (let ((off (offset eloc))
-                          (len (tok-len eloc))
-                          (is-arg (new-clang-macro-loc-is-macro-arg-expansion
-                                   loc)))
-                      (let ((existing (gethash off table)))
-                        (if (null existing)
-                            (setf (gethash off table)
-                                  (list len is-arg nil))
-                            (setf (cadr existing) (or (cadr existing)
-                                                      is-arg)))))))))))
+             (when (typep loc 'new-clang-macro-loc)
+               (when-let* ((eloc (new-clang-macro-loc-expansion-loc loc)))
+                 (when (null (new-clang-loc-file eloc))
+                   (let* ((off (offset eloc))
+                          (existing (gethash off table))
+                          (len (or (first existing) (tok-len eloc)))
+                          (is-arg (or (second existing)
+                                      (new-clang-macro-loc-is-macro-arg-expansion
+                                       loc)))
+                          (extent (compute-macro-extent obj off len is-arg)))
+                     (setf (gethash off table)
+                           (list len is-arg extent))))))))
       (%record (new-clang-range-begin range))
       (%record (new-clang-range-end range)))))
 
@@ -3089,8 +3078,7 @@ ast nodes, as needed")
           (fix-multibyte-characters ast genome)
           (compute-operator-positions ast)
           (put-operators-into-inner-positions obj ast)
-          (encapsulate-macro-expansions-cheap
-           ast (nth-value 1 (find-macro-uses obj ast)))
+          (encapsulate-macro-expansions-cheap ast (find-macro-uses obj ast))
           (fix-overlapping-vardecls obj ast) ; must be after macro encapsulation
           (fix-ancestor-ranges ast)
           (combine-overlapping-siblings obj ast)
