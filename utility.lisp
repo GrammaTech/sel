@@ -1034,8 +1034,10 @@ If CHILDREN is T, also kill all processes below PROCESS."))
 ;;; or into files on disk).
 ;;;
 ;;;@texi{shell}
-(defvar *shell-debug* nil
-  "Set to true to print shell invocations.")
+(defvar *shell-debug* '(:cmd)
+  "Set to true to print shell invocations.  If a list, print
+shell cmd if :CMD is a membe, input if :INPUT is a member, and
+print the shell outputs if :OUTPUT is a member.")
 
 (defvar *shell-error-codes* '(126 127)
   "Raise a condition on these exit codes.")
@@ -1065,7 +1067,8 @@ of errno with `*shell-error-codes*' and `*shell-non-error-codes*'.
 
 Optionally print debug information if `*shell-debug*' is non-nil."
   (let ((format-arguments (take-until #'keywordp format-arguments))
-        (run-program-arguments (drop-until #'keywordp format-arguments)))
+        (run-program-arguments (drop-until #'keywordp format-arguments))
+        (debug *shell-debug*))
     ;; Manual handling of an :input keyword argument.
     (when-let ((input-arg (plist-get :input run-program-arguments)))
       (setq input
@@ -1091,10 +1094,11 @@ Optionally print debug information if `*shell-debug*' is non-nil."
           (stdout-str nil)
           (stderr-str nil)
           (errno nil))
-      (when *shell-debug*
-        (format t "  cmd: ~a~%" cmd)
-        (when input
-          (format t "  input: ~a~%" input)))
+      (when (or (not (listp debug)) (member :cmd debug))
+        (format t "  cmd: ~a~%" cmd))
+      (when (and input (or (not (listp debug))
+                           (member :input debug)))
+        (format t "  input: ~a~%" input))
 
       ;; Direct shell execution with `uiop/run-program:run-program'.
       #+(and (not ccl) (not windows))
@@ -1145,7 +1149,7 @@ Optionally print debug information if `*shell-debug*' is non-nil."
             (setf stderr-str (if (probe-file stderr-file)
                                  (file-to-string stderr-file)
                                  "")))))
-      (when *shell-debug*
+      (when (or (not (listp debug)) (member :output debug))
         (format t "~&stdout:~a~%stderr:~a~%errno:~a"
                 stdout-str stderr-str errno))
       (when (or (and *shell-non-error-codes*
