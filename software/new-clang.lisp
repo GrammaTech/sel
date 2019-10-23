@@ -1052,9 +1052,6 @@ where class = (ast-class ast).")
                  (pushnew f includes :test #'equal))))
     (nreverse includes)))
 
-(defmethod ast-includes ((ast new-clang-ast))
-  (ast-includes-in-obj *soft* ast))
-
 (defmethod ast-macros ((ast new-clang-ast))
   (ast-macros* ast (ast-class ast)))
 
