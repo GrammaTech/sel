@@ -383,49 +383,33 @@ in or below function declarations"
         original-name
         (random-elt (or matching variadic others '(nil))))))
 
-(defmethod scopes :around ((sw new-clang) (ast new-clang-ast))
-  (let ((*soft* sw))
-    (call-next-method)))
-
-(defmethod get-unbound-vals :around ((sw new-clang) ast)
-  (declare (ignorable ast))
-  (let ((*soft* sw)) (call-next-method)))
-
-(defmethod get-unbound-funs :around ((sw new-clang) ast)
-  (declare (ignorable ast))
-  (let ((*soft* sw)) (call-next-method)))
-
 (defmethod get-ast-types ((software new-clang) (ast new-clang-ast))
   (remove-duplicates (apply #'append (ast-types ast)
                             (mapcar {get-ast-types software}
                                     (get-immediate-children software ast)))
                      :key #'type-hash))
 
-(defmethod bind-free-vars :around ((sw new-clang) a1 a2)
-  (declare (ignorable a1 a2))
-  (let ((*soft* sw))
-    (call-next-method)))
-
 (defmethod update-headers-from-ast :around ((sw new-clang) ast database)
   (declare (ignorable ast database))
   (let ((*soft* sw))
     (call-next-method)))
 
-(defmethod apply-mutation :around ((sw new-clang) mutation)
-  (declare (ignorable mutation))
-  (let ((*soft* sw)) (call-next-method)))
-
-(defmethod symbol-table :before ((obj new-clang))
-  (update-caches-if-necessary obj))
-
 (defmethod names-symbol-table :before ((obj new-clang))
   (update-caches-if-necessary obj))
+
+(defmethod (setf ast-root) :after (new (obj new-clang))
+  ;; Upon setting the AST root, update the symbol and then update the
+  ;; :REFERENCEDDECL field on the ASTs in NEW to point to the entries
+  ;; in the symbol table.
+  (with-slots (symbol-table) obj
+    (setf symbol-table
+          (update-symbol-table symbol-table new))
+    (setf new
+          (update-referenceddecl-from-symbol-table new symbol-table))))
 
 (defmethod update-caches ((obj new-clang))
   (call-next-method)
   (with-slots (includes macros types symbol-table name-symbol-table) obj
-    (setf symbol-table
-          (update-symbol-table symbol-table (ast-root obj)))
     (setf name-symbol-table
           (update-name-symbol-table name-symbol-table symbol-table))
     (setf types
@@ -472,11 +456,11 @@ in or below function declarations"
            (copy ast :children new-children))))
     (:DeclRefExpr
      (iter (for (old new) in var-replacements)
-           (when (eql (ast-referenced-obj ast) old)
+           (when (eql (ast-referenceddecl ast) old)
              (setf ast (copy ast :referenceddecl new
                              :children (list (ast-name new))))))
      (iter (for (oldf newf) in fun-replacements)
-           (when (eql (ast-referenced-obj ast) (first oldf))
+           (when (eql (ast-referenceddecl ast) (first oldf))
              (setf ast (copy ast :referenceddecl (first newf)))))
      ast)
     (t (let ((c (mapcar (lambda (c)
@@ -598,7 +582,7 @@ the decl ASTs in AST-ROOT."
                   (ast-is-decl ast)
                   (not (eq :TopLevel (ast-class ast))))))
     (map-ast ast-root
-             (lambda (ast &aux (referenced (ast-attr ast :referenceddecl)))
+             (lambda (ast &aux (referenced (ast-referenceddecl ast)))
                (when (symbol-ast-p ast)
                  (setf (gethash (ast-id ast) symbol-table)
                        (list ast)))
@@ -611,15 +595,12 @@ the decl ASTs in AST-ROOT."
 (defun update-name-symbol-table (name-symbol-table symbol-table)
   "Populate NAME-SYMBOL-TABLE with a mapping of AST name -> symbol ASTs
 using the existing SYMBOL-TABLE."
-  (setf name-symbol-table
-        (iter (with ht = (make-hash-table :test #'equalp))
-              (for (id asts) in-hashtable symbol-table)
-              (declare (ignorable id))
-              (iter (for ast in asts)
-                    (when (and ast (ast-name ast))
-                      (push ast (gethash (ast-name ast) ht))))
-              (finally (return ht))))
-  name-symbol-table)
+  (iter (for (id asts) in-hashtable symbol-table)
+        (declare (ignorable id))
+        (iter (for ast in asts)
+              (when (and ast (ast-name ast))
+                (push ast (gethash (ast-name ast) name-symbol-table))))
+        (finally (return name-symbol-table))))
 
 (defun clear-symbol-table (symbol-table)
   "Remove entries for the current file from the SYMBOL-TABLE."
@@ -630,6 +611,18 @@ using the existing SYMBOL-TABLE."
                (remhash k symbol-table)))
            symbol-table)
   symbol-table)
+
+(defun update-referenceddecl-from-symbol-table (ast-root symbol-table)
+  "Update the :AST-REFERENCEDDECL field on ASTs in AST-ROOT to point to decls
+in the SYMBOL-TABLE."
+  (map-ast ast-root
+           (lambda (ast)
+             (when-let* ((old-ref (ast-referenceddecl ast))
+                         (new-ref (find old-ref
+                                        (gethash (ast-id old-ref) symbol-table)
+                                        :key #'ast-name :test #'name=)))
+               (setf (ast-attr ast :referenceddecl) new-ref))))
+  ast-root)
 
 (defun update-type-table (types symbol-table ast-root)
   "Populate TYPES with a mapping of type-hash -> NCT+ objects using the
@@ -972,7 +965,7 @@ Other keys are allowed but are silently ignored.
 where class = (ast-class ast)."))
 
 (defmethod ast-unbound-vals* ((ast new-clang-ast) (class (eql :declrefexpr)))
-  (when-let ((obj (ast-referenced-obj ast)))
+  (when-let ((obj (ast-referenceddecl ast)))
     (when (member (ast-class obj) '(:Var :ParmVar))
       (list obj))))
 
@@ -1024,14 +1017,14 @@ where class = (ast-class ast).")
   (:method ((ast new-clang-ast) class) (declare (ignorable ast class)) nil)
   (:method ((ast new-clang-ast) (class (eql :declrefexpr)))
     (declare (ignorable class))
-    (when-let* ((obj (ast-referenced-obj ast)))
+    (when-let* ((obj (ast-referenceddecl ast)))
       (when (eql (ast-class obj) :function)
         (list (list obj (ast-void-ret obj) (ast-varargs obj)
                     (count-if (lambda (a) (and (ast-p a) (eql (ast-class a) :ParmVar)))
                               (ast-children obj))))))))
 
 (defmethod ast-includes-in-obj ((obj new-clang) (ast new-clang-ast)
-                                &aux (includes nil) (*soft* obj))
+                                &aux (includes nil))
   ;;;  This code is now assuming AST-FILE is not present (or NIL) if
   ;;;  the file was the same as the one this AST is in.
   ;;;
@@ -1046,7 +1039,7 @@ where class = (ast-class ast).")
                  (nconc
                   (when file
                     (list file))
-                  (when-let* ((ref (ast-referenced-obj child))
+                  (when-let* ((ref (ast-referenceddecl child))
                               (file (ast-file ref)))
                     (list file))
                   (when-let* ((type (ast-type child))
@@ -1298,20 +1291,10 @@ on various ast classes"))
   ;; Should just be :FunctionDecl objects
   (ast-attr obj :variadic))
 
-(defgeneric ast-referenced-obj (obj)
-  (:documentation "The object referenced by the reference attribute
-of OBJ")
-  (:method ((obj new-clang-ast))
-    (let ((rd (ast-attr obj :ReferencedDecl)))
-      (when rd
-        (unless (ast-p rd)
-          ;; This should never happen
-          (error "Not an AST: ~a~%" rd))
-        (let ((id (new-clang-ast-id rd)))
-          (when id
-            (let ((defs (gethash id (symbol-table *soft*))))
-              (when (= (length defs) 1)
-                (car defs)))))))))
+(defgeneric ast-referenceddecl (ast)
+  (:documentation "The declaration referenced by AST.")
+  (:method ((ast new-clang-ast))
+    (ast-attr ast :referenceddecl)))
 
 ;; Helpers for the "ast-*" functions above
 (defgeneric macros-of-macro-names (macro-names)
@@ -3099,6 +3082,7 @@ ast nodes, as needed")
           (update-symbol-table symbol-table ast)
           (update-name-symbol-table name-symbol-table symbol-table)
           (remove-non-program-asts ast tmp-file)
+          (update-referenceddecl-from-symbol-table ast symbol-table)
           (update-type-table types symbol-table ast)
 
           ;; Massage the ASTs identified by clang.
