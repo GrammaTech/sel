@@ -363,12 +363,6 @@ in or below function declarations"
         original-name
         (random-elt (or matching variadic others '(nil))))))
 
-(defmethod get-ast-types ((software new-clang) (ast new-clang-ast))
-  (remove-duplicates (apply #'append (ast-types ast)
-                            (mapcar {get-ast-types software}
-                                    (get-immediate-children software ast)))
-                     :key #'type-hash))
-
 (defmethod symbol-table :before ((obj new-clang))
   (update-caches-if-necessary obj))
 
@@ -483,6 +477,11 @@ in or below function declarations"
                             :key [#'new-clang-type-qual #'nct+-type]))
       (add-type obj (make-instance 'nct+
                       :type (make-instance 'new-clang-type :qual name)))))
+
+(defmethod get-ast-types :around ((software new-clang) (ast new-clang-ast))
+  ;; new-clang returns actual types, not hashes.
+  ;; Remove those types with the same hashes.
+  (remove-duplicates (call-next-method) :key #'type-hash))
 
 (defmethod find-macro ((obj new-clang) (macro new-clang-macro))
   ;; This looks like a stub, but isn't.
