@@ -1024,22 +1024,13 @@ where class = (ast-class ast).")
   ;;;
   ;;;  This is also needed to make the i-file slot of nct+ work.
   (labels ((ast-includes-in-child (child)
-             (let ((file (ast-file child))
-                   (include-dirs (append (flags-to-include-dirs (flags obj))
-                                         *clang-default-includes*)))
-               (mapcar
-                (lambda (s) (normalize-file-for-include s include-dirs))
-                (delete-duplicates
-                 (nconc
-                  (when file
-                    (list file))
-                  (when-let* ((ref (ast-referenceddecl child))
-                              (file (ast-file ref)))
-                    (list file))
-                  (when-let* ((type (ast-type child))
-                              (str (new-clang-type-qual type)))
-                    (includes-of-names-in-string obj str)))
-                 :test #'equal)))))
+             (nest (mapcar (lambda (ast)
+                             (ast-file-for-include obj ast)))
+                   (remove-if «or #'null [#'null #'ast-file]»)
+                   (list child
+                         (ast-referenceddecl child)
+                         (when (ast-type child)
+                           (type-decl-ast obj (ast-type child)))))))
     (map-ast ast
              (lambda (c)
                (dolist (f (ast-includes-in-child c))
@@ -1305,39 +1296,6 @@ determined."
         :type (make-instance 'new-clang-type
                 :qual (trim-right-whitespace (subseq s 0 (1- pos))))))))
 
-(defun names-in-str (str)
-  "Find all substrings of STR that are C/C++ names"
-  (split-sequence-if-not (lambda (c)
-                           (and (typep c 'standard-char)
-                                (or (alphanumericp c)
-                                    (member c '(#\_ #\: #\< #\>)))))
-                         str
-                         :remove-empty-subseqs t))
-
-(defun includes-of-names-in-string (obj str)
-  (let ((table (name-symbol-table obj))
-        (names (names-in-str str)))
-    (iter (for n in names)
-          (nconcing
-           (iter (for v in (gethash n table))
-                 (when v
-                   (nconcing
-                    (ast-include-from-type v))))))))
-
-;;; TODO:  Confirm that restricting this to just :typedef
-;;;  is correct (both in that it replicates what old clang
-;;;  front end did, and it's what's intended.)  Confirm
-;;;  that structs and unions were not producing this in
-;;;  old front end.
-;;;
-;;;  This should be updated when the json from Clang includes
-;;;  the entire include chain, not just the final file
-;;;  in the chain.
-(defun ast-include-from-type (v)
-  (when-let ((_ (member (ast-class v) '(:typedef)))
-             (file (ast-file v)))
-    (list file)))
-
 ;;; Question on this: are IDs unique between files?
 ;;; Or do we need keys that include file names?
 
@@ -1387,6 +1345,13 @@ the match length if sucessful, NIL if not."
              (values (concatenate 'string
                                   "\"" (subseq file-string max-match) "\"")
                      t)))))))
+
+(defun ast-file-for-include (obj ast)
+  "Return the file AST is located within in a format suitable for use
+in a #include."
+  (normalize-file-for-include (ast-file ast)
+                              (append (flags-to-include-dirs (flags obj))
+                                      *clang-default-includes*)))
 
 (defmethod source-text ((ast new-clang-ast))
   (with-output-to-string (out)
@@ -1504,7 +1469,7 @@ computed at the children"))
                            (array (type-array (nct+-type nct))))
   (labels ((typedef-type-helper (nct)
              (if-let ((typedef-nct
-                       (some-<>> (find-type-declaration obj (nct+-type nct))
+                       (some-<>> (type-decl-ast obj nct)
                                  (ast-type)
                                  (make-instance 'nct+ :type))))
                (typedef-type-helper typedef-nct)
@@ -1518,30 +1483,6 @@ computed at the children"))
                          :name (type-name (nct+-type nct)))
                  :storage-class (type-storage-class nct)))))
     (typedef-type-helper nct)))
-
-(defgeneric new-clang-i-file (obj qual desugared)
-  (:method ((obj new-clang) qual desugared)
-    ;; Get list of system files needed to handle the types
-    ;; here
-    (let* ((qual-includes
-            (when qual
-              (includes-of-names-in-string obj qual)))
-           (desugared-includes
-            (when desugared
-              (includes-of-names-in-string obj desugared)))
-           (includes
-            (sort (remove-duplicates
-                   (remove-if (lambda (s) (eql (elt s 0) #\"))
-                              (append qual-includes desugared-includes nil))
-                   :test #'equal)
-                  #'string<))
-           (include-dirs (append (flags-to-include-dirs (flags obj))
-                                 *clang-default-includes*)))
-      (iter (for f in includes)
-            (multiple-value-bind (str local?)
-                (normalize-file-for-include f include-dirs)
-              (unless local?
-                (collecting str)))))))
 
 (defmethod type-i-file ((tp+ nct+))
   (type-i-file (nct+-type tp+)))
@@ -1738,8 +1679,10 @@ modifiers from a type name"
         (values (string-right-trim " " (subseq str 0 last-suffix-start))
                 suffixes))))
 
-(defgeneric find-type-declaration (obj type)
+(defgeneric type-decl-ast (obj type)
   (:documentation "Return the AST in OBJ declaring TYPE.")
+  (:method ((obj new-clang) (tp+ nct+))
+    (type-decl-ast obj (nct+-type tp+)))
   (:method ((obj new-clang) (tp new-clang-type))
     (when-let* ((qual (new-clang-type-qual tp))
                 (ast-classes (cond ((or (starts-with-subseq "struct " qual)
@@ -1754,9 +1697,8 @@ modifiers from a type name"
 
 (defmethod type-decl* ((obj new-clang) (tp+ nct+))
   (type-decl* obj (nct+-type tp+)))
-(defmethod type-decl* ((obj new-clang) (tp new-clang-type)
-                       &aux (decl (find-type-declaration obj tp)))
-  (source-text decl))
+(defmethod type-decl* ((obj new-clang) (tp new-clang-type))
+  (source-text (type-decl-ast obj tp)))
 
 (defmethod type-decl-string ((obj new-clang-type) &key &allow-other-keys)
   (new-clang-type-qual obj))
