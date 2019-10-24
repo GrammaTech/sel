@@ -378,7 +378,7 @@ in or below function declarations"
   ;; in the symbol table.
   (with-slots (symbol-table) obj
     (setf symbol-table
-          (update-symbol-table symbol-table new))
+          (update-symbol-table (clear-symbol-table symbol-table) new))
     (setf new
           (update-referenceddecl-from-symbol-table new symbol-table))))
 
@@ -396,11 +396,10 @@ in or below function declarations"
   obj)
 
 (defmethod clear-caches ((obj new-clang))
-  (with-slots (includes macros types symbol-table name-symbol-table) obj
+  (with-slots (includes macros types name-symbol-table) obj
     (setf includes nil)
     (setf macros nil)
     (setf types (make-hash-table))
-    (setf symbol-table (clear-symbol-table symbol-table))
     (setf name-symbol-table (clear-symbol-table name-symbol-table)))
   (call-next-method))
 
