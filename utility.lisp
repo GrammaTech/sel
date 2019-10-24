@@ -1034,7 +1034,7 @@ If CHILDREN is T, also kill all processes below PROCESS."))
 ;;; or into files on disk).
 ;;;
 ;;;@texi{shell}
-(defvar *shell-debug* '(:cmd)
+(defvar *shell-debug* nil ;; '(:cmd)
   "Set to true to print shell invocations.  If a list, print
 shell cmd if :CMD is a membe, input if :INPUT is a member, and
 print the shell outputs if :OUTPUT is a member.")
