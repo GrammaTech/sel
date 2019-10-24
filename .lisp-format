@@ -54,7 +54,8 @@
         (if-let* 1)
         (when-let 1)
         (when-let* 1)
-        (defixture 1)))
+        (defixture 1)
+        (register-groups-bind 2)))
 
 (defun define-feature-lisp-indent
     (path state indent-point sexp-column normal-indent)

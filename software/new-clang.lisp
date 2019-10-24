@@ -72,39 +72,42 @@
 #-windows
 (defun get-clang-default-includes ()
   "Retrieve the paths on the default clang system include search path."
-  (when (which "clang")
-    (with-temp-file-of (bin "cpp") ""
-                       (multiple-value-bind (stdout stderr exit)
-                           (shell "clang -v ~a" bin)
-                         (declare (ignorable stdout exit))
-                         (register-groups-bind (include-search-paths)
-                                               ("(?s)include <...> search starts here:(.*)End of search list"
-                                                stderr)
-                                               (->> (split-sequence #\Newline include-search-paths
-                                                                    :remove-empty-subseqs t)
-                                                    (mapcar #'trim-whitespace)
-                                                    (mapcar [#'namestring
-                                                             #'ensure-directory-pathname
-                                                             #'canonical-pathname])))))))
+  (nest
+   (when (which "clang"))
+   (with-temp-file-of (bin "cpp") "")
+   (multiple-value-bind (stdout stderr exit)
+       (shell "clang -v ~a" bin)
+     (declare (ignorable stdout exit))
+     (register-groups-bind (include-search-paths)
+         ("(?s)include <...> search starts here:(.*)End of search list"
+          stderr)
+       (->> (split-sequence #\Newline include-search-paths
+                            :remove-empty-subseqs t)
+            (mapcar #'trim-whitespace)
+            (mapcar [#'namestring
+                     #'ensure-directory-pathname
+                     #'canonical-pathname]))))))
+
 #+windows
 (defun get-clang-default-includes ()
   "Retrieve the paths on the default clang system include search path."
-  (when (which "clang-cl.exe")
-    (with-temp-file-of (bin "cpp") ""
-                       (multiple-value-bind (stdout stderr exit)
-                           (shell "clang-cl.exe -v ~a" bin)
-                         (declare (ignorable stdout exit))
-                         (register-groups-bind (include-search-paths)
-                                               ("(?s)include <...> search starts here:(.*)End of search list"
-                                                stderr)
-                                               (remove ""
-                                                       (->> (split-sequence #\Newline include-search-paths
-                                                                            :remove-empty-subseqs t)
-                                                            (mapcar #'trim-whitespace)
-                                                            (mapcar [#'namestring
-                                                                     #'ensure-directory-pathname
-                                                                     #'canonical-pathname]))
-                                                       :test 'equal))))))
+  (nest
+   (when (which "clang-cl.exe"))
+   (with-temp-file-of (bin "cpp") "")
+   (multiple-value-bind (stdout stderr exit)
+       (shell "clang-cl.exe -v ~a" bin)
+     (declare (ignorable stdout exit))
+     (register-groups-bind (include-search-paths)
+         ("(?s)include <...> search starts here:(.*)End of search list"
+          stderr)
+       (remove ""
+               (->> (split-sequence #\Newline include-search-paths
+                                    :remove-empty-subseqs t)
+                    (mapcar #'trim-whitespace)
+                    (mapcar [#'namestring
+                             #'ensure-directory-pathname
+                             #'canonical-pathname]))
+               :test 'equal)))))
 
 (defvar *clang-default-includes* (get-clang-default-includes)
   "List of paths representing the default clang system includes search path.
