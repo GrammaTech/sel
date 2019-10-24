@@ -878,7 +878,8 @@
    (setf *gcd*
          (from-file (make-clang :compiler "clang")
                     (gcd-dir "gcd.windows.c")))
-   (setf (sel/sw/new-clang::include-dirs *gcd*)(split ";" (uiop:getenv "INCLUDE"))))
+   (setf (sel/sw/new-clang::include-dirs *gcd*)
+         (split ";" (uiop:getenv "INCLUDE"))))
   (:teardown
    (setf *gcd* nil)))
 
