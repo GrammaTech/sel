@@ -43,11 +43,9 @@
            :decorate-ast-with-strings
            :clang-convert-json-for-file
            :make-statement-new-clang
-           :make-new-clang-macro
            :*new-clang?*
            :nct+
            :nct+-type
-           :make-new-clang-macroexpand-hook
            :cpp-scan
            :ast-attr
            :within-ast-range
@@ -212,13 +210,6 @@ on QUAL and DESUGARED slots."))
   (:documentation "Wrapper object that is intended to behave like
 SEL/SW/CLANG:CLANG-TYPE.  This means it must have some information
 that is not strictly speaking about types at all (storage class)."))
-
-(defstruct (new-clang-macro (:include clang-macro))
-  ;; Spelling loc is the location of the body of the loc
-  ;; Its presence in a clang-macro-loc indicates something
-  ;; is a macroexpansion of this macro.  This may fail
-  ;; if the macro expands into other macros.
-  (spelling-loc nil :type (or integer null) :read-only t))
 
 (defmethod print-object ((obj new-clang-ast) stream)
   "Print a representation of the clang-ast-node OBJ to STREAM.
@@ -483,7 +474,7 @@ in or below function declarations"
   ;; Remove those types with the same hashes.
   (remove-duplicates (call-next-method) :key #'type-hash))
 
-(defmethod find-macro ((obj new-clang) (macro new-clang-macro))
+(defmethod find-macro ((obj new-clang) (macro clang-macro))
   ;; This looks like a stub, but isn't.
   ;; What's happening here is that while in old clang
   ;; find-macro was used to look up macros from hashes,
@@ -559,7 +550,7 @@ macro objects from these, returning a list."
         (let* ((name (subseq str name-start pos))
                (body (subseq str name-start))
                (hash (sxhash body)))  ;; improve this hash
-          (make-new-clang-macro :hash hash :body body :name name))))))
+          (make-clang-macro :hash hash :body body :name name))))))
 
 (defun update-symbol-table (symbol-table ast-root)
   "Populate SYMBOL-TABLE with a mapping of AST ID -> AST(s) for all of
