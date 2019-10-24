@@ -369,6 +369,9 @@ in or below function declarations"
                                     (get-immediate-children software ast)))
                      :key #'type-hash))
 
+(defmethod symbol-table :before ((obj new-clang))
+  (update-caches-if-necessary obj))
+
 (defmethod names-symbol-table :before ((obj new-clang))
   (update-caches-if-necessary obj))
 
