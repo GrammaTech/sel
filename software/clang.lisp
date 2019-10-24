@@ -308,8 +308,7 @@ expanded relative to DIR.
                            (nest (namestring)
                                  (canonical-pathname)
                                  (merge-pathnames-as-directory
-                                  (make-pathname :directory
-                                                 (pathname-directory dir))
+                                  (ensure-directory-pathname dir)
                                   (make-pathname :directory
                                                  (list :relative f)))))
                        ;; Pass the flag thru.
