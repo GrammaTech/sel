@@ -13,7 +13,7 @@
         :software-evolution-library/software/parseable
         :software-evolution-library/software/clang
         :software-evolution-library/software/new-clang)
-  (:import-from :software-evolution-library/software/new-clang :*soft*)
+  ;; (:import-from :software-evolution-library/software/new-clang :*soft*)
   (:shadowing-import-from :software-evolution-library/software/project
                           :project :evolve-files)
   (:export :dump-ast :dump-ast-with-parent
@@ -71,9 +71,8 @@
       (dump-ast ast #'%print)))
   (:method :around ((sw clang-base) val-fn &optional s)
            (declare (ignorable s))
-           (let ((*soft* sw))
-             (ast-root sw)
-             (call-next-method))))
+           (ast-root sw)
+           (call-next-method)))
 
 (defgeneric dump-ast-val-p (ast val-fn &optional s)
   (:method ((sw project) val-fn &optional (s *standard-output*))
@@ -89,17 +88,15 @@
       (dump-ast-with-parent ast #'%print)))
   (:method :around ((sw new-clang) val-fn &optional s)
            (declare (ignorable s))
-           (let ((*soft* sw))
-             (ast-root sw)
-             (call-next-method))))
+           (ast-root sw)
+           (call-next-method)))
 
 (defgeneric dump-ast-to-list (ast fn)
   (:method ((ast ast) fn)
     (funcall fn ast (mapcar (lambda (a) (dump-ast-to-list a fn))
                             (remove-if-not #'ast-p (ast-children ast)))))
   (:method ((sw parseable) fn)
-    (let ((*soft* sw))
-      (dump-ast-to-list (ast-root sw) fn))))
+    (dump-ast-to-list (ast-root sw) fn)))
 
 (defgeneric dump-ast-val-to-list (ast val-fn)
   (:method (ast val-fn)
