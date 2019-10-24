@@ -45,7 +45,6 @@
            :make-statement-new-clang
            :make-new-clang-macro
            :*new-clang?*
-           :*soft*
            :nct+
            :nct+-type
            :make-new-clang-macroexpand-hook
@@ -66,25 +65,6 @@
 
 
 ;;; Global variables
-;;;
-;;; NOTE: *SOFT* is used in various low level functios that need
-;;;  global information about the object that contains an AST.
-;;;  The API does not always provide this object.  The downside
-;;;  of binding *SOFT* is that higher level methods have to make
-;;;  sure they bind it or the accessors don't work.  Tests in
-;;;  test.lisp also must do this.
-;;;
-;;;  Changing APIs to pass the software object down "manually"
-;;;  is another option, and would enable methods to be specialized
-;;;  on that object.
-;;;
-;;;  The best approach may be to add :around methods for generic
-;;;  functions that (1) have a new-clang object as an argument, and (2)
-;;;  are going to access things under that object using accessors
-;;;  that need *soft*.  The :around method will bind *soft* to that
-;;;  new-clang object before invoking the next method.
-
-(declaim (special *soft*))
 (declaim (special *aget-cache*))
 (declaim (special *canonical-string-table*))
 (declaim (special *canonical-new-clang-type-table*))
@@ -389,11 +369,6 @@ in or below function declarations"
                                     (get-immediate-children software ast)))
                      :key #'type-hash))
 
-(defmethod update-headers-from-ast :around ((sw new-clang) ast database)
-  (declare (ignorable ast database))
-  (let ((*soft* sw))
-    (call-next-method)))
-
 (defmethod names-symbol-table :before ((obj new-clang))
   (update-caches-if-necessary obj))
 
@@ -502,6 +477,14 @@ in or below function declarations"
                             :key [#'new-clang-type-qual #'nct+-type]))
       (add-type obj (make-instance 'nct+
                       :type (make-instance 'new-clang-type :qual name)))))
+
+(defmethod find-macro ((obj new-clang) (macro new-clang-macro))
+  ;; This looks like a stub, but isn't.
+  ;; What's happening here is that while in old clang
+  ;; find-macro was used to look up macros from hashes,
+  ;; in the new front end the macro objects are there directly.
+  ;; The lookup function just returns the object in that case.
+  macro)
 
 (defun find-macros-in-children (c)
   ;; Break C up into segments of actual strings
@@ -697,6 +680,12 @@ in the macro defn, EXPANSION-LOC is at the macro use."
     (begin-offset (aget :range (new-clang-ast-attrs obj))))
   (:method ((obj new-clang-range))
     (offset (new-clang-range-begin obj))))
+
+(defgeneric begin-tok-len (obj)
+  (:method ((obj new-clang-ast))
+    (begin-tok-len (aget :range (new-clang-ast-attrs obj))))
+  (:method ((obj new-clang-range))
+    (tok-len (new-clang-range-begin obj))))
 
 (defgeneric end-offset (obj)
   (:method ((obj new-clang-ast))
@@ -1059,9 +1048,10 @@ where class = (ast-class ast).")
 
 (defmethod ast-macros* ((ast new-clang-ast) class)
   (declare (ignorable class))
-  (union (macros-of-macro-names (ast-attr ast :macro-names))
-         (reduce #'union (ast-children ast)
-                 :key #'ast-macros :initial-value nil)))
+  (remove-duplicates (apply #'append
+                            (when (ast-attr ast :macro)
+                              (list (ast-attr ast :macro)))
+                            (mapcar #'ast-macros (ast-children ast)))))
 
 (defmethod ast-macros* ((ast new-clang-ast) (class (eql :toplevel)))
   (declare (ignorable ast class))
@@ -1069,11 +1059,11 @@ where class = (ast-class ast).")
 
 (defmethod ast-macros* ((ast new-clang-ast) (class (eql :macroexpansion)))
   (declare (ignorable class))
-  (reduce
-   #'union
-   (cons (macros-of-macro-names (ast-attr ast :macro-names))
-         (mapcar #'ast-macros (ast-attr ast :macro-child-segment)))
-   :initial-value nil))
+  (remove-duplicates (apply #'append
+                            (when (ast-attr ast :macro)
+                              (list (ast-attr ast :macro)))
+                            (mapcar #'ast-macros
+                                    (ast-attr ast :macro-child-segment)))))
 
 (defmethod ast-types ((ast string)) nil)
 (defmethod ast-types ((ast new-clang-ast))
@@ -1294,13 +1284,6 @@ on various ast classes"))
     (ast-attr ast :referenceddecl)))
 
 ;; Helpers for the "ast-*" functions above
-(defgeneric macros-of-macro-names (macro-names)
-  (:documentation "Computes the macros associated with macro-names")
-  (:method ((macro-names list) &aux (macros (macros *soft*)))
-    (iter (for n in macro-names)
-          (let ((m (find n macros :key #'macro-name :test #'equal)))
-            (when m (collecting (macro-hash m)))))))
-
 (defun reference-decls-at-ast (a)
   (let ((rd (ast-attr a :referencedDecl)))
     (when rd (list rd))))
@@ -2437,12 +2420,14 @@ macro.")
                                 (let ((obj (make-new-clang-ast
                                             :class :macroexpansion)))
                                   (let ((new-begin (car m))
+                                        (tok-len (second m))
                                         (new-end (+ (car m) (fourth m))))
                                     (setf (ast-range obj)
                                           (make-new-clang-range
                                            :begin (make-new-clang-loc
                                                    :file (ast-file a)
-                                                   :offset new-begin)
+                                                   :offset new-begin
+                                                   :tok-len tok-len)
                                            :end (make-new-clang-loc
                                                  :file (ast-file a)
                                                  :offset new-end))
@@ -2477,6 +2462,19 @@ macro.")
         (when changed?
           (setf (ast-children a) new-children))
         t))))
+
+(defun populate-macro-attr-in-macro-expansion-nodes (ast-root genome macros)
+  "For :MACROEXPANSION ASTs in AST-ROOT populate the :MACRO attribute
+with the macro in MACROS corresponding to the current node."
+  (map-ast ast-root
+           (lambda (ast)
+             (when-let ((is-macro-ast (eq :MacroExpansion (ast-class ast)))
+                        (macro (find (subseq genome
+                                             (begin-offset ast)
+                                             (+ (begin-offset ast)
+                                                (begin-tok-len ast)))
+                                     macros :test #'equal :key #'macro-name)))
+               (setf (ast-attr ast :macro) macro)))))
 
 (defun fix-overlapping-vardecls (sw ast)
   (map-ast ast (lambda (a) (fix-overlapping-vardecls-at-node sw a))))
@@ -3050,13 +3048,14 @@ ast nodes, as needed")
   ;; Port of this method from clang.lsp, for new class
   (let ((*canonical-string-table* (make-hash-table :test 'equal))
         (*canonical-new-clang-type-table* (make-hash-table :test 'equal)))
-    (with-slots (ast-root genome includes types
+    (with-slots (ast-root genome macros includes types
                           symbol-table name-symbol-table) obj
       (unless genome     ; get genome from existing ASTs if necessary
         (setf genome (genome obj)
               ast-root nil))
 
-      (setf types (make-hash-table)
+      (setf macros (find-macros-in-string genome)
+            types (make-hash-table)
             symbol-table (make-hash-table :test #'equal)
             name-symbol-table (make-hash-table :test #'equal))
 
@@ -3079,6 +3078,7 @@ ast nodes, as needed")
           (compute-operator-positions ast)
           (put-operators-into-inner-positions obj ast)
           (encapsulate-macro-expansions-cheap ast (find-macro-uses obj ast))
+          (populate-macro-attr-in-macro-expansion-nodes ast genome macros)
           (fix-overlapping-vardecls obj ast) ; must be after macro encapsulation
           (fix-ancestor-ranges ast)
           (combine-overlapping-siblings obj ast)
