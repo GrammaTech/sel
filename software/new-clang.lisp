@@ -390,12 +390,16 @@ in or below function declarations"
   (with-slots (includes macros types symbol-table name-symbol-table) obj
     (setf name-symbol-table
           (update-name-symbol-table name-symbol-table symbol-table))
-    (setf types
-          (update-type-table types symbol-table (ast-root obj)))
     (setf includes
           (ast-includes-in-obj obj (ast-root obj)))
+    (setf types
+          (if (zerop (hash-table-count types))
+              (update-type-table types symbol-table (ast-root obj))
+              types))
     (setf macros
-          (find-macros-in-children (ast-children (ast-root obj)))))
+          (if (zerop (length macros))
+              (find-macros-in-children (ast-children (ast-root obj)))
+              macros)))
   obj)
 
 (defmethod clear-caches ((obj new-clang))
