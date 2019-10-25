@@ -755,7 +755,6 @@ depending on CLASS"))
              (when v
                (list (cons key v))))))
     (append (%p ':class #'new-clang-ast-class)
-            ;; (%p ':name #'ast-name)
             (%p ':id #'new-clang-ast-id)
             ;; Always include :attrs, as it distinguishes
             ;; new-clang from (old) clang serialized asts
@@ -1096,8 +1095,7 @@ on various ast classes"))
 
 (defmethod ast-types* ((ast new-clang-ast) (ast-class symbol))
   (case ast-class
-    ((;; :UnaryExprOrTypeTraitExpr
-      :CstyleCastExpr
+    ((:CstyleCastExpr
       :CXXFunctionalCastExpr
       :CXXReinterpretCastExpr)
      (ast-types*-on-decl ast))
@@ -2997,7 +2995,7 @@ ast nodes, as needed")
                    (when prev-var?
                      (setf (new-clang-ast-syn-ctx prev) :ListElt
                            (new-clang-ast-syn-ctx  c) :FinalListElt))
-                   (setf ;; (ast-syn-ctx c) :FinalListElt
+                   (setf
                     prev c
                     prev-var? t))
                   (t (setf prev-var? nil prev nil)))))))
