@@ -37,6 +37,7 @@
            :new-clang-loc-line
            :make-new-clang-ast
            :ast-id
+           :ast-attr
            :symbol-table
            :name-symbol-table
            :combine-overlapping-siblings
