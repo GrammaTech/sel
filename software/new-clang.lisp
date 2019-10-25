@@ -1455,6 +1455,32 @@ computed at the children"))
     :type (from-alist 'new-clang-type (aget :type alist))
     :storage-class (aget :storage-class alist)))
 
+(defmethod copy ((tp new-clang-type)
+                 &key (qual nil qual-supplied-p)
+                   (desugared nil desugared-supplied-p)
+                   (modifiers nil modifiers-supplied-p)
+                   (array nil array-supplied-p)
+                   (name nil name-supplied-p)
+                   (i-file nil i-file-supplied-p)
+                   (reqs nil reqs-supplied-p))
+  (make-instance 'new-clang-type
+    :qual (if qual-supplied-p qual (new-clang-type-qual tp))
+    :desugared (if desugared-supplied-p desugared (new-clang-type-desugared tp))
+    :modifiers (if modifiers-supplied-p modifiers (new-clang-type-modifiers tp))
+    :array (if array-supplied-p array (type-array tp))
+    :name (if name-supplied-p name (type-name tp))
+    :i-file (if i-file-supplied-p i-file (type-i-file tp))
+    :reqs (if reqs-supplied-p reqs (type-reqs tp))))
+
+(defmethod copy ((tp+ nct+)
+                 &key (type nil type-supplied-p)
+                   (storage-class nil storage-class-supplied-p))
+  (make-instance 'nct+
+    :type (if type-supplied-p type (nct+-type tp+))
+    :storage-class (if storage-class-supplied-p
+                       storage-class
+                       (type-storage-class tp+))))
+
 (defmethod typedef-type ((obj new-clang) (nct nct+)
                          &aux (mods (new-clang-type-modifiers (nct+-type nct)))
                            (array (type-array (nct+-type nct))))
@@ -1464,15 +1490,14 @@ computed at the children"))
                                  (ast-type)
                                  (make-instance 'nct+ :type))))
                (typedef-type-helper typedef-nct)
-               (make-instance 'nct+
-                 :type (make-instance 'new-clang-type
-                         :qual (new-clang-type-qual (nct+-type nct))
-                         :desugared (new-clang-type-desugared (nct+-type nct))
-                         :modifiers (logior mods (new-clang-type-modifiers (nct+-type nct)))
-                         :array (concatenate 'string (type-array (nct+-type nct)) array)
-                         :i-file (type-i-file (nct+-type nct))
-                         :name (type-name (nct+-type nct)))
-                 :storage-class (type-storage-class nct)))))
+               (copy nct
+                     :type (copy (nct+-type nct)
+                                 :modifiers (logior mods
+                                                    (new-clang-type-modifiers
+                                                     (nct+-type nct)))
+                                 :array (concatenate 'string
+                                                     (type-array (nct+-type nct))
+                                                     array))))))
     (typedef-type-helper nct)))
 
 (defmethod type-i-file ((tp+ nct+))
