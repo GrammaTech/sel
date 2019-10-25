@@ -232,7 +232,10 @@
            :ast-declarations*
            :ast-var-declarations
            :ast-var-declarations*
-           :append-string-to-node))
+           :append-string-to-node
+           :add-semicolon
+           :add-semi-before
+           :add-semi-after))
 (in-package :software-evolution-library/software/clang)
 (in-readtable :curry-compose-reader-macros)
 
@@ -3951,7 +3954,8 @@ Move the semicolon in just one level, but no further"
 ;;; be specialized for particular node types.  In particular,
 ;;; :COMBINED NEW-CLANG-ASTs must be handled differently.
 (defgeneric append-string-to-node (a str)
-  (:documentation "Attach STR to the end of the text for a node")
+  (:documentation "Attach STR to the end of the text for a node.
+This is done without copying.")
   (:method ((a ast) (str string))
     ;; default method
     (let ((c (ast-children a)))
@@ -3961,6 +3965,42 @@ Move the semicolon in just one level, but no further"
             (if (stringp (car lc))
                 (setf (car lc) (concatenate 'string (car lc) str))
                 (setf (cdr lc) (list str))))))))
+
+;;; The following was moved from clang-instrument, because we need
+;;; to specialize them for macroexpansion nodes in new-clang
+;;; There is a name collision with the labels functionn ADD-SEMICOLON
+;;; in clang-fixup-mutation.  TODO: change one of these names
+(defgeneric add-semicolon (ast semi-position)
+  (:documentation "Nondestructuvely add a semicolon before, after or
+on both sides of AST.  AST is a string or ast node.  SEMI-POSITION is
+:BEFORE, :AFTER, :BOTH, or some other value (which means no change.")
+  (:method ((ast null) pos)
+    (declare (ignorable ast pos))
+    ";")
+  (:method ((ast string) (pos (eql :before)))
+    (declare (ignorable pos))
+    (concatenate 'string '(#\;) ast))
+  (:method ((ast string) (pos (eql :after)))
+    (declare (ignorable pos))
+    (concatenate 'string ast '(#\;)))
+  (:method ((ast ast) (pos (eql :before)))
+    (declare (ignorable pos))
+    (let ((children (ast-children ast)))
+      (copy ast :children
+            (cons (add-semicolon (car children) :before)
+                  (cdr children)))))
+  (:method ((ast ast) (pos (eql :after)))
+    (declare (ignorable pos))
+    (copy ast :children
+          (append (ast-children ast) (list ";"))))
+  (:method (ast (pos (eql :both)))
+    (declare (ignorable pos))
+    (add-semicolon (add-semicolon ast :before) :after))
+  (:method (ast pos)
+    (declare (ignorable pos))
+    ast))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun has-trailing-semicolon-p (ast)
   (typecase ast

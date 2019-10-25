@@ -557,29 +557,7 @@ Creates a CLANG-INSTRUMENTER for OBJ and calls its instrument method.
            :ast-ids (get-ast-ids-ht obj))
          args))
 
-;; This was in INSTRUMENT's LABEL form, but is not dependent
-;; on any surronding state.  Removed for clarity and
-;; traceability
-(defun add-semicolon (ast semi-position)
-  (cond ((eq semi-position :before)
-         (labels ((add-semi-before (ast children)
-                    (if (stringp (car children))
-                        (copy ast :children
-                              (cons (concatenate 'string ";"
-                                                 (car children))
-                                    (cdr children)))
-                        (copy ast :children
-                              (cons (add-semi-before
-                                     (car children)
-                                     (ast-children (car children)))
-                                    (cdr children))))))
-           (add-semi-before ast (ast-children ast))))
-        ((eq semi-position :after)
-         (copy ast :children (append (ast-children ast) (list ";"))))
-        ((eq semi-position :both)
-         (-> (add-semicolon ast :before)
-           (add-semicolon :after)))
-        (t ast)))
+
 
 (defun instrument-create-value (obj ast return-type before after
                                 instrumenter instrument-exit)

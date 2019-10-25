@@ -2832,6 +2832,21 @@ ranges into 'combined' nodes.  Warn when this happens."
             (concatenate 'string (ast-attr a :source-text) str))
       (call-next-method)))
 
+(defmethod remove-semicolon ((a new-clang-ast))
+  (if (eq (ast-class a) :combined)
+      (let* ((st (ast-attr a :source-text))
+             (nst (remove-semicolon st)))
+        (if (eq st nst)
+            a
+            (copy a :source-text nst)))
+      (call-next-method)))
+
+(defmethod add-semicolon ((a new-clang-ast) pos)
+  (if (eq (ast-class a) :combined)
+      (setf (ast-attr a :source-text)
+            (add-semicolon (ast-attr a :source-text) pos))
+      (call-next-method)))
+
 (defun decorate-ast-with-strings (sw ast &aux (genome (genome sw)))
   (labels
       ((%assert1 (i cbegin c)
