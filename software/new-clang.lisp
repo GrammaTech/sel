@@ -2270,6 +2270,209 @@ if no value was found."
 
 ;;; Massaging ASTs into proper form after parsing
 
+(defgeneric remove-non-program-asts (ast file)
+  (:documentation "Remove ASTs from ast that are not from the
+actual source file"))
+
+(defun is-non-program-ast (a file)
+  (let ((f (ast-file a)))
+    (and f (not (equal file f)))))
+
+(defmethod remove-non-program-asts ((ast ast) (file string))
+  (flet ((%non-program (a) (is-non-program-ast a file)))
+    ;; Remove asts based on FILE only at the top level
+    ;; This could fail on #include inside other forms,
+    ;; but we have trouble with macroexpansion there.
+    ;; TO BE FIXED
+    (setf (ast-children ast)
+          (remove-if #'%non-program (ast-children ast))))
+  ast)
+
+(defun remove-asts-in-classes (ast classes)
+  (remove-asts-if ast (lambda (o) (member (ast-class o) classes))))
+
+(defun remove-file-from-asts (ast-root tmp-file)
+  "Remove the file attribute from the ASTs in AST-ROOT which are located
+in TMP-FILE (the original genome)."
+  (labels
+      ((remove-file-from-loc (loc)
+         (cond ((typep loc 'new-clang-macro-loc)
+                (make-new-clang-macro-loc
+                 :spelling-loc
+                 (remove-file-from-loc (new-clang-macro-loc-spelling-loc loc))
+                 :expansion-loc
+                 (remove-file-from-loc (new-clang-macro-loc-expansion-loc loc))
+                 :is-macro-arg-expansion
+                 (new-clang-macro-loc-is-macro-arg-expansion loc)))
+               ((and loc (equal tmp-file (ast-file loc)))
+                (make-new-clang-loc
+                 :line (new-clang-loc-line loc)
+                 :col (new-clang-loc-col loc)
+                 :offset (new-clang-loc-offset loc)
+                 :tok-len (new-clang-loc-tok-len loc)))
+               (t loc))))
+    (map-ast ast-root
+             (lambda (ast)
+               (when (equal (ast-file ast) tmp-file)
+                 (setf (ast-attr ast :range)
+                       (make-new-clang-range
+                        :begin (nest (remove-file-from-loc)
+                                     (new-clang-range-begin)
+                                     (ast-range ast))
+                        :end (nest (remove-file-from-loc)
+                                   (new-clang-range-end)
+                                   (ast-range ast)))))))))
+
+(defun line-offsets (str)
+  "Return a list with containing the byte offsets of each new line in STR."
+  (cons 0 (iter (with byte = 0)
+                (for c in-string str)
+                (incf byte (string-size-in-octets (make-string 1 :initial-element c)))
+                (when (eq c #\Newline)
+                  (collect byte)))))
+
+(defun convert-line-and-col-to-byte-offsets
+    (ast-root genome &aux (line-offsets (line-offsets genome)))
+  "Convert AST range begin/ends in AST-ROOT from line and column pairs to
+byte offsets.
+
+* AST-ROOT root of the AST tree for GENOME
+* GENOME string with the source text of the program"
+  (labels
+      ((to-byte-offset (line col)
+         (+ (1- col) (nth (1- line) line-offsets)))
+       (convert-to-byte-offsets (loc)
+         (cond ((typep loc 'new-clang-macro-loc)
+                (make-new-clang-macro-loc
+                 :spelling-loc
+                 (convert-to-byte-offsets (new-clang-macro-loc-spelling-loc loc))
+                 :expansion-loc
+                 (convert-to-byte-offsets (new-clang-macro-loc-expansion-loc loc))
+                 :is-macro-arg-expansion
+                 (new-clang-macro-loc-is-macro-arg-expansion loc)))
+               ((null (ast-file loc))
+                (make-new-clang-loc
+                 :offset (to-byte-offset (new-clang-loc-line loc)
+                                         (new-clang-loc-col loc))
+                 :tok-len (new-clang-loc-tok-len loc)))
+               (t loc))))
+    (map-ast ast-root
+             (lambda (ast)
+               (when-let ((_ (and (not (eq :TopLevel (ast-class ast)))
+                                  (null (ast-file ast))))
+                          (begin (new-clang-range-begin (ast-range ast)))
+                          (end (new-clang-range-end (ast-range ast))))
+                 (setf (ast-attr ast :range)
+                       (make-new-clang-range
+                        :begin (convert-to-byte-offsets begin)
+                        :end (convert-to-byte-offsets end))))))))
+
+(defun multibyte-characters (str)
+  "Return a listing of multibyte character byte offsets and their length in STR."
+  (iter (for c in-string str)
+        (with byte = 0)
+        (for len = (string-size-in-octets (make-string 1 :initial-element c)))
+        (incf byte len)
+        (when (> len 1)
+          (collecting (cons byte (1- len))))))
+
+(defun fix-multibyte-characters (ast-root genome
+                                 &aux (mb-chars (multibyte-characters genome)))
+  "Convert AST range begin/ends in AST-ROOT from byte offsets to character
+offsets to support source text with multibyte characters.
+
+* AST-ROOT root of the AST tree for GENOME
+* GENOME string with the source text of the program"
+  (labels
+      ((byte-offset-to-chars (offset)
+         "Convert the given byte OFFSET to a character offset."
+         (- offset
+            (iter (for (pos . incr) in mb-chars)
+                  (while (<= pos offset))
+                  (summing incr))))
+       (byte-loc-to-chars (loc)
+         "Convert the given LOC using byte offsets to one using character offsets."
+         (cond ((typep loc 'new-clang-macro-loc)
+                (make-new-clang-macro-loc
+                 :spelling-loc
+                 (byte-loc-to-chars (new-clang-macro-loc-spelling-loc loc))
+                 :expansion-loc
+                 (byte-loc-to-chars (new-clang-macro-loc-expansion-loc loc))
+                 :is-macro-arg-expansion
+                 (new-clang-macro-loc-is-macro-arg-expansion loc)))
+               ((null (ast-file loc))
+                (make-new-clang-loc
+                 :offset (byte-offset-to-chars (new-clang-loc-offset loc))
+                 :tok-len (- (byte-offset-to-chars
+                              (+ (new-clang-loc-offset loc)
+                                 (new-clang-loc-tok-len loc)))
+                             (byte-offset-to-chars (new-clang-loc-offset loc)))))
+               (t loc))))
+    (map-ast ast-root
+             (lambda (ast)
+               (when-let ((_ (and (not (eq :TopLevel (ast-class ast)))
+                                  (null (ast-file ast))))
+                          (begin (new-clang-range-begin (ast-range ast)))
+                          (end (new-clang-range-end (ast-range ast))))
+                 (setf (ast-attr ast :range)
+                       (make-new-clang-range
+                        :begin (byte-loc-to-chars begin)
+                        :end (byte-loc-to-chars end))))))))
+
+(defgeneric compute-operator-positions (ast)
+  (:documentation "Compute positions of operators in
+CXXOperatorCallExpr nodes")
+  (:method ((ast new-clang-ast))
+    (map-ast ast #'compute-operator-position)))
+
+(defgeneric compute-operator-position (ast)
+  (:documentation "Compute positions of operators at a
+CXXOperatorCallExpr node.   Also, normalize postfix operator++/--
+to remove dummy arg")
+  (:method ((ast new-clang-ast)) nil)
+  (:method ((ast cxx-operator-call-expr))
+    (let* ((ac (ast-children ast))
+           (op (first ac))
+           (op-begin (begin-offset op)))
+      ;; The last argument to a ++ or -- is dummy when
+      ;; it's a postfix operator.  Remove it.
+      (when (and (= (length ac) 3)
+                 (let ((rds (ast-reference-decls op)))
+                   (flet ((%m (s) (member s rds :key #'ast-name
+                                          :test #'equal)))
+                     (or (%m "operator++") (%m "operator--")))))
+        (setf ac (setf (ast-children ast) (subseq ac 0 2))))
+      ;; Position = # of child asts that are before
+      ;; the operator in the source file
+      (let ((rest-offsets (mapcar #'begin-offset (cdr ac))))
+        (when (and op-begin (every #'identity rest-offsets))
+          (setf (cxx-operator-call-expr-pos ast)
+                (count op-begin rest-offsets :test #'>)))))))
+
+(defgeneric put-operators-into-inner-positions (sw ast)
+  (:documentation "Put operators into their inner positions
+in CXXOperatorCallExpr nodes.")
+  (:method ((sw new-clang) (ast new-clang-ast))
+    (map-ast ast #'put-operator-into-inner-position)))
+
+(defgeneric put-operator-into-inner-position (ast)
+  (:documentation "Put operator into its inner position
+in a CXXOperatorCallExpr node.")
+  (:method ((ast new-clang-ast)) nil)
+  (:method ((ast cxx-operator-call-expr))
+    ;; This is pre-stringification, so there should only
+    ;; be ast children
+    (let* ((c (ast-children ast))
+           (op (first c))
+           (pos (cxx-operator-call-expr-pos ast)))
+      (assert (every #'ast-p c))
+      (when pos
+        (assert (< pos (length c)))
+        (setf (ast-children ast)
+              (append (subseq c 1 (1+ pos))
+                      (list op)
+                      (subseq c (1+ pos))))))))
+
 ;;; Macro expansion code
 (defgeneric find-macro-uses (obj a)
   (:documentation "Identify the locations at which macros occur in the
@@ -2483,209 +2686,6 @@ text ranges in the source do not overlap, if possible."
                         pos next-pos)))
             (setf prev nil pos nil)))))
   ast)
-
-(defgeneric remove-non-program-asts (ast file)
-  (:documentation "Remove ASTs from ast that are not from the
-actual source file"))
-
-(defun is-non-program-ast (a file)
-  (let ((f (ast-file a)))
-    (and f (not (equal file f)))))
-
-(defmethod remove-non-program-asts ((ast ast) (file string))
-  (flet ((%non-program (a) (is-non-program-ast a file)))
-    ;; Remove asts based on FILE only at the top level
-    ;; This could fail on #include inside other forms,
-    ;; but we have trouble with macroexpansion there.
-    ;; TO BE FIXED
-    (setf (ast-children ast)
-          (remove-if #'%non-program (ast-children ast))))
-  ast)
-
-(defun remove-asts-in-classes (ast classes)
-  (remove-asts-if ast (lambda (o) (member (ast-class o) classes))))
-
-(defun remove-file-from-asts (ast-root tmp-file)
-  "Remove the file attribute from the ASTs in AST-ROOT which are located
-in TMP-FILE (the original genome)."
-  (labels
-      ((remove-file-from-loc (loc)
-         (cond ((typep loc 'new-clang-macro-loc)
-                (make-new-clang-macro-loc
-                 :spelling-loc
-                 (remove-file-from-loc (new-clang-macro-loc-spelling-loc loc))
-                 :expansion-loc
-                 (remove-file-from-loc (new-clang-macro-loc-expansion-loc loc))
-                 :is-macro-arg-expansion
-                 (new-clang-macro-loc-is-macro-arg-expansion loc)))
-               ((and loc (equal tmp-file (ast-file loc)))
-                (make-new-clang-loc
-                 :line (new-clang-loc-line loc)
-                 :col (new-clang-loc-col loc)
-                 :offset (new-clang-loc-offset loc)
-                 :tok-len (new-clang-loc-tok-len loc)))
-               (t loc))))
-    (map-ast ast-root
-             (lambda (ast)
-               (when (equal (ast-file ast) tmp-file)
-                 (setf (ast-attr ast :range)
-                       (make-new-clang-range
-                        :begin (nest (remove-file-from-loc)
-                                     (new-clang-range-begin)
-                                     (ast-range ast))
-                        :end (nest (remove-file-from-loc)
-                                   (new-clang-range-end)
-                                   (ast-range ast)))))))))
-
-(defun line-offsets (str)
-  "Return a list with containing the byte offsets of each new line in STR."
-  (cons 0 (iter (with byte = 0)
-                (for c in-string str)
-                (incf byte (string-size-in-octets (make-string 1 :initial-element c)))
-                (when (eq c #\Newline)
-                  (collect byte)))))
-
-(defun convert-line-and-col-to-byte-offsets
-    (ast-root genome &aux (line-offsets (line-offsets genome)))
-  "Convert AST range begin/ends in AST-ROOT from line and column pairs to
-byte offsets.
-
-* AST-ROOT root of the AST tree for GENOME
-* GENOME string with the source text of the program"
-  (labels
-      ((to-byte-offset (line col)
-         (+ (1- col) (nth (1- line) line-offsets)))
-       (convert-to-byte-offsets (loc)
-         (cond ((typep loc 'new-clang-macro-loc)
-                (make-new-clang-macro-loc
-                 :spelling-loc
-                 (convert-to-byte-offsets (new-clang-macro-loc-spelling-loc loc))
-                 :expansion-loc
-                 (convert-to-byte-offsets (new-clang-macro-loc-expansion-loc loc))
-                 :is-macro-arg-expansion
-                 (new-clang-macro-loc-is-macro-arg-expansion loc)))
-               ((null (ast-file loc))
-                (make-new-clang-loc
-                 :offset (to-byte-offset (new-clang-loc-line loc)
-                                         (new-clang-loc-col loc))
-                 :tok-len (new-clang-loc-tok-len loc)))
-               (t loc))))
-    (map-ast ast-root
-             (lambda (ast)
-               (when-let ((_ (and (not (eq :TopLevel (ast-class ast)))
-                                  (null (ast-file ast))))
-                          (begin (new-clang-range-begin (ast-range ast)))
-                          (end (new-clang-range-end (ast-range ast))))
-                 (setf (ast-attr ast :range)
-                       (make-new-clang-range
-                        :begin (convert-to-byte-offsets begin)
-                        :end (convert-to-byte-offsets end))))))))
-
-(defun multibyte-characters (str)
-  "Return a listing of multibyte character byte offsets and their length in STR."
-  (iter (for c in-string str)
-        (with byte = 0)
-        (for len = (string-size-in-octets (make-string 1 :initial-element c)))
-        (incf byte len)
-        (when (> len 1)
-          (collecting (cons byte (1- len))))))
-
-(defun fix-multibyte-characters (ast-root genome
-                                 &aux (mb-chars (multibyte-characters genome)))
-  "Convert AST range begin/ends in AST-ROOT from byte offsets to character
-offsets to support source text with multibyte characters.
-
-* AST-ROOT root of the AST tree for GENOME
-* GENOME string with the source text of the program"
-  (labels
-      ((byte-offset-to-chars (offset)
-         "Convert the given byte OFFSET to a character offset."
-         (- offset
-            (iter (for (pos . incr) in mb-chars)
-                  (while (<= pos offset))
-                  (summing incr))))
-       (byte-loc-to-chars (loc)
-         "Convert the given LOC using byte offsets to one using character offsets."
-         (cond ((typep loc 'new-clang-macro-loc)
-                (make-new-clang-macro-loc
-                 :spelling-loc
-                 (byte-loc-to-chars (new-clang-macro-loc-spelling-loc loc))
-                 :expansion-loc
-                 (byte-loc-to-chars (new-clang-macro-loc-expansion-loc loc))
-                 :is-macro-arg-expansion
-                 (new-clang-macro-loc-is-macro-arg-expansion loc)))
-               ((null (ast-file loc))
-                (make-new-clang-loc
-                 :offset (byte-offset-to-chars (new-clang-loc-offset loc))
-                 :tok-len (- (byte-offset-to-chars
-                              (+ (new-clang-loc-offset loc)
-                                 (new-clang-loc-tok-len loc)))
-                             (byte-offset-to-chars (new-clang-loc-offset loc)))))
-               (t loc))))
-    (map-ast ast-root
-             (lambda (ast)
-               (when-let ((_ (and (not (eq :TopLevel (ast-class ast)))
-                                  (null (ast-file ast))))
-                          (begin (new-clang-range-begin (ast-range ast)))
-                          (end (new-clang-range-end (ast-range ast))))
-                 (setf (ast-attr ast :range)
-                       (make-new-clang-range
-                        :begin (byte-loc-to-chars begin)
-                        :end (byte-loc-to-chars end))))))))
-
-(defgeneric compute-operator-positions (ast)
-  (:documentation "Compute positions of operators in
-CXXOperatorCallExpr nodes")
-  (:method ((ast new-clang-ast))
-    (map-ast ast #'compute-operator-position)))
-
-(defgeneric compute-operator-position (ast)
-  (:documentation "Compute positions of operators at a
-CXXOperatorCallExpr node.   Also, normalize postfix operator++/--
-to remove dummy arg")
-  (:method ((ast new-clang-ast)) nil)
-  (:method ((ast cxx-operator-call-expr))
-    (let* ((ac (ast-children ast))
-           (op (first ac))
-           (op-begin (begin-offset op)))
-      ;; The last argument to a ++ or -- is dummy when
-      ;; it's a postfix operator.  Remove it.
-      (when (and (= (length ac) 3)
-                 (let ((rds (ast-reference-decls op)))
-                   (flet ((%m (s) (member s rds :key #'ast-name
-                                          :test #'equal)))
-                     (or (%m "operator++") (%m "operator--")))))
-        (setf ac (setf (ast-children ast) (subseq ac 0 2))))
-      ;; Position = # of child asts that are before
-      ;; the operator in the source file
-      (let ((rest-offsets (mapcar #'begin-offset (cdr ac))))
-        (when (and op-begin (every #'identity rest-offsets))
-          (setf (cxx-operator-call-expr-pos ast)
-                (count op-begin rest-offsets :test #'>)))))))
-
-(defgeneric put-operators-into-inner-positions (sw ast)
-  (:documentation "Put operators into their inner positions
-in CXXOperatorCallExpr nodes.")
-  (:method ((sw new-clang) (ast new-clang-ast))
-    (map-ast ast #'put-operator-into-inner-position)))
-
-(defgeneric put-operator-into-inner-position (ast)
-  (:documentation "Put operator into its inner position
-in a CXXOperatorCallExpr node.")
-  (:method ((ast new-clang-ast)) nil)
-  (:method ((ast cxx-operator-call-expr))
-    ;; This is pre-stringification, so there should only
-    ;; be ast children
-    (let* ((c (ast-children ast))
-           (op (first c))
-           (pos (cxx-operator-call-expr-pos ast)))
-      (assert (every #'ast-p c))
-      (when pos
-        (assert (< pos (length c)))
-        (setf (ast-children ast)
-              (append (subseq c 1 (1+ pos))
-                      (list op)
-                      (subseq c (1+ pos))))))))
 
 (defun fix-ancestor-ranges (ast)
   "Normalize the ast so the range of each node is a superset
