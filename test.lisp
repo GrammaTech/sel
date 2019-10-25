@@ -9982,18 +9982,26 @@ prints unique counters in the trace"
                           "identifier" "--" "}"))))
       (is (equal tokens while-tokens)))))
 
+                                        ; def this with lables
+                                        ;(defun
+
 (deftest annotations-with-fault-loc ()
-  (setf *new-clang?* t)
-  (setf *ast-annotations-file* "test/etc/gcd/gcd-fault-loc")
-  (with-fixture gcd-clang
-    (let* ((bad-stmts-weights (fault-loc-only-on-bad-traces *gcd*))
-           (bad-stmts (remove nil (loop for tup in bad-stmts-weights
+  (labels ((ast-start-line (ast)
+             (let ((loc (new-clang-range-begin (ast-attr ast :range))))
+               (if (numberp loc)
+                   nil  ; the root node has "0" for a range
+                   (new-clang-loc-line loc)))))
+    (setf *new-clang?* t)
+    (with-fixture gcd-clang
+      (decorate-with-annotations *gcd* (pathname "test/etc/gcd/gcd-fault-loc"))
+      (let* ((bad-stmts-weights (fault-loc-only-on-bad-traces *gcd*))
+             (bad-stmts (remove nil (loop for tup in bad-stmts-weights
                                         ;when weighted at 1.0
-                                     collect (when (equal (cdr tup) 1.0)
-                                               (car tup)))))
-           (bad-lines (remove-duplicates (sort (mapcar #'ast-start-line bad-stmts) #'<))))
-      (setf *new-clang?* nil) ; set back
-      (is (equal bad-lines (list 17 18 19 20 21 24))))))
+                                       collect (when (equal (cdr tup) 1.0)
+                                                 (car tup)))))
+             (bad-lines (remove-duplicates (sort (mapcar #'ast-start-line bad-stmts) #'<))))
+        (setf *new-clang?* nil) ; set back
+        (is (equal bad-lines (list 16 17 18 19 20 21 24)))))))
 
 #+nil
 (deftest rinard-fault-loc ()

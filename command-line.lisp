@@ -41,6 +41,7 @@
         :software-evolution-library/software/java-project
         :software-evolution-library/software/lisp-project
         ;; Components.
+        :software-evolution-library/components/fault-loc
         :software-evolution-library/components/test-suite)
   (:import-from :bordeaux-threads :all-threads :thread-name :join-thread)
   (:import-from :cl-ppcre :scan)
@@ -193,7 +194,7 @@ front end."
           "Tournament size must be >1"))
 
 (defun handle-ast-annotations-argument (path)
-  (setf *ast-annotations-file* path))
+  (resolve-file path))
 
 (defun resolve-file (file)
   "Ensure file is an actual file that exists on the filesystem."
@@ -378,6 +379,7 @@ directories and if files based on their extensions."
                           (language (guess-language path) language-p)
                           compiler flags build-command artifacts
                           ast-annotations compilation-database store-path
+                          fault-loc git-sub-path git-ssh-key git-user git-password
                           &allow-other-keys)
   "Build a software object from a common superset of language-specific options.
 
@@ -402,7 +404,14 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
   ;; of creating a software object from source.
   (when (equal (pathname-type (pathname path)) "store")
     (return-from create-software (restore path)))
-  (from-file
+  ;; When `path` is a git repository, generate a new temp dir,
+  ;; check out the repo, and set relevant variables
+  (when (is-git-url path)
+    (with-temp-file (repo) (setf *git-repo-path* repo))
+    (clone-git-repo path *git-repo-path* :ssh-key git-ssh-key :user git-user :pass git-password)
+    (setf path (probe-file (format nil "~a/~a" *git-repo-path* git-sub-path)))
+    (setf language (guess-language path))) ; Reset the language, now that repo is cloned.
+  (let ((obj (from-file
    (nest
     ;; These options are interdependent.  Resolve any dependencies and
     ;; drop options which don't exist for LANGUAGE in this `let*'.
@@ -458,7 +467,14 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
       (:artifacts ,artifacts)
       (:ast-annotations ,ast-annotations)
       (:compilation-database ,compilation-database)))
-   path))
+   path)))
+    (when ast-annotations
+      (decorate-with-annotations obj (pathname ast-annotations))
+      (when fault-loc
+        (perform-fault-loc obj)))
+                                        ;      (mapcar (lambda (elt) (note 0 "ast: ~a" (ast-attr elt :annotations)))
+                                        ;             (flatten (mapcar #'stmt-asts (mapcar #'cdr (evolve-files obj)))))
+    obj))
 
 (defgeneric create-test (script)
   (:documentation "Return a test case of SCRIPT.")
@@ -516,7 +532,15 @@ in SCRIPT.")
        :documentation "load random seed from FILE")
       (("save-seed") :type string
        :action #'handle-save-random-state-to-path-argument
-       :documentation "save random seed to FILE")))
+       :documentation "save random seed to FILE")
+      (("git-sub-path" #\p) :type string :initial-value nil
+       :documentation "sub path to repair artifacts, when using a git repo")
+      (("git-ssh-key" #\k) :type string :initial-value nil
+       :documentation "ssh key for pushing, when using a git repo")
+      (("git-user" #\P) :type string :initial-value nil
+       :documentation "user, to use when pushing to a git repo")
+      (("git-password" #\P) :type string :initial-value nil
+       :documentation "password (NOTE: insecure!), to use when pushing to a git repo")))
   (defparameter +interactive-command-line-options+
     '((("interactive") :type boolean :optional t
        :action #'handle-set-interactive-argument
@@ -566,4 +590,6 @@ in SCRIPT.")
       (("max-evals") :type integer
        :documentation "maximum number of evaluations to run in evolution")
       (("max-time") :type integer
-       :documentation "maximum number of seconds to run evolution"))))
+       :documentation "maximum number of seconds to run evolution")
+      (("fault-loc" #\f) :type boolean :initial-value nil
+       :documentation "perform fault loc on supplied traces (-A also required)"))))

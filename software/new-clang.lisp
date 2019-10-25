@@ -31,6 +31,8 @@
   (:import-from :anaphora :awhen :it)
   (:export :new-clang
            :new-clang-ast
+           :new-clang-range-begin
+           :new-clang-loc-line
            :make-new-clang-ast
            :symbol-table
            :name-symbol-table
@@ -46,7 +48,9 @@
            :type-i-file
            :make-new-clang-macroexpand-hook
            :cpp-scan
-           :ast-start-line))
+           :ast-attr
+           :within-ast-range
+           :ast-range-str))
 (in-package :software-evolution-library/software/new-clang)
 (in-readtable :curry-compose-reader-macros)
 
@@ -410,7 +414,6 @@ macro objects from these, returning a list."
                           (:conc-name new-clang-ast-))
   (path nil :type list)          ;; Path to subtree from root of tree.
   (children nil :type list)      ;; Remainder of subtree.
-  (annotations nil :type list)
   (stored-hash nil :type (or null fixnum))
   ;; Class symbol for this ast node
   (class nil :type symbol)
@@ -439,10 +442,6 @@ macro objects from these, returning a list."
   (new-clang-ast-children obj))
 (defmethod (setf ast-children) (value (obj new-clang-ast))
   (setf (new-clang-ast-children obj) value))
-(defmethod ast-annotations ((obj new-clang-ast))
-  (new-clang-ast-annotations obj))
-(defmethod (setf ast-annotations) (value (obj new-clang-ast))
-  (setf (new-clang-ast-annotations obj) value))
 (defmethod ast-stored-hash ((obj new-clang-ast))
   (new-clang-ast-stored-hash obj))
 (defmethod (setf ast-stored-hash) (value (obj new-clang-ast))
@@ -937,11 +936,15 @@ that is not strictly speaking about types at all (storage class)."))
 (defun ast-range (ast) (ast-attr ast :range))
 (defun (setf ast-range) (val ast) (setf (ast-attr ast :range) val))
 
-(defun ast-start-line (ast)
-  (let ((loc (new-clang-range-begin (ast-range ast))))
-    (if (numberp loc)
-        nil  ; the root node has "0" for a range
-        (new-clang-loc-line loc))))
+(defun within-ast-range (range line)
+  "Test whether the supplied line is within a range."
+  (and (>= line (new-clang-loc-line (new-clang-range-begin range)))
+       (<= line (new-clang-loc-line (new-clang-range-end range)))))
+
+(defun ast-range-str (range)
+  "Return a short string-rep for the supplied range."
+  (format nil "[~a, ~a]" (new-clang-loc-line (new-clang-range-begin range))
+          (new-clang-loc-line (new-clang-range-end range))))
 
 (defmethod ast-name ((obj new-clang-ast)) (ast-attr obj :name))
 
@@ -1082,7 +1085,6 @@ that is not strictly speaking about types at all (storage class)."))
                              (class (new-clang-ast-class ast))
                              (attrs (new-clang-ast-attrs ast) attrs-p)
                              (id (new-clang-ast-id ast))
-                             (annotations (new-clang-ast-annotations ast))
                              (syn-ctx (new-clang-ast-syn-ctx ast))
                              (aux-data (new-clang-ast-aux-data ast))
                              &allow-other-keys)
@@ -1113,7 +1115,6 @@ that is not strictly speaking about types at all (storage class)."))
     (funcall fn :allow-other-keys t
              :path path :children children
              :class class :attrs attrs :id id
-             :annotations annotations
              :syn-ctx syn-ctx :aux-data aux-data)))
 
 (defmethod copy ((ast new-clang-ast) &rest args) ;  &key &allow-other-keys)
@@ -2856,7 +2857,6 @@ ranges into 'combined' nodes.  Warn when this happens."
                 (compute-full-stmt-attrs ast)
                 (compute-guard-stmt-attrs ast)
                 (compute-syn-ctxs ast)
-                (decorate-with-annotations obj ast)
                 (setf ast-root (sel/sw/parseable::update-paths
                                 (fix-semicolons ast))
                       genome nil)
@@ -3708,53 +3708,3 @@ template brackets < and >."
       (when (< pos end)
         (cpp-scan* nil)))))
 
-;; Note: annotation lines for new-clang objects must have the following format:
-;; "source_file.c" 14 :tag   (i.e., "file line-num annotations...")
-(defun match-ast-file-line (ast ann-line)
-  "Given a file/line-based annotation, match against ast location info."
-  (let ((loc (new-clang-range-begin (ast-range ast))))
-    (if (numberp loc)
-        nil  ; the root node has "0" for a range
-        (let ((line (new-clang-loc-line loc))
-              (ann-line (nth 1 ann-line)))
-          (equal ann-line line)))))
-
-(defun append-annotations (ast anns-lst)
-  "Translates user-supplied annotation string to actual new-clang-ast field
-and sets the annotation accordingly, based on type"
-  (let* ((cur-anns (ast-annotations ast))
-                                        ;pull off the location info
-         (stripped-anns-lst (mapcar #'(lambda (elt) (cdr (cdr elt))) anns-lst)))
-    (setf (ast-annotations ast) (append stripped-anns-lst cur-anns))))
-
-(defun annotate-line-nums (ast)
-  "Add line numbers to annotations, generally for debugging purposes"
-  (let* ((cur-anns (ast-annotations ast)))
-                                        ;pull off the location info
-    (let ((loc (new-clang-range-begin (ast-range ast))))
-      (unless (numberp loc)
-        (let* ((line (new-clang-loc-line loc))
-               (more-anns (append (list (cons :line line)) cur-anns)))
-          (setf (ast-annotations ast) more-anns))))))
-
-;;new-clang annotation format is (file line <arbitrary-annotations>)
-(defmethod decorate-with-annotations (obj ast)
-  "When *ast-annotations-file* is set, read and decorate obj asts
-with the associated annotations, filtering on file/line location info."
-  (when *ast-annotations-file*
-    (let* ((cur-file (original-file obj))
-           (all-anns (with-open-file (stream *ast-annotations-file*)
-                       (loop :for line = (read stream nil :done)
-                          :while (not (eq line :done))
-                          :collect line)))
-           (filt-anns (remove-if-not  ; only keep annotations for this file
-                       (lambda (line) (search (string-downcase (string (nth 0 line)))
-                                              (string-downcase (string cur-file))))
-                       all-anns)))
-      (mapcar (lambda (stmt) (let ((elts (remove-if-not
-                                          (lambda (line)
-                                            (match-ast-file-line stmt line))
-                                          filt-anns)))
-                               (when elts
-                                 (append-annotations stmt elts))))
-              (stmt-asts ast)))))

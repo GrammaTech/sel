@@ -95,7 +95,7 @@
    :current-git-commit
    :current-git-branch
    :current-git-status
-   :is-git-repo
+   :is-git-url
    :clone-git-repo
    :push-git-repo
    :*temp-dir*
@@ -404,27 +404,43 @@ Return nil if there are no modified, untracked, or deleted files."
                 (list (make-keyword status) (subseq line point))))
             (split-sequence #\Newline stdout :remove-empty-subseqs t))))
 
-(defun is-git-repo (url)
-  (cl-ppcre:scan "\\.git$" url))
+(defun is-git-url (url)
+  (or (scan "\\.git$" url)
+      (scan "^git://" url)
+      (scan "^https://git\\." url)))
 
-(defun clone-git-repo (url path)
+(defun clone-git-repo (url path &key ssh-key user pass)
   "Clones a repo at the supplied URL into the supplied path -- Note,
 the path must be absolute and have a trailing slash, as per git convention."
-  (multiple-value-bind (stdout stderr errno)
-      (shell "git clone ~a ~a" url path)
-    (declare (ignorable stdout))
-    (unless (zerop errno)
-      (note 0 "git checkout failed: ~a" stderr)
-      (note 0 "cmd: git --work-tree=~a checkout ~a" path url))))
+  (let ((clone-cmd (format nil "git clone ~a ~a" url path)))
+    (when ssh-key
+      (setf clone-cmd (format nil "GIT_SSH_COMMAND='ssh -i ~a -F /dev/null' ~a" ssh-key clone-cmd)))
+    (when (and user pass)
+      (setf clone-cmd (regex-replace "://" clone-cmd (format nil "://~a:~a@" user pass))))
+    (note 2 "cloning git repo: ~a" clone-cmd)
+    (multiple-value-bind (stdout stderr errno)
+        (shell clone-cmd)
+      (declare (ignorable stdout))
+      (unless (zerop errno)
+        (note 0 "git checkout failed: ~a" stderr)
+        (note 0 "cmd: git --work-tree=~a checkout ~a" path url)))))
 
-(defun push-git-repo (path)
-  (multiple-value-bind (stdout stderr errno)
-      (shell "cd ~a && git checkout -b SEL && git commit -m \"SEL-based changes\" * && git push --set-upstream origin SEL" path)
-    (unless (zerop errno)
-      (note 0 "git push failed:")
-      (note 0 "  cmd: cd ~a && git checkout -b SEL && git commit -m \"SEL-based changes\" && git push --set-upstream origin SEL" path)
-      (note 0 "  stdout: ~a" stdout)
-      (note 0 "  stderr: ~a" stderr))))
+(defun push-git-repo (path branch-name commit-msg &key ssh-key user pass)
+  "Given a valid git repo at `path`, push changes to a new `branch-name` branch"
+  (let ((push-cmd (format nil "git push origin ~a" branch-name)))
+    (when ssh-key
+      (setf push-cmd (format nil "GIT_SSH_COMMAND='ssh -i ~a -F /dev/null' ~a" ssh-key push-cmd)))
+    (when (and user pass)
+      (setf push-cmd (regex-replace "://" push-cmd (format nil "://~a:~a@" user pass))))
+
+    (let ((full-cmd (format nil "cd ~a && git checkout -b ~a && git commit -m \"~a\" * && ~a" path branch-name commit-msg push-cmd)))
+      (note 2 "git command: ~a" full-cmd)
+      (multiple-value-bind (stdout stderr errno)
+          (shell full-cmd)
+        (unless (zerop errno)
+          (note 0 "git push failed:")
+          (note 0 "  stdout: ~a" stdout)
+          (note 0 "  stderr: ~a" stderr))))))
 
 #+sbcl
 (locally (declare (sb-ext:muffle-conditions sb-ext:compiler-note))

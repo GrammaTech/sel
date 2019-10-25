@@ -11,6 +11,7 @@
         :uiop
         :software-evolution-library
         :software-evolution-library/software/simple
+        :software-evolution-library/software/source
         :software-evolution-library/components/formatting
         :software-evolution-library/utility)
   (:shadowing-import-from :uiop/run-program :run-program)
@@ -22,6 +23,7 @@
    :parse-body :simple-style-warning)
   (:export :project
            :*build-dir*
+           :*git-repo-path*
            :build-command
            :artifacts
            :evolve-files
@@ -38,7 +40,8 @@
            :collect-evolve-files
            :collect-other-files
            :instrumentation-files
-           :all-files))
+           :all-files
+           :write-out-products-of-evolution))
 (in-package :software-evolution-library/software/project)
 (in-readtable :curry-compose-reader-macros)
 
@@ -111,6 +114,11 @@ build directory.  To do this set *BUILD-DIR* to a different location
 in each thread and then initialize *BUILD-DIR* in each thread by
 calling `{to-file _ *BUILD_DIR*}' against a base software
 object (e.g., the original program).")
+
+(defvar *git-repo-path* nil
+  "Git repository URL containing source material for a given project.
+The functionality that consumes this variable (i.e., interacts with
+the repository) assumes that all relevant permissions have been enabled.")
 
 (defun ignored-path-p (path &key ignore-paths only-paths
                        &aux (canonical-path (canonical-pathname path)))
@@ -389,3 +397,38 @@ non-symlink text files that don't end in \"~\" and are not ignored by
     (assert (probe-file bin) (bin) "BIN not created!")
     (values bin exit stderr stdout
             (mapcar [{in-directory build-dir} #'first] (evolve-files obj)))))
+
+(defun write-out-products-of-evolution (out-dir source
+                                        &optional git-branch git-msg
+                                        &key save-pop ssh-key user pass)
+  "Write out population to the supplied path and push to git repo, if
+one was provided."
+  (let ((best-path (make-pathname
+                    :directory out-dir
+                    :name (format nil "~a-best" (pathname-name source))
+                    :type (pathname-type source))))
+    (note 2 "Writing best individual to ~s" best-path)
+    (to-file (extremum *population* *fitness-predicate*
+                       :key #'fitness)
+             best-path))
+  (when *git-repo-path*
+    ;; Check-in changes to new branch.
+    (note 2 "Checking in repaired changes...")
+    (let ((repo-path (make-pathname
+                      :directory out-dir))) ; strip off tag
+      (note 2 "  writing out to repo: ~a" repo-path)
+      (to-file (extremum *population* *fitness-predicate*
+                         :key #'fitness)
+               repo-path))
+    (push-git-repo *git-repo-path* git-branch git-msg
+                   :ssh-key ssh-key :user user :pass pass)
+    ;; Clean up the repo.
+    (shell "rm -rf ~a" *git-repo-path*))
+  ;; Don't save pop with git repo, it all gets cleaned-up anyway.
+  (when (and save-pop (not *git-repo-path*))
+    (let ((store-path (make-pathname
+                       :directory out-dir
+                       :name (format nil "~a-population" (pathname-name source))
+                       :type "store")))
+      (note 2 "Writing population to ~a" store-path)
+      (store *population* store-path))))

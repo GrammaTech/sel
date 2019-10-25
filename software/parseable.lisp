@@ -244,6 +244,10 @@ even if such an INCLUDE already exists in SOFTWARE."))
 Return as a list of (first-index last-index). Indices are positions in
 the list returned by (asts software)."  ) )
 
+(defgeneric match-ast-location (ast loc-spec)
+  (:documentation
+   "Match the given ast to location info (varies by software-type and ast-type)"))
+
 
 ;;; Core parseable methods
 (defvar *parseable-obj-code* (register-code 45 'parseable)
@@ -735,9 +739,8 @@ FIRST-POOL and SECOND-POOL are methods on SOFTWARE which return a list
 of ASTs.  An optional filter function having the signature 'f ast
 &optional first-pick', may be passed, returning true if the given AST
 should be included as a possible pick or false (nil) otherwise."
-  (let* ((first-pick (some-> (filter-fault-loc
-                              (mutation-targets software :filter filter
-                                                :stmt-pool first-pool))
+  (let* ((first-pick (some-> (mutation-targets software :filter filter
+                                               :stmt-pool first-pool)
                              (random-elt))))
     (if (null second-pool)
         (list (cons :stmt1 first-pick))
@@ -750,29 +753,6 @@ should be included as a possible pick or false (nil) otherwise."
                                                                     t))
                                                       :stmt-pool second-pool))
                                    (random-elt)))))))
-
-(defun filter-fault-loc (pool)
-  "AST nodes in 'pool' may be annotated with 'fl-weight' tags, indicating how
-suspect individual nodes are from 0 (not suspect) to 1 (fully suspect).
-If these tags are present, randomly generate a cutoff and filter out
-nodes below that cutoff.  This can result in an empty set -- in this case,
-return the original pool."
-  (if (member :fl-weight (flatten (mapcar #'ast-annotations pool)))
-      (labels ((fl-weight (ast)
-                 (let ((elt (find :fl-weight (ast-annotations ast) :key #'car)))
-
-                   (if elt (cdr elt) 0.5)))) ; if no FL info, return 0.5
-                                        ; Note: this gives "even chance" on picking things that didn't
-                                        ; appear in the trace -- should adjust based on needs/strategy
-        (let* ((cutoff (random 1.0))
-               (filtered-lst (remove-if-not (lambda (stmt)
-                                              (> (fl-weight stmt) cutoff))
-                                            pool)))
-          (if filtered-lst  ;if non-empty
-              filtered-lst  ;return it
-              pool)))       ;otherwise original set
-      pool))  ;if no fl-weights, return pool as-is
-
 
 (defmethod pick-bad-good ((software parseable) &key filter
                           (bad-pool #'bad-asts) (good-pool #'good-asts))

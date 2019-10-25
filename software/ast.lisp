@@ -22,7 +22,6 @@
   (:export :ast
            :ast-stub
            :ast-p
-           :*ast-annotations-file*
            :define-ast
            :define-immutable-node-struct
            :to-alist
@@ -38,7 +37,6 @@
            :replace-nth-child
            :fixup-mutation
            :ast-children
-           :ast-annotations
            :ast-nodes-in-subtree
            :ast-equal-p
            :ast-text
@@ -92,12 +90,6 @@
 (defgeneric (setf ast-children) (v a)
   (:documentation "Genericized version of children writer for AST structs")
   (:method ((v list) (a ast-stub)) (setf (ast-internal-children a) v)))
-(defgeneric ast-annotations (a)
-  (:documentation "Genericized version of annotations reader for AST structs")
-  (:method ((a ast-stub)) (ast-internal-annotations a)))
-(defgeneric (setf ast-annotations) (v a)
-  (:documentation "Genericized version of annotations writer for AST structs")
-  (:method ((v list) (a ast-stub)) (setf (ast-internal-annotations a) v)))
 (defgeneric ast-stored-hash (a)
   (:documentation "Genericized version of stored-hash reader for AST structs")
   (:method ((a ast-stub)) (ast-internal-stored-hash a)))
@@ -108,14 +100,6 @@
 (defparameter *ast-print-cutoff* 20
   "Maximum number of characters to print for TEXT in
 PRINT-OBJECT method on AST structures.")
-
-(defvar *ast-annotations-file* nil
-  "File specified by the user indicating AST annotations that should
-be made when creating software objects, to be used, for instance, for
-fault localization.  The format is \":tag <location>\" where :tag
-matches a predefined AST node field to be marked and <location>
-specifies a filter for a given node type (e.g., file and line number:
-\"file.c 25\").")
 
 (defmethod print-object ((obj ast-stub) stream &aux (cutoff *ast-print-cutoff*))
   (if *print-readably*
@@ -326,10 +310,6 @@ specifies a filter for a given node type (e.g., file and line number:
              (,(symbol-cat name 'children) ,obj))
            (defmethod (setf ast-children) ((v list) (,obj ,name))
              (setf (,(symbol-cat name 'children) ,obj) v))
-           (defmethod ast-annotations ((,obj, name))
-             (,(symbol-cat name 'annotations) ,obj))
-           (defmethod (setf ast-annotations) ((v list) (,obj ,name))
-             (setf (,(symbol-cat name 'annotations) ,obj) v))
            (defmethod ast-stored-hash ((,obj ,name))
              (,(symbol-cat name 'stored-hash) ,obj))
            (defmethod (setf ast-stored-hash) (v (,obj ,name))

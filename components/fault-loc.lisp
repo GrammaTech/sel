@@ -20,6 +20,7 @@
         :software-evolution-library/software/clang
         :software-evolution-library/software/new-clang
         :software-evolution-library/software/project
+        :software-evolution-library/software/clang-project
         :software-evolution-library/components/test-suite)
   (:export :error-funcs
            :rinard
@@ -28,11 +29,17 @@
            :rinard-write-out
            :rinard-read-in
            :collect-fault-loc-traces
+           :decorate-with-annotations
            :perform-fault-loc
            :fault-loc-tarantula
-           :fault-loc-only-on-bad-traces))
+           :fault-loc-only-on-bad-traces
+           :mutation-targets))
 (in-package :software-evolution-library/components/fault-loc)
 (in-readtable :curry-compose-reader-macros)
+
+(defvar *default-fault-loc-weight* 0.05
+  "The default weight to give ast nodes that, based on
+the chosen strategy, would otherwise have no measured weight.")
 
 (defgeneric collect-fault-loc-traces (bin test-suite read-trace-fn
                                       &optional fl-neg-test)
@@ -303,55 +310,174 @@ which maps (test-casel: position)"
 
   (fix-string-fields stmt-counts)))
 
+
+(defmethod annotate-line-nums ((obj new-clang) (ast new-clang-ast))
+  "Add line numbers to annotations, generally for debugging purposes"
+  (let ((loc (new-clang-range-begin (ast-attr ast :range))))
+    (unless (numberp loc)
+      (let* ((line (new-clang-loc-line loc)))
+        (setf (ast-attr ast :annotations) (cons :line line))))))
+
+;;;; Note: annotation lines for new-clang objects must have the following format:
+;;;; "source_file.c" 14 :tag   (i.e., "file line-num annotations...")
+(defmethod match-ast-location ((obj new-clang) (ast new-clang-ast) (loc-spec list))
+  "Given a file/line-based annotation, match against ast location info (i.e. line range)."
+  (let ((range (ast-attr ast :range))
+        (ann-line-num (ann-line obj loc-spec)))
+    (within-ast-range range ann-line-num)))
+
+;;;; Note, only works on new-clang projects/objects currently
+(defmethod decorate-with-annotations ((obj clang-project) (ast-annotations pathname))
+  (mapcar (lambda (efile) (decorate-with-annotations (cdr efile) ast-annotations))
+          (evolve-files obj)))
+
+(defmethod decorate-with-annotations ((obj new-clang) (ast-annotations pathname))
+  "Read and decorate new-clang obj asts with the associated annotations, filtering
+on file/line location info."
+  (let* ((cur-file (original-file obj))  ;Get the file name.
+         (all-anns (with-open-file (stream ast-annotations)
+                     (loop :for line = (read stream nil :done)
+                        :while (not (eq line :done))
+                        :collect line)))
+         (filt-anns (remove-if-not ; Only keep annotations for cur-file.
+                     (lambda (line) (search (string-downcase (string (ann-file obj line)))
+                                            (string-downcase (string cur-file))))
+                     all-anns)))
+    (mapcar (lambda (stmt) (let ((elts (remove-if-not
+                                        (lambda (loc)
+                                          (match-ast-location obj stmt loc))
+                                        filt-anns)))
+                             (when elts
+                               (setf (ast-attr stmt :annotations) (append elts (ast-attr stmt :annotations))))))
+            (stmt-asts obj))))
+
 (defun good-trace-count (stmt)
-  (length (remove-if-not (lambda (elt) (equal :good elt)) (flatten (ast-annotations stmt)))))
+  (length (remove-if-not (lambda (elt) (equal :good elt)) (flatten (ast-attr stmt :annotations)))))
 
 (defun bad-trace-count (stmt)
-  (length (remove-if-not (lambda (elt) (equal :bad elt)) (flatten (ast-annotations stmt)))))
+  (length (remove-if-not (lambda (elt) (equal :bad elt)) (flatten (ast-attr stmt :annotations)))))
 
-;; Annotations are deployed on AST objects, thus anything that implements
-;; "ast-root" and "stmt-asts" can use FL (this should be anything "clang" or below).
-;; This function serves to as an interface to hide the chosen fault loc strategy
+;;;; Utility functions for decoding new-clang-based annotation files.
+;;;; Rows follow the (file, line, annotation1, annotation2, ...) format.
+(defmethod ann-file ((obj new-clang) (ann-line list))
+  "Given a row from an ast annotation input, return the 'file' location tag"
+  (declare (ignorable obj))
+  (nth 0 ann-line))
+
+(defmethod ann-line ((obj new-clang) (ann-line list))
+  "Given a row from an ast annotation input, return the 'line' location tag"
+  (declare (ignorable obj))
+  (nth 1 ann-line))
+
+(defmethod ann-annotations ((obj new-clang) (ann-line list))
+  "Given a row from an ast annotation input, return the annotation tag"
+  (declare (ignorable obj))
+  (nth 2 ann-line))
+
+
+(defun filter-fault-loc (pool)
+  "AST nodes in 'pool' may be annotated with 'fl-weight' tags, indicating how
+suspect individual nodes are from 0 (not suspect) to 1 (fully suspect).
+If these tags are present, randomly generate a cutoff and filter out
+nodes below that cutoff.  This can result in an empty set -- in this case,
+return the original pool."
+  (if (member :fl-weight (flatten (mapcar (lambda (a) (ast-attr a :annotations)) pool)))
+      (labels ((fl-weight (ast)
+                 (let ((elt (find :fl-weight (ast-attr ast :annotations) :key #'car)))
+
+                   (if elt (cdr elt) 0.5)))) ; if no FL info, return 0.5
+        ;; Note: this gives "even chance" on picking things that didn't
+        ;; appear in the trace -- should adjust based on needs/strategy.
+        (let* ((cutoff (random 1.0))
+               (filtered-lst (remove-if-not (lambda (stmt)
+                                              (> (fl-weight stmt) cutoff))
+                                            pool)))
+          (if filtered-lst  ;If non-empty:
+              filtered-lst  ;  return it,
+              pool)))       ;  otherwise return the original set.
+      pool))  ;If no fl-weights, return pool as-is.
+
+
+(defmethod mutation-targets ((obj new-clang)
+                             &key (filter nil)
+                               (stmt-pool #'asts stmt-pool-supplied-p))
+  "Return a list of target ASTs from STMT-POOL (with optional fault localization)
+for mutation, throwing a 'no-mutation-targets exception if none are available.
+
+* OBJ software object to query for mutation targets
+* FILTER filter AST from consideration when this function returns nil
+* STMT-POOL method on OBJ returning a list of ASTs"
+  (labels ((do-mutation-targets ()
+             (if-let ((target-stmts
+                       (if filter
+                           (remove-if-not filter (funcall stmt-pool obj))
+                           (funcall stmt-pool obj))))
+               target-stmts
+               (error (make-condition 'no-mutation-targets
+                                      :obj obj :text "No stmts match the given filter")))))
+    (if (not stmt-pool-supplied-p)
+        (filter-fault-loc (do-mutation-targets))
+        (restart-case
+            (do-mutation-targets)
+          (expand-stmt-pool ()
+            :report "Expand statement pool of potential mutation targets"
+            (mutation-targets obj :filter filter))))))
+
+;;;; Add default weight for those AST nodes that currently lack one
+(defun add-default-weights (ast)
+  (when (not (member :fl-weight (flatten (ast-attr ast :annotations))))
+    (setf (ast-attr ast :annotations) (append (list (cons :fl-weight *default-fault-loc-weight*))
+                                              (ast-attr ast :annotations)))))
+
+;;;; Annotations are deployed on AST objects, thus anything that implements
+;;;; "ast-root" and "stmt-asts" can use FL (this should be anything "clang" or below).
+;;;; This function serves to as an interface to hide the chosen fault loc strategy
 (defmethod perform-fault-loc ((obj clang-base))
-  (fault-loc-tarantula obj))
+  (fault-loc-tarantula obj)
+  (mapcar #'add-default-weights (stmt-asts obj)))
 
 (defmethod perform-fault-loc ((obj project))
-  (mapcar #'fault-loc-tarantula (mapcar #'cdr (evolve-files obj))))
+  (mapcar #'fault-loc-tarantula (mapcar #'cdr (evolve-files obj)))
+  (mapcar #'add-default-weights
+          (flatten (mapcar #'stmt-asts
+                           (mapcar #'cdr
+                                   (evolve-files obj))))))
 
-;; Implement well-known Tarantula "score" by Jones et al. -- note: here
-;; we use the inverse, scoring "suspect" statements high rather than low.
+;;;; Implement well-known Tarantula "score" by Jones et al. -- note: here
+;;;; we use the inverse, scoring "suspect" statements high rather than low.
 (defmethod fault-loc-tarantula ((obj clang-base))
+  "Annotate ast nodes in obj with :fl-weight tag and a `score` indicating
+how suspect a node is, using the popular spectrum-based Tarantula technique."
   (let* ((ast (ast-root obj))
          (stmts (stmt-asts ast)))
-    (loop for stmt in stmts
-       collect
-         (let* ((bad (bad-trace-count stmt))
-                (good (good-trace-count stmt)))
-           (when (or (> bad 0) (> good 0)) ;any trace info
-             (let ((score (/ (float (bad-trace-count stmt))
-                             (float (+ (bad-trace-count stmt)
-                                       (good-trace-count stmt))))))
-               (progn (setf (ast-annotations stmt)
-                            (append (ast-annotations stmt)
-                                    (list (cons :fl-weight score))))
-                      (cons stmt score))))))))
+    (mapcar (lambda (stmt)
+              (let* ((bad (bad-trace-count stmt))
+                     (good (good-trace-count stmt)))
+                (when (or (> bad 0) (> good 0)) ;any trace info
+                  (let ((score (/ (float (bad-trace-count stmt))
+                                  (float (+ (bad-trace-count stmt)
+                                            (good-trace-count stmt))))))
+                    (setf (ast-attr stmt :annotations)
+                          (append (list (cons :fl-weight score))
+                                  (ast-attr stmt :annotations)))
+                    (cons stmt score)))))
+            stmts)))
 
-;; prioritize stmts that ONLY occur on bad traces
-;; return list of "stmt, suspect" pairs and add pair to each ast's annotation list
+;;;; prioritize stmts that ONLY occur on bad traces
+;;;; return list of "stmt, suspect" pairs and add pair to each ast's annotation list
 (defmethod fault-loc-only-on-bad-traces ((obj clang-base))
+  "Annotate ast nodes in obj with :fl-weight tag and a `score` indicating
+how suspect a node is, targeting nodes that appear only on failing traces."
   (let* ((ast (ast-root obj))
          (stmts (stmt-asts ast)))
-    (loop for stmt in stmts
-       collect (if (and (> (bad-trace-count stmt) 0)
-                        (= 0 (good-trace-count stmt)))
-                   (progn
-                     (setf (ast-annotations stmt)
-                           (append (ast-annotations stmt)
-                                   (list (cons :fl-weight 1.0))))
-                     (cons stmt 1.0))
-                   (progn
-                     (setf (ast-annotations stmt)
-                           (append (ast-annotations stmt)
-                                   (list (cons :fl-weight 0.1))))
-                     (cons stmt 0.1))))))
+    (mapcar (lambda (stmt)
+              (let ((score (if (and (> (bad-trace-count stmt) 0)
+                                    (= 0 (good-trace-count stmt)))
+                               1.0
+                               0.1)))
+                (setf (ast-attr stmt :annotations)
+                      (append (list (cons :fl-weight score))
+                              (ast-attr stmt :annotations)))
+                (cons stmt score)))
+            stmts)))
 
