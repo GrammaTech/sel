@@ -10,7 +10,7 @@ or any later version published by the Free Software Foundation;
 with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
 A copy of the license is included in the section entitled
 "GNU Free Documentation License." -->
-<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>sel-cp-test-suite (Software Evolution Library)</title>
@@ -20,33 +20,24 @@ A copy of the license is included in the section entitled
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
-<link href="index.html#Top" rel="start" title="Top">
-<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html" rel="start" title="Top">
+<link href="Index.html" rel="index" title="Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
-<link href="SEL-Packages.html#SEL-Packages" rel="up" title="SEL Packages">
-<link href="sel_002dcp_002dtraceable.html#sel_002dcp_002dtraceable" rel="next" title="sel-cp-traceable">
-<link href="sel_002dcp_002dserapi_002dio.html#sel_002dcp_002dserapi_002dio" rel="prev" title="sel-cp-serapi-io">
+<link href="SEL-Packages.html" rel="up" title="SEL Packages">
+<link href="sel_002dcp_002dtraceable.html" rel="next" title="sel-cp-traceable">
+<link href="sel_002dcp_002dserapi_002dio.html" rel="prev" title="sel-cp-serapi-io">
 <style type="text/css">
 <!--
 a.summary-letter {text-decoration: none}
 blockquote.indentedblock {margin-right: 0em}
-blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
-blockquote.smallquotation {font-size: smaller}
 div.display {margin-left: 3.2em}
 div.example {margin-left: 3.2em}
 div.lisp {margin-left: 3.2em}
-div.smalldisplay {margin-left: 3.2em}
-div.smallexample {margin-left: 3.2em}
-div.smalllisp {margin-left: 3.2em}
 kbd {font-style: oblique}
 pre.display {font-family: inherit}
 pre.format {font-family: inherit}
 pre.menu-comment {font-family: serif}
 pre.menu-preformatted {font-family: serif}
-pre.smalldisplay {font-family: inherit; font-size: smaller}
-pre.smallexample {font-size: smaller}
-pre.smallformat {font-family: inherit; font-size: smaller}
-pre.smalllisp {font-size: smaller}
 span.nolinebreak {white-space: nowrap}
 span.roman {font-family: initial; font-weight: normal}
 span.sansserif {font-family: sans-serif; font-weight: normal}
@@ -58,27 +49,25 @@ ul.no-bullet {list-style: none}
 </head>
 
 <body lang="en">
-<a name="sel_002dcp_002dtest_002dsuite"></a>
-<div class="header">
+<span id="sel_002dcp_002dtest_002dsuite"></span><div class="header">
 <p>
-Next: <a href="sel_002dcp_002dtraceable.html#sel_002dcp_002dtraceable" accesskey="n" rel="next">sel-cp-traceable</a>, Previous: <a href="sel_002dcp_002dserapi_002dio.html#sel_002dcp_002dserapi_002dio" accesskey="p" rel="prev">sel-cp-serapi-io</a>, Up: <a href="SEL-Packages.html#SEL-Packages" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="sel_002dcp_002dtraceable.html" accesskey="n" rel="next">sel-cp-traceable</a>, Previous: <a href="sel_002dcp_002dserapi_002dio.html" accesskey="p" rel="prev">sel-cp-serapi-io</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<a name="sel_002dcp_002dtest_002dsuite-1"></a>
-<h3 class="section">C.61 sel-cp-test-suite</h3>
-<a name="Variable-_002aprocess_002dkill_002dtimeout_002a"></a><dl>
-<dt><a name="index-_002aprocess_002dkill_002dtimeout_002a"></a>Variable: <strong>*process-kill-timeout*</strong></dt>
-<dd><p>Timeout (in seconds) before killing a process with <code>sigkill</code>
+<span id="sel_002dcp_002dtest_002dsuite-1"></span><h3 class="section">C.58 sel-cp-test-suite</h3>
+<span id="Variable-_002aprocess_002dsleep_002dinterval_002a"></span><dl>
+<dt id="index-_002aprocess_002dsleep_002dinterval_002a">Variable: <strong>*process-sleep-interval*</strong></dt>
+<dd><p>Frequency (in seconds) at which to check if a process has completed.
 </p></dd></dl>
-<a name="Generic_002dFunction-finish_002dtest"></a><dl>
-<dt><a name="index-finish_002dtest"></a>Generic Function: <strong>finish-test</strong> <em>test-process</em></dt>
+<span id="Generic_002dFunction-finish_002dtest"></span><dl>
+<dt id="index-finish_002dtest">Generic Function: <strong>finish-test</strong> <em>test-process</em></dt>
 <dd><p>Ensure that <code>test-process</code> either runs to completion or is killed.
 Return the standard output, error output, and process exit code as strings.
 </p>
 <p>* <code>test-process</code> the &lsquo;process&rsquo; associated with the test case.
 </p></dd></dl>
-<a name="Method-finish_002dtest-_0028_0028test_002dprocess-process_0029_0029"></a><dl>
-<dt><a name="index-finish_002dtest-1"></a>Method: <strong>finish-test</strong> <em>(test-process process)</em></dt>
+<span id="Method-finish_002dtest-_0028_0028test_002dprocess-process_0029_0029"></span><dl>
+<dt id="index-finish_002dtest-1">Method: <strong>finish-test</strong> <em>(test-process process)</em></dt>
 <dd><p>Ensure that <code>test-process</code> either runs to completion or is killed.
 Return the standard output, error output, and process exit code as strings.
 </p>
@@ -92,19 +81,19 @@ the timeout, send a <code>sigterm</code> signal if <code>test-process</code> is 
 &lsquo;*process-sleep-interval*&rsquo; seconds once more and then if the process is still
 running, send a <code>sigkill</code> signal.
 </p></dd></dl>
-<a name="Generic_002dFunction-run_002dtest"></a><dl>
-<dt><a name="index-run_002dtest"></a>Generic Function: <strong>run-test</strong> <em>phenome test-case &amp;rest extra-keys &amp;key &amp;allow-other-keys</em></dt>
+<span id="Generic_002dFunction-run_002dtest"></span><dl>
+<dt id="index-run_002dtest">Generic Function: <strong>run-test</strong> <em>phenome test-case &amp;rest extra-keys &amp;key &amp;allow-other-keys</em></dt>
 <dd><p>Run <code>test-case</code> on <code>phenome</code> and return the results.
 Return the standard output, error output, and process exit code as strings.
 </p></dd></dl>
-<a name="Method-run_002dtest-_0028phenome-_0028test_002dcase-test_002dcase_0029-_0026rest-extra_002dkeys-_0026key-_0026allow_002dother_002dkeys_0029"></a><dl>
-<dt><a name="index-run_002dtest-1"></a>Method: <strong>run-test</strong> <em>phenome (test-case test-case) &amp;rest extra-keys &amp;key &amp;allow-other-keys</em></dt>
+<span id="Method-run_002dtest-_0028phenome-_0028test_002dcase-test_002dcase_0029-_0026rest-extra_002dkeys-_0026key-_0026allow_002dother_002dkeys_0029"></span><dl>
+<dt id="index-run_002dtest-1">Method: <strong>run-test</strong> <em>phenome (test-case test-case) &amp;rest extra-keys &amp;key &amp;allow-other-keys</em></dt>
 <dd><p>Run <code>test-case</code> on <code>phenome</code> and return the results.
 Return three values: output printed to standard out, error output, and exit
 status. Th default behavior is simply to run &lsquo;start-test&rsquo; and &lsquo;finish-test&rsquo;.
 </p></dd></dl>
-<a name="Generic_002dFunction-start_002dtest"></a><dl>
-<dt><a name="index-start_002dtest"></a>Generic Function: <strong>start-test</strong> <em>phenome test-case &amp;rest extra-keys &amp;key &amp;allow-other-keys</em></dt>
+<span id="Generic_002dFunction-start_002dtest"></span><dl>
+<dt id="index-start_002dtest">Generic Function: <strong>start-test</strong> <em>phenome test-case &amp;rest extra-keys &amp;key &amp;allow-other-keys</em></dt>
 <dd><p>Start an external process to run <code>test-case</code> on <code>phenome</code>.
 Return the &lsquo;process&rsquo;.
 </p>
@@ -114,8 +103,8 @@ Return the &lsquo;process&rsquo;.
 </li><li> <code>extra-keys</code> additional keyword arguments.
 </li></ul>
 </dd></dl>
-<a name="Method-start_002dtest-_0028phenome-_0028test_002dcase-test_002dcase_0029-_0026rest-extra_002dkeys-_0026key-_0026allow_002dother_002dkeys_0029"></a><dl>
-<dt><a name="index-start_002dtest-1"></a>Method: <strong>start-test</strong> <em>phenome (test-case test-case) &amp;rest extra-keys &amp;key &amp;allow-other-keys</em></dt>
+<span id="Method-start_002dtest-_0028phenome-_0028test_002dcase-test_002dcase_0029-_0026rest-extra_002dkeys-_0026key--_0026allow_002dother_002dkeys_0029"></span><dl>
+<dt id="index-start_002dtest-1">Method: <strong>start-test</strong> <em>phenome (test-case test-case) &amp;rest extra-keys &amp;key &amp;allow-other-keys</em></dt>
 <dd><p>Start an external process to run <code>test-case</code> on <code>phenome</code>.
 Return the &lsquo;process&rsquo;. This is a wrapper around &lsquo;uiop:launch-program&rsquo;, and any
 <code>extra-keys</code> will be passed through to that method.
@@ -129,9 +118,7 @@ Return the &lsquo;process&rsquo;. This is a wrapper around &lsquo;uiop:launch-pr
 <p>Some <code>extra-keys</code> that may be useful are:
 </p><ul>
 <li> :output and :error-output <code>-</code> to specify how output and error streams are
-  handled. In some cases, these are sent to /dev/null by default, making
-  inaccessible after the process completes, so it&rsquo;s often useful to set one or
-  both of these to &lsquo;:stream&rsquo; to capture the output.
+  handled. By default, these are captured so they can be returned as strings.
 
 </li><li> :wait <code>-</code> whether to wait for the process to complete before continuing.
   The default is to wait; however, some components (such as &lsquo;traceable&rsquo;) may
@@ -140,8 +127,8 @@ Return the &lsquo;process&rsquo;. This is a wrapper around &lsquo;uiop:launch-pr
 </li><li> :env <code>-</code> to set environment variables
 </li></ul>
 </dd></dl>
-<a name="Class-test_002dcase"></a><dl>
-<dt><a name="index-test_002dcase"></a>Class: <strong>test-case</strong></dt>
+<span id="Class-test_002dcase"></span><dl>
+<dt id="index-test_002dcase">Class: <strong>test-case</strong></dt>
 <dd><p>Class precedence list: <code>test-case, standard-object, t</code>
 </p>
 <p>Slots:
@@ -168,8 +155,8 @@ synthesis).
 
 <p>Test case object.
 </p></dd></dl>
-<a name="Class-test_002dsuite"></a><dl>
-<dt><a name="index-test_002dsuite-1"></a>Class: <strong>test-suite</strong></dt>
+<span id="Class-test_002dsuite"></span><dl>
+<dt id="index-test_002dsuite-1">Class: <strong>test-suite</strong></dt>
 <dd><p>Class precedence list: <code>test-suite, oid-object, standard-object, t</code>
 </p>
 <p>Slots:
@@ -181,15 +168,15 @@ synthesis).
 
 <p>A suite of unit tests.
 </p></dd></dl>
-<a name="Variable-_002aprocess_002dsleep_002dinterval_002a"></a><dl>
-<dt><a name="index-_002aprocess_002dsleep_002dinterval_002a"></a>Variable: <strong>*process-sleep-interval*</strong></dt>
-<dd><p>Frequency (in seconds) at which to check if a process has completed.
+<span id="Variable-_002aprocess_002dkill_002dtimeout_002a"></span><dl>
+<dt id="index-_002aprocess_002dkill_002dtimeout_002a">Variable: <strong>*process-kill-timeout*</strong></dt>
+<dd><p>Timeout (in seconds) before killing a process with <code>sigkill</code>
 </p></dd></dl>
 
 <hr>
 <div class="header">
 <p>
-Next: <a href="sel_002dcp_002dtraceable.html#sel_002dcp_002dtraceable" accesskey="n" rel="next">sel-cp-traceable</a>, Previous: <a href="sel_002dcp_002dserapi_002dio.html#sel_002dcp_002dserapi_002dio" accesskey="p" rel="prev">sel-cp-serapi-io</a>, Up: <a href="SEL-Packages.html#SEL-Packages" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="sel_002dcp_002dtraceable.html" accesskey="n" rel="next">sel-cp-traceable</a>, Previous: <a href="sel_002dcp_002dserapi_002dio.html" accesskey="p" rel="prev">sel-cp-serapi-io</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 
 

@@ -10,7 +10,7 @@ or any later version published by the Free Software Foundation;
 with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
 A copy of the license is included in the section entitled
 "GNU Free Documentation License." -->
-<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>ASM Super-Mutants (Software Evolution Library)</title>
@@ -20,33 +20,24 @@ A copy of the license is included in the section entitled
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
-<link href="index.html#Top" rel="start" title="Top">
-<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html" rel="start" title="Top">
+<link href="Index.html" rel="index" title="Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
-<link href="Super_002dMutants.html#Super_002dMutants" rel="up" title="Super-Mutants">
-<link href="AST-Differencing.html#AST-Differencing" rel="next" title="AST Differencing">
-<link href="Clang-Super_002dMutants.html#Clang-Super_002dMutants" rel="prev" title="Clang Super-Mutants">
+<link href="Super_002dMutants.html" rel="up" title="Super-Mutants">
+<link href="Utilities.html" rel="next" title="Utilities">
+<link href="Clang-Super_002dMutants.html" rel="prev" title="Clang Super-Mutants">
 <style type="text/css">
 <!--
 a.summary-letter {text-decoration: none}
 blockquote.indentedblock {margin-right: 0em}
-blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
-blockquote.smallquotation {font-size: smaller}
 div.display {margin-left: 3.2em}
 div.example {margin-left: 3.2em}
 div.lisp {margin-left: 3.2em}
-div.smalldisplay {margin-left: 3.2em}
-div.smallexample {margin-left: 3.2em}
-div.smalllisp {margin-left: 3.2em}
 kbd {font-style: oblique}
 pre.display {font-family: inherit}
 pre.format {font-family: inherit}
 pre.menu-comment {font-family: serif}
 pre.menu-preformatted {font-family: serif}
-pre.smalldisplay {font-family: inherit; font-size: smaller}
-pre.smallexample {font-size: smaller}
-pre.smallformat {font-family: inherit; font-size: smaller}
-pre.smalllisp {font-size: smaller}
 span.nolinebreak {white-space: nowrap}
 span.roman {font-family: initial; font-weight: normal}
 span.sansserif {font-family: sans-serif; font-weight: normal}
@@ -58,19 +49,16 @@ ul.no-bullet {list-style: none}
 </head>
 
 <body lang="en">
-<a name="ASM-Super_002dMutants"></a>
-<div class="header">
+<span id="ASM-Super_002dMutants"></span><div class="header">
 <p>
-Next: <a href="AST-Differencing.html#AST-Differencing" accesskey="n" rel="next">AST Differencing</a>, Previous: <a href="Clang-Super_002dMutants.html#Clang-Super_002dMutants" accesskey="p" rel="prev">Clang Super-Mutants</a>, Up: <a href="Super_002dMutants.html#Super_002dMutants" accesskey="u" rel="up">Super-Mutants</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="Utilities.html" accesskey="n" rel="next">Utilities</a>, Previous: <a href="Clang-Super_002dMutants.html" accesskey="p" rel="prev">Clang Super-Mutants</a>, Up: <a href="Super_002dMutants.html" accesskey="u" rel="up">Super-Mutants</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<a name="ASM-Super-Mutants"></a>
-<h4 class="subsection">3.8.2 ASM Super Mutants</h4>
-<a name="index-asm_002dsuper_002dmutants"></a>
+<span id="ASM-Super-Mutants"></span><h4 class="subsection">3.8.2 ASM Super Mutants</h4>
+<span id="index-asm_002dsuper_002dmutants"></span>
 
 
-<a name="asm_002dsuper_002dmutant-Overview"></a>
-<h4 class="subsection">3.8.3 <code>asm-super-mutant</code> Overview</h4>
+<span id="asm_002dsuper_002dmutant-Overview"></span><h4 class="subsection">3.8.3 <code>asm-super-mutant</code> Overview</h4>
 
 <p><code>asm-super-mutant</code> software objects are designed to provide the
 benefits of <code>super-mutant</code> to assembly programs.  Its primary
@@ -98,8 +86,7 @@ the overall program (returned by CREATE-TARGET).
 of <code>mutants</code>, each one being an instance of the <code>asm-heap</code> software
 object.  Each <code>mutant</code> is a variant of the target function.
 </p>
-<a name="Fitness-Evaluation"></a>
-<h4 class="subsection">3.8.4 Fitness Evaluation</h4>
+<span id="Fitness-Evaluation"></span><h4 class="subsection">3.8.4 Fitness Evaluation</h4>
 
 <p>To perform fitness evaluation, the <code>asm-supermutant</code> performs the
 following steps:
@@ -149,8 +136,7 @@ following steps:
   can be obtained with the <code>fitness</code> method.
 
 </li></ul>
-<a name="Tool-Dependencies"></a>
-<h4 class="subsection">3.8.5 Tool Dependencies</h4>
+<span id="Tool-Dependencies"></span><h4 class="subsection">3.8.5 Tool Dependencies</h4>
 
 <p>The <code>asm-super-mutant</code> currently depends upon:
 </p><ul>
@@ -169,8 +155,7 @@ variants, uses Intel-format assembly code (Nasm-compatible).
 In the near future we are planning to switch to <code>at&amp;t</code> assembler syntax
 and to replace Nasm with a more efficient assembler.
 </p>
-<a name="i_002do_002dfile_002dformat"></a><a name="I_002fO-File-Format"></a>
-<h4 class="subsection">3.8.6 I/O File Format</h4>
+<span id="i_002do_002dfile_002dformat"></span><span id="I_002fO-File-Format"></span><h4 class="subsection">3.8.6 I/O File Format</h4>
 
 <p>The file is <code>ascii</code>.  In internal tests it s generated using the <code>ibm</code>
 <code>pin</code> tool to observe the execution of a binary program on a test
@@ -234,8 +219,7 @@ the byte at 0x7fbbc1fcf769 has value 0x7c, and so forth
 are live (indicated with &quot;v&quot;) while 0x7fbbc1fcf768 is not
 (indicated with &quot;.&quot;).
 </p>
-<a name="Components-2"></a>
-<h4 class="subsection">3.8.7 Components</h4>
+<span id="Components-2"></span><h4 class="subsection">3.8.7 Components</h4>
 
 <p><code>asm-super-mutant</code> software object consists of:
 </p>
@@ -268,8 +252,7 @@ struct for both).
   method.
 
 </li></ul>
-<a name="Current-Limitations"></a>
-<h4 class="subsection">3.8.8 Current Limitations</h4>
+<span id="Current-Limitations"></span><h4 class="subsection">3.8.8 Current Limitations</h4>
 
 <ul>
 <li> Functions which use floating point data as input or outputs will
@@ -287,8 +270,7 @@ struct for both).
   resulting in all variants to come back as +worst-c-fitness+.
 
 </li></ul>
-<a name="Installing-PAPI-on-Ubuntu"></a>
-<h4 class="subsection">3.8.9 Installing PAPI on Ubuntu</h4>
+<span id="Installing-PAPI-on-Ubuntu"></span><h4 class="subsection">3.8.9 Installing PAPI on Ubuntu</h4>
 <p>Fitness evaluation requires the PAPI component and the Linux Perf
 functionality. Building the fitness evaluation program (on the fly
 during fitness evaluation) requires a C program to compile and link
@@ -326,7 +308,7 @@ locations:
 <hr>
 <div class="header">
 <p>
-Next: <a href="AST-Differencing.html#AST-Differencing" accesskey="n" rel="next">AST Differencing</a>, Previous: <a href="Clang-Super_002dMutants.html#Clang-Super_002dMutants" accesskey="p" rel="prev">Clang Super-Mutants</a>, Up: <a href="Super_002dMutants.html#Super_002dMutants" accesskey="u" rel="up">Super-Mutants</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="Utilities.html" accesskey="n" rel="next">Utilities</a>, Previous: <a href="Clang-Super_002dMutants.html" accesskey="p" rel="prev">Clang Super-Mutants</a>, Up: <a href="Super_002dMutants.html" accesskey="u" rel="up">Super-Mutants</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 
 

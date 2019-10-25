@@ -1,0 +1,355 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- This file documents the Software Evolution library
+
+Copyright (C) 2014-2018 Eric Schulte and GrammaTech
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
+A copy of the license is included in the section entitled
+"GNU Free Documentation License." -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>REST Interface (Software Evolution Library)</title>
+
+<meta name="description" content="REST Interface (Software Evolution Library)">
+<meta name="keywords" content="REST Interface (Software Evolution Library)">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<link href="index.html" rel="start" title="Top">
+<link href="Index.html" rel="index" title="Index">
+<link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
+<link href="REST-API.html" rel="up" title="REST API">
+<link href="REST-Sessions.html" rel="next" title="REST Sessions">
+<link href="REST-Server.html" rel="prev" title="REST Server">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<span id="REST-Interface"></span><div class="header">
+<p>
+Next: <a href="REST-Sessions.html" accesskey="n" rel="next">REST Sessions</a>, Previous: <a href="REST-Server.html" accesskey="p" rel="prev">REST Server</a>, Up: <a href="REST-API.html" accesskey="u" rel="up">REST API</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+
+
+<p>Standard Rest API for Software Evolution Library
+</p>
+<p>The Standard Rest API for Software Evolution Library is implemented as a web
+service which may be accessed through HTTP requests.
+</p>
+<p>It attempts to conform to principals described here:
+<a href="https://en.wikipedia.org/wiki/Representational_state_transfer">Representational State Transfer</a>
+</p>
+<span id="Dependencies-1"></span><h4 class="subsubsection">2.6.3.1 Dependencies</h4>
+
+<p>The Rest API leverages a number of Common Lisp components, which
+are open-source and generally available via Quicklisp.  See the core REST
+file for a full description.
+</p><span id="Dependencies-2"></span><h4 class="subsubsection">2.6.3.2 Dependencies</h4>
+
+<p>The Rest API leverages a number of Common Lisp components, which
+are open-source and generally available via Quicklisp.  See the core REST
+file for a full description and how to start a rest server. In addition,
+this file is built from the session definitions for REST provided as part
+of <code>sel</code>.
+</p>
+<span id="Resources-and-Operations"></span><h4 class="subsubsection">2.6.3.3 Resources and Operations</h4>
+
+<p>A standard <code>sel</code> Rest API supports logical resources. This section lists the
+basic logical resources supported by this standard API. In some cases (e.g.
+Software), the resource can be thought to be a distillation of the methods
+of the matching <code>sel</code> class. In other cases (e.g. Populations) there isn&rsquo;t a
+specific class in <code>sel</code>, and the REST API resource provides ways to manage and
+name these lists of software objects.
+</p>
+<span id="Resources"></span><h4 class="subsubheading">Resources</h4>
+
+<p>The following types of resources are defined by this standard API.
+</p>
+
+<dl compact="compact">
+<dt><em>Software</em></dt>
+<dd><p>Any non-abstract class that inherits from <code>software</code>
+</p>
+
+</dd>
+<dt><em>Mutations</em></dt>
+<dd><p><code>sel</code> mutation objects.
+</p>
+
+</dd>
+<dt><em>Populations</em></dt>
+<dd><p>Collections of software objects, which may change rapidly (evolution).
+</p>
+
+</dd>
+<dt><em>Test Suites</em></dt>
+<dd><p>Lists of Test Cases, which each include references to an
+    executable file and some command-line argumants. These are
+    used to evaluate Software objects.
+</p>
+
+</dd>
+<dt><em>Traces</em></dt>
+<dd><p>Models and manages the data collected from running test suites against
+    instrumented Software objects.
+</p>
+
+</dd>
+<dt><em>Instrumented Software</em></dt>
+<dd><p>Software objects which have been instrumented.
+</p>
+
+</dd>
+<dt><em>Traced Software</em></dt>
+<dd><p>Instrumented Software objects which have also been traced.
+</p>
+</dd>
+</dl>
+
+<span id="Operations-on-Resources"></span><h4 class="subsubheading">Operations on Resources</h4>
+
+<p>Note: all operations (other than session create) require a <code>cid</code>
+(Client ID) integer value representing the Client <code>id</code> for session lookup.
+See the client sessions file for endpoint usage to acquire one.
+</p>
+<p>Software:
+</p>
+
+<dl compact="compact">
+<dt><em><code>post</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/soft?cid=&lt;cid&gt;&amp;type=&lt;software-type&gt;</code>
+    Body, JSON format, contains path (to C file, AST, Asm file,
+    etc.), or a <code>url</code> to a file, or the actual source code which
+    would comprise the file.  If the body simply contains a
+    software <code>id</code> (sid), makes a copy of the software object.
+    All JSON fields which are not [path, url, code,
+    software-id] are passed as keyword parameters to
+    <code>(make-instance '&lt;software-type&gt; &amp;key)</code>.  Returns a software
+    object <code>id</code> of newly created software.
+</p>
+</dd>
+<dt><em><code>get</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/soft?cid=&lt;cid&gt;&amp;sid=&lt;software
+    ID&gt;</code> Returns JSON describing software object (differs
+    depending on type of software).
+</p>
+</dd>
+<dt><em><code>get</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/soft?cid=&lt;cid&gt;&amp;type=&lt;software type&gt;</code> Returns
+    IDs of live software objects of the passed type, owned by the client.
+</p>
+</dd>
+<dt><em><code>get</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/soft?cid=&lt;cid&gt;</code> Return IDs of all live
+    software objects owned by the client.
+</p>
+</dd>
+<dt><em><code>put</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/soft?cid=&lt;cid&gt;&amp;sid=&lt;software ID&gt;</code> Update a
+    software object.  Body <code>(json) </code>contains slots to update, new
+    values.
+</p>
+</dd>
+<dt><em><code>delete</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/soft?cid=&lt;cid&gt;&amp;sid=&lt;software ID&gt;</code> Delete a
+    software object. (Currently not supported in full <code>--</code> work in progress.)
+</p>
+</dd>
+</dl>
+
+<p>Population:
+</p>
+
+<dl compact="compact">
+<dt><em><code>post</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/cid=&lt;cid&gt;&amp;population?name=&lt;population-name&gt;</code>
+    Creates a Population resource, storing it in the assocaited client
+    session, containing software objects of the specified type. The request
+    should also contain JSON including:
+</p>
+<p><code>-</code> <code>sid (list)</code> <code>:</code> list of Software IDs (<code>sid</code>) to include in
+      population
+    <code>-</code> <code>type (string)</code> <code>:</code> software type
+</p>
+<p>Returns the <code>id</code> of newly created Population (pid).
+</p>
+</dd>
+<dt><em><code>put</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/cid=&lt;cid&gt;&amp;pop?pid=&lt;Population-ID&gt;</code> Adds software to
+    the population.
+    Takes a JSON request containing:
+</p>
+<p><code>-</code> <code>sid (list)</code> <code>:</code> list of Software IDs (<code>sid</code>) to include in
+      population
+</p>
+<p>It adds the specified sid(s) to the population.
+</p>
+</dd>
+<dt><em><code>get</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/cid=&lt;cid&gt;&amp;pop?pid=&lt;Population-ID&gt;</code> Retrieves
+    information about the population, including list of
+    Software IDs and software type.
+</p>
+</dd>
+<dt><em><code>delete</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/cid=&lt;cid&gt;&amp;pop?pid=&lt;Population-ID&gt;</code> Delete
+    the population.  (work in progress)
+</p>
+</dd>
+</dl>
+
+<p>Mutation:
+ <code>post</code>
+    @{&lt;service-base&gt;/cid=&lt;cid&gt;&amp;mut?type=&lt;mutation-type&gt;&amp;sid=&lt;software-id&gt;}
+    Body <code>(json) </code>contains targets field (integer, list, or ast).
+    Returns mutation-id (mid).
+</p>
+<dl compact="compact">
+<dt><em><code>get</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/cid=&lt;cid&gt;&amp;mut?mid=&lt;mutation-id&gt;</code> Returns
+    mutation details.
+</p>
+</dd>
+<dt><em><code>put</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/cid=&lt;cid&gt;&amp;mut?mid=&lt;mutation-id&gt;</code> Apply
+    mutation to its target software object, returns the sid of
+    the new (mutated) software object.
+</p>
+</dd>
+<dt><em><code>delete</code></em></dt>
+<dd><p><code>service-base&gt;/cid=&lt;cid&gt;&amp;mut?mid=&lt;mutation-id&gt;</code>
+    Delete the specified mutation. (work in progress)
+</p>
+</dd>
+</dl>
+
+<p>Test Suites:
+</p>
+
+<dl compact="compact">
+<dt><em><code>post</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/tests?cid=&lt;cid&gt;</code> Creates a <code>test-suite</code>
+    instance, owned by the client, containing a collection of
+    <code>test-suite</code> objects.  Body should contain &quot;test&quot; field, JSON
+    format, array of structures, each containing program-name
+    and program-args.  Returns oid of newly created tests
+    suite.
+</p>
+</dd>
+<dt><em><code>get</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/tests?cid=&lt;cid&gt;&amp;oid=&lt;test-suite-oid&gt;</code>
+    Retrieves collection of test cases in the test-suite.
+</p>
+</dd>
+<dt><em><code>delete</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/tests?cid=&lt;cid&gt;&amp;pid=&lt;test-suite-oid&gt;</code> Delete
+    the test suite.  (work in progress)
+</p>
+</dd>
+</dl>
+
+<p>Instrumented:
+</p>
+
+<dl compact="compact">
+<dt><em><code>post</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/instrumented?cid=&lt;cid&gt;&amp;sid=&lt;software-oid&gt;</code>
+    Creates an Instrumented Software object instance,
+    owned by the client
+</p>
+</dd>
+<dt><em><code>get</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/instrumented?cid=&lt;cid&gt;&amp;sid=&lt;software-oid&gt;</code>
+    If sid is unspecified, retrieves the instrumented software
+    objects owned by the client. If sid is supplied,
+    returns the details of the specified instrumented software object.
+</p>
+</dd>
+</dl>
+
+<p>Traced Software:
+</p>
+
+<dl compact="compact">
+<dt><em><code>post</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/tracesoft?cid=&lt;cid&gt;&amp;sid=&lt;software-oid&gt;&amp;tests-oid=&lt;tests oid&gt;</code>
+    Traces the specified software object, using the specified tests.
+    Returns the oid specified (does not create a new, distinct software
+    object).
+</p>
+</dd>
+</dl>
+
+<p>Write Software:
+</p>
+
+<dl compact="compact">
+<dt><em><code>post</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/writesoft?cid=&lt;cid&gt;&amp;sid=&lt;software-oid&gt;</code>
+    Writes the specified software object to a file <code>(to-file)</code>.
+    Returns success or error code.
+    Body contains path specification.
+</p>
+</dd>
+</dl>
+
+<p>Async-Job:
+</p>
+
+<dl compact="compact">
+<dt><em><code>post</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/async?cid=&lt;cid&gt;&amp;type=&lt;job-type&gt;</code> Body
+    contains <code>(json) </code>parameters for <code>evolve</code> task, <code>fitness-test</code> or
+    other defined type of task.  Returns immediately with a
+    Job-ID (jid).  Creating a Job starts a task (on a new
+    thread) which will execute until stopped or completed.
+</p>
+</dd>
+<dt><em><code>get</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/cid=&lt;cid&gt;&amp;async?jid=&lt;Job-ID&gt;</code> Returns JSON
+    containing job status and results.
+</p>
+</dd>
+<dt><em><code>put</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/cid=&lt;cid&gt;&amp;async?jid=&lt;Job-ID&gt;&amp;&lt;update-vars&gt;</code>
+    Allows some control of the task, such as stopping the task.
+</p>
+</dd>
+</dl>
+
+
+<hr>
+<div class="header">
+<p>
+Next: <a href="REST-Sessions.html" accesskey="n" rel="next">REST Sessions</a>, Previous: <a href="REST-Server.html" accesskey="p" rel="prev">REST Server</a>, Up: <a href="REST-API.html" accesskey="u" rel="up">REST API</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+
+
+
+</body>
+</html>

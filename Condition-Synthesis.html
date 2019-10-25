@@ -10,7 +10,7 @@ or any later version published by the Free Software Foundation;
 with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
 A copy of the license is included in the section entitled
 "GNU Free Documentation License." -->
-<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>Condition Synthesis (Software Evolution Library)</title>
@@ -20,33 +20,24 @@ A copy of the license is included in the section entitled
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
-<link href="index.html#Top" rel="start" title="Top">
-<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html" rel="start" title="Top">
+<link href="Index.html" rel="index" title="Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
-<link href="Components.html#Components" rel="up" title="Components">
-<link href="Fault-Localization.html#Fault-Localization" rel="next" title="Fault Localization">
-<link href="Clang-C-Tokenizer.html#Clang-C-Tokenizer" rel="prev" title="Clang C Tokenizer">
+<link href="Components.html" rel="up" title="Components">
+<link href="Fault-Localization.html" rel="next" title="Fault Localization">
+<link href="Clang-C-Tokenizer.html" rel="prev" title="Clang C Tokenizer">
 <style type="text/css">
 <!--
 a.summary-letter {text-decoration: none}
 blockquote.indentedblock {margin-right: 0em}
-blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
-blockquote.smallquotation {font-size: smaller}
 div.display {margin-left: 3.2em}
 div.example {margin-left: 3.2em}
 div.lisp {margin-left: 3.2em}
-div.smalldisplay {margin-left: 3.2em}
-div.smallexample {margin-left: 3.2em}
-div.smalllisp {margin-left: 3.2em}
 kbd {font-style: oblique}
 pre.display {font-family: inherit}
 pre.format {font-family: inherit}
 pre.menu-comment {font-family: serif}
 pre.menu-preformatted {font-family: serif}
-pre.smalldisplay {font-family: inherit; font-size: smaller}
-pre.smallexample {font-size: smaller}
-pre.smallformat {font-family: inherit; font-size: smaller}
-pre.smalllisp {font-size: smaller}
 span.nolinebreak {white-space: nowrap}
 span.roman {font-family: initial; font-weight: normal}
 span.sansserif {font-family: sans-serif; font-weight: normal}
@@ -58,15 +49,13 @@ ul.no-bullet {list-style: none}
 </head>
 
 <body lang="en">
-<a name="Condition-Synthesis"></a>
-<div class="header">
+<span id="Condition-Synthesis"></span><div class="header">
 <p>
-Next: <a href="Fault-Localization.html#Fault-Localization" accesskey="n" rel="next">Fault Localization</a>, Previous: <a href="Clang-C-Tokenizer.html#Clang-C-Tokenizer" accesskey="p" rel="prev">Clang C Tokenizer</a>, Up: <a href="Components.html#Components" accesskey="u" rel="up">Components</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="Fault-Localization.html" accesskey="n" rel="next">Fault Localization</a>, Previous: <a href="Clang-C-Tokenizer.html" accesskey="p" rel="prev">Clang C Tokenizer</a>, Up: <a href="Components.html" accesskey="u" rel="up">Components</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<a name="Condition-Synthesis-1"></a>
-<h3 class="section">3.5 Condition Synthesis</h3>
-<a name="index-condition_002dsynthesis"></a>
+<span id="Condition-Synthesis-1"></span><h3 class="section">3.5 Condition Synthesis</h3>
+<span id="index-condition_002dsynthesis"></span>
 <p>Condition synthesis is a program repair technique that introduces or alters
 guard conditions in source code using a set of passing and failing unit tests
 as a guide and measure of success. This approach is based largely on that
@@ -74,8 +63,7 @@ described in <cite>Staged Program Repair with Condition Synthesis</cite> availab
 <a href="http://groups.csail.mit.edu/pac/patchgen/papers/spr-fse15.pdf">http://groups.csail.mit.edu/pac/patchgen/papers/spr-fse15.pdf</a>.
 </p>
 
-<a name="Performing-Condition-Synthesis"></a>
-<h4 class="subsection">3.5.1 Performing Condition Synthesis</h4>
+<span id="Performing-Condition-Synthesis"></span><h4 class="subsection">3.5.1 Performing Condition Synthesis</h4>
 
 <p>At a high level, condition synthesis will:
 </p><ol>
@@ -96,16 +84,14 @@ condition in the source code with the
 
 <p>More details about each of these steps are provided in the following sections.
 </p>
-<a name="condition_002dsynthesis_002dintroduce"></a><a name="Introduce-An-Abstract-Condition"></a>
-<h4 class="subsubsection">3.5.1.1 Introduce An Abstract Condition</h4>
+<span id="condition_002dsynthesis_002dintroduce"></span><span id="Introduce-An-Abstract-Condition"></span><h4 class="subsubsection">3.5.1.1 Introduce An Abstract Condition</h4>
 <p>Abstract conditions are represented by a call to the
 <code>abst_cond()</code> function. Mutations are used to perform the
 insertion. The <a href="#condition_002dsynthesis_002dmutations">set of available
 mutations</a> is listed below.
 </p>
 
-<a name="condition_002dsynthesis_002didentify_002dvalues"></a><a name="Identify-Abstract-Condition-Values"></a>
-<h4 class="subsubsection">3.5.1.2 Identify Abstract Condition Values</h4>
+<span id="condition_002dsynthesis_002didentify_002dvalues"></span><span id="Identify-Abstract-Condition-Values"></span><h4 class="subsubsection">3.5.1.2 Identify Abstract Condition Values</h4>
 <p>The C implementation of <code>abst_cond()</code> refers to a set of environment
 variables in order to determine which value to return.
 </p>
@@ -177,8 +163,7 @@ returned each time the function is invoked.
          </li></ol></td></tr>
 </table>
 
-<a name="condition_002dsynthesis_002dtest_002dconditions"></a><a name="Test-Possible-Conditions"></a>
-<h4 class="subsubsection">3.5.1.3 Test Possible Conditions</h4>
+<span id="condition_002dsynthesis_002dtest_002dconditions"></span><span id="Test-Possible-Conditions"></span><h4 class="subsubsection">3.5.1.3 Test Possible Conditions</h4>
 
 <p>For each test with a satisfying series of values for the abstract condition,
 we have recorded an environment showing the values of in-scope variables at
@@ -191,8 +176,7 @@ pass by checking whether it is entailed by that test&rsquo;s series of environme
 and desired abstract condition values.
 </p>
 
-<a name="condition_002dsynthesis_002dbest_002dcondition"></a><a name="Select-_0060_0060Best_0027_0027-Condition"></a>
-<h4 class="subsubsection">3.5.1.4 Select &ldquo;Best&rdquo; Condition</h4>
+<span id="condition_002dsynthesis_002dbest_002dcondition"></span><span id="Select-_0060_0060Best_0027_0027-Condition"></span><h4 class="subsubsection">3.5.1.4 Select &ldquo;Best&rdquo; Condition</h4>
 
 <p>The condition which satisfies the largest number of environment and
 abstract condition value pairs is selected as the &ldquo;best&rdquo; condition,
@@ -204,14 +188,13 @@ more unit tests to pass than before), then it is retained as the
 tested to see if they offer additional improvements to the fitness.
 </p>
 
-<a name="API-Support-for-Condition-Synthesis"></a>
-<h4 class="subsection">3.5.2 API Support for Condition Synthesis</h4>
+<span id="API-Support-for-Condition-Synthesis"></span><h4 class="subsection">3.5.2 API Support for Condition Synthesis</h4>
 
 <p>API support for style features is documented in section
 <a href="SEL-Concept-Index.html#api_002dcondition_002dsynthesis">API | Condition Synthesis</a>. We provide a
 brief overview here.
 </p>
-<a name="condition_002dsynthesis_002dmutations"></a><p>Mutations (subclasses of <a href="software_002devolution_002dlibrary.html#Class-mutation"><code>mutation</code></a>)
+<span id="condition_002dsynthesis_002dmutations"></span><p>Mutations (subclasses of <a href="software_002devolution_002dlibrary.html#Class-mutation"><code>mutation</code></a>)
 </p>
 <ul>
 <li> <a href="sel_002dcp_002dcondition_002dsynthesis.html#Class-add_002dcondition"><code>add-condition</code></a>
@@ -232,8 +215,7 @@ brief overview here.
 </li></ul>
 
 
-<a name="Condition-Synthesis-Example"></a>
-<h4 class="subsection">3.5.3 Condition Synthesis Example</h4>
+<span id="Condition-Synthesis-Example"></span><h4 class="subsection">3.5.3 Condition Synthesis Example</h4>
 
 <p>Function <code>try-synthesis</code> will attempt condition synthesis on all valid
 target locations for each of the possible guard mutations described above.
@@ -273,7 +255,7 @@ locations in variant. Return the first successful result result.&quot;
 <hr>
 <div class="header">
 <p>
-Next: <a href="Fault-Localization.html#Fault-Localization" accesskey="n" rel="next">Fault Localization</a>, Previous: <a href="Clang-C-Tokenizer.html#Clang-C-Tokenizer" accesskey="p" rel="prev">Clang C Tokenizer</a>, Up: <a href="Components.html#Components" accesskey="u" rel="up">Components</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="Fault-Localization.html" accesskey="n" rel="next">Fault Localization</a>, Previous: <a href="Clang-C-Tokenizer.html" accesskey="p" rel="prev">Clang C Tokenizer</a>, Up: <a href="Components.html" accesskey="u" rel="up">Components</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 
 

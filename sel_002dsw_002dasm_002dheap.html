@@ -10,7 +10,7 @@ or any later version published by the Free Software Foundation;
 with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
 A copy of the license is included in the section entitled
 "GNU Free Documentation License." -->
-<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>sel-sw-asm-heap (Software Evolution Library)</title>
@@ -20,33 +20,24 @@ A copy of the license is included in the section entitled
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
-<link href="index.html#Top" rel="start" title="Top">
-<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html" rel="start" title="Top">
+<link href="Index.html" rel="index" title="Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
-<link href="SEL-Packages.html#SEL-Packages" rel="up" title="SEL Packages">
-<link href="sel_002dsw_002dasm_002dsuper_002dmutant.html#sel_002dsw_002dasm_002dsuper_002dmutant" rel="next" title="sel-sw-asm-super-mutant">
-<link href="sel_002dsw_002dasm.html#sel_002dsw_002dasm" rel="prev" title="sel-sw-asm">
+<link href="SEL-Packages.html" rel="up" title="SEL Packages">
+<link href="sel_002dsw_002dasm_002dsuper_002dmutant.html" rel="next" title="sel-sw-asm-super-mutant">
+<link href="sel_002dsw_002dasm.html" rel="prev" title="sel-sw-asm">
 <style type="text/css">
 <!--
 a.summary-letter {text-decoration: none}
 blockquote.indentedblock {margin-right: 0em}
-blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
-blockquote.smallquotation {font-size: smaller}
 div.display {margin-left: 3.2em}
 div.example {margin-left: 3.2em}
 div.lisp {margin-left: 3.2em}
-div.smalldisplay {margin-left: 3.2em}
-div.smallexample {margin-left: 3.2em}
-div.smalllisp {margin-left: 3.2em}
 kbd {font-style: oblique}
 pre.display {font-family: inherit}
 pre.format {font-family: inherit}
 pre.menu-comment {font-family: serif}
 pre.menu-preformatted {font-family: serif}
-pre.smalldisplay {font-family: inherit; font-size: smaller}
-pre.smallexample {font-size: smaller}
-pre.smallformat {font-family: inherit; font-size: smaller}
-pre.smalllisp {font-size: smaller}
 span.nolinebreak {white-space: nowrap}
 span.roman {font-family: initial; font-weight: normal}
 span.sansserif {font-family: sans-serif; font-weight: normal}
@@ -58,27 +49,25 @@ ul.no-bullet {list-style: none}
 </head>
 
 <body lang="en">
-<a name="sel_002dsw_002dasm_002dheap"></a>
-<div class="header">
+<span id="sel_002dsw_002dasm_002dheap"></span><div class="header">
 <p>
-Next: <a href="sel_002dsw_002dasm_002dsuper_002dmutant.html#sel_002dsw_002dasm_002dsuper_002dmutant" accesskey="n" rel="next">sel-sw-asm-super-mutant</a>, Previous: <a href="sel_002dsw_002dasm.html#sel_002dsw_002dasm" accesskey="p" rel="prev">sel-sw-asm</a>, Up: <a href="SEL-Packages.html#SEL-Packages" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="sel_002dsw_002dasm_002dsuper_002dmutant.html" accesskey="n" rel="next">sel-sw-asm-super-mutant</a>, Previous: <a href="sel_002dsw_002dasm.html" accesskey="p" rel="prev">sel-sw-asm</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<a name="sel_002dsw_002dasm_002dheap-1"></a>
-<h3 class="section">C.9 sel-sw-asm-heap</h3>
-<a name="Structure-function_002dindex_002dentry"></a><dl>
-<dt><a name="index-function_002dindex_002dentry"></a>Structure: <strong>function-index-entry</strong></dt>
+<span id="sel_002dsw_002dasm_002dheap-1"></span><h3 class="section">C.8 sel-sw-asm-heap</h3>
+<span id="Structure-function_002dindex_002dentry"></span><dl>
+<dt id="index-function_002dindex_002dentry">Structure: <strong>function-index-entry</strong></dt>
 <dd><p>Class precedence list: <code>function-index-entry, structure-object, t</code>
 </p>
 <p>Entry into the index, which is a vector of all the functions in the file.
 </p></dd></dl>
-<a name="Class-asm_002dheap"></a><dl>
-<dt><a name="index-asm_002dheap"></a>Class: <strong>asm-heap</strong></dt>
-<dd><p>Class precedence list: <code>asm-heap, asm, simple, software, oid-object, standard-object, t</code>
+<span id="Class-asm_002dheap"></span><dl>
+<dt id="index-asm_002dheap">Class: <strong>asm-heap</strong></dt>
+<dd><p>Class precedence list: <code>asm-heap, asm, simple, software, oid-object, file, standard-object, t</code>
 </p>
 <p>Slots:
 </p><ul>
-<li> <code>function-index</code> &mdash; initarg: <code><span class="nolinebreak">:function-index</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-heap:function-index</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-heap:function-index)</span><!-- /@w --></code>
+<li> <code>function-index</code> &mdash; initarg: <code><span class="nolinebreak">:function-index</span><!-- /@w --></code>
 
 <p>Create this on demand.
 </p></li><li> <code>function-bounds-file</code> &mdash; initarg: <code><span class="nolinebreak">:function-bounds-file</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-heap:function-bounds-file</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-heap:function-bounds-file)</span><!-- /@w --></code>
@@ -104,17 +93,41 @@ the original lines of the program (before any mutations, along
 with any new or modified lines appended to the end of the heap.
 All elements of the genome are references into this line-heap.
 </p></dd></dl>
-<a name="Function-call_002dtargets"></a><dl>
-<dt><a name="index-call_002dtargets"></a>Function: <strong>call-targets</strong> <em>asm-heap</em></dt>
+<span id="Function-call_002dtargets"></span><dl>
+<dt id="index-call_002dtargets">Function: <strong>call-targets</strong> <em>asm-heap</em></dt>
 <dd><p>Return the names of functions being called in the asm code.
 The format is:
   (:name &lt;string&gt; :library &lt;string-library-name&gt; :full-name &lt;qualified name&gt;).
+</p></dd></dl>
+<span id="Function-insert_002dnew_002dline"></span><dl>
+<dt id="index-insert_002dnew_002dline">Function: <strong>insert-new-line</strong> <em>asm-heap text &amp;optional index</em></dt>
+<dd><p>Insert a line of assembler code into the genome.
+Parses a new line of assembler, adds it to the heap, and inserts
+it at index in the genome. Returns the number of lines inserted.
+Note that one line may be split into multiple lines by the parser.
+If index is not supplied, defaults to the end of the genome.
+</p></dd></dl>
+<span id="Function-insert_002dnew_002dlines"></span><dl>
+<dt id="index-insert_002dnew_002dlines">Function: <strong>insert-new-lines</strong> <em>asm-heap line-list &amp;optional index</em></dt>
+<dd><p>Insert a list of asm lines into the genome.
+Inserts list of lines (calling insert-new-line).
+If index is not supplied, defaults to end of the genome.
+</p></dd></dl>
+<span id="Function-intel_002dsyntax_002dp"></span><dl>
+<dt id="index-intel_002dsyntax_002dp">Function: <strong>intel-syntax-p</strong> <em>x</em></dt>
+<dd><p>True if syntax has been set to :intel. 
+The argument should be an asm-heap instance 
+or a symbol representing a valid asm-syntax slot value.
+</p></dd></dl>
+<span id="Function-vector_002dcut"></span><dl>
+<dt id="index-vector_002dcut">Function: <strong>vector-cut</strong> <em>a index</em></dt>
+<dd><p>Destructively remove and return an element from a vector with a fill pointer.
 </p></dd></dl>
 
 <hr>
 <div class="header">
 <p>
-Next: <a href="sel_002dsw_002dasm_002dsuper_002dmutant.html#sel_002dsw_002dasm_002dsuper_002dmutant" accesskey="n" rel="next">sel-sw-asm-super-mutant</a>, Previous: <a href="sel_002dsw_002dasm.html#sel_002dsw_002dasm" accesskey="p" rel="prev">sel-sw-asm</a>, Up: <a href="SEL-Packages.html#SEL-Packages" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="sel_002dsw_002dasm_002dsuper_002dmutant.html" accesskey="n" rel="next">sel-sw-asm-super-mutant</a>, Previous: <a href="sel_002dsw_002dasm.html" accesskey="p" rel="prev">sel-sw-asm</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 
 

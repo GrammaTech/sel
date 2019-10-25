@@ -10,7 +10,7 @@ or any later version published by the Free Software Foundation;
 with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
 A copy of the license is included in the section entitled
 "GNU Free Documentation License." -->
-<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>sel-cp-fix-compilation (Software Evolution Library)</title>
@@ -20,33 +20,24 @@ A copy of the license is included in the section entitled
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
-<link href="index.html#Top" rel="start" title="Top">
-<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html" rel="start" title="Top">
+<link href="Index.html" rel="index" title="Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
-<link href="SEL-Packages.html#SEL-Packages" rel="up" title="SEL Packages">
-<link href="sel_002dcp_002dfodder_002ddatabase.html#sel_002dcp_002dfodder_002ddatabase" rel="next" title="sel-cp-fodder-database">
-<link href="sel_002dcp_002dfault_002dloc.html#sel_002dcp_002dfault_002dloc" rel="prev" title="sel-cp-fault-loc">
+<link href="SEL-Packages.html" rel="up" title="SEL Packages">
+<link href="sel_002dcp_002dfodder_002ddatabase.html" rel="next" title="sel-cp-fodder-database">
+<link href="sel_002dcp_002dfault_002dloc.html" rel="prev" title="sel-cp-fault-loc">
 <style type="text/css">
 <!--
 a.summary-letter {text-decoration: none}
 blockquote.indentedblock {margin-right: 0em}
-blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
-blockquote.smallquotation {font-size: smaller}
 div.display {margin-left: 3.2em}
 div.example {margin-left: 3.2em}
 div.lisp {margin-left: 3.2em}
-div.smalldisplay {margin-left: 3.2em}
-div.smallexample {margin-left: 3.2em}
-div.smalllisp {margin-left: 3.2em}
 kbd {font-style: oblique}
 pre.display {font-family: inherit}
 pre.format {font-family: inherit}
 pre.menu-comment {font-family: serif}
 pre.menu-preformatted {font-family: serif}
-pre.smalldisplay {font-family: inherit; font-size: smaller}
-pre.smallexample {font-size: smaller}
-pre.smallformat {font-family: inherit; font-size: smaller}
-pre.smalllisp {font-size: smaller}
 span.nolinebreak {white-space: nowrap}
 span.roman {font-family: initial; font-weight: normal}
 span.sansserif {font-family: sans-serif; font-weight: normal}
@@ -58,24 +49,22 @@ ul.no-bullet {list-style: none}
 </head>
 
 <body lang="en">
-<a name="sel_002dcp_002dfix_002dcompilation"></a>
-<div class="header">
+<span id="sel_002dcp_002dfix_002dcompilation"></span><div class="header">
 <p>
-Next: <a href="sel_002dcp_002dfodder_002ddatabase.html#sel_002dcp_002dfodder_002ddatabase" accesskey="n" rel="next">sel-cp-fodder-database</a>, Previous: <a href="sel_002dcp_002dfault_002dloc.html#sel_002dcp_002dfault_002dloc" accesskey="p" rel="prev">sel-cp-fault-loc</a>, Up: <a href="SEL-Packages.html#SEL-Packages" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="sel_002dcp_002dfodder_002ddatabase.html" accesskey="n" rel="next">sel-cp-fodder-database</a>, Previous: <a href="sel_002dcp_002dfault_002dloc.html" accesskey="p" rel="prev">sel-cp-fault-loc</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<a name="sel_002dcp_002dfix_002dcompilation-1"></a>
-<h3 class="section">C.48 sel-cp-fix-compilation</h3>
-<a name="Variable-_002acompilation_002dfixers_002a"></a><dl>
-<dt><a name="index-_002acompilation_002dfixers_002a"></a>Variable: <strong>*compilation-fixers*</strong></dt>
+<span id="sel_002dcp_002dfix_002dcompilation-1"></span><h3 class="section">C.45 sel-cp-fix-compilation</h3>
+<span id="Variable-_002acompilation_002dfixers_002a"></span><dl>
+<dt id="index-_002acompilation_002dfixers_002a">Variable: <strong>*compilation-fixers*</strong></dt>
 <dd><p>Alist of compiler warning regular expressions, and associated function.
 The function is called over the match data returned by the regular
 expression match.  Each fixer function may modify its argument, and
 should return non-nil on success or nil if additional fixers should be
 applied.
 </p></dd></dl>
-<a name="Function-register_002dfixer"></a><dl>
-<dt><a name="index-register_002dfixer"></a>Function: <strong>register-fixer</strong> <em>regex function</em></dt>
+<span id="Function-register_002dfixer"></span><dl>
+<dt id="index-register_002dfixer">Function: <strong>register-fixer</strong> <em>regex function</em></dt>
 <dd><p>Add <code>function</code> to &lsquo;*compilation-fixers*&rsquo; to be called when <code>regex</code> matches.
 </p></dd></dl>
 

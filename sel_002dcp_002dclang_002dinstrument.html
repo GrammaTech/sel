@@ -10,7 +10,7 @@ or any later version published by the Free Software Foundation;
 with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
 A copy of the license is included in the section entitled
 "GNU Free Documentation License." -->
-<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>sel-cp-clang-instrument (Software Evolution Library)</title>
@@ -20,33 +20,24 @@ A copy of the license is included in the section entitled
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
-<link href="index.html#Top" rel="start" title="Top">
-<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html" rel="start" title="Top">
+<link href="Index.html" rel="index" title="Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
-<link href="SEL-Packages.html#SEL-Packages" rel="up" title="SEL Packages">
-<link href="sel_002dcp_002dclang_002dtokens.html#sel_002dcp_002dclang_002dtokens" rel="next" title="sel-cp-clang-tokens">
-<link href="sel_002dast_002ddiff_002dhtml.html#sel_002dast_002ddiff_002dhtml" rel="prev" title="sel-ast-diff-html">
+<link href="SEL-Packages.html" rel="up" title="SEL Packages">
+<link href="sel_002dcp_002dclang_002dtokens.html" rel="next" title="sel-cp-clang-tokens">
+<link href="sel_002dsw_002dwith_002dexe.html" rel="prev" title="sel-sw-with-exe">
 <style type="text/css">
 <!--
 a.summary-letter {text-decoration: none}
 blockquote.indentedblock {margin-right: 0em}
-blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
-blockquote.smallquotation {font-size: smaller}
 div.display {margin-left: 3.2em}
 div.example {margin-left: 3.2em}
 div.lisp {margin-left: 3.2em}
-div.smalldisplay {margin-left: 3.2em}
-div.smallexample {margin-left: 3.2em}
-div.smalllisp {margin-left: 3.2em}
 kbd {font-style: oblique}
 pre.display {font-family: inherit}
 pre.format {font-family: inherit}
 pre.menu-comment {font-family: serif}
 pre.menu-preformatted {font-family: serif}
-pre.smalldisplay {font-family: inherit; font-size: smaller}
-pre.smallexample {font-size: smaller}
-pre.smallformat {font-family: inherit; font-size: smaller}
-pre.smalllisp {font-size: smaller}
 span.nolinebreak {white-space: nowrap}
 span.roman {font-family: initial; font-weight: normal}
 span.sansserif {font-family: sans-serif; font-weight: normal}
@@ -58,16 +49,14 @@ ul.no-bullet {list-style: none}
 </head>
 
 <body lang="en">
-<a name="sel_002dcp_002dclang_002dinstrument"></a>
-<div class="header">
+<span id="sel_002dcp_002dclang_002dinstrument"></span><div class="header">
 <p>
-Next: <a href="sel_002dcp_002dclang_002dtokens.html#sel_002dcp_002dclang_002dtokens" accesskey="n" rel="next">sel-cp-clang-tokens</a>, Previous: <a href="sel_002dast_002ddiff_002dhtml.html#sel_002dast_002ddiff_002dhtml" accesskey="p" rel="prev">sel-ast-diff-html</a>, Up: <a href="SEL-Packages.html#SEL-Packages" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="sel_002dcp_002dclang_002dtokens.html" accesskey="n" rel="next">sel-cp-clang-tokens</a>, Previous: <a href="sel_002dsw_002dwith_002dexe.html" accesskey="p" rel="prev">sel-sw-with-exe</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<a name="sel_002dcp_002dclang_002dinstrument-1"></a>
-<h3 class="section">C.44 sel-cp-clang-instrument</h3>
-<a name="Class-clang_002dinstrumenter"></a><dl>
-<dt><a name="index-clang_002dinstrumenter"></a>Class: <strong>clang-instrumenter</strong></dt>
+<span id="sel_002dcp_002dclang_002dinstrument-1"></span><h3 class="section">C.41 sel-cp-clang-instrument</h3>
+<span id="Class-clang_002dinstrumenter"></span><dl>
+<dt id="index-clang_002dinstrumenter">Class: <strong>clang-instrumenter</strong></dt>
 <dd><p>Class precedence list: <code>clang-instrumenter, instrumenter, standard-object, t</code>
 </p>
 <p>Slots:
@@ -88,8 +77,8 @@ Next: <a href="sel_002dcp_002dclang_002dtokens.html#sel_002dcp_002dclang_002dtok
 
 <p>Handles instrumentation for clang software objects.
 </p></dd></dl>
-<a name="Function-clang_002dinstrument"></a><dl>
-<dt><a name="index-clang_002dinstrument"></a>Function: <strong>clang-instrument</strong> <em>source &amp;key help quiet verbose load eval out-dir read-seed save-seed compiler flags save-original trace-file variables scope strings point exit</em></dt>
+<span id="Function-clang_002dinstrument"></span><dl>
+<dt id="index-clang_002dinstrument">Function: <strong>clang-instrument</strong> <em>source &amp;key help quiet verbose load eval out-dir read-seed save-seed compiler flags new-clang split-lines save-original trace-file variables scope strings point exit</em></dt>
 <dd><p>Instrument <code>source</code>.
 </p>
 <p>Keyword arguments:
@@ -104,6 +93,8 @@ Next: <a href="sel_002dcp_002dclang_002dtokens.html#sel_002dcp_002dclang_002dtok
 </li><li> <code>save-seed</code> (string) save random seed to <code>file</code>
 </li><li> <code>compiler</code> (string) use <code>cc</code> as the C compiler (default: &quot;clang&quot;)
 </li><li> <code>flags</code> (string) comma-separated list of compiler flags
+</li><li> <code>new-clang</code> (boolean) Use new clang front end
+</li><li> <code>split-lines</code> (boolean) Split top level strings at newlines
 </li><li> <code>save-original</code> (boolean) also save a copy of the original
 </li><li> <code>trace-file</code> (string) instrumented to write trace to <code>file</code> (default: &quot;stderr&quot;)
 </li><li> <code>variables</code> (boolean) write unbound variables to trace
@@ -113,8 +104,8 @@ Next: <a href="sel_002dcp_002dclang_002dtokens.html#sel_002dcp_002dclang_002dtok
 </li><li> <code>exit</code> (boolean) instrument function exit
 </li></ul>
 </dd></dl>
-<a name="Generic_002dFunction-instrument_002dc_002dexprs"></a><dl>
-<dt><a name="index-instrument_002dc_002dexprs"></a>Generic Function: <strong>instrument-c-exprs</strong> <em>instrumenter exprs-and-types print-strings</em></dt>
+<span id="Generic_002dFunction-instrument_002dc_002dexprs"></span><dl>
+<dt id="index-instrument_002dc_002dexprs">Generic Function: <strong>instrument-c-exprs</strong> <em>instrumenter exprs-and-types print-strings</em></dt>
 <dd><p>Generate C code to print the values of expressions.
 <code>exprs-and-types</code> is a list of (string . clang-type) pairs.
 Returns a list of strings containing C source code.
@@ -123,7 +114,7 @@ Returns a list of strings containing C source code.
 <hr>
 <div class="header">
 <p>
-Next: <a href="sel_002dcp_002dclang_002dtokens.html#sel_002dcp_002dclang_002dtokens" accesskey="n" rel="next">sel-cp-clang-tokens</a>, Previous: <a href="sel_002dast_002ddiff_002dhtml.html#sel_002dast_002ddiff_002dhtml" accesskey="p" rel="prev">sel-ast-diff-html</a>, Up: <a href="SEL-Packages.html#SEL-Packages" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="sel_002dcp_002dclang_002dtokens.html" accesskey="n" rel="next">sel-cp-clang-tokens</a>, Previous: <a href="sel_002dsw_002dwith_002dexe.html" accesskey="p" rel="prev">sel-sw-with-exe</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 
 

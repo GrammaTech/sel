@@ -10,7 +10,7 @@ or any later version published by the Free Software Foundation;
 with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
 A copy of the license is included in the section entitled
 "GNU Free Documentation License." -->
-<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>sel-sw-asm (Software Evolution Library)</title>
@@ -20,33 +20,24 @@ A copy of the license is included in the section entitled
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
-<link href="index.html#Top" rel="start" title="Top">
-<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html" rel="start" title="Top">
+<link href="Index.html" rel="index" title="Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
-<link href="SEL-Packages.html#SEL-Packages" rel="up" title="SEL Packages">
-<link href="sel_002dsw_002dasm_002dheap.html#sel_002dsw_002dasm_002dheap" rel="next" title="sel-sw-asm-heap">
-<link href="sel_002dsw_002dancestral.html#sel_002dsw_002dancestral" rel="prev" title="sel-sw-ancestral">
+<link href="SEL-Packages.html" rel="up" title="SEL Packages">
+<link href="sel_002dsw_002dasm_002dheap.html" rel="next" title="sel-sw-asm-heap">
+<link href="sel_002dsw_002dancestral.html" rel="prev" title="sel-sw-ancestral">
 <style type="text/css">
 <!--
 a.summary-letter {text-decoration: none}
 blockquote.indentedblock {margin-right: 0em}
-blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
-blockquote.smallquotation {font-size: smaller}
 div.display {margin-left: 3.2em}
 div.example {margin-left: 3.2em}
 div.lisp {margin-left: 3.2em}
-div.smalldisplay {margin-left: 3.2em}
-div.smallexample {margin-left: 3.2em}
-div.smalllisp {margin-left: 3.2em}
 kbd {font-style: oblique}
 pre.display {font-family: inherit}
 pre.format {font-family: inherit}
 pre.menu-comment {font-family: serif}
 pre.menu-preformatted {font-family: serif}
-pre.smalldisplay {font-family: inherit; font-size: smaller}
-pre.smallexample {font-size: smaller}
-pre.smallformat {font-family: inherit; font-size: smaller}
-pre.smalllisp {font-size: smaller}
 span.nolinebreak {white-space: nowrap}
 span.roman {font-family: initial; font-weight: normal}
 span.sansserif {font-family: sans-serif; font-weight: normal}
@@ -58,30 +49,28 @@ ul.no-bullet {list-style: none}
 </head>
 
 <body lang="en">
-<a name="sel_002dsw_002dasm"></a>
-<div class="header">
+<span id="sel_002dsw_002dasm"></span><div class="header">
 <p>
-Next: <a href="sel_002dsw_002dasm_002dheap.html#sel_002dsw_002dasm_002dheap" accesskey="n" rel="next">sel-sw-asm-heap</a>, Previous: <a href="sel_002dsw_002dancestral.html#sel_002dsw_002dancestral" accesskey="p" rel="prev">sel-sw-ancestral</a>, Up: <a href="SEL-Packages.html#SEL-Packages" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="sel_002dsw_002dasm_002dheap.html" accesskey="n" rel="next">sel-sw-asm-heap</a>, Previous: <a href="sel_002dsw_002dancestral.html" accesskey="p" rel="prev">sel-sw-ancestral</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<a name="sel_002dsw_002dasm-1"></a>
-<h3 class="section">C.8 sel-sw-asm</h3>
-<a name="Class-asm"></a><dl>
-<dt><a name="index-asm"></a>Class: <strong>asm</strong></dt>
-<dd><p>Class precedence list: <code>asm, simple, software, oid-object, standard-object, t</code>
+<span id="sel_002dsw_002dasm-1"></span><h3 class="section">C.7 sel-sw-asm</h3>
+<span id="Class-asm"></span><dl>
+<dt id="index-asm">Class: <strong>asm</strong></dt>
+<dd><p>Class precedence list: <code>asm, simple, software, oid-object, file, standard-object, t</code>
 </p>
 <p>General assembler backend used to manipulate &quot;.s&quot; text assembler.
 </p></dd></dl>
-<a name="Class-asm_002drange"></a><dl>
-<dt><a name="index-asm_002drange"></a>Class: <strong>asm-range</strong></dt>
-<dd><p>Class precedence list: <code>asm-range, sw-range, asm, simple, software, oid-object, standard-object, t</code>
+<span id="Class-asm_002drange"></span><dl>
+<dt id="index-asm_002drange">Class: <strong>asm-range</strong></dt>
+<dd><p>Class precedence list: <code>asm-range, sw-range, asm, simple, software, oid-object, file, standard-object, t</code>
 </p>
 <p>Memory efficient alternative to &lsquo;asm&rsquo; mixing in &lsquo;range&rsquo;.
 Some operations on the genome are more complicated but very large
 memory savings may be realized by using this class.
 </p></dd></dl>
-<a name="Class-asm_002dreplace_002doperand"></a><dl>
-<dt><a name="index-asm_002dreplace_002doperand"></a>Class: <strong>asm-replace-operand</strong></dt>
+<span id="Class-asm_002dreplace_002doperand"></span><dl>
+<dt id="index-asm_002dreplace_002doperand">Class: <strong>asm-replace-operand</strong></dt>
 <dd><p>Class precedence list: <code>asm-replace-operand, simple-mutation, mutation, oid-object, standard-object, t</code>
 </p>
 <p>Slots:
@@ -97,35 +86,35 @@ memory savings may be realized by using this class.
 <p>Select two instructions, and replace an operand in the first
 with an operand in the second.
 </p></dd></dl>
-<a name="Variable-_002aasm_002dmutation_002dtypes_002a"></a><dl>
-<dt><a name="index-_002aasm_002dmutation_002dtypes_002a"></a>Variable: <strong>*asm-mutation-types*</strong></dt>
+<span id="Variable-_002aasm_002dmutation_002dtypes_002a"></span><dl>
+<dt id="index-_002aasm_002dmutation_002dtypes_002a">Variable: <strong>*asm-mutation-types*</strong></dt>
 <dd><p>Add asm mutations with probability 1/N, where <code>n</code> is the number of possible
 mutations (simple plus asm mutations).
 </p></dd></dl>
-<a name="Function-asm_002dnth_002dinstruction"></a><dl>
-<dt><a name="index-asm_002dnth_002dinstruction"></a>Function: <strong>asm-nth-instruction</strong> <em>asm n</em></dt>
+<span id="Function-asm_002dnth_002dinstruction"></span><dl>
+<dt id="index-asm_002dnth_002dinstruction">Function: <strong>asm-nth-instruction</strong> <em>asm n</em></dt>
 <dd><p>Extract the string portion of the Nth instruction from the genome of ASM.
 </p></dd></dl>
-<a name="Function-asm_002dsplit_002dinstruction"></a><dl>
-<dt><a name="index-asm_002dsplit_002dinstruction"></a>Function: <strong>asm-split-instruction</strong> <em>instruction</em></dt>
+<span id="Function-asm_002dsplit_002dinstruction"></span><dl>
+<dt id="index-asm_002dsplit_002dinstruction">Function: <strong>asm-split-instruction</strong> <em>instruction</em></dt>
 <dd><p>Split <code>instruction</code> string on white space or commas. Return a list of strings.
 </p></dd></dl>
-<a name="Generic_002dFunction-homologous_002dcrossover"></a><dl>
-<dt><a name="index-homologous_002dcrossover"></a>Generic Function: <strong>homologous-crossover</strong> <em>software-a software-b</em></dt>
+<span id="Generic_002dFunction-homologous_002dcrossover"></span><dl>
+<dt id="index-homologous_002dcrossover">Generic Function: <strong>homologous-crossover</strong> <em>software-a software-b</em></dt>
 <dd><p>Crossover at a similar point in both software objects.
 After picking a crossover point in <code>software-a</code>, try to find the same point in
 <code>software-b</code>. Ideally, if A and <code>b</code> are identical, &lsquo;homologous-crossover&rsquo; always
 results in a genome that matches those of A and <code>b</code>.
 </p></dd></dl>
-<a name="Method-homologous_002dcrossover-_0028_0028a-asm_002dheap_0029-_0028b-asm_002dheap_0029_0029"></a><dl>
-<dt><a name="index-homologous_002dcrossover-1"></a>Method: <strong>homologous-crossover</strong> <em>(a asm-heap) (b asm-heap)</em></dt>
+<span id="Method-homologous_002dcrossover-_0028_0028a-asm_002dheap_0029-_0028b-asm_002dheap_0029_0029"></span><dl>
+<dt id="index-homologous_002dcrossover-1">Method: <strong>homologous-crossover</strong> <em>(a asm-heap) (b asm-heap)</em></dt>
 <dd><p>Crossover at a similar point in asm objects, A and <code>b</code>.
 After picking a crossover point in A, try to find the same point in <code>b</code>. If A and
 <code>b</code> are identical, this implementation always results in a genome that matches
 those of A and <code>b</code>.
 </p></dd></dl>
-<a name="Method-homologous_002dcrossover-_0028_0028a-asm_0029-_0028b-asm_0029_0029"></a><dl>
-<dt><a name="index-homologous_002dcrossover-2"></a>Method: <strong>homologous-crossover</strong> <em>(a asm) (b asm)</em></dt>
+<span id="Method-homologous_002dcrossover-_0028_0028a-asm_0029-_0028b-asm_0029_0029"></span><dl>
+<dt id="index-homologous_002dcrossover-2">Method: <strong>homologous-crossover</strong> <em>(a asm) (b asm)</em></dt>
 <dd><p>Crossover at a similar point in asm objects, A and <code>b</code>.
 After picking a crossover point in A, try to find the same point in <code>b</code>. If A and
 <code>b</code> are identical, this implementation always results in a genome that matches
@@ -135,7 +124,7 @@ those of A and <code>b</code>.
 <hr>
 <div class="header">
 <p>
-Next: <a href="sel_002dsw_002dasm_002dheap.html#sel_002dsw_002dasm_002dheap" accesskey="n" rel="next">sel-sw-asm-heap</a>, Previous: <a href="sel_002dsw_002dancestral.html#sel_002dsw_002dancestral" accesskey="p" rel="prev">sel-sw-ancestral</a>, Up: <a href="SEL-Packages.html#SEL-Packages" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="sel_002dsw_002dasm_002dheap.html" accesskey="n" rel="next">sel-sw-asm-heap</a>, Previous: <a href="sel_002dsw_002dancestral.html" accesskey="p" rel="prev">sel-sw-ancestral</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 
 

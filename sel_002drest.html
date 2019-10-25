@@ -10,7 +10,7 @@ or any later version published by the Free Software Foundation;
 with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
 A copy of the license is included in the section entitled
 "GNU Free Documentation License." -->
-<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>sel-rest (Software Evolution Library)</title>
@@ -20,33 +20,24 @@ A copy of the license is included in the section entitled
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
-<link href="index.html#Top" rel="start" title="Top">
-<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html" rel="start" title="Top">
+<link href="Index.html" rel="index" title="Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
-<link href="SEL-Packages.html#SEL-Packages" rel="up" title="SEL Packages">
-<link href="sel_002dview.html#sel_002dview" rel="next" title="sel-view">
-<link href="sel_002dutility.html#sel_002dutility" rel="prev" title="sel-utility">
+<link href="SEL-Packages.html" rel="up" title="SEL Packages">
+<link href="sel_002dview.html" rel="next" title="sel-view">
+<link href="sel_002dutility.html" rel="prev" title="sel-utility">
 <style type="text/css">
 <!--
 a.summary-letter {text-decoration: none}
 blockquote.indentedblock {margin-right: 0em}
-blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
-blockquote.smallquotation {font-size: smaller}
 div.display {margin-left: 3.2em}
 div.example {margin-left: 3.2em}
 div.lisp {margin-left: 3.2em}
-div.smalldisplay {margin-left: 3.2em}
-div.smallexample {margin-left: 3.2em}
-div.smalllisp {margin-left: 3.2em}
 kbd {font-style: oblique}
 pre.display {font-family: inherit}
 pre.format {font-family: inherit}
 pre.menu-comment {font-family: serif}
 pre.menu-preformatted {font-family: serif}
-pre.smalldisplay {font-family: inherit; font-size: smaller}
-pre.smallexample {font-size: smaller}
-pre.smallformat {font-family: inherit; font-size: smaller}
-pre.smalllisp {font-size: smaller}
 span.nolinebreak {white-space: nowrap}
 span.roman {font-family: initial; font-weight: normal}
 span.sansserif {font-family: sans-serif; font-weight: normal}
@@ -58,14 +49,24 @@ ul.no-bullet {list-style: none}
 </head>
 
 <body lang="en">
-<a name="sel_002drest"></a>
-<div class="header">
+<span id="sel_002drest"></span><div class="header">
 <p>
-Next: <a href="sel_002dview.html#sel_002dview" accesskey="n" rel="next">sel-view</a>, Previous: <a href="sel_002dutility.html#sel_002dutility" accesskey="p" rel="prev">sel-utility</a>, Up: <a href="SEL-Packages.html#SEL-Packages" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="sel_002dview.html" accesskey="n" rel="next">sel-view</a>, Previous: <a href="sel_002dutility.html" accesskey="p" rel="prev">sel-utility</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<a name="sel_002drest-1"></a>
-<h3 class="section">C.3 sel-rest</h3>
+<span id="sel_002drest-1"></span><h3 class="section">C.3 sel-rest</h3>
+<span id="Macro-define_002dasync_002djob"></span><dl>
+<dt id="index-define_002dasync_002djob">Macro: <strong>define-async-job</strong> <em>name lambda-list &amp;rest body</em></dt>
+<dd><p>Define an async-job type.
+</p></dd></dl>
+<span id="Function-apply_002dasync_002djob_002dfunc"></span><dl>
+<dt id="index-apply_002dasync_002djob_002dfunc">Function: <strong>apply-async-job-func</strong> <em>name &amp;rest args</em></dt>
+<dd><p>Given a name and arguments, call the async-job-type function.
+</p></dd></dl>
+<span id="Function-lookup_002dsession"></span><dl>
+<dt id="index-lookup_002dsession">Function: <strong>lookup-session</strong> <em>cid</em></dt>
+<dd><p>Look up a session by Client <code>id</code>.
+</p></dd></dl>
 
 
 

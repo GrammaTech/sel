@@ -1,0 +1,144 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- This file documents the Software Evolution library
+
+Copyright (C) 2014-2018 Eric Schulte and GrammaTech
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
+A copy of the license is included in the section entitled
+"GNU Free Documentation License." -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>REST Server (Software Evolution Library)</title>
+
+<meta name="description" content="REST Server (Software Evolution Library)">
+<meta name="keywords" content="REST Server (Software Evolution Library)">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<link href="index.html" rel="start" title="Top">
+<link href="Index.html" rel="index" title="Index">
+<link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
+<link href="REST-API.html" rel="up" title="REST API">
+<link href="REST-Interface.html" rel="next" title="REST Interface">
+<link href="REST-API.html" rel="prev" title="REST API">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<span id="REST-Server"></span><div class="header">
+<p>
+Next: <a href="REST-Interface.html" accesskey="n" rel="next">REST Interface</a>, Previous: <a href="REST-API.html" accesskey="p" rel="prev">REST API</a>, Up: <a href="REST-API.html" accesskey="u" rel="up">REST API</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+
+
+<p>Rest server definition for Software Evolution Library
+</p>
+<p>The Rest API for Software Evolution Library is implemented as a web
+service which may be accessed via HTTP resources. This file serves as an
+entry point to these definitions, providing a simple way to start up the
+main REST service.
+</p>
+<p>It attempts to conform to principals described here:
+<a href="https://en.wikipedia.org/wiki/Representational_state_transfer">Representational State Transfer</a>
+</p>
+<span id="Dependencies"></span><h4 class="subsection">2.6.1 Dependencies</h4>
+
+<p>The Rest API leverages a number of Common Lisp components, which
+are open-source and generally available via Quicklisp.  These
+packages support JSON <code>&lt;-&gt;</code> Common Lisp translations, JSON
+streaming, HTTP web server functions, client HTTP support and
+RESTful interface utilities.
+</p>
+
+<dl compact="compact">
+<dt><em><code>cl-json</code></em></dt>
+<dd><p>Parse and generate JSON format
+</p>
+</dd>
+<dt><em><code>st-json</code></em></dt>
+<dd><p>Stream support for JSON format
+</p>
+</dd>
+<dt><em><code>clack</code></em></dt>
+<dd><p>utility to easily launch web services
+</p>
+</dd>
+<dt><em><code>drakma</code></em></dt>
+<dd><p>http client utilities for Common Lisp (for calling Rest
+     APIs/testing
+</p>
+</dd>
+<dt><em><code>hunchentoot</code></em></dt>
+<dd><p>Web server, written in Common Lisp, hosts Rest APIs
+</p>
+</dd>
+<dt><em><code>snooze</code></em></dt>
+<dd><p>Rest API framework
+</p>
+</dd>
+</dl>
+
+<span id="Running-the-Rest-API-Web-Service"></span><h4 class="subsection">2.6.2 Running the Rest API Web Service</h4>
+
+<p>Starting the server:
+</p>
+<div class="example">
+<pre class="example">    (start-server)
+</pre></div>
+
+<p>Stopping the server:
+</p>
+<div class="example">
+<pre class="example">    (stop-server)
+</pre></div>
+
+<p>Restart the server:
+</p>
+<div class="example">
+<pre class="example">    (start-server)            ;; will stop, if running, then start
+</pre></div>
+
+<span id="REST-Services"></span><h4 class="subsection">2.6.3 REST Services</h4>
+
+<p>By default, this provides the endpoints defined in sessions, the standard
+REST API, and asynchronous jobs, plus providing the define-command-endpoint
+macro. If you would like to create a rest serevr without all of these
+resources, you should recreate a similar file but omit the imports you wish
+to avoid using.
+</p>
+
+<hr>
+<div class="header">
+<p>
+Next: <a href="REST-Interface.html" accesskey="n" rel="next">REST Interface</a>, Previous: <a href="REST-API.html" accesskey="p" rel="prev">REST API</a>, Up: <a href="REST-API.html" accesskey="u" rel="up">REST API</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+
+
+
+</body>
+</html>

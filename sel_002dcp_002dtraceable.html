@@ -10,7 +10,7 @@ or any later version published by the Free Software Foundation;
 with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
 A copy of the license is included in the section entitled
 "GNU Free Documentation License." -->
-<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>sel-cp-traceable (Software Evolution Library)</title>
@@ -20,33 +20,24 @@ A copy of the license is included in the section entitled
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
-<link href="index.html#Top" rel="start" title="Top">
-<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html" rel="start" title="Top">
+<link href="Index.html" rel="index" title="Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
-<link href="SEL-Packages.html#SEL-Packages" rel="up" title="SEL Packages">
-<link href="General-Lisp-Advice.html#General-Lisp-Advice" rel="next" title="General Lisp Advice">
-<link href="sel_002dcp_002dtest_002dsuite.html#sel_002dcp_002dtest_002dsuite" rel="prev" title="sel-cp-test-suite">
+<link href="SEL-Packages.html" rel="up" title="SEL Packages">
+<link href="General-Lisp-Advice.html" rel="next" title="General Lisp Advice">
+<link href="sel_002dcp_002dtest_002dsuite.html" rel="prev" title="sel-cp-test-suite">
 <style type="text/css">
 <!--
 a.summary-letter {text-decoration: none}
 blockquote.indentedblock {margin-right: 0em}
-blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
-blockquote.smallquotation {font-size: smaller}
 div.display {margin-left: 3.2em}
 div.example {margin-left: 3.2em}
 div.lisp {margin-left: 3.2em}
-div.smalldisplay {margin-left: 3.2em}
-div.smallexample {margin-left: 3.2em}
-div.smalllisp {margin-left: 3.2em}
 kbd {font-style: oblique}
 pre.display {font-family: inherit}
 pre.format {font-family: inherit}
 pre.menu-comment {font-family: serif}
 pre.menu-preformatted {font-family: serif}
-pre.smalldisplay {font-family: inherit; font-size: smaller}
-pre.smallexample {font-size: smaller}
-pre.smallformat {font-family: inherit; font-size: smaller}
-pre.smalllisp {font-size: smaller}
 span.nolinebreak {white-space: nowrap}
 span.roman {font-family: initial; font-weight: normal}
 span.sansserif {font-family: sans-serif; font-weight: normal}
@@ -58,94 +49,60 @@ ul.no-bullet {list-style: none}
 </head>
 
 <body lang="en">
-<a name="sel_002dcp_002dtraceable"></a>
-<div class="header">
+<span id="sel_002dcp_002dtraceable"></span><div class="header">
 <p>
-Next: <a href="General-Lisp-Advice.html#General-Lisp-Advice" accesskey="n" rel="next">General Lisp Advice</a>, Previous: <a href="sel_002dcp_002dtest_002dsuite.html#sel_002dcp_002dtest_002dsuite" accesskey="p" rel="prev">sel-cp-test-suite</a>, Up: <a href="SEL-Packages.html#SEL-Packages" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="General-Lisp-Advice.html" accesskey="n" rel="next">General Lisp Advice</a>, Previous: <a href="sel_002dcp_002dtest_002dsuite.html" accesskey="p" rel="prev">sel-cp-test-suite</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<a name="sel_002dcp_002dtraceable-1"></a>
-<h3 class="section">C.62 sel-cp-traceable</h3>
-<a name="Class-binary_002dtraceable"></a><dl>
-<dt><a name="index-binary_002dtraceable"></a>Class: <strong>binary-traceable</strong></dt>
+<span id="sel_002dcp_002dtraceable-1"></span><h3 class="section">C.59 sel-cp-traceable</h3>
+<span id="Class-binary_002dtraceable"></span><dl>
+<dt id="index-binary_002dtraceable">Class: <strong>binary-traceable</strong></dt>
 <dd><p>Class precedence list: <code>binary-traceable, traceable, software, oid-object, standard-object, t</code>
 </p>
 <p>Instrumentable software with support for collecting dynamic
 traces in a proprietary binary format.
 </p></dd></dl>
-<a name="Generic_002dFunction-collect_002dtrace"></a><dl>
-<dt><a name="index-collect_002dtrace"></a>Generic Function: <strong>collect-trace</strong> <em>software input &amp;key max bin</em></dt>
-<dd><p>Execute instrumented <code>software</code> on <code>test-case</code> collecting a dynamic trace.
-<code>max</code> specifies the maximum number of trace points to record.  <code>bin</code> specifies
-the name of an already-compiled binary to use.
-</p>
-<p>Returns a list of traces, which may contains multiple elements if
-executing a test script which runs the traceable program multiple
+<span id="Generic_002dFunction-collect_002dtest_002dcase_002dtraces"></span><dl>
+<dt id="index-collect_002dtest_002dcase_002dtraces">Generic Function: <strong>collect-test-case-traces</strong> <em>software input &amp;key max-trace-points bin num-traces</em></dt>
+<dd><p>Execute instrumented <code>software</code> on <code>test-case</code> collecting dynamic trace(s).
+Returns a list of traces, which may contain multiple elements if
+executing a test case which runs the traceable program multiple
 times.
-</p></dd></dl>
-<a name="Method-collect_002dtrace-_0028_0028obj-sexp_002dtraceable_0029-_0028test_002dcase-test_002dcase_0029-_0026key-_0028max-infinity_0029-_0028bin-_0028temp_002dfile_002dname_0029_0029-_0026aux-_0028delete_002dbin_002dp-t_0029_0029"></a><dl>
-<dt><a name="index-collect_002dtrace-1"></a>Method: <strong>collect-trace</strong> <em>(obj sexp-traceable) (test-case test-case) &amp;key (max infinity) (bin (temp-file-name)) &amp;aux (delete-bin-p t)</em></dt>
-<dd><p>Execute instrumented <code>obj</code> on <code>test-case</code> collecting dynamic traces.
-</p><ul>
-<li> <code>obj</code> Instrumented java software object suitable for trace collection
-</li><li> <code>test-case</code> test case to execute for trace collection
-</li><li> <code>max</code> maximum number of trace points to record
-</li><li> <code>bin</code> compiled binary with instrumentation to use for trace collection
-</li></ul>
-</dd></dl>
-<a name="Method-collect_002dtrace-_0028_0028obj-binary_002dtraceable_0029-_0028test_002dcase-test_002dcase_0029-_0026key-max-_0028bin-_0028temp_002dfile_002dname_0029_0029-_0026aux-_0028delete_002dbin_002dp-t_0029_0029"></a><dl>
-<dt><a name="index-collect_002dtrace-2"></a>Method: <strong>collect-trace</strong> <em>(obj binary-traceable) (test-case test-case) &amp;key max (bin (temp-file-name)) &amp;aux (delete-bin-p t)</em></dt>
-<dd><p>Execute instrumented <code>obj</code> on <code>test-case</code> collecting dynamic traces.
-</p><ul>
+</p>
+<ul>
 <li> <code>obj</code> Instrumented software object suitable for trace collection
 </li><li> <code>test-case</code> test case to execute for trace collection
-</li><li> <code>max</code> maximum number of trace points to record
+</li><li> <code>max</code> maximum number of trace points to record per trace
 </li><li> <code>bin</code> compiled binary with instrumentation to use for trace collection
+</li><li> <code>num-traces</code> maximum number of traces to collect from the given test case
 </li></ul>
 </dd></dl>
-<a name="Generic_002dFunction-collect_002dtraces"></a><dl>
-<dt><a name="index-collect_002dtraces"></a>Generic Function: <strong>collect-traces</strong> <em>software test-suite &amp;key max bin num-threads</em></dt>
-<dd><p>Execute instrumented <code>software</code> on <code>test-suite</code> collecting dynamic traces.
-See the documentation of &lsquo;collect-trace&rsquo; for information on the
-<code>max</code>, <code>bin</code>, and <code>num-threads</code> keyword arguments.
-</p></dd></dl>
-<a name="Method-collect_002dtraces-_0028_0028obj-sexp_002dtraceable_0029-_0028test_002dsuite-test_002dsuite_0029-_0026key-max-_0028bin-_0028temp_002dfile_002dname_0029_0029-_0028num_002dthreads-0_0029-_0026aux-_0028args-_0028list-bin-bin_0029_0029-_0028delete_002dbin_002dp-t_0029_0029"></a><dl>
-<dt><a name="index-collect_002dtraces-1"></a>Method: <strong>collect-traces</strong> <em>(obj sexp-traceable) (test-suite test-suite) &amp;key max (bin (temp-file-name)) (num-threads 0) &amp;aux (args (list bin bin)) (delete-bin-p t)</em></dt>
+<span id="Generic_002dFunction-collect_002dtraces"></span><dl>
+<dt id="index-collect_002dtraces">Generic Function: <strong>collect-traces</strong> <em>software test-suite &amp;key max-trace-points bin num-traces</em></dt>
 <dd><p>Execute instrumented <code>obj</code> on <code>test-suite</code> collecting dynamic traces.
 </p><ul>
 <li> <code>obj</code> Instrumented software object suitable for trace collection
 </li><li> <code>test-suite</code> suite of test case to execute for trace collection
-</li><li> <code>max</code> maximum number of trace points to record
+</li><li> <code>max-trace-points</code> maximum number of trace points to record per trace
 </li><li> <code>bin</code> compiled binary with instrumentation to use for trace collection
-</li><li> <code>num-threads</code> number of threads to use in trace collection
+</li><li> <code>num-traces</code> maximum number of traces to collect from the given test suite
 </li></ul>
 </dd></dl>
-<a name="Method-collect_002dtraces-_0028_0028obj-binary_002dtraceable_0029-_0028test_002dsuite-test_002dsuite_0029-_0026key-max-_0028bin-_0028temp_002dfile_002dname_0029_0029-_0028num_002dthreads-0_0029-_0026aux-_0028args-_0028list-bin-bin_0029_0029-_0028delete_002dbin_002dp-t_0029_0029"></a><dl>
-<dt><a name="index-collect_002dtraces-2"></a>Method: <strong>collect-traces</strong> <em>(obj binary-traceable) (test-suite test-suite) &amp;key max (bin (temp-file-name)) (num-threads 0) &amp;aux (args (list bin bin)) (delete-bin-p t)</em></dt>
-<dd><p>Execute instrumented <code>obj</code> on <code>test-suite</code> collecting dynamic traces.
-</p><ul>
-<li> <code>obj</code> Instrumented software object suitable for trace collection
-</li><li> <code>test-suite</code> suite of test case to execute for trace collection
-</li><li> <code>max</code> maximum number of trace points to record
-</li><li> <code>bin</code> compiled binary with instrumentation to use for trace collection
-</li><li> <code>num-threads</code> number of threads to use in trace collection
-</li></ul>
-</dd></dl>
-<a name="Condition-trace_002derror"></a><dl>
-<dt><a name="index-trace_002derror"></a>Condition: <strong>trace-error</strong></dt>
+<span id="Condition-trace_002derror"></span><dl>
+<dt id="index-trace_002derror">Condition: <strong>trace-error</strong></dt>
 <dd><p>Class precedence list: <code>trace-error, error, serious-condition, condition, t</code>
 </p>
 <p>Error thrown when trace collection fails unexpectedly
 </p></dd></dl>
-<a name="Class-sexp_002dtraceable"></a><dl>
-<dt><a name="index-sexp_002dtraceable"></a>Class: <strong>sexp-traceable</strong></dt>
+<span id="Class-sexp_002dtraceable"></span><dl>
+<dt id="index-sexp_002dtraceable">Class: <strong>sexp-traceable</strong></dt>
 <dd><p>Class precedence list: <code>sexp-traceable, traceable, software, oid-object, standard-object, t</code>
 </p>
 <p>Instrumentable software with support for collecting dynamic
 traces in a s-expression format.
 </p></dd></dl>
-<a name="Class-traceable"></a><dl>
-<dt><a name="index-traceable"></a>Class: <strong>traceable</strong></dt>
+<span id="Class-traceable"></span><dl>
+<dt id="index-traceable">Class: <strong>traceable</strong></dt>
 <dd><p>Class precedence list: <code>traceable, software, oid-object, standard-object, t</code>
 </p>
 <p>Slots:
@@ -161,7 +118,7 @@ traces in a s-expression format.
 <hr>
 <div class="header">
 <p>
-Next: <a href="General-Lisp-Advice.html#General-Lisp-Advice" accesskey="n" rel="next">General Lisp Advice</a>, Previous: <a href="sel_002dcp_002dtest_002dsuite.html#sel_002dcp_002dtest_002dsuite" accesskey="p" rel="prev">sel-cp-test-suite</a>, Up: <a href="SEL-Packages.html#SEL-Packages" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="General-Lisp-Advice.html" accesskey="n" rel="next">General Lisp Advice</a>, Previous: <a href="sel_002dcp_002dtest_002dsuite.html" accesskey="p" rel="prev">sel-cp-test-suite</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 
 

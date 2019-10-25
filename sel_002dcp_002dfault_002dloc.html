@@ -10,7 +10,7 @@ or any later version published by the Free Software Foundation;
 with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
 A copy of the license is included in the section entitled
 "GNU Free Documentation License." -->
-<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>sel-cp-fault-loc (Software Evolution Library)</title>
@@ -20,33 +20,24 @@ A copy of the license is included in the section entitled
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
-<link href="index.html#Top" rel="start" title="Top">
-<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html" rel="start" title="Top">
+<link href="Index.html" rel="index" title="Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
-<link href="SEL-Packages.html#SEL-Packages" rel="up" title="SEL Packages">
-<link href="sel_002dcp_002dfix_002dcompilation.html#sel_002dcp_002dfix_002dcompilation" rel="next" title="sel-cp-fix-compilation">
-<link href="sel_002dcp_002dcondition_002dsynthesis.html#sel_002dcp_002dcondition_002dsynthesis" rel="prev" title="sel-cp-condition-synthesis">
+<link href="SEL-Packages.html" rel="up" title="SEL Packages">
+<link href="sel_002dcp_002dfix_002dcompilation.html" rel="next" title="sel-cp-fix-compilation">
+<link href="sel_002dcp_002dcondition_002dsynthesis.html" rel="prev" title="sel-cp-condition-synthesis">
 <style type="text/css">
 <!--
 a.summary-letter {text-decoration: none}
 blockquote.indentedblock {margin-right: 0em}
-blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
-blockquote.smallquotation {font-size: smaller}
 div.display {margin-left: 3.2em}
 div.example {margin-left: 3.2em}
 div.lisp {margin-left: 3.2em}
-div.smalldisplay {margin-left: 3.2em}
-div.smallexample {margin-left: 3.2em}
-div.smalllisp {margin-left: 3.2em}
 kbd {font-style: oblique}
 pre.display {font-family: inherit}
 pre.format {font-family: inherit}
 pre.menu-comment {font-family: serif}
 pre.menu-preformatted {font-family: serif}
-pre.smalldisplay {font-family: inherit; font-size: smaller}
-pre.smallexample {font-size: smaller}
-pre.smallformat {font-family: inherit; font-size: smaller}
-pre.smalllisp {font-size: smaller}
 span.nolinebreak {white-space: nowrap}
 span.roman {font-family: initial; font-weight: normal}
 span.sansserif {font-family: sans-serif; font-weight: normal}
@@ -58,16 +49,14 @@ ul.no-bullet {list-style: none}
 </head>
 
 <body lang="en">
-<a name="sel_002dcp_002dfault_002dloc"></a>
-<div class="header">
+<span id="sel_002dcp_002dfault_002dloc"></span><div class="header">
 <p>
-Next: <a href="sel_002dcp_002dfix_002dcompilation.html#sel_002dcp_002dfix_002dcompilation" accesskey="n" rel="next">sel-cp-fix-compilation</a>, Previous: <a href="sel_002dcp_002dcondition_002dsynthesis.html#sel_002dcp_002dcondition_002dsynthesis" accesskey="p" rel="prev">sel-cp-condition-synthesis</a>, Up: <a href="SEL-Packages.html#SEL-Packages" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="sel_002dcp_002dfix_002dcompilation.html" accesskey="n" rel="next">sel-cp-fix-compilation</a>, Previous: <a href="sel_002dcp_002dcondition_002dsynthesis.html" accesskey="p" rel="prev">sel-cp-condition-synthesis</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<a name="sel_002dcp_002dfault_002dloc-1"></a>
-<h3 class="section">C.47 sel-cp-fault-loc</h3>
-<a name="Generic_002dFunction-collect_002dfault_002dloc_002dtraces"></a><dl>
-<dt><a name="index-collect_002dfault_002dloc_002dtraces"></a>Generic Function: <strong>collect-fault-loc-traces</strong> <em>bin test-suite read-trace-fn &amp;optional fl-neg-test</em></dt>
+<span id="sel_002dcp_002dfault_002dloc-1"></span><h3 class="section">C.44 sel-cp-fault-loc</h3>
+<span id="Generic_002dFunction-collect_002dfault_002dloc_002dtraces"></span><dl>
+<dt id="index-collect_002dfault_002dloc_002dtraces">Generic Function: <strong>collect-fault-loc-traces</strong> <em>bin test-suite read-trace-fn &amp;optional fl-neg-test</em></dt>
 <dd><p>Run test cases and collect execution traces.
 </p>
 <p>Returns a list of traces where the notion of &quot;good&quot; traces (from
@@ -82,8 +71,8 @@ usually).
 </p>
 <p>No assumptions are made about the format or contents of the traces.
 </p></dd></dl>
-<a name="Method-collect_002dfault_002dloc_002dtraces-_0028bin-test_002dsuite-read_002dtrace_002dfn-_0026optional-fl_002dneg_002dtest_0029"></a><dl>
-<dt><a name="index-collect_002dfault_002dloc_002dtraces-1"></a>Method: <strong>collect-fault-loc-traces</strong> <em>bin test-suite read-trace-fn &amp;optional fl-neg-test</em></dt>
+<span id="Method-collect_002dfault_002dloc_002dtraces-_0028bin-test_002dsuite-read_002dtrace_002dfn-_0026optional-fl_002dneg_002dtest_0029"></span><dl>
+<dt id="index-collect_002dfault_002dloc_002dtraces-1">Method: <strong>collect-fault-loc-traces</strong> <em>bin test-suite read-trace-fn &amp;optional fl-neg-test</em></dt>
 <dd><p><code>docfixme</code>
 </p><ul>
 <li> <code>bin</code> <code>docfixme</code>
@@ -92,16 +81,16 @@ usually).
 </li><li> <code>fl-neg-test</code> <code>docfixme</code>
 </li></ul>
 </dd></dl>
-<a name="Function-error_002dfuncs"></a><dl>
-<dt><a name="index-error_002dfuncs"></a>Function: <strong>error-funcs</strong> <em>software bad-traces good-traces</em></dt>
+<span id="Function-error_002dfuncs"></span><dl>
+<dt id="index-error_002dfuncs">Function: <strong>error-funcs</strong> <em>software bad-traces good-traces</em></dt>
 <dd><p>Find statements which call error functions.
 </p>
 <p>Error functions are defined as functions which are only called during
 bad runs. Such functions often contain error-handling code which is
 not itself faulty, so it&rsquo;s useful to identify their callers instead.
 </p></dd></dl>
-<a name="Function-rinard"></a><dl>
-<dt><a name="index-rinard"></a>Function: <strong>rinard</strong> <em>count obj stmt-counts</em></dt>
+<span id="Function-rinard"></span><dl>
+<dt id="index-rinard">Function: <strong>rinard</strong> <em>count obj stmt-counts</em></dt>
 <dd><p>Spectrum-based fault localization from <code>spr</code> and Prophet.
 </p><ul>
 <li> <code>count</code> size of prioritized list to return
@@ -109,12 +98,12 @@ not itself faulty, so it&rsquo;s useful to identify their callers instead.
 </li><li> <code>stmt-counts</code> aggregated trace results, collected from &lsquo;rinard-incremental&rsquo;
 </li></ul>
 </dd></dl>
-<a name="Function-rinard_002dcompare"></a><dl>
-<dt><a name="index-rinard_002dcompare"></a>Function: <strong>rinard-compare</strong> <em>a b</em></dt>
+<span id="Function-rinard_002dcompare"></span><dl>
+<dt id="index-rinard_002dcompare">Function: <strong>rinard-compare</strong> <em>a b</em></dt>
 <dd><p>Return non-nil if A is more suspicious than <code>b</code>.
 </p></dd></dl>
-<a name="Function-rinard_002dincremental"></a><dl>
-<dt><a name="index-rinard_002dincremental"></a>Function: <strong>rinard-incremental</strong> <em>trace-stream stmt-counts is-good-trace cur_test</em></dt>
+<span id="Function-rinard_002dincremental"></span><dl>
+<dt id="index-rinard_002dincremental">Function: <strong>rinard-incremental</strong> <em>trace-stream stmt-counts is-good-trace cur_test</em></dt>
 <dd><p>Process a single trace&rsquo;s output, return the aggregated results.
 </p><ul>
 <li> <code>trace-stream</code> an open file representing the trace result, generally
@@ -125,16 +114,16 @@ not itself faulty, so it&rsquo;s useful to identify their callers instead.
 </li><li> CUR_TEST unique test identifier
 </li></ul>
 </dd></dl>
-<a name="Function-rinard_002dread_002din"></a><dl>
-<dt><a name="index-rinard_002dread_002din"></a>Function: <strong>rinard-read-in</strong> <em>path</em></dt>
+<span id="Function-rinard_002dread_002din"></span><dl>
+<dt id="index-rinard_002dread_002din">Function: <strong>rinard-read-in</strong> <em>path</em></dt>
 <dd><p>Read in previously-written fault localization info.
 </p><ul>
 <li> <code>path</code> full system path to read in from, previously
        written out by &lsquo;rinard-write-out&rsquo;.
 </li></ul>
 </dd></dl>
-<a name="Function-rinard_002dwrite_002dout"></a><dl>
-<dt><a name="index-rinard_002dwrite_002dout"></a>Function: <strong>rinard-write-out</strong> <em>path data</em></dt>
+<span id="Function-rinard_002dwrite_002dout"></span><dl>
+<dt id="index-rinard_002dwrite_002dout">Function: <strong>rinard-write-out</strong> <em>path data</em></dt>
 <dd><p>Write out fault localization to speed up subsequent trials.
 </p>
 <ul>
@@ -142,8 +131,8 @@ not itself faulty, so it&rsquo;s useful to identify their callers instead.
 </li><li> <code>data</code> fault loc data, as returned by &lsquo;rinard&rsquo;.
 </li></ul>
 </dd></dl>
-<a name="Function-stmts_002din_002dfile"></a><dl>
-<dt><a name="index-stmts_002din_002dfile"></a>Function: <strong>stmts-in-file</strong> <em>trace file-id</em></dt>
+<span id="Function-stmts_002din_002dfile"></span><dl>
+<dt id="index-stmts_002din_002dfile">Function: <strong>stmts-in-file</strong> <em>trace file-id</em></dt>
 <dd><p><code>docfixme</code>
 </p><ul>
 <li> <code>trace</code> <code>docfixme</code>
@@ -154,7 +143,7 @@ not itself faulty, so it&rsquo;s useful to identify their callers instead.
 <hr>
 <div class="header">
 <p>
-Next: <a href="sel_002dcp_002dfix_002dcompilation.html#sel_002dcp_002dfix_002dcompilation" accesskey="n" rel="next">sel-cp-fix-compilation</a>, Previous: <a href="sel_002dcp_002dcondition_002dsynthesis.html#sel_002dcp_002dcondition_002dsynthesis" accesskey="p" rel="prev">sel-cp-condition-synthesis</a>, Up: <a href="SEL-Packages.html#SEL-Packages" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="sel_002dcp_002dfix_002dcompilation.html" accesskey="n" rel="next">sel-cp-fix-compilation</a>, Previous: <a href="sel_002dcp_002dcondition_002dsynthesis.html" accesskey="p" rel="prev">sel-cp-condition-synthesis</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 
 

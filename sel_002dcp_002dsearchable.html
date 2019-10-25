@@ -10,7 +10,7 @@ or any later version published by the Free Software Foundation;
 with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
 A copy of the license is included in the section entitled
 "GNU Free Documentation License." -->
-<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>sel-cp-searchable (Software Evolution Library)</title>
@@ -20,33 +20,24 @@ A copy of the license is included in the section entitled
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
-<link href="index.html#Top" rel="start" title="Top">
-<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html" rel="start" title="Top">
+<link href="Index.html" rel="index" title="Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
-<link href="SEL-Packages.html#SEL-Packages" rel="up" title="SEL Packages">
-<link href="sel_002dcp_002dserapi_002dio.html#sel_002dcp_002dserapi_002dio" rel="next" title="sel-cp-serapi-io">
-<link href="sel_002dcp_002dpliny_002dfodder_002ddatabase.html#sel_002dcp_002dpliny_002dfodder_002ddatabase" rel="prev" title="sel-cp-pliny-fodder-database">
+<link href="SEL-Packages.html" rel="up" title="SEL Packages">
+<link href="sel_002dcp_002dserapi_002dio.html" rel="next" title="sel-cp-serapi-io">
+<link href="sel_002dcp_002dpliny_002dfodder_002ddatabase.html" rel="prev" title="sel-cp-pliny-fodder-database">
 <style type="text/css">
 <!--
 a.summary-letter {text-decoration: none}
 blockquote.indentedblock {margin-right: 0em}
-blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
-blockquote.smallquotation {font-size: smaller}
 div.display {margin-left: 3.2em}
 div.example {margin-left: 3.2em}
 div.lisp {margin-left: 3.2em}
-div.smalldisplay {margin-left: 3.2em}
-div.smallexample {margin-left: 3.2em}
-div.smalllisp {margin-left: 3.2em}
 kbd {font-style: oblique}
 pre.display {font-family: inherit}
 pre.format {font-family: inherit}
 pre.menu-comment {font-family: serif}
 pre.menu-preformatted {font-family: serif}
-pre.smalldisplay {font-family: inherit; font-size: smaller}
-pre.smallexample {font-size: smaller}
-pre.smallformat {font-family: inherit; font-size: smaller}
-pre.smalllisp {font-size: smaller}
 span.nolinebreak {white-space: nowrap}
 span.roman {font-family: initial; font-weight: normal}
 span.sansserif {font-family: sans-serif; font-weight: normal}
@@ -58,16 +49,14 @@ ul.no-bullet {list-style: none}
 </head>
 
 <body lang="en">
-<a name="sel_002dcp_002dsearchable"></a>
-<div class="header">
+<span id="sel_002dcp_002dsearchable"></span><div class="header">
 <p>
-Next: <a href="sel_002dcp_002dserapi_002dio.html#sel_002dcp_002dserapi_002dio" accesskey="n" rel="next">sel-cp-serapi-io</a>, Previous: <a href="sel_002dcp_002dpliny_002dfodder_002ddatabase.html#sel_002dcp_002dpliny_002dfodder_002ddatabase" accesskey="p" rel="prev">sel-cp-pliny-fodder-database</a>, Up: <a href="SEL-Packages.html#SEL-Packages" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="sel_002dcp_002dserapi_002dio.html" accesskey="n" rel="next">sel-cp-serapi-io</a>, Previous: <a href="sel_002dcp_002dpliny_002dfodder_002ddatabase.html" accesskey="p" rel="prev">sel-cp-pliny-fodder-database</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<a name="sel_002dcp_002dsearchable-1"></a>
-<h3 class="section">C.59 sel-cp-searchable</h3>
-<a name="Generic_002dFunction-find_002dsnippets"></a><dl>
-<dt><a name="index-find_002dsnippets"></a>Generic Function: <strong>find-snippets</strong> <em>database &amp;key ast-class full-stmt decls limit</em></dt>
+<span id="sel_002dcp_002dsearchable-1"></span><h3 class="section">C.56 sel-cp-searchable</h3>
+<span id="Generic_002dFunction-find_002dsnippets"></span><dl>
+<dt id="index-find_002dsnippets">Generic Function: <strong>find-snippets</strong> <em>database &amp;key ast-class full-stmt decls limit</em></dt>
 <dd><p>Find snippets in the fodder database <code>database</code>.
 </p>
 <ul>
@@ -78,8 +67,8 @@ Next: <a href="sel_002dcp_002dserapi_002dio.html#sel_002dcp_002dserapi_002dio" a
 </li><li> <code>limit</code>       Limit to <code>n</code> randomly drawn snippets
 </li></ul>
 </dd></dl>
-<a name="Method-find_002dsnippets-_0028_0028obj-pliny_002ddatabase_0029-_0026key-ast_002dclass-full_002dstmt-decls-_0028limit-_0028_002d-_0028expt-2-32_0029-1_0029_0029_0029"></a><dl>
-<dt><a name="index-find_002dsnippets-1"></a>Method: <strong>find-snippets</strong> <em>(obj pliny-database) &amp;key ast-class full-stmt decls (limit (- (expt 2 32) 1))</em></dt>
+<span id="Method-find_002dsnippets-_0028_0028obj-pliny_002ddatabase_0029-_0026key-ast_002dclass-full_002dstmt-decls--_0028limit-_0028_002d-_0028expt-2-32_0029-1_0029_0029_0029"></span><dl>
+<dt id="index-find_002dsnippets-1">Method: <strong>find-snippets</strong> <em>(obj pliny-database) &amp;key ast-class full-stmt decls (limit (- (expt 2 32) 1))</em></dt>
 <dd><p><code>docfixme</code>
 </p>
 <ul>
@@ -90,26 +79,31 @@ Next: <a href="sel_002dcp_002dserapi_002dio.html#sel_002dcp_002dserapi_002dio" a
 </li><li> <code>limit</code> <code>docfixme</code>
 </li></ul>
 </dd></dl>
-<a name="Method-find_002dsnippets-_0028_0028db-in_002dmemory_002ddatabase_0029-_0026key-ast_002dclass-full_002dstmt-decls-limit_0029"></a><dl>
-<dt><a name="index-find_002dsnippets-2"></a>Method: <strong>find-snippets</strong> <em>(db in-memory-database) &amp;key ast-class full-stmt decls limit</em></dt>
-<dd><p><code>docfixme</code>
+<span id="Method-find_002dsnippets-_0028_0028db-in_002dmemory_002ddatabase_0029-_0026key-ast_002dclass-full_002dstmt-decls-limit_0029"></span><dl>
+<dt id="index-find_002dsnippets-2">Method: <strong>find-snippets</strong> <em>(db in-memory-database) &amp;key ast-class full-stmt decls limit</em></dt>
+<dd><p>Find <code>limit</code> snippets stored in <code>db</code>, an in-memory database.
+If <code>limit</code> is <code>nil</code> or <code>&gt;=</code> the number of snippets of the desired kind,
+return a list of all of them.  Otherwise, return a random
+subset of <code>limit</code> objects of the desired kind.
 </p>
-<ul>
-<li> <code>db</code> <code>docfixme</code>
-</li><li> <code>ast-class</code> <code>docfixme</code>
-</li><li> <code>full-stmt</code> <code>docfixme</code>
-</li><li> <code>decls</code> <code>docfixme</code>
-</li><li> <code>limit</code> <code>docfixme</code>
-</li></ul>
-</dd></dl>
-<a name="Class-searchable"></a><dl>
-<dt><a name="index-searchable"></a>Class: <strong>searchable</strong></dt>
+<p>If <code>ast-class</code> is not nil, it is the name of an <code>ast-class</code>;
+consider only ASTs of that class.
+</p>
+<p>Otherwise, if <code>full-stmt</code> is true, consider only full statements.
+</p>
+<p>If <code>decls</code> is <code>:only</code>, consider only ASTs for which the <code>:is-decl</code>
+property is true.
+</p>
+<p>Otherwise, consider all ASTs.
+</p></dd></dl>
+<span id="Class-searchable"></span><dl>
+<dt id="index-searchable">Class: <strong>searchable</strong></dt>
 <dd><p>Class precedence list: <code>searchable, standard-object, t</code>
 </p>
 <p><code>docfixme</code>
 </p></dd></dl>
-<a name="Generic_002dFunction-similar_002dsnippets"></a><dl>
-<dt><a name="index-similar_002dsnippets"></a>Generic Function: <strong>similar-snippets</strong> <em>searchable target &amp;key predicate metric key limit ast-class limit-considered filter</em></dt>
+<span id="Generic_002dFunction-similar_002dsnippets"></span><dl>
+<dt id="index-similar_002dsnippets">Generic Function: <strong>similar-snippets</strong> <em>searchable target &amp;key predicate metric key limit ast-class limit-considered filter</em></dt>
 <dd><p>Return snippets from <code>searchable</code> similar to <code>target</code>
 </p><ul>
 <li> <code>searchable</code> <code>docfixme</code>
@@ -123,8 +117,8 @@ Next: <a href="sel_002dcp_002dserapi_002dio.html#sel_002dcp_002dserapi_002dio" a
 </li><li> <code>:filter</code> limit search to snippets for which <code>filter</code> returns false
 </li></ul>
 </dd></dl>
-<a name="Method-similar_002dsnippets-_0028_0028obj-pliny_002ddatabase_0029-target-_0026key-predicate-metric-key-ast_002dclass-limit_002dconsidered-_0028limit-_0028_002d-_0028expt-2-32_0029-1_0029_0029-_0028filter-_0023_0027null_0029_0029"></a><dl>
-<dt><a name="index-similar_002dsnippets-1"></a>Method: <strong>similar-snippets</strong> <em>(obj pliny-database) target &amp;key predicate metric key ast-class limit-considered (limit (- (expt 2 32) 1)) (filter (function null))</em></dt>
+<span id="Method-similar_002dsnippets-_0028_0028obj-pliny_002ddatabase_0029-target-_0026key-predicate-metric-key--ast_002dclass-limit_002dconsidered-_0028limit-_0028_002d-_0028expt-2-32_0029-1_0029_0029--_0028filter-_0023_0027null_0029_0029"></span><dl>
+<dt id="index-similar_002dsnippets-1">Method: <strong>similar-snippets</strong> <em>(obj pliny-database) target &amp;key predicate metric key ast-class limit-considered (limit (- (expt 2 32) 1)) (filter (function null))</em></dt>
 <dd><p><code>docfixme</code>
 </p>
 <ul>
@@ -138,24 +132,24 @@ Next: <a href="sel_002dcp_002dserapi_002dio.html#sel_002dcp_002dserapi_002dio" a
 </li><li> <code>filter</code> <code>docfixme</code>
 </li></ul>
 </dd></dl>
-<a name="Method-similar_002dsnippets-_0028_0028db-searchable_0029-target-_0026key-key-ast_002dclass-limit-_0028predicate-_0023_0027_003c_0029-_0028metric-_0023_0027diff_002dscalar_0029-_0028filter-_0023_0027null_0029-_0028limit_002dconsidered-infinity_0029_0029"></a><dl>
-<dt><a name="index-similar_002dsnippets-2"></a>Method: <strong>similar-snippets</strong> <em>(db searchable) target &amp;key key ast-class limit (predicate (function &lt;)) (metric (function diff-scalar)) (filter (function null)) (limit-considered infinity)</em></dt>
+<span id="Method-similar_002dsnippets-_0028_0028db-searchable_0029-target-_0026key-key-ast_002dclass-limit--_0028predicate-_0023_0027_003c_0029-_0028metric-_0023_0027diff_002dscalar_0029-_0028filter-_0023_0027null_0029--_0028limit_002dconsidered-infinity_0029_0029"></span><dl>
+<dt id="index-similar_002dsnippets-2">Method: <strong>similar-snippets</strong> <em>(db searchable) target &amp;key key ast-class limit (predicate (function &lt;)) (metric (function diff-scalar)) (filter (function null)) (limit-considered infinity)</em></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
-<a name="Generic_002dFunction-weighted_002dpick"></a><dl>
-<dt><a name="index-weighted_002dpick"></a>Generic Function: <strong>weighted-pick</strong> <em>searchable target weight &amp;key predicate metric key limit ast-class filter limit-considered</em></dt>
+<span id="Generic_002dFunction-weighted_002dpick"></span><dl>
+<dt id="index-weighted_002dpick">Generic Function: <strong>weighted-pick</strong> <em>searchable target weight &amp;key predicate metric key limit ast-class filter limit-considered</em></dt>
 <dd><p>Perform a random pick weighted by weight from &lsquo;similar-snippets&rsquo;.
 All other arguments are passed through to sorted snippets.
 </p></dd></dl>
-<a name="Method-weighted_002dpick-_0028_0028obj-searchable_0029-target-weight-_0026key-key-limit-ast_002dclass-_0028predicate-_0023_0027_003c_0029-_0028metric-_0023_0027diff_002dscalar_0029-_0028filter-_0023_0027null_0029-_0028limit_002dconsidered-infinity_0029_0029"></a><dl>
-<dt><a name="index-weighted_002dpick-1"></a>Method: <strong>weighted-pick</strong> <em>(obj searchable) target weight &amp;key key limit ast-class (predicate (function &lt;)) (metric (function diff-scalar)) (filter (function null)) (limit-considered infinity)</em></dt>
+<span id="Method-weighted_002dpick-_0028_0028obj-searchable_0029-target-weight-_0026key-key-limit-ast_002dclass--_0028predicate-_0023_0027_003c_0029-_0028metric-_0023_0027diff_002dscalar_0029-_0028filter-_0023_0027null_0029--_0028limit_002dconsidered-infinity_0029_0029"></span><dl>
+<dt id="index-weighted_002dpick-1">Method: <strong>weighted-pick</strong> <em>(obj searchable) target weight &amp;key key limit ast-class (predicate (function &lt;)) (metric (function diff-scalar)) (filter (function null)) (limit-considered infinity)</em></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
 
 <hr>
 <div class="header">
 <p>
-Next: <a href="sel_002dcp_002dserapi_002dio.html#sel_002dcp_002dserapi_002dio" accesskey="n" rel="next">sel-cp-serapi-io</a>, Previous: <a href="sel_002dcp_002dpliny_002dfodder_002ddatabase.html#sel_002dcp_002dpliny_002dfodder_002ddatabase" accesskey="p" rel="prev">sel-cp-pliny-fodder-database</a>, Up: <a href="SEL-Packages.html#SEL-Packages" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="sel_002dcp_002dserapi_002dio.html" accesskey="n" rel="next">sel-cp-serapi-io</a>, Previous: <a href="sel_002dcp_002dpliny_002dfodder_002ddatabase.html" accesskey="p" rel="prev">sel-cp-pliny-fodder-database</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 
 

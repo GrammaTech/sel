@@ -10,7 +10,7 @@ or any later version published by the Free Software Foundation;
 with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
 A copy of the license is included in the section entitled
 "GNU Free Documentation License." -->
-<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>sel-cp-clang-tokens (Software Evolution Library)</title>
@@ -20,33 +20,24 @@ A copy of the license is included in the section entitled
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
-<link href="index.html#Top" rel="start" title="Top">
-<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html" rel="start" title="Top">
+<link href="Index.html" rel="index" title="Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
-<link href="SEL-Packages.html#SEL-Packages" rel="up" title="SEL Packages">
-<link href="sel_002dcp_002dcondition_002dsynthesis.html#sel_002dcp_002dcondition_002dsynthesis" rel="next" title="sel-cp-condition-synthesis">
-<link href="sel_002dcp_002dclang_002dinstrument.html#sel_002dcp_002dclang_002dinstrument" rel="prev" title="sel-cp-clang-instrument">
+<link href="SEL-Packages.html" rel="up" title="SEL Packages">
+<link href="sel_002dcp_002dcondition_002dsynthesis.html" rel="next" title="sel-cp-condition-synthesis">
+<link href="sel_002dcp_002dclang_002dinstrument.html" rel="prev" title="sel-cp-clang-instrument">
 <style type="text/css">
 <!--
 a.summary-letter {text-decoration: none}
 blockquote.indentedblock {margin-right: 0em}
-blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
-blockquote.smallquotation {font-size: smaller}
 div.display {margin-left: 3.2em}
 div.example {margin-left: 3.2em}
 div.lisp {margin-left: 3.2em}
-div.smalldisplay {margin-left: 3.2em}
-div.smallexample {margin-left: 3.2em}
-div.smalllisp {margin-left: 3.2em}
 kbd {font-style: oblique}
 pre.display {font-family: inherit}
 pre.format {font-family: inherit}
 pre.menu-comment {font-family: serif}
 pre.menu-preformatted {font-family: serif}
-pre.smalldisplay {font-family: inherit; font-size: smaller}
-pre.smallexample {font-size: smaller}
-pre.smallformat {font-family: inherit; font-size: smaller}
-pre.smalllisp {font-size: smaller}
 span.nolinebreak {white-space: nowrap}
 span.roman {font-family: initial; font-weight: normal}
 span.sansserif {font-family: sans-serif; font-weight: normal}
@@ -58,22 +49,20 @@ ul.no-bullet {list-style: none}
 </head>
 
 <body lang="en">
-<a name="sel_002dcp_002dclang_002dtokens"></a>
-<div class="header">
+<span id="sel_002dcp_002dclang_002dtokens"></span><div class="header">
 <p>
-Next: <a href="sel_002dcp_002dcondition_002dsynthesis.html#sel_002dcp_002dcondition_002dsynthesis" accesskey="n" rel="next">sel-cp-condition-synthesis</a>, Previous: <a href="sel_002dcp_002dclang_002dinstrument.html#sel_002dcp_002dclang_002dinstrument" accesskey="p" rel="prev">sel-cp-clang-instrument</a>, Up: <a href="SEL-Packages.html#SEL-Packages" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="sel_002dcp_002dcondition_002dsynthesis.html" accesskey="n" rel="next">sel-cp-condition-synthesis</a>, Previous: <a href="sel_002dcp_002dclang_002dinstrument.html" accesskey="p" rel="prev">sel-cp-clang-instrument</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<a name="sel_002dcp_002dclang_002dtokens-1"></a>
-<h3 class="section">C.45 sel-cp-clang-tokens</h3>
-<a name="Generic_002dFunction-tokens"></a><dl>
-<dt><a name="index-tokens"></a>Generic Function: <strong>tokens</strong> <em>software &amp;optional roots</em></dt>
+<span id="sel_002dcp_002dclang_002dtokens-1"></span><h3 class="section">C.42 sel-cp-clang-tokens</h3>
+<span id="Generic_002dFunction-tokens"></span><dl>
+<dt id="index-tokens">Generic Function: <strong>tokens</strong> <em>software &amp;optional roots</em></dt>
 <dd><p>Return a list of keyword tokens in <code>software</code>.
 Optional argument <code>roots</code> limits to tokens below elements of <code>root</code> ASTs in
 <code>software</code>.
 </p></dd></dl>
-<a name="Method-tokens-_0028_0028clang-clang_0029-_0026optional-_0028roots-_0028roots-clang_0029_0029_0029"></a><dl>
-<dt><a name="index-tokens-1"></a>Method: <strong>tokens</strong> <em>(clang clang) &amp;optional (roots (roots clang))</em></dt>
+<span id="Method-tokens-_0028_0028clang-clang_002dbase_0029-_0026optional-_0028roots-_0028roots-clang_0029_0029_0029"></span><dl>
+<dt id="index-tokens-1">Method: <strong>tokens</strong> <em>(clang clang-base) &amp;optional (roots (roots clang))</em></dt>
 <dd><p>Return a list of keyword tokens representing the ASTs in <code>software</code> below <code>roots</code>.
 </p><ul>
 <li> <code>clang</code> software object to tokenize

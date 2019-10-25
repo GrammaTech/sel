@@ -10,7 +10,7 @@ or any later version published by the Free Software Foundation;
 with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
 A copy of the license is included in the section entitled
 "GNU Free Documentation License." -->
-<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>sel-cp-multi-objective (Software Evolution Library)</title>
@@ -20,33 +20,24 @@ A copy of the license is included in the section entitled
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
-<link href="index.html#Top" rel="start" title="Top">
-<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html" rel="start" title="Top">
+<link href="Index.html" rel="index" title="Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
-<link href="SEL-Packages.html#SEL-Packages" rel="up" title="SEL Packages">
-<link href="sel_002dcp_002dpliny_002dfodder_002ddatabase.html#sel_002dcp_002dpliny_002dfodder_002ddatabase" rel="next" title="sel-cp-pliny-fodder-database">
-<link href="sel_002dcp_002dlexicase.html#sel_002dcp_002dlexicase" rel="prev" title="sel-cp-lexicase">
+<link href="SEL-Packages.html" rel="up" title="SEL Packages">
+<link href="sel_002dcp_002dpliny_002dfodder_002ddatabase.html" rel="next" title="sel-cp-pliny-fodder-database">
+<link href="sel_002dcp_002dlexicase.html" rel="prev" title="sel-cp-lexicase">
 <style type="text/css">
 <!--
 a.summary-letter {text-decoration: none}
 blockquote.indentedblock {margin-right: 0em}
-blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
-blockquote.smallquotation {font-size: smaller}
 div.display {margin-left: 3.2em}
 div.example {margin-left: 3.2em}
 div.lisp {margin-left: 3.2em}
-div.smalldisplay {margin-left: 3.2em}
-div.smallexample {margin-left: 3.2em}
-div.smalllisp {margin-left: 3.2em}
 kbd {font-style: oblique}
 pre.display {font-family: inherit}
 pre.format {font-family: inherit}
 pre.menu-comment {font-family: serif}
 pre.menu-preformatted {font-family: serif}
-pre.smalldisplay {font-family: inherit; font-size: smaller}
-pre.smallexample {font-size: smaller}
-pre.smallformat {font-family: inherit; font-size: smaller}
-pre.smalllisp {font-size: smaller}
 span.nolinebreak {white-space: nowrap}
 span.roman {font-family: initial; font-weight: normal}
 span.sansserif {font-family: sans-serif; font-weight: normal}
@@ -58,42 +49,40 @@ ul.no-bullet {list-style: none}
 </head>
 
 <body lang="en">
-<a name="sel_002dcp_002dmulti_002dobjective"></a>
-<div class="header">
+<span id="sel_002dcp_002dmulti_002dobjective"></span><div class="header">
 <p>
-Next: <a href="sel_002dcp_002dpliny_002dfodder_002ddatabase.html#sel_002dcp_002dpliny_002dfodder_002ddatabase" accesskey="n" rel="next">sel-cp-pliny-fodder-database</a>, Previous: <a href="sel_002dcp_002dlexicase.html#sel_002dcp_002dlexicase" accesskey="p" rel="prev">sel-cp-lexicase</a>, Up: <a href="SEL-Packages.html#SEL-Packages" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="sel_002dcp_002dpliny_002dfodder_002ddatabase.html" accesskey="n" rel="next">sel-cp-pliny-fodder-database</a>, Previous: <a href="sel_002dcp_002dlexicase.html" accesskey="p" rel="prev">sel-cp-lexicase</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<a name="sel_002dcp_002dmulti_002dobjective-1"></a>
-<h3 class="section">C.57 sel-cp-multi-objective</h3>
-<a name="Variable-_002apareto_002dcomparison_002dset_002dsize_002a"></a><dl>
-<dt><a name="index-_002apareto_002dcomparison_002dset_002dsize_002a"></a>Variable: <strong>*pareto-comparison-set-size*</strong></dt>
+<span id="sel_002dcp_002dmulti_002dobjective-1"></span><h3 class="section">C.54 sel-cp-multi-objective</h3>
+<span id="Variable-_002apareto_002dcomparison_002dset_002dsize_002a"></span><dl>
+<dt id="index-_002apareto_002dcomparison_002dset_002dsize_002a">Variable: <strong>*pareto-comparison-set-size*</strong></dt>
 <dd><p>Size of comparison set for Pareto tournaments.
 </p></dd></dl>
-<a name="Function-crowding_002ddistance"></a><dl>
-<dt><a name="index-crowding_002ddistance"></a>Function: <strong>crowding-distance</strong> <em>software</em></dt>
+<span id="Function-crowding_002ddistance"></span><dl>
+<dt id="index-crowding_002ddistance">Function: <strong>crowding-distance</strong> <em>software</em></dt>
 <dd><p>Compute crowding distance for <code>software</code> by comparing with whole population.
 </p></dd></dl>
-<a name="Function-dominates_002dall"></a><dl>
-<dt><a name="index-dominates_002dall"></a>Function: <strong>dominates-all</strong> <em>predicates comparison-set candidate</em></dt>
+<span id="Function-dominates_002dall"></span><dl>
+<dt id="index-dominates_002dall">Function: <strong>dominates-all</strong> <em>predicates comparison-set candidate</em></dt>
 <dd><p>Does <code>candidate</code> dominate all of <code>comparison-set</code>?
 </p>
 <p><code>predicates</code> is a list of functions, of equal length to the fitness
 values, which are used to compare each element of the fitness values.
 </p></dd></dl>
-<a name="Function-multi_002dobjective_002dscalar"></a><dl>
-<dt><a name="index-multi_002dobjective_002dscalar"></a>Function: <strong>multi-objective-scalar</strong> <em>fitness</em></dt>
+<span id="Function-multi_002dobjective_002dscalar"></span><dl>
+<dt id="index-multi_002dobjective_002dscalar">Function: <strong>multi-objective-scalar</strong> <em>fitness</em></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
-<a name="Function-pareto_002dselector"></a><dl>
-<dt><a name="index-pareto_002dselector"></a>Function: <strong>pareto-selector</strong> <em>candidates &amp;key predicate comparison-set</em></dt>
+<span id="Function-pareto_002dselector"></span><dl>
+<dt id="index-pareto_002dselector">Function: <strong>pareto-selector</strong> <em>candidates &amp;key predicate comparison-set</em></dt>
 <dd><p>Return members of <code>candidates</code> which dominate a random <code>comparison-set</code>.
 </p>
 <p>Set &lsquo;*tournament-selector*&rsquo; to &lsquo;pareto-selector&rsquo; to use Pareto selection in
 tournaments.
 </p></dd></dl>
-<a name="Function-pick_002dleast_002dcrowded"></a><dl>
-<dt><a name="index-pick_002dleast_002dcrowded"></a>Function: <strong>pick-least-crowded</strong> <em>candidates &amp;key predicate</em></dt>
+<span id="Function-pick_002dleast_002dcrowded"></span><dl>
+<dt id="index-pick_002dleast_002dcrowded">Function: <strong>pick-least-crowded</strong> <em>candidates &amp;key predicate</em></dt>
 <dd><p>Pick candidate with the greatest crowding distance.
 </p>
 <p>Crowding distance is a fitness sharing metric adapted from <code>nsga-ii</code>. For each

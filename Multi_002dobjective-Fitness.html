@@ -10,7 +10,7 @@ or any later version published by the Free Software Foundation;
 with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
 A copy of the license is included in the section entitled
 "GNU Free Documentation License." -->
-<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>Multi-objective Fitness (Software Evolution Library)</title>
@@ -20,33 +20,24 @@ A copy of the license is included in the section entitled
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
-<link href="index.html#Top" rel="start" title="Top">
-<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html" rel="start" title="Top">
+<link href="Index.html" rel="index" title="Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
-<link href="Components.html#Components" rel="up" title="Components">
-<link href="Style-Features.html#Style-Features" rel="next" title="Style Features">
-<link href="Test-Suites.html#Test-Suites" rel="prev" title="Test Suites">
+<link href="Components.html" rel="up" title="Components">
+<link href="Style-Features.html" rel="next" title="Style Features">
+<link href="Test-Suites.html" rel="prev" title="Test Suites">
 <style type="text/css">
 <!--
 a.summary-letter {text-decoration: none}
 blockquote.indentedblock {margin-right: 0em}
-blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
-blockquote.smallquotation {font-size: smaller}
 div.display {margin-left: 3.2em}
 div.example {margin-left: 3.2em}
 div.lisp {margin-left: 3.2em}
-div.smalldisplay {margin-left: 3.2em}
-div.smallexample {margin-left: 3.2em}
-div.smalllisp {margin-left: 3.2em}
 kbd {font-style: oblique}
 pre.display {font-family: inherit}
 pre.format {font-family: inherit}
 pre.menu-comment {font-family: serif}
 pre.menu-preformatted {font-family: serif}
-pre.smalldisplay {font-family: inherit; font-size: smaller}
-pre.smallexample {font-size: smaller}
-pre.smallformat {font-family: inherit; font-size: smaller}
-pre.smalllisp {font-size: smaller}
 span.nolinebreak {white-space: nowrap}
 span.roman {font-family: initial; font-weight: normal}
 span.sansserif {font-family: sans-serif; font-weight: normal}
@@ -58,15 +49,13 @@ ul.no-bullet {list-style: none}
 </head>
 
 <body lang="en">
-<a name="Multi_002dobjective-Fitness"></a>
-<div class="header">
+<span id="Multi_002dobjective-Fitness"></span><div class="header">
 <p>
-Next: <a href="Style-Features.html#Style-Features" accesskey="n" rel="next">Style Features</a>, Previous: <a href="Test-Suites.html#Test-Suites" accesskey="p" rel="prev">Test Suites</a>, Up: <a href="Components.html#Components" accesskey="u" rel="up">Components</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="Style-Features.html" accesskey="n" rel="next">Style Features</a>, Previous: <a href="Test-Suites.html" accesskey="p" rel="prev">Test Suites</a>, Up: <a href="Components.html" accesskey="u" rel="up">Components</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<a name="Multi_002dobjective-Fitness-1"></a>
-<h3 class="section">3.2 Multi-objective Fitness</h3>
-<a name="index-multi_002dobjective-fitness"></a>
+<span id="Multi_002dobjective-Fitness-1"></span><h3 class="section">3.2 Multi-objective Fitness</h3>
+<span id="index-multi_002dobjective-fitness"></span>
 
 <p>For multi-objective fitness, a fitness score is a list or vector
 (depending on selector) of values: one for each objective.
@@ -74,8 +63,7 @@ Next: <a href="Style-Features.html#Style-Features" accesskey="n" rel="next">Styl
 <p>SEL provides two selection options for multi-objective optimization:
  <a href="#pareto_002dselection">Pareto selection</a> and <a href="#lexicase_002dselection">lexicase selection</a>.
 </p>
-<a name="pareto_002dselection"></a><a name="Pareto-Selection"></a>
-<h4 class="subsection">3.2.1 Pareto Selection</h4>
+<span id="pareto_002dselection"></span><span id="Pareto-Selection"></span><h4 class="subsection">3.2.1 Pareto Selection</h4>
 
 <p>Function <a href="sel_002dcp_002dmulti_002dobjective.html#Function-pareto_002dselector"><code>pareto-selector</code></a> compares each candidate
 against a random comparison set, preferring candidates which dominate
@@ -92,8 +80,7 @@ The fitness score lists must be the same length (that is, contain
 the same number of objectives) across the entire population.
 </p>
 
-<a name="lexicase_002dselection"></a><a name="Lexicase-Selection"></a>
-<h4 class="subsection">3.2.2 Lexicase Selection</h4>
+<span id="lexicase_002dselection"></span><span id="Lexicase-Selection"></span><h4 class="subsection">3.2.2 Lexicase Selection</h4>
 
 <p>Function <a href="sel_002dcp_002dlexicase.html#Function-lexicase_002dselect_002dbest"><code>lexicase-select-best</code></a> performs lexicase
 selection: a form of multi-objective optimization which prioritizes
@@ -102,8 +89,7 @@ objectives in a different order for each selection event.
 <p>Lexicase fitness scores are vectors of numeric values. The vectors must be the same length across the entire population.
 </p>
 
-<a name="API-Support-for-Multi_002dObjective-Fitness"></a>
-<h4 class="subsection">3.2.3 API Support for Multi-Objective Fitness</h4>
+<span id="API-Support-for-Multi_002dObjective-Fitness"></span><h4 class="subsection">3.2.3 API Support for Multi-Objective Fitness</h4>
 
 <p>API support for multi-objective fitness is documented in section
 <a href="SEL-Concept-Index.html#api_002dmulti_002dobjective">API | Multi-Objective Fitness</a>.
@@ -133,8 +119,7 @@ neighbors in fitness space.
 </li></ul>
 
 
-<a name="Example"></a>
-<h4 class="subsection">3.2.4 Example</h4>
+<span id="Example"></span><h4 class="subsection">3.2.4 Example</h4>
 
 <p>The following code will enable multi-objective optimization with
 Pareto selection.
@@ -159,7 +144,7 @@ Pareto selection.
 <hr>
 <div class="header">
 <p>
-Next: <a href="Style-Features.html#Style-Features" accesskey="n" rel="next">Style Features</a>, Previous: <a href="Test-Suites.html#Test-Suites" accesskey="p" rel="prev">Test Suites</a>, Up: <a href="Components.html#Components" accesskey="u" rel="up">Components</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="Style-Features.html" accesskey="n" rel="next">Style Features</a>, Previous: <a href="Test-Suites.html" accesskey="p" rel="prev">Test Suites</a>, Up: <a href="Components.html" accesskey="u" rel="up">Components</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 
 

@@ -10,7 +10,7 @@ or any later version published by the Free Software Foundation;
 with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
 A copy of the license is included in the section entitled
 "GNU Free Documentation License." -->
-<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>Basic Utilities (Software Evolution Library)</title>
@@ -20,33 +20,24 @@ A copy of the license is included in the section entitled
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
-<link href="index.html#Top" rel="start" title="Top">
-<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html" rel="start" title="Top">
+<link href="Index.html" rel="index" title="Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
-<link href="Utilities.html#Utilities" rel="up" title="Utilities">
-<link href="View.html#View" rel="next" title="View">
-<link href="Utilities.html#Utilities" rel="prev" title="Utilities">
+<link href="Utilities.html" rel="up" title="Utilities">
+<link href="View.html" rel="next" title="View">
+<link href="Utilities.html" rel="prev" title="Utilities">
 <style type="text/css">
 <!--
 a.summary-letter {text-decoration: none}
 blockquote.indentedblock {margin-right: 0em}
-blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
-blockquote.smallquotation {font-size: smaller}
 div.display {margin-left: 3.2em}
 div.example {margin-left: 3.2em}
 div.lisp {margin-left: 3.2em}
-div.smalldisplay {margin-left: 3.2em}
-div.smallexample {margin-left: 3.2em}
-div.smalllisp {margin-left: 3.2em}
 kbd {font-style: oblique}
 pre.display {font-family: inherit}
 pre.format {font-family: inherit}
 pre.menu-comment {font-family: serif}
 pre.menu-preformatted {font-family: serif}
-pre.smalldisplay {font-family: inherit; font-size: smaller}
-pre.smallexample {font-size: smaller}
-pre.smallformat {font-family: inherit; font-size: smaller}
-pre.smalllisp {font-size: smaller}
 span.nolinebreak {white-space: nowrap}
 span.roman {font-family: initial; font-weight: normal}
 span.sansserif {font-family: sans-serif; font-weight: normal}
@@ -58,14 +49,12 @@ ul.no-bullet {list-style: none}
 </head>
 
 <body lang="en">
-<a name="Basic-Utilities"></a>
-<div class="header">
+<span id="Basic-Utilities"></span><div class="header">
 <p>
-Next: <a href="View.html#View" accesskey="n" rel="next">View</a>, Previous: <a href="Utilities.html#Utilities" accesskey="p" rel="prev">Utilities</a>, Up: <a href="Utilities.html#Utilities" accesskey="u" rel="up">Utilities</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="View.html" accesskey="n" rel="next">View</a>, Previous: <a href="Utilities.html" accesskey="p" rel="prev">Utilities</a>, Up: <a href="Utilities.html" accesskey="u" rel="up">Utilities</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<a name="Basic-Utilities-1"></a>
-<h3 class="section">4.1 Basic Utilities</h3>
+<span id="Basic-Utilities-1"></span><h3 class="section">4.1 Basic Utilities</h3>
 
 <p>Variables, functions, and macros used throughout the software
 evolution library.  This package provides simple utilities for a
@@ -76,8 +65,7 @@ source code.
 
 <p>Code:
 </p>
-<a name="Files-and-Directories_002c-Temporary-and-Git"></a>
-<h4 class="subsection">4.1.1 Files and Directories, Temporary and Git</h4>
+<span id="Files-and-Directories_002c-Temporary-and-Git"></span><h4 class="subsection">4.1.1 Files and Directories, Temporary and Git</h4>
 
 <p>Functions for working with file and directories and some special
 handling for git repositories.  Includes functions for efficient
@@ -85,29 +73,27 @@ serialization to/from files as well as functions for creating and
 using temporary files and directories.
 </p>
 
-<a name="Process-wrapping"></a>
-<h4 class="subsection">4.1.2 Process wrapping</h4>
+<span id="Process-wrapping"></span><h4 class="subsection">4.1.2 Process wrapping</h4>
 
 <p><code>todo:</code> What is the benefit of this wrapper layer?  Just interop
       between lisps implementations?  Does nothing else already
       provide this?
 </p>
 
-<a name="Shell-and-system-command-helpers"></a>
-<h4 class="subsection">4.1.3 Shell and system command helpers</h4>
+<span id="Shell-and-system-command-helpers"></span><h4 class="subsection">4.1.3 Shell and system command helpers</h4>
 
 <p>Wrappers for evaluating shell commands and returning the <code>stdout</code>,
 <code>stderr</code>, and <code>errno</code> as values.  Includes the special &lsquo;*shell-debug*&rsquo;
 variable which may be set to non-nil to dump all system and shell
 executions and results for diagnostics.
 </p>
-<p>The &lsquo;write-shell-file&rsquo;, &lsquo;read-shell-file&rsquo; and &lsquo;xz-pipe&rsquo; functions
-provide for running shell commands and common lisp streams of
-text (in some cases flowing from or into files on disk).
+<p>The &lsquo;write-shell&rsquo;, &lsquo;read-shell&rsquo;, &lsquo;write-shell-file&rsquo;,
+&lsquo;read-shell-file&rsquo; and &lsquo;xz-pipe&rsquo; functions provide for running
+shell commands and common lisp streams (in some cases flowing from
+or into files on disk).
 </p>
 
-<a name="Generic-utility-functions"></a>
-<h4 class="subsection">4.1.4 Generic utility functions</h4>
+<span id="Generic-utility-functions"></span><h4 class="subsection">4.1.4 Generic utility functions</h4>
 
 <p>Generic utility functions on cons tree, association lists, plists,
 and sequences.  Includes some random and statistical functions as
@@ -117,8 +103,7 @@ well as string manipulation functions..
 functions with links to the index.
 </p>
 
-<a name="Source-and-binary-locations-and-ranges_002e"></a>
-<h4 class="subsection">4.1.5 Source and binary locations and ranges.</h4>
+<span id="Source-and-binary-locations-and-ranges_002e"></span><h4 class="subsection">4.1.5 Source and binary locations and ranges.</h4>
 
 <p>Classes for representing locations and ranges in sequences
 (typically text source code files or binary executable bytes).
@@ -127,24 +112,21 @@ determining &quot;contains&quot; and &quot;intersects&quot; relationships betwee
 locations and ranges.
 </p>
 
-<a name="Debugging-helpers"></a>
-<h4 class="subsection">4.1.6 Debugging helpers</h4>
+<span id="Debugging-helpers"></span><h4 class="subsection">4.1.6 Debugging helpers</h4>
 
 <p>Functions useful for debugging lisp code.  Of particular note are
 the &lsquo;note&rsquo; functions and associated &lsquo;*note-level*&rsquo; and
 &lsquo;*note-out*&rsquo; variables which provide a basic logging framework.
 </p>
 
-<a name="Oprofile-functions"></a>
-<h4 class="subsection">4.1.7 Oprofile functions</h4>
+<span id="Oprofile-functions"></span><h4 class="subsection">4.1.7 Oprofile functions</h4>
 
 <p>Functions for working with oprofile, a formerly popular Linux
 statistical profiler which has subsequently been superseded by
 Linux Perf.  See <a href="http://oprofile.sourceforge.net/news/">http://oprofile.sourceforge.net/news/</a>.
 </p>
 
-<a name="Profiling"></a>
-<h4 class="subsection">4.1.8 Profiling</h4>
+<span id="Profiling"></span><h4 class="subsection">4.1.8 Profiling</h4>
 
 <p>Tools for profiling lisp code.  Specifically functionality for
 dumping profiling information into a format usably for the
@@ -158,7 +140,7 @@ https://techfak.uni-bielefeld.de/~jmoringe/call-graph.html.
 <hr>
 <div class="header">
 <p>
-Next: <a href="View.html#View" accesskey="n" rel="next">View</a>, Previous: <a href="Utilities.html#Utilities" accesskey="p" rel="prev">Utilities</a>, Up: <a href="Utilities.html#Utilities" accesskey="u" rel="up">Utilities</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="View.html" accesskey="n" rel="next">View</a>, Previous: <a href="Utilities.html" accesskey="p" rel="prev">Utilities</a>, Up: <a href="Utilities.html" accesskey="u" rel="up">Utilities</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 
 

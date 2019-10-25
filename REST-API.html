@@ -10,7 +10,7 @@ or any later version published by the Free Software Foundation;
 with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
 A copy of the license is included in the section entitled
 "GNU Free Documentation License." -->
-<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>REST API (Software Evolution Library)</title>
@@ -20,33 +20,24 @@ A copy of the license is included in the section entitled
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
-<link href="index.html#Top" rel="start" title="Top">
-<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html" rel="start" title="Top">
+<link href="Index.html" rel="index" title="Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
-<link href="Implementation.html#Implementation" rel="up" title="Implementation">
-<link href="Components.html#Components" rel="next" title="Components">
-<link href="Search-Functions.html#Search-Functions" rel="prev" title="Search Functions">
+<link href="Implementation.html" rel="up" title="Implementation">
+<link href="REST-Server.html" rel="next" title="REST Server">
+<link href="Search-Functions.html" rel="prev" title="Search Functions">
 <style type="text/css">
 <!--
 a.summary-letter {text-decoration: none}
 blockquote.indentedblock {margin-right: 0em}
-blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
-blockquote.smallquotation {font-size: smaller}
 div.display {margin-left: 3.2em}
 div.example {margin-left: 3.2em}
 div.lisp {margin-left: 3.2em}
-div.smalldisplay {margin-left: 3.2em}
-div.smallexample {margin-left: 3.2em}
-div.smalllisp {margin-left: 3.2em}
 kbd {font-style: oblique}
 pre.display {font-family: inherit}
 pre.format {font-family: inherit}
 pre.menu-comment {font-family: serif}
 pre.menu-preformatted {font-family: serif}
-pre.smalldisplay {font-family: inherit; font-size: smaller}
-pre.smallexample {font-size: smaller}
-pre.smallformat {font-family: inherit; font-size: smaller}
-pre.smalllisp {font-size: smaller}
 span.nolinebreak {white-space: nowrap}
 span.roman {font-family: initial; font-weight: normal}
 span.sansserif {font-family: sans-serif; font-weight: normal}
@@ -58,385 +49,25 @@ ul.no-bullet {list-style: none}
 </head>
 
 <body lang="en">
-<a name="REST-API"></a>
-<div class="header">
+<span id="REST-API"></span><div class="header">
 <p>
-Next: <a href="Components.html#Components" accesskey="n" rel="next">Components</a>, Previous: <a href="Search-Functions.html#Search-Functions" accesskey="p" rel="prev">Search Functions</a>, Up: <a href="Implementation.html#Implementation" accesskey="u" rel="up">Implementation</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="REST-Server.html" accesskey="n" rel="next">REST Server</a>, Previous: <a href="Search-Functions.html" accesskey="p" rel="prev">Search Functions</a>, Up: <a href="Implementation.html" accesskey="u" rel="up">Implementation</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<a name="REST-API-1"></a>
-<h3 class="section">2.6 REST API</h3>
-<a name="index-rest-api"></a>
+<span id="REST-API-1"></span><h3 class="section">2.6 REST API</h3>
+<span id="index-rest-api"></span>
 
+<table class="menu" border="0" cellspacing="0">
+<tr><td align="left" valign="top">&bull; <a href="REST-Server.html" accesskey="1">REST Server</a></td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Using the rest server
+</td></tr>
+<tr><td align="left" valign="top">&bull; <a href="REST-Interface.html" accesskey="2">REST Interface</a></td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Standard RESTful interface over SEL
+</td></tr>
+<tr><td align="left" valign="top">&bull; <a href="REST-Sessions.html" accesskey="3">REST Sessions</a></td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Interface for managing RESTful sessions
+</td></tr>
+<tr><td align="left" valign="top">&bull; <a href="Async-Jobs.html" accesskey="4">Async Jobs</a></td><td>&nbsp;&nbsp;</td><td align="left" valign="top">RESTful asynchronous job interface
+</td></tr>
+</table>
 
-<p>Rest API for Software Evolution Library
-</p>
-<p>The Rest API for Software Evolution Library is implemented as a web
-service which may be accessed via HTTP operations.
-</p>
-<p>It attempts to conform to principals described here:
-<a href="https://en.wikipedia.org/wiki/Representational_state_transfer">Representational State Transfer</a>
-</p>
-<a name="Dependencies"></a>
-<h4 class="subsection">2.6.1 Dependencies</h4>
-
-<p>The Rest API leverages a number of Common Lisp components, which
-are open-source and generally available via Quicklisp.  These
-packages support JSON <code>&lt;-&gt;</code> Common Lisp translations, JSON
-streaming, HTTP web server functions, client HTTP support and
-RESTful interface utilities.
-</p>
-
-<dl compact="compact">
-<dt><em><code>cl-json</code></em></dt>
-<dd><p>Parse and generate JSON format
-</p>
-</dd>
-<dt><em><code>st-json</code></em></dt>
-<dd><p>Stream support for JSON format
-</p>
-</dd>
-<dt><em><code>clack</code></em></dt>
-<dd><p>utility to easily launch web services
-</p>
-</dd>
-<dt><em><code>drakma</code></em></dt>
-<dd><p>http client utilities for Common Lisp (for calling Rest
-     APIs/testing
-</p>
-</dd>
-<dt><em><code>hunchentoot</code></em></dt>
-<dd><p>Web server, written in Common Lisp, hosts Rest APIs
-</p>
-</dd>
-<dt><em><code>snooze</code></em></dt>
-<dd><p>Rest API framework
-</p>
-</dd>
-</dl>
-
-<a name="Running-the-Rest-API-Web-Service"></a>
-<h4 class="subsection">2.6.2 Running the Rest API Web Service</h4>
-
-<p>Starting the server:
-</p>
-<div class="example">
-<pre class="example">    (start-server)
-</pre></div>
-
-<p>Stopping the server:
-</p>
-<div class="example">
-<pre class="example">    (stop-server)
-</pre></div>
-
-<p>Restart the server:
-</p>
-<div class="example">
-<pre class="example">    (start-server)            ;; will stop, if running, then start
-</pre></div>
-
-<a name="Resources-and-Operations"></a>
-<h4 class="subsection">2.6.3 Resources and Operations</h4>
-
-<p>A Rest API supports logical resources. This section lists the logical
-resources supported by the <code>sel</code> Rest APIs. In some cases (e.g. Software)
-there is a class hierarchy in the <code>sel</code> package which directly models the
-resource. Or rather, the resource can be thought to be a distillation
-of the methods of that class. In other cases (e.g. Populations) there
-isn&rsquo;t a specific class in <code>sel</code>. The Rest API resource in this course
-provides a way to name and manage lists of Software objects.
-</p>
-<a name="Resources"></a>
-<h4 class="subsubsection">2.6.3.1 Resources</h4>
-
-<p>The following types of resources are supported.
-</p>
-
-<dl compact="compact">
-<dt><em>Software</em></dt>
-<dd><p>Any non-abstract class that inherits from <code>software</code>
-</p>
-
-</dd>
-<dt><em>Mutations</em></dt>
-<dd><p><code>sel</code> mutation objects.
-</p>
-
-</dd>
-<dt><em>Populations</em></dt>
-<dd><p>Collections of software objects, which may change rapidly (evolution).
-</p>
-
-</dd>
-<dt><em>Jobs</em></dt>
-<dd><p>Any long running operation which starts a task and returns to
-    the client immediately.  Examples of jobs include running
-    evolutions, fitness tests across large populations, and
-    searches.
-</p>
-
-</dd>
-<dt><em>Client sessions</em></dt>
-<dd><p>establish ownership of a jobs, software objects, populations, etc.
-</p>
-
-</dd>
-<dt><em>Test Suites</em></dt>
-<dd><p>Lists of Test Cases, which each include references to an
-    executable file and some command-line argumants. These are
-    used to evaluate Software objects.
-</p>
-
-</dd>
-<dt><em>Traces</em></dt>
-<dd><p>Models and manages the data collected from running test suites against
-    instrumented Software objects.
-</p>
-
-</dd>
-<dt><em>Instrumented Software</em></dt>
-<dd><p>Software objects which have been instrumented.
-</p>
-
-</dd>
-<dt><em>Traced Software</em></dt>
-<dd><p>Instrumented Software objects which have also been traced.
-</p>
-</dd>
-</dl>
-
-<a name="Operations-on-Resources"></a>
-<h4 class="subsubsection">2.6.3.2 Operations on Resources</h4>
-
-<p>Note: all operations (other than session create) require a client-ID
-parameter. Although only specified in the first ones below, all others
-require it as well.
-</p>
-<p>Client:
-</p>
-
-<dl compact="compact">
-<dt><em><code>post</code></em></dt>
-<dd><p><code>&lt;service-base&gt;/client</code> Create a new client.  Body
-    <code>(json) </code>contains initial values for special variable settings.
-    Returns the Client-ID.
-</p>
-</dd>
-<dt><em><code>delete</code></em></dt>
-<dd><p><code>&lt;service-base&gt;/client&amp;cid=&lt;client-ID&gt;</code> Delete
-    the client session, and cause all the software objects
-    owned by the client to become garbage.
-</p>
-</dd>
-</dl>
-
-<p>Software:
-</p>
-
-<dl compact="compact">
-<dt><em><code>post</code></em></dt>
-<dd><p><code>&lt;service-base&gt;/soft?cid=&lt;client-ID&gt;&amp;type=&lt;software-type&gt;</code>
-    Body, JSON format, contains path (to C file, AST, Asm file,
-    etc.), or a <code>url</code> to a file, or the actual source code which
-    would comprise the file.  If the body simply contains a
-    software <code>id</code> (sid), makes a copy of the software object.
-    All JSON fields which are not [path, url, code,
-    software-id] are passed as keyword parameters to
-    <code>(make-instance '&lt;software-type&gt; &amp;key)</code>.  Returns a software
-    object <code>id</code> of newly created software.
-</p>
-</dd>
-<dt><em><code>get</code></em></dt>
-<dd><p><code>&lt;service-base&gt;/soft?cid=&lt;client-ID&gt;&amp;sid=&lt;software
-    ID&gt;</code> Returns JSON describing software object (differs
-    depending on type of software).
-</p>
-</dd>
-<dt><em><code>get</code></em></dt>
-<dd><p><code>&lt;service-base&gt;/soft?type=&lt;software type&gt;</code> Returns
-    IDs of live software objects of the passed type, owned by
-    the client.
-</p>
-</dd>
-<dt><em><code>get</code></em></dt>
-<dd><p><code>&lt;service-base&gt;/soft</code> Return IDs of all live
-    software objects owned by the client.
-</p>
-</dd>
-<dt><em><code>put</code></em></dt>
-<dd><p><code>&lt;service-base&gt;/soft?sid=&lt;software ID&gt;</code> Update a
-    software object.  Body <code>(json) </code>contains slots to update, new
-    values.
-</p>
-</dd>
-<dt><em><code>delete</code></em></dt>
-<dd><p><code>&lt;service-base&gt;/soft?sid=&lt;software ID&gt;</code> Delete a
-    software object.  (work in progress)
-</p>
-</dd>
-</dl>
-
-<p>Population:
-</p>
-
-<dl compact="compact">
-<dt><em><code>post</code></em></dt>
-<dd><p><code>&lt;service-base&gt;/population?name=&lt;population-name&gt;</code>
-    Creates a Population resource, owned by the client,
-    containing software objects of the specified type.  Body
-    should contain, JSON format, list of Software-ID (sid) to
-    include in population, and software type.  Returns the <code>id</code>
-    of newly created Population (pid).
-</p>
-</dd>
-<dt><em><code>put</code></em></dt>
-<dd><p><code>&lt;service-base&gt;/pop?pid=&lt;Population-ID&gt;</code> Adds the
-    specified sid(s) to the population.  Body <code>(json) </code>contains
-    sid field, which is a list of sids to add.
-</p>
-</dd>
-<dt><em><code>get</code></em></dt>
-<dd><p><code>&lt;service-base&gt;/pop?pid=&lt;Population-ID&gt;</code> Retrieves
-    information about the population, including list of
-    Software-IDs and software type.
-</p>
-</dd>
-<dt><em><code>delete</code></em></dt>
-<dd><p><code>&lt;service-base&gt;/pop?pid=&lt;Population-ID&gt;</code> Delete
-    the population.  (work in progress)
-</p>
-</dd>
-</dl>
-
-<p>Async-Job:
-</p>
-
-<dl compact="compact">
-<dt><em><code>post</code></em></dt>
-<dd><p><code>&lt;service-base&gt;/async?type=&lt;job-type&gt;</code> Body
-    contains <code>(json) </code>parameters for <code>evolve</code> task, <code>fitness-test</code> or
-    other defined type of task.  Returns immediately with a
-    Job-ID (jid).  Creating a Job starts a task (on a new
-    thread) which will execute until stopped or completed.
-</p>
-</dd>
-<dt><em><code>get</code></em></dt>
-<dd><p><code>&lt;service-base&gt;/async?jid=&lt;Job-ID&gt;</code> Returns JSON
-    containing job status and results.
-</p>
-</dd>
-<dt><em><code>put</code></em></dt>
-<dd><p><code>&lt;service-base&gt;/async?jid=&lt;Job-ID&gt;&amp;&lt;update-vars&gt;</code>
-    Allows some control of the task, such as stopping the task.
-</p>
-</dd>
-</dl>
-
-<p>Mutation:
-</p>
-
-<dl compact="compact">
-<dt><em><code>post</code></em></dt>
-<dd><p>@{&lt;service-base&gt;/mut?type=&lt;mutation-type&gt;&amp;sid=&lt;software-id&gt;}
-    Body <code>(json) </code>contains targets field (integer, list, or ast).
-    Returns mutation-id (mid).
-</p>
-</dd>
-<dt><em><code>get</code></em></dt>
-<dd><p><code>&lt;service-base&gt;/mut?mid=&lt;mutation-id&gt;</code> Returns
-    mutation details.
-</p>
-</dd>
-<dt><em><code>put</code></em></dt>
-<dd><p><code>&lt;service-base&gt;/mut?mid=&lt;mutation-id&gt;</code> Apply
-    mutation to its target software object, returns the sid of
-    the new (mutated) software object.
-</p>
-</dd>
-<dt><em><code>delete</code></em></dt>
-<dd><p><code>service-base&gt;/mut?mid=&lt;mutation-id&gt;</code>
-    Delete the specified mutation. (work in progress)
-</p>
-</dd>
-</dl>
-
-<p>Test Suites:
-</p>
-
-<dl compact="compact">
-<dt><em><code>post</code></em></dt>
-<dd><p><code>&lt;service-base&gt;/tests</code> Creates a <code>test-suite</code>
-    instance, owned by the client, containing a collection of
-    <code>test-suite</code> objects.  Body should contain &quot;test&quot; field, JSON
-    format, array of structures, each containing program-name
-    and program-args.  Returns oid of newly created tests
-    suite.
-</p>
-</dd>
-<dt><em><code>get</code></em></dt>
-<dd><p><code>&lt;service-base&gt;/tests?oid=&lt;test-suite-oid&gt;</code>
-    Retrieves collection of test cases in the test-suite.
-</p>
-</dd>
-<dt><em><code>delete</code></em></dt>
-<dd><p><code>&lt;service-base&gt;/tests?pid=&lt;test-suite-oid&gt;</code> Delete
-    the test suite.  (work in progress)
-</p>
-</dd>
-</dl>
-
-<p>Instrumented:
-</p>
-
-<dl compact="compact">
-<dt><em><code>post</code></em></dt>
-<dd><p><code>&lt;service-base&gt;/instrumented?sid=&lt;software-oid&gt;</code>
-    Creates an Instrumented Software object instance,
-    owned by the client
-</p>
-</dd>
-<dt><em><code>get</code></em></dt>
-<dd><p><code>&lt;service-base&gt;/instrumented?sid=&lt;software-oid&gt;</code>
-    If sid is unspecified, retrieves the instrumented software
-    objects owned by the client. If sid is supplied,
-    returns the details of the specified instrumented software object.
-</p>
-</dd>
-</dl>
-
-<p>Traced Software:
-</p>
-
-<dl compact="compact">
-<dt><em><code>post</code></em></dt>
-<dd><p><code>&lt;service-base&gt;/tracesoft?sid=&lt;software-oid&gt;&amp;tests-oid=&lt;tests oid&gt;</code>
-    Traces the specified software object, using the specified tests.
-    Returns the oid specified (does not create a new, distinct software
-    object).
-</p>
-</dd>
-</dl>
-
-<p>Write Software:
-</p>
-
-<dl compact="compact">
-<dt><em><code>post</code></em></dt>
-<dd><p><code>&lt;service-base&gt;/writesoft?sid=&lt;software-oid&gt;</code>
-    Writes the specified software object to a file <code>(to-file)</code>.
-    Returns success or error code.
-    Body contains path specification.
-</p>
-</dd>
-</dl>
-
-
-<hr>
-<div class="header">
-<p>
-Next: <a href="Components.html#Components" accesskey="n" rel="next">Components</a>, Previous: <a href="Search-Functions.html#Search-Functions" accesskey="p" rel="prev">Search Functions</a>, Up: <a href="Implementation.html#Implementation" accesskey="u" rel="up">Implementation</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
-</div>
 
 
 

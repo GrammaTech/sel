@@ -10,7 +10,7 @@ or any later version published by the Free Software Foundation;
 with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
 A copy of the license is included in the section entitled
 "GNU Free Documentation License." -->
-<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>Fault Localization (Software Evolution Library)</title>
@@ -20,33 +20,24 @@ A copy of the license is included in the section entitled
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
-<link href="index.html#Top" rel="start" title="Top">
-<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html" rel="start" title="Top">
+<link href="Index.html" rel="index" title="Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
-<link href="Components.html#Components" rel="up" title="Components">
-<link href="Tracing.html#Tracing" rel="next" title="Tracing">
-<link href="Condition-Synthesis.html#Condition-Synthesis" rel="prev" title="Condition Synthesis">
+<link href="Components.html" rel="up" title="Components">
+<link href="Tracing.html" rel="next" title="Tracing">
+<link href="Condition-Synthesis.html" rel="prev" title="Condition Synthesis">
 <style type="text/css">
 <!--
 a.summary-letter {text-decoration: none}
 blockquote.indentedblock {margin-right: 0em}
-blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
-blockquote.smallquotation {font-size: smaller}
 div.display {margin-left: 3.2em}
 div.example {margin-left: 3.2em}
 div.lisp {margin-left: 3.2em}
-div.smalldisplay {margin-left: 3.2em}
-div.smallexample {margin-left: 3.2em}
-div.smalllisp {margin-left: 3.2em}
 kbd {font-style: oblique}
 pre.display {font-family: inherit}
 pre.format {font-family: inherit}
 pre.menu-comment {font-family: serif}
 pre.menu-preformatted {font-family: serif}
-pre.smalldisplay {font-family: inherit; font-size: smaller}
-pre.smallexample {font-size: smaller}
-pre.smallformat {font-family: inherit; font-size: smaller}
-pre.smalllisp {font-size: smaller}
 span.nolinebreak {white-space: nowrap}
 span.roman {font-family: initial; font-weight: normal}
 span.sansserif {font-family: sans-serif; font-weight: normal}
@@ -58,15 +49,13 @@ ul.no-bullet {list-style: none}
 </head>
 
 <body lang="en">
-<a name="Fault-Localization"></a>
-<div class="header">
+<span id="Fault-Localization"></span><div class="header">
 <p>
-Next: <a href="Tracing.html#Tracing" accesskey="n" rel="next">Tracing</a>, Previous: <a href="Condition-Synthesis.html#Condition-Synthesis" accesskey="p" rel="prev">Condition Synthesis</a>, Up: <a href="Components.html#Components" accesskey="u" rel="up">Components</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="Tracing.html" accesskey="n" rel="next">Tracing</a>, Previous: <a href="Condition-Synthesis.html" accesskey="p" rel="prev">Condition Synthesis</a>, Up: <a href="Components.html" accesskey="u" rel="up">Components</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<a name="Fault-Localization-1"></a>
-<h3 class="section">3.6 Fault Localization</h3>
-<a name="index-fault_002dlocalization"></a>
+<span id="Fault-Localization-1"></span><h3 class="section">3.6 Fault Localization</h3>
+<span id="index-fault_002dlocalization"></span>
 
 <p>Fault localization loosely covers activities related to trying to
 pinpoint the cause of a fault or bug.  In this context, the the goal
@@ -88,8 +77,7 @@ test suite.
 (used in <a href="sel_002dcp_002dfault_002dloc.html#Function-rinard"><code>rinard</code></a>), along with an overall trace
 processing function, <a href="sel_002dcp_002dfault_002dloc.html#Function-rinard_002dincremental"><code>rinard-incremental</code></a>.
 </p>
-<a name="Usage-1"></a>
-<h4 class="subsection">3.6.1 Usage</h4>
+<span id="Usage-1"></span><h4 class="subsection">3.6.1 Usage</h4>
 
 <p>Given a collection of test traces, call <code>rinard-incremental</code> and <code>rinard</code> (in that order) for processing and prioritization.
 </p>
@@ -101,8 +89,7 @@ processing function, <a href="sel_002dcp_002dfault_002dloc.html#Function-rinard_
 
 
 
-<a name="Caching"></a>
-<h4 class="subsection">3.6.2 Caching</h4>
+<span id="Caching"></span><h4 class="subsection">3.6.2 Caching</h4>
 
 <p>Fault localization can take a significant amount of time for large,
 complex systems.  Thus, we&rsquo;ve included the ability to write-out/read-in fault localization results to facilitate subsequent runs, if fault localization is unlikely to change.  The two associated functions are:
@@ -115,11 +102,6 @@ complex systems.  Thus, we&rsquo;ve included the ability to write-out/read-in fa
 
 
 
-<hr>
-<div class="header">
-<p>
-Next: <a href="Tracing.html#Tracing" accesskey="n" rel="next">Tracing</a>, Previous: <a href="Condition-Synthesis.html#Condition-Synthesis" accesskey="p" rel="prev">Condition Synthesis</a>, Up: <a href="Components.html#Components" accesskey="u" rel="up">Components</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
-</div>
 
 
 

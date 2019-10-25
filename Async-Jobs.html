@@ -1,0 +1,128 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- This file documents the Software Evolution library
+
+Copyright (C) 2014-2018 Eric Schulte and GrammaTech
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
+A copy of the license is included in the section entitled
+"GNU Free Documentation License." -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Async Jobs (Software Evolution Library)</title>
+
+<meta name="description" content="Async Jobs (Software Evolution Library)">
+<meta name="keywords" content="Async Jobs (Software Evolution Library)">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<link href="index.html" rel="start" title="Top">
+<link href="Index.html" rel="index" title="Index">
+<link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
+<link href="REST-API.html" rel="up" title="REST API">
+<link href="Components.html" rel="next" title="Components">
+<link href="REST-Sessions.html" rel="prev" title="REST Sessions">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<span id="Async-Jobs"></span><div class="header">
+<p>
+Next: <a href="Components.html" accesskey="n" rel="next">Components</a>, Previous: <a href="REST-Sessions.html" accesskey="p" rel="prev">REST Sessions</a>, Up: <a href="REST-API.html" accesskey="u" rel="up">REST API</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+
+
+<p>Rest API for performing asynchronous jobs as part of <code>sel</code>.
+</p>
+<p>It attempts to conform to principals described here:
+<a href="https://en.wikipedia.org/wiki/Representational_state_transfer">Representational State Transfer</a>
+</p>
+<span id="Dependencies-4"></span><h4 class="subsubsection">2.6.3.6 Dependencies</h4>
+
+<p>The Rest API leverages a number of Common Lisp components, which
+are open-source and generally available via Quicklisp.  See the core REST
+file for a full description and how to start a rest server. In addition,
+this file is built from the session and standard library definitions for
+REST provided as part of <code>sel</code>.
+</p>
+<span id="Resources-and-Operations-2"></span><h4 class="subsubsection">2.6.3.7 Resources and Operations</h4>
+
+<p>This file provides the following:
+</p>
+<span id="Resources-2"></span><h4 class="subsubheading">Resources</h4>
+
+<p>The following types of resources are supported.
+</p>
+
+<dl compact="compact">
+<dt><em>Jobs</em></dt>
+<dd><p>Any long running operation which starts a task and returns to
+    the client immediately.  Examples of jobs include running
+    evolutions, fitness tests across large populations, and
+    searches.
+</p>
+</dd>
+</dl>
+
+<span id="Operations-on-Resources-2"></span><h4 class="subsubheading">Operations on Resources</h4>
+
+<p>Note: asynchronous job management requires a <code>cid</code> (Client ID) integer
+value representing the Client <code>id</code> for session lookup. See the client
+sessions file for endpoint usage to acquire one.
+</p>
+<p>Async-Job:
+</p>
+
+<dl compact="compact">
+<dt><em><code>post</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/async?cid=&lt;cid&gt;?type=&lt;job-type&gt;</code> Body
+    contains <code>(json) </code>parameters for <code>evolve</code> task, <code>fitness-test</code> or
+    other defined type of task.  Returns immediately with a
+    Job-ID (jid).  Creating a Job starts a task (on a new
+    thread) which will execute until stopped or completed.
+</p>
+</dd>
+<dt><em><code>get</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/async?cid=&lt;cid&gt;?jid=&lt;Job-ID&gt;</code> Returns JSON
+    containing job status and results.
+</p>
+</dd>
+<dt><em><code>put</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/async?cid=&lt;cid&gt;?jid=&lt;Job-ID&gt;&amp;&lt;update-vars&gt;</code>
+    Allows some control of the task, such as stopping the task.
+    (Currently not implemented.)
+</p>
+</dd>
+</dl>
+
+
+
+
+
+
+</body>
+</html>

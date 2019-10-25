@@ -10,7 +10,7 @@ or any later version published by the Free Software Foundation;
 with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
 A copy of the license is included in the section entitled
 "GNU Free Documentation License." -->
-<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>sel-cp-condition-synthesis (Software Evolution Library)</title>
@@ -20,33 +20,24 @@ A copy of the license is included in the section entitled
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
-<link href="index.html#Top" rel="start" title="Top">
-<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html" rel="start" title="Top">
+<link href="Index.html" rel="index" title="Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
-<link href="SEL-Packages.html#SEL-Packages" rel="up" title="SEL Packages">
-<link href="sel_002dcp_002dfault_002dloc.html#sel_002dcp_002dfault_002dloc" rel="next" title="sel-cp-fault-loc">
-<link href="sel_002dcp_002dclang_002dtokens.html#sel_002dcp_002dclang_002dtokens" rel="prev" title="sel-cp-clang-tokens">
+<link href="SEL-Packages.html" rel="up" title="SEL Packages">
+<link href="sel_002dcp_002dfault_002dloc.html" rel="next" title="sel-cp-fault-loc">
+<link href="sel_002dcp_002dclang_002dtokens.html" rel="prev" title="sel-cp-clang-tokens">
 <style type="text/css">
 <!--
 a.summary-letter {text-decoration: none}
 blockquote.indentedblock {margin-right: 0em}
-blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
-blockquote.smallquotation {font-size: smaller}
 div.display {margin-left: 3.2em}
 div.example {margin-left: 3.2em}
 div.lisp {margin-left: 3.2em}
-div.smalldisplay {margin-left: 3.2em}
-div.smallexample {margin-left: 3.2em}
-div.smalllisp {margin-left: 3.2em}
 kbd {font-style: oblique}
 pre.display {font-family: inherit}
 pre.format {font-family: inherit}
 pre.menu-comment {font-family: serif}
 pre.menu-preformatted {font-family: serif}
-pre.smalldisplay {font-family: inherit; font-size: smaller}
-pre.smallexample {font-size: smaller}
-pre.smallformat {font-family: inherit; font-size: smaller}
-pre.smalllisp {font-size: smaller}
 span.nolinebreak {white-space: nowrap}
 span.roman {font-family: initial; font-weight: normal}
 span.sansserif {font-family: sans-serif; font-weight: normal}
@@ -58,16 +49,14 @@ ul.no-bullet {list-style: none}
 </head>
 
 <body lang="en">
-<a name="sel_002dcp_002dcondition_002dsynthesis"></a>
-<div class="header">
+<span id="sel_002dcp_002dcondition_002dsynthesis"></span><div class="header">
 <p>
-Next: <a href="sel_002dcp_002dfault_002dloc.html#sel_002dcp_002dfault_002dloc" accesskey="n" rel="next">sel-cp-fault-loc</a>, Previous: <a href="sel_002dcp_002dclang_002dtokens.html#sel_002dcp_002dclang_002dtokens" accesskey="p" rel="prev">sel-cp-clang-tokens</a>, Up: <a href="SEL-Packages.html#SEL-Packages" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="sel_002dcp_002dfault_002dloc.html" accesskey="n" rel="next">sel-cp-fault-loc</a>, Previous: <a href="sel_002dcp_002dclang_002dtokens.html" accesskey="p" rel="prev">sel-cp-clang-tokens</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<a name="sel_002dcp_002dcondition_002dsynthesis-1"></a>
-<h3 class="section">C.46 sel-cp-condition-synthesis</h3>
-<a name="Class-add_002dcondition"></a><dl>
-<dt><a name="index-add_002dcondition"></a>Class: <strong>add-condition</strong></dt>
+<span id="sel_002dcp_002dcondition_002dsynthesis-1"></span><h3 class="section">C.43 sel-cp-condition-synthesis</h3>
+<span id="Class-add_002dcondition"></span><dl>
+<dt id="index-add_002dcondition">Class: <strong>add-condition</strong></dt>
 <dd><p>Class precedence list: <code>add-condition, clang-mutation, mutation, oid-object, standard-object, t</code>
 </p>
 <p>Slots:
@@ -83,8 +72,8 @@ Next: <a href="sel_002dcp_002dfault_002dloc.html#sel_002dcp_002dfault_002dloc" a
 <p>Guard a statement with an abstract condition.
 <code>e</code>.g., foo; becomes if(abst_cond()) foo;.
 </p></dd></dl>
-<a name="Class-if_002dto_002dwhile"></a><dl>
-<dt><a name="index-if_002dto_002dwhile"></a>Class: <strong>if-to-while</strong></dt>
+<span id="Class-if_002dto_002dwhile"></span><dl>
+<dt id="index-if_002dto_002dwhile">Class: <strong>if-to-while</strong></dt>
 <dd><p>Class precedence list: <code>if-to-while, clang-mutation, mutation, oid-object, standard-object, t</code>
 </p>
 <p>Slots:
@@ -100,8 +89,8 @@ Next: <a href="sel_002dcp_002dfault_002dloc.html#sel_002dcp_002dfault_002dloc" a
 <p>Replace an if statement with a while on the same condition.
 <code>e</code>.g., if(foo) becomes while(foo).
 </p></dd></dl>
-<a name="Class-if_002dto_002dwhile_002dtighten_002dcondition"></a><dl>
-<dt><a name="index-if_002dto_002dwhile_002dtighten_002dcondition"></a>Class: <strong>if-to-while-tighten-condition</strong></dt>
+<span id="Class-if_002dto_002dwhile_002dtighten_002dcondition"></span><dl>
+<dt id="index-if_002dto_002dwhile_002dtighten_002dcondition">Class: <strong>if-to-while-tighten-condition</strong></dt>
 <dd><p>Class precedence list: <code>if-to-while-tighten-condition, if-to-while, tighten-condition, refine-condition, clang-mutation, mutation, oid-object, standard-object, t</code>
 </p>
 <p>Slots:
@@ -117,8 +106,8 @@ Next: <a href="sel_002dcp_002dfault_002dloc.html#sel_002dcp_002dfault_002dloc" a
 <p>Combine if-to-while replacement with a tighter condition.
 <code>e</code>.g., if(foo) becomes while(foo <code>&amp;&amp;</code> !abst_cond()).
 </p></dd></dl>
-<a name="Class-insert_002delse_002dif"></a><dl>
-<dt><a name="index-insert_002delse_002dif"></a>Class: <strong>insert-else-if</strong></dt>
+<span id="Class-insert_002delse_002dif"></span><dl>
+<dt id="index-insert_002delse_002dif">Class: <strong>insert-else-if</strong></dt>
 <dd><p>Class precedence list: <code>insert-else-if, tighten-condition, refine-condition, clang-mutation, mutation, oid-object, standard-object, t</code>
 </p>
 <p>Slots:
@@ -133,8 +122,8 @@ Next: <a href="sel_002dcp_002dfault_002dloc.html#sel_002dcp_002dfault_002dloc" a
 
 <p>insert an (empty) else-if clause after an existing if, e.g., if(foo) bar; becomes if(foo) bar; else if(abst_cond()) ;.
 </p></dd></dl>
-<a name="Class-loosen_002dcondition"></a><dl>
-<dt><a name="index-loosen_002dcondition"></a>Class: <strong>loosen-condition</strong></dt>
+<span id="Class-loosen_002dcondition"></span><dl>
+<dt id="index-loosen_002dcondition">Class: <strong>loosen-condition</strong></dt>
 <dd><p>Class precedence list: <code>loosen-condition, refine-condition, clang-mutation, mutation, oid-object, standard-object, t</code>
 </p>
 <p>Slots:
@@ -150,8 +139,8 @@ Next: <a href="sel_002dcp_002dfault_002dloc.html#sel_002dcp_002dfault_002dloc" a
 <p>Add an abstract condition to make a guard more permissive.
 <code>e</code>.g., if(foo) becomes if(foo || abst_cond()).
 </p></dd></dl>
-<a name="Class-refine_002dcondition"></a><dl>
-<dt><a name="index-refine_002dcondition"></a>Class: <strong>refine-condition</strong></dt>
+<span id="Class-refine_002dcondition"></span><dl>
+<dt id="index-refine_002dcondition">Class: <strong>refine-condition</strong></dt>
 <dd><p>Class precedence list: <code>refine-condition, clang-mutation, mutation, oid-object, standard-object, t</code>
 </p>
 <p>Slots:
@@ -166,8 +155,8 @@ Next: <a href="sel_002dcp_002dfault_002dloc.html#sel_002dcp_002dfault_002dloc" a
 
 <p>Add an additional Boolean clause to an if condition.
 </p></dd></dl>
-<a name="Class-tighten_002dcondition"></a><dl>
-<dt><a name="index-tighten_002dcondition"></a>Class: <strong>tighten-condition</strong></dt>
+<span id="Class-tighten_002dcondition"></span><dl>
+<dt id="index-tighten_002dcondition">Class: <strong>tighten-condition</strong></dt>
 <dd><p>Class precedence list: <code>tighten-condition, refine-condition, clang-mutation, mutation, oid-object, standard-object, t</code>
 </p>
 <p>Slots:
@@ -183,17 +172,17 @@ Next: <a href="sel_002dcp_002dfault_002dloc.html#sel_002dcp_002dfault_002dloc" a
 <p>Add an abstract condition to make a guard less permissive.
 <code>e</code>.g., if(foo) becomes if(foo <code>&amp;&amp;</code> !abst_cond()).
 </p></dd></dl>
-<a name="Variable-_002aabst_002dcond_002dattempts_002a"></a><dl>
-<dt><a name="index-_002aabst_002dcond_002dattempts_002a"></a>Variable: <strong>*abst-cond-attempts*</strong></dt>
+<span id="Variable-_002aabst_002dcond_002dattempts_002a"></span><dl>
+<dt id="index-_002aabst_002dcond_002dattempts_002a">Variable: <strong>*abst-cond-attempts*</strong></dt>
 <dd><p>Maximum number of combinations for abst_cond() values to attempt before
 discarding a repair.
 </p></dd></dl>
-<a name="Variable-_002asynth_002dcondition_002dattempts_002a"></a><dl>
-<dt><a name="index-_002asynth_002dcondition_002dattempts_002a"></a>Variable: <strong>*synth-condition-attempts*</strong></dt>
+<span id="Variable-_002asynth_002dcondition_002dattempts_002a"></span><dl>
+<dt id="index-_002asynth_002dcondition_002dattempts_002a">Variable: <strong>*synth-condition-attempts*</strong></dt>
 <dd><p>Maximum number of synthesized conditions to test before discarding a repair.
 </p></dd></dl>
-<a name="Function-entails"></a><dl>
-<dt><a name="index-entails"></a>Function: <strong>entails</strong> <em>env condition result</em></dt>
+<span id="Function-entails"></span><dl>
+<dt id="index-entails">Function: <strong>entails</strong> <em>env condition result</em></dt>
 <dd><p>Check whether the value of <code>condition</code> in environment <code>env</code> is consistent
 with the desired <code>result</code>, returning <code>t</code> if so and <code>nil</code> otherwise.
 </p>
@@ -209,8 +198,8 @@ result. Similarly, the condition representing &quot;!(x <code>==</code> v)&quot;
 environment where x is assigned the value v is not consistent with the
 result.
 </p></dd></dl>
-<a name="Function-find_002dbest_002dcondition"></a><dl>
-<dt><a name="index-find_002dbest_002dcondition"></a>Function: <strong>find-best-condition</strong> <em>recorded-results envs conditions</em></dt>
+<span id="Function-find_002dbest_002dcondition"></span><dl>
+<dt id="index-find_002dbest_002dcondition">Function: <strong>find-best-condition</strong> <em>recorded-results envs conditions</em></dt>
 <dd><p>Return the condition which correctly matches the largest number of recorded
 results when evaluated under the corresponding environment.
 * <code>recorded-results</code> list of strings &quot;0&quot; or &quot;1&quot; indicating values of abstract
@@ -220,14 +209,14 @@ conditions.
 * <code>conditions</code> a 4-tuple ([:eq|:neq] &quot;var&quot; &quot;type&quot; &quot;val&quot;) representing a
 condition (var <code>==</code> val) or !(var <code>==</code> val)
 </p></dd></dl>
-<a name="Function-flip"></a><dl>
-<dt><a name="index-flip"></a>Function: <strong>flip</strong> <em>bit-str</em></dt>
+<span id="Function-flip"></span><dl>
+<dt id="index-flip">Function: <strong>flip</strong> <em>bit-str</em></dt>
 <dd><p>Return the string obtained by dropping all trailing 1s from <code>bit-str</code> and then
 changing the final 0 to a 1.
 * <code>bit-str</code> a string containing only &quot;0&quot; and &quot;1&quot;
 </p></dd></dl>
-<a name="Function-instrumentation_002dexprs"></a><dl>
-<dt><a name="index-instrumentation_002dexprs"></a>Function: <strong>instrumentation-exprs</strong> <em>obj point type</em></dt>
+<span id="Function-instrumentation_002dexprs"></span><dl>
+<dt id="index-instrumentation_002dexprs">Function: <strong>instrumentation-exprs</strong> <em>obj point type</em></dt>
 <dd><p>Return a list of additional expressions to instrument during condition
 synthesis. Finds all expressions of the given type which are in scope
 at the repair point, and generates comparisons for all of them. These
@@ -243,8 +232,8 @@ expressions can be passed as <code>extra-instrumentation-exprs</code> to
        the type <code>db</code>.
 </li></ul>
 </dd></dl>
-<a name="Function-synthesize_002dcondition"></a><dl>
-<dt><a name="index-synthesize_002dcondition"></a>Function: <strong>synthesize-condition</strong> <em>software test-suite repair-mutation &amp;key extra-instrumentation-exprs</em></dt>
+<span id="Function-synthesize_002dcondition"></span><dl>
+<dt id="index-synthesize_002dcondition">Function: <strong>synthesize-condition</strong> <em>software test-suite repair-mutation &amp;key extra-instrumentation-exprs</em></dt>
 <dd><p>Apply <code>repair-mutation</code> to <code>software</code>, attempting to synthesize a
 condition which increases the number of tests in <code>test-suite</code> that pass.
 Return a copy of <code>software</code> with a synthesized condition inserted at the
@@ -259,8 +248,8 @@ target of <code>repair-mutation</code>.
   with &lsquo;instrumentation-exprs&rsquo;.
 </li></ul>
 </dd></dl>
-<a name="Function-synthesize_002dconditions"></a><dl>
-<dt><a name="index-synthesize_002dconditions"></a>Function: <strong>synthesize-conditions</strong> <em>envs</em></dt>
+<span id="Function-synthesize_002dconditions"></span><dl>
+<dt id="index-synthesize_002dconditions">Function: <strong>synthesize-conditions</strong> <em>envs</em></dt>
 <dd><p>For each assignment in each environment in <code>envs</code>, create a list of condition
 triples representing (x <code>==</code> v) and !(x <code>==</code> v).
 Return a list of synthesized condition triples, by prepending :eq or :neq to each
@@ -268,31 +257,31 @@ assignment in the environments in <code>env</code>.
 * <code>envs</code> a list of environments, each of which contains a list of triples:
 (&quot;var&quot; &quot;type&quot; &quot;value&quot;).
 </p></dd></dl>
-<a name="Generic_002dFunction-valid_002dtargets"></a><dl>
-<dt><a name="index-valid_002dtargets"></a>Generic Function: <strong>valid-targets</strong> <em>mutation software</em></dt>
+<span id="Generic_002dFunction-valid_002dtargets"></span><dl>
+<dt id="index-valid_002dtargets">Generic Function: <strong>valid-targets</strong> <em>mutation software</em></dt>
 <dd><p>Return a list of the locations in <code>software</code> where <code>mutation</code> can be applied.
 </p></dd></dl>
-<a name="Method-valid_002dtargets-_0028_0028mutation-insert_002delse_002dif_0029-software_0029"></a><dl>
-<dt><a name="index-valid_002dtargets-1"></a>Method: <strong>valid-targets</strong> <em>(mutation insert-else-if) software</em></dt>
+<span id="Method-valid_002dtargets-_0028_0028mutation-insert_002delse_002dif_0029-software_0029"></span><dl>
+<dt id="index-valid_002dtargets-1">Method: <strong>valid-targets</strong> <em>(mutation insert-else-if) software</em></dt>
 <dd><p>Return a list of the locations in <code>software</code> where &lsquo;insert-else-if&rsquo; <code>mutation</code> can be applied.
 </p></dd></dl>
-<a name="Method-valid_002dtargets-_0028_0028mutation-if_002dto_002dwhile_0029-software_0029"></a><dl>
-<dt><a name="index-valid_002dtargets-2"></a>Method: <strong>valid-targets</strong> <em>(mutation if-to-while) software</em></dt>
+<span id="Method-valid_002dtargets-_0028_0028mutation-if_002dto_002dwhile_0029-software_0029"></span><dl>
+<dt id="index-valid_002dtargets-2">Method: <strong>valid-targets</strong> <em>(mutation if-to-while) software</em></dt>
 <dd><p>Return a list of the locations in <code>software</code> where &lsquo;if-to-while&rsquo; <code>mutation</code> can be applied.
 </p></dd></dl>
-<a name="Method-valid_002dtargets-_0028_0028mutation-add_002dcondition_0029-software_0029"></a><dl>
-<dt><a name="index-valid_002dtargets-3"></a>Method: <strong>valid-targets</strong> <em>(mutation add-condition) software</em></dt>
+<span id="Method-valid_002dtargets-_0028_0028mutation-add_002dcondition_0029-software_0029"></span><dl>
+<dt id="index-valid_002dtargets-3">Method: <strong>valid-targets</strong> <em>(mutation add-condition) software</em></dt>
 <dd><p>Return a list of the locations in <code>software</code> where &lsquo;add-condition&rsquo; <code>mutation</code> can be applied.
 </p></dd></dl>
-<a name="Method-valid_002dtargets-_0028_0028mutation-refine_002dcondition_0029-software_0029"></a><dl>
-<dt><a name="index-valid_002dtargets-4"></a>Method: <strong>valid-targets</strong> <em>(mutation refine-condition) software</em></dt>
+<span id="Method-valid_002dtargets-_0028_0028mutation-refine_002dcondition_0029-software_0029"></span><dl>
+<dt id="index-valid_002dtargets-4">Method: <strong>valid-targets</strong> <em>(mutation refine-condition) software</em></dt>
 <dd><p>Return a list of the locations in <code>software</code> where &lsquo;refine-condition&rsquo; <code>mutation</code> can be applied.
 </p></dd></dl>
 
 <hr>
 <div class="header">
 <p>
-Next: <a href="sel_002dcp_002dfault_002dloc.html#sel_002dcp_002dfault_002dloc" accesskey="n" rel="next">sel-cp-fault-loc</a>, Previous: <a href="sel_002dcp_002dclang_002dtokens.html#sel_002dcp_002dclang_002dtokens" accesskey="p" rel="prev">sel-cp-clang-tokens</a>, Up: <a href="SEL-Packages.html#SEL-Packages" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="sel_002dcp_002dfault_002dloc.html" accesskey="n" rel="next">sel-cp-fault-loc</a>, Previous: <a href="sel_002dcp_002dclang_002dtokens.html" accesskey="p" rel="prev">sel-cp-clang-tokens</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 
 

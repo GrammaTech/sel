@@ -10,7 +10,7 @@ or any later version published by the Free Software Foundation;
 with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
 A copy of the license is included in the section entitled
 "GNU Free Documentation License." -->
-<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>Introduction (Software Evolution Library)</title>
@@ -20,33 +20,24 @@ A copy of the license is included in the section entitled
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
-<link href="index.html#Top" rel="start" title="Top">
-<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html" rel="start" title="Top">
+<link href="Index.html" rel="index" title="Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
-<link href="index.html#Top" rel="up" title="Top">
-<link href="Implementation.html#Implementation" rel="next" title="Implementation">
-<link href="index.html#Top" rel="prev" title="Top">
+<link href="index.html" rel="up" title="Top">
+<link href="Implementation.html" rel="next" title="Implementation">
+<link href="index.html" rel="prev" title="Top">
 <style type="text/css">
 <!--
 a.summary-letter {text-decoration: none}
 blockquote.indentedblock {margin-right: 0em}
-blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
-blockquote.smallquotation {font-size: smaller}
 div.display {margin-left: 3.2em}
 div.example {margin-left: 3.2em}
 div.lisp {margin-left: 3.2em}
-div.smalldisplay {margin-left: 3.2em}
-div.smallexample {margin-left: 3.2em}
-div.smalllisp {margin-left: 3.2em}
 kbd {font-style: oblique}
 pre.display {font-family: inherit}
 pre.format {font-family: inherit}
 pre.menu-comment {font-family: serif}
 pre.menu-preformatted {font-family: serif}
-pre.smalldisplay {font-family: inherit; font-size: smaller}
-pre.smallexample {font-size: smaller}
-pre.smallformat {font-family: inherit; font-size: smaller}
-pre.smalllisp {font-size: smaller}
 span.nolinebreak {white-space: nowrap}
 span.roman {font-family: initial; font-weight: normal}
 span.sansserif {font-family: sans-serif; font-weight: normal}
@@ -58,15 +49,13 @@ ul.no-bullet {list-style: none}
 </head>
 
 <body lang="en">
-<a name="Introduction"></a>
-<div class="header">
+<span id="Introduction"></span><div class="header">
 <p>
-Next: <a href="Implementation.html#Implementation" accesskey="n" rel="next">Implementation</a>, Previous: <a href="index.html#Top" accesskey="p" rel="prev">Top</a>, Up: <a href="index.html#Top" accesskey="u" rel="up">Top</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="Implementation.html" accesskey="n" rel="next">Implementation</a>, Previous: <a href="index.html" accesskey="p" rel="prev">Top</a>, Up: <a href="index.html" accesskey="u" rel="up">Top</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<a name="Introduction-1"></a>
-<h2 class="chapter">1 Introduction</h2>
-<a name="index-introduction"></a>
+<span id="Introduction-1"></span><h2 class="chapter">1 Introduction</h2>
+<span id="index-introduction"></span>
 
 
 <p>The Software Evolution library enables the programmatic modification
@@ -74,15 +63,14 @@ and evaluation of extant software.  The software evolution library was
 developed as part of the genprog project on automated program repair.
 </p>
 <p>A common interface abstracts over multiple types of software objects
-(see <a href="Software-Objects.html#Software-Objects">Software Objects</a>) including abstract syntax trees parsed from
+(see <a href="Software-Objects.html">Software Objects</a>) including abstract syntax trees parsed from
 source code, LLVM IR, compiled assembler, and linked ELF binaries.
-Mutation and evaluation methods (see <a href="Software-Methods.html#Software-Methods">Software Methods</a>) are
+Mutation and evaluation methods (see <a href="Software-Methods.html">Software Methods</a>) are
 implemented on top of this interface supporting Search Based Software
-Engineering (SBSE) techniques (see <a href="Search-Functions.html#Search-Functions">Search Functions</a>).
+Engineering (SBSE) techniques (see <a href="Search-Functions.html">Search Functions</a>).
 </p>
 
-<a name="SEL-Applications"></a>
-<h3 class="section">1.1 SEL Applications</h3>
+<span id="SEL-Applications"></span><h3 class="section">1.1 SEL Applications</h3>
 
 <p>SEL has a broad range of applications for software improvement and
 understanding. The following are some current and past projects
@@ -115,15 +103,14 @@ specified by unit tests and developer hints
 </li></ul>
 
 
-<a name="Many-different-kinds-of-software-can-be-manipulated"></a>
-<h3 class="section">1.2 Many different kinds of software can be manipulated</h3>
+<span id="Many-different-kinds-of-software-can-be-manipulated"></span><h3 class="section">1.2 Many different kinds of software can be manipulated</h3>
 
 <p>The SEL API defines software objects using the Common Lisp Object
 System (CLOS), to provide a uniform interface to many kinds of
 software artifact, shown in the table below.
 </p>
 <p>Additionally, the flexible design of SEL makes it possible to add new
-software object kinds. See section <a href="Software-Objects.html#Software-Objects">Software Objects</a> for
+software object kinds. See section <a href="Software-Objects.html">Software Objects</a> for
 information about creating new software objects.
 </p>
 
@@ -141,8 +128,7 @@ information about creating new software objects.
 </table>
 
 
-<a name="Other-features"></a>
-<h3 class="section">1.3 Other features</h3>
+<span id="Other-features"></span><h3 class="section">1.3 Other features</h3>
 
 <p>SEL provides support for exploring many different aspects of both
 evolutionary search and automated software manipulation.
@@ -172,8 +158,7 @@ mutation success.
 </li></ul>
 
 
-<a name="Tailored-feautures-for-for-C-and-C_002b_002b-objects"></a>
-<h4 class="subheading">Tailored feautures for for C and C++ objects</h4>
+<span id="Tailored-feautures-for-for-C-and-C_002b_002b-objects"></span><h4 class="subheading">Tailored feautures for for C and C++ objects</h4>
 
 <ul>
 <li> Automatic repair for some compilation errors and warnings.
@@ -193,20 +178,18 @@ source code so that it passes failing unit tests.
 
 
 
-<a name="Getting-started"></a>
-<h3 class="section">1.4 Getting started</h3>
+<span id="Getting-started"></span><h3 class="section">1.4 Getting started</h3>
 
 
-<p>First, <a href="Installation.html#Installation">install SEL and its dependencies</a>.
+<p>First, <a href="Installation.html">install SEL and its dependencies</a>.
 </p>
-<p>Once SEL is installed, try out some of the <a href="Examples.html#Examples">example code</a>.
+<p>Once SEL is installed, try out some of the <a href="Examples.html">example code</a>.
 </p>
 <p>If you are ready to try using SEL in your own code, consult the
-<a href="SEL-API.html#SEL-API">API documentation</a>.
+<a href="SEL-API.html">API documentation</a>.
 </p>
 
-<a name="Citing"></a>
-<h3 class="section">1.5 Citing</h3>
+<span id="Citing"></span><h3 class="section">1.5 Citing</h3>
 
 <p>Please cite Eric Schulte&rsquo;s Ph.D. dissertation when you publish results
 that you have obtained with the SOFTWARE EVOLUTION library (see
@@ -219,7 +202,7 @@ Automated Software Evolution</cite> available at
 <hr>
 <div class="header">
 <p>
-Next: <a href="Implementation.html#Implementation" accesskey="n" rel="next">Implementation</a>, Previous: <a href="index.html#Top" accesskey="p" rel="prev">Top</a>, Up: <a href="index.html#Top" accesskey="u" rel="up">Top</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="Implementation.html" accesskey="n" rel="next">Implementation</a>, Previous: <a href="index.html" accesskey="p" rel="prev">Top</a>, Up: <a href="index.html" accesskey="u" rel="up">Top</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 
 

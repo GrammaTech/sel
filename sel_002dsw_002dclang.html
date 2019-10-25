@@ -10,7 +10,7 @@ or any later version published by the Free Software Foundation;
 with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
 A copy of the license is included in the section entitled
 "GNU Free Documentation License." -->
-<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>sel-sw-clang (Software Evolution Library)</title>
@@ -20,33 +20,24 @@ A copy of the license is included in the section entitled
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
-<link href="index.html#Top" rel="start" title="Top">
-<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html" rel="start" title="Top">
+<link href="Index.html" rel="index" title="Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
-<link href="SEL-Packages.html#SEL-Packages" rel="up" title="SEL Packages">
-<link href="sel_002dsw_002dclang_002dexpression.html#sel_002dsw_002dclang_002dexpression" rel="next" title="sel-sw-clang-expression">
-<link href="sel_002dsw_002dcil.html#sel_002dsw_002dcil" rel="prev" title="sel-sw-cil">
+<link href="SEL-Packages.html" rel="up" title="SEL Packages">
+<link href="sel_002dsw_002dclang_002dexpression.html" rel="next" title="sel-sw-clang-expression">
+<link href="sel_002dsw_002dcil.html" rel="prev" title="sel-sw-cil">
 <style type="text/css">
 <!--
 a.summary-letter {text-decoration: none}
 blockquote.indentedblock {margin-right: 0em}
-blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
-blockquote.smallquotation {font-size: smaller}
 div.display {margin-left: 3.2em}
 div.example {margin-left: 3.2em}
 div.lisp {margin-left: 3.2em}
-div.smalldisplay {margin-left: 3.2em}
-div.smallexample {margin-left: 3.2em}
-div.smalllisp {margin-left: 3.2em}
 kbd {font-style: oblique}
 pre.display {font-family: inherit}
 pre.format {font-family: inherit}
 pre.menu-comment {font-family: serif}
 pre.menu-preformatted {font-family: serif}
-pre.smalldisplay {font-family: inherit; font-size: smaller}
-pre.smallexample {font-size: smaller}
-pre.smallformat {font-family: inherit; font-size: smaller}
-pre.smalllisp {font-size: smaller}
 span.nolinebreak {white-space: nowrap}
 span.roman {font-family: initial; font-weight: normal}
 span.sansserif {font-family: sans-serif; font-weight: normal}
@@ -58,125 +49,185 @@ ul.no-bullet {list-style: none}
 </head>
 
 <body lang="en">
-<a name="sel_002dsw_002dclang"></a>
-<div class="header">
+<span id="sel_002dsw_002dclang"></span><div class="header">
 <p>
-Next: <a href="sel_002dsw_002dclang_002dexpression.html#sel_002dsw_002dclang_002dexpression" accesskey="n" rel="next">sel-sw-clang-expression</a>, Previous: <a href="sel_002dsw_002dcil.html#sel_002dsw_002dcil" accesskey="p" rel="prev">sel-sw-cil</a>, Up: <a href="SEL-Packages.html#SEL-Packages" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="sel_002dsw_002dclang_002dexpression.html" accesskey="n" rel="next">sel-sw-clang-expression</a>, Previous: <a href="sel_002dsw_002dcil.html" accesskey="p" rel="prev">sel-sw-cil</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<a name="sel_002dsw_002dclang-1"></a>
-<h3 class="section">C.13 sel-sw-clang</h3>
-<a name="Variable-_002aclang_002dmax_002djson_002dsize_002a"></a><dl>
-<dt><a name="index-_002aclang_002dmax_002djson_002dsize_002a"></a>Variable: <strong>*clang-max-json-size*</strong></dt>
-<dd><p>Maximum size of output accepted from &lsquo;clang-mutate&rsquo;.
+<span id="sel_002dsw_002dclang-1"></span><h3 class="section">C.12 sel-sw-clang</h3>
+<span id="Variable-_002aclang_002djson_002drequired_002daux_002a"></span><dl>
+<dt id="index-_002aclang_002djson_002drequired_002daux_002a">Variable: <strong>*clang-json-required-aux*</strong></dt>
+<dd><p>JSON database AuxDB entries required for clang software objects.
 </p></dd></dl>
-<a name="Constant-_002bc_002darithmetic_002dassignment_002doperators_002b"></a><dl>
-<dt><a name="index-_002bc_002darithmetic_002dassignment_002doperators_002b"></a>Constant: <strong>+c-arithmetic-assignment-operators+</strong></dt>
+<span id="Variable-_002aclang_002dmutate_002dadditional_002dargs_002a"></span><dl>
+<dt id="index-_002aclang_002dmutate_002dadditional_002dargs_002a">Variable: <strong>*clang-mutate-additional-args*</strong></dt>
+<dd><p>Extra arguments to pass to clang-mutate when parsing
+</p></dd></dl>
+<span id="Variable-_002amatching_002dfree_002dfunction_002dretains_002dname_002dbias_002a"></span><dl>
+<dt id="index-_002amatching_002dfree_002dfunction_002dretains_002dname_002dbias_002a">Variable: <strong>*matching-free-function-retains-name-bias*</strong></dt>
+<dd><p>The probability that if a free functions&rsquo;s original name matches a name
+already in scope, it will keep that name.
+</p></dd></dl>
+<span id="Constant-_002bc_002darithmetic_002dassignment_002doperators_002b"></span><dl>
+<dt id="index-_002bc_002darithmetic_002dassignment_002doperators_002b">Constant: <strong>+c-arithmetic-assignment-operators+</strong></dt>
 <dd><p>C arithmetic assignment operators.
 </p></dd></dl>
-<a name="Constant-_002bc_002darithmetic_002dbinary_002doperators_002b"></a><dl>
-<dt><a name="index-_002bc_002darithmetic_002dbinary_002doperators_002b"></a>Constant: <strong>+c-arithmetic-binary-operators+</strong></dt>
+<span id="Constant-_002bc_002darithmetic_002dbinary_002doperators_002b"></span><dl>
+<dt id="index-_002bc_002darithmetic_002dbinary_002doperators_002b">Constant: <strong>+c-arithmetic-binary-operators+</strong></dt>
 <dd><p>C arithmetic operators on two arguments.
 </p></dd></dl>
-<a name="Constant-_002bc_002darithmetic_002dunary_002doperators_002b"></a><dl>
-<dt><a name="index-_002bc_002darithmetic_002dunary_002doperators_002b"></a>Constant: <strong>+c-arithmetic-unary-operators+</strong></dt>
-<dd><p>C arithmetic operators on one arguments.
-</p></dd></dl>
-<a name="Constant-_002bc_002dbitwise_002dassignment_002doperators_002b"></a><dl>
-<dt><a name="index-_002bc_002dbitwise_002dassignment_002doperators_002b"></a>Constant: <strong>+c-bitwise-assignment-operators+</strong></dt>
+<span id="Constant-_002bc_002dbitwise_002dassignment_002doperators_002b"></span><dl>
+<dt id="index-_002bc_002dbitwise_002dassignment_002doperators_002b">Constant: <strong>+c-bitwise-assignment-operators+</strong></dt>
 <dd><p>C bitwise assignment operators.
 </p></dd></dl>
-<a name="Constant-_002bc_002dbitwise_002dbinary_002doperators_002b"></a><dl>
-<dt><a name="index-_002bc_002dbitwise_002dbinary_002doperators_002b"></a>Constant: <strong>+c-bitwise-binary-operators+</strong></dt>
+<span id="Constant-_002bc_002dbitwise_002dbinary_002doperators_002b"></span><dl>
+<dt id="index-_002bc_002dbitwise_002dbinary_002doperators_002b">Constant: <strong>+c-bitwise-binary-operators+</strong></dt>
 <dd><p>C bitwise operators on two arguments.
 </p></dd></dl>
-<a name="Constant-_002bc_002dbitwise_002dunary_002doperators_002b"></a><dl>
-<dt><a name="index-_002bc_002dbitwise_002dunary_002doperators_002b"></a>Constant: <strong>+c-bitwise-unary-operators+</strong></dt>
+<span id="Constant-_002bc_002dbitwise_002dunary_002doperators_002b"></span><dl>
+<dt id="index-_002bc_002dbitwise_002dunary_002doperators_002b">Constant: <strong>+c-bitwise-unary-operators+</strong></dt>
 <dd><p>C bitwise operators on one arguments.
 </p></dd></dl>
-<a name="Constant-_002bc_002dnumeric_002dtypes_002b"></a><dl>
-<dt><a name="index-_002bc_002dnumeric_002dtypes_002b"></a>Constant: <strong>+c-numeric-types+</strong></dt>
-<dd><p>C Numeric type names.
-</p></dd></dl>
-<a name="Constant-_002bc_002dpointer_002dunary_002doperators_002b"></a><dl>
-<dt><a name="index-_002bc_002dpointer_002dunary_002doperators_002b"></a>Constant: <strong>+c-pointer-unary-operators+</strong></dt>
+<span id="Constant-_002bc_002dpointer_002dunary_002doperators_002b"></span><dl>
+<dt id="index-_002bc_002dpointer_002dunary_002doperators_002b">Constant: <strong>+c-pointer-unary-operators+</strong></dt>
 <dd><p>C pointer operators on one arguments.
 </p></dd></dl>
-<a name="Constant-_002bc_002drelational_002doperators_002b"></a><dl>
-<dt><a name="index-_002bc_002drelational_002doperators_002b"></a>Constant: <strong>+c-relational-operators+</strong></dt>
+<span id="Constant-_002bc_002drelational_002doperators_002b"></span><dl>
+<dt id="index-_002bc_002drelational_002doperators_002b">Constant: <strong>+c-relational-operators+</strong></dt>
 <dd><p>C Relational operators.
 </p></dd></dl>
-<a name="Generic_002dFunction-add_002dinclude"></a><dl>
-<dt><a name="index-add_002dinclude"></a>Generic Function: <strong>add-include</strong> <em>software include</em></dt>
+<span id="Constant-_002bc_002dsign_002dunary_002doperators_002b"></span><dl>
+<dt id="index-_002bc_002dsign_002dunary_002doperators_002b">Constant: <strong>+c-sign-unary-operators+</strong></dt>
+<dd><p>C sign operators on one arguments.
+</p></dd></dl>
+<span id="Generic_002dFunction-add_002dinclude"></span><dl>
+<dt id="index-add_002dinclude">Generic Function: <strong>add-include</strong> <em>software include</em></dt>
 <dd><p>Add an #include directive for an <code>include</code> to <code>software</code>.
 </p></dd></dl>
-<a name="Method-add_002dinclude-_0028_0028obj-clang_0029-_0028include-string_0029_0029"></a><dl>
-<dt><a name="index-add_002dinclude-1"></a>Method: <strong>add-include</strong> <em>(obj clang) (include string)</em></dt>
+<span id="Method-add_002dinclude-_0028_0028obj-clang_002dbase_0029-_0028include-string_0029_0029"></span><dl>
+<dt id="index-add_002dinclude-1">Method: <strong>add-include</strong> <em>(obj clang-base) (include string)</em></dt>
 <dd><p>Add an #include directive for an <code>include</code> to <code>obj</code>.
 </p><ul>
 <li> <code>obj</code> object to modify
 </li><li> <code>include</code> header to include in <code>obj</code>
 </li></ul>
 </dd></dl>
-<a name="Generic_002dFunction-add_002dmacro"></a><dl>
-<dt><a name="index-add_002dmacro"></a>Generic Function: <strong>add-macro</strong> <em>software macro</em></dt>
+<span id="Generic_002dFunction-add_002dmacro"></span><dl>
+<dt id="index-add_002dmacro">Generic Function: <strong>add-macro</strong> <em>software macro</em></dt>
 <dd><p>Add <code>macro</code> to &lsquo;macros&rsquo; of <code>software</code>, unique by hash.
 </p></dd></dl>
-<a name="Method-add_002dmacro-_0028_0028obj-clang_0029-_0028macro-clang_002dmacro_0029_0029"></a><dl>
-<dt><a name="index-add_002dmacro-1"></a>Method: <strong>add-macro</strong> <em>(obj clang) (macro clang-macro)</em></dt>
+<span id="Method-add_002dmacro-_0028_0028obj-clang_002dbase_0029-_0028macro-clang_002dmacro_0029_0029"></span><dl>
+<dt id="index-add_002dmacro-1">Method: <strong>add-macro</strong> <em>(obj clang-base) (macro clang-macro)</em></dt>
 <dd><p>Add <code>macro</code> to &lsquo;macros&rsquo; of <code>obj</code>, unique by hash.
 </p><ul>
 <li> <code>obj</code> object to modify with macro
 </li><li> <code>macro</code> macro to add
 </li></ul>
 </dd></dl>
-<a name="Generic_002dFunction-bad_002dstmts"></a><dl>
-<dt><a name="index-bad_002dstmts"></a>Generic Function: <strong>bad-stmts</strong> <em>software</em></dt>
+<span id="Generic_002dFunction-add_002dtype"></span><dl>
+<dt id="index-add_002dtype">Generic Function: <strong>add-type</strong> <em>software type</em></dt>
+<dd><p>Add <code>type</code> to &lsquo;types&rsquo; of <code>software</code>, unique by hash.
+</p></dd></dl>
+<span id="Method-add_002dtype-_0028_0028obj-clang_002dbase_0029-_0028type-null_0029_0029"></span><dl>
+<dt id="index-add_002dtype-1">Method: <strong>add-type</strong> <em>(obj clang-base) (type null)</em></dt>
+<dd><p>Add <code>type</code> to &lsquo;types&rsquo; of <code>obj</code>, unique by hash.
+</p><ul>
+<li> <code>obj</code> software object to modify
+</li><li> <code>type</code> null to allow for nop when nil is passed for the type argument
+</li></ul>
+</dd></dl>
+<span id="Method-add_002dtype-_0028_0028obj-clang_002dbase_0029-_0028type-clang_002dtype_0029_0029"></span><dl>
+<dt id="index-add_002dtype-2">Method: <strong>add-type</strong> <em>(obj clang-base) (type clang-type)</em></dt>
+<dd><p>Add <code>type</code> to &lsquo;types&rsquo; of <code>obj</code>, unique by hash.
+</p><ul>
+<li> <code>obj</code> software object to modify
+</li><li> <code>type</code> type to be added
+</li></ul>
+</dd></dl>
+<span id="Generic_002dFunction-adjust_002dstmt_002drange"></span><dl>
+<dt id="index-adjust_002dstmt_002drange">Generic Function: <strong>adjust-stmt-range</strong> <em>software start end</em></dt>
+<dd><p>Adjust <code>start</code> and <code>end</code> so that they represent a valid range for set-range.
+The values returned will be STMT1 and STMT2, where STMT1 and STMT2 are both
+full statements
+</p></dd></dl>
+<span id="Method-adjust_002dstmt_002drange-_0028_0028clang-clang_002dbase_0029-start-end_0029"></span><dl>
+<dt id="index-adjust_002dstmt_002drange-1">Method: <strong>adjust-stmt-range</strong> <em>(clang clang-base) start end</em></dt>
+<dd><p><code>docfixme</code>
+</p><ul>
+<li> <code>clang</code> <code>docfixme</code>
+</li><li> <code>start</code> <code>docfixme</code>
+</li><li> <code>end</code> <code>docfixme</code>
+</li></ul>
+</dd></dl>
+<span id="Generic_002dFunction-ast_002dincludes_002din_002dobj"></span><dl>
+<dt id="index-ast_002dincludes_002din_002dobj">Generic Function: <strong>ast-includes-in-obj</strong> <em>obj ast</em></dt>
+<dd><p>Like <code>ast-includes</code>, but is also passed the <code>sw</code> object in
+which the ast sits, if that is useful for computing the includes.
+</p></dd></dl>
+<span id="Generic_002dFunction-bad_002dstmts"></span><dl>
+<dt id="index-bad_002dstmts">Generic Function: <strong>bad-stmts</strong> <em>software</em></dt>
 <dd><p>Return a list of all bad statement asts in <code>software</code>.
 </p></dd></dl>
-<a name="Method-bad_002dstmts-_0028_0028clang-clang_0029_0029"></a><dl>
-<dt><a name="index-bad_002dstmts-1"></a>Method: <strong>bad-stmts</strong> <em>(clang clang)</em></dt>
+<span id="Method-bad_002dstmts-_0028_0028clang-clang_002dbase_0029_0029"></span><dl>
+<dt id="index-bad_002dstmts-1">Method: <strong>bad-stmts</strong> <em>(clang clang-base)</em></dt>
 <dd><p>Return a list of all bad statement ASTs in <code>clang</code>.
 </p></dd></dl>
-<a name="Generic_002dFunction-block_002dp"></a><dl>
-<dt><a name="index-block_002dp"></a>Generic Function: <strong>block-p</strong> <em>software statement</em></dt>
+<span id="Generic_002dFunction-binding_002dfor_002dfunction"></span><dl>
+<dt id="index-binding_002dfor_002dfunction">Generic Function: <strong>binding-for-function</strong> <em>obj functions name arity</em></dt>
+<dd><p><code>docfixme</code>
+</p><ul>
+<li> <code>obj</code> <code>docfixme</code>
+</li><li> <code>functions</code> <code>docfixme</code>
+</li><li> <code>name</code> <code>docfixme</code>
+</li><li> <code>arity</code> <code>docfixme</code>
+</li></ul>
+</dd></dl>
+<span id="Generic_002dFunction-block_002dp"></span><dl>
+<dt id="index-block_002dp">Generic Function: <strong>block-p</strong> <em>software statement</em></dt>
 <dd><p>Check if <code>statement</code> is a block in <code>software</code>.
 </p></dd></dl>
-<a name="Method-block_002dp-_0028_0028obj-clang_0029-_0028stmt-clang_002dast_0029_0029"></a><dl>
-<dt><a name="index-block_002dp-1"></a>Method: <strong>block-p</strong> <em>(obj clang) (stmt clang-ast)</em></dt>
+<span id="Method-block_002dp-_0028_0028obj-clang_002dbase_0029-_0028stmt-ast_0029_0029"></span><dl>
+<dt id="index-block_002dp-1">Method: <strong>block-p</strong> <em>(obj clang-base) (stmt ast)</em></dt>
 <dd><p><code>docfixme</code>
 </p><ul>
 <li> <code>obj</code> <code>docfixme</code>
 </li><li> <code>stmt</code> <code>docfixme</code>
 </li></ul>
 </dd></dl>
-<a name="Structure-clang_002dast"></a><dl>
-<dt><a name="index-clang_002dast"></a>Structure: <strong>clang-ast</strong></dt>
-<dd><p>Class precedence list: <code>clang-ast, ast, structure-object, t</code>
+<span id="Structure-clang_002dast"></span><dl>
+<dt id="index-clang_002dast">Structure: <strong>clang-ast</strong></dt>
+<dd><p>Class precedence list: <code>clang-ast, clang-ast-base, ast, structure-object, t</code>
 </p>
 <p>AST generated by clang-mutate.
 </p></dd></dl>
-<a name="Structure-clang_002dast_002dnode"></a><dl>
-<dt><a name="index-clang_002dast_002dnode"></a>Structure: <strong>clang-ast-node</strong></dt>
+<span id="Structure-clang_002dast_002dbase"></span><dl>
+<dt id="index-clang_002dast_002dbase">Structure: <strong>clang-ast-base</strong></dt>
+<dd><p>Class precedence list: <code>clang-ast-base, ast, structure-object, t</code>
+</p>
+<p>Base structure class used to dispatch on clang-only
+methods
+</p></dd></dl>
+<span id="Structure-clang_002dast_002dnode"></span><dl>
+<dt id="index-clang_002dast_002dnode">Structure: <strong>clang-ast-node</strong></dt>
 <dd><p>Class precedence list: <code>clang-ast-node, ast-node, structure-object, t</code>
 </p>
 <p>Immutable structure holding <code>clang-ast-node</code> slots.
 </p></dd></dl>
-<a name="Structure-clang_002dmacro"></a><dl>
-<dt><a name="index-clang_002dmacro"></a>Structure: <strong>clang-macro</strong></dt>
+<span id="Structure-clang_002dmacro"></span><dl>
+<dt id="index-clang_002dmacro">Structure: <strong>clang-macro</strong></dt>
 <dd><p>Class precedence list: <code>clang-macro, structure-object, t</code>
 </p>
 <p>Immutable structure holding <code>clang-macro</code> slots.
 </p></dd></dl>
-<a name="Structure-clang_002dtype"></a><dl>
-<dt><a name="index-clang_002dtype"></a>Structure: <strong>clang-type</strong></dt>
+<span id="Structure-clang_002dtype"></span><dl>
+<dt id="index-clang_002dtype">Structure: <strong>clang-type</strong></dt>
 <dd><p>Class precedence list: <code>clang-type, structure-object, t</code>
 </p>
 <p>Immutable structure holding <code>clang-type</code> slots.
 </p></dd></dl>
-<a name="Class-clang"></a><dl>
-<dt><a name="index-clang"></a>Class: <strong>clang</strong></dt>
-<dd><p>Class precedence list: <code>clang, parseable, source, software, oid-object, standard-object, t</code>
+<span id="Class-clang"></span><dl>
+<dt id="index-clang">Class: <strong>clang</strong></dt>
+<dd><p>Class precedence list: <code>clang, clang-base, parseable, source, software, oid-object, standard-object, t</code>
 </p>
 <p>Slots:
 </p><ul>
@@ -192,22 +243,32 @@ Next: <a href="sel_002dsw_002dclang_002dexpression.html#sel_002dsw_002dclang_002
 </p></li><li> <code>prototypes</code> &mdash; initarg: <code>:prototypes<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/clang:prototypes</span><!-- /@w --></code>
 
 <p>Function prototypes.
-</p></li><li> <code>includes</code> &mdash; initarg: <code>:includes<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/clang:includes</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/clang:includes)</span><!-- /@w --></code>
-
-<p>Names of included includes.
-</p></li><li> <code>types</code> &mdash; initarg: <code>:types<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/clang:types</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/clang:types)</span><!-- /@w --></code>
-
-<p>Association list of types keyed by <code>hash</code> id.
-</p></li><li> <code>macros</code> &mdash; initarg: <code>:macros<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/clang:macros</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/clang:macros)</span><!-- /@w --></code>
-
-<p>Association list of Names and values of macros.
 </p></li></ul>
 
 <p>C language (C, C++, <code>c#</code>, etc...) ASTs using Clang, C language frontend for <code>llvm</code>.
 See http://clang.llvm.org/.
 </p></dd></dl>
-<a name="Class-clang_002dcut"></a><dl>
-<dt><a name="index-clang_002dcut"></a>Class: <strong>clang-cut</strong></dt>
+<span id="Class-clang_002dbase"></span><dl>
+<dt id="index-clang_002dbase">Class: <strong>clang-base</strong></dt>
+<dd><p>Class precedence list: <code>clang-base, parseable, source, software, oid-object, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>includes</code> &mdash; initarg: <code>:includes<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/clang:includes</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/clang:includes)</span><!-- /@w --></code>
+
+<p>Names of headers included.
+</p></li><li> <code>types</code> &mdash; initarg: <code>:types<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/clang:types</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/clang:types)</span><!-- /@w --></code>
+
+<p>Hash table of types keyed by <code>hash</code> id.
+</p></li><li> <code>macros</code> &mdash; initarg: <code>:macros<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/clang:macros</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/clang:macros)</span><!-- /@w --></code>
+
+<p>List of macros.
+</p></li></ul>
+
+<p>Base class for <code>c/c++</code> objects parsed with Clang front end
+</p></dd></dl>
+<span id="Class-clang_002dcut"></span><dl>
+<dt id="index-clang_002dcut">Class: <strong>clang-cut</strong></dt>
 <dd><p>Class precedence list: <code>clang-cut, clang-mutation, parseable-cut, parseable-mutation, mutation, oid-object, standard-object, t</code>
 </p>
 <p>Slots:
@@ -222,8 +283,8 @@ See http://clang.llvm.org/.
 
 <p>Perform a cut operation on a clang software object.
 </p></dd></dl>
-<a name="Class-clang_002dcut_002dfull"></a><dl>
-<dt><a name="index-clang_002dcut_002dfull"></a>Class: <strong>clang-cut-full</strong></dt>
+<span id="Class-clang_002dcut_002dfull"></span><dl>
+<dt id="index-clang_002dcut_002dfull">Class: <strong>clang-cut-full</strong></dt>
 <dd><p>Class precedence list: <code>clang-cut-full, clang-cut, clang-mutation, parseable-cut, parseable-mutation, mutation, oid-object, standard-object, t</code>
 </p>
 <p>Slots:
@@ -239,8 +300,8 @@ See http://clang.llvm.org/.
 <p>Perform a cut operation on a clang software object,
 only cutting full statements.
 </p></dd></dl>
-<a name="Class-clang_002dinsert"></a><dl>
-<dt><a name="index-clang_002dinsert"></a>Class: <strong>clang-insert</strong></dt>
+<span id="Class-clang_002dinsert"></span><dl>
+<dt id="index-clang_002dinsert">Class: <strong>clang-insert</strong></dt>
 <dd><p>Class precedence list: <code>clang-insert, clang-mutation, mutation, oid-object, standard-object, t</code>
 </p>
 <p>Slots:
@@ -255,8 +316,8 @@ only cutting full statements.
 
 <p>Perform an insertion operation on a clang software object.
 </p></dd></dl>
-<a name="Class-clang_002dinsert_002dfull"></a><dl>
-<dt><a name="index-clang_002dinsert_002dfull"></a>Class: <strong>clang-insert-full</strong></dt>
+<span id="Class-clang_002dinsert_002dfull"></span><dl>
+<dt id="index-clang_002dinsert_002dfull">Class: <strong>clang-insert-full</strong></dt>
 <dd><p>Class precedence list: <code>clang-insert-full, clang-insert, clang-mutation, mutation, oid-object, standard-object, t</code>
 </p>
 <p>Slots:
@@ -272,8 +333,8 @@ only cutting full statements.
 <p>Perform an insertion operation on a clang software object,
 only inserting full statements.
 </p></dd></dl>
-<a name="Class-clang_002dinsert_002dfull_002dsame"></a><dl>
-<dt><a name="index-clang_002dinsert_002dfull_002dsame"></a>Class: <strong>clang-insert-full-same</strong></dt>
+<span id="Class-clang_002dinsert_002dfull_002dsame"></span><dl>
+<dt id="index-clang_002dinsert_002dfull_002dsame">Class: <strong>clang-insert-full-same</strong></dt>
 <dd><p>Class precedence list: <code>clang-insert-full-same, clang-insert, clang-mutation, mutation, oid-object, standard-object, t</code>
 </p>
 <p>Slots:
@@ -290,8 +351,8 @@ only inserting full statements.
 only inserting full statements of the same AST class as the preceding
 statement.
 </p></dd></dl>
-<a name="Class-clang_002dinsert_002dsame"></a><dl>
-<dt><a name="index-clang_002dinsert_002dsame"></a>Class: <strong>clang-insert-same</strong></dt>
+<span id="Class-clang_002dinsert_002dsame"></span><dl>
+<dt id="index-clang_002dinsert_002dsame">Class: <strong>clang-insert-same</strong></dt>
 <dd><p>Class precedence list: <code>clang-insert-same, clang-insert, clang-mutation, mutation, oid-object, standard-object, t</code>
 </p>
 <p>Slots:
@@ -307,8 +368,8 @@ statement.
 <p>Perform an insertion operation on a clang software object,
 only inserting statements of the same AST class as the preceding statement.
 </p></dd></dl>
-<a name="Class-clang_002dmove"></a><dl>
-<dt><a name="index-clang_002dmove"></a>Class: <strong>clang-move</strong></dt>
+<span id="Class-clang_002dmove"></span><dl>
+<dt id="index-clang_002dmove">Class: <strong>clang-move</strong></dt>
 <dd><p>Class precedence list: <code>clang-move, clang-mutation, parseable-move, parseable-mutation, mutation, oid-object, standard-object, t</code>
 </p>
 <p>Slots:
@@ -323,15 +384,15 @@ only inserting statements of the same AST class as the preceding statement.
 
 <p>Perform a move operation on a clang software object.
 </p></dd></dl>
-<a name="Class-clang_002dmutation"></a><dl>
-<dt><a name="index-clang_002dmutation"></a>Class: <strong>clang-mutation</strong></dt>
+<span id="Class-clang_002dmutation"></span><dl>
+<dt id="index-clang_002dmutation">Class: <strong>clang-mutation</strong></dt>
 <dd><p>Class precedence list: <code>clang-mutation, mutation, oid-object, standard-object, t</code>
 </p>
 <p>Specialization of the mutation interface for clang software
 objects.
 </p></dd></dl>
-<a name="Class-clang_002dnop"></a><dl>
-<dt><a name="index-clang_002dnop"></a>Class: <strong>clang-nop</strong></dt>
+<span id="Class-clang_002dnop"></span><dl>
+<dt id="index-clang_002dnop">Class: <strong>clang-nop</strong></dt>
 <dd><p>Class precedence list: <code>clang-nop, clang-mutation, parseable-nop, parseable-mutation, mutation, oid-object, standard-object, t</code>
 </p>
 <p>Slots:
@@ -346,8 +407,8 @@ objects.
 
 <p>Perform a nop on a clang software object.
 </p></dd></dl>
-<a name="Class-clang_002dpromote_002dguarded"></a><dl>
-<dt><a name="index-clang_002dpromote_002dguarded"></a>Class: <strong>clang-promote-guarded</strong></dt>
+<span id="Class-clang_002dpromote_002dguarded"></span><dl>
+<dt id="index-clang_002dpromote_002dguarded">Class: <strong>clang-promote-guarded</strong></dt>
 <dd><p>Class precedence list: <code>clang-promote-guarded, clang-mutation, mutation, oid-object, standard-object, t</code>
 </p>
 <p>Slots:
@@ -363,8 +424,8 @@ objects.
 <p>Promote a guarded compound statement in a clang
 software object.
 </p></dd></dl>
-<a name="Class-clang_002dreplace"></a><dl>
-<dt><a name="index-clang_002dreplace"></a>Class: <strong>clang-replace</strong></dt>
+<span id="Class-clang_002dreplace"></span><dl>
+<dt id="index-clang_002dreplace">Class: <strong>clang-replace</strong></dt>
 <dd><p>Class precedence list: <code>clang-replace, clang-mutation, parseable-replace, parseable-mutation, mutation, oid-object, standard-object, t</code>
 </p>
 <p>Slots:
@@ -379,8 +440,8 @@ software object.
 
 <p>Perform a replace operation on a clang software object.
 </p></dd></dl>
-<a name="Class-clang_002dreplace_002dfull"></a><dl>
-<dt><a name="index-clang_002dreplace_002dfull"></a>Class: <strong>clang-replace-full</strong></dt>
+<span id="Class-clang_002dreplace_002dfull"></span><dl>
+<dt id="index-clang_002dreplace_002dfull">Class: <strong>clang-replace-full</strong></dt>
 <dd><p>Class precedence list: <code>clang-replace-full, clang-replace, clang-mutation, parseable-replace, parseable-mutation, mutation, oid-object, standard-object, t</code>
 </p>
 <p>Slots:
@@ -396,228 +457,8 @@ software object.
 <p>Perform a replace operation on a clang software object,
 only replacing full statements.
 </p></dd></dl>
-<a name="Class-clang_002dreplace_002dsame"></a><dl>
-<dt><a name="index-clang_002dreplace_002dsame"></a>Class: <strong>clang-replace-same</strong></dt>
-<dd><p>Class precedence list: <code>clang-replace-same, clang-replace, clang-mutation, parseable-replace, parseable-mutation, mutation, oid-object, standard-object, t</code>
-</p>
-<p>Slots:
-</p><ul>
-<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> targets.
-</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> random target.
-</p></li></ul>
-
-<p>Perform a replace operation on a clang software object,
-only replacing statements of the same AST class.
-</p></dd></dl>
-<a name="Class-clang_002dswap"></a><dl>
-<dt><a name="index-clang_002dswap"></a>Class: <strong>clang-swap</strong></dt>
-<dd><p>Class precedence list: <code>clang-swap, clang-mutation, parseable-swap, parseable-mutation, mutation, oid-object, standard-object, t</code>
-</p>
-<p>Slots:
-</p><ul>
-<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> targets.
-</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> random target.
-</p></li></ul>
-
-<p>Perform a swap operation on a clang software object.
-</p></dd></dl>
-<a name="Class-clang_002dswap_002dfull"></a><dl>
-<dt><a name="index-clang_002dswap_002dfull"></a>Class: <strong>clang-swap-full</strong></dt>
-<dd><p>Class precedence list: <code>clang-swap-full, clang-swap, clang-mutation, parseable-swap, parseable-mutation, mutation, oid-object, standard-object, t</code>
-</p>
-<p>Slots:
-</p><ul>
-<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> targets.
-</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> random target.
-</p></li></ul>
-
-<p>Perform a swap operation on a clang software object,
-only swapping full statements.
-</p></dd></dl>
-<a name="Class-clang_002dswap_002dfull_002dsame"></a><dl>
-<dt><a name="index-clang_002dswap_002dfull_002dsame"></a>Class: <strong>clang-swap-full-same</strong></dt>
-<dd><p>Class precedence list: <code>clang-swap-full-same, clang-swap, clang-mutation, parseable-swap, parseable-mutation, mutation, oid-object, standard-object, t</code>
-</p>
-<p>Slots:
-</p><ul>
-<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> targets.
-</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> random target.
-</p></li></ul>
-
-<p>Perform a swap operation on a clang software object,
-only full statements of the same AST class.
-</p></dd></dl>
-<a name="Class-clang_002dswap_002dsame"></a><dl>
-<dt><a name="index-clang_002dswap_002dsame"></a>Class: <strong>clang-swap-same</strong></dt>
-<dd><p>Class precedence list: <code>clang-swap-same, clang-swap, clang-mutation, parseable-swap, parseable-mutation, mutation, oid-object, standard-object, t</code>
-</p>
-<p>Slots:
-</p><ul>
-<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> targets.
-</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> random target.
-</p></li></ul>
-
-<p>Perform a swap operation on a clang software object,
-only swapping statements of the same AST class.
-</p></dd></dl>
-<a name="Class-coalesce_002dwhile_002dloop"></a><dl>
-<dt><a name="index-coalesce_002dwhile_002dloop"></a>Class: <strong>coalesce-while-loop</strong></dt>
-<dd><p>Class precedence list: <code>coalesce-while-loop, clang-mutation, mutation, oid-object, standard-object, t</code>
-</p>
-<p>Slots:
-</p><ul>
-<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> targets.
-</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> random target.
-</p></li></ul>
-
-<p>Select a &rsquo;while&rsquo; loop and coalesce it into a &rsquo;for&rsquo; loop.
-This mutation will transform <code>'a</code>;while<code>(b)</code>;C&rsquo; into &rsquo;for(A;<code>b</code>;C)&rsquo;.
-</p></dd></dl>
-<a name="Class-cut_002ddecl"></a><dl>
-<dt><a name="index-cut_002ddecl"></a>Class: <strong>cut-decl</strong></dt>
-<dd><p>Class precedence list: <code>cut-decl, clang-mutation, mutation, oid-object, standard-object, t</code>
-</p>
-<p>Slots:
-</p><ul>
-<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> targets.
-</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> random target.
-</p></li></ul>
-
-<p>Perform a cut operation on a DeclStmt AST in a clang software object.
-</p></dd></dl>
-<a name="Class-expand_002darithmatic_002dop"></a><dl>
-<dt><a name="index-expand_002darithmatic_002dop"></a>Class: <strong>expand-arithmatic-op</strong></dt>
-<dd><p>Class precedence list: <code>expand-arithmatic-op, clang-replace, clang-mutation, parseable-replace, parseable-mutation, mutation, oid-object, standard-object, t</code>
-</p>
-<p>Slots:
-</p><ul>
-<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> targets.
-</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> random target.
-</p></li></ul>
-
-<p>Expand a compound assignment or increment/decrement operation
-in a clang software object.
-</p></dd></dl>
-<a name="Class-explode_002dfor_002dloop"></a><dl>
-<dt><a name="index-explode_002dfor_002dloop"></a>Class: <strong>explode-for-loop</strong></dt>
-<dd><p>Class precedence list: <code>explode-for-loop, clang-mutation, mutation, oid-object, standard-object, t</code>
-</p>
-<p>Slots:
-</p><ul>
-<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> targets.
-</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> random target.
-</p></li></ul>
-
-<p>Select a &rsquo;for&rsquo; loop and explode it into it&rsquo;s component parts.
-This mutation will transform &rsquo;for(A;<code>b</code>;C)&rsquo; into <code>'a</code>;while<code>(b)</code>;C&rsquo;.
-</p></dd></dl>
-<a name="Variable-_002aclang_002djson_002drequired_002daux_002a"></a><dl>
-<dt><a name="index-_002aclang_002djson_002drequired_002daux_002a"></a>Variable: <strong>*clang-json-required-aux*</strong></dt>
-<dd><p>JSON database AuxDB entries required for clang software objects.
-</p></dd></dl>
-<a name="Variable-_002aclang_002djson_002drequired_002dfields_002a"></a><dl>
-<dt><a name="index-_002aclang_002djson_002drequired_002dfields_002a"></a>Variable: <strong>*clang-json-required-fields*</strong></dt>
-<dd><p>JSON database entry fields required for clang software objects.
-</p></dd></dl>
-<a name="Variable-_002aclang_002dmutate_002dadditional_002dargs_002a"></a><dl>
-<dt><a name="index-_002aclang_002dmutate_002dadditional_002dargs_002a"></a>Variable: <strong>*clang-mutate-additional-args*</strong></dt>
-<dd><p>Extra arguments to pass to clang-mutate when parsing
-</p></dd></dl>
-<a name="Variable-_002aclang_002dmutation_002dtypes_002a"></a><dl>
-<dt><a name="index-_002aclang_002dmutation_002dtypes_002a"></a>Variable: <strong>*clang-mutation-types*</strong></dt>
-<dd><p>Cumulative distribution of normalized probabilities of weighted mutations.
-</p></dd></dl>
-<a name="Variable-_002afree_002dvar_002ddecay_002drate_002a"></a><dl>
-<dt><a name="index-_002afree_002dvar_002ddecay_002drate_002a"></a>Variable: <strong>*free-var-decay-rate*</strong></dt>
-<dd><p>The decay rate for choosing variable bindings.
-</p></dd></dl>
-<a name="Variable-_002amatching_002dfree_002dfunction_002dretains_002dname_002dbias_002a"></a><dl>
-<dt><a name="index-_002amatching_002dfree_002dfunction_002dretains_002dname_002dbias_002a"></a>Variable: <strong>*matching-free-function-retains-name-bias*</strong></dt>
-<dd><p>The probability that if a free functions&rsquo;s original name matches a name
-already in scope, it will keep that name.
-</p></dd></dl>
-<a name="Variable-_002amatching_002dfree_002dvar_002dretains_002dname_002dbias_002a"></a><dl>
-<dt><a name="index-_002amatching_002dfree_002dvar_002dretains_002dname_002dbias_002a"></a>Variable: <strong>*matching-free-var-retains-name-bias*</strong></dt>
-<dd><p>The probability that if a free variable&rsquo;s original name matches a name
-already in scope, it will keep that name.
-</p></dd></dl>
-<a name="Constant-_002bc_002dsign_002dunary_002doperators_002b"></a><dl>
-<dt><a name="index-_002bc_002dsign_002dunary_002doperators_002b"></a>Constant: <strong>+c-sign-unary-operators+</strong></dt>
-<dd><p>C sign operators on one arguments.
-</p></dd></dl>
-<a name="Generic_002dFunction-add_002dtype"></a><dl>
-<dt><a name="index-add_002dtype"></a>Generic Function: <strong>add-type</strong> <em>software type</em></dt>
-<dd><p>Add <code>type</code> to &lsquo;types&rsquo; of <code>software</code>, unique by hash.
-</p></dd></dl>
-<a name="Method-add_002dtype-_0028_0028obj-clang_0029-_0028type-null_0029_0029"></a><dl>
-<dt><a name="index-add_002dtype-1"></a>Method: <strong>add-type</strong> <em>(obj clang) (type null)</em></dt>
-<dd><p>Add <code>type</code> to &lsquo;types&rsquo; of <code>obj</code>, unique by hash.
-</p><ul>
-<li> <code>obj</code> software object to modify
-</li><li> <code>type</code> null to allow for nop when nil is passed for the type argument
-</li></ul>
-</dd></dl>
-<a name="Method-add_002dtype-_0028_0028obj-clang_0029-_0028type-clang_002dtype_0029_0029"></a><dl>
-<dt><a name="index-add_002dtype-2"></a>Method: <strong>add-type</strong> <em>(obj clang) (type clang-type)</em></dt>
-<dd><p>Add <code>type</code> to &lsquo;types&rsquo; of <code>obj</code>, unique by hash.
-</p><ul>
-<li> <code>obj</code> software object to modify
-</li><li> <code>type</code> type to be added
-</li></ul>
-</dd></dl>
-<a name="Generic_002dFunction-adjust_002dstmt_002drange"></a><dl>
-<dt><a name="index-adjust_002dstmt_002drange"></a>Generic Function: <strong>adjust-stmt-range</strong> <em>software start end</em></dt>
-<dd><p>Adjust <code>start</code> and <code>end</code> so that they represent a valid range for set-range.
-The values returned will be STMT1 and STMT2, where STMT1 and STMT2 are both
-full statements
-</p></dd></dl>
-<a name="Method-adjust_002dstmt_002drange-_0028_0028clang-clang_0029-start-end_0029"></a><dl>
-<dt><a name="index-adjust_002dstmt_002drange-1"></a>Method: <strong>adjust-stmt-range</strong> <em>(clang clang) start end</em></dt>
-<dd><p><code>docfixme</code>
-</p><ul>
-<li> <code>clang</code> <code>docfixme</code>
-</li><li> <code>start</code> <code>docfixme</code>
-</li><li> <code>end</code> <code>docfixme</code>
-</li></ul>
-</dd></dl>
-<a name="Class-clang_002dreplace_002dfull_002dsame"></a><dl>
-<dt><a name="index-clang_002dreplace_002dfull_002dsame"></a>Class: <strong>clang-replace-full-same</strong></dt>
+<span id="Class-clang_002dreplace_002dfull_002dsame"></span><dl>
+<dt id="index-clang_002dreplace_002dfull_002dsame">Class: <strong>clang-replace-full-same</strong></dt>
 <dd><p>Class precedence list: <code>clang-replace-full-same, clang-replace, clang-mutation, parseable-replace, parseable-mutation, mutation, oid-object, standard-object, t</code>
 </p>
 <p>Slots:
@@ -633,22 +474,150 @@ full statements
 <p>Perform a replace operation on a clang software object,
 only replacing full statements of the same AST class.
 </p></dd></dl>
-<a name="Function-apply_002dclang_002dmutate_002dops"></a><dl>
-<dt><a name="index-apply_002dclang_002dmutate_002dops"></a>Function: <strong>apply-clang-mutate-ops</strong> <em>software ops</em></dt>
+<span id="Class-clang_002dreplace_002dsame"></span><dl>
+<dt id="index-clang_002dreplace_002dsame">Class: <strong>clang-replace-same</strong></dt>
+<dd><p>Class precedence list: <code>clang-replace-same, clang-replace, clang-mutation, parseable-replace, parseable-mutation, mutation, oid-object, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p>Perform a replace operation on a clang software object,
+only replacing statements of the same AST class.
+</p></dd></dl>
+<span id="Class-clang_002dswap"></span><dl>
+<dt id="index-clang_002dswap">Class: <strong>clang-swap</strong></dt>
+<dd><p>Class precedence list: <code>clang-swap, clang-mutation, parseable-swap, parseable-mutation, mutation, oid-object, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p>Perform a swap operation on a clang software object.
+</p></dd></dl>
+<span id="Class-clang_002dswap_002dfull"></span><dl>
+<dt id="index-clang_002dswap_002dfull">Class: <strong>clang-swap-full</strong></dt>
+<dd><p>Class precedence list: <code>clang-swap-full, clang-swap, clang-mutation, parseable-swap, parseable-mutation, mutation, oid-object, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p>Perform a swap operation on a clang software object,
+only swapping full statements.
+</p></dd></dl>
+<span id="Class-clang_002dswap_002dfull_002dsame"></span><dl>
+<dt id="index-clang_002dswap_002dfull_002dsame">Class: <strong>clang-swap-full-same</strong></dt>
+<dd><p>Class precedence list: <code>clang-swap-full-same, clang-swap, clang-mutation, parseable-swap, parseable-mutation, mutation, oid-object, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p>Perform a swap operation on a clang software object,
+only full statements of the same AST class.
+</p></dd></dl>
+<span id="Class-clang_002dswap_002dsame"></span><dl>
+<dt id="index-clang_002dswap_002dsame">Class: <strong>clang-swap-same</strong></dt>
+<dd><p>Class precedence list: <code>clang-swap-same, clang-swap, clang-mutation, parseable-swap, parseable-mutation, mutation, oid-object, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p>Perform a swap operation on a clang software object,
+only swapping statements of the same AST class.
+</p></dd></dl>
+<span id="Class-coalesce_002dwhile_002dloop"></span><dl>
+<dt id="index-coalesce_002dwhile_002dloop">Class: <strong>coalesce-while-loop</strong></dt>
+<dd><p>Class precedence list: <code>coalesce-while-loop, clang-mutation, mutation, oid-object, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p>Select a &rsquo;while&rsquo; loop and coalesce it into a &rsquo;for&rsquo; loop.
+This mutation will transform <code>'a</code>;while<code>(b)</code>;C&rsquo; into &rsquo;for(A;<code>b</code>;C)&rsquo;.
+</p></dd></dl>
+<span id="Class-cut_002ddecl"></span><dl>
+<dt id="index-cut_002ddecl">Class: <strong>cut-decl</strong></dt>
+<dd><p>Class precedence list: <code>cut-decl, clang-mutation, mutation, oid-object, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p>Perform a cut operation on a DeclStmt AST in a clang software object.
+</p></dd></dl>
+<span id="Variable-_002aclang_002djson_002drequired_002dfields_002a"></span><dl>
+<dt id="index-_002aclang_002djson_002drequired_002dfields_002a">Variable: <strong>*clang-json-required-fields*</strong></dt>
+<dd><p>JSON database entry fields required for clang software objects.
+</p></dd></dl>
+<span id="Variable-_002aclang_002dmutation_002dtypes_002a"></span><dl>
+<dt id="index-_002aclang_002dmutation_002dtypes_002a">Variable: <strong>*clang-mutation-types*</strong></dt>
+<dd><p>Cumulative distribution of normalized probabilities of weighted mutations.
+</p></dd></dl>
+<span id="Variable-_002amake_002dstatement_002dfn_002a"></span><dl>
+<dt id="index-_002amake_002dstatement_002dfn_002a">Variable: <strong>*make-statement-fn*</strong></dt>
+<dd><p>Function to be used to dispatch on different creation operators
+for statements
+</p></dd></dl>
+<span id="Constant-_002bc_002dnumeric_002dtypes_002b"></span><dl>
+<dt id="index-_002bc_002dnumeric_002dtypes_002b">Constant: <strong>+c-numeric-types+</strong></dt>
+<dd><p>C Numeric type names.
+</p></dd></dl>
+<span id="Function-apply_002dclang_002dmutate_002dops"></span><dl>
+<dt id="index-apply_002dclang_002dmutate_002dops">Function: <strong>apply-clang-mutate-ops</strong> <em>software ops</em></dt>
 <dd><p>Run clang-mutate with a list of mutation operations, and update the genome.
 </p></dd></dl>
-<a name="Function-binding_002dfor_002dfunction"></a><dl>
-<dt><a name="index-binding_002dfor_002dfunction"></a>Function: <strong>binding-for-function</strong> <em>obj functions name arity</em></dt>
-<dd><p><code>docfixme</code>
-</p><ul>
-<li> <code>obj</code> <code>docfixme</code>
-</li><li> <code>functions</code> <code>docfixme</code>
-</li><li> <code>name</code> <code>docfixme</code>
-</li><li> <code>arity</code> <code>docfixme</code>
-</li></ul>
-</dd></dl>
-<a name="Function-binding_002dfor_002dvar"></a><dl>
-<dt><a name="index-binding_002dfor_002dvar"></a>Function: <strong>binding-for-var</strong> <em>obj in-scope name</em></dt>
+<span id="Function-ast_002dargs_002dequal"></span><dl>
+<dt id="index-ast_002dargs_002dequal">Function: <strong>ast-args-equal</strong> <em>args1 args2</em></dt>
+<dd><p>Compare two lists as returned by <code>ast-args</code>
+</p></dd></dl>
+<span id="Function-binding_002dfor_002dvar"></span><dl>
+<dt id="index-binding_002dfor_002dvar">Function: <strong>binding-for-var</strong> <em>obj in-scope name</em></dt>
 <dd><p><code>docfixme</code>
 </p><ul>
 <li> <code>obj</code> <code>docfixme</code>
@@ -656,24 +625,39 @@ only replacing full statements of the same AST class.
 </li><li> <code>name</code> <code>docfixme</code>
 </li></ul>
 </dd></dl>
-<a name="Generic_002dFunction-declared_002dtype"></a><dl>
-<dt><a name="index-declared_002dtype"></a>Generic Function: <strong>declared-type</strong> <em>ast variable-name</em></dt>
+<span id="Function-clang_002dfixup_002dmutation"></span><dl>
+<dt id="index-clang_002dfixup_002dmutation">Function: <strong>clang-fixup-mutation</strong> <em>operation current before ast after</em></dt>
+<dd><p>Adjust mutation result according to syntactic context.
+</p>
+<p>Adds and removes semicolons, commas, and braces.
+</p>
+<p>* <code>operation</code> mutation operation performed (:cut, :set, :insert,
+:insert-after, :splice)
+</p><ul>
+<li> <code>current</code> AST node to be replaced
+</li><li> <code>before</code> string or ast prior to the mutation point
+</li><li> AST replacement ast in the mutation operation
+</li><li> <code>after</code> string or ast following the mutation point
+</li></ul>
+</dd></dl>
+<span id="Generic_002dFunction-declared_002dtype"></span><dl>
+<dt id="index-declared_002dtype">Generic Function: <strong>declared-type</strong> <em>ast variable-name</em></dt>
 <dd><p>Guess the type of the <code>variable-name</code> in AST.
 <code>variable-name</code> should be declared in AST.
 </p></dd></dl>
-<a name="Method-declared_002dtype-_0028_0028ast-clang_002dast_0029-variable_002dname_0029"></a><dl>
-<dt><a name="index-declared_002dtype-1"></a>Method: <strong>declared-type</strong> <em>(ast clang-ast) variable-name</em></dt>
+<span id="Method-declared_002dtype-_0028_0028ast-clang_002dast_002dbase_0029-variable_002dname_0029"></span><dl>
+<dt id="index-declared_002dtype-1">Method: <strong>declared-type</strong> <em>(ast clang-ast-base) variable-name</em></dt>
 <dd><p>Guess the type of the <code>variable-name</code> in AST.
 <code>variable-name</code> should be declared in AST.
 </p></dd></dl>
-<a name="Generic_002dFunction-delete_002ddecl_002dstmts"></a><dl>
-<dt><a name="index-delete_002ddecl_002dstmts"></a>Generic Function: <strong>delete-decl-stmts</strong> <em>software block replacements</em></dt>
+<span id="Generic_002dFunction-delete_002ddecl_002dstmts"></span><dl>
+<dt id="index-delete_002ddecl_002dstmts">Generic Function: <strong>delete-decl-stmts</strong> <em>software block replacements</em></dt>
 <dd><p>Return mutation ops applying <code>replacements</code> to <code>block</code> in <code>software</code>.
 <code>replacements</code> is a list holding lists of an <code>id</code> to replace, and the new
 variables to replace use of the variables declared in stmt <code>id</code>.
 </p></dd></dl>
-<a name="Method-delete_002ddecl_002dstmts-_0028_0028obj-clang_0029-_0028block-clang_002dast_0029-_0028replacements-list_0029_0029"></a><dl>
-<dt><a name="index-delete_002ddecl_002dstmts-1"></a>Method: <strong>delete-decl-stmts</strong> <em>(obj clang) (block clang-ast) (replacements list)</em></dt>
+<span id="Method-delete_002ddecl_002dstmts-_0028_0028obj-clang_002dbase_0029-_0028block-ast_0029-_0028replacements-list_0029_0029"></span><dl>
+<dt id="index-delete_002ddecl_002dstmts-1">Method: <strong>delete-decl-stmts</strong> <em>(obj clang-base) (block ast) (replacements list)</em></dt>
 <dd><p><code>docfixme</code>
 </p><ul>
 <li> <code>obj</code> <code>docfixme</code>
@@ -681,109 +665,62 @@ variables to replace use of the variables declared in stmt <code>id</code>.
 </li><li> <code>replacements</code> <code>docfixme</code>
 </li></ul>
 </dd></dl>
-<a name="Generic_002dFunction-enclosing_002dfull_002dstmt"></a><dl>
-<dt><a name="index-enclosing_002dfull_002dstmt"></a>Generic Function: <strong>enclosing-full-stmt</strong> <em>software stmt</em></dt>
+<span id="Generic_002dFunction-enclosing_002dfull_002dstmt"></span><dl>
+<dt id="index-enclosing_002dfull_002dstmt">Generic Function: <strong>enclosing-full-stmt</strong> <em>software stmt</em></dt>
 <dd><p>Return the first full statement in <code>software</code> holding <code>stmt</code>.
 </p></dd></dl>
-<a name="Method-enclosing_002dfull_002dstmt-_0028_0028obj-clang_0029-_0028stmt-clang_002dast_0029_0029"></a><dl>
-<dt><a name="index-enclosing_002dfull_002dstmt-1"></a>Method: <strong>enclosing-full-stmt</strong> <em>(obj clang) (stmt clang-ast)</em></dt>
+<span id="Method-enclosing_002dfull_002dstmt-_0028_0028obj-clang_002dbase_0029-_0028stmt-ast_0029_0029"></span><dl>
+<dt id="index-enclosing_002dfull_002dstmt-1">Method: <strong>enclosing-full-stmt</strong> <em>(obj clang-base) (stmt ast)</em></dt>
 <dd><p><code>docfixme</code>
 </p><ul>
 <li> <code>obj</code> <code>docfixme</code>
 </li><li> <code>stmt</code> <code>docfixme</code>
 </li></ul>
 </dd></dl>
-<a name="Generic_002dFunction-find_002dvar_002dtype"></a><dl>
-<dt><a name="index-find_002dvar_002dtype"></a>Generic Function: <strong>find-var-type</strong> <em>software variable</em></dt>
+<span id="Class-expand_002darithmatic_002dop"></span><dl>
+<dt id="index-expand_002darithmatic_002dop">Class: <strong>expand-arithmatic-op</strong></dt>
+<dd><p>Class precedence list: <code>expand-arithmatic-op, clang-replace, clang-mutation, parseable-replace, parseable-mutation, mutation, oid-object, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p>Expand a compound assignment or increment/decrement operation
+in a clang software object.
+</p></dd></dl>
+<span id="Class-explode_002dfor_002dloop"></span><dl>
+<dt id="index-explode_002dfor_002dloop">Class: <strong>explode-for-loop</strong></dt>
+<dd><p>Class precedence list: <code>explode-for-loop, clang-mutation, mutation, oid-object, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p>Select a &rsquo;for&rsquo; loop and explode it into it&rsquo;s component parts.
+This mutation will transform &rsquo;for(A;<code>b</code>;C)&rsquo; into <code>'a</code>;while<code>(b)</code>;C&rsquo;.
+</p></dd></dl>
+<span id="Generic_002dFunction-find_002dvar_002dtype"></span><dl>
+<dt id="index-find_002dvar_002dtype">Generic Function: <strong>find-var-type</strong> <em>software variable</em></dt>
 <dd><p>Return the type of <code>variable</code> in <code>software</code>.
 </p></dd></dl>
-<a name="Method-find_002dvar_002dtype-_0028_0028obj-clang_0029-_0028variable-list_0029_0029"></a><dl>
-<dt><a name="index-find_002dvar_002dtype-1"></a>Method: <strong>find-var-type</strong> <em>(obj clang) (variable list)</em></dt>
+<span id="Method-find_002dvar_002dtype-_0028_0028obj-clang_002dbase_0029-_0028variable-list_0029_0029"></span><dl>
+<dt id="index-find_002dvar_002dtype-1">Method: <strong>find-var-type</strong> <em>(obj clang-base) (variable list)</em></dt>
 <dd><p>Return the type of <code>variable</code> in <code>software</code>
 </p></dd></dl>
-<a name="Function-full_002dstmt_002dfilter"></a><dl>
-<dt><a name="index-full_002dstmt_002dfilter"></a>Function: <strong>full-stmt-filter</strong> <em>ast &amp;optional first-pick</em></dt>
-<dd><p>Targeting filter returning true if AST is a full statement.
-</p><ul>
-<li> AST possible second targeting function pick
-</li><li> <code>first-pick</code> first targeting function pick
-</li></ul>
-</dd></dl>
-<a name="Generic_002dFunction-full_002dstmt_002dp"></a><dl>
-<dt><a name="index-full_002dstmt_002dp"></a>Generic Function: <strong>full-stmt-p</strong> <em>software statement</em></dt>
-<dd><p>Check if <code>statement</code> is a full statement in <code>software</code>.
-</p></dd></dl>
-<a name="Method-full_002dstmt_002dp-_0028_0028obj-clang_0029-_0028stmt-clang_002dast_0029_0029"></a><dl>
-<dt><a name="index-full_002dstmt_002dp-1"></a>Method: <strong>full-stmt-p</strong> <em>(obj clang) (stmt clang-ast)</em></dt>
-<dd><p><code>docfixme</code>
-</p><ul>
-<li> <code>obj</code> <code>docfixme</code>
-</li><li> <code>stmt</code> <code>docfixme</code>
-</li></ul>
-</dd></dl>
-<a name="Generic_002dFunction-function_002dbody"></a><dl>
-<dt><a name="index-function_002dbody"></a>Generic Function: <strong>function-body</strong> <em>software ast</em></dt>
-<dd><p>If AST is a function, return the AST representing its body.
-</p></dd></dl>
-<a name="Method-function_002dbody-_0028_0028software-clang_0029-_0028ast-clang_002dast_0029_0029"></a><dl>
-<dt><a name="index-function_002dbody-1"></a>Method: <strong>function-body</strong> <em>(software clang) (ast clang-ast)</em></dt>
-<dd><p>If AST is a function, return the AST representing its body.
-</p><ul>
-<li> <code>software</code> software object containing AST and its children
-</li><li> AST potential function AST to query for its body
-</li></ul>
-</dd></dl>
-<a name="Generic_002dFunction-function_002dcontaining_002dast"></a><dl>
-<dt><a name="index-function_002dcontaining_002dast"></a>Generic Function: <strong>function-containing-ast</strong> <em>object ast</em></dt>
-<dd><p>Return the ast for the function containing AST in <code>object</code>.
-</p></dd></dl>
-<a name="Method-function_002dcontaining_002dast-_0028_0028clang-clang_0029-_0028ast-clang_002dast_0029_0029"></a><dl>
-<dt><a name="index-function_002dcontaining_002dast-1"></a>Method: <strong>function-containing-ast</strong> <em>(clang clang) (ast clang-ast)</em></dt>
-<dd><p>Return the function in <code>clang</code> containing AST.
-</p><ul>
-<li> <code>clang</code> software object containing AST and its parent function
-</li><li> AST ast to search for the parent function of
-</li></ul>
-</dd></dl>
-<a name="Function-function_002ddecl_002dp"></a><dl>
-<dt><a name="index-function_002ddecl_002dp"></a>Function: <strong>function-decl-p</strong> <em>ast</em></dt>
-<dd><p>Is AST a function (or method/constructor/destructor) decl?
-</p></dd></dl>
-<a name="Generic_002dFunction-get_002dentry"></a><dl>
-<dt><a name="index-get_002dentry"></a>Generic Function: <strong>get-entry</strong> <em>software</em></dt>
-<dd><p>Return the AST of the entry point (main function) in <code>software</code>,
-or <code>nil</code> if there is no entry point.
-</p></dd></dl>
-<a name="Method-get_002dentry-_0028_0028obj-clang_0029_0029"></a><dl>
-<dt><a name="index-get_002dentry-1"></a>Method: <strong>get-entry</strong> <em>(obj clang)</em></dt>
-<dd><p>Return the AST of the entry point (main function) in <code>software</code>.
-</p>
-<p><code>obj</code> a clang software object
-</p></dd></dl>
-<a name="Generic_002dFunction-get_002dparent_002dfull_002dstmt"></a><dl>
-<dt><a name="index-get_002dparent_002dfull_002dstmt"></a>Generic Function: <strong>get-parent-full-stmt</strong> <em>software ast</em></dt>
-<dd><p>Return the first ancestor of AST in <code>software</code> which is a full stmt.
-Returns nil if no full-stmt parent is found.
-</p></dd></dl>
-<a name="Method-get_002dparent_002dfull_002dstmt-_0028_0028clang-clang_0029-_0028ast-clang_002dast_0029_0029"></a><dl>
-<dt><a name="index-get_002dparent_002dfull_002dstmt-1"></a>Method: <strong>get-parent-full-stmt</strong> <em>(clang clang) (ast clang-ast)</em></dt>
-<dd><p>Return the first ancestor of AST in <code>software</code> which is a full stmt.
-Returns nil if no full-stmt is found.
-</p><ul>
-<li> <code>clang</code> software object containing AST and its parents
-</li><li> AST to find the parent full statement of if not already a full statement
-</li></ul>
-</dd></dl>
-<a name="Generic_002dFunction-good_002dstmts"></a><dl>
-<dt><a name="index-good_002dstmts"></a>Generic Function: <strong>good-stmts</strong> <em>software</em></dt>
-<dd><p>Return a list of all good statement asts in <code>software</code>.
-</p></dd></dl>
-<a name="Method-good_002dstmts-_0028_0028clang-clang_0029_0029"></a><dl>
-<dt><a name="index-good_002dstmts-1"></a>Method: <strong>good-stmts</strong> <em>(clang clang)</em></dt>
-<dd><p>Return a list of all good statement ASTs in <code>clang</code>.
-</p></dd></dl>
-<a name="Class-rename_002dvariable"></a><dl>
-<dt><a name="index-rename_002dvariable"></a>Class: <strong>rename-variable</strong></dt>
+<span id="Class-rename_002dvariable"></span><dl>
+<dt id="index-rename_002dvariable">Class: <strong>rename-variable</strong></dt>
 <dd><p>Class precedence list: <code>rename-variable, clang-mutation, mutation, oid-object, standard-object, t</code>
 </p>
 <p>Slots:
@@ -798,28 +735,107 @@ Returns nil if no full-stmt is found.
 
 <p>Replace a variable in a statement with another in scope variable name.
 </p></dd></dl>
-<a name="Class-swap_002ddecls"></a><dl>
-<dt><a name="index-swap_002ddecls"></a>Class: <strong>swap-decls</strong></dt>
-<dd><p>Class precedence list: <code>swap-decls, clang-swap, clang-mutation, parseable-swap, parseable-mutation, mutation, oid-object, standard-object, t</code>
-</p>
-<p>Slots:
-</p><ul>
-<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> targets.
-</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> random target.
-</p></li></ul>
-
-<p>Swap two DeclStmt ASTs in a clang software object.
-</p></dd></dl>
-<a name="Variable-_002aclang_002dast_002daux_002dfields_002a"></a><dl>
-<dt><a name="index-_002aclang_002dast_002daux_002dfields_002a"></a>Variable: <strong>*clang-ast-aux-fields*</strong></dt>
+<span id="Variable-_002aclang_002dast_002daux_002dfields_002a"></span><dl>
+<dt id="index-_002aclang_002dast_002daux_002dfields_002a">Variable: <strong>*clang-ast-aux-fields*</strong></dt>
 <dd><p>Extra fields to read from clang-mutate into ast-aux-data.
 </p></dd></dl>
-<a name="Function-make_002darray_002dsubscript_002dexpr"></a><dl>
-<dt><a name="index-make_002darray_002dsubscript_002dexpr"></a>Function: <strong>make-array-subscript-expr</strong> <em>array-expr subscript-expr &amp;rest rest</em></dt>
+<span id="Variable-_002aclang_002dmax_002djson_002dsize_002a"></span><dl>
+<dt id="index-_002aclang_002dmax_002djson_002dsize_002a">Variable: <strong>*clang-max-json-size*</strong></dt>
+<dd><p>Maximum size of output accepted from &lsquo;clang-mutate&rsquo;.
+</p></dd></dl>
+<span id="Variable-_002afree_002dvar_002ddecay_002drate_002a"></span><dl>
+<dt id="index-_002afree_002dvar_002ddecay_002drate_002a">Variable: <strong>*free-var-decay-rate*</strong></dt>
+<dd><p>The decay rate for choosing variable bindings.
+</p></dd></dl>
+<span id="Variable-_002amatching_002dfree_002dvar_002dretains_002dname_002dbias_002a"></span><dl>
+<dt id="index-_002amatching_002dfree_002dvar_002dretains_002dname_002dbias_002a">Variable: <strong>*matching-free-var-retains-name-bias*</strong></dt>
+<dd><p>The probability that if a free variable&rsquo;s original name matches a name
+already in scope, it will keep that name.
+</p></dd></dl>
+<span id="Constant-_002bc_002darithmetic_002dunary_002doperators_002b"></span><dl>
+<dt id="index-_002bc_002darithmetic_002dunary_002doperators_002b">Constant: <strong>+c-arithmetic-unary-operators+</strong></dt>
+<dd><p>C arithmetic operators on one arguments.
+</p></dd></dl>
+<span id="Function-fix_002dsemicolons"></span><dl>
+<dt id="index-fix_002dsemicolons">Function: <strong>fix-semicolons</strong> <em>ast</em></dt>
+<dd><p>Move semicolons into appropriate stmt nodes in the tree rooted at AST
+</p></dd></dl>
+<span id="Function-full_002dstmt_002dfilter"></span><dl>
+<dt id="index-full_002dstmt_002dfilter">Function: <strong>full-stmt-filter</strong> <em>ast &amp;optional first-pick</em></dt>
+<dd><p>Targeting filter returning true if AST is a full statement.
+</p><ul>
+<li> AST possible second targeting function pick
+</li><li> <code>first-pick</code> first targeting function pick
+</li></ul>
+</dd></dl>
+<span id="Generic_002dFunction-full_002dstmt_002dp"></span><dl>
+<dt id="index-full_002dstmt_002dp">Generic Function: <strong>full-stmt-p</strong> <em>software statement</em></dt>
+<dd><p>Check if <code>statement</code> is a full statement in <code>software</code>.
+</p></dd></dl>
+<span id="Method-full_002dstmt_002dp-_0028_0028obj-clang_002dbase_0029-_0028stmt-ast_0029_0029"></span><dl>
+<dt id="index-full_002dstmt_002dp-1">Method: <strong>full-stmt-p</strong> <em>(obj clang-base) (stmt ast)</em></dt>
+<dd><p>Check if <code>stmt</code> is a full statement in clang software <code>obj</code>.
+This may depend on context.
+</p></dd></dl>
+<span id="Generic_002dFunction-function_002dbody"></span><dl>
+<dt id="index-function_002dbody">Generic Function: <strong>function-body</strong> <em>software ast</em></dt>
+<dd><p>If AST is a function, return the AST representing its body.
+</p><ul>
+<li> <code>software</code> software object containing AST and its children
+</li><li> AST potential function AST to query for its body
+</li></ul>
+</dd></dl>
+<span id="Generic_002dFunction-function_002dcontaining_002dast"></span><dl>
+<dt id="index-function_002dcontaining_002dast">Generic Function: <strong>function-containing-ast</strong> <em>object ast</em></dt>
+<dd><p>Return the ast for the function containing AST in <code>object</code>.
+</p></dd></dl>
+<span id="Method-function_002dcontaining_002dast-_0028_0028clang-clang_002dbase_0029-_0028ast-ast_0029_0029"></span><dl>
+<dt id="index-function_002dcontaining_002dast-1">Method: <strong>function-containing-ast</strong> <em>(clang clang-base) (ast ast)</em></dt>
+<dd><p>Return the function in <code>clang</code> containing AST.
+</p><ul>
+<li> <code>clang</code> software object containing AST and its parent function
+</li><li> AST ast to search for the parent function of
+</li></ul>
+</dd></dl>
+<span id="Generic_002dFunction-function_002ddecl_002dp"></span><dl>
+<dt id="index-function_002ddecl_002dp">Generic Function: <strong>function-decl-p</strong> <em>ast</em></dt>
+<dd><p>Is AST a function (or method/constructor/destructor) decl?
+</p></dd></dl>
+<span id="Generic_002dFunction-get_002dentry"></span><dl>
+<dt id="index-get_002dentry">Generic Function: <strong>get-entry</strong> <em>software</em></dt>
+<dd><p>Return the AST of the entry point (main function) in <code>software</code>,
+or <code>nil</code> if there is no entry point.
+</p></dd></dl>
+<span id="Method-get_002dentry-_0028_0028obj-clang_002dbase_0029_0029"></span><dl>
+<dt id="index-get_002dentry-1">Method: <strong>get-entry</strong> <em>(obj clang-base)</em></dt>
+<dd><p>Return the AST of the entry point (main function) in <code>software</code>.
+</p>
+<p><code>obj</code> a clang software object
+</p></dd></dl>
+<span id="Generic_002dFunction-get_002dparent_002dfull_002dstmt"></span><dl>
+<dt id="index-get_002dparent_002dfull_002dstmt">Generic Function: <strong>get-parent-full-stmt</strong> <em>software ast</em></dt>
+<dd><p>Return the first ancestor of AST in <code>software</code> which is a full stmt.
+Returns nil if no full-stmt parent is found.
+</p></dd></dl>
+<span id="Method-get_002dparent_002dfull_002dstmt-_0028_0028clang-clang_002dbase_0029-_0028ast-clang_002dast_002dbase_0029_0029"></span><dl>
+<dt id="index-get_002dparent_002dfull_002dstmt-1">Method: <strong>get-parent-full-stmt</strong> <em>(clang clang-base) (ast clang-ast-base)</em></dt>
+<dd><p>Return the first ancestor of AST in <code>software</code> which is a full stmt.
+Returns nil if no full-stmt is found.
+</p><ul>
+<li> <code>clang</code> software object containing AST and its parents
+</li><li> AST to find the parent full statement of if not already a full statement
+</li></ul>
+</dd></dl>
+<span id="Generic_002dFunction-good_002dstmts"></span><dl>
+<dt id="index-good_002dstmts">Generic Function: <strong>good-stmts</strong> <em>software</em></dt>
+<dd><p>Return a list of all good statement asts in <code>software</code>.
+</p></dd></dl>
+<span id="Method-good_002dstmts-_0028_0028clang-clang_002dbase_0029_0029"></span><dl>
+<dt id="index-good_002dstmts-1">Method: <strong>good-stmts</strong> <em>(clang clang-base)</em></dt>
+<dd><p>Return a list of all good statement ASTs in <code>clang</code>.
+</p></dd></dl>
+<span id="Function-make_002darray_002dsubscript_002dexpr"></span><dl>
+<dt id="index-make_002darray_002dsubscript_002dexpr">Function: <strong>make-array-subscript-expr</strong> <em>array-expr subscript-expr &amp;rest rest</em></dt>
 <dd><p>Create a array subscript expression AST.
 </p><ul>
 <li> <code>array-expr</code> AST expression with an array type
@@ -828,21 +844,21 @@ Returns nil if no full-stmt is found.
 </li><li> REST additional arguments to &lsquo;make-statement&rsquo;
 </li></ul>
 </dd></dl>
-<a name="Function-make_002dblock"></a><dl>
-<dt><a name="index-make_002dblock"></a>Function: <strong>make-block</strong> <em>children &amp;rest rest</em></dt>
+<span id="Function-make_002dblock"></span><dl>
+<dt id="index-make_002dblock">Function: <strong>make-block</strong> <em>children &amp;rest rest</em></dt>
 <dd><p>Create a compount statement AST.
 </p><ul>
 <li> <code>children</code> children of the AST node
 </li><li> REST additional arguments to &lsquo;make-statement&rsquo;
 </li></ul>
 </dd></dl>
-<a name="Function-make_002dbreak_002dstmt"></a><dl>
-<dt><a name="index-make_002dbreak_002dstmt"></a>Function: <strong>make-break-stmt</strong> <em>&amp;rest rest</em></dt>
+<span id="Function-make_002dbreak_002dstmt"></span><dl>
+<dt id="index-make_002dbreak_002dstmt">Function: <strong>make-break-stmt</strong> <em>&amp;rest rest</em></dt>
 <dd><p>Create a break statement AST.
 * REST additional arguments to &lsquo;make-statement&rsquo;
 </p></dd></dl>
-<a name="Function-make_002dcall_002dexpr"></a><dl>
-<dt><a name="index-make_002dcall_002dexpr"></a>Function: <strong>make-call-expr</strong> <em>name args syn-ctx &amp;rest rest</em></dt>
+<span id="Function-make_002dcall_002dexpr"></span><dl>
+<dt id="index-make_002dcall_002dexpr">Function: <strong>make-call-expr</strong> <em>name args syn-ctx &amp;rest rest</em></dt>
 <dd><p>Create a call expression AST.
 </p><ul>
 <li> <code>name</code> Name of the function
@@ -851,8 +867,8 @@ Returns nil if no full-stmt is found.
 </li><li> REST additional arguments to &lsquo;make-statement&rsquo;
 </li></ul>
 </dd></dl>
-<a name="Function-make_002dcast_002dexpr"></a><dl>
-<dt><a name="index-make_002dcast_002dexpr"></a>Function: <strong>make-cast-expr</strong> <em>type child &amp;rest rest</em></dt>
+<span id="Function-make_002dcast_002dexpr"></span><dl>
+<dt id="index-make_002dcast_002dexpr">Function: <strong>make-cast-expr</strong> <em>type child &amp;rest rest</em></dt>
 <dd><p>Create a c-style cast expression AST.
 </p><ul>
 <li> <code>type</code> clang-type to cast the expression to
@@ -860,8 +876,8 @@ Returns nil if no full-stmt is found.
 </li><li> REST additional arguments to &lsquo;make-statement&rsquo;
 </li></ul>
 </dd></dl>
-<a name="Function-make_002dfor_002dstmt"></a><dl>
-<dt><a name="index-make_002dfor_002dstmt"></a>Function: <strong>make-for-stmt</strong> <em>syn-ctx initialization condition update body &amp;rest rest</em></dt>
+<span id="Function-make_002dfor_002dstmt"></span><dl>
+<dt id="index-make_002dfor_002dstmt">Function: <strong>make-for-stmt</strong> <em>syn-ctx initialization condition update body &amp;rest rest</em></dt>
 <dd><p>Create a for loop AST.
 </p><ul>
 <li> <code>syn-ctx</code> surrounding syntactic context of the AST node
@@ -872,8 +888,8 @@ Returns nil if no full-stmt is found.
 </li><li> REST additional arguments to &lsquo;make-statement&rsquo;
 </li></ul>
 </dd></dl>
-<a name="Function-make_002dif_002dstmt"></a><dl>
-<dt><a name="index-make_002dif_002dstmt"></a>Function: <strong>make-if-stmt</strong> <em>condition then &amp;optional else &amp;rest rest</em></dt>
+<span id="Function-make_002dif_002dstmt"></span><dl>
+<dt id="index-make_002dif_002dstmt">Function: <strong>make-if-stmt</strong> <em>condition then &amp;optional else &amp;rest rest</em></dt>
 <dd><p>Create an if statement AST.
 </p><ul>
 <li> <code>condition</code> ast for the if statement conditional
@@ -882,16 +898,16 @@ Returns nil if no full-stmt is found.
 </li><li> REST optional additional arguments to &lsquo;make-statement&rsquo;
 </li></ul>
 </dd></dl>
-<a name="Function-make_002dlabel"></a><dl>
-<dt><a name="index-make_002dlabel"></a>Function: <strong>make-label</strong> <em>name child &amp;rest rest</em></dt>
+<span id="Function-make_002dlabel"></span><dl>
+<dt id="index-make_002dlabel">Function: <strong>make-label</strong> <em>name child &amp;rest rest</em></dt>
 <dd><p>Create a label AST.
 </p><ul>
 <li> <code>name</code> name of the label
 </li><li> <code>child</code> ast to be labeled
 </li></ul>
 </dd></dl>
-<a name="Function-make_002dliteral"></a><dl>
-<dt><a name="index-make_002dliteral"></a>Function: <strong>make-literal</strong> <em>value &amp;optional kind &amp;rest rest</em></dt>
+<span id="Generic_002dFunction-make_002dliteral"></span><dl>
+<dt id="index-make_002dliteral">Generic Function: <strong>make-literal</strong> <em>value &amp;optional kind &amp;rest rest</em></dt>
 <dd><p>Create a literal AST of <code>value</code>.
 </p><ul>
 <li> Optional value <code>kind</code> specified the type of literal to
@@ -901,8 +917,8 @@ Returns nil if no full-stmt is found.
 </li><li> REST additional arguments to &lsquo;make-statement&rsquo;
 </li></ul>
 </dd></dl>
-<a name="Function-make_002doperator"></a><dl>
-<dt><a name="index-make_002doperator"></a>Function: <strong>make-operator</strong> <em>syn-ctx opcode child-asts &amp;rest rest &amp;key full-stmt &amp;allow-other-keys</em></dt>
+<span id="Function-make_002doperator"></span><dl>
+<dt id="index-make_002doperator">Function: <strong>make-operator</strong> <em>syn-ctx opcode child-asts &amp;rest rest &amp;key full-stmt &amp;allow-other-keys</em></dt>
 <dd><p>Create a unary or binary operator AST.
 </p><ul>
 <li> <code>syn-ctx</code> surrounding syntactic context of the AST node
@@ -911,16 +927,16 @@ Returns nil if no full-stmt is found.
 </li><li> REST additional arguments to &lsquo;make-statement&rsquo;
 </li></ul>
 </dd></dl>
-<a name="Function-make_002dparens"></a><dl>
-<dt><a name="index-make_002dparens"></a>Function: <strong>make-parens</strong> <em>children &amp;rest rest</em></dt>
+<span id="Function-make_002dparens"></span><dl>
+<dt id="index-make_002dparens">Function: <strong>make-parens</strong> <em>children &amp;rest rest</em></dt>
 <dd><p>Create a parenthesis expression AST.
 </p><ul>
 <li> <code>children</code> children of the AST node
 </li><li> REST additional arguments to &lsquo;make-statement&rsquo;
 </li></ul>
 </dd></dl>
-<a name="Function-make_002dstatement"></a><dl>
-<dt><a name="index-make_002dstatement"></a>Function: <strong>make-statement</strong> <em>class syn-ctx children &amp;key expr-type full-stmt guard-stmt opcode types unbound-funs unbound-vals declares includes aux-data</em></dt>
+<span id="Function-make_002dstatement_002a"></span><dl>
+<dt id="index-make_002dstatement_002a">Function: <strong>make-statement*</strong> <em>class syn-ctx children &amp;key expr-type full-stmt guard-stmt opcode types unbound-funs unbound-vals declares includes aux-data</em></dt>
 <dd><p>Create a statement AST.
 </p>
 <p><code>types</code>, <code>unbound-funs</code>, and <code>unbound-vals</code> will be computed from children
@@ -941,8 +957,8 @@ if not given.
 </li><li> <code>includes</code> header files used by the AST node
 </li></ul>
 </dd></dl>
-<a name="Function-make_002dswitch_002dstmt"></a><dl>
-<dt><a name="index-make_002dswitch_002dstmt"></a>Function: <strong>make-switch-stmt</strong> <em>value cases &amp;rest rest</em></dt>
+<span id="Function-make_002dswitch_002dstmt"></span><dl>
+<dt id="index-make_002dswitch_002dstmt">Function: <strong>make-switch-stmt</strong> <em>value cases &amp;rest rest</em></dt>
 <dd><p>Create a switch statement AST.
 </p><ul>
 <li> <code>value</code> the AST of the expression to switch on
@@ -956,8 +972,8 @@ value is an integer (or <code>t</code> for the default case) and each stmt is a
 full-statement AST. Don&rsquo;t forget to include BreakStmt ASTs as they
 will not be generated automatically.
 </p></dd></dl>
-<a name="Function-make_002dvar_002ddecl"></a><dl>
-<dt><a name="index-make_002dvar_002ddecl"></a>Function: <strong>make-var-decl</strong> <em>name type &amp;optional initializer &amp;rest rest</em></dt>
+<span id="Function-make_002dvar_002ddecl"></span><dl>
+<dt id="index-make_002dvar_002ddecl">Function: <strong>make-var-decl</strong> <em>name type &amp;optional initializer &amp;rest rest</em></dt>
 <dd><p>Create a variable declaration AST.
 </p><ul>
 <li> <code>name</code> name of the variable to declare
@@ -966,8 +982,8 @@ will not be generated automatically.
 </li><li> REST additional arguments to &lsquo;make-statement&rsquo;
 </li></ul>
 </dd></dl>
-<a name="Function-make_002dvar_002dreference"></a><dl>
-<dt><a name="index-make_002dvar_002dreference"></a>Function: <strong>make-var-reference</strong> <em>name type &amp;rest rest</em></dt>
+<span id="Function-make_002dvar_002dreference"></span><dl>
+<dt id="index-make_002dvar_002dreference">Function: <strong>make-var-reference</strong> <em>name type &amp;rest rest</em></dt>
 <dd><p>Create a variable reference AST.
 </p><ul>
 <li> <code>name</code> name of the variable to reference
@@ -975,8 +991,8 @@ will not be generated automatically.
 </li><li> REST optional additional arguments to &lsquo;make-statement&rsquo;
 </li></ul>
 </dd></dl>
-<a name="Function-make_002dwhile_002dstmt"></a><dl>
-<dt><a name="index-make_002dwhile_002dstmt"></a>Function: <strong>make-while-stmt</strong> <em>syn-ctx condition body &amp;rest rest</em></dt>
+<span id="Function-make_002dwhile_002dstmt"></span><dl>
+<dt id="index-make_002dwhile_002dstmt">Function: <strong>make-while-stmt</strong> <em>syn-ctx condition body &amp;rest rest</em></dt>
 <dd><p>Create a while loop AST.
 </p><ul>
 <li> <code>syn-ctx</code> surrounding syntactic context of the AST node
@@ -985,49 +1001,65 @@ will not be generated automatically.
 </li><li> REST additional arguments to &lsquo;make-statement&rsquo;
 </li></ul>
 </dd></dl>
-<a name="Function-pick_002dcut_002ddecl"></a><dl>
-<dt><a name="index-pick_002dcut_002ddecl"></a>Function: <strong>pick-cut-decl</strong> <em>clang</em></dt>
+<span id="Function-normalize_002dflags"></span><dl>
+<dt id="index-normalize_002dflags">Function: <strong>normalize-flags</strong> <em>dir flags</em></dt>
+<dd><p>Normalize the list of compiler <code>flags</code> so all search paths are fully
+expanded relative to <code>dir</code>.
+</p>
+<ul>
+<li> <code>dir</code> base directory for all relative paths
+</li><li> <code>flags</code> list of compiler flags
+</li></ul>
+</dd></dl>
+<span id="Function-parse_002dsource_002dsnippet_002dclang_002dcommon"></span><dl>
+<dt id="index-parse_002dsource_002dsnippet_002dclang_002dcommon">Function: <strong>parse-source-snippet-clang-common</strong> <em>type snippet &amp;key unbound-vals includes macros preamble top-level keep-comments</em></dt>
+<dd><p>Build ASTs for <code>snippet</code>, returning a list of root asts.  This function
+contains logic common to both clang and new-clang implementations.
+Arguments are identical to <code>parse-source-snippet</code>.
+</p></dd></dl>
+<span id="Function-pick_002dcut_002ddecl"></span><dl>
+<dt id="index-pick_002dcut_002ddecl">Function: <strong>pick-cut-decl</strong> <em>clang</em></dt>
 <dd><p>Return a DeclStmt AST in <code>clang</code> from the &lsquo;bad-stmts&rsquo; pool.
 * <code>clang</code> software object to pick from
 </p></dd></dl>
-<a name="Generic_002dFunction-pick_002dfor_002dloop"></a><dl>
-<dt><a name="index-pick_002dfor_002dloop"></a>Generic Function: <strong>pick-for-loop</strong> <em>software</em></dt>
+<span id="Generic_002dFunction-pick_002dfor_002dloop"></span><dl>
+<dt id="index-pick_002dfor_002dloop">Generic Function: <strong>pick-for-loop</strong> <em>software</em></dt>
 <dd><p>Pick and return a &rsquo;for&rsquo; loop in <code>software</code>.
 </p></dd></dl>
-<a name="Method-pick_002dfor_002dloop-_0028_0028obj-clang_0029_0029"></a><dl>
-<dt><a name="index-pick_002dfor_002dloop-1"></a>Method: <strong>pick-for-loop</strong> <em>(obj clang)</em></dt>
+<span id="Method-pick_002dfor_002dloop-_0028_0028obj-clang_002dbase_0029_0029"></span><dl>
+<dt id="index-pick_002dfor_002dloop-1">Method: <strong>pick-for-loop</strong> <em>(obj clang-base)</em></dt>
 <dd><p>Return a for loop in <code>obj</code> from the &lsquo;bad-stmts&rsquo; pool.
 * <code>obj</code> software object to pick from
 </p></dd></dl>
-<a name="Generic_002dFunction-pick_002dguarded_002dcompound"></a><dl>
-<dt><a name="index-pick_002dguarded_002dcompound"></a>Generic Function: <strong>pick-guarded-compound</strong> <em>software</em></dt>
+<span id="Generic_002dFunction-pick_002dguarded_002dcompound"></span><dl>
+<dt id="index-pick_002dguarded_002dcompound">Generic Function: <strong>pick-guarded-compound</strong> <em>software</em></dt>
 <dd><p>Pick a guarded compound statement in <code>software</code>.
 </p></dd></dl>
-<a name="Method-pick_002dguarded_002dcompound-_0028_0028obj-clang_0029_0029"></a><dl>
-<dt><a name="index-pick_002dguarded_002dcompound-1"></a>Method: <strong>pick-guarded-compound</strong> <em>(obj clang)</em></dt>
+<span id="Method-pick_002dguarded_002dcompound-_0028_0028obj-clang_002dbase_0029_0029"></span><dl>
+<dt id="index-pick_002dguarded_002dcompound-1">Method: <strong>pick-guarded-compound</strong> <em>(obj clang-base)</em></dt>
 <dd><p>Return a guarded statement in <code>obj</code> from the &lsquo;bad-stmts&rsquo; pool.
 * <code>obj</code> software object to pick from
 </p></dd></dl>
-<a name="Function-pick_002drename_002dvariable"></a><dl>
-<dt><a name="index-pick_002drename_002dvariable"></a>Function: <strong>pick-rename-variable</strong> <em>clang</em></dt>
+<span id="Function-pick_002drename_002dvariable"></span><dl>
+<dt id="index-pick_002drename_002dvariable">Function: <strong>pick-rename-variable</strong> <em>clang</em></dt>
 <dd><p>Pick a statement in <code>clang</code> with a variable and replace with another in scope.
 </p></dd></dl>
-<a name="Function-pick_002dswap_002ddecls"></a><dl>
-<dt><a name="index-pick_002dswap_002ddecls"></a>Function: <strong>pick-swap-decls</strong> <em>clang</em></dt>
+<span id="Function-pick_002dswap_002ddecls"></span><dl>
+<dt id="index-pick_002dswap_002ddecls">Function: <strong>pick-swap-decls</strong> <em>clang</em></dt>
 <dd><p>Return two DeclStmt AST in <code>clang</code> from the &lsquo;bad-stmts&rsquo; pool.
 * <code>clang</code> software object to pick from
 </p></dd></dl>
-<a name="Generic_002dFunction-pick_002dwhile_002dloop"></a><dl>
-<dt><a name="index-pick_002dwhile_002dloop"></a>Generic Function: <strong>pick-while-loop</strong> <em>software</em></dt>
+<span id="Generic_002dFunction-pick_002dwhile_002dloop"></span><dl>
+<dt id="index-pick_002dwhile_002dloop">Generic Function: <strong>pick-while-loop</strong> <em>software</em></dt>
 <dd><p>Pick and return a &rsquo;while&rsquo; loop in <code>software</code>.
 </p></dd></dl>
-<a name="Method-pick_002dwhile_002dloop-_0028_0028obj-clang_0029_0029"></a><dl>
-<dt><a name="index-pick_002dwhile_002dloop-1"></a>Method: <strong>pick-while-loop</strong> <em>(obj clang)</em></dt>
+<span id="Method-pick_002dwhile_002dloop-_0028_0028obj-clang_002dbase_0029_0029"></span><dl>
+<dt id="index-pick_002dwhile_002dloop-1">Method: <strong>pick-while-loop</strong> <em>(obj clang-base)</em></dt>
 <dd><p>Return a while loop statement in <code>obj</code> from the &lsquo;bad-stmts&rsquo; pool.
 * <code>obj</code> software object to pick from
 </p></dd></dl>
-<a name="Function-random_002dfunction_002dname"></a><dl>
-<dt><a name="index-random_002dfunction_002dname"></a>Function: <strong>random-function-name</strong> <em>protos &amp;key original-name arity</em></dt>
+<span id="Function-random_002dfunction_002dname"></span><dl>
+<dt id="index-random_002dfunction_002dname">Function: <strong>random-function-name</strong> <em>protos &amp;key original-name arity</em></dt>
 <dd><p><code>docfixme</code>
 </p><ul>
 <li> <code>protos</code> <code>docfixme</code>
@@ -1035,105 +1067,106 @@ will not be generated automatically.
 </li><li> <code>arity</code> <code>docfixme</code>
 </li></ul>
 </dd></dl>
-<a name="Generic_002dFunction-random_002dpoint_002din_002dfunction"></a><dl>
-<dt><a name="index-random_002dpoint_002din_002dfunction"></a>Generic Function: <strong>random-point-in-function</strong> <em>software prototype</em></dt>
+<span id="Generic_002dFunction-random_002dpoint_002din_002dfunction"></span><dl>
+<dt id="index-random_002dpoint_002din_002dfunction">Generic Function: <strong>random-point-in-function</strong> <em>software prototype</em></dt>
 <dd><p>Return the index of a random point in <code>prototype</code> in <code>software</code>.
 If <code>prototype</code> has an empty function body in <code>software</code> return nil.
 </p></dd></dl>
-<a name="Method-random_002dpoint_002din_002dfunction-_0028_0028clang-clang_0029-function_0029"></a><dl>
-<dt><a name="index-random_002dpoint_002din_002dfunction-1"></a>Method: <strong>random-point-in-function</strong> <em>(clang clang) function</em></dt>
+<span id="Method-random_002dpoint_002din_002dfunction-_0028_0028clang-clang_002dbase_0029-function_0029"></span><dl>
+<dt id="index-random_002dpoint_002din_002dfunction-1">Method: <strong>random-point-in-function</strong> <em>(clang clang-base) function</em></dt>
 <dd><p><code>docfixme</code>
 </p><ul>
 <li> <code>clang</code> <code>docfixme</code>
 </li><li> <code>function</code> <code>docfixme</code>
 </li></ul>
 </dd></dl>
-<a name="Function-same_002dclass_002dfilter"></a><dl>
-<dt><a name="index-same_002dclass_002dfilter"></a>Function: <strong>same-class-filter</strong> <em>ast &amp;optional first-pick</em></dt>
+<span id="Function-same_002dclass_002dfilter"></span><dl>
+<dt id="index-same_002dclass_002dfilter">Function: <strong>same-class-filter</strong> <em>ast &amp;optional first-pick</em></dt>
 <dd><p>Targeting filter returning true if AST and <code>first-pick</code> have the same AST class.
 </p><ul>
 <li> AST possible second targeting function pick
 </li><li> <code>first-pick</code> first targeting function pick
 </li></ul>
 </dd></dl>
-<a name="Generic_002dFunction-select_002dintraprocedural_002dpair"></a><dl>
-<dt><a name="index-select_002dintraprocedural_002dpair"></a>Generic Function: <strong>select-intraprocedural-pair</strong> <em>software</em></dt>
+<span id="Generic_002dFunction-select_002dintraprocedural_002dpair"></span><dl>
+<dt id="index-select_002dintraprocedural_002dpair">Generic Function: <strong>select-intraprocedural-pair</strong> <em>software</em></dt>
 <dd><p>Randomly select an AST within a function body and then select
 another point within the same function.  If there are no ASTs
 within a function body, return null.
 </p></dd></dl>
-<a name="Method-select_002dintraprocedural_002dpair-_0028_0028clang-clang_0029_0029"></a><dl>
-<dt><a name="index-select_002dintraprocedural_002dpair-1"></a>Method: <strong>select-intraprocedural-pair</strong> <em>(clang clang)</em></dt>
+<span id="Method-select_002dintraprocedural_002dpair-_0028_0028clang-clang_002dbase_0029_0029"></span><dl>
+<dt id="index-select_002dintraprocedural_002dpair-1">Method: <strong>select-intraprocedural-pair</strong> <em>(clang clang-base)</em></dt>
 <dd><p><code>docfixme</code>
 * <code>clang</code> <code>docfixme</code>
 </p></dd></dl>
-<a name="Generic_002dFunction-stmt_002drange"></a><dl>
-<dt><a name="index-stmt_002drange"></a>Generic Function: <strong>stmt-range</strong> <em>software function</em></dt>
-<dd><p>The indices of the first and last statements in a function.
+<span id="Class-swap_002ddecls"></span><dl>
+<dt id="index-swap_002ddecls">Class: <strong>swap-decls</strong></dt>
+<dd><p>Class precedence list: <code>swap-decls, clang-swap, clang-mutation, parseable-swap, parseable-mutation, mutation, oid-object, standard-object, t</code>
 </p>
-<p>Return as a list of (first-index last-index). Indices are positions in
-the list returned by (asts software).
-</p></dd></dl>
-<a name="Method-stmt_002drange-_0028_0028software-clang_0029-_0023_0027clang_002dast_0029"></a><dl>
-<dt><a name="index-stmt_002drange-1"></a>Method: <strong>stmt-range</strong> <em>(software clang) (function clang-ast)</em></dt>
-<dd><p><code>docfixme</code>
+<p>Slots:
 </p><ul>
-<li> <code>software</code> <code>docfixme</code>
-</li><li> <code>function</code> <code>docfixme</code>
-</li></ul>
-</dd></dl>
-<a name="Generic_002dFunction-type_002ddecl_002dstring"></a><dl>
-<dt><a name="index-type_002ddecl_002dstring"></a>Generic Function: <strong>type-decl-string</strong> <em>type &amp;key qualified</em></dt>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p>Swap two DeclStmt ASTs in a clang software object.
+</p></dd></dl>
+<span id="Generic_002dFunction-type_002ddecl_002dstring"></span><dl>
+<dt id="index-type_002ddecl_002dstring">Generic Function: <strong>type-decl-string</strong> <em>type &amp;key qualified &amp;allow-other-keys</em></dt>
 <dd><p>The source text used to declare variables of <code>type</code>.
 </p>
 <p>This will have stars on the right, e.g. char**. 
 </p></dd></dl>
-<a name="Method-type_002ddecl_002dstring-_0028_0028type-clang_002dtype_0029-_0026key-_0028qualified-t_0029_0029"></a><dl>
-<dt><a name="index-type_002ddecl_002dstring-1"></a>Method: <strong>type-decl-string</strong> <em>(type clang-type) &amp;key (qualified t)</em></dt>
+<span id="Method-type_002ddecl_002dstring-_0028_0028type-clang_002dtype_0029-_0026key-_0028qualified-t_0029_0029"></span><dl>
+<dt id="index-type_002ddecl_002dstring-1">Method: <strong>type-decl-string</strong> <em>(type clang-type) &amp;key (qualified t)</em></dt>
 <dd><p>Return the source text used to declare variables of <code>type</code>.
 </p><ul>
 <li> <code>type</code> type to convert to a declaration string
 </li><li> <code>qualified</code> add type qualifiers such as const or volatile if non-nil.
 </li></ul>
 </dd></dl>
-<a name="Generic_002dFunction-type_002dfrom_002dtrace_002dstring"></a><dl>
-<dt><a name="index-type_002dfrom_002dtrace_002dstring"></a>Generic Function: <strong>type-from-trace-string</strong> <em>name</em></dt>
+<span id="Generic_002dFunction-type_002dfrom_002dtrace_002dstring"></span><dl>
+<dt id="index-type_002dfrom_002dtrace_002dstring">Generic Function: <strong>type-from-trace-string</strong> <em>name</em></dt>
 <dd><p>Create a clang-type from a name used in an execution trace.
 The resulting type will not be added to any clang object and will not have a
 valid hash.
 </p></dd></dl>
-<a name="Method-type_002dfrom_002dtrace_002dstring-_0028_0028name-string_0029_0029"></a><dl>
-<dt><a name="index-type_002dfrom_002dtrace_002dstring-1"></a>Method: <strong>type-from-trace-string</strong> <em>(name string)</em></dt>
+<span id="Method-type_002dfrom_002dtrace_002dstring-_0028_0028name-string_0029_0029"></span><dl>
+<dt id="index-type_002dfrom_002dtrace_002dstring-1">Method: <strong>type-from-trace-string</strong> <em>(name string)</em></dt>
 <dd><p>Create a clang-type from a name used in an execution trace.
 The resulting type will not be added to any clang object and will not have a
 valid hash.
 </p>
 <p>* <code>name</code> type name as expressed in an execution trace
 </p></dd></dl>
-<a name="Generic_002dFunction-type_002dtrace_002dstring"></a><dl>
-<dt><a name="index-type_002dtrace_002dstring"></a>Generic Function: <strong>type-trace-string</strong> <em>type &amp;key qualified</em></dt>
+<span id="Generic_002dFunction-type_002dtrace_002dstring"></span><dl>
+<dt id="index-type_002dtrace_002dstring">Generic Function: <strong>type-trace-string</strong> <em>type &amp;key qualified</em></dt>
 <dd><p>The text used to describe <code>type</code> in an execution trace.
 </p>
 <p>This will have stars on the left, e.g **char.
 </p></dd></dl>
-<a name="Method-type_002dtrace_002dstring-_0028_0028type-clang_002dtype_0029-_0026key-_0028qualified-t_0029_0029"></a><dl>
-<dt><a name="index-type_002dtrace_002dstring-1"></a>Method: <strong>type-trace-string</strong> <em>(type clang-type) &amp;key (qualified t)</em></dt>
+<span id="Method-type_002dtrace_002dstring-_0028_0028type-clang_002dtype_0029-_0026key-_0028qualified-t_0029_0029"></span><dl>
+<dt id="index-type_002dtrace_002dstring-1">Method: <strong>type-trace-string</strong> <em>(type clang-type) &amp;key (qualified t)</em></dt>
 <dd><p>Return the text used to describe <code>type</code> in an execution trace.
 </p><ul>
 <li> <code>type</code> type to convert to a trace string
 </li><li> <code>qualified</code> add type qualifiers such as const or volatile if non-nil.
 </li></ul>
 </dd></dl>
-<a name="Generic_002dFunction-typedef_002dtype"></a><dl>
-<dt><a name="index-typedef_002dtype"></a>Generic Function: <strong>typedef-type</strong> <em>software type</em></dt>
+<span id="Generic_002dFunction-typedef_002dtype"></span><dl>
+<dt id="index-typedef_002dtype">Generic Function: <strong>typedef-type</strong> <em>software type</em></dt>
 <dd><p>Return the underlying type if <code>type</code> is a typedef
 </p></dd></dl>
-<a name="Method-typedef_002dtype-_0028_0028obj-clang_0029-_0028type-clang_002dtype_0029_0029"></a><dl>
-<dt><a name="index-typedef_002dtype-1"></a>Method: <strong>typedef-type</strong> <em>(obj clang) (type clang-type)</em></dt>
+<span id="Method-typedef_002dtype-_0028_0028obj-clang_002dbase_0029-_0028type-clang_002dtype_0029_0029"></span><dl>
+<dt id="index-typedef_002dtype-1">Method: <strong>typedef-type</strong> <em>(obj clang-base) (type clang-type)</em></dt>
 <dd><p>Return the underlying type in <code>obj</code> if <code>type</code> is a typedef
 </p></dd></dl>
-<a name="Generic_002dFunction-wrap_002dast"></a><dl>
-<dt><a name="index-wrap_002dast"></a>Generic Function: <strong>wrap-ast</strong> <em>software ast</em></dt>
+<span id="Generic_002dFunction-wrap_002dast"></span><dl>
+<dt id="index-wrap_002dast">Generic Function: <strong>wrap-ast</strong> <em>software ast</em></dt>
 <dd><p>Wrap AST in <code>software</code> in a compound statement.
 Known issue with ifdefs <code>--</code> consider this snippet:
 </p>
@@ -1161,20 +1194,20 @@ Known issue with ifdefs <code>--</code> consider this snippet:
     }
 </pre></div>
 </dd></dl>
-<a name="Method-wrap_002dast-_0028_0028obj-clang_0029-_0028ast-clang_002dast_0029_0029"></a><dl>
-<dt><a name="index-wrap_002dast-1"></a>Method: <strong>wrap-ast</strong> <em>(obj clang) (ast clang-ast)</em></dt>
+<span id="Method-wrap_002dast-_0028_0028obj-clang_002dbase_0029-_0028ast-ast_0029_0029"></span><dl>
+<dt id="index-wrap_002dast-1">Method: <strong>wrap-ast</strong> <em>(obj clang-base) (ast ast)</em></dt>
 <dd><p><code>docfixme</code>
 </p><ul>
 <li> <code>obj</code> <code>docfixme</code>
 </li><li> AST <code>docfixme</code>
 </li></ul>
 </dd></dl>
-<a name="Generic_002dFunction-wrap_002dchild"></a><dl>
-<dt><a name="index-wrap_002dchild"></a>Generic Function: <strong>wrap-child</strong> <em>software ast index</em></dt>
+<span id="Generic_002dFunction-wrap_002dchild"></span><dl>
+<dt id="index-wrap_002dchild">Generic Function: <strong>wrap-child</strong> <em>software ast index</em></dt>
 <dd><p>Wrap <code>index</code> child of AST in <code>software</code> in a compound stmt.
 </p></dd></dl>
-<a name="Method-wrap_002dchild-_0028_0028obj-clang_0029-_0028ast-clang_002dast_0029-_0028index-integer_0029_0029"></a><dl>
-<dt><a name="index-wrap_002dchild-1"></a>Method: <strong>wrap-child</strong> <em>(obj clang) (ast clang-ast) (index integer)</em></dt>
+<span id="Method-wrap_002dchild-_0028_0028obj-clang_002dbase_0029-_0028ast-ast_0029-_0028index-integer_0029_0029"></span><dl>
+<dt id="index-wrap_002dchild-1">Method: <strong>wrap-child</strong> <em>(obj clang-base) (ast ast) (index integer)</em></dt>
 <dd><p><code>docfixme</code>
 </p><ul>
 <li> <code>obj</code> <code>docfixme</code>
@@ -1186,7 +1219,7 @@ Known issue with ifdefs <code>--</code> consider this snippet:
 <hr>
 <div class="header">
 <p>
-Next: <a href="sel_002dsw_002dclang_002dexpression.html#sel_002dsw_002dclang_002dexpression" accesskey="n" rel="next">sel-sw-clang-expression</a>, Previous: <a href="sel_002dsw_002dcil.html#sel_002dsw_002dcil" accesskey="p" rel="prev">sel-sw-cil</a>, Up: <a href="SEL-Packages.html#SEL-Packages" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="sel_002dsw_002dclang_002dexpression.html" accesskey="n" rel="next">sel-sw-clang-expression</a>, Previous: <a href="sel_002dsw_002dcil.html" accesskey="p" rel="prev">sel-sw-cil</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 
 

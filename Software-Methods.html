@@ -10,7 +10,7 @@ or any later version published by the Free Software Foundation;
 with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
 A copy of the license is included in the section entitled
 "GNU Free Documentation License." -->
-<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>Software Methods (Software Evolution Library)</title>
@@ -20,33 +20,24 @@ A copy of the license is included in the section entitled
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
-<link href="index.html#Top" rel="start" title="Top">
-<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html" rel="start" title="Top">
+<link href="Index.html" rel="index" title="Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
-<link href="Implementation.html#Implementation" rel="up" title="Implementation">
-<link href="Mutation-Objects.html#Mutation-Objects" rel="next" title="Mutation Objects">
-<link href="Lighter-asm-alternatives-light_002frange_002fdiff.html#Lighter-asm-alternatives-light_002frange_002fdiff" rel="prev" title="Lighter asm alternatives light/range/diff">
+<link href="Implementation.html" rel="up" title="Implementation">
+<link href="Mutation-Objects.html" rel="next" title="Mutation Objects">
+<link href="Lighter-asm-alternatives-light_002frange_002fdiff.html" rel="prev" title="Lighter asm alternatives light/range/diff">
 <style type="text/css">
 <!--
 a.summary-letter {text-decoration: none}
 blockquote.indentedblock {margin-right: 0em}
-blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
-blockquote.smallquotation {font-size: smaller}
 div.display {margin-left: 3.2em}
 div.example {margin-left: 3.2em}
 div.lisp {margin-left: 3.2em}
-div.smalldisplay {margin-left: 3.2em}
-div.smallexample {margin-left: 3.2em}
-div.smalllisp {margin-left: 3.2em}
 kbd {font-style: oblique}
 pre.display {font-family: inherit}
 pre.format {font-family: inherit}
 pre.menu-comment {font-family: serif}
 pre.menu-preformatted {font-family: serif}
-pre.smalldisplay {font-family: inherit; font-size: smaller}
-pre.smallexample {font-size: smaller}
-pre.smallformat {font-family: inherit; font-size: smaller}
-pre.smalllisp {font-size: smaller}
 span.nolinebreak {white-space: nowrap}
 span.roman {font-family: initial; font-weight: normal}
 span.sansserif {font-family: sans-serif; font-weight: normal}
@@ -58,20 +49,17 @@ ul.no-bullet {list-style: none}
 </head>
 
 <body lang="en">
-<a name="Software-Methods"></a>
-<div class="header">
+<span id="Software-Methods"></span><div class="header">
 <p>
-Next: <a href="Mutation-Objects.html#Mutation-Objects" accesskey="n" rel="next">Mutation Objects</a>, Previous: <a href="Software-Objects.html#Software-Objects" accesskey="p" rel="prev">Software Objects</a>, Up: <a href="Implementation.html#Implementation" accesskey="u" rel="up">Implementation</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="Mutation-Objects.html" accesskey="n" rel="next">Mutation Objects</a>, Previous: <a href="Software-Objects.html" accesskey="p" rel="prev">Software Objects</a>, Up: <a href="Implementation.html" accesskey="u" rel="up">Implementation</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
 
-<a name="Software-Methods-1"></a>
-<h3 class="section">2.2 Software Methods</h3>
-<a name="index-software-methods"></a>
+<span id="Software-Methods-1"></span><h3 class="section">2.2 Software Methods</h3>
+<span id="index-software-methods"></span>
 
 
-<a name="Software-Genome-and-Phenome"></a>
-<h4 class="subsection">2.2.1 Software Genome and Phenome</h4>
+<span id="Software-Genome-and-Phenome"></span><h4 class="subsection">2.2.1 Software Genome and Phenome</h4>
 
 <p>A software object has both a <em>genome</em> and a <em>phenome</em>.
 These are the two most important methods on software objects.  They
@@ -96,8 +84,7 @@ binary.
 </dl>
 
 
-<a name="Defining-new-software-object-types"></a>
-<h4 class="subsection">2.2.2 Defining new software object types</h4>
+<span id="Defining-new-software-object-types"></span><h4 class="subsection">2.2.2 Defining new software object types</h4>
 
 <p>New software objects should inherit from the most-relevant base
 class. For source code based software objects, this is the
@@ -112,15 +99,14 @@ software objects should ultimately inherit from the
 </pre></div>
 
 
-<a name="Core-methods-on-Software"></a>
-<h4 class="subsection">2.2.3 Core methods on Software</h4>
+<span id="Core-methods-on-Software"></span><h4 class="subsection">2.2.3 Core methods on Software</h4>
 
 <p>The following lists the core methods which are defined for all
 software object types exposing a common interface for use by user
 programs or in heuristic search.
 </p>
 <ul>
-<li> Recover <a href="Software-Objects.html#Software-Objects">genome and phenome</a>.
+<li> Recover <a href="Software-Objects.html">genome and phenome</a>.
     <ul>
 <li> <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-genome"><code>genome</code></a>
     </li><li> <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-phenome"><code>phenome</code></a>
@@ -177,7 +163,7 @@ programs or in heuristic search.
 <hr>
 <div class="header">
 <p>
-Next: <a href="Mutation-Objects.html#Mutation-Objects" accesskey="n" rel="next">Mutation Objects</a>, Previous: <a href="Software-Objects.html#Software-Objects" accesskey="p" rel="prev">Software Objects</a>, Up: <a href="Implementation.html#Implementation" accesskey="u" rel="up">Implementation</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="Mutation-Objects.html" accesskey="n" rel="next">Mutation Objects</a>, Previous: <a href="Software-Objects.html" accesskey="p" rel="prev">Software Objects</a>, Up: <a href="Implementation.html" accesskey="u" rel="up">Implementation</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 
 

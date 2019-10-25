@@ -10,7 +10,7 @@ or any later version published by the Free Software Foundation;
 with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
 A copy of the license is included in the section entitled
 "GNU Free Documentation License." -->
-<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>sel-sw-asm-super-mutant (Software Evolution Library)</title>
@@ -20,33 +20,24 @@ A copy of the license is included in the section entitled
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
-<link href="index.html#Top" rel="start" title="Top">
-<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html" rel="start" title="Top">
+<link href="Index.html" rel="index" title="Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
-<link href="SEL-Packages.html#SEL-Packages" rel="up" title="SEL Packages">
-<link href="sel_002dsw_002dast.html#sel_002dsw_002dast" rel="next" title="sel-sw-ast">
-<link href="sel_002dsw_002dasm_002dheap.html#sel_002dsw_002dasm_002dheap" rel="prev" title="sel-sw-asm-heap">
+<link href="SEL-Packages.html" rel="up" title="SEL Packages">
+<link href="sel_002dsw_002dast.html" rel="next" title="sel-sw-ast">
+<link href="sel_002dsw_002dasm_002dheap.html" rel="prev" title="sel-sw-asm-heap">
 <style type="text/css">
 <!--
 a.summary-letter {text-decoration: none}
 blockquote.indentedblock {margin-right: 0em}
-blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
-blockquote.smallquotation {font-size: smaller}
 div.display {margin-left: 3.2em}
 div.example {margin-left: 3.2em}
 div.lisp {margin-left: 3.2em}
-div.smalldisplay {margin-left: 3.2em}
-div.smallexample {margin-left: 3.2em}
-div.smalllisp {margin-left: 3.2em}
 kbd {font-style: oblique}
 pre.display {font-family: inherit}
 pre.format {font-family: inherit}
 pre.menu-comment {font-family: serif}
 pre.menu-preformatted {font-family: serif}
-pre.smalldisplay {font-family: inherit; font-size: smaller}
-pre.smallexample {font-size: smaller}
-pre.smallformat {font-family: inherit; font-size: smaller}
-pre.smalllisp {font-size: smaller}
 span.nolinebreak {white-space: nowrap}
 span.roman {font-family: initial; font-weight: normal}
 span.sansserif {font-family: sans-serif; font-weight: normal}
@@ -58,17 +49,15 @@ ul.no-bullet {list-style: none}
 </head>
 
 <body lang="en">
-<a name="sel_002dsw_002dasm_002dsuper_002dmutant"></a>
-<div class="header">
+<span id="sel_002dsw_002dasm_002dsuper_002dmutant"></span><div class="header">
 <p>
-Next: <a href="sel_002dsw_002dast.html#sel_002dsw_002dast" accesskey="n" rel="next">sel-sw-ast</a>, Previous: <a href="sel_002dsw_002dasm_002dheap.html#sel_002dsw_002dasm_002dheap" accesskey="p" rel="prev">sel-sw-asm-heap</a>, Up: <a href="SEL-Packages.html#SEL-Packages" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="sel_002dsw_002dast.html" accesskey="n" rel="next">sel-sw-ast</a>, Previous: <a href="sel_002dsw_002dasm_002dheap.html" accesskey="p" rel="prev">sel-sw-asm-heap</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<a name="sel_002dsw_002dasm_002dsuper_002dmutant-1"></a>
-<h3 class="section">C.10 sel-sw-asm-super-mutant</h3>
-<a name="Class-asm_002dsuper_002dmutant"></a><dl>
-<dt><a name="index-asm_002dsuper_002dmutant"></a>Class: <strong>asm-super-mutant</strong></dt>
-<dd><p>Class precedence list: <code>asm-super-mutant, asm-heap, asm, simple, super-mutant, software, oid-object, standard-object, t</code>
+<span id="sel_002dsw_002dasm_002dsuper_002dmutant-1"></span><h3 class="section">C.9 sel-sw-asm-super-mutant</h3>
+<span id="Class-asm_002dsuper_002dmutant"></span><dl>
+<dt id="index-asm_002dsuper_002dmutant">Class: <strong>asm-super-mutant</strong></dt>
+<dd><p>Class precedence list: <code>asm-super-mutant, asm-heap, asm, simple, super-mutant, software, oid-object, file, standard-object, t</code>
 </p>
 <p>Slots:
 </p><ul>
@@ -124,30 +113,64 @@ Next: <a href="sel_002dsw_002dast.html#sel_002dsw_002dast" accesskey="n" rel="ne
 
 <p>Combine <code>super-mutant</code> capabilities with <code>asm-heap</code> framework.
 </p></dd></dl>
-<a name="Variable-_002alib_002dpapi_002a"></a><dl>
-<dt><a name="index-_002alib_002dpapi_002a"></a>Variable: <strong>*lib-papi*</strong></dt>
+<span id="Variable-_002abss_002dsegment_002dstart_002a"></span><dl>
+<dt id="index-_002abss_002dsegment_002dstart_002a">Variable: <strong>*bss-segment-start*</strong></dt>
+<dd><p>If non-nil, address of .bss segment
+</p></dd></dl>
+<span id="Variable-_002adata_002dsegment_002dstart_002a"></span><dl>
+<dt id="index-_002adata_002dsegment_002dstart_002a">Variable: <strong>*data-segment-start*</strong></dt>
+<dd><p>If non-nil, address of .data segment
+</p></dd></dl>
+<span id="Variable-_002ainline_002dincluded_002dlines_002a"></span><dl>
+<dt id="index-_002ainline_002dincluded_002dlines_002a">Variable: <strong>*inline-included-lines*</strong></dt>
+<dd><p>Inline the additional lines of assembler.
+ Inline them with the function being modified, so each variation
+ contains these lines.
+</p></dd></dl>
+<span id="Variable-_002alib_002dpapi_002a"></span><dl>
+<dt id="index-_002alib_002dpapi_002a">Variable: <strong>*lib-papi*</strong></dt>
 <dd><p>Path to papi library.  See http://icl.cs.utk.edu/papi/.
 </p></dd></dl>
-<a name="Function-create_002dtarget"></a><dl>
-<dt><a name="index-create_002dtarget"></a>Function: <strong>create-target</strong> <em>asm-super</em></dt>
+<span id="Variable-_002aoptimize_002dincluded_002dlines_002a"></span><dl>
+<dt id="index-_002aoptimize_002dincluded_002dlines_002a">Variable: <strong>*optimize-included-lines*</strong></dt>
+<dd><p>Optimize the additional lines of assembler.
+ Append them to the function being modified, so each variation
+ contains these lines.
+</p></dd></dl>
+<span id="Variable-_002aseldata_002dsegment_002dstart_002a"></span><dl>
+<dt id="index-_002aseldata_002dsegment_002dstart_002a">Variable: <strong>*seldata-segment-start*</strong></dt>
+<dd><p>If non-nil, address of .seldata segment
+</p></dd></dl>
+<span id="Variable-_002atext_002dsegment_002dstart_002a"></span><dl>
+<dt id="index-_002atext_002dsegment_002dstart_002a">Variable: <strong>*text-segment-start*</strong></dt>
+<dd><p>If non-nil, base address
+</p></dd></dl>
+<span id="Function-create_002dtarget"></span><dl>
+<dt id="index-create_002dtarget">Function: <strong>create-target</strong> <em>asm-super</em></dt>
 <dd><p>Returns an <code>asm-heap</code> software object which contains only the target lines.
 </p></dd></dl>
-<a name="Function-load_002dio_002dfile"></a><dl>
-<dt><a name="index-load_002dio_002dfile"></a>Function: <strong>load-io-file</strong> <em>super-asm filename</em></dt>
+<span id="Function-load_002dio_002dfile"></span><dl>
+<dt id="index-load_002dio_002dfile">Function: <strong>load-io-file</strong> <em>super-asm filename</em></dt>
 <dd><p>Load the file containing input and output state information
 </p></dd></dl>
-<a name="Function-parse_002dsanity_002dfile"></a><dl>
-<dt><a name="index-parse_002dsanity_002dfile"></a>Function: <strong>parse-sanity-file</strong> <em>filename</em></dt>
+<span id="Function-parse_002dsanity_002dfile"></span><dl>
+<dt id="index-parse_002dsanity_002dfile">Function: <strong>parse-sanity-file</strong> <em>filename</em></dt>
 <dd><p>Parses the &rsquo;sanity&rsquo; file which is output by the <code>gtx</code> disassembler.
 It contains all the data variables and addresses (some of which are
 not included in the disassembly file). Returns a vector of var-rec.
 </p></dd></dl>
-<a name="Function-target_002dfunction"></a><dl>
-<dt><a name="index-target_002dfunction"></a>Function: <strong>target-function</strong> <em>asm-super start-addr end-addr</em></dt>
+<span id="Function-restore_002doriginal_002daddresses"></span><dl>
+<dt id="index-restore_002doriginal_002daddresses">Function: <strong>restore-original-addresses</strong> <em>asm</em></dt>
+<dd><p>If any rip-relative addresses have been converted to
+absolute, for evaluation, restore them to the original
+instructions.
+</p></dd></dl>
+<span id="Function-target_002dfunction"></span><dl>
+<dt id="index-target_002dfunction">Function: <strong>target-function</strong> <em>asm-super start-addr end-addr</em></dt>
 <dd><p>Define the target function by specifying start address and end address
 </p></dd></dl>
-<a name="Function-target_002dfunction_002dname"></a><dl>
-<dt><a name="index-target_002dfunction_002dname"></a>Function: <strong>target-function-name</strong> <em>asm function-name</em></dt>
+<span id="Function-target_002dfunction_002dname"></span><dl>
+<dt id="index-target_002dfunction_002dname">Function: <strong>target-function-name</strong> <em>asm function-name</em></dt>
 <dd><p>Specify target function by name. The name can be a symbol or a string. If
 a symbol, the <code>symbol-name</code> of the symbol is used.
 </p></dd></dl>
@@ -155,7 +178,7 @@ a symbol, the <code>symbol-name</code> of the symbol is used.
 <hr>
 <div class="header">
 <p>
-Next: <a href="sel_002dsw_002dast.html#sel_002dsw_002dast" accesskey="n" rel="next">sel-sw-ast</a>, Previous: <a href="sel_002dsw_002dasm_002dheap.html#sel_002dsw_002dasm_002dheap" accesskey="p" rel="prev">sel-sw-asm-heap</a>, Up: <a href="SEL-Packages.html#SEL-Packages" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="sel_002dsw_002dast.html" accesskey="n" rel="next">sel-sw-ast</a>, Previous: <a href="sel_002dsw_002dasm_002dheap.html" accesskey="p" rel="prev">sel-sw-asm-heap</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 
 

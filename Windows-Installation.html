@@ -1,0 +1,150 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- This file documents the Software Evolution library
+
+Copyright (C) 2014-2018 Eric Schulte and GrammaTech
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
+A copy of the license is included in the section entitled
+"GNU Free Documentation License." -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Windows Installation (Software Evolution Library)</title>
+
+<meta name="description" content="Windows Installation (Software Evolution Library)">
+<meta name="keywords" content="Windows Installation (Software Evolution Library)">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<link href="index.html" rel="start" title="Top">
+<link href="Index.html" rel="index" title="Index">
+<link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
+<link href="Installation.html" rel="up" title="Installation">
+<link href="Examples.html" rel="next" title="Examples">
+<link href="Installation.html" rel="prev" title="Installation">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<span id="Windows-Installation"></span><div class="header">
+<p>
+Next: <a href="Examples.html" accesskey="n" rel="next">Examples</a>, Previous: <a href="Installation.html" accesskey="p" rel="prev">Installation</a>, Up: <a href="Installation.html" accesskey="u" rel="up">Installation</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+<span id="Windows-Installation-1"></span><h4 class="subsection">5.1.1 Windows Installation</h4>
+
+<p>The following instructions start from a clean machine and install SEL
+in a VirtualBox VM.  If you want to install SEL directly on your
+existing Windows machine you can skip to the &ldquo;Windows Common Lisp&rdquo;
+step.  (This is a work in progress.)
+</p>
+<span id="Windows-OS-Installation"></span><h4 class="subsubsection">5.1.1.1 Windows OS Installation</h4>
+<ol>
+<li> Install Windows 10 Pro (64-bit). 8 gigs memory, 2 cores, 80 gb hard drive
+</li><li> Install VirtualBox guest tools for Windows.
+</li><li> Install SNMP
+</li><li> In Powershell (Run as Administrator):
+<div class="example">
+<pre class="example">Add-WindowsCapability -Online -Name &quot;SNMP.Client~~~~0.0.1.0&quot;
+</pre></div>
+</li></ol>
+
+<span id="Windows-Utilities"></span><h4 class="subsubsection">5.1.1.2 Windows Utilities</h4>
+<ol>
+<li> Install Chrome browser, make it default browser for Windows.
+</li><li> Install Git for 64-bit Windows. Accept all defaults.
+</li><li> Install 7-zip. <a href="https://www.7-zip.org/">https://www.7-zip.org/</a>
+</li><li> Install gnu emacs 26.1 for Windows 64-bit.
+</li></ol>
+
+<span id="Windows-Common-Lisp"></span><h4 class="subsubsection">5.1.1.3 Windows Common Lisp</h4>
+<ol>
+<li> Install Clozure CL. <a href="https://ccl.clozure.com">https://ccl.clozure.com</a>
+</li><li> Install quicklisp: quicklisp.org
+</li><li> Install slime (using CCL instructions: <a href="https://trac.clozure.com/ccl/wiki/InstallingSlime">https://trac.clozure.com/ccl/wiki/InstallingSlime</a>)
+In ccl:
+<div class="example">
+<pre class="example">(ql:quickload :asdf) ; to upgrade version of asdf to 3.3.x, needed for LAUNCH-PROGRAM support
+</pre></div>
+</li></ol>
+
+<span id="Windows-SEL"></span><h4 class="subsubsection">5.1.1.4 Windows SEL</h4>
+<p>Clone SEL from <a href="https://github.com/GrammaTech/sel">https://github.com/GrammaTech/sel</a> or install
+using QuickLisp.
+</p>
+<span id="Windows-Development-Software"></span><h4 class="subsubsection">5.1.1.5 Windows Development Software</h4>
+<ol>
+<li> Install Windows 10 SDK:
+<a href="https://developer.microsoft.com/en-us/windows/downloads/windows-10-sdk">https://developer.microsoft.com/en-us/windows/downloads/windows-10-sdk</a>
+
+</li><li> Visual Studio:
+Install Visual Studio Community Edition 2019
+<a href="https://visualstudio.microsoft.com/vs/">https://visualstudio.microsoft.com/vs/</a>
+
+<p>Make sure to include C and C++ support in the installation options.
+</p>
+</li></ol>
+
+<span id="Windows-clang_002fLLVM-10_002e0"></span><h4 class="subsubsection">5.1.1.6 Windows clang/LLVM 10.0</h4>
+<p>This is required to use SEL&rsquo;s C/C++ front.
+</p>
+<p>Install Windows 64-bit pre-built binary.
+</p>
+<p>Found it in a snapshot release here: <a href="https://llvm.org/builds">https://llvm.org/builds</a>
+(it is still pre-release).
+</p>
+<span id="Windows-WSL"></span><h4 class="subsubsection">5.1.1.7 Windows WSL</h4>
+<p>This is not required but a useful enhancement.
+</p>
+<ol>
+<li> In Windows Features control panel:
+Enable Windows Subsystem for Linux (WSL). Restart.
+Go to Microsoft App Store: Install Ubuntu 18.04
+After install, launch it (this will finish the install process)
+Create a user/password.
+<div class="example">
+<pre class="example">sudo apt-get install update
+sudo apt-get install upgrade
+</pre></div>
+
+</li><li> Create a shared folder (to access the linux host)
+Assuming shared folder is drive z:, mount it:
+<div class="example">
+<pre class="example">sudo mkdir /mnt/z
+sudo mount -t drvfs Z: /mnt/z
+</pre></div>
+</li></ol>
+
+<hr>
+<div class="header">
+<p>
+Next: <a href="Examples.html" accesskey="n" rel="next">Examples</a>, Previous: <a href="Installation.html" accesskey="p" rel="prev">Installation</a>, Up: <a href="Installation.html" accesskey="u" rel="up">Installation</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+
+
+
+</body>
+</html>

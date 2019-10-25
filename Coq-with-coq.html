@@ -10,7 +10,7 @@ or any later version published by the Free Software Foundation;
 with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
 A copy of the license is included in the section entitled
 "GNU Free Documentation License." -->
-<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>Coq with coq (Software Evolution Library)</title>
@@ -20,33 +20,24 @@ A copy of the license is included in the section entitled
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
-<link href="index.html#Top" rel="start" title="Top">
-<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html" rel="start" title="Top">
+<link href="Index.html" rel="index" title="Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
-<link href="Software-Objects.html#Software-Objects" rel="up" title="Software Objects">
-<link href="Ancestor-tracking-with-ancestral.html#Ancestor-tracking-with-ancestral" rel="next" title="Ancestor tracking with ancestral">
-<link href="JavaScript-with-javascript.html#JavaScript-with-javascript" rel="prev" title="JavaScript with javascript">
+<link href="Software-Objects.html" rel="up" title="Software Objects">
+<link href="Ancestor-tracking-with-ancestral.html" rel="next" title="Ancestor tracking with ancestral">
+<link href="JavaScript-with-javascript.html" rel="prev" title="JavaScript with javascript">
 <style type="text/css">
 <!--
 a.summary-letter {text-decoration: none}
 blockquote.indentedblock {margin-right: 0em}
-blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
-blockquote.smallquotation {font-size: smaller}
 div.display {margin-left: 3.2em}
 div.example {margin-left: 3.2em}
 div.lisp {margin-left: 3.2em}
-div.smalldisplay {margin-left: 3.2em}
-div.smallexample {margin-left: 3.2em}
-div.smalllisp {margin-left: 3.2em}
 kbd {font-style: oblique}
 pre.display {font-family: inherit}
 pre.format {font-family: inherit}
 pre.menu-comment {font-family: serif}
 pre.menu-preformatted {font-family: serif}
-pre.smalldisplay {font-family: inherit; font-size: smaller}
-pre.smallexample {font-size: smaller}
-pre.smallformat {font-family: inherit; font-size: smaller}
-pre.smalllisp {font-size: smaller}
 span.nolinebreak {white-space: nowrap}
 span.roman {font-family: initial; font-weight: normal}
 span.sansserif {font-family: sans-serif; font-weight: normal}
@@ -58,19 +49,16 @@ ul.no-bullet {list-style: none}
 </head>
 
 <body lang="en">
-<a name="Coq-with-coq"></a>
-<div class="header">
+<span id="Coq-with-coq"></span><div class="header">
 <p>
-Next: <a href="Ancestor-tracking-with-ancestral.html#Ancestor-tracking-with-ancestral" accesskey="n" rel="next">Ancestor tracking with <code>ancestral</code></a>, Previous: <a href="JavaScript-with-javascript.html#JavaScript-with-javascript" accesskey="p" rel="prev">JavaScript with <code>javascript</code></a>, Up: <a href="Software-Objects.html#Software-Objects" accesskey="u" rel="up">Software Objects</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="Ancestor-tracking-with-ancestral.html" accesskey="n" rel="next">Ancestor tracking with <code>ancestral</code></a>, Previous: <a href="JavaScript-with-javascript.html" accesskey="p" rel="prev">JavaScript with <code>javascript</code></a>, Up: <a href="Software-Objects.html" accesskey="u" rel="up">Software Objects</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
 
-<a name="Coq-with-coq-and-SerAPI"></a>
-<h4 class="subsection">2.1.6 Coq with <code>coq</code> and <code>SerAPI</code></h4>
+<span id="Coq-with-coq-and-SerAPI"></span><h4 class="subsection">2.1.6 Coq with <code>coq</code> and <code>SerAPI</code></h4>
 
 
-<a name="Coq-Module-Organization"></a>
-<h4 class="subsection">2.1.7 Coq Module Organization</h4>
+<span id="Coq-Module-Organization"></span><h4 class="subsection">2.1.7 Coq Module Organization</h4>
 
 <p>The &lsquo;coq&rsquo; module is split into two layers. The lower layer, implemented in
 &lsquo;serapi-io.lisp&rsquo;, is strictly responsible for serialization of Coq abstract
@@ -84,8 +72,7 @@ allows for querying of Coq documents and serializes ASTs to S-expressions.
 anduse API functions provided by &lsquo;coq.lisp&rsquo; or &lsquo;coq-project.lisp&rsquo; without
 having to worry about the lower-level functions.
 </p>
-<a name="Setting-up-SerAPI"></a>
-<h4 class="subsection">2.1.8 Setting up SerAPI</h4>
+<span id="Setting-up-SerAPI"></span><h4 class="subsection">2.1.8 Setting up SerAPI</h4>
 
 <p>In order to construct a Coq software object, coq-serapi must be installed.
 Refer to its GitHub project page for instructions. The variables
@@ -103,8 +90,7 @@ also be added to &lsquo;*sertop-args*&rsquo;.
 </p>
 
 
-<a name="Coq-Module-Organization-1"></a>
-<h4 class="subsection">2.1.9 Coq Module Organization</h4>
+<span id="Coq-Module-Organization-1"></span><h4 class="subsection">2.1.9 Coq Module Organization</h4>
 
 <p>The &lsquo;coq&rsquo; module is split into two layers. The lower layer, implemented in
 &lsquo;serapi-io.lisp&rsquo;, is strictly responsible for serialization of Coq abstract
@@ -116,8 +102,7 @@ syntax trees (ASTs) and is described in-depth in its own section.
  and use API functions provided by &lsquo;coq.lisp&rsquo; or &lsquo;coq-project.lisp&rsquo; without
  having to worry about the lower-level functions.
 </p>
-<a name="Creating-Coq-Objects"></a>
-<h4 class="subsection">2.1.10 Creating Coq Objects</h4>
+<span id="Creating-Coq-Objects"></span><h4 class="subsection">2.1.10 Creating Coq Objects</h4>
 
 <p>Coq software objects have the following fields:
 </p>
@@ -156,8 +141,7 @@ do this with either &lsquo;set-load-paths&rsquo; (which only sets the load paths
 &lsquo;reset-and-load-imports&rsquo; (which in addition to setting load paths also
 executes import statements).
 </p>
-<a name="Usage-of-Coq-Objects"></a>
-<h4 class="subsection">2.1.11 Usage of Coq Objects</h4>
+<span id="Usage-of-Coq-Objects"></span><h4 class="subsection">2.1.11 Usage of Coq Objects</h4>
 
 <p>The ASTs of a Coq genome are lists whose elements are lists, symbols, and
 strings. A &lsquo;type-safe-swap&rsquo; mutation selects two subtrees that have the same
@@ -188,7 +172,7 @@ a reset point before returning.
 <hr>
 <div class="header">
 <p>
-Next: <a href="Ancestor-tracking-with-ancestral.html#Ancestor-tracking-with-ancestral" accesskey="n" rel="next">Ancestor tracking with <code>ancestral</code></a>, Previous: <a href="JavaScript-with-javascript.html#JavaScript-with-javascript" accesskey="p" rel="prev">JavaScript with <code>javascript</code></a>, Up: <a href="Software-Objects.html#Software-Objects" accesskey="u" rel="up">Software Objects</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="Ancestor-tracking-with-ancestral.html" accesskey="n" rel="next">Ancestor tracking with <code>ancestral</code></a>, Previous: <a href="JavaScript-with-javascript.html" accesskey="p" rel="prev">JavaScript with <code>javascript</code></a>, Up: <a href="Software-Objects.html" accesskey="u" rel="up">Software Objects</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 
 

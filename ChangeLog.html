@@ -10,7 +10,7 @@ or any later version published by the Free Software Foundation;
 with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
 A copy of the license is included in the section entitled
 "GNU Free Documentation License." -->
-<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>ChangeLog (Software Evolution Library)</title>
@@ -20,33 +20,24 @@ A copy of the license is included in the section entitled
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
-<link href="index.html#Top" rel="start" title="Top">
-<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html" rel="start" title="Top">
+<link href="Index.html" rel="index" title="Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
-<link href="index.html#Top" rel="up" title="Top">
-<link href="Licensing.html#Licensing" rel="next" title="Licensing">
-<link href="Judicious-use-of-indentation-macros.html#Judicious-use-of-indentation-macros" rel="prev" title="Judicious use of indentation macros">
+<link href="index.html" rel="up" title="Top">
+<link href="Licensing.html" rel="next" title="Licensing">
+<link href="Judicious-use-of-indentation-macros.html" rel="prev" title="Judicious use of indentation macros">
 <style type="text/css">
 <!--
 a.summary-letter {text-decoration: none}
 blockquote.indentedblock {margin-right: 0em}
-blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
-blockquote.smallquotation {font-size: smaller}
 div.display {margin-left: 3.2em}
 div.example {margin-left: 3.2em}
 div.lisp {margin-left: 3.2em}
-div.smalldisplay {margin-left: 3.2em}
-div.smallexample {margin-left: 3.2em}
-div.smalllisp {margin-left: 3.2em}
 kbd {font-style: oblique}
 pre.display {font-family: inherit}
 pre.format {font-family: inherit}
 pre.menu-comment {font-family: serif}
 pre.menu-preformatted {font-family: serif}
-pre.smalldisplay {font-family: inherit; font-size: smaller}
-pre.smallexample {font-size: smaller}
-pre.smallformat {font-family: inherit; font-size: smaller}
-pre.smalllisp {font-size: smaller}
 span.nolinebreak {white-space: nowrap}
 span.roman {font-family: initial; font-weight: normal}
 span.sansserif {font-family: sans-serif; font-weight: normal}
@@ -58,14 +49,12 @@ ul.no-bullet {list-style: none}
 </head>
 
 <body lang="en">
-<a name="ChangeLog"></a>
-<div class="header">
+<span id="ChangeLog"></span><div class="header">
 <p>
-Next: <a href="Licensing.html#Licensing" accesskey="n" rel="next">Licensing</a>, Previous: <a href="SEL-Coding-Standards.html#SEL-Coding-Standards" accesskey="p" rel="prev">SEL Coding Standards</a>, Up: <a href="index.html#Top" accesskey="u" rel="up">Top</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="Licensing.html" accesskey="n" rel="next">Licensing</a>, Previous: <a href="SEL-Coding-Standards.html" accesskey="p" rel="prev">SEL Coding Standards</a>, Up: <a href="index.html" accesskey="u" rel="up">Top</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<a name="ChangeLog-1"></a>
-<h2 class="appendix">Appendix F ChangeLog</h2>
+<span id="ChangeLog-1"></span><h2 class="appendix">Appendix F ChangeLog</h2>
 
 <p>SEL will use <a href="https://semver.org/">semantic versioning</a> to
 determine increments to version numbers.  This ChangeLog will be
@@ -77,10 +66,26 @@ most recent at the top.  Every entry will be named and indexed by date
 and version number.  Working notes may be accumulated in a special
 &ldquo;Unreleased&rdquo; section at the top of the ChangeLog.
 </p>
-<a name="g_t2018_002d12_002d18-v0_002e1_002e2-_002d_002d-Unreleased"></a>
-<h3 class="appendixsec">F.1 2018-12-18 v0.1.2 &ndash; Unreleased</h3>
-<a name="index-changelog_002d2018_002d12_002d18"></a>
-<a name="index-v0_002e1_002e1"></a>
+<span id="g_t2019_002d03_002d20-v0_002e1_002e3-_002d_002d-Unreleased"></span><h3 class="appendixsec">F.1 2019-03-20 v0.1.3 &ndash; Unreleased</h3>
+<span id="index-changelog_002d2019_002d03_002d20"></span>
+<span id="index-v0_002e1_002e3"></span>
+
+<ul>
+<li> Projects no longer build in temporary directories by default.  Instead
+calls to <code>phenome</code> will now cause projects to re-build in their
+original directory (i.e., <code>project-dir</code>).  There are two ways to
+control this new behavior (and optionally revert to the old behavior).
+First, by setting the <code>*build-projects-in-temporary-directories*</code>
+variable to non-nil the old behavior of building in a new temporary
+directory on every call to phenome is restored.  Alternately for more
+fine-grained control the new <code>phenome-dir</code> method can be
+customized for any class that is subtypep of project.
+
+</li></ul>
+
+<span id="g_t2018_002d12_002d18-v0_002e1_002e2-_002d_002d-Unreleased"></span><h3 class="appendixsec">F.2 2018-12-18 v0.1.2 &ndash; Unreleased</h3>
+<span id="index-changelog_002d2018_002d12_002d18"></span>
+<span id="index-v0_002e1_002e2"></span>
 
 <ul>
 <li> Differences and merges are now supported on projects.
@@ -111,10 +116,9 @@ software projects:
 </li></ul>
 
 
-<a name="g_t2018_002d11_002d30-v0_002e1_002e1-_002d_002d-Unreleased"></a>
-<h3 class="appendixsec">F.2 2018-11-30 v0.1.1 &ndash; Unreleased</h3>
-<a name="index-changelog_002d2018_002d11_002d30"></a>
-<a name="index-v0_002e1_002e1-1"></a>
+<span id="g_t2018_002d11_002d30-v0_002e1_002e1-_002d_002d-Unreleased"></span><h3 class="appendixsec">F.3 2018-11-30 v0.1.1 &ndash; Unreleased</h3>
+<span id="index-changelog_002d2018_002d11_002d30"></span>
+<span id="index-v0_002e1_002e1"></span>
 
 <ul>
 <li> Removed backend-specific initargs from project software objects
@@ -126,10 +130,9 @@ Any calls to <code>make-instance</code> with projects must now utilize
 </p>
 </li></ul>
 
-<a name="g_t2018_002d11_002d06-v0_002e1_002e0-_002d_002d-Use-package_002dinferred_002dsystem"></a>
-<h3 class="appendixsec">F.3 2018-11-06 v0.1.0 &ndash; Use package-inferred-system</h3>
-<a name="index-changelog_002d2018_002d11_002d06"></a>
-<a name="index-v0_002e0_002e3"></a>
+<span id="g_t2018_002d11_002d06-v0_002e1_002e0-_002d_002d-Use-package_002dinferred_002dsystem"></span><h3 class="appendixsec">F.4 2018-11-06 v0.1.0 &ndash; Use package-inferred-system</h3>
+<span id="index-changelog_002d2018_002d11_002d06"></span>
+<span id="index-v0_002e0_002e3"></span>
 
 <p>SEL now uses the package-inferred-system feature of ASDF (see
 <a href="https://common-lisp.net/project/asdf/asdf/The-package_002dinferred_002dsystem-extension.html#The-package_002dinferred_002dsystem-extension">https://common-lisp.net/project/asdf/asdf/The-package_002dinferred_002dsystem-extension.html#The-package_002dinferred_002dsystem-extension</a>).
@@ -187,10 +190,9 @@ likely useful for anyone using the clang software object.
 and deprecates the USER_QUICK_LISP environment variable which was
 redundant with the QUICK_LISP environment variable.
 </p>
-<a name="g_t2018_002d10_002d17-v0_002e0_002e2-_002d_002d-Unreleased"></a>
-<h3 class="appendixsec">F.4 2018-10-17 v0.0.2 &ndash; Unreleased</h3>
-<a name="index-changelog_002d2018_002d10_002d17"></a>
-<a name="index-v0_002e0_002e2"></a>
+<span id="g_t2018_002d10_002d17-v0_002e0_002e2-_002d_002d-Unreleased"></span><h3 class="appendixsec">F.5 2018-10-17 v0.0.2 &ndash; Unreleased</h3>
+<span id="index-changelog_002d2018_002d10_002d17"></span>
+<span id="index-v0_002e0_002e2"></span>
 
 <ul>
 <li> Removed tool-specific code formatting methods from software objects
@@ -201,10 +203,9 @@ redundant with the QUICK_LISP environment variable.
 </p>
 </li></ul>
 
-<a name="g_t2018_002d08_002d21-v0_002e0_002e1-_002d_002d-Unreleased"></a>
-<h3 class="appendixsec">F.5 2018-08-21 v0.0.1 &ndash; Unreleased</h3>
-<a name="index-changelog_002d2018_002d08_002d21"></a>
-<a name="index-v0_002e0_002e1"></a>
+<span id="g_t2018_002d08_002d21-v0_002e0_002e1-_002d_002d-Unreleased"></span><h3 class="appendixsec">F.6 2018-08-21 v0.0.1 &ndash; Unreleased</h3>
+<span id="index-changelog_002d2018_002d08_002d21"></span>
+<span id="index-v0_002e0_002e1"></span>
 
 <ul>
 <li> <b>Change <code>build-target</code> to <code>artifacts</code></b>
@@ -230,10 +231,9 @@ project.
 </p>
 </li></ul>
 
-<a name="g_t2018_002d07_002d25-v0_002e0_002e0-_002d_002d-Initial-Release-to-Quicklisp"></a>
-<h3 class="appendixsec">F.6 2018-07-25 v0.0.0 &ndash; Initial Release to Quicklisp</h3>
-<a name="index-changelog_002d2018_002d07_002d25"></a>
-<a name="index-v0_002e0_002e0"></a>
+<span id="g_t2018_002d07_002d25-v0_002e0_002e0-_002d_002d-Initial-Release-to-Quicklisp"></span><h3 class="appendixsec">F.7 2018-07-25 v0.0.0 &ndash; Initial Release to Quicklisp</h3>
+<span id="index-changelog_002d2018_002d07_002d25"></span>
+<span id="index-v0_002e0_002e0"></span>
 
 <p>Initial changelog entry for version v.0.0.0 of the
 SOFTWARE-EVOLUTION-LIBRARY (SEL) Package.  This is the version
@@ -242,7 +242,7 @@ initially appearing in the 2018-07 Quicklisp release.
 <hr>
 <div class="header">
 <p>
-Next: <a href="Licensing.html#Licensing" accesskey="n" rel="next">Licensing</a>, Previous: <a href="SEL-Coding-Standards.html#SEL-Coding-Standards" accesskey="p" rel="prev">SEL Coding Standards</a>, Up: <a href="index.html#Top" accesskey="u" rel="up">Top</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="Licensing.html" accesskey="n" rel="next">Licensing</a>, Previous: <a href="SEL-Coding-Standards.html" accesskey="p" rel="prev">SEL Coding Standards</a>, Up: <a href="index.html" accesskey="u" rel="up">Top</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 
 

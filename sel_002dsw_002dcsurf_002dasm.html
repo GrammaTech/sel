@@ -10,7 +10,7 @@ or any later version published by the Free Software Foundation;
 with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
 A copy of the license is included in the section entitled
 "GNU Free Documentation License." -->
-<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>sel-sw-csurf-asm (Software Evolution Library)</title>
@@ -20,33 +20,24 @@ A copy of the license is included in the section entitled
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
-<link href="index.html#Top" rel="start" title="Top">
-<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html" rel="start" title="Top">
+<link href="Index.html" rel="index" title="Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
-<link href="SEL-Packages.html#SEL-Packages" rel="up" title="SEL Packages">
-<link href="sel_002dsw_002ddiff.html#sel_002dsw_002ddiff" rel="next" title="sel-sw-diff">
-<link href="sel_002dsw_002dcoq_002dproject.html#sel_002dsw_002dcoq_002dproject" rel="prev" title="sel-sw-coq-project">
+<link href="SEL-Packages.html" rel="up" title="SEL Packages">
+<link href="sel_002dsw_002ddiff.html" rel="next" title="sel-sw-diff">
+<link href="sel_002dsw_002dcoq_002dproject.html" rel="prev" title="sel-sw-coq-project">
 <style type="text/css">
 <!--
 a.summary-letter {text-decoration: none}
 blockquote.indentedblock {margin-right: 0em}
-blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
-blockquote.smallquotation {font-size: smaller}
 div.display {margin-left: 3.2em}
 div.example {margin-left: 3.2em}
 div.lisp {margin-left: 3.2em}
-div.smalldisplay {margin-left: 3.2em}
-div.smallexample {margin-left: 3.2em}
-div.smalllisp {margin-left: 3.2em}
 kbd {font-style: oblique}
 pre.display {font-family: inherit}
 pre.format {font-family: inherit}
 pre.menu-comment {font-family: serif}
 pre.menu-preformatted {font-family: serif}
-pre.smalldisplay {font-family: inherit; font-size: smaller}
-pre.smallexample {font-size: smaller}
-pre.smallformat {font-family: inherit; font-size: smaller}
-pre.smalllisp {font-size: smaller}
 span.nolinebreak {white-space: nowrap}
 span.roman {font-family: initial; font-weight: normal}
 span.sansserif {font-family: sans-serif; font-weight: normal}
@@ -58,27 +49,25 @@ ul.no-bullet {list-style: none}
 </head>
 
 <body lang="en">
-<a name="sel_002dsw_002dcsurf_002dasm"></a>
-<div class="header">
+<span id="sel_002dsw_002dcsurf_002dasm"></span><div class="header">
 <p>
-Next: <a href="sel_002dsw_002ddiff.html#sel_002dsw_002ddiff" accesskey="n" rel="next">sel-sw-diff</a>, Previous: <a href="sel_002dsw_002dcoq_002dproject.html#sel_002dsw_002dcoq_002dproject" accesskey="p" rel="prev">sel-sw-coq-project</a>, Up: <a href="SEL-Packages.html#SEL-Packages" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="sel_002dsw_002ddiff.html" accesskey="n" rel="next">sel-sw-diff</a>, Previous: <a href="sel_002dsw_002dcoq_002dproject.html" accesskey="p" rel="prev">sel-sw-coq-project</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<a name="sel_002dsw_002dcsurf_002dasm-1"></a>
-<h3 class="section">C.19 sel-sw-csurf-asm</h3>
-<a name="Class-csurf_002dasm"></a><dl>
-<dt><a name="index-csurf_002dasm"></a>Class: <strong>csurf-asm</strong></dt>
-<dd><p>Class precedence list: <code>csurf-asm, asm-heap, asm, simple, software, oid-object, standard-object, t</code>
+<span id="sel_002dsw_002dcsurf_002dasm-1"></span><h3 class="section">C.18 sel-sw-csurf-asm</h3>
+<span id="Class-csurf_002dasm"></span><dl>
+<dt id="index-csurf_002dasm">Class: <strong>csurf-asm</strong></dt>
+<dd><p>Class precedence list: <code>csurf-asm, asm-heap, asm, simple, software, oid-object, file, standard-object, t</code>
 </p>
 <p>Slots:
 </p><ul>
 <li> <code>assembler</code> &mdash; initarg: <code>:assembler<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/csurf-asm:assembler</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/csurf-asm:assembler)</span><!-- /@w --></code>
 
 <p>Assembler to use for assembling.
-</p></li><li> <code>linker</code> &mdash; initarg: <code>:linker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/csurf-asm::linker</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/csurf-asm::linker)</span><!-- /@w --></code>
+</p></li><li> <code>linker</code> &mdash; initarg: <code>:linker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm::linker</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm::linker)</span><!-- /@w --></code>
 
 <p>Linker to use for linking.
-</p></li><li> <code>flags</code> &mdash; initarg: <code>:flags<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/csurf-asm::flags</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/csurf-asm::flags)</span><!-- /@w --></code>
+</p></li><li> <code>flags</code> &mdash; initarg: <code>:flags<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm::flags</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm::flags)</span><!-- /@w --></code>
 
 <p>Flags to use for linking
 </p></li><li> <code>asm-flags</code> &mdash; initarg: <code><span class="nolinebreak">:asm-flags</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/csurf-asm:asm-flags</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/csurf-asm:asm-flags)</span><!-- /@w --></code>
@@ -100,23 +89,23 @@ Next: <a href="sel_002dsw_002ddiff.html#sel_002dsw_002ddiff" accesskey="n" rel="
 
 <p>Software object for ASM generated by CodeSurfer.
 </p></dd></dl>
-<a name="Variable-_002adynamic_002dlinker_002dpath_002a"></a><dl>
-<dt><a name="index-_002adynamic_002dlinker_002dpath_002a"></a>Variable: <strong>*dynamic-linker-path*</strong></dt>
+<span id="Variable-_002adynamic_002dlinker_002dpath_002a"></span><dl>
+<dt id="index-_002adynamic_002dlinker_002dpath_002a">Variable: <strong>*dynamic-linker-path*</strong></dt>
 <dd><p>Path to the dynamic linker on this system.
 </p></dd></dl>
-<a name="Variable-_002aelf_002dcopy_002dredirect_002dpath_002a"></a><dl>
-<dt><a name="index-_002aelf_002dcopy_002dredirect_002dpath_002a"></a>Variable: <strong>*elf-copy-redirect-path*</strong></dt>
+<span id="Variable-_002aelf_002dcopy_002dredirect_002dpath_002a"></span><dl>
+<dt id="index-_002aelf_002dcopy_002dredirect_002dpath_002a">Variable: <strong>*elf-copy-redirect-path*</strong></dt>
 <dd><p>Path to elf_copy_redirect (or just the name if it&rsquo;s on the path).
 </p></dd></dl>
-<a name="Variable-_002aelf_002dedit_002dsymtab_002dpath_002a"></a><dl>
-<dt><a name="index-_002aelf_002dedit_002dsymtab_002dpath_002a"></a>Variable: <strong>*elf-edit-symtab-path*</strong></dt>
+<span id="Variable-_002aelf_002dedit_002dsymtab_002dpath_002a"></span><dl>
+<dt id="index-_002aelf_002dedit_002dsymtab_002dpath_002a">Variable: <strong>*elf-edit-symtab-path*</strong></dt>
 <dd><p>Path to elf_edit_symtab64 or 32 (or just the name if it&rsquo;s on the path).
 </p></dd></dl>
 
 <hr>
 <div class="header">
 <p>
-Next: <a href="sel_002dsw_002ddiff.html#sel_002dsw_002ddiff" accesskey="n" rel="next">sel-sw-diff</a>, Previous: <a href="sel_002dsw_002dcoq_002dproject.html#sel_002dsw_002dcoq_002dproject" accesskey="p" rel="prev">sel-sw-coq-project</a>, Up: <a href="SEL-Packages.html#SEL-Packages" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="sel_002dsw_002ddiff.html" accesskey="n" rel="next">sel-sw-diff</a>, Previous: <a href="sel_002dsw_002dcoq_002dproject.html" accesskey="p" rel="prev">sel-sw-coq-project</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 
 

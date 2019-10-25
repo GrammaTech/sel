@@ -10,7 +10,7 @@ or any later version published by the Free Software Foundation;
 with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
 A copy of the license is included in the section entitled
 "GNU Free Documentation License." -->
-<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>sel-cp-lexicase (Software Evolution Library)</title>
@@ -20,33 +20,24 @@ A copy of the license is included in the section entitled
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
-<link href="index.html#Top" rel="start" title="Top">
-<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html" rel="start" title="Top">
+<link href="Index.html" rel="index" title="Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
-<link href="SEL-Packages.html#SEL-Packages" rel="up" title="SEL Packages">
-<link href="sel_002dcp_002dmulti_002dobjective.html#sel_002dcp_002dmulti_002dobjective" rel="next" title="sel-cp-multi-objective">
-<link href="sel_002dcp_002djson_002dfodder_002ddatabase.html#sel_002dcp_002djson_002dfodder_002ddatabase" rel="prev" title="sel-cp-json-fodder-database">
+<link href="SEL-Packages.html" rel="up" title="SEL Packages">
+<link href="sel_002dcp_002dmulti_002dobjective.html" rel="next" title="sel-cp-multi-objective">
+<link href="sel_002dcp_002djson_002dfodder_002ddatabase.html" rel="prev" title="sel-cp-json-fodder-database">
 <style type="text/css">
 <!--
 a.summary-letter {text-decoration: none}
 blockquote.indentedblock {margin-right: 0em}
-blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
-blockquote.smallquotation {font-size: smaller}
 div.display {margin-left: 3.2em}
 div.example {margin-left: 3.2em}
 div.lisp {margin-left: 3.2em}
-div.smalldisplay {margin-left: 3.2em}
-div.smallexample {margin-left: 3.2em}
-div.smalllisp {margin-left: 3.2em}
 kbd {font-style: oblique}
 pre.display {font-family: inherit}
 pre.format {font-family: inherit}
 pre.menu-comment {font-family: serif}
 pre.menu-preformatted {font-family: serif}
-pre.smalldisplay {font-family: inherit; font-size: smaller}
-pre.smallexample {font-size: smaller}
-pre.smallformat {font-family: inherit; font-size: smaller}
-pre.smalllisp {font-size: smaller}
 span.nolinebreak {white-space: nowrap}
 span.roman {font-family: initial; font-weight: normal}
 span.sansserif {font-family: sans-serif; font-weight: normal}
@@ -58,29 +49,27 @@ ul.no-bullet {list-style: none}
 </head>
 
 <body lang="en">
-<a name="sel_002dcp_002dlexicase"></a>
-<div class="header">
+<span id="sel_002dcp_002dlexicase"></span><div class="header">
 <p>
-Next: <a href="sel_002dcp_002dmulti_002dobjective.html#sel_002dcp_002dmulti_002dobjective" accesskey="n" rel="next">sel-cp-multi-objective</a>, Previous: <a href="sel_002dcp_002djson_002dfodder_002ddatabase.html#sel_002dcp_002djson_002dfodder_002ddatabase" accesskey="p" rel="prev">sel-cp-json-fodder-database</a>, Up: <a href="SEL-Packages.html#SEL-Packages" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="sel_002dcp_002dmulti_002dobjective.html" accesskey="n" rel="next">sel-cp-multi-objective</a>, Previous: <a href="sel_002dcp_002djson_002dfodder_002ddatabase.html" accesskey="p" rel="prev">sel-cp-json-fodder-database</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<a name="sel_002dcp_002dlexicase-1"></a>
-<h3 class="section">C.56 sel-cp-lexicase</h3>
-<a name="Variable-_002alexicase_002dkey_002a"></a><dl>
-<dt><a name="index-_002alexicase_002dkey_002a"></a>Variable: <strong>*lexicase-key*</strong></dt>
+<span id="sel_002dcp_002dlexicase-1"></span><h3 class="section">C.53 sel-cp-lexicase</h3>
+<span id="Variable-_002alexicase_002dkey_002a"></span><dl>
+<dt id="index-_002alexicase_002dkey_002a">Variable: <strong>*lexicase-key*</strong></dt>
 <dd><p>Optional key function for components of test vector.
 </p></dd></dl>
-<a name="Function-lexicase_002dbetter_002dp"></a><dl>
-<dt><a name="index-lexicase_002dbetter_002dp"></a>Function: <strong>lexicase-better-p</strong> <em>order fitness-a fitness-b</em></dt>
+<span id="Function-lexicase_002dbetter_002dp"></span><dl>
+<dt id="index-lexicase_002dbetter_002dp">Function: <strong>lexicase-better-p</strong> <em>order fitness-a fitness-b</em></dt>
 <dd><p>Compare fitness vectors with a fixed order.
 </p></dd></dl>
-<a name="Function-lexicase_002dselect"></a><dl>
-<dt><a name="index-lexicase_002dselect"></a>Function: <strong>lexicase-select</strong> <em>population max-size</em></dt>
+<span id="Function-lexicase_002dselect"></span><dl>
+<dt id="index-lexicase_002dselect">Function: <strong>lexicase-select</strong> <em>population max-size</em></dt>
 <dd><p>Choose max-size individuals from the population by lexicase selection.
 The same individual may be selected multiple times.
 </p></dd></dl>
-<a name="Function-lexicase_002dselect_002dbest"></a><dl>
-<dt><a name="index-lexicase_002dselect_002dbest"></a>Function: <strong>lexicase-select-best</strong> <em>group &amp;key predicate</em></dt>
+<span id="Function-lexicase_002dselect_002dbest"></span><dl>
+<dt id="index-lexicase_002dselect_002dbest">Function: <strong>lexicase-select-best</strong> <em>group &amp;key predicate</em></dt>
 <dd><p>Choose best individuals by lexicase selection.
 </p>
 <p>If there is a tie after all tests, return all remaining individuals.
