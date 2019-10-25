@@ -54,11 +54,7 @@ exit 0")
 
 
 (define-software java (source)
-  ((genome    :initarg :genome :initform nil
-              :copier :direct)
-   (compiler  :initarg :compiler
-              :accessor compiler :initform "java")
-   (file-name :initarg :file-name
+  ((file-name :initarg :file-name
               :accessor file-name :initform nil))
   (:documentation "The Java software object represents a single java file."))
 

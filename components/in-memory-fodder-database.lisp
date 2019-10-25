@@ -62,23 +62,30 @@
   (:documentation "DOCFIXME"))
 
 (defmethod size ((db in-memory-database))
-  "DOCFIXME"
+  "The number of objects stored in the database DB"
   (length (ast-database-list db)))
 
 (defmethod database-emptyp ((db in-memory-database))
-  "DOCFIXME"
+  "True if the database DB contains no entries"
   (zerop (size db)))
 
 (defmethod find-snippets ((db in-memory-database)
                           &key ast-class full-stmt decls limit)
-  "DOCFIXME
+  "Find LIMIT snippets stored in DB, an in-memory database.
+If LIMIT is NIL or >= the number of snippets of the desired kind,
+return a list of all of them.  Otherwise, return a random
+subset of LIMIT objects of the desired kind.
 
-* DB DOCFIXME
-* AST-CLASS DOCFIXME
-* FULL-STMT DOCFIXME
-* DECLS DOCFIXME
-* LIMIT DOCFIXME
-"
+If AST-CLASS is not nil, it is the name of an AST-CLASS;
+consider only ASTs of that class.
+
+Otherwise, if FULL-STMT is true, consider only full statements.
+
+If DECLS is :ONLY, consider only ASTs for which the :IS-DECL
+property is true.
+
+Otherwise, consider all ASTs."
+
   (let ((snippets (->> (cond (ast-class
                               (gethash ast-class (ast-database-ht db)))
                              (full-stmt

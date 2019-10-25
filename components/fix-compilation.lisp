@@ -52,7 +52,7 @@ applied.")
   (unless (member regex (mapcar #'car *compilation-fixers*) :test #'string=)
     (push (cons regex function) *compilation-fixers*)))
 
-(defmethod fix-compilation ((obj clang) max-attempts &aux matches)
+(defmethod fix-compilation ((obj clang-base) max-attempts &aux matches)
   "Fix compilation errors in clang software object OBJ.
 Try to make any changes necessary for that object to compile
 successfully.  This will first employ `clang-tidy', which calls the
@@ -96,7 +96,7 @@ associated element of `*compilation-fixers*'.
   obj)
 
 ;; Fallback strategy: just delete the offending line entirely.
-(defmethod delete-line-with-error ((obj clang) match-data)
+(defmethod delete-line-with-error ((obj clang-base) match-data)
   "DOCFIXME
 
 * OBJ DOCFIXME
@@ -111,7 +111,7 @@ associated element of `*compilation-fixers*'.
 
 
 ;;; Resolve missing functions by adding #includes.
-(defmethod resolve-function ((obj clang) match-data)
+(defmethod resolve-function ((obj clang-base) match-data)
   "DOCFIXME
 
 * OBJ DOCFIXME
@@ -208,7 +208,7 @@ associated element of `*compilation-fixers*'.
 ;; just delete the offending line.
 (defmethod add-declaration-and-initialize (line-number-index
                                            variable-name-index
-                                           (obj clang)
+                                           (obj clang-base)
                                            match-data)
   "DOCFIXME
 
@@ -226,7 +226,7 @@ associated element of `*compilation-fixers*'.
  {add-declaration-and-initialize 0 1})
 
 ;; Replace C++-style casts with C-style casts.
-(defmethod c++-casts-to-c-casts ((obj clang) match-data)
+(defmethod c++-casts-to-c-casts ((obj clang-base) match-data)
   "DOCFIXME
 
 * OBJ DOCFIXME
@@ -294,7 +294,7 @@ associated element of `*compilation-fixers*'.
  #'expected-expression-before)
 
 ;; #include <stdint.h> when using types like int32_t.
-(defmethod require-stdint ((obj clang) match-data)
+(defmethod require-stdint ((obj clang-base) match-data)
   "DOCFIXME
 
 * OBJ DOCFIXME
@@ -327,7 +327,7 @@ associated element of `*compilation-fixers*'.
  ":(\\d+):(\\d+): error: unknown type name (‘|')(int|uint)1_t(’|')"
  #'add-int1-macros)
 
-(defmethod delete-redefinitions ((obj clang) match-data)
+(defmethod delete-redefinitions ((obj clang-base) match-data)
   "DOCFIXME
 
 * OBJ DOCFIXME
@@ -348,7 +348,7 @@ associated element of `*compilation-fixers*'.
  ": error: redefinition of '(.*)'"
  #'delete-redefinitions)
 
-(defmethod delete-undefined-references ((obj clang) match-data)
+(defmethod delete-undefined-references ((obj clang-base) match-data)
   "DOCFIXME
 
 * OBJ DOCFIXME
@@ -380,7 +380,7 @@ associated element of `*compilation-fixers*'.
  ": undefined reference to `(\\S+)'"
  #'delete-undefined-references)
 
-(defmethod declare-var-as-pointer ((obj clang) match-data)
+(defmethod declare-var-as-pointer ((obj clang-base) match-data)
   "DOCFIXME
 
 * OBJ DOCFIXME

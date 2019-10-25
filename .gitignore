@@ -35,12 +35,7 @@
 # Generated documentation
 doc/software-evolution-library/
 doc/include/
-doc/sel-ast-diff-alist-api.texi
-doc/sel-ast-diff-clang-api.texi
-doc/sel-ast-diff-clang-merge-api.texi
-doc/sel-ast-diff-commands-api.texi
-doc/sel-ast-diff-html-api.texi
-doc/sel-ast-diff-string-api.texi
+doc/sel-command-line-rest-api.texi
 doc/sel-cp-clang-instrument-api.texi
 doc/sel-cp-clang-tokens-api.texi
 doc/sel-cp-condition-synthesis-api.texi
@@ -61,6 +56,11 @@ doc/sel-cp-serapi-io-api.texi
 doc/sel-cp-test-suite-api.texi
 doc/sel-cp-traceable-api.texi
 doc/sel-rest-api.texi
+doc/sel-rest-async-jobs-api.texi
+doc/sel-rest-define-command-endpoint-api.texi
+doc/sel-rest-sessions-api.texi
+doc/sel-rest-std-api-api.texi
+doc/sel-rest-utility-api.texi
 doc/sel-sw-adaptive-mutation-api.texi
 doc/sel-sw-ancestral-api.texi
 doc/sel-sw-asm-api.texi
@@ -80,6 +80,7 @@ doc/sel-sw-elf-api.texi
 doc/sel-sw-elf-cisc-api.texi
 doc/sel-sw-elf-risc-api.texi
 doc/sel-sw-expression-api.texi
+doc/sel-sw-file-api.texi
 doc/sel-sw-forth-api.texi
 doc/sel-sw-java-api.texi
 doc/sel-sw-java-project-api.texi
@@ -102,7 +103,6 @@ doc/sel-test-api.texi
 doc/sel-utility-api.texi
 doc/sel-view-api.texi
 doc/software-evolution-library-api.texi
-doc/software-evolution-library-ast-diff-api.texi
 
 # Backup files
 *~
@@ -123,3 +123,5 @@ local.mk
 
 .qlfile
 system-index.txt
+
+wiki/

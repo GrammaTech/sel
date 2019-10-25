@@ -53,7 +53,7 @@ The trace returned will contain the following elements:
 @subsection Traces
 
 To collect traces, pass an instrumented version of the software object
-to the @refapigeneric{collect-traces} method along with a
+to the @refapigeneric{collect-test-case-traces} method along with a
 @refapiclass{test-suite} of test cases you wish to execute on the
 instrumented object.
 

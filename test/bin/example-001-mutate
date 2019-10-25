@@ -1,15 +1,6 @@
 #!/bin/bash
 
-if [[ $LISP == "sbcl" ]] || [[ $LISP == "SBCL" ]]; then
-    SBCL_HOME=${SBCL_HOME:-$(dirname $(which sbcl))/../lib/sbcl} \
-    sbcl --no-sysinit --no-userinit \
-         --load ${QUICK_LISP:-quicklisp}/setup.lisp \
-         --eval '(ql:quickload :software-evolution-library)' \
-         --eval '(ql:quickload :software-evolution-library/utility)' \
-         --eval '(ql:quickload :software-evolution-library/software/asm)' \
-         --load doc/examples/001-mutate.lisp \
-         --eval '(quit)'
-else
+if [[ $LISP == "ccl" ]] || [[ $LISP == "CCL" ]]; then
     ccl --quiet --no-init \
         --load ${QUICK_LISP:-quicklisp}/setup.lisp \
         --eval '(ql:quickload :software-evolution-library)' \
@@ -17,4 +8,13 @@ else
         --eval '(ql:quickload :software-evolution-library/software/asm)' \
         --load doc/examples/001-mutate.lisp \
         --eval '(quit)'
+else
+    SBCL_HOME=${SBCL_HOME:-$(dirname $(which sbcl))/../lib/sbcl} \
+    sbcl --noinform --no-sysinit --no-userinit \
+         --load ${QUICK_LISP:-quicklisp}/setup.lisp \
+         --eval '(ql:quickload :software-evolution-library :silent t)' \
+         --eval '(ql:quickload :software-evolution-library/utility :silent t)' \
+         --eval '(ql:quickload :software-evolution-library/software/asm :silent t)' \
+         --load doc/examples/001-mutate.lisp \
+         --eval '(quit)'
 fi

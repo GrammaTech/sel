@@ -68,11 +68,11 @@ Software Object Classes
      @itemize
      @item @ref{api-software-objects-project, @code{project}}
        @itemize
-       @item @ref{api-software-objects-parseable-project, @code{parseable-project}}
-         @itemize
-         @item @ref{api-software-objects-clang-project, @code{clang-project}}
-         @item @ref{api-software-objects-javascript-project, @code{javascript-project}}
-         @end itemize
+       @c @item @ref{api-software-objects-parseable-project, @code{parseable-project}}
+       @c   @itemize
+       @c   @item @ref{api-software-objects-clang-project, @code{clang-project}}
+       @c   @item @ref{api-software-objects-javascript-project, @code{javascript-project}}
+       @c   @end itemize
        @item @ref{api-software-objects-java-project, @code{java-project}}
        @end itemize
      @end itemize
@@ -120,11 +120,11 @@ Class @code{software}
 
   @item @ref{api-software-objects-project, @code{project}}
     @itemize
-    @item @ref{api-software-objects-parseable-project, @code{parseable-project}}
-      @itemize
-      @item @ref{api-software-objects-clang-project, @code{clang-project}}
-      @item @ref{api-software-objects-javascript-project, @code{javascript-project}}
-      @end itemize
+    @c @item @ref{api-software-objects-parseable-project, @code{parseable-project}}
+    @c   @itemize
+    @c   @item @ref{api-software-objects-clang-project, @code{clang-project}}
+    @c   @item @ref{api-software-objects-javascript-project, @code{javascript-project}}
+    @c   @end itemize
     @item @ref{api-software-objects-java-project, @code{java-project}}
     @end itemize
 
@@ -200,8 +200,7 @@ Class @code{software}
 @item Methods
   @itemize
   @item @refapimethod{apply-mutation,apply-mutation before}
-  @item @refapimethod{collect-trace,collect-trace}
-  @item @refapimethod{collect-traces,collect-traces}
+  @item @refapimethod{collect-test-case-traces,collect-test-case-traces}
   @end itemize
 @end itemize
 
@@ -508,10 +507,8 @@ Class @code{clang}
   @item @refapifunction{make-for-stmt}
   @item @refapifunction{make-if-stmt}
   @item @refapifunction{make-label}
-  @item @refapifunction{make-literal}
   @item @refapifunction{make-operator}
   @item @refapifunction{make-parens}
-  @item @refapifunction{make-statement}
   @item @refapifunction{make-var-decl}
   @item @refapifunction{make-var-reference}
   @item @refapifunction{make-while-stmt}
@@ -659,13 +656,6 @@ Class @code{project}
 
 @itemize
 @item Class @refapiclass{project}
-@item Functions
-  @itemize
-  @item @refapifunction{make-build-dir}
-  @end itemize
-
-@item Variable @refapivariable{*build-dir*}
-
 @item Methods
   @itemize
   @item @refapimethod{apply-mutation,apply-mutation}
@@ -690,23 +680,23 @@ Class @code{project}
 
 @c ----------------------------------------
 
-@anchor{api-software-objects-parseable-project}
-@subsubsection Class @code{parseable-project}
-
-[
-@ref{SEL API, API} |
-@ref{api-software-objects, Software Objects} |
-@ref{api-software-object-classes,Software Object Classes} |
-Class @code{parseable-project}
-]
-
-@itemize
-@item Class @refapiclass{parseable-project}
-@item Methods
-  @itemize
-  @item @refapimethod{asts,asts}
-  @end itemize
-@end itemize
+@c @anchor{api-software-objects-parseable-project}
+@c @subsubsection Class @code{parseable-project}
+@c
+@c [
+@c @ref{SEL API, API} |
+@c @ref{api-software-objects, Software Objects} |
+@c @ref{api-software-object-classes,Software Object Classes} |
+@c Class @code{parseable-project}
+@c ]
+@c
+@c @itemize
+@c @item Class @refapiclass{parseable-project}
+@c @item Methods
+@c   @itemize
+@c   @item @refapimethod{asts,asts}
+@c   @end itemize
+@c @end itemize
 
 @c ----------------------------------------
 

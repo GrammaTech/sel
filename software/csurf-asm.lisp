@@ -29,7 +29,9 @@
            :redirect-file
            :linker-script
            :weak-symbols
-           :linked-files))
+           :linked-files)
+  (:shadowing-import-from :software-evolution-library/software/asm
+                          :flags :linker))
 (in-package :software-evolution-library/software/csurf-asm)
 (in-readtable :curry-compose-reader-macros)
 

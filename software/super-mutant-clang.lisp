@@ -10,7 +10,6 @@
         :iterate
         :software-evolution-library
         :software-evolution-library/utility
-        :software-evolution-library/ast-diff/ast-diff
         :software-evolution-library/software/ast
         :software-evolution-library/software/source
         :software-evolution-library/software/parseable
@@ -25,11 +24,11 @@
 (in-package :software-evolution-library/software/super-mutant-clang)
 (in-readtable :curry-compose-reader-macros)
 
-(defmethod create-super-soft ((base clang) mutants)
+(defmethod create-super-soft ((base clang-base) mutants)
   (labels
       ((ensure-functions-compatible (f1 f2 mutant)
          (unless (ast-equal-p f1 f2)
-           (unless (string= (ast-name f1) (ast-name f2))
+           (unless (name= (ast-name f1) (ast-name f2))
              (error (make-condition 'mutate
                                     :text "Mismatched function names"
                                     :obj mutant)))
@@ -38,7 +37,7 @@
                                     :text "Mismatched return types"
                                     :obj mutant)))
            (unless (and (eq (ast-varargs f1) (ast-varargs f2))
-                        (equal (ast-args f1) (ast-args f2)))
+                        (ast-args-equal (ast-args f1) (ast-args f2)))
              (error (make-condition 'mutate
                                     :text "Mismatched function arguments"
                                     :obj mutant)))))
@@ -173,7 +172,9 @@ true, create a complete function decl which contains the body."
                   (push variants inserts))))))
     (-<>>
      ;; Collect top-level ASTs and their declared identifiers
-     (mapcar [{mapcar (lambda (ast) (cons (ast-declares ast) ast))} #'roots]
+     (mapcar [{mapcar (lambda (ast)
+                        (cons (mapcar #'ast-name (ast-declares ast)) ast))}
+              #'roots]
              mutants)
      (collate-ast-variants)
      (mapcar #'process-ast)

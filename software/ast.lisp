@@ -20,34 +20,48 @@
         :software-evolution-library/utility)
   (:import-from :uiop :nest)
   (:export :ast
+           :ast-stub
+           :ast-p
            :define-ast
            :define-immutable-node-struct
            :to-alist
            :from-alist
            :ast-path
            :ast-node
+           :ast-stored-hash
            :ast-class
            :ast-aux-data
            :source-text
            :rebind-vars
            :replace-in-vars
-           :insert-ast
-           :insert-ast-after
            :replace-nth-child
-           :replace-ast
-           :remove-ast
-           :splice-asts
            :fixup-mutation
            :ast-children
+           :ast-nodes-in-subtree
+           :ast-equal-p
            :ast-text
-	   :ast-hash
+           :ast-hash
+           :make-conflict-ast
+           :conflict-ast
+           :conflict-ast-p
+           :conflict-ast-child-alist
+           :conflict-ast-default-children
+           :combine-conflict-asts
            :to-ast
+           :to-ast*
            :ast-later-p
-	   :map-ast
-	   :map-ast-strings
-	   :ast-meld-p
-	   :ast-class-meld?
-           :replace-in-ast))
+           :map-ast
+           :map-ast-postorder
+           :map-ast-with-ancestors
+           :mapc-ast
+           :mapc-ast-and-strings
+           :ast-to-list
+           :map-ast-strings
+           :ast-meld-p
+           :ast-class-meld?
+           :replace-in-ast
+           :move-prefixes-down
+           :defgeneric-kind))
 (in-package :software-evolution-library/software/ast)
 (in-readtable :curry-compose-reader-macros)
 
@@ -55,26 +69,89 @@
 ;;; Data structure definitions
 (defstruct ast-node "Base type of immutable portion of ast nodes.")
 
-(defstruct (ast (:constructor make-raw-ast))
+(defstruct ast "Base structure of mutable portion of ast nodes.")
+
+(defstruct (ast-stub (:include ast) (:constructor make-raw-ast) (:conc-name ast-internal-))
   "Base type of sub-tree of an applicative AST tree."
   (path nil :type list)                      ; Path to subtree from root of tree.
-  (node nil :type (or ast-node string null)) ; Pointer to immutable AST data.
   (children nil :type list)                  ; Remainder of subtree.
   (stored-hash nil :type (or null fixnum)))
 
-(defmethod print-object ((obj ast) stream)
-  "Print a representation of the ast OBJ to STREAM, including
-the ast path and source text.
-* OBJ ast to print
-* STREAM stream to print OBJ to
-"
+(defgeneric ast-path (a)
+  (:documentation "Genericized version of path reader for AST structs")
+  (:method ((a ast-stub)) (ast-internal-path a)))
+(defgeneric (setf ast-path) (v a)
+  (:documentation "Genericized version of path writer for AST structs")
+  (:method ((v list) (a ast-stub)) (setf (ast-internal-path a) v)))
+(defgeneric ast-children (a)
+  (:documentation "Genericized version of children reader for AST structs")
+  (:method ((a ast-stub)) (ast-internal-children a)))
+(defgeneric (setf ast-children) (v a)
+  (:documentation "Genericized version of children writer for AST structs")
+  (:method ((v list) (a ast-stub)) (setf (ast-internal-children a) v)))
+(defgeneric ast-stored-hash (a)
+  (:documentation "Genericized version of stored-hash reader for AST structs")
+  (:method ((a ast-stub)) (ast-internal-stored-hash a)))
+(defgeneric (setf ast-stored-hash) (v a)
+  (:documentation "Genericized version of children writer for AST structs")
+  (:method (v (a ast-stub)) (setf (ast-internal-stored-hash a) v)))
+
+(defparameter *ast-print-cutoff* 20
+  "Maximum number of characters to print for TEXT in
+PRINT-OBJECT method on AST structures.")
+
+(defmethod print-object ((obj ast-stub) stream &aux (cutoff *ast-print-cutoff*))
   (if *print-readably*
       (call-next-method)
       (print-unreadable-object (obj stream :type t)
-        (format stream ":PATH ~s ~:_ :AST ~s ~:_ :TEXT ~a"
-                (ast-path obj) (ast-node obj) (source-text obj)))))
+        (format stream ":PATH ~s ~:_ :NODE ~s ~:_ :TEXT ~s"
+                (ast-path obj) (ast-node obj)
+                (let* ((text (source-text obj))
+                       (truncated
+                        (if (> (length text) cutoff)
+                            (concatenate 'string (subseq text 0 cutoff) "...")
+                            text)))
+                  (if-let ((position (search (string #\Newline) truncated)))
+                    (concatenate 'string (subseq truncated 0 position) "...")
+                    truncated))))))
 
 (defgeneric ast-class (ast) (:documentation "Class of AST."))
+
+(defun symbol-cat (&rest symbols)
+  "Return a symbol concatenation of SYMBOLS."
+  (intern (string-upcase (mapconcat #'symbol-name symbols "-"))))
+
+(defun symbol-cat-in-package (package &rest symbols)
+  "Return a symbol concatenation of SYMBOLS in PACKAGE."
+  (intern (string-upcase (mapconcat #'symbol-name symbols "-"))
+          package))
+
+(defun get-struct-name (name-and-options)
+  "Given NAME-AND-OPTIONS, return the struct name."
+  (if (listp name-and-options)
+      (car name-and-options)
+      name-and-options))
+
+(defun get-struct-conc-name (name-and-options)
+  "Given NAME-AND-OPTIONS, return the struct conc name."
+  (if (listp name-and-options)
+      (or (second (assoc :conc-name
+                         (cdr name-and-options)))
+          (car name-and-options))
+      name-and-options))
+
+(defun get-struct-slot-names (slot-descriptions)
+  "Given SLOT-DESCRIPTIONS, return the slot names."
+  (mapcar (lambda (slot)
+            (if (listp slot)
+                (car slot)
+                slot))
+          (remove-if #'stringp slot-descriptions)))
+
+(defun get-struct-include (name-and-options)
+  "Given NAME-AND-OPTIONS, return the struct :include name, or NIL if none."
+  (and (listp name-and-options)
+       (cadr (assoc :include (cdr name-and-options)))))
 
 (defmacro define-immutable-node-struct (name-and-options &rest slot-descriptions)
   (with-gensyms ((obj obj-))
@@ -87,7 +164,7 @@ the ast path and source text.
                                               (or (plist-get :type slot) t))
                                         (list slot t)))
                                   (remove-if #'stringp slot-descriptions))))
-      `(prog1
+      `(progn
            ;; Define the immutable structure.
            (defstruct (,name ,@(when (listp name-and-options)
                                  (remove-if
@@ -149,7 +226,8 @@ the ast path and source text.
                                      `(symbol-name
                                        (,(symbol-cat conc-name name) ,obj))
                                      `(,(symbol-cat conc-name name) ,obj))))
-                       names-w-types)))))))
+                       names-w-types)))
+           ',name))))
 
 (defmacro define-ast (name-and-options &rest slot-descriptions
                       &aux (default-ast-slot-descriptions
@@ -157,30 +235,38 @@ the ast path and source text.
                                (aux-data nil :type list))))
   "Implicitly defines an AST wrapper for the defined AST-node."
   (with-gensyms ((obj obj-))
-    (let* ((doc-strings (remove-if-not #'stringp slot-descriptions))
-	   (slot-descriptions (remove-if #'stringp slot-descriptions))
-	   (all-slot-descriptions (append default-ast-slot-descriptions
+    (let* ((include (get-struct-include name-and-options))
+           (doc-strings (remove-if-not #'stringp slot-descriptions))
+           (slot-descriptions (remove-if #'stringp slot-descriptions))
+           (all-slot-descriptions (append default-ast-slot-descriptions
                                           slot-descriptions))
            (name (get-struct-name name-and-options))
            (conc-name (get-struct-conc-name name-and-options))
            (slot-names (get-struct-slot-names all-slot-descriptions)))
-      `(prog2
+      `(progn
            ;; Define the immutable node.
            (define-immutable-node-struct (,(symbol-cat name 'node)
                                           (:include ast-node)
-					   (:conc-name ,conc-name))
-	     ,@doc-strings
+                                           (:conc-name ,conc-name))
+             ,@doc-strings
              ,@all-slot-descriptions)
            ;; Define and return the wrapper.
-           (defstruct (,name (:include ast)
-                             (:copier nil)
-                             ,@(when (listp name-and-options)
-                                 (remove-if
-                                  (lambda (pair)
-                                    (member (car pair)
-                                            '(:conc-name :copier :include)))
-                                  (cdr name-and-options))))
-	     ,@doc-strings)
+           (defstruct (,name ;; (:include ast-stub)
+                        (:include ,(or include 'ast))
+                        (:copier nil)
+                        ,@(when (listp name-and-options)
+                            (remove-if
+                             (lambda (pair)
+                               (member (car pair)
+                                       '(:conc-name :copier :include)))
+                             (cdr name-and-options))))
+             ,@doc-strings
+             ;; Duplicated from ast-stub
+             (path nil :type list)           ;; Path to subtree from root of tree.
+             (node nil :type (or ast-node string null)) ;; Pointer to immutable AST data.
+             (children nil :type list)                  ;; Remainder of subtree.
+             (stored-hash nil :type (or null fixnum))
+             )
            ;; Copy method for light weight copies of wrapper only.
            (defmethod copy
                ((,obj ,name)
@@ -205,15 +291,127 @@ the ast path and source text.
                         (,(symbol-cat name 'node) ,obj))
                :children (if children-supplied-p
                              children
-                             (,(symbol-cat name 'children) ,obj))))
+                             (ast-children ,obj))))
+           ;; Define accessors for internal fields on outer structure
+           (defmethod ast-path ((,obj ,name))
+             (,(symbol-cat name 'path) ,obj))
+           (defmethod (setf ast-path) ((v list) (,obj ,name))
+             (setf (,(symbol-cat name 'path) ,obj) v))
+           (defmethod ast-node ((,obj ,name))
+             (,(symbol-cat name 'node) ,obj))
+           (defmethod (setf ast-node) (v (,obj ,name))
+             (setf (,(symbol-cat name 'node) ,obj) v))
+           (defmethod ast-children ((,obj ,name))
+             (,(symbol-cat name 'children) ,obj))
+           (defmethod (setf ast-children) ((v list) (,obj ,name))
+             (setf (,(symbol-cat name 'children) ,obj) v))
+           (defmethod ast-stored-hash ((,obj ,name))
+             (,(symbol-cat name 'stored-hash) ,obj))
+           (defmethod (setf ast-stored-hash) (v (,obj ,name))
+             (setf (,(symbol-cat name 'stored-hash) ,obj) v))
+           #|
+           (defmethod ,(symbol-cat conc-name 'path) ((,obj ,name))
+             (ast-internal-path ,obj))
+           (defmethod (setf ,(symbol-cat conc-name 'path)) ((v list) (,obj ,name))
+             (setf (ast-internal-path ,obj) v))
+           (defmethod ,(symbol-cat conc-name 'node) ((,obj ,name))
+             (ast-internal-node ,obj))
+           (defmethod (setf ,(symbol-cat conc-name 'node)) (v (,obj ,name))
+             (setf (ast-internal-node ,obj) v))
+           (defmethod ,(symbol-cat conc-name 'children) ((,obj ,name))
+             (ast-internal-children ,obj))
+           (defmethod (setf ,(symbol-cat conc-name 'children)) ((v list) (,obj ,name))
+             (setf (ast-internal-children ,obj) v))
+           (defmethod ,(symbol-cat conc-name 'stored-hash) ((,obj ,name))
+             (ast-internal-stored-hash ,obj))
+           (defmethod (setf ,(symbol-cat conc-name 'stored-hash)) (v (,obj ,name))
+             (setf (ast-internal-stored-hash ,obj) v))
+           |#
+
            ;; Define accessors for inner fields on outer structure.
            ,@(mapcar
                (lambda (slot)
                  `(defmethod ,(symbol-cat conc-name slot) ((,obj ,name))
-                    (,(symbol-cat conc-name slot) (ast-node ,obj))))
-               slot-names)))))
+                    (,(symbol-cat conc-name slot) (,(symbol-cat conc-name 'node) ,obj))))
+               slot-names)
+           ',name))))
 
-(defun to-ast (ast-type spec)
+(defstruct (conflict-ast (:include ast-stub))
+  "Node representing several possibilities for insertion into an AST.
+The mapping from a conflicted AST into a regular AST is as follows: for
+a given conflict key, and for each conflict node, get the list of children
+corresponding to that key (default if the key is not present), and splice
+that list of children in place of the conflict node in its parent's children
+list."
+  child-alist    ; Mapping from conflict options to lists of children.
+  default-children) ; Children to use for keys not present in CHILD-ALIST.
+
+(defmethod copy
+    ((struct conflict-ast) &key
+                             (path nil path-provided-p)
+                             (node nil node-provided-p)
+                             (children nil children-provided-p)
+                             (stored-hash nil stored-hash-provided-p)
+                             (child-alist nil child-alist-provided-p)
+                             (default-children nil default-children-provided-p))
+  (apply
+   #'make-conflict-ast
+   (append
+    (when path-provided-p (list :path path))
+    (when node-provided-p (list :node node))
+    (when children-provided-p (list :children children))
+    (when stored-hash-provided-p (list :stored-hash stored-hash))
+    (list :child-alist (if child-alist-provided-p
+                           child-alist
+                           (conflict-ast-child-alist struct))
+          :default-children (if default-children-provided-p
+                                default-children
+                                (conflict-ast-default-children struct))))))
+
+(defmethod print-object ((obj conflict-ast) stream)
+  (if *print-readably*
+      (call-next-method)
+      (print-unreadable-object (obj stream :type t)
+        (format stream ":PATH ~s ~:_ :NODE ~s ~:_ :CHILD-ALIST ~s"
+                (ast-path obj) (ast-node obj)
+                (conflict-ast-child-alist obj)))))
+
+(defgeneric combine-conflict-asts (ca1 ca2)
+  (:documentation
+   "Merge conflict ast nodes CA1 and CA2, their alists and default values."))
+
+(defmethod combine-conflict-asts ((ca1 conflict-ast) (ca2 conflict-ast))
+  (let ((al1 (copy-alist (conflict-ast-child-alist ca1)))
+        (al2 (copy-alist (conflict-ast-child-alist ca2)))
+        (def1 (conflict-ast-default-children ca1))
+        (def2 (conflict-ast-default-children ca2)))
+    ;; Previously we removed alist entries mapping to nil,
+    ;; but this has been removed so even empty lists show up
+    ;; in a merge
+    ;; Build combined alist
+    (iter (for p in al1)
+          (let* ((k (car p))
+                 (vals2 (aget k al2)))
+            (if vals2
+                (setf (cdr p) (append (cdr p) vals2))
+                (setf (cdr p) (append (cdr p) def2)))))
+    (let ((al (append al1
+                      (iter (for p in al2)
+                            (let* ((k (car p))
+                                   (vals1 (aget k al1)))
+                              (unless vals1
+                                (collect (cons k (append def1 (cdr p))))))))))
+      (make-conflict-ast
+       :child-alist al
+       :default-children (append def1 def2)))))
+
+(defmethod ast-class ((c conflict-ast)) nil)
+
+;;; There should be functions for stripping conflict nodes out of a tree,
+;;; based on option keys.
+
+(defgeneric to-ast (ast-type spec)
+  (:documentation
   "Walk a potentially recursive AST SPEC creating an AST-TYPE AST.
 A SPEC should have the form
 
@@ -226,7 +424,9 @@ to `to-ast`.  E.g.
   (to-ast 'clang-ast (:callexpr (:implicitcastexpr
                                  :includes '(\"<string.h>\")
                                  \"\" \"(|strcpy|)\" \"\")
-                                \"(\" \"arg-1\" \",\" \"arg-2\" \")\"))"
+                                \"(\" \"arg-1\" \",\" \"arg-2\" \")\"))"))
+
+(defun to-ast* (spec fn)
   (labels ((convert-to-node (spec)
              (destructuring-bind (class &rest options-and-children) spec
                (multiple-value-bind (keys children)
@@ -242,45 +442,21 @@ to `to-ast`.  E.g.
                                  (collect item into children)))
                          (setf previous item)
                          (finally (return (values keys children))))
-                 (funcall (symbol-cat-in-package (symbol-package ast-type)
-                                                 'make ast-type)
-                   :node (apply (symbol-cat-in-package (symbol-package ast-type)
-                                                       'make ast-type 'node)
-                                :class (intern (symbol-name class))
-                                keys)
-                   :children children)))))
+                 (funcall fn class keys children)))))
     (convert-to-node spec)))
 
-(defun symbol-cat (&rest symbols)
-  "Return a symbol concatenation of SYMBOLS."
-  (intern (string-upcase (mapconcat #'symbol-name symbols "-"))))
-
-(defun symbol-cat-in-package (package &rest symbols)
-  "Return a symbol concatenation of SYMBOLS in PACKAGE."
-  (intern (string-upcase (mapconcat #'symbol-name symbols "-"))
-          package))
-
-(defun get-struct-name (name-and-options)
-  "Given NAME-AND-OPTIONS, return the struct name."
-  (if (listp name-and-options)
-      (car name-and-options)
-      name-and-options))
-
-(defun get-struct-conc-name (name-and-options)
-  "Given NAME-AND-OPTIONS, return the struct conc name."
-  (if (listp name-and-options)
-      (or (second (assoc :conc-name
-                         (cdr name-and-options)))
-          (car name-and-options))
-      name-and-options))
-
-(defun get-struct-slot-names (slot-descriptions)
-  "Given SLOT-DESCRIPTIONS, return the slot names."
-  (mapcar (lambda (slot)
-            (if (listp slot)
-                (car slot)
-                slot))
-          (remove-if #'stringp slot-descriptions)))
+(defmethod to-ast (ast-type spec)
+  (to-ast* spec
+           (lambda (class keys children)
+             (funcall (symbol-cat-in-package (symbol-package ast-type)
+                                             'make ast-type)
+                      :node (apply (symbol-cat-in-package (symbol-package ast-type)
+                                                          'make ast-type 'node)
+                                   :class (if (keywordp class)
+                                              class
+                                              (intern (symbol-name class) "KEYWORD"))
+                                   keys)
+                      :children children))))
 
 
 ;;; Generic functions on ASTs
@@ -301,30 +477,13 @@ to `to-ast`.  E.g.
   (:documentation "Make arbitrary replacements within AST, returning a new
 AST."))
 
-(defgeneric insert-ast (tree location ast)
-  (:documentation "Return the modified TREE with AST inserted at
-LOCATION."))
-
-(defgeneric insert-ast-after (tree location ast)
-  (:documentation "Insert AST immediately after LOCATION in TREE, returning
-new tree."))
-
-(defgeneric replace-ast (tree location replacement &key &allow-other-keys)
-  (:documentation "Return the modified TREE with the AST at LOCATION replaced
-with REPLACEMENT."))
-
-(defgeneric remove-ast (tree location)
-  (:documentation "Return the modified TREE with the AST at LOCATION removed."))
-
-(defgeneric splice-asts (tree location new-asts)
-  (:documentation "Splice NEW-ASTS directly into the given LOCATION in TREE,
-replacing the original AST."))
-
 (defgeneric fixup-mutation (operation current before ast after)
   (:documentation "Adjust mutation result according to syntactic context."))
 
 
 ;;; Base implementation of generic functions
+(defmethod source-text ((ast null)) "")
+
 (defmethod source-text ((ast ast))
   "Return the source code corresponding to AST."
   ;; In performance comparison the combination of
@@ -345,6 +504,15 @@ replacing the original AST."))
 (defmethod source-text ((str string))
   "Return the source code corresponding to STR."
   str)
+
+(defmethod source-text ((c conflict-ast))
+  (with-output-to-string (s)
+    (format s "<")
+    (iter (for e on (conflict-ast-child-alist c))
+          (format s "~a: " (caar e))
+          (iter (for x in (cdar e)) (format s "~a" (source-text x)))
+          (when (cdr e) (format s "|")))
+    (format s ">")))
 
 (defmethod rebind-vars ((ast string) var-replacements fun-replacements)
   "Replace variable and function references, returning a new AST.
@@ -402,115 +570,183 @@ operations."
                   (t (path-later-p tail-a tail-b))))))))
     (path-later-p (ast-path ast-a) (ast-path ast-b))))
 
+#+not-needed
+(defgeneric deep-copy (ast)
+  (:documentation "Perform a deep copy of an AST.")
+  (:method ((obj string)) (copy-seq obj))
+  (:method ((obj (eql nil))) (error "Not callable on nil!"))
+  (:method ((obj ast))
+    (copy obj :children (mapcar #'deep-copy (ast-children obj))))
+  (:method ((obj conflict-ast))
+    (copy obj
+          :children (mapcar #'deep-copy (ast-children obj))
+          :child-alist (mapcar (lambda (pair)
+                                 (destructuring-bind (key . value) pair
+                                   (cons key (mapcar #'deep-copy value))))
+                               (conflict-ast-child-alist obj)))))
+
 
 ;;; Tree manipulations
-(defun replace-nth-child (ast n replacement)
-  "Return AST with the nth child of AST replaced with REPLACEMENT.
+;;;
+;;; NOTE: These methods are helpers performing the AST manipulations for
+;;; the corresponding mutation operations in parseable.lisp.  They should
+;;; not be called directly unless you are confident in what you are doing
+;;; and accept that behavior of the parent software object may be incorrect.
+
+(defgeneric replace-nth-child (ast n replacement)
+  (:documentation "Return AST with the nth child of AST replaced with
+REPLACEMENT.
+
 * AST tree to modify
 * N child to modify
-* REPLACEMENT replacement for the nth child"
-  (copy ast
-        :children (nconc (subseq (ast-children ast) 0 n)
-                         (list replacement)
-                         (subseq (ast-children ast) (+ 1 n)))))
+* REPLACEMENT replacement for the nth child")
+  (:method ((ast ast) (n integer) replacement)
+    (replace-nth-child ast n (list replacement)))
+  (:method ((ast ast) (n integer) (replacement list))
+    (copy ast
+          :children (append (subseq (ast-children ast) 0 n)
+                            replacement
+                            (subseq (ast-children ast) (+ 1 n))))))
 
-(defmethod replace-ast ((tree ast) (location ast) (replacement ast)
-                        &rest args &key &allow-other-keys)
-  "Return the modified TREE with the AST at LOCATION replaced with
-REPLACEMENT.
+(defgeneric replace-ast (tree location replacement)
+  (:documentation "Replace the AST at LOCATION in TREE with REPLACEMENT.
+
 * TREE Applicative AST tree to be modified
-* LOCATION AST to be replaced in TREE
-* REPLACEMENT Replacement AST"
-  (apply #'replace-ast tree (ast-path location) replacement args))
+* LOCATION AST marking location where replacement is to occur
+* NEW-ASTS ASTs to be inserted into TREE
 
-(defmethod replace-ast ((tree ast) (location list) (replacement ast)
-                        &key &allow-other-keys)
-  "Return the modified TREE with the AST at LOCATION replaced with
-REPLACEMENT.
-* TREE Applicative AST tree to be modified
-* LOCATION path to the AST to be replaced in TREE
-* REPLACEMENT Replacement AST"
-  (labels
-    ((non-empty (str)
-       "Return STR only if it's not empty.
+Note: This method is a helper for performing an AST mutation operation
+specified in parseable.lisp and should not be called directly without
+knowledge of the underlying code architecture.  Please consider using
+the methods in parseable.lisp instead.")
+  (:method ((tree ast) (location ast) (replacement ast))
+    (replace-ast tree (ast-path location) replacement))
 
-asts->tree tends to leave dangling empty strings at the ends of child
-list, and we want to treat them as NIL in most cases."
-       (when (not (equalp str "")) str))
-     (helper (tree path next)
-         (bind (((head . tail) path)
-                (children (ast-children tree)))
-           (if tail
-               ;; The insertion may need to modify text farther up the
-               ;; tree. Pass down the next bit of non-empty text and
-               ;; get back a new string.
-               (multiple-value-bind (child new-next)
-                   (helper (nth head children)
-                           tail
-                           (or (non-empty (nth (1+ head) children))
-                               next))
-                 (if (and new-next (non-empty (nth (1+ head) children)))
-                     ;; The modified text belongs here. Insert it.
-                     (values (copy tree
-                                   :children (nconc (subseq children
-                                                            0 head)
-                                                    (list child new-next)
-                                                    (subseq children
-                                                            (+ 2 head))))
-                             nil)
+  (:method ((tree ast) (location list) (replacement ast))
+    (labels        ; TODO: Remove or relocate all of this "fixup" logic.
+      ((non-empty (str)
+         "Return STR only if it's not empty.
 
-                     ;; Otherwise keep passing it up the tree.
-                     (values (replace-nth-child tree head child)
-                             new-next)))
-               (let* ((after (nth (1+ head) children))
-                      (fixed (fixup-mutation :instead
-                                             (nth head children)
-                                             (if (positive-integer-p head)
-                                                 (nth (1- head) children)
-                                                 "")
-                                             replacement
-                                             (or (non-empty after) next))))
+          asts->tree tends to leave dangling empty strings at the ends of child
+          list, and we want to treat them as NIL in most cases."
+         (when (not (equalp str "")) str))
+       (helper (tree path next)
+           (bind (((head . tail) path)
+                  (children (ast-children tree)))
+             (if tail
+                 ;; The insertion may need to modify text farther up the
+                 ;; tree. Pass down the next bit of non-empty text and
+                 ;; get back a new string.
+                 (multiple-value-bind (child new-next)
+                     (helper (nth head children)
+                             tail
+                             (or (non-empty (nth (1+ head) children))
+                                 next))
+                   (if (and new-next (non-empty (nth (1+ head) children)))
+                       ;; The modified text belongs here. Insert it.
+                       (values (copy tree
+                                     :children (nconc (subseq children
+                                                              0 head)
+                                                      (list child new-next)
+                                                      (subseq children
+                                                              (+ 2 head))))
+                               nil)
 
-                 (if (non-empty after)
-                     ;; fixup-mutation can change the text after the
-                     ;; insertion (e.g. to remove a semicolon). If
-                     ;; that text is part of this AST, just include it
-                     ;; in the list.
-                     (values
-                      (copy tree
-                            :children (nconc (subseq children
-                                                     0 (max 0 (1- head)))
-                                             fixed
-                                             (nthcdr (+ 2 head) children)))
-                      nil)
+                       ;; Otherwise keep passing it up the tree.
+                       (values (replace-nth-child tree head child)
+                               new-next)))
+                 (let* ((after (nth (1+ head) children))
+                        (fixed (fixup-mutation :instead
+                                               (nth head children)
+                                               (if (positive-integer-p head)
+                                                   (nth (1- head) children)
+                                                   "")
+                                               replacement
+                                               (or (non-empty after) next))))
 
-                     ;; If the text we need to modify came from
-                     ;; farther up the tree, return it instead of
-                     ;; inserting it here.
-                     (values
-                      (copy tree
-                            :children (nconc (subseq children
-                                                     0 (max 0 (1- head)))
-                                             (butlast fixed)
-                                             (nthcdr (+ 2 head) children)))
-                      (lastcar fixed))))))))
-    (if location
-        (helper tree location nil)
-        tree)))
+                   (if (non-empty after)
+                       ;; fixup-mutation can change the text after the
+                       ;; insertion (e.g. to remove a semicolon). If
+                       ;; that text is part of this AST, just include it
+                       ;; in the list.
+                       (values
+                        (copy tree
+                              :children (nconc (subseq children
+                                                       0 (max 0 (1- head)))
+                                               fixed
+                                               (nthcdr (+ 2 head) children)))
+                        nil)
 
-(defmethod remove-ast ((tree ast) (location ast))
-  "Return the modified TREE with the AST at LOCATION removed.
+                       ;; If the text we need to modify came from
+                       ;; farther up the tree, return it instead of
+                       ;; inserting it here.
+                       (values
+                        (copy tree
+                              :children (nconc (subseq children
+                                                       0 (max 0 (1- head)))
+                                               (butlast fixed)
+                                               (nthcdr (+ 2 head) children)))
+                        (lastcar fixed))))))))
+      (if location
+          (helper tree location nil)
+          replacement))))
+
+(defgeneric remove-ast (tree location)
+  (:documentation "Return the modified TREE with the AST at LOCATION removed.
+
 * TREE Applicative AST tree to be modified
 * LOCATION AST to be removed in TREE
-"
-  (remove-ast tree (ast-path location)))
 
-(defmethod remove-ast ((tree ast) (location list))
-  "Return the modified TREE with the AST at LOCATION removed.
+Note: This method is a helper for performing an AST mutation operation
+specified in parseable.lisp and should not be called directly without
+knowledge of the underlying code architecture.  Please consider using
+the methods in parseable.lisp instead.")
+  (:method ((tree ast) (location ast))
+    (remove-ast tree (ast-path location)))
+
+  (:method ((tree ast) (location list))
+    (labels
+        ((helper (tree path)
+           (bind (((head . tail) path)
+                  (children (ast-children tree)))
+             (if tail
+                 ;; Recurse into child
+                 (replace-nth-child tree head (helper (nth head children) tail))
+
+                 ;; Remove child
+                 (copy tree
+                       :children (nconc (subseq children 0 (max 0 (1- head)))
+                                        (fixup-mutation
+                                          :remove
+                                          (nth head children)
+                                          (if (positive-integer-p head)
+                                              (nth (1- head) children)
+                                              "")
+                                          nil
+                                          (or (nth (1+ head) children) ""))
+                                        (nthcdr (+ 2 head) children)))))))
+      (helper tree location))))
+
+(defgeneric splice-asts (tree location new-asts)
+  (:documentation "Splice NEW-ASTS directly into the given LOCATION in TREE,
+replacing the original AST.
+
+Can insert ASTs and text snippets. Does minimal syntactic fixups, so
+use carefully.
+
 * TREE Applicative AST tree to be modified
-* LOCATION path to the AST to be removed in TREE
-"
-  (labels
+* LOCATION AST marking location where insertion is to occur
+* NEW-ASTS ASTs to be inserted into TREE
+
+Note: This method is a helper for performing an AST mutation operation
+specified in parseable.lisp and should not be called directly without
+knowledge of the underlying code architecture.  Please consider using
+the methods in parseable.lisp instead.")
+  (:method ((tree ast) (location ast) (new-asts list))
+    (splice-asts tree (ast-path location) new-asts))
+
+  (:method ((tree ast) (location list) (new-asts list))
+    (labels
       ((helper (tree path)
          (bind (((head . tail) path)
                 (children (ast-children tree)))
@@ -518,168 +754,204 @@ list, and we want to treat them as NIL in most cases."
                ;; Recurse into child
                (replace-nth-child tree head (helper (nth head children) tail))
 
-               ;; Remove child
+               ;; Splice into children
+               (copy tree
+                     :children (nconc (subseq children 0 head)
+                                      new-asts
+                                      (nthcdr (1+ head) children)))))))
+      (helper tree location))))
+
+(defgeneric insert-ast (tree location ast)
+  (:documentation "Return the modified TREE with AST inserted at
+LOCATION.
+
+* TREE Applicative AST tree to be modified
+* LOCATION AST marking location where insertion is to occur
+* REPLACEMENT AST to insert
+
+Note: This method is a helper for performing an AST mutation operation
+specified in parseable.lisp and should not be called directly without
+knowledge of the underlying code architecture.  Please consider using
+the methods in parseable.lisp instead.")
+  (:method ((tree ast) (location ast) (replacement ast))
+    (insert-ast tree (ast-path location) replacement))
+
+  (:method ((tree ast) (location list) (replacement ast))
+    (labels
+      ((helper (tree path)
+         (bind (((head . tail) path)
+                (children (ast-children tree)))
+               (assert (>= head 0))
+               (assert (< head (length children)))
+           (if tail
+               ;; Recurse into child
+               (replace-nth-child tree head (helper (nth head children) tail))
+
+               ;; Insert into children
                (copy tree
                      :children (nconc (subseq children 0 (max 0 (1- head)))
                                       (fixup-mutation
-                                        :remove
+                                        :before
                                         (nth head children)
                                         (if (positive-integer-p head)
                                             (nth (1- head) children)
                                             "")
-                                        nil
+                                        replacement
+                                        (or (nth head children) ""))
+                                      (nthcdr (1+ head) children)))))))
+      (helper tree location))))
+
+(defgeneric insert-ast-after (tree location ast)
+  (:documentation "Insert AST immediately after LOCATION in TREE, returning
+new tree.
+
+* TREE Applicative AST tree to be modified
+* LOCATION path to the AST where insertion is to occur immediately after
+* REPLACEMENT AST to insert
+
+Note: This method is a helper for performing an AST mutation operation
+specified in parseable.lisp and should not be called directly without
+knowledge of the underlying code architecture.  Please consider using
+the methods in parseable.lisp instead.")
+  (:method ((tree ast) (location ast) (replacement ast))
+    (insert-ast-after tree (ast-path location) replacement))
+
+  (:method ((tree ast) (location list) (replacement ast))
+    (labels
+      ((helper (tree path)
+         (bind (((head . tail) path)
+                (children (ast-children tree)))
+           (if tail
+               ;; Recurse into child
+               (replace-nth-child tree head (helper (nth head children) tail))
+
+               ;; Insert into children
+               (copy tree
+                     :children (nconc (subseq children 0 (max 0 head))
+                                      (fixup-mutation
+                                        :after
+                                        (nth head children)
+                                        (nth head children)
+                                        replacement
                                         (or (nth (1+ head) children) ""))
                                       (nthcdr (+ 2 head) children)))))))
-    (helper tree location)))
+      (helper tree location))))
 
-(defmethod splice-asts ((tree ast) (location ast) (new-asts list))
-  "Splice a list directly into the given location, replacing the original AST.
-
-Can insert ASTs and text snippets. Does minimal syntactic fixups, so
-use carefully.
-
-* TREE Applicative AST tree to be modified
-* LOCATION AST marking location where insertion is to occur
-* NEW-ASTS ASTs to be inserted into TREE
-"
-  (splice-asts tree (ast-path location) new-asts))
-
-(defmethod splice-asts ((tree ast) (location list) (new-asts list))
-  "Splice a list directly into the given location, replacing the original AST.
-
-Can insert ASTs and text snippets. Does minimal syntactic fixups, so
-use carefully.
-
-* TREE Applicative AST tree to be modified
-* LOCATION path to the AST where insertion is to occur
-* NEW-ASTS ASTs to be inserted into TREE
-"
-  (labels
-    ((helper (tree path)
-       (bind (((head . tail) path)
-              (children (ast-children tree)))
-         (if tail
-             ;; Recurse into child
-             (replace-nth-child tree head (helper (nth head children) tail))
-
-             ;; Splice into children
-             (copy tree
-                   :children (nconc (subseq children 0 head)
-                                    new-asts
-                                    (nthcdr (1+ head) children)))))))
-    (helper tree location)))
-
-(defmethod insert-ast ((tree ast) (location ast) (replacement ast))
-  "Return the modified TREE with the REPLACEMENT inserted at LOCATION.
-* TREE Applicative AST tree to be modified
-* LOCATION AST marking location where insertion is to occur
-* REPLACEMENT AST to insert
-"
-  (insert-ast tree (ast-path location) replacement))
-
-(defmethod insert-ast ((tree ast) (location list) (replacement ast))
-  "Return the modified TREE with the REPLACEMENT inserted at LOCATION.
-* TREE Applicative AST tree to be modified
-* LOCATION path to the AST where insertion is to occur
-* REPLACEMENT AST to insert
-"
-  (labels
-    ((helper (tree path)
-       (bind (((head . tail) path)
-              (children (ast-children tree)))
-         (if tail
-             ;; Recurse into child
-             (replace-nth-child tree head (helper (nth head children) tail))
-
-             ;; Insert into children
-             (copy tree
-                   :children (nconc (subseq children 0 (max 0 (1- head)))
-                                    (fixup-mutation
-                                      :before
-                                      (nth head children)
-                                      (if (positive-integer-p head)
-                                          (nth (1- head) children)
-                                          "")
-                                      replacement
-                                      (or (nth head children) ""))
-                                    (nthcdr (1+ head) children)))))))
-    (helper tree location)))
-
-(defmethod insert-ast-after ((tree ast) (location ast) (replacement ast))
-  "Return the modified TREE with the REPLACEMENT inserted after LOCATION.
-* TREE Applicative AST tree to be modified
-* LOCATION path to the AST where insertion is to occur immediately after
-* REPLACEMENT AST to insert
-"
-  (insert-ast-after tree (ast-path location) replacement))
-
-(defmethod insert-ast-after ((tree ast) (location list) (replacement ast))
-  "Return the modified TREE with the REPLACEMENT inserted after LOCATION.
-* TREE Applicative AST tree to be modified
-* LOCATION path to the AST where insertion is to occur immediately after
-* REPLACEMENT AST to insert
-"
-  (labels
-    ((helper (tree path)
-       (bind (((head . tail) path)
-              (children (ast-children tree)))
-         (if tail
-             ;; Recurse into child
-             (replace-nth-child tree head (helper (nth head children) tail))
-
-             ;; Insert into children
-             (copy tree
-                   :children (nconc (subseq children 0 (max 0 head))
-                                    (fixup-mutation
-                                      :after
-                                      (nth head children)
-                                      (nth head children)
-                                      replacement
-                                      (or (nth (1+ head) children) ""))
-                                    (nthcdr (+ 2 head) children)))))))
-    (helper tree location)))
-
+
+;;; Map over the nodes of an AST
 (defgeneric map-ast-strings (tree fn)
   (:documentation "Build a new AST obtained by replacing each string with
 (funcall FN string).  If the FN returns NIL do not replace."))
 
 (defmethod map-ast-strings ((tree ast) (fn function))
   (let* ((children (ast-children tree))
-	 (new-children (mapcar (lambda (child) (map-ast-strings child fn)) children)))
+         (new-children (mapcar (lambda (child) (map-ast-strings child fn)) children)))
     (if (every #'eq children new-children)
-	tree
-	(copy tree :children new-children))))
+        tree
+        (copy tree :children new-children))))
 
 (defmethod map-ast-strings ((str string) (fn function))
   (or (funcall fn str) str))
 
 (defmethod map-ast-strings ((tree t) (fn function)) tree)
 (defmethod map-ast-strings ((tree t) (sym symbol))
-  (let ((fn (symbol-function sym)))
-    (unless fn
-      (error "No function found for ~A" sym))
-    (map-ast-strings tree fn)))
-
-;;; Map over the nodes of an AST
+  (unless (fboundp sym)
+    (error "No function found for ~A" sym))
+  (map-ast-strings tree (symbol-function sym)))
 
 (defgeneric map-ast (tree fn)
-  (:documentation "Apply fn to each node of an AST, in preorder"))
+  (:documentation "Apply FN to each node of AST, in preorder."))
 
 (defmethod map-ast ((tree ast) fn)
   (funcall fn tree)
   (dolist (c (ast-children tree))
-    (when (typep c 'ast) (map-ast c fn)))
+    (when (ast-p c) (map-ast c fn)))
   tree)
 
-(defmethod map-ast (tree fn) nil)
+(defmethod map-ast (tree fn)
+  (declare (ignorable tree fn))
+  nil)
 
+(defgeneric map-ast-with-ancestors (tree fn &optional ancestors)
+  (:documentation "Apply FN to each node of the AST, and its list of ancestors,
+in preorder.  The ancestor list is in decreasing order of depth in the AST."))
+
+(defmethod map-ast-with-ancestors ((tree ast) fn &optional ancestors)
+  (funcall fn tree ancestors)
+  (let ((ancestors (cons tree ancestors)))
+    (dolist (c (ast-children tree))
+      (when (ast-p c) (map-ast-with-ancestors c fn ancestors))))
+  tree)
+
+(defmethod map-ast-with-ancestors (tree fn &optional ancestors)
+  (declare (ignore tree fn ancestors))
+  nil)
+
+(defun mapc-ast (ast fn)
+  "Apply FN to AST collecting the results with `cons'."
+  (cons (funcall fn ast)
+        (mapcar {mapc-ast _ fn} (remove-if-not #'ast-p (ast-children ast)))))
+
+(defun ast-nodes-in-subtree (ast)
+  (let ((result nil))
+    (map-ast ast (lambda (a) (push a result)))
+    (nreverse result)))
+
+(defgeneric map-ast-postorder (tree fn)
+  (:documentation "Apply FN to each node of AST, in postorder."))
+
+(defmethod map-ast-postorder ((tree ast) fn)
+  (dolist (c (ast-children tree))
+    (when (ast-p c) (map-ast-postorder c fn)))
+  (funcall fn tree)
+  tree)
+
+(defun mapc-ast-and-strings (ast fn)
+  "Apply FN to ASTs and strings in AST collecting the results with `cons'."
+  (typecase ast
+    (string (funcall fn ast))
+    (conflict-ast (funcall fn ast))
+    (ast (cons (funcall fn ast)
+               (mapcar {mapc-ast-and-strings _ fn} (ast-children ast))))))
+
+(defgeneric ast-to-list (obj)
+  (:documentation "Return ASTs under OBJ as a list.")
+;;  (:method ((ast ast) &aux result)
+;;    (map-ast ast (lambda (ast) (push ast result)))
+;;    (reverse result))
+  (:method (ast &aux result)
+    (if (not (ast-p ast))
+        (call-next-method)
+        (progn
+          (map-ast ast (lambda (ast) (push ast result)))
+          (reverse result)))))
 
-;;; AST diffs
+;;; AST equality
+(defgeneric ast-equal-p (ast-a ast-b)
+  (:documentation "Return T AST-A and AST-B are equal for differencing."))
+
+(defmethod ast-equal-p ((ast-a ast) (ast-b ast))
+  (and (eq (ast-class ast-a) (ast-class ast-b))
+       (eql (length (ast-children ast-a))
+            (length (ast-children ast-b)))
+       (every #'ast-equal-p (ast-children ast-a) (ast-children ast-b))))
+
+(defmethod ast-equal-p ((ast-a t) (ast-b t))
+  (equalp ast-a ast-b))
+
+(defmethod ast-equal-p ((ast-a cons) (ast-b cons))
+  (and (iter (while (consp ast-a))
+             (while (consp ast-b))
+             (always (ast-equal-p (pop ast-a) (pop ast-b))))
+       (ast-equal-p ast-a ast-b)))
+
 (defgeneric ast-text (ast)
   (:documentation "Return textual representation of AST.")
-  (:method ((ast ast)) (peel-bananas (source-text ast))))
+  (:method (ast)
+    (if (ast-p ast)
+        (peel-bananas (source-text ast))
+        (format nil "~A" ast))))
 
-
 (defgeneric ast-hash (ast)
   (:documentation "A hash value for the AST, which is a nonnegative
 integer.  It should be the case that (ast-equal-p x y) implies
@@ -756,12 +1028,12 @@ modile +AST-HASH-BASE+"
   (defun ast-combine-simple-vector-hash-values (sv)
     (declare (type simple-vector sv))
     (let ((result 0)
-	  (hb +ast-hash-base+)
-	  (len (length sv)))
+          (hb +ast-hash-base+)
+          (len (length sv)))
       (declare (type hash-type result))
       (iter (for i from 0 below len)
-	    (for hv in-vector sv)
-	    (let* ((im (logand i 31))
+            (for hv in-vector sv)
+            (let* ((im (logand i 31))
                    (a (aref a-coeffs im))
                    (b (aref b-coeffs im)))
               ;; RESULT is squared to avoid linearity
@@ -814,9 +1086,7 @@ modile +AST-HASH-BASE+"
                (ast-hash (symbol-name s))))))
 
   (defmethod ast-hash ((p package))
-    (ast-hash (package-name p)))
-
-  )
+    (ast-hash (package-name p))))
 
 (defmethod ast-hash ((ast ast))
 ;;  (or (ast-stored-hash ast)
@@ -839,7 +1109,7 @@ modile +AST-HASH-BASE+"
   (:documentation
    "Returns true if the children of AST are to be combined on merge conflict."))
 
-(defmethod ast-meld-p ((ast ast))
+(defmethod ast-meld-p (ast)
   (ast-class-meld? (ast-class ast) ast))
 
 (defgeneric ast-class-meld? (ast-class ast)
@@ -848,4 +1118,30 @@ modile +AST-HASH-BASE+"
 
 (defmethod ast-class-meld? ((ast-class t) (ast t)) nil)
 
-(defmethod ast-class-meld? ((ast-class (eql :TopLevel)) ast) t)
+(defmethod ast-class-meld? ((ast-class (eql :TopLevel)) ast)
+  (declare (ignorable ast))
+  t)
+
+
+;;;; Utility function for comment/terminator normalization
+
+(defun move-prefixes-down (children allowed-fn prefix-fn)
+  "Give a list CHILDREN of strings and AST nodes, find children
+that satisfy ALLOWED-FN, are followed by a string, and for for which
+PREFIX-FN returns a non-null value, which must be a position
+in the string.   Move the [0..pos) prefix of that string
+down into the list of children of the preceding node, concatenating
+it onto the end of the last string in that node's children.
+All list operations are destructive."
+  (loop for p on children
+     do (when-let* ((node (car p))
+                    (pos (and (cdr p)
+                              (stringp (cadr p))
+                              (funcall allowed-fn node)
+                              (funcall prefix-fn (cadr p))))
+                    (l (last (ast-children node))))
+          (if (stringp (car l))
+              (setf (car l) (concatenate 'string (car l)
+                                         (subseq (cadr p) 0 pos)))
+              (setf (cdr l) (list (subseq (cadr p) 0 pos))))
+          (setf (cadr p) (subseq (cadr p) pos)))))

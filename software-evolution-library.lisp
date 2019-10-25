@@ -16,7 +16,7 @@
    :split-sequence
    :software-evolution-library/utility
    :usocket
-   :fast-io)
+   #-windows :fast-io)
   (:shadow :elf :size :type :magic-number :diff :insert :index)
   (:shadowing-import-from :software-evolution-library/utility :quit)
   (:shadowing-import-from :uiop :getenv :directory-exists-p)
@@ -150,6 +150,7 @@
 
 
 ;;; Software Object
+
 (defvar +software-evolution-library-dir+
   (pathname-directory
    #.(or *compile-file-truename*
@@ -206,13 +207,13 @@ slot in DIRECT-SLOTS may be one of the following:
             assumed to be a function (e.g., `copy-tree') which is used
             to copy the slot."
   ;; Ensure a child of software.
-  `(prog1
-       ;; Define the class
-       (defclass ,name ,(if (member 'software direct-superclasses)
-                            direct-superclasses
-                            `(,@direct-superclasses software))
-         ,(mapcar {plist-drop :copier} direct-slots)
-         ,@options)
+  `(progn
+     ;; Define the class
+     (defclass ,name ,(if (member 'software direct-superclasses)
+                          direct-superclasses
+                          `(,@direct-superclasses software))
+       ,(mapcar {plist-drop :copier} direct-slots)
+       ,@options)
      ;; Define the copy method
      ,(unless (null direct-slots)
         `(defmethod copy :around ((obj ,name) &key)
@@ -233,7 +234,8 @@ slot in DIRECT-SLOTS may be one of the following:
                                         `(,accessor obj))))))
                             (mapcar #'car direct-slots)
                             (mapcar {plist-get :copier} direct-slots))))
-                      copy)))))
+                      copy)))
+     (find-class ',name)))
 
 (defgeneric genome (software)
   (:documentation
@@ -279,9 +281,7 @@ first value from the `phenome' method."
 (defmethod evaluate ((test symbol) (obj software)
                      &rest extra-keys &key &allow-other-keys)
   (declare (ignorable extra-keys))
-  (if (null test)  ;; allow NIL to be passed for the function
-      (setf test 'identity))
-  (evaluate (symbol-function test) obj))
+  (evaluate (symbol-function (or test 'identity)) obj))
 
 (defmethod evaluate ((test function) (obj software)
                      &rest extra-keys &key &allow-other-keys)
@@ -491,7 +491,7 @@ Each crossover and mutation will be paired with one of the following tags;
      software-a cross-point-a crossed software-b cross-point-b
      (first result))))
 
-(defmethod classify (new &rest old)
+(defun classify (new &rest old)
   "Classify the fitness of NEW as :BETTER, :WORSE, :SAME, or :DEAD when
 compared to OLD.  NEW and OLD must have fitness populated."
   (let ((fit (fitness new))
@@ -638,7 +638,7 @@ Define an :around method on this function to record crossovers."))
   (:documentation "Parse CONFIG-FILE and use to configure SOFTWARE."))
 
 (defgeneric to-file (software file)
-  (:documentation "Write SOFTWARE to FILE"))
+  (:documentation "Write SOFTWARE to FILE."))
 
 (defmethod to-file ((software software) file)
   (string-to-file (genome software) file))
@@ -671,6 +671,12 @@ Also, ensures MUTATION is a member of superclasses"
                 :documentation "A function from software -> random target.")))
       ,@(remove-if {member _ '(targeter picker)} slots :key #'car))
      ,@options))
+
+(defgeneric picker (x)
+  (:documentation "Reader for the PICKER slot of mutation objects"))
+
+(defgeneric targeter (x)
+  (:documentation "Reader for the TARGETER slot of mutation objects"))
 
 (defgeneric build-op (mutation software)
   ;; Returns a list of build-op objects
@@ -707,7 +713,7 @@ MUTATIONS is a list of the names of mutation classes."
                  (list ,@(mapcar
                           (lambda (fun) `(apply ,fun ,args))
                           (mapcar {slot-initform 'targeter} mutations))))
-               :type 'function
+               :type function
                :documentation
                ,(format nil "Targeters from ~a." mutations))
               (picker
@@ -717,7 +723,7 @@ MUTATIONS is a list of the names of mutation classes."
                   (lambda (target picker) (funcall picker target))
                   targets
                   (list ,@(mapcar {slot-initform 'picker} mutations))))
-               :type 'function
+               :type function
                :documentation
                ,(format nil "Pickers from ~a." mutations)))
              ;; NOTE: Should compose other slots as well.
@@ -747,7 +753,6 @@ by `compose-mutations', `sequence-mutations' first targets and applies A and the
   (:documentation "The base class of all software mutations."))
 
 (defmethod print-object ((mut mutation) stream)
-  "DOCFIXME"
   (print-unreadable-object (mut stream :type t)
     (prin1 (object mut) stream)
     (when (or (get-targets mut) (targeter mut))
@@ -756,68 +761,48 @@ by `compose-mutations', `sequence-mutations' first targets and applies A and the
                  (multiple-value-call [#'third #'list]
                    (function-lambda-expression (targeter mut)))) stream))))
 
-(defmethod targets ((mut mutation))
-  "DOCFIXME
-* MUT DOCFIXME
-"
-  (or (get-targets mut)
-      (when (object mut)
-        (setf (slot-value mut 'targets)
-              (funcall (targeter mut) (object mut))))))
+(defgeneric targets (mutation)
+  (:documentation "Return all possible targets of MUTATION.")
+  (:method ((mut mutation))
+    (or (get-targets mut)
+        (when (object mut)
+          (restart-case
+              (setf (slot-value mut 'targets)
+                    (funcall (targeter mut) (object mut)))
+            (ignore-failed-mutation ()
+              :report "Ignore failed mutation targeter and continue"
+              nil))))))
 
 (defgeneric at-targets (mutation targets &key &allow-other-keys)
   (:documentation "Return a copy of MUTATION with `targets' set to TARGETS."))
 
 (defmethod at-targets ((mut mutation) targets &key (object (object mut)))
-  "DOCFIXME
-* MUT DOCFIXME
-* TARGETS DOCFIXME
-* OBJECT DOCFIXME
-"
   (make-instance (type-of mut) :object object :targets targets))
 
 (defmethod mutation-key ((obj software) (mutation mutation))
-  "DOCFIXME
-* OBJ DOCFIXME
-* MUTATION DOCFIXME
-"
   (declare (ignorable obj)) (type-of mutation))
 
 (defmethod apply-mutation :before ((obj software) (mut mutation))
-  "DOCFIXME
-* OBJ DOCFIXME
-* MUT DOCFIXME
-"
   ;; Mutation removes previously calculated fitness values.
   (declare (ignorable mut))
   (setf (fitness obj) nil))
 
 (defmethod apply-all-mutations ((obj software) (mut mutation))
-  "DOCFIXME
-* OBJ DOCFIXME
-* MUT DOCFIXME
-"
   (apply-mutations obj mut infinity))
 
 (defmethod apply-mutations ((obj software) (mut mutation) n)
-  "DOCFIXME
-* OBJ DOCFIXME
-* MUT DOCFIXME
-* N DOCFIXME
-"
   (setf (object mut) obj)
   (iter (for targeted in (mapcar {at-targets mut} (targets mut)))
         (for i below n)
         (collect targeted into mutations)
-        (collect (apply-mutation (copy obj) targeted) into results)
+        (restart-case
+            (collect (apply-mutation (copy obj) targeted) into results)
+          (ignore-failed-mutation ()
+            :report "Ignore failed mutation application and continue"
+            (values nil nil)))
         (finally (return (values results mutations)))))
 
 (defmethod apply-picked-mutations ((obj software) (mut mutation) n)
-  "DOCFIXME
-* OBJ DOCFIXME
-* MUT DOCFIXME
-* N DOCFIXME
-"
   (setf (object mut) obj)
   (iter (for i below n)
         (for picked = (funcall (picker mut) obj))
@@ -831,10 +816,8 @@ by `compose-mutations', `sequence-mutations' first targets and applies A and the
 ;;; Evolution
 (defvar *population* nil
   "Holds the variant programs to be evolved.
-
 This variable may be read to inspect a running search process, or
-written to as part of a running search process.
-")
+written to as part of a running search process.")
 
 (defvar *generations* nil
   "Holds the running generation count.")
@@ -936,7 +919,7 @@ Default selection function for `tournament'."
       (crossover a b)
       (values (copy a) nil nil)))
 
-(defmethod new-individual (&optional (a (tournament)) (b (tournament)))
+(defun new-individual (&optional (a (tournament)) (b (tournament)))
   "Generate a new individual from *POPULATION*."
   (multiple-value-bind (crossed a-point b-point) (crossed a b)
     ;; NOTE: This `copy' call is only needed for `analyze-mutation'.

@@ -64,6 +64,7 @@
            :asm-line-info-orig-file
            :asm-line-info-orig-line
            :asm-line-info-address
+           :asm-line-info-properties
            :function-index-entry
            :function-index-entry-name
            :function-index-entry-start-line
@@ -75,7 +76,9 @@
            :insert-new-line
            :insert-new-lines
            :parse-asm-line
-           :call-targets))
+           :call-targets
+           :intel-syntax-p
+           :vector-cut))
 (in-package :software-evolution-library/software/asm-heap)
 (in-readtable :curry-compose-reader-macros)
 
@@ -89,7 +92,8 @@
   id       ; unique index in heap, sequential starting at 0
   orig-file   ; path of the orignal .asm file that was loaded (if any)
   orig-line ; line number (0-based) of line in original .asm file (if any)
-  address)  ; original address of code or data
+  address  ; original address of code or data
+  properties)   ; properties (used for custom purposes)
 
 (defstruct function-index-entry
   "Entry into the index, which is a vector of all the functions in the file."
@@ -105,7 +109,6 @@
 (define-software asm-heap (asm)
   ((line-heap :initarg :line-heap :accessor line-heap)
    (function-index :initarg :function-index :initform nil
-                   :accessor function-index
                    :documentation "Create this on demand.")
    (function-bounds-file
     :initarg :function-bounds-file
@@ -202,6 +205,14 @@ All elements of the genome are references into this line-heap."))
  nil
  *assembler-x86-readtable*)
 
+(defun intel-syntax-p (x)
+  "True if syntax has been set to :intel. 
+The argument should be an asm-heap instance 
+or a symbol representing a valid asm-syntax slot value."
+  (if (symbolp x)
+      (eq x ':intel)
+      (eq (asm-syntax x) ':intel)))
+
 ;;;
 ;;; The Lisp reader will handle intel comments (;) as we need them, so we
 ;;; don't do anything special about them.
@@ -225,17 +236,22 @@ All elements of the genome are references into this line-heap."))
 (defun token-label-p (token)
   (and (stringp token)
        (or
-        (starts-with-p token "$")
-        (starts-with-p token ".L"))))
+        (starts-with-subseq "$" token)
+        (starts-with-subseq ".L" token))))
 
 (defun branch-op-p (token)
   "Returns true iff the token represents a jump operation. We assume it
 is a jump operator if the first letter is #\j or #\J. For our purposes
 we are excluding CALL instructions."
   (and (stringp token)
-       (or
-        (char= (char token 0) #\j)
-        (char= (char token 0) #\J))))
+       (let ((tok (string-downcase token)))
+         (or (starts-with-subseq "j" tok)
+             (starts-with-subseq "call" tok)))))
+
+(defun push-op-p (token)
+  "Returns true iff the token represents a push operation."
+  (and (stringp token)
+       (starts-with-subseq "push" (string-downcase token))))
 
 ;;; Given a list of tokens representing the line, returns either of:
 ;;;     :nothing
@@ -292,7 +308,7 @@ we are excluding CALL instructions."
 
 (defun parse-line-type (tokens syntax)
   "From list of tokens, determine type of line."
-  (if (eq syntax ':intel)
+  (if (intel-syntax-p syntax)
       (parse-line-type-intel tokens)
       (parse-line-type-att tokens)))
 
@@ -305,7 +321,7 @@ we are excluding CALL instructions."
 ;;;
 (defun parse-asm-line (line syntax)
   (let* ((tokens (tokenize-asm-line line))
-         (info (make-asm-line-info :text line :tokens tokens)))
+         (info (make-asm-line-info :text line :tokens tokens :properties nil)))
 
     ;; see if there is a comment: "orig ea=0xnnnnnnnn" which specifies
     ;; the original address of code or data
@@ -505,7 +521,7 @@ linking process, (5) the source file name used during linking."
   #-ccl (declare (values t fixnum string string string))
 
   ;; if intel (backward-compatibility) use phenome in ASM class
-  (when (eq (asm-syntax asm) ':intel)
+  (when (intel-syntax-p asm)
     (return-from phenome (call-next-method)))
 
   (with-temp-file-of (src "s") (genome-string asm)
@@ -568,21 +584,24 @@ linking process, (5) the source file name used during linking."
       (vector-push-extend info (line-heap asm-heap)))
     info-list))
 
-;;;
-;;; Parses a new line of assembler, adds it to the heap, and inserts
-;;; it at index in the genome. Returns the number of lines inserted.
-;;;
-(defun insert-new-line (asm-heap text index)
+(defun insert-new-line (asm-heap text
+			&optional (index (length (genome asm-heap))))
+  "Insert a line of assembler code into the genome.
+Parses a new line of assembler, adds it to the heap, and inserts
+it at index in the genome. Returns the number of lines inserted.
+Note that one line may be split into multiple lines by the parser.
+If index is not supplied, defaults to the end of the genome."
   (let ((info-list (parse-and-add-to-heap asm-heap text)))
     (dolist (info info-list)
       (vector-insert (genome asm-heap) index info)
       (incf index))
     (length info-list)))
 
-;;;
-;;; Parse and add a list of lines of assembler code.
-;;;
-(defun insert-new-lines (asm-heap line-list index)
+(defun insert-new-lines (asm-heap line-list
+			 &optional (index (length (genome asm-heap))))
+  "Insert a list of asm lines into the genome.
+Inserts list of lines (calling insert-new-line).
+If index is not supplied, defaults to end of the genome."
   (dolist (x line-list)
     (incf index (insert-new-line asm-heap x index))))
 
@@ -685,7 +704,8 @@ is raised."
     (iter (for a in-vector (genome asm-heap))
 	  (when (and
 	       (eq (asm-line-info-type a) ':op)
-	       (branch-op-p (first (asm-line-info-tokens a))))
+	       (or (branch-op-p (first (asm-line-info-tokens a)))
+                   (push-op-p (first (asm-line-info-tokens a)))))
 	    (if (token-label-p (second (asm-line-info-tokens a)))
 		(push (second (asm-line-info-tokens a)) lab-list))
 	    (if (token-label-p (third (asm-line-info-tokens a)))
@@ -709,7 +729,7 @@ than once, returns false."
   (dolist (lab (find-labels asm-heap))
     (let ((count 0))
       (iter (for a in-vector (genome asm-heap))
-	    (if (eq (asm-line-info-label a) lab)
+	    (if (equalp (asm-line-info-label a) lab)
 		(incf count)))
       (unless (= count 1) (return-from labels-valid-p nil))))
   ;; return false if any of the label declarations are duplicated
@@ -801,9 +821,10 @@ those of A and B."
 		 (values (copy a) 0 0)))))))
 
 (defun function-name-from-label (name asm)
-  "Given a label like $FOO1, returns FOO1 (intel only)."
-  (if (and (eq (asm-syntax asm) ':intel)
-	   (char= (char name 0) #\$))
+  "Given a label like $FOO1, returns FOO1 (intel only).
+The gtx disassembler decorates labels with $ prefix, but
+the gtirb disassembler (for AT&T syntax) does not."
+  (if (and (intel-syntax-p asm) (char= (char name 0) #\$))
       (subseq name 1)
       name))
 
@@ -818,10 +839,10 @@ those we assume a function name."
     (and
      (is-asm-symbol name)
      (not
-      (or (starts-with-p name "$LOC_")
-	  (starts-with-p name "$BB_FALLTHROUGH_")
-	  (starts-with-p name "$UNK_")
-	  (starts-with-p name ".L"))))))
+      (or (starts-with-subseq "$LOC_" name)
+          (starts-with-subseq "BB_FALLTHROUGH_" name)
+          (starts-with-subseq "UNK_" name)
+          (starts-with-subseq ".L" name))))))
 
 (defun line-is-function-label (asm-line-info)
   "Returns true if the passed line-info represents a name of a function."
@@ -833,9 +854,9 @@ those we assume a function name."
 
 (defun extract-function-declarations (asm)
   "Traverse the asm-heap, and collect declarations associated with
-each function. The function name is determined from the declaration.
-The declarations are stored in a hash-table, keyed to the function
-name. The resulting hash-table is returned."
+ each function. The function name is determined from the declaration.
+ The declarations are stored in a hash-table, keyed to the function
+ name. The resulting hash-table is returned."
   (let ((table (make-hash-table :test 'equalp))
 	(genome (genome asm)))
     (iter (for x in-vector genome)
@@ -845,17 +866,18 @@ name. The resulting hash-table is returned."
 		      (pos (position #\. tok)))
 		 (and pos (> pos 1))))
 	      (push
-	        x
-	        (gethash
-		 (extract-function-name-from-decl
-		  (first (asm-line-info-tokens x)))
-		 table))))
+               x
+               (gethash
+                (extract-function-name-from-decl
+                 (first (asm-line-info-tokens x)))
+                table))))
     table))
 
 (defun create-asm-function-index (asm)
-  "Traverse the passed asm-heap, and collect a function-index-entry
-for each function. The result is a vector of function-index-entry."
-  (let ((table (if (eq (asm-syntax asm) ':intel)
+  "Extracts a function index from an assembly file.
+ Traverse the passed asm-heap, and collect a function-index-entry
+ for each function. The result is a vector of function-index-entry."
+  (let ((table (if (intel-syntax-p asm)
 		   (extract-function-declarations asm)
 		   (make-hash-table :test 'equalp)))
 	(entries '())
@@ -873,19 +895,17 @@ for each function. The result is a vector of function-index-entry."
 		  (iter (while (< i (length genome)))
 			(let ((info2 (elt genome i)))
 			  (if (member (asm-line-info-opcode info2)
-				  '("call" "callq") :test 'equalp)
+                                      '("call" "callq") :test 'equalp)
 			      (setf leaf nil)) ;found a call, so not a leaf
 			  (when (or
-				 (member (asm-line-info-opcode info2)
-					 '("ret" "retq" "hlt")
-					 :test 'equalp)
+                                 (= i (1- (length genome)))  ;; end of genome
 				 (and
 				  (eq (asm-line-info-type info2)
 				      :decl)
 				  (member (first (asm-line-info-tokens info2))
-				      '("align" ".align") :test 'equalp))
+                                          '("align" ".align") :test 'equalp))
 				 (and (line-is-function-label info2)
-				      ; ignore duplicate function labels
+                                        ; ignore duplicate function labels
 				      (not
 				       (equalp (asm-line-info-label info)
 					       (asm-line-info-label info2)))))
@@ -901,12 +921,12 @@ for each function. The result is a vector of function-index-entry."
 			    (return)))
 			(incf i)))))
 	  (incf i))
-    (if (eq (asm-syntax asm) ':intel)
+    (if (intel-syntax-p asm)
 	(setf entries
-	  (remove-if (lambda (x)
-		       (or (null (function-index-entry-start-address x))
-			   (null (function-index-entry-end-address x))))
-		     (nreverse entries))))
+              (remove-if (lambda (x)
+                           (or (null (function-index-entry-start-address x))
+                               (null (function-index-entry-end-address x))))
+                         (nreverse entries))))
     (make-array (length entries) :initial-contents entries)))
 
 (defun asm-labels (asm)

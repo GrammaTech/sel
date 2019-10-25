@@ -27,7 +27,6 @@
         :metabang-bind
         :iterate
         :split-sequence
-        :uiop/filesystem
         :software-evolution-library
         :software-evolution-library/utility
         :software-evolution-library/software/java
@@ -49,34 +48,49 @@
         (or (component-class java-project) 'java)))
 
 (defmethod from-file :before ((obj java-project) project-dir)
-  (setf (project-dir obj) project-dir))
+  (setf (project-dir obj) project-dir)
+  (multiple-value-bind (bin exit-code stdout stderr files)
+      (phenome obj)
+    (declare (ignorable bin files))
+    (if (not (zerop exit-code))
+        (error "Failed to build java project for project.~%~
+                  build-command: ~a~%~
+                  stdout: ~a~%~
+                  stderr: ~a~%"
+               (build-command obj)
+               stdout stderr))))
 
 (defmethod collect-evolve-files ((obj java-project))
-  (with-temp-cwd-of (tempdir) (project-dir obj)
-    (with-temp-file (bin "jar")
-      (multiple-value-bind (bin exit-code stdout stderr files)
-          (phenome obj :bin bin)
-        (declare (ignorable bin files))
-        (if (not (zerop exit-code))
-            (error "Failed to build java project for project.~%~
-                      build-command: ~a~%~
-                      stdout: ~a~%~
-                      stderr: ~a~%"
-                   (build-command obj)
-                   stdout stderr)))
-      (iter (for file in (get-applicable-project-files (project-dir obj) bin))
-            (let ((relpath (pathname-relativize (project-dir obj) file)))
-              (unless (ignored-evolve-path-p obj relpath)
-                (handler-case
-                    (let ((java-obj (from-file
-                                     (make-instance (component-class obj))
-                                     file)))
-                      (if (not (zerop (size java-obj)))
-                          (collect (cons relpath java-obj))
-                          (warn "Ignoring file ~a with 0 statements" relpath)))
-                  (mutate (e)
-                    (declare (ignorable e))
-                    (warn "Ignoring file ~a, failed to initialize" relpath)))))))))
+  (iter (for entry in
+             (->> (merge-pathnames-as-file
+                   (project-dir obj)
+                   ;; FIXME: The following artificially
+                   ;; limits Java projects to a single
+                   ;; build artifact and should be
+                   ;; generalized as in
+                   ;; clang-project.lisp.
+                   (first (artifacts obj)))
+               (get-applicable-project-files (project-dir obj))
+               (mapcar
+                (lambda (file)
+                  (replace-all
+                   file
+                   (namestring
+                    (ensure-directory-pathname (project-dir obj)))
+                   "")))))
+        (unless (ignored-evolve-path-p obj entry)
+          (handler-case
+              (let ((java-obj (from-file
+                               (make-instance (component-class obj))
+                               (merge-pathnames-as-file
+                                (project-dir obj)
+                                entry))))
+                (if (not (zerop (size java-obj)))
+                    (collect (cons entry java-obj))
+                    (warn "Ignoring file ~a with 0 statements" entry)))
+            (mutate (e)
+              (declare (ignorable e))
+              (warn "Ignoring file ~a, failed to initialize" entry))))))
 
 (defun get-filename (path)
   "Return filename of a path"

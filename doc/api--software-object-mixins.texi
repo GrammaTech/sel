@@ -15,6 +15,8 @@ Software Object ``Mixins''
 
 @item @ref{api-software-objects-adaptive-mutation,Class @code{adaptive-mutation}}
 
+@item @ref{api-software-objects-file, Class @code{file}}
+
 @item @ref{api-style-features-class-styleable, Class @code{styleable}}
 @item @ref{api-style-features-class-style-project, Class @code{style-project}}
 
@@ -72,6 +74,29 @@ Class @code{adaptive-mutation}
 @c defvar *mutation-results-queue-lock*
 @c defun queue-mutation
 
+@c ----------------------------------------
+
+@include sel-sw-file-api.texi
+
+@anchor{api-software-objects-file}
+@subsubsection Class @code{file}
+
+[
+@ref{SEL API,API} |
+@ref{api-software-objects, Software Objects} |
+@ref{api-software-object-mixins,Software Object Class ``Mixins''} |
+Class @code{file}
+]
+
+
+@itemize
+@item Class @refapiclass{file}
+@item Methods
+  @itemize
+  @item @refapimethod{from-file,from-file before}
+  @item @refapimethod{to-file,to-file after}
+  @end itemize
+@end itemize
 
 @c ----------------------------------------
 

@@ -1,13 +1,46 @@
+;;;; command-line.lisp --- General functionality for SEL command-line tools
+;;;
+;;; Command line utility functions and helpers for SEL-based
+;;; command-line tools.
+;;;
+;;; This package extends the
+;;; @url{https://github.com/fare/command-line-arguments,
+;;; command-line-arguments} package with numerous option definitions
+;;; and helper functions for parsing command line arguments and
+;;; options which are specific to SEL.  See the appendix for a full
+;;; list of the available options.
+;;;
+;;; @texi{command-line}
 (defpackage :software-evolution-library/command-line
   (:nicknames :sel/command-line)
-  (:documentation "Command line interface for three way merging of software")
+  (:documentation
+   "Generally useful functionality for SEL-based command-line tools.")
   (:use :common-lisp
         :alexandria
         :named-readtables
         :curry-compose-reader-macros
         :command-line-arguments
         :split-sequence
-        :software-evolution-library/utility)
+        :cl-store
+        :uiop/filesystem
+        :software-evolution-library
+        :software-evolution-library/utility
+        ;; Software objects.
+        :software-evolution-library/software/source
+        :software-evolution-library/software/project
+        :software-evolution-library/software/clang
+        :software-evolution-library/software/new-clang
+        :software-evolution-library/software/javascript
+        :software-evolution-library/software/java
+        :software-evolution-library/software/lisp
+        :software-evolution-library/software/json
+        :software-evolution-library/software/simple
+        :software-evolution-library/software/clang-project
+        :software-evolution-library/software/javascript-project
+        :software-evolution-library/software/java-project
+        :software-evolution-library/software/lisp-project
+        ;; Components.
+        :software-evolution-library/components/test-suite)
   (:import-from :bordeaux-threads :all-threads :thread-name :join-thread)
   (:import-from :cl-ppcre :scan)
   (:import-from :swank :create-server)
@@ -21,7 +54,8 @@
                 :pathname-parent-directory-pathname)
   (:shadowing-import-from :uiop/filesystem
                           :file-exists-p
-                          :directory-exists-p)
+                          :directory-exists-p
+                          :directory-files)
   (:shadowing-import-from :asdf-encodings :encoding-external-format)
   (:export :define-command
            ;; Functions to handle command line options and arguments.
@@ -36,8 +70,10 @@
            :handle-save-random-state-to-path-argument
            :handle-set-quiet-argument
            :handle-set-verbose-argument
-           :handle-store-traces-argument
-           :handle-load-traces-argument
+           :handle-trace-file-argument
+           :handle-pop-size-argument
+           :handle-mut-rate-argument
+           :handle-tournament-size-argument
            :resolve-file
            :resolve-out-dir-from-source
            :resolve-name-from-source
@@ -45,14 +81,20 @@
            :resolve-store-path-from-out-dir-and-name
            :resolve-test-script-from-test-script
            :resolve-num-tests-from-num-tests
+           :resolve-language-from-language-and-source
            :wait-on-manual
            :exit-command
+           :guess-language
+           :create-software
+           :create-test
+           :create-test-suite
            ;; Common sets of command-line-arguments options.
            :+common-command-line-options+
            :+interactive-command-line-options+
            :+clang-command-line-options+
            :+project-command-line-options+
-           :+clang-project-command-line-options+))
+           :+clang-project-command-line-options+
+           :+evolutionary-command-line-options+))
 (in-package :software-evolution-library/command-line)
 (in-readtable :curry-compose-reader-macros)
 
@@ -76,8 +118,14 @@
 (defun handle-swank-port-argument (port)
   (create-server :port port :style :spawn :dont-close t))
 
+(defun handle-new-clang-argument (new-clang-p)
+  "Handler for --new-clang argument.  If true, use new clang
+front end."
+  (setf *new-clang?* new-clang-p))
+
 (defun handle-load (path)
-  (load path :external-format (encoding-external-format (detect-encoding path))))
+  (load path
+        :external-format (encoding-external-format (detect-encoding path))))
 
 (defun handle-eval (string)
   (eval (read-from-string string)))
@@ -110,8 +158,8 @@
   (when (>= level 4) (setf *shell-debug* t))
   (setf *note-level* level))
 
-(defun handle-store-traces-argument (path)
-  "Ensure PATH is a valid argument to store-traces."
+(defun handle-trace-file-argument (path)
+  "Ensure PATH is a valid argument to store (or potentially load) traces."
   (let ((parent-parent-dir (pathname-parent-directory-pathname
                             (pathname-directory-pathname path))))
     (when (pathname-directory parent-parent-dir)
@@ -120,20 +168,36 @@
               "~a does not exist" parent-parent-dir)))
   path)
 
-(defun handle-load-traces-argument (path)
-  "Ensure PATH is a valid argument to load-traces."
-  (assert (file-exists-p path)
-          (path)
-          "~a does not exist" path)
-  path)
+(defun handle-pop-size-argument (pop-size)
+  ;; Command-line argument handling ensures POP-SIZE is an Int.
+  (setf *max-population-size* (the integer pop-size))
+  (assert (> *max-population-size* 0) (*max-population-size*)
+          "Must supply a positive population size"))
+
+(defun handle-cross-chance-argument (cross-chance)
+  ;; Command-line argument handling ensures CROSS-CHANCE is an int.
+  (setf *cross-chance* (parse-number cross-chance))
+  (assert (and (> *cross-chance* 0) (<= *cross-chance* 1)) (*cross-chance*)
+          "Crossover chance must be between 0 and 1"))
+
+(defun handle-mut-rate-argument (mut-rate)
+  ;; Command-line argument handling ensures MUT-RATE is an int.
+  (setf *mut-rate* (parse-number mut-rate))
+  (assert (> *mut-rate* 0) (*mut-rate*)
+          "Must supply a positive mutation rate"))
+
+(defun handle-tournament-size-argument (tournament-size)
+  (setf *tournament-size* tournament-size)
+  (assert (> *tournament-size* 1) (*tournament-size*)
+          "Tournament size must be >1"))
 
 (defun resolve-file (file)
   "Ensure file is an actual file that exists on the filesystem."
   (if (probe-file file)
       file
       (format *error-output*
-	      "~a: No such file or directory~%"
-	      file)))
+              "~a: No such file or directory~%"
+              file)))
 
 (defun resolve-out-dir-from-source (source)
   "Select a reasonable output directory based on SOURCE."
@@ -155,7 +219,7 @@
       (pathname-directory-pathname source)))
 
 (defun resolve-store-path-from-out-dir-and-name
-    (out-dir name &optional description)
+    (out-dir name &optional description (type "store"))
   "Build a reasonable store path based on OUT-DIR and NAME.
 Optional DESCRIPTION is added to the path."
   (namestring
@@ -163,36 +227,34 @@ Optional DESCRIPTION is added to the path."
                   :name (if description
                             (concatenate 'string name "-" description)
                             name)
-                  :type "store")))
+                  :type type)))
 
-(defun resolve-test-script-from-test-script (test-script test-dir
-					     &aux result)
-  "Ensure that TEST-SCRIPT exists and is within TEST-DIR.
-
-* TEST-SCRIPT FIXME
-* TEST-DIR FIXME
-* RESULT FIXME
-"
-  (let ((test-dir-path (probe-file (canonical-pathname test-dir)))
-        (test-script-path
-         (probe-file ; <- Required for canonical path w.r.t. symlinks.
+(defun resolve-test-script-from-test-script
+    (test-script test-dir &aux result)
+  "Ensure that TEST-SCRIPT exists, add ~~a and ~~d arguments if missing."
+  (let* ((test-dir (cond
+                     ((null test-dir) ; Handle TEST-DIR as NIL, meaning '.'.
+                      (make-pathname :directory '(:RELATIVE ".")))
+                     ((listp test-dir) ; Handle raw directory TEST-DIR.
+                      (make-pathname :directory test-dir))
+                     (t test-dir)))
+         (test-dir-path (canonical-pathname test-dir))
+         (test-script-path
           (canonical-pathname
            (merge-pathnames-as-file (ensure-directory-pathname test-dir)
                                     (car (split-sequence #\Space
-                                           test-script)))))))
+                                                         test-script))))))
     (assert (probe-file test-script-path)
             (test-script)
             "Test script ~S does not exist." test-script-path)
-    (assert (search (pathname-directory test-dir-path)
-                    (pathname-directory test-script-path)
-                    :test #'equal)
-            (test-script-path)
-            "Test script must be in a subdirectory of ~S" test-dir-path)
+    ;; Required for canonical path w.r.t. symlinks.
+    (setf test-dir-path (probe-file test-dir-path))
+    (setf test-script-path (probe-file test-script-path))
 
     (setf result (format nil "~{~a~^ ~}"
                          (append (list test-script-path)
                                  (cdr (split-sequence #\Space
-                                                      test-script)))))
+                                        test-script)))))
     (setf result (if (scan "~a" result)
                      result
                      (format nil "~a ~~a" result)))
@@ -201,16 +263,30 @@ Optional DESCRIPTION is added to the path."
                      (format nil "~a ~~d" result)))))
 
 (defun resolve-num-tests-from-num-tests (num-tests)
-  "FIXME
-
-* NUM-TESTS FIXME
-"
+  "Resolves the NUM-TESTS command line argument to a positive number.
+NUM-TESTS should be either a string or integer. Raise an error if the
+input is not positive."
   (etypecase num-tests
     (string (setf num-tests (parse-integer num-tests)))
     (integer nil))
   (assert (and (numberp num-tests) (>= num-tests 0)) (num-tests)
           "Must supply the positive number of tests to run.")
   num-tests)
+
+(defun resolve-language-from-language-and-source (language &optional source)
+  (let ((class (nest
+                (second)
+                (find-if [{find-if {equalp (string-upcase language)}} #'car])
+                '((("JAVA") java)
+                  (("JAVASCRIPT") javascript)
+                  (("JSON") json)
+                  (("C" "CPP" "C++" "C-PLUS-PLUS" "C PLUS PLUS") clang)
+                  (("LISP" "CL" "COMMON LISP") lisp)
+                  (("TEXT") simple)))))
+    (if (and source (directory-p source))
+        (intern (concatenate 'string (symbol-name class) "-PROJECT")
+                :sel/command-line)
+        class)))
 
 (defun wait-on-manual (manual)
   "Wait to terminate until the swank server returns if MANUAL is non-nil."
@@ -229,6 +305,179 @@ inspecting the value of `*lisp-interaction*'."
        (return-from ,command-name ,interactive-return-val)
        (quit ,errno)))
 
+(defgeneric language-to-project (language)
+  (:documentation "The name of the project class associated
+with a language.")
+  (:method ((language symbol))
+    ;; FIXME:  never use INTERN without an explicit package
+    (intern (concatenate 'string (symbol-name language) "-PROJECT")))
+  (:method ((language (eql 'new-clang))) 'clang-project))
+
+(defun guess-language (&rest sources)
+  "Guess the SEL software object class that best matches SOURCES.
+SOURCES should be a collection of paths.  The result is determined
+based on heuristics based on whether SOURCES points to files or
+directories and if files based on their extensions."
+  (labels
+      ((guess-helper (sources project-p)
+         (let ((guesses
+                (mapcar (lambda (source)
+                          (nest
+                           (if (directory-p source)
+                               (when-let ((guess (guess-helper
+                                                  (directory-files source)
+                                                  t)))
+                                 (language-to-project guess)))
+                           (second)
+                           (find-if
+                            (lambda (pair)
+                              (member (pathname-type source) (car pair)
+                                      :test #'equalp)))
+                           ;; List of extensions and associated sel/sw class.
+                           `((("lisp") lisp)
+                             (("java") java)
+                             (("js") javascript)
+                             (("json") json)
+                             (("c" "cpp" "cc" "cxx")
+                              ,(if *new-clang?* 'new-clang 'clang))
+                             ;; We cannot parse header files, as they
+                             ;; don't have entries in the compile
+                             ;; commands database.  Treat them as
+                             ;; simple files instead.
+                             #|(("h" "hpp" "hxx") clang)|#)))
+                        sources)))
+           #+debug (format t "GUESSES:~S~%" guesses)
+           (cond
+             (project-p
+              ;; Inside of a project we remove all JSON and SIMPLE software
+              ;; objects assuming that they may exist in any type of project.
+              ;;
+              ;; NOTE: We will have to add to this list of incidental
+              ;; software types that don't determine the project type.
+              (let ((unique
+                     (remove-if {member _ '(json simple)}
+                                (remove nil (remove-duplicates guesses)))))
+                (if (= 1 (length unique))
+                    (find-if #'identity unique)
+                    nil)))
+             ((= 1 (length sources))
+              ;; For a single file either return the guess, or return
+              ;; SIMPLE if no language matched.
+              (or (car guesses) 'simple))
+             ((= 1 (length (remove-duplicates guesses)))
+              ;; Multiple non-project files must all be equal to return a guess.
+              (or (car guesses) 'simple))))))
+    (guess-helper sources nil)))
+
+(defun create-software (path &rest rest
+                        &key ; NOTE: Maintain list of keyword arguments below.
+                          (language (guess-language path) language-p)
+                          compiler flags build-command artifacts
+                          compilation-database store-path
+                          &allow-other-keys)
+  "Build a software object from a common superset of language-specific options.
+
+Keyword arguments are as follows:
+  LANGUAGE ------------- (optional) language of input file/directory
+                         (default to result of `guess-language' on PATH)
+                         String language is assumed to be a language name to be
+                         resolved w/`resolve-language-from-language-and-source'.
+                         Symbol language is assumed to be a class in sel/sw
+  STORE-PATH ----------- path to the cached store file with the software
+  COMPILER ------------- compiler for software object
+  BUILD-COMMAND -------- shell command to build project directory
+  ARTIFACTS ------------ build-command products
+  COMPILATION-DATABASE - clang compilation database
+Other keyword arguments are allowed and are passed through to `make-instance'."
+  ;; Should any of the input parameters be set in the restored objects?
+  (when (and store-path (probe-file store-path))
+    (return-from create-software (restore store-path)))
+  ;; If a SW named ends in ".store", the file will
+  ;; be considered a store file.  Restore it instead
+  ;; of creating a software object from source.
+  (when (equal (pathname-type (pathname path)) "store")
+    (return-from create-software (restore path)))
+  (from-file
+   (nest
+    ;; These options are interdependent.  Resolve any dependencies and
+    ;; drop options which don't exist for LANGUAGE in this `let*'.
+    (let* ((language (cond
+                       ((and language-p (symbolp language))
+                        language)
+                       ((and language-p (stringp language))
+                        (resolve-language-from-language-and-source
+                         language path))
+                       (t language)))
+           (flags
+            (when (subtypep language 'source) flags))
+           (compiler
+            (when (subtypep language 'source) compiler))
+           (compilation-database
+            (when (eql language 'clang-project) compilation-database))
+           (build-command
+            (when (subtypep language 'project)
+              (let* ((build-command-list (split-sequence #\Space build-command))
+                     (abs-cmd-name (nest
+                                    (ignore-errors)
+                                    (merge-pathnames-as-file path)
+                                    (canonical-pathname
+                                     (car build-command-list)))))
+                ;; Remove any absolute path from the beginning of
+                ;; build-command *if* build-command is a file in the
+                ;; base of the project.
+                (if (file-exists-p abs-cmd-name)
+                    (format nil "~a~{ ~a~}"
+                            (replace-all (namestring abs-cmd-name)
+                                         (namestring path)
+                                         "./")
+                            (cdr build-command-list))
+                    build-command))))
+           (artifacts
+            (when (subtypep language 'project) artifacts))))
+    (apply #'make-instance language)
+    (apply #'append
+           (plist-drop-if ; Any other keyword arguments are passed through.
+            {member _ (list :language :compiler :flags :build-command :artifacts
+                            :compilation-database :store-path)}
+            (copy-seq rest)))
+    (remove-if-not #'second)
+    `((:allow-other-keys t)
+      (:compiler ,compiler)
+      (:flags ,flags)
+      (:build-command ,build-command)
+      (:artifacts ,artifacts)
+      (:compilation-database ,compilation-database)))
+   path))
+
+(defgeneric create-test (script)
+  (:documentation "Return a test case of SCRIPT.")
+  (:method ((script pathname))
+    (make-instance 'test-case :program-name (namestring script)))
+  (:method ((script string))
+    (create-test (split-sequence #\Space script)))
+  (:method ((script list))
+    (make-instance 'test-case
+      :program-name (car script)
+      :program-args (mapcar (lambda (x) (if (string= x "~a") :bin x))
+                            (cdr script)))))
+
+(defgeneric create-test-suite (script num-tests)
+  (:documentation "Return a test suite of SCRIPT and NUM-TESTS.
+Replaces ~~a with the binary name and ~~d with NUM-TESTS if they occur
+in SCRIPT.")
+  (:method ((script pathname) (num-tests t))
+    (create-test-suite (namestring script) num-tests))
+  (:method ((script string) (num-tests t))
+    (nest
+     (let ((cmd (split-sequence #\space script))))
+     (flet ((replace-num (num)
+              (cons (car cmd)
+                    (mapcar (lambda (x)
+                              (if (string= x "~d") (write-to-string num) x))
+                            (cdr cmd))))))
+     (make-instance 'test-suite :test-cases)
+     (mapcar [#'create-test #'replace-num] (iota num-tests)))))
+
 
 ;;;; Common sets of command-line-arguments options.
 
@@ -239,22 +488,22 @@ inspecting the value of `*lisp-interaction*'."
       (("quiet" #\q) :type boolean :optional t
        :action #'handle-set-quiet-argument
        :documentation "set verbosity level to 0")
-      (("verbose" #\V) :type integer :optional t :initial-value 2
+      (("verbose" #\V) :type integer :initial-value 2
        :action #'handle-set-verbose-argument
        :documentation "verbosity level 0-4")
-      (("load" #\l) :type string :optional t
+      (("load" #\l) :type string
        :action #'handle-load
        :documentation "load FILE as lisp code")
-      (("eval" #\e) :type string :optional t
+      (("eval" #\e) :type string
        :action #'handle-eval
        :documentation "eval STRING as lisp code")
-      (("out-dir" #\o) :type string :optional t
+      (("out-dir" #\o) :type string
        :action #'handle-out-dir-argument
        :documentation "write final population into DIR")
-      (("read-seed") :type string :optional t
+      (("read-seed") :type string
        :action #'handle-read-random-state-from-path-argument
        :documentation "load random seed from FILE")
-      (("save-seed") :type string :optional t
+      (("save-seed") :type string
        :action #'handle-save-random-state-to-path-argument
        :documentation "save random seed to FILE")))
   (defparameter +interactive-command-line-options+
@@ -263,19 +512,44 @@ inspecting the value of `*lisp-interaction*'."
        :documentation "run interactively")
       (("manual") :type boolean :optional t
        :documentation "Don't automatically evolve")
-      (("swank" #\s) :type integer :optional t
+      (("swank" #\s) :type integer
        :action #'handle-swank-port-argument
        :documentation "start a swank listener on PORT")))
   (defparameter +clang-command-line-options+
     '((("compiler" #\c) :type string :initial-value "clang"
        :documentation "use CC as the C compiler")
-      (("flags" #\F) :type string :optional t
+      (("flags" #\F) :type string
        :action #'handle-comma-delimited-argument
-       :documentation "comma-separated list of compiler flags")))
+       :documentation "comma-separated list of compiler flags")
+      (("new-clang") :type boolean
+       :action #'handle-new-clang-argument
+       :documentation "Use new clang front end")
+      (("split-lines" #\L) :type boolean :optional t
+       :documentation "Split top level strings at newlines")))
   (defparameter +project-command-line-options+
-    '((("build-command" #\b) :type string :optional t :initial-value "make"
+    '((("build-command" #\b) :type string :initial-value "make"
        :documentation "shell command to build project directory")))
   (defparameter +clang-project-command-line-options+
-    '((("compilation-database" #\C) :type string :optional t
+    '((("artifacts" #\a) :type string
+       :action #'handle-comma-delimited-argument
+       :documentation "build products")
+      (("compilation-database" #\D) :type string
        :action #'read-compilation-database
-       :documentation "path to clang compilation database"))))
+       :documentation "path to clang compilation database")))
+  (defparameter +evolutionary-command-line-options+
+    '((("pop-size") :type integer :initial-value #.(expt 2 8)
+       :action #'handle-pop-size-argument
+       :documentation "size of evolution population")
+      (("cross-chance") :type string :initial-value "2/3"
+       :action #'handle-cross-chance-argument
+       :documentation "fraction of new individuals crossed over")
+      (("mut-rate") :type string :initial-value "1"
+       :action #'handle-mut-rate-argument
+       :documentation "mutations per evolutionary loop iteration")
+      (("tournament-size") :type integer :initial-value 2
+       :action #'handle-tournament-size-argument
+       :documentation "mutations per evolutionary loop iteration")
+      (("max-evals") :type integer
+       :documentation "maximum number of evaluations to run in evolution")
+      (("max-time") :type integer
+       :documentation "maximum number of seconds to run evolution"))))

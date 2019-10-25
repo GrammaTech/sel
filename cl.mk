@@ -6,8 +6,11 @@
 #                      (default: PACKAGE_NAME)
 # DOC_PACKAGES ------- Names of packages to document
 #                      (default: PACKAGE_NAME)
+# DOC_DEPS ----------- Optional additional Makefile targets for doc
 # BINS --------------- Names of binaries to build
 # TEST_ARTIFACTS ----- Name of dependencies for testing
+# TEST_BINS ---------- Name of lisp binaries needed for testing
+# TEST_BIN_DIR ------- Directory of lisp binaries needed for testing
 # LISP_DEPS ---------- Packages require to build CL package
 # TEST_LISP_DEPS ----- Packages require to build CL test package
 # BIN_TEST_DIR ------- Directory holding command-line tests
@@ -42,7 +45,7 @@ LISP_DEPS ?=				\
 	$(wildcard src/*.lisp)
 
 # Default lisp to build manifest file.
-LISP ?= ccl
+LISP ?= sbcl
 ifneq (,$(findstring sbcl, $(LISP)))
 ifeq ("$(SBCL_HOME)","")
 LISP_HOME = SBCL_HOME=$(dir $(shell which $(LISP)))../lib/sbcl
@@ -52,7 +55,7 @@ REPL_STARTUP ?= ()
 
 ifneq ($(LISP_STACK),)
 ifneq (,$(findstring sbcl, $(LISP)))
-LISP_FLAGS = --dynamic-space-size $(LISP_STACK) --no-userinit --no-sysinit
+LISP_FLAGS = --noinform --dynamic-space-size $(LISP_STACK) --no-userinit --no-sysinit
 else
 ifneq (,$(findstring ecl, $(LISP)))
 # TODO: Figure out how to set --heap-size appropriately.
@@ -112,6 +115,16 @@ bin/%: $(LISP_DEPS) $(MANIFEST)
 	--eval '(sel/utility::with-quiet-compilation (asdf:make :$(PACKAGE_NAME)/run-$* :type :program :monolithic t))' \
 	--eval '(quit)'
 
+$(TEST_BIN_DIR)/%: $(LISP_DEPS) $(MANIFEST)
+	@rm -f $@
+	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LISP) $(LISP_FLAGS) \
+	--load $(QUICK_LISP)/setup.lisp \
+	--eval '(ql:quickload :software-evolution-library/utility)' \
+	--eval '(ql:quickload :$(PACKAGE_NAME)/run-$*)' \
+	--eval '(setf uiop/image::*lisp-interaction* nil)' \
+	--eval '(sel/utility::with-quiet-compilation (asdf:make :$(PACKAGE_NAME)/run-$* :type :program :monolithic t))' \
+	--eval '(quit)'
+
 bin:
 	mkdir -p $@
 
@@ -129,8 +142,19 @@ unit-check: test-artifacts $(TEST_LISP_DEPS) $(LISP_DEPS) $(MANIFEST)
 	--eval '(ql:quickload :software-evolution-library/utility)' \
 	--eval '(ql:quickload :$(PACKAGE_NAME)/test)' \
 	--eval '(setq sel/stefil+:*long-tests* t)' \
-	--eval '(let ((sel/utility:*uninteresting-conditions* (list (quote stefil::test-style-warning)))) (sel/utility::with-quiet-compilation (asdf:test-system :$(PACKAGE_NAME))))' \
+	--eval '($(PACKAGE_NAME)/test::run-batch)' \
 	--eval '(uiop:quit (if $(PACKAGE_NAME)/test::*success* 0 1))'
+
+unit-check/%: test-artifacts $(TEST_LISP_DEPS) $(LISP_DEPS) $(MANIFEST)
+	@CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LISP) $(LISP_FLAGS) \
+	--load $(QUICK_LISP)/setup.lisp \
+	--eval '(ql:quickload :software-evolution-library/utility :silent t)' \
+	--eval '(ql:quickload :$(PACKAGE_NAME)/test :silent t)' \
+	--eval '(setq sel/stefil+:*long-tests* t)' \
+	--eval '(setf uiop/image::*lisp-interaction* nil)' \
+	--eval '(setf sel/utility:*uninteresting-conditions* (list (quote stefil::test-style-warning)))' \
+	--eval '(sel/utility::with-quiet-compilation (handler-bind ((t (lambda (e) (declare (ignorable e)) (format t "FAIL~%") (uiop::quit 1)))) (progn ($(PACKAGE_NAME)/test::$*) (format t "PASS~%") (uiop:quit 0))))'
+#	--eval '(uiop:quit (if (ignore-errors ($(PACKAGE_NAME)/test::$*) t) 0 1))'
 
 check: unit-check bin-check
 
@@ -230,6 +254,7 @@ Dockerfile: Dockerfile.$(OS)
 clean:
 	rm -f $(addprefix bin/, $(BINS))
 	rm -f $(TEST_ARTIFACTS)
+	rm -f $(addprefix test/bin/, $(TEST_BINS))
 
 more-clean: clean
 	find . -type f -name "*.fasl" -exec rm {} \+
@@ -243,7 +268,9 @@ real-clean: more-clean
 
 
 ## Documentation
-doc: api
+DOC_DEPS ?=
+
+doc: api $(DOC_DEPS)
 	make -C doc
 
 api: doc/include/sb-texinfo.texinfo

@@ -1,12 +1,3 @@
-FROM archlinux/base as coq-serapi
-RUN pacman -Syu --noconfirm diffutils findutils gawk gcc gcc-libs grep less m4 make opam patch sed tar
-# Install ocaml 4.06.0 via opam (for SerAPI)
-RUN opam init --disable-sandboxing -j 4 --compiler="4.06.0" -y
-# Configure ocaml, install coq-serapi at fixed version
-RUN eval `opam config env` && \
-    opam install -y coq-serapi=8.7.2+0.4.13
-
-
 # FROM cl-arch as cl
 # FROM java-mutator-arch as java-mutator
 # FROM clang-mutate-arch
@@ -19,11 +10,16 @@ FROM docker.grammatech.com/synthesis/clang-mutate:arch
 # standard functions requires that the system has man pages installed.
 # Also, python is required for testbot to submit results to the datamanager.
 RUN sed -i 's/#\[multilib\]/\[multilib\]/; /^\[multilib\]/,/^$/ s/^#//' /etc/pacman.conf
-RUN pacman --noconfirm -Syu archlinux-keyring
-RUN pacman --noconfirm -Syu astyle boost boost-libs diffutils expect findutils gawk gcc-multilib graphviz grep jdk8-openjdk less lib32-fakeroot lib32-gcc-libs lib32-glibc lib32-libltdl libffi man-db man-pages maven nodejs npm pandoc patch python sed subversion tar texinfo unzip
+RUN pacman --noconfirm -Syu --overwrite /usr/lib/libastyle.so.3 archlinux-keyring && \
+    pacman --noconfirm -Syu --overwrite /usr/lib/libastyle.so.3 astyle boost boost-libs diffutils expect findutils gawk gcc-multilib graphviz grep jdk8-openjdk less lib32-fakeroot lib32-gcc-libs lib32-glibc lib32-libltdl libffi m4 make man-db man-pages maven nodejs npm opam pandoc patch python sed subversion time tar texinfo unzip
 
+# Install ocaml 4.06.0 via opam (for SerAPI)
+RUN opam init --disable-sandboxing -j 4 --compiler="ocaml-base-compiler.4.06.0" -y
 
-COPY --from=coq-serapi /root/.opam /root/.opam
+# Configure ocaml, install coq-serapi at fixed version
+RUN eval `opam config env` && \
+    opam install -y coq-serapi=8.7.2+0.4.13
+
 COPY --from=cl /usr/synth/ /usr/synth
 COPY --from=java-mutator /usr/synth/bin/java-mutator /usr/synth/bin/java-mutator
 
@@ -35,14 +31,14 @@ ARG GT
 ARG LISP
 # Use /root/quicklisp/local-projects.
 RUN cp -R /usr/synth/quicklisp /root/quicklisp
-RUN rm /root/quicklisp/local-projects/system-index.txt
 COPY . /root/quicklisp/local-projects/sel
 WORKDIR /root/quicklisp/local-projects/sel
-ENV PATH=/root/quicklisp/local-projects/sel/bin:/root/.opam/4.06.0/bin:/usr/synth/bin:$PATH \
-    LD_LIBRARY_PATH=/root/quicklisp/dists/trace-db/software/trace-db/:/usr/synth/lib/:$LD_LIBRARY_PATH \
-    SERAPI=/root/.opam/4.06.0/bin/sertop \
-    COQLIB=/root/.opam/4.06.0/lib/coq/ \
+RUN export __TEMP_LD_LIBRARY_PATH=$(if [ -z "$LD_LIBRARY_PATH" ]; then echo "" ;else echo ":$LD_LIBRARY_PATH";fi)
+ENV LISP=$LISP \
+    PATH=/root/quicklisp/local-projects/sel/bin:/root/.opam/ocaml.4.06.0/bin:/usr/synth/bin:$PATH \
+    LD_LIBRARY_PATH=/root/quicklisp/dists/trace-db/software/trace-db/:/usr/synth/lib/$__TEMP_LD_LIBRARY_PATH \
     QUICK_LISP=/root/quicklisp/ \
+    SBCL_HOME=/usr/synth/lib/sbcl \
     LISP_STACK=32678
 RUN make real-clean all
 CMD /bin/bash

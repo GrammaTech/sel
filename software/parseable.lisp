@@ -12,7 +12,6 @@
         :bordeaux-threads
         :software-evolution-library
         :software-evolution-library/utility
-        :software-evolution-library/ast-diff/ast-diff
         :software-evolution-library/software/ast
         :software-evolution-library/software/source)
   (:export :parseable
@@ -20,6 +19,7 @@
            :asts
            :asts-changed-p
            :copy-lock
+           :*parseable-mutation-types*
            :parseable-mutation
            :parseable-insert
            :parseable-swap
@@ -45,6 +45,7 @@
            :update-asts-if-necessary
            :update-caches-if-necessary
            :bad-asts
+           :stmt-range
            ;; :good-stmts
            :good-mutation-targets
            :bad-mutation-targets
@@ -68,8 +69,15 @@
            :append-to-genome
            :index-of-ast
            :ast-at-index
+           ;; Mutation wrappers
+           :insert-ast
+           :replace-ast
+           :remove-ast
            ;; Restarts
-           :expand-stmt-pool))
+           :expand-stmt-pool
+           :name=
+           :name-emptyp
+           :equal-with-name=))
 (in-package :software-evolution-library/software/parseable)
 (in-readtable :curry-compose-reader-macros)
 
@@ -95,11 +103,8 @@ See the documentation of `update-asts' for required invariants.")
 (defgeneric roots (obj)
   (:documentation "Return all top-level ASTs in OBJ."))
 
-(defgeneric asts (obj)
-  (:documentation "Return a list of all asts in OBJ."))
-
 (defgeneric get-ast (obj path)
-  (:documentation "Return the AST in OBJ at PATH."))
+  (:documentation "Return the AST in OBJ at the given PATH."))
 
 (defgeneric get-parent-ast (obj ast)
   (:documentation "Return the parent node of AST in OBJ"))
@@ -133,6 +138,26 @@ and :SCOPE.
 
 (defgeneric get-vars-in-scope (software ast &optional keep-globals)
   (:documentation "Return all variables in enclosing scopes."))
+
+;; These name functions are used by CLANG and NEW-CLANG.  When old CLANG
+;; goes away, move it down into the remaining package, as it is
+;; not generic to all parseables.
+(defgeneric name= (n1 n2)
+  (:documentation "Generalized name equality for AST names")
+  (:method ((n1 string) (n2 string))
+    (string= n1 n2)))
+
+(defgeneric name-emptyp (n)
+  (:documentation "Generalized name emptiness check")
+  (:method ((n sequence)) (emptyp n))
+  (:method (n) (declare (ignorable n)) nil))
+
+(defun equal-with-name= (n1 n2)
+  (if (consp n1)
+      (and (consp n2)
+           (equal-with-name= (car n1) (car n2))
+           (equal-with-name= (cdr n1) (cdr n2)))
+      (name= n1 n2)))
 
 (defgeneric update-asts (software)
   (:documentation "Update the store of asts associated with SOFTWARE.
@@ -213,6 +238,12 @@ made traceable by wrapping with curly braces, return that."))
   (:documentation "Add an #include directive for an INCLUDE to SOFTWARE
 even if such an INCLUDE already exists in SOFTWARE."))
 
+(defgeneric stmt-range (software function)
+  (:documentation
+   "The indices of the first and last statements in a function.
+Return as a list of (first-index last-index). Indices are positions in
+the list returned by (asts software)."  ) )
+
 
 ;;; Core parseable methods
 (defvar *parseable-obj-code* (register-code 45 'parseable)
@@ -230,6 +261,14 @@ even if such an INCLUDE already exists in SOFTWARE."))
   (let ((obj (cl-store::restore-type-object stream)))
     (setf (slot-value obj 'copy-lock) (make-lock "parseable-copy"))
     obj))
+
+(defmethod initialize-instance :after ((obj parseable) &rest initargs)
+  "If an AST-ROOT is given in the initialization, ensure all ASTs have PATHs."
+  (declare (ignorable initargs))
+  (with-slots (ast-root genome) obj
+    (when ast-root
+      (setf ast-root (update-paths ast-root)
+            genome nil))))
 
 (defmethod copy :before ((obj parseable) &key)
   "Update ASTs in OBJ prior to performing a copy.
@@ -286,7 +325,7 @@ applicative AST tree and clear the genome string."
         :path (reverse path)
         :children (iter (for c in (ast-children tree))
                         (for i upfrom 0)
-                        (collect (if (subtypep (type-of c) 'ast)
+                        (collect (if (typep c 'ast)
                                      (update-paths c (cons i path))
                                      c)))))
 
@@ -312,25 +351,19 @@ field indicates the object has changed since the last parse."
 
 (defmethod update-asts-if-necessary ((obj parseable))
   "Parse ASTs in obj if the `ast-root' field has not been set.
-* OBJ object to potentially populate with ASTs
-"
+* OBJ object to potentially populate with ASTs"
   (with-slots (ast-root) obj (unless ast-root (update-asts obj))))
 
-;;; NOTE: The `update-caches' method makes some assumptions about the
-;;;       structure of the ASTs.  Namely that the initial top-level
-;;;       AST can be thrown away.  Also, that any AST without any
-;;;       children need not be collected at all.  (Maybe this last one
-;;;       is a proxy for not collecting string asts?)
+;;; NOTE: The `update-caches' method assumes that the initial
+;;;       top-level AST can be thrown away.
 (defgeneric update-caches (software)
   (:documentation "Update cached fields in SOFTWARE.")
   (:method ((obj parseable))
     (labels ((collect-asts (tree)
-               ;; Collect all subtrees
-               (unless (null (ast-children tree))
-                 (cons tree
-                       (iter (for c in (ast-children tree))
-                             (unless (stringp c)
-                               (appending (collect-asts c))))))))
+               (cons tree
+                     (iter (for c in (ast-children tree))
+                           (appending (when (ast-p c)
+                                        (collect-asts c)))))))
       (setf (slot-value obj 'asts)
             (cdr (collect-asts (ast-root obj)))))))
 
@@ -358,6 +391,7 @@ field indicates the object has changed since the last parse."
   "Return all top-level ASTs in ASTS.
 * ASTS list of ASTs to search for roots
 "
+  #+sbcl (declare (optimize (speed 0))) ;; to avoid compiler note
   (remove-if-not [{= 1} #'length #'ast-path] asts))
 
 (defgeneric ast-at-index (software index)
@@ -379,8 +413,7 @@ field indicates the object has changed since the last parse."
 (defmethod get-ast ((obj parseable) (path list))
   "Return the AST in OBJ at the given PATH.
 * OBJ software object with ASTs
-* PATH path to the AST to return
-"
+* PATH path to the AST to return"
   (labels ((helper (tree path)
              (if path
                  (destructuring-bind (head . tail) path
@@ -388,6 +421,13 @@ field indicates the object has changed since the last parse."
                            tail))
                  tree)))
     (helper (ast-root obj) path)))
+
+(defmethod (setf get-ast) (new (obj parseable) (path list))
+  "Set the AST at location PATH in OBJ to NEW.
+* OBJ software object with ASTs
+* PATH path to the AST to replace
+* NEW ast or asts to replace with"
+  (replace-ast obj path new :literal t))
 
 (defgeneric parent-ast-p (software possible-parent-ast ast)
   (:documentation "Return true if POSSIBLE-PARENT-AST is a parent of AST in OBJ, nil
@@ -442,9 +482,7 @@ otherwise.
 "
   (declare (ignorable obj)) ;; TODO: Remove obj as a parameter
   ;; Q: can we share structure with the list from AST-CHILDREN?
-  (iter (for child in (ast-children ast))
-        (when (typep child 'ast)
-          (collect child))))
+  (remove-if-not #'ast-p (ast-children ast)))
 
 (defmethod get-vars-in-scope ((obj parseable) (ast ast)
                               &optional (keep-globals t))
@@ -458,7 +496,7 @@ otherwise.
                                          (butlast (scopes obj ast))))
                      :from-end t
                      :key {aget :name}
-                     :test #'string=))
+                     :test #'name=))
 
 (defgeneric ast-to-source-range (software ast)
   (:documentation "Convert AST to pair of SOURCE-LOCATIONS.")
@@ -751,6 +789,33 @@ second should be included as a possible pick
 
 
 ;;; Mutations
+(defvar *parseable-mutation-types*
+  (cumulative-distribution
+   (normalize-probabilities
+    '((parseable-insert . 1)
+      (parseable-swap . 1)
+      (parseable-move . 1)
+      (parseable-replace . 1)
+      (parseable-cut . 1)
+      (parseable-nop . 1))))
+  "Cumulative distribution of normalized probabilities of weighted mutations.")
+
+(defmethod pick-mutation-type ((obj parseable))
+  "Select type of mutation to apply to OBJ."
+  (random-pick *parseable-mutation-types*))
+
+(defmethod mutate ((obj parseable))
+  "Select a random mutation and mutate OBJ."
+  (unless (> (size obj) 0)
+    (error (make-condition 'mutate :text "No valid IDs" :obj obj)))
+  (restart-case
+      (let ((mutation (make-instance (pick-mutation-type obj) :object obj)))
+        (apply-mutation obj mutation)
+        (values obj mutation))
+    (try-another-mutation ()
+      :report "Try another mutation"
+      (mutate obj))))
+
 (defclass parseable-mutation (mutation)
   ()
   (:documentation "Specialization of the mutation interface for parseable
@@ -881,15 +946,15 @@ SOFTWARE.
                   (setf ast-root
                         (ecase op
                           (:set
-                            (replace-ast ast-root stmt1 value1))
+                            (sel/sw/ast::replace-ast ast-root stmt1 value1))
                           (:cut
-                            (remove-ast ast-root stmt1))
+                            (sel/sw/ast::remove-ast ast-root stmt1))
                           (:insert
-                            (insert-ast ast-root stmt1 value1))
+                            (sel/sw/ast::insert-ast ast-root stmt1 value1))
                           (:insert-after
-                            (insert-ast-after ast-root stmt1 value1))
+                            (sel/sw/ast::insert-ast-after ast-root stmt1 value1))
                           (:splice
-                            (splice-asts ast-root stmt1 value1)))))
+                            (sel/sw/ast::splice-asts ast-root stmt1 value1)))))
                 (finally (return ast-root)))))
 
   (clear-caches software)
@@ -934,8 +999,7 @@ the mutation operations to be performed as an association list.
          (otherwise (cons op properties))))))
 
 (defmethod recontextualize ((software parseable)
-                            (ast ast)
-                            (pt ast))
+                            ast pt)
   "Perform any modifications to AST (e.g. variable rebinding)
 to allow for successful mutation of SOFTWARE at PT."
   (declare (ignorable software pt))
@@ -943,80 +1007,69 @@ to allow for successful mutation of SOFTWARE at PT."
 
 
 ;;; Generic tree interface
-(defmethod insert-ast ((obj parseable) (location list) (ast ast))
-  "Return the modified OBJ with AST inserted at LOCATION.
+(defgeneric insert-ast (obj location ast &key literal &allow-other-keys)
+  (:documentation "Return the modified OBJ with AST inserted at LOCATION.
 * OBJ object to be modified
-* LOCATION path to the AST marking location where insertion is to occur
+* LOCATION location where insertion is to occur
 * AST AST to insert
-"
-  (insert-ast obj (get-ast obj location) ast))
+* LITERAL keyword to control whether recontextualization is performed
+          For modifications where the replacement is to be directly
+          inserted, pass this keyword as true.")
+  (:method ((obj parseable) (location ast) (ast ast)
+            &rest args &key &allow-other-keys)
+    (apply #'insert-ast obj (ast-path location) ast args))
+  (:method ((obj parseable) (location list) (ast ast)
+            &key literal &allow-other-keys)
+    (apply-mutation obj (at-targets (make-instance 'parseable-insert)
+                                    (list (cons :stmt1 location)
+                                          (cons (if literal :literal1 :value1)
+                                                ast))))))
 
-(defmethod insert-ast ((obj parseable) (location ast) (ast ast))
-  "Return the modified OBJ with AST inserted at LOCATION.
+(defgeneric replace-ast (obj location replacement
+                         &key literal &allow-other-keys)
+  (:documentation "Modify and return OBJ with the AST at LOCATION replaced
+with REPLACEMENT.
 * OBJ object to be modified
-* LOCATION AST marking location where insertion is to occur
-* AST AST to insert
-"
-  (apply-mutation obj (at-targets (make-instance 'parseable-insert)
-                                  (list (cons :stmt1 location)
-                                        (cons :value1 ast)))))
+* LOCATION location where replacement is to occur
+* REPLACEMENT AST or ASTs to insert
+* LITERAL keyword to control whether recontextualization is performed
+          For modifications where the replacement is to be directly
+          inserted, pass this keyword as true.")
+  (:method ((obj parseable) (location ast) (replacement ast)
+            &rest args &key &allow-other-keys)
+    (apply #'replace-ast obj (ast-path location) replacement args))
+  (:method ((obj parseable) (location list) (replacement ast)
+            &key literal &allow-other-keys)
+    (apply-mutation obj (at-targets (make-instance 'parseable-replace)
+                                    (list (cons :stmt1 location)
+                                          (cons (if literal :literal1 :value1)
+                                                replacement)))))
+  (:method ((obj parseable) (location ast) (replacement string)
+            &rest args &key &allow-other-keys)
+    (apply #'replace-ast obj (ast-path location) (list replacement) args))
+  (:method ((obj parseable) (location list) (replacement string)
+            &rest args &key &allow-other-keys)
+    (apply #'replace-ast obj location (list replacement) args))
+  (:method ((obj parseable) (location ast) (replacement list)
+            &rest args &key &allow-other-keys)
+    (apply #'replace-ast obj (ast-path location) replacement args))
+  (:method ((obj parseable) (location list) (replacement list)
+            &key literal &allow-other-keys)
+    (apply-mutation obj
+                    (at-targets (make-instance 'parseable-replace)
+                                (list (cons :stmt1 (butlast location))
+                                      (cons (if literal :literal1 :value1)
+                                            (sel/sw/ast::replace-nth-child
+                                             (get-ast obj (butlast location))
+                                             (lastcar location)
+                                             replacement)))))))
 
-(defmethod replace-ast ((obj parseable) (location list) (replacement ast)
-                        &rest args &key &allow-other-keys)
-  "Return the modified OBJ with the AST at LOCATION replaced with
-REPLACEMENT.
+(defgeneric remove-ast (obj location &key &allow-other-keys)
+  (:documentation "Return the modified OBJ with the AST at LOCATION removed.
 * OBJ object to be modified
-* LOCATION path to the AST to be replaced in OBJ
-* REPLACEMENT Replacement AST
-"
-  (apply #'replace-ast obj (get-ast obj location) replacement args))
-
-(defmethod replace-ast ((obj parseable) (location ast) (replacement ast)
-                        &key literal &allow-other-keys)
-  "Return the modified OBJ with the AST at LOCATION replaced with
-REPLACEMENT.
-* OBJ object to be modified
-* LOCATION AST to be replaced in OBJ
-* REPLACEMENT Replacement AST
-* LITERAL, if true, causes the replacement to occur without
-  recontextualization
-"
-  (apply-mutation obj (at-targets (make-instance 'parseable-replace)
-                                  (list (cons :stmt1 location)
-                                        (cons (if literal :literal1 :value1)
-                                              replacement)))))
-
-(defmethod remove-ast ((obj parseable) (location list))
-  "Return the modified OBJ with the AST at LOCATION removed.
-* OBJ object to be modified
-* LOCATION path to the AST to be removed in TREE
-"
-  (remove-ast obj (get-ast obj location)))
-
-(defmethod remove-ast ((obj parseable) (location ast))
-  "Return the modified OBJ with the AST at LOCATION removed.
-* OBJ object to be modified
-* LOCATION AST to be removed in TREE
-"
-  (apply-mutation obj (at-targets (make-instance 'parseable-cut)
-                                  (list (cons :stmt1 location)))))
-
-
-;;; Customization for ast-diff.
-(defmethod ast-diff ((parseable-a parseable) (parseable-b parseable) &rest args
-                     &key &allow-other-keys)
-  (apply #'ast-diff (ast-root parseable-a) (ast-root parseable-b) args))
-
-(defmethod ast-patch ((obj parseable) (diff list) &rest keys &key &allow-other-keys)
-  (setf obj (copy obj))
-  (setf (ast-root obj) (apply #'ast-patch (ast-root obj) diff keys))
-  obj)
-
-(defmethod converge ((obj1 parseable) (obj2 parseable) (obj3 parseable) &rest args &key &allow-other-keys)
-  (let ((root1 (ast-root obj1))
-	(root2 (ast-root obj2))
-	(root3 (ast-root obj3)))
-    (multiple-value-bind (merged-root problems)
-	(apply #'converge root1 root2 root3 args)
-      (declare (ignorable problems))
-      (make-instance (class-of obj1) :genome nil :ast-root merged-root))))
+* LOCATION location to be removed in OBJ")
+  (:method ((obj parseable) (location ast) &rest args &key &allow-other-keys)
+    (apply #'remove-ast obj (ast-path location) args))
+  (:method ((obj parseable) (location list) &key &allow-other-keys)
+    (apply-mutation obj (at-targets (make-instance 'parseable-cut)
+                                    (list (cons :stmt1 location))))))

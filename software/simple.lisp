@@ -10,10 +10,10 @@
         :iterate
         :split-sequence
         :software-evolution-library
+        :software-evolution-library/software/file
         :software-evolution-library/utility)
   (:shadowing-import-from :uiop :ensure-directory-pathname)
   (:import-from :asdf-encodings :detect-file-encoding)
-  (:import-from :osicat :file-permissions)
   (:export :simple
            :light
            :sw-range
@@ -29,13 +29,11 @@
 
 
 ;;; simple software objects
-(define-software simple (software)
+(define-software simple (software file)
   ((genome :initarg :genome :accessor genome :initform nil
-           :copier sel/utility:enhanced-copy-seq)
-   (permissions :initarg :permissions :accessor permissions :initform nil))
+           :copier sel/utility:enhanced-copy-seq))
   (:documentation "The simplest base software object."))
 
-(declaim (inline lines))
 (defmethod lines ((simple simple))
   (remove nil (map 'list {aget :code} (genome simple))))
 
@@ -45,13 +43,11 @@
 (defmethod size ((obj simple))
   (length (lines obj)))
 
-(declaim (inline genome-string))
 (defmethod genome-string ((simple simple) &optional stream)
   (format stream "~{~a~%~}" (lines simple)))
 
 (defmethod from-file ((simple simple) path)
-  (setf (permissions simple) (file-permissions path)
-        (genome simple)
+  (setf (genome simple)
         (with-open-file (in path :external-format (detect-file-encoding path))
           (loop :for line := (read-line in nil) :while line
              :collect (list (cons :code line)))))
@@ -59,8 +55,7 @@
 
 (defmethod to-file ((simple simple) file)
   (with-open-file (out file :direction :output :if-exists :supersede)
-    (genome-string simple out))
-  (setf (file-permissions file) (permissions simple)))
+    (genome-string simple out)))
 
 (defvar *simple-mutation-types*
   (cumulative-distribution
@@ -68,7 +63,7 @@
     '((simple-cut    . 1)
       (simple-insert . 1)
       (simple-swap   . 1))))
-   "DOCFIXME")
+  "Default list of mutations to apply to simple software objects.")
 
 (defmethod pick-mutation-type ((obj simple))
   (random-pick *simple-mutation-types*))
@@ -224,6 +219,7 @@ determines the number of elements on either side of the points to
 consider.  TEST should take two elements and return a similarity
 metric between 0 and 1.  KEY may be a function of one argument whose
 value is passed to TEST."
+  #+sbcl (declare (sb-ext:muffle-conditions sb-ext:compiler-note))
   (let* ((ap (random (length a)))
          (a-ctx (let ((ctx (subseq a
                                    (max 0 (- ap context))
@@ -261,6 +257,7 @@ value is passed to TEST."
                                    (key {aget :code})
                                    (test (lambda (a b) (if (tree-equal a b) 1 0))))
   "DOCFIXME"
+  #+sbcl (declare (sb-ext:muffle-conditions sb-ext:compiler-note))
   (let ((range (min (size a) (size b))))
     (if (> range 0)
         (let* ((new (copy a))

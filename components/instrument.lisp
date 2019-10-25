@@ -55,16 +55,14 @@ Keyword arguments are as follows:
   TRACE-ENV ------------ trace output to file specified by ENV variable
   INSTRUMENT-EXIT ------ print counter of function body before exit
   FILTER --------------- function to select a subset of ASTs for instrumentation
-  NUM-THREADS ---------- number of threads to use for instrumentation
-"))
+  NUM-THREADS ---------- number of threads to use for instrumentation"))
 
 (defgeneric var-instrument (key instrumenter ast &key print-strings)
   (:documentation
    "Generate ASTs for variable instrumentation.
 * KEY a function used to pull the variable list out of AST
 * INSTRUMENTER current instrumentation state
-* AST the AST to instrument
-"))
+* AST the AST to instrument"))
 
 (defgeneric uninstrument (obj &key num-threads)
   (:documentation "Remove instrumentation from OBJ

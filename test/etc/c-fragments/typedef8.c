@@ -1,0 +1,1 @@
+typedef union U UT;

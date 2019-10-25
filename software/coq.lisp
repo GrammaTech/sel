@@ -88,6 +88,7 @@
         :cl-ppcre
         :software-evolution-library
         :software-evolution-library/utility
+        :software-evolution-library/software/parseable
         :software-evolution-library/software/sexp
         :software-evolution-library/components/serapi-io)
   (:shadowing-import-from :uiop :pathname-directory-pathname)
@@ -111,6 +112,7 @@
            :untag-loc-info
            :lookup-source-strings
            :coq-type-checks
+           :load-coq-object
            :synthesize-typed-coq-expression))
 (in-package :software-evolution-library/software/coq)
 (in-readtable :serapi-readtable)
@@ -164,8 +166,7 @@ load path, with a nickname if one was provided in the PROJECT-FILE."
       (with-open-file (in project-file)
         (iter (for line = (read-line in nil nil))
               (while line)
-              (when (or (starts-with-subseq "-R" line)
-                        (starts-with-subseq "-I" line))
+              (when (starts-with-subseq "-R" line)
                 (let* ((split-line (split-sequence #\Space line))
                        (rel-dir (second split-line))
                        (nickname (third split-line)))
@@ -211,6 +212,43 @@ See also `tag-loc-info'."
   "Remove :LOC tags from Coq OBJ."
   (untag-loc-info (copy-tree (genome obj))))
 
+(defun coq-asts-from-file (file project-file)
+  (when project-file
+    (set-load-paths project-file)
+    (insert-reset-point))
+  (with-open-file (in file)
+    (iter (for line = (read-line in nil nil))
+          (while line)
+          (with current-ast = "")
+          ;; if line is the end of a Coq stmt, look up the Coq ast
+          (if (ends-with #\. line)
+              (let* ((ast-string (format nil "~a ~a~%" current-ast line))
+                     (ast-ids (add-coq-string ast-string))
+                     (asts
+                      (iter (for ast-id in ast-ids)
+                            (with found-error = nil)
+                            (handler-case
+                                (let ((ast (lookup-coq-ast ast-id)))
+                                  (if (and ast (lookup-coq-string ast))
+                                      (collect ast into coq-genome)
+                                      (setf found-error t)))
+                              ;; On error, ast isn't re-serializable, so save
+                              ;; the raw string. Otherwise, save the ASTs.
+                              (serapi-error ()
+                                (setf found-error t))
+                              (condition ()
+                                (setf found-error t)))
+                            (finally
+                             (return (if found-error
+                                         (list ast-string)
+                                         coq-genome))))))
+                (appending asts into genome-asts)
+                (setf current-ast ""))
+              ;; line doesn't end with ., append to current-ast statement
+              (setf current-ast (format nil "~a ~a" current-ast line)))
+          (finally
+           (reset-serapi-process)
+           (return genome-asts)))))
 
 (defmethod from-file ((obj coq) file)
   "Load Coq OBJ from file FILE, initializing fields in OBJ.
@@ -219,34 +257,32 @@ file have been added."
   (when (project-file obj)
     (set-load-paths (project-file obj))
     (insert-reset-point))
-  (bind ((ast-ids (load-coq-file file))
-         ((import-asts import-strs asts modules sections
+  (bind ((asts (coq-asts-from-file file (project-file obj)))
+         ((import-asts import-strs genome-asts modules sections
                        assumptions definitions)
-          (iter (for id in ast-ids)
+          (iter (for ast in asts)
                 (with initial-imports = t)
-                (let ((ast (lookup-coq-ast id)))
-                  ;; Collect all ASTs except imports into genome.
-                  (if (and initial-imports (coq-import-ast-p ast))
-                      ;; separate out import asts at top of file
-                      (progn
-                        (collect ast into imports)
-                        (collect (lookup-coq-string id) into import-strs))
-                      ;; all other asts
-                      (progn
-                        (setf initial-imports nil)
-                        (collect ast into asts)))
-                  (when-let ((module (coq-module-ast-p ast)))
-                    (collect module into modules))
-                  (when-let ((section (coq-section-ast-p ast)))
-                    (collect section into sections))
-                  (when-let ((assumption (coq-assumption-ast-p ast)))
-                    (collect assumption into assumptions))
-                  (when-let ((definition (coq-definition-ast-p ast)))
-                    (collect definition into definitions)))
-                (finally
-                 (return (list imports import-strs asts modules sections
-                               assumptions definitions))))))
-    (setf (genome obj) (tag-loc-info asts))
+                ;; Collect all ASTs except imports into genome.
+                (if (and initial-imports (coq-import-ast-p ast))
+                    ;; separate out import asts at top of file
+                    (progn
+                      (collect ast into imports)
+                      (collect (lookup-coq-string ast) into import-strs))
+                    ;; all other asts
+                    (progn
+                      (setf initial-imports nil)
+                      (collect ast into genome-asts)))
+                (when-let ((module (coq-module-ast-p ast)))
+                  (collect module into modules))
+                (when-let ((section (coq-section-ast-p ast)))
+                  (collect section into sections))
+                (when-let ((assumption (coq-assumption-ast-p ast)))
+                  (collect assumption into assumptions))
+                (when-let ((definition (coq-definition-ast-p ast)))
+                  (collect definition into definitions))
+                (finally (return (list imports import-strs genome-asts modules
+                                       sections assumptions definitions))))))
+    (setf (genome obj) (tag-loc-info genome-asts))
     (setf (file-source obj) file)
     (setf (imports obj) import-asts)
     (setf (coq-modules obj) modules)
@@ -272,7 +308,7 @@ Set INCLUDE-IMPORTS to T to include import statements in the result."
            (when import
              (collecting (lookup-coq-string import)))))
    (iter (for ast in (unannotated-genome obj))
-         (when (and ast (listp ast))
+         (when ast
            (collecting (lookup-coq-string ast))))))
 
 (defun lookup-coq-import-strings (coq)
@@ -294,7 +330,7 @@ imports should be loaded first."
                     (add-coq-string str)))))
         (let ((num-asts (or num-asts (length (unannotated-genome coq)))))
           (iter (for ast in (take num-asts (unannotated-genome coq)))
-                (when (and ast (listp ast))
+                (when ast
                   (when-let ((str (lookup-coq-string ast)))
                     (append ast-ids (add-coq-string str))))
                 (finally (return ast-ids)))))
@@ -332,7 +368,7 @@ Return NIL if source strings cannot be looked up."
   "Look up source strings for Coq OBJ ASTs and write to PATH."
   (with-open-file (out path :direction :output :if-exists :supersede)
     (format out "~{~a~%~^~}"
-            (mapcar #'sel/cp/serapi-io::unescape-string
+            (mapcar #'sel/cp/serapi-io::unescape-coq-string
                     (lookup-source-strings obj :include-imports t)))))
 
 
@@ -498,12 +534,11 @@ condition."
 (defmethod stmt-range ((obj coq) (function string))
   "Return a list of the indices of the first and last ASTs of FUNCTION in OBJ.
 Assumes FUNCTION is defined in a top-level AST in OBJ."
-  (intern function *package*)
   (when-let ((top-level-pos
               (iter (for defn in (genome obj))
                     (for i upfrom 0)
                     (when-let ((defn-name (coq-definition-ast-p defn)))
-                      (when (eql defn-name (find-symbol function *package*))
+                      (when (eql defn-name (intern function :sel/cp/serapi-io))
                         (collecting i))))))
     (let ((end-prev (tree-size (take (first top-level-pos) (genome obj)))))
       (list (1+ end-prev)
@@ -559,40 +594,45 @@ Assumes FUNCTION is defined in a top-level AST in OBJ."
           (setf env (unqualify-term env module))
           (finally (return env)))))
 
-(defun build-environment (coq &key num-asts modules whitelist-defs
-                                imported-modules)
+(defun build-environment (coq modules &key num-asts whitelist-defs
+                                        blacklist-defs imported-modules)
   (reset-and-load-imports coq)
   (insert-reset-point)
   (load-coq-object coq :include-imports nil
                    :num-asts (or num-asts (length (genome coq))))
   (prog1
-      ;; if no module list is specified, search anyway with :module NIL
-      ;; (i.e., in all loaded libraries)
-      (let ((types (append (search-coq-type "Type")
-                           (search-coq-type "Set"))))
-        (iter (for module in (or modules (list nil)))
-              (let ((vals (mappend [{unqualify-coq-modules _ imported-modules}
-                                    {search-coq-type _ :module module}
-                                    #'first]
-                                   types)))
-                (mapc (lambda (type)
-                        (when (or (not whitelist-defs)
-                                  (some {ends-with-subseq _ (first type)
-                                                          :test #'equal}
-                                        whitelist-defs))
-                          (collecting type into mod-types)))
-                      vals))
-              (finally
-               (return
-                 (mapcar (lambda (ty)
-                           (if (listp ty)
-                               (cons (car ty)
-                                     (cons (make-coq-var-reference (car ty))
-                                           (cdr ty)))
-                               ty))
-                         mod-types)))))
-    ;; reset after loading coq software object
-    (reset-serapi-process)))
+      ;; Do nothing if no modules are specified (it's infeasible to collect
+      ;; all terms in the Coq environment)
+      (let* ((terms
+              (when modules
+                (iter (for module in modules)
+                      (appending (search-coq-type "_" :module module)))))
+             ;; remove module qualifications for imported modules
+             (unqualified (unqualify-coq-modules terms imported-modules)))
+        ;; Keep only types that are on the whitelist and not on the blacklist
+        (remove-if-not
+         #'identity
+         (mapcar (lambda (uq-type)
+                   (when (and
+                          ;; In whitelist (or no whitelist present)
+                          (or (not whitelist-defs)
+                              (some {ends-with-subseq _ (first uq-type)
+                                                      :test #'equal}
+                                    whitelist-defs))
+                          ;; Not in blacklist (or no blacklist present)
+                          (or (not blacklist-defs)
+                              (not (some {ends-with-subseq _ (first uq-type)
+                                                           :test #'equal}
+                                         blacklist-defs)))
+                          (listp uq-type))
+                     ;; For accepted types, return a list:
+                     ;; (type-name coq-var-reference :COLON type)
+                     (cons (car uq-type)
+                           (cons (make-coq-var-reference (car uq-type))
+                                 (cdr uq-type)))))
+                 unqualified)))
+      ;; reset after loading coq software object
+      (reset-serapi-process)))
 
 ;; NOTE: this function generates a list of ASTs which may be converted to
 ;; strings using `(lookup-coq-string expr :input-format #!'CoqExpr)'.
@@ -661,7 +701,7 @@ pairs of expressions from RESULT-EXPRS."
                                      (make-coq-if test-expr
                                                   then-expr
                                                   else-expr)))))))))
-         (search-type (tokenize-coq-type type)))
+         (search-type (if (listp type) type (tokenize-coq-type type))))
     (if (zerop depth)
         (iter (for (name ast colon . scope-type) in scopes)
               (declare (ignorable colon))

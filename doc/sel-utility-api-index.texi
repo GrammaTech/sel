@@ -62,7 +62,6 @@
 
 @item Variables
   @itemize
-  @item @refutilityvar{*bash-shell*}
   @item @refutilityvar{*note-level*}
   @item @refutilityvar{*note-out*}
   @item @refutilityvar{*profile-dot-min-ratio*}
@@ -116,12 +115,12 @@
   @item @refutilityfunction{random-hash-table-key}
   @item @refutilityfunction{random-sample-with-replacement}
   @item @refutilityfunction{random-sample-without-replacement}
-  @item @refutilityfunction{replace-all}
   @item @refutilityfunction{replace-stdout-in-note-targets}
   @item @refutilityfunction{shell}
   @item @refutilityfunction{show-it}
   @item @refutilityfunction{take}
   @item @refutilityfunction{transpose}
   @item @refutilityfunction{un-cumulative-distribution}
+  @item @refutilitygeneric{replace-all}
   @end itemize
 @end itemize

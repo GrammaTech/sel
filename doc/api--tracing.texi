@@ -19,8 +19,7 @@ provided in section @ref{Tracing}.
 @item Condition @refapicond{trace-error}
 @item Generic Functions
   @itemize
-  @item @refapigeneric{collect-traces}
-  @item @refapigeneric{collect-trace}
+  @item @refapigeneric{collect-test-case-traces}
   @end itemize
 
 @item See also

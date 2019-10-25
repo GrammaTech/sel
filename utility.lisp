@@ -14,6 +14,7 @@
   (:use
    :common-lisp
    :alexandria
+   :arrow-macros
    :closer-mop
    :uiop
    :asdf-encodings
@@ -26,7 +27,8 @@
    :cl-ppcre
    :cl-store
    :cl-dot
-   :diff)
+   :diff
+   :flexi-streams)
   (:shadow :read)
   (:import-from :cffi
                 :defcstruct
@@ -43,13 +45,14 @@
   (:shadowing-import-from :asdf-encodings :encoding-external-format)
   (:shadowing-import-from :iterate :iter :for :until :collecting :in)
   (:shadowing-import-from :uiop/run-program :run-program)
+  (:shadowing-import-from :uiop/os :os-unix-p)
   (:shadowing-import-from :uiop :quit)
   (:shadowing-import-from
    :alexandria
    :appendf :ensure-list :featurep :emptyp
    :if-let :ensure-function :ensure-gethash :copy-file
    :parse-body :simple-style-warning)
-  (:shadowing-import-from :osicat :file-permissions :pathname-as-directory)
+  #-windows (:shadowing-import-from :osicat :file-permissions :pathname-as-directory)
   #+sbcl
   (:shadowing-import-from :sb-sprof :call-graph :node-count :call-graph-nsamples
                           :node-name :*samples* :node-callers :trace-start
@@ -83,14 +86,15 @@
    :file-access-path
    :set-file-writable
    :string-to-file
-   :set-utf8-encoding
    :bytes-to-file
    :stream-to-string
    :getenv
    :quit
    :git
+   :git-directory
    :current-git-commit
    :current-git-branch
+   :current-git-status
    :*temp-dir*
    :temp-file-name
    :with-temp-file
@@ -110,6 +114,7 @@
    :canonical-pathname
    :merge-pathnames-as-directory
    :merge-pathnames-as-file
+   :truenamestring
    :list-directory
    :walk-directory
    ;; Process wrapper
@@ -129,15 +134,20 @@
    :ignore-shell-error
    :shell-command-failed
    :shell
+   :write-shell
+   :read-shell
    :write-shell-file
    :read-shell-file
-   :*bash-shell*
-   :read-shell
    :xz-pipe
    :parse-number
    :parse-numbers
    :trim-whitespace
    :trim-right-whitespace
+   :trim-left-whitespace
+   :normalize-whitespace
+   :+whitespace-chars+
+   :escape-string
+   :unescape-string
    :make-terminal-raw
    :make-terminal-unraw
    :ioctl
@@ -154,6 +164,7 @@
    ;; simple utility
    :*uninteresting-conditions*
    :with-quiet-compilation
+   :if-let*
    :repeatedly
    :indexed
    :different-it
@@ -181,6 +192,7 @@
    :random-sample-without-replacement
    :apply-replacements
    :peel-bananas
+   :peel-bananas-or-same
    :unpeel-bananas
    :replace-all
    :aget
@@ -275,10 +287,9 @@
    :run-task-and-block
    :some-task
    :some-task-pred
-   :some-test-task
-   :starts-with-p
-   :ends-with-p))
+   :some-test-task))
 (in-package :software-evolution-library/utility)
+#-windows (cffi:load-foreign-library :libosicat)
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun read-preserving-case (stream char n)
     (declare (ignorable char) (ignorable n))
@@ -306,6 +317,9 @@
   #-(or ecl sbcl ccl allegro)
   (error "must specify a positive infinity value"))
 
+(defmethod print-object ((obj (eql infinity)) stream)
+  (if *print-readably* (call-next-method) (format stream "infinity")))
+
 
 ;;;; Files and Directories, Temporary and Git
 ;;;
@@ -320,28 +334,43 @@
   (:report (lambda (condition stream)
              (format stream "Git failed: ~a" (description condition)))))
 
-(defmacro with-git-directory ((directory git-dir) &rest body)
-  (with-gensyms (recur dir)
-    `(labels
-         ((,recur (,dir)
-            (when (< (length ,dir) 2)
-              (error (make-condition 'git
-                       :description
-                       (format nil "~a is not in a git repository." ,dir))))
-            (handler-case
-                (let ((,git-dir (make-pathname
-                                 :directory (append ,dir (list ".git")))))
-                  (if (probe-file git-dir)
-                      ,@body
-                      (,recur (butlast ,dir))))
-              (error (e)
-                (error (make-condition 'git
-                         :description
-                         (format nil "~a finding git information." e)))))))
-       (,recur ,directory))))
+(defun git-directory (directory) ; NOTE: Currently an internal function.
+  "Return first parent directory of DIRECTORY that is a git repository.
+Return a second value which is the base git repository, the GIT_WORK_TREE.
+Raise an error if no such parent exists."
+  (labels ((git-directory- (d)
+             (when (< (length d) 2)
+               (error
+                (make-condition 'git
+                  :description (format nil "~s is not in a git repository."
+                                       directory))))
+             (handler-case
+                 (let ((gd (make-pathname :directory (append d (list ".git")))))
+                   (when (probe-file gd)
+                     (if (directory-exists-p gd)
+                         ;; Actual .git/ directory.
+                         (return-from git-directory-
+                           (values gd (make-pathname :directory d)))
+                         ;; For submodules we have a file pointing to directory.
+                         (let ((line (split-sequence #\Space
+                                       (with-open-file (in gd)
+                                         (read-line in)))))
+                           (when (string= "gitdir:" (first line))
+                             (return-from git-directory-
+                               (values (merge-pathnames
+                                (ensure-directory-pathname (second line))
+                                (ensure-directory-pathname
+                                 (make-pathname :directory d)))
+                                       (make-pathname :directory d))))))))
+               (error (e)
+                 (error
+                  (make-condition 'git
+                    :description (format nil "~s finding git directory." e)))))
+             (git-directory- (butlast d))))
+    (git-directory- directory)))
 
 (defun current-git-commit (directory)
-  (with-git-directory (directory git-dir)
+  (let ((git-dir (git-directory directory)))
     (with-open-file (git-head-in (merge-pathnames "HEAD" git-dir))
       (let ((git-head (read-line git-head-in)))
         (if (scan "ref:" git-head)
@@ -352,9 +381,25 @@
             (subseq git-head 0 7))))))         ; detached head
 
 (defun current-git-branch (directory)
-  (with-git-directory (directory git-dir)
+  (let ((git-dir (git-directory directory)))
     (with-open-file (git-head-in (merge-pathnames "HEAD" git-dir))
       (lastcar (split-sequence #\/ (read-line git-head-in))))))
+
+(defun current-git-status (directory)
+  "Return the git status of DIRECTORY as a list of lists of (status file).
+Return nil if there are no modified, untracked, or deleted files."
+  (multiple-value-bind (stdout stderr errno)
+      (multiple-value-bind (git-dir git-work-tree) (git-directory directory)
+        ;; (format t "GIT-DIR:~S GIT-TREE:~S~%" git-dir git-work-tree)
+        (shell "GIT_WORK_TREE=~a GIT_DIR=~a git status --porcelain"
+               (namestring git-work-tree)
+               (namestring git-dir)))
+    (declare (ignorable stderr errno))
+    (mapcar (lambda (line)
+              (multiple-value-bind (status point)
+                  (read-from-string line nil)
+                (list (make-keyword status) (subseq line point))))
+            (split-sequence #\Newline stdout :remove-empty-subseqs t))))
 
 #+sbcl
 (locally (declare (sb-ext:muffle-conditions sb-ext:compiler-note))
@@ -363,11 +408,19 @@
     (dir sb-alien:c-string)
     (prefix sb-alien:c-string)))
 
-#+ccl
+#+(and ccl linux)
 (defun tempnam (dir prefix)
   (ccl:with-filename-cstrs ((base dir) (prefix (or prefix "")))
     (ccl:get-foreign-namestring
      (ccl:external-call "tempnam" :address base :address prefix :address))))
+
+#+(and ccl windows)
+(defun tempnam (dir prefix)
+  (ccl:with-filename-cstrs ((base (or dir "")) (prefix (or prefix "")))
+    (ccl:%get-cstring
+     (ccl:external-call "_tempnam" :address
+                        base :address
+                        prefix :address))))
 
 #+ecl
 (defun tempnam (dir &optional prefix)
@@ -388,23 +441,34 @@ The Unix `file' command is used, specifically \"file -b --mime-type PATH\"."
     (pathname &key (external-format
                     (encoding-external-format (detect-encoding pathname))))
   #+ccl (declare (ignorable external-format))
-  (restart-case
-      (let (#+sbcl (sb-impl::*default-external-format* external-format)
+  (labels ((run-read ()
+             (let (#+sbcl (sb-impl::*default-external-format* external-format)
                    #+ecl (ext:*default-external-format* external-format))
-        (with-open-file (in pathname)
-          (let* ((file-bytes (file-length in))
-                 (seq (make-string file-bytes))
-                 (file-chars (read-sequence seq in)))
-            (if (= file-bytes file-chars)
-                seq
-                ;; Truncate the unused tail of seq.  It is possible
-                ;; for read-sequence to read less than file-length
-                ;; when the file has multi-byte UTF-8 characters.
-                (subseq seq 0 file-chars)))))
-    ;; Try a different encoding
-    (use-encoding (encoding)
-      :report "Specify another encoding"
-      (file-to-string pathname :external-format encoding))))
+               (with-open-file (in pathname)
+                 (let* ((file-bytes (file-length in))
+                        (seq (make-string file-bytes))
+                        (file-chars (read-sequence seq in)))
+                   (if (= file-bytes file-chars)
+                       seq
+                       ;; Truncate the unused tail of seq.  It is possible
+                       ;; for read-sequence to read less than file-length
+                       ;; when the file has multi-byte UTF-8 characters.
+                       (subseq seq 0 file-chars)))))))
+
+    (restart-case
+        (if (member external-format '(:utf8 :utf-8))
+            (run-read)
+            (handler-case
+                (run-read)
+              (stream-error (c)
+                ;; Try utf-8 as a default fallback.
+                (declare (ignorable c))
+                (setf external-format :utf-8)
+                (run-read))))
+      (use-encoding (encoding)
+        :report "Specify another encoding."
+        (setf external-format encoding)
+        (run-read)))))
 
 (defun file-to-bytes (path)
   (with-open-file (in path :element-type '(unsigned-byte 8))
@@ -436,13 +500,14 @@ The Unix `file' command is used, specifically \"file -b --mime-type PATH\"."
   "Write STRING to PATH.
 Restarts available to handle cases where PATH is not writable,
 SET-FILE-WRITABLE, and where the appropriate encoding is not used,
-SET-UTF8-ENCODING. "
-  (flet ((run-write ()
-	   (ensure-directories-exist path)
-           (with-open-file (out path :direction :output
-                                :if-exists if-exists
-                                :external-format external-format)
-             (format out "~a" string))))
+USE-ENCODING. "
+  (labels ((run-write ()
+             (ensure-directories-exist path)
+             (with-open-file (out path :direction :output
+                                  :if-exists if-exists
+                                  :external-format external-format)
+               (format out "~a" string))))
+
     (when (and (file-exists-p path)
                (not (member :user-write (file-permissions path))))
       (restart-case
@@ -452,11 +517,20 @@ SET-UTF8-ENCODING. "
         (set-file-writable ()
           (format nil "Forcefully set ~a to be writable" path)
           (push :user-write (file-permissions path)))))
+
     (restart-case
-        (run-write)
-      (set-utf8-encoding ()
-        (format nil "Set ~a encoding to UTF8." path)
-        (setf external-format :UTF8)
+        (if (member external-format '(:utf8 :utf-8))
+            (run-write)
+            (handler-case
+                (run-write)
+              (stream-error (c)
+                ;; Try utf-8 as a default fallback.
+                (declare (ignorable c))
+                (setf external-format :utf-8)
+                (run-write))))
+      (use-encoding (encoding)
+        :report "Specify another encoding."
+        (setf external-format encoding)
         (run-write))))
   path)
 
@@ -485,6 +559,7 @@ SET-UTF8-ENCODING. "
           (system:make-temp-file-name nil *temp-dir*)
           #-(or sbcl clisp ccl allegro ecl)
           (error "no temporary file backend for this lisp.")))
+    ;; NOTE:  code smell -- two branches of these ifs are dead in SBCL
     (if type
         (if (pathnamep base)
             (namestring (make-pathname :directory (pathname-directory base)
@@ -519,7 +594,7 @@ After BODY is executed the temporary file is removed."
 (defmacro with-temp-fifo (spec &rest body)
   `(with-temp-file ,spec
      (ensure-temp-file-free ,(car spec))
-     (osicat-posix:mkfifo ,(car spec)
+     #-windows (osicat-posix:mkfifo ,(car spec)
                           (logior osicat-posix:s-iwusr osicat-posix:s-irusr))
      ,@body))
 
@@ -528,7 +603,7 @@ After BODY is executed the temporary file is removed."
      (ensure-directories-exist (ensure-directory-pathname ,(car spec)))
      ,@body))
 
-(defmacro with-cwd (dir &rest body)
+(defmacro with-cwd ((dir) &rest body)
   "Change the current working directory to dir and execute body.
 WARNING: This function is not thread safe.  Execution in a threaded
 environment may causes execution outside of the intended directory or
@@ -536,7 +611,7 @@ may lose the original working directory."
   (with-gensyms (orig)
     `(let ((,orig (getcwd)))
        (unwind-protect
-         (progn (cd ,(car dir)) ,@body)
+         (progn (cd ,dir) ,@body)
          (cd ,orig)))))
 
 (defmacro with-temp-cwd-of (spec dir &rest body)
@@ -598,6 +673,9 @@ of DIR and execute BODY"
    (namestring (canonical-pathname (ensure-directory-pathname root-path)))
    ""))
 
+(defun truenamestring (path)
+  (namestring (truename path)))
+
 ;;; TODO: Refactor `in-directory'.  This should probably be combined
 ;;; with `merge-pathnames-as-file' and `merge-pathnames-as-directory'.
 ;;; I believe the behavior of this function (to call
@@ -617,12 +695,19 @@ pathname (i.e., ending in a \"/\")."
      :type (pathname-type path)
      :version (pathname-version path))))
 
+#+windows
+(defun pathname-as-directory (pathname)
+  pathname)
+
 (defun directory-p (pathname)
   "Return a directory version of PATHNAME if it indicates a directory."
-  (if (directory-pathname-p pathname)
-      pathname
-      ;; When T `directory-exists-p' (like this function) returns the pathname.
-      (directory-exists-p (pathname-as-directory pathname))))
+  (cond
+    ((directory-pathname-p pathname) pathname)
+    ;; Wild pathnames are not directory pathnames.
+    ;; Also, `directory-exists-p' faults on wild pathnames.
+    ((wild-pathname-p pathname) nil)
+    ;; `directory-exists-p' (like this function) returns the pathname.
+    (t (directory-exists-p (pathname-as-directory pathname)))))
 
 
 ;;;; Utilities from cl-fad.
@@ -872,12 +957,18 @@ Wraps around SBCL- or CCL-specific representations of external processes."))
   "Return T if PROCESS is running, NIL otherwise."
   (process-alive-p (os-process process)))
 
-(defgeneric kill-process (process &key urgent)
+(defgeneric kill-process (process &key urgent children)
   (:documentation
-   "Send a kill signal to PROCESS. If URGENT is T, send SIGKILL."))
+   "Send a kill signal to PROCESS. If URGENT is T, send SIGKILL.
+If CHILDREN is T, also kill all processes below PROCESS."))
 
-(defmethod kill-process (process &key urgent)
-  (uiop/launch-program::terminate-process (os-process process) :urgent urgent))
+(defmethod kill-process (process &key urgent children)
+  (if (not children)
+      (terminate-process (os-process process) :urgent urgent)
+      (if (os-unix-p)
+          (zerop (nth-value 2 (shell "kill -~d -$(ps -o pgid= ~d | tr -d ' ')"
+                                     (if urgent 9 15) (process-id process))))
+          (error "Killing all children not implemented on this platform"))))
 
 
 ;;;; Shell and system command helpers
@@ -887,9 +978,10 @@ Wraps around SBCL- or CCL-specific representations of external processes."))
 ;;; variable which may be set to non-nil to dump all system and shell
 ;;; executions and results for diagnostics.
 ;;;
-;;; The `write-shell-file', `read-shell-file' and `xz-pipe' functions
-;;; provide for running shell commands and common lisp streams of
-;;; text (in some cases flowing from or into files on disk).
+;;; The `write-shell', `read-shell', `write-shell-file',
+;;; `read-shell-file' and `xz-pipe' functions provide for running
+;;; shell commands and common lisp streams (in some cases flowing from
+;;; or into files on disk).
 ;;;
 ;;;@texi{shell}
 (defvar *shell-debug* nil
@@ -941,7 +1033,7 @@ Optionally print debug information if `*shell-debug*' is non-nil."
           (format t "  input: ~a~%" input)))
 
       ;; Direct shell execution with `uiop/run-program:run-program'.
-      #-ccl
+      #+(and (not ccl) (not windows))
       (progn
         (setf stdout-str (make-array '(0)
                                      :element-type
@@ -963,7 +1055,16 @@ Optionally print debug information if `*shell-debug*' is non-nil."
                                             :output stdout
                                             :error-output stderr
                                             run-program-arguments))))))
-      #+ccl
+      #+windows
+      (multiple-value-setq (stdout-str stderr-str errno)
+        (apply #'run-program cmd :force-shell nil
+               :ignore-error-status t
+               :input input
+               :output :string
+               :error-output :string
+               run-program-arguments))
+
+      #+(and ccl (not windows))
       (progn
         (with-temp-file (stdout-file)
           (with-temp-file (stderr-file)
@@ -993,83 +1094,46 @@ Optionally print debug information if `*shell-debug*' is non-nil."
           (ignore-shell-error () "Ignore error and continue")))
       (values stdout-str stderr-str errno))))
 
-(defmacro write-shell-file
-    ((stream-var file shell &optional args) &rest body)
-  "Executes BODY with STREAM-VAR passing through SHELL to FILE."
+#-windows  ; IO-SHELL not yet supported on Windows
+(defmacro io-shell ((io stream-var shell &rest args) &rest body)
+  "Executes BODY with STREAM-VAR holding the input or output of SHELL.
+ARGS (including keyword arguments) are passed through to `uiop:launch-program'."
+  (assert (member io '(:input :output)) (io)
+          "first argument ~a to `io-shell' is not one of :INPUT or :OUTPUT" io)
   (let ((proc-sym (gensym)))
-    `(let* ((,proc-sym
-             #+sbcl (sb-ext:run-program ,shell ,args :search t
-                                        :output ,file
-                                        :input :stream
-                                        :wait nil)
-             #+ccl (ccl:run-program ,shell ,args :output ,file
-                                    :input :stream
-                                    :wait nil)
-             #+ecl (ext:run-program ,shell ,args :output ,file
-                                    :input :stream
-                                    :wait nil)
-             #-(or sbcl ccl ecl)
-             (error
-              "`WRITE-SHELL-FILE' only implemented for SBCL, CCL, and ECL.")))
-       (unwind-protect
-            (with-open-stream
-                (,stream-var #+sbcl (sb-ext:process-input ,proc-sym)
-                             #+ccl (ccl:external-process-input-stream ,proc-sym)
-                             #+ecl (ext:external-process-input ,proc-sym)
-                             #-(or sbcl ccl ecl)
-                             (error "Only SBCL, CCL or ECL."))
-              ,@body)))))
-
-(defmacro read-shell-file
-    ((stream-var file shell &optional args) &rest body)
-  "Executes BODY with STREAM-VAR passing through SHELL from FILE."
-  #+(or sbcl ccl ecl)
-  (let ((proc-sym (gensym)))
-    `(let* ((,proc-sym
-             #+sbcl (sb-ext:run-program ,shell ,args :search t
-                                        :output :stream
-                                        :input ,file
-                                        :wait nil)
-             #+ccl (ccl:run-program ,shell ,args :output :stream
-                                    :input ,file
-                                    :wait nil)
-             #+ecl (ext:run-program ,shell ,args :output :stream
-                                    :input ,file
-                                    :wait nil)
-             #-(or sbcl ccl ecl)
-             (error
-              "`READ-SHELL-FILE' only implemented for SBCL, CCL or ECL.")))
-       (unwind-protect
-            (with-open-stream
-                (,stream-var
-                 #+sbcl (sb-ext:process-output ,proc-sym)
-                 #+ccl (ccl:external-process-output-stream ,proc-sym)
-                 #+ecl (ext:external-process-output ,proc-sym)
-                 #-(or sbcl ccl ecl) (error "Only SBCL or CCL."))
-              ,@body)))))
-
-(defvar *bash-shell* "/bin/bash"
-  "Bash shell for use in `read-shell'.")
-
-#+sbcl
-(defmacro read-shell ((stream-var shell) &rest body)
-  "Executes BODY with STREAM-VAR holding the output of SHELL.
-The SHELL command is executed with `*bash-shell*'."
-  (let ((proc-sym (gensym)))
-    `(let* ((,proc-sym (sb-ext:run-program *bash-shell*
-                                           (list "-c" ,shell) :search t
-                                           :output :stream
-                                           :wait nil)))
-       (with-open-stream (,stream-var (sb-ext:process-output ,proc-sym))
+    `(let* ((,proc-sym (uiop:launch-program ,shell ,@args
+                                            ,io :stream
+                                            :wait nil
+                                            :element-type '(unsigned-byte 8))))
+       (with-open-stream
+           (,stream-var (make-flexi-stream
+                         ,(ecase io
+                            (:input `(process-info-input ,proc-sym))
+                            (:output `(process-info-output ,proc-sym)))))
          ,@body))))
 
-#-sbcl
-(defmacro read-shell (&rest args)
-  (declare (ignorable args))
-  (error "`READ-SHELL' unimplemented for non-SBCL lisps."))
+(defmacro write-shell ((stream-var shell &rest args) &rest body)
+  "Executes BODY with STREAM-VAR passing the input to SHELL.
+ARGS (including keyword arguments) are passed through to `uiop:launch-program'."
+  `(io-shell (:input ,stream-var ,shell ,@args) ,@body))
+
+(defmacro read-shell ((stream-var shell &rest args) &rest body)
+  "Executes BODY with STREAM-VAR holding the output of SHELL.
+ARGS (including keyword arguments) are passed through to `uiop:launch-program'."
+  `(io-shell (:output ,stream-var ,shell ,@args) ,@body))
+
+(defmacro write-shell-file ((stream-var file shell &rest args) &rest body)
+  "Executes BODY with STREAM-VAR passing through SHELL to FILE.
+ARGS (including keyword arguments) are passed through to `uiop:launch-program'."
+  `(io-shell (:input ,stream-var ,shell ,@args :output ,file) ,@body))
+
+(defmacro read-shell-file ((stream-var file shell &rest args) &rest body)
+  "Executes BODY with STREAM-VAR passing through SHELL from FILE.
+ARGS (including keyword arguments) are passed through to `uiop:launch-program'"
+  `(io-shell (:output ,stream-var ,shell ,@args :input ,file) ,@body))
 
 (defmacro xz-pipe ((in-stream in-file) (out-stream out-file) &rest body)
-  "Executes BODY with IN-STREAM and OUT-STREAM read/writing data from xz files."
+  "Execute BODY with IN-STREAM and OUT-STREAM read/writing data from xz files."
   `(read-shell-file (,in-stream ,in-file "unxz")
      (write-shell-file (,out-stream ,out-file "xz")
        ,@body)))
@@ -1101,14 +1165,83 @@ The SHELL command is executed with `*bash-shell*'."
   (mapcar #'(lambda (num) (parse-integer num :radix radix))
           (split-sequence delim string :remove-empty-subseqs t)))
 
+;;; This duplicates the function hu.dwim.utils:string-trim-whitespace
+
+(define-constant +whitespace-chars+
+    (remove-duplicates
+     (loop for s in '("Space" "Tab" "Newline" "Return"
+                      "Linefeed" "Page")
+        when (name-char s)
+        collect it))
+  :test #'equal)
+
 (defun trim-whitespace (str)
-  (string-trim '(#\Space #\Tab #\Newline #\Linefeed)
-               str))
+  (string-trim +whitespace-chars+ str))
 
 (defun trim-right-whitespace (str)
-  (string-right-trim '(#\Space #\Tab #\Newline #\Linefeed)
-		     str))
+  (string-right-trim +whitespace-chars+ str))
 
+(defun trim-left-whitespace (str)
+  (string-left-trim +whitespace-chars+ str))
+
+(defun normalize-whitespace (str)
+  "Trims leading and trailing whitespace, and reduces all remaining
+sequences of one or more whitespace characters to a single space"
+  (flet ((%whitespacep (c) (member c +whitespace-chars+)))
+    (let ((str (trim-whitespace str))
+          (element-type (array-element-type str)))
+      (let* ((len (length str)))
+        (if (= len 0)
+            (make-array '(0) :element-type element-type)
+            (let ((result (make-array (list len)
+                                      :element-type element-type
+                                      :initial-element #\Space))
+                  (out 0)
+                  (w-start nil))
+              (loop for cursor from 0 below len
+                 do (let ((c (aref str cursor)))
+                      (if (%whitespacep c)
+                          (unless w-start
+                            (psetf (aref result out) #\Space
+                                   out (1+ out)
+                                   w-start cursor))
+                          (setf (aref result out) c
+                                out (1+ out)
+                                w-start nil))))
+              (subseq result 0 out)))))))
+
+(defun escape-string (str)
+  "Return a copy of STR with special characters escaped before output to SerAPI.
+Control characters for whitespace (\\n, \\t, \\b, \\r in Lisp) should be
+preceded by four backslashes, and double quotes should be preceded by 2.
+Additionally, ~ must be escaped as ~~ so that the string can be formatted.
+See also `unescape-string'."
+  ;; Please be intimidated by the number of backslashes here, use *extreme*
+  ;; caution if editing, and see the CL-PPCRE note on why backslashes in
+  ;; regex-replace are confusing prior to thinking about editing this.
+  (-<> str
+       ;; replace all \\n with \\\\n unless already escaped (also other WS)
+       ;; in regex \\\\ ==> \\ in Lisp string (which is \ in "real life")
+       ;; (replace-all "\\" "\\\\")
+       (regex-replace-all "(?<!\\\\)\\\\(n\|t\|b\|r)" <> "\\\\\\\\\\1")
+
+       ;; replace all \" with \\" unless already escaped
+       ;; in regex, \\\" ==> \" in Lisp string
+       ;; (replace-all "\"" "\\\"")
+       (regex-replace-all "(?<!\\\\)\\\"" <> "\\\\\"")
+
+       ;; replace all ~ with ~~
+       (regex-replace-all "~" <> "~~")))
+
+(defun unescape-string (str)
+  "Remove extra escape characters from STR prior to writing to screen or file.
+Control characters for whitespace (\\n, \\t, \\b, \\r) and double quotes (\")
+are preceded by an extra pair of backslashes. See also `escape-string'."
+  (-<> str
+       ;; change \\\\foo to \\foo
+       (regex-replace-all "\\\\\\\\(n\|t\|b\|r)" <> "\\\\\\1")
+       ;; change \\\" to \"
+       (regex-replace-all "\\\\\\\"" <> "\"")))
 
 (defun make-terminal-raw ()
   "Place the terminal into 'raw' mode, no echo or delete.
@@ -1148,40 +1281,49 @@ See 'man 3 termios' for more information."
 ;;; Terminal size with CFFI and ioctl.
 ;;; Adapted from:
 ;;; https://github.com/cffi/cffi/blob/master/examples/gettimeofday.lisp
+#-windows
 (defcstruct winsize (row :short) (col :short) (xpixel :short) (ypixel :short))
 
+#-windows
 (define-foreign-type null-pointer-type ()
   ()
   (:actual-type :pointer)
   (:simple-parser null-pointer))
 
-(defmethod translate-to-foreign (value (type null-pointer-type))
-  (cond
-    ((null value) (null-pointer))
-    ((null-pointer-p value) value)
-    (t (error "~A is not a null pointer." value))))
+#-windows
+(defgeneric translate-to-foreign (value type)
+  (:method (value (type null-pointer-type))
+    (cond
+      ((null value) (null-pointer))
+      ((null-pointer-p value) value)
+      (t (error "~A is not a null pointer." value)))))
 
+#-windows
 (define-foreign-type ioctl-result-type ()
   ()
   (:actual-type :int)
   (:simple-parser ioctl-result))
 
+#-windows
 (define-condition ioctl (error)
   ((ret :initarg :ret :initform nil :reader ret))
   (:report (lambda (condition stream)
              (format stream "IOCTL call failed with return value ~d"
                      (ret condition)))))
+#-windows
+(defgeneric translate-from-foreign (value type)
+  (:method (value (type ioctl-result-type))
+    (if (minusp value)
+        (make-condition 'ioctl :ret value)
+        value)))
 
-(defmethod translate-from-foreign (value (type ioctl-result-type))
-  (if (minusp value)
-      (make-condition 'ioctl :ret value)
-      value))
-
+#-windows
 (defcfun ("ioctl" %ioctl) ioctl-result
   (fd :int)
   (request :int)
   (winsz :pointer))
 
+#-windows
 (defun term-size ()
   "Return terminal size information.
 The following are returned as separate values; rows, columns,
@@ -1196,10 +1338,31 @@ SLIME."
 
 
 ;;;; Shell and command line functions.
+#-windows
 (defun which (file &key (path (getenv "PATH")))
   (iterate (for dir in (split-sequence #\: path))
            (let ((fullpath (merge-pathnames file
                                             (make-pathname :directory dir))))
+             (when (probe-file fullpath)
+               (return fullpath)))))
+#+windows
+(defun convert-backslash-to-slash (str)
+  (let ((new (copy-sequence 'string str)))
+    (dotimes (i (length new) new)
+      (if (char= (aref new i) #\\)
+          (setf (aref new i) #\/)))))
+
+#+windows
+(defun ensure-slash (dir)
+  "Make sure the directory name ends with a slash (or backslash)"
+  (if (member (char dir (- (length dir) 1)) (list #\/ #\\))
+      dir
+      (concatenate 'string dir "\\")))
+
+#+windows
+(defun which (file &key (path (convert-backslash-to-slash (getenv "PATH"))))
+  (iterate (for dir in (remove "" (split-sequence #\; path) :test 'equal))
+           (let ((fullpath (merge-pathnames file (ensure-slash dir))))
              (when (probe-file fullpath)
                (return fullpath)))))
 
@@ -1304,6 +1467,45 @@ Optional argument OUT specifies an output stream."
           (append *uninteresting-conditions*
                   uiop/lisp-build:*usual-uninteresting-conditions*)))
      ,@body))
+
+(defmacro if-let* (bindings &body (then-form &optional else-form))
+  "Creates new bindings, and conditionally executes THEN-FORM or ELSE-FORM.
+
+BINDINGS must be either single binding of the form:
+
+ (variable initial-form)
+
+or a list of bindings of the form:
+
+ ((variable-1 initial-form-1)
+  (variable-2 initial-form-2)
+  ...
+  (variable-n initial-form-n))
+
+Each INITIAL-FORM is executed in turn, and the variable bound to the
+corresponding value. INITIAL-FORM expressions can refer to variables
+previously bound by the IF-LET*.
+
+Execution of IF-LET* transitions to ELSE-FORM immediately if any
+INITIAL-FORM evaluates to NIL.  No bindings are present if ELSE-FORM
+is evaluated.  If all INITIAL-FORMs evaluate to true, then THEN-BODY
+is executed."
+  ;; NOTE: Largely adapted form Alexandria's `when-let*'.
+  (with-gensyms  (if-block)
+    (let ((binding-list (if (and (consp bindings) (symbolp (car bindings)))
+                            (list bindings)
+                            bindings)))
+      (labels ((bind (bindings body)
+                 (if bindings
+                     `((let (,(car bindings))
+                         (when ,(caar bindings)
+                           ,@(bind (cdr bindings) body))))
+                     `((return-from ,if-block ,body)))))
+        `(block ,if-block
+           (let (,(car binding-list))
+             (when ,(caar binding-list)
+               ,@(bind (cdr binding-list) then-form)))
+           ,else-form)))))
 
 (defmacro repeatedly (times &rest body)
   (let ((ignored (gensym)))
@@ -1551,14 +1753,12 @@ transformed from an instant to a cumulative probability."
       (find-hashtable-element hash-tbl (random size)))))
 
 ;; From the Common Lisp Cookbook
-(defun replace-all (string part replacement &key (test #'char=))
-  "Returns a new string in which all the occurences of the part
-is replaced with replacement."
-  (assert (and (stringp string)
-               (stringp part)
-               (stringp replacement))
-          (string part replacement)
-          "Arguments to `replace-all' must be strings.")
+(defgeneric replace-all (string part replacement &key test)
+  (:documentation "Returns a new string in which all the
+occurences of the part is replaced with replacement."))
+
+(defmethod replace-all ((string string) (part string)
+                        (replacement string) &key (test #'char=))
   (with-output-to-string (out)
     (loop :with part-length := (length part)
        :for old-pos := 0 :then (+ pos part-length)
@@ -1570,6 +1770,24 @@ is replaced with replacement."
                          :end (or pos (length string)))
        :when pos :do (write-string replacement out)
        :while pos)))
+
+;; Specialization to base strings, which are more space
+;; efficient
+(defmethod replace-all ((string base-string) (part base-string)
+                        (replacement base-string) &key (test #'char=))
+  (coerce
+   (with-output-to-string (out)
+     (loop :with part-length := (length part)
+        :for old-pos := 0 :then (+ pos part-length)
+        :for pos := (search part string
+                            :start2 old-pos
+                            :test test)
+        :do (write-string string out
+                          :start old-pos
+                          :end (or pos (length string)))
+        :when pos :do (write-string replacement out)
+        :while pos))
+   'base-string))
 
 (defun apply-replacements (list str)
   (if (null list)
@@ -1584,11 +1802,20 @@ is replaced with replacement."
 
 ;;  Helper function for removing tags identifying DeclRefs
 ;;  from a code snippet.
-(defun peel-bananas (text)
-  (apply-replacements '(("(|" . "") ("|)" . "")) text))
+(defgeneric peel-bananas (text)
+  (:documentation  "Helper function for removing tags identifying DeclRefs
+from a code snippet.")
+  (:method ((text string))
+    (apply-replacements '(("(|" . "") ("|)" . "")) text))
+  (:method (text) text))
 
-(defun unpeel-bananas (text)
-  (concatenate 'string "(|" text "|)"))
+(defun peel-bananas-or-same (text)
+  (let ((new (peel-bananas text)))
+    (if (equal text new) text new)))
+
+(defgeneric unpeel-bananas (text)
+  (:method ((text string)) (concatenate 'string "(|" text "|)"))
+  (:method (text) text))
 
 (defun aget (item list &key (test #'eql))
   "Get KEY from association list LIST."
@@ -1786,48 +2013,58 @@ For example (pairs '(a b c)) => ('(a . b) '(a . c) '(b . c))
     (format stream " to ")
     (prin1 (end obj) stream)))
 
-(defmethod source-< ((a source-location) (b source-location))
-  (or (< (line a) (line b))
-      (and (= (line a) (line b))
-           (< (column a) (column b)))))
+(defgeneric source-< (a b)
+  (:documentation "Return true if source location A comes strictly before B.")
+  (:method ((a source-location) (b source-location))
+    (or (< (line a) (line b))
+        (and (= (line a) (line b))
+             (< (column a) (column b))))))
 
-(defmethod source-<= ((a source-location) (b source-location))
-  (or (< (line a) (line b))
-      (and (= (line a) (line b))
-           (<= (column a) (column b)))))
+(defgeneric source-<= (a b)
+  (:documentation "Return true if source location A is equal to or comes
+before B.")
+  (:method ((a source-location) (b source-location))
+    (or (< (line a) (line b))
+        (and (= (line a) (line b))
+             (<= (column a) (column b))))))
 
-(defmethod source-> ((a source-location) (b source-location))
-  (or (> (line a) (line b))
-      (and (= (line a) (line b))
-           (> (column a) (column b)))))
+(defgeneric source-> (a b)
+  (:documentation "Return true if source location A comes strictly after B.")
+  (:method ((a source-location) (b source-location))
+    (or (> (line a) (line b))
+        (and (= (line a) (line b))
+             (> (column a) (column b))))))
 
-(defmethod source->= ((a source-location) (b source-location))
-  (or (> (line a) (line b))
-      (and (= (line a) (line b))
-           (>= (column a) (column b)))))
+(defgeneric source->= (a b)
+  (:documentation "Return true if source location A is equal to or comes
+after B.")
+  (:method ((a source-location) (b source-location))
+    (or (> (line a) (line b))
+        (and (= (line a) (line b))
+             (>= (column a) (column b))))))
 
-(defmethod contains ((range source-range) (location source-location))
-  (and (source-<= (begin range) location)
-       (source->= (end range) location)))
+(defgeneric contains (range location)
+  (:documentation "Return true if RANGE fully subsumes LOCATION.")
+  (:method ((range source-range) (location source-location))
+    (and (source-<= (begin range) location)
+         (source->= (end range) location)))
+  (:method ((a-range source-range) (b-range source-range))
+    (and (source-<= (begin a-range) (begin b-range))
+         (source->= (end a-range) (end b-range))))
+  (:method ((range range) point)
+    (and (<= (begin range) point) (>= (end range) point)))
+  (:method ((a-range range) (b-range range))
+    (and (<= (begin a-range) (begin b-range))
+         (>= (end a-range) (end b-range)))))
 
-(defmethod contains ((a-range source-range) (b-range source-range))
-  (and (source-<= (begin a-range) (begin b-range))
-       (source->= (end a-range) (end b-range))))
-
-(defmethod contains ((range range) point)
-  (and (<= (begin range) point) (>= (end range) point)))
-
-(defmethod contains((a-range range) (b-range range))
-  (and (<= (begin a-range) (begin b-range))
-       (>= (end a-range) (end b-range))))
-
-(defmethod intersects ((a-range source-range) (b-range source-range))
-  (and (source-< (begin a-range) (end b-range))
-       (source-> (end a-range) (begin b-range))))
-
-(defmethod intersects ((a-range range) (b-range range))
-  (and (< (begin a-range) (end b-range))
-       (> (end a-range) (begin b-range))))
+(defgeneric intersects (a-range b-range)
+  (:documentation "Return true if A-RANGE and B-RANGE intersect.")
+  (:method ((a-range source-range) (b-range source-range))
+    (and (source-< (begin a-range) (end b-range))
+         (source-> (end a-range) (begin b-range))))
+  (:method ((a-range range) (b-range range))
+    (and (< (begin a-range) (end b-range))
+         (> (end a-range) (begin b-range)))))
 
 
 ;;; Functions to run multiple tasks (such as mutations and fitness
@@ -1885,7 +2122,7 @@ For example (pairs '(a b c)) => ('(a . b) '(a . c) '(b . c))
 ;;;     (defmacro task-map (num-threads function sequence)
 ;;;       "Run FUNCTION over SEQUENCE using a `simple-job' `task-job'."
 ;;;       (with-gensyms (task-map task-item)
-;;;         `(if (= 1 ,num-threads)
+;;;         `(if (<= ,num-threads 1)
 ;;;              (mapcar ,function ,sequence) ; No threading.
 ;;;              (progn                     ; Multi-threaded implementation.
 ;;;                (defclass ,task-map (task) ())  ; Task to map over SEQUENCE.
@@ -2020,13 +2257,13 @@ For example (pairs '(a b c)) => ('(a . b) '(a . c) '(b . c))
 (defun get-next-task (runner)
   (bt:with-recursive-lock-held ((task-runner-jobs-lock runner))
     (if (consp (task-runner-jobs runner))
-	(let ((task (funcall (car (task-runner-jobs runner)))))
-	  (if (null task)                       ;; if no more tasks in that job
-	      (progn
-		(pop (task-runner-jobs runner)) ;; pop the job
-		(incf (task-runner-completed-jobs runner))
-		(get-next-task runner)) ;; and recurse (until no more jobs)
-	      task)))))
+        (let ((task (funcall (car (task-runner-jobs runner)))))
+          (if (null task)                       ;; if no more tasks in that job
+              (progn
+                (pop (task-runner-jobs runner)) ;; pop the job
+                (incf (task-runner-completed-jobs runner))
+                (get-next-task runner)) ;; and recurse (until no more jobs)
+              task)))))
 
 ;;;
 ;;; Add a Job to the JOBS stack.
@@ -2043,7 +2280,7 @@ For example (pairs '(a b c)) => ('(a . b) '(a . c) '(b . c))
 (defun exit-worker (runner)
   (bt:with-lock-held ((task-runner-workers-lock runner))
     (setf (task-runner-workers runner)
-	  (remove (current-thread) (task-runner-workers runner) :test 'equal))))
+          (remove (current-thread) (task-runner-workers runner) :test 'equal))))
 
 ;;;
 ;;; The task executed by each worker thread.
@@ -2084,8 +2321,8 @@ For example (pairs '(a b c)) => ('(a . b) '(a . c) '(b . c))
 ;;
 (defun task-runner-init-jobs (runner)
   (setf (task-runner-jobs runner) nil
-	(task-runner-workers runner) nil
-	(task-runner-results runner) nil))
+        (task-runner-workers runner) nil
+        (task-runner-results runner) nil))
 
 ;;
 ;; Remove all jobs from the jobs stack. This will cause
@@ -2178,7 +2415,7 @@ promises to find the first while `some-task' may return any element satisfying
   (let ((index 0))
     (lambda ()
       (if (<= (incf index) 1)
-	  (task-object task)))))
+          (task-object task)))))
 
 (defmacro run-as-task ((task runner) &body body)
   "Run the body code as a one-off task, which can access task and runner by
@@ -2219,8 +2456,8 @@ See the `task-job' method on `task-map' objects."))
 
 (defun task-map (num-threads function objects)
   "Run FUNCTION over OBJECTS using a `simple-job' `task-job'."
-  (if (= 0 num-threads)
-      (mapcar function objects)   ; No threading when num-threads = 0.
+  (if (<= num-threads 1)
+      (mapcar function objects)   ; No threading when num-threads <= 1.
       (task-runner-results  ; Return the results from the results obj.
        ;; Create the task-map object, and run until exhausted.
        (run-task-and-block (make-instance 'task-map
@@ -2228,13 +2465,18 @@ See the `task-job' method on `task-map' objects."))
                              :task-function function)
                            num-threads))))
 
-(defun task-map-async (num-threads function objects)
-  "Run FUNCTION over OBJECTS using a `simple-job' `task-job'."
+(defun task-map-async (num-threads func objects)
+  "Run FUNC over OBJECTS using a `simple-job' `task-job'."
   ;; Create the task-map object, and run until exhausted.
   (run-task (make-instance 'task-map
-				     :object objects
-				     :task-function function)
-		      num-threads))
+              :object objects
+              :task-function func)
+            num-threads))
+
+(defun simple-task-async-runner (num-threads func arguments)
+  "Run FUNCTION with ARGUMENTS as a `simple-job' `task-job'."
+  ;; Create the task-map object, and run until exhausted.
+  (task-map-async num-threads (lambda (args) (apply func args)) arguments))
 
 
 ;;;; Debugging helpers
@@ -2473,12 +2715,12 @@ that function may be declared.")
 
 (defun sel-copy-array (array)
   (let* ((element-type (array-element-type array))
-	 (fill-pointer (and (array-has-fill-pointer-p array)(fill-pointer array)))
-	 (adjustable (adjustable-array-p array))
-	 (new (make-array (array-dimensions array)
-		:element-type element-type
-		:adjustable adjustable
-		:fill-pointer fill-pointer)))
+         (fill-pointer (and (array-has-fill-pointer-p array)(fill-pointer array)))
+         (adjustable (adjustable-array-p array))
+         (new (make-array (array-dimensions array)
+                          :element-type element-type
+                          :adjustable adjustable
+                          :fill-pointer fill-pointer)))
     (dotimes (i (array-total-size array) new)
       (setf (row-major-aref new i)(row-major-aref array i)))))
 
@@ -2487,7 +2729,7 @@ that function may be declared.")
   (if (arrayp sequence)
       (sel-copy-array sequence)
       (if (listp sequence)
-	  (copy-list sequence))))
+          (copy-list sequence))))
 
 
 ;;;; Iteration helpers
@@ -2613,13 +2855,3 @@ See http://www.brendangregg.com/FlameGraphs/cpuflamegraphs.html."
 (defun profile-to-flame-graph (&rest args)
   (declare (ignorable args))
   (error "`PROFILE-TO-FLAME-GRAPH' unimplemented for non-SBCL lisps."))
-
-(defun starts-with-p (str1 str2)
-  "Determine whether `str1` starts with `str2`"
-  (let ((p (search str2 str1)))
-    (and p (= 0 p))))
-
-(defun ends-with-p (str1 str2)
-  "Determine whether `str1` ends with `str2`"
-  (let ((p (mismatch str2 str1 :from-end T)))
-    (or (not p) (= 0 p))))

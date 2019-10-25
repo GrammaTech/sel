@@ -9,6 +9,7 @@ run_it() {
     ${WRAPPER} ${PROG} $@; }
 
 case ${CASE} in
+    0) run_it -v ;;
     1) run_it -0 12345 $BASEDIR/inputs/grep1.dat ;;
     2) run_it -1 12345 $BASEDIR/inputs/grep1.dat ;;
     3) run_it -2 12345 $BASEDIR/inputs/grep1.dat ;;

@@ -11,11 +11,7 @@ PACKAGE_NICKNAME = sel
 #     grep -r "in-package :software-evolution-library"|grep -v ".git"|sed 's/^.*package ://;s/)$//'|sort|uniq
 DOC_PACKAGES =								\
 	software-evolution-library					\
-	software-evolution-library/ast-diff/string			\
-	software-evolution-library/ast-diff/ast-diff			\
-	software-evolution-library/ast-diff/alist			\
-	software-evolution-library/ast-diff/html			\
-	software-evolution-library/ast-diff/commands			\
+	software-evolution-library/command-line-rest			\
 	software-evolution-library/components/clang-instrument		\
 	software-evolution-library/components/clang-tokens		\
 	software-evolution-library/components/condition-synthesis	\
@@ -36,6 +32,11 @@ DOC_PACKAGES =								\
 	software-evolution-library/components/test-suite		\
 	software-evolution-library/components/traceable			\
 	software-evolution-library/rest					\
+	software-evolution-library/rest/async-jobs			\
+	software-evolution-library/rest/define-command-endpoint		\
+	software-evolution-library/rest/sessions			\
+	software-evolution-library/rest/std-api				\
+	software-evolution-library/rest/utility				\
 	software-evolution-library/software/adaptive-mutation		\
 	software-evolution-library/software/ancestral			\
 	software-evolution-library/software/asm				\
@@ -54,6 +55,7 @@ DOC_PACKAGES =								\
 	software-evolution-library/software/elf				\
 	software-evolution-library/software/elf-cisc			\
 	software-evolution-library/software/elf-risc			\
+	software-evolution-library/software/file			\
 	software-evolution-library/software-evolution-library		\
 	software-evolution-library/software/expression			\
 	software-evolution-library/software/forth			\
@@ -80,23 +82,23 @@ DOC_PACKAGES =								\
 LISP_DEPS =				\
 	$(wildcard *.lisp) 		\
 	$(wildcard components/*.lisp)	\
-	$(wildcard software/*.lisp)	\
-	$(wildcard ast-diff/*.lisp)
+	$(wildcard software/*.lisp)
 
 TEST_ARTIFACTS = \
 	test/etc/gcd/gcd \
 	test/etc/gcd/gcd.s
 
-BINS = ast-diff ast-merge rest-server
+# FIXME: move test binaries into test/bin or bin/test/
+# Extend cl.mk to have a separate build target for test binaries
+BINS = rest-server dump-store
+TEST_BIN_DIR = test/commands
+TEST_BINS = 			\
+	new-clang-round-trip	\
+	clang-diff-test
 
 BIN_TEST_DIR = test/bin
 BIN_TESTS =			\
-	example-001-mutate	\
-	javascript-diff-on-gcd	\
-	java-diff-on-gcd	\
-	lisp-diff-on-gcd	\
-	lisp-diff-on-gcd-raw	\
-	clang-diff-on-gcd
+	example-001-mutate
 
 LONG_BIN_TESTS =		\
 	example-002-evaluation	\

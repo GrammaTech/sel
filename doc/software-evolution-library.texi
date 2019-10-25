@@ -846,11 +846,38 @@ current and new fitness that returns acceptance.
 @end ignore
 
 
-@node REST API, Components, Search Functions, Implementation
+@node REST API, REST Server, Search Functions, Implementation
 @section REST API
 @cindex rest api
 
+@menu
+* REST Server::                 Using the rest server
+* REST Interface::              Standard RESTful interface over SEL
+* REST Sessions::               Interface for managing RESTful sessions
+* Async Jobs::                  RESTful asynchronous job interface
+@c * Defining a Command Endpoint:: RESTful interface for command endpoints
+@end menu
+
+@node REST Server, REST Interface, REST API, REST API
+
 @include include/rest.texi
+
+@node REST Interface, REST Sessions, REST Server, REST API
+
+@include include/rest-std-api.texi
+
+@node REST Sessions, Async Jobs, REST Interface, REST API
+
+@include include/rest-sessions.texi
+
+@node Async Jobs, Components, REST Sessions, REST API
+
+@include include/rest-async-jobs.texi
+
+@c NOTE: For some reason this one isn't showing up...
+@c @node Defining a Command Endpoint, Components, Async Jobs, REST API
+@c
+@c @include include/rest-define-command-endpoint.texi
 
 @node Components, Test Suites, Implementation, Top
 @chapter Components
@@ -874,7 +901,6 @@ infrastructure.
 * Fault Localization::          Identify or prioritize likely-faulty code
 * Tracing::                     Trace execution of software
 * Super-Mutants::               Evaluate multiple variants in a single genome
-* AST Differencing::            Calculate AST tree-differences of software
 @end menu
 
 @node Test Suites, Multi-objective Fitness, Components, Components
@@ -916,11 +942,6 @@ infrastructure.
 @section Super-Mutants
 @cindex super-mutants
 @include include/super-mutant.texi
-
-@node AST Differencing, Utilities, Super-Mutants, Components
-@section AST Differencing
-@cindex ast-differencing
-@include include/ast-diff.texi
 
 @node Utilities, Basic Utilities, Components, Top
 @chapter Utilities
@@ -989,6 +1010,9 @@ documents these utilities.
 @node Installation, Examples, Usage, Usage
 @section Installation
 
+The following instructions assume you are on a Linux machine, for
+installation on Windows see @ref{Windows Installation}.
+
 The Software Evolution Library (SEL) requires one of the following
 supported lisp distributions.  (Relatively recent versions of these
 implementations are required because of the use of new features of
@@ -1053,7 +1077,105 @@ quicklisp local-projects directory and then running:
 @end example
 
 
+@node Windows Installation, Examples, Installation, Installation
+@subsection Windows Installation
 
+The following instructions start from a clean machine and install SEL
+in a VirtualBox VM.  If you want to install SEL directly on your
+existing Windows machine you can skip to the ``Windows Common Lisp''
+step.  (This is a work in progress.)
+
+@subsubsection Windows OS Installation
+@enumerate
+@item
+Install Windows 10 Pro (64-bit). 8 gigs memory, 2 cores, 80 gb hard drive
+@item
+Install VirtualBox guest tools for Windows.
+@item
+Install SNMP
+@item
+In Powershell (Run as Administrator):
+@example
+Add-WindowsCapability -Online -Name "SNMP.Client~~~~0.0.1.0"
+@end example
+@end enumerate
+
+@subsubsection Windows Utilities
+@enumerate
+@item
+Install Chrome browser, make it default browser for Windows.
+@item
+Install Git for 64-bit Windows. Accept all defaults.
+@item
+Install 7-zip. @url{https://www.7-zip.org/}
+@item
+Install gnu emacs 26.1 for Windows 64-bit.
+@end enumerate
+
+@subsubsection Windows Common Lisp
+@enumerate
+@item
+Install Clozure CL. @url{https://ccl.clozure.com}
+@item
+Install quicklisp: quicklisp.org
+@item
+Install slime (using CCL instructions: @url{https://trac.clozure.com/ccl/wiki/InstallingSlime})
+In ccl:
+@example
+(ql:quickload :asdf) ; to upgrade version of asdf to 3.3.x, needed for LAUNCH-PROGRAM support
+@end example
+@end enumerate
+
+@subsubsection Windows SEL
+Clone SEL from @url{https://github.com/GrammaTech/sel} or install
+using QuickLisp.
+
+@subsubsection Windows Development Software
+@enumerate
+@item
+Install Windows 10 SDK:
+@url{https://developer.microsoft.com/en-us/windows/downloads/windows-10-sdk}
+
+@item
+Visual Studio:
+Install Visual Studio Community Edition 2019
+@url{https://visualstudio.microsoft.com/vs/}
+
+Make sure to include C and C++ support in the installation options.
+
+@end enumerate
+
+@subsubsection Windows clang/LLVM 10.0
+This is required to use SEL's C/C++ front.
+
+Install Windows 64-bit pre-built binary.
+
+Found it in a snapshot release here: @url{https://llvm.org/builds}
+(it is still pre-release).
+
+@subsubsection Windows WSL
+This is not required but a useful enhancement.
+
+@enumerate
+@item
+In Windows Features control panel:
+Enable Windows Subsystem for Linux (WSL). Restart.
+Go to Microsoft App Store: Install Ubuntu 18.04
+After install, launch it (this will finish the install process)
+Create a user/password.
+@example
+sudo apt-get install update
+sudo apt-get install upgrade
+@end example
+
+@item
+Create a shared folder (to access the linux host)
+Assuming shared folder is drive z:, mount it:
+@example
+sudo mkdir /mnt/z
+sudo mount -t drvfs Z: /mnt/z
+@end example
+@end enumerate
 
 @node Examples, Mutation, Installation, Usage
 @section Examples
@@ -1437,9 +1559,6 @@ appendix holds each individual package's API in turn.
 * sel-utility::                 Software-Evolution-Library Utilities.
 * sel-rest::                    Software-Evolution-Library Rest interface.
 * sel-view::                    Software-Evolution-Library Text GUI.
-* software-evolution-library-ast-diff:: Software Evolution Library AST differencing.
-* sel-ast-diff-commands::       Software Evolution Library AST differencing Commands.
-* sel-ast-diff-html::           Software Evolution Library AST differencing HTML output.
 * sel-sw-adaptive-mutation::    Software-Evolution-Library/Software adaptive mutation.
 * sel-sw-ancestral::            Software-Evolution-Library/Software ancestral.
 * sel-sw-asm::                  Software-Evolution-Library/Software asm.
@@ -1509,15 +1628,11 @@ appendix holds each individual package's API in turn.
 @section sel-rest
 @include sel-rest-api.texi
 
-@node sel-view, software-evolution-library-ast-diff, sel-rest, SEL Packages
+@node sel-view, sel-sw-adaptive-mutation, sel-rest, SEL Packages
 @section sel-view
 @include sel-view-api.texi
 
-@node software-evolution-library-ast-diff, sel-sw-adaptive-mutation, sel-view, SEL Packages
-@section software-evolution-library-ast-diff
-@include software-evolution-library-ast-diff-api.texi
-
-@node sel-sw-adaptive-mutation, sel-sw-ancestral, software-evolution-library-ast-diff, SEL Packages
+@node sel-sw-adaptive-mutation, sel-sw-ancestral, sel-view, SEL Packages
 @section sel-sw-adaptive-mutation
 @include sel-sw-adaptive-mutation-api.texi
 
@@ -1657,19 +1772,11 @@ appendix holds each individual package's API in turn.
 @section sel-sw-super-mutant-project
 @include sel-sw-super-mutant-project-api.texi
 
-@node sel-sw-with-exe, sel-ast-diff-commands, sel-sw-super-mutant-project, SEL Packages
+@node sel-sw-with-exe, sel-cp-clang-instrument, sel-sw-super-mutant-project, SEL Packages
 @section sel-sw-with-exe
 @include sel-sw-with-exe-api.texi
 
-@node sel-ast-diff-commands, sel-ast-diff-html, sel-sw-with-exe, SEL Packages
-@section sel-ast-diff-commands
-@include sel-ast-diff-commands-api.texi
-
-@node sel-ast-diff-html, sel-cp-clang-instrument, sel-ast-diff-commands, SEL Packages
-@section sel-ast-diff-html
-@include sel-ast-diff-html-api.texi
-
-@node sel-cp-clang-instrument, sel-cp-clang-tokens, sel-ast-diff-html, SEL Packages
+@node sel-cp-clang-instrument, sel-cp-clang-tokens, sel-sw-with-exe, SEL Packages
 @section sel-cp-clang-instrument
 @include sel-cp-clang-instrument-api.texi
 

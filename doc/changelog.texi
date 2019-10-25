@@ -34,9 +34,27 @@ most recent at the top.  Every entry will be named and indexed by date
 and version number.  Working notes may be accumulated in a special
 ``Unreleased'' section at the top of the ChangeLog.
 
+@appendixsec 2019-03-20 v0.1.3 -- Unreleased
+@cindex changelog-2019-03-20
+@cindex v0.1.3
+
+@itemize
+@item
+Projects no longer build in temporary directories by default.  Instead
+calls to @code{phenome} will now cause projects to re-build in their
+original directory (i.e., @code{project-dir}).  There are two ways to
+control this new behavior (and optionally revert to the old behavior).
+First, by setting the @code{*build-projects-in-temporary-directories*}
+variable to non-nil the old behavior of building in a new temporary
+directory on every call to phenome is restored.  Alternately for more
+fine-grained control the new @code{phenome-dir} method can be
+customized for any class that is subtypep of project.
+
+@end itemize
+
 @appendixsec 2018-12-18 v0.1.2 -- Unreleased
 @cindex changelog-2018-12-18
-@cindex v0.1.1
+@cindex v0.1.2
 
 @itemize
 @item

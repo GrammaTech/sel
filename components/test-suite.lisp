@@ -9,7 +9,7 @@
         :iterate
         :software-evolution-library
         :software-evolution-library/utility)
-  (:shadowing-import-from :uiop :wait-process)
+  #-windows (:shadowing-import-from :uiop :wait-process)
   (:export :*process-sleep-interval*
            :*process-kill-timeout*
            :test-suite
@@ -20,6 +20,8 @@
            :start-test
            :finish-test
            :run-test))
+;; dummy definition for Windows
+#+windows (defun uiop::wait-process (x) 0)
 (in-package :software-evolution-library/components/test-suite)
 (in-readtable :curry-compose-reader-macros)
 
@@ -61,7 +63,7 @@ synthesis)."))
 (defmethod print-object ((obj test-suite) stream)
   "Print `test-suite' OBJ to STREAM"
   (print-unreadable-object (obj stream :type t)
-    (format stream "~s" (test-cases obj))))
+    (format stream "~s" (length (test-cases obj)))))
 
 (defmethod print-object ((obj test-case) stream)
   "Print `test-case' OBJ to STREAM"
@@ -104,9 +106,7 @@ EXTRA-KEYS will be passed through to that method.
 
 Some EXTRA-KEYS that may be useful are:
 * :output and :error-output - to specify how output and error streams are
-  handled. In some cases, these are sent to /dev/null by default, making
-  inaccessible after the process completes, so it's often useful to set one or
-  both of these to `:stream' to capture the output.
+  handled. By default, these are captured so they can be returned as strings.
 
 * :wait - whether to wait for the process to complete before continuing.
   The default is to wait; however, some components (such as `traceable') may
@@ -119,12 +119,18 @@ Some EXTRA-KEYS that may be useful are:
     (let* ((real-cmd (mapcar {bin-sub (namestring phenome)}
                              (cons (program-name test-case)
                                    (program-args test-case))))
-           (output (or (plist-get :output extra-keys) :stream))
+           (output (cond (*shell-debug* :stream)
+                         ((member :output (plist-keys extra-keys))
+                          (plist-get :output extra-keys))
+                         (t :stream)))
            ;; Backwards compatible: we used to use :error to refer to the error
            ;; output stream, but uiop:run-program standardizes to :error-output
-           (error-output (or (plist-get :error-output extra-keys)
-                             (plist-get :error extra-keys)
-                             :stream)))
+           (error-output (cond (*shell-debug* :stream)
+                               ((member :error-output (plist-keys extra-keys))
+                                (plist-get :error-output extra-keys))
+                               ((member :error (plist-keys extra-keys))
+                                (plist-get :error extra-keys))
+                               (t :stream))))
 
       (plist-drop :output extra-keys)
       (plist-drop :error-output extra-keys)
@@ -133,6 +139,7 @@ Some EXTRA-KEYS that may be useful are:
       (when *shell-debug*
         (format t "  cmd: ~{~a ~}~%" real-cmd))
 
+      #-windows
       (make-instance
        'process
        :os-process
@@ -188,16 +195,16 @@ running, send a SIGKILL signal.
               (sleep *process-sleep-interval*)
               (leave t))))
 
-  ;; Send a non-urgent kill signal (SIGTERM)
+  ;; Send a non-urgent kill signal (SIGTERM) to the process and all its children
   (when (process-running-p test-process)
-    (kill-process test-process))
+    (kill-process test-process :children t))
 
   ;; If still running, sleep short interval, then send an urgent kill signal
-  ;; (SIGKILL).
+  ;; (SIGKILL), to the process and all its children
   (when (process-running-p test-process)
     (sleep *process-sleep-interval*)
     (when (process-running-p test-process)
-      (kill-process test-process :urgent t))
+      (kill-process test-process :urgent t :children t))
 
     ;; If it's *still* running, warn someone.
     (when (process-running-p test-process)
@@ -222,6 +229,9 @@ Return three values: output printed to standard out, error output, and exit
 status. Th default behavior is simply to run `start-test' and `finish-test'."
   (finish-test (apply #'start-test phenome test-case extra-keys)))
 
+;;; TODO: The following two `evaluate' methods really must be changed
+;;;       to use a different name.  They conflict with the defgeneric
+;;;       for evaluate defined in software-evolution-library.lisp.
 (defmethod evaluate (phenome (obj test-case) &rest extra-keys
 			     &key &allow-other-keys)
    "Run `test-case' OBJ on PHENOME and return a fitness score (as

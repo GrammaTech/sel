@@ -17,7 +17,6 @@ techniques."
 (register-system-packages
  "software-evolution-library/software-evolution-library"
  '(:software-evolution-library))
-(register-system-packages "ast-diff/ast-diff" '(:ast-diff))
 (register-system-packages "eclector" '(:eclector.parse-result))
 
 ;; This one needs a defsystem to ensure fare-quasiquote-extras is loaded.
@@ -39,26 +38,6 @@ techniques."
   :perform
   (test-op (o c) (symbol-call :software-evolution-library/test '#:run-batch)))
 
-(defsystem "software-evolution-library/run-ast-diff"
-  :author "Eric Schulte and GrammaTech"
-  :licence "GPL V3"
-  :description "Calculate difference between two programs."
-  :version "0.0.0"
-  :depends-on (software-evolution-library/ast-diff/commands)
-  :build-operation "asdf:program-op"
-  :build-pathname "bin/ast-diff"
-  :entry-point "software-evolution-library/ast-diff/commands::run-ast-diff")
-
-(defsystem "software-evolution-library/run-ast-merge"
-  :author "Eric Schulte and GrammaTech"
-  :licence "GPL V3"
-  :description "Compute the merge of two programs that diverge from a common ancestral version."
-  :version "0.0.0"
-  :depends-on (software-evolution-library/ast-diff/commands)
-  :build-operation "asdf:program-op"
-  :build-pathname "bin/ast-merge"
-  :entry-point "software-evolution-library/ast-diff/commands::run-ast-merge")
-
 (defsystem "software-evolution-library/run-rest-server"
   :author "Eric Schulte and GrammaTech"
   :licence "GPL V3"
@@ -68,3 +47,33 @@ techniques."
   :build-operation "asdf:program-op"
   :build-pathname "bin/rest-server"
   :entry-point "software-evolution-library/rest::run-rest-server")
+
+(defsystem "software-evolution-library/run-new-clang-round-trip"
+    :author "Eric Schulte and GrammaTech"
+    :licence "GPL V3"
+    :description "Test harness for clang parser/unparser"
+    :version "0.0.0"
+    :depends-on (software-evolution-library/components/new-clang-round-trip)
+    :build-operation "asdf:program-op"
+    :build-pathname "test/commands/new-clang-round-trip"
+    :entry-point "software-evolution-library/components/new-clang-round-trip::run-new-clang-round-trip")
+
+(defsystem "software-evolution-library/run-clang-diff-test"
+    :author "Eric Schulte and GrammaTech"
+    :licence "GPL V3"
+    :description "Differential tester for old/new clang front ends"
+    :version "0.0.0"
+    :depends-on (software-evolution-library/components/clang-diff-test)
+    :build-operation "asdf:program-op"
+    :build-pathname "test/commands/clang-diff-test"
+    :entry-point "software-evolution-library/components/clang-diff-test::run-clang-diff-test")
+
+(defsystem "software-evolution-library/run-dump-store"
+    :author "Eric Schulte and GrammaTech"
+    :licence "GPL V3"
+    :description "Dump store file for a program"
+    :version "0.0.0"
+    :depends-on (software-evolution-library/components/dump-store)
+    :build-operation "asdf:program-op"
+    :build-pathname "bin/dump-store"
+    :entry-point "software-evolution-library/components/dump-store::run-dump-store")

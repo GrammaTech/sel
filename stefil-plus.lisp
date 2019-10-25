@@ -66,11 +66,12 @@
            :*debug-on-unexpected-error*
            :*debug-on-assertion-failure*
 	   :long-running-p
-	   :long-running))
+	   :long-running
+           :with-retries))
 
 (in-package :sel/stefil+)
 
-(define-constant *long-suite-suffix* "-LONG"
+(define-constant +long-suite-suffix+ "-LONG"
   :test #'string=
   :documentation
   "Suffix for version of suite which contains long running tests.")
@@ -82,7 +83,7 @@
 
 ;;;
 ;;; If *long-tests* is true, then long-test suites (test suites with
-;;; *long-suite-suffix* suffix) will execute their child tests.
+;;; +long-suite-suffix+ suffix) will execute their child tests.
 ;;; Otherwise child tests will not be executed.
 ;;;
 (defvar *long-tests* nil "Control execution of slow tests.")
@@ -95,9 +96,18 @@
 (defmacro defroot (name)
   (let ((local-name (intern (symbol-name name) *package*)))
     `(eval-when (:compile-toplevel :load-toplevel :execute)
-       (stefil::defsuite ,local-name)
-       (setf sel/stefil+::*root-suite* ',local-name)
-       (setf (stefil::parent-of (stefil::find-test ',local-name)) nil))))
+       (with-muffled-conditions (*uninteresting-conditions*)
+         (handler-bind
+             ((stefil::test-style-warning
+               (lambda (condition)
+                 (if (search "redefining test"
+                             (simple-condition-format-control condition))
+                     (muffle-warning condition)
+                     condition))))
+           (stefil::in-root-suite)
+           (stefil::defsuite ,local-name)
+           (setf sel/stefil+::*root-suite* ',local-name)
+           (setf (stefil::parent-of (stefil::find-test ',local-name)) nil))))))
 
 (defmacro defsuite (name documentation &optional (test-pre-check t))
   "Define NAME with DOCUMENTATION.
@@ -106,7 +116,7 @@ Optional TEST-PRE-CHECK if present should be one of the following:
 NIL ------- skip this test suite with the default warning
 Otherwise - test-pre-check will be invoked at runtime
 return non-nil when the test suite should be run and nil otherwise."
-  (let ((long-name (intern (format nil "~A~A" name *long-suite-suffix*))))
+  (let ((long-name (intern (format nil "~A~A" name +long-suite-suffix+))))
     (with-gensyms (test)
       `(progn
          (assert *root-suite* (*root-suite*)
@@ -125,6 +135,7 @@ return non-nil when the test suite should be run and nil otherwise."
 	 (defsuite* (,name :in ,(intern (symbol-name *root-suite*) *package*)
 			   :documentation ,documentation) ()
 	   (let ((,test (find-test ',name)))
+             #'run-child-tests ;; included to suppress compiler note
 	     (cond
 	       ((stefil::test-was-run-p ,test)
 		(warn "Skipped executing already run tests suite ~S"
@@ -142,6 +153,7 @@ return non-nil when the test suite should be run and nil otherwise."
 				:documentation ,documentation)
              ()
 	   (let ((,test (find-test ',long-name)))
+             #'run-child-tests ;; included to suppress compiler note
 	     (cond
 	       ((stefil::test-was-run-p ,test)
 		(warn "Skipped executing already run tests suite ~S"
@@ -176,13 +188,13 @@ return non-nil when the test suite should be run and nil otherwise."
 
 (defun find-long-running-suite (suite-name)
   "Determine the name of the long-running suite associated with the passed
-suite name. If the passed suite name ends with *long-suite-suffix* it returns
+suite name. If the passed suite name ends with +long-suite-suffix+ it returns
 the argument."
   (let ((str-suite-name (symbol-name suite-name)))
-    (if (ends-with-p str-suite-name *long-suite-suffix*)
+    (if (ends-with-subseq +long-suite-suffix+ str-suite-name)
         suite-name
         (values
-         (intern (format nil "~A~A" str-suite-name *long-suite-suffix*))))))
+         (intern (format nil "~A~A" str-suite-name +long-suite-suffix+))))))
 
 (define-condition test-exceeds-time-threshold (simple-warning)
   ((name :initarg :name :reader test-exceeds-threshold-name)
@@ -262,3 +274,12 @@ long-running."
 		 (equalp x '(declare (sel/stefil+::long-running t)))))
 	  (stefil::declarations-of test-obj))
 	 t)))
+
+(defmacro with-retries ((number &optional failure) &body body)
+  "Try BODY NUMBER times.  If no try returns then return FAILURE.
+Body is executed inside of an `iter' form, so iteration forms may be
+present."
+  (with-gensyms (count)
+    `(iter (as ,count upfrom 0)
+           ,@body
+           (when (> ,count ,number) (return ,failure)))))

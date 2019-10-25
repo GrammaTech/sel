@@ -42,9 +42,11 @@
         :software-evolution-library/software/parseable
         :software-evolution-library/components/formatting)
   (:shadowing-import-from :cl-json :decode-json-from-string)
+  #-windows (:shadowing-import-from :osicat :file-permissions)
   (:export :javascript
            :javascript-mutation
            :javascript-ast
+           :javascript-ast-p
            :javascript-ast-node
            :make-javascript-ast
            :copy-javascript-ast
@@ -61,23 +63,6 @@
      :initform :script
      :documentation "Acorn parsing mode, either :script or :module."))
   (:documentation "Javascript software representation."))
-
-
-;;; Javascript object creation
-(defmethod from-file ((obj javascript) path)
-  "Populate OBJ with the Javascript source at PATH.
-* OBJ to be populated from the Javascript source at PATH
-* PATH to source code to populate OBJ with"
-  (setf (ext obj) (pathname-type (pathname path)))
-  (from-string obj (file-to-string path))
-  obj)
-
-(defmethod from-string ((obj javascript) string)
-  "Populate OBJ with the Javascript source code in STRING.
-* OBJ to be ppopulated from Javascript source in STRING
-* STRING source code to populate OBJ with"
-  (setf (genome obj) string)
-  obj)
 
 
 ;;; Javascript ast data structures
@@ -343,7 +328,7 @@
                                                  ast-alist
                                                  child)))))))
     (setf (ast-root obj)
-          (make-tree (genome obj) nil (parse-asts obj)))
+          (fix-newlines (make-tree (genome obj) nil (parse-asts obj))))
     (setf (slot-value obj 'genome)
           nil)
     obj))
@@ -363,6 +348,12 @@
 
 
 ;;; Methods common to all software objects
+(defmethod to-file :after ((obj javascript) file
+                           &aux (preamble (car (ast-children (ast-root obj)))))
+  "Ensure JavaScript scripts are marked executable."
+  (when (string= (subseq preamble 0 (min (length preamble) 2)) "#!")
+    (push :user-exec (file-permissions file))))
+
 (defmethod phenome ((obj javascript) &key (bin (temp-file-name)))
   "Create a phenotype of the javascript software OBJ.  In this case, override
 the phenome method to output the genome of OBJ to BIN as JavaScript
@@ -527,3 +518,51 @@ AST ast to return the scopes for"
       (remove-if [{< 1} {length} {ast-path}]
                  (asts (from-string (make-instance 'javascript) snippet)))
     (mutate (e) (declare (ignorable e)) nil)))
+
+;;;; Fixup code for newlines.  These should be in the same AST as
+;;;; a statement they terminate
+
+(defun is-stmt (ast)
+  (member (ast-class ast) '(:dowhilestatement :forstatement :labeledstatement
+                            :switchstatement :trystatement :withstatement
+                            :forinstatement :forofstatement :blockstatement
+                            :breakstatement :continuestatement
+                            :expressionstatement
+                            :throwstatement :returnstatement
+                            :ifstatement)))
+
+(defun position-after-leading-newline (str)
+  "Returns 1+ the position of the first newline in STR,
+assuming it can be reached only by skipping over whitespace
+or comments.  NIL if no such newline exists."
+  (let ((len (length str))
+        (pos 0))
+    (loop
+       (when (>= pos len) (return nil))
+       (let ((c (elt str pos)))
+         (case c
+           (#\Newline (return (1+ pos)))
+           ((#\Space #\Tab)
+            (incf pos))
+           ;; Skip over comments
+           (#\/
+            (incf pos)
+            (when (>= pos len) (return nil))
+            (let ((c (elt str pos)))
+              (unless (eql c #\/)
+                (return nil))
+              (return
+                (loop (incf pos)
+                   (when (>= pos len) (return nil))
+                   (when (eql (elt str pos) #\Newline)
+                     (return (1+ pos)))))))
+           (t (return nil)))))))
+
+(defun fix-newlines (ast)
+  (map-ast ast #'fix-newlines-ast)
+  ast)
+
+(defun fix-newlines-ast (ast)
+  (move-prefixes-down
+   (ast-children ast)
+   #'is-stmt #'position-after-leading-newline))

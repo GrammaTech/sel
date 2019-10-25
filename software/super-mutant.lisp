@@ -71,7 +71,7 @@
 ;;; error will be raised and the entire super-mutant discarded. This
 ;;; can lead to wasted mutations.
 ;;;
-;;; @node ASM Super-Mutants, AST Differencing, Clang Super-Mutants, Super-Mutants
+;;; @node ASM Super-Mutants, Utilities, Clang Super-Mutants, Super-Mutants
 ;;; @subsection ASM Super Mutants
 ;;; @cindex asm-super-mutants
 ;;;
@@ -178,6 +178,7 @@ the first return value.
                        #'proxy-phenome
                        #+sbcl
                        (lambda (args other)
+                         (declare (ignorable other))
                          (apply #'proxy-phenome args))
                        #-(or sbcl ccl)
                        (error "make-phenome-proxy not implemented")

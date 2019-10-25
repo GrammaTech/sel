@@ -24,7 +24,7 @@
 This is used to intern string names by `expression'."
   (make-keyword (string-upcase string)))
 
-(defmethod expression ((obj clang) (ast clang-ast))
+(defmethod expression ((obj clang-base) (ast clang-ast-base))
   "Convert AST to an expression tree.
 * OBJ clang software object containing AST
 * AST the AST to convert

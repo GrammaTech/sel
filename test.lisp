@@ -1,4 +1,4 @@
-;;; tests.lisp --- tests for the `software-evolution-library' package
+;;; test.lisp --- tests for the `software-evolution-library' package
 (defpackage :software-evolution-library/test
   (:nicknames :sel/test)
   (:use
@@ -15,19 +15,20 @@
    :cl-store
    :snooze
    :clack
-   :drakma
+   #-windows :drakma
    #+gt :testbot
-   :trace-db
+   #-windows :trace-db
    :uiop
    ;; TODO: Remove those which aren't actually needed for testing.
    :software-evolution-library
    :software-evolution-library/utility
-   :software-evolution-library/rest
-   :software-evolution-library/ast-diff/ast-diff
+   :software-evolution-library/command-line
+   #-windows :software-evolution-library/command-line-rest
+   #-windows :software-evolution-library/rest
    :software-evolution-library/components/instrument
-   :software-evolution-library/components/clang-instrument
+   #-windows :software-evolution-library/components/clang-instrument
    :software-evolution-library/components/clang-tokens
-   :software-evolution-library/components/condition-synthesis
+   #-windows :software-evolution-library/components/condition-synthesis
    :software-evolution-library/components/fault-loc
    :software-evolution-library/components/fix-compilation
    :software-evolution-library/components/fodder-database
@@ -40,9 +41,9 @@
    :software-evolution-library/components/multi-objective
    :software-evolution-library/components/pliny-fodder-database
    :software-evolution-library/components/searchable
-   :software-evolution-library/components/serapi-io
+   #-windows :software-evolution-library/components/serapi-io
    :software-evolution-library/components/test-suite
-   :software-evolution-library/components/traceable
+   #-windows :software-evolution-library/components/traceable
    :software-evolution-library/software/adaptive-mutation
    :software-evolution-library/software/ancestral
    :software-evolution-library/software/asm
@@ -54,12 +55,13 @@
    :software-evolution-library/software/ast
    :software-evolution-library/software/cil
    :software-evolution-library/software/clang
+   :software-evolution-library/software/new-clang
    :software-evolution-library/software/clang-expression
    :software-evolution-library/software/clang-project
    :software-evolution-library/software/clang-w-fodder
    :software-evolution-library/software/coq
    :software-evolution-library/software/coq-project
-   :software-evolution-library/software/csurf-asm
+   #-windows  :software-evolution-library/software/csurf-asm
    :software-evolution-library/software/diff
    :software-evolution-library/software/elf
    :software-evolution-library/software/elf-cisc
@@ -71,6 +73,7 @@
    :software-evolution-library/software/java-project
    :software-evolution-library/software/javascript
    :software-evolution-library/software/javascript-project
+   :software-evolution-library/software/json
    :software-evolution-library/software/sexp
    :software-evolution-library/software/lisp
    :software-evolution-library/software/llvm
@@ -81,8 +84,10 @@
    :software-evolution-library/software/styleable
    :software-evolution-library/software/with-exe
    :software-evolution-library/stefil-plus)
-  (:import-from :hunchentoot)
-  (:import-from :osicat :file-permissions :pathname-as-directory)
+  #-windows (:import-from :hunchentoot)
+  #-windows (:import-from :osicat :file-permissions :pathname-as-directory)
+  ;; Shadow DEFTEST for control of clang/new-clang in tests
+  (:shadow :deftest)
   (:shadowing-import-from :common-lisp :type)
   (:shadowing-import-from :software-evolution-library :size)
   (:shadowing-import-from :clack :stop)
@@ -91,7 +96,7 @@
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:shadowing-import-from :uiop :getenv :quit :parameter-error)
+  (:shadowing-import-from :uiop :getenv :quit #-windows :parameter-error )
   (:shadowing-import-from
    :alexandria
    :appendf :ensure-list :featurep :emptyp
@@ -146,6 +151,9 @@
 
 (defvar *genome*      nil "Genome used in tests.")
 (defvar *soft*        nil "Software used in tests.")
+(defvar *base*        nil "Software used in diff/merge tests.")
+(defvar *left*        nil "Software used in diff/merge tests.")
+(defvar *right*       nil "Software used in diff/merge tests.")
 (defvar *tfos*        nil "Another software used in tests.")
 (defvar *gcd*         nil "Holds the gcd software object.")
 (defvar *gcd-trace-path* nil "Holds the file of gcd traces.")
@@ -171,6 +179,7 @@
 (defvar *rest-client*  nil "Client-id (cid) for REST API test client.")
 (defvar *clack-delay* 0.5 "Seconds to delay after starting server")
 
+#-windows
 (defun initialize-clack ()
   (let ((tries 0))
     (handler-bind
@@ -186,7 +195,8 @@
               ;; Inhibit the clack "Hunchentoot server is started." messages.
               (let ((*standard-output* (make-broadcast-stream)))
                 (clack:clackup (snooze:make-clack-app) :port *clack-port*))
-	    (sleep *clack-delay*)) ; wait for a second before continuing, ensure server is up
+            ;; Wait for a second before continuing, to ensure the server is up.
+	    (sleep *clack-delay*))
         (try-a-new-port ()
           :report "Try using a new port"
           (incf *clack-port*)
@@ -239,6 +249,10 @@
 (define-constant +scopes-dir+ (append +etc-dir+ (list "scopes"))
   :test #'equalp
   :documentation "Location of the scopes example directory")
+
+(define-constant +unbound-fun-dir+ (append +etc-dir+ (list "unbound-fun"))
+  :test #'equalp
+  :documentation "Location of the unbound-fun example directory")
 
 (define-constant +clang-crossover-dir+
     (append +etc-dir+ (list "clang-crossover"))
@@ -425,6 +439,11 @@
                  :type (pathname-type filename)
                  :directory +scopes-dir+))
 
+(defun unbound-fun-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +unbound-fun-dir+))
+
 (defun clang-crossover-dir (filename)
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
@@ -577,15 +596,18 @@
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
 (define-software clang-traceable (clang binary-traceable) ())
+(define-software new-clang-traceable (new-clang binary-traceable) ())
 (define-software java-traceable  (java sexp-traceable) ())
 (define-software javascript-traceable  (javascript sexp-traceable) ())
 (define-software javascript-traceable-project  (javascript-project sexp-traceable) ())
 (define-software clang-control-picks (clang) ())
+(define-software new-clang-control-picks (new-clang) ())
 (define-software collect-traces-handles-directory-phenomes-mock
     (source binary-traceable)
   ((phenome-dir :initarg phenome-dir :accessor phenome-dir :initform nil
                 :copier :direct)))
 (define-software clang-styleable-test-class (clang styleable) ())
+(define-software new-clang-styleable-test-class (new-clang styleable) ())
 (define-software mutation-failure-tester (clang) ())
 
 (defvar *soft-mutate-errors* nil
@@ -609,6 +631,11 @@
 (defmethod bad-stmts ((obj clang-control-picks))
   (or *bad-asts* (stmt-asts obj)))
 
+(defmethod good-stmts ((obj new-clang-control-picks))
+  (or *good-asts* (stmt-asts obj)))
+(defmethod bad-stmts ((obj new-clang-control-picks))
+  (or *bad-asts* (stmt-asts obj)))
+
 (defvar *test-mutation-count* 0)
 (defmethod mutate ((soft mutation-failure-tester))
   (incf *test-mutation-count*)
@@ -616,6 +643,29 @@
   (when (zerop (mod *test-mutation-count* 2))
     (error (make-condition 'mutate)))
   soft)
+
+;;;
+;;; Clang/NewClang migration support
+;;;
+
+;;; Shadow DEFTEST from stefil-plus to add
+;;; controllable binding of the clang front end
+
+(defun call-with-clang-versions (fn)
+  (if *new-clang?*
+      (prog2
+          (setf *make-statement-fn* #'make-statement-new-clang)
+        (funcall fn))
+      (prog2
+          (setf *make-statement-fn* #'make-statement*)
+          (funcall fn))))
+
+(defmacro deftest (name args &body body)
+  `(sel/stefil+:deftest ,name ,args
+     (call-with-clang-versions (lambda () ,@body))))
+
+(defun make-clang (&rest key-args)
+  (apply #'make-instance (if *new-clang?* 'new-clang 'clang) key-args))
 
 ;;;
 ;;; Task support
@@ -704,17 +754,90 @@
 
 (defixture odd-even-asm-super-att
   (:setup
-    (setf *soft* (from-file (make-instance 'asm-super-mutant)
+   (setf *soft* (from-file (make-instance 'asm-super-mutant)
 			   (asm-test-dir "is-even.s.att"))
 	 (fitness-harness *soft*) (software-dir "asm-super-mutant-fitness.c"))
-    (setf (sel/sw/asm-super-mutant::io-file *soft*) (asm-test-dir "is_even.io"))
-    (target-function-name *soft* "is_even"))
+   (setf (sel/sw/asm-super-mutant::io-file *soft*) (asm-test-dir "is_even.io"))
+   (target-function-name *soft* "is_even"))
 
   (:teardown (setf *soft* nil)))
 
+(defixture odd-even-asm-super-reg-test-intel
+  (:setup
+   (setf *soft* (from-file (make-instance 'asm-super-mutant)
+			   (asm-test-dir "is-even.s.intel"))
+	 (fitness-harness *soft*) (software-dir "asm-super-mutant-fitness.c"))
+   (setf (sel/sw/asm-super-mutant::io-file *soft*)
+         (asm-test-dir "is_even-reg-test.io"))
+   (target-function-name *soft* "is_even"))
+
+  (:teardown (setf *soft* nil)))
+
+(defixture odd-even-asm-super-reg-test-att
+  (:setup
+   (setf *soft* (from-file (make-instance 'asm-super-mutant)
+			   (asm-test-dir "is-even.s.att"))
+	 (fitness-harness *soft*) (software-dir "asm-super-mutant-fitness.c"))
+   (setf (sel/sw/asm-super-mutant::io-file *soft*)
+         (asm-test-dir "is_even-reg-test.io"))
+   (target-function-name *soft* "is_even"))
+
+  (:teardown (setf *soft* nil)))
+
+(defixture asm-super-rip-test-att
+  (:setup
+   (setf *soft* (from-file (make-instance 'asm-super-mutant)
+                           (asm-test-dir "re_set_syntax.s.att"))
+         (fitness-harness *soft*) (software-dir "asm-super-mutant-fitness.c"))
+   (setf (sel/sw/asm-super-mutant::io-file *soft*)
+         (asm-test-dir "re_set_syntax.io"))
+   (target-function-name *soft* "re_set_syntax"))
+
+  (:teardown (setf *soft* nil)))
+
+(defixture asm-super-dead-stack-test
+  (:setup
+   (setf *soft* (from-file (make-instance 'asm-super-mutant)
+                           (asm-test-dir "re_set_syntax.s.att"))
+         (fitness-harness *soft*) (software-dir "asm-super-mutant-fitness.c"))
+   (setf (sel/sw/asm-super-mutant::io-file *soft*)
+         (asm-test-dir "re_set_syntax.io"))
+   (target-function-name *soft* "re_set_syntax"))
+
+  (:teardown (setf *soft* nil)))
+
+#-windows
 (defixture rest-server
   (:setup (unless *clack* (setf *clack* (initialize-clack))))
   (:teardown (clack:stop *clack*)(setf *clack* nil)(setf *rest-client* nil)))
+
+#-windows
+(let (old-standard-out old-error-out)
+  (defixture fact-rest-server
+    (:setup
+     (setf old-standard-out *standard-output*
+           old-error-out *error-output*
+           *standard-output* (make-broadcast-stream)
+           *error-output* (make-broadcast-stream))
+     (define-command-rest (fact-entry :environment (*population*))
+         ((n integer) &spec +common-command-line-options+)
+       "Test that canonical REST endpoints work. Computes factorial."
+       #.(format nil
+                 "~%Built from SEL ~a, and ~a ~a.~%"
+                 +software-evolution-library-version+
+                 (lisp-implementation-type) (lisp-implementation-version))
+       (declare (ignorable quiet verbose))
+       (if help
+           (let ((*standard-output* (make-broadcast-stream)))
+             (show-help-for-fact-entry))
+           (factorial n)))
+     (unless *clack* (setf *clack* (initialize-clack))))
+    (:teardown
+     (clack:stop *clack*)
+     (setf *clack* nil
+           *rest-client* nil
+           *standard-output* old-standard-out
+           *error-output* old-error-out))))
 
 (defixture gcd-elf
   (:setup
@@ -729,9 +852,9 @@
   (:setup
    (setf *binary-search*
          (from-file
-          (make-instance 'clang
-            :flags (list
-                    "-I"
+          (make-clang
+           :flags (list
+                   "-I"
                     (namestring (make-pathname :directory +etc-dir+))))
           (make-pathname
            :name "binary_search"
@@ -740,18 +863,30 @@
   (:teardown
    (setf *binary-search* nil)))
 
+#-windows
 (defixture gcd-clang
   (:setup
    (setf *gcd*
-         (from-file (make-instance 'clang :compiler "clang")
+         (from-file (make-clang :compiler "clang")
                     (gcd-dir "gcd.c"))))
+  (:teardown
+   (setf *gcd* nil)))
+
+#+windows
+(defixture gcd-clang
+  (:setup
+   (setf *gcd*
+         (from-file (make-clang :compiler "clang")
+                    (gcd-dir "gcd.windows.c")))
+   (setf (sel/sw/new-clang::include-dirs *gcd*)
+         (split ";" (uiop:getenv "INCLUDE"))))
   (:teardown
    (setf *gcd* nil)))
 
 (defixture gcd-wo-curlies-clang
   (:setup
    (setf *gcd*
-         (from-file (make-instance 'clang :compiler "clang")
+         (from-file (make-clang :compiler "clang")
                     (gcd-dir "gcd-wo-curlies.c"))))
   (:teardown
    (setf *gcd* nil)))
@@ -759,9 +894,9 @@
 (defixture headers-clang
   (:setup
    (setf *headers*
-         (from-file (make-instance 'clang
-                      :compiler "clang"
-                      :flags (list "-I" (namestring
+         (from-file (make-clang
+                     :compiler "clang"
+                     :flags (list "-I" (namestring
                                          (make-pathname
                                           :directory +headers-dir+))))
                     (headers-dir "main.c"))))
@@ -771,8 +906,8 @@
 (defixture hello-world-clang
   (:setup
    (setf *hello-world*
-         (from-file (make-instance 'clang :compiler "clang"
-                                   :flags '("-g -m32 -O0"))
+         (from-file (make-clang :compiler "clang"
+                                :flags '("-g -m32 -O0"))
                     (hello-world-dir "hello_world.c"))))
   (:teardown
    (setf *hello-world* nil)))
@@ -780,7 +915,7 @@
 (defixture sqrt-clang
   (:setup
    (setf *sqrt*
-         (from-file (make-instance 'clang)
+         (from-file (make-clang)
                     (make-pathname :name "sqrt"
                                    :type "c"
                                    :directory +etc-dir+))))
@@ -789,17 +924,55 @@
 
 (defixture print-env-clang
   (:setup (setf *soft*
-                (from-file (make-instance 'clang :compiler "clang")
+                (from-file (make-clang :compiler "clang")
                            (make-pathname :directory +etc-dir+
                                           :name "print-env"
                                           :type "c"))))
   (:teardown (setf *soft* nil)))
 
+(defun fully-every (fn seq &rest other-seqs)
+  "A version of EVERY that also checks that all sequences are
+of the same length"
+  (let ((len (length seq)))
+    (and (every (lambda (s) (= (length s) len)) other-seqs)
+         (apply #'every fn seq other-seqs))))
+
+(defun make-clang-type* (&rest args)
+  (if *new-clang?*
+      (apply #'make-new-clang-type* args)
+      (apply #'make-clang-type :allow-other-keys t args)))
+
+(defun make-new-clang-type* (&key array hash i-file pointer reqs name
+                               decl const volatile restrict storage-class
+                               qual (desugared nil desugared-p)
+                               typedef
+                               &allow-other-keys)
+  ;; TODO:  HASH DECL REQS TYPEDEF
+  (declare (ignorable hash decl reqs typedef))
+  (let ((type (make-instance 'new-clang-type
+                :qual qual
+                :desugared (if desugared-p desugared qual)
+                :typedef typedef)))
+    (make-instance 'nct+ :type type
+                   :storage-class storage-class
+                   :modifiers (sel/sw/new-clang::pack-nct+-modifiers
+                               pointer const volatile restrict)
+                   :array array
+                   :name name
+                   :i-file i-file
+                   :compute-slots nil)))
+
+(defun make-clang-control-picks (&rest args)
+  (apply #'make-instance
+         (if *new-clang?* 'new-clang-control-picks 'clang-control-picks)
+         :allow-other-keys t
+         args))
+
 (defixture hello-world-clang-control-picks
   (:setup
    (setf *hello-world*
-         (from-file (make-instance 'clang-control-picks :compiler "clang-3.7"
-                                   :flags '("-g -m32 -O0"))
+         (from-file (make-clang-control-picks :compiler "clang-3.7"
+                                              :flags '("-g -m32 -O0"))
                     (hello-world-dir "hello_world.c"))))
   (:teardown
    (setf *hello-world* nil)))
@@ -807,8 +980,8 @@
 (defixture empty-function-body-crossover-bug-clang
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang :compiler "clang"
-                                   :flags '("-g -m32 -O0"))
+         (from-file (make-clang :compiler "clang"
+                                :flags '("-g -m32 -O0"))
                     (clang-crossover-dir
                      "empty-function-body-crossover-bug.c"))))
   (:teardown
@@ -817,8 +990,8 @@
 (defixture select-intraprocedural-pair-non-null-clang
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang :compiler "clang"
-                                   :flags '("-g -m32 -O0"))
+         (from-file (make-clang :compiler "clang"
+                                :flags '("-g -m32 -O0"))
                     (clang-crossover-dir
                      "select-intraprocedural-pair-non-null.c"))))
   (:teardown
@@ -827,8 +1000,8 @@
 (defixture intraprocedural-2pt-crossover-bug-clang
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang :compiler "clang"
-                                   :flags '("-g -m32 -O0"))
+         (from-file (make-clang :compiler "clang"
+                                :flags '("-g -m32 -O0"))
                     (clang-crossover-dir
                      "intraprocedural-2pt-crossover-bug.c"))))
   (:teardown
@@ -836,7 +1009,7 @@
 
 (defixture no-mutation-targets-clang
   (:setup
-   (setf *soft* (from-file (make-instance 'clang)
+   (setf *soft* (from-file (make-clang)
                            (lisp-bugs-dir "no-mutation-targets.c"))))
   (:teardown
    (setf *soft* nil)))
@@ -848,7 +1021,8 @@
                                             :directory +etc-dir+))
            (make-instance 'json-database :json-stream in)))
    (setf *soft* (from-file (make-instance 'clang-w-fodder)
-                           (lisp-bugs-dir "no-insert-fodder-decl-mutation-targets.c"))))
+                           (lisp-bugs-dir
+                            "no-insert-fodder-decl-mutation-targets.c"))))
   (:teardown
    (setf *database* nil)
    (setf *soft* nil)))
@@ -856,7 +1030,7 @@
 (defixture contexts
   (:setup
    (setf *contexts*
-         (from-file (make-instance 'clang :compiler "clang-3.7")
+         (from-file (make-clang :compiler "clang-3.7")
                     (contexts-dir "contexts.c"))))
   (:teardown
    (setf *contexts* nil)))
@@ -864,7 +1038,7 @@
 (defixture typedef
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang :compiler "clang-3.7")
+         (from-file (make-clang :compiler "clang-3.7")
                     (typedef-dir "typedef.c"))))
   (:teardown
    (setf *soft* nil)))
@@ -872,7 +1046,7 @@
 (defixture cpp-strings
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang :compiler "clang++")
+         (from-file (make-clang :compiler "clang++")
                     (strings-dir "cpp-strings.cpp"))))
   (:teardown
    (setf *soft* nil)))
@@ -880,7 +1054,7 @@
 (defixture c-strings
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang)
+         (from-file (make-clang)
                     (strings-dir "c-strings.c"))))
   (:teardown
    (setf *soft* nil)))
@@ -912,7 +1086,8 @@
 (defixture gcd-clang-w-fodder
   (:setup
    (setf *database*
-         (with-open-file (in (make-pathname :name "euler-example.json"
+         (with-open-file (in (make-pathname :name "euler-example"
+                                            :type "json"
                                             :directory +etc-dir+))
            (make-instance 'json-database :json-stream in)))
    (setf *gcd*
@@ -929,7 +1104,7 @@
 (defixture empty-while-clang
   (:setup
    (setf *empty-while*
-         (from-file (make-instance 'clang)
+         (from-file (make-clang)
                     (coalesce-while-loop-dir "empty-while.c"))))
   (:teardown
    (setf *empty-while* nil)))
@@ -937,7 +1112,7 @@
 (defixture while-with-no-precedent-clang
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang)
+         (from-file (make-clang)
                     (coalesce-while-loop-dir "no-precedent.c"))))
   (:teardown
    (setf *soft* nil)))
@@ -945,7 +1120,7 @@
 (defixture huf-clang
   (:setup
    (setf *huf*
-         (from-file (make-instance 'clang :compiler "gcc" :flags '("-g -m32 -O0"))
+         (from-file (make-clang :compiler "gcc" :flags '("-g -m32 -O0"))
                     (huf-dir "huf.c")))
    (inject-missing-swap-macro *huf*))
   (:teardown
@@ -954,7 +1129,7 @@
 (defixture nested-clang
   (:setup
    (setf *nested*
-         (from-file (make-instance 'clang :compiler "gcc" :flags '("-g -m32 -O0"))
+         (from-file (make-clang :compiler "gcc" :flags '("-g -m32 -O0"))
                     (nested-dir "nested.c")))
    (inject-missing-swap-macro *nested*))
   (:teardown
@@ -963,8 +1138,8 @@
 (defixture scopes-clang
   (:setup
    (setf *scopes*
-         (from-file (make-instance 'clang-control-picks
-                      :compiler "clang" :flags '("-g -m32 -O0"))
+         (from-file (make-clang-control-picks
+                     :compiler "clang" :flags '("-g -m32 -O0"))
                     (scopes-dir "scopes.c"))))
   (:teardown
    (setf *scopes* nil)))
@@ -972,8 +1147,8 @@
 (defixture scopes2-clang
   (:setup
    (setf *scopes*
-         (from-file (make-instance 'clang-control-picks
-                      :compiler "clang" :flags '("-g -m32 -O0"))
+         (from-file (make-clang-control-picks
+                     :compiler "clang" :flags '("-g -m32 -O0"))
                     (scopes-dir "scopes2.c"))))
   (:teardown
    (setf *scopes* nil)))
@@ -981,8 +1156,8 @@
 (defixture scopes-type-field-clang
   (:setup
    (setf *scopes*
-         (from-file (make-instance 'clang
-                      :compiler "clang" :flags '("-g -m32 -O0"))
+         (from-file (make-clang
+                     :compiler "clang" :flags '("-g -m32 -O0"))
                     (scopes-dir "scopes-type-field.c"))))
   (:teardown
    (setf *scopes* nil)))
@@ -990,7 +1165,7 @@
 (defixture scopes-cxx-clang
   (:setup
    (setf *scopes*
-         (from-file (make-instance 'clang-control-picks :compiler "clang")
+         (from-file (make-clang-control-picks :compiler "clang")
                     (scopes-dir "scopes.cxx"))))
   (:teardown
    (setf *scopes* nil)))
@@ -1012,9 +1187,9 @@
 (defixture collatz-clang
   (:setup
    (setf *collatz*
-         (from-file (make-instance 'clang
-                      :compiler "clang"
-                      :flags '("-m32" "-O0" "-g" "-c"))
+         (from-file (make-clang
+                     :compiler "clang"
+                     :flags '("-m32" "-O0" "-g" "-c"))
                     (collatz-dir "collatz.c"))))
   (:teardown
    (setf *collatz* nil)))
@@ -1022,9 +1197,9 @@
 (defixture fib-clang
   (:setup
    (setf *fib*
-         (from-file (make-instance 'clang
-                      :compiler "clang"
-                      :flags '("-m32" "-O0" "-g" "-c"))
+         (from-file (make-clang
+                     :compiler "clang"
+                     :flags '("-m32" "-O0" "-g" "-c"))
                     (fib-dir "fib.c"))))
   (:teardown
    (setf *fib* nil)))
@@ -1032,7 +1207,7 @@
 (defixture crossover-no-compound-stmt-clang
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang
+         (from-file (make-clang
                       :compiler "clang"
                       :flags '("-m32" "-O0" "-g"))
                     (clang-crossover-dir
@@ -1043,7 +1218,7 @@
 (defixture crossover-switch-stmt-clang
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang
+         (from-file (make-clang
                       :compiler "clang"
                       :flags '("-m32" "-O0" "-g"))
                     (clang-crossover-dir
@@ -1054,7 +1229,7 @@
 (defixture tidy-adds-braces-clang
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang
+         (from-file (make-clang
                       :compiler "clang"
                       :flags '("-m32" "-O0" "-g"))
                     (clang-tidy-dir "tidy-adds-braces.c"))))
@@ -1064,7 +1239,7 @@
 (defixture type-of-var-clang
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang
+         (from-file (make-clang
                       :compiler "clang"
                       :flags '("-m32" "-O0" "-g"))
                     (type-of-var-dir "type-of-var.c"))))
@@ -1074,7 +1249,7 @@
 (defixture type-of-var-missing-decl-type-clang
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang
+         (from-file (make-clang
                       :compiler "clang"
                       :flags '("-m32" "-O0" "-g"))
                     (type-of-var-dir "missing-decl-type.c"))))
@@ -1084,7 +1259,7 @@
 (defixture variety-clang
   (:setup
    (setf *variety*
-         (from-file (make-instance 'clang
+         (from-file (make-clang
                       :compiler "clang"
                       :flags '("-m32" "-O0" "-g"))
                     (variety-dir "variety.c"))))
@@ -1094,7 +1269,7 @@
 (defixture shadow-clang
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang)
+         (from-file (make-clang)
                     (shadow-dir "shadow.c"))))
   (:teardown
    (setf *soft* nil)))
@@ -1102,14 +1277,14 @@
 (defixture unicode-clang
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang)
+         (from-file (make-clang)
                     (unicode-dir "unicode.c"))))
   (:teardown
    (setf *soft* nil)))
 
 (defixture fl-tiny-clang
   (:setup (setf *soft*
-                (from-file (make-instance 'clang)
+                (from-file (make-clang)
                            (fl-tiny-dir "tiny-test.c")))
           (setf *test-suite*
                 (make-instance 'test-suite
@@ -1125,7 +1300,7 @@
 
 (defixture cs-tiny-clang
   (:setup (setf *soft*
-                (from-file (make-instance 'clang)
+                (from-file (make-clang)
                            (cs-tiny-dir "tiny-test.c")))
           (setf *test-suite*
                 (make-instance 'test-suite
@@ -1140,49 +1315,52 @@
    (setf *test-suite* nil)))
 
 (defixture cs-tighten-clang
-  (:setup (setf *soft*
-                (from-file (make-instance 'clang)
-                           (cs-tighten-dir "test-tighten.c")))
-          (setf *test-suite*
-                (make-instance 'test-suite
-                  :test-cases
-                  (iter (for i below 6)
-                        (collecting
-                         (make-instance 'test-case
-                           :program-name (namestring (cs-tighten-dir "fitness.sh"))
-                           :program-args (list :bin (write-to-string i))))))))
+  (:setup (setf
+           *soft*
+           (from-file (make-clang)
+                      (cs-tighten-dir "test-tighten.c"))
+           *test-suite*
+           (make-instance 'test-suite
+             :test-cases
+             (iter (for i below 6)
+                   (collecting
+                     (make-instance 'test-case
+                       :program-name (namestring (cs-tighten-dir "fitness.sh"))
+                       :program-args (list :bin (write-to-string i))))))))
   (:teardown
    (setf *soft* nil)
    (setf *test-suite* nil)))
 
 (defixture cs-add-guard-clang
-  (:setup (setf *soft*
-                (from-file (make-instance 'clang)
-                           (cs-add-guard-dir "test-add-guard.c")))
-          (setf *test-suite*
-                (make-instance 'test-suite
-                  :test-cases
-                  (iter (for i below 8)
-                        (collecting
-                         (make-instance 'test-case
-                           :program-name (namestring (cs-add-guard-dir "fitness.sh"))
-                           :program-args (list :bin (write-to-string i))))))))
+  (:setup (setf
+           *soft*
+           (from-file (make-clang)
+                      (cs-add-guard-dir "test-add-guard.c"))
+           *test-suite*
+           (nest
+            (make-instance 'test-suite :test-cases)
+            (iter (for i below 8))
+            (collecting
+              (make-instance 'test-case
+                :program-name (namestring (cs-add-guard-dir "fitness.sh"))
+                :program-args (list :bin (write-to-string i)))))))
   (:teardown
    (setf *soft* nil)
    (setf *test-suite* nil)))
 
 (defixture cs-divide-clang
-  (:setup (setf *soft*
-                (from-file (make-instance 'clang)
-                           (cs-divide-dir "divide.c")))
-          (setf *test-suite*
-                (make-instance 'test-suite
-                  :test-cases
-                  (iter (for i below 5)
-                        (collecting
-                         (make-instance 'test-case
-                           :program-name (namestring (cs-divide-dir "fitness.sh"))
-                           :program-args (list :bin (write-to-string i))))))))
+  (:setup (setf
+           *soft*
+           (from-file (make-clang)
+                      (cs-divide-dir "divide.c"))
+           *test-suite*
+           (make-instance 'test-suite
+             :test-cases
+             (iter (for i below 5)
+                   (collecting
+                     (make-instance 'test-case
+                       :program-name (namestring (cs-divide-dir "fitness.sh"))
+                       :program-args (list :bin (write-to-string i))))))))
   (:teardown
    (setf *soft* nil)
    (setf *test-suite* nil)))
@@ -1191,7 +1369,7 @@
 (defixture switch-macros-clang
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang)
+         (from-file (make-clang)
                     (switch-macros-dir "switch-macros.c"))))
   (:teardown
    (setf *soft* nil)))
@@ -1199,7 +1377,7 @@
 (defixture simple-macros-clang
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang)
+         (from-file (make-clang)
                     (simple-macros-dir "simple-macros.c"))))
   (:teardown
    (setf *soft* nil)))
@@ -1207,7 +1385,7 @@
 (defixture assert-clang
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang)
+         (from-file (make-clang)
                     (assert-dir "assert.c"))))
   (:teardown
    (setf *soft* nil)))
@@ -1215,7 +1393,7 @@
 (defixture long-running-program-clang
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang)
+         (from-file (make-clang)
                     (long-running-program-dir "long-running-program.c"))))
   (:teardown
    (setf *soft* nil)))
@@ -1223,8 +1401,16 @@
 (defixture typedef-type-clang
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang)
+         (from-file (make-clang)
                     (typedef-type-dir "typedef-type.c"))))
+  (:teardown
+   (setf *soft* nil)))
+
+(defixture unbound-fun-clang
+  (:setup
+   (setf *soft*
+         (from-file (make-clang)
+                    (unbound-fun-dir "unbound-fun.c"))))
   (:teardown
    (setf *soft* nil)))
 
@@ -1255,21 +1441,37 @@
    (setf *soft* nil)))
 
 (defixture fib-javascript
+    (:setup
+     (setf *soft*
+           (from-file (make-instance 'javascript-traceable)
+                      (javascript-dir #P"fib/fib.js"))))
+    (:teardown
+     (setf *soft* nil)))
+
+(defixture trivial-json
   (:setup
    (setf *soft*
-         (from-file (make-instance 'javascript-traceable)
-                    (javascript-dir #P"fib/fib.js"))))
+         (from-file (make-instance 'json) (javascript-dir #P"trivial.json"))))
   (:teardown
    (setf *soft* nil)))
 
-(defixture fib-project-javascript
-  (:setup
-   (setf *soft*
-         (from-file (make-instance 'javascript-traceable-project
-                      :component-class 'javascript-traceable)
-                    (javascript-dir #P"fib-project/"))))
-  (:teardown
-   (setf *soft* nil)))
+(let ((fib-path (merge-pathnames-as-file (javascript-dir #P"fib-project/")
+                                         "fib.js"))
+      (app-path (merge-pathnames-as-file (javascript-dir #P"fib-project/")
+                                         "app.js"))
+      fib-contents app-contents)
+  (defixture fib-project-javascript
+    (:setup
+     (setf fib-contents (file-to-string fib-path)
+           app-contents (file-to-string app-path)
+           *soft*
+           (from-file (make-instance 'javascript-traceable-project
+                        :component-class 'javascript-traceable)
+                      (javascript-dir #P"fib-project/"))))
+    (:teardown
+     (setf *soft* nil)
+     (string-to-file fib-contents fib-path)
+     (string-to-file app-contents app-path))))
 
 (defixture csurf-asm-calc
   (:setup (setf *soft*
@@ -1280,9 +1482,10 @@
    (setf *soft* nil)))
 
 (defixture task-runner
-  (:setup (setf *soft*
-                (list (run-task (make-instance 'parent-task :object "test1") 10)
-                      (run-task (make-instance 'parent-task :object "test2") 20)))
+  (:setup (setf
+           *soft*
+           (list (run-task (make-instance 'parent-task :object "test1") 10)
+                 (run-task (make-instance 'parent-task :object "test2") 20)))
 	  ;; wait for all the threads to terminate
 	  (mapcar 'bt:join-thread (task-runner-workers (first *soft*)))
 	  (mapcar 'bt:join-thread (task-runner-workers (second *soft*))))
@@ -1291,13 +1494,13 @@
 
 
 ;;; ASM representation.
-(defsuite asm-tests "ASM representation.")
+(defsuite asm-tests "ASM representation." #+windows nil)
 
 (deftest simple-read ()
   (with-fixture gcd-asm
     (is (equal 'asm (type-of *gcd*)))))
 
-(deftest idempotent-read-write ()
+(deftest (idempotent-read-write :long-running) ()
   (let ((a (temp-file-name)))
     (unwind-protect
          (with-fixture gcd-asm
@@ -1313,7 +1516,7 @@
   (with-fixture gcd-asm
     (is (equal-it *gcd* (copy *gcd*) nil '(oid)))))
 
-(deftest idempotent-read-copy-write ()
+(deftest (idempotent-read-copy-write :long-running) ()
   (let ((a (temp-file-name)))
     (unwind-protect
          (with-fixture gcd-asm
@@ -1328,20 +1531,19 @@
   (with-fixture gcd-asm
     (let ((orig-hash (sxhash (genome *gcd*)))
           (ant (copy *gcd*)))
-      ;; Multiple tries to apply a mutation creating a difference.
-      ;; Stochastically some might result in the same genome, e.g. by
-      ;; swapping to identical instructions.
-      (is (iter (as count upfrom 0)
-                (handler-bind
-                    ((no-mutation-targets
-                      (lambda (c)
-                        (declare (ignorable c))
-                        (invoke-restart 'try-another-mutation))))
-                  (mutate ant))
-                (when (not (equal-it (genome ant) (genome *gcd*)))
-                  (return t))
-                (when (> count 100)
-                  (return nil)))
+      (is (with-retries (100)
+            ;; Multiple tries to apply a mutation creating a
+            ;; difference.  Stochastically some might result in the
+            ;; same genome, e.g. by swapping to identical
+            ;; instructions.
+            (handler-bind
+                ((no-mutation-targets
+                  (lambda (c)
+                    (declare (ignorable c))
+                    (invoke-restart 'try-another-mutation))))
+              (mutate ant))
+            (when (not (equal-it (genome ant) (genome *gcd*)))
+              (return t)))
           "In 100 tries, a mutation results in a different mutated genome.")
       (is (equal orig-hash (sxhash (genome *gcd*)))))))
 
@@ -1466,7 +1668,8 @@
           ((< cross-a insert-pt)
            (is (= (size crossed) (size *gcd*))))
           ((= cross-a insert-pt)
-           (is (= (size crossed) (- (size *gcd*) (- stmt-to-insert insert-pt)))))
+           (is (= (size crossed)
+                  (- (size *gcd*) (- stmt-to-insert insert-pt)))))
           (t (is (= (size crossed) (1+ (size *gcd*))))))))))
 
 (deftest homologous-crossover-with-swap ()
@@ -1486,10 +1689,8 @@
         (declare (ignorable cross-b))
         (cond
           ((= cross-a 20)
-           ;; (format t "EQUAL 20~%")
            (is (= (size crossed) (- (size *gcd*) 40))))
           ((= cross-a 60)
-           ;; (format t "EQUAL 60~%")
            (is (= (size crossed) (+ (size *gcd*) 40))))
           (t (is (= (size crossed) (size *gcd*)))))))))
 
@@ -1518,19 +1719,19 @@
 	(is (= 0 ret)))
       (delete-file a))))
 
-(deftest idempotent-asm-heap-read-write-intel ()
+(deftest (idempotent-asm-heap-read-write-intel :long-running) ()
   (with-fixture gcd-asm-heap-intel
     (idempotent-asm-heap-read-write "gcd.s.intel")))
 
-(deftest idempotent-asm-heap-read-write-att ()
+(deftest (idempotent-asm-heap-read-write-att :long-running) ()
   (with-fixture gcd-asm-heap-att
     (idempotent-asm-heap-read-write "gcd.s.att")))
 
-(deftest idempotent-asm-heap-copy-intel ()
+(deftest (idempotent-asm-heap-copy-intel :long-running) ()
   (with-fixture gcd-asm-heap-intel
     (is (equal-it *gcd* (copy *gcd*) nil '(oid)))))
 
-(deftest idempotent-asm-heap-copy-att ()
+(deftest (idempotent-asm-heap-copy-att :long-running) ()
   (with-fixture gcd-asm-heap-att
     (is (equal-it *gcd* (copy *gcd*) nil '(oid)))))
 
@@ -1544,31 +1745,29 @@
 	(is (= 0 ret)))
       (delete-file a))))
 
-(deftest idempotent-asm-heap-read-copy-write-intel ()
+(deftest (idempotent-asm-heap-read-copy-write-intel :long-running) ()
   (with-fixture gcd-asm-heap-intel
     (idempotent-asm-heap-read-write "gcd.s.intel")))
 
-(deftest idempotent-asm-heap-read-copy-write-att ()
+(deftest (idempotent-asm-heap-read-copy-write-att :long-running) ()
   (with-fixture gcd-asm-heap-att
     (idempotent-asm-heap-read-write "gcd.s.att")))
 
 (defun edit-of-asm-heap-copy-does-not-change-original ()
   (let ((orig-hash (sxhash (genome *gcd*)))
 	(variant (copy *gcd*)))
-    ;; Multiple tries to apply a mutation creating a difference.
-    ;; Stochastically some might result in the same genome, e.g. by
-    ;; swapping to identical instructions.
-    (is (iter (as count upfrom 0)
-	      (handler-bind
-		  ((no-mutation-targets
-		    (lambda (c)
-		      (declare (ignorable c))
-		      (invoke-restart 'try-another-mutation))))
-		(mutate variant))
-	      (when (not (equal-it (genome variant) (genome *gcd*)))
-		(return t))
-	      (when (> count 100)
-		(return nil)))
+    (is (with-retries (100)
+          ;; Multiple tries to apply a mutation creating a difference.
+          ;; Stochastically some might result in the same genome,
+          ;; e.g. by swapping to identical instructions.
+          (handler-bind
+              ((no-mutation-targets
+                (lambda (c)
+                  (declare (ignorable c))
+                  (invoke-restart 'try-another-mutation))))
+            (mutate variant))
+          (when (not (equal-it (genome variant) (genome *gcd*)))
+            (return t)))
 	"In 100 tries, a mutation results in a different mutated genome.")
     (is (equal orig-hash (sxhash (genome *gcd*))))))
 
@@ -1741,10 +1940,97 @@
   (with-fixture odd-even-asm-super-att
     (asm-super-mutant-finds-improved-version)))
 
+(deftest asm-super-mutant-finds-improved-version-reg-test-intel ()
+  (with-fixture odd-even-asm-super-reg-test-intel
+    (asm-super-mutant-finds-improved-version)))
+
+(deftest asm-super-mutant-finds-improved-version-reg-test-att ()
+  (with-fixture odd-even-asm-super-reg-test-att
+    (asm-super-mutant-finds-improved-version)))
+
+(deftest asm-super-converts-rip-to-abolute-addresses ()
+  "Ensure rip-relative conversion works.
+ Also make sure the rip-relative addresses get restored
+ properly afterward."
+  (with-fixture asm-super-rip-test-att
+    (let ((target (create-target *soft*)))
+      ;; ensure any rip-relative addresses are converted to absolute
+      (dotimes (i (length (genome target)))
+        (sel/sw/asm-super-mutant::convert-rip-relative-to-absolute target i))
+      (let ((info1 (elt (genome target) 3))
+            (info2 (elt (genome target) 6)))
+        (is (not (search "%rip" (asm-line-info-text info1) :test 'equalp)))
+        (is (search "0x61A460" (asm-line-info-text info1) :test 'equalp))
+        (is (not (search "%rip" (asm-line-info-text info2) :test 'equalp)))
+        (is (search "0x61A460" (asm-line-info-text info2) :test 'equalp)))
+      ;; restore rip-relative addresses
+      (restore-original-addresses target)
+      (let ((info1 (elt (genome target) 3))
+            (info2 (elt (genome target) 6)))
+        (is (search "%rip" (asm-line-info-text info1) :test 'equalp))
+        (is (not (search "0x61A460" (asm-line-info-text info1) :test 'equalp)))
+        (is (search "%rip" (asm-line-info-text info2) :test 'equalp))
+        (is (not (search "0x61A460" (asm-line-info-text info2)
+                         :test 'equalp)))))))
+
+(deftest asm-super-filters-out-dead-stack-specs ()
+  "Filter out i/o specs we don't want.
+ Ensure i/o mem specs in unused stack area (below rsp) do not
+ get applied in test."
+  (with-fixture asm-super-dead-stack-test
+    (let ((input-spec (sel/sw/asm-super-mutant::input-spec *soft*))
+          (output-spec (sel/sw/asm-super-mutant::output-spec *soft*)))
+      (is (=
+           (length
+            (sel/sw/asm-super-mutant::input-specification-mem
+             (elt input-spec 0)))
+           4))
+      (is (=
+           (length
+            (sel/sw/asm-super-mutant::input-specification-mem
+             (elt output-spec 0)))
+           4))
+      (sel/sw/asm-super-mutant::remove-mem-below-sp
+       (sel/sw/asm-super-mutant::input-spec *soft*))
+      (sel/sw/asm-super-mutant::remove-mem-below-sp
+       (sel/sw/asm-super-mutant::output-spec *soft*))
+      (is (=
+           (length
+            (sel/sw/asm-super-mutant::input-specification-mem
+             (elt input-spec 0)))
+           1))
+      (is (=
+           (length
+            (sel/sw/asm-super-mutant::input-specification-mem
+             (elt input-spec 0)))
+           1)))))
+
+;;; Command Line tests
+(defsuite cl-tests "Command Line tool tests.")
+
+(define-command fact-cl-entry
+    (n &spec +common-command-line-options+)
+  "Test that canonical REST endpoints work. Computes factorial."
+  #.(format nil
+            "~%Built from SEL ~a, and ~a ~a.~%"
+            +software-evolution-library-version+
+            (lisp-implementation-type) (lisp-implementation-version))
+  (declare (ignorable quiet verbose))
+  (if help
+      (show-help-for-fact-cl-entry)
+      (factorial n)))
+
+(deftest run-factorial-cl-func ()
+  (let ((*standard-output* (make-broadcast-stream)))
+    (is (eql (fact-cl-entry 5 :verbose 3) 120))
+    (is (eql (fact-cl-entry 52235215 :help T) nil))))
+
 
 ;;; REST tests
+#-windows
 (defsuite rest-tests "REST API tests.")
 
+#-windows
 (defun rest-test-create-client ()
   "Returns 2 values: new client id or nil, and status.
  Assumes service is running."
@@ -1761,9 +2047,9 @@
 	    (setf result (read stream)))
 	(if (symbolp result)
 	    (setf result (symbol-name result)))
-
 	(values result status))))
 
+#-windows
 (defun rest-test-create-software (type cid)
   "Given type of Software object and client-id, returns 2
  values: new software oid or nil, and status.
@@ -1789,7 +2075,7 @@
 	  (setf result (symbol-name result)))
 
       (values result status))))
-
+#-windows
 (defun rest-test-get-new-client ()
   "Always creates a new REST client and returns (1) new client id,
  (2) http status code. The new client id is stored in *rest-client*."
@@ -1798,12 +2084,14 @@
     (setf *rest-client* cid) ; store the new client for further tests
     (values cid status)))
 
+#-windows
 (defun rest-test-get-client ()
   "If REST client already has been created, return it.
  Else, create one and return the client id (cid)."
   (or *rest-client* (rest-test-get-new-client)))
 
-(deftest rest-create-client ()
+#-windows
+(deftest (rest-create-client :long-running) ()
   ;; test ensures the web service is running and it can create a new client,
   ;; tests Create Client (HTTP POST) method.
   (with-fixture rest-server
@@ -1812,7 +2100,8 @@
       (is (stringp cid))
       (is (string-equal (subseq cid 0 7) "client-")))))
 
-(deftest rest-create-software ()
+#-windows
+(deftest (rest-create-software :long-running) ()
   ;; test ensures the web service is running and it can create a new software
   ;; object. Tests Create Software (HTTP POST) method.
   (with-fixture rest-server
@@ -1823,8 +2112,122 @@
         (is (eql status 200))
         (is (integerp oid))))))
 
+#-windows
+(define-async-job four-types-1
+    ((a integer) (b string) (c float) (d boolean))
+  "Test that the four supported types can be passed via REST."
+  (format nil "~A: ~D, ~A: ~S, ~A: ~F, ~A: ~A"
+          (type-of a) a
+          (type-of b) b
+          (type-of c) c
+          (type-of d) d))
+
+#-windows
+(deftest run-async-job-func ()
+  (let ((result
+         (sel/rest:apply-async-job-func 'four-types-1 10 "twenty" 30.1 t)))
+    (is (search "10" result))
+    (is (search "\"twenty\"" result))
+    (is (search "30.1" result))
+    (is (search " T" result))))
+
+#-windows
+(define-command-rest (four-types-2)
+    ((a integer) (b string) (c float) (d boolean)
+     &spec +common-command-line-options+)
+  "Test that the four supported types can be passed to an endpoint via REST."
+  ""
+  (declare (ignorable help quiet verbose load eval out-dir read-seed))
+  (format nil "~A: ~D, ~A: ~S, ~A: ~F, ~A: ~A"
+          (type-of a) a
+          (type-of b) b
+          (type-of c) c
+          (type-of d) d))
+
+#-windows
+(deftest run-rest-command-line-func ()
+  (let ((result
+         (four-types-2 10 "twenty" 30.1 t)))
+    (is (search "10" result))
+    (is (search "\"twenty\"" result))
+    (is (search "30.1" result))
+    (is (search " T" result))))
+
+#-windows
+(define-command-rest (fact-entry-cl)
+    ((n integer) &spec +common-command-line-options+)
+  "Test that canonical REST endpoints work. Computes factorial."
+  #.(format nil
+            "~%Built from SEL ~a, and ~a ~a.~%"
+            +software-evolution-library-version+
+            (lisp-implementation-type) (lisp-implementation-version))
+  (declare (ignorable quiet verbose))
+  (if help
+      (show-help-for-fact-entry-cl)
+      (factorial n)))
+
+#-windows
+(deftest (run-rest-factorial-cl-func :long-running) ()
+  (let ((*standard-output* (make-broadcast-stream)))
+    (is (eql (fact-entry-cl 5 :verbose 3) 120))
+    (is (eql (fact-entry-cl 52235215 :help T) nil))))
+
+#-windows
+(deftest (run-rest-factorial-cl-func-2 :long-running) ()
+  (with-fixture fact-rest-server
+    (let ((*standard-output* (make-broadcast-stream)))
+      ;; This produces a warning that FACT-ENTRY is undefined,
+      ;; but the function is defined by the fixture
+      (is (eql (funcall (symbol-function 'fact-entry) 5 :verbose 3) 120))
+      (is (eql (funcall (symbol-function 'fact-entry) 52235215 :help T) nil)))))
+
+#-windows
+(defun rest-endpoint-test-create-fact-job (client-id json-input)
+  "Returns new job name or nil.
+ Assumes service is running."
+  (multiple-value-bind (stream status)
+      (drakma:http-request
+       (format nil "http://127.0.0.1:~D/rest-fact-entry?cid=~A"
+               *clack-port* client-id)
+       :method :post
+       :content-type "application/json"
+       :content (json:encode-json-to-string json-input)
+       :want-stream t)
+    (if (= status 200)
+        (read stream)
+        (format nil "Status code ~A" status))))
+
+#-windows
+(deftest (run-rest-factorial-remote-1 :long-running) ()
+  (with-fixture fact-rest-server
+    (multiple-value-bind (cid status) (rest-test-get-new-client)
+      (declare (ignore status))
+      (let ((*standard-output* (make-broadcast-stream))
+            (result
+             (symbol-name
+              (rest-endpoint-test-create-fact-job cid '(("n" . 5))))))
+        (is (stringp result))
+        (is (starts-with-subseq "REST-FACT-ENTRY" result))))))
+
+#-windows
+(deftest (run-rest-factorial-remote-2 :long-running) ()
+  (with-fixture fact-rest-server
+    (multiple-value-bind (cid status) (rest-test-get-new-client)
+      (declare (ignore status))
+      (let* ((*standard-output* (make-broadcast-stream))
+             (result
+              (symbol-name
+               (rest-endpoint-test-create-fact-job
+                cid
+                '(("n" . 5) ("help" . T))))))
+        (is (stringp result))
+        (is (starts-with-subseq "REST-FACT-ENTRY" result))))))
+
 
 ;;; CSURF-ASM representation.
+#-windows
+(progn
+
 (defsuite csurf-asm-tests "CSURF-ASM representation.")
 
 (deftest dynamic-linker-path-has-been-set ()
@@ -1882,7 +2285,7 @@
             (phenome *soft* :bin bin))
         (is (zerop errno) "Calc compilation successful.")
         (is (= 4 (parse-number (shell "~a + 2 2" bin)))
-            "Calc executable is executable and functional.")))))
+            "Calc executable is executable and functional."))))))
 
 
 ;;;
@@ -1893,13 +2296,11 @@
 ;; simple test to see if the whole file parsed correctly
 (deftest (task-runner-1 :long-running) ( )
   (let (length)
-    (is (iter (as count upfrom 0)
-              (with-fixture task-runner
-                (setf length (length (task-runner-results (first *soft*)))))
-              (when (= length 20)
-                (return t))
-              (when (> count 100)
-                (return nil))))))
+    (is (with-retries (100)
+          (with-fixture task-runner
+            (setf length (length (task-runner-results (first *soft*)))))
+          (when (= length 20)
+            (return t))))))
 
 (deftest (task-runner-2 :long-running) ()
   (with-fixture task-runner
@@ -1965,15 +2366,14 @@
     (with-fixture gcd-elf
       (phenome *gcd* :bin a)
       (multiple-value-bind (out err ret)
-          (shell "diff ~s ~a"
-                                             (namestring (gcd-dir "gcd")) a)
+          (shell "diff ~s ~a" (namestring (gcd-dir "gcd")) a)
         (declare (ignorable out err))
         (is (= 0 ret))))))
 
 (deftest elf-copy-same-genome ()
   (with-fixture gcd-elf
     (is (equal-it (genome *gcd*)
-                                              (genome (copy *gcd*))))))
+                  (genome (copy *gcd*))))))
 
 (deftest elf-idempotent-read-copy-write ()
   (with-temp-file (a)
@@ -1981,7 +2381,7 @@
       (phenome (copy *gcd*) :bin a)
       (multiple-value-bind (out err ret)
           (shell "diff ~s ~a"
-                                             (namestring (gcd-dir "gcd")) a)
+                 (namestring (gcd-dir "gcd")) a)
         (declare (ignorable out err))
         (is (= 0 ret))))))
 
@@ -2008,7 +2408,7 @@
           ;; more likely that there are sufficient no-ops to delete.
           ;; This works with the local compiled version of gcd, but
           ;; may fail in the future or on other systems.
-          (to-copy (position-if [{= 1} #'length {aget :code}] (genome *gcd*))))
+          (to-copy (position-if [{eql 1} #'length {aget :code}] (genome *gcd*))))
       (apply-mutation variant (list :insert 0 to-copy))
       (is (= (length (bytes *gcd*)) (length (bytes variant))))
       (is (not (equal-it (bytes *gcd*) (bytes variant)))))))
@@ -2017,7 +2417,7 @@
   (with-fixture gcd-elf
     (let* ((variant (copy *gcd*))
            ;; See FIND-SMALL in `elf-insertion-changes-but-maintains-lengthens'
-           (to-copy (position-if [{= 1} #'length {aget :code}] (genome *gcd*)))
+           (to-copy (position-if [{eql 1} #'length {aget :code}] (genome *gcd*)))
            (new-genome (elf-replace
                         variant 0 (copy-tree (nth to-copy (genome *gcd*))))))
       (is (= (length (mappend {aget :code} (genome *gcd*)))
@@ -2069,6 +2469,9 @@
 
 ;;; Clang representation.
 (defun clang-mutate-available-p ()
+  #+windows
+  nil
+  #-windows
   (zerop (nth-value 2 (shell "which clang-mutate"))))
 
 (defsuite clang-tests "Clang representation." (clang-mutate-available-p))
@@ -2077,8 +2480,17 @@
   (with-fixture hello-world-clang
     (is (not (null *hello-world*)))))
 
-(deftest genome-change-clears-clang-software-object-fields ()
+(deftest (genome-change-clears-clang-software-object-fields :long-running) ()
   (with-fixture hello-world-clang
+    (is (not (null (stmt-asts *hello-world*))))
+    (is (not (null (functions *hello-world*))))
+    (is (not (null (prototypes *hello-world*))))
+    (is (not (null (includes *hello-world*))))
+    ;; The following were already nil, so this test
+    ;; is not testing that they were cleared
+    (is (null (non-stmt-asts *hello-world*)))
+    (is (null (macros *hello-world*)))
+    (is (null (fitness *hello-world*)))
     (setf (genome *hello-world*) "")
     (is (null  (asts *hello-world*)))
     (is (null  (stmt-asts *hello-world*)))
@@ -2088,7 +2500,32 @@
     (is (null  (includes *hello-world*)))
     (is (null  (macros *hello-world*)))
     (is (null  (fitness *hello-world*)))
-    (is (zerop (hash-table-count (types *hello-world*))))))
+    ;; This is not zero for new clang, as it contains
+    ;; builtins
+    (if *new-clang?*
+        (is (zerop (count-if #'type-i-file
+                             (hash-table-values (types *hello-world*)))))
+        (is (zerop (hash-table-count (types *hello-world*)))))))
+
+(deftest normalize-flags-test ()
+  (is (equal (normalize-flags "/foo/" (list "-Wall"))
+             (list "-Wall")))
+  (is (equal (normalize-flags "/foo/" (list "-I/bar/"))
+             (list "-I" "/bar/")))
+  (is (equal (normalize-flags "/foo/" (list "-I" "/bar/"))
+             (list "-I" "/bar/")))
+  (is (equal (normalize-flags "/foo/" (list "-L/bar/"))
+             (list "-L" "/bar/")))
+  (is (equal (normalize-flags "/foo/" (list "-L" "/bar/"))
+             (list "-L" "/bar/")))
+  (is (find "/foo/" (normalize-flags "/foo/" (list "-I."))
+            :test (lambda (s1 s2) (search s1 s2 :test #'equal))))
+  (is (find "/foo/" (normalize-flags "/foo/" (list "-I" "."))
+            :test (lambda (s1 s2) (search s1 s2 :test #'equal))))
+  (is (find "/foo/" (normalize-flags "/foo/" (list "-L."))
+            :test (lambda (s1 s2) (search s1 s2 :test #'equal))))
+  (is (find "/foo/" (normalize-flags "/foo/" (list "-L" "."))
+            :test (lambda (s1 s2) (search s1 s2 :test #'equal)))))
 
 (deftest asts-are-set-lazily ()
   (with-fixture hello-world-clang
@@ -2227,8 +2664,8 @@
           (variant (copy *hello-world*)))
       (apply-mutation
           variant
-        `(clang-cut (:stmt1 . ,(stmt-with-text variant
-                                               "printf(\"Hello, World!\\n\");"))))
+        `(clang-cut (:stmt1 . ,(stmt-with-text
+                                variant "printf(\"Hello, World!\\n\");"))))
       (is (string= (genome *hello-world*) orig-genome))
       (is (not (string= (genome variant) orig-genome))))))
 
@@ -2252,8 +2689,8 @@
     (let ((variant (copy *hello-world*)))
       (apply-mutation
           variant
-        `(clang-cut (:stmt1 . ,(stmt-with-text variant
-                                               "printf(\"Hello, World!\\n\");"))))
+        `(clang-cut (:stmt1 . ,(stmt-with-text
+                                variant "printf(\"Hello, World!\\n\");"))))
       (is (ast-equal-p (stmt-with-text *hello-world* "return 0;")
                        (stmt-with-text variant "return 0;"))))))
 
@@ -2332,8 +2769,14 @@
 (deftest clang-includes-initialized ()
   (with-fixture headers-clang
     (let ((includes (includes *headers*)))
+      (ast-root *headers*)
       (is (listp includes))
-      (is (= 2 (length includes)))
+      ;; As JR explained, "first.c" is handled
+      ;; differently in the old clang front end, in
+      ;; the types table, not the includes attribute.
+      ;; TODO: determine if it is ok to have "first.c"
+      ;; here instead.
+      (is (= (if *new-clang?* 3 2) (length includes)))
       (is (member "\"second.c\"" includes :test #'equal))
       (is (member "\"third.c\"" includes :test #'equal)))))
 
@@ -2351,9 +2794,11 @@
   (with-fixture headers-clang
     (let ((types (types *headers*)))
       (is (hash-table-p types))
-      (is (equal (list "bar" "char" "char*" "foo" "int")
-                 (sort (mapcar #'type-name (hash-table-values types))
-                       #'string<))))))
+      (is (subsetp (list "bar" "char" "char*" "foo" "int")
+                   (mapcar (lambda (s) (remove #\Space s))
+                           (sort (mapcar #'type-name (hash-table-values types))
+                                 #'string<))
+                   :test #'equal)))))
 
 (deftest update-asts-doesnt-duplicate-includes ()
   (with-fixture headers-clang
@@ -2385,14 +2830,10 @@
 (deftest add-type-with-include-test ()
   (with-fixture fib-clang
     (add-type *fib* (make-clang-type :array ""
-                                     :col 1
-                                     :line 48
-                                     :file "\/usr\/include\/stdio.h"
                                      :hash 3346600377836954008
                                      :i-file "<stdio.h>"
                                      :pointer t
                                      :reqs nil
-                                     :size 8
                                      :name "FILE"))
     (is (equal 1 (length (includes *fib*))))))
 
@@ -2406,8 +2847,8 @@
   (with-fixture hello-world-clang
     (let ((orig-num-asts (size *hello-world*)))
       (add-type *hello-world*
-                     (make-clang-type :decl "struct printf { chocolate cake; }"
-                                      :array "" :hash 0 :name "struct printf"))
+                (make-clang-type :decl "struct printf { chocolate cake; }"
+                                 :array "" :hash 0 :name "struct printf"))
       (is (equal orig-num-asts (size *hello-world*))))))
 
 (deftest add-new-type-changes-genome-and-types ()
@@ -2416,8 +2857,8 @@
           (orig-num-types (hash-table-count (types *hello-world*)))
           (struct-str "struct printf { chocolate cake; }"))
       (add-type *hello-world*
-                     (make-clang-type :decl struct-str
-                                      :array "" :hash 0 :name "struct printf"))
+                (make-clang-type :decl struct-str
+                                 :array "" :hash 0 :name "struct printf"))
       ;; new type gets added to genome
       (is (= (+ orig-genome-length (length struct-str)
                 (length (genome *hello-world*)))))
@@ -2562,7 +3003,8 @@ is not to be found"
   (with-fixture no-mutation-targets-clang
     (handler-case
         (progn
-          (build-op (make-instance 'clang-promote-guarded :object *soft*) *soft*)
+          (build-op (make-instance 'clang-promote-guarded :object *soft*)
+                    *soft*)
           (is nil "build-op should have thrown no-mutation-targets error"))
       (error (e)
         (is (equal (type-of e) 'no-mutation-targets)
@@ -2582,7 +3024,7 @@ is not to be found"
   (with-fixture no-mutation-targets-clang
     (signals no-mutation-targets (pick-rename-variable *soft*))))
 
-(deftest cpp-strings-works ()
+(deftest (cpp-strings-works :long-running) ()
   ;; On this example, clang-mutate generates ASTs that are out of
   ;; order. Check that asts->tree handles this case correctly.
   (with-fixture cpp-strings
@@ -2618,10 +3060,12 @@ is not to be found"
   ;; overlapping source ranges. Test that update-asts can handle it
   ;; correctly.
   (with-fixture switch-macros-clang
-    (is (equal '(:CharacterLiteral :MacroExpansion)
-               (->> (stmt-starting-with-text *soft* "case 'F'")
-                    (get-immediate-children *soft*)
-                    (mapcar #'ast-class))))))
+    (let ((overlapping-children
+           (->> (stmt-starting-with-text *soft* "case 'F'")
+                (get-immediate-children *soft*))))
+      (is (= 2 (length overlapping-children)))
+      (is (member :MacroExpansion
+                  (mapcar #'ast-class overlapping-children))))))
 
 (deftest replace-in-ast-subtree ()
   (let ((subtree (make-clang-ast
@@ -2671,29 +3115,44 @@ is not to be found"
 
 (deftest find-or-add-type-finds-existing-type ()
   (with-fixture gcd-clang
-    (is (eq (find-if [{string= "int"} #'type-name]
-                     (hash-table-values (types *gcd*)))
-            (find-or-add-type *gcd* "int")))))
+    #+(OR)
+    (is (eql (find-if [{string= "int"} #'type-name]
+                      (hash-table-values (types *gcd*)))
+             (find-or-add-type *gcd* "int")))
+    (is (find (find-or-add-type *gcd* "int")
+              (hash-table-values (types *gcd*))))))
 
 (deftest find-or-add-type-adds-new-type ()
   (with-fixture gcd-clang
+    ;; The new clang front end loads a large number of types
+    ;; that are defined in headers, but not used in the program
+    #+nil
     (is (null (find-if [{string= "float"} #'type-name]
                        (hash-table-values (types *gcd*)))))
     (let ((new-type (find-or-add-type *gcd* "int")))
       (is new-type "New type created.")
       (is (gethash (type-hash new-type) (types *gcd*))
           "New type is added to software.")
-      (is (eq new-type (find-or-add-type *gcd* "int"))
-          "Repeated call finds same type."))))
+      (let ((itp (find-or-add-type *gcd* "int")))
+        (is (not (type-pointer itp))
+            "int type should not a pointer type")
+        (is (not (type-const itp))
+            "int type should not a const type")
+        (is (not (type-volatile itp))
+            "int type should not a volatile type")
+        (is (eql (type-storage-class itp) :none)
+            "int type should have no storage class")
+        (is (eql new-type itp)
+            "Repeated call finds same type.")))))
 
 (deftest find-or-add-type-parses-pointers ()
   (with-fixture gcd-clang
-    (is (eq (find-or-add-type *gcd* "*char")
-            (find-or-add-type *gcd* "char" :pointer t)))))
+    (is (eql (find-or-add-type *gcd* "*char")
+             (find-or-add-type *gcd* "char" :pointer t)))))
 
 (deftest var-decl-has-correct-types ()
-  (let ((obj (make-instance 'clang
-               :genome "int x = sizeof(int);")))
+  (let* ((obj (make-clang :genome "int x = sizeof(int);"))
+         (*soft* obj))
     ;; A var decl should always directly reference the type of its
     ;; declaration. This is tricky due to the de-aggregating of types
     ;; done by asts->tree.
@@ -2701,29 +3160,32 @@ is not to be found"
     ;; FIXME: if the RHS were "sizeof(int) + sizeof(char)" the decl
     ;; would reference both types, which is incorrect but probably
     ;; harmless.
-    (is (equalp '("int")
+    (is (member "int"
                 (mapcar [#'type-name {find-type obj}]
-                        (ast-types (first (asts obj))))))))
+                        (ast-types (first (asts obj))))
+                :test #'equalp))))
 
 (deftest macro-expansion-has-correct-types ()
   ;; Types inside a macro expansion should be visible. This is trick
   ;; due to the de-aggregating of types done by asts->tree.
-  (let ((obj (make-instance 'clang
-               :genome "#define CHARSIZE (sizeof (char))
+  (let* ((obj (make-clang :genome "#define CHARSIZE (sizeof (char))
 int x = CHARSIZE;")))
-    (is (equalp '("int" "char")
-                (mapcar [#'type-name {find-type obj}]
-                        (get-ast-types obj (first (asts obj))))))))
+    (let ((types
+           (sort (mapcar [#'type-name {find-type obj}]
+                         (get-ast-types obj (first (asts obj))))
+                 #'string<)))
+      (is (or (equal '("char" "int") types)
+              (equal '("char" "int" "unsigned long") types))))))
 
 (deftest able-to-handle-multibyte-characters ()
   (handler-bind (#+sbcl (sb-int:stream-encoding-error
                          (lambda (c)
                            (declare (ignorable c))
-                           (invoke-restart 'set-utf8-encoding))))
+                           (invoke-restart 'use-encoding :utf-8))))
     (with-fixture unicode-clang
-      (is (stmt-with-text *soft* "int x = 0" :no-error))
-      (is (stmt-with-text *soft* "\"2 bytes: Δ\"" :no-error))
-      (is (stmt-with-text *soft* "int y = 1" :no-error))
+      (is (stmt-with-text *soft* "int x = 0" :no-error t))
+      (is (stmt-with-text *soft* "\"2 bytes: Δ\"" :no-error t))
+      (is (stmt-with-text *soft* "int y = 1" :no-error t))
       (is (string= (genome *soft*)
                    (file-to-string (unicode-dir "unicode.c")))))))
 
@@ -2740,7 +3202,7 @@ int x = CHARSIZE;")))
 (defixture gcd-clang-control-picks
   (:setup
    (setf *gcd*
-         (from-file (make-instance 'clang-control-picks :compiler "clang-3.7")
+         (from-file (make-clang-control-picks :compiler "clang-3.7")
                     (gcd-dir "gcd.c"))))
   (:teardown
    (setf *gcd* nil)))
@@ -2787,7 +3249,7 @@ int x = CHARSIZE;")))
           (*clang-mutation-types* '((clang-insert-same . 1)))
           (variant (copy *hello-world*)))
       (mutate variant)
-      (is (stmt-with-text variant "return 00;" :no-error)))))
+      (is (stmt-with-text variant "return 00;" :no-error t)))))
 
 (deftest insert-full-same-adds-same-class-full-stmt ()
   (with-fixture hello-world-clang-control-picks
@@ -2807,7 +3269,7 @@ int x = CHARSIZE;")))
           (*clang-mutation-types* '((clang-replace . 1)))
           (variant (copy *hello-world*)))
       (mutate variant)
-      (is (stmt-with-text variant "return printf;" :no-error)))))
+      (is (stmt-with-text variant "return printf;" :no-error t)))))
 
 (deftest replace-full-changes-full-stmt ()
   (with-fixture hello-world-clang-control-picks
@@ -2830,7 +3292,7 @@ int x = CHARSIZE;")))
           (*clang-mutation-types* '((clang-replace-same . 1)))
           (variant (copy *hello-world*)))
       (mutate variant)
-      (is (stmt-with-text variant "printf(printf);" :no-error)))))
+      (is (stmt-with-text variant "printf(printf);" :no-error t)))))
 
 (deftest replace-full-same-changes-same-class-full-stmt ()
   (with-fixture hello-world-clang
@@ -2854,8 +3316,8 @@ int x = CHARSIZE;")))
           (*clang-mutation-types* '((clang-swap . 1)))
           (variant (copy *hello-world*)))
       (mutate variant)
-      (is (stmt-with-text variant "\"Hello, World!\\n\"" :no-error))
-      (is (stmt-with-text variant "0" :no-error)))))
+      (is (stmt-with-text variant "\"Hello, World!\\n\"" :no-error t))
+      (is (stmt-with-text variant "0" :no-error t)))))
 
 (deftest move-changes-any-stmts ()
   (with-fixture hello-world-clang-control-picks
@@ -2869,9 +3331,9 @@ int x = CHARSIZE;")))
           (is (not (string= (genome *hello-world*) (genome variant)))
               "Move changes genome."))
         ;; Still exist (> 0).
-        (is (stmt-with-text variant bad-1 :no-error)
+        (is (stmt-with-text variant bad-1 :no-error t)
             "Move doesn't remove \"Hello, World!\\n\".")
-        (is (stmt-with-text variant bad-2 :no-error)
+        (is (stmt-with-text variant bad-2 :no-error t)
             "Move doesn't remove \"0\".")
         ;; No duplicates (< 2).
         (is
@@ -2897,8 +3359,8 @@ int x = CHARSIZE;")))
         ;; sanity check.
         (is (ast-full-stmt (aget :stmt1 (targets mutation))))
         (is (ast-full-stmt (aget :stmt2 (targets mutation))))
-        (is (stmt-with-text variant "printf" :no-error))
-        (is (stmt-with-text variant "return 0;" :no-error))))))
+        (is (stmt-with-text variant "printf" :no-error t))
+        (is (stmt-with-text variant "return 0;" :no-error t))))))
 
 (deftest swap-full-same-changes-same-class-full-stmt ()
   (with-fixture hello-world-clang
@@ -3113,7 +3575,7 @@ int x = CHARSIZE;")))
                 :top-level t)))
     (is (eq 1 (length asts)))
     (is (eq :Function (ast-class (car asts))))
-    (is (eq :CompoundStmt (ast-class (function-body (make-instance 'clang)
+    (is (eq :CompoundStmt (ast-class (function-body (make-clang)
                                                     (car asts)))))))
 
 (deftest clang-parse-source-snippet-preamble ()
@@ -3153,7 +3615,8 @@ int x = CHARSIZE;")))
       (apply-mutation *soft* (make-instance 'insert-fodder-decl
                                :object *soft*)))))
 
-(deftest (insert-decl-lengthens-a-clang-w-fodder-software-object :long-running) ()
+(deftest
+    (insert-decl-lengthens-a-clang-w-fodder-software-object :long-running) ()
   (handler-bind ((mutate ; TODO: Maybe better to fix the hello-world C file.
                   (lambda (e)
                     (if (find-restart 'keep-partial-asts)
@@ -3168,7 +3631,8 @@ int x = CHARSIZE;")))
         (is (string/= (genome variant)
                       (genome *hello-world*)))))))
 
-(deftest (insert-decl-rename-lengthens-and-insinuates-a-clang-w-fodder :long-running) ()
+(deftest (insert-decl-rename-lengthens-and-insinuates-a-clang-w-fodder
+          :long-running) ()
   (with-fixture gcd-clang-w-fodder
     (let ((var (copy *gcd*))
           (mut (make-instance 'insert-fodder-decl-rep :object *gcd*)))
@@ -3201,7 +3665,7 @@ int x = CHARSIZE;")))
         `(clang-replace
           (:stmt1 . ,(find-if [{eq :StringLiteral} #'ast-class]
                               (asts variant)))
-          (:literal1 . ,(make-literal "Hello, mutate!"))))
+          (:literal1 . ,(to-ast 'clang-ast `(:StringLiteral "Hello, mutate!")))))
       (is (= (size variant)
              (size *hello-world*)))
       (is (string/= (genome variant)
@@ -3288,7 +3752,7 @@ int x = CHARSIZE;")))
       ((get-var-type (var stmt-text)
          (some->> (stmt-with-text *soft* stmt-text)
                   (get-vars-in-scope *soft*)
-                  (find-if [{string= var} {aget :name}])
+                  (find-if [{name= var} {aget :name}])
                   (find-var-type *soft*))))
     (with-fixture type-of-var-clang
       (let ((var-type1 (get-var-type "a" "return 0;"))
@@ -3297,7 +3761,7 @@ int x = CHARSIZE;")))
             (var-type4 (get-var-type "a" "int a[N][N];"))
             (var-type5 (get-var-type "b" "return 2;")))
         (is (null var-type4))
-        (is (equal "[10][10]" (type-array var-type1)))
+        (is (equal (if *new-clang?* "[10]" "[10][10]") (type-array var-type1)))
         (is (equal ""         (type-array var-type2)))
         (is (equal "[10][10]" (type-array var-type3)))
         (is (equal ""         (type-array var-type5)))
@@ -3305,10 +3769,10 @@ int x = CHARSIZE;")))
         (is (equal t          (type-pointer var-type2)))
         (is (equal nil        (type-pointer var-type3)))
         (is (equal t          (type-pointer var-type5)))
-        (is (equal "int"      (type-name var-type1)))
+        (is (equal (if *new-clang?* "int (*)" "int") (type-name var-type1)))
         (is (equal "int"      (type-name var-type2)))
         (is (equal "int"      (type-name var-type3)))
-        (is (equal "int*"     (type-name var-type5)))))))
+        (is (equal "int*"     (remove #\Space (type-name var-type5))))))))
 
 (deftest find-var-type-handles-missing-declaration-type ()
   (with-fixture type-of-var-missing-decl-type-clang
@@ -3328,11 +3792,18 @@ int x = CHARSIZE;")))
                           (get-ast-types *soft*)
                           (car)
                           (find-type *soft*)
+                          (typedef-type *soft*)))
+          (type3 (some->> (stmt-with-text *soft* "gcharp p;")
+                          (get-ast-types *soft*)
+                          (car)
+                          (find-type *soft*)
                           (typedef-type *soft*))))
       (is (equal "int"  (type-name type1)))
       (is (equal nil    (type-pointer type1)))
       (is (equal "char" (type-name type2)))
-      (is (equal t      (type-pointer type2))))))
+      (is (equal t      (type-pointer type2)))
+      (is (equal "char" (type-name type3)))
+      (is (equal t      (type-pointer type3))))))
 
 (deftest apply-replacements-test ()
   (is (string= "Hello, world!"
@@ -3356,14 +3827,27 @@ int x = CHARSIZE;")))
 
 (deftest rebind-vars-in-macro-test ()
   (with-fixture assert-clang
-    (let* ((copy (copy *soft*))
-           (stmt (stmt-with-text copy "assert(argc > 0);")))
-      (is (equalp "assert((|someVal|) > 0);"
-                  (->> (rebind-vars stmt
-                                         '(("(|argc|)" "(|someVal|)"))
-                                         nil)
-                       (source-text)))
-          "rebind-vars did not rebind a variable within a macro"))))
+    (labels ((peel-banana-tree (tree)
+               (if *new-clang?*
+                   (cond ((stringp tree)
+                          (peel-bananas tree))
+                         ((consp tree)
+                          (let ((car (peel-banana-tree (car tree)))
+                                (cdr (peel-banana-tree (cdr tree))))
+                            (if (and (eql car (car tree)) (eql cdr (cdr tree)))
+                                tree
+                                (cons car cdr))))
+                         (t tree))
+                   tree)))
+      (let* ((copy (copy *soft*))
+             (stmt (stmt-with-text copy "assert(argc > 0);")))
+        (is (equalp (peel-banana-tree "assert((|someVal|) > 0);")
+                    (->> (rebind-vars stmt
+                                      (peel-banana-tree
+                                       '(("(|argc|)" "(|someVal|)")))
+                                      nil)
+                         (source-text)))
+            "rebind-vars did not rebind a variable within a macro")))))
 
 
 ;;;; Java representation.
@@ -3391,11 +3875,15 @@ int x = CHARSIZE;")))
   (let ((*java-file-name* "TestSimple_WhileForIfPrint_2"))
     (with-fixture general-fixture-java
       (let ((before-genome (genome *soft*))
-            (after-genome (genome (apply-mutation *soft*
-                                    (make-instance 'java-insert :targets
-                                                   `((:stmt1 . ,(java-make-literal :integer 2))
-                                                     (:value1 . ,(java-make-literal :string
-                                                                                    "System.out.println(\"THIS STATEMENT INSERTED\");")))))))
+            (after-genome
+             (nest
+              (genome)
+              (apply-mutation *soft*)
+              (make-instance 'java-insert :targets)
+              (list (cons :stmt1 (java-make-literal :integer 2)))
+              (cons :value1)
+              (java-make-literal :string)
+              "System.out.println(\"THIS STATEMENT INSERTED\");"))
             (target "THIS STATEMENT INSERTED"))
         (is (not (scan-to-strings target before-genome)))
         (is (scan-to-strings target after-genome))))))
@@ -3594,6 +4082,12 @@ int x = CHARSIZE;")))
     (is (equal (file-to-string (javascript-dir #P"fib/fib.js"))
                (genome *soft*)))))
 
+(deftest can-parse-a-json-software-object ()
+  (with-fixture trivial-json
+    (is (not (null (asts *soft*))))
+    (is (eq :OBJECTEXPRESSION
+            (ast-class (ast-node (ast-root *soft*)))))))
+
 (deftest cut-shortens-a-javascript-software-object ()
   (with-fixture fib-javascript
     (let* ((variant (copy *soft*))
@@ -3683,11 +4177,12 @@ int x = CHARSIZE;")))
 (deftest javascript-can-rebind-vars ()
   (with-fixture fib-javascript
     (is (string= "temp = b;"
-                 (->> (rebind-vars (stmt-with-text *soft* "temp = a;")
-                                        (list (list "a" "b"))
-                                        nil)
-                      (source-text)
-                      (peel-bananas))))))
+                 (trim-whitespace
+                  (->> (rebind-vars (stmt-with-text *soft* "temp = a;")
+                                    (list (list "a" "b"))
+                                    nil)
+                    (source-text)
+                    (peel-bananas)))))))
 
 (deftest javascript-get-vars-in-scope ()
   (with-fixture fib-javascript
@@ -3708,7 +4203,7 @@ int x = CHARSIZE;")))
                (->> (stmt-with-text *soft* "fibonacci(10);")
                     (get-unbound-funs *soft*))))))
 
-(deftest javascript-instrument-and-collect-traces ()
+(deftest (javascript-instrument-and-collect-traces :long-running) ()
   (with-fixture fib-javascript
     (let ((instrumented (instrument *soft*)))
       (collect-traces instrumented
@@ -3735,7 +4230,7 @@ int x = CHARSIZE;")))
                    (:INPUT "node" :BIN))
                  (get-trace (traces instrumented) 0))))))
 
-(deftest javascript-instrument-and-collect-traces-with-vars ()
+(deftest (javascript-instrument-and-collect-traces-with-vars :long-running) ()
   (with-fixture fib-javascript
     (let ((instrumented
             (instrument *soft*
@@ -3860,20 +4355,147 @@ int x = CHARSIZE;")))
                          (mapcar {aget :name}))
               :test #'equal))))
 
+(deftest javascript.newline.post-processing.1 ()
+  (is (equalp (sel/sw/javascript::position-after-leading-newline "") nil)
+      "position-after-leading-newline on empty string"))
+
+(deftest javascript.newline.post-processing.2 ()
+  (is (equalp (sel/sw/javascript::position-after-leading-newline "x") nil)
+      "position-after-leading-newline on string with no whitespace or newline"))
+
+(deftest javascript.newline.post-processing.3 ()
+  (is (equalp (sel/sw/javascript::position-after-leading-newline "   ") nil)
+      "position-after-leading-newline on string with whitespace only, no newline"))
+
+(deftest javascript.newline.post-processing.4 ()
+  (is (equalp (sel/sw/javascript::position-after-leading-newline " x") nil)
+      "position-after-leading-newline on string with whitespace, no newline"))
+
+(deftest javascript.newline.post-processing.5 ()
+  (is (equalp (sel/sw/javascript::position-after-leading-newline (string #\Newline)) 1)
+      "position-after-leading-newline on newline"))
+
+(deftest javascript.newline.post-processing.6 ()
+  (is (equalp (sel/sw/javascript::position-after-leading-newline
+               (concatenate 'string (string #\Newline) "x"))
+              1)
+      "position-after-leading-newline on newline + other stuff"))
+
+(deftest javascript.newline.post-processing.7 ()
+  (is (equalp (sel/sw/javascript::position-after-leading-newline
+               (concatenate 'string (string #\Newline) "// foo "))
+              1)
+      "position-after-leading-newline on newline, comment"))
+
+(deftest javascript.newline.post-processing.8 ()
+  (is (equalp (sel/sw/javascript::position-after-leading-newline
+               (concatenate 'string  "// foo " (string #\Newline) "   "))
+              8)
+      "position-after-leading-newline on comment, newline "))
+
+(deftest javascript.newline.post-processing.9 ()
+  (is (equalp (sel/sw/javascript::position-after-leading-newline
+                "  // foo ")
+              nil)
+      "position-after-leading-newline on comment"))
+
+(deftest javascript.newline.post-processing.10 ()
+  (is (equalp (sel/sw/javascript::position-after-leading-newline "/")
+              nil)
+      "position-after-leading-newline slash at EOL not a comment"))
+
+(deftest javascript.newline.post-processing.11 ()
+  (is (equalp (sel/sw/javascript::position-after-leading-newline " / ")
+              nil)
+      "position-after-leading-newline slash not at EOL not a comment"))
+
+(defun to-js-ast (tree)
+  (labels ((to-js-ast- (tree)
+             (assert (or (stringp tree)
+                         (and (listp tree) (keywordp (car tree))))
+                     (tree)
+                     "Every subtree must be a string or start with AST keyword")
+             (nest
+              (if (stringp tree)
+                  tree)
+              (case (car tree)
+                (:j (make-javascript-ast
+                     :node (make-javascript-ast-node)
+                     :children (mapcar #'to-js-ast- (cdr tree))))
+                (:c (make-conflict-ast
+                     :child-alist (mapcar
+                                   (lambda (pair)
+                                     (destructuring-bind (key . value) pair
+                                       (cons key (when value
+                                                   (to-js-ast- value)))))
+                                   (second tree))
+                     :children (mapcar #'to-js-ast- (cddr tree))))))))
+    (to-js-ast- tree)))
+
+(defixture javascript-ast-w-conflict
+  (:setup
+    (setf *soft* (make-instance 'javascript
+                   :ast-root (to-js-ast '(:j "top"
+                              (:j "left"
+                               (:c ((:old . nil) (:my . "a") (:your . "b"))))
+                              (:j "right"))))))
+  (:teardown
+    (setf *soft* nil)))
+
+(deftest javascript-and-conflict-basic-parseable-ast-functionality ()
+  (with-fixture javascript-ast-w-conflict
+    (is (javascript-ast-p (ast-root *soft*)))         ; We actually have ASTs.
+    (is (every #'ast-path (cdr (asts *soft*))))       ; Non-root ast have path.
+    (is (javascript-ast-p (copy (ast-root *soft*))))) ; Copy works.
+  (with-fixture javascript-ast-w-conflict
+    ;; Access ASTs.
+    (is (string= "top" (get-ast *soft* '(0))))
+    (is (javascript-ast-p (get-ast *soft* '(1))))
+    (is (string= "left" (get-ast *soft* '(1 0))))
+    (is (javascript-ast-p (get-ast *soft* '(2))))
+    (is (string= "right" (get-ast *soft* '(2 0))))
+    ;; Set AST with (setf (get-ast ...) ...).
+    (setf (get-ast *soft* '(2 0)) "RIGHT")
+    (is (string= "RIGHT" (get-ast *soft* '(2 0))))
+    (setf (get-ast *soft* '(1)) (make-javascript-ast
+                                  :node (make-javascript-ast-node :class :foo)))
+    (is (eql :foo (ast-class (get-ast *soft* '(1))))))
+  (with-fixture javascript-ast-w-conflict
+    (replace-ast *soft* '(1)
+                 (make-javascript-ast
+                  :node (make-javascript-ast-node :class :foo)))
+    (is (eql :foo (ast-class (get-ast *soft* '(1)))))))
+
+(deftest javascript-and-conflict-replace-ast ()
+  (with-fixture javascript-ast-w-conflict
+    (let ((cnf (find-if {typep _ 'conflict-ast} ; [{subtypep _ 'conflict-ast} #'type-of]
+                        (asts *soft*))))
+      (setf (get-ast *soft* (ast-path cnf))
+            (aget :my (conflict-ast-child-alist cnf))))
+
+    (is (equalp (mapc-ast (ast-root *soft*) #'ast-path)
+                '(NIL ((1)) ((2)))))
+    (is (string= (ast-text (ast-root *soft*)) "topleftaright"))))
+
 
 ;;;; Javascript project.
+
+#-windows
+(progn
+
 (defun npm-available-p ()
   (which "npm"))
 
 (defsuite javascript-project-tests "Javascript project."
   (npm-available-p))
 
-(deftest can-parse-a-javascript-project ()
+(deftest (can-parse-a-javascript-project :long-running) ()
   (with-fixture fib-project-javascript
     (is (equal 2 (length (evolve-files *soft*))))
     (is (not (null (asts *soft*))))))
 
-(deftest javascript-project-instrument-uninstrument-is-identity ()
+(deftest (javascript-project-instrument-uninstrument-is-identity
+          :long-running) ()
   (with-fixture fib-project-javascript
     (is (string= (genome *soft*)
                  (genome (uninstrument (instrument (copy *soft*))))))))
@@ -3929,7 +4551,8 @@ int x = CHARSIZE;")))
                                               #("b" "number" 0 nil)
                                               #("a" "number" 1 nil)
                                               #("num" "number" 1 nil)))
-                  (nth 11 (aget :trace (get-trace (traces instrumented) 0))))))))
+                  (nth 11 (aget :trace
+                                (get-trace (traces instrumented) 0)))))))))
 
 
 ;;;; Range representation.
@@ -4069,8 +4692,8 @@ int x = CHARSIZE;")))
 (defixture hello-world-clang-w-fitness
   (:setup
    (setf *hello-world*
-         (from-file (make-instance 'clang :compiler "clang"
-                                   :flags '("-g -m32 -O0"))
+         (from-file (make-clang :compiler "clang"
+                                :flags '("-g -m32 -O0"))
                     (hello-world-dir "hello_world.c"))
          *test* [#'length #'genome]
          *fitness-predicate* #'>
@@ -4128,37 +4751,41 @@ int x = CHARSIZE;")))
           "`analyze-mutation' notices no change: ~S"
           (hash-table-alist *mutation-stats*)))))
 
-(deftest able-to-compose-simple-mutations ()
-  (compose-mutations cut-and-swap (clang-cut clang-swap))
-  (finalize-inheritance (find-class 'cut-and-swap))
-  (is (find-class 'cut-and-swap)
-      "`compose-mutations' successfully defines a class")
-  (is (some [{eql 'targeter} #'slot-definition-name]
-            (class-slots (find-class 'cut-and-swap)))
-      "`compose-mutations' defines a class with a targeter")
-  (is (some [{eql 'picker} #'slot-definition-name]
-            (class-slots (find-class 'cut-and-swap)))
-      "`compose-mutations' defines a class with a picker"))
+(locally (declare
+          #+sbcl (sb-ext:muffle-conditions sb-ext:compiler-note style-warning))
+  ;; The above `sb-ext:muffle-conditions' helps us ignore a "Cannot
+  ;; find a type specializer for cut-and-swap" style warning.  Longer
+  ;; term it would be better to update the `compose-mutations' macro
+  ;; so that this warning is not triggered.
+  (deftest able-to-compose-simple-mutations ()
+    (compose-mutations cut-and-swap (clang-cut clang-swap))
+    (finalize-inheritance (find-class 'cut-and-swap))
+    (is (find-class 'cut-and-swap)
+        "`compose-mutations' successfully defines a class")
+    (is (some [{eql 'targeter} #'slot-definition-name]
+              (class-slots (find-class 'cut-and-swap)))
+        "`compose-mutations' defines a class with a targeter")
+    (is (some [{eql 'picker} #'slot-definition-name]
+              (class-slots (find-class 'cut-and-swap)))
+        "`compose-mutations' defines a class with a picker"))
 
-(deftest able-to-apply-composed-mutation ()
-  (compose-mutations swap-and-cut (clang-swap clang-cut))
-  (with-fixture hello-world-clang-w-fitness
-    (let (variant op)
-      ;; Multiple tries to get around stochastic failures.
-      ;; The mutation may make random choices which fail the test.
-      (is (iter (as count upfrom 0)
-                (setf variant (copy *hello-world*))
-                (setf op (make-instance 'swap-and-cut :object variant))
-                (apply-mutation variant op)
-                (when (and (different-asts (asts variant)
-                                           (asts *hello-world*))
-                           (not (equal (genome variant)
-                                       (genome *hello-world*)))
-                           (< (size variant)
-                              (size *hello-world*)))
-                  (return t))
-                (when (> count 100)
-                  (return nil)))))))
+  (deftest able-to-apply-composed-mutation ()
+    (compose-mutations swap-and-cut (clang-swap clang-cut))
+    (with-fixture hello-world-clang-w-fitness
+      (let (variant op)
+        ;; Multiple tries to get around stochastic failures.
+        ;; The mutation may make random choices which fail the test.
+        (is (with-retries (100)
+              (setf variant (copy *hello-world*))
+              (setf op (make-instance 'swap-and-cut :object variant))
+              (apply-mutation variant op)
+              (when (and (different-asts (asts variant)
+                                         (asts *hello-world*))
+                         (not (equal (genome variant)
+                                     (genome *hello-world*)))
+                         (< (size variant)
+                            (size *hello-world*)))
+                (return t))))))))
 
 
 ;;;; Ancestry tests.
@@ -4170,7 +4797,7 @@ int x = CHARSIZE;")))
 
 (defixture hello-world-clang-w-ancestry
   (:setup
-   (setf software-evolution-library/software/ancestral::*next-ancestry-id* 0
+   (setf sel/sw/ancestral::*next-ancestry-id* 0
          *hello-world*
          (from-file (make-instance 'clang-w-ancestry :compiler "clang"
                                    :flags '("-g -m32 -O0"))
@@ -4243,6 +4870,9 @@ int x = CHARSIZE;")))
 
 
 ;;; CSURF-ASM ancestry tests.
+#-windows
+(progn
+
 (defsuite csurf-asm-ancestry "Ancestry tests.")
 
 
@@ -4277,7 +4907,7 @@ int x = CHARSIZE;")))
 
       (is (= 0 (plist-get :id (second (ancestors *soft*)))))
       (is (equal 'from-file
-                 (plist-get :how (second (ancestors *soft*))))))))
+                 (plist-get :how (second (ancestors *soft*)))))))))
 
 
 ;;;; Diff tests.
@@ -4468,12 +5098,17 @@ int x = CHARSIZE;")))
 
 
 ;;;; Helper functions to avoid hard-coded statement numbers.
-(defun stmt-with-text (obj text &optional no-error)
+(defun stmt-with-text (obj text &key no-error (trim t))
   "Return the AST in OBJ holding TEXT.
 Unless optional argument NO-ERROR is non-nil an error is raised if no
 AST holding STMT is found."
-  (or (find-if [{string= text} #'peel-bananas #'source-text]
-               (asts obj))
+  (when trim
+    (setf text (trim-whitespace text)))
+  (or (let ((result
+             (find-if [{string= text} (if trim #'trim-whitespace #'identity)
+                       #'peel-bananas #'source-text]
+                      (asts obj))))
+        result)
       (if no-error
           nil
           (error "`stmt-with-text' failed to find ~S in ~S"
@@ -4490,19 +5125,18 @@ AST holding STMT is found."
 
 (deftest (swap-can-recontextualize :long-running) ()
   (with-fixture huf-clang
-    ;; NOTE: Without the retries recontectualization can fail
-    ;;       stochastically, not all possible rebinding variables
-    ;;       work.
-    ;;
-    ;; TODO: Refine recontextualization with type information so that
-    ;;       this *always* works.
     (let ((mut (make-instance 'clang-swap :targets
                               (list (cons :stmt1 (stmt-with-text *huf* "n > 0"))
                                     (cons :stmt2 (stmt-with-text *huf* "bc=0;"))))))
-      (is (iter (for var = (apply-mutation (copy *huf*) mut))
-                (as count upfrom 0)
-                (when (phenome-p var) (return t))
-                (when (> count 100) (return nil)))
+      (is (with-retries (100)
+            ;; NOTE: Without the retries recontectualization can fail
+            ;;       stochastically, not all possible rebinding
+            ;;       variables work.
+            ;;
+            ;; TODO: Refine recontextualization with type information
+            ;;       so that this *always* works.
+            (for var = (apply-mutation (copy *huf*) mut))
+            (when (phenome-p var) (return t)))
           "Is able to rebind successfully with 100 tries"))))
 
 (defun diff-strings (original modified diff-region)
@@ -4631,7 +5265,7 @@ Useful for printing or returning differences in the REPL."
 ;; When recontextualizing, function should be considered defined even
 ;; if its body is not present.
 (deftest bodyless-function-is-not-recontextualized ()
-  (let* ((obj (make-instance 'clang
+  (let* ((obj (make-clang
                 :genome "void test(int x);
                           int main(int argc, char **argv) {
                             test(0); return 0;
@@ -4657,7 +5291,6 @@ Useful for printing or returning differences in the REPL."
 (defsuite fix-compilation-tests "Fix compilation tests."
             (clang-mutate-available-p))
 
-
 (defvar *broken-clang* nil "")
 (defvar *broken-gcc* nil "")
 
@@ -4682,7 +5315,8 @@ Useful for printing or returning differences in the REPL."
 	printf(\"Hello, World!\\n\");
 	return missing_variable;}"))
           (setf *database*
-                (with-open-file (in (make-pathname :name "euler-example.json"
+                (with-open-file (in (make-pathname :name "euler-example"
+                                                   :type "json"
                                                    :directory +etc-dir+))
                   (make-instance 'json-database :json-stream in))))
   (:teardown (setf *database* nil)))
@@ -4708,14 +5342,15 @@ Useful for printing or returning differences in the REPL."
     (with-fixture broken-compilation-gcc
       (is (scan (quote-meta-chars "missing_variable =")
                 ;; Without the retries this test can fail stochastically.
-                (iter (for fixed = (fix-compilation
-                                    (handler-bind
-                                        ((mutate
-                                          (lambda (e)
-                                            (declare (ignorable e))
-                                            (invoke-restart 'keep-partial-asts))))
-                                      (copy *broken-gcc*))
-                                    4))
+                (iter (for fixed =
+                           (fix-compilation
+                            (handler-bind
+                                ((mutate
+                                  (lambda (e)
+                                    (declare (ignorable e))
+                                    (invoke-restart 'keep-partial-asts))))
+                              (copy *broken-gcc*))
+                            4))
                       (unless (zerop (length (genome fixed)))
                         (return (genome fixed)))))))))
 
@@ -4732,11 +5367,11 @@ Useful for printing or returning differences in the REPL."
                         return *y;
                       }"
                       genome)
-      (let ((broken-clang (from-file (make-instance 'clang
+      (let ((broken-clang (from-file (make-clang
                                        :compiler "clang"
                                        :flags '("-m32" "-O0" "-g"))
                                      genome))
-            (broken-gcc   (from-file (make-instance 'clang
+            (broken-gcc   (from-file (make-clang
                                        :compiler "gcc"
                                        :flags '("-m32" "-O0" "-g"))
                                      genome)))
@@ -5034,7 +5669,8 @@ Useful for printing or returning differences in the REPL."
                                           (stmt-starting-with-text *collatz*)
                                           (get-immediate-children *collatz*)
                                           (second))
-                                     (stmt-with-text *collatz* "m = 3*m + 1;"))))
+                                     (stmt-with-text
+                                      *collatz* "m = 3*m + 1;"))))
     (is (equalp (stmt-with-text *collatz* "++k;")
                 (ancestor-after *collatz*
                                      (->> "while"
@@ -5047,22 +5683,23 @@ Useful for printing or returning differences in the REPL."
   (with-fixture crossover-no-compound-stmt-clang
     (is (equalp (stmt-starting-with-text *soft* "for (j = 0")
                 (ancestor-after *soft*
-                                     (stmt-starting-with-text *soft* "for (i = 0")
-                                     (stmt-with-text *soft*
-                                                     "printf(\"%d\\n\", i+j);"))))
+                                     (stmt-starting-with-text
+                                      *soft* "for (i = 0")
+                                     (stmt-with-text
+                                      *soft* "printf(\"%d\\n\", i+j);"))))
     (is (equalp (stmt-with-text *soft* "printf(\"%d\\n\", i+j);")
                 (ancestor-after *soft*
                                      (stmt-starting-with-text *soft*
                                                               "for (j = 0")
-                                     (stmt-with-text *soft*
-                                                     "printf(\"%d\\n\", i+j);"))))
+                                     (stmt-with-text
+                                      *soft* "printf(\"%d\\n\", i+j);"))))
     (is (equalp (stmt-starting-with-text *soft* "for (i = 0")
                 (ancestor-after *soft*
                                      (->> "int main"
                                           (stmt-starting-with-text *soft*)
                                           (function-body *soft*))
-                                     (stmt-with-text *soft*
-                                                     "printf(\"%d\\n\", i+j);"))))
+                                     (stmt-with-text
+                                      *soft* "printf(\"%d\\n\", i+j);"))))
     (is (equalp (stmt-with-text *soft* "return 0;")
                 (ancestor-after *soft*
                                      (->> "int main"
@@ -5092,7 +5729,8 @@ Useful for printing or returning differences in the REPL."
                                                      "m = 3*m + 1;"))))
     (is (equalp (stmt-with-text *collatz* "int k = 0;")
                 (enclosing-full-stmt *collatz*
-                                     (stmt-with-text *collatz* "int k = 0;"))))))
+                                     (stmt-with-text
+                                      *collatz* "int k = 0;"))))))
 
 (deftest enclosing-full-stmt-no-compound-stmt-test ()
   (with-fixture crossover-no-compound-stmt-clang
@@ -5156,12 +5794,13 @@ Useful for printing or returning differences in the REPL."
                      (find-if [{eq :IfStmt} #'ast-class])
                      (get-immediate-children *collatz*)
                      (second))
-                (enclosing-block *collatz* (stmt-with-text *collatz* "m /= 2;"))))
-    (is (null (enclosing-block *collatz*
-                               (->> (stmt-starting-with-text *collatz* "int collatz")
-                                    (function-body *collatz*)))))))
+                (enclosing-block *collatz*
+                                 (stmt-with-text *collatz* "m /= 2;"))))
+    (is (null (nest (enclosing-block *collatz*)
+                    (function-body *collatz*)
+                    (stmt-starting-with-text *collatz* "int collatz"))))))
 
-(deftest enclosing-block-no-compound-stmt-test ()
+(deftest (enclosing-block-no-compound-stmt-test :long-running) ()
   (with-fixture crossover-no-compound-stmt-clang
     (is (equalp (stmt-starting-with-text *soft* "for (j = 0")
                 (->> (stmt-with-text *soft* "printf(\"%d\\n\", i+j);")
@@ -5172,8 +5811,8 @@ Useful for printing or returning differences in the REPL."
                                  (stmt-starting-with-text *soft*
                                                           "for (i = 0"))))
     (is (equalp (stmt-starting-with-text *soft* "for (i = 0")
-                (enclosing-block *soft*
-                                 (stmt-starting-with-text *soft* "for (j = 0"))))
+                (enclosing-block *soft* (stmt-starting-with-text
+                                         *soft* "for (j = 0"))))
     (is (null (enclosing-block *soft*
                                (->> (stmt-starting-with-text *soft* "int main")
                                     (function-body *soft*)))))))
@@ -5251,8 +5890,8 @@ Useful for printing or returning differences in the REPL."
                (block-successor *soft*
                                 (stmt-starting-with-text *soft* "for (j = 0"))))
     (is (equalp (stmt-with-text *soft* "return 0;")
-                (block-successor *soft*
-                                 (stmt-starting-with-text *soft* "for (i = 0"))))))
+                (block-successor *soft* (stmt-starting-with-text
+                                         *soft* "for (i = 0"))))))
 
 (deftest block-successor-switch-stmt-test ()
   (with-fixture crossover-switch-stmt-clang
@@ -5294,8 +5933,8 @@ Useful for printing or returning differences in the REPL."
                (block-successor *soft*
                                 (stmt-starting-with-text *soft* "for (j = 0"))))
     (is (equalp (stmt-with-text *soft* "int j;")
-                (block-predeccessor *soft*
-                                    (stmt-starting-with-text *soft* "for (i = 0"))))))
+                (block-predeccessor *soft* (stmt-starting-with-text
+                                            *soft* "for (i = 0"))))))
 
 (deftest block-predeccessor-switch-stmt-test ()
   (with-fixture crossover-switch-stmt-clang
@@ -5730,24 +6369,23 @@ Useful for printing or returning differences in the REPL."
            (a-stmt2 (stmt-with-text *scopes* "return a + b + c;"))
            (b-stmt1 a-stmt1)
            (b-stmt2 a-stmt2))
-      ;; NOTE: Without the retries recontectualization can fail
-      ;;       stochastically, not all possible rebinding variables
-      ;;       work.
-      ;;
-      ;; TODO: Refine recontextualization with type information so
-      ;;       that this *always* works.
-      (is (iter (for (values variant a-pts b-pts ok effective-a-pts) =
-                     (intraprocedural-2pt-crossover *scopes* *scopes*
-                                                    a-stmt1 a-stmt2
-                                                    b-stmt1 b-stmt2))
-                (as count upfrom 0)
-                (declare (ignorable a-pts b-pts effective-a-pts))
-                (when (and ok
-                           (phenome-p variant)
-                           (= (length (asts *scopes*))
-                              (length (asts variant))))
-                  (return t))
-                (when (> count 100) (return nil)))
+      (is (with-retries (100)
+            ;; NOTE: Without the retries recontectualization can fail
+            ;;       stochastically, not all possible rebinding
+            ;;       variables work.
+            ;;
+            ;; TODO: Refine recontextualization with type information
+            ;;       so that this *always* works.
+            (for (values variant a-pts b-pts ok effective-a-pts) =
+                 (intraprocedural-2pt-crossover *scopes* *scopes*
+                                                a-stmt1 a-stmt2
+                                                b-stmt1 b-stmt2))
+            (declare (ignorable a-pts b-pts effective-a-pts))
+            (when (and ok
+                       (phenome-p variant)
+                       (= (length (asts *scopes*))
+                          (length (asts variant))))
+              (return t)))
           "Able to crossover entire text of a function with 100 tries."))))
 
 (deftest (crossover-a-single-statement-the-first :long-running) ()
@@ -5828,24 +6466,23 @@ Useful for printing or returning differences in the REPL."
                                              "for (b = 2;"))
            (b-stmt1 a-stmt1)
            (b-stmt2 a-stmt2))
-      ;; NOTE: Without the retries recontectualization can fail
-      ;;       stochastically, not all possible rebinding variables
-      ;;       work.
-      ;;
-      ;; TODO: Refine recontextualization with type information so
-      ;;       that this *always* works.
-      (is (iter (for (values variant a-pts b-pts ok effective-a-pts) =
-                     (intraprocedural-2pt-crossover *scopes* *scopes*
-                                                    a-stmt1 a-stmt2
-                                                    b-stmt1 b-stmt2))
-                (as count upfrom 0)
-                (declare (ignorable a-pts b-pts effective-a-pts))
-                (when (and ok
-                           (phenome-p variant)
-                           (= (length (asts *scopes*))
-                              (length (asts variant))))
-                  (return t))
-                (when (> count 100) (return nil)))
+      (is (with-retries (100)
+            ;; NOTE: Without the retries recontectualization can fail
+            ;;       stochastically, not all possible rebinding
+            ;;       variables work.
+            ;;
+            ;; TODO: Refine recontextualization with type information
+            ;;       so that this *always* works.
+            (for (values variant a-pts b-pts ok effective-a-pts) =
+                 (intraprocedural-2pt-crossover *scopes* *scopes*
+                                                a-stmt1 a-stmt2
+                                                b-stmt1 b-stmt2))
+            (declare (ignorable a-pts b-pts effective-a-pts))
+            (when (and ok
+                       (phenome-p variant)
+                       (= (length (asts *scopes*))
+                          (length (asts variant))))
+              (return t)))
           "Able to crossover a statement and a ancestor with 100 tries."))))
 
 (deftest (crossover-a-statement-with-multiple-statements :long-running) ()
@@ -5859,17 +6496,16 @@ Useful for printing or returning differences in the REPL."
                                          a-stmt a-stmt
                                          b-stmt1 b-stmt2)
         (declare (ignorable a-pts b-pts effective-a-pts))
-	;; (format t "~A~%" (genome variant))
         (is ok)
         (is (phenome-p variant))
         (is (> (length (asts variant))
                (length (asts *scopes*))))
         ;; a is the only var in scope so all these assignments should
         ;; be rebound.
-        (is (stmt-with-text variant "a = 10;" :no-error))
-        (is (stmt-with-text variant "a = 11;" :no-error))
-        (is (stmt-with-text variant "a = 12;" :no-error))
-        (is (not (stmt-with-text variant "int b;" :no-error)))))))
+        (is (stmt-with-text variant "a = 10;" :no-error t))
+        (is (stmt-with-text variant "a = 11;" :no-error t))
+        (is (stmt-with-text variant "a = 12;" :no-error t))
+        (is (not (stmt-with-text variant "int b;" :no-error t)))))))
 
 (deftest (crossover-a-multiple-statements-with-a-single-statement
           :long-running) ()
@@ -5889,9 +6525,9 @@ Useful for printing or returning differences in the REPL."
                (length (asts *scopes*))))
         ;; a is the only var in scope so this assignment should
         ;; be rebound.
-        (is (stmt-with-text variant "a = 8;" :no-error))
-        (is (not (stmt-with-text variant "int b;" :no-error)))
-        (is (not (stmt-with-text variant "b = 1;" :no-error)))))))
+        (is (stmt-with-text variant "a = 8;" :no-error t))
+        (is (not (stmt-with-text variant "int b;" :no-error t)))
+        (is (not (stmt-with-text variant "b = 1;" :no-error t)))))))
 
 (deftest (intraprocedural-2pt-crossover-does-not-crash :long-running) ()
   (with-fixture intraprocedural-2pt-crossover-bug-clang
@@ -5918,7 +6554,7 @@ Useful for printing or returning differences in the REPL."
 (deftest multiple-decl-works ()
   (with-fixture scopes-clang
     ;; NOTE: Why isn't this statement reliably found?
-    (when-let* ((ast (stmt-with-text *scopes* "int f, g;" :no-error)))
+    (when-let* ((ast (stmt-with-text *scopes* "int f, g;" :no-error t)))
       (is (= 2 (length (ast-declares ast)))))))
 
 (deftest (pick-for-loop-works :long-running) ()
@@ -5945,19 +6581,19 @@ Useful for printing or returning differences in the REPL."
 
 (deftest (explode-for-loop-mutation-works :long-running) ()
   "Test conversion of for loop variants computing factorials to while loops"
-  (let ((simple-loop       (from-file (make-instance 'clang)
+  (let ((simple-loop       (from-file (make-clang)
                                       (explode-for-loop-dir
                                        "simple-loop.c")))
-        (no-initialization (from-file (make-instance 'clang)
+        (no-initialization (from-file (make-clang)
                                       (explode-for-loop-dir
                                        "loop-no-initialization.c")))
-        (no-conditional    (from-file (make-instance 'clang)
+        (no-conditional    (from-file (make-clang)
                                       (explode-for-loop-dir
                                        "loop-no-conditional.c")))
-        (no-increment      (from-file (make-instance 'clang)
+        (no-increment      (from-file (make-clang)
                                       (explode-for-loop-dir
                                        "loop-no-increment.c")))
-        (no-body           (from-file (make-instance 'clang)
+        (no-body           (from-file (make-clang)
                                       (explode-for-loop-dir
                                        "loop-no-body.c"))))
     (apply-mutation simple-loop
@@ -6035,13 +6671,13 @@ Useful for printing or returning differences in the REPL."
       (is (phenome-p variant))
       (is (not (equal (genome-string *scopes*)
                       (genome-string variant))))
-      (let ((stmt (or (stmt-with-text variant "b = 13;" :no-error)
-                      (stmt-with-text variant "c = 13;" :no-error))))
+      (let ((stmt (or (stmt-with-text variant "b = 13;" :no-error t)
+                      (stmt-with-text variant "c = 13;" :no-error t))))
         (is stmt)
         ;; unbound-vals are updated correctly
         (let ((unbound (mapcar {aget :name} (get-unbound-vals variant stmt))))
-          (is (or (equal unbound '("b"))
-                  (equal unbound '("c")))))))
+          (is (or (fully-every #'name= unbound '("b"))
+                  (fully-every #'name= unbound '("c")))))))
     (let ((variant (copy *scopes*)))
       (apply-mutation
           variant
@@ -6050,7 +6686,7 @@ Useful for printing or returning differences in the REPL."
       (is (not (equal (genome-string *scopes*)
                       (genome-string variant)))))
     (when-let* ((variant (copy *scopes*))
-                (id (stmt-with-text *scopes* "int f, g;" :no-error)))
+                (id (stmt-with-text *scopes* "int f, g;" :no-error t)))
       (apply-mutation variant `(cut-decl (:stmt1 . ,id)))
       (is (phenome-p variant))
       (is (not (equal (genome-string *scopes*)
@@ -6080,7 +6716,7 @@ Useful for printing or returning differences in the REPL."
                       (genome-string variant)))))))
 
 (deftest expand-arithmatic-op-throws-error-if-no-arithmatic-ops ()
-  (let ((obj (from-file (make-instance 'clang
+  (let ((obj (from-file (make-clang
                           :compiler "clang"
                           :flags '("-g" "-m32" "-O0"))
                         (expand-arithmatic-op-dir "no-compound-assign.c"))))
@@ -6088,70 +6724,70 @@ Useful for printing or returning differences in the REPL."
       (build-op (make-instance 'expand-arithmatic-op :object obj) obj))))
 
 (deftest expand-arithmatic-op-works-simple-compound-assignment ()
-  (let ((obj (from-file (make-instance 'clang
+  (let ((obj (from-file (make-clang
                           :compiler "clang"
                           :flags '("-g" "-m32" "-O0"))
                         (expand-arithmatic-op-dir
                          "simple-compound-assign.c"))))
     (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
-    (is (stmt-with-text obj "argc = argc * 2" :no-error))))
+    (is (stmt-with-text obj "argc = argc * 2" :no-error t))))
 
 (deftest expand-arithmatic-op-works-complex-compound-assignment ()
-  (let ((obj (from-file (make-instance 'clang
+  (let ((obj (from-file (make-clang
                           :compiler "clang"
                           :flags '("-g" "-m32" "-O0"))
                         (expand-arithmatic-op-dir
                          "complex-compound-assign.c"))))
     (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
-    (is (stmt-with-text obj "argc = argc + ((argc*4) / rand())" :no-error))))
+    (is (stmt-with-text obj "argc = argc + ((argc*4) / rand())" :no-error t))))
 
 (deftest expand-arithmatic-op-works-increment ()
-  (let ((obj (from-file (make-instance 'clang
+  (let ((obj (from-file (make-clang
                           :compiler "clang"
                           :flags '("-g" "-m32" "-O0"))
                         (expand-arithmatic-op-dir "increment.c"))))
     (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
-    (is (stmt-with-text obj "i = i + 1" :no-error))))
+    (is (stmt-with-text obj "i = i + 1" :no-error t))))
 
 (deftest expand-arithmatic-op-works-decrement ()
-  (let ((obj (from-file (make-instance 'clang
+  (let ((obj (from-file (make-clang
                           :compiler "clang"
                           :flags '("-g" "-m32" "-O0"))
                         (expand-arithmatic-op-dir "decrement.c"))))
     (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
-    (is (stmt-with-text obj "argc = argc - 1" :no-error))))
+    (is (stmt-with-text obj "argc = argc - 1" :no-error t))))
 
 (deftest expand-arithmatic-op-works-field-increment ()
-  (let ((obj (from-file (make-instance 'clang
+  (let ((obj (from-file (make-clang
                           :compiler "clang"
                           :flags '("-g" "-m32" "-O0"))
                         (expand-arithmatic-op-dir "field-increment.c"))))
     (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
-    (is (stmt-with-text obj "t.x = t.x + 1" :no-error))))
+    (is (stmt-with-text obj "t.x = t.x + 1" :no-error t))))
 
 (deftest expand-arithmatic-op-works-field-decrement ()
-  (let ((obj (from-file (make-instance 'clang
+  (let ((obj (from-file (make-clang
                           :compiler "clang"
                           :flags '("-g" "-m32" "-O0"))
                         (expand-arithmatic-op-dir "field-decrement.c"))))
     (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
-    (is (stmt-with-text obj "t.x = t.x - 1" :no-error))))
+    (is (stmt-with-text obj "t.x = t.x - 1" :no-error t))))
 
 (deftest expand-arithmatic-op-works-class-member-increment ()
-  (let ((obj (from-file (make-instance 'clang
-                          :compiler "clang"
-                          :flags '("-g" "-m32" "-O0"))
-                        (expand-arithmatic-op-dir "class-member-increment.cpp"))))
+  (let ((obj (nest (from-file (make-clang
+                                :compiler "clang"
+                                :flags '("-g" "-m32" "-O0")))
+                   (expand-arithmatic-op-dir "class-member-increment.cpp"))))
     (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
-    (is (stmt-with-text obj "x = x + 1" :no-error))))
+    (is (stmt-with-text obj "x = x + 1" :no-error t))))
 
 (deftest expand-arithmatic-op-works-class-member-decrement ()
-  (let ((obj (from-file (make-instance 'clang
-                          :compiler "clang"
-                          :flags '("-g" "-m32" "-O0"))
-                        (expand-arithmatic-op-dir "class-member-decrement.cpp"))))
+  (let ((obj (nest (from-file (make-clang
+                                :compiler "clang"
+                                :flags '("-g" "-m32" "-O0")))
+                   (expand-arithmatic-op-dir "class-member-decrement.cpp"))))
     (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
-    (is (stmt-with-text obj "x = x - 1" :no-error))))
+    (is (stmt-with-text obj "x = x - 1" :no-error t))))
 
 
 ;;;; Adaptive-mutation tests.
@@ -6173,7 +6809,7 @@ Useful for printing or returning differences in the REPL."
          (make-array 100
                      :element-type '(cons symbol symbol)
                      :initial-element (cons :nothing :nothing)))
-        (software-evolution-library/software/adaptive-mutation::*mutation-results-queue-next* 0))
+        (sel/sw/adaptive-mutation::*mutation-results-queue-next* 0))
     (dotimes (n 100)
       (queue-mutation 'cut :dead))
     (is (every [{equal 'cut} #'car] *mutation-results-queue*)
@@ -6187,7 +6823,7 @@ Useful for printing or returning differences in the REPL."
 *mutation-results-queue* is unpopulated"
          (let ((*mutation-results-queue*
                 (copy-seq +initial-mutation-results-queue+))
-               (software-evolution-library/software/adaptive-mutation::*mutation-results-queue-next* 0)
+               (sel/sw/adaptive-mutation::*mutation-results-queue-next* 0)
         (mutation-types (copy-seq *clang-mutation-types*)))
     (is (equalp mutation-types
                 (update-mutation-types mutation-types)))))
@@ -6197,7 +6833,7 @@ Useful for printing or returning differences in the REPL."
 *mutation-results-queue* is populated"
          (let ((*mutation-results-queue*
                 (copy-seq +initial-mutation-results-queue+))
-               (software-evolution-library/software/adaptive-mutation::*mutation-results-queue-next* 0)
+               (sel/sw/adaptive-mutation::*mutation-results-queue-next* 0)
                (mutation-types (copy-seq *clang-mutation-types*)))
            (dotimes (n (length +initial-mutation-results-queue+))
       (queue-mutation 'cut :dead))
@@ -6205,13 +6841,13 @@ Useful for printing or returning differences in the REPL."
 
 (deftest adaptive-analyze-mutation-updates-results-queue-properly ()
   (let ((*fitness-predicate* #'<)
-        (software-evolution-library/software/adaptive-mutation::*mutation-results-queue-next* 0)
+        (sel/sw/adaptive-mutation::*mutation-results-queue-next* 0)
         (*mutation-results-queue*
          (copy-seq +initial-mutation-results-queue+))
-        (parent-a (make-instance 'clang :fitness 2))
-        (parent-b (make-instance 'clang :fitness 2))
-        (crossed  (make-instance 'clang :fitness 1))
-        (mutant   (make-instance 'clang :fitness 0)))
+        (parent-a (make-clang :fitness 2))
+        (parent-b (make-clang :fitness 2))
+        (crossed  (make-clang :fitness 1))
+        (mutant   (make-clang :fitness 0)))
     (adaptive-analyze-mutation mutant
                                `(clang-cut ,parent-a 0
                                            ,crossed ,parent-b 0)
@@ -6226,7 +6862,8 @@ Useful for printing or returning differences in the REPL."
 (defixture json-database
   (:setup
    (setf *database*
-         (with-open-file (in (make-pathname :name "euler-example.json"
+         (with-open-file (in (make-pathname :name "euler-example"
+                                            :type "json"
                                             :directory +etc-dir+))
            (make-instance 'json-database :json-stream in))))
   (:teardown
@@ -6322,12 +6959,13 @@ Useful for printing or returning differences in the REPL."
       ;; Is function exit instrumented?
       (is (stmt-with-text
            instrumented
-           (format nil
-                   "write_trace_id(__sel_trace_file, &__sel_trace_file_lock, ~du)"
-                   (-<>> (first (functions *gcd*))
-                         (function-body *gcd*)
-                         (position <> (asts *gcd*)
-                                   :test #'equalp))) :no-error))
+           (format
+            nil
+            "__write_trace_id(__sel_trace_file, __sel_trace_file_lock, ~du)"
+            (position (function-body *gcd* (first (functions *gcd*)))
+                      (asts *gcd*)
+                      :test #'equalp))
+           :no-error t))
 
       ;; Instrumented compiles and runs.
       (with-temp-file (bin)
@@ -6348,7 +6986,7 @@ Useful for printing or returning differences in the REPL."
                      (for i upfrom 0)
                      (collect (cons ast (if (evenp i) '(1 2) '(3 4) ))))
                :trace-file :stderr))))
-      (is (scan (quote-meta-chars "write_trace_aux(__sel_trace_file")
+      (is (scan (quote-meta-chars "__write_trace_aux(__sel_trace_file")
                 (genome-string instrumented))
           "We find code to print auxiliary values in the instrumented source.")
       ;; Instrumented compiles and runs.
@@ -6382,7 +7020,7 @@ Useful for printing or returning differences in the REPL."
       ;; Ensure we were able to instrument an else branch w/o curlies.
       (let* ((else-counter (index-of-ast *gcd*
                                          (stmt-with-text *gcd* "b = b - a;")))
-             (matcher (format nil "write_trace_id\\(.*~du\\)"
+             (matcher (format nil "__write_trace_id\\(.*~du\\)"
                               else-counter)))
         (is (scan matcher (genome instrumented)))
         ;; The next line (after flushing) should be the else branch.
@@ -6396,7 +7034,8 @@ Useful for printing or returning differences in the REPL."
         (is (probe-file bin))
         (is (not (emptyp (get-gcd-trace bin))))))))
 
-(deftest (instrumentation-insertion-w-points-and-added-blocks-test :long-running) ()
+(deftest
+    (instrumentation-insertion-w-points-and-added-blocks-test :long-running) ()
   (with-fixture gcd-wo-curlies-clang
     (let* ((cookie 1234)
            (instrumented
@@ -6449,23 +7088,25 @@ prints unique counters in the trace"
                                    :from-end t)))
               "a = atoi(argv[1]) was not inserted into the genome")
           (is (search
-               (format nil
-                       "write_trace_id(__sel_trace_file, &__sel_trace_file_lock, ~du)"
-                       (->> (find-if [{string= "a = atoi(argv[1]);"}
-                                      #'peel-bananas #'source-text]
-                                     (asts variant)
-                                     :from-end nil)
-                            (index-of-ast variant)))
+               (format
+                nil
+                "__write_trace_id(__sel_trace_file, __sel_trace_file_lock, ~du)"
+                (->> (find-if [{string= "a = atoi(argv[1]);"}
+                               #'peel-bananas #'source-text]
+                              (asts variant)
+                              :from-end nil)
+                  (index-of-ast variant)))
                (genome instrumented))
               "instrumentation was not added for the inserted statement")
           (is (search
-               (format nil
-                       "write_trace_id(__sel_trace_file, &__sel_trace_file_lock, ~du)"
-                       (->> (find-if [{string= "a = atoi(argv[1]);"}
-                                      #'peel-bananas #'source-text]
-                                     (asts variant)
-                                     :from-end t)
-                            (index-of-ast variant)))
+               (format
+                nil
+                "__write_trace_id(__sel_trace_file, __sel_trace_file_lock, ~du)"
+                (->> (find-if [{string= "a = atoi(argv[1]);"}
+                               #'peel-bananas #'source-text]
+                              (asts variant)
+                              :from-end t)
+                  (index-of-ast variant)))
                (genome instrumented))
               "instrumentation was not added for the original statement"))))))
 
@@ -6479,7 +7120,7 @@ prints unique counters in the trace"
                                           instrumenter
                                           ast)))
                   :trace-file :stderr))
-    (is (scan (quote-meta-chars "write_trace_variables(__sel_trace_file")
+    (is (scan (quote-meta-chars "__write_trace_variables(__sel_trace_file")
               (genome-string *gcd*))
         "We find code to print unbound variables in the instrumented source.")
     (with-temp-file (bin)
@@ -6504,7 +7145,7 @@ prints unique counters in the trace"
                                           instrumenter
                                           ast)))
                   :trace-file :stderr))
-    (is (scan (quote-meta-chars "write_trace_variables(__sel_trace_file")
+    (is (scan (quote-meta-chars "__write_trace_variables(__sel_trace_file")
               (genome-string *gcd*))
         "We find code to print unbound variables in the instrumented source.")
     (with-temp-file (bin)
@@ -6537,7 +7178,7 @@ prints unique counters in the trace"
                                           instrumenter ast
                                           :print-strings t)))
                   :trace-file :stderr))
-    (is (scan (quote-meta-chars "write_trace_blobs(__sel_trace_file")
+    (is (scan (quote-meta-chars "__write_trace_blobs(__sel_trace_file")
               (genome-string *soft*))
         "We find code to print strings in the instrumented source.")
     (with-temp-file (bin)
@@ -6563,7 +7204,7 @@ prints unique counters in the trace"
                                           instrumenter ast
                                           :print-strings t)))
                   :trace-file :stderr))
-    (is (scan (quote-meta-chars "write_trace_blobs(__sel_trace_file")
+    (is (scan (quote-meta-chars "__write_trace_blobs(__sel_trace_file")
               (genome-string *soft*))
         "We find code to print strings in the instrumented source.")
     (with-temp-file (bin)
@@ -6586,7 +7227,7 @@ prints unique counters in the trace"
                                           instrumenter
                                           ast)))
                   :trace-file :stderr))
-    (is (scan (quote-meta-chars "write_trace_variables(__sel_trace_file")
+    (is (scan (quote-meta-chars "__write_trace_variables(__sel_trace_file")
               (genome-string *gcd*))
         "We find code to print unbound variables in the instrumented source.")
     (with-temp-file (bin)
@@ -6608,7 +7249,7 @@ prints unique counters in the trace"
                                           instrumenter
                                           ast)))
                   :trace-file :stderr))
-    (is (scan (quote-meta-chars "write_trace_variables(__sel_trace_file")
+    (is (scan (quote-meta-chars "__write_trace_variables(__sel_trace_file")
               (genome-string *soft*))
         "We find code to print unbound variables in the instrumented source.")
     (with-temp-file (bin)
@@ -6616,7 +7257,7 @@ prints unique counters in the trace"
                                (phenome *soft* :bin bin))))
           "Successfully compiled instrumented program.")
       (let ((trace (get-gcd-trace bin)))
-        (is (every [{eq 1} #'length {aget :scopes}]
+        (is (every [{eql 1} #'length {aget :scopes}]
                    trace)
             "No duplicate variables.")
 
@@ -6637,33 +7278,36 @@ prints unique counters in the trace"
                                           ast)))))))
 
 (defvar *project*)
-(defixture clang-project
-  (:setup
-   (setf *project*
-         (-> (make-instance 'clang-project
-               :build-command "make foo"
-               :artifacts '("foo")
-               :compilation-database
-               `(((:file .
-                         ,(-> (make-pathname :directory +multi-file-dir+
-                                             :name "foo"
-                                             :type "cpp")
-                              (namestring)))
-                  (:directory .
-                              ,(-> (make-pathname :directory +multi-file-dir+)
-                                   (directory-namestring)))
-                  (:command . "make"))
-                 ((:file .
-                         ,(-> (make-pathname :directory +multi-file-dir+
-                                             :name "bar"
-                                             :type "cpp")
-                              (namestring)))
-                  (:directory .
-                              ,(-> (make-pathname :directory +multi-file-dir+)
-                                   (directory-namestring)))
-                  (:command . "make"))))
-             (from-file (make-pathname :directory +multi-file-dir+)))))
-  (:teardown (setf *project* nil)))
+(let ((foo-path (make-pathname :directory +multi-file-dir+
+                               :name "foo"
+                               :type "cpp"))
+      (bar-path (make-pathname :directory +multi-file-dir+
+                               :name "bar"
+                               :type "cpp"))
+      foo-contents bar-contents)
+  (defixture clang-project
+    ;; Has to preserve some files which are overwritten by the test.
+    (:setup
+     (setf foo-contents (file-to-string foo-path)
+           bar-contents (file-to-string bar-path)
+           *project*
+           (from-file
+            (make-instance 'clang-project
+              :build-command "make foo"
+              :artifacts '("foo")
+              :compilation-database
+              `(((:file . ,(namestring foo-path))
+                 (:directory . ,(directory-namestring
+                                 (make-pathname :directory +multi-file-dir+)))
+                 (:command . "make"))
+                ((:file . ,(namestring bar-path))
+                 (:directory . ,(directory-namestring
+                                 (make-pathname :directory +multi-file-dir+)))
+                 (:command . "make"))))
+            (make-pathname :directory +multi-file-dir+))))
+    (:teardown (setf *project* nil)
+               (string-to-file foo-contents foo-path)
+               (string-to-file bar-contents bar-path))))
 
 (defixture grep-project
   (:setup
@@ -6734,7 +7378,7 @@ prints unique counters in the trace"
                     (if (find-restart 'keep-partial-asts)
                         (invoke-restart 'keep-partial-asts)
                         (error e)))))
-    (let ((soft (make-instance 'clang
+    (let ((soft (make-clang
                   :genome "int test(int) { return 1; }")))
       (instrument soft :functions
                   (list (lambda (instrumenter ast)
@@ -6742,7 +7386,8 @@ prints unique counters in the trace"
                                               (software instrumenter)}
                                           instrumenter
                                           ast))))
-      (is (not (scan (quote-meta-chars "write_trace_variables(__sel_trace_file")
+      (is (not (scan (quote-meta-chars
+                      "__write_trace_variables(__sel_trace_file")
                      (genome soft)))
           "No code to print variables in the instrumented source."))))
 
@@ -6933,7 +7578,9 @@ prints unique counters in the trace"
 
 (defixture traceable-gcd
   (:setup (setf *gcd* (from-file
-                       (make-instance 'clang-traceable)
+                       (if *new-clang?*
+                           (make-instance 'new-clang-traceable)
+                           (make-instance 'clang-traceable))
                        (make-pathname :name "gcd"
                                       :type "c"
                                       :directory +gcd-dir+)))))
@@ -7031,22 +7678,49 @@ prints unique counters in the trace"
     (is (and (hash-table-p (types *huf*))
              (not (zerop (hash-table-count (types *huf*)))))
         "Huf software object has a type database.")
-    (is (= 9 (count-if «and #'type-pointer
-                            [#'not {find #\(} #'type-name]»
+    (let ((pointer-types
+           (remove-if-not
+            «and #'type-pointer
+                 [#'not #'type-const]
+                 [#'not {find #\(} #'type-name]»
+            (hash-table-values (types *huf*)))))
+      (is (subsetp '("char" "heap_t" "int" "huffcode_t"
+                     "huffcode_t*" "long" "void")
+                   (mapcar [{remove #\Space} #'type-name]
+                           pointer-types)
+                   :test #'equal)
+          "Huf has seven expected pointer types"))
+    (let ((const-pointer-types
+           (remove-if-not
+            «and #'type-pointer
+                 #'type-const
+                 [#'not {find #\(} #'type-name]»
+            (hash-table-values (types *huf*)))))
+      (is (subsetp '("char" "void")
+                   (mapcar [{remove #\Space} #'type-name]
+                           const-pointer-types)
+                   :test #'equal)
+          "Huf has two expected pointer types"))
+    (let ((array-types
+           (remove-if
+            [#'emptyp #'type-array]
+            (hash-table-values (types *huf*)))))
+      (is (>= (count "int" array-types :key #'type-name :test #'equal) 1)
+          "Huf has at least 1 int array type")
+      (is (>= (count "char" array-types :key #'type-name :test #'equal) 3)
+          "Huf has at least 3 char array types")
+      (is (>= (count "long" array-types :key #'type-name :test #'equal) 2)
+          "Huf has at least 2 long array types"))
+    (is (<= 3 (count-if [{string= "int"} #'type-name]
                        (hash-table-values (types *huf*))))
-        "Huf has nine pointer types.")
-    (is (= 6 (count-if [#'not #'emptyp #'type-array]
-                       (hash-table-values (types *huf*))))
-        "Huf has six array types.")
-    (is (= 3 (count-if [{string= "int"} #'type-name]
-                       (hash-table-values (types *huf*))))
-        "Huf has three different \"int\" types (some are array and pointer).")))
+        "Huf has at least three different \"int\" types ~
+         (some are array and pointer).")))
 
 (deftest (huf-finds-type-info-for-variables :long-running) ()
   (with-fixture huf-clang
     (let ((type (->> (stmt-with-text *huf* "p = test;")
                      (get-vars-in-scope *huf*)
-                     (find-if [{string= "strbit"} {aget :name}])
+                     (find-if [{name= "strbit"} {aget :name}])
                      (find-var-type *huf*))))
       (is type "Found type for \"strbit\" in huf.")
       (is (string= "[100]" (type-array type))
@@ -7282,14 +7956,125 @@ prints unique counters in the trace"
 
 (deftest which-test ()
   (is (null (which "dsjafpoarue")))
-  (is (not (null (which "ls")))))
+  (is (not (null (which #-windows "ls" #+windows "cmd.exe")))))
 
+#-windows
 (deftest shell-directory-test ()
   (multiple-value-bind (stdout stderr errno)
       (shell "pwd" :directory "/tmp/")
     (is (equal "/tmp" (trim-whitespace stdout)))
     (is (equal "" stderr))
     (is (zerop errno))))
+
+#+windows
+(deftest shell-directory-test ()
+  (let* ((temp-file (pathname (sel/utility:temp-file-name)))
+         (temp-dir (make-pathname :directory (pathname-directory temp-file)
+                                  :device (pathname-device temp-file))))
+    (multiple-value-bind (stdout stderr errno)
+        (shell "chdir" :directory (namestring temp-dir))
+      (let ((dir (sel/utility:trim-whitespace stdout)))
+        ;; append slash at end if necessary to make it a directory
+        (unless (or (char= (char dir (1- (length dir))) #\\)
+                    (char= (char dir (1- (length dir))) #\/))
+          (setf dir (concatenate 'string dir "/")))
+        (is (equal temp-dir (pathname dir))) ; compare pathnames
+        (is (equal "" stderr))
+        (is (zerop errno))))))
+
+#-windows ; IO-SHELL not yet supported on Windows
+(deftest (read-and-write-shell-files :long-running) ()
+  (let ((test-string "Hello world. Hello world. Hello world."))
+    (is (nest
+         (string= test-string)
+         (with-retries (10))
+         ;; NOTE: Give it 10 tries to account for rare stochastic
+         ;; end-of-file errors in which I think we're going from
+         ;; writing to reading too quickly for the file system.
+         (handler-case
+             (with-temp-file (temp.xz)
+               (write-shell-file (out temp.xz "xz")
+                 (write-line test-string out))
+               (return (read-shell-file (in temp.xz "xzcat")
+                         (read-line in))))
+           (error (c) (declare (ignorable c)) nil))))))
+
+#-windows
+(deftest (read-and-write-bytes-shell-files :long-running) ()
+  (let ((byte #x25))
+    (is (nest
+         (equal byte)
+         (with-retries (10))
+         ;; NOTE: see note in `read-and-write-shell-files'
+         (handler-case
+             (with-temp-file (temp.xz)
+               (write-shell-file (out temp.xz "xz")
+                 (write-byte byte out))
+               (return
+                 (read-shell-file (in temp.xz "xzcat")
+                   (read-byte in))))
+           (error (c) (declare (ignorable c)) nil))))))
+
+#-windows
+(deftest (cl-store-read-and-write-shell-files :long-running) ()
+  (let ((it (make-instance 'software :fitness 37)))
+    (is (nest
+         (= (fitness it))
+         (fitness)
+         (with-retries (10))
+         ;; NOTE: see note in `read-and-write-shell-files'
+         (handler-case
+             (with-temp-file (temp.xz)
+               (write-shell-file (out temp.xz "xz")
+                 (store it out))
+               (return
+                 (read-shell-file (in temp.xz "xzcat")
+                   (restore in))))
+           (error (c) (declare (ignorable c)) nil))))))
+
+
+;;;; Command-line tests.
+(defsuite command-line-tests "Command line tests")
+
+;;; FIXME: this does not work if (sel/test:test) is run while
+;;; in some directory other than the sel root directory.
+(deftest guess-language-test ()
+  (is (eql (if *new-clang?* 'new-clang 'clang)
+           (guess-language #P"this/foo.cpp")))
+  (is (eql 'json (guess-language #P"this/foo.json")))
+  (is (eql 'json (guess-language #P"this/foo.json" #P"this/bar.json")))
+  (is (eql 'clang-project
+           (guess-language (make-pathname :directory +grep-prj-dir+))))
+  (is (eql 'simple (guess-language #P"this/Makefile")))
+  (is (null (guess-language #P"foo.js" #P"bar.lisp"))))
+
+(deftest resolving-languages-works ()
+  (mapc (lambda (pair)
+          (destructuring-bind (args result) pair
+            (is result (apply #'resolve-language-from-language-and-source
+                              args))))
+        `((("c") 'clang)
+          (("C++") 'clang)
+          (("CL") 'lisp)
+          (("JSON") 'json)
+          (("C" ,(make-pathname :directory +grep-prj-dir+)) 'clang-project)
+          (("java" ,(make-pathname :directory +grep-prj-dir+)) 'java-project))))
+
+
+#-windows
+(deftest (create-software-guesses-clang-project :long-running) ()
+  (let ((sw (create-software
+             (make-pathname :directory +grep-prj-dir+)
+             :build-command
+             (concatenate 'string
+               (namestring (make-pathname :directory +grep-prj-dir+
+                                          :name "build"
+                                          :type "sh"))
+               " --full --nonsense-arg"))))
+    (is sw)
+    (is (eql 'clang-project (type-of sw)))
+    (is (not (string= "./" (subseq (build-command sw) 0 2))))
+    (is (search "--full" (build-command sw)))))
 
 
 ;;;; Project tests.
@@ -7302,8 +8087,10 @@ prints unique counters in the trace"
 (defvar *project*)
 (defixture project
   (:setup
-   (setf *s1* (make-instance 'simple :genome "s1-genome"))
-   (setf *s2* (make-instance 'simple :genome "s2-genome"))
+   (setf *s1* (make-instance 'simple))
+   (setf (lines *s1*) (list "s1-genome"))
+   (setf *s2* (make-instance 'simple))
+   (setf (lines *s2*) (list "s2-genome"))
    (setf *project* (make-instance 'project
                      :evolve-files `(("s1" . ,*s1*)
                                      ("s2" . ,*s2*)))))
@@ -7312,52 +8099,72 @@ prints unique counters in the trace"
 (defmethod test-method ((obj simple) value)
   value)
 
-(deftest ignored-files-are-ignored ()
-  (is (sel/sw/project::ignored-path-p
-       "README" :ignore-files '("README")))
-  (is (sel/sw/project::ignored-path-p
-       "README" :ignore-files '("*")))
-  (is (not (sel/sw/project::ignored-path-p
-            "Makefile" :ignore-files '("README")))))
+(deftest to-file-fails-with-nil-path ()
+  (with-fixture project
+    (signals error (to-file *project* nil))))
 
-(deftest ignored-directories-are-ignored ()
-  (is (sel/sw/project::ignored-path-p
-       "etc/foo" :ignore-directories '("etc")))
-  (is (sel/sw/project::ignored-path-p
-       "etc/foo" :ignore-directories '("*")))
-  (is (sel/sw/project::ignored-path-p
-       "./etc/foo" :ignore-directories '("etc")))
-  (is (not (sel/sw/project::ignored-path-p
-            "Makefile" :ignore-directories '("etc"))))
-  (is (not (sel/sw/project::ignored-path-p
-            "src/foo" :ignore-directories '("etc"))))
-  (is (not (sel/sw/project::ignored-path-p
-            "./src/foo" :ignore-directories '("etc")))))
+(deftest (simple-to-from-file-without-project-dir-works :long-running) ()
+  (with-fixture project
+    (setf (project-dir *project*) nil)
+    (with-temp-dir (file)
+      (progn
+        (to-file *project* file)
+        (is (member :user-read (file-permissions file)))
+        (is (member :user-write (file-permissions file)))
+        (let ((s1-2 (from-file (make-instance 'simple)
+                               (make-pathname :name "s1"
+                                              :directory file)))
+              (s2-2 (from-file (make-instance 'simple)
+                               (make-pathname :name "s2"
+                                              :directory file))))
+          (is (equalp (genome *s1*) (genome s1-2)))
+          (is (equalp (genome *s2*) (genome s2-2))))))))
 
-(deftest only-files-are-only ()
-  (is (not (sel/sw/project::ignored-path-p
-            "README" :only-files '("README"))))
+(deftest ignored-paths-are-ignored ()
   (is (sel/sw/project::ignored-path-p
-       "Makefile" :only-files '("README"))))
+       "README" :ignore-paths '("README")))
+  (is (sel/sw/project::ignored-path-p
+       "README" :ignore-paths '("*")))
+  (is (not (sel/sw/project::ignored-path-p
+            "Makefile" :ignore-paths '("README"))))
+  (is (sel/sw/project::ignored-path-p
+       "etc/foo" :ignore-paths '("etc/*")))
+  (is (sel/sw/project::ignored-path-p
+       "./etc/foo" :ignore-paths '("etc/*")))
+  (is (sel/sw/project::ignored-path-p
+       "./etc/foo/bar/baz" :ignore-paths '("etc/**/*")))
+  (is (not (sel/sw/project::ignored-path-p
+            "Makefile" :ignore-paths '("etc/*"))))
+  (is (not (sel/sw/project::ignored-path-p
+            "src/foo" :ignore-paths '("etc/*"))))
+  (is (not (sel/sw/project::ignored-path-p
+            "./src/foo" :ignore-paths '("etc/*")))))
 
-(deftest only-directories-are-only ()
+(deftest only-paths-are-only ()
   (is (not (sel/sw/project::ignored-path-p
-            "etc/foo" :only-directories '("etc"))))
+            "README" :only-paths '("README"))))
+  (is (sel/sw/project::ignored-path-p
+       "Makefile" :only-paths '("README")))
   (is (not (sel/sw/project::ignored-path-p
-            "./etc/foo" :only-directories '("etc"))))
+            "etc/foo" :only-paths '("etc/*"))))
+  (is (not (sel/sw/project::ignored-path-p
+            "./etc/foo" :only-paths '("etc/*"))))
+  (is (not (sel/sw/project::ignored-path-p
+            "./etc/foo/bar/baz" :only-paths '("etc/**/*"))))
   (is (sel/sw/project::ignored-path-p
-       "Makefile" :only-directories '("etc")))
+       "Makefile" :only-paths '("etc/*")))
   (is (sel/sw/project::ignored-path-p
-       "src/foo" :only-directories '("etc")))
+       "src/foo" :only-paths '("etc/*")))
   (is (sel/sw/project::ignored-path-p
-       "./src/foo" :only-directories '("etc"))))
+       "./src/foo" :only-paths '("etc/*"))))
 
-(deftest project-copy-preserves-permissions ()
+(deftest (project-copy-preserves-permissions :long-running) ()
   ;; Ensure `to-file' preserves permissions on executable files.
   (nest
    (with-fixture grep-project)
    (with-temp-file (dir-path))
    (let ((dir (pathname-directory (pathname-as-directory dir-path))))
+     (is (project-dir *project*))
      (to-file *project* dir-path)
      (is (member :user-exec
                  (file-permissions
@@ -7365,7 +8172,7 @@ prints unique counters in the trace"
                                  :type "sh"
                                  :directory (append dir (list "support")))))))))
 
-(deftest clang-project-test ()
+(deftest (clang-project-test :long-running) ()
   (with-fixture grep-project
     (is (equal "make grep" (build-command *project*)))
     (is (equalp '("grep") (artifacts *project*)))
@@ -7377,7 +8184,9 @@ prints unique counters in the trace"
                      (mapcar #'car (other-files *project*)) :test #'equalp)))
     (is (equal (namestring (make-pathname :directory +grep-prj-dir+))
                (second (member "-I" (flags (cdr (car (evolve-files *project*))))
-                               :test #'equal))))))
+                               :test #'equal))))
+    (is (equal (namestring (make-pathname :directory +grep-prj-dir+))
+               (namestring (project-dir *project*))))))
 
 (deftest (apply-mutations-to-project-unique-test :long-running) ()
   (with-fixture clang-project
@@ -7421,23 +8230,40 @@ prints unique counters in the trace"
                      (remove-duplicates :test #'equalp)
                      (length))))))))
 
+(deftest clang-project-compilation-database-flags-test ()
+  (is (equal (list "-DDIR='\"/tmp\"'" "-DIN" "\"-D_U_=a\"")
+             (sel/sw/clang-project::compilation-db-entry-flags
+               `((:command .
+                  "cc -DDIR=\\\"/tmp\\\" -DIN \"-D_U_=a\"")))))
+  (is (equal (list "-DDIR1='\"/tmp1\"'" "-DDIR2='\"/tmp2\"'")
+             (sel/sw/clang-project::compilation-db-entry-flags
+               `((:command .
+                  "cc -DDIR1=\\\"/tmp1\\\" -DDIR2=\\\"/tmp2\\\"")))))
+  (is (equal (list "-DDIR='\"\"'")
+             (sel/sw/clang-project::compilation-db-entry-flags
+               `((:command .
+                  "cc -DDIR=\\\"\\\""))))))
+
 
 ;;;; Tests that require bear.
 (defsuite bear-tests "Clang representation."
             (lambda () (zerop (nth-value 2 (shell "which bear")))))
-
+#-windows
 (deftest (able-to-create-a-bear-project :long-running) ()
   (with-fixture grep-bear-project
     (is (equal "make grep" (build-command *project*)))
     (is (equalp '("grep") (artifacts *project*)))
     (is (not (zerop (length (genome *project*)))))))
 
+#-windows
 (deftest (able-to-copy-a-bear-project :long-running) ()
   (with-fixture grep-bear-project
     (is (copy *project*)
         "Able to copy a project built with bear.")))
 
 
+#-windows
+(progn
 ;;;; Condition synthesis tests.
 (defsuite condition-synthesis "Condition synthesis tests."
   (clang-mutate-available-p))
@@ -7619,8 +8445,7 @@ prints unique counters in the trace"
                      (->> (get-immediate-children repaired-prog stmt)
                           (first)
                           (source-text)
-                          (peel-bananas)))))))))
-
+                          (peel-bananas))))))))))
 
 
 ;;;; Selection tests.
@@ -7991,7 +8816,7 @@ prints unique counters in the trace"
            (iter (for keyword in *clang-c-keywords*)
                  (collect
                   (cons (reduce #'+ (mapcar {search-keyword *variety*
-                                                                    keyword}
+                                                            keyword}
                                                (asts *variety*)))
                            keyword)
                    into counts)
@@ -8011,20 +8836,21 @@ prints unique counters in the trace"
 (deftest ast-keyword-tf-extractor-correct ()
   (with-fixture variety-clang
     (let ((ls-count (-<>> (ast-keyword-tf-extractor *variety*)
-                          (coerce <> 'list)
-                          (mapcar {* 44}))))
-      (is (equal
-           (mapcar #'cons
-                   ls-count
-                   *clang-c-keywords*)
-           '((0 . "alignof") (0 . "auto") (2 . "break") (2 . "case") (1 . "char")
-             (1 . "const") (1 . "continue") (1 . "default") (1 . "do")
-             (3 . "double") (1 . "else") (2 . "enum") (0 . "extern") (0 . "float")
-             (1 . "for") (3 . "goto") (1 . "if") (0 . "inline") (11 . "int")
-             (0 . "long") (0 . "register") (0 . "restrict") (4 . "return")
-             (0 . "short") (0 . "signed") (1 . "sizeof") (0 . "static")
-             (1 . "struct") (1 . "switch") (2 . "typedef") (1 . "union")
-             (0 . "unsigned") (1 . "void") (0 . "volatile") (2 . "while")))))))
+                      (coerce <> 'list)
+                      (mapcar {* 44}))))
+      (is
+       (equal
+        (mapcar #'cons
+                ls-count
+                *clang-c-keywords*)
+        '((0 . "alignof") (0 . "auto") (2 . "break") (2 . "case") (1 . "char")
+          (1 . "const") (1 . "continue") (1 . "default") (1 . "do")
+          (3 . "double") (1 . "else") (2 . "enum") (0 . "extern") (0 . "float")
+          (1 . "for") (3 . "goto") (1 . "if") (0 . "inline") (11 . "int")
+          (0 . "long") (0 . "register") (0 . "restrict") (4 . "return")
+          (0 . "short") (0 . "signed") (1 . "sizeof") (0 . "static")
+          (1 . "struct") (1 . "switch") (2 . "typedef") (1 . "union")
+          (0 . "unsigned") (1 . "void") (0 . "volatile") (2 . "while")))))))
 
 (deftest small-bi-grams-count-example ()
   (let* ((ls (list "the" "tortoise" "and" "the" "hare" "and" "the" "race"))
@@ -8085,7 +8911,10 @@ prints unique counters in the trace"
         (is (equal '(1 1) vals))))))
 
 (deftest extract-style-features-no-asts ()
-  (is (-> (from-string (make-instance 'clang-styleable-test-class) "")
+  (is (-> (from-string (make-instance (if *new-clang?*
+                                          'new-clang-styleable-test-class
+                                          'clang-styleable-test-class))
+                       "")
           (extract-baseline-features))
       "extract-baseline-features should not throw an error on empty software"))
 
@@ -8442,8 +9271,8 @@ prints unique counters in the trace"
                                `((:splice (:stmt1 . ,location)
                                           (:value1 . ,inserted))))
 
-      (is (not (stmt-with-text *contexts* "int x = 0;" :no-error)))
-      (is (stmt-with-text *contexts* "int x = 1;" :no-error))
+      (is (not (stmt-with-text *contexts* "int x = 0;" :no-error t)))
+      (is (stmt-with-text *contexts* "int x = 1;" :no-error t))
       (is (eq 1
               (->> (stmt-starting-with-text *contexts* "void full_stmt")
                    (function-body *contexts*)
@@ -8468,8 +9297,8 @@ prints unique counters in the trace"
                             (get-immediate-children *contexts*)
                             (first))))
       (apply-mutation-ops *contexts*
-                               `((:cut (:stmt1 . ,location)
-                                       (:value1 . ,replacement)))))
+                          `((:cut (:stmt1 . ,location)
+                                  (:value1 . ,replacement)))))
     (is (eq 0 (->> (find-function *contexts* "trailing_semi_with_whitespace")
                    (count-matching-chars-in-stmt #\;))))))
 
@@ -8480,7 +9309,11 @@ prints unique counters in the trace"
 
 
 (defun compare-scopes (result expected)
-  (is (equal (mapcar {mapcar {aget :name}} result)
+  (is (equal (length result) (length expected)))
+  (is (every (lambda (a b)
+               (and (equal (length a) (length b))
+                    (every #'name= a b)))
+             (mapcar {mapcar {aget :name}} result)
              expected))
   (iter (for var-info in (apply #'append result))
         (is (aget :type var-info))
@@ -8545,8 +9378,9 @@ prints unique counters in the trace"
 (deftest unbound-vals-are-correct ()
   (flet
       ((compare-vals (result expected)
-         (is (equal (mapcar {aget :name} result)
-                    expected))
+         (is (null (set-exclusive-or (mapcar {aget :name} result)
+                                     expected
+                                     :test #'name=)))
          (iter (for var-info in result)
                (is (aget :type var-info))
                (is (aget :decl var-info))
@@ -8570,20 +9404,41 @@ prints unique counters in the trace"
                                            (stmt-starting-with-text *scopes* )))
                     '("global")))))
 
+(defun unbound-funs-equal (result expected)
+  (and (= (length result) (length expected))
+       (every
+        (lambda (r e)
+          (and (consp r) (consp e)
+               (equal (cdr r) (cdr e))
+               (name= (car r) (if *new-clang?*
+                                  (peel-bananas (car e))
+                                  (car e)))))
+        result expected)))
+
 (deftest unbound-funs-are-correct ()
   (with-fixture scopes2-clang
     (is (null (get-unbound-funs *scopes*
                                 (stmt-with-text *scopes* "int global;"))))
-    (is (equal (get-unbound-funs *scopes*
-                                 (stmt-with-text *scopes* "foo(0);"))
-               '(("(|foo|)" t nil 1))))
-    (is (equal (get-unbound-funs *scopes*
-                                 (stmt-with-text *scopes* "bar();"))
-               '(("(|bar|)" t nil 0))))
-    (is (equal (get-unbound-funs *scopes*
-                                 (stmt-starting-with-text *scopes* "void bar"))
-               '(("(|foo|)" t nil 1)
-                 ("(|bar|)" t nil 0))))))
+    (is (unbound-funs-equal
+         (get-unbound-funs *scopes*
+                           (stmt-with-text *scopes* "foo(0);"))
+         '(("(|foo|)" t nil 1))))
+    (is (unbound-funs-equal
+         (get-unbound-funs *scopes*
+                           (stmt-with-text *scopes* "bar();"))
+         '(("(|bar|)" t nil 0))))
+    (is (unbound-funs-equal
+         (get-unbound-funs *scopes*
+                           (stmt-starting-with-text *scopes* "void bar"))
+         '(("(|foo|)" t nil 1)
+           ("(|bar|)" t nil 0))))))
+
+(deftest unbound-fun-not-defined ()
+  (with-fixture unbound-fun-clang
+    (is (unbound-funs-equal
+         (get-unbound-funs *soft*
+                           (stmt-with-text *soft* "g();"))
+         '(("(|g|)" nil nil 0))))))
 
 (deftest scopes-type-field-is-correct ()
   (with-fixture scopes-type-field-clang
@@ -8598,10 +9453,10 @@ prints unique counters in the trace"
 
 (deftest get-vars-in-scope-keep-globals-flag ()
   (with-fixture scopes-type-field-clang
-    (is (equal "time_args"
+    (is (name= "time_args"
                (->> (get-vars-in-scope *scopes*
-                      (stmt-with-text *scopes* "return 0;")
-                      t)
+                                       (stmt-with-text *scopes* "return 0;")
+                                       t)
                     (first)
                     (aget :name)))
         "time_args variable should have been found at the global scope")
@@ -8645,9 +9500,10 @@ prints unique counters in the trace"
   (with-fixture scopes2-clang
     (apply-mutation *scopes*
       `(clang-cut (:stmt1 . ,(stmt-with-text *scopes* "foo(0);"))))
-    (is (equal (get-unbound-funs *scopes*
-                                 (stmt-starting-with-text *scopes* "void bar"))
-               '(("(|bar|)" t nil 0))))))
+    (is (unbound-funs-equal
+         (get-unbound-funs *scopes*
+                           (stmt-starting-with-text *scopes* "void bar"))
+         '(("(|bar|)" t nil 0))))))
 
 (deftest insert-statement-updates-unbound-funs ()
   (with-fixture scopes2-clang
@@ -8655,9 +9511,10 @@ prints unique counters in the trace"
       `(clang-insert (:stmt1 . ,(stmt-with-text *scopes* "int b;"))
                      (:stmt2 . ,(stmt-with-text *scopes*
                                                 "bar();"))))
-    (is (equal (get-unbound-funs *scopes*
-                                 (stmt-starting-with-text *scopes* "void foo"))
-               '(("(|bar|)" t nil 0))))))
+    (is (unbound-funs-equal
+         (get-unbound-funs *scopes*
+                           (stmt-starting-with-text *scopes* "void foo"))
+         '(("(|bar|)" t nil 0))))))
 
 (deftest cut-statement-updates-unbound-vals ()
   (with-fixture scopes2-clang
@@ -8675,10 +9532,10 @@ prints unique counters in the trace"
     (let ((unbound (get-unbound-vals *scopes*
                                      (stmt-starting-with-text *scopes*
                                                               "void foo"))))
-      (is (equal (mapcar {aget :name} unbound) '("global" "b")))
-      (is (aget :decl (find-if [{string= "global"} {aget :name}] unbound)))
+      (is (fully-every #'name= (mapcar {aget :name} unbound) '("global" "b")))
+      (is (aget :decl (find-if [{name= "global"} {aget :name}] unbound)))
       ;; b is now undeclared
-      (is (not (aget :decl (find-if [{string= "b"} {aget :name}] unbound)))))))
+      (is (not (aget :decl (find-if [{name= "b"} {aget :name}] unbound)))))))
 
 (deftest insert-statement-updates-unbound-vals ()
   (with-fixture scopes2-clang
@@ -8692,7 +9549,7 @@ prints unique counters in the trace"
                                      (stmt-starting-with-text *scopes*
                                                               "void bar"))))
       (is (eq 1 (length unbound)))
-      (is (string= "global" (aget :name (car unbound))))
+      (is (name= "global" (aget :name (car unbound))))
       (is (equalp (stmt-with-text *scopes* "int global;")
                   (aget :decl (car unbound))))
       (is (eq (ast-root *scopes*) (aget :scope (car unbound))))
@@ -8826,7 +9683,6 @@ prints unique counters in the trace"
               (make-clang-type :name "int"
                                :pointer nil
                                :array "[5]"
-                               :size 5
                                :storage-class :None
                                :hash 0
                                :reqs nil)))
@@ -8834,7 +9690,6 @@ prints unique counters in the trace"
               (make-clang-type :name "int"
                                :pointer t
                                :array "[]"
-                               :size nil
                                :storage-class :None
                                :hash 0
                                :reqs nil)))
@@ -8842,7 +9697,6 @@ prints unique counters in the trace"
               (make-clang-type :name "int"
                                :pointer t
                                :array "[5]"
-                               :size 5
                                :storage-class :None
                                :hash 0
                                :reqs nil)))
@@ -9018,34 +9872,6 @@ prints unique counters in the trace"
                                ;; < 8)
                                "<" "int-literal" ")")))))))
 
-(deftest (designatedinitexpr-tokens :long-running) ()
-  (with-fixture variety-clang
-    (let* ((roots (remove-if-not {eq :DesignatedInitExpr}
-                                 (asts *variety*)
-                                 :key #'ast-class))
-           (test-roots (list (nth 0 roots)
-                             (nth 1 roots)
-                             (nth 3 roots)))
-           (token-lists (iter (for root in test-roots)
-                              (collect (tokens *variety* (list root))
-                                into token-lists)
-                              (finally (return token-lists)))))
-      (is (= 3 (length token-lists)))
-      (is (equal (nth 0 token-lists)
-                 ;; [0 ... 1 ].y = 1.0
-                 (mapcar #'make-keyword
-                         (list "[" "int-literal" "..." "int-literal" "]"
-                               "." "identifier" "=" "float-literal"))))
-      (is (equal (nth 1 token-lists)
-                 ;; [1].x = 2.0
-                 (mapcar #'make-keyword
-                         (list "[" "int-literal" "]" "." "identifier"
-                               "=" "float-literal"))))
-      (is (equal (nth 2 token-lists)
-                 ;; .y = 2.0
-                 (mapcar #'make-keyword
-                         (list "." "identifier" "=" "float-literal")))))))
-
 (deftest (function-tokens :long-running) ()
   (with-fixture variety-clang
     (let* ((root (stmt-starting-with-text *variety* "int add3"))
@@ -9198,8 +10024,6 @@ prints unique counters in the trace"
                    (bad-stmts (mapcar #'cdar (rinard 5 instrumented
                                                      trace-results)))
                    (gold-set-prefix (list 54 23 12 10 4)))
-                                        ;(format t "BAD:  ~{~a~^,~}~%" bad-stmts)
-                                        ;(format t "GOLD: ~{~a~^,~}~%" gold-set-prefix)
               (is (equal bad-stmts gold-set-prefix)))))))))
 
 (defsuite clang-super-mutants "Super mutants of clang objects."
@@ -9380,80 +10204,81 @@ prints unique counters in the trace"
             "Super-function contains correct number of case statements.")))))
 
 (deftest super-mutant-genome-handles-function-prototypes ()
-  (let ((mutant (from-string (make-instance 'clang) "int foo();")))
+  (let ((mutant (from-string (make-clang) "int foo();")))
     (is (genome (make-instance 'super-mutant
                   :mutants (list (copy mutant) (copy mutant)))))))
 
 (deftest (super-mutant-genome-detects-incompatible-functions :long-running) ()
   ;; These all fail because ast-args is set by clang-mutate and does not
   ;; update upon mutation
-  ;; (let* ((base (from-string (make-instance 'clang)
-  ;;                           "void foo(int a, int b) {}"))
-  ;;        (remove-arg (copy base))
-  ;;        (change-arg-type (copy base))
-  ;;        (change-arg-name (copy base)))
-  ;;   ;; Different argument count
-  ;;   (apply-mutation remove-arg
-  ;;                   `(clang-cut (:stmt1 . ,(stmt-with-text remove-arg
-  ;;                                                          "int b"))))
-  ;;   (signals mutate
-  ;;     (genome (make-instance 'super-mutant
-  ;;                            :mutants (list base remove-arg))))
-  ;;   ;; Different argument type
-  ;;   (apply-mutation change-arg-type
-  ;;                   `(clang-replace (:stmt1 . ,(stmt-with-text change-arg-type
-  ;;                                                              "int b"))
-  ;;                                   (:value1 . ,(make-statement :ParmVar
-  ;;                                                               :finallistelt
-  ;;                                                               '("char b")))))
-  ;;   (signals mutate
-  ;;     (genome (make-instance 'super-mutant
-  ;;                            :mutants (list base change-arg-type))))
-  ;;   ;; Different argument name
-  ;;   (apply-mutation change-arg-name
-  ;;                   `(clang-replace (:stmt1 . ,(stmt-with-text change-arg-name
-  ;;                                                              "int b"))
-  ;;                                   (:value1 . ,(make-statement :ParmVar
-  ;;                                                               :finallistelt
-  ;;                                                               '("int c")))))
-  ;;   (signals mutate
-  ;;     (genome (make-instance 'super-mutant
-  ;;                            :mutants (list base change-arg-name)))))
+  #+(or )
+  (let* ((base (from-string (make-clang)
+                            "void foo(int a, int b) {}"))
+         (remove-arg (copy base))
+         (change-arg-type (copy base))
+         (change-arg-name (copy base)))
+    ;; Different argument count
+    (apply-mutation remove-arg
+                    `(clang-cut (:stmt1 . ,(stmt-with-text remove-arg
+                                                           "int b"))))
+    (signals mutate
+      (genome (make-instance 'super-mutant
+                :mutants (list base remove-arg))))
+    ;; Different argument type
+    (apply-mutation change-arg-type
+                    `(clang-replace (:stmt1 . ,(stmt-with-text change-arg-type
+                                                               "int b"))
+                                    (:value1 . ,(make-statement :ParmVar
+                                                                :finallistelt
+                                                                '("char b")))))
+    (signals mutate
+      (genome (make-instance 'super-mutant
+                :mutants (list base change-arg-type))))
+    ;; Different argument name
+    (apply-mutation change-arg-name
+                    `(clang-replace (:stmt1 . ,(stmt-with-text change-arg-name
+                                                               "int b"))
+                                    (:value1 . ,(make-statement :ParmVar
+                                                                :finallistelt
+                                                                '("int c")))))
+    (signals mutate
+      (genome (make-instance 'super-mutant
+                :mutants (list base change-arg-name)))))
 
   ;; Different return types
   (signals mutate
-    (genome (make-instance 'super-mutant
-              :mutants
-              (list (from-string (make-instance 'clang)
-                                 "void foo() {}")
-                    (from-string (make-instance 'clang)
+           (genome (make-instance 'super-mutant
+                     :mutants
+                     (list (from-string (make-clang)
+                                        "void foo() {}")
+                           (from-string (make-clang)
                                  "int foo() { return 1; }")))))
 
   ;; Prototype vs. complete function
   (signals mutate
-    (genome (make-instance 'super-mutant
-              :mutants
-              (list (from-string (make-instance 'clang)
-                                 "void foo() {}")
-                    (from-string (make-instance 'clang)
-                                 "void foo();"))))))
+           (genome (make-instance 'super-mutant
+                     :mutants
+                     (list (from-string (make-clang)
+                                        "void foo() {}")
+                           (from-string (make-clang)
+                                        "void foo();"))))))
 
 (deftest super-mutant-genome-detects-mismatched-globals ()
-  (let* ((base (from-string (make-instance 'clang)
+  (let* ((base (from-string (make-clang)
                             "int a; int b; int c;"))
          (variant (copy base)))
     (apply-mutation variant
-      `(clang-replace (:stmt1 . ,(stmt-with-text variant
-                                                 "int b;"))
-                      (:value1 . ,(->> (find-or-add-type variant
-                                                         "char")
-                                       (make-var-decl "b")))))
+                    `(clang-replace (:stmt1 . ,(stmt-with-text variant
+                                                               "int b;"))
+                                    (:value1 . ,(->> (find-or-add-type variant
+                                                                       "char")
+                                                     (make-var-decl "b")))))
     (signals mutate
       (genome (make-instance 'super-mutant
                 :mutants (list base variant))))))
 
 (deftest super-mutant-genome-detects-delete-function-body ()
-  (let* ((base (from-string (make-instance 'clang)
+  (let* ((base (from-string (make-clang)
                             "void foo() {}"))
          (variant (copy base)))
     ;; This is a useless mutation but it happens sometimes. Ensure
@@ -9471,63 +10296,63 @@ prints unique counters in the trace"
 
   ;; Simple case: all top-level decls line up
   (is (equal (collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
-                                          ((1 . b1) (2 . b2) (3 . b3))))
+                                     ((1 . b1) (2 . b2) (3 . b3))))
              '((a1 b1) (a2 b2) (a3 b3))))
 
   ;; Deleted AST
   (is (equal (collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
-                                          ((1 . b1) (3 . b3))))
+                                     ((1 . b1) (3 . b3))))
              '((a1 b1) (a2 nil) (a3 b3))))
 
   ;; Inserted AST
   (is (equal (collate-ast-variants '(((1 . a1) (3 . a3))
-                                          ((1 . b1) (2 . b2) (3 . b3))))
+                                     ((1 . b1) (2 . b2) (3 . b3))))
              '((a1 b1) (nil b2) (a3 b3))))
 
   ;; Deleted at beginning
   (is (equal (collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
-                                          ((2 . b2) (3 . b3))))
+                                     ((2 . b2) (3 . b3))))
              '((a1 nil) (a2 b2) (a3 b3))))
 
   ;; Deleted at end
   (is (equal (collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
-                                          ((1 . b1) (2 . b2))))
+                                     ((1 . b1) (2 . b2))))
              '((a1 b1) (a2 b2) (a3 nil))))
 
   ;; Inserted at beginning
   (is (equal (collate-ast-variants '(((2 . a2) (3 . a3))
-                                          ((1 . b1) (2 . b2) (3 . b3))))
+                                     ((1 . b1) (2 . b2) (3 . b3))))
              '((nil b1) (a2 b2) (a3 b3))))
 
   ;; Inserted at end
   (is (equal (collate-ast-variants '(((1 . a1) (2 . a2))
-                                          ((1 . b1) (2 . b2) (3 . b3))))
+                                     ((1 . b1) (2 . b2) (3 . b3))))
              '((a1 b1) (a2 b2) (nil b3))))
 
   ;; Multiple inserted ASTs
   (is (equal (collate-ast-variants '(((1 . a1) (3 . a3))
-                                          ((1 . b1) (2 . b2) (4 . b4)
-                                           (5 . b5) (3 . b3))))
+                                     ((1 . b1) (2 . b2) (4 . b4)
+                                      (5 . b5) (3 . b3))))
              '((a1 b1) (nil b2) (nil b4) (nil b5) (a3 b3))))
 
   ;; 3 variants
   (is (equal (collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
-                                          ((1 . b1) (2 . b2) (3 . b3))
-                                          ((1 . c1) (2 . c2) (3 . c3))))
+                                     ((1 . b1) (2 . b2) (3 . b3))
+                                     ((1 . c1) (2 . c2) (3 . c3))))
              '((a1 b1 c1) (a2 b2 c2) (a3 b3 c3))))
 
   ;; 3 variants with inserts and deletes
   (is (equal (collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
-                                          ((1 . b1) (3 . b3))
-                                          ((1 . c1) (2 . c2) (4 . c4)
-                                           (3 . c3))))
+                                     ((1 . b1) (3 . b3))
+                                     ((1 . c1) (2 . c2) (4 . c4)
+                                      (3 . c3))))
              '((a1 b1 c1) (a2 nil c2) (nil nil c4) (a3 b3 c3))))
 
 
   ;; Swapped ASTs are not merged correctly. This is a known
   ;; limitation.
   (is (equal (collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
-                                          ((2 . b2) (1 . b1) (3 . b3))))
+                                     ((2 . b2) (1 . b1) (3 . b3))))
              '((a1 nil) (a2 b2) (nil b1) (a3 b3)))))
 
 (deftest super-evolve-handles-mutation-failure ()
@@ -9560,13 +10385,13 @@ prints unique counters in the trace"
 int main() { puts(\"~d\"); return 0; }
 ")
          (mutants (mapcar (lambda (i)
-                            (from-string (make-instance 'clang)
+                            (from-string (make-clang)
                                          (format nil template i)))
                           '(1 2 3 4)))
          (super (make-instance 'super-mutant :mutants mutants)))
     (evaluate (lambda (obj)
                 ;; Proxies are the same type as mutants
-                (is (eq 'clang (type-of obj)))
+                (is (typep obj 'clang-base))
                 (cons (some->> (phenome obj)
                                (shell)
                                (parse-integer))
@@ -9579,596 +10404,15 @@ int main() { puts(\"~d\"); return 0; }
                (mapcar [#'cdr #'fitness] mutants)))))
 
 
-;;;; AST Diff tests
-(defsuite ast-diff-tests "AST-level diffs of Sexprs.")
+#-windows
+(progn
 
-(deftest sexp-diff-empty ()
-  (is (equalp (multiple-value-list (ast-diff nil nil))
-	      '(nil 0))
-      "Simplest case -- empty list to itself."))
-
-(deftest sexp-diff-empty-to-nonempty ()
-  (is (equalp (multiple-value-list (ast-diff nil '(1)))
-	      '(((:insert . 1)) 1))
-      "Empty list vs. list of one atom"))
-
-(deftest sexp-diff-nonempty-to-empty ()
-  (is (equalp (multiple-value-list (ast-diff '(1) nil))
-	      '(((:delete . 1)) 1))
-      "List of one atom vs. empty list"))
-
-(deftest sexp-diff-numbers ()
-    (is (equalp (multiple-value-list (ast-diff 1 2))
-		'(((:delete . 1) (:insert . 2))
-		  2))
-	"Diff of two numbers"))
-
-(deftest sexp-diff-numbers-same ()
-    (is (equalp (multiple-value-list (ast-diff 1 1))
-		'(((:same . 1))
-		  0))
-	"Diff of two equal numbers"))
-
-(deftest sexp-diff-equal-zero-cost ()
-  (is (zerop (nth-value 1 (ast-diff '(1 2 3 4) '(1 2 3 4))))
-      "Equal should have 0 cost."))
-
-(deftest sexp-diff-non-equal-first-element ()
-  (is (not (zerop (nth-value 1 (ast-diff '(1 2 3 4) '(0 2 3 4)))))
-      "Difference in first car is caught."))
-
-(deftest sexp-shuffled-elements1 ()
-  (is (equalp (ast-patch '(1 2 3 4)
-			 (ast-diff '(1 2 3 4) '(1 4 3 2)))
-	      '(1 4 3 2))
-      "Shuffled elements create a correct diff"))
-
-(deftest sexp-shuffled-elements2 ()
-  (is (equalp (ast-patch '(1 2 3 4)
-			 (ast-diff '(1 2 3 4) '(1 4 3 5 2)))
-	      '(1 4 3 5 2))
-      "Shuffled elements create a correct diff"))
-
-(deftest sexp-shuffled-elements3 ()
-  (is (equalp (ast-patch '(1 2 3 5 4)
-			 (ast-diff '(1 2 3 5 4) '(1 4 3 2)))
-	      '(1 4 3 2))
-      "Shuffled elements create a correct diff"))
-
-(deftest sexp-insert-then-delete ()
-  (is (equalp (ast-patch '1 '((:insert . 2) (:delete . 1))) 2)
-      "Insert followed by delete in patch"))
-
-(deftest sexp-two-differences ()
-  (is (equalp (ast-patch '(1 2 3 4 5) (ast-diff '(1 2 3 4 5) '(1 6 3 7 5)))
-	      '(1 6 3 7 5))
-      "Two lists that differ in two non-adjacent places"))
-
-(deftest sexp-diff-simple-sublist-test ()
-  (multiple-value-bind (script cost)
-      (ast-diff '(1 '(1 2 3 4) 3 4) '(1 '(1 2 3 4) 3 5))
-    (declare (ignorable cost))
-    (multiple-value-bind (script-sublist cost-sublist)
-        (ast-diff '(1 2 3 4) '(1 2 3 5))
-      (declare (ignorable cost-sublist))
-      (is (= (length script) (length script-sublist))
-          "Sublists have no effect on script when same.")
-      (is (= (length script) (length script-sublist))
-          "Sublists have no effect on cost when same."))))
-
-(deftest ast-diff-one-added-at-the-end ()
-  (multiple-value-bind (diff cost) (ast-diff '(1 2) '(1 2 3))
-    (is (= 1 cost) "Cost of a single addition at the end is one.")
-    (is (= 3 (length diff)))))
-
-(deftest ast-diff-recurses-into-subtree ()
-  (multiple-value-bind (diff cost)
-      (ast-diff '(1 (1 2 3 4 5) 2) '(1 (1 2 4 5) 3))
-    (is (= 3 cost) "Cost of a sub-tree diff performed recursion.")
-    (is (equalp '(:same :recurse :insert :delete) (mapcar #'car diff)))))
-
-(deftest ast-diff-nested-recursion-into-subtree ()
-  (multiple-value-bind (diff cost) (ast-diff '(((1 nil 3)) 3) '(((1 2 3)) 3))
-    (is (= 2 cost) "Cost of a nested sub-tree diff performed recursion.")
-    (is (equalp '(:recurse :same) (mapcar #'car diff)))))
-
-(defun ast-diff-and-patch-equal-p (orig new)
-  (ast-equal-p new (ast-patch orig (ast-diff orig new))))
-
-(deftest ast-diff-and-patch-is-equal-simple ()
-  (is (ast-diff-and-patch-equal-p '(1 2 3 4) '(1 2 z 4))))
-
-(deftest ast-diff-and-patch-is-equal-recurse ()
-  (is (ast-diff-and-patch-equal-p '(1 2 (1 2 3 4) 4) '(1 2 (1 2 z 4) 4))))
-
-(deftest ast-diff-and-patch-is-equal-tail ()
-  (is (ast-diff-and-patch-equal-p '(1 2 3 . 4) '(1 5 3 . 4))))
-
-(deftest ast-diff-and-patch-unequal-tail ()
-  (is (ast-diff-and-patch-equal-p '(1 2 3 . 4) '(1 2 3 . 5))))
-
-(deftest ast-diff-with-string ()
-    (is (ast-diff-and-patch-equal-p '((1 "foo" 2)) '((3 "foo" 2)))))
-
-(deftest ast-diff-simple-dotted-list ()
-  (is (= 2 (nth-value 1 (ast-diff '(1 . 1) '(1 . 2))))))
-
-(deftest ast-diff-nested-dotted-list ()
-  (is (= 2 (nth-value 1 (ast-diff '((1 . 2)) '((1 . 1)))))))
-
-(deftest ast-diff-mixed-proper-improper-list ()
-  (is (= 2 (nth-value 1 (ast-diff (cons 1 nil) (cons 1 1))))))
-
-(deftest ast-diff-double-insert ()
-  (is (= 2 (nth-value 1 (ast-diff '(1 2 3 4) '(1 2 3 4 5 6))))))
-
-(defun ast-diff-alist-test (al1 al2)
-  (flet ((%f (alist) (make-instance 'sel/ast-diff/alist:alist-for-diff
-				    :alist alist)))
-    (let* ((al-obj1 (%f al1))
-	   (al-obj2 (%f al2))
-	   (diff (ast-diff al-obj1 al-obj2))
-	   (al-obj3 (ast-patch al-obj1 diff)))
-      (sort (copy-list (sel/ast-diff/alist:alist-of-alist-for-diff al-obj3)) #'string< :key #'car))))
-
-(deftest ast-diff-alist-diff-1 ()
-  (is (equal (ast-diff-alist-test nil nil) nil)))
-
-(deftest ast-diff-alist-diff-2 ()
-  (is (equal (ast-diff-alist-test nil '((a . 1))) '((a . 1)))))
-
-(deftest ast-diff-alist-diff-3 ()
-  (is (equal (ast-diff-alist-test '((a . 1)) nil) nil)))
-
-(deftest ast-diff-alist-diff-4 ()
-  (is (equal (ast-diff-alist-test '((a . 1)) '((a . 2))) '((a . 2)))))
-
-(deftest ast-diff-alist-diff-5 ()
-  (is (equal (ast-diff-alist-test '((a . 1) (b . 3)) '((a . 2) (b . 3))) '((a . 2) (b . 3)))))
-
-(deftest ast-diff-alist-diff-6 ()
-  (is (equal (ast-diff-alist-test '((a . 1) (b . 2)) '((b . 2) (a . 1))) '((a . 1) (b . 2)))))
-
-(deftest ast-diff-alist-diff-7 ()
-  (is (equal (ast-diff-alist-test '((a . 1)) '((b . 2) (a . 3))) '((a . 3) (b . 2)))))
-
-(deftest print-lisp-diff.1 ()
-  (is (equalp (with-output-to-string (s)
-		(print-diff (ast-diff '() '()) :no-color t :stream s))
-              "")
-      "Print diff of empty lists"))
-
-(deftest print-lisp-diff.2 ()
-  (is (equalp (with-output-to-string (s)
-		(print-diff (ast-diff '(()) '(())) :no-color t :stream s))
-              "()")
-      "Print diff of list of empty list"))
-
-(deftest print-lisp-diff.3 ()
-  (is (equalp (with-output-to-string (s)
-		(print-diff (ast-diff '() '(())) :no-color t :stream s))
-              "{+()+}")
-      "Print diff of insertion of empty list"))
-
-(deftest print-lisp-diff.4 ()
-  (is (equalp (with-output-to-string (s)
-		(print-diff (ast-diff '(()) '()) :no-color t :stream s))
-              "[-()-]")
-      "Print diff of deletion of empty list"))
-
-(defvar *forms* nil "Forms used in tests.")
-(defixture sel-asd-file-forms
-  (:setup (setf *forms* (read-file-forms
-                         (make-pathname
-                          :name "software-evolution-library"
-                          :type "asd"
-                          :directory
-                          (pathname-directory *this-file*)))))
-  (:teardown (setf *forms* nil)))
-
-(deftest sexp-diff-on-ast-file ()
-  (with-fixture sel-asd-file-forms
-    (is (zerop (nth-value 1 (ast-diff *forms* *forms*)))
-        "Handles forms from a lisp source file.")))
-
-
-(defsuite clang-ast-diff-tests "AST-level diffs of clang objects."
-            (clang-mutate-available-p))
-
-(deftest (diff-gets-back-on-track :long-running) ()
-  (is (= 2 (nth-value
-            1
-            (ast-diff (from-string (make-instance 'clang)
-                                   "int a; int b; int c; int d;")
-                      (from-string (make-instance 'clang)
-                                   "int a; int z; int b; int c; int d;"))))))
-
-(deftest (diff-insert :long-running) ()
-  (let ((orig (from-string (make-instance 'clang)
-                           "int x; int y; int z;"))
-        (a (from-string (make-instance 'clang)
-                        "int a; int x; int y; int z;"))
-        (b (from-string (make-instance 'clang)
-                        "int x; int b; int y; int z;"))
-        (c (from-string (make-instance 'clang)
-                        "int x; int y; int z; int c;")))
-    (let ((diff-a (ast-diff orig a)))
-      (is diff-a)
-      (is (ast-equal-p (ast-root (ast-patch (copy orig) diff-a))
-                       (ast-root a)))
-      (is (equalp (mapcar #'car diff-a)
-                  '(:same :insert :insert :same :same
-                    :same :same :same :same))))
-    (let ((diff-b (ast-diff orig b)))
-      (is diff-b)
-      (is (ast-equal-p
-           (ast-root (ast-patch (copy orig) diff-b))
-           (ast-root b)))
-      (is (equalp (mapcar #'car diff-b)
-                  '(:same :same :insert :insert :same
-                    :same :same :same :same))))
-    (let ((diff-c (ast-diff orig c)))
-      (is diff-c)
-      (is (ast-equal-p
-           (ast-root (ast-patch (copy orig) diff-c))
-           (ast-root c)))
-      (is (equalp (mapcar #'car diff-c)
-                  '(:same :same :same :same :same
-                    :same :insert :insert :same))))))
-
-(deftest (diff-delete :long-running) ()
-  (let ((orig (from-string (make-instance 'clang)
-                           "int x; int y; int z;"))
-        (a (from-string (make-instance 'clang)
-                        "int y; int z;"))
-        (b (from-string (make-instance 'clang)
-                        "int x; int z;"))
-        (c (from-string (make-instance 'clang)
-                        "int x; int y;")))
-    (let ((diff-a (ast-diff orig a)))
-      (is diff-a)
-      (is (ast-equal-p
-           (ast-root (ast-patch (copy orig) diff-a))
-           (ast-root a)))
-      (is (equalp (mapcar #'car diff-a)
-                  '(:same :delete :delete :same :same :same :same))))
-    (let ((diff-b (ast-diff orig b)))
-      (is diff-b)
-      (is (ast-equal-p
-           (ast-root (ast-patch (copy orig) diff-b))
-           (ast-root b)))
-      (is (equalp (mapcar #'car diff-b)
-                  '(:same :same :same :delete :delete :same :same))))
-    (let ((diff-c (ast-diff orig c)))
-      (is diff-c)
-      (is (ast-equal-p
-           (ast-root (ast-patch (copy orig) diff-c))
-           (ast-root c)))
-      (is (equalp (mapcar #'car diff-c)
-                  '(:same :same :same :same :delete :delete :same))))))
-
-(deftest (diff-recursive :long-running) ()
-  (let* ((orig (from-string (make-instance 'clang)
-                            "int x = 1; int y = 2; int z = 3;"))
-         (new (from-string (make-instance 'clang)
-                           "int x = 1; int y = 5; int z = 3;"))
-         (diff (ast-diff orig new)))
-    (is diff)
-    (is (ast-equal-p (ast-root (ast-patch (copy orig) diff))
-                     (ast-root new)))
-    (is (equalp (mapcar #'car diff)
-                '(:same :same :same :recurse :same :same :same)))))
-
-(deftest (diff-text-changes :long-running) ()
-  (let ((orig (from-string (make-instance 'clang)
-                           "/* 1 */ int x; /* 2 */ int y; int z; /* 3 */"))
-        (a (from-string (make-instance 'clang)
-                        "/* X */ int x; /* 2 */ int y; int z; /* 3 */"))
-        (b (from-string (make-instance 'clang)
-                        "/* 1 */ int x; /* X */ int y; int z; /* 3 */"))
-        (c (from-string (make-instance 'clang)
-                        "/* 1 */ int x; /* 2 */ int y; int z; /* X */")))
-    (let ((diff-a (ast-diff orig a)))
-      (is diff-a)
-      (is (ast-equal-p
-           (ast-root (ast-patch (copy orig) diff-a))
-           (ast-root a)))
-      (is (equalp (mapcar #'car diff-a)
-                  '(:recurse :same :same :same :same :same :same))))
-    (let ((diff-b (ast-diff orig b)))
-      (is diff-b)
-      (is (ast-equal-p
-           (ast-root (ast-patch (copy orig) diff-b))
-           (ast-root b)))
-      (is (equalp (mapcar #'car diff-b)
-                  '(:same :same :recurse :same :same :same :same))))
-    (let ((diff-c (ast-diff orig c)))
-      (is diff-c)
-      (is (ast-equal-p
-           (ast-root (ast-patch (copy orig) diff-c))
-           (ast-root c)))
-      (is (equalp (mapcar #'car diff-c)
-                  '(:same :same :same :same :same :same :recurse))))))
-
-(deftest diff-real-text ()
-  (with-fixture binary-search-clang
-    (let ((var (copy *binary-search*)))
-      (mutate var)
-      (ast-diff *binary-search* var))))
-
-(deftest diff-elide-same-test ()
-  (with-fixture binary-search-clang
-    (let ((var (copy *binary-search*)))
-      (setf var (mutate var))
-      (is (every [{member _ '(:delete :insert :delete-sequence :insert-sequence)} #'second]
-                 (ast-diff-elide-same (ast-diff *binary-search* var)))))))
-
-(deftest print-diff.1 ()
-  (is (equalp (with-output-to-string (s)
-		(flet ((%f (s) (sel:from-string (make-instance 'sel/sw/clang:clang) s)))
-		  (print-diff (ast-diff (%f "int a; int c;")
-					(%f "int a; int b; int c;"))
-                              :no-color t
-			      :stream s)))
-	      "int a; {+int b; +}int c;")
-      "Print diff of an insertion"))
-
-(deftest print-diff.2 ()
-  (is (equalp (with-output-to-string (s)
-		(flet ((%f (s) (sel:from-string (make-instance 'sel/sw/clang:clang) s)))
-		  (print-diff (ast-diff (%f "int a; int b; int c;")
-					(%f "int a; int c;"))
-                              :no-color t
-			      :stream s)))
-	      "int a; [-int b; -]int c;")
-      "Print diff of a deletion"))
-
-(deftest print-diff.3 ()
-  (is (equalp (with-output-to-string (s)
-		(flet ((%f (s) (sel:from-string (make-instance 'sel/sw/clang:clang) s)))
-		  (print-diff (ast-diff (%f "int a; int b; int c;")
-					(%f "int a; int d; int c;"))
-                              :no-color t
-			      :stream s)))
-	      "int a; int {+d+}[-b-]; int c;")
-      "Print diff of a replacement"))
-
-(deftest print-diff.4 ()
-  (is (equalp (with-output-to-string (s)
-		(flet ((%f (s) (sel:from-string (make-instance 'sel/sw/clang:clang) s)))
-		  (print-diff (ast-diff (%f "char *s = \"abcd\";")
-					(%f "char *s = \"acd\";"))
-                              :no-color t
-			      :stream s)))
-	      "char *s = \"a[-b-]cd\";")
-      "Print diff of deletion of a character in a string"))
-
-(deftest print-diff.5 ()
-  (is (equalp (with-output-to-string (s)
-		(flet ((%f (s) (sel:from-string (make-instance 'sel/sw/clang:clang) s)))
-		  (print-diff (ast-diff (%f "char *s = \"abcd\";")
-					(%f "char *s = \"ad\";"))
-                              :no-color t
-			      :stream s)))
-	      "char *s = \"a[-bc-]d\";")
-      "Print diff of deletion of substring in a string"))
-
-
-
-(deftest print-diff.6 ()
-  (is (equalp (with-output-to-string (s)
-		(flet ((%f (s) (sel:from-string (make-instance 'sel/sw/clang:clang) s)))
-		  (print-diff (ast-diff (%f "char *s = \"ad\";")
-					(%f "char *s = \"abcd\";"))
-                              :no-color t
-			      :stream s)))
-	      "char *s = \"a{+bc+}d\";")
-      "Print diff of insertion of a substring in a string"))
-
-(deftest print-diff.7 ()
-  (is (equalp (with-output-to-string (s)
-		(flet ((%f (s) (sel:from-string (make-instance 'sel/sw/clang:clang) s)))
-		  (print-diff (ast-diff (%f "char *s = \"ad\";")
-					(%f "char *s = \"abd\";"))
-                              :no-color t
-			      :stream s)))
-	      "char *s = \"a{+b+}d\";")
-      "Print diff of insertion of a character in a string"))
-
-
-
-
-;;;; AST merge3 tests
-(defsuite ast-merge3 "Tests of SEL/AST-DIFF:MERGE3"
-  (clang-mutate-available-p))
-
-(deftest sexp-merge3-empty ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 nil nil nil))
-	      '(nil nil))
-      "Simplest case"))
-
-(deftest sexp-merge3-insert-first ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 nil '(a) nil))
-	      '(((:insert . a)) nil))
-      "Adding one element in first change"))
-
-(deftest sexp-merge3-insert-second ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 nil nil '(a)))
-	      '(((:insert . a)) nil))
-      "Adding one element in second change"))
-
-(deftest sexp-merge3-insert-both ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 nil '(a) '(a)))
-	      '(((:insert . a)) nil))
-      "Adding one element in both changes"))
-
-(deftest sexp-merge3-delete-first ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(a) nil '(a)))
-	      '(((:delete . a)) nil))
-      "Deleting one element in first change"))
-
-(deftest sexp-merge3-delete-second ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(a) '(a) nil))
-	      '(((:delete . a)) nil))
-      "Deleting one element in second change"))
-
-(deftest sexp-merge3-delete-second-2 ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(a) nil nil))
-	      '(((:delete . a)) nil))
-      "Deleting one element in both changes"))
-
-(deftest sexp-merge3-recursive-first ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '((a)) '((a b)) '((a))))
-	      '(((:recurse (:same . a) (:insert . b))) nil))
-      "Recurse in first change"))
-
-(deftest sexp-merge3-recursive-second ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '((a)) '((a)) '((a b))))
-	      '(((:recurse (:same . a) (:insert . b))) nil))
-      "Recurse in first change"))
-
-(deftest sexp-merge3-recursive-both ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '((a)) '((a b)) '((a b))))
-	      '(((:recurse (:same . a) (:insert . b))) nil))
-      "Recurse in both changes"))
-
-(deftest sexp-merge3-insert-delete ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(a) '(a b) ()))
-	      '(((:delete . a) (:insert . b)) nil))
-      "Insert and delete in the same place."))
-
-(deftest sexp-merge3-delete-insert ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(a) '() '(a b)))
-	      '(((:delete . a) (:insert . b)) nil))
-      "Delete and insert in the same place."))
-
-(deftest sexp-merge3-delete-insert-tail ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(a b . c) '(a) '(a e . c)))
-	      '(((:same . a) (:insert . e) (:delete . b) (:recurse-tail (:delete . c) (:insert)))
-		(((:delete . b) (:insert . e)))))
-      "Delete and insert in the same place, with improper list."))
-
-(deftest sexp-merge3-delete-insert-tail.2 ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '((a b . c)) '((a)) '((a b . c))))
-	      '(((:recurse (:same . a) (:delete . b) (:recurse-tail (:delete . c) (:insert))))
-		nil))
-      "Delete including tail of improper list."))
-
-(deftest sexp-merge3-delete-insert-tail.3 ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '((a b . c)) '((a b . c)) '((a))))
-	      '(((:recurse (:same . a) (:delete . b) (:recurse-tail (:delete . c) (:insert))))
-		nil))
-      "Delete including tail of improper list."))
-
-(deftest sexp-merge3-delete-insert-tail.4 ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '((a b . c)) '((a . c)) '((a b . e))))
-	      '(((:recurse (:same . a) (:delete . b) (:recurse-tail (:delete . c) (:insert . e))))
-		nil))
-      "Delete, but change tail of improper list."))
-
-
-(deftest sexp-merge3-insert2 ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(a d) '(a b c d) '(a d)))
-	      '(((:same . a) (:insert . b) (:insert . c) (:same . d)) nil))
-      "Two insertions"))
-
-(deftest sexp-merge3-insert3 ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(d) '(d) '(a b c d)))
-	      '(((:insert . a) (:insert . b) (:insert . c) (:same . d)) nil))
-      "Three insertions"))
-
-(deftest sexp-merge3-delete2 ()
-   (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(a b c d) '(a d) '(a b c d)))
-	      '(((:same . a) (:delete . b) (:delete . c) (:same . d)) nil))
-       "Two deletions"))
-
-(deftest sexp-merge3-delete3 ()
-   (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(a b c d e) '(a b c d e) '(a e)))
-	      '(((:same . a) (:delete . b) (:delete . c) (:delete . d) (:same . e)) nil))
-       "Three deletions"))
-
-(deftest sexp-merge3-unstable-inserts ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(x 0) '(x 1) '(x 2)))
-	      '(((:same . x) (:conflict ((:insert . 1)) ((:insert . 2))) (:delete . 0))
-		(((:insert . 1) (:insert . 2)))))
-      "Two insertions at the same point"))
-
-(deftest sexp-merge3-unstable-recurse-insert/delete ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(x (a) y) '(x (b) y) '(x c y)))
-	      '(((:same . x)
-		 (:insert . c)
-		 (:conflict ((:recurse (:insert . b) (:delete . a)))
-		  ((:delete a)))
-		 (:same . y))
-		(((:recurse (:insert . b) (:delete . a)) (:delete a)))))
-      "recurse and deletion at same point (unstable)"))
-
-(deftest sexp-merge3-unstable-insert/delete-recurse ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(x (a) y) '(x c y) '(x (b) y)))
-	      '(((:same . x)
-		 (:insert . c)
-		 (:conflict ((:delete a))
-		  ((:recurse (:insert . b) (:delete . a))))
-		 (:same . y))
-		(((:delete a) (:recurse (:insert . b) (:delete . a))))))
-      "deletion and recurse at same point (unstable)"))
-
-(deftest sexp-merge3-insert/insert-tail1 ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '((a b)) '((a c)) '((a b . d))))
-	      '(((:recurse (:same . a) (:insert . c) (:delete . b)
-		  (:recurse-tail (:delete) (:insert . d))))
-		nil))
-      "insert and insertion of a tail element"))
-
-(deftest sexp-merge3-insert/insert-tail2 ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '((a b)) '((a b . d)) '((a c))))
-	      '(((:recurse (:same . a) (:insert . c) (:delete . b)
-		  (:recurse-tail (:delete) (:insert . d))))
-		nil))
-      "insert and insertion of a tail element"))
-
-(deftest sexp-merge3-insert/insert-tail3 ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '((a b)) '((a b . d)) '((a c . d))))
-	      '(((:recurse (:same . a) (:insert . c) (:delete . b)
-		  (:recurse-tail (:delete) (:insert . d))))
-		nil))
-      "insert and insertion of a tail element"))
-
-(deftest sexp-merge3-insert/insert-tail4 ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '((a . d)) '((a b . d)) '((a c . d))))
-	      '(((:recurse (:same . a) (:conflict ((:insert . b)) ((:insert . c)))
-		  (:same-tail . d)))
-		(((:insert . b) (:insert . c)))))
-      "insert and insertion with a common tail element"))
-
-(deftest sexp-merge3-insert-string ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '("abc") '("adbc") '("abec")))
-	      '(((:RECURSE (:SAME . #\a) (:INSERT . #\d) (:SAME . #\b) (:INSERT . #\e) (:SAME . #\c))) NIL))
-      "Merge of separate insertions into a string"))
-
-(deftest sexp-merge3-insert-string.2 ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '("axbycz") '("axdbycz") '("axbyecz")))
-	      '(((:recurse (:same . #\a) (:same . #\x) (:insert . #\d)
-		  (:same . #\b) (:same . #\y)
-		  (:insert . #\e)
-		  (:same . #\c) (:same . #\z))) nil))
-      "Merge of separate insertions into a string"))
-
-(deftest sexp-merge3-string-same.1 ()
-  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(("foo" 2)) '((3 "foo" 2)) '((4 "foo" 2))))
-	      '(((:recurse (:conflict ((:insert . 3)) ((:insert . 4))) (:same . "foo") (:same . 2)))
-		(((:insert . 3) (:insert . 4)))))
-      "Special handling of strings following insertions"))
-
-;; Application of merge3 patches
-
-
 ;;; Test SerAPI (low-level Coq interaction)
 (defun serapi-available-p ()
   (set-serapi-paths)
   (zerop (nth-value 2 (shell "which ~a" *sertop-path*))))
 
-(setf *serapi-timeout* 30)
+(setf *serapi-timeout* 10)
 
 (defsuite test-serapi "Coq SerAPI interaction." (serapi-available-p))
 
@@ -10181,7 +10425,9 @@ int main() { puts(\"~d\"); return 0; }
                           (lambda (c)
                             (declare (ignorable c))
                             (invoke-restart 'use-empty-response))))
-            (read-serapi-response *serapi-process*)))
+            ;; read two-line prologue
+            (sel/cp/serapi-io::read-with-timeout *serapi-process* 2 0.1)
+            (sel/cp/serapi-io::read-with-timeout *serapi-process* 2 0.1)))
   (:teardown
    (kill-serapi *serapi-process*)
    (setf *serapi-process* nil)))
@@ -10201,7 +10447,8 @@ int main() { puts(\"~d\"); return 0; }
     ;; locally binds `*serapi-process*'
     (write-to-serapi *serapi-process*
                      #!`((Test1 (Query () (Vernac "Print nat.")))))
-    (is (member #!'(Answer Test1 Ack)
+    (is (member (mapcar {intern _ :sel/cp/serapi-io}
+                        (list "Answer" "Test1" "Ack"))
                 (read-serapi-response *serapi-process*)
                 :test #'equal)))
   ;; `*serapi-process*' goes out of scope at end
@@ -10217,9 +10464,10 @@ int main() { puts(\"~d\"); return 0; }
         ;; *serapi-process is rebound to serproc inside with-serapi
         (is (eq serproc *serapi-process*))
         (write-to-serapi *serapi-process*
-                         #!`((Test1 (Query () (Vernac "Print nat.")))))
+                         #!'((Test1 (Query () (Vernac "Print nat.")))))
         ;; writing to *serapi-process* also writes to serproc
-        (is (member #!'(Answer Test1 Ack)
+        (is (member (mapcar {intern _ :sel/cp/serapi-io}
+                            (list "Answer" "Test1" "Ack"))
                     (read-serapi-response serproc)
                     :test #'equal)))
       ;; serproc isn't killed after with-serapi ends
@@ -10229,14 +10477,23 @@ int main() { puts(\"~d\"); return 0; }
     (is (process-running-p *serapi-process*))))
 
 (deftest serapi-special-character-handling ()
-  (let* ((src "[[\\\"expr\\\" ::== \\\"coords\\\" \\\\n || \\\"coords\\\" \\\\n \\\"expr\\\" <{< fun x _ y => Row x y >}>]] ;;.")
-         (sanitized (sanitize-process-string src)))
-    (is (equal sanitized
+  (let* ((src0 "[[\\\"expr\\\" ::== \\\"coords\\\" \\\\n || \\\"coords\\\" \\\\n \\\"expr\\\" <{< fun x _ y => Row x y >}>]] ;;.")
+         (sanitized0 (sanitize-process-string src0))
+         ;; a /\\n b /\n c should differentiate \n from an extraneous n
+         ;; preceded by backslashes
+         (src1 "a /\\\\\\n b /\\\\n c")
+         (sanitized1 (sanitize-process-string src1)))
+    (is (equal sanitized0
                "[[\\\\\\\"expr\\\\\\\" ::== \\\\\\\"coords\\\\\\\" \\\\\\\\n || \\\\\\\"coords\\\\\\\" \\\\\\\\n \\\\\\\"expr\\\\\\\" <{< fun x _ y => Row x y >}>]] ;;."))
-    (is (equal (unescape-string sanitized)
-               "[[\\\\\"expr\\\\\" ::== \\\\\"coords\\\\\" \\\\\\n || \\\\\"coords\\\\\" \\\\\\n \\\\\"expr\\\\\" <{< fun x _ y => Row x y >}>]] ;;."))))
+    (is (equal (sel/cp/serapi-io::unescape-coq-string sanitized0)
+               "[[\\\"expr\\\" ::== \\\"coords\\\" \\\\n || \\\"coords\\\" \\\\n \\\"expr\\\" <{< fun x _ y => Row x y >}>]] ;;."))
+    (is (equal sanitized0 (sel/cp/serapi-io::escape-coq-string sanitized0)))
+    (is (equal sanitized1 "a /\\\\\\\\  b /\\\\\\\\n c"))
+    (is (equal sanitized1 (sel/cp/serapi-io::escape-coq-string sanitized1)))
+    (is (equal (sel/cp/serapi-io::unescape-coq-string sanitized1)
+               "a /\\\\  b /\\\\n c"))))
 
-(deftest (can-read-write-serapi :long-running) ()
+(deftest can-read-write-serapi ()
   (with-fixture serapi
     ;; write basic "Print nat." query and read response
     (write-to-serapi *serapi-process*
@@ -10244,10 +10501,16 @@ int main() { puts(\"~d\"); return 0; }
     (let ((response (read-serapi-response *serapi-process*)))
       (is response)
       (is (= 5 (length response)))
-      (is (member #!'(Answer TestQ Ack) response :test #'equal))
-      (is (member #!'(Answer TestQ Completed) response :test #'equal)))))
+      (is (member (mapcar {intern _ :sel/cp/serapi-io}
+                          (list "Answer" "TestQ" "Ack"))
+                  response
+                  :test #'equal))
+      (is (member (mapcar {intern _ :sel/cp/serapi-io}
+                          (list "Answer" "TestQ" "Completed"))
+                  response
+                  :test #'equal)))))
 
-(deftest (can-run-coq-vernacular :long-running) ()
+(deftest can-run-coq-vernacular ()
   (with-fixture serapi
     (let ((vernac "Print nat."))
       (write-to-serapi *serapi-process*
@@ -10256,95 +10519,125 @@ int main() { puts(\"~d\"); return 0; }
             (resp2 (run-coq-vernacular vernac :qtag #!'TestQ)))
         (is (equal resp1 resp2))))))
 
-(deftest is-type-works ()
-  (let ((resp1 #!'(Answer TestQ Ack))
-        (resp2 #!'(Feedback ((id 1) (route 0) (contents Processed)))))
-    (is (sel/cp/serapi-io::is-type #!'Answer resp1))
-    (is (sel/cp/serapi-io::is-type #!'Feedback resp2))
-    (is (not (sel/cp/serapi-io::is-type #!'Answer resp2)))
-    (is (not (sel/cp/serapi-io::is-type #!'Feedback resp1)))))
+(deftest serapi-is-type-works ()
+  (with-fixture serapi
+    (let* ((resp (run-coq-vernacular "Print nat." :qtag #!'TestQ))
+           ;; (Answer TestQ Ack)
+           (ack (nth 0 resp))
+           ;; (Feedback (id 1) (route 0) (contents Processed))
+           (feedback (nth 1 resp))
+           (answer-sym (intern "Answer" :sel/cp/serapi-io))
+           (feedback-sym (intern "Feedback" :sel/cp/serapi-io)))
+      (is (sel/cp/serapi-io::is-type answer-sym ack))
+      (is (sel/cp/serapi-io::is-type feedback-sym feedback))
+      (is (not (sel/cp/serapi-io::is-type answer-sym feedback)))
+      (is (not (sel/cp/serapi-io::is-type feedback-sym ack))))))
 
-(deftest feedback-parsing-works ()
-  (let ((resp1 #!'(Feedback ((id 1) (route 0) (contents Processed))))
-        (resp2 #!'(Answer TestQ Ack)))
-    (is (eql 1 (sel/cp/serapi-io::feedback-id resp1)))
-    (is (eql 0 (sel/cp/serapi-io::feedback-route resp1)))
-    (is (eql #!'Processed (sel/cp/serapi-io::feedback-contents resp1)))
-    (is (not (sel/cp/serapi-io::feedback-id resp2)))
-    (is (not (sel/cp/serapi-io::feedback-route resp2)))
-    (is (not (sel/cp/serapi-io::feedback-contents resp2)))))
+(deftest serapi-feedback-parsing-works ()
+  (with-fixture serapi
+    (let* ((resp (run-coq-vernacular "Print nat." :qtag #!'TestQ))
+           (ack (nth 0 resp))
+           (feedback (nth 1 resp)))
+      (is (not (sel/cp/serapi-io::feedback-id ack)))
+      (is (not (sel/cp/serapi-io::feedback-route ack)))
+      (is (not (sel/cp/serapi-io::feedback-contents ack)))
+      (is (eql 1 (sel/cp/serapi-io::feedback-id feedback)))
+      (is (eql 0 (sel/cp/serapi-io::feedback-route feedback)))
+      (is (eql (intern "Processed" :sel/cp/serapi-io)
+               (sel/cp/serapi-io::feedback-contents feedback))))))
 
-(deftest message-content-works ()
-  (let ((resp1
-         #!'(Feedback
-             ((id 1) (route 0)
-              (contents (Message Notice () (Some (AST (tree)) here))))))
-        (resp2 #!'(Answer TestQ Ack)))
-    (is (equal #!'(Some (AST (tree)) here)
-               (sel/cp/serapi-io::message-content
-                (sel/cp/serapi-io::feedback-contents resp1))))
-    (is (not (sel/cp/serapi-io::message-content
-              (sel/cp/serapi-io::feedback-contents resp2))))))
+(deftest serapi-message-content-works ()
+  (let ((*package* (find-package 'sel/cp/serapi-io)))
+    (let ((resp1
+            (list (intern "Feedback")
+                  (list (list (intern "id") 1)
+                        (list (intern "route") 0)
+                        (list (intern "contents")
+                              (list (intern "Message")
+                                    (intern "Notice")
+                                    ()
+                                    (list (intern "Some")
+                                          (list (intern "AST")
+                                                (list (intern "tree")))
+                                          (intern "here")))))))
+          (resp2 (mapcar #'intern (list "Answer" "TestQ" "Ack"))))
+      (is (equal (list (intern "Some")
+                       (list (intern "AST")
+                             (list (intern "tree")))
+                       (intern "here"))
+                 (sel/cp/serapi-io::message-content
+                  (sel/cp/serapi-io::feedback-contents resp1))))
+      (is (not (sel/cp/serapi-io::message-content
+                (sel/cp/serapi-io::feedback-contents resp2)))))))
 
-(deftest message-level-works ()
-  (let ((resp1
-         #!'(Feedback
-             ((id 1) (route 0)
-              (contents (Message Notice () (Some (AST (tree)) here))))))
-        (resp2 #!'(Answer TestQ Ack)))
-    (is (eql #!'Notice (sel/cp/serapi-io::message-level
-                        (sel/cp/serapi-io::feedback-contents resp1))))
-    (is (not (sel/cp/serapi-io::message-level
-              (sel/cp/serapi-io::feedback-contents resp2))))))
+(deftest serapi-message-level-works ()
+  (with-fixture serapi
+    (let* ((resp (run-coq-vernacular "Print nat." :qtag #!'TestQ))
+           ;; (Answer TestQ Ack)
+           (ack (nth 0 resp))
+           ;; (Feedback (id 1) (route 0) (contents (Message Notice () ...)))
+           (message (nth 2 resp)))
+      (is (eql (intern "Notice" :sel/cp/serapi-io)
+               (sel/cp/serapi-io::message-level
+                (sel/cp/serapi-io::feedback-contents message))))
+      (is (not (sel/cp/serapi-io::message-level
+                (sel/cp/serapi-io::feedback-contents ack)))))))
 
-(deftest answer-parsing-works ()
-  (let ((resp1 #!'(Answer TestQ Ack))
-        (resp2 #!'(Feedback ((id 1) (route 0) (contents Processed))))
-        (resp3 #!'(Answer TestQ (ObjList ((CoqAst (NIL more-stuff))))))
-        (resp4 #!'(Answer TestQ
-                   (ObjList ((CoqString "Inductive binop..."))))))
-    ;; verify answer-content
-    (is (equal (list #!'Ack nil (lastcar resp3) (lastcar resp4))
-               (mapcar #'sel/cp/serapi-io::answer-content
-                       (list resp1 resp2 resp3 resp4))))
+(deftest (serapi-answer-parsing-works :long-running) ()
+  (with-fixture serapi
+    (let ((ids (add-coq-string "Definition test := true.")))
+      (write-to-serapi *serapi-process*
+                       #!`((TestQ (Query () (Ast ,(FIRST IDS))))))
+      (let* ((resp1 (mapcar #'tag-loc-info
+                            (read-serapi-response *serapi-process*)))
+             ;; (Answer TestQ Ack)
+             (ack (nth 0 resp1))
+             ;; (Answer TestQ (ObjList ((CoqAst ...))))
+             (objlist-ast (nth 1 resp1))
+             (resp2 (run-coq-vernacular "Check test." :qtag #!'TestC))
+             ;; (Feedback (id 2) (route 0) (contents Processed))
+             (feedback (nth 1 resp2))
+             (none (write-to-serapi *serapi-process*
+                         #!`((TestP (Query ((pp ((pp_format PpStr))))
+                                           (Ast ,(FIRST IDS)))))))
+             (resp3 (read-serapi-response *serapi-process*))
+             ;; (Answer TestP (ObjList ((CoqString Definition test := true.))))
+             (objlist-string (nth 1 resp3)))
+        (declare (ignorable none))
+        ;; verify answer-content
+        (is (equal (list (lastcar ack) (lastcar objlist-ast) nil
+                         (lastcar objlist-string))
+                   (mapcar #'sel/cp/serapi-io::answer-content
+                           (list ack objlist-ast feedback objlist-string))))
+        ;; verify answer-string
+        (is (equal (list nil nil nil "Definition test := true.")
+                   (mapcar [#'sel/cp/serapi-io::answer-string
+                               #' sel/cp/serapi-io::answer-content]
+                           (list ack objlist-ast feedback objlist-string))))
+        ;; verify answer-ast is nil for non-AST answers
+        (is (equal (list nil nil nil)
+                   (mapcar [#'sel/cp/serapi-io::answer-ast
+                            #'sel/cp/serapi-io::answer-content]
+                           (list ack feedback objlist-string))))
+        ;; verify answer-ast is a VernacDefinition
+        (is (sel/cp/serapi-io::is-type
+             (intern "VernacDefinition" :sel/cp/serapi-io)
+             (nth 1 (sel/cp/serapi-io::answer-ast
+                     (sel/cp/serapi-io::answer-content objlist-ast)))))))))
 
-    ;; verify answer-string
-    (is (equal (list nil nil nil)
-               (mapcar [#'sel/cp/serapi-io::answer-string
-                        #'sel/cp/serapi-io::answer-content]
-                       (list resp1 resp2 resp3))))
-    (is (equal "Inductive binop..."
-               (sel/cp/serapi-io::answer-string
-                (sel/cp/serapi-io::answer-content resp4))))
-
-    ;; verify answer-ast
-    (is (equal (list nil nil nil)
-               (mapcar [#'sel/cp/serapi-io::answer-ast
-                        #'sel/cp/serapi-io::answer-content]
-                       (list resp1 resp2 resp4))))
-    (is (equal #!'(NIL more-stuff)
-               (sel/cp/serapi-io::answer-ast
-                (sel/cp/serapi-io::answer-content resp3))))))
-
-(deftest end-of-response-parsing-works ()
-  (let ((resp1 #!'(Answer TestQ Completed))
-        (resp2 #!'(Sexplib.Conv.Of_sexp_error (Failure "Failure message")
-                   etc))
-        (resp3 #!'(Answer TestQ Ack)))
+(deftest serapi-end-of-response-parsing-works ()
+  (let ((resp1 (mapcar {intern _ :sel/cp/serapi-io}
+                       (list "Answer" "TestQ" "Completed")))
+        (resp2 (list (intern "Sexplib.Conv.Of_sexp_error" :sel/cp/serapi-io)
+                     (list (intern "Failure" :sel/cp/serapi-io)
+                           "Failure message")
+                     (intern "etc" :sel/cp/serapi-io)))
+        (resp3 (mapcar {intern _ :sel/cp/serapi-io}
+                       (list "Answer" "TestQ" "Ack"))))
     (is (equal (list t t nil)
                (mapcar #'is-terminating (list resp1 resp2 resp3))))
     (is (equal (list nil t nil)
                (mapcar #'is-error (list resp1 resp2 resp3))))))
-
-(deftest added-id-correct ()
-  (let ((resp1 #!'(Answer TestQ (Added 2 () NewTip)))
-        (resp2 #!'(Answer TestQ Ack))
-        (resp3 #!'(Feedback ((id 1) (route 0) (contents Processed)))))
-    (is (equal (list 2 nil nil)
-               (iter (for i in (list resp1 resp2 resp3))
-                     (collecting
-                      (when-let ((content (sel/cp/serapi-io::answer-content i)))
-                        (sel/cp/serapi-io::added-id content))))))))
 
 (deftest (can-add-and-lookup-coq-string :long-running) ()
   (with-fixture serapi
@@ -10355,7 +10648,7 @@ int main() { puts(\"~d\"); return 0; }
       (let ((lookup-str (lookup-coq-string (first id))))
         (is (equal add-str lookup-str))))))
 
-(deftest (can-convert-ast-to-string :long-running) ()
+(deftest (can-convert-coq-ast-to-string :long-running) ()
   (with-fixture serapi
     (let* ((add-str "Inductive test :=   | T1 : test   | T2 : test.")
            (id (add-coq-string add-str)))
@@ -10365,7 +10658,7 @@ int main() { puts(\"~d\"); return 0; }
              (ast-str (lookup-coq-string lookup-ast)))
         (is (equal add-str ast-str))))))
 
-(deftest (can-lookup-pretty-printed-repr-1 :long-running) ()
+(deftest (can-lookup-coq-pretty-printed-repr-1 :long-running) ()
   (with-fixture serapi
     (let ((add-str "Inductive test :=   | T1 : test   | T2 : test."))
       (add-coq-string add-str)
@@ -10373,7 +10666,8 @@ int main() { puts(\"~d\"); return 0; }
       (let ((resp1 (read-serapi-response *serapi-process*))
             (resp2 (lookup-coq-pp "test")))
         (is (equal resp2 (coq-message-contents resp1)))
-        (is (some {eql #!'Notice } (coq-message-levels resp1)))))))
+        (is (some {eql (intern "Notice" :sel/cp/serapi-io) }
+                  (coq-message-levels resp1)))))))
 
 (deftest (can-load-coq-file :long-running) ()
   (with-fixture serapi
@@ -10459,7 +10753,8 @@ int main() { puts(\"~d\"); return 0; }
                           (lambda (c)
                             (declare (ignorable c))
                             (invoke-restart 'use-empty-response))))
-            (read-serapi-response *serapi-process*))
+            (sel/cp/serapi-io::read-with-timeout *serapi-process* 2 0.1)
+            (sel/cp/serapi-io::read-with-timeout *serapi-process* 2 0.1))
           (setf *coq* (from-file (make-instance 'coq)
                                  (coq-test-dir "TotalMaps.v"))))
   (:teardown
@@ -10474,7 +10769,8 @@ int main() { puts(\"~d\"); return 0; }
                           (lambda (c)
                             (declare (ignorable c))
                             (invoke-restart 'use-empty-response))))
-            (read-serapi-response *serapi-process*))
+            (sel/cp/serapi-io::read-with-timeout *serapi-process* 2 0.1)
+            (sel/cp/serapi-io::read-with-timeout *serapi-process* 2 0.1))
           (setf *coq* (from-file (make-instance 'coq)
                                  (coq-test-dir "NatBinop.v"))))
   (:teardown
@@ -10482,7 +10778,7 @@ int main() { puts(\"~d\"); return 0; }
    (kill-serapi *serapi-process*)
    (setf *serapi-process* nil)))
 
-(deftest (from-file-sets-fields :long-running) ()
+(deftest (coq-from-file-sets-fields :long-running) ()
   (with-fixture math
     (is *coq*)
     (is (typep *coq* 'coq))
@@ -10493,13 +10789,13 @@ int main() { puts(\"~d\"); return 0; }
   (with-fixture total-maps
     (is *coq*)
     (is (typep *coq* 'coq))
-    (is (= 172 (length (genome *coq*))))
+    (is (= 171 (length (genome *coq*))))
     (is (= 4 (length (imports *coq*))))
     (is (not (coq-modules *coq*)))
     (is (not (coq-sections *coq*)))
     (is (= 12 (length (coq-definitions *coq*))))))
 
-(deftest (can-lookup-pretty-printed-repr-2 :long-running) ()
+(deftest (coq-can-lookup-pretty-printed-repr-2 :long-running) ()
   (with-fixture math
     (let ((resp1 (run-coq-vernacular "Print binop."))
           (resp2 (first (lookup-coq-pp "binop"))))
@@ -10510,14 +10806,14 @@ int main() { puts(\"~d\"); return 0; }
         (is (equal resp2 (first msgs)))))))
 
 
-(deftest find-nearest-type-works ()
+(deftest coq-find-nearest-type-works ()
   (let* ((ls (copy-tree'(a (b ((c d) e)) f (() (g) ()))))
          (coq (make-instance 'coq :genome ls))
          (types (iter (for i below (tree-size ls))
                       (collecting (find-nearest-type coq i)))))
     (is (equal types '(a b b c c c d e f g g g g f)))))
 
-(deftest can-pick-subtree-matching-type ()
+(deftest can-pick-coq-subtree-matching-type ()
   (let* ((ls '(a (b ((c d) e)) f (() (g) ())))
          (coq (make-instance 'coq :genome ls)))
     (is (not (pick-subtree-matching-type coq 'a 0)))
@@ -10527,7 +10823,7 @@ int main() { puts(\"~d\"); return 0; }
     (is (= 13 (pick-subtree-matching-type coq 'f 8)))
     (is (= 8 (pick-subtree-matching-type coq 'f 13)))))
 
-(deftest pick-typesafe-bad-good-respects-types ()
+(deftest coq-pick-typesafe-bad-good-respects-types ()
   (let* ((ls '(a (b ((c d) e)) f (() (g) ())))
          (coq (make-instance 'coq :genome ls)))
     (iter (for i below 25)
@@ -10539,7 +10835,7 @@ int main() { puts(\"~d\"); return 0; }
             (no-mutation-targets () nil)))))
 
 
-(deftest apply-type-safe-swap-mutation-test-1 ()
+(deftest coq-apply-type-safe-swap-mutation-test-1 ()
   (with-fixture ls-test
     ;; genome: '(a (b ((c d) a)) (b (() (c d e) ())))
     ;; swap (c d) and (c d e)
@@ -10549,7 +10845,7 @@ int main() { puts(\"~d\"); return 0; }
     (is (equal '(a (b ((c d e) a)) (b (() (c d) ())))
                (genome *coq*)))))
 
-(deftest apply-type-safe-swap-mutation-test-2 ()
+(deftest coq-apply-type-safe-swap-mutation-test-2 ()
   (with-fixture ls-test
     ;; swap (b ((c d) a)) with (b (() (c d e) ()))
     (apply-mutation *coq* (make-instance 'type-safe-swap
@@ -10558,7 +10854,7 @@ int main() { puts(\"~d\"); return 0; }
     (is (equal '(a (b (() (c d e) ())) (b ((c d) a)))
                (genome *coq*)))))
 
-(deftest apply-type-safe-swap-mutation-test-3 ()
+(deftest coq-apply-type-safe-swap-mutation-test-3 ()
   (with-fixture ls-test
     ;; strange but permissible
     ;; swap ((b ((c d) a)) (b (() (c d e) ()))) with (b (() (c d e) ()))
@@ -10568,7 +10864,7 @@ int main() { puts(\"~d\"); return 0; }
     (is (equal '(a (b (() (c d e) ())) ((b ((c d) a)) (b (() (c d e) ()))))
                (genome *coq*)))))
 
-(deftest apply-type-safe-swap-mutation-test-4 ()
+(deftest coq-apply-type-safe-swap-mutation-test-4 ()
   (with-fixture ls-test
     ;; verify no issues at edge
     (apply-mutation *coq* (make-instance 'type-safe-swap
@@ -10604,4 +10900,150 @@ int main() { puts(\"~d\"); return 0; }
       ;; Complete check result2
       (iter (for expected in '("negb" "orb false" "orb true"
                                "orb (negb false)" "orb (negb true)"))
-            (is (member expected result2-strs :test #'equal))))))
+            (is (member expected result2-strs :test #'equal)))))))
+
+;;; conflict asts
+(defsuite conflict-ast-tests "Conflict ast tests.")
+
+(deftest conflict-ast.1 ()
+  (let ((c1 (make-conflict-ast
+             :child-alist '((1 a) (2 b))
+             :default-children '(c)))
+        (c2 (make-conflict-ast
+             :child-alist '((2 d) (3 e))
+             :default-children '(f))))
+    (let ((c (combine-conflict-asts c1 c2)))
+      (is (equalp (conflict-ast-child-alist c)
+                  '((1 a f) (2 b d) (3 c e)))
+          "conflict ast alists are merged")
+      (is (equalp (conflict-ast-default-children c) '(c f))
+          "conflict ast defaults are merged"))))
+
+;;; cpp-scan
+
+(defun is-comma (c) (eql c #\,))
+
+(defsuite cpp-scan-tests "Tests of CPP-SCAN")
+
+(deftest cpp-scan-basic ()
+  (is (null (cpp-scan "" #'is-comma)))
+  (is (eql (cpp-scan "," #'is-comma) 0))
+  (is (eql (cpp-scan "," #'is-comma :start 0) 0))
+  (is (null (cpp-scan ", " #'is-comma :start 1)))
+  (is (null (cpp-scan " , " #'is-comma :end 1))))
+
+(deftest cpp-scan-simple-parens ()
+  (is (eql (cpp-scan " , " #'is-comma) 1))
+  (is (null (cpp-scan "()" #'is-comma)))
+  (is (null (cpp-scan "(,)" #'is-comma)))
+  (is (eql (cpp-scan "(,)," #'is-comma) 3))
+  (is (eql (cpp-scan "()," #'is-comma) 2))
+  (is (null (cpp-scan "[,]" #'is-comma)))
+  (is (eql (cpp-scan "[,]," #'is-comma) 3))
+  (is (eql (cpp-scan "[]," #'is-comma) 2))
+  (is (null (cpp-scan "{,}" #'is-comma)))
+  (is (eql (cpp-scan "{,}," #'is-comma) 3))
+  (is (eql (cpp-scan "{}," #'is-comma) 2)))
+
+(deftest cpp-scan-literals ()
+  (is (null (cpp-scan "\",\"" #'is-comma)))
+  (is (null (cpp-scan "\"\\\",\"" #'is-comma)))
+  (is (eql (cpp-scan "\"\\\",\" , " #'is-comma) 6))
+  (is (eql (cpp-scan " ,\",\"" #'is-comma) 1))
+  (is (null (cpp-scan "','" #'is-comma)))
+  (is (eql (cpp-scan "',' , " #'is-comma) 4))
+  (is (eql (cpp-scan "'\\n'," #'is-comma) 4)))
+
+(deftest cpp-scan-comments ()
+  (is (null (cpp-scan "/* , , , */" #'is-comma)))
+  (is (eql (cpp-scan "/**/," #'is-comma) 4))
+  (is (eql (cpp-scan "/***/," #'is-comma) 5))
+  (is (eql (cpp-scan "/* // */ ," #'is-comma) 9)))
+
+(deftest cpp-scan-partials ()
+  (is (null (cpp-scan "/" #'is-comma)))
+  (is (null (cpp-scan "\"" #'is-comma)))
+  (is (null (cpp-scan "'" #'is-comma)))
+  (is (null (cpp-scan "'," #'is-comma)))
+  (is (null (cpp-scan "\"" #'is-comma)))
+  (is (null (cpp-scan "\"," #'is-comma)))
+  (is (eql (cpp-scan "/," #'is-comma) 1)))
+
+
+(deftest cpp-scan-line-comments ()
+  (is (null (cpp-scan " // jsajd ,adas" #'is-comma)))
+  (is (eql (cpp-scan (format nil " // . ~% , ") #'is-comma) 8)))
+
+(deftest cpp-scan-nested-comments ()
+  (is (eql (cpp-scan "( /* ( */ ) , " #'is-comma) 12))
+  (is (eql (cpp-scan "( /* ) */ ) , " #'is-comma) 12))
+  (is (eql (cpp-scan "( /* [ */ ) , " #'is-comma) 12))
+  (is (eql (cpp-scan "( /* ] */ ) , " #'is-comma) 12))
+  (is (eql (cpp-scan "( /* { */ ) , " #'is-comma) 12))
+  (is (eql (cpp-scan "( /* } */ ) , " #'is-comma) 12))
+  (is (eql (cpp-scan "[ /* ( */ ] , " #'is-comma) 12))
+  (is (eql (cpp-scan "[ /* ) */ ] , " #'is-comma) 12))
+  (is (eql (cpp-scan "[ /* [ */ ] , " #'is-comma) 12))
+  (is (eql (cpp-scan "[ /* ] */ ] , " #'is-comma) 12))
+  (is (eql (cpp-scan "[ /* { */ ] , " #'is-comma) 12))
+  (is (eql (cpp-scan "[ /* } */ ] , " #'is-comma) 12))
+  (is (eql (cpp-scan "{ /* ( */ } , " #'is-comma) 12))
+  (is (eql (cpp-scan "{ /* ) */ } , " #'is-comma) 12))
+  (is (eql (cpp-scan "{ /* [ */ } , " #'is-comma) 12))
+  (is (eql (cpp-scan "{ /* ] */ } , " #'is-comma) 12))
+  (is (eql (cpp-scan "{ /* { */ } , " #'is-comma) 12))
+  (is (eql (cpp-scan "{ /* } */ } , " #'is-comma) 12)))
+
+(deftest cpp-scan-nested-parens ()
+  (is (null (cpp-scan "(())" #'is-comma)))
+  (is (null (cpp-scan "((,))" #'is-comma)))
+  (is (null (cpp-scan "(,())" #'is-comma)))
+  (is (null (cpp-scan "((),)" #'is-comma)))
+  (is (null (cpp-scan "([])" #'is-comma)))
+  (is (null (cpp-scan "(,[])" #'is-comma)))
+  (is (null (cpp-scan "([,])" #'is-comma)))
+  (is (null (cpp-scan "([],)" #'is-comma)))
+  (is (null (cpp-scan "({})" #'is-comma)))
+  (is (null (cpp-scan "(,{})" #'is-comma)))
+  (is (null (cpp-scan "({,})" #'is-comma)))
+  (is (null (cpp-scan "({},)" #'is-comma)))
+
+  (is (null (cpp-scan "[()]" #'is-comma)))
+  (is (null (cpp-scan "[(,)]" #'is-comma)))
+  (is (null (cpp-scan "[,()]" #'is-comma)))
+  (is (null (cpp-scan "[(),]" #'is-comma)))
+  (is (null (cpp-scan "[[]]" #'is-comma)))
+  (is (null (cpp-scan "[,[]]" #'is-comma)))
+  (is (null (cpp-scan "[[,]]" #'is-comma)))
+  (is (null (cpp-scan "[[],]" #'is-comma)))
+  (is (null (cpp-scan "[{}]" #'is-comma)))
+  (is (null (cpp-scan "[,{}]" #'is-comma)))
+  (is (null (cpp-scan "[{,}]" #'is-comma)))
+  (is (null (cpp-scan "[{},]" #'is-comma)))
+
+  (is (null (cpp-scan "{()}" #'is-comma)))
+  (is (null (cpp-scan "{(,)}" #'is-comma)))
+  (is (null (cpp-scan "{,()}" #'is-comma)))
+  (is (null (cpp-scan "{(),}" #'is-comma)))
+  (is (null (cpp-scan "{[]}" #'is-comma)))
+  (is (null (cpp-scan "{,[]}" #'is-comma)))
+  (is (null (cpp-scan "{[,]}" #'is-comma)))
+  (is (null (cpp-scan "{[],}" #'is-comma)))
+  (is (null (cpp-scan "{{}}" #'is-comma)))
+  (is (null (cpp-scan "{,{}}" #'is-comma)))
+  (is (null (cpp-scan "{{,}}" #'is-comma)))
+  (is (null (cpp-scan "{{},}" #'is-comma))))
+
+(deftest cpp-scan-angle-brackets ()
+  (is (null (cpp-scan "" #'is-comma :angle-brackets t)))
+  (is (null (cpp-scan "<,>" #'is-comma :angle-brackets t)))
+  (is (eql (cpp-scan "," #'is-comma :angle-brackets t) 0))
+  (is (eql (cpp-scan "<>," #'is-comma :angle-brackets t) 2)))
+(deftest cpp-scan-skip-first ()
+  (is (eql (cpp-scan "()(" (lambda (c) (eql c #\())) 0))
+  (is (eql (cpp-scan "()(" (lambda (c) (eql c #\()) :skip-first t) 2))
+  (is (eql (cpp-scan "(())(" (lambda (c) (eql c #\()) :skip-first t) 4))
+  (is (eql (cpp-scan "(()(" (lambda (c) (eql c #\()) :start 1 :skip-first t)
+           3))
+  (is (eql (cpp-scan " ()(" (lambda (c) (eql c #\()) :start 1 :skip-first t)
+           3)))
