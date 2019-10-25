@@ -2227,7 +2227,8 @@ of the same length"
 ;;; CSURF-ASM representation.
 #-windows
 (progn
-  (defsuite csurf-asm-tests "CSURF-ASM representation." #+windows nil)
+
+(defsuite csurf-asm-tests "CSURF-ASM representation.")
 
 (deftest dynamic-linker-path-has-been-set ()
   (is *dynamic-linker-path* "Ensure `*dynamic-linker-path*' has been set."))
@@ -4481,11 +4482,12 @@ int x = CHARSIZE;")))
 
 #-windows
 (progn
+
 (defun npm-available-p ()
   (which "npm"))
 
 (defsuite javascript-project-tests "Javascript project."
-  #-windows (npm-available-p) #+windows nil)
+  (npm-available-p))
 
 (deftest (can-parse-a-javascript-project :long-running) ()
   (with-fixture fib-project-javascript
@@ -4549,7 +4551,8 @@ int x = CHARSIZE;")))
                                               #("b" "number" 0 nil)
                                               #("a" "number" 1 nil)
                                               #("num" "number" 1 nil)))
-                  (nth 11 (aget :trace (get-trace (traces instrumented) 0)))))))))
+                  (nth 11 (aget :trace
+                                (get-trace (traces instrumented) 0)))))))))
 
 
 ;;;; Range representation.
@@ -4869,6 +4872,7 @@ int x = CHARSIZE;")))
 ;;; CSURF-ASM ancestry tests.
 #-windows
 (progn
+
 (defsuite csurf-asm-ancestry "Ancestry tests.")
 
 
@@ -10402,6 +10406,7 @@ int main() { puts(\"~d\"); return 0; }
 
 #-windows
 (progn
+
 ;;; Test SerAPI (low-level Coq interaction)
 (defun serapi-available-p ()
   (set-serapi-paths)
