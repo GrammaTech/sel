@@ -66,6 +66,7 @@
 (declaim (special *aget-cache*))
 (declaim (special *canonical-string-table*))
 (declaim (special *canonical-new-clang-type-table*))
+(declaim (special *new-clang-json-file*))
 
 #-windows
 (defun get-clang-default-includes ()
@@ -117,24 +118,18 @@ See also: https://clang.llvm.org/docs/FAQ.html#id2.")
 ;;; new-clang software objects
 
 (define-software new-clang (clang-base)
-  (;; FIXME: Need to cache invalidate and re-populate properly.
-   (symbol-table
+  ((symbol-table
     :initarg :symbol-table :accessor symbol-table
     :initform (make-hash-table :test #'equal)
     :copier copy-hash-table
     :type hash-table
     :documentation "Map from IDs to objects")
-   ;; FIXME: Need to cache invalidate and re-populate properly.
    (name-symbol-table
     :initarg :name-symbol-table :accessor name-symbol-table
     :initform (make-hash-table :test #'equal)
     :copier copy-hash-table
     :type hash-table
-    :documentation "Map from name strings to declaration objects.")
-   (json-file :initform nil :initarg :json-file
-              :accessor json-file
-              :documentation "When non-nil, read the json from this file
-instead of invoking clang"))
+    :documentation "Map from name strings to declaration objects."))
   (:documentation
    "C language (C, C++, C#, etc...) ASTs using Clang, C language frontend
    for LLVM.  See http://clang.llvm.org/.  This is for ASTs from Clang 9+."))
@@ -1756,8 +1751,10 @@ modifiers from a type name"
                                           (mappend {list "-I"} *clang-default-includes*))))
                        (multiple-value-bind (stdout stderr exit)
                            (let ((*trace-output* *standard-output*))
-                             (if (json-file obj)
-                                 (shell "cat ~a ~a;" (namestring (json-file obj)) filter)
+                             (if (boundp '*new-clang-json-file*)
+                                 (shell "cat ~a ~a;"
+                                        (namestring *new-clang-json-file*)
+                                        filter)
                                  (shell cmd-fmt
                                         flags
                                         src-file
