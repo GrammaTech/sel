@@ -792,26 +792,54 @@ depending on CLASS"))
   (flet ((%p (key fn)
            (let ((v (funcall fn ast)))
              (when v
-               (list (cons key v))))))
+               (list (cons key v)))))
+         (%attrs (attrs)
+           (append (when (aget :referenceddecl attrs)
+                     `((:referenceddecl .
+                                        ,(to-alist (aget :referenceddecl attrs)))))
+                   (when (aget :macro-child-segment attrs)
+                     `((:macro-child-segment .
+                                             ,(mapcar #'to-alist
+                                                      (aget :macro-child-segment attrs)))))
+                   (when (aget :type attrs)
+                     `((:type . ,(to-alist (aget :type attrs)))))
+                   (when (aget :argtype attrs)
+                     `((:argtype . ,(to-alist (aget :argtype attrs)))))
+                   (adrop (list :type :argtype
+                                :referenceddecl :macro-child-segment)
+                          attrs))))
     (append (%p ':class #'new-clang-ast-class)
             (%p ':id #'new-clang-ast-id)
+            (%p ':syn-ctx #'new-clang-ast-syn-ctx)
+            (%p ':aux-data #'new-clang-ast-aux-data)
             ;; Always include :attrs, as it distinguishes
             ;; new-clang from (old) clang serialized asts
-            (%p ':attrs #'new-clang-ast-attrs)
-            (%p ':syn-ctx #'new-clang-ast-syn-ctx)
-            (%p ':aux-data #'new-clang-ast-aux-data))))
+            (%p ':attrs [#'%attrs #'new-clang-ast-attrs]))))
 
 (defmethod from-alist ((obj (eql 'new-clang-ast)) alist)
-  (let ((class (aget :class alist))
-        (id (aget :id alist))
-        (attrs (aget :attrs alist))
-        (syn-ctx (aget :syn-ctx alist))
-        (aux-data (aget :aux-data alist)))
-    (make-new-clang-ast :class class
-                        :id id
-                        :attrs attrs
-                        :syn-ctx syn-ctx
-                        :aux-data aux-data)))
+  (flet ((%attrs (attrs)
+           (append (when (aget :referenceddecl attrs)
+                     `((:referenceddecl .
+                                        ,(from-alist 'new-clang-ast
+                                                     (aget :referenceddecl attrs)))))
+                   (when (aget :macro-child-segment attrs)
+                     `((:macro-child-segment .
+                                             ,(mapcar {from-alist 'new-clang-ast}
+                                                      (aget :macro-child-segment attrs)))))
+                   (when (aget :type attrs)
+                     `((:type . ,(from-alist 'new-clang-type
+                                             (aget :type attrs)))))
+                   (when (aget :argtype attrs)
+                     `((:argtype . ,(from-alist 'new-clang-type
+                                                (aget :argtype attrs)))))
+                   (adrop (list :type :argtype
+                                :referenceddecl :macro-child-segment)
+                          attrs))))
+    (make-new-clang-ast :class (aget :class alist)
+                        :id (aget :id alist)
+                        :syn-ctx (aget :syn-ctx alist)
+                        :aux-data (aget :aux-data alist)
+                        :attrs (%attrs (aget :attrs alist)))))
 
 (defun new-clang-ast-copy (ast fn &rest args
                            &key
