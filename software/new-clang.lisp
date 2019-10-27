@@ -652,6 +652,43 @@ in the macro defn, EXPANSION-LOC is at the macro use."
   (begin nil :type (or null new-clang-loc new-clang-macro-loc))
   (end nil :type (or null new-clang-loc new-clang-macro-loc)))
 
+(defmethod copy ((obj new-clang-loc)
+                 &key (file nil file-supplied-p)
+                   (line nil line-supplied-p)
+                   (col nil col-supplied-p)
+                   (offset 0 offset-supplied-p)
+                   (tok-len 0 tok-len-supplied-p))
+  (make-new-clang-loc
+   :file (if file-supplied-p file (copy-seq (new-clang-loc-file obj)))
+   :line (if line-supplied-p line (new-clang-loc-line obj))
+   :col (if col-supplied-p col (new-clang-loc-col obj))
+   :offset (if offset-supplied-p offset (new-clang-loc-offset obj))
+   :tok-len (if tok-len-supplied-p tok-len (new-clang-loc-tok-len obj))))
+
+(defmethod copy ((obj new-clang-macro-loc)
+                 &key (spelling-loc nil spelling-loc-supplied-p)
+                   (expansion-loc nil expansion-loc-supplied-p)
+                   (is-macro-arg-expansion nil
+                                           is-macro-arg-expansion-supplied-p))
+  (make-new-clang-macro-loc
+   :spelling-loc (if spelling-loc-supplied-p
+                     spelling-loc
+                     (copy (new-clang-macro-loc-spelling-loc obj)))
+   :expansion-loc (if expansion-loc-supplied-p
+                      expansion-loc
+                      (copy (new-clang-macro-loc-expansion-loc obj)))
+   :is-macro-arg-expansion (if is-macro-arg-expansion-supplied-p
+                               is-macro-arg-expansion
+                               (new-clang-macro-loc-is-macro-arg-expansion
+                                obj))))
+
+(defmethod copy ((obj new-clang-range)
+                 &key (begin nil begin-supplied-p)
+                   (end nil end-supplied-p))
+  (make-new-clang-range
+   :begin (if begin-supplied-p begin (copy (new-clang-range-begin obj)))
+   :end (if end-supplied-p end (copy (new-clang-range-end obj)))))
+
 (defgeneric offset (obj)
   (:method ((obj new-clang-loc))
     (new-clang-loc-offset obj))
@@ -1013,7 +1050,10 @@ where class = (ast-class ast).")
   (labels ((ast-includes-in-child (child)
              (nest (mapcar (lambda (ast)
                              (ast-file-for-include obj ast)))
-                   (remove-if «or #'null [#'null #'ast-file]»)
+                   (remove-if-not (lambda (ast)
+                                    (and ast
+                                         (or (ast-file ast nil)
+                                             (ast-file ast t)))))
                    (list child
                          (ast-referenceddecl child)
                          (when (ast-type child)
@@ -2580,25 +2620,34 @@ macro.")
               (iter (flet ((%collect ()
                              (when macro-child-segment
                                (collecting
-                                (let ((obj (make-new-clang-ast
-                                            :class :macroexpansion)))
-                                  (let ((new-begin (car m))
-                                        (tok-len (second m))
-                                        (new-end (+ (car m) (fourth m))))
-                                    (setf (ast-range obj)
-                                          (make-new-clang-range
-                                           :begin (make-new-clang-loc
-                                                   :file (ast-file a)
-                                                   :offset new-begin
-                                                   :tok-len tok-len)
-                                           :end (make-new-clang-loc
-                                                 :file (ast-file a)
-                                                 :offset new-end))
-                                          (ast-attr obj :macro-child-segment)
-                                          macro-child-segment
-                                          changed? t))
-                                  obj)))
-                             (setf m nil
+                                (let ((b-loc (nest (new-clang-range-begin)
+                                                   (ast-range)
+                                                   (car macro-child-segment)))
+                                      (e-loc (nest (new-clang-range-end)
+                                                   (ast-range)
+                                                   (lastcar macro-child-segment)))
+                                      (new-begin-offset (first m))
+                                      (new-begin-tok-len (second m))
+                                      (new-end-offset (+ (first m) (fourth m))))
+                                  (make-new-clang-ast
+                                   :class :macroexpansion :attrs
+                                   `((:range .
+                                             ,(make-new-clang-range
+                                               :begin (copy b-loc :expansion-loc
+                                                            (make-new-clang-loc
+                                                             :file (ast-file b-loc)
+                                                             :offset new-begin-offset
+                                                             :tok-len new-begin-tok-len)
+                                                            :is-macro-arg-expansion nil)
+                                               :end (copy e-loc :expansion-loc
+                                                          (make-new-clang-loc
+                                                           :file (ast-file e-loc)
+                                                           :offset new-end-offset)
+                                                          :is-macro-arg-expansion nil)))
+                                     (:macro-child-segment .
+                                                           ,macro-child-segment))))))
+                             (setf changed? t
+                                   m nil
                                    macro-child-segment nil
                                    last-offset nil)))
                       (if c
