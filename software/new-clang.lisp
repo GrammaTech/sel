@@ -38,6 +38,7 @@
            :make-new-clang-ast
            :ast-id
            :ast-attr
+           :new-clang-ast-attrs
            :symbol-table
            :name-symbol-table
            :combine-overlapping-siblings
