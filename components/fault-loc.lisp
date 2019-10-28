@@ -32,8 +32,7 @@
            :decorate-with-annotations
            :perform-fault-loc
            :fault-loc-tarantula
-           :fault-loc-only-on-bad-traces
-           :mutation-targets))
+           :fault-loc-only-on-bad-traces))
 (in-package :software-evolution-library/components/fault-loc)
 (in-readtable :curry-compose-reader-macros)
 
