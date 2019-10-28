@@ -405,9 +405,12 @@ Return nil if there are no modified, untracked, or deleted files."
             (split-sequence #\Newline stdout :remove-empty-subseqs t))))
 
 (defun is-git-url (url)
-  (or (scan "\\.git$" url)
-      (scan "^git://" url)
-      (scan "^https://git\\." url)))
+  (let ((url-str (if (typep url 'pathname)
+                     (namestring url)
+                     url)))
+    (or (scan "\\.git$" url-str)
+        (scan "^git://" url-str)
+        (scan "^https://git\\." url-str))))
 
 (defun clone-git-repo (url path &key ssh-key user pass)
   "Clones a repo at the supplied URL into the supplied path -- Note,

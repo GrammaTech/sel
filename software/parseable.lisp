@@ -745,14 +745,15 @@ should be included as a possible pick or false (nil) otherwise."
     (if (null second-pool)
         (list (cons :stmt1 first-pick))
         (list (cons :stmt1 first-pick)
-              (cons :stmt2 (some-> (filter-fault-loc
-                                    (mutation-targets software
-                                                      :filter (lambda (ast)
-                                                                (if filter
-                                                                    (funcall filter ast first-pick)
-                                                                    t))
-                                                      :stmt-pool second-pool))
-                                   (random-elt)))))))
+              (cons :stmt2 (some->
+                            (mutation-targets
+                             software
+                             :filter (lambda (ast)
+                                       (if filter
+                                           (funcall filter ast first-pick)
+                                           t))
+                             :stmt-pool second-pool)
+                            (random-elt)))))))
 
 (defmethod pick-bad-good ((software parseable) &key filter
                           (bad-pool #'bad-asts) (good-pool #'good-asts))

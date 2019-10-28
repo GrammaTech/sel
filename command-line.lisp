@@ -194,7 +194,8 @@ front end."
           "Tournament size must be >1"))
 
 (defun handle-ast-annotations-argument (path)
-  (resolve-file path))
+  (when path
+    (resolve-file path)))
 
 (defun resolve-file (file)
   "Ensure file is an actual file that exists on the filesystem."
@@ -472,8 +473,8 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
       (decorate-with-annotations obj (pathname ast-annotations))
       (when fault-loc
         (perform-fault-loc obj)))
-                                        ;      (mapcar (lambda (elt) (note 0 "ast: ~a" (ast-attr elt :annotations)))
-                                        ;             (flatten (mapcar #'stmt-asts (mapcar #'cdr (evolve-files obj)))))
+    ;; (mapcar (lambda (elt) (note 0 "ast: ~a" (ast-attr elt :annotations)))
+    ;;         (flatten (mapcar #'stmt-asts (mapcar #'cdr (evolve-files obj)))))
     obj))
 
 (defgeneric create-test (script)
