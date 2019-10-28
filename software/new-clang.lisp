@@ -1405,9 +1405,10 @@ the match length if sucessful, NIL if not."
 (defun ast-file-for-include (obj ast)
   "Return the file AST is located within in a format suitable for use
 in a #include."
-  (normalize-file-for-include (or (ast-file ast nil) (ast-file ast t))
-                              (append (flags-to-include-dirs (flags obj))
-                                      *clang-default-includes*)))
+  (when-let ((file (or (ast-file ast nil) (ast-file ast t))))
+    (normalize-file-for-include file
+                                (append (flags-to-include-dirs (flags obj))
+                                        *clang-default-includes*))))
 
 (defmethod source-text ((ast new-clang-ast))
   (with-output-to-string (out)
