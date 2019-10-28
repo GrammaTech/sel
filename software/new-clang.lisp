@@ -39,6 +39,7 @@
            :ast-id
            :ast-attr
            :ast-file
+           :ast-file-for-include
            :new-clang-ast-attrs
            :symbol-table
            :name-symbol-table
