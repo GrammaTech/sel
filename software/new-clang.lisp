@@ -892,7 +892,7 @@ depending on CLASS"))
 (defun make-statement (&rest args)
   (apply (if *new-clang?*
              #'make-statement-new-clang
-             #'sel/sw/clang::make-statement*)
+             #'make-statement*)
          args))
 
 (defun make-statement-new-clang (class syn-ctx children

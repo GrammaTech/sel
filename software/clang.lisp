@@ -207,7 +207,6 @@
            :make-clang-macro
            :copy-clang-macro
            ;; FIXME: Clang literal building.
-           :*make-statement-fn*
            :make-statement
            :make-statement*
            :make-literal
@@ -489,10 +488,6 @@ if not given.
                 :includes includes
                 :aux-data aux-data)
         :children children))))
-
-(defparameter *make-statement-fn* #'make-statement*
-  "Function to be used to dispatch on different creation operators
-for statements")
 
 (defgeneric make-literal (value &optional kind &rest rest)
   (:documentation

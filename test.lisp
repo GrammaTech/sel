@@ -87,8 +87,6 @@
    :software-evolution-library/stefil-plus)
   #-windows (:import-from :hunchentoot)
   #-windows (:import-from :osicat :file-permissions :pathname-as-directory)
-  ;; Shadow DEFTEST for control of clang/new-clang in tests
-  (:shadow :deftest)
   (:shadowing-import-from :common-lisp :type)
   (:shadowing-import-from :software-evolution-library :size)
   (:shadowing-import-from :clack :stop)
@@ -651,19 +649,6 @@
 
 ;;; Shadow DEFTEST from stefil-plus to add
 ;;; controllable binding of the clang front end
-
-(defun call-with-clang-versions (fn)
-  (if *new-clang?*
-      (prog2
-          (setf *make-statement-fn* #'make-statement-new-clang)
-        (funcall fn))
-      (prog2
-          (setf *make-statement-fn* #'make-statement*)
-          (funcall fn))))
-
-(defmacro deftest (name args &body body)
-  `(sel/stefil+:deftest ,name ,args
-     (call-with-clang-versions (lambda () ,@body))))
 
 (defun make-clang (&rest key-args)
   (apply #'make-instance (if *new-clang?* 'new-clang 'clang) key-args))
