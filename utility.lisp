@@ -95,7 +95,7 @@
    :current-git-commit
    :current-git-branch
    :current-git-status
-   :is-git-url
+   :git-url-p
    :clone-git-repo
    :push-git-repo
    :*temp-dir*
@@ -404,7 +404,7 @@ Return nil if there are no modified, untracked, or deleted files."
                 (list (make-keyword status) (subseq line point))))
             (split-sequence #\Newline stdout :remove-empty-subseqs t))))
 
-(defun is-git-url (url)
+(defun git-url-p (url)
   (let ((url-str (if (typep url 'pathname)
                      (namestring url)
                      url)))
