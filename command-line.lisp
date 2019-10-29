@@ -537,7 +537,7 @@ in SCRIPT.")
        :action #'handle-save-random-state-to-path-argument
        :documentation "save random seed to FILE")
       (("git-sub-path" #\p) :type string :initial-value nil
-       :documentation "sub path to repair artifacts, when using a git repo")
+       :documentation "sub path to software, when using a git repo")
       (("git-ssh-key" #\k) :type string :initial-value nil
        :documentation "ssh key for pushing, when using a git repo")
       (("git-user" #\P) :type string :initial-value nil
