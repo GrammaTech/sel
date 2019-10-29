@@ -407,7 +407,7 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
   ;; When `path` is a git repository, generate a new temp dir,
   ;; check out the repo, and set relevant variables
   (when (git-url-p path)
-    (with-temp-file (repo) (setf *git-repo-path* repo))
+    (setf *git-repo-path* (temp-file-name))
     (clone-git-repo path *git-repo-path*
                     :ssh-key git-ssh-key :user git-user :pass git-password)
     (setf path (probe-file (format nil "~a/~a" *git-repo-path* git-sub-path)))
