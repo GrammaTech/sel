@@ -919,7 +919,7 @@ Other keys are allowed but are silently ignored.
       (%push :opcode opcode)
       (%push :name (when (= (length declares) 1)
                      ;; new-clang name attribute is not aggregated
-                     (car declares))))
+                     (ast-name (first declares)))))
     (make-new-clang-ast
      :path nil
      :children children
