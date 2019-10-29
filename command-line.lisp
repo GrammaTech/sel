@@ -194,8 +194,7 @@ front end."
           "Tournament size must be >1"))
 
 (defun handle-ast-annotations-argument (path)
-  (when path
-    (resolve-file path)))
+  (resolve-file path))
 
 (defun resolve-file (file)
   "Ensure file is an actual file that exists on the filesystem."
@@ -409,9 +408,11 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
   ;; check out the repo, and set relevant variables
   (when (is-git-url path)
     (with-temp-file (repo) (setf *git-repo-path* repo))
-    (clone-git-repo path *git-repo-path* :ssh-key git-ssh-key :user git-user :pass git-password)
+    (clone-git-repo path *git-repo-path*
+                    :ssh-key git-ssh-key :user git-user :pass git-password)
     (setf path (probe-file (format nil "~a/~a" *git-repo-path* git-sub-path)))
-    (setf language (guess-language path))) ; Reset the language, now that repo is cloned.
+    ;; Reset the language, now that repo is cloned.
+    (setf language (guess-language path)))
   (let ((obj (from-file
    (nest
     ;; These options are interdependent.  Resolve any dependencies and
@@ -449,10 +450,11 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
                     build-command))))
            (artifacts
             (when (subtypep language 'project) artifacts))
+           ;; We may have already set this from the command line args,
+           ;; but this function is another entrypoint into SEL,
+           ;; re-set.
            (ast-annotations
-            ;; we may have already set this from the command line args, but this
-            ;; function is another entrypoint into SEL, re-set
-            (when (subtypep language 'software)
+            (when ast-annotations
               (handle-ast-annotations-argument ast-annotations)))))
     (apply #'make-instance language)
     (apply #'append
@@ -567,7 +569,7 @@ in SCRIPT.")
        :documentation "shell command to build project directory")
       (("ast-annotations" #\A) :type string
        :action #'handle-ast-annotations-argument
-       :documentation "annotate asts from static file spec")))
+       :documentation "a file holding ast annotations")))
   (defparameter +clang-project-command-line-options+
     '((("artifacts" #\a) :type string
        :action #'handle-comma-delimited-argument
