@@ -922,12 +922,12 @@ Other keys are allowed but are silently ignored.
                      (ast-name (first declares)))))
     (make-new-clang-ast
      :path nil
-     :children children
      :syn-ctx syn-ctx
      :class class
      :attrs attrs
-     :children children
-     :aux-data aux-data)))
+     :aux-data aux-data
+     :children (mapcar (lambda (c) (if (stringp c) (peel-bananas c) c))
+                       children))))
 
 
 ;;; AST fields
