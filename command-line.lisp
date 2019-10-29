@@ -539,11 +539,12 @@ in SCRIPT.")
       (("git-sub-path" #\p) :type string :initial-value nil
        :documentation "sub path to software, when using a git repo")
       (("git-ssh-key" #\k) :type string :initial-value nil
-       :documentation "ssh key for pushing, when using a git repo")
+       :documentation "path to ssh key used for pushing a git repo")
       (("git-user" #\P) :type string :initial-value nil
-       :documentation "user, to use when pushing to a git repo")
+       :documentation "user used for pushing a git repo")
       (("git-password" #\P) :type string :initial-value nil
-       :documentation "password (NOTE: insecure!), to use when pushing to a git repo")))
+       :documentation
+       "password (NOTE: insecure!) used when pushing to a git repo")))
   (defparameter +interactive-command-line-options+
     '((("interactive") :type boolean :optional t
        :action #'handle-set-interactive-argument
