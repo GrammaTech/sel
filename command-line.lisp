@@ -406,71 +406,68 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
     (return-from create-software (restore path)))
   ;; When `path` is a git repository, generate a new temp dir,
   ;; check out the repo, and set relevant variables
-  (when (git-url-p path)
-    (setf *git-repo-path* (temp-file-name))
-    (clone-git-repo path *git-repo-path*
-                    :ssh-key git-ssh-key :user git-user :pass git-password)
-    (setf path (probe-file (format nil "~a/~a" *git-repo-path* git-sub-path)))
-    ;; Reset the language, now that repo is cloned.
-    (setf language (guess-language path)))
-  (let ((obj (from-file
-   (nest
-    ;; These options are interdependent.  Resolve any dependencies and
-    ;; drop options which don't exist for LANGUAGE in this `let*'.
-    (let* ((language (cond
-                       ((and language-p (symbolp language))
-                        language)
-                       ((and language-p (stringp language))
-                        (resolve-language-from-language-and-source
-                         language path))
-                       (t language)))
-           (flags
-            (when (subtypep language 'source) flags))
-           (compiler
-            (when (subtypep language 'source) compiler))
-           (compilation-database
-            (when (eql language 'clang-project) compilation-database))
-           (build-command
-            (when (subtypep language 'project)
-              (let* ((build-command-list (split-sequence #\Space build-command))
-                     (abs-cmd-name (nest
-                                    (ignore-errors)
-                                    (merge-pathnames-as-file path)
-                                    (canonical-pathname
-                                     (car build-command-list)))))
-                ;; Remove any absolute path from the beginning of
-                ;; build-command *if* build-command is a file in the
-                ;; base of the project.
-                (if (file-exists-p abs-cmd-name)
-                    (format nil "~a~{ ~a~}"
-                            (replace-all (namestring abs-cmd-name)
-                                         (namestring path)
-                                         "./")
-                            (cdr build-command-list))
-                    build-command))))
-           (artifacts
-            (when (subtypep language 'project) artifacts))
-           ;; We may have already set this from the command line args,
-           ;; but this function is another entrypoint into SEL,
-           ;; re-set.
-           (ast-annotations
-            (when ast-annotations
-              (handle-ast-annotations-argument ast-annotations)))))
-    (apply #'make-instance language)
-    (apply #'append
-           (plist-drop-if ; Any other keyword arguments are passed through.
-            {member _ (list :language :compiler :flags :build-command :artifacts
-                            :ast-annotations :compilation-database :store-path)}
-            (copy-seq rest)))
-    (remove-if-not #'second)
-    `((:allow-other-keys t)
-      (:compiler ,compiler)
-      (:flags ,flags)
-      (:build-command ,build-command)
-      (:artifacts ,artifacts)
-      (:ast-annotations ,ast-annotations)
-      (:compilation-database ,compilation-database)))
-   path)))
+  (let* ((repo (if (git-url-p path)
+                   (let ((url path)
+                         (local-repo (temp-file-name)))
+                     (clone-git-repo url local-repo
+                                     :ssh-key git-ssh-key :user git-user :pass git-password)
+                     (setf path (probe-file (format nil "~a/~a" local-repo git-sub-path)))
+                     ;; Reset the language, now that repo is cloned.
+                     (setf language (guess-language path))
+                     url)
+                   nil))
+         (obj (from-file
+               (nest
+                ;; These options are interdependent.  Resolve any dependencies and
+                ;; drop options which don't exist for LANGUAGE in this `let*'.
+                (let* ((language (cond
+                                   ((and language-p (symbolp language))
+                                    language)
+                                   ((and language-p (stringp language))
+                                    (resolve-language-from-language-and-source
+                                     language path))
+                                   (t language)))
+                       (flags
+                        (when (subtypep language 'source) flags))
+                       (compiler
+                        (when (subtypep language 'source) compiler))
+                       (compilation-database
+                        (when (eql language 'clang-project) compilation-database))
+                       (build-command
+                        (when (subtypep language 'project)
+                          (let* ((build-command-list (split-sequence #\Space build-command))
+                                 (abs-cmd-name (nest
+                                                (ignore-errors)
+                                                (merge-pathnames-as-file path)
+                                                (canonical-pathname
+                                                 (car build-command-list)))))
+                            ;; Remove any absolute path from the beginning of
+                            ;; build-command *if* build-command is a file in the
+                            ;; base of the project.
+                            (if (file-exists-p abs-cmd-name)
+                                (format nil "~a~{ ~a~}"
+                                        (replace-all (namestring abs-cmd-name)
+                                                     (namestring path)
+                                                     "./")
+                                        (cdr build-command-list))
+                                build-command))))
+                       (artifacts
+                        (when (subtypep language 'project) artifacts))))
+                (apply #'make-instance language)
+                (apply #'append
+                       (plist-drop-if ; Any other keyword arguments are passed through.
+                        {member _ (list :language :compiler :flags :build-command :artifacts
+                                        :git-repo :compilation-database :store-path)}
+                        (copy-seq rest)))
+                (remove-if-not #'second)
+                `((:allow-other-keys t)
+                  (:compiler ,compiler)
+                  (:flags ,flags)
+                  (:build-command ,build-command)
+                  (:artifacts ,artifacts)
+                  (:git-repo ,repo)
+                  (:compilation-database ,compilation-database)))
+               path)))
     (when ast-annotations
       (decorate-with-annotations obj (pathname ast-annotations))
       (when fault-loc

@@ -9,6 +9,7 @@
         :metabang-bind
         :iterate
         :uiop
+        :cl-store
         :software-evolution-library
         :software-evolution-library/software/simple
         :software-evolution-library/software/source
@@ -22,8 +23,9 @@
    :if-let :ensure-function :ensure-gethash :copy-file
    :parse-body :simple-style-warning)
   (:export :project
+           :git-project
+           :git-repo
            :*build-dir*
-           :*git-repo-path*
            :build-command
            :artifacts
            :evolve-files
@@ -41,7 +43,7 @@
            :collect-other-files
            :instrumentation-files
            :all-files
-           :write-out-products-of-evolution))
+           :commit-population-to-git-repository))
 (in-package :software-evolution-library/software/project)
 (in-readtable :curry-compose-reader-macros)
 
@@ -104,6 +106,14 @@ Paths may contain wildcards.")
 E.g., a multi-file C software project may include multiple clang
 software objects in it's `evolve-files'."))
 
+(define-software git-project (project)
+  ((git-repo :initarg :git-repo :accessor git-repo
+             :initform nil
+             :documentation "A valid, permissive repo URL from which
+to create this project and potentially to which one can push changes."))
+  (:documentation "A general software project, but pulled from a git
+repo.  The additional field(s) enable various git-specific operations."))
+
 (defvar *build-dir* nil
   "Directory in which to build projects with `phenome'.
 When non-nil `phenome' builds projects in this directory instead of
@@ -114,11 +124,6 @@ build directory.  To do this set *BUILD-DIR* to a different location
 in each thread and then initialize *BUILD-DIR* in each thread by
 calling `{to-file _ *BUILD_DIR*}' against a base software
 object (e.g., the original program).")
-
-(defvar *git-repo-path* nil
-  "Git repository URL containing source material for a given project.
-The functionality that consumes this variable (i.e., interacts with
-the repository) assumes that all relevant permissions have been enabled.")
 
 (defun ignored-path-p (path &key ignore-paths only-paths
                        &aux (canonical-path (canonical-pathname path)))
@@ -398,9 +403,9 @@ non-symlink text files that don't end in \"~\" and are not ignored by
     (values bin exit stderr stdout
             (mapcar [{in-directory build-dir} #'first] (evolve-files obj)))))
 
-(defun write-out-products-of-evolution (out-dir source
-                                        &optional git-branch git-msg
-                                        &key save-pop ssh-key user pass)
+(defun commit-population-to-git-repository (out-dir source repo-base
+                                            &optional git-url git-branch git-msg
+                                            &key save-pop ssh-key user pass)
   "Write out population to the supplied path and push to git repo, if
 one was provided."
   (let ((best-path (make-pathname
@@ -411,7 +416,7 @@ one was provided."
     (to-file (extremum *population* *fitness-predicate*
                        :key #'fitness)
              best-path))
-  (when *git-repo-path*
+  (when git-url
     ;; Check-in changes to new branch.
     (note 2 "Checking in repaired changes...")
     (let ((repo-path (make-pathname
@@ -420,12 +425,12 @@ one was provided."
       (to-file (extremum *population* *fitness-predicate*
                          :key #'fitness)
                repo-path))
-    (push-git-repo *git-repo-path* git-branch git-msg
+    (push-git-repo repo-base git-branch git-msg
                    :ssh-key ssh-key :user user :pass pass)
     ;; Clean up the repo.
-    (shell "rm -rf ~a" *git-repo-path*))
+    (shell "rm -rf ~a" git-url))
   ;; Don't save pop with git repo, it all gets cleaned-up anyway.
-  (when (and save-pop (not *git-repo-path*))
+  (when (and save-pop (not git-url))
     (let ((store-path (make-pathname
                        :directory out-dir
                        :name (format nil "~a-population" (pathname-name source))

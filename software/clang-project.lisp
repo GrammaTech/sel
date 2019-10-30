@@ -31,7 +31,7 @@
 (in-package :software-evolution-library/software/clang-project)
 (in-readtable :curry-compose-reader-macros)
 
-(define-software clang-project (parseable-project)
+(define-software clang-project (parseable-project git-project)
   ((compilation-database :initarg :compilation-database
                          :accessor compilation-database
                          :initform nil

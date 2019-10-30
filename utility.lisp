@@ -98,6 +98,7 @@
    :git-url-p
    :clone-git-repo
    :push-git-repo
+   :strip-sub-path
    :*temp-dir*
    :temp-file-name
    :with-temp-file
@@ -444,6 +445,9 @@ the path must be absolute and have a trailing slash, as per git convention."
           (note 0 "git push failed:")
           (note 0 "  stdout: ~a" stdout)
           (note 0 "  stderr: ~a" stderr))))))
+
+(defun strip-sub-path (path sub)
+  (regex-replace sub path ""))
 
 #+sbcl
 (locally (declare (sb-ext:muffle-conditions sb-ext:compiler-note))

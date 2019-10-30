@@ -422,8 +422,9 @@ for mutation, throwing a 'no-mutation-targets exception if none are available.
             :report "Expand statement pool of potential mutation targets"
             (mutation-targets obj :filter filter))))))
 
-;;;; Add default weight for those AST nodes that currently lack one
+
 (defun add-default-weights (ast)
+  "Add default weight for those AST nodes that currently lack one."
   (when (not (member :fl-weight (flatten (ast-attr ast :annotations))))
     (setf (ast-attr ast :annotations) (append (list (cons :fl-weight *default-fault-loc-weight*))
                                               (ast-attr ast :annotations)))))
@@ -442,11 +443,11 @@ for mutation, throwing a 'no-mutation-targets exception if none are available.
                            (mapcar #'cdr
                                    (evolve-files obj))))))
 
-;;;; Implement well-known Tarantula "score" by Jones et al. -- note: here
-;;;; we use the inverse, scoring "suspect" statements high rather than low.
 (defmethod fault-loc-tarantula ((obj clang-base))
-  "Annotate ast nodes in obj with :fl-weight tag and a `score` indicating
-how suspect a node is, using the popular spectrum-based Tarantula technique."
+  "Annotate ast nodes in obj with :fl-weight tag and a `score`
+indicating how suspect a node is, using the popular spectrum-based
+Tarantula technique. Note: here we use the inverse, scoring 'suspect'
+statements high rather than low."
   (let* ((ast (ast-root obj))
          (stmts (stmt-asts ast)))
     (mapcar (lambda (stmt)
@@ -462,8 +463,6 @@ how suspect a node is, using the popular spectrum-based Tarantula technique."
                     (cons stmt score)))))
             stmts)))
 
-;;;; prioritize stmts that ONLY occur on bad traces
-;;;; return list of "stmt, suspect" pairs and add pair to each ast's annotation list
 (defmethod fault-loc-only-on-bad-traces ((obj clang-base))
   "Annotate ast nodes in obj with :fl-weight tag and a `score` indicating
 how suspect a node is, targeting nodes that appear only on failing traces."
