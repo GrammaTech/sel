@@ -793,6 +793,20 @@
 
   (:teardown (setf *soft* nil)))
 
+(defixture asm-super-inline-test-att
+  (:setup
+   (setf *soft* (from-file (make-instance 'asm-super-mutant)
+                           (asm-test-dir "inline-test-target.s.att"))
+         (fitness-harness *soft*) (software-dir "asm-super-mutant-fitness.c"))
+   (setf (sel/sw/asm-super-mutant::io-file *soft*)
+         (asm-test-dir "inline-test-testcases.io"))
+   (target-function-name *soft* "debloat__insert_op1")
+   (setf (sel/sw/asm-super-mutant::include-lines *soft*)
+         (let ((asm (from-file (make-instance 'sel/sw/asm-heap:asm-heap)
+                               (asm-test-dir "inline-test-includes.s.att"))))
+           (lines asm))))
+  (:teardown (setf *soft* nil)))
+
 #-windows
 (defixture rest-server
   (:setup (unless *clack* (setf *clack* (initialize-clack))))
@@ -1898,6 +1912,10 @@ of the same length"
 
 (deftest asm-super-mutant-finds-improved-version-reg-test-att ()
   (with-fixture odd-even-asm-super-reg-test-att
+    (asm-super-mutant-finds-improved-version)))
+
+(deftest asm-super-mutant-inline-test-att ()
+  (with-fixture asm-super-inline-test-att
     (asm-super-mutant-finds-improved-version)))
 
 (deftest asm-super-converts-rip-to-abolute-addresses ()

@@ -1,0 +1,52 @@
+
+# BEGIN - Function Header
+#-----------------------------------
+.align 16
+.globl debloat__insert_op1
+.type debloat__insert_op1, @function
+debloat__insert_op1:
+#-----------------------------------
+# END   - Function Header
+
+
+debloat__insert_op1:
+            pushq %rbp # orig ea=0x408110
+            movq %rsp,%rbp # orig ea=0x408111
+            pushq %r12 # orig ea=0x408114
+            pushq %rbx # orig ea=0x408116
+            subq $24,%rsp # orig ea=0x408117
+            movl %edi,-20(%rbp) # orig ea=0x40811b
+            movq %rsi,-32(%rbp) # orig ea=0x40811e
+            movl %edx,-24(%rbp) # orig ea=0x408122
+            movq %rcx,-40(%rbp) # orig ea=0x408125
+            movq -40(%rbp),%rbx # orig ea=0x408129
+            movq -40(%rbp),%rax # orig ea=0x40812d
+            leaq 3(%rax),%r12 # orig ea=0x408131
+            jmp .L_debloat__408146 # orig ea=0x408135
+
+.L_debloat__408137:
+            subq $1,%r12 # orig ea=0x408137
+            subq $1,%rbx # orig ea=0x40813b
+            movzbl (%rbx),%eax # orig ea=0x40813f
+            movb %al,(%r12) # orig ea=0x408142
+
+.L_debloat__408146:
+            cmpq -32(%rbp),%rbx # orig ea=0x408146
+            jne .L_debloat__408137 # orig ea=0x40814a
+
+.L_debloat__40814c:
+            movl -24(%rbp),%edx # orig ea=0x40814c
+            movq -32(%rbp),%rcx # orig ea=0x40814f
+            movl -20(%rbp),%eax # orig ea=0x408153
+            movq %rcx,%rsi # orig ea=0x408156
+            movl %eax,%edi # orig ea=0x408159
+            movl $0,%eax # orig ea=0x40815b
+            callq store_op1 # orig ea=0x408160
+
+.L_debloat__408165:
+            nop # orig ea=0x408165
+            addq $24,%rsp # orig ea=0x408166
+            popq %rbx # orig ea=0x40816a
+            popq %r12 # orig ea=0x40816b
+            popq %rbp # orig ea=0x40816d
+            retq  # orig ea=0x40816e

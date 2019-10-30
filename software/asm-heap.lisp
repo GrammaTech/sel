@@ -206,8 +206,8 @@ All elements of the genome are references into this line-heap."))
  *assembler-x86-readtable*)
 
 (defun intel-syntax-p (x)
-  "True if syntax has been set to :intel. 
-The argument should be an asm-heap instance 
+  "True if syntax has been set to :intel.
+The argument should be an asm-heap instance
 or a symbol representing a valid asm-syntax slot value."
   (if (symbolp x)
       (eq x ':intel)
@@ -402,6 +402,8 @@ we are excluding CALL instructions."
   "Creates a ASM-SUPER-MUTANT and populates it with single variant."
   (let ((inst (copy (super-owner variant))))
     (setf (mutants inst)(cons variant rest-variants))
+    (dolist (x (mutants inst))
+      (setf (super-owner x) inst))  ; set owner of all mutants
     inst))
 
 (defmethod function-index ((asm asm-heap))

@@ -10,6 +10,7 @@
 #include <signal.h>
 #include <time.h>
 #include <stdio.h>
+#include <malloc.h>
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
@@ -21,6 +22,57 @@
 #include <errno.h>
 #include <setjmp.h>
 #include <papi.h>
+
+// keep track of number of
+//   (a) variants which exited with segment violations
+//   (b) number of variants which were aborted early because malloc
+//   was called (we don't support malloc/free/realloc yet)
+//   (c) number of variants aborted because free was called
+//   (d) number of variants aborted because realloc was called
+//
+int segment_violations = 0;
+
+////////////////////////////////////////////////////////////////////////
+// Override all the library heap allocation functions.
+////////////////////////////////////////////////////////////////////////
+
+int in_malloc = 0;
+int in_free = 0;
+int in_realloc = 0;
+int exit_early = 0;
+
+int *null_pointer = 0; // used to trigger segfaults
+
+void *malloc_stub (size_t __size, const void *caller) {
+    in_malloc = 1;
+    int temp = *null_pointer;
+    return (void *)0; // never gets here
+}
+
+void *realloc_stub (void *__ptr, size_t __size, const void *caller) {
+    in_realloc = 1;
+    int temp = *null_pointer;
+    return (void *)0;
+}
+
+extern void free_stub (void *__ptr, const void *caller) {
+    in_free = 1;
+    int temp = *null_pointer;
+}
+
+void disable_heap_funcs() {
+    __malloc_hook = malloc_stub;
+    __realloc_hook = realloc_stub;
+    __free_hook = free_stub;
+}
+
+void restore_heap_funcs() {
+    __malloc_hook = 0;
+    __realloc_hook = 0;
+    __free_hook = 0;
+}
+
+#define IN_HEAP_FUNC (in_malloc || in_free || in_realloc)
 
 // variant function pointer
 // This is defined to take no arguments and return nothing.
@@ -261,7 +313,7 @@ int map_input_pages(unsigned long* p) {
 int init_pages() {
     // map the initial stack page and another 1 meg of stack pages
     int rsp_index = RSP_position(live_input_registers);
-    
+
     for (int i = 0; i < num_tests; i++) {
         unsigned long stack_pos =
             input_regs[(i * num_input_registers) + rsp_index];
@@ -271,7 +323,7 @@ int init_pages() {
             stack_pos -= PAGE_SIZE;
         }
     }
-    
+
     int ret =  map_input_pages(input_mem); // map pages indicated by
                                            // the memory i/o
     ret |= map_output_pages(output_mem);
@@ -455,6 +507,9 @@ void segfault_sigaction(int signal, siginfo_t *si, void *context) {
         longjmp(bailout, 1);  // jump to safe instruction
         return;
     }
+    if (!IN_HEAP_FUNC)
+        segment_violations++;
+
     // we are executing a variant function (executing = RunningTest)
     unblock_signal(signal);
 
@@ -576,6 +631,7 @@ unsigned long run_variant(int v, int test) {
         return ULONG_MAX;
     }
 
+    disable_heap_funcs();
     start_timer();  // start POSIX timer
     sigunblock();
 
@@ -599,7 +655,13 @@ unsigned long run_variant(int v, int test) {
 
     retval = PAPI_read(EventSet, end_value);     // get PAPI count
     end_timer();  // stop POSIX timer
+    restore_heap_funcs();
     sigunblock();
+
+    if (IN_HEAP_FUNC) {
+        exit_early = 1;
+        return ULONG_MAX;
+    }
 
     if (retval < 0) {
         fprintf(stderr, "PAPI_read() error: %d\n", retval);
@@ -839,12 +901,32 @@ int main(int argc, char* argv[]) {
 
     for (int i = 0; variant_table[i]; i++) {
         run_variant_tests(i, p + (i * num_tests));
+        if (exit_early)
+            break;
     }
 
-    // output the results, with all the tests results for one variant
-    // on each line.
-    // Note: this is the only thing sent to stdout by this program.
+#if DEBUG
+    fprintf(stderr, "Number of segfaults: %d\n", segment_violations);
+    fprintf(stderr, "malloc() called: %s\n", in_malloc ? "true" : "false");
+    fprintf(stderr, "realloc() called: %s\n", in_realloc ? "true" : "false");
+    fprintf(stderr, "free() called: %s\n", in_free ? "true" : "false");
+#endif
+    // 1) output meta information, as common lisp plist (:key val ...)
     //
+    // 2) output the results, with all the tests results for one variant
+    //    on each line. Wrap them in a common lisp vector #( ... ).
+    //
+    // Note: these are the only thing sent to stdout by this program.
+    //
+
+    fprintf(stdout, "(%s %d %s %d %s %d %s %d)\n",
+            ":segfaults", segment_violations,
+            ":malloc", in_malloc,
+            ":realloc", in_realloc,
+            ":free", in_free);
+    
+    fprintf(stdout, "#(");
+
     for (int i = 0; i < num_variants; i++) {
         for (int j = 0; j < num_tests; j++) {
             if (p[i * num_tests + j] == 0) {
@@ -855,5 +937,6 @@ int main(int argc, char* argv[]) {
         }
         fprintf(stdout, "\n");
     }
+    fprintf(stdout, ")\n");
     return 0;
 }
