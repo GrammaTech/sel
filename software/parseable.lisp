@@ -17,7 +17,6 @@
   (:export :parseable
            :ast-root
            :asts
-           :asts-changed-p
            :copy-lock
            :*parseable-mutation-types*
            :parseable-mutation
@@ -91,10 +90,6 @@
              :documentation
              "List of all ASTs.
 See the documentation of `update-asts' for required invariants.")
-   (asts-changed-p :accessor asts-changed-p
-                   :initform t :type boolean
-                   :documentation
-                   "Have ASTs changed since the last parse?")
    (copy-lock :initform (make-lock "parseable-copy")
               :copier :none
               :documentation "Lock while copying parseable objects."))
@@ -341,14 +336,6 @@ applicative AST tree and clear the genome string."
   "Ensure the `asts' field is set on OBJ prior to access."
   (update-caches-if-necessary obj))
 
-(defmethod update-asts :around ((obj parseable))
-  "Wrap update-asts to only parse OBJ when the `asts-changed-p'
-field indicates the object has changed since the last parse."
-  (when (asts-changed-p obj)
-    (clear-caches obj)
-    (call-next-method))
-  (setf (asts-changed-p obj) nil))
-
 (defmethod update-asts-if-necessary ((obj parseable))
   "Parse ASTs in obj if the `ast-root' field has not been set.
 * OBJ object to potentially populate with ASTs"
@@ -372,12 +359,11 @@ field indicates the object has changed since the last parse."
   (with-slots (asts) obj (unless asts (update-caches obj))))
 
 (defmethod clear-caches ((obj parseable))
-  "Clear cached fields on OBJ, including `asts' and `asts-changed-p`.
+  "Clear cached fields on OBJ such as `asts'.
 * OBJ object to clear caches for.
 "
-  (with-slots (asts asts-changed-p) obj
-    (setf asts nil
-          asts-changed-p t)))
+  (with-slots (asts) obj
+    (setf asts nil)))
 
 
 ;;; Retrieving ASTs
