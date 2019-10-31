@@ -359,7 +359,7 @@ in or below function declarations"
 (defmethod symbol-table :before ((obj new-clang))
   (update-caches-if-necessary obj))
 
-(defmethod names-symbol-table :before ((obj new-clang))
+(defmethod name-symbol-table :before ((obj new-clang))
   (update-caches-if-necessary obj))
 
 (defmethod (setf ast-root) :after (new (obj new-clang))
