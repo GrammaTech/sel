@@ -1085,19 +1085,16 @@ where class = (ast-class ast).")
                                 &aux (includes nil))
   ;;;  This code is now assuming AST-FILE is not present (or NIL) if
   ;;;  the file was the same as the one this AST is in.
-  ;;;
-  ;;;  This is also needed to make the i-file slot of nct+ work.
   (labels ((ast-includes-in-child (child)
-             (nest (mapcar (lambda (ast)
-                             (ast-file-for-include obj ast)))
-                   (remove-if-not (lambda (ast)
-                                    (and ast
-                                         (or (ast-file ast nil)
-                                             (ast-file ast t)))))
-                   (list child
-                         (ast-referenceddecl child)
-                         (when (ast-type child)
-                           (type-decl-ast obj (ast-type child)))))))
+             (append (nest (mapcar (lambda (ast)
+                                     (ast-file-for-include obj ast)))
+                           (remove-if-not (lambda (ast)
+                                            (and ast
+                                                 (or (ast-file ast nil)
+                                                     (ast-file ast t)))))
+                           (list child (ast-referenceddecl child)))
+                     (when (and (ast-type child) (type-i-file (ast-type child)))
+                       (list (type-i-file (ast-type child)))))))
     (map-ast ast
              (lambda (c)
                (dolist (f (ast-includes-in-child c))
