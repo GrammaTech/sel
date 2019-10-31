@@ -3135,8 +3135,8 @@ objects in TYPES using OBJ's symbol table."
   ;; Port of this method from clang.lsp, for new class
   (let ((*canonical-string-table* (make-hash-table :test 'equal))
         (*canonical-new-clang-type-table* (make-hash-table :test 'equal)))
-    (with-slots (ast-root genome macros includes types
-                          symbol-table name-symbol-table) obj
+    (with-slots (ast-root genome
+                          macros types symbol-table name-symbol-table) obj
       (unless genome     ; get genome from existing ASTs if necessary
         (setf genome (genome obj)
               ast-root nil))
