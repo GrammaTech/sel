@@ -3171,11 +3171,11 @@ objects in TYPES using OBJ's symbol table."
           (combine-overlapping-siblings obj ast)
           (decorate-ast-with-strings obj ast)
           (put-operators-into-starting-positions obj ast)
-          (populate-type-fields-from-symbol-table obj types)
           (compute-full-stmt-attrs ast)
           (compute-guard-stmt-attrs ast)
           (compute-syn-ctxs ast)
           (fix-semicolons ast)
+          (populate-type-fields-from-symbol-table obj types)
           (update-paths ast)
           (setf ast-root ast
                 genome nil)
