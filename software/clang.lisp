@@ -188,7 +188,6 @@
            :clang-type
            :type-array
            :type-decl
-           :type-decl*
            :type-hash
            :type-i-file
            :type-pointer
@@ -770,12 +769,12 @@ will not be generated automatically.
       (add-include obj (type-i-file type))
       ;; only add to the genome if there isn't a type with the same type-decl
       ;; already known
-      (let ((td (type-decl* obj type)))
+      (let ((td (type-decl type)))
         (unless (or (not td)
                     (equal td "")
                     (member td
                             (hash-table-values (types obj))
-                            :key {type-decl* obj}
+                            :key #'type-decl
                             :test #'string=))
           ;; FIXME: ideally this would insert an AST for the type decl
           ;; instead of just adding the text.
@@ -888,12 +887,6 @@ VARIABLE-NAME should be declared in AST."
                          0)
                :name (type-name (typedef-type-helper obj type))
                :decl (type-decl (typedef-type-helper obj type)))))
-
-(defgeneric type-decl* (obj type)
-  (:documentation "Return the source text of the type declaration of TYPE.")
-  (:method (obj (type clang-type))
-    (declare (ignorable obj))
-    (type-decl type)))
 
 (defgeneric type-decl-string (type &key qualified)
   (:documentation "The source text used to declare variables of TYPE.

@@ -197,7 +197,14 @@ attribute of clang json objects")
          :initform nil
          :type list ;; of new-clang-type objects
          :documentation "List of types that are required to understand
-this type."))
+this type.")
+   ;; TODO: This field was carried forward from old clang types.
+   ;; Perhaps this should be an AST instead of a string.
+   (decl :accessor type-decl
+         :initarg :decl
+         :initform ""
+         :type string
+         :documentation "Source text of the type declaration."))
   (:documentation "Objects representing C/C++ types.  Canonicalized
 on QUAL and DESUGARED slots."))
 
@@ -1501,7 +1508,8 @@ computed at the children"))
             (%p ':array #'type-array)
             (%p ':name #'type-name)
             (%p ':i-file #'type-i-file)
-            (%p ':reqs [{mapcar #'to-alist} #'type-reqs]))))
+            (%p ':reqs [{mapcar #'to-alist} #'type-reqs])
+            (%p ':decl #'type-decl))))
 
 (defmethod to-alist ((nct nct+))
   (flet ((%p (key fn)
@@ -1519,7 +1527,8 @@ computed at the children"))
     :name (aget :name alist)
     :i-file (aget :i-file alist)
     :reqs (mapcar {from-alist 'new-clang-type}
-                  (aget :reqs alist))))
+                  (aget :reqs alist))
+    :decl (aget :decl alist)))
 
 (defmethod from-alist ((nct+ (eql 'nct+)) alist)
   (make-instance 'nct+
@@ -1533,7 +1542,8 @@ computed at the children"))
                    (array nil array-supplied-p)
                    (name nil name-supplied-p)
                    (i-file nil i-file-supplied-p)
-                   (reqs nil reqs-supplied-p))
+                   (reqs nil reqs-supplied-p)
+                   (decl nil decl-supplied-p))
   (make-instance 'new-clang-type
     :qual (if qual-supplied-p qual (new-clang-type-qual tp))
     :desugared (if desugared-supplied-p desugared (new-clang-type-desugared tp))
@@ -1541,7 +1551,8 @@ computed at the children"))
     :array (if array-supplied-p array (type-array tp))
     :name (if name-supplied-p name (type-name tp))
     :i-file (if i-file-supplied-p i-file (type-i-file tp))
-    :reqs (if reqs-supplied-p reqs (type-reqs tp))))
+    :reqs (if reqs-supplied-p reqs (type-reqs tp))
+    :decl (if decl-supplied-p decl (type-decl tp))))
 
 (defmethod copy ((tp+ nct+)
                  &key (type nil type-supplied-p)
@@ -1776,10 +1787,8 @@ modifiers from a type name"
       (first (remove-if-not [{member _ ast-classes} #'ast-class]
                             (gethash (type-name tp) name-symbol-table))))))
 
-(defmethod type-decl* ((obj new-clang) (tp+ nct+))
-  (type-decl* obj (nct+-type tp+)))
-(defmethod type-decl* ((obj new-clang) (tp new-clang-type))
-  (source-text (type-decl-ast obj tp)))
+(defmethod type-decl ((tp+ nct+))
+  (type-decl (nct+-type tp+)))
 
 (defmethod type-decl-string ((obj new-clang-type) &key &allow-other-keys)
   (new-clang-type-qual obj))
@@ -3085,9 +3094,9 @@ ast nodes, as needed")
   (map-ast-with-ancestors ast #'compute-syn-ctx)
   (map-ast ast #'fix-var-syn-ctx))
 
-(defun populate-type-i-file-and-reqs (obj types)
-  "Populate the `i-file` and `reqs` fields for new-clang-type objects
-in TYPES using OBJ's symbol table."
+(defun populate-type-fields-from-symbol-table (obj types)
+  "Populate the `i-file`, `reqs`, and `decl` fields for new-clang-type
+objects in TYPES using OBJ's symbol table."
   (labels ((populate-type-i-file (obj tp decl)
              (setf (type-i-file tp)
                    (ast-file-for-include obj decl)))
@@ -3098,7 +3107,10 @@ in TYPES using OBJ's symbol table."
                            (remove nil)
                            (remove-duplicates)
                            (mapcar #'ast-type)
-                           (get-children obj decl))))))
+                           (get-children obj decl)))))
+           (populate-type-decl (tp decl)
+             (setf (type-decl tp)
+                   (source-text decl))))
     (iter (with name-symbol-table = (slot-value obj 'name-symbol-table))
           (for tp in (nest (remove-duplicates)
                            (mapcar #'nct+-type)
@@ -3106,7 +3118,8 @@ in TYPES using OBJ's symbol table."
           (unless (and (type-i-file tp) (type-reqs tp))
             (when-let ((decl (type-decl-ast name-symbol-table tp)))
               (populate-type-i-file obj tp decl)
-              (populate-type-reqs tp decl)))
+              (populate-type-reqs tp decl)
+              (populate-type-decl tp decl)))
           (finally (return types)))))
 
 (defmethod update-paths
@@ -3161,10 +3174,10 @@ in TYPES using OBJ's symbol table."
           (combine-overlapping-siblings obj ast)
           (decorate-ast-with-strings obj ast)
           (put-operators-into-starting-positions obj ast)
+          (populate-type-fields-from-symbol-table obj types)
           (compute-full-stmt-attrs ast)
           (compute-guard-stmt-attrs ast)
           (compute-syn-ctxs ast)
-          (populate-type-i-file-and-reqs obj types)
           (fix-semicolons ast)
           (update-paths ast)
           (setf ast-root ast
