@@ -182,16 +182,19 @@ attribute of clang json objects")
    (array :initarg :array
           :type string
           :reader type-array)
-   (i-file :initarg :i-file
-           :type (or null string)
-           :reader new-clang-type-i-file
-           :initform nil)
    ;; Name is the underlying name sans the modifiers and array
    (name :initarg :name
          :type string
          :reader type-name)
+   ;; Slots populated from the type declaration AST.
+   (i-file :accessor type-i-file
+           :initarg :i-file
+           :initform nil
+           :type (or null string)
+           :documentation "Header file where the type is located.")
    (reqs :accessor type-reqs
          :initarg :reqs
+         :initform nil
          :type list ;; of new-clang-type objects
          :documentation "List of types that are required to understand
 this type."))
@@ -1570,8 +1573,10 @@ computed at the children"))
 
 (defmethod type-i-file ((tp+ nct+))
   (type-i-file (nct+-type tp+)))
-(defmethod type-i-file ((tp new-clang-type))
-  (new-clang-type-i-file tp))
+
+(defmethod type-reqs ((tp+ nct+))
+  (mapcar {make-instance 'nct+ :type}
+          (type-reqs (nct+-type tp+))))
 
 (defmethod type-hash ((tp+ nct+))
   (sxhash (concatenate 'string
@@ -1616,17 +1621,6 @@ computed at the children"))
   (type-restrict (nct+-type tp+)))
 (defmethod type-restrict ((tp new-clang-type))
   (if (logtest +restrict+ (new-clang-type-modifiers tp)) t nil))
-
-(defmethod type-reqs ((tp+ nct+))
-  (mapcar {make-instance 'nct+ :type}
-          (remove-duplicates
-           (type-reqs (nct+-type tp+)))))
-(defmethod slot-unbound (class (obj new-clang-type) (slot (eql 'reqs)))
-  ;; Find all the types required by this type
-  ;; Currently, this is a stub
-  ;; The proper implemenetation must walk over the type
-  (declare (ignorable class))
-  (setf (slot-value obj slot) nil)) ;; stub
 
 (defmethod slot-unbound (class (obj new-clang-type) (slot (eql 'array)))
   (declare (ignorable class))
@@ -1768,6 +1762,10 @@ modifiers from a type name"
   (:method ((obj new-clang) (tp+ nct+))
     (type-decl-ast obj (nct+-type tp+)))
   (:method ((obj new-clang) (tp new-clang-type))
+    (type-decl-ast (name-symbol-table obj) tp))
+  (:method ((name-symbol-table hash-table) (tp+ nct+))
+    (type-decl-ast name-symbol-table (nct+-type tp+)))
+  (:method ((name-symbol-table hash-table) (tp new-clang-type))
     (when-let* ((qual (new-clang-type-qual tp))
                 (ast-classes (cond ((or (starts-with-subseq "struct " qual)
                                         (starts-with-subseq "class " qual))
@@ -1775,9 +1773,8 @@ modifiers from a type name"
                                    ((starts-with-subseq "union " qual)
                                     (list :Union))
                                    (t (list :Typedef)))))
-      (car (remove-if-not [{member _ ast-classes} #'ast-class]
-                          (gethash (type-name tp)
-                                   (name-symbol-table obj)))))))
+      (first (remove-if-not [{member _ ast-classes} #'ast-class]
+                            (gethash (type-name tp) name-symbol-table))))))
 
 (defmethod type-decl* ((obj new-clang) (tp+ nct+))
   (type-decl* obj (nct+-type tp+)))
@@ -3089,6 +3086,30 @@ ast nodes, as needed")
   (map-ast-with-ancestors ast #'compute-syn-ctx)
   (map-ast ast #'fix-var-syn-ctx))
 
+(defun populate-type-i-file-and-reqs (obj types)
+  "Populate the `i-file` and `reqs` fields for new-clang-type objects
+in TYPES using OBJ's symbol table."
+  (labels ((populate-type-i-file (obj tp decl)
+             (setf (type-i-file tp)
+                   (ast-file-for-include obj decl)))
+           (populate-type-reqs (tp decl)
+             (setf (type-reqs tp)
+                   (unless (type-i-file tp)
+                     (nest (remove tp)
+                           (remove nil)
+                           (remove-duplicates)
+                           (mapcar #'ast-type)
+                           (get-children obj decl))))))
+    (iter (with name-symbol-table = (slot-value obj 'name-symbol-table))
+          (for tp in (nest (remove-duplicates)
+                           (mapcar #'nct+-type)
+                           (hash-table-values types)))
+          (unless (and (type-i-file tp) (type-reqs tp))
+            (when-let ((decl (type-decl-ast name-symbol-table tp)))
+              (populate-type-i-file obj tp decl)
+              (populate-type-reqs tp decl)))
+          (finally (return types)))))
+
 (defmethod update-paths
     ((ast new-clang-ast) &optional path)
   "Modify AST in place with all paths updated to begin at PATH"
@@ -3144,6 +3165,7 @@ ast nodes, as needed")
           (compute-full-stmt-attrs ast)
           (compute-guard-stmt-attrs ast)
           (compute-syn-ctxs ast)
+          (populate-type-i-file-and-reqs obj types)
           (fix-semicolons ast)
           (update-paths ast)
           (setf ast-root ast
