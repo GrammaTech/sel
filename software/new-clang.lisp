@@ -799,9 +799,7 @@ depending on CLASS"))
 
 (defmethod to-alist ((ast new-clang-ast))
   (flet ((%p (key fn)
-           (let ((v (funcall fn ast)))
-             (when v
-               (list (cons key v)))))
+           (list (cons key (funcall fn ast))))
          (%attrs (attrs)
            (append (when (aget :referenceddecl attrs)
                      `((:referenceddecl .
