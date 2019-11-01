@@ -334,8 +334,9 @@ which maps (test-casel: position)"
                                (remove-if-not ; Filter to just this file.
                                 [{search _ (original-file obj)} #'ann-file])
                                (mapcar #'read-from-string)
-                               (split-sequence #\Newline)
-                               (file-to-string ast-annotations))))
+                               (split-sequence #\Newline
+                                               (file-to-string ast-annotations)
+                                               :remove-empty-subseqs t))))
         ;; NOTE: Unnecessary quadratic, could be made faster by first
         ;;       sorting the annotations and statements by line
         ;;       number.  May never matter.

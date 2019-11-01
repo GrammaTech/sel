@@ -9989,11 +9989,12 @@ prints unique counters in the trace"
   (labels ((ast-start-line (ast)
              (let ((loc (new-clang-range-begin (ast-attr ast :range))))
                (if (numberp loc)
-                   nil  ; the root node has "0" for a range
+                   nil  ; The root node has "0" for a range.
                    (new-clang-loc-line loc)))))
     (setf *new-clang?* t)
     (with-fixture gcd-clang
-      (decorate-with-annotations *gcd* (pathname "test/etc/gcd/gcd-fault-loc"))
+      (decorate-with-annotations *gcd* (make-pathname :directory +gcd-dir+
+                                                      :name "gcd-fault-loc"))
       (let* ((bad-stmts-weights (fault-loc-only-on-bad-traces *gcd*))
              (bad-stmts (remove nil (loop for tup in bad-stmts-weights
                                         ;when weighted at 1.0
