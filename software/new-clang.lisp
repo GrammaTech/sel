@@ -1784,7 +1784,7 @@ modifiers from a type name"
 (defmethod type-decl-string ((obj nct+) &key &allow-other-keys)
   (type-decl-string (nct+-type obj)))
 
-(defmethod type-trace-string ((type nct+) &key qualified)
+(defmethod type-trace-string ((type nct+) &key (qualified t))
   (type-trace-string* type qualified))
 
 (defun trace-string-to-clang-json-string
