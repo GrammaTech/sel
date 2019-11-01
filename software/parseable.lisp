@@ -244,10 +244,6 @@ even if such an INCLUDE already exists in SOFTWARE."))
 Return as a list of (first-index last-index). Indices are positions in
 the list returned by (asts software)."  ) )
 
-(defgeneric match-ast-location (ast loc-spec)
-  (:documentation
-   "Match the given ast to location info (varies by software-type and ast-type)"))
-
 
 ;;; Core parseable methods
 (defvar *parseable-obj-code* (register-code 45 'parseable)

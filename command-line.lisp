@@ -406,20 +406,23 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
     (return-from create-software (restore path)))
   ;; When `path` is a git repository, generate a new temp dir,
   ;; check out the repo, and set relevant variables
-  (let* ((repo (if (git-url-p path)
-                   (let ((url path)
-                         (local-repo (temp-file-name)))
-                     (clone-git-repo url local-repo
-                                     :ssh-key git-ssh-key :user git-user :pass git-password)
-                     (setf path (probe-file (format nil "~a/~a" local-repo git-sub-path)))
-                     ;; Reset the language, now that repo is cloned.
-                     (setf language (guess-language path))
-                     url)
-                   nil))
+  (let* ((repo (when (git-url-p path)
+                 (let ((url path)
+                       (local-repo (temp-file-name)))
+                   (clone-git-repo url local-repo
+                                   :ssh-key git-ssh-key
+                                   :user git-user :pass git-password)
+                   (setf path (probe-file
+                               (make-pathname :directory local-repo
+                                              :name git-sub-path)))
+                   ;; Reset the language, now that repo is cloned.
+                   (setf language (guess-language path))
+                   url)))
          (obj (from-file
                (nest
-                ;; These options are interdependent.  Resolve any dependencies and
-                ;; drop options which don't exist for LANGUAGE in this `let*'.
+                ;; These options are interdependent.  Resolve any
+                ;; dependencies and drop options which don't exist for
+                ;; LANGUAGE in this `let*'.
                 (let* ((language (cond
                                    ((and language-p (symbolp language))
                                     language)
@@ -432,10 +435,12 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
                        (compiler
                         (when (subtypep language 'source) compiler))
                        (compilation-database
-                        (when (eql language 'clang-project) compilation-database))
+                        (when (eql language 'clang-project)
+                          compilation-database))
                        (build-command
                         (when (subtypep language 'project)
-                          (let* ((build-command-list (split-sequence #\Space build-command))
+                          (let* ((build-command-list
+                                  (split-sequence #\Space build-command))
                                  (abs-cmd-name (nest
                                                 (ignore-errors)
                                                 (merge-pathnames-as-file path)
@@ -454,11 +459,13 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
                        (artifacts
                         (when (subtypep language 'project) artifacts))))
                 (apply #'make-instance language)
-                (apply #'append
-                       (plist-drop-if ; Any other keyword arguments are passed through.
-                        {member _ (list :language :compiler :flags :build-command :artifacts
-                                        :git-repo :compilation-database :store-path)}
-                        (copy-seq rest)))
+                (apply
+                 #'append
+                 (plist-drop-if ; Other keyword arguments are passed through.
+                  {member _ (list :language :compiler :flags :build-command
+                                  :artifacts :git-repo :compilation-database
+                                  :store-path)}
+                  (copy-seq rest)))
                 (remove-if-not #'second)
                 `((:allow-other-keys t)
                   (:compiler ,compiler)
