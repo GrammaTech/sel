@@ -1138,24 +1138,20 @@ on various ast classes"))
 (defmethod ast-types* ((ast new-clang-ast) (ast-class (eql :Var)))
   ;; For :Var nodes, we must also include the types in the
   ;; initializer, if present
-  (let ((nodes (remove ast (ast-nodes-in-subtree ast))))
-    (sort
-     (reduce (lambda (a b) (union a b :key #'type-hash))
-             (mapcar #'ast-types nodes)
-             :initial-value (ast-types*-on-decl ast))
-     #'string<
-     :key #'type-name)))
+  (remove-duplicates (apply #'append
+                            (ast-types*-on-decl ast)
+                            (mapcar #'ast-types
+                                    (remove ast (ast-nodes-in-subtree ast))))
+                     :key #'type-hash))
 
 (defmethod ast-types* ((ast new-clang-ast) (ast-class (eql :Macroexpansion)))
-  (let ((nodes (remove ast (ast-nodes-in-subtree ast)))
-        (macro-child-segment (mapcan #'ast-nodes-in-subtree
-                                     (ast-attr ast :macro-child-segment))))
-    (sort
-     (reduce (lambda (a b) (union a b :key #'type-hash))
-             (mapcar #'ast-types (append nodes macro-child-segment))
-             :initial-value nil)
-     #'string<
-     :key #'type-name)))
+  (remove-duplicates (apply #'append
+                            (ast-types*-on-decl ast)
+                            (mapcar #'ast-types
+                                    (mapcan #'ast-nodes-in-subtree
+                                            (ast-attr ast
+                                                      :macro-child-segment))))
+                     :key #'type-hash))
 
 (defmethod ast-types* ((ast new-clang-ast) (ast-class (eql :UnaryExprOrTypeTraitExpr)))
   (let ((argtype (ast-attr ast :argtype))
