@@ -936,11 +936,15 @@ that is not strictly speaking about types at all (storage class)."))
 (defun ast-range (ast) (ast-attr ast :range))
 (defun (setf ast-range) (val ast) (setf (ast-attr ast :range) val))
 
+;;; TODO: This function should be removed when we unify
+;;;       new-clang-range with sel/utility:range.
 (defun within-ast-range (range line)
   "Test whether the supplied line is within a range."
   (and (>= line (new-clang-loc-line (new-clang-range-begin range)))
        (<= line (new-clang-loc-line (new-clang-range-end range)))))
 
+;;; TODO: This function should be removed when we unify
+;;;       new-clang-range with sel/utility:range.
 (defun ast-range-str (range)
   "Return a short string-rep for the supplied range."
   (format nil "[~a, ~a]" (new-clang-loc-line (new-clang-range-begin range))
