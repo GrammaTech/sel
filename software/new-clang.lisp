@@ -738,11 +738,6 @@ in the macro defn, EXPANSION-LOC is at the macro use."
 (defgeneric tok-len (x)
   (:method ((x new-clang-loc)) (new-clang-loc-tok-len x))
   (:method ((x new-clang-macro-loc))
-    #|
-    (if (not (new-clang-macro-loc-is-macro-arg-expansion x))
-    (tok-len (new-clang-macro-loc-spelling-loc x))
-    (tok-len (new-clang-macro-loc-expansion-loc x)))
-    |#
     (tok-len (new-clang-macro-loc-expansion-loc x))))
 
 ;;; Compute beginning, ending offsets for an ast, other things
