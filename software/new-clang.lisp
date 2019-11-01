@@ -382,10 +382,12 @@ in or below function declarations"
 (defmethod update-caches ((obj new-clang))
   (call-next-method)
   (with-slots (includes macros types symbol-table name-symbol-table) obj
-    (setf name-symbol-table
-          (update-name-symbol-table name-symbol-table symbol-table))
     (setf includes
           (ast-includes-in-obj obj (ast-root obj)))
+    (setf name-symbol-table
+          (if (zerop (hash-table-count name-symbol-table))
+              (update-name-symbol-table name-symbol-table symbol-table)
+              name-symbol-table))
     (setf types
           (if (zerop (hash-table-count types))
               (update-type-table types symbol-table (ast-root obj))
@@ -401,7 +403,7 @@ in or below function declarations"
     (setf includes nil)
     (setf macros nil)
     (setf types (make-hash-table))
-    (setf name-symbol-table (clear-symbol-table name-symbol-table)))
+    (setf name-symbol-table (make-hash-table :test #'equal)))
   (call-next-method))
 
 (defmethod rebind-vars ((ast new-clang-ast)
