@@ -31,7 +31,7 @@
 (in-package :software-evolution-library/software/clang-project)
 (in-readtable :curry-compose-reader-macros)
 
-(define-software clang-project (parseable-project git-project)
+(define-software clang-project (parseable-project)
   ((compilation-database :initarg :compilation-database
                          :accessor compilation-database
                          :initform nil
@@ -47,11 +47,11 @@ information on the format of compilation databases."))
 
 (defmethod collect-evolve-files :before ((obj clang-project))
   "Ensure CLANG-PROJECT has a compilation-database populated."
-  (assert (or (compilation-database obj)
-              (and (build-command obj) (which "bear")))
-          (obj)
-          "Clang-project requires a compilation-database ~
-           or a build-command and 'bear' in your PATH")
+  ;; (assert (or (compilation-database obj)
+  ;;             (and (build-command obj) (which "bear")))
+  ;;         (obj)
+  ;;         "Clang-project requires a compilation-database ~
+  ;;          or a build-command and 'bear' in your PATH")
   (nest
    (unless (compilation-database obj))
    (let ((comp-db-path (make-pathname
