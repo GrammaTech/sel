@@ -2558,30 +2558,28 @@ genome."))
   (map-ast a (lambda (x) (find-macro-use-at-node obj x macro-table)))
   macro-table)
 
-(defgeneric compute-macro-extent (obj off len is-arg)
+(defgeneric compute-macro-extent (obj off len)
   (:documentation "Compute the length of a macro occurrence in
 the genome.  IS-ARG, when true, indicates this was a parameterized
 macro.  OBJ is the software object, OFF the starting offset,
 LEN the length of the macro name.")
-  (:method (obj off len is-arg)
+  (:method (obj off len)
     (let* ((genome (genome obj))
            (glen (length genome)))
       (assert (<= 0 off))
       (assert (< 0 len))
       (assert (<= (+ off len) (length genome)))
-      (if is-arg
-          (let ((i (+ off len)))
-            ;; Skip over whitespace after macro
-            (iter (while (< i glen))
-                  (while (member (elt genome i) +whitespace-chars+))
-                  (incf i))
-            (if (or (>= i glen)
-                    (not (eql (elt genome i) #\()))
-                len ;; give up; could not find macro arguments
-                (let ((end (cpp-scan genome (constantly t)
-                                     :start i :skip-first t)))
-                  (- end off))))
-          len))))
+      (let ((i (+ off len)))
+        ;; Skip over whitespace after macro
+        (iter (while (< i glen))
+              (while (member (elt genome i) +whitespace-chars+))
+              (incf i))
+        (if (or (>= i glen)
+                (not (eql (elt genome i) #\()))
+            len ;; give up; could not find macro arguments
+            (let ((end (cpp-scan genome (constantly t)
+                                 :start i :skip-first t)))
+              (- end off)))))))
 
 (defun find-macro-use-at-node (obj a table)
   (when-let ((range (ast-range a)))
@@ -2595,7 +2593,7 @@ LEN the length of the macro name.")
                           (is-arg (or (second existing)
                                       (new-clang-macro-loc-is-macro-arg-expansion
                                        loc)))
-                          (extent (compute-macro-extent obj off len is-arg)))
+                          (extent (compute-macro-extent obj off len)))
                      (setf (gethash off table)
                            (list len is-arg extent))))))))
       (%record (new-clang-range-begin range))
