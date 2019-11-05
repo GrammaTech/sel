@@ -22,6 +22,7 @@
         :command-line-arguments
         :split-sequence
         :cl-store
+        :closer-mop
         :uiop/filesystem
         :software-evolution-library
         :software-evolution-library/utility
@@ -55,6 +56,10 @@
                 :ensure-directory-pathname
                 :pathname-directory-pathname
                 :pathname-parent-directory-pathname)
+  (:shadowing-import-from
+   :closer-mop
+   :standard-method :standard-class :standard-generic-function
+   :defmethod :defgeneric)
   (:shadowing-import-from :uiop/filesystem
                           :file-exists-p
                           :directory-exists-p
@@ -103,7 +108,8 @@
            :git-clang-project
            :git-javascript-project
            :git-java-project
-           :git-lisp-project))
+           :git-lisp-project
+           :simple-git-project))
 (in-package :software-evolution-library/command-line)
 (in-readtable :curry-compose-reader-macros)
 
@@ -119,6 +125,7 @@
 (defclass javascript-git-project (javascript-project git-project) ())
 (defclass java-git-project (java-project git-project) ())
 (defclass lisp-git-project (lisp-project git-project) ())
+(defclass simple-git-project (simple-project git-project) ())
 
 
 ;;;; Functions to handle command line options and arguments.
@@ -431,8 +438,16 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
                    (setf path (probe-file
                                (make-pathname :directory local-repo
                                               :name git-sub-path)))
-                   ;; Reset the language, now that repo is cloned.
-                   (setf language (guess-language path))
+                   ;; Reset guessed language, now that repo is cloned.
+                   (unless language-p
+                     (setf language-p t ; Treat as explicitly set.
+                           language
+                           (ecase (guess-language path)
+                             (clang-project 'clang-git-project)
+                             (javascript-project 'javascript-git-project)
+                             (java-project 'java-git-project)
+                             (lisp-project 'lisp-git-project)
+                             (simple-project 'simple-git-project))))
                    url)))
          (obj (from-file
                (nest
