@@ -1555,10 +1555,12 @@ computed at the children"))
                          &aux (mods (new-clang-type-modifiers (nct+-type nct)))
                            (array (type-array (nct+-type nct))))
   (labels ((typedef-type-helper (nct)
-             (if-let ((typedef-nct
-                       (some-<>> (type-decl-ast obj nct)
-                                 (ast-type)
-                                 (make-instance 'nct+ :type))))
+             (if-let* ((typedef-ast (type-decl-ast obj nct))
+                       (typedef-nct
+                        (when (and (nth-value 1 (ast-file-for-include
+                                                 obj typedef-ast))
+                                   (ast-type typedef-ast))
+                          (make-instance 'nct+ :type (ast-type typedef-ast)))))
                (typedef-type-helper typedef-nct)
                (copy nct
                      :type (copy (nct+-type nct)
