@@ -600,7 +600,7 @@ in SCRIPT.")
       (("new-clang") :type boolean
        :action #'handle-new-clang-argument
        :documentation "Use new clang front end")
-      (("split-lines" #\L) :type boolean :optional t
+      (("split-lines" #\S) :type boolean :optional t
        :documentation "Split top level strings at newlines")))
   (defparameter +project-command-line-options+
     '((("build-command" #\b) :type string :initial-value "make"
