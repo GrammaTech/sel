@@ -97,7 +97,12 @@
            :+clang-command-line-options+
            :+project-command-line-options+
            :+clang-project-command-line-options+
-           :+evolutionary-command-line-options+))
+           :+evolutionary-command-line-options+
+           ;; Projects including git urls.
+           :git-clang-project
+           :git-javascript-project
+           :git-java-project
+           :git-lisp-project))
 (in-package :software-evolution-library/command-line)
 (in-readtable :curry-compose-reader-macros)
 
@@ -108,6 +113,11 @@
   (with-open-file (in file :direction :input)
     (remove-duplicates (decode-json-from-source in)
                        :test #'equalp :key {aget :file} :from-end t)))
+
+(defclass clang-git-project (clang-project git-project) ())
+(defclass javascript-git-project (javascript-project git-project) ())
+(defclass java-git-project (java-project git-project) ())
+(defclass lisp-git-project (lisp-project git-project) ())
 
 
 ;;;; Functions to handle command line options and arguments.
@@ -289,10 +299,14 @@ input is not positive."
                   (("C" "CPP" "C++" "C-PLUS-PLUS" "C PLUS PLUS") clang)
                   (("LISP" "CL" "COMMON LISP") lisp)
                   (("TEXT") simple)))))
-    (if (and source (directory-p source))
-        (intern (concatenate 'string (symbol-name class) "-PROJECT")
-                :sel/command-line)
-        class)))
+    (cond
+      ((and source (git-url-p source))
+       (intern (concatenate 'string (symbol-name class) "-GIT-PROJECT")
+               :sel/command-line))
+      ((and source (directory-p source))
+       (intern (concatenate 'string (symbol-name class) "-PROJECT")
+               :sel/command-line))
+      (t class))))
 
 (defun wait-on-manual (manual)
   "Wait to terminate until the swank server returns if MANUAL is non-nil."
