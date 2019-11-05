@@ -569,7 +569,7 @@ in SCRIPT.")
       (("save-seed") :type string
        :action #'handle-save-random-state-to-path-argument
        :documentation "save random seed to FILE")
-      (("language" #\L) :type string :initial-value "c"
+      (("language" #\L) :type string
        :documentation
        "language of input files (e.g. c, c++, java, or javascript)")))
   (defparameter +interactive-command-line-options+
