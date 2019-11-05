@@ -108,8 +108,7 @@
            :git-clang-project
            :git-javascript-project
            :git-java-project
-           :git-lisp-project
-           :simple-git-project))
+           :git-lisp-project))
 (in-package :software-evolution-library/command-line)
 (in-readtable :curry-compose-reader-macros)
 
@@ -125,7 +124,6 @@
 (defclass javascript-git-project (javascript-project git-project) ())
 (defclass java-git-project (java-project git-project) ())
 (defclass lisp-git-project (lisp-project git-project) ())
-(defclass simple-git-project (simple-project git-project) ())
 
 
 ;;;; Functions to handle command line options and arguments.
@@ -447,7 +445,7 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
                              (javascript-project 'javascript-git-project)
                              (java-project 'java-git-project)
                              (lisp-project 'lisp-git-project)
-                             (simple-project 'simple-git-project))))
+                             (simple 'simple))))
                    url)))
          (obj (from-file
                (nest
