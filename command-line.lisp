@@ -28,6 +28,7 @@
         ;; Software objects.
         :software-evolution-library/software/source
         :software-evolution-library/software/project
+        :software-evolution-library/software/git-project
         :software-evolution-library/software/clang
         :software-evolution-library/software/ast
         :software-evolution-library/software/new-clang

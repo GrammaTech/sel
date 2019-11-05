@@ -22,8 +22,6 @@
    :if-let :ensure-function :ensure-gethash :copy-file
    :parse-body :simple-style-warning)
   (:export :project
-           :git-project
-           :git-repo
            :*build-dir*
            :build-command
            :artifacts
@@ -104,13 +102,7 @@ Paths may contain wildcards.")
 E.g., a multi-file C software project may include multiple clang
 software objects in it's `evolve-files'."))
 
-(define-software git-project (project)
-  ((git-repo :initarg :git-repo :accessor git-repo
-             :initform nil
-             :documentation "A valid, permissive repo URL from which
-to create this project and potentially to which one can push changes."))
-  (:documentation "A general software project, but pulled from a git
-repo.  The additional field(s) enable various git-specific operations."))
+
 
 (defvar *build-dir* nil
   "Directory in which to build projects with `phenome'.
