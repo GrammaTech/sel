@@ -586,7 +586,7 @@ in SCRIPT.")
        :documentation "sub path to software, when using a git repo")
       (("git-ssh-key" #\k) :type string :initial-value nil
        :documentation "path to ssh key used for pushing a git repo")
-      (("git-user" #\P) :type string :initial-value nil
+      (("git-user" #\U) :type string :initial-value nil
        :documentation "user used for pushing a git repo")
       (("git-password" #\P) :type string :initial-value nil
        :documentation
