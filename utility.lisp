@@ -418,9 +418,11 @@ Return nil if there are no modified, untracked, or deleted files."
 the path must be absolute and have a trailing slash, as per git convention."
   (let ((clone-cmd (format nil "git clone ~a ~a" url path)))
     (when ssh-key
-      (setf clone-cmd (format nil "GIT_SSH_COMMAND='ssh -i ~a -F /dev/null' ~a" ssh-key clone-cmd)))
+      (setf clone-cmd (format nil "GIT_SSH_COMMAND='ssh -i ~a -F /dev/null' ~a"
+                              ssh-key clone-cmd)))
     (when (and user pass)
-      (setf clone-cmd (regex-replace "://" clone-cmd (format nil "://~a:~a@" user pass))))
+      (setf clone-cmd (regex-replace "://" clone-cmd
+                                     (format nil "://~a:~a@" user pass))))
     (note 2 "cloning git repo: ~a" clone-cmd)
     (multiple-value-bind (stdout stderr errno)
         (shell clone-cmd)
@@ -433,11 +435,15 @@ the path must be absolute and have a trailing slash, as per git convention."
   "Given a valid git repo at `path`, push changes to a new `branch-name` branch"
   (let ((push-cmd (format nil "git push origin ~a" branch-name)))
     (when ssh-key
-      (setf push-cmd (format nil "GIT_SSH_COMMAND='ssh -i ~a -F /dev/null' ~a" ssh-key push-cmd)))
+      (setf push-cmd (format nil "GIT_SSH_COMMAND='ssh -i ~a -F /dev/null' ~a"
+                             ssh-key push-cmd)))
     (when (and user pass)
-      (setf push-cmd (regex-replace "://" push-cmd (format nil "://~a:~a@" user pass))))
-
-    (let ((full-cmd (format nil "cd ~a && git checkout -b ~a && git commit -m \"~a\" * && ~a" path branch-name commit-msg push-cmd)))
+      (setf push-cmd (regex-replace "://" push-cmd
+                                    (format nil "://~a:~a@" user pass))))
+    (let ((full-cmd
+           (format nil
+                   "cd ~a && git checkout -b ~a && git commit -m \"~a\" * && ~a"
+                   path branch-name commit-msg push-cmd)))
       (note 2 "git command: ~a" full-cmd)
       (multiple-value-bind (stdout stderr errno)
           (shell full-cmd)
