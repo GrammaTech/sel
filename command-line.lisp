@@ -94,6 +94,7 @@
            ;; Common sets of command-line-arguments options.
            :+common-command-line-options+
            :+interactive-command-line-options+
+           :+git-project-command-line-options+
            :+clang-command-line-options+
            :+project-command-line-options+
            :+clang-project-command-line-options+
@@ -554,16 +555,7 @@ in SCRIPT.")
        :documentation "load random seed from FILE")
       (("save-seed") :type string
        :action #'handle-save-random-state-to-path-argument
-       :documentation "save random seed to FILE")
-      (("git-sub-path" #\p) :type string :initial-value nil
-       :documentation "sub path to software, when using a git repo")
-      (("git-ssh-key" #\k) :type string :initial-value nil
-       :documentation "path to ssh key used for pushing a git repo")
-      (("git-user" #\P) :type string :initial-value nil
-       :documentation "user used for pushing a git repo")
-      (("git-password" #\P) :type string :initial-value nil
-       :documentation
-       "password (NOTE: insecure!) used when pushing to a git repo")))
+       :documentation "save random seed to FILE")))
   (defparameter +interactive-command-line-options+
     '((("interactive") :type boolean :optional t
        :action #'handle-set-interactive-argument
@@ -573,6 +565,16 @@ in SCRIPT.")
       (("swank" #\s) :type integer
        :action #'handle-swank-port-argument
        :documentation "start a swank listener on PORT")))
+  (defparameter +git-project-command-line-options+
+    '((("git-sub-path" #\p) :type string :initial-value nil
+       :documentation "sub path to software, when using a git repo")
+      (("git-ssh-key" #\k) :type string :initial-value nil
+       :documentation "path to ssh key used for pushing a git repo")
+      (("git-user" #\P) :type string :initial-value nil
+       :documentation "user used for pushing a git repo")
+      (("git-password" #\P) :type string :initial-value nil
+       :documentation
+       "password (NOTE: insecure!) used when pushing to a git repo")))
   (defparameter +clang-command-line-options+
     '((("compiler" #\c) :type string :initial-value "clang"
        :documentation "use CC as the C compiler")
