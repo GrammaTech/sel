@@ -426,8 +426,8 @@ the path must be absolute and have a trailing slash, as per git convention."
         (shell clone-cmd)
       (declare (ignorable stdout))
       (unless (zerop errno)
-        (note 0 "git checkout failed: ~a" stderr)
-        (note 0 "cmd: git --work-tree=~a checkout ~a" path url)))))
+        (warn "git checkout failed: ~a" stderr)
+        (warn "cmd: git --work-tree=~a checkout ~a" path url)))))
 
 (defun push-git-repo (path branch-name commit-msg &key ssh-key user pass)
   "Given a valid git repo at `path`, push changes to a new `branch-name` branch"
@@ -442,9 +442,9 @@ the path must be absolute and have a trailing slash, as per git convention."
       (multiple-value-bind (stdout stderr errno)
           (shell full-cmd)
         (unless (zerop errno)
-          (note 0 "git push failed:")
-          (note 0 "  stdout: ~a" stdout)
-          (note 0 "  stderr: ~a" stderr))))))
+          (warn "git push failed:")
+          (warn "  stdout: ~a" stdout)
+          (warn "  stderr: ~a" stderr))))))
 
 (defun strip-sub-path (path sub)
   (regex-replace sub path ""))
