@@ -4723,6 +4723,25 @@ int x = CHARSIZE;")))
         (is (equal :better (first (second (first stats-alist))))
             "`analyze-mutation' notices fitness improvement")))))
 
+(deftest (mutation-project-recorded-correctly :long-running) ()
+  (with-fixture grep-project
+    (let* ((variant (copy *project*))
+           (op (cons "grep.c"
+                     (make-instance 'clang-cut
+                       :object "grep.c"
+                       :targets `((:stmt1 . ,(stmt-starting-with-text variant
+                                                                      "status =")))))))
+      (apply-mutation variant op)
+      (setf (fitness variant) 0) ; arbitrary, just needs to exist
+      (let ((packed-op (append (list (object (cdr op))
+                                     (type-of (cdr op))
+                                     (targets (cdr op))))))
+        (analyze-mutation variant (list packed-op nil nil *project* nil nil) *test*)
+        (let ((stats-alist (car (hash-table-alist *mutation-stats*))))
+          (is (= (length stats-alist) 2) "Single key/val in stats")
+          (is (eq (caar stats-alist) 'clang-cut) "key is CLANG-CUT to match mutation")
+          (is (eq (caadr stats-alist) :dead) "val starts with 'dead' for given mutation"))))))
+
 (deftest mutation-stats-notices-worsening ()
   (with-fixture hello-world-clang-w-fitness
     (evaluate *test* *hello-world*)
@@ -8173,6 +8192,8 @@ prints unique counters in the trace"
                   (make-pathname :name "test"
                                  :type "sh"
                                  :directory (append dir (list "support")))))))))
+
+
 
 (deftest (clang-project-test :long-running) ()
   (with-fixture grep-project
