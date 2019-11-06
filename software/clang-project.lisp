@@ -45,6 +45,13 @@ information on the format of compilation databases."))
         (or (component-class clang-project)
             (if *new-clang?* 'new-clang 'clang))))
 
+(defmethod mutation-key ((obj project) op)
+  "Return key used to organize mutations in *mutation-stats* hashtable.
+* OBJ object mutation is to be applied to
+* OP operation to be performed
+"
+  (list (nth 1 op))) ; default to mutation type, as per default mutation-key impl
+
 (defmethod collect-evolve-files :before ((obj clang-project))
   "Ensure CLANG-PROJECT has a compilation-database populated."
   ;; (assert (or (compilation-database obj)
