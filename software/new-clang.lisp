@@ -1554,11 +1554,15 @@ computed at the children"))
 (defmethod typedef-type ((obj new-clang) (nct nct+)
                          &aux (mods (new-clang-type-modifiers (nct+-type nct)))
                            (array (type-array (nct+-type nct))))
-  (labels ((typedef-type-helper (nct)
+  (labels ((system-ast-p (obj ast)
+             "Return T if AST is in a system header file."
+             (or (and (null (ast-file ast nil))
+                      (null (ast-file ast t)))
+                 (nth-value 1 (ast-file-for-include obj ast))))
+           (typedef-type-helper (nct)
              (if-let* ((typedef-ast (type-decl-ast obj nct))
                        (typedef-nct
-                        (when (and (nth-value 1 (ast-file-for-include
-                                                 obj typedef-ast))
+                        (when (and (system-ast-p obj typedef-ast)
                                    (ast-type typedef-ast))
                           (make-instance 'nct+ :type (ast-type typedef-ast)))))
                (typedef-type-helper typedef-nct)
