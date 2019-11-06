@@ -793,7 +793,6 @@ depending on CLASS"))
   (apply #'make-new-clang-ast
          :class :macroexpansion
          :children false-children
-         :source-text (car children)
          :allow-other-keys t
          args))
 
@@ -1413,7 +1412,27 @@ in a #include."
     (if (eq :Combined (ast-class ast))
         ;; Combined nodes are a special case as the
         ;; child node source text ranges overlap
-        (write-string (ast-attr ast :source-text) out)
+        (labels ((%safe-subseq (s start &optional end)
+                   (if (or (and end (<= end start)) (<= (length s) start))
+                       ""
+                       (subseq s start end)))
+                 (ast-offset (i)
+                   (- i (begin-offset (find-if #'ast-p (ast-children ast))))))
+          (iter (with i = 0)
+                (for c in (ast-children ast))
+                (if (ast-p c)
+                    (multiple-value-bind (c-begin c-end)
+                        (begin-and-end-offsets c)
+                      (if (< (ast-offset c-begin) i)
+                          (collect (%safe-subseq (source-text c)
+                                                 (- i (ast-offset c-begin)))
+                                   into result)
+                          (collect (source-text c) into result))
+                      (when (< i (ast-offset c-end))
+                        (setf i (ast-offset c-end))))
+                    (collect (source-text c) into result))
+                (finally (write-string (apply #'concatenate 'string result)
+                                       out))))
         ;; For normal ASTs, just collect the child node source
         (mapc [{write-string _ out} #'source-text]
               (ast-children ast)))))
@@ -2812,7 +2831,7 @@ of the ranges of its children"
 
 ;;; FIXME: refactor this into small functions, for
 ;;;  understandability and line length limits
-(defun combine-overlapping-siblings (sw ast &aux (genome (genome sw)))
+(defun combine-overlapping-siblings (ast)
   "Group sibling nodes with overlapping or out of order
 ranges into 'combined' nodes.  Warn when this happens."
   (flet ((%check (a)
@@ -2875,11 +2894,7 @@ ranges into 'combined' nodes.  Warn when this happens."
                                                                        :offset new-begin)
                                                                :end (make-new-clang-loc
                                                                      :file (ast-file (car accumulator))
-                                                                     :offset new-end)))
-                                                     (:source-text .
-                                                                   ,(subseq genome
-                                                                            new-begin
-                                                                            new-end)))))))
+                                                                     :offset new-end))))))))
                              (setf accumulator nil)))))))
                (unless (eq :combined (ast-class a))
                  (let ((new-children
@@ -2901,27 +2916,6 @@ ranges into 'combined' nodes.  Warn when this happens."
                    (when changed?
                      (setf (ast-children a) new-children))))))))
     (map-ast ast #'%check)))
-
-(defmethod append-string-to-node ((a new-clang-ast) (str string))
-  (if (eq (ast-class a) :combined)
-      (setf (ast-attr a :source-text)
-            (concatenate 'string (ast-attr a :source-text) str))
-      (call-next-method)))
-
-(defmethod remove-semicolon ((a new-clang-ast))
-  (if (eq (ast-class a) :combined)
-      (let* ((st (ast-attr a :source-text))
-             (nst (remove-semicolon st)))
-        (if (eq st nst)
-            a
-            (copy a :source-text nst)))
-      (call-next-method)))
-
-(defmethod add-semicolon ((a new-clang-ast) pos)
-  (if (eq (ast-class a) :combined)
-      (setf (ast-attr a :source-text)
-            (add-semicolon (ast-attr a :source-text) pos))
-      (call-next-method)))
 
 (defun decorate-ast-with-strings (sw ast &aux (genome (genome sw)))
   (labels
@@ -2956,7 +2950,8 @@ ranges into 'combined' nodes.  Warn when this happens."
                           (unless (eq :Combined (ast-class a))
                             (%assert1 i cbegin c))
                           (collect (%safe-subseq genome i cbegin))
-                          (setf i cend))))
+                          (when (and cend (< i cend))
+                            (setf i cend)))))
                     (collect c))
                    (list (%safe-subseq genome i end))))))))))
     (map-ast ast #'%decorate))
@@ -3163,7 +3158,7 @@ objects in TYPES using OBJ's symbol table."
           (populate-macro-attr-in-macro-expansion-nodes ast genome macros)
           (fix-overlapping-vardecls obj ast) ; must be after macro encapsulation
           (fix-ancestor-ranges ast)
-          (combine-overlapping-siblings obj ast)
+          (combine-overlapping-siblings ast)
           (decorate-ast-with-strings obj ast)
           (put-operators-into-starting-positions obj ast)
           (compute-full-stmt-attrs ast)
