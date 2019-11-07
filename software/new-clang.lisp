@@ -1880,7 +1880,7 @@ modifiers from a type name"
       (write-sequence (genome obj) s)))
   ;; (sleep 10000)
   (with-temp-file-of (src-file (ext obj)) (genome obj)
-                     (let ((cmd-fmt "clang -cc1 -fgnuc-version=4.2.1 -ast-dump=json ~{~a~^ ~} ~a ~a")
+                     (let ((cmd-fmt "clang -cc1 -fgnuc-version=4.2.1 -fcxx-exceptions -ast-dump=json ~{~a~^ ~} ~a ~a")
                            (filter "| sed -e \"s/  *//\" ; exit ${PIPESTATUS[0]}")
                            (genome-len (length (genome obj)))
                            (flags (append (clang-frontend-flags (flags obj))
