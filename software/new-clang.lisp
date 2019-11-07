@@ -648,6 +648,7 @@ ASTs in the existing SYMBOL-TABLE and AST-ROOT tree."
 (defstruct new-clang-loc
   "Structure used to represent a location within a clang-parseable file."
   (file nil :type (or null string))
+  (included-from nil :type (or null string))
   (line nil :type (or null integer))
   (col nil :type (or null integer))
   (offset 0 :type (or null integer))
@@ -668,12 +669,16 @@ in the macro defn, EXPANSION-LOC is at the macro use."
 
 (defmethod copy ((obj new-clang-loc)
                  &key (file nil file-supplied-p)
+                   (included-from nil included-from-supplied-p)
                    (line nil line-supplied-p)
                    (col nil col-supplied-p)
                    (offset 0 offset-supplied-p)
                    (tok-len 0 tok-len-supplied-p))
   (make-new-clang-loc
    :file (if file-supplied-p file (copy-seq (new-clang-loc-file obj)))
+   :included-from (if included-from-supplied-p
+                      included-from
+                      (new-clang-loc-included-from obj))
    :line (if line-supplied-p line (new-clang-loc-line obj))
    :col (if col-supplied-p col (new-clang-loc-col obj))
    :offset (if offset-supplied-p offset (new-clang-loc-offset obj))
@@ -1189,7 +1194,7 @@ on various ast classes"))
   (:method ((range new-clang-range) macro?)
     (ast-file* (new-clang-range-begin range) macro?))
   (:method ((loc new-clang-loc) macro?)
-    (declare (ignore macro?))
+    (declare (ignorable macro?))
     (new-clang-loc-file loc))
   (:method ((loc new-clang-macro-loc) macro?)
     (ast-file*
@@ -1200,6 +1205,26 @@ on various ast classes"))
          (new-clang-macro-loc-expansion-loc loc))
      macro?))
   (:method (obj macro?) (declare (ignorable obj macro?)) nil))
+
+(defgeneric ast-included-from (ast &optional macro?)
+  (:documentation "The file name which included the header containing AST.")
+  (:method ((ast new-clang-ast) &optional macro?)
+    (ast-included-from (ast-attr ast :range) macro?))
+  (:method ((range new-clang-range) &optional macro?)
+    (ast-included-from (new-clang-range-begin range) macro?))
+  (:method ((loc new-clang-loc) &optional macro?)
+    (declare (ignorable macro?))
+    (new-clang-loc-included-from loc))
+  (:method ((loc new-clang-macro-loc) &optional macro?)
+    (ast-included-from
+     (if (if (new-clang-macro-loc-is-macro-arg-expansion loc)
+             (not macro?)
+             macro?)
+         (new-clang-macro-loc-spelling-loc loc)
+         (new-clang-macro-loc-expansion-loc loc))
+     macro?))
+  (:method (obj &optional macro?)
+    (declare (ignorable obj macro?)) nil))
 
 ;; returns ast nodes, not strings
 (defmethod ast-args ((obj new-clang-ast))
@@ -1402,7 +1427,15 @@ the match length if sucessful, NIL if not."
 (defun ast-file-for-include (obj ast)
   "Return the file AST is located within in a format suitable for use
 in a #include."
-  (when-let ((file (or (ast-file ast nil) (ast-file ast t))))
+  (when-let ((file (nest (first)
+                         (remove-if «or #'null
+                                        {equal "<built-in>"}
+                                        [{find-if {equalp "bits"}}
+                                         #'pathname-directory]»)
+                         (list (ast-file ast nil)
+                               (ast-file ast t)
+                               (ast-included-from ast nil)
+                               (ast-included-from ast t)))))
     (normalize-file-for-include file
                                 (append (flags-to-include-dirs (flags obj))
                                         *clang-default-includes*))))
@@ -2188,6 +2221,9 @@ NIL indicates no value."))
       (convert-macro-loc-json loc-json)
       (make-new-clang-loc
        :file (canonicalize-string (cached-aget :file loc-json))
+       :included-from (nest (canonicalize-string)
+                            (aget :file)
+                            (aget :includedfrom loc-json))
        :line (cached-aget :line loc-json)
        :col (cached-aget :col loc-json)
        :tok-len (cached-aget :toklen loc-json))))
@@ -2397,8 +2433,12 @@ in TMP-FILE (the original genome)."
                  (remove-file-from-loc (new-clang-macro-loc-expansion-loc loc))
                  :is-macro-arg-expansion
                  (new-clang-macro-loc-is-macro-arg-expansion loc)))
-               ((and loc (equal tmp-file (ast-file loc)))
+               ((typep loc 'new-clang-loc)
                 (make-new-clang-loc
+                 :file (unless (equal tmp-file (ast-file loc))
+                         (ast-file loc))
+                 :included-from (unless (equal tmp-file (ast-included-from loc))
+                                  (ast-included-from loc))
                  :line (new-clang-loc-line loc)
                  :col (new-clang-loc-col loc)
                  :offset (new-clang-loc-offset loc)
