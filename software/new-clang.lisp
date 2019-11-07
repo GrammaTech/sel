@@ -1868,6 +1868,17 @@ modifiers from a type name"
 ;;; Invocation of clang to get json
 
 (defmethod clang-json ((obj new-clang) &key &allow-other-keys)
+  #+new-clang-debug
+  (progn
+    (format t "clang-json: ~a (~a)~%"
+            obj (original-file obj))
+    (with-open-file (s "/tmp/clang-json-out"
+                       :direction :output
+                       :element-type 'character
+                       :if-exists :supersede
+                       :if-does-not-exist :create)
+      (write-sequence (genome obj) s)))
+  ;; (sleep 10000)
   (with-temp-file-of (src-file (ext obj)) (genome obj)
                      (let ((cmd-fmt "clang -cc1 -fgnuc-version=4.2.1 -ast-dump=json ~{~a~^ ~} ~a ~a")
                            (filter "| sed -e \"s/  *//\" ; exit ${PIPESTATUS[0]}")
@@ -2046,6 +2057,12 @@ on json-kind-symbol when special subclasses are wanted."))
   nil)
 
 (defmethod j2ck (json (json-kind-symbol (eql :ParamCommandComment)))
+  (declare (ignorable json json-kind-symbol))
+  nil)
+
+;; The ctor intiializer is not give range information, just the initializer
+;; expression.
+(defmethod j2ck (json (json-kind-symbol (eql :CxxCtorInitializer)))
   (declare (ignorable json json-kind-symbol))
   nil)
 
