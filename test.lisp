@@ -4728,7 +4728,7 @@ int x = CHARSIZE;")))
     (let* ((variant (copy *project*))
            (op (cons "grep.c"
                      (make-instance 'clang-cut
-                       :object "grep.c"
+                       :object variant
                        :targets `((:stmt1 . ,(stmt-starting-with-text variant
                                                                       "status =")))))))
       (apply-mutation variant op)
