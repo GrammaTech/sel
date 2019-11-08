@@ -641,7 +641,7 @@ After BODY is executed the temporary file is removed."
   (with-gensyms (v)
     `(let* ((,v ,(second spec))
             (,(car spec) (temp-file-name ,v)))
-       (format t "Create ~a for ~a~%" ,(car spec) ,v)
+       ;; (format t "Create ~a for ~a~%" ,(car spec) ,v)
        (unwind-protect (progn ,@body) (ensure-temp-file-free ,(car spec))))))
 
 (defmacro with-temp-fifo (spec &rest body)
