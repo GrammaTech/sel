@@ -3852,6 +3852,7 @@ Arguments are identical to PARSE-SOURCE-SNIPPET."
 ;;; Skip over C and C++ style comments
 
 (defun position-of-leading-semicolon (str)
+  (assert (stringp str))
   (let ((len (length str))
 	(i -1))
     (loop
@@ -3894,18 +3895,21 @@ Arguments are identical to PARSE-SOURCE-SNIPPET."
   "Given a list of children of an AST node, move semicolons from strings in the list
    they are in into preceding full stmt nodes.  Applied in preorder, this can migrate
    semicolons multiple levels down the tree."
-  (loop for p on children
-     do (let ((e (car p)))
-          (when (and (ast-p e)
-                     (ast-full-stmt e)
-                     (stringp (cadr p)))
-            (let ((e-children (ast-children e)))
-              (when (stringp (lastcar e-children))
-                (multiple-value-bind (found? prefix suffix)
-                    (position-of-leading-semicolon (cadr p))
-                  (when found?
-                    (append-string-to-node e prefix)
-                    (setf (cadr p) suffix)))))))))
+  (let ((p children))
+    (loop
+       (unless p (return))
+       (let ((e (car p)))
+         (when (and (ast-p e)
+                    (ast-full-stmt e)
+                    (stringp (cadr p)))
+           (let ((e-children (ast-children e)))
+             (when (stringp (lastcar e-children))
+               (multiple-value-bind (found? prefix suffix)
+                   (position-of-leading-semicolon (cadr p))
+                 (when found?
+                   (append-string-to-node e prefix)
+                   (setf (cadr p) suffix)))))))
+       (pop p))))
 
 (defun move-semicolons-into-expr-stmts (ast)
   "CALLEXPRs don't necessarily have their semicolons in them.
@@ -3913,17 +3917,20 @@ Move the semicolon in just one level, but no further"
   ;;; Previously this was just for call-exprs in compoundstmts,
   ;;; but new clang needs more
   ;;  (when (eql (ast-class ast) :compoundstmt)
-  (let ((children (ast-children ast)))
-    (loop for p on children
-       do (let ((e (car p)))
-            (when (and (ast-p e)
-                       (or (ast-full-stmt e) (eql (ast-class e) :field))
-                       (stringp (lastcar (ast-children e))))
-              (multiple-value-bind (found? prefix suffix)
-                  (position-of-leading-semicolon (cadr p))
-                (when found?
-                  (append-string-to-node e prefix)
-                  (setf (cadr p) suffix))))))))
+  (let* ((children (ast-children ast))
+         (p children))
+    (loop (unless p (return))
+       (let ((e (car p)))
+         (when (and (ast-p e)
+                    (stringp (cadr p))
+                    (or (ast-full-stmt e) (eql (ast-class e) :field))
+                    (stringp (lastcar (ast-children e))))
+           (multiple-value-bind (found? prefix suffix)
+               (position-of-leading-semicolon (cadr p))
+             (when found?
+               (append-string-to-node e prefix)
+               (setf (cadr p) suffix)))))
+       (pop p))))
 
 ;;; This is made generic because SOURCE-TEXT and AST-TEXT may
 ;;; be specialized for particular node types.  In particular,
