@@ -638,8 +638,11 @@ USE-ENCODING. "
 (defmacro with-temp-file (spec &rest body)
   "SPEC holds the variable used to reference the file w/optional extension.
 After BODY is executed the temporary file is removed."
-  `(let ((,(car spec) (temp-file-name ,(second spec))))
-     (unwind-protect (progn ,@body) (ensure-temp-file-free ,(car spec)))))
+  (with-gensyms (v)
+    `(let* ((,v ,(second spec))
+            (,(car spec) (temp-file-name ,v)))
+       (format t "Create ~a for ~a~%" ,(car spec) ,v)
+       (unwind-protect (progn ,@body) (ensure-temp-file-free ,(car spec))))))
 
 (defmacro with-temp-fifo (spec &rest body)
   `(with-temp-file ,spec
@@ -685,7 +688,7 @@ and execute BODY within this temporary directory."
 
 (defmacro with-temp-file-of ((variable &optional type) string &rest body)
   "Execute BODY with STRING in a temporary file whose path is in VARIABLE."
-  `(let ((,variable (temp-file-name ,type)))
+  `(let* ((,variable (temp-file-name ,type)))
      (unwind-protect (progn (string-to-file ,string ,variable) ,@body)
        (when (probe-file ,variable) (delete-file ,variable)))))
 
