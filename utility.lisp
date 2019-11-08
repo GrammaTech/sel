@@ -413,8 +413,9 @@ Return nil if there are no modified, untracked, or deleted files."
         (scan "^https://git\\." url-str))))
 
 (defun clone-git-repo (url path &key ssh-key user pass)
-  "Clones a repo at the supplied URL into the supplied path -- Note,
-the path must be absolute and have a trailing slash, as per git convention."
+  "Clones a repo at the supplied URL into the supplied path.
+Note, the path must be absolute and have a trailing slash, as per git
+convention."
   (let ((clone-cmd (format nil "git clone ~a ~a" url path)))
     (when ssh-key
       (setf clone-cmd (format nil "GIT_SSH_COMMAND='ssh -i ~a -F /dev/null' ~a"
@@ -423,15 +424,14 @@ the path must be absolute and have a trailing slash, as per git convention."
       (setf clone-cmd (regex-replace "://" clone-cmd
                                      (format nil "://~a:~a@" user pass))))
     (note 2 "cloning git repo: ~a" clone-cmd)
-    (multiple-value-bind (stdout stderr errno)
-        (shell clone-cmd)
+    (multiple-value-bind (stdout stderr errno) (shell clone-cmd)
       (declare (ignorable stdout))
       (unless (zerop errno)
         (warn "git checkout failed: ~a" stderr)
         (warn "cmd: git --work-tree=~a checkout ~a" path url)))))
 
 (defun push-git-repo (path branch-name commit-msg &key ssh-key user pass)
-  "Given a valid git repo at `path`, push changes to a new `branch-name` branch"
+  "Given a valid git repo at PATH, push changes to a new BRANCH-NAME branch."
   (let ((push-cmd (format nil "git push origin ~a" branch-name)))
     (when ssh-key
       (setf push-cmd (format nil "GIT_SSH_COMMAND='ssh -i ~a -F /dev/null' ~a"
@@ -444,8 +444,7 @@ the path must be absolute and have a trailing slash, as per git convention."
                    "cd ~a && git checkout -b ~a && git commit -m \"~a\" * && ~a"
                    path branch-name commit-msg push-cmd)))
       (note 2 "git command: ~a" full-cmd)
-      (multiple-value-bind (stdout stderr errno)
-          (shell full-cmd)
+      (multiple-value-bind (stdout stderr errno) (shell full-cmd)
         (unless (zerop errno)
           (warn "git push failed:")
           (warn "  stdout: ~a" stdout)
