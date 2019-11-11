@@ -688,7 +688,7 @@ and execute BODY within this temporary directory."
 
 (defmacro with-temp-file-of ((variable &optional type) string &rest body)
   "Execute BODY with STRING in a temporary file whose path is in VARIABLE."
-  `(let* ((,variable (temp-file-name ,type)))
+  `(let ((,variable (temp-file-name ,type)))
      (unwind-protect (progn (string-to-file ,string ,variable) ,@body)
        (when (probe-file ,variable) (delete-file ,variable)))))
 
