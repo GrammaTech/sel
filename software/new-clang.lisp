@@ -2194,14 +2194,6 @@ form for SLOT, and stores into OBJ.  Returns OBJ or its replacement."))
         (remove nil (mapcar (lambda (o) (clang-convert-json o)) value)))
   obj)
 
-(defmethod store-slot ((obj new-clang-ast) (slot (eql :lookups)) value)
-  (declare (ignorable slot value))
-  #|
-  (setf (new-clang-ast-children obj)
-  (remove nil (mapcar (lambda (o) (clang-convert-json o)) value)))
-  |#
-  obj)
-
 (defgeneric convert-slot-value (obj slot value)
   (:documentation "Convert a value in the context of a specific slot.  Return of
 NIL indicates no value."))
