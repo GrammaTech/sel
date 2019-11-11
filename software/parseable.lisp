@@ -166,6 +166,14 @@ There are some requirements for the ASTs constructed by this method:
 Other methods in on parseable objects, specifically `ast-can-recurse'
 and `ast-equal-p' depend on these invariants."))
 
+(defmethod update-asts :around ((sw source))
+  (handler-bind
+      ((error (lambda (e)
+                (declare (ignore e))
+                (format t "Failure in update-asts: original-file = ~a~%"
+                        (original-file sw)))))
+    (call-next-method)))
+
 (defgeneric parse-asts (software)
   (:documentation "Parse genome of SOFTWARE, returning a list of ASTs."))
 
