@@ -2075,11 +2075,31 @@ on json-kind-symbol when special subclasses are wanted."))
   (declare (ignorable json json-kind-symbol))
   nil)
 
+(defmethod j2ck (json (json-kind-symbol null))
+  (declare (ignore json))
+  ;; If there is no :kind field, the value is nil and this method applies
+  nil)
+
 ;; The ctor intiializer is not give range information, just the initializer
 ;; expression.
 (defmethod j2ck (json (json-kind-symbol (eql :CxxCtorInitializer)))
   (declare (ignorable json json-kind-symbol))
   nil)
+
+;;; This special rule handles catch (...).   The ... shows up
+;;; as a json entry with id 0x0.
+(defmethod j2ck (json (json-kind-symbol (eql :CxxCatchStmt)))
+  (let* ((inner (aget :inner json)))
+    (flet ((%r (a) (aget :range a)))
+      (if (notevery #'%r inner)
+          ;; The field for ... doesn't have any :kind
+          ;; Don't try to translate it
+          (j2ck (iter (for e in json)
+                      (if (eql (car e) :inner)
+                          (collect (cons :inner (remove-if-not #'%r (cdr e))))
+                          (collect e)))
+                json-kind-symbol)
+          (call-next-method)))))
 
 (defmethod j2ck (json (json-kind-symbol (eql :GenericSelectionExpr)))
   (let* ((inner (aget :inner json)))
@@ -2149,6 +2169,11 @@ form for SLOT, and stores into OBJ.  Returns OBJ or its replacement."))
   ;; Do not translate this attribute for now
   obj)
 
+(defmethod store-slot ((obj new-clang-ast) (slot (eql :foundReferencedDecl)) value)
+  (declare (ignorable slot value))
+  ;; Do not translate this attribute for now
+  obj)
+
 (defmethod store-slot ((obj new-clang-ast) (slot (eql :path)) value)
   (declare (ignorable slot value))
   ;; Do not translate this attribute for now
@@ -2169,10 +2194,12 @@ form for SLOT, and stores into OBJ.  Returns OBJ or its replacement."))
         (remove nil (mapcar (lambda (o) (clang-convert-json o)) value)))
   obj)
 
-(defmethod store-slot ((obj new-clang-ast) (slot (eql :array_filler)) value)
-  (declare (ignorable slot))
+(defmethod store-slot ((obj new-clang-ast) (slot (eql :lookups)) value)
+  (declare (ignorable slot value))
+  #|
   (setf (new-clang-ast-children obj)
-        (remove nil (mapcar (lambda (o) (clang-convert-json o)) value)))
+  (remove nil (mapcar (lambda (o) (clang-convert-json o)) value)))
+  |#
   obj)
 
 (defgeneric convert-slot-value (obj slot value)
