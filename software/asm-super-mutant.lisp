@@ -2011,6 +2011,7 @@ instructions."
 If any rip-relative addresses have been converted to
 absolute, for evaluation, restore them to the original
 instructions."
+  (declare (ignorable file))
   ;; ensure any rip-relative addresses are converted to absolute
   (restore-original-addresses asm))
 

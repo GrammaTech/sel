@@ -567,7 +567,7 @@ These may often be safely ignored.  A common restart is
 `ignore-failed-mutation'."))
 
 (defgeneric original-file (obj)
-  (:method (obj) nil))
+  (:method (obj) (declare (ignorable obj)) nil))
 
 (define-condition located-mutate (mutate)
   ()
