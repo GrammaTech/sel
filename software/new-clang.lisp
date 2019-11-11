@@ -1080,25 +1080,41 @@ where class = (ast-class ast).")
                     (count-if (lambda (a) (and (ast-p a) (eql (ast-class a) :ParmVar)))
                               (ast-children obj))))))))
 
-(defmethod ast-includes-in-obj ((obj new-clang) (ast new-clang-ast)
-                                &aux (includes nil))
-  ;;;  This code is now assuming AST-FILE is not present (or NIL) if
-  ;;;  the file was the same as the one this AST is in.
-  (labels ((ast-includes-in-child (child)
-             (append (nest (mapcar (lambda (ast)
-                                     (ast-file-for-include obj ast)))
-                           (remove-if-not (lambda (ast)
-                                            (and ast
-                                                 (or (ast-file ast nil)
-                                                     (ast-file ast t)))))
-                           (list child (ast-referenceddecl child)))
-                     (when (and (ast-type child) (type-i-file (ast-type child)))
-                       (list (type-i-file (ast-type child)))))))
-    (map-ast ast
-             (lambda (c)
-               (dolist (f (ast-includes-in-child c))
-                 (pushnew f includes :test #'equal))))
-    (nreverse includes)))
+(defmethod ast-includes-in-obj ((obj new-clang) (ast new-clang-ast))
+  (ast-includes-in-obj* obj ast (ast-class ast)))
+
+(defmethod ast-includes-in-obj ((obj new-clang) (ast string))
+  (declare (ignorable obj ast)) nil)
+
+(defmethod ast-includes-in-obj* ((obj new-clang)
+                                 (ast new-clang-ast)
+                                 class)
+  (declare (ignorable class))
+  (remove-duplicates (apply #'append
+                            (ast-includes-in-current-ast obj ast)
+                            (mapcar {ast-includes-in-obj obj}
+                                    (ast-children ast)))
+                     :test #'equal))
+
+(defmethod ast-includes-in-obj* ((obj new-clang)
+                                 (ast new-clang-ast)
+                                 (class (eql :macroexpansion)))
+  (remove-duplicates (apply #'append
+                            (ast-includes-in-current-ast obj ast)
+                            (mapcar {ast-includes-in-obj obj}
+                                    (ast-attr ast :macro-child-segment)))
+                     :test #'equal))
+
+(defmethod ast-includes-in-current-ast ((obj new-clang) (ast new-clang-ast))
+  (append (nest (mapcar (lambda (ast)
+                          (ast-file-for-include obj ast)))
+                (remove-if-not (lambda (ast)
+                                 (and ast
+                                      (or (ast-file ast nil)
+                                          (ast-file ast t)))))
+                (list ast (ast-referenceddecl ast)))
+          (when (and (ast-type ast) (type-i-file (ast-type ast)))
+            (list (type-i-file (ast-type ast))))))
 
 (defmethod ast-macros ((ast new-clang-ast))
   (ast-macros* ast (ast-class ast)))
