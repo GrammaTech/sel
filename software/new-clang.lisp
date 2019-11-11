@@ -394,7 +394,7 @@ in or below function declarations"
               types))
     (setf macros
           (if (zerop (length macros))
-              (find-macros-in-children (ast-children (ast-root obj)))
+              (find-macros-in-obj obj)
               macros)))
   obj)
 
@@ -493,54 +493,20 @@ in or below function declarations"
   ;; The lookup function just returns the object in that case.
   macro)
 
-(defun find-macros-in-children (c)
-  ;; Break C up into segments of actual strings
-  (mapcan #'find-macros-in-string
-          (iter (while c)
-                (if (stringp (car c))
-                    (collecting (iter (while (stringp (car c)))
-                                      (concatenating (pop c))))
-                    (pop c)))))
-
-(defun find-macros-in-string (str)
+(defun find-macro-names-in-string (str)
   "Scan a string for things that look like macros.  Compute
-macro objects from these, returning a list."
-  (let* ((pos 0)
-         (slen (length str))
-         (slen7 (- slen 7))
-         (macros nil))
-    ;; At top of loop, we're at the start of a line
-    (iter (while (<= pos slen7))
-          (if (string= "#define" str :start2 pos :end2 (+ pos 7))
-              ;; Scan for macro
-              (let ((pos2 (+ pos 7)))
-                (iter (when (>= pos2 slen)
-                        (push (build-macro-from-string (subseq str pos pos2))
-                              macros)
-                        (return))
-                      (case (elt str pos2)
-                        ;; NOTE: Windows
-                        (#\Newline
-                         ;; End of macro
-                         (push (build-macro-from-string (subseq str pos pos2))
-                               macros)
-                         (incf pos2)
-                         (return))
-                        (#\\
-                         ;; Skip next character -- skips newline
-                         (incf pos2 2))
-                        (t
-                         (incf pos2))))
-                (setf pos pos2))
-              ;; Skip to end
-              (iter (while (< pos slen))
-                    (let ((c (elt str pos)))
-                      (incf pos)
-                      ;; NOTE: Windows
-                      (when (eql c #\Newline) (return))))))
-    macros))
+macro names from these, returning a list."
+       (nest (remove-if #'null)
+             (mapcar (lambda (line)
+                       (register-groups-bind (macro-name)
+                           ("#define\\s+([A-Za-z0-9_]+)" line)
+                         macro-name)))
+             (remove-if-not {starts-with-subseq "#define"})
+             (mapcar #'trim-whitespace)
+             (split-sequence #\Newline str)))
 
 (defun build-macro-from-string (str)
+  "Create a CLANG-MACRO structure from the macro definition in STR."
   (let ((slen (length str)))
     (assert (>= slen 7))
     (assert (string= "#define" str :end2 7))
@@ -562,6 +528,32 @@ macro objects from these, returning a list."
                (body (subseq str name-start))
                (hash (sxhash body)))  ;; improve this hash
           (make-clang-macro :hash hash :body body :name name))))))
+
+(defun find-macros-in-obj (obj)
+  "Return a list of CLANG-MACRO structures with the macro definitions
+in OBJ's genome.  The macros are populated after evaluating pre-processor
+if/else clauses."
+  (let* ((genome (genome obj))
+         (macro-names-in-genome (find-macro-names-in-string genome)))
+    (with-temp-file-of (src-file (ext obj)) genome
+                       (nest ;; Remove those macros not defined in the current file.
+                        (remove-if-not [{find _ macro-names-in-genome :test #'equal}
+                                        #'macro-name])
+                        ;; Create a macro structure from the macro definition string.
+                        (mapcar #'build-macro-from-string)
+                        ;; Massage the macros, removing whitespace and empty lines.
+                        (remove-if #'emptyp)
+                        (mapcar #'trim-whitespace)
+                        (split-sequence #\Newline)
+                        ;; Dump the clang pre-processor state.  This gives us ALL the
+                        ;; macros present when compiling OBJ including those
+                        ;; not defined in the current file.  Importantly, this
+                        ;; gives all macros regardless of whether they are utilized
+                        ;; by an AST in the genome.  Additionally, the macros definitions
+                        ;; are given after evaluating pre-processor if/else clauses.
+                        (shell "clang -dM -E ~{~a~^ ~} ~a"
+                               (clang-frontend-flags (flags obj))
+                               src-file)))))
 
 (defun update-symbol-table (symbol-table ast-root)
   "Populate SYMBOL-TABLE with a mapping of AST ID -> AST(s) for all of
@@ -3203,7 +3195,7 @@ objects in TYPES using OBJ's symbol table."
         (setf genome (genome obj)
               ast-root nil))
 
-      (setf macros (find-macros-in-string genome)
+      (setf macros (find-macros-in-obj obj)
             types (make-hash-table)
             symbol-table (make-hash-table :test #'equal)
             name-symbol-table (make-hash-table :test #'equal))
