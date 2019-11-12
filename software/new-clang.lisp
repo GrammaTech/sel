@@ -63,7 +63,7 @@
 
 ;; This is DEFVAR so I can set the var and reload this file
 ;; without losing that value, which is useful for debugging.
-(defvar *new-clang?* nil "When true, use NEW-CLANG instead of CLANG")
+(defvar *new-clang?* t "When true, use NEW-CLANG instead of CLANG")
 
 
 ;;; Global variables
@@ -2075,6 +2075,10 @@ on json-kind-symbol when special subclasses are wanted."))
   (declare (ignorable json json-kind-symbol))
   nil)
 
+;; (defmethod j2ck (json (json-kind-symbol (eql :ClassTemplateSpecialization)))
+;;   (declare (ignorable json json-kind-symbol))
+;;   nil)
+
 (defmethod j2ck (json (json-kind-symbol null))
   (declare (ignore json))
   ;; If there is no :kind field, the value is nil and this method applies
@@ -2192,6 +2196,10 @@ form for SLOT, and stores into OBJ.  Returns OBJ or its replacement."))
   (declare (ignorable slot))
   (setf (new-clang-ast-children obj)
         (remove nil (mapcar (lambda (o) (clang-convert-json o)) value)))
+  obj)
+
+(defmethod store-slot ((obj new-clang-ast) (slot (eql :array_filler)) value)
+  (declare (ignorable slot value))
   obj)
 
 (defgeneric convert-slot-value (obj slot value)
@@ -2469,6 +2477,33 @@ actual source file"))
 
 (defun remove-asts-in-classes (ast classes)
   (remove-asts-if ast (lambda (o) (member (ast-class o) classes))))
+
+(defun remove-template-expansion-asts (ast-root)
+  (map-ast ast-root
+           (lambda (a)
+             (flet ((%remove-all-but (kind count)
+                      (flet ((%is-kind (c)
+                               (and (ast-p c)
+                                    (eql (ast-class c) kind))))
+                        (let* ((children (ast-children a))
+                               (pos (if (> count 0)
+                                        (position-if #'%is-kind children
+                                                     :count count)
+                                        0)))
+                          (when pos
+                            (let ((new-children
+                                   (remove-if #'%is-kind children
+                                              :start (1+ pos))))
+                              (unless (= (length children)
+                                         (length new-children))
+                                (setf (ast-children a) new-children))))))))
+               (case (ast-class a)
+                 ;; :TypeAliasTemplate does not cause problems, as the json
+                 ;; does not have the expansions in it
+                 (:ClassTemplate
+                  (%remove-all-but :ClassTemplateSpecialization 0))
+                 (:FunctionTemplate
+                  (%remove-all-but :Function 1)))))))
 
 (defun remove-file-from-asts (ast-root tmp-file)
   "Remove the file attribute from the ASTs in AST-ROOT which are located
@@ -3239,6 +3274,7 @@ objects in TYPES using OBJ's symbol table."
 
           ;; Massage the ASTs identified by clang.
           (remove-asts-if ast #'ast-is-implicit)
+          (remove-template-expansion-asts ast)
           (remove-file-from-asts ast tmp-file)
           (convert-line-and-col-to-byte-offsets ast genome)
           (fix-multibyte-characters ast genome)
