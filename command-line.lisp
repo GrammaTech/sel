@@ -138,11 +138,6 @@
 (defun handle-swank-port-argument (port)
   (create-server :port port :style :spawn :dont-close t))
 
-(defun handle-new-clang-argument (new-clang-p)
-  "Handler for --new-clang argument.  If true, use new clang
-front end."
-  (setf *new-clang?* new-clang-p))
-
 (defun handle-old-clang-argument (old-clang-p)
   "Handler for --old-clang argument.  If true, use old clang
 front end."
@@ -607,9 +602,6 @@ in SCRIPT.")
       (("flags" #\F) :type string
        :action #'handle-comma-delimited-argument
        :documentation "comma-separated list of compiler flags")
-      (("new-clang") :type boolean
-       :action #'handle-new-clang-argument
-       :documentation "Use new clang front end (the default)")
       (("old-clang") :type boolean
        :action #'handle-old-clang-argument
        :documentation "Use old clang front end")
