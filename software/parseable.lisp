@@ -166,20 +166,6 @@ There are some requirements for the ASTs constructed by this method:
 Other methods in on parseable objects, specifically `ast-can-recurse'
 and `ast-equal-p' depend on these invariants."))
 
-(defparameter *show-update-asts-errors nil
-  "When true, update-asts reports the original source file on an error,
-if the original file is known.")
-
-(defmethod update-asts :around ((sw source))
-  (handler-bind
-      ((error (lambda (e)
-                (declare (ignore e))
-                (when *show-update-asts-errors
-                  (when-let ((ofile (original-file sw)))
-                    (format t "Failure in update-asts: original-file = ~a~%"
-                            ofile))))))
-    (call-next-method)))
-
 (defgeneric parse-asts (software)
   (:documentation "Parse genome of SOFTWARE, returning a list of ASTs."))
 
@@ -326,6 +312,20 @@ applicative AST tree and clear the genome string."
         (update-paths new)
         (slot-value obj 'genome)
         nil))
+
+(defparameter *show-update-asts-errors* nil
+  "When true, update-asts reports the original source file on an error,
+if the original file is known.")
+
+(defmethod update-asts :around ((sw parseable))
+  (handler-bind
+      ((error (lambda (e)
+                (declare (ignore e))
+                (when *show-update-asts-errors*
+                  (when-let ((ofile (original-file sw)))
+                    (format t "Failure in update-asts: original-file = ~a~%"
+                            ofile))))))
+    (call-next-method)))
 
 (defmethod update-paths
     ((tree ast) &optional path)
