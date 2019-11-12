@@ -143,6 +143,11 @@
 front end."
   (setf *new-clang?* new-clang-p))
 
+(defun handle-old-clang-argument (old-clang-p)
+  "Handler for --old-clang argument.  If true, use old clang
+front end."
+  (setf *new-clang?* (not old-clang-p)))
+
 (defun handle-load (path)
   (load path
         :external-format (encoding-external-format (detect-encoding path))))
@@ -604,7 +609,10 @@ in SCRIPT.")
        :documentation "comma-separated list of compiler flags")
       (("new-clang") :type boolean
        :action #'handle-new-clang-argument
-       :documentation "Use new clang front end")
+       :documentation "Use new clang front end (the default)")
+      (("old-clang") :type boolean
+       :action #'handle-old-clang-argument
+       :documentation "Use old clang front end")
       (("split-lines" #\S) :type boolean :optional t
        :documentation "Split top level strings at newlines")))
   (defparameter +project-command-line-options+
