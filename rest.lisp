@@ -116,7 +116,8 @@
             "~%Built from SEL ~a, and ~a ~a.~%"
             +software-evolution-library-version+
             (lisp-implementation-type) (lisp-implementation-version))
-  (declare (ignorable quiet verbose load eval out-dir read-seed save-seed))
+  (declare (ignorable quiet verbose load eval out-dir
+                      read-seed save-seed language))
   (flet ((shutdown (&optional (message "quit") (errno 0))
            (format t "Stopping server on ~a~%" message)
            (stop handler)

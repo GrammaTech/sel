@@ -1156,7 +1156,7 @@ OBJ a clang software object
             "~%Built from SEL ~a, and ~a ~a.~%"
             +software-evolution-library-version+
             (lisp-implementation-type) (lisp-implementation-version))
-  (declare (ignorable quiet verbose split-lines))
+  (declare (ignorable quiet verbose split-lines language))
   (when help (show-help-for-clang-instrument))
   ;; Mandatory arguments.
   (setf original (make-instance 'clang
