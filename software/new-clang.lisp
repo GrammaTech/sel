@@ -2622,19 +2622,6 @@ in a CXXOperatorCallExpr node.")
 
 ;;; Macro-related code
 
-(defun find-macro-names-in-string (str)
-  "Scan a string for things that look like macros.  Compute
-macro names from these, returning a list."
-  (let ((macro-scanner (create-scanner "#\\s*define\\s+([A-Za-z0-9_]+)")))
-    (nest (remove-if #'null)
-          (mapcar (lambda (line)
-                    (register-groups-bind (macro-name)
-                        (macro-scanner line)
-                      macro-name)))
-          (remove-if-not {starts-with #\#})
-          (mapcar #'trim-whitespace)
-          (split-sequence #\Newline str))))
-
 (defun build-macro-from-string (str)
   "Create a CLANG-MACRO structure from the macro definition in STR."
   (let ((slen (length str)))
@@ -2659,31 +2646,26 @@ macro names from these, returning a list."
                (hash (sxhash body)))  ;; improve this hash
           (make-clang-macro :hash hash :body body :name name))))))
 
-(defun find-macros-in-obj (obj)
+(defun dump-preprocessor-macros (obj &aux (genome (genome obj)))
   "Return a list of CLANG-MACRO structures with the macro definitions
 in OBJ's genome.  The macros are populated after evaluating pre-processor
 if/else clauses."
-  (let* ((genome (genome obj))
-         (macro-names-in-genome (find-macro-names-in-string genome)))
-    (with-temp-file-of (src-file (ext obj)) genome
-                       (nest ;; Remove those macros not defined in the current file.
-                        (remove-if-not [{find _ macro-names-in-genome :test #'equal}
-                                        #'macro-name])
-                        ;; Create a macro structure from the macro definition string.
-                        (mapcar #'build-macro-from-string)
-                        ;; Massage the macros, removing whitespace and empty lines.
-                        (remove-if #'emptyp)
-                        (mapcar #'trim-whitespace)
-                        (split-sequence #\Newline)
-                        ;; Dump the clang pre-processor state.  This gives us ALL the
-                        ;; macros present when compiling OBJ including those
-                        ;; not defined in the current file.  Importantly, this
-                        ;; gives all macros regardless of whether they are utilized
-                        ;; by an AST in the genome.  Additionally, the macros definitions
-                        ;; are given after evaluating pre-processor if/else clauses.
-                        (shell "clang -dM -E ~{~a~^ ~} ~a"
-                               (clang-frontend-flags (flags obj))
-                               src-file)))))
+  (with-temp-file-of (src-file (ext obj)) genome
+                     (iter (with file = nil)
+                           (with file-line-scanner = (create-scanner "^# [0-9]+ \"(.*)\""))
+                           (for line in (nest (remove-if #'emptyp)
+                                              (mapcar #'trim-whitespace)
+                                              (split-sequence #\Newline)
+                                              (shell "clang -dD -E ~{~a~^ ~} ~a"
+                                                     (clang-frontend-flags (flags obj))
+                                                     src-file)))
+                           (when (starts-with #\# line)
+                             (if (starts-with-subseq "#define" line)
+                                 (when (equal file src-file)
+                                   (collect (build-macro-from-string line)))
+                                 (register-groups-bind (new-file)
+                                     (file-line-scanner line)
+                                   (setf file new-file)))))))
 
 (defgeneric find-macro-uses (obj a)
   (:documentation "Identify the locations at which macros occur in the
@@ -3250,7 +3232,7 @@ objects in TYPES using OBJ's symbol table."
         (setf genome (genome obj)
               ast-root nil))
 
-      (setf macros (find-macros-in-obj obj)
+      (setf macros (dump-preprocessor-macros obj)
             types (make-hash-table)
             symbol-table (make-hash-table :test #'equal)
             name-symbol-table (make-hash-table :test #'equal))
