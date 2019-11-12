@@ -2503,10 +2503,11 @@ byte offsets.
                (t loc))))
     (map-ast ast-root
              (lambda (ast)
-               (when-let ((_ (and (not (eq :TopLevel (ast-class ast)))
-                                  (null (ast-file ast))))
-                          (begin (new-clang-range-begin (ast-range ast)))
-                          (end (new-clang-range-end (ast-range ast))))
+               (when-let* ((_ (and (not (eq :TopLevel (ast-class ast)))
+                                   (null (ast-file ast))))
+                           (range (ast-range ast))
+                           (begin (new-clang-range-begin range))
+                           (end (new-clang-range-end range)))
                  (setf (ast-attr ast :range)
                        (make-new-clang-range
                         :begin (convert-to-byte-offsets begin)
@@ -2555,10 +2556,11 @@ offsets to support source text with multibyte characters.
                (t loc))))
     (map-ast ast-root
              (lambda (ast)
-               (when-let ((_ (and (not (eq :TopLevel (ast-class ast)))
-                                  (null (ast-file ast))))
-                          (begin (new-clang-range-begin (ast-range ast)))
-                          (end (new-clang-range-end (ast-range ast))))
+               (when-let* ((_ (and (not (eq :TopLevel (ast-class ast)))
+                                   (null (ast-file ast))))
+                           (range (ast-range ast))
+                           (begin (new-clang-range-begin range))
+                           (end (new-clang-range-end range)))
                  (setf (ast-attr ast :range)
                        (make-new-clang-range
                         :begin (byte-loc-to-chars begin)
@@ -2845,12 +2847,13 @@ macro.")
 with the macro in MACROS corresponding to the current node."
   (map-ast ast-root
            (lambda (ast)
-             (when-let ((is-macro-ast (eq :MacroExpansion (ast-class ast)))
-                        (macro (find (subseq genome
-                                             (begin-offset ast)
-                                             (+ (begin-offset ast)
-                                                (begin-tok-len ast)))
-                                     macros :test #'equal :key #'macro-name)))
+             (when-let* ((is-macro-ast (eq :MacroExpansion (ast-class ast)))
+                         (range (ast-range ast))
+                         (macro (find (subseq genome
+                                              (begin-offset range)
+                                              (+ (begin-offset range)
+                                                 (begin-tok-len range)))
+                                      macros :test #'equal :key #'macro-name)))
                (setf (ast-attr ast :macro) macro)))))
 
 (defun fix-overlapping-vardecls (sw ast)
