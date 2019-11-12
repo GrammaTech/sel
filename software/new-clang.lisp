@@ -2418,21 +2418,14 @@ actual source file"))
                                (and (ast-p c)
                                     (eql (ast-class c) kind))))
                         (let* ((children (ast-children a))
-                               (pos (if (> count 0)
-                                        (let ((pos 0))
-                                          (loop while (and (> count 0) pos)
-                                             do (setf pos (position-if #'%is-kind children
-                                                                       :start (1+ pos)))
-                                             do (decf count))
-                                          pos)
-                                        0)))
-                          (when pos
-                            (let ((new-children
-                                   (remove-if #'%is-kind children
-                                              :start (1+ pos))))
-                              (unless (= (length children)
-                                         (length new-children))
-                                (setf (ast-children a) new-children))))))))
+                               (num (count-if #'%is-kind children)))
+                          (format t "Found ~a (skipping ~a)~%"
+                                  num count)
+                          (when (> num count)
+                            (setf (ast-children a)
+                                  (remove-if #'%is-kind children
+                                             :from-end t
+                                             :count (- num count))))))))
                (case (ast-class a)
                  ;; :TypeAliasTemplate does not cause problems, as the json
                  ;; does not have the expansions in it
