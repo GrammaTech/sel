@@ -2419,8 +2419,6 @@ actual source file"))
                                     (eql (ast-class c) kind))))
                         (let* ((children (ast-children a))
                                (num (count-if #'%is-kind children)))
-                          (format t "Found ~a (skipping ~a)~%"
-                                  num count)
                           (when (> num count)
                             (setf (ast-children a)
                                   (remove-if #'%is-kind children
