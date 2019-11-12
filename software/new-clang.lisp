@@ -2423,7 +2423,7 @@ actual source file"))
                                           (loop while (and (> count 0) pos)
                                              do (setf pos (position-if #'%is-kind children
                                                                        :start (1+ pos)))
-                                             do (decf pos))
+                                             do (decf count))
                                           pos)
                                         0)))
                           (when pos
