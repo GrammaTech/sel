@@ -2487,8 +2487,12 @@ actual source file"))
                                     (eql (ast-class c) kind))))
                         (let* ((children (ast-children a))
                                (pos (if (> count 0)
-                                        (position-if #'%is-kind children
-                                                     :count count)
+                                        (let ((pos 0))
+                                          (loop while (and (> count 0) pos)
+                                             do (setf pos (position-if #'%is-kind children
+                                                                       :start (1+ pos)))
+                                             do (decf pos))
+                                          pos)
                                         0)))
                           (when pos
                             (let ((new-children
