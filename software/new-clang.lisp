@@ -276,12 +276,18 @@ using the clang front-end.
 * FLAGS: list of normalized compiler flags"
   (iter (for f in flags)
         (for p previous f)
+        ;; Include file paths or macro definitions
         (when (or (string= p "-I") (string= p "-D"))
           (appending (list p f)))
+        ;; Macro definition without whitespace
         (when (and (not (string= f "-D"))
                    (not (string= f "\"-D\""))
                    (or (starts-with-subseq "-D" f)
                        (starts-with-subseq "\"-D" f)))
+          (appending (list f)))
+        ;; Special cases
+        (when (or (starts-with-subseq "-fcxx-exceptions" f)
+                  (starts-with-subseq "-fgnuc-version" f))
           (appending (list f)))))
 
 (defmethod stmt-asts ((obj new-clang))
