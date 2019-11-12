@@ -502,14 +502,15 @@ in or below function declarations"
 (defun find-macro-names-in-string (str)
   "Scan a string for things that look like macros.  Compute
 macro names from these, returning a list."
-       (nest (remove-if #'null)
-             (mapcar (lambda (line)
-                       (register-groups-bind (macro-name)
-                           ("#define\\s+([A-Za-z0-9_]+)" line)
-                         macro-name)))
-             (remove-if-not {starts-with-subseq "#define"})
-             (mapcar #'trim-whitespace)
-             (split-sequence #\Newline str)))
+       (let ((macro-scanner (create-scanner "#\\s*define\\s+([A-Za-z0-9_]+)")))
+         (nest (remove-if #'null)
+               (mapcar (lambda (line)
+                         (register-groups-bind (macro-name)
+                             (macro-scanner line)
+                           macro-name)))
+               (remove-if-not {starts-with #\#})
+               (mapcar #'trim-whitespace)
+               (split-sequence #\Newline str))))
 
 (defun build-macro-from-string (str)
   "Create a CLANG-MACRO structure from the macro definition in STR."
