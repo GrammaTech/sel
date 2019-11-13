@@ -957,7 +957,7 @@ valid hash.
 (defun type-from-trace-string* (fn name)
   (funcall fn
     :pointer (not (null (find #\* name)))
-    :array (if (find #\[ name) (scan-to-strings "\\[\\d*\\]" name) "")
+    :array (if (find #\[ name) (scan-to-strings "\\[[^\\[\\]]*\\]" name) "")
     :const (not (null (search "const" name)))
     :volatile (not (null (search "volatile" name)))
     :restrict (not (null (search "restrict" name)))
@@ -967,7 +967,7 @@ valid hash.
                          (make-keyword (string-upcase storage-class)))
                        :None)
     :hash 0
-    :name (-> (format nil "^(\\*|\\[\\d*\\]|const |volatile |restrict |extern |~
+    :name (-> (format nil "^(\\*|\\[[^\\[\\]]*\\]|const |volatile |restrict |extern |~
                              static |__private_extern__ |auto |register )*")
               (regex-replace name ""))))
 
