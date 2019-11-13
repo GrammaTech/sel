@@ -1070,7 +1070,9 @@ where class = (ast-class ast).")
 (defmethod ast-macros* ((ast new-clang-ast) class)
   (declare (ignorable class))
   (remove-duplicates (apply #'append
-                            (when (ast-attr ast :macro)
+                            (when (and (ast-attr ast :macro)
+                                       (null (nest (new-clang-macro-i-file)
+                                                   (ast-attr ast :macro))))
                               (list (ast-attr ast :macro)))
                             (mapcar #'ast-macros (ast-children ast)))))
 
@@ -1081,7 +1083,9 @@ where class = (ast-class ast).")
 (defmethod ast-macros* ((ast new-clang-ast) (class (eql :macroexpansion)))
   (declare (ignorable class))
   (remove-duplicates (apply #'append
-                            (when (ast-attr ast :macro)
+                            (when (and (ast-attr ast :macro)
+                                       (null (nest (new-clang-macro-i-file)
+                                                   (ast-attr ast :macro))))
                               (list (ast-attr ast :macro)))
                             (mapcar #'ast-macros
                                     (ast-attr ast :macro-child-segment)))))
