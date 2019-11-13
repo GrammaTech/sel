@@ -382,6 +382,12 @@ in or below function declarations"
 (defmethod name-symbol-table :before ((obj new-clang))
   (update-caches-if-necessary obj))
 
+(defmethod (setf genome) :before (new (obj new-clang))
+  "Clear symbol table prior to updating the NEW genome."
+  (declare (ignorable new))
+  (with-slots (symbol-table) obj
+    (setf symbol-table (make-hash-table :test #'equal))))
+
 (defmethod (setf ast-root) :after (new (obj new-clang))
   ;; Upon setting the AST root, update the symbol and then update the
   ;; :REFERENCEDDECL field on the ASTs in NEW to point to the entries
