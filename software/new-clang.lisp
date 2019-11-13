@@ -3281,7 +3281,7 @@ objects in TYPES using OBJ's symbol table."
           (compute-operator-positions ast)
           (put-operators-into-inner-positions obj ast)
           (encapsulate-macro-expansions-cheap ast (find-macro-uses obj ast))
-          (populate-macro-attr-in-macro-expansion-nodes ast genome macros)
+          (populate-macro-attr-in-macro-expansion-nodes ast genome macro-dump)
           (fix-overlapping-vardecls obj ast) ; must be after macro encapsulation
           (fix-ancestor-ranges ast)
           (combine-overlapping-siblings ast)
