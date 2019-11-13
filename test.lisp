@@ -2479,6 +2479,8 @@ of the same length"
              (list "-L" "/bar/")))
   (is (equal (normalize-flags "/foo/" (list "-L" "/bar/"))
              (list "-L" "/bar/")))
+  (is (equal (normalize-flags "/foo/" (list "-D\"blah\\ blah\""))
+             (list "-D\"blah\\ blah\"")))
   (is (find "/foo/" (normalize-flags "/foo/" (list "-I."))
             :test (lambda (s1 s2) (search s1 s2 :test #'equal))))
   (is (find "/foo/" (normalize-flags "/foo/" (list "-I" "."))
