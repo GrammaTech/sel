@@ -1089,7 +1089,7 @@ Optionally print debug information if `*shell-debug*' is non-nil."
               (lambda (stream &rest args)
                 (format stream "~a"
                         (concatenate 'string "bash -c \""
-                                     (escape-chars "$\\\"'"
+                                     (escape-chars "$\\\""
                                                    (apply #'format nil cs args))
                                      "\""))))))
     (setq run-program-arguments (plist-drop :bash run-program-arguments))
