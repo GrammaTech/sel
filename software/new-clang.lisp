@@ -1350,8 +1350,8 @@ determined."
 ;;;  In Clang, this behavior is controlled by command line options,
 ;;;  which we'll need to recognize.
 
-(defun normalize-file-for-include (file-string include-dirs)
-  "Returns the normalized version of file-string relative to the include-dirs,
+(defun normalize-file-for-include (obj file-string)
+  "Returns the normalized version of file-string relative to OBJ's include-dirs,
 and a value that is T if the string should be in #include \"...\", NIL if in
 #include <...>"
   (cond
@@ -1367,7 +1367,9 @@ and a value that is T if the string should be in #include \"...\", NIL if in
     (t
      ;; Otherwise, try to find longest prefix for include-dirs
      ;; Assumes include-dirs is in normal form
-     (let ((file-len (length file-string))
+     (let ((include-dirs (append (flags-to-include-dirs (flags obj))
+                                 *clang-default-includes*))
+           (file-len (length file-string))
            (max-match 0)
            (dir nil))
        (flet ((%match (ind)
@@ -1403,9 +1405,7 @@ in a #include."
                                (ast-file ast t)
                                (ast-included-from ast nil)
                                (ast-included-from ast t)))))
-    (normalize-file-for-include file
-                                (append (flags-to-include-dirs (flags obj))
-                                        *clang-default-includes*))))
+    (normalize-file-for-include obj file)))
 
 (defmethod source-text ((ast new-clang-ast))
   (with-output-to-string (out)
@@ -2686,7 +2686,8 @@ if/else clauses."
                            (when (starts-with #\# line)
                              (if (starts-with-subseq "#define" line)
                                  (collect (build-macro line
-                                                       :i-file (unless (equal file src-file) file)))
+                                                       :i-file (unless (equal file src-file)
+                                                                 (normalize-file-for-include obj file))))
                                  (register-groups-bind (new-file)
                                      (file-line-scanner line)
                                    (setf file new-file)))))))
