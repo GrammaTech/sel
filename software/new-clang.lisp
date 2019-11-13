@@ -52,6 +52,7 @@
            :nct+-type
            :new-clang-macro
            :make-new-clang-macro
+           :new-clang-macro-i-file
            :cpp-scan
            :ast-attr
            :within-ast-range
