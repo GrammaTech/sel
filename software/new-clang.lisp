@@ -50,6 +50,8 @@
            :*new-clang?*
            :nct+
            :nct+-type
+           :new-clang-macro
+           :make-new-clang-macro
            :cpp-scan
            :ast-attr
            :within-ast-range
@@ -240,6 +242,11 @@ that is not strictly speaking about types at all (storage class)."))
                           (when qual (list ":QUAL" qual)))
                         (let ((desugared (new-clang-type-desugared obj)))
                           (when desugared (list ":DESUGARED" desugared))))))))
+
+(defstruct (new-clang-macro (:include clang-macro))
+  "Representation of a macro in software object including the header
+the macro is defined within."
+  (i-file nil :type (or string null) :read-only t))
 
 
 ;;; new-clang software interface
@@ -486,7 +493,7 @@ in or below function declarations"
   ;; Remove those types with the same hashes.
   (remove-duplicates (call-next-method) :key #'type-hash))
 
-(defmethod find-macro ((obj new-clang) (macro clang-macro))
+(defmethod find-macro ((obj new-clang) (macro new-clang-macro))
   ;; This looks like a stub, but isn't.
   ;; What's happening here is that while in old clang
   ;; find-macro was used to look up macros from hashes,
@@ -2645,7 +2652,7 @@ in a CXXOperatorCallExpr node.")
         (let* ((name (subseq str name-start pos))
                (body (subseq str name-start))
                (hash (sxhash body)))  ;; improve this hash
-          (make-clang-macro :hash hash :body body :name name))))))
+          (make-new-clang-macro :hash hash :body body :name name))))))
 
 (defun dump-preprocessor-macros (obj &aux (genome (genome obj)))
   "Return a list of CLANG-MACRO structures with the macro definitions
