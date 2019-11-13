@@ -2690,7 +2690,10 @@ if/else clauses."
                                                                  (normalize-file-for-include obj file))))
                                  (register-groups-bind (new-file)
                                      (file-line-scanner line)
-                                   (setf file new-file)))))))
+                                   (when (and new-file
+                                              (not (find-if {equalp "bits"}
+                                                            (pathname-directory new-file))))
+                                     (setf file new-file))))))))
 
 (defgeneric find-macro-uses (obj a)
   (:documentation "Identify the locations at which macros occur in the
