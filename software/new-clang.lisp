@@ -3245,17 +3245,15 @@ objects in TYPES using OBJ's symbol table."
                           macros types symbol-table name-symbol-table) obj
       (unless genome     ; get genome from existing ASTs if necessary
         (setf genome (genome obj)
-              ast-root nil))
-
-      (setf macros (remove-if #'new-clang-macro-i-file
-                              (dump-preprocessor-macros obj))
-            types (make-hash-table)
-            symbol-table (make-hash-table :test #'equal)
-            name-symbol-table (make-hash-table :test #'equal))
+              ast-root nil
+              types (make-hash-table)
+              symbol-table (make-hash-table :test #'equal)
+              name-symbol-table (make-hash-table :test #'equal)))
 
       (multiple-value-bind (json tmp-file genome-len)
           (clang-json obj)
-        (let ((ast (clang-convert-json-for-file json tmp-file genome-len)))
+        (let ((ast (clang-convert-json-for-file json tmp-file genome-len))
+              (macro-dump (dump-preprocessor-macros obj)))
           ;; Populate and massage auxilliary fields such as symbol tables
           ;; and types.
           (update-symbol-table symbol-table ast)
@@ -3285,8 +3283,11 @@ objects in TYPES using OBJ's symbol table."
           (fix-semicolons ast)
           (populate-type-fields-from-symbol-table obj types)
           (update-paths ast)
+
           (setf ast-root ast
-                genome nil)
+                genome nil
+                macros (remove-if #'new-clang-macro-i-file macro-dump))
+
           obj)))))
 
 
