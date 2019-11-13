@@ -1377,6 +1377,7 @@ in a #include."
   (when-let ((file (nest (first)
                          (remove-if «or #'null
                                         {equal "<built-in>"}
+                                        {equal "<scratch space>"}
                                         [{find-if {equalp "bits"}}
                                          #'pathname-directory]»)
                          (list (ast-file ast nil)
