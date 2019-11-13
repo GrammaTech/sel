@@ -2630,8 +2630,9 @@ in a CXXOperatorCallExpr node.")
 
 ;;; Macro-related code
 
-(defun build-macro-from-string (str)
-  "Create a CLANG-MACRO structure from the macro definition in STR."
+(defun build-macro (str &key i-file)
+  "Create a NEW-CLANG-MACRO structure from the macro definition in STR
+and the given I-FILE where the macro definition may be found."
   (let ((slen (length str)))
     (assert (>= slen 7))
     (assert (string= "#define" str :end2 7))
@@ -2652,7 +2653,10 @@ in a CXXOperatorCallExpr node.")
         (let* ((name (subseq str name-start pos))
                (body (subseq str name-start))
                (hash (sxhash body)))  ;; improve this hash
-          (make-new-clang-macro :hash hash :body body :name name))))))
+          (make-new-clang-macro :hash hash
+                                :body body
+                                :name name
+                                :i-file i-file))))))
 
 (defun dump-preprocessor-macros (obj &aux (genome (genome obj)))
   "Return a list of CLANG-MACRO structures with the macro definitions
@@ -2669,8 +2673,8 @@ if/else clauses."
                                                      src-file)))
                            (when (starts-with #\# line)
                              (if (starts-with-subseq "#define" line)
-                                 (when (equal file src-file)
-                                   (collect (build-macro-from-string line)))
+                                 (collect (build-macro line
+                                                       :i-file (unless (equal file src-file) file)))
                                  (register-groups-bind (new-file)
                                      (file-line-scanner line)
                                    (setf file new-file)))))))
@@ -3240,7 +3244,8 @@ objects in TYPES using OBJ's symbol table."
         (setf genome (genome obj)
               ast-root nil))
 
-      (setf macros (dump-preprocessor-macros obj)
+      (setf macros (remove-if #'new-clang-macro-i-file
+                              (dump-preprocessor-macros obj))
             types (make-hash-table)
             symbol-table (make-hash-table :test #'equal)
             name-symbol-table (make-hash-table :test #'equal))
