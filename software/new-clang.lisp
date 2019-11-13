@@ -376,9 +376,6 @@ in or below function declarations"
         original-name
         (random-elt (or matching variadic others '(nil))))))
 
-(defmethod symbol-table :before ((obj new-clang))
-  (update-caches-if-necessary obj))
-
 (defmethod name-symbol-table :before ((obj new-clang))
   (update-caches-if-necessary obj))
 
