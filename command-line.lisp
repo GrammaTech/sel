@@ -336,8 +336,10 @@ inspecting the value of `*lisp-interaction*'."
   (:documentation "The name of the project class associated
 with a language.")
   (:method ((language symbol))
-    ;; FIXME:  never use INTERN without an explicit package
-    (intern (concatenate 'string (symbol-name language) "-PROJECT")))
+    (if (ends-with-subseq "-PROJECT" (symbol-name language))
+        language
+        ;; FIXME:  never use INTERN without an explicit package
+        (intern (concatenate 'string (symbol-name language) "-PROJECT"))))
   (:method ((language (eql 'new-clang))) 'clang-project))
 
 (defun guess-language (&rest sources)
@@ -359,7 +361,7 @@ directories and if files based on their extensions."
                           (nest
                            (if (directory-p source)
                                (when-let ((guess (guess-helper
-                                                  (directory-files source)
+                                                  (list-directory source)
                                                   t)))
                                  (language-to-project guess)))
                            (second)
