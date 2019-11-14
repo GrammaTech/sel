@@ -1019,7 +1019,7 @@ If CHILDREN is T, also kill all processes below PROCESS."))
   (if (not children)
       (terminate-process (os-process process) :urgent urgent)
       (if (os-unix-p)
-          (zerop (nth-value 2 (shell "kill -~d -$(ps -o pgid= ~d | tr -d ' ')"
+          (zerop (nth-value 2 (shell "kill -~d -$(ps -o pgid=~d | tr -d ' ')"
                                      (if urgent 9 15) (process-id process))))
           (error "Killing all children not implemented on this platform"))))
 
@@ -1084,14 +1084,20 @@ Optionally print debug information if `*shell-debug*' is non-nil."
       ;; Use bash instead of /bin/sh, this means setting bash -c "<command>"
       ;; with appropriate string escaping.  Use a formatter function instead
       ;; of a control-string.
-      (setf control-string
-            (let ((cs control-string))
-              (lambda (stream &rest args)
-                (format stream "~a"
-                        (concatenate 'string "bash -c \""
-                                     (escape-chars "$\\\""
-                                                   (apply #'format nil cs args))
-                                     "\""))))))
+      (if input
+          (setf control-string
+                (let ((cs control-string))
+                  (lambda (stream &rest args)
+                    (format stream "~a"
+                            (concatenate 'string "bash -c \""
+                                         (escape-chars "$\\\""
+                                                       (apply #'format nil cs args))
+                                         "\"")))))
+          ;; When there is no input, send the command directly to bash
+          (setf
+           input (make-string-input-stream
+                  (apply #'format nil control-string format-arguments))
+           control-string "bash")))
     (setq run-program-arguments (plist-drop :bash run-program-arguments))
     (let ((cmd (apply #'format (list* nil control-string format-arguments)))
           (stdout-str nil)
