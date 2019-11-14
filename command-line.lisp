@@ -20,6 +20,7 @@
         :named-readtables
         :curry-compose-reader-macros
         :command-line-arguments
+        :iterate
         :split-sequence
         :cl-store
         :closer-mop
@@ -345,7 +346,14 @@ SOURCES should be a collection of paths.  The result is determined
 based on heuristics based on whether SOURCES points to files or
 directories and if files based on their extensions."
   (labels
-      ((guess-helper (sources project-p)
+      ((best-guess (guesses)
+         (iter (with ht = (make-hash-table))
+               (for guess in guesses)
+               (setf (gethash guess ht)
+                     (1+ (or (gethash guess ht) 0)))
+               (finally (return (car (first (sort (hash-table-alist ht) #'>
+                                                  :key #'cdr)))))))
+       (guess-helper (sources project-p)
          (let ((guesses
                 (mapcar (lambda (source)
                           (nest
@@ -380,12 +388,7 @@ directories and if files based on their extensions."
               ;;
               ;; NOTE: We will have to add to this list of incidental
               ;; software types that don't determine the project type.
-              (let ((unique
-                     (remove-if {member _ '(json simple)}
-                                (remove nil (remove-duplicates guesses)))))
-                (if (= 1 (length unique))
-                    (find-if #'identity unique)
-                    nil)))
+              (best-guess (remove-if {member _ '(nil json simple)} guesses)))
              ((= 1 (length sources))
               ;; For a single file either return the guess, or return
               ;; SIMPLE if no language matched.
