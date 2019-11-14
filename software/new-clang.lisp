@@ -218,7 +218,8 @@ on QUAL and DESUGARED slots."))
    (storage-class :initarg :storage-class
                   :reader type-storage-class
                   :initform :none
-                  :type (member :none :static :extern :register :__private_extern__)))
+                  :type (member :none :auto :static :register
+                                :extern :__private_extern__)))
   (:documentation "Wrapper object that is intended to behave like
 SEL/SW/CLANG:CLANG-TYPE.  This means it must have some information
 that is not strictly speaking about types at all (storage class)."))
