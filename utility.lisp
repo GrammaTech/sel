@@ -1019,7 +1019,7 @@ If CHILDREN is T, also kill all processes below PROCESS."))
   (if (not children)
       (terminate-process (os-process process) :urgent urgent)
       (if (os-unix-p)
-          (zerop (nth-value 2 (shell "kill -~d -$(ps -o pgid=~d | tr -d ' ')"
+          (zerop (nth-value 2 (shell "kill -~d -$(ps -o pgid= ~d | tr -d ' ')"
                                      (if urgent 9 15) (process-id process))))
           (error "Killing all children not implemented on this platform"))))
 
