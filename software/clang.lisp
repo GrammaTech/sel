@@ -36,6 +36,7 @@
            :includes
            :types
            :globals
+           :split-at-spaces
            :normalize-flags
            :pick-guarded-compound
            :clang-mutation
