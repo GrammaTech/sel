@@ -2868,20 +2868,26 @@ with the macro in MACROS corresponding to the current node."
                                       macros :test #'equal :key #'macro-name)))
                (setf (ast-attr ast :macro) macro)))))
 
-(defun fix-overlapping-vardecls (sw ast)
-  (map-ast ast (lambda (a) (fix-overlapping-vardecls-at-node sw a))))
+(defun fix-overlapping-declstmt-vars (sw ast)
+  (map-ast ast
+           (lambda (a)
+             (when (eq :declstmt (ast-class a))
+               (fix-overlapping-declstmt-vars-at-node sw a)))))
 
-(defun fix-overlapping-vardecls-at-node (sw ast)
-  "Separate consecutive, overlapping :VAR and :FIELD nodes so their
-text ranges in the source do not overlap, if possible."
-  ;; This does not exactly reproduce what the old clang
-  ;; front end was doing.  There, the Var nodes were children of
-  ;; each other in some cases.
+(defun fix-overlapping-declstmt-vars-at-node (sw ast)
+  "Separate consecutive, overlapping :Var children in a :DeclStmt node
+so their text ranges in the source do not overlap, if possible.  This
+mimics the previous behavior within clang-mutate."
+  ;; Note: If two var nodes are not the child of a DeclStmt node
+  ;; (e.g. global declaration with multiple variables), this does not
+  ;; exactly reproduce the old clang front end behavior.  In a global
+  ;; declaration with multiple variables, previously, the var nodes
+  ;; would become children of each other; in the new clang front end,
+  ;; these will become a "combined" node.
   (let ((child-asts (ast-children ast)))
     (let (prev pos)
       (when (and (ast-p (car child-asts))
-                 (member (ast-class (car child-asts))
-                         '(:var :field)))
+                 (eq :var (ast-class (car child-asts))))
         (setf prev (car child-asts))
         (setf pos (begin-offset prev)))
       (do* ((e (cdr child-asts) (cdr e))
@@ -2890,7 +2896,7 @@ text ranges in the source do not overlap, if possible."
         (if (ast-p c)
             (let ((next-pos (begin-offset c))
                   (end (end-offset c)))
-              (if (member (ast-class c) '(:var :field))
+              (if (eq (ast-class c) :var)
                   (progn
                     (if prev
                         (if (and next-pos end)
@@ -3287,7 +3293,7 @@ objects in TYPES using OBJ's symbol table."
           (put-operators-into-inner-positions obj ast)
           (encapsulate-macro-expansions-cheap ast (find-macro-uses obj ast))
           (populate-macro-attr-in-macro-expansion-nodes ast genome macro-dump)
-          (fix-overlapping-vardecls obj ast) ; must be after macro encapsulation
+          (fix-overlapping-declstmt-vars obj ast) ; must be after macro encapsulation
           (fix-ancestor-ranges ast)
           (combine-overlapping-siblings ast)
           (decorate-ast-with-strings obj ast)
