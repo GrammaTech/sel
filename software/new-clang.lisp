@@ -1853,7 +1853,8 @@ modifiers from a type name"
                            (filter "| sed -e \"s/  *//\" ; exit ${PIPESTATUS[0]}")
                            (genome-len (length (genome obj)))
                            (flags (append (clang-frontend-flags (flags obj))
-                                          (mappend {list "-I"} *clang-default-includes*))))
+                                          (mappend {list "-isystem"}
+                                                   *clang-default-includes*))))
                        (multiple-value-bind (stdout stderr exit)
                            (let ((*trace-output* *standard-output*))
                              (if (boundp '*new-clang-json-file*)
