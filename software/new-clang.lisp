@@ -2421,13 +2421,17 @@ actual source file"))
 
 (defmethod remove-non-program-asts ((ast ast) (file string))
   (flet ((%non-program (a) (is-non-program-ast a file)))
-    ;; Remove asts based on FILE only at the top level
-    ;; This could fail on #include inside other forms,
-    ;; but we have trouble with macroexpansion there.
-    ;; TO BE FIXED
-    (setf (ast-children ast)
-          (remove-if #'%non-program (ast-children ast))))
-  ast)
+    ;; Remove asts based on FILE.  This now also removes
+    ;; asts not at the top level.  This may mean the asts are not
+    ;; in a recognizable form. We may want to add stubs indicating
+    ;; external ast pieces have been removed.
+    (map-ast ast
+             (lambda (a)
+               (let* ((children (ast-children a))
+                      (new-children (remove-if #'%non-program children)))
+                 (unless (= (length children) (length new-children))
+                   (setf (ast-children a) new-children)))))
+    ast))
 
 (defun remove-asts-in-classes (ast classes)
   (remove-asts-if ast (lambda (o) (member (ast-class o) classes))))
