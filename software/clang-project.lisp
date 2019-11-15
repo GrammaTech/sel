@@ -108,7 +108,7 @@ information on the format of compilation databases."))
                (-<>> (or (aget :command entry) "")
                      (regex-replace-all "\\\\\\\"(.*?)\\\\\\\"" <> "'\"\\1\"'")
                      (unescape-string)
-                     (split-at-spaces)
+                     (split-command-line)
                      (cdr)))))
     (nest
      ;; Normalize the list of compiler flags
