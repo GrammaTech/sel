@@ -2459,6 +2459,14 @@ actual source file"))
                  (:FunctionTemplate
                   (%remove-all-but :Function 1)))))))
 
+(defun remove-attribute-asts (ast-root)
+  "Remove any ASTs representing an __attribute__ specification from ast-root."
+  (remove-asts-if ast-root
+                  [{ends-with-subseq "ATTR"}
+                   #'string-upcase
+                   #'symbol-name
+                   #'ast-class]))
+
 (defun remove-file-from-asts (ast-root tmp-file)
   "Remove the file attribute from the ASTs in AST-ROOT which are located
 in TMP-FILE (the original genome)."
@@ -3291,6 +3299,7 @@ objects in TYPES using OBJ's symbol table."
           ;; Massage the ASTs identified by clang.
           (remove-asts-if ast #'ast-is-implicit)
           (remove-template-expansion-asts ast)
+          (remove-attribute-asts ast)
           (remove-file-from-asts ast tmp-file)
           (convert-line-and-col-to-byte-offsets ast genome)
           (fix-multibyte-characters ast genome)
