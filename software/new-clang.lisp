@@ -296,7 +296,8 @@ using the clang front-end.
           (appending (list f)))
         ;; Special cases
         (when (or (starts-with-subseq "-fcxx-exceptions" f)
-                  (starts-with-subseq "-fgnuc-version" f))
+                  (starts-with-subseq "-fgnuc-version" f)
+                  (starts-with-subseq "-Wno-everything" f))
           (appending (list f)))))
 
 (defmethod stmt-asts ((obj new-clang))
