@@ -394,7 +394,6 @@ Raise an error if no such parent exists."
 Return nil if there are no modified, untracked, or deleted files."
   (multiple-value-bind (stdout stderr errno)
       (multiple-value-bind (git-dir git-work-tree) (git-directory directory)
-        ;; (format t "GIT-DIR:~S GIT-TREE:~S~%" git-dir git-work-tree)
         (shell "GIT_WORK_TREE=~a GIT_DIR=~a git status --porcelain"
                (namestring git-work-tree)
                (namestring git-dir)))
@@ -641,7 +640,6 @@ After BODY is executed the temporary file is removed."
   (with-gensyms (v)
     `(let* ((,v ,(second spec))
             (,(car spec) (temp-file-name ,v)))
-       ;; (format t "Create ~a for ~a~%" ,(car spec) ,v)
        (unwind-protect (progn ,@body) (ensure-temp-file-free ,(car spec))))))
 
 (defmacro with-temp-fifo (spec &rest body)
@@ -1037,7 +1035,7 @@ If CHILDREN is T, also kill all processes below PROCESS."))
 ;;; or into files on disk).
 ;;;
 ;;;@texi{shell}
-(defvar *shell-debug* nil ;; '(:cmd)
+(defvar *shell-debug* nil
   "Set to true to print shell invocations.  If a list, print
 shell cmd if :CMD is a membe, input if :INPUT is a member, and
 print the shell outputs if :OUTPUT is a member.")

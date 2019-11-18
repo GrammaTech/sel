@@ -179,9 +179,6 @@
            :ast-unbound-vals
            :ast-varargs
            :ast-void-ret
-           ;; :ast-array-length
-           ;; :ast-base-type
-           ;; :ast-bit-field-width
            :make-clang-ast
            :copy-clang-ast
            :make-clang-ast-node
@@ -3218,11 +3215,10 @@ variables to replace use of the variables declared in stmt ID."))
 
 (defun ast-declarations* (ast)
   (cond
-                                        ; Variable or function arg
-    ((member (ast-class ast) '(:Var :ParmVar :DeclStmt))
+    ((member (ast-class ast) '(:Var :ParmVar :DeclStmt)) ; Var or function arg
      (ast-declares ast))
-    ((function-decl-p ast)                      ; Function declaration.
-     (mapcar #'car (ast-args ast)))  ;; Does not need the hash codes
+    ((function-decl-p ast) ; Function declaration.
+     (mapcar #'car (ast-args ast)))  ; Does not need the hash codes
     (:otherwise nil)))
 
 (defmethod ast-var-declarations ((ast clang-ast))
@@ -3947,7 +3943,6 @@ Arguments are identical to PARSE-SOURCE-SNIPPET."
 Move the semicolon in just one level, but no further"
   ;;; Previously this was just for call-exprs in compoundstmts,
   ;;; but new clang needs more
-  ;;  (when (eql (ast-class ast) :compoundstmt)
   (let* ((children (ast-children ast))
          (p children))
     (loop (unless p (return))

@@ -13,7 +13,6 @@
         :software-evolution-library/software/parseable
         :software-evolution-library/software/clang
         :software-evolution-library/software/new-clang)
-  ;; (:import-from :software-evolution-library/software/new-clang :*soft*)
   (:shadowing-import-from :software-evolution-library/software/project
                           :project :evolve-files)
   (:export :dump-ast :dump-ast-with-parent

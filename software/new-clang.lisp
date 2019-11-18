@@ -836,10 +836,10 @@ depending on CLASS"))
              :class class :attrs attrs :id id
              :syn-ctx syn-ctx :aux-data aux-data)))
 
-(defmethod copy ((ast new-clang-ast) &rest args) ;  &key &allow-other-keys)
+(defmethod copy ((ast new-clang-ast) &rest args)
   (apply #'new-clang-ast-copy ast #'make-new-clang-ast args))
 
-(defmethod copy ((ast cxx-operator-call-expr) &rest args) ;  &key &allow-other-keys)
+(defmethod copy ((ast cxx-operator-call-expr) &rest args)
   (apply #'new-clang-ast-copy ast #'make-cxx-operator-call-expr args))
 
 (defun make-statement (&rest args)
@@ -1848,7 +1848,6 @@ modifiers from a type name"
                        :if-exists :supersede
                        :if-does-not-exist :create)
       (write-sequence (genome obj) s)))
-  ;; (sleep 10000)
   (with-temp-file-of (src-file (ext obj)) (genome obj)
                      (let ((cmd-fmt "clang -cc1 -fgnuc-version=4.2.1 -fcxx-exceptions -ast-dump=json ~{~a~^ ~} ~a ~a")
                            (filter "| sed -e \"s/  *//\" ; exit ${PIPESTATUS[0]}")
@@ -2030,10 +2029,6 @@ on json-kind-symbol when special subclasses are wanted."))
 (defmethod j2ck (json (json-kind-symbol (eql :ParamCommandComment)))
   (declare (ignorable json json-kind-symbol))
   nil)
-
-;; (defmethod j2ck (json (json-kind-symbol (eql :ClassTemplateSpecialization)))
-;;   (declare (ignorable json json-kind-symbol))
-;;   nil)
 
 (defmethod j2ck (json (json-kind-symbol null))
   (declare (ignore json))
@@ -2962,9 +2957,6 @@ of the ranges of its children"
                  (unless (and (eql min-begin begin)
                               (eql max-end end))
                    (setf changed? t)
-                   #+(or)
-                   (format t "Change range of ~a to ~a, ~a~%"
-                           a min-begin max-end)
                    (setf (ast-attr a :range)
                          (make-new-clang-range
                           :begin (make-new-clang-loc
