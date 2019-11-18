@@ -492,10 +492,13 @@ The Unix `file' command is used, specifically \"file -b --mime-type PATH\"."
   #+ccl (declare (ignorable external-format))
   (labels ((run-read ()
              (let (#+sbcl (sb-impl::*default-external-format* external-format)
-                   #+ecl (ext:*default-external-format* external-format))
-               (with-open-file (in pathname)
+                          #+ecl (ext:*default-external-format* external-format)
+                          (element-type (case external-format
+                                          #+sbcl (:ascii 'base-char)
+                                          (t 'character))))
+               (with-open-file (in pathname :element-type element-type)
                  (let* ((file-bytes (file-length in))
-                        (seq (make-string file-bytes))
+                        (seq (make-string file-bytes :element-type element-type))
                         (file-chars (read-sequence seq in)))
                    (if (= file-bytes file-chars)
                        seq
