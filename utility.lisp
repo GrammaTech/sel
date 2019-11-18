@@ -494,7 +494,7 @@ The Unix `file' command is used, specifically \"file -b --mime-type PATH\"."
              (let (#+sbcl (sb-impl::*default-external-format* external-format)
                           #+ecl (ext:*default-external-format* external-format)
                           (element-type (case external-format
-                                          #+sbcl (:ascii 'base-char)
+                                          (:ascii 'base-char)
                                           (t 'character))))
                (with-open-file (in pathname :element-type element-type)
                  (let* ((file-bytes (file-length in))
