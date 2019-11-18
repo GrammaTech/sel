@@ -314,24 +314,6 @@ PRINT-OBJECT method on AST structures.")
              (,(symbol-cat name 'stored-hash) ,obj))
            (defmethod (setf ast-stored-hash) (v (,obj ,name))
              (setf (,(symbol-cat name 'stored-hash) ,obj) v))
-           #|
-           (defmethod ,(symbol-cat conc-name 'path) ((,obj ,name))
-             (ast-internal-path ,obj))
-           (defmethod (setf ,(symbol-cat conc-name 'path)) ((v list) (,obj ,name))
-             (setf (ast-internal-path ,obj) v))
-           (defmethod ,(symbol-cat conc-name 'node) ((,obj ,name))
-             (ast-internal-node ,obj))
-           (defmethod (setf ,(symbol-cat conc-name 'node)) (v (,obj ,name))
-             (setf (ast-internal-node ,obj) v))
-           (defmethod ,(symbol-cat conc-name 'children) ((,obj ,name))
-             (ast-internal-children ,obj))
-           (defmethod (setf ,(symbol-cat conc-name 'children)) ((v list) (,obj ,name))
-             (setf (ast-internal-children ,obj) v))
-           (defmethod ,(symbol-cat conc-name 'stored-hash) ((,obj ,name))
-             (ast-internal-stored-hash ,obj))
-           (defmethod (setf ,(symbol-cat conc-name 'stored-hash)) (v (,obj ,name))
-             (setf (ast-internal-stored-hash ,obj) v))
-           |#
 
            ;; Define accessors for inner fields on outer structure.
            ,@(mapcar
@@ -923,9 +905,6 @@ in preorder.  The ancestor list is in decreasing order of depth in the AST."))
 
 (defgeneric ast-to-list (obj)
   (:documentation "Return ASTs under OBJ as a list.")
-;;  (:method ((ast ast) &aux result)
-;;    (map-ast ast (lambda (ast) (push ast result)))
-;;    (reverse result))
   (:method (ast &aux result)
     (if (not (ast-p ast))
         (call-next-method)
@@ -1096,10 +1075,7 @@ modile +AST-HASH-BASE+"
     (ast-hash (package-name p))))
 
 (defmethod ast-hash ((ast ast))
-;;  (or (ast-stored-hash ast)
-;;      (setf (ast-stored-hash ast)
   (ast-hash (cons (ast-class ast) (ast-children ast))))
-;; ))
 
 (defgeneric ast-clear-hash (ast)
   (:documentation "Clear the stored hash fields of an ast"))
