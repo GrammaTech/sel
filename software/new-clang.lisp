@@ -594,6 +594,7 @@ ASTs in the existing SYMBOL-TABLE and AST-ROOT tree."
   (file nil :type (or null string))
   (included-from nil :type (or null string))
   (line nil :type (or null integer))
+  (presumed-line nil :type (or null integer))
   (col nil :type (or null integer))
   (offset 0 :type (or null integer))
   (tok-len 0 :type (or null integer)))
@@ -615,6 +616,7 @@ in the macro defn, EXPANSION-LOC is at the macro use."
                  &key (file nil file-supplied-p)
                    (included-from nil included-from-supplied-p)
                    (line nil line-supplied-p)
+                   (presumed-line nil presumed-line-supplied-p)
                    (col nil col-supplied-p)
                    (offset 0 offset-supplied-p)
                    (tok-len 0 tok-len-supplied-p))
@@ -624,6 +626,9 @@ in the macro defn, EXPANSION-LOC is at the macro use."
                       included-from
                       (new-clang-loc-included-from obj))
    :line (if line-supplied-p line (new-clang-loc-line obj))
+   :presumed-line (if presumed-line-supplied-p
+                      presumed-line
+                      (new-clang-loc-presumed-line obj))
    :col (if col-supplied-p col (new-clang-loc-col obj))
    :offset (if offset-supplied-p offset (new-clang-loc-offset obj))
    :tok-len (if tok-len-supplied-p tok-len (new-clang-loc-tok-len obj))))
@@ -2216,6 +2221,7 @@ NIL indicates no value."))
                             (aget :file)
                             (aget :includedfrom loc-json))
        :line (cached-aget :line loc-json)
+       :presumed-line (cached-aget :presumedline loc-json)
        :col (cached-aget :col loc-json)
        :tok-len (cached-aget :toklen loc-json))))
 
