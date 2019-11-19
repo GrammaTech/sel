@@ -2117,30 +2117,17 @@ form for SLOT, and stores into OBJ.  Returns OBJ or its replacement."))
   (setf (new-clang-ast-class obj) (json-kind-to-keyword value))
   obj)
 
-(defmethod store-slot ((obj new-clang-ast) (slot (eql :definitiondata)) value)
-  (declare (ignorable slot value))
-  ;; Do not translate this attribute for now
-  obj)
-
-(defmethod store-slot ((obj new-clang-ast) (slot (eql :bases)) value)
-  (declare (ignorable slot value))
-  ;; Do not translate this attribute for now
-  obj)
-
-(defmethod store-slot ((obj new-clang-ast) (slot (eql :foundReferencedDecl)) value)
-  (declare (ignorable slot value))
-  ;; Do not translate this attribute for now
-  obj)
-
-(defmethod store-slot ((obj new-clang-ast) (slot (eql :path)) value)
-  (declare (ignorable slot value))
-  ;; Do not translate this attribute for now
-  obj)
-
-(defmethod store-slot ((obj new-clang-ast) (slot (eql :lookups)) value)
-  (declare (ignorable slot value))
-  ;; Do not translate this attribute for now
-  obj)
+(macrolet ((ignore-slot (slot-name)
+             `(defmethod store-slot ((obj new-clang-ast) (slot (eql ',slot-name)) value)
+                (declare (ignorable slot value))
+                obj)))
+  (ignore-slot :definitionData)
+  (ignore-slot :bases)
+  (ignore-slot :foundReferencedDecl)
+  (ignore-slot :path)
+  (ignore-slot :lookups)
+  (ignore-slot :lookups)
+  (ignore-slot :valueCategory))
 
 (defmethod store-slot ((obj new-clang-ast) (slot (eql :id)) value)
   (setf (new-clang-ast-id obj) (convert-slot-value obj slot value))
@@ -2205,13 +2192,6 @@ NIL indicates no value."))
     ((equal value "register") :register)
     ((equal value "__private_extern__") :__PRIVATE_EXTERN__)
     (t (call-next-method))))
-
-(defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :valueCategory)) (value string))
-  (declare (ignorable obj slot))
-  (cond
-    ((equal value "rvalue") :rvalue)
-    ((equal value "lvalue") :lvalue)
-    (t (intern (string-upcase value) :keyword))))
 
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :castKind)) (value string))
   (declare (ignorable obj slot))
