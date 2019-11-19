@@ -2396,27 +2396,17 @@ if no value was found."
 
 ;;; Massaging ASTs into proper form after parsing
 
-(defgeneric remove-non-program-asts (ast file)
-  (:documentation "Remove ASTs from ast that are not from the
-actual source file"))
-
-(defun is-non-program-ast (a file)
-  (let ((f (ast-file a)))
-    (and f (not (equal file f)))))
-
-(defmethod remove-non-program-asts ((ast ast) (file string))
-  (flet ((%non-program (a) (is-non-program-ast a file)))
-    ;; Remove asts based on FILE.  This now also removes
-    ;; asts not at the top level.  This may mean the asts are not
-    ;; in a recognizable form. We may want to add stubs indicating
-    ;; external ast pieces have been removed.
-    (map-ast ast
-             (lambda (a)
-               (let* ((children (ast-children a))
-                      (new-children (remove-if #'%non-program children)))
-                 (unless (= (length children) (length new-children))
-                   (setf (ast-children a) new-children)))))
-    ast))
+(defgeneric remove-non-program-asts (ast-root file)
+  (:documentation "Remove ASTs from ast-root that are not from the
+actual source file")
+  (:method ((ast-root ast) (file string))
+    ;; Minor performance optimization.  First remove the
+    ;; top-level ASTs which are included from another file.
+    ;; Then remove the sub-ASTs included from another file.
+    (setf (ast-children ast-root)
+          (remove-if #'ast-included-from (ast-children ast-root)))
+    (remove-asts-if ast-root #'ast-included-from)
+    ast-root))
 
 (defun remove-asts-in-classes (ast classes)
   (remove-asts-if ast (lambda (o) (member (ast-class o) classes))))
@@ -2450,6 +2440,41 @@ actual source file"))
                    #'string-upcase
                    #'symbol-name
                    #'ast-class]))
+
+(defun fix-line-directives (ast-root tmp-file)
+  "Fix the `file` attribute for ASTs in AST-ROOT which appear after
+a #line directive."
+  (labels
+      ((%fix-line-directives (loc)
+         (cond ((typep loc 'new-clang-macro-loc)
+                (copy loc
+                      :spelling-loc
+                      (%fix-line-directives (new-clang-macro-loc-spelling-loc loc))
+                      :expansion-loc
+                      (%fix-line-directives (new-clang-macro-loc-expansion-loc loc))))
+               ((and (typep loc 'new-clang-loc)
+                     (new-clang-loc-presumed-line loc)
+                     (null (ast-included-from loc))
+                     (not (member (ast-file loc)
+                                  (list "<built-in>" "<scratch space>" tmp-file)
+                                  :test #'equal)))
+                ;; When the presumed-line field is set for the location,
+                ;; the location is not included from another file, and
+                ;; the file exists on the disk and is not equal to tmp-file,
+                ;; loc appears after a #line directive and the file
+                ;; attribute needs to be touched up.
+                (copy loc :file tmp-file :presumed-line nil))
+               (t loc))))
+    (map-ast ast-root
+             (lambda (ast)
+               (setf (ast-attr ast :range)
+                     (make-new-clang-range
+                      :begin (nest (%fix-line-directives)
+                                   (new-clang-range-begin)
+                                   (ast-range ast))
+                      :end (nest (%fix-line-directives)
+                                 (new-clang-range-end)
+                                 (ast-range ast))))))))
 
 (defun remove-file-from-asts (ast-root tmp-file)
   "Remove the file attribute from the ASTs in AST-ROOT which are located
@@ -3289,6 +3314,7 @@ objects in TYPES using OBJ's symbol table."
           (remove-asts-if ast #'ast-is-implicit)
           (remove-template-expansion-asts ast)
           (remove-attribute-asts ast)
+          (fix-line-directives ast tmp-file)
           (remove-file-from-asts ast tmp-file)
           (convert-line-and-col-to-byte-offsets ast genome)
           (fix-multibyte-characters ast genome)
