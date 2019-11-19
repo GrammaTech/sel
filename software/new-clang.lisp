@@ -2451,13 +2451,11 @@ in TMP-FILE (the original genome)."
   (labels
       ((remove-file-from-loc (loc)
          (cond ((typep loc 'new-clang-macro-loc)
-                (make-new-clang-macro-loc
-                 :spelling-loc
-                 (remove-file-from-loc (new-clang-macro-loc-spelling-loc loc))
-                 :expansion-loc
-                 (remove-file-from-loc (new-clang-macro-loc-expansion-loc loc))
-                 :is-macro-arg-expansion
-                 (new-clang-macro-loc-is-macro-arg-expansion loc)))
+                (copy loc
+                      :spelling-loc
+                      (remove-file-from-loc (new-clang-macro-loc-spelling-loc loc))
+                      :expansion-loc
+                      (remove-file-from-loc (new-clang-macro-loc-expansion-loc loc))))
                ((typep loc 'new-clang-loc)
                 (copy loc
                       :file (unless (equal tmp-file (ast-file loc))
@@ -2498,13 +2496,11 @@ byte offsets.
          (+ (1- col) (nth (1- line) line-offsets)))
        (convert-to-byte-offsets (loc)
          (cond ((typep loc 'new-clang-macro-loc)
-                (make-new-clang-macro-loc
-                 :spelling-loc
-                 (convert-to-byte-offsets (new-clang-macro-loc-spelling-loc loc))
-                 :expansion-loc
-                 (convert-to-byte-offsets (new-clang-macro-loc-expansion-loc loc))
-                 :is-macro-arg-expansion
-                 (new-clang-macro-loc-is-macro-arg-expansion loc)))
+                (copy loc
+                      :spelling-loc
+                      (convert-to-byte-offsets (new-clang-macro-loc-spelling-loc loc))
+                      :expansion-loc
+                      (convert-to-byte-offsets (new-clang-macro-loc-expansion-loc loc))))
                ((null (ast-file loc))
                 (make-new-clang-loc
                  :offset (to-byte-offset (new-clang-loc-line loc)
@@ -2549,13 +2545,11 @@ offsets to support source text with multibyte characters.
        (byte-loc-to-chars (loc)
          "Convert the given LOC using byte offsets to one using character offsets."
          (cond ((typep loc 'new-clang-macro-loc)
-                (make-new-clang-macro-loc
-                 :spelling-loc
-                 (byte-loc-to-chars (new-clang-macro-loc-spelling-loc loc))
-                 :expansion-loc
-                 (byte-loc-to-chars (new-clang-macro-loc-expansion-loc loc))
-                 :is-macro-arg-expansion
-                 (new-clang-macro-loc-is-macro-arg-expansion loc)))
+                (copy loc
+                      :spelling-loc
+                      (byte-loc-to-chars (new-clang-macro-loc-spelling-loc loc))
+                      :expansion-loc
+                      (byte-loc-to-chars (new-clang-macro-loc-expansion-loc loc))))
                ((null (ast-file loc))
                 (make-new-clang-loc
                  :offset (byte-offset-to-chars (new-clang-loc-offset loc))
