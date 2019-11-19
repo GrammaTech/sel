@@ -2126,7 +2126,6 @@ form for SLOT, and stores into OBJ.  Returns OBJ or its replacement."))
   (ignore-slot :foundReferencedDecl)
   (ignore-slot :path)
   (ignore-slot :lookups)
-  (ignore-slot :lookups)
   (ignore-slot :valueCategory))
 
 (defmethod store-slot ((obj new-clang-ast) (slot (eql :id)) value)
