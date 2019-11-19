@@ -2480,15 +2480,12 @@ in TMP-FILE (the original genome)."
                  :is-macro-arg-expansion
                  (new-clang-macro-loc-is-macro-arg-expansion loc)))
                ((typep loc 'new-clang-loc)
-                (make-new-clang-loc
-                 :file (unless (equal tmp-file (ast-file loc))
-                         (ast-file loc))
-                 :included-from (unless (equal tmp-file (ast-included-from loc))
-                                  (ast-included-from loc))
-                 :line (new-clang-loc-line loc)
-                 :col (new-clang-loc-col loc)
-                 :offset (new-clang-loc-offset loc)
-                 :tok-len (new-clang-loc-tok-len loc)))
+                (copy loc
+                      :file (unless (equal tmp-file (ast-file loc))
+                              (ast-file loc))
+                      :included-from (unless (equal tmp-file
+                                                    (ast-included-from loc))
+                                       (ast-included-from loc))))
                (t loc))))
     (map-ast ast-root
              (lambda (ast)
