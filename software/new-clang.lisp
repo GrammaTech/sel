@@ -37,6 +37,7 @@
            :new-clang-loc-line
            :make-new-clang-ast
            :ast-id
+           :ast-type
            :ast-attr
            :ast-file
            :ast-file-for-include
