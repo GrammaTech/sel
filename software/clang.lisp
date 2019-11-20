@@ -3975,8 +3975,6 @@ on both sides of AST.  AST is a string or ast node.  SEMI-POSITION is
     (declare (ignorable pos))
     ast))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 (defun has-trailing-semicolon-p (ast)
   (typecase ast
     (string
