@@ -1,7 +1,6 @@
 ;;; clang-diff-test.lisp -- differential testing for clang and new clang
-(defpackage :software-evolution-library/components/clang-diff-test
-  (:nicknames :sel/components/clang-diff-test
-              :sel/cp/clang-diff-test)
+(defpackage :software-evolution-library/test/clang-diff-test
+  (:nicknames :sel/test/clang-diff-test)
   (:use :common-lisp
         :alexandria
         :iterate
@@ -15,10 +14,10 @@
         :software-evolution-library/software/clang
         :software-evolution-library/software/new-clang)
   (:import-from :uiop :nest truenamize)
-  (:import-from :software-evolution-library/software/new-clang-debug
+  (:import-from :software-evolution-library/test/new-clang-debug
                 :dump-ast-val-to-list)
   (:export :clang-diff-test))
-(in-package :software-evolution-library/components/clang-diff-test)
+(in-package :software-evolution-library/test/clang-diff-test)
 
 
 ;;; Command line
