@@ -147,6 +147,7 @@ See also: https://clang.llvm.org/docs/FAQ.html#id2.")
   (children nil :type list)      ;; Remainder of subtree.
   ;; Class symbol for this ast node
   (class nil :type symbol)
+  (type nil)
   ;; Association list of attr name -> value pairs
   (attrs nil :type list)
   ;; Hashed id number from Clang
@@ -806,6 +807,7 @@ depending on CLASS"))
                              path
                              (children (new-clang-ast-children ast))
                              (class (new-clang-ast-class ast))
+                             (type (new-clang-ast-type ast))
                              (attrs (new-clang-ast-attrs ast) attrs-p)
                              (id (new-clang-ast-id ast))
                              (syn-ctx (new-clang-ast-syn-ctx ast))
@@ -837,7 +839,7 @@ depending on CLASS"))
     ;; add &allow-other-keys to that.
     (funcall fn :allow-other-keys t
              :path path :children children
-             :class class :attrs attrs :id id
+             :class class :type type :attrs attrs :id id
              :syn-ctx syn-ctx :aux-data aux-data)))
 
 (defmethod copy ((ast new-clang-ast) &rest args)
@@ -956,7 +958,7 @@ Other keys are allowed but are silently ignored.
          (eql (ast-class ast) key))))
 
 (defmethod ast-type ((ast new-clang-ast))
-  (ast-attr ast :type))
+  (new-clang-ast-type ast))
 
 (defmethod ast-unbound-vals ((ast new-clang-ast))
   (ast-unbound-vals* ast (ast-class ast)))
@@ -2114,6 +2116,11 @@ form for SLOT, and stores into OBJ.  Returns OBJ or its replacement."))
     (when-let ((converted-value (convert-slot-value obj slot value)))
       (setf (new-clang-ast-attrs obj)
             (append attrs `((,slot . ,converted-value))))))
+  obj)
+
+(defmethod store-slot ((obj new-clang-ast) (slot (eql :type)) value)
+  (assert (null (new-clang-ast-type obj)))
+  (setf (new-clang-ast-type obj) (convert-slot-value obj slot value))
   obj)
 
 (defmethod store-slot ((obj new-clang-ast) (slot (eql :kind)) value)
