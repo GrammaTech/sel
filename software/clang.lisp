@@ -36,7 +36,6 @@
            :includes
            :types
            :globals
-           :split-command-line
            :normalize-flags
            :pick-guarded-compound
            :clang-mutation
@@ -279,38 +278,6 @@ See http://clang.llvm.org/."))
 
 
 ;;; clang object creation
-(defun split-command-line (str)
-  "Split the command line represented by STR at spaces,
-except when the spaces are escaped or within quotes.
-Return a list of substrings with empty strings elided."
-  (let ((subseqs nil)
-        (in-single-quote-p nil)
-        (in-double-quote-p nil)
-        (prev 0)
-        (pos 0)
-        (len (length str)))
-    (iter (while (< pos len))
-          (let ((c (elt str pos)))
-            (case c
-              (#\Space
-               (when (and (< prev pos)
-                          (not in-single-quote-p)
-                          (not in-double-quote-p))
-                 (push (subseq str prev pos) subseqs)
-                 (setf prev (1+ pos))))
-              (#\\
-               (incf pos)
-               (when (>= pos len) (return)))
-              (#\'
-               (setf in-single-quote-p (not in-single-quote-p)))
-              (#\"
-               (setf in-double-quote-p (not in-double-quote-p))))
-            (incf pos)))
-    (assert (= len pos))
-    (when (< prev pos)
-      (push (subseq str prev pos) subseqs))
-    (reverse subseqs)))
-
 (defun normalize-flags (dir flags)
   "Normalize the list of compiler FLAGS so all search paths are fully
 expanded relative to DIR.
@@ -322,10 +289,10 @@ expanded relative to DIR.
              (nest (remove-if #'emptyp)
                    (mapcar #'trim-left-whitespace)
                    (mappend (lambda (flag) ; Split leading "L".
-                              (split-command-line
+                              (split-quoted
                                (replace-all flag "-L" "-L "))))
                    (mappend (lambda (flag) ; Split leading "-I".
-                              (split-command-line
+                              (split-quoted
                                (replace-all flag "-I" "-I ")))
                             flags))))
     (iter (for f in (split-flags flags))

@@ -148,6 +148,7 @@
    :trim-right-whitespace
    :trim-left-whitespace
    :normalize-whitespace
+   :split-quoted
    :+whitespace-chars+
    :escape-string
    :unescape-string
@@ -1298,6 +1299,37 @@ every character that occurs in CHARS is preceded by a backslash."
                    (format s "\\~a" c)
                    (format s "~a" c)))
          str)))
+
+(defun split-quoted (str)
+  "Split STR at spaces except when the spaces are escaped or within quotes.
+Return a list of substrings with empty strings elided."
+  (let ((subseqs nil)
+        (in-single-quote-p nil)
+        (in-double-quote-p nil)
+        (prev 0)
+        (pos 0)
+        (len (length str)))
+    (iter (while (< pos len))
+          (let ((c (elt str pos)))
+            (case c
+              (#\Space
+               (when (and (< prev pos)
+                          (not in-single-quote-p)
+                          (not in-double-quote-p))
+                 (push (subseq str prev pos) subseqs)
+                 (setf prev (1+ pos))))
+              (#\\
+               (incf pos)
+               (when (>= pos len) (return)))
+              (#\'
+               (setf in-single-quote-p (not in-single-quote-p)))
+              (#\"
+               (setf in-double-quote-p (not in-double-quote-p))))
+            (incf pos)))
+    (assert (= len pos))
+    (when (< prev pos)
+      (push (subseq str prev pos) subseqs))
+    (reverse subseqs)))
 
 (defun escape-string (str)
   "Return a copy of STR with special characters escaped before output to SerAPI.
