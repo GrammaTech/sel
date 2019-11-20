@@ -3110,23 +3110,6 @@ ranges into 'combined' nodes.  Warn when this happens."
     (map-ast ast #'%decorate))
   ast)
 
-(defun nremove-unnecessary-attrs (ast)
-  "Destructively remove :range attrs from AST"
-  (nremove-ast-attrs ast (lambda (k v) (declare (ignore v)) (member k '(:range :loc)))))
-
-(defun nremove-ast-attrs (ast filter)
-  "Destructively remove all attributes from AST that satisfy FILTER,
-a function called with two arguments (attribute, value).  Stop at COMBINED
-nodes."
-  (map-ast-while ast
-                 (lambda (a)
-                   (unless (eql (ast-class a) :combined)
-                     (setf (new-clang-ast-attrs a)
-                           (remove-if (lambda (p)
-                                        (funcall filter (car p) (cdr p)))
-                                      (new-clang-ast-attrs a)))
-                     t))))
-
 (defgeneric put-operators-into-starting-positions (sw ast)
   (:documentation "Put operators into their starting positions
 in CXXOperatorCallExpr nodes.")
@@ -3332,7 +3315,6 @@ objects in TYPES using OBJ's symbol table."
           (fix-ancestor-ranges ast)
           (combine-overlapping-siblings ast)
           (decorate-ast-with-strings obj ast)
-          (nremove-unnecessary-attrs ast)
           (put-operators-into-starting-positions obj ast)
           (compute-full-stmt-attrs ast)
           (compute-guard-stmt-attrs ast)
