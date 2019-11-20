@@ -1917,10 +1917,6 @@ from a code snippet.")
           `(cdr (assoc ,item ,list)))
       whole))
 
-(defun areplace (key val alist &key (test #'eql))
-  "Replace the value of KEY in the association list ALIST with VAL."
-  (cons (cons key val) (remove key alist :key #'car :test test)))
-
 (define-setf-expander aget (item list &key (test ''eql) &environment env)
   (multiple-value-bind (dummies vals stores store-form access-form)
       (get-setf-expansion list env)
@@ -1936,6 +1932,10 @@ from a code snippet.")
                      (prog1 ,store
                        (setf ,access-form (acons ,item ,store ,access-form)))))
               `(aget ,item ,access-form :test ,test)))))
+
+(defun areplace (key val alist &key (test #'eql))
+  "Replace the value of KEY in the association list ALIST with VAL."
+  (cons (cons key val) (remove key alist :key #'car :test test)))
 
 (defun adrop (drop-keys alist)
   "Remove all keys in DROP-KEYS from alist."
