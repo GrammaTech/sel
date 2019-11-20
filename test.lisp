@@ -3080,10 +3080,6 @@ is not to be found"
 
 (deftest find-or-add-type-finds-existing-type ()
   (with-fixture gcd-clang
-    #+(OR)
-    (is (eql (find-if [{string= "int"} #'type-name]
-                      (hash-table-values (types *gcd*)))
-             (find-or-add-type *gcd* "int")))
     (is (find (find-or-add-type *gcd* "int")
               (hash-table-values (types *gcd*))))))
 
@@ -3091,9 +3087,6 @@ is not to be found"
   (with-fixture gcd-clang
     ;; The new clang front end loads a large number of types
     ;; that are defined in headers, but not used in the program
-    #+nil
-    (is (null (find-if [{string= "float"} #'type-name]
-                       (hash-table-values (types *gcd*)))))
     (let ((new-type (find-or-add-type *gcd* "int")))
       (is new-type "New type created.")
       (is (gethash (type-hash new-type) (types *gcd*))
