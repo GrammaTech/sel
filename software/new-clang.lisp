@@ -145,7 +145,6 @@ See also: https://clang.llvm.org/docs/FAQ.html#id2.")
                           (:conc-name new-clang-ast-))
   (path nil :type list)          ;; Path to subtree from root of tree.
   (children nil :type list)      ;; Remainder of subtree.
-  (stored-hash nil :type (or null fixnum))
   ;; Class symbol for this ast node
   (class nil :type symbol)
   ;; Association list of attr name -> value pairs
@@ -909,9 +908,9 @@ Other keys are allowed but are silently ignored.
 (defmethod (setf ast-children) (value (obj new-clang-ast))
   (setf (new-clang-ast-children obj) value))
 (defmethod ast-stored-hash ((obj new-clang-ast))
-  (new-clang-ast-stored-hash obj))
+  (ast-attr obj 'stored-hash))
 (defmethod (setf ast-stored-hash) (value (obj new-clang-ast))
-  (setf (new-clang-ast-stored-hash obj) value))
+  (setf (ast-attr obj 'stored-hash) value))
 (defmethod ast-aux-data ((obj new-clang-ast))
   (new-clang-ast-aux-data obj))
 (defmethod (setf ast-aux-data) (v (obj new-clang-ast))
