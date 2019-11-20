@@ -435,7 +435,7 @@ statements high rather than low."
                   (push (list (cons :fl-weight score))
                         (ast-attr stmt :annotations))
                   (cons stmt score)))))
-          (stmt-asts (ast-root obj))))
+          (stmt-asts obj)))
 
 (defmethod fault-loc-only-on-bad-traces ((obj clang-base))
   "Annotate ast nodes in obj with :fl-weight tag and a `score` indicating
@@ -449,4 +449,4 @@ how suspect a node is, targeting nodes that appear only on failing traces."
                     (append (list (cons :fl-weight score))
                             (ast-attr stmt :annotations)))
               (cons stmt score)))
-          (stmt-asts (ast-root obj))))
+          (stmt-asts obj)))
