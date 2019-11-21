@@ -377,7 +377,7 @@ return the original pool."
 
 (defmethod mutation-targets ((obj new-clang)
                              &key (filter nil)
-                               (stmt-pool #'asts stmt-pool-supplied-p))
+                               (stmt-pool #'stmt-asts stmt-pool-supplied-p))
   "Return ASTs from STMT-POOL (with optional fault localization).
 Throw a `no-mutation-targets' exception if none are available.
 
