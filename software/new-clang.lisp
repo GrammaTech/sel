@@ -2641,6 +2641,18 @@ offsets to support source text with multibyte characters.
                         :begin (byte-loc-to-chars begin)
                         :end (byte-loc-to-chars end))))))))
 
+(defun remove-loc-attribute (ast-root)
+  "Remove the :LOC attribute from ASTs in AST-ROOT."
+  ;; Note: Removing the convert-slot-value method for :loc slots
+  ;; leads to errors as the AST file and line may be specified
+  ;; in the :loc slot and elided in the later :range slot.
+  ;; We need to call `cached-aget` with the fields in the :loc
+  ;; to allow them to be properly set on the :range later.
+  (map-ast ast-root
+           (lambda (ast)
+             (setf (new-clang-ast-attrs ast)
+                   (adrop (list :loc) (new-clang-ast-attrs ast))))))
+
 (defgeneric compute-operator-positions (ast)
   (:documentation "Compute positions of operators in
 CXXOperatorCallExpr nodes")
@@ -3347,6 +3359,7 @@ objects in TYPES using OBJ's symbol table."
           (remove-file-from-asts ast tmp-file)
           (convert-line-and-col-to-byte-offsets ast genome)
           (fix-multibyte-characters ast genome)
+          (remove-loc-attribute ast)
           (compute-operator-positions ast)
           (put-operators-into-inner-positions obj ast)
           (encapsulate-macro-expansions-cheap ast (find-macro-uses obj ast))
