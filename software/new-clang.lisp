@@ -148,6 +148,7 @@ See also: https://clang.llvm.org/docs/FAQ.html#id2.")
   (children nil :type list)      ;; Remainder of subtree.
   ;; Class symbol for this ast node
   (class nil :type symbol)
+  ;; Type information associated with this ast node
   (type nil)
   ;; Association list of attr name -> value pairs
   (attrs nil :type list)
