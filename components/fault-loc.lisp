@@ -317,7 +317,7 @@ which maps (test-casel: position)"
   (:documentation
    "Add line numbers to annotations, generally for debugging purposes")
   (:method ((obj new-clang) (ast new-clang-ast))
-    (let ((loc (new-clang-range-begin (ast-attr ast :range))))
+    (let ((loc (new-clang-range-begin (ast-range ast))))
       (unless (numberp loc)
         (let* ((line (new-clang-loc-line loc)))
           (setf (ast-attr ast :annotations) (cons :line line)))))))
@@ -342,7 +342,7 @@ which maps (test-casel: position)"
         ;;       number.  May never matter.
         (dolist (ast (stmt-asts obj))
           (dolist (annotation file-annotations)
-            (when (within-ast-range (ast-attr ast :range) (ann-line annotation))
+            (when (within-ast-range (ast-range ast) (ann-line annotation))
               (push annotation (ast-attr ast :annotations)))))))))
 
 (defun good-trace-count (stmt)

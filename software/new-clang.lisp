@@ -38,6 +38,7 @@
            :make-new-clang-ast
            :ast-id
            :ast-type
+           :ast-range
            :ast-attr
            :ast-file
            :ast-file-for-include
@@ -150,6 +151,8 @@ See also: https://clang.llvm.org/docs/FAQ.html#id2.")
   (class nil :type symbol)
   ;; Type information associated with this ast node
   (type nil)
+  ;; Source location range information from parsing this ast node
+  (range nil)
   ;; Association list of attr name -> value pairs
   (attrs nil :type list)
   ;; Hashed id number from Clang
@@ -671,7 +674,7 @@ in the macro defn, EXPANSION-LOC is at the macro use."
 
 (defgeneric (setf offset) (offset obj)
   (:method ((offset integer) (obj new-clang-ast))
-    (setf (offset (new-clang-range-begin (ast-attr obj :range))) offset))
+    (setf (offset (new-clang-range-begin (ast-range obj))) offset))
   (:method ((offset integer) (obj new-clang-loc))
     (setf (new-clang-loc-offset obj) offset))
   (:method ((offset integer) (obj new-clang-macro-loc))
@@ -679,19 +682,19 @@ in the macro defn, EXPANSION-LOC is at the macro use."
 
 (defgeneric begin-offset (obj)
   (:method ((obj new-clang-ast))
-    (begin-offset (aget :range (new-clang-ast-attrs obj))))
+    (begin-offset (ast-range obj)))
   (:method ((obj new-clang-range))
     (offset (new-clang-range-begin obj))))
 
 (defgeneric begin-tok-len (obj)
   (:method ((obj new-clang-ast))
-    (begin-tok-len (aget :range (new-clang-ast-attrs obj))))
+    (begin-tok-len (ast-range obj)))
   (:method ((obj new-clang-range))
     (tok-len (new-clang-range-begin obj))))
 
 (defgeneric end-offset (obj)
   (:method ((obj new-clang-ast))
-    (end-offset (aget :range (new-clang-ast-attrs obj))))
+    (end-offset (ast-range obj)))
   (:method ((obj new-clang-range))
     (offset (new-clang-range-end obj))))
 
@@ -705,7 +708,7 @@ in the macro defn, EXPANSION-LOC is at the macro use."
 ;;; for the ast
 (defgeneric begin-and-end-offsets (x)
   (:method ((obj new-clang-ast))
-    (begin-and-end-offsets (ast-attr obj :range)))
+    (begin-and-end-offsets (ast-range obj)))
   (:method ((obj new-clang-range))
     (values (offset (new-clang-range-begin obj))
             (+ (offset (new-clang-range-end obj))
@@ -776,6 +779,7 @@ depending on CLASS"))
             (%p ':id #'new-clang-ast-id)
             (%p ':syn-ctx #'new-clang-ast-syn-ctx)
             (%p ':aux-data #'new-clang-ast-aux-data)
+            (%p ':range #'new-clang-ast-range)
             (%p ':type [#'%type #'new-clang-ast-type])
             ;; Always include :attrs, as it distinguishes
             ;; new-clang from (old) clang serialized asts
@@ -806,6 +810,7 @@ depending on CLASS"))
                         :id (aget :id alist)
                         :syn-ctx (aget :syn-ctx alist)
                         :aux-data (aget :aux-data alist)
+                        :range (aget :range alist)
                         :type (%type (aget :type alist))
                         :attrs (%attrs (aget :attrs alist)))))
 
@@ -816,6 +821,7 @@ depending on CLASS"))
                              (children (new-clang-ast-children ast))
                              (class (new-clang-ast-class ast))
                              (type (new-clang-ast-type ast))
+                             (range (new-clang-ast-range ast))
                              (attrs (new-clang-ast-attrs ast) attrs-p)
                              (id (new-clang-ast-id ast))
                              (syn-ctx (new-clang-ast-syn-ctx ast))
@@ -847,7 +853,7 @@ depending on CLASS"))
     ;; add &allow-other-keys to that.
     (funcall fn :allow-other-keys t
              :path path :children children
-             :class class :type type :attrs attrs :id id
+             :class class :type type :range range :attrs attrs :id id
              :syn-ctx syn-ctx :aux-data aux-data)))
 
 (defmethod copy ((ast new-clang-ast) &rest args)
@@ -950,8 +956,11 @@ Other keys are allowed but are silently ignored.
 (defmethod ast-in-macro-expansion ((obj new-clang-ast))
   (eql (ast-class obj) :macroexpansion))
 
-(defun ast-range (ast) (ast-attr ast :range))
-(defun (setf ast-range) (val ast) (setf (ast-attr ast :range) val))
+(defgeneric ast-range (ast)
+  (:method ((ast new-clang-ast)) (new-clang-ast-range ast)))
+(defgeneric (setf ast-range) (val ast)
+  (:method (val (ast new-clang-ast))
+    (setf (new-clang-ast-range ast) val)))
 
 (defgeneric ast-is-implicit (ast)
   (:method (ast) (declare (ignorable ast)) nil)
@@ -1173,7 +1182,7 @@ on various ast classes"))
 (defgeneric ast-file* (ast macro?)
   (:documentation "The file name associated with an AST node")
   (:method ((ast new-clang-ast) macro?)
-    (ast-file* (ast-attr ast :range) macro?))
+    (ast-file* (ast-range ast) macro?))
   (:method ((range new-clang-range) macro?)
     (ast-file* (new-clang-range-begin range) macro?))
   (:method ((loc new-clang-loc) macro?)
@@ -1194,7 +1203,7 @@ on various ast classes"))
 (defgeneric ast-line (ast &optional macro?)
   (:documentation "The line number associated with an AST node")
   (:method ((ast new-clang-ast) &optional macro?)
-    (ast-line (ast-attr ast :range) macro?))
+    (ast-line (ast-range ast) macro?))
   (:method ((range new-clang-range) &optional macro?)
     (ast-line (new-clang-range-begin range) macro?))
   (:method ((loc new-clang-loc) &optional macro?)
@@ -1214,7 +1223,7 @@ on various ast classes"))
 (defgeneric ast-included-from (ast &optional macro?)
   (:documentation "The file name which included the header containing AST.")
   (:method ((ast new-clang-ast) &optional macro?)
-    (ast-included-from (ast-attr ast :range) macro?))
+    (ast-included-from (ast-range ast) macro?))
   (:method ((range new-clang-range) &optional macro?)
     (ast-included-from (new-clang-range-begin range) macro?))
   (:method ((loc new-clang-loc) &optional macro?)
@@ -1985,7 +1994,7 @@ output from CL-JSON"
   ;; in the same order they appear in the json, fortunately.
   (let* ((*aget-cache* nil)
          (ast (clang-convert-json json)))
-    (setf (ast-attr ast :range)
+    (setf (ast-range ast)
           (make-new-clang-range
            :begin (make-new-clang-loc
                    :file file
@@ -2158,6 +2167,11 @@ form for SLOT, and stores into OBJ.  Returns OBJ or its replacement."))
 (defmethod store-slot ((obj new-clang-ast) (slot (eql :kind)) value)
   (declare (ignorable slot))
   (setf (new-clang-ast-class obj) (json-kind-to-keyword value))
+  obj)
+
+(defmethod store-slot ((obj new-clang-ast) (slot (eql :range)) value)
+  (assert (null (new-clang-ast-range obj)))
+  (setf (new-clang-ast-range obj) (convert-slot-value obj slot value))
   obj)
 
 (macrolet ((ignore-slot (slot-name)
@@ -2505,7 +2519,7 @@ a #line directive."
                (t loc))))
     (map-ast ast-root
              (lambda (ast)
-               (setf (ast-attr ast :range)
+               (setf (ast-range ast)
                      (make-new-clang-range
                       :begin (nest (%fix-line-directives)
                                    (new-clang-range-begin)
@@ -2536,7 +2550,7 @@ in TMP-FILE (the original genome)."
     (map-ast ast-root
              (lambda (ast)
                (when (equal (ast-file ast) tmp-file)
-                 (setf (ast-attr ast :range)
+                 (setf (ast-range ast)
                        (make-new-clang-range
                         :begin (nest (remove-file-from-loc)
                                      (new-clang-range-begin)
@@ -2584,7 +2598,7 @@ byte offsets.
                            (range (ast-range ast))
                            (begin (new-clang-range-begin range))
                            (end (new-clang-range-end range)))
-                 (setf (ast-attr ast :range)
+                 (setf (ast-range ast)
                        (make-new-clang-range
                         :begin (convert-to-byte-offsets begin)
                         :end (convert-to-byte-offsets end))))))))
@@ -2636,7 +2650,7 @@ offsets to support source text with multibyte characters.
                            (range (ast-range ast))
                            (begin (new-clang-range-begin range))
                            (end (new-clang-range-end range)))
-                 (setf (ast-attr ast :range)
+                 (setf (ast-range ast)
                        (make-new-clang-range
                         :begin (byte-loc-to-chars begin)
                         :end (byte-loc-to-chars end))))))))
@@ -2874,24 +2888,24 @@ macro.")
                                       (new-begin-tok-len (second m))
                                       (new-end-offset (+ (first m) (fourth m))))
                                   (make-new-clang-ast
-                                   :class :macroexpansion :attrs
-                                   `((:range .
-                                             ,(make-new-clang-range
-                                               :begin (copy b-loc :expansion-loc
-                                                            (make-new-clang-loc
-                                                             :file (ast-file b-loc)
-                                                             :line (ast-line b-loc)
-                                                             :offset new-begin-offset
-                                                             :tok-len new-begin-tok-len)
-                                                            :is-macro-arg-expansion nil)
-                                               :end (copy e-loc :expansion-loc
-                                                          (make-new-clang-loc
-                                                           :file (ast-file e-loc)
-                                                           :line (ast-line e-loc)
-                                                           :offset new-end-offset)
-                                                          :is-macro-arg-expansion nil)))
-                                     (:macro-child-segment .
-                                                           ,macro-child-segment))))))
+                                   :class :macroexpansion
+                                   :range (make-new-clang-range
+                                           :begin (copy b-loc :expansion-loc
+                                                        (make-new-clang-loc
+                                                         :file (ast-file b-loc)
+                                                         :line (ast-line b-loc)
+                                                         :offset new-begin-offset
+                                                         :tok-len new-begin-tok-len)
+                                                        :is-macro-arg-expansion nil)
+                                           :end (copy e-loc :expansion-loc
+                                                      (make-new-clang-loc
+                                                       :file (ast-file e-loc)
+                                                       :line (ast-line e-loc)
+                                                       :offset new-end-offset)
+                                                      :is-macro-arg-expansion nil))
+                                   :attrs
+                                   (list (cons :macro-child-segment
+                                               macro-child-segment))))))
                              (setf changed? t
                                    m nil
                                    macro-child-segment nil
@@ -3015,7 +3029,7 @@ of the ranges of its children"
                  (unless (and (eql min-begin begin)
                               (eql max-end end))
                    (setf changed? t)
-                   (setf (ast-attr a :range)
+                   (setf (ast-range a)
                          (make-new-clang-range
                           :begin (make-new-clang-loc
                                   :file (ast-file a)
@@ -3090,16 +3104,15 @@ ranges into 'combined' nodes.  Warn when this happens."
                                      (list (make-new-clang-ast
                                             :class :combined
                                             :children accumulator
-                                            :attrs `((:range .
-                                                             ,(make-new-clang-range
-                                                               :begin (make-new-clang-loc
-                                                                       :file (ast-file (car accumulator))
-                                                                       :line (ast-line (car accumulator))
-                                                                       :offset new-begin)
-                                                               :end (make-new-clang-loc
-                                                                     :file (ast-file (lastcar accumulator))
-                                                                     :line (ast-line (lastcar accumulator))
-                                                                     :offset new-end))))))))
+                                            :range (make-new-clang-range
+                                                    :begin (make-new-clang-loc
+                                                            :file (ast-file (car accumulator))
+                                                            :line (ast-line (car accumulator))
+                                                            :offset new-begin)
+                                                    :end (make-new-clang-loc
+                                                          :file (ast-file (lastcar accumulator))
+                                                          :line (ast-line (lastcar accumulator))
+                                                          :offset new-end))))))
                              (setf accumulator nil)))))))
                (unless (eq :combined (ast-class a))
                  (let ((new-children
@@ -3129,7 +3142,7 @@ ranges into 'combined' nodes.  Warn when this happens."
                  "Offsets out of order: i = ~a,~
                   cbegin = ~a, c = ~a, range = ~a"
                  i cbegin c
-                 (ast-attr c :range)))
+                 (ast-range c)))
        (%safe-subseq (seq start end)
          (subseq seq start (if (<= end start) start end)))
        (%decorate (a)

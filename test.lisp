@@ -9967,7 +9967,7 @@ prints unique counters in the trace"
 
 (deftest annotations-with-fault-loc ()
   (labels ((ast-start-line (ast)
-             (let ((loc (new-clang-range-begin (ast-attr ast :range))))
+             (let ((loc (new-clang-range-begin (ast-range ast))))
                (if (numberp loc)
                    nil  ; The root node has "0" for a range.
                    (new-clang-loc-line loc)))))
