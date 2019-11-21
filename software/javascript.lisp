@@ -82,7 +82,7 @@
 (defmethod parse-asts ((obj javascript))
   (with-temp-file-of (src-file (ext obj)) (genome obj)
     (multiple-value-bind (stdout stderr exit)
-        (shell "acorn --allow-hash-bang ~a ~a"
+        (shell "acorn --compact --allow-hash-bang ~a ~a"
                (if (eq (parsing-mode obj) :module)
                    "--module"
                    "")
