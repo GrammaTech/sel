@@ -2219,6 +2219,10 @@ NIL indicates no value."))
   (declare (ignorable obj slot))
   (mapcar #'clang-convert-json value))
 
+(defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :explicittemplateargs)) value)
+  (declare (ignorable obj slot))
+  (mapcar #'clang-convert-json value))
+
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :id)) value)
   (declare (ignorable obj slot))
   (read-c-integer value))
