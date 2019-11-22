@@ -2497,13 +2497,14 @@ actual source file")
   "Fix the `file` attribute for ASTs in AST-ROOT which appear after
 a #line directive."
   (labels
-      ((%fix-line-directives (loc)
+      ((fix-line-directive (loc)
+         "Fix the FILE field on LOC if LOC appears after a #line directive."
          (cond ((typep loc 'new-clang-macro-loc)
                 (copy loc
                       :spelling-loc
-                      (%fix-line-directives (new-clang-macro-loc-spelling-loc loc))
+                      (fix-line-directive (new-clang-macro-loc-spelling-loc loc))
                       :expansion-loc
-                      (%fix-line-directives (new-clang-macro-loc-expansion-loc loc))))
+                      (fix-line-directive (new-clang-macro-loc-expansion-loc loc))))
                ((and (typep loc 'new-clang-loc)
                      (new-clang-loc-presumed-line loc)
                      (null (ast-included-from loc))
@@ -2519,26 +2520,26 @@ a #line directive."
                (t loc))))
     (map-ast ast-root
              (lambda (ast)
-               (setf (ast-range ast)
-                     (make-new-clang-range
-                      :begin (nest (%fix-line-directives)
-                                   (new-clang-range-begin)
-                                   (ast-range ast))
-                      :end (nest (%fix-line-directives)
-                                 (new-clang-range-end)
-                                 (ast-range ast))))))))
+               (when-let ((range (ast-range ast)))
+                 (setf (ast-range ast)
+                       (make-new-clang-range
+                        :begin (fix-line-directive
+                                (new-clang-range-begin range))
+                        :end (fix-line-directive
+                              (new-clang-range-end range)))))))))
 
 (defun remove-file-from-asts (ast-root tmp-file)
   "Remove the file attribute from the ASTs in AST-ROOT which are located
 in TMP-FILE (the original genome)."
   (labels
-      ((remove-file-from-loc (loc)
+      ((remove-file (loc)
+         "Remove the file attribute from LOC when the file is equal to TMP-FILE."
          (cond ((typep loc 'new-clang-macro-loc)
                 (copy loc
                       :spelling-loc
-                      (remove-file-from-loc (new-clang-macro-loc-spelling-loc loc))
+                      (remove-file (new-clang-macro-loc-spelling-loc loc))
                       :expansion-loc
-                      (remove-file-from-loc (new-clang-macro-loc-expansion-loc loc))))
+                      (remove-file (new-clang-macro-loc-expansion-loc loc))))
                ((typep loc 'new-clang-loc)
                 (copy loc
                       :file (unless (equal tmp-file (ast-file loc))
@@ -2549,15 +2550,12 @@ in TMP-FILE (the original genome)."
                (t loc))))
     (map-ast ast-root
              (lambda (ast)
-               (when (equal (ast-file ast) tmp-file)
+               (when-let ((range (ast-range ast))
+                          (_ (equal (ast-file ast) tmp-file)))
                  (setf (ast-range ast)
                        (make-new-clang-range
-                        :begin (nest (remove-file-from-loc)
-                                     (new-clang-range-begin)
-                                     (ast-range ast))
-                        :end (nest (remove-file-from-loc)
-                                   (new-clang-range-end)
-                                   (ast-range ast)))))))))
+                        :begin (remove-file (new-clang-range-begin range))
+                        :end (remove-file (new-clang-range-end range)))))))))
 
 (defun line-offsets (str)
   "Return a list with containing the byte offsets of each new line in STR."
@@ -2576,14 +2574,16 @@ byte offsets.
 * GENOME string with the source text of the program"
   (labels
       ((to-byte-offset (line col)
+         "Convert the given LINE and COL to a byte offset."
          (+ (1- col) (nth (1- line) line-offsets)))
-       (convert-to-byte-offsets (loc)
+       (convert-loc (loc)
+         "Populate the given LOC's offset field with the byte offset."
          (cond ((typep loc 'new-clang-macro-loc)
                 (copy loc
                       :spelling-loc
-                      (convert-to-byte-offsets (new-clang-macro-loc-spelling-loc loc))
+                      (convert-loc (new-clang-macro-loc-spelling-loc loc))
                       :expansion-loc
-                      (convert-to-byte-offsets (new-clang-macro-loc-expansion-loc loc))))
+                      (convert-loc (new-clang-macro-loc-expansion-loc loc))))
                ((null (ast-file loc))
                 (make-new-clang-loc
                  :line (new-clang-loc-line loc)
@@ -2593,15 +2593,13 @@ byte offsets.
                (t loc))))
     (map-ast ast-root
              (lambda (ast)
-               (when-let* ((_ (and (not (eq :TopLevel (ast-class ast)))
-                                   (null (ast-file ast))))
-                           (range (ast-range ast))
-                           (begin (new-clang-range-begin range))
-                           (end (new-clang-range-end range)))
+               (when-let* ((range (ast-range ast))
+                           (_ (and (not (eq :TopLevel (ast-class ast)))
+                                   (null (ast-file ast)))))
                  (setf (ast-range ast)
                        (make-new-clang-range
-                        :begin (convert-to-byte-offsets begin)
-                        :end (convert-to-byte-offsets end))))))))
+                        :begin (convert-loc (new-clang-range-begin range))
+                        :end (convert-loc (new-clang-range-end range)))))))))
 
 (defun multibyte-characters (str)
   "Return a listing of multibyte character byte offsets and their length in STR."
@@ -2626,14 +2624,14 @@ offsets to support source text with multibyte characters.
             (iter (for (pos . incr) in mb-chars)
                   (while (<= pos offset))
                   (summing incr))))
-       (byte-loc-to-chars (loc)
+       (fix-mb-chars (loc)
          "Convert the given LOC using byte offsets to one using character offsets."
          (cond ((typep loc 'new-clang-macro-loc)
                 (copy loc
                       :spelling-loc
-                      (byte-loc-to-chars (new-clang-macro-loc-spelling-loc loc))
+                      (fix-mb-chars (new-clang-macro-loc-spelling-loc loc))
                       :expansion-loc
-                      (byte-loc-to-chars (new-clang-macro-loc-expansion-loc loc))))
+                      (fix-mb-chars (new-clang-macro-loc-expansion-loc loc))))
                ((null (ast-file loc))
                 (make-new-clang-loc
                  :line (new-clang-loc-line loc)
@@ -2645,15 +2643,13 @@ offsets to support source text with multibyte characters.
                (t loc))))
     (map-ast ast-root
              (lambda (ast)
-               (when-let* ((_ (and (not (eq :TopLevel (ast-class ast)))
-                                   (null (ast-file ast))))
-                           (range (ast-range ast))
-                           (begin (new-clang-range-begin range))
-                           (end (new-clang-range-end range)))
+               (when-let* ((range (ast-range ast))
+                           (_ (and (not (eq :TopLevel (ast-class ast)))
+                                   (null (ast-file ast)))))
                  (setf (ast-range ast)
                        (make-new-clang-range
-                        :begin (byte-loc-to-chars begin)
-                        :end (byte-loc-to-chars end))))))))
+                        :begin (fix-mb-chars (new-clang-range-begin range))
+                        :end (fix-mb-chars (new-clang-range-end range)))))))))
 
 (defun remove-loc-attribute (ast-root)
   "Remove the :LOC attribute from ASTs in AST-ROOT."
