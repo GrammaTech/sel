@@ -313,6 +313,8 @@ input is not positive."
       ((and source (directory-p source))
        (intern (concatenate 'string (symbol-name class) "-PROJECT")
                :sel/command-line))
+      ((and *new-clang?* (eq class 'clang))
+       'new-clang)
       (t class))))
 
 (defun wait-on-manual (manual)
