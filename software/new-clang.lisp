@@ -40,7 +40,6 @@
            :ast-type
            :ast-range
            :ast-attr
-           :ast-file
            :ast-file-for-include
            :new-clang-ast-attrs
            :symbol-table
