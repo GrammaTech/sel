@@ -320,6 +320,7 @@ expanded relative to DIR.
 "
   (labels ((split-flags (flags)
              (nest (remove-if #'emptyp)
+                   (mapcar #'trim-left-whitespace)
                    (mappend (lambda (flag) ; Split leading "L".
                               (split-command-line
                                (replace-all flag "-L" "-L "))))
