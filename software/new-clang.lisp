@@ -716,6 +716,17 @@ in the macro defn, EXPANSION-LOC is at the macro use."
 (defun extended-end-offset (x)
   (nth-value 1 (begin-and-end-offsets x)))
 
+;;; TODO: This method should be removed when we unify with sel/utility
+;;;       as its name conflicts with the line method there.
+(defmethod line ((obj new-clang-loc))
+  (new-clang-loc-line obj))
+(defmethod line ((obj new-clang-macro-loc))
+  (line (if (and (new-clang-macro-loc-is-macro-arg-expansion obj)
+                 (< (offset (new-clang-macro-loc-expansion-loc obj))
+                    (offset (new-clang-macro-loc-spelling-loc obj))))
+            (new-clang-macro-loc-spelling-loc obj)
+            (new-clang-macro-loc-expansion-loc obj))))
+
 
 ;;; AST creation mechanisms
 
@@ -1192,26 +1203,6 @@ on various ast classes"))
          (new-clang-macro-loc-expansion-loc loc))
      macro?))
   (:method (obj macro?) (declare (ignorable obj macro?)) nil))
-
-(defgeneric ast-line (ast &optional macro?)
-  (:documentation "The line number associated with an AST node")
-  (:method ((ast new-clang-ast) &optional macro?)
-    (ast-line (ast-range ast) macro?))
-  (:method ((range new-clang-range) &optional macro?)
-    (ast-line (new-clang-range-begin range) macro?))
-  (:method ((loc new-clang-loc) &optional macro?)
-    (declare (ignorable macro?))
-    (new-clang-loc-line loc))
-  (:method ((loc new-clang-macro-loc) &optional macro?)
-    (ast-line
-     (if (if (and (new-clang-macro-loc-is-macro-arg-expansion loc)
-                  (< (offset (new-clang-macro-loc-expansion-loc loc))
-                     (offset (new-clang-macro-loc-spelling-loc loc))))
-             (not macro?)
-             macro?)
-         (new-clang-macro-loc-spelling-loc loc)
-         (new-clang-macro-loc-expansion-loc loc))
-     macro?)))
 
 (defgeneric ast-included-from (ast &optional macro?)
   (:documentation "The file name which included the header containing AST.")
@@ -2886,14 +2877,14 @@ macro.")
                                            :begin (copy b-loc :expansion-loc
                                                         (make-new-clang-loc
                                                          :file (ast-file b-loc)
-                                                         :line (ast-line b-loc)
+                                                         :line (line b-loc)
                                                          :offset new-begin-offset
                                                          :tok-len new-begin-tok-len)
                                                         :is-macro-arg-expansion nil)
                                            :end (copy e-loc :expansion-loc
                                                       (make-new-clang-loc
                                                        :file (ast-file e-loc)
-                                                       :line (ast-line e-loc)
+                                                       :line (line e-loc)
                                                        :offset new-end-offset)
                                                       :is-macro-arg-expansion nil))
                                    :attrs
@@ -3026,11 +3017,15 @@ of the ranges of its children"
                          (make-new-clang-range
                           :begin (make-new-clang-loc
                                   :file (ast-file a)
-                                  :line (ast-line a)
+                                  :line (nest (line)
+                                              (new-clang-range-begin)
+                                              (ast-range a))
                                   :offset min-begin)
                           :end (make-new-clang-loc
                                 :file (ast-file a)
-                                :line (ast-line a)
+                                :line (nest (line)
+                                            (new-clang-range-end)
+                                            (ast-range a))
                                 :offset max-end))))))))
       ;; Fixpoint for normalization of ranges
       (loop
@@ -3100,11 +3095,17 @@ ranges into 'combined' nodes.  Warn when this happens."
                                             :range (make-new-clang-range
                                                     :begin (make-new-clang-loc
                                                             :file (ast-file (car accumulator))
-                                                            :line (ast-line (car accumulator))
+                                                            :line (nest (line)
+                                                                        (new-clang-range-begin)
+                                                                        (ast-range)
+                                                                        (car accumulator))
                                                             :offset new-begin)
                                                     :end (make-new-clang-loc
                                                           :file (ast-file (lastcar accumulator))
-                                                          :line (ast-line (lastcar accumulator))
+                                                          :line (nest (line)
+                                                                      (new-clang-range-end)
+                                                                      (ast-range)
+                                                                      (lastcar accumulator))
                                                           :offset new-end))))))
                              (setf accumulator nil)))))))
                (unless (eq :combined (ast-class a))
