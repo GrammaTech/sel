@@ -7962,52 +7962,44 @@ prints unique counters in the trace"
 #-windows ; IO-SHELL not yet supported on Windows
 (deftest (read-and-write-shell-files :long-running) ()
   (let ((test-string "Hello world. Hello world. Hello world."))
-    (is (nest
-         (string= test-string)
-         (with-retries (10))
-         ;; NOTE: Give it 10 tries to account for rare stochastic
-         ;; end-of-file errors in which I think we're going from
-         ;; writing to reading too quickly for the file system.
-         (handler-case
-             (with-temp-file (temp.xz)
-               (write-shell-file (out temp.xz "xz")
-                 (write-line test-string out))
-               (return (read-shell-file (in temp.xz "xzcat")
-                         (read-line in))))
-           (error (c) (declare (ignorable c)) nil))))))
+    (is (string= test-string
+                 (handler-case
+                     (with-temp-file (temp.xz)
+                       (write-shell-file (out temp.xz "xz")
+                                         (write-line test-string out))
+                       ;; NOTE: sleep one second to account for rare stochastic
+                       ;; end-of-file errors in which I think we're going from
+                       ;; writing to reading too quickly for the file system.
+                       (sleep 1)
+                       (read-shell-file (in temp.xz "xzcat")
+                                        (read-line in)))
+                   (error (c) (declare (ignorable c)) nil))))))
 
 #-windows
 (deftest (read-and-write-bytes-shell-files :long-running) ()
   (let ((byte #x25))
-    (is (nest
-         (equal byte)
-         (with-retries (10))
-         ;; NOTE: see note in `read-and-write-shell-files'
-         (handler-case
-             (with-temp-file (temp.xz)
-               (write-shell-file (out temp.xz "xz")
-                 (write-byte byte out))
-               (return
-                 (read-shell-file (in temp.xz "xzcat")
-                   (read-byte in))))
-           (error (c) (declare (ignorable c)) nil))))))
+    (is (equal byte
+               (handler-case
+                   (with-temp-file (temp.xz)
+                     (write-shell-file (out temp.xz "xz")
+                                       (write-byte byte out))
+                     (sleep 1) ; see note in `read-and-write-shell-files'
+                     (read-shell-file (in temp.xz "xzcat")
+                                      (read-byte in)))
+                 (error (c) (declare (ignorable c)) nil))))))
 
 #-windows
 (deftest (cl-store-read-and-write-shell-files :long-running) ()
   (let ((it (make-instance 'software :fitness 37)))
-    (is (nest
-         (= (fitness it))
-         (fitness)
-         (with-retries (10))
-         ;; NOTE: see note in `read-and-write-shell-files'
-         (handler-case
-             (with-temp-file (temp.xz)
-               (write-shell-file (out temp.xz "xz")
-                 (store it out))
-               (return
+    (is (= (fitness it)
+           (handler-case
+               (with-temp-file (temp.xz)
+                 (write-shell-file (out temp.xz "xz")
+                                   (store it out))
+                 (sleep 1) ; see note in `read-and-write-shell-files'
                  (read-shell-file (in temp.xz "xzcat")
-                   (restore in))))
-           (error (c) (declare (ignorable c)) nil))))))
+                                  (fitness (restore in))))
+             (error (c) (declare (ignorable c)) nil))))))
 
 
 ;;;; Command-line tests.
