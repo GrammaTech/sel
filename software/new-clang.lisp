@@ -705,10 +705,12 @@ spelling location comes after the expansion location.")
   (:method ((obj new-clang-range))
     (offset (new-clang-range-end obj))))
 
-(defgeneric tok-len (x)
-  (:method ((x new-clang-loc)) (new-clang-loc-tok-len x))
-  (:method ((x new-clang-macro-loc))
-    (tok-len (new-clang-macro-loc-expansion-loc x))))
+(defgeneric tok-len (obj)
+  (:method ((obj new-clang-loc)) (new-clang-loc-tok-len obj))
+  (:method ((obj new-clang-macro-loc))
+    (tok-len (if (spelling-loc-has-source-text-p obj)
+                 (new-clang-macro-loc-spelling-loc obj)
+                 (new-clang-macro-loc-expansion-loc obj)))))
 
 ;;; Compute beginning, ending offsets for an ast, other things
 ;;; The end offset is one past the last character in the ast-text
