@@ -40,7 +40,7 @@
            :ast-type
            :ast-range
            :ast-attr
-           :ast-file-for-include
+           :ast-i-file
            :new-clang-ast-attrs
            :symbol-table
            :name-symbol-table
@@ -1074,7 +1074,7 @@ where class = (ast-class ast).")
 (defmethod ast-includes-in-current-ast ((obj new-clang) (ast new-clang-ast))
   (nest (remove-if #'null)
         (append (nest (mapcar (lambda (ast)
-                                (ast-file-for-include obj ast)))
+                                (ast-i-file obj ast)))
                       (remove-if-not (lambda (ast)
                                        (and ast
                                             (or (ast-file ast nil)
@@ -1441,7 +1441,7 @@ the match length if sucessful, NIL if not."
                                   "\"" (subseq file-string max-match) "\"")
                      t)))))))
 
-(defun ast-file-for-include (obj ast)
+(defun ast-i-file (obj ast)
   "Return the file AST is located within in a format suitable for use
 in a #include."
   (when-let ((file (nest (first)
@@ -1626,7 +1626,7 @@ computed at the children"))
              "Return T if AST is in a system header file."
              (or (and (null (ast-file ast nil))
                       (null (ast-file ast t)))
-                 (nth-value 1 (ast-file-for-include obj ast))))
+                 (nth-value 1 (ast-i-file obj ast))))
            (typedef-type-helper (nct)
              (if-let* ((typedef-ast (type-decl-ast obj nct))
                        (typedef-nct
@@ -3303,7 +3303,7 @@ ast nodes, as needed")
 objects in TYPES using OBJ's symbol table."
   (labels ((populate-type-i-file (obj tp decl)
              (setf (type-i-file tp)
-                   (ast-file-for-include obj decl)))
+                   (ast-i-file obj decl)))
            (populate-type-reqs (tp decl)
              (setf (type-reqs tp)
                    (unless (type-i-file tp)
