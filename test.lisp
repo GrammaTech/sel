@@ -150,6 +150,7 @@
 
 (defvar *genome*      nil "Genome used in tests.")
 (defvar *soft*        nil "Software used in tests.")
+(defvar *project*     nil "Software used in project fixtures.")
 (defvar *base*        nil "Software used in diff/merge tests.")
 (defvar *left*        nil "Software used in diff/merge tests.")
 (defvar *right*       nil "Software used in diff/merge tests.")
@@ -7254,7 +7255,6 @@ prints unique counters in the trace"
                                           instrumenter
                                           ast)))))))
 
-(defvar *project*)
 (let ((foo-path (make-pathname :directory +multi-file-dir+
                                :name "foo"
                                :type "cpp"))
