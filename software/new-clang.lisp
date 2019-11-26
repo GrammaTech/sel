@@ -661,13 +661,21 @@ in the macro defn, EXPANSION-LOC is at the macro use."
    :begin (if begin-supplied-p begin (copy (new-clang-range-begin obj)))
    :end (if end-supplied-p end (copy (new-clang-range-end obj)))))
 
+(defgeneric spelling-loc-has-source-text-p (loc)
+  (:documentation "Return TRUE if loc represents a macro location where
+the source text may be found in the spelling location instead of the
+expansion location.  This is the case for macro arguments where the
+spelling location comes after the expansion location.")
+  (:method ((loc new-clang-macro-loc))
+    (and (new-clang-macro-loc-is-macro-arg-expansion loc)
+         (< (offset (new-clang-macro-loc-expansion-loc loc))
+            (offset (new-clang-macro-loc-spelling-loc loc))))))
+
 (defgeneric offset (obj)
   (:method ((obj new-clang-loc))
     (new-clang-loc-offset obj))
   (:method ((obj new-clang-macro-loc))
-    (if (and (new-clang-macro-loc-is-macro-arg-expansion obj)
-             (< (offset (new-clang-macro-loc-expansion-loc obj))
-                (offset (new-clang-macro-loc-spelling-loc obj))))
+    (if (spelling-loc-has-source-text-p obj)
         (offset (new-clang-macro-loc-spelling-loc obj))
         (offset (new-clang-macro-loc-expansion-loc obj)))))
 
@@ -1194,9 +1202,7 @@ on various ast classes"))
     (new-clang-loc-file loc))
   (:method ((loc new-clang-macro-loc) macro?)
     (ast-file*
-     (if (if (and (new-clang-macro-loc-is-macro-arg-expansion loc)
-                  (< (offset (new-clang-macro-loc-expansion-loc loc))
-                     (offset (new-clang-macro-loc-spelling-loc loc))))
+     (if (if (spelling-loc-has-source-text-p loc)
              (not macro?)
              macro?)
          (new-clang-macro-loc-spelling-loc loc)
@@ -1215,9 +1221,7 @@ on various ast classes"))
     (new-clang-loc-included-from loc))
   (:method ((loc new-clang-macro-loc) &optional macro?)
     (ast-included-from
-     (if (if (and (new-clang-macro-loc-is-macro-arg-expansion loc)
-                  (< (offset (new-clang-macro-loc-expansion-loc loc))
-                     (offset (new-clang-macro-loc-spelling-loc loc))))
+     (if (if (spelling-loc-has-source-text-p loc)
              (not macro?)
              macro?)
          (new-clang-macro-loc-spelling-loc loc)
