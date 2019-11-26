@@ -544,7 +544,7 @@ using the existing SYMBOL-TABLE."
   "Remove entries for the current file from the SYMBOL-TABLE."
   (maphash (lambda (k asts)
              (setf (gethash k symbol-table)
-                   (remove-if [#'null #'ast-file] asts))
+                   (remove-if [#'null #'file] asts))
              (when (null (gethash k symbol-table))
                (remhash k symbol-table)))
            symbol-table)
@@ -736,6 +736,48 @@ spelling location comes after the expansion location.")
                     (offset (new-clang-macro-loc-spelling-loc obj))))
             (new-clang-macro-loc-spelling-loc obj)
             (new-clang-macro-loc-expansion-loc obj))))
+
+(defgeneric file (obj &optional macro?)
+  (:documentation "Return the file name associated with OBJ.
+If MACRO? is non-nil, return the file name associated with the macro
+definition, if applicable.")
+  (:method ((obj new-clang-ast) &optional macro?)
+    (file (ast-range obj) macro?))
+  (:method ((obj new-clang-range) &optional macro?)
+    (file (new-clang-range-begin obj) macro?))
+  (:method ((obj new-clang-loc) &optional macro?)
+    (declare (ignorable macro?))
+    (new-clang-loc-file obj))
+  (:method ((obj new-clang-macro-loc) &optional macro?)
+    (file (if (if (spelling-loc-has-source-text-p obj)
+                  (not macro?)
+                  macro?)
+              (new-clang-macro-loc-spelling-loc obj)
+              (new-clang-macro-loc-expansion-loc obj))
+          macro?))
+  (:method (obj &optional macro?)
+    (declare (ignorable obj macro?)) nil))
+
+(defgeneric included-from (obj &optional macro?)
+  (:documentation "Return the file name which included the header containing
+OBJ.  If MACRO? is non-nil, return the file name associated with the macro
+definition, if applicable.")
+  (:method ((obj new-clang-ast) &optional macro?)
+    (included-from (ast-range obj) macro?))
+  (:method ((obj new-clang-range) &optional macro?)
+    (included-from (new-clang-range-begin obj) macro?))
+  (:method ((obj new-clang-loc) &optional macro?)
+    (declare (ignorable macro?))
+    (new-clang-loc-included-from obj))
+  (:method ((obj new-clang-macro-loc) &optional macro?)
+    (included-from (if (if (spelling-loc-has-source-text-p obj)
+                           (not macro?)
+                           macro?)
+                       (new-clang-macro-loc-spelling-loc obj)
+                       (new-clang-macro-loc-expansion-loc obj))
+                   macro?))
+  (:method (obj &optional macro?)
+    (declare (ignorable obj macro?)) nil))
 
 
 ;;; AST creation mechanisms
@@ -1187,51 +1229,6 @@ on various ast classes"))
 (defmethod ast-var-declarations ((ast new-clang-ast))
   (ast-var-declarations* ast))
 
-;;; AST-FILE was used for two things: to identify non-source
-;;; code that clang stuck in, and to identify macros
-;;; These two functions needed to be separated.
-(defun ast-file (ast &optional macro?)
-  (ast-file* ast macro?))
-
-(defgeneric ast-file* (ast macro?)
-  (:documentation "The file name associated with an AST node")
-  (:method ((ast new-clang-ast) macro?)
-    (ast-file* (ast-range ast) macro?))
-  (:method ((range new-clang-range) macro?)
-    (ast-file* (new-clang-range-begin range) macro?))
-  (:method ((loc new-clang-loc) macro?)
-    (declare (ignorable macro?))
-    (new-clang-loc-file loc))
-  (:method ((loc new-clang-macro-loc) macro?)
-    (ast-file*
-     (if (if (spelling-loc-has-source-text-p loc)
-             (not macro?)
-             macro?)
-         (new-clang-macro-loc-spelling-loc loc)
-         (new-clang-macro-loc-expansion-loc loc))
-     macro?))
-  (:method (obj macro?) (declare (ignorable obj macro?)) nil))
-
-(defgeneric ast-included-from (ast &optional macro?)
-  (:documentation "The file name which included the header containing AST.")
-  (:method ((ast new-clang-ast) &optional macro?)
-    (ast-included-from (ast-range ast) macro?))
-  (:method ((range new-clang-range) &optional macro?)
-    (ast-included-from (new-clang-range-begin range) macro?))
-  (:method ((loc new-clang-loc) &optional macro?)
-    (declare (ignorable macro?))
-    (new-clang-loc-included-from loc))
-  (:method ((loc new-clang-macro-loc) &optional macro?)
-    (ast-included-from
-     (if (if (spelling-loc-has-source-text-p loc)
-             (not macro?)
-             macro?)
-         (new-clang-macro-loc-spelling-loc loc)
-         (new-clang-macro-loc-expansion-loc loc))
-     macro?))
-  (:method (obj &optional macro?)
-    (declare (ignorable obj macro?)) nil))
-
 ;; returns ast nodes, not strings
 (defmethod ast-args ((obj new-clang-ast))
   (mapcar
@@ -1441,10 +1438,10 @@ in a #include."
                                         {equal "<scratch space>"}
                                         [{find-if {equalp "bits"}}
                                          #'pathname-directory]»)
-                         (list (ast-file ast nil)
-                               (ast-file ast t)
-                               (ast-included-from ast nil)
-                               (ast-included-from ast t)))))
+                         (list (file ast nil)
+                               (file ast t)
+                               (included-from ast nil)
+                               (included-from ast t)))))
     (normalize-file-for-include obj file)))
 
 (defmethod source-text ((ast new-clang-ast))
@@ -1615,8 +1612,8 @@ computed at the children"))
                            (array (type-array (nct+-type nct))))
   (labels ((system-ast-p (obj ast)
              "Return T if AST is in a system header file."
-             (or (and (null (ast-file ast nil))
-                      (null (ast-file ast t)))
+             (or (and (null (file ast nil))
+                      (null (file ast t)))
                  (nth-value 1 (ast-i-file obj ast))))
            (typedef-type-helper (nct)
              (if-let* ((typedef-ast (type-decl-ast obj nct))
@@ -2450,8 +2447,8 @@ actual source file")
     ;; top-level ASTs which are included from another file.
     ;; Then remove the sub-ASTs included from another file.
     (setf (ast-children ast-root)
-          (remove-if #'ast-included-from (ast-children ast-root)))
-    (remove-asts-if ast-root #'ast-included-from)
+          (remove-if #'included-from (ast-children ast-root)))
+    (remove-asts-if ast-root #'included-from)
     ast-root))
 
 (defun remove-asts-in-classes (ast classes)
@@ -2501,8 +2498,8 @@ a #line directive."
                       (fix-line-directive (new-clang-macro-loc-expansion-loc loc))))
                ((and (typep loc 'new-clang-loc)
                      (new-clang-loc-presumed-line loc)
-                     (null (ast-included-from loc))
-                     (not (member (ast-file loc)
+                     (null (included-from loc))
+                     (not (member (file loc)
                                   (list "<built-in>" "<scratch space>" tmp-file)
                                   :test #'equal)))
                 ;; When the presumed-line field is set for the location,
@@ -2536,16 +2533,15 @@ in TMP-FILE (the original genome)."
                       (remove-file (new-clang-macro-loc-expansion-loc loc))))
                ((typep loc 'new-clang-loc)
                 (copy loc
-                      :file (unless (equal tmp-file (ast-file loc))
-                              (ast-file loc))
-                      :included-from (unless (equal tmp-file
-                                                    (ast-included-from loc))
-                                       (ast-included-from loc))))
+                      :file (unless (equal tmp-file (file loc))
+                              (file loc))
+                      :included-from (unless (equal tmp-file (included-from loc))
+                                       (included-from loc))))
                (t loc))))
     (map-ast ast-root
              (lambda (ast)
                (when-let ((range (ast-range ast))
-                          (_ (equal (ast-file ast) tmp-file)))
+                          (_ (equal (file ast) tmp-file)))
                  (setf (ast-range ast)
                        (make-new-clang-range
                         :begin (remove-file (new-clang-range-begin range))
@@ -2578,7 +2574,7 @@ byte offsets.
                       (convert-loc (new-clang-macro-loc-spelling-loc loc))
                       :expansion-loc
                       (convert-loc (new-clang-macro-loc-expansion-loc loc))))
-               ((null (ast-file loc))
+               ((null (file loc))
                 (make-new-clang-loc
                  :line (new-clang-loc-line loc)
                  :offset (to-byte-offset (new-clang-loc-line loc)
@@ -2589,7 +2585,7 @@ byte offsets.
              (lambda (ast)
                (when-let* ((range (ast-range ast))
                            (_ (and (not (eq :TopLevel (ast-class ast)))
-                                   (null (ast-file ast)))))
+                                   (null (file ast)))))
                  (setf (ast-range ast)
                        (make-new-clang-range
                         :begin (convert-loc (new-clang-range-begin range))
@@ -2626,7 +2622,7 @@ offsets to support source text with multibyte characters.
                       (fix-mb-chars (new-clang-macro-loc-spelling-loc loc))
                       :expansion-loc
                       (fix-mb-chars (new-clang-macro-loc-expansion-loc loc))))
-               ((null (ast-file loc))
+               ((null (file loc))
                 (make-new-clang-loc
                  :line (new-clang-loc-line loc)
                  :offset (byte-offset-to-chars (new-clang-loc-offset loc))
@@ -2639,7 +2635,7 @@ offsets to support source text with multibyte characters.
              (lambda (ast)
                (when-let* ((range (ast-range ast))
                            (_ (and (not (eq :TopLevel (ast-class ast)))
-                                   (null (ast-file ast)))))
+                                   (null (file ast)))))
                  (setf (ast-range ast)
                        (make-new-clang-range
                         :begin (fix-mb-chars (new-clang-range-begin range))
@@ -2882,14 +2878,14 @@ macro.")
                                    :range (make-new-clang-range
                                            :begin (copy b-loc :expansion-loc
                                                         (make-new-clang-loc
-                                                         :file (ast-file b-loc)
+                                                         :file (file b-loc)
                                                          :line (line b-loc)
                                                          :offset new-begin-offset
                                                          :tok-len new-begin-tok-len)
                                                         :is-macro-arg-expansion nil)
                                            :end (copy e-loc :expansion-loc
                                                       (make-new-clang-loc
-                                                       :file (ast-file e-loc)
+                                                       :file (file e-loc)
                                                        :line (line e-loc)
                                                        :offset new-end-offset)
                                                       :is-macro-arg-expansion nil))
@@ -3005,7 +3001,7 @@ of the ranges of its children"
                (let ((min-begin begin)
                      (max-end end))
                  (iter (for c in (ast-children a))
-                       (when (and (ast-p c) (equal (ast-file a) (ast-file c)))
+                       (when (and (ast-p c) (equal (file a) (file c)))
                          (multiple-value-bind (cbegin cend)
                              (begin-and-end-offsets c)
                            (when (and cbegin
@@ -3022,13 +3018,13 @@ of the ranges of its children"
                    (setf (ast-range a)
                          (make-new-clang-range
                           :begin (make-new-clang-loc
-                                  :file (ast-file a)
+                                  :file (file a)
                                   :line (nest (line)
                                               (new-clang-range-begin)
                                               (ast-range a))
                                   :offset min-begin)
                           :end (make-new-clang-loc
-                                :file (ast-file a)
+                                :file (file a)
                                 :line (nest (line)
                                             (new-clang-range-end)
                                             (ast-range a))
@@ -3100,14 +3096,14 @@ ranges into 'combined' nodes.  Warn when this happens."
                                             :children accumulator
                                             :range (make-new-clang-range
                                                     :begin (make-new-clang-loc
-                                                            :file (ast-file (car accumulator))
+                                                            :file (file (car accumulator))
                                                             :line (nest (line)
                                                                         (new-clang-range-begin)
                                                                         (ast-range)
                                                                         (car accumulator))
                                                             :offset new-begin)
                                                     :end (make-new-clang-loc
-                                                          :file (ast-file (lastcar accumulator))
+                                                          :file (file (lastcar accumulator))
                                                           :line (nest (line)
                                                                       (new-clang-range-end)
                                                                       (ast-range)
@@ -3122,7 +3118,7 @@ ranges into 'combined' nodes.  Warn when this happens."
                                (multiple-value-bind (cbegin cend)
                                    (begin-and-end-offsets c)
                                  (if (and cbegin end cend (< cbegin end)
-                                          (equal (ast-file a) (ast-file c)))
+                                          (equal (file a) (file c)))
                                      (setf accumulator
                                            (append accumulator (list c))
                                            end (max end cend))
@@ -3154,14 +3150,14 @@ ranges into 'combined' nodes.  Warn when this happens."
          (let ((children (ast-children a)))
            (multiple-value-bind (begin end)
                (begin-and-end-offsets a)
-             (when (and begin end (null (ast-file a)))
+             (when (and begin end (null (file a)))
                (let ((i begin))
                  (setf
                   (ast-children a)
                   (nconc
                    (iter
                     (for c in children)
-                    (when (and (ast-p c) (null (ast-file c)))
+                    (when (and (ast-p c) (null (file c)))
                       (multiple-value-bind (cbegin cend)
                           (begin-and-end-offsets c)
                         (when cbegin
