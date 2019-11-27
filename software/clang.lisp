@@ -3960,8 +3960,7 @@ Move the semicolon in just one level, but no further"
        (pop p))))
 
 ;;; This is made generic because SOURCE-TEXT and AST-TEXT may
-;;; be specialized for particular node types.  In particular,
-;;; :COMBINED NEW-CLANG-ASTs must be handled differently.
+;;; be specialized for particular node types.
 (defgeneric append-string-to-node (a str)
   (:documentation "Attach STR to the end of the text for a node.
 This is done without copying.")

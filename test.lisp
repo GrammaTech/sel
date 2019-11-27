@@ -1208,16 +1208,6 @@ of the same length"
   (:teardown
    (setf *soft* nil)))
 
-(defixture type-of-var-missing-decl-type-clang
-  (:setup
-   (setf *soft*
-         (from-file (make-clang
-                      :compiler "clang"
-                      :flags '("-m32" "-O0" "-g"))
-                    (type-of-var-dir "missing-decl-type.c"))))
-  (:teardown
-   (setf *soft* nil)))
-
 (defixture variety-clang
   (:setup
    (setf *variety*
@@ -3732,13 +3722,6 @@ int x = CHARSIZE;")))
         (is (equal "int"      (type-name var-type2)))
         (is (equal "int"      (type-name var-type3)))
         (is (equal "int*"     (remove #\Space (type-name var-type5))))))))
-
-(deftest find-var-type-handles-missing-declaration-type ()
-  (with-fixture type-of-var-missing-decl-type-clang
-    (is (null (some->> (stmt-with-text *soft* "dirs[0] = L;")
-                       (get-vars-in-scope *soft*)
-                       (find-if [{string= "dirs"} {aget :name}])
-                       (find-var-type *soft*))))))
 
 (deftest typedef-type-returns-correct-type ()
   (with-fixture typedef-type-clang
