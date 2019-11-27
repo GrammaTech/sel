@@ -3207,7 +3207,11 @@ nodes, as needed.")
             (obj-class (ast-class obj)))
         (when
             (case parent-class
-              ((nil :TopLevel) (ast-is-decl obj))
+              ((nil :TopLevel)
+               (if (eql obj-class :Combined)
+                   (some #'ast-is-decl
+                         (remove-if-not #'ast-p (ast-children obj)))
+                   (ast-is-decl obj)))
               (:CompoundStmt (not (eql obj-class :CompoundStmt)))
               ;; (:DefaultStmt t)
               (:LabelStmt t)
