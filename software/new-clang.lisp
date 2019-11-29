@@ -2765,21 +2765,9 @@ if/else clauses."
                                                             (pathname-directory new-file))))
                                      (setf file new-file))))))))
 
-(defgeneric find-macro-uses (obj a)
-  (:documentation "Identify the locations at which macros occur in the
-file, and the length of the macro token.  Returns a hash table mapping
-macro offsets to a list with additional information on the macro.
-The first element of the list is the length of the macro name
-and the second is the length of the macro expression in genome."))
-
-(defmethod find-macro-uses (obj a &aux (macro-table (make-hash-table)))
-  (map-ast a (lambda (x) (find-macro-use-at-node obj x macro-table)))
-  macro-table)
-
 (defgeneric compute-macro-extent (obj off len)
   (:documentation "Compute the length of a macro occurrence in
-the genome.  IS-ARG, when true, indicates this was a parameterized
-macro.  OBJ is the software object, OFF the starting offset,
+the genome.  OBJ is the software object, OFF the starting offset,
 LEN the length of the macro name.")
   (:method (obj off len)
     (let* ((genome (genome obj))
@@ -2799,130 +2787,123 @@ LEN the length of the macro name.")
                                  :start i :skip-first t)))
               (- end off)))))))
 
-(defun find-macro-use-at-node (obj a table)
-  (when-let* ((range (ast-range a))
-              (_ (and (null (file range))
-                      (typep (new-clang-range-begin range)
-                             'new-clang-macro-loc))))
-    ;; this is a macro location
-    (let* ((b-loc (new-clang-range-begin range))
-           (off (offset (new-clang-macro-loc-expansion-loc b-loc)))
-           (existing (gethash off table))
-           (len (or (first existing)
-                    (tok-len (new-clang-macro-loc-expansion-loc b-loc))))
-           (extent (compute-macro-extent obj off len)))
-      (setf (gethash off table) (list len extent)))))
+(defgeneric encapsulate-macro-expansions-cheap (obj macros ast-root)
+  (:documentation "Replace macro expansions with :MACROEXPANSION nodes.")
+  (:method ((obj new-clang) (macros list) (ast-root new-clang-ast))
+    (map-ast ast-root
+             {encapsulate-macro-expansion-cheap-below-node obj macros})))
 
-(defgeneric encapsulate-macro-expansions-cheap (ast table)
-  (:documentation "Replace macro expansions with :MACROEXPANSION
-nodes.  This does not try to find macro arguments.  AST is the root of
-the AST, and TABLE is a mapping from macro use offsets to a list
-containing the length of the macro token and a flag that is T if the
-macro was found to have arguments below it in the AST (so look for a
-'(' character).  Uses cpp-scan to determine the extent of the
-macro.")
-  (:method ((ast new-clang-ast) (table hash-table))
-    (map-ast
-     ast
-     (lambda (a) (encapsulate-macro-expansion-cheap-below-node a table)))))
-
-(defun %is-macro-expansion-node (a table)
-  (assert (ast-p a))
-  (when-let* ((range (ast-range a))
-              (begin (new-clang-range-begin range))
-              (_ (typep begin 'new-clang-macro-loc))
-              (beloc (new-clang-macro-loc-expansion-loc begin))
-              (boff (offset beloc))
-              (len/args (gethash boff table)))
-    (cons boff len/args)))
-
-(defgeneric encapsulate-macro-expansion-cheap-below-node (a table)
-  ;; Walk over the children of A, combining those that are from the same
-  ;; macroexpansion into a single macroexpansion node.
-  (:method (a (table hash-table))
-    ;; Scan the children of A, grouping those that are macro expansion
-    ;; nodes of the same offset.
-    (unless (eql (ast-class a) :macroexpansion)
-      (let* ((last-offset nil)
-             (m nil)
-             (macro-child-segment nil)
-             (c (ast-children a))
-             (changed? nil)
-             (new-children
-              (iter (flet ((%collect ()
-                             (when macro-child-segment
-                               (collecting
-                                (let ((b-loc (nest (new-clang-range-begin)
-                                                   (ast-range)
-                                                   (car macro-child-segment)))
-                                      (e-loc (nest (new-clang-range-end)
-                                                   (ast-range)
-                                                   (lastcar macro-child-segment)))
-                                      (new-begin-offset (first m))
-                                      (new-begin-tok-len (second m))
-                                      (new-end-offset (+ (first m)
-                                                         (third m))))
-                                  (make-new-clang-ast
-                                   :class :macroexpansion
-                                   :range (make-new-clang-range
-                                           :begin (copy b-loc :expansion-loc
-                                                        (make-new-clang-loc
-                                                         :file (file b-loc)
-                                                         :line (line b-loc)
-                                                         :offset new-begin-offset
-                                                         :tok-len new-begin-tok-len)
-                                                        :is-macro-arg-expansion nil)
-                                           :end (copy e-loc :expansion-loc
-                                                      (make-new-clang-loc
-                                                       :file (file e-loc)
-                                                       :line (line e-loc)
-                                                       :offset new-end-offset)
-                                                      :is-macro-arg-expansion nil))
-                                   :attrs
-                                   (list (cons :macro-child-segment
-                                               macro-child-segment))))))
-                             (setf changed? t
-                                   m nil
-                                   macro-child-segment nil
-                                   last-offset nil)))
-                      (if c
-                          (let ((x (pop c)))
-                            (let ((macro-info (%is-macro-expansion-node
-                                               x table)))
-                              (if macro-info
-                                  (if (eql (car macro-info) last-offset)
-                                      (setf macro-child-segment
-                                            (append macro-child-segment
-                                                    (list x)))
-                                      ;; start new macro segment
-                                      (progn
-                                        (%collect)
-                                        (setf m macro-info
-                                              last-offset (car macro-info)
-                                              macro-child-segment (list x))))
-                                  (progn
-                                    (%collect)
-                                    (collecting x)))))
-                          (progn
-                            (%collect)
-                            (finish)))))))
-        (when changed?
-          (setf (ast-children a) new-children))
-        t))))
-
-(defun populate-macro-attr-in-macro-expansion-nodes (ast-root genome macros)
-  "For :MACROEXPANSION ASTs in AST-ROOT populate the :MACRO attribute
-with the macro in MACROS corresponding to the current node."
-  (map-ast ast-root
-           (lambda (ast)
-             (when-let* ((is-macro-ast (eq :MacroExpansion (ast-class ast)))
-                         (range (ast-range ast))
-                         (macro (find (subseq genome
-                                              (begin-offset range)
-                                              (+ (begin-offset range)
-                                                 (begin-tok-len range)))
-                                      macros :test #'equal :key #'macro-name)))
-               (setf (ast-attr ast :macro) macro)))))
+(defgeneric encapsulate-macro-expansion-cheap-below-node (obj macros ast)
+  (:documentation "Walk over the children of AST, combining those that are
+from the same macroexpansion into a single macroexpansion node.")
+  (:method ((obj new-clang) (macros list) (ast new-clang-ast))
+    (labels ((%is-macro-child-segment-ast (ast macro-child-segment)
+               "Return true if the given AST should be grouped with the
+               existing nodes in the MACRO-CHILD-SEGMENT.  The AST is
+               part of the MACRO-CHILD-SEGMENT if it is a macro
+               expansion node with the same expansion offset as the existing
+               nodes in MACRO-CHILD-SEGMENT."
+               (let ((begin (new-clang-range-begin (ast-range ast)))
+                     (end (new-clang-range-end (ast-range ast))))
+                 (and (typep begin 'new-clang-macro-loc)
+                      (typep end 'new-clang-macro-loc)
+                      (= (offset (new-clang-macro-loc-expansion-loc begin))
+                         (offset (new-clang-macro-loc-expansion-loc end)))
+                      (or (null macro-child-segment)
+                          (= (offset (new-clang-macro-loc-expansion-loc begin))
+                             (nest (offset)
+                                   (new-clang-macro-loc-expansion-loc)
+                                   (new-clang-range-begin)
+                                   (ast-range)
+                                   (car macro-child-segment)))))))
+             (%find-macro (name)
+               "Return the macro with the given NAME in MACROS."
+               (find name macros :test #'equal :key #'macro-name))
+             (%get-macro-name (loc)
+               "Return the name of the macro in the source text of OBJ at LOC."
+               (let ((e-loc (new-clang-macro-loc-expansion-loc loc)))
+                 (subseq (genome obj)
+                         (offset e-loc)
+                         (+ (offset e-loc) (tok-len e-loc)))))
+             (%function-like-macro-p (macro &optional seen)
+               "Return true if MACRO is a function-like macro with arguments."
+               (when (and macro (not (member macro seen)))
+                 (let ((body-wo-name
+                        (nest (trim-whitespace)
+                              (subseq (macro-body macro)
+                                      (length (macro-name macro))))))
+                   ;; This is a function-like macro if the macro body
+                   ;; (1) starts with an arguments list or
+                   ;; (2) is itself a function-like macro
+                   (or (and (starts-with #\( body-wo-name)
+                            (cpp-scan body-wo-name (constantly t)
+                                      :skip-first t))
+                       (%function-like-macro-p (%find-macro body-wo-name)
+                                               (cons macro seen))))))
+             (%create-macro-loc-end (macro loc)
+               "Create the end location for the macro expansion node."
+               (cond ((typep loc 'new-clang-macro-loc)
+                      ;; mark this as a not a macro arg expansion
+                      ;; and recompute the expansion location end
+                      (copy loc
+                            :expansion-loc
+                            (nest (%create-macro-loc-end macro)
+                                  (new-clang-macro-loc-expansion-loc loc))
+                            :is-macro-arg-expansion nil))
+                     ((typep loc 'new-clang-loc)
+                      ;; compute the macro end offset by adding the
+                      ;; the current offset to the length of the
+                      ;; macro including macro arguments for
+                      ;; function-like macros
+                      (copy loc
+                            :offset (+ (offset loc)
+                                       (if (%function-like-macro-p macro)
+                                           (compute-macro-extent obj
+                                                                 (offset loc)
+                                                                 (tok-len loc))
+                                           (tok-len loc)))
+                            :tok-len 0))))
+             (%create-macro-ast (macro-child-segment)
+               "Create a single macroexpansion AST node from the given
+               MACRO-CHILD-SEGMENT nodes which the macro is composed of.
+               These nodes will be stored in the :macro-child-segment
+               attribute of the macroexpansion AST."
+               (let* ((b-loc (nest (new-clang-range-begin)
+                                   (ast-range)
+                                   (car macro-child-segment)))
+                      (e-loc (nest (new-clang-range-end)
+                                   (ast-range)
+                                   (lastcar macro-child-segment)))
+                      (macro (%find-macro (%get-macro-name b-loc))))
+                 (make-new-clang-ast
+                  :class :macroexpansion
+                  :range (make-new-clang-range
+                          :begin (copy b-loc :is-macro-arg-expansion nil)
+                          :end (%create-macro-loc-end macro e-loc))
+                  :attrs
+                  (list (cons :macro-child-segment macro-child-segment)
+                        (cons :macro macro))))))
+      (unless (eql (ast-class ast) :macroexpansion)
+        ;; Scan the children of ast, grouping those that are macro expansion
+        ;; nodes of the same offset.
+        (setf (ast-children ast)
+              (iter (with macro-child-segment = nil)
+                    (for child in (ast-children ast))
+                    (when (and macro-child-segment
+                               (not (%is-macro-child-segment-ast
+                                     child
+                                     macro-child-segment)))
+                      (collect (%create-macro-ast macro-child-segment)
+                               into results)
+                      (setf macro-child-segment nil))
+                    (if (%is-macro-child-segment-ast child macro-child-segment)
+                        (push child macro-child-segment)
+                        (collect child into results))
+                    (finally
+                     (when macro-child-segment
+                       (appendf results
+                                (list (%create-macro-ast macro-child-segment))))
+                     (return results))))))))
 
 (defun fix-overlapping-declstmt-vars (sw ast)
   (map-ast ast
@@ -3298,8 +3279,7 @@ objects in TYPES using OBJ's symbol table."
           (remove-loc-attribute ast)
           (compute-operator-positions ast)
           (put-operators-into-inner-positions obj ast)
-          (encapsulate-macro-expansions-cheap ast (find-macro-uses obj ast))
-          (populate-macro-attr-in-macro-expansion-nodes ast genome macro-dump)
+          (encapsulate-macro-expansions-cheap obj macro-dump ast)
           (fix-overlapping-declstmt-vars obj ast) ; must be after macro encapsulation
           (fix-ancestor-ranges ast)
           (combine-overlapping-siblings ast)
