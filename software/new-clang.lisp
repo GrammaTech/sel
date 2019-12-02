@@ -2905,20 +2905,20 @@ from the same macroexpansion into a single macroexpansion node.")
                                 (list (%create-macro-ast macro-child-segment))))
                      (return results))))))))
 
-(defun fix-overlapping-declstmt-vars (sw ast)
+(defun fix-overlapping-declstmt-children (sw ast)
   (map-ast ast
            (lambda (a)
              (when (eq :declstmt (ast-class a))
-               (fix-overlapping-declstmt-vars-at-node sw a)))))
+               (fix-overlapping-declstmt-children-at-node sw a)))))
 
-(defun fix-overlapping-declstmt-vars-at-node (sw ast)
-  "Separate consecutive, overlapping :Var children in a :DeclStmt node
+(defun fix-overlapping-declstmt-children-at-node (sw ast)
+  "Separate consecutive, overlapping decl children in a :DeclStmt node
 so their text ranges in the source do not overlap, if possible.  This
 mimics the previous behavior within clang-mutate."
   (let ((child-asts (ast-children ast)))
     (let (prev pos)
       (when (and (ast-p (car child-asts))
-                 (eq :var (ast-class (car child-asts))))
+                 (member (ast-class (car child-asts)) *clang-decl-kinds*))
         (setf prev (car child-asts))
         (setf pos (begin-offset prev)))
       (do* ((e (cdr child-asts) (cdr e))
@@ -2927,7 +2927,7 @@ mimics the previous behavior within clang-mutate."
         (if (ast-p c)
             (let ((next-pos (begin-offset c))
                   (end (end-offset c)))
-              (if (eq (ast-class c) :var)
+              (if (member (ast-class c) *clang-decl-kinds*)
                   (progn
                     (if prev
                         (if (and next-pos end)
@@ -3280,7 +3280,7 @@ objects in TYPES using OBJ's symbol table."
           (compute-operator-positions ast)
           (put-operators-into-inner-positions obj ast)
           (encapsulate-macro-expansions-cheap obj macro-dump ast)
-          (fix-overlapping-declstmt-vars obj ast) ; must be after macro encapsulation
+          (fix-overlapping-declstmt-children obj ast)
           (fix-ancestor-ranges ast)
           (combine-overlapping-siblings ast)
           (decorate-ast-with-strings obj ast)
