@@ -1620,8 +1620,6 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
 
     (let ((count 0))
       (dolist (v (mutants asm-super))
-        ;;(assert (equalp (genome (super-owner v)) (genome asm-super)) (v)
-        ;;        "Variant is not owned by this asm-super-mutant")
         ;; ensure any rip-relative addresses are converted to absolute
         (dotimes (i (length (genome v)))
           (convert-rip-relative-to-absolute v i))
