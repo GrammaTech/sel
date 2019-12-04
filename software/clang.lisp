@@ -963,9 +963,11 @@ valid hash.
                          (make-keyword (string-upcase storage-class)))
                        :None)
     :hash 0
-    :name (-> (format nil "^(\\*|\\[[^\\[\\]]*\\]|const |volatile |restrict |extern |~
-                             static |__private_extern__ |auto |register )*")
-              (regex-replace name ""))))
+    :name (regex-replace
+           (format nil
+                   "^(\\*|\\[[^\\[\\]]*\\]|const |volatile |restrict |extern |~
+            static |__private_extern__ |auto |register )*")
+           name "")))
 
 (defgeneric add-macro (software macro)
   (:documentation "Add MACRO to `macros' of SOFTWARE, unique by hash."))
@@ -3887,9 +3889,10 @@ Arguments are identical to PARSE-SOURCE-SNIPPET."
 ;;; Process a clang ast to move semicolons down to appropriate places
 
 (defun move-semicolons-into-full-stmts (children)
-  "Given a list of children of an AST node, move semicolons from strings in the list
-   they are in into preceding full stmt nodes.  Applied in preorder, this can migrate
-   semicolons multiple levels down the tree."
+  "Given a list of children of an AST node, move semicolons from
+strings in the list they are in into preceding full stmt nodes.
+Applied in preorder, this can migrate semicolons multiple levels down
+the tree."
   (let ((p children))
     (loop
        (unless p (return))

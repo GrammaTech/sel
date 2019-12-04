@@ -153,7 +153,7 @@ See also: https://clang.llvm.org/docs/FAQ.html#id2.")
   ;; Source location range information from parsing this ast node
   (range nil)
   ;; Association list of attr name -> value pairs
-  (attrs nil :type list)
+  (attrs nil :type list) ; TODO: Potenitally unify with parseable attributes
   ;; Hashed id number from Clang
   (id nil :type (or null integer))
   ;; Syntactic context
@@ -167,7 +167,8 @@ See also: https://clang.llvm.org/docs/FAQ.html#id2.")
   ;; list of child ASTs (ignoring non-AST children).
   ;; When computing ranges, and when computing
   ;; source text, put it there.
-  ;; The type FIXNUM is too big; figure out how much
+  ;;
+  ;; TODO: The type FIXNUM is too big; figure out how much
   ;; smaller this can be made.
   (pos nil :type (or null fixnum)))
 
@@ -593,6 +594,8 @@ ASTs in the existing SYMBOL-TABLE and AST-ROOT tree."
 
 ;;; Structures and functions relating to genome locations.
 
+;;; TODO: I would like to re-work all of this to inherit from the
+;;;       existing source ranges.
 (defstruct new-clang-loc
   "Structure used to represent a location within a clang-parseable file."
   (file nil :type (or null string))
@@ -770,6 +773,9 @@ spelling location comes after the expansion location.")
     (values (begin-offset obj)
             (+ (end-offset obj) (end-tok-len obj)))))
 
+;;; TODO: Shouldn't this all be implemented on parseable?  I imagine
+;;;       we would like to have similar functionality for JavaScript
+;;;       (and friends) as well?
 (defgeneric file (obj &optional macro?)
   (:documentation "Return the file name associated with OBJ.
 If MACRO? is non-nil, return the file name associated with the macro
