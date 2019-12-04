@@ -67,6 +67,7 @@
                           :directory-files)
   (:shadowing-import-from :asdf-encodings :encoding-external-format)
   (:export :define-command
+           :interrupt-signal
            ;; Functions to handle command line options and arguments.
            :read-compilation-database
            :handle-comma-delimited-argument
@@ -112,6 +113,15 @@
            :git-lisp-project))
 (in-package :software-evolution-library/command-line)
 (in-readtable :curry-compose-reader-macros)
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defvar interrupt-signal
+    #+sbcl 'sb-sys:interactive-interrupt
+    #+ccl 'ccl:interrupt-signal-condition
+    #+clisp 'system::simple-interrupt-condition
+    #+ecl 'ext:interactive-interrupt
+    #+allegro 'excl:interrupt-signal
+    "Implementation specific signal thrown by a user's interrupt, C-c."))
 
 (defun read-compilation-database (file)
   "Read a Clang compilation database from FILE.
