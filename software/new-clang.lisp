@@ -29,7 +29,6 @@
   (:import-from :uiop :nest)
   (:import-from :anaphora :awhen :it)
   (:import-from :jsown)
-  (:import-from :string-case :string-case)
   (:import-from :babel :string-size-in-octets)
   (:export :new-clang
            :new-clang-ast
@@ -269,7 +268,6 @@ with absolute, canonical paths."
 (defmethod (setf flags) :after ((flags list) (obj new-clang))
   "Wrapper after the flags setf to ensure the flags are in a
 normalized form with absolute, canonical paths."
-  (declare (ignorable flags))
   (setf (slot-value obj 'flags)
         (normalize-flags (original-directory obj)
                          (flags obj))))
@@ -387,9 +385,8 @@ in or below function declarations"
 (defmethod name-symbol-table :before ((obj new-clang))
   (update-caches-if-necessary obj))
 
-(defmethod (setf genome) :before (new (obj new-clang))
+(defmethod (setf genome) :before ((new t) (obj new-clang))
   "Clear symbol table prior to updating the NEW genome."
-  (declare (ignorable new))
   (with-slots (symbol-table) obj
     (setf symbol-table (make-hash-table :test #'equal))))
 
@@ -834,7 +831,6 @@ depending on CLASS"))
   (apply #'make-new-clang-ast :class class args))
 
 (defmethod to-ast ((ast-type (eql 'clang)) s)
-  (declare (ignorable ast-type))
   (to-ast (if *new-clang?* 'new-clang-ast 'clang-ast) s))
 
 (defmethod to-ast ((ast-type (eql 'new-clang-ast)) spec)
@@ -1069,13 +1065,13 @@ Other keys are allowed but are silently ignored.
     (setf (new-clang-ast-range ast) val)))
 
 (defgeneric ast-is-implicit (ast)
-  (:method (ast) (declare (ignorable ast)) nil)
+  (:method ((ast t)) nil)
   (:method ((ast new-clang-ast))
     (or (ast-attr ast :isimplicit)
         (ast-attr ast :implicit))))
 
 (defgeneric ast-is-class (ast key)
-  (:method (ast class) (declare (ignorable ast class)) nil)
+  (:method ((ast t) (class t)) nil)
   (:method ((ast new-clang-ast) (key symbol))
     (and (ast-p ast)
          (eql (ast-class ast) key))))
@@ -1110,8 +1106,7 @@ where class = (ast-class ast)."))
     (set-difference (remove-duplicates unbound)
                     (remove-duplicates bound))))
 
-(defmethod ast-unbound-vals* ((ast new-clang-ast) class)
-  (declare (ignorable ast class))
+(defmethod ast-unbound-vals* ((ast new-clang-ast) (class t))
   nil)
 
 (defgeneric ast-bound-vals (ast)
@@ -1123,9 +1118,8 @@ where class = (ast-class ast)."))
 (defgeneric ast-bound-vals* (ast class)
   (:documentation "Implementation funtion for ast-bound-vals,
 where class = (ast-class ast).")
-  (:method ((ast new-clang-ast) c)
+  (:method ((ast new-clang-ast) (c t))
     ;; default method
-    (declare (ignorable c))
     nil)
   (:method ((ast new-clang-ast) (c (eql :var)))
     (list ast))
@@ -1143,10 +1137,9 @@ where class = (ast-class ast).")
 (defgeneric ast-unbound-funs* (ast class)
   (:documentation "Implementation funtion for ast-unbound-funs,
 where class = (ast-class ast).")
-  (:method (ast class) (declare (ignorable ast class)) nil)
-  (:method ((ast new-clang-ast) class) (declare (ignorable ast class)) nil)
+  (:method ((ast t) (class t)) nil)
+  (:method ((ast new-clang-ast) (class t)) nil)
   (:method ((ast new-clang-ast) (class (eql :declrefexpr)))
-    (declare (ignorable class))
     (when-let* ((obj (ast-referenceddecl ast)))
       (when (eql (ast-class obj) :function)
         (list (list obj (ast-void-ret obj) (ast-varargs obj)
@@ -1157,12 +1150,11 @@ where class = (ast-class ast).")
   (ast-includes-in-obj* obj ast (ast-class ast)))
 
 (defmethod ast-includes-in-obj ((obj new-clang) (ast string))
-  (declare (ignorable obj ast)) nil)
+  nil)
 
 (defmethod ast-includes-in-obj* ((obj new-clang)
                                  (ast new-clang-ast)
-                                 class)
-  (declare (ignorable class))
+                                 (class t))
   (remove-duplicates (apply #'append
                             (ast-includes-in-current-ast obj ast)
                             (mapcar {ast-includes-in-obj obj}
@@ -1189,10 +1181,9 @@ where class = (ast-class ast).")
 (defmethod ast-macros ((ast new-clang-ast))
   (ast-macros* ast (ast-class ast)))
 
-(defmethod ast-macros ((ast string)) (declare (ignorable ast)) nil)
+(defmethod ast-macros ((ast string)) nil)
 
-(defmethod ast-macros* ((ast new-clang-ast) class)
-  (declare (ignorable class))
+(defmethod ast-macros* ((ast new-clang-ast) (class t))
   (remove-duplicates (apply #'append
                             (when (and (ast-attr ast :macro)
                                        (null (nest (new-clang-macro-i-file)
@@ -1201,11 +1192,9 @@ where class = (ast-class ast).")
                             (mapcar #'ast-macros (ast-children ast)))))
 
 (defmethod ast-macros* ((ast new-clang-ast) (class (eql :toplevel)))
-  (declare (ignorable ast class))
   nil)
 
 (defmethod ast-macros* ((ast new-clang-ast) (class (eql :macroexpansion)))
-  (declare (ignorable class))
   (remove-duplicates (apply #'append
                             (when (and (ast-attr ast :macro)
                                        (null (nest (new-clang-macro-i-file)
@@ -1299,7 +1288,6 @@ on various ast classes"))
   (ast-attr obj :full-stmt))
 
 (defmethod full-stmt-p ((obj new-clang) (ast new-clang-ast))
-  (declare (ignorable obj))
   (ast-full-stmt ast))
 
 ;; This field should be filled in by a pass
@@ -1547,7 +1535,7 @@ computed at the children"))
       (setf (ast-children ast) new-children)))
   ast)
 
-(defmethod remove-asts-if (ast fn) (declare (ignorable fn)) ast)
+(defmethod remove-asts-if (ast (fn t)) ast)
 
 
 ;;; Type-related functions
@@ -1697,16 +1685,13 @@ computed at the children"))
 (defmethod type-restrict ((tp new-clang-type))
   (if (logtest +restrict+ (new-clang-type-modifiers tp)) t nil))
 
-(defmethod slot-unbound (class (obj new-clang-type) (slot (eql 'array)))
-  (declare (ignorable class))
+(defmethod slot-unbound ((class t) (obj new-clang-type) (slot (eql 'array)))
   (compute-new-clang-type-slots obj)
   (slot-value obj slot))
-(defmethod slot-unbound (class (obj new-clang-type) (slot (eql 'name)))
-  (declare (ignorable class))
+(defmethod slot-unbound ((class t) (obj new-clang-type) (slot (eql 'name)))
   (compute-new-clang-type-slots obj)
   (slot-value obj slot))
-(defmethod slot-unbound (class (obj new-clang-type) (slot (eql 'modifiers)))
-  (declare (ignorable class))
+(defmethod slot-unbound ((class t) (obj new-clang-type) (slot (eql 'modifiers)))
   (compute-new-clang-type-slots obj)
   (slot-value obj slot))
 
@@ -1752,9 +1737,8 @@ computed at the children"))
 (defun trim-prefix-modifiers (str)
   "Trim const, volatile, restrict, and keyword (class, struct, etc.)
 modifiers from a type name"
-  (let (const volatile restrict
-              (pos 0)
-              (strlen (length str)))
+  (let ((const nil) (volatile nil) (restrict nil)
+        (pos 0) (strlen (length str)))
     (flet ((is-prefix (s)
              (let ((l (length s)))
                (when (and (< l (- strlen pos))
@@ -1956,34 +1940,19 @@ output from CL-JSON"
 
 (defun convert-jsown-obj (key-alist)
   (iter (for (key . val) in key-alist)
-        (collect (cons (jsown-str-to-keyword key)
+        (collect (cons (jsown-str-to-clang-keyword key)
                        (convert-jsown-tree val)))))
 
 ;;; The STRING-CASE macro is much faster than just calling INTERN
 ;;; on the string, when one of these common arguments is seen.
-(defun jsown-str-to-keyword (str)
-  (macrolet ((%m (s)
-               (let ((names '("id" "tokLen" "col" "kind" "qualType"
+(defun jsown-str-to-clang-keyword (str)
+  (string-case-to-keywords ("id" "tokLen" "col" "kind" "qualType"
                               "type" "file" "range" "end" "begin"
                               "includedFrom" "line" "valueCategory"
                               "inner" "name" "loc" "castKind"
                               "referencedDecl" "spellingLoc" "offset"
-                              "expansionLoc" "desugaredQualType")))
-                 `(string-case (,s)
-                               ,@(iter (for n in names)
-                                       (collect (list n (intern (string-upcase n)
-                                                                :keyword))))
-                               (t (intern (string-upcase ,s) :keyword))))))
-    ;; Allow common cases to be optimized for particular
-    ;; string types
-    (typecase str
-      (simple-base-string (%m str))
-      #-ccl
-      ((and simple-string
-            (vector character))
-       (%m str))
-      (t (intern (string-upcase str) :keyword)))))
-
+                              "expansionLoc" "desugaredQualType")
+                           str))
 
 ;;; Json conversion
 
@@ -2025,71 +1994,58 @@ output from CL-JSON"
 to a clang-node.  The purpose of this is to enable dispatch
 on json-kind-symbol when special subclasses are wanted."))
 
-(defmethod j2ck (json json-kind-symbol)
-  (declare (ignorable json-kind-symbol))
+(defmethod j2ck (json (json-kind-symbol t))
   (let ((obj (make-new-clang-ast)))
     (store-slots obj json)))
 
-(defmethod j2ck :around (json (json-kind-symbol (eql :forstmt)))
+(defmethod j2ck :around ((json t) (json-kind-symbol (eql :forstmt)))
   ;; Clang's json has {} for missing for clauses
   ;; cl-json converts these to NIL.  Just remove then,
   ;; as the old clang front end does.
-  (declare (ignorable json json-kind-symbol))
   (let ((obj (call-next-method)))
     (setf (ast-children obj) (remove nil (ast-children obj)))
     obj))
 
-(defmethod j2ck :around (json (json-kind-symbol (eql :ImplicitListExpr)))
+(defmethod j2ck :around ((json t) (json-kind-symbol (eql :ImplicitListExpr)))
   ;; We remove :ImplicitValueInitExprs, turning them to NIL.
   ;; Here, remove those NILs.
-  (declare (ignorable json json-kind-symbol))
   (let ((obj (call-next-method)))
     (setf (ast-children obj) (remove nil (ast-children obj)))
     obj))
 
-(defmethod j2ck :around (json (json-kind-symbol (eql :typedef)))
-  (declare (ignorable json json-kind-symbol))
+(defmethod j2ck :around ((json t) (json-kind-symbol (eql :typedef)))
   (let ((obj (call-next-method)))
     (pop (ast-children obj))
     obj))
 
-(defmethod j2ck (json (json-kind-symbol (eql :ImplicitValueInitExpr)))
-  (declare (ignorable json json-kind-symbol))
+(defmethod j2ck ((json t) (json-kind-symbol (eql :ImplicitValueInitExpr)))
   nil)
 
-(defmethod j2ck (json (json-kind-symbol (eql :TextComment)))
-  (declare (ignorable json json-kind-symbol))
+(defmethod j2ck ((json t) (json-kind-symbol (eql :TextComment)))
   nil)
 
-(defmethod j2ck (json (json-kind-symbol (eql :ParagraphComment)))
-  (declare (ignorable json json-kind-symbol))
+(defmethod j2ck ((json t) (json-kind-symbol (eql :ParagraphComment)))
   nil)
 
-(defmethod j2ck (json (json-kind-symbol (eql :FullComment)))
-  (declare (ignorable json json-kind-symbol))
+(defmethod j2ck ((json t) (json-kind-symbol (eql :FullComment)))
   nil)
 
-(defmethod j2ck (json (json-kind-symbol (eql :InlineCommandComment)))
-  (declare (ignorable json json-kind-symbol))
+(defmethod j2ck ((json t) (json-kind-symbol (eql :InlineCommandComment)))
   nil)
 
-(defmethod j2ck (json (json-kind-symbol (eql :BlockCommandComment)))
-  (declare (ignorable json json-kind-symbol))
+(defmethod j2ck ((json t) (json-kind-symbol (eql :BlockCommandComment)))
   nil)
 
-(defmethod j2ck (json (json-kind-symbol (eql :ParamCommandComment)))
-  (declare (ignorable json json-kind-symbol))
+(defmethod j2ck ((json t) (json-kind-symbol (eql :ParamCommandComment)))
   nil)
 
-(defmethod j2ck (json (json-kind-symbol null))
-  (declare (ignore json))
+(defmethod j2ck ((json t) (json-kind-symbol null))
   ;; If there is no :kind field, the value is nil and this method applies
   nil)
 
 ;; The ctor intiializer is not give range information, just the initializer
 ;; expression.
-(defmethod j2ck (json (json-kind-symbol (eql :CxxCtorInitializer)))
-  (declare (ignorable json json-kind-symbol))
+(defmethod j2ck ((json t) (json-kind-symbol (eql :CxxCtorInitializer)))
   nil)
 
 ;;; This special rule handles catch (...).   The ... shows up
@@ -2133,7 +2089,6 @@ on json-kind-symbol when special subclasses are wanted."))
   ;; CXXOperatorCallExprs must be a special subclass, as the children
   ;; are out of order (the operator is put first even if it is not
   ;; first in the source file)
-  (declare (ignorable json-kind-symbol))
   (store-slots (make-cxx-operator-call-expr) json))
 
 (defgeneric store-slots (obj json)
@@ -2166,7 +2121,6 @@ form for SLOT, and stores into OBJ.  Returns OBJ or its replacement."))
   obj)
 
 (defmethod store-slot ((obj new-clang-ast) (slot (eql :kind)) value)
-  (declare (ignorable slot))
   (setf (new-clang-ast-class obj) (json-kind-to-keyword value))
   obj)
 
@@ -2176,28 +2130,35 @@ form for SLOT, and stores into OBJ.  Returns OBJ or its replacement."))
   obj)
 
 (macrolet ((ignore-slot (slot-name)
-             `(defmethod store-slot ((obj new-clang-ast) (slot (eql ',slot-name)) value)
-                (declare (ignorable slot value))
+             `(defmethod store-slot ((obj new-clang-ast) (slot (eql ',slot-name)) (value t))
                 obj)))
   (ignore-slot :definitionData)
   (ignore-slot :bases)
   (ignore-slot :foundReferencedDecl)
   (ignore-slot :path)
   (ignore-slot :lookups)
-  (ignore-slot :valueCategory))
+  (ignore-slot :valueCategory)
+  (ignore-slot :ctorType)
+  (ignore-slot :hadMultipleCandidates)
+  (ignore-slot :constructionKind)
+  (ignore-slot :inline)
+  (ignore-slot :constexpr)
+  (ignore-slot :explicitlyDefaulted)
+  (ignore-slot :isUsed)
+  (ignore-slot :completeDefinition)
+  (ignore-slot :definitionData)
+  (ignore-slot :canOverflow))
 
 (defmethod store-slot ((obj new-clang-ast) (slot (eql :id)) value)
   (setf (new-clang-ast-id obj) (convert-slot-value obj slot value))
   obj)
 
 (defmethod store-slot ((obj new-clang-ast) (slot (eql :inner)) value)
-  (declare (ignorable slot))
   (setf (new-clang-ast-children obj)
         (remove nil (mapcar (lambda (o) (clang-convert-json o)) value)))
   obj)
 
-(defmethod store-slot ((obj new-clang-ast) (slot (eql :array_filler)) value)
-  (declare (ignorable slot value))
+(defmethod store-slot ((obj new-clang-ast) (slot (eql :array_filler)) (value t))
   obj)
 
 (defgeneric convert-slot-value (obj slot value)
@@ -2206,19 +2167,15 @@ NIL indicates no value."))
 
 (defmethod convert-slot-value ((obj new-clang-ast) (slot symbol) value)
   ;; Default to a context-independent conversion
-  (declare (ignorable obj slot))
   (clang-convert-json value))
 
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :referenceddecl)) value)
-  (declare (ignorable obj slot))
   (clang-convert-json value))
 
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :decl)) value)
-  (declare (ignorable obj slot))
   (clang-convert-json value))
 
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :templateparams)) value)
-  (declare (ignorable obj slot))
   (mapcar #'clang-convert-json value))
 
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :explicittemplateargs)) value)
@@ -2226,26 +2183,23 @@ NIL indicates no value."))
   (mapcar #'clang-convert-json value))
 
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :id)) value)
-  (declare (ignorable obj slot))
   (read-c-integer value))
 
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :previousdecl)) value)
-  (declare (ignorable obj slot))
   (read-c-integer value))
 
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :name)) value)
-  (declare (ignorable obj slot))
   (and (not (equal value "")) (call-next-method)))
 
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :tagused)) value)
-  (declare (ignorable obj slot))
   (cond
     ((equal value "struct") :struct)
     ((equal value "union") :union)
+    ((equal value "class") :class)
+    ((equal value "typename") :typename)
     (t (call-next-method))))
 
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :storageClass)) value)
-  (declare (ignorable obj slot))
   (cond
     ((equal value "auto") :auto)
     ((equal value "static") :static)
@@ -2255,7 +2209,6 @@ NIL indicates no value."))
     (t (call-next-method))))
 
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :castKind)) (value string))
-  (declare (ignorable obj slot))
   (cond
     ((equal value "LValueToRValue") :LValueToRValue)
     ((equal value "FunctionToPointerDecay") :FunctionToPointerDecay)
@@ -2302,11 +2255,9 @@ NIL indicates no value."))
       (make-new-clang-range :begin begin :end end))))
 
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :loc)) value)
-  (declare (ignorable obj slot))
   (convert-loc-json value))
 
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :range)) value)
-  (declare (ignorable obj slot))
   (convert-range-json value))
 
 (defmethod convert-slot-value ((obj new-clang-ast) (slot (eql :type)) (value list))
@@ -2322,6 +2273,7 @@ NIL indicates no value."))
                      (clang-convert-json (aget :desugaredqualtype value))))
 
 ;; Helpers for JSON conversion
+;; TODO:  string-case this?
 (defun json-kind-to-keyword (json-kind)
   (when (stringp json-kind)
     (let ((sym (intern (string-upcase json-kind) :keyword)))
@@ -3099,7 +3051,7 @@ in CXXOperatorCallExpr nodes.")
 (defgeneric put-operator-into-starting-position (ast)
   (:documentation "Put operator into their starting position
 in a CXXOperatorCallExpr node.")
-  (:method ((ast new-clang-ast)) (declare (ignorable ast)) nil)
+  (:method ((ast new-clang-ast)) nil)
   (:method ((ast cxx-operator-call-expr))
     ;; The AST will have been stringified here, so pos
     ;; is the position in (remove-if-not #'ast-p (ast-children))
@@ -3420,7 +3372,7 @@ the test or is not present."))
 (defun cpp-scan (str until-fn &key (start 0) (end (length str))
                                 (skip-first nil)
                                 (angle-brackets))
-  "Scan string STR from START to END, skipping over parenthesizd
+  "Scan string STR from START to END, skipping over parenthesized
 C/C++ things, and respecting C/C++ comments and tokens, until
 either the end is reached, or a substring satisfying UNTIL-FN
 is found.  Returns NIL on no match, or the satisfying position
