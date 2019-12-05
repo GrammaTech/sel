@@ -301,7 +301,8 @@
    :some-task-pred
    :some-test-task
    :string-case-to-keywords
-   :with-prof))
+   :with-prof
+   :without-compiler-notes))
 (in-package :software-evolution-library/utility)
 #-windows (cffi:load-foreign-library :libosicat)
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -460,8 +461,16 @@ convention."
           (warn "  stdout: ~a" stdout)
           (warn "  stderr: ~a" stderr))))))
 
+(defmacro without-compiler-notes (&body body)
+  "Suppress compiler notes from BODY"
+  #+sbcl
+  `(locally (declare (sb-ext:muffle-conditions sb-ext:compiler-note))
+     ,@body)
+  #-sbcl
+  `(let () ,@body))
+
 #+sbcl
-(locally (declare (sb-ext:muffle-conditions sb-ext:compiler-note))
+(without-compiler-notes
   (sb-alien:define-alien-routine (#-win32 "tempnam" #+win32 "_tempnam" tempnam)
       sb-alien:c-string
     (dir sb-alien:c-string)
@@ -622,15 +631,16 @@ USE-ENCODING. "
           #-(or sbcl clisp ccl allegro ecl)
           (error "no temporary file backend for this lisp.")))
     ;; NOTE:  code smell -- two branches of these ifs are dead in SBCL
-    (if type
-        (if (pathnamep base)
-            (namestring (make-pathname :directory (pathname-directory base)
-                                       :name (pathname-name base)
-                                       :type type))
-            (concatenate 'string base "." type))
-        (if (pathname base)
-            (namestring base)
-            base))))
+    (without-compiler-notes
+        (if type
+            (if (pathnamep base)
+                (namestring (make-pathname :directory (pathname-directory base)
+                                           :name (pathname-name base)
+                                           :type type))
+                (concatenate 'string base "." type))
+            (if (pathname base)
+                (namestring base)
+                base)))))
 
 (defun ensure-temp-file-free (path)
   "Delete anything at PATH."
@@ -3080,3 +3090,4 @@ to a file at PROFILE-PATH.  Currently only works in SBCL."
               (with-output-to-file (out ,profile-path)
                 (format out "Not profiling.~%")))
             ,@body))
+
