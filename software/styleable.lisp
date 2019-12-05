@@ -297,12 +297,13 @@ denominators DENOM1 and DENOM2, respectively
 * VEC2 normalized vector of numeric values
 * DENOM2 denominator used to normalize VEC2
 "
-  (let ((v1 (map 'vector {* denom1} vec1))
-        (v2 (map 'vector {* denom2} vec2)))
-    (values (map 'vector [{/ _ (+ denom1 denom2)} #'+]
-                 v1
-                 v2)
-            (+ denom1 denom2))))
+  (without-compiler-notes
+      (let ((v1 (map 'vector {* denom1} vec1))
+            (v2 (map 'vector {* denom2} vec2)))
+        (values (map 'vector [{/ _ (+ denom1 denom2)} #'+]
+                     v1
+                     v2)
+                (+ denom1 denom2)))))
 
 (define-feature ast-node-type-tf-feature
     "Term frequency of AST node types."
@@ -641,7 +642,8 @@ extraction.")
 ;;; Feature extraction
 (defun diff-feature-vectors (vec1 vec2)
   "Return a vector of the absolute differences between items in VEC1 and VEC2."
-  (map 'vector [#'abs #'-] vec1 vec2))
+  (without-compiler-notes
+      (map 'vector [#'abs #'-] vec1 vec2)))
 
 (defgeneric merge-styleables (styleable1 styleable2 &key result)
   (:documentation "Merge all feature vectors from STYLEABLE1 and STYLEABLE2.

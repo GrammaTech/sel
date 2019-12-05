@@ -67,9 +67,10 @@ the last *max-mutation-results-queue-length* mutations")
 "
   (declare (optimize speed))
   (with-lock-held (*mutation-results-queue-lock*)
-    (setf (the (cons symbol symbol)
-               (aref *mutation-results-queue* *mutation-results-queue-next*))
-          (the (cons symbol symbol) (cons type classification)))
+    (without-compiler-notes
+        (setf (the (cons symbol symbol)
+                   (aref *mutation-results-queue* *mutation-results-queue-next*))
+              (the (cons symbol symbol) (cons type classification))))
     (incf (the fixnum *mutation-results-queue-next*))
     (when (= (the fixnum (length (the vector *mutation-results-queue*)))
              (the fixnum *mutation-results-queue-next*))

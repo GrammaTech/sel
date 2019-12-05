@@ -419,8 +419,9 @@
   (declare (optimize speed))
   ;; (declare (type fixnum set))
   ;; (declare (type fixnum subset))
-  (/ (factorial set)
-     (* (factorial subset) (factorial (- set subset)))))
+  (without-compiler-notes
+      (/ (factorial set)
+         (* (factorial subset) (factorial (- set subset))))))
 
 (defmethod evaluate-expression ((obj expression) free-vars
                                 &optional (expression (genome obj)))

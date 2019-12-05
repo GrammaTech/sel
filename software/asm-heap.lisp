@@ -548,14 +548,14 @@ linking process, (5) the source file name used during linking."
       (setf (flags asm)
 	    '("-no-pie" "-O0" "-fnon-call-exceptions" "-g" "-lrt"))
       (multiple-value-bind (stdout stderr errno)
-        (shell "~a -o ~a ~a ~{~a~^ ~}"
-               (linker asm)
-	       bin
-	       obj
-	       (flags asm))
-      (declare (ignorable stdout ))
-
-      (values bin errno stderr stdout src)))))
+          (shell "~a -o ~a ~a ~{~a~^ ~}"
+                 (linker asm)
+                 bin
+                 obj
+                 (flags asm))
+        (declare (ignorable stdout ))
+        (without-compiler-notes
+            (values bin errno stderr stdout src))))))
 
 (defun vector-cut (a index)
   "Destructively remove and return an element from a vector with a fill pointer."

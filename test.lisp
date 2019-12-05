@@ -827,7 +827,7 @@
                  "~%Built from SEL ~a, and ~a ~a.~%"
                  +software-evolution-library-version+
                  (lisp-implementation-type) (lisp-implementation-version))
-       (declare (ignorable quiet verbose))
+       (declare (ignorable quiet verbose language))
        (if help
            (let ((*standard-output* (make-broadcast-stream)))
              (show-help-for-fact-entry))
@@ -2378,7 +2378,9 @@ of the same length"
           ;; more likely that there are sufficient no-ops to delete.
           ;; This works with the local compiled version of gcd, but
           ;; may fail in the future or on other systems.
-          (to-copy (position-if [{eql 1} #'length {aget :code}] (genome *gcd*))))
+          (to-copy
+           (without-compiler-notes
+               (position-if [{eql 1} #'length {aget :code}] (genome *gcd*)))))
       (apply-mutation variant (list :insert 0 to-copy))
       (is (= (length (bytes *gcd*)) (length (bytes variant))))
       (is (not (equal-it (bytes *gcd*) (bytes variant)))))))
@@ -2387,7 +2389,9 @@ of the same length"
   (with-fixture gcd-elf
     (let* ((variant (copy *gcd*))
            ;; See FIND-SMALL in `elf-insertion-changes-but-maintains-lengthens'
-           (to-copy (position-if [{eql 1} #'length {aget :code}] (genome *gcd*)))
+           (to-copy
+            (without-compiler-notes
+                (position-if [{eql 1} #'length {aget :code}] (genome *gcd*))))
            (new-genome (elf-replace
                         variant 0 (copy-tree (nth to-copy (genome *gcd*))))))
       (is (= (length (mappend {aget :code} (genome *gcd*)))
@@ -7236,9 +7240,10 @@ prints unique counters in the trace"
                                (phenome *soft* :bin bin))))
           "Successfully compiled instrumented program.")
       (let ((trace (get-gcd-trace bin)))
-        (is (every [{eql 1} #'length {aget :scopes}]
-                   trace)
-            "No duplicate variables.")
+        (without-compiler-notes
+            (is (every [{eql 1} #'length {aget :scopes}]
+                       trace)
+                "No duplicate variables."))
 
         (is (every [«or {equalp '(#("x" "int" 1 nil))}
                         {equalp '(#("x" "short" 0 nil))}»

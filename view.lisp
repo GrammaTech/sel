@@ -499,7 +499,9 @@ the population."
 (defun genome-view-function ()
   ;; Genomic data informaion (pre-calculated).
   (with-delayed-invocation (genome-data-print *population*)
-    (let ((lengths (mapcar [#'length #'lines] *population*)))
+    (let ((lengths
+           (without-compiler-notes
+               (mapcar [#'length #'lines] *population*))))
       (genome-data-print (format nil "~d" (apply #'min lengths))
                          (format nil "~d" (median lengths))
                          (format nil "~d" (apply #'max lengths))))))
