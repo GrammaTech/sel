@@ -68,6 +68,7 @@
   (:shadowing-import-from :asdf-encodings :encoding-external-format)
   (:export :define-command
            :interrupt-signal
+           :*lisp-interaction*
            ;; Functions to handle command line options and arguments.
            :read-compilation-database
            :handle-comma-delimited-argument
