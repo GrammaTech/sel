@@ -10,14 +10,82 @@
    :software-evolution-library/rest/define-command-endpoint
    :software-evolution-library/rest/async-jobs
    :software-evolution-library/rest)
-  (:import-from :uiop/utility :nest)
+  (:import-from :uiop :writeln :truenamize :nest)
   (:import-from :software-evolution-library/rest/async-jobs
                 :lookup-session-job-status)
-  (:export :define-command-rest))
+  (:import-from :clack :clackup :stop)
+  (:import-from :snooze :make-clack-app :defroute :payload-as-string)
+  (:import-from :cl-json :decode-json-from-string :encode-json-to-string)
+  (:export :define-command-async-rest
+           :define-command-rest
+           :clackup :stop :make-clack-app :defroute :payload-as-string
+           :decode-json-from-string :encode-json-to-string))
 (in-package :software-evolution-library/command-line-rest)
 (in-readtable :curry-compose-reader-macros)
 
-(defmacro define-command-rest
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defparameter +clackup-command-line-options+
+    `((("port") :type integer :optional t :initial-value 5000
+       :documentation "Port to use when starting the clack server.")
+      (("address") :type string :optional t :initial-value "127.0.0.1"
+       :documentation "Address to which the clack server with bind.")
+      (("debug") :type boolean :optional t :initial-value nil
+       :documentation "Run the clack server in debug mode.")
+      (("silent") :type boolean :optional t :initial-value nil
+       :documentation "Run the clack server in silent mode.")))
+  (defparameter +server-command-line-options+
+    (append +common-command-line-options+ +clackup-command-line-options+)))
+
+(defmacro define-command-rest (name args pre-help post-help &rest body)
+  "Call `define-command' with all args, then define a serve-NAME REST server."
+  (nest
+   (let ((package (package-name *package*))))
+   (flet ((in-pkg (symbol) (intern (string symbol) package))))
+   (let ((spec-symbol (in-pkg '&spec))
+         (aux-symbol (in-pkg '&aux))
+         (server-name (intern (concatenate 'string "SERVE-" (string name))
+                              package))
+         (help-name (intern (concatenate 'string
+                                         "SHOW-HELP-FOR-SERVE-" (string name))
+                            package))))
+   `(progn
+      (define-command ,name ,args ,pre-help ,post-help ,@body)
+      (define-command ,server-name
+          (,spec-symbol +server-command-line-options+ ,aux-symbol server)
+        ,(format nil "Serve ~A as a rest end point." name) ""
+        (declare (ignorable ,@(mapcar #'in-pkg '(eval load language))))
+        (when ,(in-pkg 'quiet) (setf ,(in-pkg 'silent) t))
+        (when ,(in-pkg 'help)
+          (,help-name)
+          (exit-command ,server-name 0))
+        ;; Install exit handler for User C-c.
+        (flet ((shutdown
+                   (&optional (message "Stopping server . . .") (errno 0))
+                 (format t "~a" message)
+                 (stop server)
+                 (exit-command ,server-name errno)))
+          ;; From https://github.com/LispCookbook/cl-cookbook/blob/master/scripting.md
+          (handler-case
+              ;; Run server, and wait for keyboard input to terminate.
+              ;; Borrowed from `sel/rest.lisp`.
+              (progn
+                (setf server
+                      (clackup (make-clack-app)
+                               :port ,(in-pkg 'port) :address ,(in-pkg 'address)
+                               :debug ,(in-pkg 'debug) :silent ,(in-pkg 'silent)))
+                (unless *lisp-interaction*
+                  (loop :for char := (read-char *standard-input* nil #\p) :do
+                       (if (member char '(#\q #\Q))
+                           (shutdown)
+                           (sleep 1)))))
+            ;; Catch a user's C-c.
+            (#.interrupt-signal ()
+              (shutdown "Shutting down server." 130))
+            (error (e)
+              (shutdown (format nil "unexpected error ~S" e) 1)))
+          (exit-command ,server-name 0 server))))))
+
+(defmacro define-command-async-rest
     ((name &key (environment '(*fitness-predicate*
                                *max-evals* *max-time* *orig* *population*
                                *target-fitness-p* *test-suite* *threads*))
