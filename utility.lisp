@@ -28,7 +28,8 @@
    :cl-store
    :cl-dot
    :diff
-   :flexi-streams)
+   :flexi-streams
+   :string-case)
   (:shadow :read)
   (:import-from :cffi
                 :defcstruct
@@ -144,6 +145,7 @@
    :xz-pipe
    :parse-number
    :parse-numbers
+   :whitespacep
    :trim-whitespace
    :trim-right-whitespace
    :trim-left-whitespace
@@ -297,7 +299,9 @@
    :run-task-and-block
    :some-task
    :some-task-pred
-   :some-test-task))
+   :some-test-task
+   :string-case-to-keywords
+   :with-prof))
 (in-package :software-evolution-library/utility)
 #-windows (cffi:load-foreign-library :libosicat)
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -1258,6 +1262,9 @@ ARGS (including keyword arguments) are passed through to `uiop:launch-program'"
         when (name-char s)
         collect it))
   :test #'equal)
+
+(defun whitespacep (c)
+  (find c +whitespace-chars+))
 
 (defun trim-whitespace (str)
   (string-trim +whitespace-chars+ str))
@@ -3021,3 +3028,55 @@ See http://www.brendangregg.com/FlameGraphs/cpuflamegraphs.html."
 (defun profile-to-flame-graph (&rest args)
   (declare (ignorable args))
   (error "`PROFILE-TO-FLAME-GRAPH' unimplemented for non-SBCL lisps."))
+
+;;; Utilities associated with json processing
+
+(defun strings-to-string-cases (strings)
+  (iter (for n in strings)
+        (collect (list n (intern (string-upcase n)
+                                 :keyword)))))
+
+(defun string-case-to-keyword-body (strings s)
+  `(string-case (,s) ,@(strings-to-string-cases strings)
+                (t (intern (string-upcase ,s) :keyword))))
+
+(defmacro string-case-to-keywords (strings str)
+  "Macro to convert a string to a keyword, using string-case to
+accelerate the common cases given by STRINGS."
+  (unless (and (listp strings)
+               (every #'stringp strings))
+    (error "Usage: (string-case-to-keywords <list of string constants> form)"))
+  (let ((v (gensym "STR")))
+    `(let ((,v ,str))
+       (etypecase ,v
+         (simple-base-string
+          ,(string-case-to-keyword-body strings `(the simple-base-string ,v)))
+         #-ccl
+         ((and simple-string (vector character))
+          ,(string-case-to-keyword-body
+            strings `(the (and simple-string (vector character)) ,v)))
+         (string (intern (string-upcase ,v) :keyword))))))
+
+;;; Profiling
+
+(defmacro with-prof (profile-path &rest body)
+  "Execute BODY with profiling enables.  Write the profile report
+to a file at PROFILE-PATH.  Currently only works in SBCL."
+  #+sbcl
+  ;; Profiler settings
+  `(if ,profile-path
+       (sb-sprof:with-profiling (:sample-interval .01
+                                                  :max-samples 10000000
+                                                  :mode :cpu
+                                                  :loop nil)
+         ,@body
+         (with-output-to-file (out ,profile-path
+                                   :if-exists :overwrite
+                                   :if-does-not-exist :create)
+           (sb-sprof:report :stream out)))
+       (progn ,@body))
+  #-sbcl `(progn
+            (when ,profile-path
+              (with-output-to-file (out ,profile-path)
+                (format out "Not profiling.~%")))
+            ,@body))
