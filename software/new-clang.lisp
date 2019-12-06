@@ -521,14 +521,17 @@ the decl ASTs in AST-ROOT."
                   (ast-is-decl ast)
                   (not (eq :TopLevel (ast-class ast))))))
     (map-ast ast-root
-             (lambda (ast &aux (referenced (ast-referenceddecl ast)))
-               (when (symbol-ast-p ast)
+             (lambda (ast)
+               (when (and (new-clang-ast-p ast)
+                          (symbol-ast-p ast))
                  (setf (gethash (ast-id ast) symbol-table)
                        (list ast)))
-               (when (and (symbol-ast-p referenced)
-                          (null (gethash (ast-id referenced) symbol-table)))
-                 (setf (gethash (ast-id referenced) symbol-table)
-                       (list referenced)))))
+               (when (and (new-clang-ast-p ast)
+                          (symbol-ast-p (ast-referenceddecl ast))
+                          (null (gethash (ast-id (ast-referenceddecl ast))
+                                         symbol-table)))
+                 (setf (gethash (ast-id (ast-referenceddecl ast)) symbol-table)
+                       (list (ast-referenceddecl ast))))))
     symbol-table))
 
 (defun update-name-symbol-table (name-symbol-table symbol-table)
@@ -556,7 +559,8 @@ using the existing SYMBOL-TABLE."
 in the SYMBOL-TABLE."
   (map-ast ast-root
            (lambda (ast)
-             (when-let* ((old-ref (ast-referenceddecl ast))
+             (when-let* ((_ (new-clang-ast-p ast))
+                         (old-ref (ast-referenceddecl ast))
                          (new-ref (find old-ref
                                         (gethash (ast-id old-ref) symbol-table)
                                         :key #'ast-name :test #'name=)))
@@ -567,7 +571,8 @@ in the SYMBOL-TABLE."
   "Populate TYPES with a mapping of type-hash -> NCT+ objects using the
 ASTs in the existing SYMBOL-TABLE and AST-ROOT tree."
   (labels ((get-nct+-type (ast)
-             (when-let* ((tp (ast-type ast))
+             (when-let* ((_ (new-clang-ast-p ast))
+                         (tp (ast-type ast))
                          (storage-class (or (ast-attr ast :storage-class)
                                             :none))
                          (tp+ (make-instance 'nct+
