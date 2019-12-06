@@ -14,11 +14,13 @@
   (:import-from :software-evolution-library/rest/async-jobs
                 :lookup-session-job-status)
   (:import-from :clack :clackup :stop)
-  (:import-from :snooze :make-clack-app :defroute :payload-as-string)
+  (:import-from :snooze :make-clack-app :defroute
+                :payload-as-string :http-condition)
   (:import-from :cl-json :decode-json-from-string :encode-json-to-string)
   (:export :define-command-async-rest
            :define-command-rest
-           :clackup :stop :make-clack-app :defroute :payload-as-string
+           :clackup :stop :make-clack-app :defroute
+           :payload-as-string :http-condition
            :decode-json-from-string :encode-json-to-string))
 (in-package :software-evolution-library/command-line-rest)
 (in-readtable :curry-compose-reader-macros)
