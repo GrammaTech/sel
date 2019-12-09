@@ -62,6 +62,7 @@
    :pick-bad
    :mutation-targets
    :mutate
+   :located-mutate
    :no-mutation-targets
    :pick-mutation-type
    :create-super
@@ -144,7 +145,8 @@
    :*fitness-scalar-fn*
    :fitness-scalar
    :ignore-failed-mutation
-   :try-another-mutation))
+   :try-another-mutation
+   :original-file))
 (in-package :software-evolution-library/software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
@@ -216,25 +218,33 @@ slot in DIRECT-SLOTS may be one of the following:
        ,@options)
      ;; Define the copy method
      ,(unless (null direct-slots)
-        `(defmethod copy :around ((obj ,name) &key)
-                    (let ((copy (call-next-method)))
-                      (with-slots ,(mapcar #'car direct-slots) copy
-                        (setf
-                         ,@(mappend
-                            (lambda (accessor copier)
-                              (case copier
-                                (:none nil)
-                                (:direct
-                                 `(,accessor (with-slots (,accessor) obj
-                                               ,accessor)))
-                                (otherwise
-                                 `(,accessor
-                                   ,(if copier
-                                        `(,copier (,accessor obj))
-                                        `(,accessor obj))))))
-                            (mapcar #'car direct-slots)
-                            (mapcar {plist-get :copier} direct-slots))))
-                      copy)))
+        (let ((direct-slot-names (mapcar #'car direct-slots)))
+          `(defmethod copy :around
+             ((obj ,name)
+              &key ,@(mapcar (lambda (name)
+                               `(,name nil ,(symbol-cat name 'supplied-p)))
+                             direct-slot-names)
+              &allow-other-keys)
+             (let ((copy (call-next-method)))
+               ,@(mapcar
+                  (lambda (name keyword-supplied-p copier)
+                    `(if ,keyword-supplied-p
+                         (setf (slot-value copy ',name) ,name)
+                         ,(case copier
+                            (:none nil)
+                            (:direct
+                             `(setf (slot-value copy ',name)
+                                    (with-slots (,name) obj
+                                      ,name)))
+                            (otherwise
+                             `(setf (slot-value copy ',name)
+                                    ,(if copier
+                                         `(,copier (,name obj))
+                                         `(,name obj)))))))
+                  direct-slot-names
+                  (mapcar {symbol-cat _ 'supplied-p} direct-slot-names)
+                  (mapcar {plist-get :copier} direct-slots))
+               copy))))
      (find-class ',name)))
 
 (defgeneric genome (software)
@@ -306,8 +316,8 @@ first value from the `phenome' method."
   (declare (ignorable extra-data)))
 
 (defgeneric copy (software &key &allow-other-keys)
-  (:documentation "Copy the software.
-Return a deep copy of a software object."))
+  (:documentation "Return a deep copy of a software object.
+Keyword arguments may be used to pass new values for specific slots."))
 
 (defmethod copy ((obj software) &key)
   (make-instance (class-of obj) :fitness (fitness obj)))
@@ -548,11 +558,8 @@ elements.")
    (obj  :initarg :obj  :initform nil :reader obj)
    (loc  :initarg :loc  :initform nil :reader loc))
   (:report (lambda (condition stream)
-             (if (loc condition)
-                 (format stream "Phenome error ~S on ~S in ~a."
-                         (text condition) (obj condition) (loc condition))
-                 (format stream "Phenome error ~S on ~S."
-                         (text condition) (obj condition)))))
+             (format stream "Phenome error ~S on ~S~@[ in ~A~]."
+                     (text condition) (obj condition) (loc condition))))
   (:documentation "DOCFIXME"))
 
 (define-condition mutate (error)
@@ -560,26 +567,33 @@ elements.")
    (obj  :initarg :obj  :initform nil :reader obj)
    (op   :initarg :op   :initform nil :reader op))
   (:report (lambda (condition stream)
-             (if (op condition)
-                 (format stream "Mutation error, ~a, applying ~S to ~S"
-                         (text condition) (op condition) (obj condition))
-                 (format stream "Mutation error, ~a, on ~S"
-                         (text condition) (obj condition)))))
+             (format stream "Mutation error, ~a, ~:[on~;~:*applying ~S to~] ~S"
+                     (text condition) (op condition) (obj condition))))
   (:documentation
    "Mutation errors are thrown when a mutation fails.
 These may often be safely ignored.  A common restart is
 `ignore-failed-mutation'."))
+
+(defgeneric original-file (obj)
+  (:method (obj) (declare (ignorable obj)) nil))
+
+(define-condition located-mutate (mutate)
+  ()
+  (:report (lambda (condition stream)
+             (format stream "Mutation error, ~a, ~:[on~;~:*applying ~S to~] ~S~@[ (~S)~]"
+                     (text condition) (op condition)
+                     (obj condition)
+                     (original-file (obj condition)))))
+  (:documentation "Version of MUTATE condition that also reports the original
+file location, if any."))
 
 (define-condition no-mutation-targets (mutate)
   ((text :initarg :text :initform nil :reader text)
    (obj  :initarg :obj  :initform nil :reader obj)
    (op   :initarg :op   :initform nil :reader op))
   (:report (lambda (condition stream)
-             (if (op condition)
-                 (format stream "No targets error ~a applying ~S to ~S"
-                         (text condition) (op condition) (obj condition))
-                 (format stream "No targets error ~a on ~S"
-                         (text condition) (obj condition)))))
+             (format stream "No targets error ~a ~:[on~;~:*applying ~S to~] ~S"
+                     (text condition) (op condition) (obj condition))))
   (:documentation
    "This is a particularly benign form of mutation error.
 A common restart is `ignore-failed-mutation'."))

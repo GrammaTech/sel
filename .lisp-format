@@ -55,6 +55,7 @@
         (when-let 1)
         (when-let* 1)
         (defixture 1)
+        (lambda-bind 1)
         (register-groups-bind 2)))
 
 (defun define-feature-lisp-indent

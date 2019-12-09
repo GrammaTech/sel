@@ -557,29 +557,7 @@ Creates a CLANG-INSTRUMENTER for OBJ and calls its instrument method.
            :ast-ids (get-ast-ids-ht obj))
          args))
 
-;; This was in INSTRUMENT's LABEL form, but is not dependent
-;; on any surronding state.  Removed for clarity and
-;; traceability
-(defun add-semicolon (ast semi-position)
-  (cond ((eq semi-position :before)
-         (labels ((add-semi-before (ast children)
-                    (if (stringp (car children))
-                        (copy ast :children
-                              (cons (concatenate 'string ";"
-                                                 (car children))
-                                    (cdr children)))
-                        (copy ast :children
-                              (cons (add-semi-before
-                                     (car children)
-                                     (ast-children (car children)))
-                                    (cdr children))))))
-           (add-semi-before ast (ast-children ast))))
-        ((eq semi-position :after)
-         (copy ast :children (append (ast-children ast) (list ";"))))
-        ((eq semi-position :both)
-         (-> (add-semicolon ast :before)
-           (add-semicolon :after)))
-        (t ast)))
+
 
 (defun instrument-create-value (obj ast return-type before after
                                 instrumenter instrument-exit)
@@ -1041,16 +1019,11 @@ OBJ a clang software object
 "
   (when-let* ((main (find-if [{name= "main"} {ast-name}]
                              (functions obj)))
-              (_1 (equal :Function (ast-class main)))
-              (ret (ast-ret main)))
-    ;; This is ugly.  It's because ast-ret is returning
-    ;; a string in new-clang, and the type doesn't necessarily
-    ;; exist
-    (when (or (member ret '("int" "void") :test #'equal)
-              (when-let ((type (find-type obj ret)))
-                (member (type-name type)
-                        '("int" "void") :test #'name=)))
-      (function-body obj main))))
+              (return-type (find-type obj (ast-ret main)))
+              (_ (and (equal :Function (ast-class main))
+                      (member (type-name return-type)
+                              '("int" "void") :test #'name=))))
+    (function-body obj main)))
 
 (defun initialize-tracing (instrumenter file-name env-name contains-entry
                            &aux (obj (software instrumenter)))
@@ -1156,7 +1129,7 @@ OBJ a clang software object
             "~%Built from SEL ~a, and ~a ~a.~%"
             +software-evolution-library-version+
             (lisp-implementation-type) (lisp-implementation-version))
-  (declare (ignorable quiet verbose split-lines))
+  (declare (ignorable quiet verbose split-lines language))
   (when help (show-help-for-clang-instrument))
   ;; Mandatory arguments.
   (setf original (make-instance 'clang

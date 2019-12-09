@@ -28,7 +28,8 @@
    :cl-store
    :cl-dot
    :diff
-   :flexi-streams)
+   :flexi-streams
+   :string-case)
   (:shadow :read)
   (:import-from :cffi
                 :defcstruct
@@ -95,6 +96,9 @@
    :current-git-commit
    :current-git-branch
    :current-git-status
+   :git-url-p
+   :clone-git-repo
+   :push-git-repo
    :*temp-dir*
    :temp-file-name
    :with-temp-file
@@ -141,10 +145,12 @@
    :xz-pipe
    :parse-number
    :parse-numbers
+   :whitespacep
    :trim-whitespace
    :trim-right-whitespace
    :trim-left-whitespace
    :normalize-whitespace
+   :split-quoted
    :+whitespace-chars+
    :escape-string
    :unescape-string
@@ -196,6 +202,7 @@
    :unpeel-bananas
    :replace-all
    :aget
+   :areplace
    :alist
    :alist-merge
    :adrop
@@ -212,11 +219,16 @@
    :take-until
    :pad
    :chunks
+   :cartesian
+   :cartesian-without-duplicates
    :binary-search
    :tails
    :pairs
    :filter-subtrees
    :make-thread-safe-hash-table
+   ;;; symbols
+   :symbol-cat
+   :symbol-cat-in-package
    ;;; Source and binary locations and ranges
    :source-location
    :line
@@ -287,7 +299,10 @@
    :run-task-and-block
    :some-task
    :some-task-pred
-   :some-test-task))
+   :some-test-task
+   :string-case-to-keywords
+   :with-prof
+   :without-compiler-notes))
 (in-package :software-evolution-library/utility)
 #-windows (cffi:load-foreign-library :libosicat)
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -390,7 +405,6 @@ Raise an error if no such parent exists."
 Return nil if there are no modified, untracked, or deleted files."
   (multiple-value-bind (stdout stderr errno)
       (multiple-value-bind (git-dir git-work-tree) (git-directory directory)
-        ;; (format t "GIT-DIR:~S GIT-TREE:~S~%" git-dir git-work-tree)
         (shell "GIT_WORK_TREE=~a GIT_DIR=~a git status --porcelain"
                (namestring git-work-tree)
                (namestring git-dir)))
@@ -401,8 +415,62 @@ Return nil if there are no modified, untracked, or deleted files."
                 (list (make-keyword status) (subseq line point))))
             (split-sequence #\Newline stdout :remove-empty-subseqs t))))
 
+(defun git-url-p (url)
+  (let ((url-str (if (typep url 'pathname)
+                     (namestring url)
+                     url)))
+    (or (scan "\\.git$" url-str)
+        (scan "^git://" url-str)
+        (scan "^https://git\\." url-str))))
+
+(defun clone-git-repo (url path &key ssh-key user pass)
+  "Clones a repo at the supplied URL into the supplied path.
+Note, the path must be absolute and have a trailing slash, as per git
+convention."
+  (let ((clone-cmd (format nil "git clone ~a ~a" url path)))
+    (when ssh-key
+      (setf clone-cmd (format nil "GIT_SSH_COMMAND='ssh -i ~a -F /dev/null' ~a"
+                              ssh-key clone-cmd)))
+    (when (and user pass)
+      (setf clone-cmd (regex-replace "://" clone-cmd
+                                     (format nil "://~a:~a@" user pass))))
+    (note 2 "cloning git repo: ~a" clone-cmd)
+    (multiple-value-bind (stdout stderr errno) (shell clone-cmd)
+      (declare (ignorable stdout))
+      (unless (zerop errno)
+        (warn "git checkout failed: ~a" stderr)
+        (warn "cmd: git --work-tree=~a checkout ~a" path url)))))
+
+(defun push-git-repo (path branch-name commit-msg &key ssh-key user pass)
+  "Given a valid git repo at PATH, push changes to a new BRANCH-NAME branch."
+  (let ((push-cmd (format nil "git push origin ~a" branch-name)))
+    (when ssh-key
+      (setf push-cmd (format nil "GIT_SSH_COMMAND='ssh -i ~a -F /dev/null' ~a"
+                             ssh-key push-cmd)))
+    (when (and user pass)
+      (setf push-cmd (regex-replace "://" push-cmd
+                                    (format nil "://~a:~a@" user pass))))
+    (let ((full-cmd
+           (format nil
+                   "cd ~a && git checkout -b ~a && git commit -m \"~a\" * && ~a"
+                   path branch-name commit-msg push-cmd)))
+      (note 2 "git command: ~a" full-cmd)
+      (multiple-value-bind (stdout stderr errno) (shell full-cmd)
+        (unless (zerop errno)
+          (warn "git push failed:")
+          (warn "  stdout: ~a" stdout)
+          (warn "  stderr: ~a" stderr))))))
+
+(defmacro without-compiler-notes (&body body)
+  "Suppress compiler notes from BODY"
+  #+sbcl
+  `(locally (declare (sb-ext:muffle-conditions sb-ext:compiler-note))
+     ,@body)
+  #-sbcl
+  `(let () ,@body))
+
 #+sbcl
-(locally (declare (sb-ext:muffle-conditions sb-ext:compiler-note))
+(without-compiler-notes
   (sb-alien:define-alien-routine (#-win32 "tempnam" #+win32 "_tempnam" tempnam)
       sb-alien:c-string
     (dir sb-alien:c-string)
@@ -443,10 +511,13 @@ The Unix `file' command is used, specifically \"file -b --mime-type PATH\"."
   #+ccl (declare (ignorable external-format))
   (labels ((run-read ()
              (let (#+sbcl (sb-impl::*default-external-format* external-format)
-                   #+ecl (ext:*default-external-format* external-format))
-               (with-open-file (in pathname)
+                          #+ecl (ext:*default-external-format* external-format)
+                          (element-type (case external-format
+                                          (:ascii 'base-char)
+                                          (t 'character))))
+               (with-open-file (in pathname :element-type element-type)
                  (let* ((file-bytes (file-length in))
-                        (seq (make-string file-bytes))
+                        (seq (make-string file-bytes :element-type element-type))
                         (file-chars (read-sequence seq in)))
                    (if (= file-bytes file-chars)
                        seq
@@ -560,15 +631,16 @@ USE-ENCODING. "
           #-(or sbcl clisp ccl allegro ecl)
           (error "no temporary file backend for this lisp.")))
     ;; NOTE:  code smell -- two branches of these ifs are dead in SBCL
-    (if type
-        (if (pathnamep base)
-            (namestring (make-pathname :directory (pathname-directory base)
-                                       :name (pathname-name base)
-                                       :type type))
-            (concatenate 'string base "." type))
-        (if (pathname base)
-            (namestring base)
-            base))))
+    (without-compiler-notes
+        (if type
+            (if (pathnamep base)
+                (namestring (make-pathname :directory (pathname-directory base)
+                                           :name (pathname-name base)
+                                           :type type))
+                (concatenate 'string base "." type))
+            (if (pathname base)
+                (namestring base)
+                base)))))
 
 (defun ensure-temp-file-free (path)
   "Delete anything at PATH."
@@ -588,8 +660,10 @@ USE-ENCODING. "
 (defmacro with-temp-file (spec &rest body)
   "SPEC holds the variable used to reference the file w/optional extension.
 After BODY is executed the temporary file is removed."
-  `(let ((,(car spec) (temp-file-name ,(second spec))))
-     (unwind-protect (progn ,@body) (ensure-temp-file-free ,(car spec)))))
+  (with-gensyms (v)
+    `(let* ((,v ,(second spec))
+            (,(car spec) (temp-file-name ,v)))
+       (unwind-protect (progn ,@body) (ensure-temp-file-free ,(car spec))))))
 
 (defmacro with-temp-fifo (spec &rest body)
   `(with-temp-file ,spec
@@ -985,7 +1059,9 @@ If CHILDREN is T, also kill all processes below PROCESS."))
 ;;;
 ;;;@texi{shell}
 (defvar *shell-debug* nil
-  "Set to true to print shell invocations.")
+  "Set to true to print shell invocations.  If a list, print
+shell cmd if :CMD is a membe, input if :INPUT is a member, and
+print the shell outputs if :OUTPUT is a member.")
 
 (defvar *shell-error-codes* '(126 127)
   "Raise a condition on these exit codes.")
@@ -1015,22 +1091,44 @@ of errno with `*shell-error-codes*' and `*shell-non-error-codes*'.
 
 Optionally print debug information if `*shell-debug*' is non-nil."
   (let ((format-arguments (take-until #'keywordp format-arguments))
-        (run-program-arguments (drop-until #'keywordp format-arguments)))
+        (run-program-arguments (drop-until #'keywordp format-arguments))
+        (debug *shell-debug*))
     ;; Manual handling of an :input keyword argument.
     (when-let ((input-arg (plist-get :input run-program-arguments)))
       (setq input
             (if (stringp input-arg)
                 (make-string-input-stream input-arg)
-                input-arg))
-      (setq run-program-arguments (plist-drop :input run-program-arguments)))
+                input-arg)))
+    (setq run-program-arguments (plist-drop :input run-program-arguments))
+    ;; Manual handling of :bash keyword argument.
+    (when (plist-get :bash run-program-arguments)
+      ;; Use bash instead of /bin/sh, this means setting bash -c "<command>"
+      ;; with appropriate string escaping.  Use a formatter function instead
+      ;; of a control-string.
+      (if input
+          (setf control-string
+                (let ((cs control-string))
+                  (lambda (stream &rest args)
+                    (format stream "~a"
+                            (concatenate 'string "bash -c \""
+                                         (escape-chars "$\\\""
+                                                       (apply #'format nil cs args))
+                                         "\"")))))
+          ;; When there is no input, send the command directly to bash
+          (setf
+           input (make-string-input-stream
+                  (apply #'format nil control-string format-arguments))
+           control-string "bash")))
+    (setq run-program-arguments (plist-drop :bash run-program-arguments))
     (let ((cmd (apply #'format (list* nil control-string format-arguments)))
           (stdout-str nil)
           (stderr-str nil)
           (errno nil))
-      (when *shell-debug*
-        (format t "  cmd: ~a~%" cmd)
-        (when input
-          (format t "  input: ~a~%" input)))
+      (when (or (not (listp debug)) (member :cmd debug))
+        (format t "  cmd: ~a~%" cmd))
+      (when (and input (or (not (listp debug))
+                           (member :input debug)))
+        (format t "  input: ~a~%" input))
 
       ;; Direct shell execution with `uiop/run-program:run-program'.
       #+(and (not ccl) (not windows))
@@ -1081,7 +1179,7 @@ Optionally print debug information if `*shell-debug*' is non-nil."
             (setf stderr-str (if (probe-file stderr-file)
                                  (file-to-string stderr-file)
                                  "")))))
-      (when *shell-debug*
+      (when (or (not (listp debug)) (member :output debug))
         (format t "~&stdout:~a~%stderr:~a~%errno:~a"
                 stdout-str stderr-str errno))
       (when (or (and *shell-non-error-codes*
@@ -1175,6 +1273,9 @@ ARGS (including keyword arguments) are passed through to `uiop:launch-program'"
         collect it))
   :test #'equal)
 
+(defun whitespacep (c)
+  (find c +whitespace-chars+))
+
 (defun trim-whitespace (str)
   (string-trim +whitespace-chars+ str))
 
@@ -1209,6 +1310,48 @@ sequences of one or more whitespace characters to a single space"
                                 out (1+ out)
                                 w-start nil))))
               (subseq result 0 out)))))))
+
+(defun escape-chars (chars str)
+  "Returns a fresh string that is the same as str, except that
+every character that occurs in CHARS is preceded by a backslash."
+  (declare (type string str))
+  (with-output-to-string (s)
+    (map nil (lambda (c)
+               (if (find c chars)
+                   (format s "\\~a" c)
+                   (format s "~a" c)))
+         str)))
+
+(defun split-quoted (str)
+  "Split STR at spaces except when the spaces are escaped or within quotes.
+Return a list of substrings with empty strings elided."
+  (let ((subseqs nil)
+        (in-single-quote-p nil)
+        (in-double-quote-p nil)
+        (prev 0)
+        (pos 0)
+        (len (length str)))
+    (iter (while (< pos len))
+          (let ((c (elt str pos)))
+            (case c
+              (#\Space
+               (when (and (< prev pos)
+                          (not in-single-quote-p)
+                          (not in-double-quote-p))
+                 (push (subseq str prev pos) subseqs)
+                 (setf prev (1+ pos))))
+              (#\\
+               (incf pos)
+               (when (>= pos len) (return)))
+              (#\'
+               (setf in-single-quote-p (not in-single-quote-p)))
+              (#\"
+               (setf in-double-quote-p (not in-double-quote-p))))
+            (incf pos)))
+    (assert (= len pos))
+    (when (< prev pos)
+      (push (subseq str prev pos) subseqs))
+    (reverse subseqs)))
 
 (defun escape-string (str)
   "Return a copy of STR with special characters escaped before output to SerAPI.
@@ -1821,6 +1964,13 @@ from a code snippet.")
   "Get KEY from association list LIST."
   (cdr (assoc item list :test test)))
 
+(define-compiler-macro aget (&whole whole item list &key (test '#'eql test-p))
+  (if (constantp item)
+      (if test-p
+          `(cdr (assoc ,item ,list :test ,test))
+          `(cdr (assoc ,item ,list)))
+      whole))
+
 (define-setf-expander aget (item list &key (test ''eql) &environment env)
   (multiple-value-bind (dummies vals stores store-form access-form)
       (get-setf-expansion list env)
@@ -1836,6 +1986,10 @@ from a code snippet.")
                      (prog1 ,store
                        (setf ,access-form (acons ,item ,store ,access-form)))))
               `(aget ,item ,access-form :test ,test)))))
+
+(defun areplace (key val alist &key (test #'eql))
+  "Replace the value of KEY in the association list ALIST with VAL."
+  (cons (cons key val) (remove key alist :key #'car :test test)))
 
 (defun adrop (drop-keys alist)
   "Remove all keys in DROP-KEYS from alist."
@@ -1901,6 +2055,24 @@ from a code snippet.")
                        (length list)
                        (- (length list) size))
      :by size :collect (subseq list i (min (+ i size) (length list)))))
+
+(defun cartesian (lists)
+  "Cartesian product of a set of lists."
+  (cartesian-without-duplicates lists :test (constantly nil)))
+
+(defun cartesian-without-duplicates (lists &key (test #'eql))
+  "Cartesian product of a set of lists, without sets containing duplicates."
+  (labels ((cartesian-nil-duplicates (lists)
+             (if (car lists)
+                 (mappend (lambda (inner)
+                            (mapcar (lambda (outer)
+                                      (if (not (member outer inner :test test))
+                                          (cons outer inner)
+                                          nil))
+                                    (car lists)))
+                          (cartesian-nil-duplicates (cdr lists)))
+                 (list nil))))
+    (remove-if [{> (length lists)} #'length] (cartesian-nil-duplicates lists))))
 
 (defun binary-search (value array &key (low 0)
                                        (high (1- (length array)))
@@ -1968,6 +2140,17 @@ For example (pairs '(a b c)) => ('(a . b) '(a . c) '(b . c))
   (apply #'make-hash-table :shared :lock-free args)
   #-(or ccl sbcl ecl)
   (error "unsupported implementation for thread-safe hashtables"))
+
+
+;;;; Symbol-related functions (useful for macros)
+(defun symbol-cat (&rest symbols)
+  "Return a symbol concatenation of SYMBOLS."
+  (intern (string-upcase (mapconcat #'symbol-name symbols "-"))))
+
+(defun symbol-cat-in-package (package &rest symbols)
+  "Return a symbol concatenation of SYMBOLS in PACKAGE."
+  (intern (string-upcase (mapconcat #'symbol-name symbols "-"))
+          package))
 
 
 ;;;; Source and binary locations and ranges.
@@ -2855,3 +3038,56 @@ See http://www.brendangregg.com/FlameGraphs/cpuflamegraphs.html."
 (defun profile-to-flame-graph (&rest args)
   (declare (ignorable args))
   (error "`PROFILE-TO-FLAME-GRAPH' unimplemented for non-SBCL lisps."))
+
+;;; Utilities associated with json processing
+
+(defun strings-to-string-cases (strings)
+  (iter (for n in strings)
+        (collect (list n (intern (string-upcase n)
+                                 :keyword)))))
+
+(defun string-case-to-keyword-body (strings s)
+  `(string-case (,s) ,@(strings-to-string-cases strings)
+                (t (intern (string-upcase ,s) :keyword))))
+
+(defmacro string-case-to-keywords (strings str)
+  "Macro to convert a string to a keyword, using string-case to
+accelerate the common cases given by STRINGS."
+  (unless (and (listp strings)
+               (every #'stringp strings))
+    (error "Usage: (string-case-to-keywords <list of string constants> form)"))
+  (let ((v (gensym "STR")))
+    `(let ((,v ,str))
+       (etypecase ,v
+         (simple-base-string
+          ,(string-case-to-keyword-body strings `(the simple-base-string ,v)))
+         #-ccl
+         ((and simple-string (vector character))
+          ,(string-case-to-keyword-body
+            strings `(the (and simple-string (vector character)) ,v)))
+         (string (intern (string-upcase ,v) :keyword))))))
+
+;;; Profiling
+
+(defmacro with-prof (profile-path &rest body)
+  "Execute BODY with profiling enables.  Write the profile report
+to a file at PROFILE-PATH.  Currently only works in SBCL."
+  #+sbcl
+  ;; Profiler settings
+  `(if ,profile-path
+       (sb-sprof:with-profiling (:sample-interval .01
+                                                  :max-samples 10000000
+                                                  :mode :cpu
+                                                  :loop nil)
+         ,@body
+         (with-output-to-file (out ,profile-path
+                                   :if-exists :overwrite
+                                   :if-does-not-exist :create)
+           (sb-sprof:report :stream out)))
+       (progn ,@body))
+  #-sbcl `(progn
+            (when ,profile-path
+              (with-output-to-file (out ,profile-path)
+                (format out "Not profiling.~%")))
+            ,@body))
+

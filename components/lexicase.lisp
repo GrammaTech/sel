@@ -29,10 +29,11 @@
 (defun lexicase-select (population max-size)
   "Choose max-size individuals from the population by lexicase selection.
 The same individual may be selected multiple times."
-  (assert
-   (= 1 (length (remove-duplicates population :key [#'length #'fitness])))
-   (population)
-   "All fitness vectors must be the same length.")
+  (without-compiler-notes
+      (assert
+       (= 1 (length (remove-duplicates population :key [#'length #'fitness])))
+       (population)
+       "All fitness vectors must be the same length."))
   (iter (for n below max-size)
         (collect (funcall *tournament-tie-breaker*
                           (lexicase-select-best population)))))

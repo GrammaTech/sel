@@ -1,12 +1,12 @@
 ;;; clang-diff-test.lisp -- differential testing for clang and new clang
-(defpackage :software-evolution-library/components/clang-diff-test
-  (:nicknames :sel/components/clang-diff-test
-              :sel/cp/clang-diff-test)
+(defpackage :software-evolution-library/test/clang-diff-test
+  (:nicknames :sel/test/clang-diff-test)
   (:use :common-lisp
         :alexandria
         :iterate
         :software-evolution-library
         :software-evolution-library/utility
+        :software-evolution-library/command-line
         :software-evolution-library/command-line
         :software-evolution-library/software/ast
         :software-evolution-library/software/parseable
@@ -14,10 +14,10 @@
         :software-evolution-library/software/clang
         :software-evolution-library/software/new-clang)
   (:import-from :uiop :nest truenamize)
-  (:import-from :software-evolution-library/software/new-clang-debug
+  (:import-from :software-evolution-library/test/new-clang-debug
                 :dump-ast-val-to-list)
   (:export :clang-diff-test))
-(in-package :software-evolution-library/components/clang-diff-test)
+(in-package :software-evolution-library/test/clang-diff-test)
 
 
 ;;; Command line
@@ -39,15 +39,20 @@
                :documentation "Compare the AST-UNBOUND-FUNS values")
               (("unbound-vals") :type boolean :optional t
                :documentation "Compare the AST-UNBOUND-VALS values")
+              (("new-only") :type boolean :optional t
+               :documentation "Parse only using new-clang")
               (("errors") :type boolean :optional t
                :documentation
-               "When true, new-clang errors are 'interesting'")))))
+               "When true, new-clang errors are 'interesting'")
+              (("flags" #\F) :type string
+               :action #'handle-comma-delimited-argument
+               :documentation "comma-separated list of compiler flags")))))
 
-(defun make-clang (file &key)
-  (from-file (make-instance 'clang) file))
+(defun make-clang (file &rest args)
+  (from-file (apply #'make-instance 'clang args) file))
 
-(defun make-new-clang (file)
-  (from-file (make-instance 'new-clang) file))
+(defun make-new-clang (file &rest args)
+  (from-file (apply #'make-instance 'new-clang args) file))
 
 
 ;;; Utility functions
@@ -73,12 +78,7 @@
                               &key loose &allow-other-keys)
   (let ((l1 (length s1))
         (l2 (length s2)))
-    (or (eql (car s1) :combined)
-        (eql (car s2) :combined)
-        (and (consp (car s2))
-             (eql (caar s2) :combined)
-             (= l2 1))
-        (and (eql (car s2) :constantexpr)
+    (or (and (eql (car s2) :constantexpr)
              (not (eql (car s1) :constantexpr))
              (= (length (caddr s2)) 1)
              (diff-result-equal s1 (caaddr s2)))
@@ -252,8 +252,8 @@ list of children of their parent.  Cannot remove the root."))
     (setf fn #'(lambda (a) (length (ast-unbound-funs a)))))
   (when unbound-vals
     (setf fn #'(lambda (a) (length (ast-unbound-vals a)))))
-  (let ((c (make-clang source))
-        (nc (make-new-clang source)))
+  (let ((c (make-clang source :flags flags))
+        (nc (make-new-clang source :flags flags)))
     (handler-case (ast-root c)
       ;; We ignore errors from old clang
       (error (e) (exit-command clang-diff-test 98 (error e))))
@@ -266,7 +266,7 @@ list of children of their parent.  Cannot remove the root."))
             (exit-command clang-diff-test 99 (error e)))))
     (handler-case
         (multiple-value-bind (success? diagnostics)
-            (check-attr c nc fn)
+            (or new-only (check-attr c nc fn))
           (declare (ignore diagnostics))
           ;; Return 0 on difference because that's what creduce
           ;; wants to see for "interesting"

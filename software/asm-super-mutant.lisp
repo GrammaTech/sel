@@ -211,6 +211,19 @@
 ;;;
 ;;;     sudo apt-get install linux-tools-common linux-tools-generic linux-tools-`uname -r`
 ;;;
+;;; Perf requires system permission to run. In linux, the value in
+;;; /proc/sys/kernel/perf_event_paranoid should be set to -1 (Not paranoid).
+;;; This is typically set to 3 (maximum paranoia) by default.
+;;;
+;;; This can be accomplished with the following:
+;;;   sudo sh -c 'echo -1 >/proc/sys/kernel/perf_event_paranoid'
+;;;   sudo sysctl -w kernel.perf_event_paranoid=-1
+;;;
+;;; It's also a good idea to turn off randomizing of address base
+;;; (to get more consistency):
+;;;   sudo sh -c 'echo 0 >/proc/sys/kernel/randomize_va_space'
+;;;   sudo sysctl -w kernel.randomize_va_space=0
+;;;
 ;;; To get necessary include (.h) file for compiling C harness with PAPI
 ;;; (needed to perform fitness evaluation):
 ;;;
@@ -256,6 +269,7 @@
            :create-target
            :target-info
            :evaluate-asm
+           :eval-meta-results
            :leaf-functions
            :parse-sanity-file
            :restore-original-addresses
@@ -265,7 +279,8 @@
            :*bss-segment-start*
            :*data-segment-start*
            :*text-segment-start*
-           :*seldata-segment-start*))
+           :*seldata-segment-start*
+           :*timeout-seconds*))
 
 (in-package :software-evolution-library/software/asm-super-mutant)
 (in-readtable :curry-compose-reader-macros)
@@ -347,12 +362,18 @@
     :initform nil
     :documentation
     "Optional list of names of functions to include in fitness file.")
-  (libraries
+   (libraries
     :initarg :libraries
     :accessor libraries
     :initform nil
     :documentation
-    "Optional list of names of functions to include in fitness file."))
+    "Optional list of names of functions to include in fitness file.")
+   (eval-meta-results
+    :initarg :eval-meta-results
+    :accessor eval-meta-results
+    :initform nil
+    :documentation
+    "After evaluation, may contain meta-information about results."))
   (:documentation
    "Combine SUPER-MUTANT capabilities with ASM-HEAP framework."))
 
@@ -368,6 +389,9 @@
   "Inline the additional lines of assembler.
  Inline them with the function being modified, so each variation
  contains these lines.")
+
+(defparameter *timeout-seconds* 60
+  "Number of seconds before the fitness process is timed out.")
 
 (defparameter *all-registers*
   '("rax"
@@ -1596,8 +1620,6 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
 
     (let ((count 0))
       (dolist (v (mutants asm-super))
-	(assert (equalp (genome (super-owner v)) (genome asm-super)) (v)
-                "Variant is not owned by this asm-super-mutant")
         ;; ensure any rip-relative addresses are converted to absolute
         (dotimes (i (length (genome v)))
           (convert-rip-relative-to-absolute v i))
@@ -1651,23 +1673,22 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
 
 (defun inline-func (asm index lines count)
   "Add inline asm lines at index."
-  (let ((next-label
-         (format nil "~ANEXT_~D"
-                 (local-prefix (asm-syntax asm))
-                 count)))
+  (let* ((next-label
+          (format nil "~ANEXT_~D"
+                  (local-prefix (asm-syntax asm))
+                  count))
+         (inserted-lines
+          (append (list (format nil "        ~A  ~A~A"
+                                (if (intel-syntax-p asm) "push" "pushq")
+                                (if (intel-syntax-p asm) "" "$")
+                                next-label))
+                  lines
+                  (list (format nil "~A:" next-label)))))
     (vector-cut (genome asm) index)
-    (insert-new-lines
-     asm
-     (append (list (format nil "        ~A  ~A~A"
-                           (if (intel-syntax-p asm) "push" "pushq")
-                           (if (intel-syntax-p asm) "" "$")
-                           next-label))
-             lines
-             (list (format nil "~A:" next-label)))
-     index)
+    (insert-new-lines asm inserted-lines index)
     ;; set :inline property of RET operations, so they don't get translated
     ;; to jumps
-    (iter (for i from index to (+ index (length lines)))
+    (iter (for i from index to (+ index (length inserted-lines)))
           (setf
            (getf (asm-line-info-properties (elt (genome asm) i)) :inline)
            t))))
@@ -1678,10 +1699,11 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
  they are appended onto each variant."
   (when lines
     ;; put boundary markers around the included lines
-    (setf lines
+    (unless *inline-included-lines*
+      (setf lines
           (append (list "        start_included_lines")
                   lines
-                  (list "        end_included_lines")))
+                  (list "        end_included_lines"))))
     (let* ((temp (make-instance 'asm-heap))
            (prefix (local-prefix (asm-syntax asm)))
            (func-index nil)
@@ -1714,7 +1736,7 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
                                    "~A~A"
                                    prefix
                                    (asm-line-info-label first-line-info))
-                           flines)
+                           (cddr flines)) ; trim off starting labels
                      updates)))
               (unless *inline-included-lines*
                 (insert-new-lines asm flines))))
@@ -1782,6 +1804,7 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
 	    (shell
 	     (concatenate 'string
                           "clang -no-pie -O0 -fnon-call-exceptions -g"
+                          " -Wno-deprecated"
                           " ~a ~a ~a ~a -lrt -o ~a ~a ~a ~a ~a")
              (if (bss-segment asm)
 		 (format nil "-Wl,--section-start=.seldata=0x~x"
@@ -1818,6 +1841,15 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
 		  (list bin errno stderr stdout src))
 	    (values bin errno stderr stdout src)))))))
 
+(defun record-meta-results (asm-super meta-results)
+  (do* ((x meta-results (cddr x))
+        (key (car x) (car x))
+        (value (cadr x) (cadr x)))
+       ((null x))
+    (if (null (getf (eval-meta-results asm-super) key))
+        (setf (getf (eval-meta-results asm-super) key) value)
+        (incf (getf (eval-meta-results asm-super) key) value))))
+
 (defmethod evaluate ((test symbol)(asm-super asm-super-mutant)
 		     &rest extra-keys
 		     &key
@@ -1835,24 +1867,27 @@ needs to have been loaded, along with the var-table by PARSE-SANITY-FILE."
       (multiple-value-bind (bin-path phenome-errno stderr stdout src)
 	  (phenome asm-super :bin bin)
 	(declare (ignorable phenome-errno stderr stdout src))
-	(let ((test-results nil))
+        (let ((meta-results nil)
+              (test-results nil))
           (unless (zerop phenome-errno)
             (setf phenome-create-error t))
 	  (if (zerop phenome-errno)
 	      ;; run the fitness program
 	      (multiple-value-bind (stdout stderr errno)
-		  (shell "~a" bin-path)
+                  (shell "timeout ~d ~a" *timeout-seconds* bin-path)
 		(declare (ignorable stderr errno))
 		(if (/= errno 0)
 		    (setf phenome-errno errno phenome-execute-error t)
-		    (progn
-		      (setf test-results
-			    (read-from-string
-			     (concatenate 'string "#(" stdout ")")))
+                    (let ((input-str (make-string-input-stream stdout)))
+                      (setf meta-results (read input-str))
+                      (setf test-results (read input-str))
 		      (if test-results
 			  (dotimes (i (length test-results))
 			    (assert (> (elt test-results i) 0) (test-results)
 				    "The fitness cannot be zero")))))))
+          (when (null meta-results)
+            (setf meta-results '()))
+
 	  (when (null test-results)
             ;; create array of *worst-fitness*
             (setf test-results
@@ -1895,6 +1930,7 @@ needs to have been loaded, along with the var-table by PARSE-SANITY-FILE."
 		      variant-results)
 		(push variant-results results)))
 	    (setf test-results (nreverse results)))
+          (record-meta-results asm-super meta-results)
 	  (setf (fitness asm-super) test-results))))))
 
 (defun add-simple-cut-variant (asm-super i)
@@ -2011,6 +2047,7 @@ instructions."
 If any rip-relative addresses have been converted to
 absolute, for evaluation, restore them to the original
 instructions."
+  (declare (ignorable file))
   ;; ensure any rip-relative addresses are converted to absolute
   (restore-original-addresses asm))
 
@@ -2080,7 +2117,8 @@ instruction set does not support absolute addresses over 32-bits."
 ;;; If RIP-relative addressing was used, restore it.
 ;;;
 (defun restore-rip-relative-address (asm line-index)
-  (let ((orig (getf (asm-line-info-properties (elt (genome asm) line-index))
-                    :orig)))
-    (if orig
-        (setf (elt (genome asm) line-index) orig))))
+  (let* ((info (elt (genome asm) line-index))
+         (orig (getf (asm-line-info-properties info) :orig)))
+    (when orig
+      (remf (asm-line-info-properties info) :orig)
+      (setf (elt (genome asm) line-index) orig))))

@@ -50,11 +50,8 @@ traces in a s-expression format."))
    (obj  :initarg :obj  :initform nil :reader obj)
    (bin  :initarg :bin  :initform nil :reader bin))
   (:report (lambda (condition stream)
-             (if (bin condition)
-                 (format stream "Trace error: ~a while tracing ~S in binary ~S"
-                         (text condition) (obj condition) (bin condition))
-                 (format stream "Trace error: ~a while tracing ~S"
-                         (text condition) (obj condition)))))
+             (format stream "Trace error: ~a while tracing ~S~@[ in binary ~S~]"
+                     (text condition) (obj condition) (bin condition))))
   (:documentation "Error thrown when trace collection fails unexpectedly"))
 
 (defmacro with-possibly-existing-bin ((bin) missing-bin &body body)

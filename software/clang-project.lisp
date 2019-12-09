@@ -45,13 +45,20 @@ information on the format of compilation databases."))
         (or (component-class clang-project)
             (if *new-clang?* 'new-clang 'clang))))
 
+(defmethod mutation-key ((obj project) op)
+  "Return key used to organize mutations in *mutation-stats* hashtable.
+* OBJ object mutation is to be applied to
+* OP operation to be performed
+"
+  (list (nth 1 op))) ; default to mutation type, as per default mutation-key impl
+
 (defmethod collect-evolve-files :before ((obj clang-project))
   "Ensure CLANG-PROJECT has a compilation-database populated."
-  (assert (or (compilation-database obj)
-              (and (build-command obj) (which "bear")))
-          (obj)
-          "Clang-project requires a compilation-database ~
-           or a build-command and 'bear' in your PATH")
+  ;; (assert (or (compilation-database obj)
+  ;;             (and (build-command obj) (which "bear")))
+  ;;         (obj)
+  ;;         "Clang-project requires a compilation-database ~
+  ;;          or a build-command and 'bear' in your PATH")
   (nest
    (unless (compilation-database obj))
    (let ((comp-db-path (make-pathname
@@ -101,7 +108,7 @@ information on the format of compilation databases."))
                (-<>> (or (aget :command entry) "")
                      (regex-replace-all "\\\\\\\"(.*?)\\\\\\\"" <> "'\"\\1\"'")
                      (unescape-string)
-                     (split-sequence #\Space <> :remove-empty-subseqs t)
+                     (split-quoted)
                      (cdr)))))
     (nest
      ;; Normalize the list of compiler flags

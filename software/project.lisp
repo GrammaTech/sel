@@ -11,6 +11,7 @@
         :uiop
         :software-evolution-library
         :software-evolution-library/software/simple
+        :software-evolution-library/software/source
         :software-evolution-library/components/formatting
         :software-evolution-library/utility)
   (:shadowing-import-from :uiop/run-program :run-program)
@@ -100,6 +101,8 @@ Paths may contain wildcards.")
    "A project is composed of multiple component software objects.
 E.g., a multi-file C software project may include multiple clang
 software objects in it's `evolve-files'."))
+
+
 
 (defvar *build-dir* nil
   "Directory in which to build projects with `phenome'.
@@ -386,5 +389,6 @@ non-symlink text files that don't end in \"~\" and are not ignored by
       (return-nil-for-bin ()
         :report "Allow failure returning NIL for bin."
         (setf bin nil)))
+    (assert (probe-file bin) (bin) "BIN not created!")
     (values bin exit stderr stdout
             (mapcar [{in-directory build-dir} #'first] (evolve-files obj)))))

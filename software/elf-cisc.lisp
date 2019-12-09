@@ -145,7 +145,8 @@
   ;; TODO: CISC mutations should update the `addresses' of the
   ;;       resulting ELF file.
   (flet ((byte-count (genome)
-           (reduce #'+ (mapcar [#'length {aget :code}] genome))))
+           (without-compiler-notes
+               (reduce #'+ (mapcar [#'length {aget :code}] genome)))))
     (let ((starting-bytes (byte-count (genome elf))))
       (setf (genome elf)
             (case (car mut)

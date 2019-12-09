@@ -75,6 +75,7 @@
   "Base type of sub-tree of an applicative AST tree."
   (path nil :type list)                      ; Path to subtree from root of tree.
   (children nil :type list)                  ; Remainder of subtree.
+  (annotations nil :type list)
   (stored-hash nil :type (or null fixnum)))
 
 (defgeneric ast-path (a)
@@ -116,15 +117,6 @@ PRINT-OBJECT method on AST structures.")
                     truncated))))))
 
 (defgeneric ast-class (ast) (:documentation "Class of AST."))
-
-(defun symbol-cat (&rest symbols)
-  "Return a symbol concatenation of SYMBOLS."
-  (intern (string-upcase (mapconcat #'symbol-name symbols "-"))))
-
-(defun symbol-cat-in-package (package &rest symbols)
-  "Return a symbol concatenation of SYMBOLS in PACKAGE."
-  (intern (string-upcase (mapconcat #'symbol-name symbols "-"))
-          package))
 
 (defun get-struct-name (name-and-options)
   "Given NAME-AND-OPTIONS, return the struct name."
@@ -265,14 +257,16 @@ PRINT-OBJECT method on AST structures.")
              (path nil :type list)           ;; Path to subtree from root of tree.
              (node nil :type (or ast-node string null)) ;; Pointer to immutable AST data.
              (children nil :type list)                  ;; Remainder of subtree.
+             (annotations nil :type list)
              (stored-hash nil :type (or null fixnum))
              )
            ;; Copy method for light weight copies of wrapper only.
            (defmethod copy
                ((,obj ,name)
                 &key path
-                     (children nil children-supplied-p)
-                     ,@(mapcar (lambda (name)
+                  (children nil children-supplied-p)
+                  annotations
+                  ,@(mapcar (lambda (name)
                                  `(,name nil ,(symbol-cat name 'supplied-p)))
                                slot-names))
              (,(symbol-cat 'make name)
@@ -291,7 +285,9 @@ PRINT-OBJECT method on AST structures.")
                         (,(symbol-cat name 'node) ,obj))
                :children (if children-supplied-p
                              children
-                             (ast-children ,obj))))
+                             (ast-children ,obj))
+               :annotations annotations))
+
            ;; Define accessors for internal fields on outer structure
            (defmethod ast-path ((,obj ,name))
              (,(symbol-cat name 'path) ,obj))
@@ -309,24 +305,6 @@ PRINT-OBJECT method on AST structures.")
              (,(symbol-cat name 'stored-hash) ,obj))
            (defmethod (setf ast-stored-hash) (v (,obj ,name))
              (setf (,(symbol-cat name 'stored-hash) ,obj) v))
-           #|
-           (defmethod ,(symbol-cat conc-name 'path) ((,obj ,name))
-             (ast-internal-path ,obj))
-           (defmethod (setf ,(symbol-cat conc-name 'path)) ((v list) (,obj ,name))
-             (setf (ast-internal-path ,obj) v))
-           (defmethod ,(symbol-cat conc-name 'node) ((,obj ,name))
-             (ast-internal-node ,obj))
-           (defmethod (setf ,(symbol-cat conc-name 'node)) (v (,obj ,name))
-             (setf (ast-internal-node ,obj) v))
-           (defmethod ,(symbol-cat conc-name 'children) ((,obj ,name))
-             (ast-internal-children ,obj))
-           (defmethod (setf ,(symbol-cat conc-name 'children)) ((v list) (,obj ,name))
-             (setf (ast-internal-children ,obj) v))
-           (defmethod ,(symbol-cat conc-name 'stored-hash) ((,obj ,name))
-             (ast-internal-stored-hash ,obj))
-           (defmethod (setf ,(symbol-cat conc-name 'stored-hash)) (v (,obj ,name))
-             (setf (ast-internal-stored-hash ,obj) v))
-           |#
 
            ;; Define accessors for inner fields on outer structure.
            ,@(mapcar
@@ -351,6 +329,7 @@ list."
                              (path nil path-provided-p)
                              (node nil node-provided-p)
                              (children nil children-provided-p)
+                             (annotations nil annotations-provided-p)
                              (stored-hash nil stored-hash-provided-p)
                              (child-alist nil child-alist-provided-p)
                              (default-children nil default-children-provided-p))
@@ -360,6 +339,7 @@ list."
     (when path-provided-p (list :path path))
     (when node-provided-p (list :node node))
     (when children-provided-p (list :children children))
+    (when annotations-provided-p (list :annotations annotations))
     (when stored-hash-provided-p (list :stored-hash stored-hash))
     (list :child-alist (if child-alist-provided-p
                            child-alist
@@ -372,8 +352,8 @@ list."
   (if *print-readably*
       (call-next-method)
       (print-unreadable-object (obj stream :type t)
-        (format stream ":PATH ~s ~:_ :NODE ~s ~:_ :CHILD-ALIST ~s"
-                (ast-path obj) (ast-node obj)
+        (format stream ":PATH ~s~:_ :CHILD-ALIST ~s"
+                (ast-path obj) ;; (ast-node obj)
                 (conflict-ast-child-alist obj)))))
 
 (defgeneric combine-conflict-asts (ca1 ca2)
@@ -916,9 +896,6 @@ in preorder.  The ancestor list is in decreasing order of depth in the AST."))
 
 (defgeneric ast-to-list (obj)
   (:documentation "Return ASTs under OBJ as a list.")
-;;  (:method ((ast ast) &aux result)
-;;    (map-ast ast (lambda (ast) (push ast result)))
-;;    (reverse result))
   (:method (ast &aux result)
     (if (not (ast-p ast))
         (call-next-method)
@@ -1089,10 +1066,7 @@ modile +AST-HASH-BASE+"
     (ast-hash (package-name p))))
 
 (defmethod ast-hash ((ast ast))
-;;  (or (ast-stored-hash ast)
-;;      (setf (ast-stored-hash ast)
   (ast-hash (cons (ast-class ast) (ast-children ast))))
-;; ))
 
 (defgeneric ast-clear-hash (ast)
   (:documentation "Clear the stored hash fields of an ast"))

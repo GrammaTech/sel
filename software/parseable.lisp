@@ -17,7 +17,6 @@
   (:export :parseable
            :ast-root
            :asts
-           :asts-changed-p
            :copy-lock
            :*parseable-mutation-types*
            :parseable-mutation
@@ -91,10 +90,6 @@
              :documentation
              "List of all ASTs.
 See the documentation of `update-asts' for required invariants.")
-   (asts-changed-p :accessor asts-changed-p
-                   :initform t :type boolean
-                   :documentation
-                   "Have ASTs changed since the last parse?")
    (copy-lock :initform (make-lock "parseable-copy")
               :copier :none
               :documentation "Lock while copying parseable objects."))
@@ -318,6 +313,20 @@ applicative AST tree and clear the genome string."
         (slot-value obj 'genome)
         nil))
 
+(defparameter *show-update-asts-errors* nil
+  "When true, update-asts reports the original source file on an error,
+if the original file is known.")
+
+(defmethod update-asts :around ((sw parseable))
+  (handler-bind
+      ((error (lambda (e)
+                (declare (ignore e))
+                (when *show-update-asts-errors*
+                  (when-let ((ofile (original-file sw)))
+                    (format t "Failure in update-asts: original-file = ~a~%"
+                            ofile))))))
+    (call-next-method)))
+
 (defmethod update-paths
     ((tree ast) &optional path)
   "Return TREE with all paths updated to begin at PATH"
@@ -340,14 +349,6 @@ applicative AST tree and clear the genome string."
 (defmethod asts :before ((obj parseable))
   "Ensure the `asts' field is set on OBJ prior to access."
   (update-caches-if-necessary obj))
-
-(defmethod update-asts :around ((obj parseable))
-  "Wrap update-asts to only parse OBJ when the `asts-changed-p'
-field indicates the object has changed since the last parse."
-  (when (asts-changed-p obj)
-    (clear-caches obj)
-    (call-next-method))
-  (setf (asts-changed-p obj) nil))
 
 (defmethod update-asts-if-necessary ((obj parseable))
   "Parse ASTs in obj if the `ast-root' field has not been set.
@@ -372,12 +373,11 @@ field indicates the object has changed since the last parse."
   (with-slots (asts) obj (unless asts (update-caches obj))))
 
 (defmethod clear-caches ((obj parseable))
-  "Clear cached fields on OBJ, including `asts' and `asts-changed-p`.
+  "Clear cached fields on OBJ such as `asts'.
 * OBJ object to clear caches for.
 "
-  (with-slots (asts asts-changed-p) obj
-    (setf asts nil
-          asts-changed-p t)))
+  (with-slots (asts) obj
+    (setf asts nil)))
 
 
 ;;; Retrieving ASTs
@@ -735,19 +735,21 @@ FIRST-POOL and SECOND-POOL are methods on SOFTWARE which return a list
 of ASTs.  An optional filter function having the signature 'f ast
 &optional first-pick', may be passed, returning true if the given AST
 should be included as a possible pick or false (nil) otherwise."
-  (let ((first-pick (some-> (mutation-targets software :filter filter
-                                                   :stmt-pool first-pool)
-                            (random-elt))))
+  (let* ((first-pick (some-> (mutation-targets software :filter filter
+                                               :stmt-pool first-pool)
+                             (random-elt))))
     (if (null second-pool)
         (list (cons :stmt1 first-pick))
         (list (cons :stmt1 first-pick)
-              (cons :stmt2 (some-> (mutation-targets software
-                                                     :filter (lambda (ast)
-                                                               (if filter
-                                                                   (funcall filter ast first-pick)
-                                                                   t))
-                                                     :stmt-pool second-pool)
-                                   (random-elt)))))))
+              (cons :stmt2 (some->
+                            (mutation-targets
+                             software
+                             :filter (lambda (ast)
+                                       (if filter
+                                           (funcall filter ast first-pick)
+                                           t))
+                             :stmt-pool second-pool)
+                            (random-elt)))))))
 
 (defmethod pick-bad-good ((software parseable) &key filter
                           (bad-pool #'bad-asts) (good-pool #'good-asts))

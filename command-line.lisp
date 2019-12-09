@@ -20,15 +20,19 @@
         :named-readtables
         :curry-compose-reader-macros
         :command-line-arguments
+        :iterate
         :split-sequence
         :cl-store
+        :closer-mop
         :uiop/filesystem
         :software-evolution-library
         :software-evolution-library/utility
         ;; Software objects.
         :software-evolution-library/software/source
         :software-evolution-library/software/project
+        :software-evolution-library/software/git-project
         :software-evolution-library/software/clang
+        :software-evolution-library/software/ast
         :software-evolution-library/software/new-clang
         :software-evolution-library/software/javascript
         :software-evolution-library/software/java
@@ -40,6 +44,7 @@
         :software-evolution-library/software/java-project
         :software-evolution-library/software/lisp-project
         ;; Components.
+        :software-evolution-library/components/fault-loc
         :software-evolution-library/components/test-suite)
   (:import-from :bordeaux-threads :all-threads :thread-name :join-thread)
   (:import-from :cl-ppcre :scan)
@@ -52,12 +57,18 @@
                 :ensure-directory-pathname
                 :pathname-directory-pathname
                 :pathname-parent-directory-pathname)
+  (:shadowing-import-from
+   :closer-mop
+   :standard-method :standard-class :standard-generic-function
+   :defmethod :defgeneric)
   (:shadowing-import-from :uiop/filesystem
                           :file-exists-p
                           :directory-exists-p
                           :directory-files)
   (:shadowing-import-from :asdf-encodings :encoding-external-format)
   (:export :define-command
+           :interrupt-signal
+           :*lisp-interaction*
            ;; Functions to handle command line options and arguments.
            :read-compilation-database
            :handle-comma-delimited-argument
@@ -91,12 +102,27 @@
            ;; Common sets of command-line-arguments options.
            :+common-command-line-options+
            :+interactive-command-line-options+
+           :+git-project-command-line-options+
            :+clang-command-line-options+
            :+project-command-line-options+
            :+clang-project-command-line-options+
-           :+evolutionary-command-line-options+))
+           :+evolutionary-command-line-options+
+           ;; Projects including git urls.
+           :git-clang-project
+           :git-javascript-project
+           :git-java-project
+           :git-lisp-project))
 (in-package :software-evolution-library/command-line)
 (in-readtable :curry-compose-reader-macros)
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defvar interrupt-signal
+    #+sbcl 'sb-sys:interactive-interrupt
+    #+ccl 'ccl:interrupt-signal-condition
+    #+clisp 'system::simple-interrupt-condition
+    #+ecl 'ext:interactive-interrupt
+    #+allegro 'excl:interrupt-signal
+    "Implementation specific signal thrown by a user's interrupt, C-c."))
 
 (defun read-compilation-database (file)
   "Read a Clang compilation database from FILE.
@@ -105,6 +131,11 @@
   (with-open-file (in file :direction :input)
     (remove-duplicates (decode-json-from-source in)
                        :test #'equalp :key {aget :file} :from-end t)))
+
+(defclass clang-git-project (clang-project git-project) ())
+(defclass javascript-git-project (javascript-project git-project) ())
+(defclass java-git-project (java-project git-project) ())
+(defclass lisp-git-project (lisp-project git-project) ())
 
 
 ;;;; Functions to handle command line options and arguments.
@@ -118,10 +149,10 @@
 (defun handle-swank-port-argument (port)
   (create-server :port port :style :spawn :dont-close t))
 
-(defun handle-new-clang-argument (new-clang-p)
-  "Handler for --new-clang argument.  If true, use new clang
+(defun handle-old-clang-argument (old-clang-p)
+  "Handler for --old-clang argument.  If true, use old clang
 front end."
-  (setf *new-clang?* new-clang-p))
+  (setf *new-clang?* (not old-clang-p)))
 
 (defun handle-load (path)
   (load path
@@ -190,6 +221,9 @@ front end."
   (setf *tournament-size* tournament-size)
   (assert (> *tournament-size* 1) (*tournament-size*)
           "Tournament size must be >1"))
+
+(defun handle-ast-annotations-argument (path)
+  (resolve-file path))
 
 (defun resolve-file (file)
   "Ensure file is an actual file that exists on the filesystem."
@@ -283,10 +317,16 @@ input is not positive."
                   (("C" "CPP" "C++" "C-PLUS-PLUS" "C PLUS PLUS") clang)
                   (("LISP" "CL" "COMMON LISP") lisp)
                   (("TEXT") simple)))))
-    (if (and source (directory-p source))
-        (intern (concatenate 'string (symbol-name class) "-PROJECT")
-                :sel/command-line)
-        class)))
+    (cond
+      ((and source (git-url-p source))
+       (intern (concatenate 'string (symbol-name class) "-GIT-PROJECT")
+               :sel/command-line))
+      ((and source (directory-p source))
+       (intern (concatenate 'string (symbol-name class) "-PROJECT")
+               :sel/command-line))
+      ((and *new-clang?* (eq class 'clang))
+       'new-clang)
+      (t class))))
 
 (defun wait-on-manual (manual)
   "Wait to terminate until the swank server returns if MANUAL is non-nil."
@@ -309,8 +349,10 @@ inspecting the value of `*lisp-interaction*'."
   (:documentation "The name of the project class associated
 with a language.")
   (:method ((language symbol))
-    ;; FIXME:  never use INTERN without an explicit package
-    (intern (concatenate 'string (symbol-name language) "-PROJECT")))
+    (if (ends-with-subseq "-PROJECT" (symbol-name language))
+        language
+        ;; FIXME:  never use INTERN without an explicit package
+        (intern (concatenate 'string (symbol-name language) "-PROJECT"))))
   (:method ((language (eql 'new-clang))) 'clang-project))
 
 (defun guess-language (&rest sources)
@@ -319,13 +361,20 @@ SOURCES should be a collection of paths.  The result is determined
 based on heuristics based on whether SOURCES points to files or
 directories and if files based on their extensions."
   (labels
-      ((guess-helper (sources project-p)
+      ((best-guess (guesses)
+         (iter (with ht = (make-hash-table))
+               (for guess in guesses)
+               (setf (gethash guess ht)
+                     (1+ (or (gethash guess ht) 0)))
+               (finally (return (car (first (sort (hash-table-alist ht) #'>
+                                                  :key #'cdr)))))))
+       (guess-helper (sources project-p)
          (let ((guesses
                 (mapcar (lambda (source)
                           (nest
                            (if (directory-p source)
                                (when-let ((guess (guess-helper
-                                                  (directory-files source)
+                                                  (list-directory source)
                                                   t)))
                                  (language-to-project guess)))
                            (second)
@@ -354,12 +403,7 @@ directories and if files based on their extensions."
               ;;
               ;; NOTE: We will have to add to this list of incidental
               ;; software types that don't determine the project type.
-              (let ((unique
-                     (remove-if {member _ '(json simple)}
-                                (remove nil (remove-duplicates guesses)))))
-                (if (= 1 (length unique))
-                    (find-if #'identity unique)
-                    nil)))
+              (best-guess (remove-if {member _ '(nil json simple)} guesses)))
              ((= 1 (length sources))
               ;; For a single file either return the guess, or return
               ;; SIMPLE if no language matched.
@@ -373,7 +417,8 @@ directories and if files based on their extensions."
                         &key ; NOTE: Maintain list of keyword arguments below.
                           (language (guess-language path) language-p)
                           compiler flags build-command artifacts
-                          compilation-database store-path
+                          ast-annotations compilation-database store-path
+                          fault-loc git-sub-path git-ssh-key git-user git-password
                           &allow-other-keys)
   "Build a software object from a common superset of language-specific options.
 
@@ -387,6 +432,7 @@ Keyword arguments are as follows:
   COMPILER ------------- compiler for software object
   BUILD-COMMAND -------- shell command to build project directory
   ARTIFACTS ------------ build-command products
+  AST-ANNOTATIONS ------ user-specified ast annotations
   COMPILATION-DATABASE - clang compilation database
 Other keyword arguments are allowed and are passed through to `make-instance'."
   ;; Should any of the input parameters be set in the restored objects?
@@ -397,57 +443,92 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
   ;; of creating a software object from source.
   (when (equal (pathname-type (pathname path)) "store")
     (return-from create-software (restore path)))
-  (from-file
-   (nest
-    ;; These options are interdependent.  Resolve any dependencies and
-    ;; drop options which don't exist for LANGUAGE in this `let*'.
-    (let* ((language (cond
-                       ((and language-p (symbolp language))
-                        language)
-                       ((and language-p (stringp language))
-                        (resolve-language-from-language-and-source
-                         language path))
-                       (t language)))
-           (flags
-            (when (subtypep language 'source) flags))
-           (compiler
-            (when (subtypep language 'source) compiler))
-           (compilation-database
-            (when (eql language 'clang-project) compilation-database))
-           (build-command
-            (when (subtypep language 'project)
-              (let* ((build-command-list (split-sequence #\Space build-command))
-                     (abs-cmd-name (nest
-                                    (ignore-errors)
-                                    (merge-pathnames-as-file path)
-                                    (canonical-pathname
-                                     (car build-command-list)))))
-                ;; Remove any absolute path from the beginning of
-                ;; build-command *if* build-command is a file in the
-                ;; base of the project.
-                (if (file-exists-p abs-cmd-name)
-                    (format nil "~a~{ ~a~}"
-                            (replace-all (namestring abs-cmd-name)
-                                         (namestring path)
-                                         "./")
-                            (cdr build-command-list))
-                    build-command))))
-           (artifacts
-            (when (subtypep language 'project) artifacts))))
-    (apply #'make-instance language)
-    (apply #'append
-           (plist-drop-if ; Any other keyword arguments are passed through.
-            {member _ (list :language :compiler :flags :build-command :artifacts
-                            :compilation-database :store-path)}
-            (copy-seq rest)))
-    (remove-if-not #'second)
-    `((:allow-other-keys t)
-      (:compiler ,compiler)
-      (:flags ,flags)
-      (:build-command ,build-command)
-      (:artifacts ,artifacts)
-      (:compilation-database ,compilation-database)))
-   path))
+  ;; When `path` is a git repository, generate a new temp dir,
+  ;; check out the repo, and set relevant variables
+  (let* ((repo (when (git-url-p path)
+                 (let ((url path)
+                       (local-repo (temp-file-name)))
+                   (clone-git-repo url local-repo
+                                   :ssh-key git-ssh-key
+                                   :user git-user :pass git-password)
+                   (setf path (probe-file
+                               (make-pathname :directory local-repo
+                                              :name git-sub-path)))
+                   ;; Reset guessed language, now that repo is cloned.
+                   (unless language-p
+                     (setf language-p t ; Treat as explicitly set.
+                           language
+                           (ecase (guess-language path)
+                             (clang-project 'clang-git-project)
+                             (javascript-project 'javascript-git-project)
+                             (java-project 'java-git-project)
+                             (lisp-project 'lisp-git-project)
+                             (simple 'simple))))
+                   url)))
+         (obj (from-file
+               (nest
+                ;; These options are interdependent.  Resolve any
+                ;; dependencies and drop options which don't exist for
+                ;; LANGUAGE in this `let*'.
+                (let* ((language (cond
+                                   ((and language-p (symbolp language))
+                                    language)
+                                   ((and language-p (stringp language))
+                                    (resolve-language-from-language-and-source
+                                     language path))
+                                   (t language)))
+                       (flags
+                        (when (subtypep language 'source) flags))
+                       (compiler
+                        (when (subtypep language 'source) compiler))
+                       (compilation-database
+                        (when (eql language 'clang-project)
+                          compilation-database))
+                       (build-command
+                        (when (subtypep language 'project)
+                          (let* ((build-command-list
+                                  (split-sequence #\Space build-command))
+                                 (abs-cmd-name (nest
+                                                (ignore-errors)
+                                                (merge-pathnames-as-file path)
+                                                (canonical-pathname
+                                                 (car build-command-list)))))
+                            ;; Remove any absolute path from the beginning of
+                            ;; build-command *if* build-command is a file in the
+                            ;; base of the project.
+                            (if (file-exists-p abs-cmd-name)
+                                (format nil "~a~{ ~a~}"
+                                        (replace-all (namestring abs-cmd-name)
+                                                     (namestring path)
+                                                     "./")
+                                        (cdr build-command-list))
+                                build-command))))
+                       (artifacts
+                        (when (subtypep language 'project) artifacts))))
+                (apply #'make-instance language)
+                (apply
+                 #'append
+                 (plist-drop-if ; Other keyword arguments are passed through.
+                  {member _ (list :language :compiler :flags :build-command
+                                  :artifacts :git-repo :compilation-database
+                                  :store-path)}
+                  (copy-seq rest)))
+                (remove-if-not #'second)
+                `((:allow-other-keys t)
+                  (:compiler ,compiler)
+                  (:flags ,flags)
+                  (:build-command ,build-command)
+                  (:artifacts ,artifacts)
+                  (:git-repo ,repo)
+                  (:compilation-database ,compilation-database)))
+               path)))
+    (when ast-annotations
+      (decorate-with-annotations obj (pathname ast-annotations))
+      (when fault-loc
+        (perform-fault-loc obj)))
+    ;; (mapcar (lambda (elt) (note 0 "ast: ~a" (ast-attr elt :annotations)))
+    ;;         (flatten (mapcar #'stmt-asts (mapcar #'cdr (evolve-files obj)))))
+    obj))
 
 (defgeneric create-test (script)
   (:documentation "Return a test case of SCRIPT.")
@@ -505,7 +586,10 @@ in SCRIPT.")
        :documentation "load random seed from FILE")
       (("save-seed") :type string
        :action #'handle-save-random-state-to-path-argument
-       :documentation "save random seed to FILE")))
+       :documentation "save random seed to FILE")
+      (("language" #\L) :type string
+       :documentation
+       "language of input files (e.g. c, c++, java, or javascript)")))
   (defparameter +interactive-command-line-options+
     '((("interactive") :type boolean :optional t
        :action #'handle-set-interactive-argument
@@ -515,20 +599,33 @@ in SCRIPT.")
       (("swank" #\s) :type integer
        :action #'handle-swank-port-argument
        :documentation "start a swank listener on PORT")))
+  (defparameter +git-project-command-line-options+
+    '((("git-sub-path" #\p) :type string :initial-value nil
+       :documentation "sub path to software, when using a git repo")
+      (("git-ssh-key" #\k) :type string :initial-value nil
+       :documentation "path to ssh key used for pushing a git repo")
+      (("git-user" #\U) :type string :initial-value nil
+       :documentation "user used for pushing a git repo")
+      (("git-password" #\P) :type string :initial-value nil
+       :documentation
+       "password (NOTE: insecure!) used when pushing to a git repo")))
   (defparameter +clang-command-line-options+
     '((("compiler" #\c) :type string :initial-value "clang"
        :documentation "use CC as the C compiler")
       (("flags" #\F) :type string
        :action #'handle-comma-delimited-argument
        :documentation "comma-separated list of compiler flags")
-      (("new-clang") :type boolean
-       :action #'handle-new-clang-argument
-       :documentation "Use new clang front end")
-      (("split-lines" #\L) :type boolean :optional t
+      (("old-clang") :type boolean
+       :action #'handle-old-clang-argument
+       :documentation "Use old clang front end")
+      (("split-lines" #\S) :type boolean :optional t
        :documentation "Split top level strings at newlines")))
   (defparameter +project-command-line-options+
     '((("build-command" #\b) :type string :initial-value "make"
-       :documentation "shell command to build project directory")))
+       :documentation "shell command to build project directory")
+      (("ast-annotations" #\A) :type string
+       :action #'handle-ast-annotations-argument
+       :documentation "a file holding ast annotations")))
   (defparameter +clang-project-command-line-options+
     '((("artifacts" #\a) :type string
        :action #'handle-comma-delimited-argument
@@ -552,4 +649,6 @@ in SCRIPT.")
       (("max-evals") :type integer
        :documentation "maximum number of evaluations to run in evolution")
       (("max-time") :type integer
-       :documentation "maximum number of seconds to run evolution"))))
+       :documentation "maximum number of seconds to run evolution")
+      (("fault-loc" #\f) :type boolean :initial-value nil
+       :documentation "perform fault loc on supplied traces (-A also required)"))))

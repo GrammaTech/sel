@@ -4,9 +4,8 @@
 ;;; clang front end to read a file, then dump it to the standard output,
 ;;; to confirm that the file is byte-for-byte identical.
 ;;;
-(defpackage :software-evolution-library/components/new-clang-round-trip
-  (:nicknames :sel/components/new-clang-round-trip
-              :sel/cp/new-clang-round-trip)
+(defpackage :software-evolution-library/test/new-clang-round-trip
+  (:nicknames :sel/test/new-clang-round-trip)
   (:use :common-lisp
         :alexandria
         :iterate
@@ -19,7 +18,7 @@
         :software-evolution-library/software/new-clang)
   (:import-from :uiop :nest truenamize)
   (:export :new-clang-round-trip))
-(in-package :software-evolution-library/components/new-clang-round-trip)
+(in-package :software-evolution-library/test/new-clang-round-trip)
 
 ;;;; Command line
 (eval-when (:compile-toplevel :load-toplevel :execute)

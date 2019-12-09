@@ -79,6 +79,7 @@
    :software-evolution-library/software/llvm
    :software-evolution-library/software/parseable
    :software-evolution-library/software/project
+   :software-evolution-library/software/git-project
    :software-evolution-library/software/simple
    :software-evolution-library/software/source
    :software-evolution-library/software/styleable
@@ -86,8 +87,6 @@
    :software-evolution-library/stefil-plus)
   #-windows (:import-from :hunchentoot)
   #-windows (:import-from :osicat :file-permissions :pathname-as-directory)
-  ;; Shadow DEFTEST for control of clang/new-clang in tests
-  (:shadow :deftest)
   (:shadowing-import-from :common-lisp :type)
   (:shadowing-import-from :software-evolution-library :size)
   (:shadowing-import-from :clack :stop)
@@ -151,6 +150,7 @@
 
 (defvar *genome*      nil "Genome used in tests.")
 (defvar *soft*        nil "Software used in tests.")
+(defvar *project*     nil "Software used in project fixtures.")
 (defvar *base*        nil "Software used in diff/merge tests.")
 (defvar *left*        nil "Software used in diff/merge tests.")
 (defvar *right*       nil "Software used in diff/merge tests.")
@@ -651,19 +651,6 @@
 ;;; Shadow DEFTEST from stefil-plus to add
 ;;; controllable binding of the clang front end
 
-(defun call-with-clang-versions (fn)
-  (if *new-clang?*
-      (prog2
-          (setf *make-statement-fn* #'make-statement-new-clang)
-        (funcall fn))
-      (prog2
-          (setf *make-statement-fn* #'make-statement*)
-          (funcall fn))))
-
-(defmacro deftest (name args &body body)
-  `(sel/stefil+:deftest ,name ,args
-     (call-with-clang-versions (lambda () ,@body))))
-
 (defun make-clang (&rest key-args)
   (apply #'make-instance (if *new-clang?* 'new-clang 'clang) key-args))
 
@@ -806,6 +793,20 @@
 
   (:teardown (setf *soft* nil)))
 
+(defixture asm-super-inline-test-att
+  (:setup
+   (setf *soft* (from-file (make-instance 'asm-super-mutant)
+                           (asm-test-dir "inline-test-target.s.att"))
+         (fitness-harness *soft*) (software-dir "asm-super-mutant-fitness.c"))
+   (setf (sel/sw/asm-super-mutant::io-file *soft*)
+         (asm-test-dir "inline-test-testcases.io"))
+   (target-function-name *soft* "debloat__insert_op1")
+   (setf (sel/sw/asm-super-mutant::include-lines *soft*)
+         (let ((asm (from-file (make-instance 'sel/sw/asm-heap:asm-heap)
+                               (asm-test-dir "inline-test-includes.s.att"))))
+           (lines asm))))
+  (:teardown (setf *soft* nil)))
+
 #-windows
 (defixture rest-server
   (:setup (unless *clack* (setf *clack* (initialize-clack))))
@@ -819,14 +820,14 @@
            old-error-out *error-output*
            *standard-output* (make-broadcast-stream)
            *error-output* (make-broadcast-stream))
-     (define-command-rest (fact-entry :environment (*population*))
+     (define-command-async-rest (fact-entry :environment (*population*))
          ((n integer) &spec +common-command-line-options+)
        "Test that canonical REST endpoints work. Computes factorial."
        #.(format nil
                  "~%Built from SEL ~a, and ~a ~a.~%"
                  +software-evolution-library-version+
                  (lisp-implementation-type) (lisp-implementation-version))
-       (declare (ignorable quiet verbose))
+       (declare (ignorable quiet verbose language))
        (if help
            (let ((*standard-output* (make-broadcast-stream)))
              (show-help-for-fact-entry))
@@ -936,31 +937,6 @@ of the same length"
   (let ((len (length seq)))
     (and (every (lambda (s) (= (length s) len)) other-seqs)
          (apply #'every fn seq other-seqs))))
-
-(defun make-clang-type* (&rest args)
-  (if *new-clang?*
-      (apply #'make-new-clang-type* args)
-      (apply #'make-clang-type :allow-other-keys t args)))
-
-(defun make-new-clang-type* (&key array hash i-file pointer reqs name
-                               decl const volatile restrict storage-class
-                               qual (desugared nil desugared-p)
-                               typedef
-                               &allow-other-keys)
-  ;; TODO:  HASH DECL REQS TYPEDEF
-  (declare (ignorable hash decl reqs typedef))
-  (let ((type (make-instance 'new-clang-type
-                :qual qual
-                :desugared (if desugared-p desugared qual)
-                :typedef typedef)))
-    (make-instance 'nct+ :type type
-                   :storage-class storage-class
-                   :modifiers (sel/sw/new-clang::pack-nct+-modifiers
-                               pointer const volatile restrict)
-                   :array array
-                   :name name
-                   :i-file i-file
-                   :compute-slots nil)))
 
 (defun make-clang-control-picks (&rest args)
   (apply #'make-instance
@@ -1243,16 +1219,6 @@ of the same length"
                       :compiler "clang"
                       :flags '("-m32" "-O0" "-g"))
                     (type-of-var-dir "type-of-var.c"))))
-  (:teardown
-   (setf *soft* nil)))
-
-(defixture type-of-var-missing-decl-type-clang
-  (:setup
-   (setf *soft*
-         (from-file (make-clang
-                      :compiler "clang"
-                      :flags '("-m32" "-O0" "-g"))
-                    (type-of-var-dir "missing-decl-type.c"))))
   (:teardown
    (setf *soft* nil)))
 
@@ -1948,6 +1914,10 @@ of the same length"
   (with-fixture odd-even-asm-super-reg-test-att
     (asm-super-mutant-finds-improved-version)))
 
+(deftest asm-super-mutant-inline-test-att ()
+  (with-fixture asm-super-inline-test-att
+    (asm-super-mutant-finds-improved-version)))
+
 (deftest asm-super-converts-rip-to-abolute-addresses ()
   "Ensure rip-relative conversion works.
  Also make sure the rip-relative addresses get restored
@@ -2015,7 +1985,7 @@ of the same length"
             "~%Built from SEL ~a, and ~a ~a.~%"
             +software-evolution-library-version+
             (lisp-implementation-type) (lisp-implementation-version))
-  (declare (ignorable quiet verbose))
+  (declare (ignorable quiet verbose language))
   (if help
       (show-help-for-fact-cl-entry)
       (factorial n)))
@@ -2132,12 +2102,12 @@ of the same length"
     (is (search " T" result))))
 
 #-windows
-(define-command-rest (four-types-2)
+(define-command-async-rest (four-types-2)
     ((a integer) (b string) (c float) (d boolean)
      &spec +common-command-line-options+)
   "Test that the four supported types can be passed to an endpoint via REST."
   ""
-  (declare (ignorable help quiet verbose load eval out-dir read-seed))
+  (declare (ignorable help quiet verbose load eval out-dir read-seed language))
   (format nil "~A: ~D, ~A: ~S, ~A: ~F, ~A: ~A"
           (type-of a) a
           (type-of b) b
@@ -2154,14 +2124,14 @@ of the same length"
     (is (search " T" result))))
 
 #-windows
-(define-command-rest (fact-entry-cl)
+(define-command-async-rest (fact-entry-cl)
     ((n integer) &spec +common-command-line-options+)
   "Test that canonical REST endpoints work. Computes factorial."
   #.(format nil
             "~%Built from SEL ~a, and ~a ~a.~%"
             +software-evolution-library-version+
             (lisp-implementation-type) (lisp-implementation-version))
-  (declare (ignorable quiet verbose))
+  (declare (ignorable quiet verbose language))
   (if help
       (show-help-for-fact-entry-cl)
       (factorial n)))
@@ -2408,7 +2378,9 @@ of the same length"
           ;; more likely that there are sufficient no-ops to delete.
           ;; This works with the local compiled version of gcd, but
           ;; may fail in the future or on other systems.
-          (to-copy (position-if [{eql 1} #'length {aget :code}] (genome *gcd*))))
+          (to-copy
+           (without-compiler-notes
+               (position-if [{eql 1} #'length {aget :code}] (genome *gcd*)))))
       (apply-mutation variant (list :insert 0 to-copy))
       (is (= (length (bytes *gcd*)) (length (bytes variant))))
       (is (not (equal-it (bytes *gcd*) (bytes variant)))))))
@@ -2417,7 +2389,9 @@ of the same length"
   (with-fixture gcd-elf
     (let* ((variant (copy *gcd*))
            ;; See FIND-SMALL in `elf-insertion-changes-but-maintains-lengthens'
-           (to-copy (position-if [{eql 1} #'length {aget :code}] (genome *gcd*)))
+           (to-copy
+            (without-compiler-notes
+                (position-if [{eql 1} #'length {aget :code}] (genome *gcd*))))
            (new-genome (elf-replace
                         variant 0 (copy-tree (nth to-copy (genome *gcd*))))))
       (is (= (length (mappend {aget :code} (genome *gcd*)))
@@ -2503,7 +2477,7 @@ of the same length"
     ;; This is not zero for new clang, as it contains
     ;; builtins
     (if *new-clang?*
-        (is (zerop (count-if #'type-i-file
+        (is (zerop (count-if [#'type-i-file #'nct+-type]
                              (hash-table-values (types *hello-world*)))))
         (is (zerop (hash-table-count (types *hello-world*)))))))
 
@@ -2518,6 +2492,10 @@ of the same length"
              (list "-L" "/bar/")))
   (is (equal (normalize-flags "/foo/" (list "-L" "/bar/"))
              (list "-L" "/bar/")))
+  (is (equal (normalize-flags "/foo/" (list "-D\"blah\\ blah\""))
+             (list "-D\"blah\\ blah\"")))
+  (is (equal (normalize-flags "/foo/" (list "-D\"blah blah\""))
+             (list "-D\"blah blah\"")))
   (is (find "/foo/" (normalize-flags "/foo/" (list "-I."))
             :test (lambda (s1 s2) (search s1 s2 :test #'equal))))
   (is (find "/foo/" (normalize-flags "/foo/" (list "-I" "."))
@@ -3115,10 +3093,6 @@ is not to be found"
 
 (deftest find-or-add-type-finds-existing-type ()
   (with-fixture gcd-clang
-    #+(OR)
-    (is (eql (find-if [{string= "int"} #'type-name]
-                      (hash-table-values (types *gcd*)))
-             (find-or-add-type *gcd* "int")))
     (is (find (find-or-add-type *gcd* "int")
               (hash-table-values (types *gcd*))))))
 
@@ -3126,9 +3100,6 @@ is not to be found"
   (with-fixture gcd-clang
     ;; The new clang front end loads a large number of types
     ;; that are defined in headers, but not used in the program
-    #+nil
-    (is (null (find-if [{string= "float"} #'type-name]
-                       (hash-table-values (types *gcd*)))))
     (let ((new-type (find-or-add-type *gcd* "int")))
       (is new-type "New type created.")
       (is (gethash (type-hash new-type) (types *gcd*))
@@ -3183,9 +3154,9 @@ int x = CHARSIZE;")))
                            (declare (ignorable c))
                            (invoke-restart 'use-encoding :utf-8))))
     (with-fixture unicode-clang
-      (is (stmt-with-text *soft* "int x = 0" :no-error t))
-      (is (stmt-with-text *soft* "\"2 bytes: Δ\"" :no-error t))
-      (is (stmt-with-text *soft* "int y = 1" :no-error t))
+      (is (stmt-starting-with-text *soft* "int x = 0"))
+      (is (stmt-starting-with-text *soft* "\"2 bytes: Δ\""))
+      (is (stmt-starting-with-text *soft* "int y = 1"))
       (is (string= (genome *soft*)
                    (file-to-string (unicode-dir "unicode.c")))))))
 
@@ -3773,13 +3744,6 @@ int x = CHARSIZE;")))
         (is (equal "int"      (type-name var-type2)))
         (is (equal "int"      (type-name var-type3)))
         (is (equal "int*"     (remove #\Space (type-name var-type5))))))))
-
-(deftest find-var-type-handles-missing-declaration-type ()
-  (with-fixture type-of-var-missing-decl-type-clang
-    (is (null (some->> (stmt-with-text *soft* "dirs[0] = L;")
-                       (get-vars-in-scope *soft*)
-                       (find-if [{string= "dirs"} {aget :name}])
-                       (find-var-type *soft*))))))
 
 (deftest typedef-type-returns-correct-type ()
   (with-fixture typedef-type-clang
@@ -4721,6 +4685,25 @@ int x = CHARSIZE;")))
         (is (= (length stats-alist) 1) "Single element in stats")
         (is (equal :better (first (second (first stats-alist))))
             "`analyze-mutation' notices fitness improvement")))))
+
+(deftest (mutation-project-recorded-correctly :long-running) ()
+  (with-fixture grep-project
+    (let* ((variant (copy *project*))
+           (op (cons "grep.c"
+                     (make-instance 'clang-cut
+                       :object variant
+                       :targets `((:stmt1 . ,(stmt-starting-with-text variant
+                                                                      "status =")))))))
+      (apply-mutation variant op)
+      (setf (fitness variant) 0) ; arbitrary, just needs to exist
+      (let ((packed-op (append (list (object (cdr op))
+                                     (type-of (cdr op))
+                                     (targets (cdr op))))))
+        (analyze-mutation variant (list packed-op nil nil *project* nil nil) *test*)
+        (let ((stats-alist (car (hash-table-alist *mutation-stats*))))
+          (is (= (length stats-alist) 2) "Single key/val in stats")
+          (is (eq (caar stats-alist) 'clang-cut) "key is CLANG-CUT to match mutation")
+          (is (eq (caadr stats-alist) :dead) "val starts with 'dead' for given mutation"))))))
 
 (deftest mutation-stats-notices-worsening ()
   (with-fixture hello-world-clang-w-fitness
@@ -7257,9 +7240,10 @@ prints unique counters in the trace"
                                (phenome *soft* :bin bin))))
           "Successfully compiled instrumented program.")
       (let ((trace (get-gcd-trace bin)))
-        (is (every [{eql 1} #'length {aget :scopes}]
-                   trace)
-            "No duplicate variables.")
+        (without-compiler-notes
+            (is (every [{eql 1} #'length {aget :scopes}]
+                       trace)
+                "No duplicate variables."))
 
         (is (every [«or {equalp '(#("x" "int" 1 nil))}
                         {equalp '(#("x" "short" 0 nil))}»
@@ -7277,7 +7261,6 @@ prints unique counters in the trace"
                                           instrumenter
                                           ast)))))))
 
-(defvar *project*)
 (let ((foo-path (make-pathname :directory +multi-file-dir+
                                :name "foo"
                                :type "cpp"))
@@ -7985,52 +7968,57 @@ prints unique counters in the trace"
 #-windows ; IO-SHELL not yet supported on Windows
 (deftest (read-and-write-shell-files :long-running) ()
   (let ((test-string "Hello world. Hello world. Hello world."))
-    (is (nest
-         (string= test-string)
-         (with-retries (10))
-         ;; NOTE: Give it 10 tries to account for rare stochastic
-         ;; end-of-file errors in which I think we're going from
-         ;; writing to reading too quickly for the file system.
-         (handler-case
-             (with-temp-file (temp.xz)
-               (write-shell-file (out temp.xz "xz")
-                 (write-line test-string out))
-               (return (read-shell-file (in temp.xz "xzcat")
-                         (read-line in))))
-           (error (c) (declare (ignorable c)) nil))))))
+    (is (string= test-string
+                 (handler-case
+                     (with-temp-file (temp.xz)
+                       (write-shell-file (out temp.xz "xz")
+                                         (write-line test-string out))
+                       ;; NOTE: sleep one second to account for rare stochastic
+                       ;; end-of-file errors in which I think we're going from
+                       ;; writing to reading too quickly for the file system.
+                       (sleep 1)
+                       (read-shell-file (in temp.xz "xzcat")
+                                        (read-line in)))
+                   (error (c) (declare (ignorable c)) nil))))))
 
 #-windows
 (deftest (read-and-write-bytes-shell-files :long-running) ()
   (let ((byte #x25))
-    (is (nest
-         (equal byte)
-         (with-retries (10))
-         ;; NOTE: see note in `read-and-write-shell-files'
-         (handler-case
-             (with-temp-file (temp.xz)
-               (write-shell-file (out temp.xz "xz")
-                 (write-byte byte out))
-               (return
-                 (read-shell-file (in temp.xz "xzcat")
-                   (read-byte in))))
-           (error (c) (declare (ignorable c)) nil))))))
+    (is (equal byte
+               (handler-case
+                   (with-temp-file (temp.xz)
+                     (write-shell-file (out temp.xz "xz")
+                                       (write-byte byte out))
+                     (sleep 1) ; see note in `read-and-write-shell-files'
+                     (read-shell-file (in temp.xz "xzcat")
+                                      (read-byte in)))
+                 (error (c) (declare (ignorable c)) nil))))))
 
 #-windows
 (deftest (cl-store-read-and-write-shell-files :long-running) ()
   (let ((it (make-instance 'software :fitness 37)))
-    (is (nest
-         (= (fitness it))
-         (fitness)
-         (with-retries (10))
-         ;; NOTE: see note in `read-and-write-shell-files'
-         (handler-case
-             (with-temp-file (temp.xz)
-               (write-shell-file (out temp.xz "xz")
-                 (store it out))
-               (return
+    (is (= (fitness it)
+           (handler-case
+               (with-temp-file (temp.xz)
+                 (write-shell-file (out temp.xz "xz")
+                                   (store it out))
+                 (sleep 1) ; see note in `read-and-write-shell-files'
                  (read-shell-file (in temp.xz "xzcat")
-                   (restore in))))
-           (error (c) (declare (ignorable c)) nil))))))
+                                  (fitness (restore in))))
+             (error (c) (declare (ignorable c)) nil))))))
+
+(deftest cartesian-test ()
+  (is (equal '(()) (cartesian nil)))
+  (is (equal '((1)) (cartesian '((1)))))
+  (is (equal '((1 2) (2 2) (1 3) (2 3))
+             (cartesian '((1 2) (2 3))))))
+
+(deftest cartesian-without-duplicates-test ()
+  (is (equal '(()) (cartesian-without-duplicates nil)))
+  (is (equal '((1)) (cartesian-without-duplicates '((1)))))
+  (is (equal '((1 2) (1 3) (2 3))
+             (cartesian-without-duplicates '((1 2) (2 3))))))
+
 
 
 ;;;; Command-line tests.
@@ -8058,8 +8046,9 @@ prints unique counters in the trace"
           (("CL") 'lisp)
           (("JSON") 'json)
           (("C" ,(make-pathname :directory +grep-prj-dir+)) 'clang-project)
-          (("java" ,(make-pathname :directory +grep-prj-dir+)) 'java-project))))
-
+          (("java" ,(make-pathname :directory +grep-prj-dir+)) 'java-project)
+          (("lisp" "git@github.com:eschulte/lisp-format") 'lisp-git-project)
+          (("C" "git://example.com:foo/bar.git") 'clang-git-project))))
 
 #-windows
 (deftest (create-software-guesses-clang-project :long-running) ()
@@ -8171,6 +8160,8 @@ prints unique counters in the trace"
                   (make-pathname :name "test"
                                  :type "sh"
                                  :directory (append dir (list "support")))))))))
+
+
 
 (deftest (clang-project-test :long-running) ()
   (with-fixture grep-project
@@ -9981,6 +9972,28 @@ prints unique counters in the trace"
                           ;; num_args-- }
                           "identifier" "--" "}"))))
       (is (equal tokens while-tokens)))))
+
+                                        ; def this with lables
+                                        ;(defun
+
+(deftest annotations-with-fault-loc ()
+  (labels ((ast-start-line (ast)
+             (let ((loc (new-clang-range-begin (ast-range ast))))
+               (if (numberp loc)
+                   nil  ; The root node has "0" for a range.
+                   (new-clang-loc-line loc)))))
+    (setf *new-clang?* t)
+    (with-fixture gcd-clang
+      (decorate-with-annotations *gcd* (make-pathname :directory +gcd-dir+
+                                                      :name "gcd-fault-loc"))
+      (let* ((bad-stmts-weights (fault-loc-only-on-bad-traces *gcd*))
+             (bad-stmts (remove nil (loop for tup in bad-stmts-weights
+                                        ;when weighted at 1.0
+                                       collect (when (equal (cdr tup) 1.0)
+                                                 (car tup)))))
+             (bad-lines (remove-duplicates (sort (mapcar #'ast-start-line bad-stmts) #'<))))
+        (setf *new-clang?* nil) ; set back
+        (is (equal bad-lines (list 16 17 18 19 20 21 24)))))))
 
 #+nil
 (deftest rinard-fault-loc ()

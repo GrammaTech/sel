@@ -17,11 +17,7 @@
            :flags
            :raw-size
            :original-file
-           :original-directory
-           ;; :genome-lines
-           :genome-line-offsets
-           :genome-lines-mixin
-           :offset-to-line-and-col))
+           :original-directory))
 (in-package :software-evolution-library/software/source)
 (in-readtable :curry-compose-reader-macros)
 
@@ -44,13 +40,6 @@
    (raw-size :initarg :size     :accessor raw-size :initform nil
              :copier :none))
   (:documentation "Raw source code software representation."))
-
-(defclass genome-lines-mixin ()
-  ((genome-line-offsets :type vector :accessor genome-line-offsets
-                        :documentation "The position in GENOME of the first character of each line")
-   (last-line-terminated? :type boolean :accessor last-line-terminated?
-                          :documentation "If true, last line was terminated by the separator"))
-  (:documentation "Mixin for recording lines of a source"))
 
 (defmethod phenome ((obj source) &key (bin (temp-file-name)))
   "Compile OBJ to create an executable version of the software
@@ -81,73 +70,6 @@ on the filesystem at BIN."
   "Return the source code of OBJ, optionally writing to STREAM"
   (let ((genome (or (genome obj) "")))
     (if stream (write-string genome stream) genome)))
-
-(defmethod (setf genome) :after (v (obj genome-lines-mixin))
-  (declare (ignorable v))
-  (slot-makunbound obj 'genome-line-offsets))
-
-(defgeneric offset-to-line-and-col (sw offset)
-  (:documentation "Computes the line and column numbers
-that correspond to an offset."))
-
-(defmethod offset-to-line-and-col ((sw genome-lines-mixin) (offset integer))
-  (offset-to-line-and-col (genome-line-offsets sw) offset))
-
-(defmethod offset-to-line-and-col ((glo vector) (offset integer))
-  (let ((lines (length glo)))
-    (assert (>= offset 0))
-    (if (= lines 0)
-        (values 0 0)
-        (let ((lo 0) (hi (1- lines)))
-          ;; Invariant:  When (< lo hi),
-          ;;  (<= (elt glo lo) offset (elt glo hi))
-          ;;  (where (elt glo lines) = infinity)
-          (loop
-           (assert (<= (elt glo lo) offset))
-             (unless (< lo hi) (return))
-           (assert (or (= hi (1- lines)) (< offset (elt glo (1+ hi)))))
-           (let ((mid (floor (+ hi lo 1) 2)))
-             (if (< offset (elt glo mid))
-                 (setf hi (1- mid))
-                 (setf lo mid))))
-          ;; 1-based counts, to be consistent with the json
-          (values (1+ lo) (1+ (- offset (elt glo lo))))))))
-
-;;; ISSUE: while Common Lisp requires the reader to convert
-;;; line terminators for the external format to Newline, this
-;;; may screw up the counts used by Clang.   So, in that case
-;;; we'll need to fix the 'actual' number of bytes a Newline
-;;; corresponds to in this calculation.  Alternately, have the
-;;; string not undergo this translation somehow, and make TER
-;;; be initialized to the right sequence of characters.
-(defmethod slot-unbound (class (obj genome-lines-mixin)
-                         (slot-name (eql 'genome-line-offsets)))
-  (declare (ignorable class))
-  ;; Compute GENOME-LINES when needed
-  ;; (format t "Begin computing genome-lines~%")
-  (let* ((s (genome-string obj))
-         (ter (make-string 1 :initial-element #\Newline
-                           :element-type 'base-char))
-         (len (length s))
-         (ter-len (length ter))
-         (pos 0))
-    ;; Lines will be displaced into genome-string, so we don't
-    ;; waste space holding two copies of the program.
-    ;; Lines do NOT include line terminator character (ter)
-    (setf (last-line-terminated? obj) t)
-    ;; (format t "s =~%~a~%(length s) = ~a~%" s (length s))
-    (let ((line-positions
-           (iter (while (< pos len))
-                 (collecting pos)
-                 (if-let ((next (search ter s :start2 pos)))
-                   (prog1 (- next pos)
-                     (setf pos (+ next ter-len)))
-                   ;; Last line was nonempty and did not end in
-                   ;; the expected terminator character(s)
-                   (prog1 (- len pos)
-                     (setf (last-line-terminated? obj) nil
-                           pos len))))))
-      (setf (genome-line-offsets obj) (coerce line-positions 'vector)))))
 
 (defmethod from-file ((obj source) path)
   "Initialize OBJ with the contents of PATH."
