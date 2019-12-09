@@ -316,8 +316,8 @@ first value from the `phenome' method."
   (declare (ignorable extra-data)))
 
 (defgeneric copy (software &key &allow-other-keys)
-  (:documentation "Copy the software.
-Return a deep copy of a software object."))
+  (:documentation "Return a deep copy of a software object.
+Keyword arguments may be used to pass new values for specific slots."))
 
 (defmethod copy ((obj software) &key)
   (make-instance (class-of obj) :fitness (fitness obj)))
