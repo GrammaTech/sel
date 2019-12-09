@@ -820,7 +820,7 @@
            old-error-out *error-output*
            *standard-output* (make-broadcast-stream)
            *error-output* (make-broadcast-stream))
-     (define-command-rest (fact-entry :environment (*population*))
+     (define-command-async-rest (fact-entry :environment (*population*))
          ((n integer) &spec +common-command-line-options+)
        "Test that canonical REST endpoints work. Computes factorial."
        #.(format nil
@@ -2102,7 +2102,7 @@ of the same length"
     (is (search " T" result))))
 
 #-windows
-(define-command-rest (four-types-2)
+(define-command-async-rest (four-types-2)
     ((a integer) (b string) (c float) (d boolean)
      &spec +common-command-line-options+)
   "Test that the four supported types can be passed to an endpoint via REST."
@@ -2124,7 +2124,7 @@ of the same length"
     (is (search " T" result))))
 
 #-windows
-(define-command-rest (fact-entry-cl)
+(define-command-async-rest (fact-entry-cl)
     ((n integer) &spec +common-command-line-options+)
   "Test that canonical REST endpoints work. Computes factorial."
   #.(format nil
