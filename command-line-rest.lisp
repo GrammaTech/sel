@@ -89,6 +89,10 @@
             (shutdown (format nil "unexpected error ~S" e) 1)))
         (exit-command ,server-name 0 server)))))
 
+(declaim (special *fitness-predicate*
+                  *max-evals* *max-time* *orig* *population*
+                  *target-fitness-p* *test-suite* *threads*))
+
 (defmacro define-command-async-rest
     ((name &key (environment '(*fitness-predicate*
                                *max-evals* *max-time* *orig* *population*
