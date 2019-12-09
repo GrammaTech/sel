@@ -1985,7 +1985,7 @@ of the same length"
             "~%Built from SEL ~a, and ~a ~a.~%"
             +software-evolution-library-version+
             (lisp-implementation-type) (lisp-implementation-version))
-  (declare (ignorable quiet verbose))
+  (declare (ignorable quiet verbose language))
   (if help
       (show-help-for-fact-cl-entry)
       (factorial n)))
@@ -2107,7 +2107,7 @@ of the same length"
      &spec +common-command-line-options+)
   "Test that the four supported types can be passed to an endpoint via REST."
   ""
-  (declare (ignorable help quiet verbose load eval out-dir read-seed))
+  (declare (ignorable help quiet verbose load eval out-dir read-seed language))
   (format nil "~A: ~D, ~A: ~S, ~A: ~F, ~A: ~A"
           (type-of a) a
           (type-of b) b
@@ -2131,7 +2131,7 @@ of the same length"
             "~%Built from SEL ~a, and ~a ~a.~%"
             +software-evolution-library-version+
             (lisp-implementation-type) (lisp-implementation-version))
-  (declare (ignorable quiet verbose))
+  (declare (ignorable quiet verbose language))
   (if help
       (show-help-for-fact-entry-cl)
       (factorial n)))
