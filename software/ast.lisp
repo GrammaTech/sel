@@ -352,8 +352,8 @@ list."
   (if *print-readably*
       (call-next-method)
       (print-unreadable-object (obj stream :type t)
-        (format stream ":PATH ~s ~:_ :NODE ~s ~:_ :CHILD-ALIST ~s"
-                (ast-path obj) (ast-node obj)
+        (format stream ":PATH ~s~:_ :CHILD-ALIST ~s"
+                (ast-path obj) ;; (ast-node obj)
                 (conflict-ast-child-alist obj)))))
 
 (defgeneric combine-conflict-asts (ca1 ca2)
