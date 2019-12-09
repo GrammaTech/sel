@@ -109,6 +109,9 @@ Next: <a href="sel_002dsw_002dast.html" accesskey="n" rel="next">sel-sw-ast</a>,
 </p></li><li> <code>libraries</code> &mdash; initarg: <code>:libraries<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant::libraries</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant::libraries)</span><!-- /@w --></code>
 
 <p>Optional list of names of functions to include in fitness file.
+</p></li><li> <code>eval-meta-results</code> &mdash; initarg: <code><span class="nolinebreak">:eval-meta-results</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant:eval-meta-results</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant:eval-meta-results)</span><!-- /@w --></code>
+
+<p>After evaluation, may contain meta-information about results.
 </p></li></ul>
 
 <p>Combine <code>super-mutant</code> capabilities with <code>asm-heap</code> framework.
@@ -144,6 +147,10 @@ Next: <a href="sel_002dsw_002dast.html" accesskey="n" rel="next">sel-sw-ast</a>,
 <span id="Variable-_002atext_002dsegment_002dstart_002a"></span><dl>
 <dt id="index-_002atext_002dsegment_002dstart_002a">Variable: <strong>*text-segment-start*</strong></dt>
 <dd><p>If non-nil, base address
+</p></dd></dl>
+<span id="Variable-_002atimeout_002dseconds_002a"></span><dl>
+<dt id="index-_002atimeout_002dseconds_002a">Variable: <strong>*timeout-seconds*</strong></dt>
+<dd><p>Number of seconds before the fitness process is timed out.
 </p></dd></dl>
 <span id="Function-create_002dtarget"></span><dl>
 <dt id="index-create_002dtarget">Function: <strong>create-target</strong> <em>asm-super</em></dt>

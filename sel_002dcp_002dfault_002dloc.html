@@ -55,6 +55,17 @@ Next: <a href="sel_002dcp_002dfix_002dcompilation.html" accesskey="n" rel="next"
 </div>
 <hr>
 <span id="sel_002dcp_002dfault_002dloc-1"></span><h3 class="section">C.44 sel-cp-fault-loc</h3>
+<span id="Variable-_002adefault_002dfault_002dloc_002dcutoff_002a"></span><dl>
+<dt id="index-_002adefault_002dfault_002dloc_002dcutoff_002a">Variable: <strong>*default-fault-loc-cutoff*</strong></dt>
+<dd><p>Chance of picking things that didn&rsquo;t appear in the trace.
+Default is an &quot;even chance,&quot; should adjust based on needs and
+strategy.
+</p></dd></dl>
+<span id="Variable-_002adefault_002dfault_002dloc_002dweight_002a"></span><dl>
+<dt id="index-_002adefault_002dfault_002dloc_002dweight_002a">Variable: <strong>*default-fault-loc-weight*</strong></dt>
+<dd><p>The default weight to give ast nodes that, based on
+the chosen strategy, would otherwise have no measured weight.
+</p></dd></dl>
 <span id="Generic_002dFunction-collect_002dfault_002dloc_002dtraces"></span><dl>
 <dt id="index-collect_002dfault_002dloc_002dtraces">Generic Function: <strong>collect-fault-loc-traces</strong> <em>bin test-suite read-trace-fn &amp;optional fl-neg-test</em></dt>
 <dd><p>Run test cases and collect execution traces.
@@ -71,22 +82,16 @@ usually).
 </p>
 <p>No assumptions are made about the format or contents of the traces.
 </p></dd></dl>
-<span id="Method-collect_002dfault_002dloc_002dtraces-_0028bin-test_002dsuite-read_002dtrace_002dfn-_0026optional-fl_002dneg_002dtest_0029"></span><dl>
-<dt id="index-collect_002dfault_002dloc_002dtraces-1">Method: <strong>collect-fault-loc-traces</strong> <em>bin test-suite read-trace-fn &amp;optional fl-neg-test</em></dt>
-<dd><p><code>docfixme</code>
-</p><ul>
-<li> <code>bin</code> <code>docfixme</code>
-</li><li> <code>test-suite</code> <code>docfixme</code>
-</li><li> <code>read-trace-fn</code> <code>docfixme</code>
-</li><li> <code>fl-neg-test</code> <code>docfixme</code>
-</li></ul>
-</dd></dl>
+<span id="Generic_002dFunction-decorate_002dwith_002dannotations"></span><dl>
+<dt id="index-decorate_002dwith_002dannotations">Generic Function: <strong>decorate-with-annotations</strong> <em>software file</em></dt>
+<dd><p>Decorate <code>software</code> with annotations from <code>file</code>.
+</p></dd></dl>
 <span id="Function-error_002dfuncs"></span><dl>
 <dt id="index-error_002dfuncs">Function: <strong>error-funcs</strong> <em>software bad-traces good-traces</em></dt>
-<dd><p>Find statements which call error functions.
+<dd><p>Find statements which call functions which are only called during bad runs.
 </p>
-<p>Error functions are defined as functions which are only called during
-bad runs. Such functions often contain error-handling code which is
+<p>We call functions which are only called during bad runs &quot;error
+functions.&quot; Such functions often contain error-handling code which is
 not itself faulty, so it&rsquo;s useful to identify their callers instead.
 </p></dd></dl>
 <span id="Function-rinard"></span><dl>
@@ -129,14 +134,6 @@ not itself faulty, so it&rsquo;s useful to identify their callers instead.
 <ul>
 <li> <code>path</code> full system path to write to.
 </li><li> <code>data</code> fault loc data, as returned by &lsquo;rinard&rsquo;.
-</li></ul>
-</dd></dl>
-<span id="Function-stmts_002din_002dfile"></span><dl>
-<dt id="index-stmts_002din_002dfile">Function: <strong>stmts-in-file</strong> <em>trace file-id</em></dt>
-<dd><p><code>docfixme</code>
-</p><ul>
-<li> <code>trace</code> <code>docfixme</code>
-</li><li> <code>file-id</code> <code>docfixme</code>
 </li></ul>
 </dd></dl>
 

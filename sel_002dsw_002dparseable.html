@@ -146,7 +146,7 @@ Next: <a href="sel_002dsw_002dproject.html" accesskey="n" rel="next">sel-sw-proj
 </p></dd></dl>
 <span id="Method-clear_002dcaches-_0028_0028obj-parseable_0029_0029"></span><dl>
 <dt id="index-clear_002dcaches-2">Method: <strong>clear-caches</strong> <em>(obj parseable)</em></dt>
-<dd><p>Clear cached fields on <code>obj</code>, including &lsquo;asts&rsquo; and &lsquo;asts-changed-p&lsquo;.
+<dd><p>Clear cached fields on <code>obj</code> such as &lsquo;asts&rsquo;.
 * <code>obj</code> object to clear caches for.
 </p></dd></dl>
 <span id="Generic_002dFunction-enclosing_002dscope"></span><dl>
@@ -477,9 +477,6 @@ into a list of free-floating ASTs.
 
 <p>List of all ASTs.
 See the documentation of &lsquo;update-asts&rsquo; for required invariants.
-</p></li><li> <code>asts-changed-p</code> &mdash; reader: <code><span class="nolinebreak">software-evolution-library/software/parseable:asts-changed-p</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/parseable:asts-changed-p)</span><!-- /@w --></code>
-
-<p>Have ASTs changed since the last parse?
 </p></li><li> <code>copy-lock</code> &mdash; 
 
 <p>Lock while copying parseable objects.
@@ -789,11 +786,6 @@ and &lsquo;ast-equal-p&rsquo; depend on these invariants.
 <dt id="index-update_002dasts-1">Method: <strong>update-asts</strong> <em>(obj clang)</em></dt>
 <dd><p>Parse and return the ASTs in <code>obj</code> using &lsquo;clang-mutate&rsquo;.
 * <code>obj</code> object to parse
-</p></dd></dl>
-<span id="Method-update_002dasts-around-_0028_0028obj-parseable_0029_0029"></span><dl>
-<dt id="index-around-update_002dasts">Method: <strong>around update-asts</strong> <em>(obj parseable)</em></dt>
-<dd><p>Wrap update-asts to only parse <code>obj</code> when the &lsquo;asts-changed-p&rsquo;
-field indicates the object has changed since the last parse.
 </p></dd></dl>
 <span id="Generic_002dFunction-update_002dasts_002dif_002dnecessary"></span><dl>
 <dt id="index-update_002dasts_002dif_002dnecessary">Generic Function: <strong>update-asts-if-necessary</strong> <em>software</em></dt>
