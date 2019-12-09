@@ -118,15 +118,6 @@ PRINT-OBJECT method on AST structures.")
 
 (defgeneric ast-class (ast) (:documentation "Class of AST."))
 
-(defun symbol-cat (&rest symbols)
-  "Return a symbol concatenation of SYMBOLS."
-  (intern (string-upcase (mapconcat #'symbol-name symbols "-"))))
-
-(defun symbol-cat-in-package (package &rest symbols)
-  "Return a symbol concatenation of SYMBOLS in PACKAGE."
-  (intern (string-upcase (mapconcat #'symbol-name symbols "-"))
-          package))
-
 (defun get-struct-name (name-and-options)
   "Given NAME-AND-OPTIONS, return the struct name."
   (if (listp name-and-options)

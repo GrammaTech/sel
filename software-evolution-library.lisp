@@ -218,25 +218,33 @@ slot in DIRECT-SLOTS may be one of the following:
        ,@options)
      ;; Define the copy method
      ,(unless (null direct-slots)
-        `(defmethod copy :around ((obj ,name) &key)
-                    (let ((copy (call-next-method)))
-                      (with-slots ,(mapcar #'car direct-slots) copy
-                        (setf
-                         ,@(mappend
-                            (lambda (accessor copier)
-                              (case copier
-                                (:none nil)
-                                (:direct
-                                 `(,accessor (with-slots (,accessor) obj
-                                               ,accessor)))
-                                (otherwise
-                                 `(,accessor
-                                   ,(if copier
-                                        `(,copier (,accessor obj))
-                                        `(,accessor obj))))))
-                            (mapcar #'car direct-slots)
-                            (mapcar {plist-get :copier} direct-slots))))
-                      copy)))
+        (let ((direct-slot-names (mapcar #'car direct-slots)))
+          `(defmethod copy :around
+             ((obj ,name)
+              &key ,@(mapcar (lambda (name)
+                               `(,name nil ,(symbol-cat name 'supplied-p)))
+                             direct-slot-names)
+              &allow-other-keys)
+             (let ((copy (call-next-method)))
+               ,@(mapcar
+                  (lambda (name keyword-supplied-p copier)
+                    `(if ,keyword-supplied-p
+                         (setf (slot-value copy ',name) ,name)
+                         ,(case copier
+                            (:none nil)
+                            (:direct
+                             `(setf (slot-value copy ',name)
+                                    (with-slots (,name) obj
+                                      ,name)))
+                            (otherwise
+                             `(setf (slot-value copy ',name)
+                                    ,(if copier
+                                         `(,copier (,name obj))
+                                         `(,name obj)))))))
+                  direct-slot-names
+                  (mapcar {symbol-cat _ 'supplied-p} direct-slot-names)
+                  (mapcar {plist-get :copier} direct-slots))
+               copy))))
      (find-class ',name)))
 
 (defgeneric genome (software)

@@ -224,6 +224,9 @@
    :pairs
    :filter-subtrees
    :make-thread-safe-hash-table
+   ;;; symbols
+   :symbol-cat
+   :symbol-cat-in-package
    ;;; Source and binary locations and ranges
    :source-location
    :line
@@ -2120,6 +2123,17 @@ For example (pairs '(a b c)) => ('(a . b) '(a . c) '(b . c))
   (apply #'make-hash-table :shared :lock-free args)
   #-(or ccl sbcl ecl)
   (error "unsupported implementation for thread-safe hashtables"))
+
+
+;;;; Symbol-related functions (useful for macros)
+(defun symbol-cat (&rest symbols)
+  "Return a symbol concatenation of SYMBOLS."
+  (intern (string-upcase (mapconcat #'symbol-name symbols "-"))))
+
+(defun symbol-cat-in-package (package &rest symbols)
+  "Return a symbol concatenation of SYMBOLS in PACKAGE."
+  (intern (string-upcase (mapconcat #'symbol-name symbols "-"))
+          package))
 
 
 ;;;; Source and binary locations and ranges.
