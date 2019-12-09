@@ -389,6 +389,6 @@ non-symlink text files that don't end in \"~\" and are not ignored by
       (return-nil-for-bin ()
         :report "Allow failure returning NIL for bin."
         (setf bin nil)))
-    (assert (probe-file bin) (bin) "BIN not created!")
+    (when bin (assert (probe-file bin) (bin) "BIN not created!"))
     (values bin exit stderr stdout
             (mapcar [{in-directory build-dir} #'first] (evolve-files obj)))))
