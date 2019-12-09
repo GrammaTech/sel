@@ -1079,6 +1079,8 @@ Other keys are allowed but are silently ignored.
 (defmethod ast-type ((ast new-clang-ast))
   (new-clang-ast-type ast))
 
+(defmethod ast-type ((ast conflict-ast)) nil)
+
 (defmethod ast-unbound-vals ((ast new-clang-ast))
   (ast-unbound-vals* ast (ast-class ast)))
 
@@ -1361,6 +1363,8 @@ on various ast classes"))
     (#.*clang-decl-kinds* t)
     (t nil)))
 
+(defmethod ast-is-decl ((obj conflict-ast)) nil)
+
 (defmethod ast-opcode ((obj new-clang-ast))
   (ast-attr obj :opcode))
 
@@ -1385,7 +1389,9 @@ on various ast classes"))
 (defgeneric ast-referenceddecl (ast)
   (:documentation "The declaration referenced by AST.")
   (:method ((ast new-clang-ast))
-    (ast-attr ast :referenceddecl)))
+    (ast-attr ast :referenceddecl))
+  (:method ((ast conflict-ast))
+    nil))
 
 ;; Helpers for the "ast-*" functions above
 (defun reference-decls-at-ast (a)
