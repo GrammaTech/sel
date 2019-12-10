@@ -303,52 +303,6 @@ using the clang front-end.
                   (starts-with-subseq "-Wno-everything" f))
           (appending (list f)))))
 
-(defmethod stmt-asts ((obj new-clang))
-  (let ((stmt-asts nil))
-    (map-ast-while
-     (ast-root obj)
-     (lambda (a)
-       (if (function-decl-p a)
-           (progn
-             (map-ast a (lambda (b)
-                          (unless (or (eql (ast-class b) :ParmVar)
-                                      (function-decl-p b))
-                            (push b stmt-asts))))
-             nil)
-           t)))
-    (nreverse stmt-asts)))
-
-(defmethod non-stmt-asts ((obj new-clang))
-  "Collect a list of all ASTs (except the root) that are not
-in or below function declarations"
-  (let ((non-stmt-asts nil)
-        (root (ast-root obj)))
-    (map-ast-while
-     root
-     (lambda (a)
-       (and (not (function-decl-p a))
-            (progn
-              (unless (eql a root) (push a non-stmt-asts))
-              t))))
-    (nreverse non-stmt-asts)))
-
-(defmethod functions ((obj new-clang))
-  (let ((functions nil))
-    (map-ast (ast-root obj)
-             (lambda (a)
-               (when (and (function-decl-p a)
-                          (function-body obj a))
-                 (push a functions))))
-    (nreverse functions)))
-
-(defmethod prototypes ((obj new-clang))
-  (let ((protos nil))
-    (map-ast (ast-root obj)
-             (lambda (a)
-               (when (function-decl-p a)
-                 (push a protos))))
-    (nreverse protos)))
-
 (defmethod binding-for-function ((obj new-clang) functions name arity)
   (or (random-function-info functions
                             :original-name name

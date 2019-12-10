@@ -247,11 +247,8 @@
    (macros :initarg :macros :accessor macros
            :initform nil :copier :direct
            :type list
-           :documentation "List of macros."))
-  (:documentation "Base class for C/C++ objects parsed with Clang front end"))
-
-(define-software clang (clang-base)
-  ((stmt-asts :initarg :stmt-asts :reader stmt-asts
+           :documentation "List of macros.")
+   (stmt-asts :initarg :stmt-asts :reader stmt-asts
               :initform nil :copier :direct
               :type #+sbcl (list (cons keyword *) *) #-sbcl list
               :documentation
@@ -272,6 +269,9 @@
                :initform nil :copier :direct
                :type #+sbcl (list (cons keyword *) *) #-sbcl list
                :documentation "Function prototypes."))
+  (:documentation "Base class for C/C++ objects parsed with Clang front end"))
+
+(define-software clang (clang-base) ()
   (:documentation
    "C language (C, C++, C#, etc...) ASTs using Clang, C language frontend for LLVM.
 See http://clang.llvm.org/."))
@@ -1875,15 +1875,14 @@ type in TYPES.
 
   obj)
 
-(defmethod update-caches ((obj clang))
+(defmethod update-caches ((obj clang-base))
   "Update cached fields of OBJ, including `asts', `stmt-asts', `non-stmt-asts',
-`functions', `prototypes', and `includes', return OBJ
+`functions', and `prototypes', return OBJ
 * OBJ object to update caches for
 "
   (call-next-method)
 
-  (with-slots (asts stmt-asts non-stmt-asts functions prototypes
-                    includes) obj
+  (with-slots (asts stmt-asts non-stmt-asts functions prototypes) obj
 
     (iter (for ast in asts)
           (with last-proto = nil)
@@ -1892,9 +1891,6 @@ type in TYPES.
             (when (function-body obj ast)
               (collect ast into funs))
             (setf last-proto ast))
-          (mapc (lambda (include)
-                  (adjoining include into m-includes test #'string=))
-                (ast-includes-in-obj obj ast))
           ;; stmt-asts are only collected in function bodies and
           ;; non-stmt-asts are only collected outside of function bodies
           (if (and last-proto (starts-with-subseq (ast-path last-proto)
@@ -1907,12 +1903,22 @@ type in TYPES.
           (finally
            (setf stmt-asts my-stmts
                  non-stmt-asts my-non-stmts
-                 includes m-includes
                  functions funs
                  prototypes protos))))
   obj)
 
-(defmethod clear-caches ((obj clang))
+(defmethod update-caches ((obj clang))
+  "Update the cached `includes` field on OBJ
+* OBJ object to update caches for
+"
+  (call-next-method)
+  (iter (for ast in (slot-value obj 'asts))
+        (mapc (lambda (include)
+                (adjoining include into m-includes test #'string=))
+              (ast-includes ast))
+        (finally (setf (slot-value obj 'includes) m-includes))))
+
+(defmethod clear-caches ((obj clang-base))
   "Clear cached fields on OBJ, including `stmt-asts', `non-stmt-asts',
 `functions', `prototypes', and `includes'.
 * OBJ object to clear caches for.
@@ -1944,19 +1950,19 @@ type in TYPES.
   "Ensure the `types' field is set on OBJ prior to access."
   (update-caches-if-necessary obj))
 
-(defmethod     stmt-asts :before ((obj clang))
+(defmethod     stmt-asts :before ((obj clang-base))
   "Ensure the `stmt-asts' field is set on OBJ prior to access."
   (update-caches-if-necessary obj))
 
-(defmethod non-stmt-asts :before ((obj clang))
+(defmethod non-stmt-asts :before ((obj clang-base))
   "Ensure the `non-stmt-asts' field is set on OBJ prior to access."
   (update-caches-if-necessary obj))
 
-(defmethod     functions :before ((obj clang))
+(defmethod     functions :before ((obj clang-base))
   "Ensure the `functions' field is set on OBJ prior to access."
   (update-caches-if-necessary obj))
 
-(defmethod    prototypes :before ((obj clang))
+(defmethod    prototypes :before ((obj clang-base))
   "Ensure the `prototypes' field is set on OBJ prior to access."
   (update-caches-if-necessary obj))
 
