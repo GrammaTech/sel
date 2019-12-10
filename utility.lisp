@@ -273,6 +273,7 @@
    :*profile-dot-min-ratio*
    :profile-to-dot-graph
    :profile-to-flame-graph
+   :*profile-flame-graph*
    :enhanced-copy-seq
    ;; jobs
    :task-runner
@@ -3017,7 +3018,8 @@ See http://www.brendangregg.com/FlameGraphs/cpuflamegraphs.html."
         (loop :for start = 0 :then end
            :while (< start (length samples))
            :for end = (or (position 'sb-sprof::trace-start samples
-                                    :start (1+ start))
+                                    :start (1+ start)
+                                    :key (lambda (it) (and (listp it) (car it))))
                           (return))
            :do (let ((key
                       (sb-sprof::with-output-to-string (stream)
@@ -3069,6 +3071,9 @@ accelerate the common cases given by STRINGS."
 
 ;;; Profiling
 
+(defvar *profile-flame-graph* nil
+  "Write report with `profile-to-flame-graph' from `with-prof'.")
+
 (defmacro with-prof (profile-path &rest body)
   "Execute BODY with profiling enables.  Write the profile report
 to a file at PROFILE-PATH.  Currently only works in SBCL."
@@ -3080,10 +3085,16 @@ to a file at PROFILE-PATH.  Currently only works in SBCL."
                                                   :mode :cpu
                                                   :loop nil)
          ,@body
-         (with-output-to-file (out ,profile-path
-                                   :if-exists :overwrite
-                                   :if-does-not-exist :create)
-           (sb-sprof:report :stream out)))
+         (if sel/utility:*profile-flame-graph*
+             (with-open-file (out ,profile-path
+                                  :if-exists :supersede
+                                  :if-does-not-exist :create
+                                  :direction :output)
+               (sel/utility:profile-to-flame-graph out))
+             (with-output-to-file (out ,profile-path
+                                       :if-exists :overwrite
+                                       :if-does-not-exist :create)
+               (sb-sprof:report :stream out))))
        (progn ,@body))
   #-sbcl `(progn
             (when ,profile-path
