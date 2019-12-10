@@ -108,14 +108,18 @@
         (intern symbol-name package)
         (multiple-value-bind (symbol status)
             (find-symbol symbol-name package)
-          (cond ((null status)
-                 (eclector.base::%reader-error input-stream 'symbol-does-not-exist
-                                               :package package
-                                               :symbol-name symbol-name))
-                ((eq status :internal)
-                 (eclector.base::%reader-error input-stream 'symbol-is-not-external
-                                               :package package
-                                               :symbol-name symbol-name))
+          (cond ((null status) ; Ignore `symbol-does-not-exist' errors.
+                 ;; (eclector.base::%reader-error
+                 ;;  input-stream 'eclector.reader::symbol-does-not-exist
+                 ;;  :package package
+                 ;;  :symbol-name symbol-name)
+                 symbol)
+                ((eq status :internal) ; Ignore `symbol-is-not-external' errors.
+                 ;; (eclector.base::%reader-error
+                 ;;  input-stream 'eclector.reader::symbol-is-not-external
+                 ;;  :package package
+                 ;;  :symbol-name symbol-name)
+                 symbol)
                 (t
                  symbol))))))
 
