@@ -30,7 +30,8 @@
     `((("port") :type integer :optional t :initial-value 5000
        :documentation "Port to use when starting the clack server.")
       (("address") :type string :optional t :initial-value "127.0.0.1"
-       :documentation "Address to which the clack server with bind.")
+       :documentation "Address to which the clack server with bind, ~
+                       \"0.0.0.0\" allows remote connections")
       (("debug") :type boolean :optional t :initial-value nil
        :documentation "Run the clack server in debug mode.")
       (("silent") :type boolean :optional t :initial-value nil
