@@ -188,18 +188,21 @@
   (car (member job-name (session-jobs client)
                :key 'async-job-name :test 'equal)))
 
-(defun format-job-as-json (async-job)
+(defun job-as-json (async-job)
   (let ((task-runner (async-job-task-runner async-job)))
-    (json:encode-json-plist-to-string
-     (list
-      :name (async-job-name async-job)
-      :threads-running
-      (task-runner-workers-count (async-job-task-runner async-job))
-      :remaining-jobs
-      (task-runner-remaining-jobs (async-job-task-runner async-job))
-      :arguments (async-job-args async-job)
-      :completed-tasks (task-runner-completed-tasks task-runner)
-      :results (task-runner-results task-runner)))))
+    (list
+     :name (async-job-name async-job)
+     :threads-running
+     (task-runner-workers-count (async-job-task-runner async-job))
+     :remaining-jobs
+     (task-runner-remaining-jobs (async-job-task-runner async-job))
+     :arguments (async-job-args async-job)
+     :completed-tasks (task-runner-completed-tasks task-runner)
+     :results (task-runner-results task-runner))))
+
+(defun format-job-as-json (async-job)
+  (json:encode-json-plist-to-string
+   (job-as-json async-job)))
 
 (defun lookup-session-job (session name)
   (and name (find-job session (string-upcase name))))
@@ -207,9 +210,16 @@
 (defun lookup-session-job-status (session name)
   (when session
     (if-let ((job (lookup-session-job session name)))
-      (format-job-as-json job)
+      (let ((job-json (job-as-json job))
+            (mutation-json (list :mutations *fitness-evals*
+                                 :best-fitness (fitness (extremum *population*
+                                                                  *fitness-predicate*
+                                                                  :key #'fitness))
+                                 :time-elapsed (elapsed-time))))
+        (json:encode-json-to-string (append job-json mutation-json)))
       (json:encode-json-to-string
        (mapcar #'async-job-name (session-jobs session))))))
+
 
 (defun lookup-job-type-entry (name)
   "Allow some special-case names, otherwise fall through to symbol
