@@ -1065,8 +1065,12 @@ modile +AST-HASH-BASE+"
   (defmethod ast-hash ((p package))
     (ast-hash (package-name p))))
 
+;;; We cache this for ast nodes otherwise the time
+;;; for computing ast-hash on a large tree can become very large
 (defmethod ast-hash ((ast ast))
-  (ast-hash (cons (ast-class ast) (ast-children ast))))
+  (or (ast-stored-hash ast)
+      (setf (ast-stored-hash ast)
+            (ast-hash (cons (ast-class ast) (ast-children ast))))))
 
 (defgeneric ast-clear-hash (ast)
   (:documentation "Clear the stored hash fields of an ast"))
