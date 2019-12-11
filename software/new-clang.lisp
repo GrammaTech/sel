@@ -2106,7 +2106,6 @@ form for SLOT, and stores into OBJ.  Returns OBJ or its replacement."))
   (ignore-slot :explicitlyDefaulted)
   (ignore-slot :isUsed)
   (ignore-slot :completeDefinition)
-  (ignore-slot :definitionData)
   (ignore-slot :canOverflow))
 
 (defmethod store-slot ((obj new-clang-ast) (slot (eql :id)) value)
