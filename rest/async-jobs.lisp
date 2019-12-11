@@ -81,7 +81,6 @@
            :async-job-name
            :define-async-job
            :lookup-job-func
-           :format-job-as-json
            :lookup-session-job
            :lookup-session-job-status
            :session-jobs))
@@ -188,7 +187,7 @@
   (car (member job-name (session-jobs client)
                :key 'async-job-name :test 'equal)))
 
-(defun job-as-json (async-job)
+(defun job-to-plist (async-job)
   (let ((task-runner (async-job-task-runner async-job)))
     (list
      :name (async-job-name async-job)
@@ -200,23 +199,20 @@
      :completed-tasks (task-runner-completed-tasks task-runner)
      :results (task-runner-results task-runner))))
 
-(defun format-job-as-json (async-job)
-  (json:encode-json-plist-to-string
-   (job-as-json async-job)))
-
 (defun lookup-session-job (session name)
   (and name (find-job session (string-upcase name))))
 
 (defun lookup-session-job-status (session name)
   (when session
     (if-let ((job (lookup-session-job session name)))
-      (let ((job-json (job-as-json job))
-            (mutation-json (list :mutations *fitness-evals*
-                                 :best-fitness (fitness (extremum *population*
-                                                                  *fitness-predicate*
-                                                                  :key #'fitness))
-                                 :time-elapsed (elapsed-time))))
-        (json:encode-json-to-string (append job-json mutation-json)))
+      (let ((job-plist (job-to-plist job))
+            (mutation-plist
+             (list :mutations *fitness-evals*
+                   :best-fitness (fitness (extremum *population*
+                                                    *fitness-predicate*
+                                                    :key #'fitness))
+                   :time-elapsed (elapsed-time))))
+        (json:encode-json-to-string (append job-plist mutation-plist)))
       (json:encode-json-to-string
        (mapcar #'async-job-name (session-jobs session))))))
 
