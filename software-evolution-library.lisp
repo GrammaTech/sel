@@ -112,6 +112,7 @@
    :fitness-equal-p
    :*cross-chance*
    :*mut-rate*
+   :*elitism*
    :*fitness-evals*
    :*running*
    :*start-time*
@@ -845,6 +846,13 @@ written to as part of a running search process.")
 (defvar *tournament-eviction-size* 2
   "Number of individuals to participate in eviction tournaments.")
 
+(defvar *elitism* 0
+  "Number of individuals to promote to next population.
+ Range: 0..(- (length *population*) 1)
+ The number of individuals which are automatically promoted prior to
+ typical generational replacement or eviction process. The selected
+ individuals will be the ones with the best fitness.")
+
 (defvar *cross-chance* 2/3
   "Fraction of new individuals generated using crossover rather than mutation.")
 
@@ -1051,17 +1059,43 @@ criteria for this search."
                       (when (and ,period ,period-fn
                                  (zerop (mod *fitness-evals* ,period)))
                         (funcall ,period-fn)))
-                    (mapc (lambda (,variant ,mutation-info)
-                            (declare (ignorable ,mutation-info))
-                            (assert (fitness ,variant) (,variant)
-                                    "Variant with no fitness")
-                            (when (or (not ,filter) (funcall ,filter ,variant))
-                              ,@body)
-                            (when (and *target-fitness-p*
-                                       (funcall *target-fitness-p* ,variant))
-                              (return-from search-target-reached ,variant)))
-                          ,variants
-                          ,mutation-infos))
+                    ;; support for *elitism*
+                    (let* ((sorted-population
+                            (and (> *elitism* 0)
+                                 (stable-sort (copy-list *population*)
+                                              *fitness-predicate*
+                                              :key 'fitness)))
+                           ;; capture elite individuals
+                           (elite-individuals
+                            (and sorted-population
+                                 (subseq sorted-population 0 *elitism*))))
+                      ;; remove elite individuals from *population*
+                      (when elite-individuals
+                        (setf *population*
+                              (subseq sorted-population *elitism*)))
+                      (format t "elite-individuals: ~A~%"
+                              (mapcar 'fitness elite-individuals))
+                      (format t "population: ~A~%"
+                              (mapcar 'fitness *population*))
+                      (mapc (lambda (,variant ,mutation-info)
+                              (declare (ignorable ,mutation-info))
+                              (assert (fitness ,variant) (,variant)
+                                      "Variant with no fitness")
+                              (when (or (not ,filter)
+                                        (funcall ,filter ,variant))
+                                ,@body)
+                              (when (and *target-fitness-p*
+                                         (funcall *target-fitness-p* ,variant))
+                                (return-from search-target-reached ,variant)))
+                            ,variants
+                            ,mutation-infos)
+                      ;; add elite-individuals to *population*
+                      (when elite-individuals
+                        (setf *population*
+                              (concatenate 'list elite-individuals
+                                           *population*)))
+                      (format t "population (after mutations): ~A~%"
+                              (mapcar 'fitness *population*))))
                 (ignore-failed-mutation ()
                   :report
                   "Ignore failed mutation and continue evolution"))))
@@ -1100,19 +1134,25 @@ Other keyword arguments are used as defined in the `-search' function."
                   &key
                     max-evals max-time period period-fn
                     every-pre-fn every-post-fn filter analyze-mutation-fn
-                    (super-mutant-count 1))
+                    (super-mutant-count 1)
+                    (elitism *elitism*))
   "Evolves `*population*' using `new-individual' and TEST.
 
 * SUPER-MUTANT-COUNT evaluate this number of mutants at once in a
   combined genome.
 
 Other keyword arguments are used as defined in the `-search' function.
+ The ELITISM value will reduce the SUPER-MUTANT-COUNT (number of new
+ individuals created in each generation) by the value of ELITISM (this
+ represents the number of individuals automatically carried over
+ from the previous generation).
 "
-  `(-search ((new mut-info)
+  `(let ((*elitism* ,elitism)) ; allow caller to specify *elitism* value
+     (-search ((new mut-info)
              ,test ,max-evals ,max-time ,period ,period-fn
              ,every-pre-fn ,every-post-fn ,filter ,analyze-mutation-fn)
-            {new-individuals ,super-mutant-count}
-            (incorporate new)))
+              {new-individuals (- ,super-mutant-count ,elitism)}
+              (incorporate new))))
 
 (defun generational-evolve
     (reproduce evaluate-pop select
