@@ -1092,7 +1092,8 @@ criteria for this search."
                       ;; this should ensure *max-population-size is always at
                       ;; at least 1.
                       (let ((*max-population-size*
-                             (- *max-population-size* *elitism*)))
+                             (if (integerp *max-population-size*)
+                                 (- *max-population-size* *elitism*))))
                         (mapc (lambda (,variant ,mutation-info)
                                 (declare (ignorable ,mutation-info))
                                 (assert (fitness ,variant) (,variant)
