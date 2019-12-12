@@ -136,10 +136,10 @@ trigger_evo-rings:
     - master
 
 
-trigger_shaker:
+trigger_resolve:
   stage: dependents
   script:
-    - "curl -X POST -F token=7f07bb7592421ffa0dd9a72bf86525 -F ref=$CI_BUILD_REF_NAME https://git.grammatech.com/api/v4/projects/343/trigger/pipeline"
+    - "curl -X POST -F token=943ae481fed1a7ea21d7439bf3a8f3 -F ref=$CI_BUILD_REF_NAME https://git.grammatech.com/api/v4/projects/881/trigger/pipeline"
   only:
     - master
 
