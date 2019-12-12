@@ -849,9 +849,15 @@ written to as part of a running search process.")
 (defvar *elitism* 0
   "Number of individuals to promote to next population.
  Range: 0..(- (length *population*) 1)
- The number of individuals which are automatically promoted prior to
- typical generational replacement or eviction process. The selected
- individuals will be the ones with the best fitness.")
+ When evolving super-mutants, or calling generational-evolve,
+ it specifies the number of individuals which are automatically
+ promoted prior to typical generational replacement or eviction
+ process. The selected individuals will be the ones with the
+ best fitness.
+ When using super-mutants, the *ELITISM* value will reduce the number of new
+ individuals created in each generation by the value of *ELITISM* (since this
+ number will automatically be promoted).
+")
 
 (defvar *cross-chance* 2/3
   "Fraction of new individuals generated using crossover rather than mutation.")
@@ -1019,9 +1025,11 @@ criteria for this search."
              (,every-post-fn ,(nth 7 specs))
              (,filter ,(nth 8 specs))
              (,analyze-mutation-fn ,(nth 9 specs)))
+
          (block search-target-reached
            (unless *start-time* (setq *start-time* (get-internal-real-time)))
            (setq *running* t)
+
            (loop :until (or (not *running*)
                             (and ,max-evals
                                  (> *fitness-evals* ,max-evals))
@@ -1060,10 +1068,16 @@ criteria for this search."
                                  (zerop (mod *fitness-evals* ,period)))
                         (funcall ,period-fn)))
                     ;; support for *elitism*
+                    (assert (and (integerp *elitism*)
+                                 (>= *elitism* 0)
+                                 (< *elitism* (length *population*)))
+                            (*elitism*)
+                            "*ELITISM* is out of range--must be an integer >0 ~
+                            and < (length *POPULATION*)")
                     (let* ((sorted-population
                             (and (> *elitism* 0)
                                  (stable-sort (copy-list *population*)
-                                              *fitness-predicate*
+                                              'fitness-better-p
                                               :key 'fitness)))
                            ;; capture elite individuals
                            (elite-individuals
@@ -1073,29 +1087,29 @@ criteria for this search."
                       (when elite-individuals
                         (setf *population*
                               (subseq sorted-population *elitism*)))
-                      (format t "elite-individuals: ~A~%"
-                              (mapcar 'fitness elite-individuals))
-                      (format t "population: ~A~%"
-                              (mapcar 'fitness *population*))
-                      (mapc (lambda (,variant ,mutation-info)
-                              (declare (ignorable ,mutation-info))
-                              (assert (fitness ,variant) (,variant)
-                                      "Variant with no fitness")
-                              (when (or (not ,filter)
-                                        (funcall ,filter ,variant))
-                                ,@body)
-                              (when (and *target-fitness-p*
-                                         (funcall *target-fitness-p* ,variant))
-                                (return-from search-target-reached ,variant)))
-                            ,variants
-                            ,mutation-infos)
+                      ;; temporarily reduce *max-population-size* by *elitism*
+                      ;; Since *elitism* range is 1..(- *max-population-size* 1)
+                      ;; this should ensure *max-population-size is always at
+                      ;; at least 1.
+                      (let ((*max-population-size*
+                             (- *max-population-size* *elitism*)))
+                        (mapc (lambda (,variant ,mutation-info)
+                                (declare (ignorable ,mutation-info))
+                                (assert (fitness ,variant) (,variant)
+                                        "Variant with no fitness")
+                                (when (or (not ,filter)
+                                          (funcall ,filter ,variant))
+                                  ,@body)
+                                (when (and *target-fitness-p*
+                                           (funcall *target-fitness-p* ,variant))
+                                  (return-from search-target-reached ,variant)))
+                              ,variants
+                              ,mutation-infos))
                       ;; add elite-individuals to *population*
                       (when elite-individuals
                         (setf *population*
                               (concatenate 'list elite-individuals
-                                           *population*)))
-                      (format t "population (after mutations): ~A~%"
-                              (mapcar 'fitness *population*))))
+                                           *population*)))))
                 (ignore-failed-mutation ()
                   :report
                   "Ignore failed mutation and continue evolution"))))
@@ -1134,25 +1148,19 @@ Other keyword arguments are used as defined in the `-search' function."
                   &key
                     max-evals max-time period period-fn
                     every-pre-fn every-post-fn filter analyze-mutation-fn
-                    (super-mutant-count 1)
-                    (elitism *elitism*))
+                    (super-mutant-count 1))
   "Evolves `*population*' using `new-individual' and TEST.
 
 * SUPER-MUTANT-COUNT evaluate this number of mutants at once in a
   combined genome.
 
 Other keyword arguments are used as defined in the `-search' function.
- The ELITISM value will reduce the SUPER-MUTANT-COUNT (number of new
- individuals created in each generation) by the value of ELITISM (this
- represents the number of individuals automatically carried over
- from the previous generation).
 "
-  `(let ((*elitism* ,elitism)) ; allow caller to specify *elitism* value
-     (-search ((new mut-info)
+  `(-search ((new mut-info)
              ,test ,max-evals ,max-time ,period ,period-fn
              ,every-pre-fn ,every-post-fn ,filter ,analyze-mutation-fn)
-              {new-individuals (- ,super-mutant-count ,elitism)}
-              (incorporate new))))
+            {new-individuals (- ,super-mutant-count *elitism*)}
+            (incorporate new)))
 
 (defun generational-evolve
     (reproduce evaluate-pop select
@@ -1202,15 +1210,40 @@ Keyword arguments are as follows:
                          children mutation-info))
              (if every-post-fn (mapc {funcall every-post-fn} children))
              (if filter (setq children (delete-if-not filter children)))
+
+             ;; support for *elitism*
+             (assert (and (integerp *elitism*)
+                          (>= *elitism* 0)
+                          (< *elitism* (length *population*)))
+                     (*elitism*)
+                     "*ELITISM* is out of range--must be an integer >0 ~
+                            and < (length *POPULATION*)")
+             (let* ((sorted-population
+                     (and (> *elitism* 0)
+                          (stable-sort (copy-list *population*)
+                                       'fitness-better-p
+                                       :key 'fitness)))
+                    ;; capture elite individuals
+                    (elite-individuals
+                     (and sorted-population
+                          (subseq sorted-population 0 *elitism*))))
+               ;; remove elite individuals from *population*
+               (when elite-individuals
+                 (setf *population*
+                       (subseq sorted-population *elitism*)))
+
              (setq *population* (append children *population*))
              (loop :for child :in children
                 :when (funcall *target-fitness-p* child) :do
                 (setf *running* nil)
-                (return-from generational-evolve child)))
-           (format t "Selecting~%")
-           (setq *population*
-                 (funcall select *population* *max-population-size*))
-           (assert (<= (length *population*) *max-population-size*))
+                  (return-from generational-evolve child))
+             (format t "Selecting~%")
+             ;; re-insert elite individuals at the beginning of list
+             (setq *population*
+                   (append elite-individuals
+                           (funcall select *population*
+                                    (- *max-population-size* *elitism*))))
+             (assert (<= (length *population*) *max-population-size*))))
            (if (and period period-fn (zerop (mod *generations* period)))
                (funcall period-fn)))
       (setq *running* nil))))
