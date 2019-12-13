@@ -86,7 +86,7 @@
              :documentation "Root node of AST.")
    (asts     :initarg :asts :reader asts
              :initform nil :copier :direct
-             :type #+sbcl (list (cons keyword *) *) #-sbcl list
+             :type #-sbcl list #+sbcl (or null (cons (cons keyword *) *))
              :documentation
              "List of all ASTs.
 See the documentation of `update-asts' for required invariants.")
