@@ -848,16 +848,16 @@ written to as part of a running search process.")
 
 (defvar *elitism* 0
   "Number of individuals to automatically promote to next population.
- Range: 0..(- (length *population*) 1)
- When evolving super-mutants, or calling generational-evolve,
- it specifies the number of individuals which are automatically
- promoted prior to typical generational replacement or eviction
- process. The selected individuals will be the ones with the
- best fitness.
- When using super-mutants, the *ELITISM* value will reduce the number of new
- individuals created in each generation by the value of *ELITISM* (since this
- number will automatically be promoted).")
-(declaim (cl:type (integer 0 *) *elitism*))
+Range: 0..(- (length *population*) 1)
+When evolving super-mutants, or calling generational-evolve,
+*ELITISM* specifies the number of individuals which are automatically
+promoted prior to typical generational replacement or eviction
+process. The selected individuals will be the ones with the
+best fitness.
+When using super-mutants, the *ELITISM* value will reduce the number of new
+individuals created in each generation by the value of *ELITISM* (since this
+number will automatically be promoted).")
+(declaim (type (integer 0 *) *elitism*))
 
 (defvar *cross-chance* 2/3
   "Fraction of new individuals generated using crossover rather than mutation.")
@@ -1099,7 +1099,8 @@ criteria for this search."
                                           (funcall ,filter ,variant))
                                   ,@body)
                                 (when (and *target-fitness-p*
-                                           (funcall *target-fitness-p* ,variant))
+                                           (funcall *target-fitness-p*
+                                                    ,variant))
                                   (return-from search-target-reached ,variant)))
                               ,variants
                               ,mutation-infos))
