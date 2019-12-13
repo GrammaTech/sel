@@ -847,7 +847,7 @@ written to as part of a running search process.")
   "Number of individuals to participate in eviction tournaments.")
 
 (defvar *elitism* 0
-  "Number of individuals to promote to next population.
+  "Number of individuals to automatically promote to next population.
  Range: 0..(- (length *population*) 1)
  When evolving super-mutants, or calling generational-evolve,
  it specifies the number of individuals which are automatically
@@ -856,8 +856,8 @@ written to as part of a running search process.")
  best fitness.
  When using super-mutants, the *ELITISM* value will reduce the number of new
  individuals created in each generation by the value of *ELITISM* (since this
- number will automatically be promoted).
-")
+ number will automatically be promoted).")
+(declaim (cl:type (integer 0 *) *elitism*))
 
 (defvar *cross-chance* 2/3
   "Fraction of new individuals generated using crossover rather than mutation.")
@@ -1025,11 +1025,9 @@ criteria for this search."
              (,every-post-fn ,(nth 7 specs))
              (,filter ,(nth 8 specs))
              (,analyze-mutation-fn ,(nth 9 specs)))
-
          (block search-target-reached
            (unless *start-time* (setq *start-time* (get-internal-real-time)))
            (setq *running* t)
-
            (loop :until (or (not *running*)
                             (and ,max-evals
                                  (> *fitness-evals* ,max-evals))
@@ -1068,8 +1066,7 @@ criteria for this search."
                                  (zerop (mod *fitness-evals* ,period)))
                         (funcall ,period-fn)))
                     ;; support for *elitism*
-                    (assert (and (integerp *elitism*)
-                                 (>= *elitism* 0)
+                    (assert (and (typep *elitism* '(integer 0 *))
                                  (< *elitism* (length *population*)))
                             (*elitism*)
                             "*ELITISM* is out of range--must be an integer >0 ~
@@ -1192,6 +1189,9 @@ Keyword arguments are as follows:
   (when *target-fitness-p*
     (assert (functionp *target-fitness-p*) (*target-fitness-p*)
             "`*target-fitness-p*' must be a function"))
+  (assert (typep *max-population-size* '(integer 0 *))
+          (*max-population-size*)
+          "*MAX-POPULATION-SIZE* should be an integer >= 0")
   (flet
       ((check-max (current max)
          (or (not max) (not current) (< current max))))
@@ -1213,8 +1213,7 @@ Keyword arguments are as follows:
              (if filter (setq children (delete-if-not filter children)))
 
              ;; support for *elitism*
-             (assert (and (integerp *elitism*)
-                          (>= *elitism* 0)
+             (assert (and (typep *elitism* '(integer 0 *))
                           (< *elitism* (length *population*)))
                      (*elitism*)
                      "*ELITISM* is out of range--must be an integer >0 ~
@@ -1238,7 +1237,6 @@ Keyword arguments are as follows:
                 :when (funcall *target-fitness-p* child) :do
                 (setf *running* nil)
                   (return-from generational-evolve child))
-             (format t "Selecting~%")
              ;; re-insert elite individuals at the beginning of list
              (setq *population*
                    (append elite-individuals
