@@ -212,8 +212,8 @@
                                                     *fitness-predicate*
                                                     :key #'fitness))
                    :time-elapsed (elapsed-time))))
-        (json:encode-json-to-string (append job-plist mutation-plist)))
-      (json:encode-json-to-string
+        (json:encode-json-plist-to-string (append job-plist mutation-plist)))
+      (json:encode-json-plist-to-string
        (mapcar #'async-job-name (session-jobs session))))))
 
 
