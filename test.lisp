@@ -1758,6 +1758,25 @@ of the same length"
   (with-fixture gcd-asm-heap-att
     (asm-heap-cut-actually-shortens)))
 
+(defun asm-heap-double-cut-shortens-correctly ()
+  (let ((variant (copy *gcd*)))
+    (apply-mutation variant (make-instance 'double-cut :targets '(16 18)))
+    (is (= (length (genome variant)) (- (length (genome *gcd*)) 2)))
+    (setf variant (copy *gcd*))
+    (apply-mutation variant (make-instance 'double-cut :targets '(18 16)))
+    (is (= (length (genome variant)) (- (length (genome *gcd*)) 2)))
+    (setf variant (copy *gcd*))
+    (apply-mutation variant (make-instance 'double-cut :targets '(18 18)))
+    (is (= (length (genome variant)) (- (length (genome *gcd*)) 1)))))
+
+(deftest asm-heap-double-cut-shortens-correctly-intel ()
+  (with-fixture gcd-asm-heap-intel
+    (asm-heap-double-cut-shortens-correctly)))
+
+(deftest asm-heap-double-cut-shortens-correctly-att ()
+  (with-fixture gcd-asm-heap-att
+    (asm-heap-double-cut-shortens-correctly)))
+
 (defun asm-heap-insertion-actually-lengthens ()
   (let ((variant (copy *gcd*)))
     (apply-mutation variant (make-instance 'simple-insert

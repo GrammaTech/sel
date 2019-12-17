@@ -23,7 +23,8 @@
            :simple-mutation
            :simple-cut
            :simple-insert
-           :simple-swap))
+           :simple-swap
+           :double-cut))
 (in-package :software-evolution-library/software/simple)
 (in-readtable :curry-compose-reader-macros)
 
@@ -104,6 +105,33 @@
                        (subseq genome 0 cut)
                        (subseq genome (1+ cut))))
     simple))
+
+(define-mutation double-cut (simple-mutation)
+  ((targeter :initform #'pick-bad-bad))
+  (:documentation "Remove two random elements of the genome."))
+
+(defmethod apply-mutation ((simple simple) (mutation double-cut))
+  "Cut two random elements of the genome.
+ If the two elements indices are equal, this just becomes one simple-cut.
+ Otherwise it is implemented as two simple-cut mutations,
+ so derived mutations should only need to implement simple-cut."
+  (let ((first-cut (first (targets mutation)))
+        (second-cut (second (targets mutation)))
+        mutated)
+    (assert (and (integerp first-cut) (integerp second-cut)) (mutation)
+            "Requires mutations targets to be a list of two integers.")
+    (setf mutated
+          (apply-mutation
+           simple
+           (make-instance 'simple-cut
+             :targets (max first-cut second-cut))))
+    (unless (= first-cut second-cut)
+      (setf mutated
+            (apply-mutation
+             mutated
+             (make-instance 'simple-cut
+               :targets (min first-cut second-cut)))))
+    mutated))
 
 (define-mutation simple-insert (simple-mutation)
   ((targeter :initform #'pick-bad-good))
