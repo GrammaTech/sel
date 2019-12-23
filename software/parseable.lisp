@@ -414,13 +414,25 @@ if the original file is known.")
   "Return the AST in OBJ at the given PATH.
 * OBJ software object with ASTs
 * PATH path to the AST to return"
-  (labels ((helper (tree path)
-             (if path
-                 (destructuring-bind (head . tail) path
-                   (helper (nth head (ast-children tree))
-                           tail))
-                 tree)))
-    (helper (ast-root obj) path)))
+  (let ((tree (ast-root obj))
+        (pred nil))
+    (iter (for i from 0)
+          (for j in path)
+          (unless (ast-p tree)
+            (if pred
+                (error "At path ~a, below~%~a, not an AST:~%~a"
+                       (subseq path 0 i)
+                       pred
+                       tree)
+                (error "Root of ~a is not an AST: ~a"
+                       obj tree)))
+          (unless (typep j '(integer 0))
+            (error "Not a valid path index: ~a" j))
+          (let ((children (ast-children tree)))
+            (unless (< j (length children))
+              (error "Not a valid child index for~%~a:~%~a" tree j))
+            (setf pred tree tree (elt children j))))
+    tree))
 
 (defmethod (setf get-ast) (new (obj parseable) (path list))
   "Set the AST at location PATH in OBJ to NEW.
