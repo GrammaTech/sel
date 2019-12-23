@@ -101,20 +101,23 @@
   "Maximum number of characters to print for TEXT in
 PRINT-OBJECT method on AST structures.")
 
-(defmethod print-object ((obj ast-stub) stream &aux (cutoff *ast-print-cutoff*))
+(defmethod print-object ((obj ast) stream &aux (cutoff *ast-print-cutoff*))
   (if *print-readably*
       (call-next-method)
-      (print-unreadable-object (obj stream :type t)
-        (format stream ":PATH ~s ~:_ :NODE ~s ~:_ :TEXT ~s"
-                (ast-path obj) (ast-node obj)
-                (let* ((text (source-text obj))
-                       (truncated
-                        (if (> (length text) cutoff)
-                            (concatenate 'string (subseq text 0 cutoff) "...")
-                            text)))
-                  (if-let ((position (search (string #\Newline) truncated)))
-                    (concatenate 'string (subseq truncated 0 position) "...")
-                    truncated))))))
+      (default-ast-printer obj stream cutoff)))
+
+(defun default-ast-printer (obj stream cutoff)
+  (print-unreadable-object (obj stream :type t)
+    (format stream ":PATH ~s~:_ :NODE ~s~:_ :TEXT ~s"
+            (ast-path obj) (ast-node obj)
+            (let* ((text (source-text obj))
+                   (truncated
+                    (if (> (length text) cutoff)
+                        (concatenate 'string (subseq text 0 cutoff) "...")
+                        text)))
+              (if-let ((position (search (string #\Newline) truncated)))
+                (concatenate 'string (subseq truncated 0 position) "...")
+                truncated)))))
 
 (defgeneric ast-class (ast) (:documentation "Class of AST."))
 
