@@ -41,8 +41,8 @@
         :software-evolution-library/software/source
         :software-evolution-library/software/parseable
         :software-evolution-library/components/formatting)
-  (:shadowing-import-from :cl-json :decode-json-from-string)
   #-windows (:shadowing-import-from :osicat :file-permissions)
+  (:import-from :jsown)
   (:export :javascript
            :javascript-mutation
            :javascript-ast
@@ -79,6 +79,7 @@
 
 
 ;;; Javascript parsing
+
 (defmethod parse-asts ((obj javascript))
   (with-temp-file-of (src-file (ext obj)) (genome obj)
     (multiple-value-bind (stdout stderr exit)
@@ -88,13 +89,27 @@
                    "")
                src-file)
         (if (zerop exit)
-            (decode-json-from-string stdout)
+            (convert-acorn-jsown-tree (jsown:parse stdout))
             (error
               (make-instance 'mutate
                 :text (format nil "acorn exit ~d~%stderr:~s"
                               exit
                               stderr)
                 :obj obj :op :parse))))))
+
+(defun convert-acorn-jsown-tree (jt)
+  (convert-jsown-tree jt #'jsown-str-to-acorn-keyword))
+
+(defun jsown-str-to-acorn-keyword (str)
+  (string-case-to-keywords ("delegate" "update" "await" "properties"
+                                       "method" "shorthand" "key" "elements"
+                                       "object" "property" "computed" "generator"
+                                       "async" "params" "declarations"
+                                       "id" "init " "kind" "test" "body" "left"
+                                       "right" "operator" "prefix" "argument"
+                                       "expression" "callee " "name" "arguments"
+                                       "type" "start" "end" "value" "raw" "sourcetype")
+                           str))
 
 (define-constant +js-bound-id-parent-classes+
   (list "FunctionDeclaration"

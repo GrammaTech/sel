@@ -1884,25 +1884,12 @@ modifiers from a type name"
                            (keep-partial-asts ()
                              :report "Ignore error retaining partial ASTs for software object."
                              nil))
-                         (values (convert-jsown-tree (jsown:parse stdout))
+                         (values (convert-clang-jsown-tree (jsown:parse stdout))
                                  src-file
                                  genome-len)))))
 
-(defun convert-jsown-tree (jt)
-  "Converts the tree representation from JSOWN into something similar to
-output from CL-JSON"
-  (typecase jt
-    ((cons (eql :obj) t)
-     (convert-jsown-obj (cdr jt)))
-    (cons
-     (cons (convert-jsown-tree (car jt))
-           (convert-jsown-tree (cdr jt))))
-    (t jt)))
-
-(defun convert-jsown-obj (key-alist)
-  (iter (for (key . val) in key-alist)
-        (collect (cons (jsown-str-to-clang-keyword key)
-                       (convert-jsown-tree val)))))
+(defun convert-clang-jsown-tree (jt)
+  (convert-jsown-tree jt #'jsown-str-to-clang-keyword))
 
 ;;; The STRING-CASE macro is much faster than just calling INTERN
 ;;; on the string, when one of these common arguments is seen.

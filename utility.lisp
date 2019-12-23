@@ -301,6 +301,7 @@
    :some-task
    :some-task-pred
    :some-test-task
+   :convert-jsown-tree
    :string-case-to-keywords
    :with-prof
    :without-compiler-notes))
@@ -1896,6 +1897,20 @@ transformed from an instant to a cumulative probability."
     (unless (zerop size)
       (find-hashtable-element hash-tbl (random size)))))
 
+(defun mapcar-improper-list (fn list)
+  "Apply FN to the elements of a possibly improper list LIST,
+including the final non-nil tail element, if any.  Return a fresh
+list composed of the value returned by each application.  Does
+not work on circular lists."
+  (let* ((head (list nil))
+         (tail head))
+    (iter (while (consp list))
+          (setf tail (setf (cdr tail)
+                           (list (funcall fn (pop list))))))
+    (when list
+      (setf (cdr tail) (funcall fn list)))
+    (cdr head)))
+
 ;; From the Common Lisp Cookbook
 (defgeneric replace-all (string part replacement &key test)
   (:documentation "Returns a new string in which all the
@@ -3042,6 +3057,24 @@ See http://www.brendangregg.com/FlameGraphs/cpuflamegraphs.html."
   (error "`PROFILE-TO-FLAME-GRAPH' unimplemented for non-SBCL lisps."))
 
 ;;; Utilities associated with json processing
+
+(defun convert-jsown-tree (jt &optional (key-fn (lambda (s)
+                                                  (intern (string-upcase s)
+                                                          :keyword))))
+  "Converts the tree representation from JSOWN into something similar to
+output from CL-JSON.  KEY-FN, if present, maps keyword strings to keywords."
+  (labels ((%convert (jt)
+             (typecase jt
+               ((cons (eql :obj) t)
+                (%convert-obj (cdr jt)))
+               (cons
+                (mapcar-improper-list #'%convert jt))
+               (t jt)))
+           (%convert-obj (key-alist)
+             (iter (for (key . val) in key-alist)
+                   (collect (cons (funcall key-fn key)
+                                  (%convert val))))))
+    (%convert jt)))
 
 (defun strings-to-string-cases (strings)
   (iter (for n in strings)
