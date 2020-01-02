@@ -822,13 +822,9 @@ second should be included as a possible pick
   "Select a random mutation and mutate OBJ."
   (unless (> (size obj) 0)
     (error (make-condition 'mutate :text "No valid IDs" :obj obj)))
-  (restart-case
-      (let ((mutation (make-instance (pick-mutation-type obj) :object obj)))
-        (apply-mutation obj mutation)
-        (values obj mutation))
-    (try-another-mutation ()
-      :report "Try another mutation"
-      (mutate obj))))
+  (let ((mutation (make-instance (pick-mutation-type obj) :object obj)))
+    (apply-mutation obj mutation)
+    (values obj mutation)))
 
 (defclass parseable-mutation (mutation)
   ()

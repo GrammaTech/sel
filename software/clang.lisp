@@ -2104,14 +2104,9 @@ already in scope, it will keep that name.")
   "Select a random mutation and mutate CLANG."
   (unless (stmt-asts clang)
     (error (make-condition 'mutate :text "No valid statements" :obj clang)))
-  (restart-case
-      (let ((mutation
-             (make-instance (pick-mutation-type clang) :object clang)))
-        (apply-mutation clang mutation)
-        (values clang mutation))
-    (try-another-mutation ()
-      :report "Try another mutation"
-      (mutate clang))))
+  (let ((mutation (make-instance (pick-mutation-type clang) :object clang)))
+    (apply-mutation clang mutation)
+    (values clang mutation)))
 
 (defun apply-clang-mutate-ops (software ops &aux (tu 0))
   "Run clang-mutate with a list of mutation operations, and update the genome."
