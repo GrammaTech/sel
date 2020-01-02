@@ -212,12 +212,13 @@
 ;;;     sudo apt-get install linux-tools-common linux-tools-generic linux-tools-`uname -r`
 ;;;
 ;;; Perf requires system permission to run. In linux, the value in
-;;; /proc/sys/kernel/perf_event_paranoid should be set to -1 (Not paranoid).
+;;; /proc/sys/kernel/perf_event_paranoid should be set to 1
+;;; (Disallow CPU event access by users without CAP_SYS_ADMIN).
 ;;; This is typically set to 3 (maximum paranoia) by default.
 ;;;
 ;;; This can be accomplished with the following:
-;;;   sudo sh -c 'echo -1 >/proc/sys/kernel/perf_event_paranoid'
-;;;   sudo sysctl -w kernel.perf_event_paranoid=-1
+;;;   sudo sh -c 'echo 1 >/proc/sys/kernel/perf_event_paranoid'
+;;;   sudo sysctl -w kernel.perf_event_paranoid=1
 ;;;
 ;;; It's also a good idea to turn off randomizing of address base
 ;;; (to get more consistency):
@@ -1848,7 +1849,8 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
        ((null x))
     (if (null (getf (eval-meta-results asm-super) key))
         (setf (getf (eval-meta-results asm-super) key) value)
-        (incf (getf (eval-meta-results asm-super) key) value))))
+        (if (integerp (getf (eval-meta-results asm-super) key))
+            (incf (getf (eval-meta-results asm-super) key) value)))))
 
 (defmethod evaluate ((test symbol)(asm-super asm-super-mutant)
 		     &rest extra-keys
@@ -1877,14 +1879,14 @@ needs to have been loaded, along with the var-table by PARSE-SANITY-FILE."
                   (shell "timeout ~d ~a" *timeout-seconds* bin-path)
 		(declare (ignorable stderr errno))
 		(if (/= errno 0)
-		    (setf phenome-errno errno phenome-execute-error t)
-                    (let ((input-str (make-string-input-stream stdout)))
-                      (setf meta-results (read input-str))
-                      (setf test-results (read input-str))
-		      (if test-results
-			  (dotimes (i (length test-results))
-			    (assert (> (elt test-results i) 0) (test-results)
-				    "The fitness cannot be zero")))))))
+                    (setf phenome-execute-error t))
+                (let ((input-str (make-string-input-stream stdout)))
+                  (setf meta-results (read input-str))
+                  (setf test-results (read input-str))
+                  (if test-results
+                      (dotimes (i (length test-results))
+                        (assert (> (elt test-results i) 0) (test-results)
+                                "The fitness cannot be zero"))))))
           (when (null meta-results)
             (setf meta-results '()))
 
@@ -1893,9 +1895,14 @@ needs to have been loaded, along with the var-table by PARSE-SANITY-FILE."
             (setf test-results
                   (make-array (* (length (mutants asm-super))
                                  (length (input-spec asm-super)))
-                              :initial-element *worst-fitness*))
-            (if *break-on-fitness-failure*
-                (let ((errmsg
+                              :initial-element *worst-fitness*)))
+          ;; capture exit-reason
+          (if (null (getf (eval-meta-results asm-super) :exit-reason))
+              (setf (getf (eval-meta-results asm-super) :exit-reason)
+                    (getf meta-results :exit-reason)))
+
+          (if (and phenome-execute-error *break-on-fitness-failure*)
+              (let ((errmsg
                        (format
                         t
                         "No results--all variants marked as worst fitness.
@@ -1904,7 +1911,7 @@ needs to have been loaded, along with the var-table by PARSE-SANITY-FILE."
                         src
                         phenome-create-error
                         phenome-execute-error)))
-                  (assert nil ()  errmsg))))
+                (assert nil ()  errmsg)))
 	  (let* ((num-tests (length (input-spec asm-super)))
 		 (num-variants (/ (length test-results) num-tests))
 		 (results '()))

@@ -40,6 +40,7 @@ int in_malloc = 0;
 int in_free = 0;
 int in_realloc = 0;
 int exit_early = 0;
+int num_variants = 0;
 
 int *null_pointer = 0; // used to trigger segfaults
 
@@ -73,6 +74,8 @@ void restore_heap_funcs() {
 }
 
 #define IN_HEAP_FUNC (in_malloc || in_free || in_realloc)
+
+void exit_with_status(int code, char* errmsg);
 
 // variant function pointer
 // This is defined to take no arguments and return nothing.
@@ -492,7 +495,7 @@ unsigned long dummy = 0;
 
 void segfault_sigaction(int signal, siginfo_t *si, void *context) {
     if (executing == NormalState) {
-        exit(1);
+        exit_with_status(1, "Unexpected segfault");
     }
     // if we were executing init_mem(), change the address to &dummy,
     // set the segfault flag and return. The init_mem() loop should exit.
@@ -524,8 +527,7 @@ void segfault_sigaction(int signal, siginfo_t *si, void *context) {
 
 void timer_sigaction(int signal, siginfo_t *si, void *context) {
     if (executing != RunningTest) {
-        //fprintf(stderr, "Execution timer expired\n");
-        exit(1);
+        exit_with_status(1, "Execution timer expired");
     }
 
     unblock_signal(signal);
@@ -551,8 +553,7 @@ void start_timer() {
     timer.it_interval.tv_sec = 0;
     timer.it_interval.tv_nsec = 0;
     if (timer_settime(timerid, 0, &timer, NULL) == -1) {
-        fprintf(stderr, "timer_settime() error\n");
-        exit(1);
+        exit_with_status(1, "timer_settime() error");
     }
 }
 
@@ -562,8 +563,7 @@ void end_timer() {
     timer.it_interval.tv_sec = 0;
     timer.it_interval.tv_nsec = 0;
     if (timer_settime(timerid, 0, &timer, NULL) == -1) {
-        fprintf(stderr, "timer_settime() error\n");
-        exit(1);
+        exit_with_status(1, "timer_settime() error");
     }
 }
 
@@ -583,8 +583,7 @@ timer_t setup_timer() {
     tsa.sa_flags = SA_SIGINFO | SA_ONSTACK | SA_NODEFER;
     sigemptyset(&tsa.sa_mask);
     if (sigaction(SIG, &tsa, 0) == -1) {
-        fprintf(stderr, "sigaction() error\n");
-        exit(1);
+        exit_with_status(1, "sigaction() error");
     }
 
     // Create the timer
@@ -592,8 +591,7 @@ timer_t setup_timer() {
     sev.sigev_signo = SIG;
     sev.sigev_value.sival_ptr = &timerid;
     if (timer_create(CLOCKID, &sev, &timerid) == -1) {
-        fprintf(stderr, "timer_create() error\n");
-        exit(1);
+        exit_with_status(1, "timer_create() error");
     }
 
     return timerid;
@@ -601,8 +599,7 @@ timer_t setup_timer() {
 
 void destroy_timer(timer_t timerid) {
     if (timer_delete(timerid) == -1) {  // delete the timer
-        fprintf(stderr, "timer_delete() error: %d\n", errno);
-        exit(1);
+        exit_with_status(1, "timer_delete() error");
     }
 }
 
@@ -637,14 +634,12 @@ unsigned long run_variant(int v, int test) {
 
     retval = PAPI_start(EventSet);  // start PAPI counting
     if (retval < 0) {
-        fprintf(stderr, "PAPI_start() error: %d\n", retval);
-        exit(1);
+        exit_with_status(1, "PAPI_start() error");
     }
 
     retval = PAPI_read(EventSet, start_value);     // get PAPI count
     if (retval < 0) {
-        fprintf(stderr, "PAPI_read() error: %d\n", retval);
-        exit(1);
+        exit_with_status(1, "PAPI_read() error");
     }
 
     asm("call _init_registers\n\t");
@@ -664,14 +659,12 @@ unsigned long run_variant(int v, int test) {
     }
 
     if (retval < 0) {
-        fprintf(stderr, "PAPI_read() error: %d\n", retval);
-        exit(1);
+        exit_with_status(1, "PAPI_read() error");
     }
 
     retval = PAPI_stop(EventSet, stop_value);
     if (retval < 0) {
-        fprintf(stderr, "PAPI_stop() error: %d\n", retval);
-        exit(1);
+        exit_with_status(1, "PAPI_stop() error");
     }
 
     long_long elapsed_instructions = end_value[0] - start_value[0];
@@ -705,14 +698,12 @@ unsigned long run_overhead() {
 
     retval = PAPI_start(EventSet);  // start PAPI counting
     if (retval < 0) {
-        fprintf(stderr, "PAPI_start() error: %d\n", retval);
-        exit(1);
+        exit_with_status(1, "PAPI_start() error");
     }
 
     retval = PAPI_read(EventSet, start_value);     // get PAPI count
     if (retval < 0) {
-        fprintf(stderr, "PAPI_read() error: %d\n", retval);
-        exit(1);
+        exit_with_status(1, "PAPI_read() error");
     }
 
     // This matches what happens during PAPI timing in run_variant,
@@ -725,14 +716,12 @@ unsigned long run_overhead() {
     retval = PAPI_read(EventSet, end_value);     // get PAPI count
 
     if (retval < 0) {
-        fprintf(stderr, "PAPI_read() error: %d\n", retval);
-        exit(1);
+        exit_with_status(1, "PAPI_read() error");
     }
 
     retval = PAPI_stop(EventSet, stop_value);
     if (retval < 0) {
-        fprintf(stderr, "PAPI_stop() error: %d\n", retval);
-        exit(1);
+        exit_with_status(1, "PAPI_stop() error");
     }
 
     overhead = (unsigned long)(end_value[0] - start_value[0]);
@@ -757,12 +746,10 @@ void papi_init() {
     int retval = PAPI_library_init(PAPI_VER_CURRENT);
 
     if (retval != PAPI_VER_CURRENT && retval > 0) {
-        fprintf(stderr,"PAPI library version mismatch!\n");
-        exit(1);
+        exit_with_status(1, "PAPI library version mismatch");
     }
     if (retval < 0) {
-        fprintf(stderr, "PAPI initialization error: %d\n", retval);
-        exit(1);
+        exit_with_status(1, "PAPI initialization error");
     }
 #if DEBUG
     fprintf(stderr, "PAPI Version Number %d.%d.%d\n",
@@ -774,20 +761,19 @@ void papi_init() {
     // Create an event set, containint Total Instructions Executed counter
     retval = PAPI_create_eventset(&EventSet);
     if (retval < 0) {
-        fprintf(stderr, "PAPI_create_eventset()  error: %d\n", retval);
-        exit(1);
+        exit_with_status(1, "PAPI_create_eventset()  error");
     }
     retval = PAPI_add_event(EventSet, PAPI_TOT_INS);
-        if (retval < 0) {
-        fprintf(stderr, "PAPI_add_event()  error: %d\n", retval);
-        exit(1);
+    if (retval < 0) {
+        exit_with_status(1, "PAPI_add_event() error");
     }
 }
 
 unsigned char sig_stack_bytes[SIGSTKSZ + 8];
 stack_t signal_stack = { sig_stack_bytes + 8, 0, SIGSTKSZ };
 
-#if 0
+#ifdef KERNEL_HANDLER // not needed currently, but may
+                      // be useful if we run into problems
 #define RESTORE(name, syscall) RESTORE2 (name, syscall)
 #define RESTORE2(name, syscall)			\
 asm						\
@@ -822,7 +808,47 @@ void setup_kernel_handler(int sig) {
     act.k_sa_restorer = restore_rt;
     syscall(SYS_rt_sigaction, sig, &act, NULL, _NSIG / 8);
 }
+#endif // KERNEL_HANDLER
+
+void exit_with_status(int code, char* errmsg) {
+#if DEBUG
+    fprintf(stderr, "Exit reason: %s\n", errmsg);
+    fprintf(stderr, "Number of segfaults: %d\n", segment_violations);
+    fprintf(stderr, "malloc() called: %s\n", in_malloc ? "true" : "false");
+    fprintf(stderr, "realloc() called: %s\n", in_realloc ? "true" : "false");
+    fprintf(stderr, "free() called: %s\n", in_free ? "true" : "false");
 #endif
+    // 1) output meta information, as common lisp plist (:key val ...)
+    //
+    // 2) output the results, with all the tests results for one variant
+    //    on each line. Wrap them in a common lisp vector #( ... ).
+    //
+    // Note: these are the only thing sent to stdout by this program.
+    //
+
+    fprintf(stdout, "(%s %s %s %d %s %d %s %d %s %d)\n",
+            ":exit-reason", errmsg,
+            ":segfaults", segment_violations,
+            ":malloc", in_malloc,
+            ":realloc", in_realloc,
+            ":free", in_free);
+
+    fprintf(stdout, "#(");
+
+    unsigned long* p = test_results;
+    for (int i = 0; i < num_variants; i++) {
+        for (int j = 0; j < num_tests; j++) {
+            if (p[i * num_tests + j] == 0) {
+                fprintf(stderr, "Error: test_result (0) is not valid!");
+                p[i * num_tests + j] = ULONG_MAX;
+            }
+            fprintf(stdout, "%lu ", p[i * num_tests + j]);
+        }
+        fprintf(stdout, "\n");
+    }
+    fprintf(stdout, ")\n");
+    exit(code);
+}
 
 //
 //
@@ -839,10 +865,20 @@ int main(int argc, char* argv[]) {
     // with the i/o data addresses
     char* temp = alloca(0x80000);
 
+    // count the number of variants by scanning the table, looking for
+    // terminating 0
+    for (int i = 0; variant_table[i]; i++)
+        num_variants++;
+#if DEBUG
+    fprintf(stderr, "Number of variants: %d\n", num_variants);
+#endif
+    unsigned long* p = test_results;
+    for (int i = 0; i < (num_tests * num_variants); i++)
+        p[i] = ULONG_MAX;   // set fitness to max to initialize
+
     // set up signal handling
     if (sigaltstack(&signal_stack, NULL) == -1) {
-        fprintf(stderr, "Error installing alternate signal stack\n");
-        exit(1);
+        exit_with_status(1, "Error installing alternate signal stack");
     }
     sigunblock();
 
@@ -853,12 +889,10 @@ int main(int argc, char* argv[]) {
     sa.sa_flags = SA_SIGINFO|SA_NODEFER|SA_RESTART|SA_ONSTACK;
 
     if (sigaction(SIGSEGV, &sa, NULL) == -1) {
-        fprintf(stderr, "Error installing segfault signal handler\n");
-        exit(1);
+        exit_with_status(1, "Error installing segfault signal handler");
     }
     if (sigaction(SIGBUS, &sa, NULL) == -1) {
-        fprintf(stderr, "Error installing segfault signal handler\n");
-        exit(1);
+        exit_with_status(1, "Error installing segfault signal handler");
     }
 
     setup_timer();
@@ -874,27 +908,15 @@ int main(int argc, char* argv[]) {
     int retval = init_pages(); // allocate any referenced pages
     executing = NormalState;
     if (retval == -1) {
+#if DEBUG
         fprintf(stderr, "Segmentation fault initializing pages at 0x%lx\n",
                 segfault_addr);
-        exit(1);
+#endif
+        exit_with_status(1, "Page init segfault");
     }
 
     unsigned long best = 0;
     int best_index = -1;
-    int num_variants = 0;
-
-    // count the number of variants by scanning the table, looking for
-    // terminating 0
-    for (int i = 0; variant_table[i]; i++)
-        num_variants++;
-#if DEBUG
-    fprintf(stderr, "Number of variants: %d\n", num_variants);
-#endif
-    unsigned long* p = test_results;
-
-    for (int i = 0; i < (num_tests * num_variants); i++)
-        p[i] = ULONG_MAX;   // set fitness to max to
-                                       // initialize
 
     // see how many overhead instructions there are
     unsigned long overhead = run_overhead();
@@ -905,38 +927,6 @@ int main(int argc, char* argv[]) {
             break;
     }
 
-#if DEBUG
-    fprintf(stderr, "Number of segfaults: %d\n", segment_violations);
-    fprintf(stderr, "malloc() called: %s\n", in_malloc ? "true" : "false");
-    fprintf(stderr, "realloc() called: %s\n", in_realloc ? "true" : "false");
-    fprintf(stderr, "free() called: %s\n", in_free ? "true" : "false");
-#endif
-    // 1) output meta information, as common lisp plist (:key val ...)
-    //
-    // 2) output the results, with all the tests results for one variant
-    //    on each line. Wrap them in a common lisp vector #( ... ).
-    //
-    // Note: these are the only thing sent to stdout by this program.
-    //
-
-    fprintf(stdout, "(%s %d %s %d %s %d %s %d)\n",
-            ":segfaults", segment_violations,
-            ":malloc", in_malloc,
-            ":realloc", in_realloc,
-            ":free", in_free);
-    
-    fprintf(stdout, "#(");
-
-    for (int i = 0; i < num_variants; i++) {
-        for (int j = 0; j < num_tests; j++) {
-            if (p[i * num_tests + j] == 0) {
-                fprintf(stderr, "Error: test_result (0) is not valid!");
-                p[i * num_tests + j] = ULONG_MAX;
-            }
-            fprintf(stdout, "%lu ", p[i * num_tests + j]);
-        }
-        fprintf(stdout, "\n");
-    }
-    fprintf(stdout, ")\n");
-    return 0;
+    exit_with_status(0, "\"ok\"");
+    return 0; // never gets here
 }
