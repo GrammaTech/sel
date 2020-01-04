@@ -826,7 +826,7 @@ void exit_with_status(int code, char* errmsg) {
     // Note: these are the only thing sent to stdout by this program.
     //
 
-    fprintf(stdout, "(%s %s %s %d %s %d %s %d %s %d)\n",
+    fprintf(stdout, "(%s \"%s\" %s %d %s %d %s %d %s %d)\n",
             ":exit-reason", errmsg,
             ":segfaults", segment_violations,
             ":malloc", in_malloc,
@@ -927,6 +927,9 @@ int main(int argc, char* argv[]) {
             break;
     }
 
-    exit_with_status(0, "\"ok\"");
+    if (exit_early)
+        exit_with_status(1, "Heap function not supported");
+    else
+        exit_with_status(0, "ok");
     return 0; // never gets here
 }
