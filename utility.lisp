@@ -91,14 +91,17 @@
    :stream-to-string
    :getenv
    :quit
+   :git-error
    :git
-   :git-directory
+   :git-dir
+   :work-tree
+   :ssh-key
+   :make-git
+   :run
    :current-git-commit
    :current-git-branch
    :current-git-status
    :git-url-p
-   :clone-git-repo
-   :push-git-repo
    :*temp-dir*
    :temp-file-name
    :with-temp-file
@@ -346,19 +349,61 @@
 ;;; using temporary files and directories.
 ;;;
 ;;; @texi{file-directory}
-(define-condition git (error)
+(define-condition git-error (error)
   ((description :initarg :description :initform nil :reader description))
   (:report (lambda (condition stream)
              (format stream "Git failed: ~a" (description condition)))))
 
-(defun git-directory (directory) ; NOTE: Currently an internal function.
+(defvar *available-git-commands* nil)
+
+(defun initialize-available-git-commands ()
+  (unless *available-git-commands*
+    (setf *available-git-commands*
+          (split-sequence #\Newline (shell "git --list-cmds=main,others")))))
+
+(defclass git ()
+  ((git-dir :initarg :git-dir :accessor git-dir
+            :initform nil :type (or null pathname))
+   (work-tree :initarg :work-tree :accessor work-tree
+              :initform nil :type (or null pathname))
+   (ssh-key :initarg :ssh-key :accessor ssh-key
+            :initform nil :type (or null string)))
+  (:documentation "An object to represent a git repository."))
+
+(defgeneric run (git command &rest arguments)
+  (:documentation "Run the git command COMMAND in the git repository GIT.")
+  (:method :before ((git git) (command string) &rest arguments)
+           (declare (ignorable arguments))
+           (initialize-available-git-commands)
+           (unless (member command *available-git-commands* :test #'string=)
+             (error
+              (make-instance 'git-error
+                :description (format nil "Unknown git command ~S" command)))))
+  (:method ((git git) (command string) &rest arguments)
+    (multiple-value-bind (stdout stderr errno)
+        (with-slots (git-dir work-tree ssh-key) git
+          (let ((prefix (format nil "GIT_WORK_TREE=~a GIT_DIR=~a"
+                                (namestring work-tree)
+                                (namestring git-dir))))
+            (when ssh-key
+              (setf prefix
+                    (concatenate 'string prefix
+                                 " GIT_SSH_COMMAND='ssh -i ~a -F /dev/null'")))
+            (shell "~a git ~{~a~^ ~}"
+                   prefix (cons command arguments))))
+      (declare (ignorable stderr errno))
+      (unless (zerop errno)
+        (error (make-instance 'git-error :description stderr)))
+      stdout)))
+
+(defun git-from-directory (directory) ; NOTE: Currently an internal function.
   "Return first parent directory of DIRECTORY that is a git repository.
 Return a second value which is the base git repository, the GIT_WORK_TREE.
 Raise an error if no such parent exists."
   (labels ((git-directory- (d)
              (when (< (length d) 2)
                (error
-                (make-condition 'git
+                (make-condition 'git-error
                   :description (format nil "~s is not in a git repository."
                                        directory))))
              (handler-case
@@ -381,87 +426,94 @@ Raise an error if no such parent exists."
                                        (make-pathname :directory d))))))))
                (error (e)
                  (error
-                  (make-condition 'git
+                  (make-condition 'git-error
                     :description (format nil "~s finding git directory." e)))))
              (git-directory- (butlast d))))
     (git-directory- directory)))
 
-(defun current-git-commit (directory)
-  (let ((git-dir (git-directory directory)))
-    (with-open-file (git-head-in (merge-pathnames "HEAD" git-dir))
-      (let ((git-head (read-line git-head-in)))
-        (if (scan "ref:" git-head)
-            (with-open-file (ref-in (merge-pathnames
-                                     (second (split-sequence #\Space git-head))
-                                     git-dir))
-              (subseq (read-line ref-in) 0 7)) ; attached head
-            (subseq git-head 0 7))))))         ; detached head
+(defun make-git (local-directory &key remote ssh-key clone-args)
+  "Make a git object in LOCAL-DIRECTORY.
+If REMOTE is specified clone from REMOTE into LOCAL-DIRECTORY.  If
+LOCAL-DIRECTORY exists it should be part of or under a git repository.
+If LOCAL-DIRECTORY does not exist it will be created and a fresh git
+repository will be initialized therein.  A username and password may
+be specified as part of the REMOTE URL.  E.g. as
+'https://USERNAME:PASSWORD@github.com/path/to/repo.git'."
+  (nest
+   (multiple-value-call
+       (lambda (git-dir work-tree)
+         (make-instance 'git
+           :git-dir git-dir :work-tree work-tree :ssh-key ssh-key)))
+   (git-from-directory)
+   (pathname-directory)
+   (ensure-directory-pathname)
+   (if (directory-exists-p (ensure-directory-pathname local-directory))
+       local-directory)
+   (if (not remote)
+       (error (make-instance 'git-error
+                :description
+                "local-directory does not exist and no remote was specified")))
+   (let ((clone-cmd (format nil "git clone ~{~a~^ ~} ~a ~a"
+                            clone-args remote local-directory)))
+     (when ssh-key
+       (setf clone-cmd (format nil "GIT_SSH_COMMAND='ssh -i ~a -F /dev/null' ~a"
+                               ssh-key clone-cmd)))
+     (note 2 "cloning git repo: ~a" clone-cmd)
+     (multiple-value-bind (stdout stderr errno) (shell clone-cmd)
+       (declare (ignorable stdout))
+       (if (not (zerop errno))
+           (error (make-instance 'git-error :description stderr))
+           local-directory)))))
 
-(defun current-git-branch (directory)
-  (let ((git-dir (git-directory directory)))
-    (with-open-file (git-head-in (merge-pathnames "HEAD" git-dir))
-      (lastcar (split-sequence #\/ (read-line git-head-in))))))
+(defmacro define-direct-git-command (data (arg) &body body)
+  (with-gensyms (implementation)
+    `(flet ((,implementation (,arg) ,@body))
+       (defgeneric
+           ,(intern (concatenate 'string "CURRENT-GIT-" (symbol-name data)))
+           (repository)
+         (:documentation ,(format nil "Return the current git ~a by directly ~
+                                      reading git data on disk."
+                                  (string-downcase (symbol-name data))))
+         (:method ((dir list)) (,implementation (git-from-directory dir)))
+         (:method ((dir string))
+           (,implementation (git-from-directory (pathname-directory (ensure-directory-pathname dir)))))
+         (:method ((git git)) (,implementation (dir git)))))))
 
-(defun current-git-status (directory)
-  "Return the git status of DIRECTORY as a list of lists of (status file).
-Return nil if there are no modified, untracked, or deleted files."
-  (multiple-value-bind (stdout stderr errno)
-      (multiple-value-bind (git-dir git-work-tree) (git-directory directory)
-        (shell "GIT_WORK_TREE=~a GIT_DIR=~a git status --porcelain"
-               (namestring git-work-tree)
-               (namestring git-dir)))
-    (declare (ignorable stderr errno))
+(define-direct-git-command commit (git-dir)
+  (with-open-file (git-head-in (merge-pathnames "HEAD" git-dir))
+    (let ((git-head (read-line git-head-in)))
+      (if (scan "ref:" git-head)
+          (with-open-file (ref-in (merge-pathnames
+                                   (second (split-sequence #\Space git-head))
+                                   git-dir))
+            (subseq (read-line ref-in) 0 7)) ; attached head
+          (subseq git-head 0 7)))))          ; detached head
+
+(define-direct-git-command branch (git-dir)
+  (with-open-file (git-head-in (merge-pathnames "HEAD" git-dir))
+    (lastcar (split-sequence #\/ (read-line git-head-in)))))
+
+(defgeneric current-git-status (repository)
+  (:documentation
+   "Return the git status of REPOSITORY as a list of lists of (status file).
+Return nil if there are no modified, untracked, or deleted files.")
+  (:method ((git git))
     (mapcar (lambda (line)
               (multiple-value-bind (status point)
                   (read-from-string line nil)
                 (list (make-keyword status) (subseq line point))))
-            (split-sequence #\Newline stdout :remove-empty-subseqs t))))
+            (run git "status" "--porcelain")))
+  (:method ((directory string))
+    (current-git-status (make-git directory))))
 
 (defun git-url-p (url)
+  "Return nil if URL does not look like a URL to a git valid remote."
   (let ((url-str (if (typep url 'pathname)
                      (namestring url)
                      url)))
     (or (scan "\\.git$" url-str)
         (scan "^git://" url-str)
         (scan "^https://git\\." url-str))))
-
-(defun clone-git-repo (url path &key ssh-key user pass)
-  "Clones a repo at the supplied URL into the supplied path.
-Note, the path must be absolute and have a trailing slash, as per git
-convention."
-  (let ((clone-cmd (format nil "git clone ~a ~a" url path)))
-    (when ssh-key
-      (setf clone-cmd (format nil "GIT_SSH_COMMAND='ssh -i ~a -F /dev/null' ~a"
-                              ssh-key clone-cmd)))
-    (when (and user pass)
-      (setf clone-cmd (regex-replace "://" clone-cmd
-                                     (format nil "://~a:~a@" user pass))))
-    (note 2 "cloning git repo: ~a" clone-cmd)
-    (multiple-value-bind (stdout stderr errno) (shell clone-cmd)
-      (declare (ignorable stdout))
-      (unless (zerop errno)
-        (warn "git checkout failed: ~a" stderr)
-        (warn "cmd: git --work-tree=~a checkout ~a" path url)))))
-
-(defun push-git-repo (path branch-name commit-msg &key ssh-key user pass)
-  "Given a valid git repo at PATH, push changes to a new BRANCH-NAME branch."
-  (let ((push-cmd (format nil "git push origin ~a" branch-name)))
-    (when ssh-key
-      (setf push-cmd (format nil "GIT_SSH_COMMAND='ssh -i ~a -F /dev/null' ~a"
-                             ssh-key push-cmd)))
-    (when (and user pass)
-      (setf push-cmd (regex-replace "://" push-cmd
-                                    (format nil "://~a:~a@" user pass))))
-    (let ((full-cmd
-           (format nil
-                   "cd ~a && git checkout -b ~a && git commit -m \"~a\" * && ~a"
-                   path branch-name commit-msg push-cmd)))
-      (note 2 "git command: ~a" full-cmd)
-      (multiple-value-bind (stdout stderr errno) (shell full-cmd)
-        (unless (zerop errno)
-          (warn "git push failed:")
-          (warn "  stdout: ~a" stdout)
-          (warn "  stderr: ~a" stderr))))))
 
 (defmacro without-compiler-notes (&body body)
   "Suppress compiler notes from BODY"
@@ -3134,4 +3186,3 @@ to a file at PROFILE-PATH.  Currently only works in SBCL."
               (with-output-to-file (out ,profile-path)
                 (format out "Not profiling.~%")))
             ,@body))
-
