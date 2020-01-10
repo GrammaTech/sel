@@ -331,15 +331,22 @@ non-symlink text files that don't end in \"~\" and are not ignored by
 
 (defmethod crossover ((a project) (b project))
   "Randomly pick a file in A and crossover with the corresponding file in B."
-  (bind ((which (pick-file a))
-         (file (car (nth which (evolve-files a))))
-         ((:values crossed point-a point-b)
-          (crossover (cdr (nth which (evolve-files a)))
-                     (cdr (nth which (evolve-files b)))))
-         (new (copy a)))
-    (setf (cdr (nth which (evolve-files new))) crossed)
-    ;; Add filenames to crossover points for better stats
-    (values new (cons point-a file) (cons point-b file))))
+  (if-let ((pool (union (evolve-files a) (evolve-files b)
+                        :key #'car :test #'equal)))
+    (bind ((file (car (random-elt pool)))
+           ((:values crossed point-a point-b)
+            (crossover (cdr (find file (evolve-files a)
+                                  :key #'car :test #'equal))
+                       (cdr (find file (evolve-files b)
+                                  :key #'car :test #'equal)))))
+          ;; Add filenames to crossover points for better stats
+          (values (nest (copy a :evolve-files)
+                        (cons (cons file crossed)
+                              (remove file (evolve-files a)
+                                      :key #'car :test #'equal)))
+                  (cons point-a file)
+                  (cons point-b file)))
+    (values (copy a) nil nil)))
 
 (defmethod format-genome ((project project) &key)
   "Apply a code formatting tool to each file in PROJECT."
