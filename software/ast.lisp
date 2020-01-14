@@ -30,6 +30,7 @@
            :ast-node
            :ast-stored-hash
            :ast-class
+           :ast-annotations
            :ast-aux-data
            :source-text
            :rebind-vars
@@ -91,6 +92,12 @@
 (defgeneric (setf ast-children) (v a)
   (:documentation "Genericized version of children writer for AST structs")
   (:method ((v list) (a ast-stub)) (setf (ast-internal-children a) v)))
+(defgeneric ast-annotations (a)
+  (:documentation "Genericized version of annotations reader for AST structs")
+  (:method ((a ast-stub)) (ast-internal-annotations a)))
+(defgeneric (setf ast-annotations) (v a)
+  (:documentation "Genericized version of annotations writer for AST structs")
+  (:method ((v list) (a ast-stub)) (setf (ast-internal-annotations a) v)))
 (defgeneric ast-stored-hash (a)
   (:documentation "Genericized version of stored-hash reader for AST structs")
   (:method ((a ast-stub)) (ast-internal-stored-hash a)))
