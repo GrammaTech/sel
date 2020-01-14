@@ -39,7 +39,8 @@
            :collect-evolve-files
            :collect-other-files
            :instrumentation-files
-           :all-files))
+           :all-files
+           :pick-file))
 (in-package :software-evolution-library/software/project)
 (in-readtable :curry-compose-reader-macros)
 
@@ -251,9 +252,12 @@ non-symlink text files that don't end in \"~\" and are not ignored by
   "Return summed size across all `evolve-files'."
   (reduce #'+ (mapcar [#'size #'cdr] (evolve-files obj))))
 
-(defun pick-file (obj)
-  "Randomly pick one evolved file. Return its index in the alist."
-  (proportional-pick (evolve-files obj) (lambda (x) (max 1 (size (cdr x))))))
+(defgeneric pick-file (obj)
+  (:documentation "Randomly pick one evolve file. Return its index in
+the alist.")
+  (:method ((obj project))
+    (proportional-pick (evolve-files obj)
+                       (lambda (x) (max 1 (size (cdr x)))))))
 
 (defmethod mutate ((obj project))
   "Randomly pick one file to mutate."
