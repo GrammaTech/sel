@@ -41,6 +41,7 @@
            :ast-equal-p
            :ast-text
            :ast-hash
+           :make-raw-ast
            :make-conflict-ast
            :conflict-ast
            :conflict-ast-p
