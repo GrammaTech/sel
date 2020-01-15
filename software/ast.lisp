@@ -156,6 +156,10 @@ PRINT-OBJECT method on AST structures.")
 
 (defgeneric ast-class (ast) (:documentation "Class of AST."))
 
+(defmethod ast-class ((ast ast-stub))
+  (declare (ignorable ast))
+  nil)
+
 (defun get-struct-name (name-and-options)
   "Given NAME-AND-OPTIONS, return the struct name."
   (if (listp name-and-options)
