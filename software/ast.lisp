@@ -78,6 +78,7 @@
   (path nil :type list)                      ; Path to subtree from root of tree.
   (children nil :type list)                  ; Remainder of subtree.
   (annotations nil :type list)
+  (aux-data nil :type list)
   (stored-hash nil :type (or null fixnum)))
 
 (defgeneric ast-path (a)
@@ -98,6 +99,12 @@
 (defgeneric (setf ast-annotations) (v a)
   (:documentation "Genericized version of annotations writer for AST structs")
   (:method ((v list) (a ast-stub)) (setf (ast-internal-annotations a) v)))
+(defgeneric ast-aux-data (a)
+  (:documentation "Genericized version of aux-data reader for AST structs")
+  (:method ((a ast-stub)) (ast-internal-aux-data a)))
+(defgeneric (setf ast-aux-data) (v a)
+  (:documentation "Genericized version of aux-data writer for AST structs")
+  (:method ((v list) (a ast-stub)) (setf (ast-internal-aux-data a) v)))
 (defgeneric ast-stored-hash (a)
   (:documentation "Genericized version of stored-hash reader for AST structs")
   (:method ((a ast-stub)) (ast-internal-stored-hash a)))
@@ -109,11 +116,13 @@
                  &key (path nil path-provided-p)
                    (children nil children-provided-p)
                    (annotations nil annotations-provided-p)
+                   (aux-data nil aux-data-provided-p)
                    (stored-hash nil stored-hash-provided-p))
   (make-raw-ast
    :path (if path-provided-p path (ast-path a))
    :children (if children-provided-p children (ast-children a))
    :annotations (if annotations-provided-p annotations (ast-annotations a))
+   :aux-data (if aux-data-provided-p aux-data (ast-aux-data a))
    :stored-hash (if stored-hash-provided-p stored-hash (ast-stored-hash a))))
 
 (defparameter *ast-print-cutoff* 20
@@ -356,26 +365,30 @@ list."
 (defmethod copy
     ((struct conflict-ast) &key
                              (path nil path-provided-p)
-                             (node nil node-provided-p)
                              (children nil children-provided-p)
                              (annotations nil annotations-provided-p)
+                             (aux-data nil aux-data-provided-p)
                              (stored-hash nil stored-hash-provided-p)
                              (child-alist nil child-alist-provided-p)
                              (default-children nil default-children-provided-p))
-  (apply
-   #'make-conflict-ast
-   (append
-    (when path-provided-p (list :path path))
-    (when node-provided-p (list :node node))
-    (when children-provided-p (list :children children))
-    (when annotations-provided-p (list :annotations annotations))
-    (when stored-hash-provided-p (list :stored-hash stored-hash))
-    (list :child-alist (if child-alist-provided-p
-                           child-alist
-                           (conflict-ast-child-alist struct))
-          :default-children (if default-children-provided-p
-                                default-children
-                                (conflict-ast-default-children struct))))))
+  (make-conflict-ast
+   :path (if path-provided-p path (ast-path struct))
+   :children (if children-provided-p children (ast-children struct))
+   :annotations (if annotations-provided-p
+                    annotations
+                    (ast-annotations struct))
+   :aux-data (if aux-data-provided-p
+                 aux-data
+                 (ast-aux-data struct))
+   :stored-hash (if stored-hash-provided-p
+                    stored-hash
+                    (ast-stored-hash struct))
+   :child-alist (if child-alist-provided-p
+                    child-alist
+                    (conflict-ast-child-alist struct))
+   :default-children (if default-children-provided-p
+                         default-children
+                         (conflict-ast-default-children struct))))
 
 (defmethod print-object ((obj conflict-ast) stream)
   (if *print-readably*
