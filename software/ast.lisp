@@ -105,6 +105,17 @@
   (:documentation "Genericized version of children writer for AST structs")
   (:method (v (a ast-stub)) (setf (ast-internal-stored-hash a) v)))
 
+(defmethod copy ((a ast-stub)
+                 &key (path nil path-provided-p)
+                   (children nil children-provided-p)
+                   (annotations nil annotations-provided-p)
+                   (stored-hash nil stored-hash-provided-p))
+  (make-raw-ast
+   :path (if path-provided-p path (ast-path a))
+   :children (if children-provided-p children (ast-children a))
+   :annotations (if annotations-provided-p annotations (ast-annotations a))
+   :stored-hash (if stored-hash-provided-p stored-hash (ast-stored-hash a))))
+
 (defparameter *ast-print-cutoff* 20
   "Maximum number of characters to print for TEXT in
 PRINT-OBJECT method on AST structures.")
