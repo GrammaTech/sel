@@ -503,6 +503,11 @@ AST."))
   "Return the source code corresponding to STR."
   str)
 
+(defmethod source-text ((ast ast-stub))
+  (with-output-to-string (out)
+    (mapc [{write-string _ out} #'source-text]
+          (ast-children ast))))
+
 (defmethod source-text ((c conflict-ast))
   (with-output-to-string (s)
     (format s "<")
