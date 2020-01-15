@@ -127,6 +127,13 @@ PRINT-OBJECT method on AST structures.")
                 (concatenate 'string (subseq truncated 0 position) "...")
                 truncated)))))
 
+(defmethod print-object ((obj ast-stub) stream)
+  (if *print-readably*
+      (call-next-method)
+      (print-unreadable-object (obj stream :type t)
+        (format stream ":PATH ~s~:_ :HASH ~s~:_"
+                (ast-path obj) (ast-hash obj)))))
+
 (defgeneric ast-class (ast) (:documentation "Class of AST."))
 
 (defun get-struct-name (name-and-options)
