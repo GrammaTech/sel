@@ -237,7 +237,7 @@
 (define-software clang-base (parseable)
   ((includes :initarg :includes :accessor includes
              :initform nil :copier :direct
-             :type #+sbcl (list string *) #-sbcl list
+             :type #+sbcl '(list string *) #-sbcl list
              :documentation "Names of headers included.")
    (types :initarg :types :accessor types
           :initform (make-hash-table)
@@ -250,7 +250,7 @@
            :documentation "List of macros.")
    (stmt-asts :initarg :stmt-asts :reader stmt-asts
               :initform nil :copier :direct
-              :type #+sbcl (list (cons keyword *) *) #-sbcl list
+              :type #+sbcl '(list (cons keyword *) *) #-sbcl list
               :documentation
               "List of statement ASTs which exist within a function body.")
    ;; TODO: We should split non-statement ASTs into typedefs,
@@ -258,16 +258,16 @@
    ;;       have different mutation types defined.  This needs more design.
    (non-stmt-asts :initarg :non-stmt-asts :reader non-stmt-asts
                   :initform nil :copier :direct
-                  :type #+sbcl (list (cons keyword *) *) #-sbcl list
+                  :type #+sbcl '(list (cons keyword *) *) #-sbcl list
                   :documentation
                   "List of global AST which live outside of any function.")
    (functions :initarg :functions :reader functions
               :initform nil :copier :direct
-              :type #+sbcl (list (cons keyword *) *) #-sbcl list
+              :type #+sbcl '(list (cons keyword *) *) #-sbcl list
               :documentation "Complete functions with bodies.")
    (prototypes :initarg :prototypes :reader prototypes
                :initform nil :copier :direct
-               :type #+sbcl (list (cons keyword *) *) #-sbcl list
+               :type #+sbcl '(list (cons keyword *) *) #-sbcl list
                :documentation "Function prototypes."))
   (:documentation "Base class for C/C++ objects parsed with Clang front end"))
 
