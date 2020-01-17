@@ -418,7 +418,7 @@ directories and if files based on their extensions."
                           (language (guess-language path) language-p)
                           compiler flags build-command artifacts
                           ast-annotations compilation-database store-path
-                          fault-loc git-sub-path git-ssh-key git-user git-password
+                          fault-loc git-sub-path git-ssh-key
                           &allow-other-keys)
   "Build a software object from a common superset of language-specific options.
 
@@ -446,25 +446,21 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
   ;; When `path` is a git repository, generate a new temp dir,
   ;; check out the repo, and set relevant variables
   (let* ((repo (when (git-url-p path)
-                 (let ((url path)
-                       (local-repo (temp-file-name)))
-                   (clone-git-repo url local-repo
-                                   :ssh-key git-ssh-key
-                                   :user git-user :pass git-password)
-                   (setf path (probe-file
-                               (make-pathname :directory local-repo
-                                              :name git-sub-path)))
-                   ;; Reset guessed language, now that repo is cloned.
-                   (unless language-p
-                     (setf language-p t ; Treat as explicitly set.
-                           language
-                           (ecase (guess-language path)
-                             (clang-project 'clang-git-project)
-                             (javascript-project 'javascript-git-project)
-                             (java-project 'java-git-project)
-                             (lisp-project 'lisp-git-project)
-                             (simple 'simple))))
-                   url)))
+                 (let ((remote path))
+                   (prog1 remote
+                     (make-git (setf path (temp-file-name))
+                               :remote remote
+                               :ssh-key git-ssh-key)
+                     ;; Reset guessed language, now that repo is cloned.
+                     (unless language-p
+                       (setf language-p t ; Treat as explicitly set.
+                             language
+                             (ecase (guess-language path)
+                               (clang-project 'clang-git-project)
+                               (javascript-project 'javascript-git-project)
+                               (java-project 'java-git-project)
+                               (lisp-project 'lisp-git-project)
+                               (simple 'simple))))))))
          (obj (from-file
                (nest
                 ;; These options are interdependent.  Resolve any
@@ -603,12 +599,7 @@ in SCRIPT.")
     '((("git-sub-path" #\p) :type string :initial-value nil
        :documentation "sub path to software, when using a git repo")
       (("git-ssh-key" #\k) :type string :initial-value nil
-       :documentation "path to ssh key used for pushing a git repo")
-      (("git-user" #\U) :type string :initial-value nil
-       :documentation "user used for pushing a git repo")
-      (("git-password" #\P) :type string :initial-value nil
-       :documentation
-       "password (NOTE: insecure!) used when pushing to a git repo")))
+       :documentation "path to ssh key used for pushing a git repo")))
   (defparameter +clang-command-line-options+
     '((("compiler" #\c) :type string :initial-value "clang"
        :documentation "use CC as the C compiler")
