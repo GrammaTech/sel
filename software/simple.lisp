@@ -20,6 +20,7 @@
            :reference
            :range-nth
            :range-subseq
+           :*simple-mutation-types*
            :simple-mutation
            :simple-cut
            :simple-insert
