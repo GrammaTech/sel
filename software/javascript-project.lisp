@@ -40,7 +40,7 @@
    (ignore-paths
     :initarg :ignore-paths
     :reader ignore-paths
-    :initform (list "test/**/*" "tests/**/*" "node_modules/**/*")
+    :initform (list "node_modules/**/*")
     :documentation
     "List of paths to ignore when collecting evolve-files.
 This default value is particular to node.js JavaScript projects."))
