@@ -274,6 +274,14 @@
            :leaf-functions
            :parse-sanity-file
            :restore-original-addresses
+           :input-specification
+           :input-spec
+           :output-spec
+           :input-specification-regs
+           :input-specification-mem
+           :reg-contents
+           :reg-contents-name
+           :reg-contents-value
            :*optimize-included-lines*
            :*inline-included-lines*
            :*size-affects-fitness*
@@ -281,7 +289,8 @@
            :*data-segment-start*
            :*text-segment-start*
            :*seldata-segment-start*
-           :*timeout-seconds*))
+           :*timeout-seconds*
+           :*callee-saved-init-value*))
 
 (in-package :software-evolution-library/software/asm-super-mutant)
 (in-readtable :curry-compose-reader-macros)
