@@ -359,7 +359,7 @@
 (defun initialize-available-git-commands ()
   (unless *available-git-commands*
     (setf *available-git-commands*
-          (split-sequence #\Newline (shell "git --list-cmds=main,others")))))
+          (list "add" "branch" "checkout" "clone" "commit" "diff" "fetch" "log" "merge" "rebase" "reset" "rm" "submodule" "tag"))))
 
 (defclass git ()
   ((git-dir :initarg :git-dir :accessor git-dir
@@ -391,9 +391,11 @@
                                  " GIT_SSH_COMMAND='ssh -i ~a -F /dev/null'")))
             (shell "~a git ~{~a~^ ~}"
                    prefix (cons command arguments))))
-      (declare (ignorable stderr errno))
       (unless (zerop errno)
-        (error (make-instance 'git-error :description stderr)))
+        (error (make-instance 'git-error :description (format nil
+                                                              "stdout: ~a ~%stderr: ~a"
+                                                              stdout
+                                                              stderr))))
       stdout)))
 
 (defun git-from-directory (directory) ; NOTE: Currently an internal function.
