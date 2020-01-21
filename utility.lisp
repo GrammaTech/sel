@@ -354,13 +354,6 @@
   (:report (lambda (condition stream)
              (format stream "Git failed: ~a" (description condition)))))
 
-(defvar *available-git-commands* nil)
-
-(defun initialize-available-git-commands ()
-  (unless *available-git-commands*
-    (setf *available-git-commands*
-          (list "add" "branch" "checkout" "clone" "commit" "diff" "fetch" "log" "merge" "rebase" "reset" "rm" "submodule" "tag"))))
-
 (defclass git ()
   ((git-dir :initarg :git-dir :accessor git-dir
             :initform nil :type (or null pathname))
@@ -372,13 +365,6 @@
 
 (defgeneric run (git command &rest arguments)
   (:documentation "Run the git command COMMAND in the git repository GIT.")
-  (:method :before ((git git) (command string) &rest arguments)
-           (declare (ignorable arguments))
-           (initialize-available-git-commands)
-           (unless (member command *available-git-commands* :test #'string=)
-             (error
-              (make-instance 'git-error
-                :description (format nil "Unknown git command ~S" command)))))
   (:method ((git git) (command string) &rest arguments)
     (multiple-value-bind (stdout stderr errno)
         (with-slots (git-dir work-tree ssh-key) git
