@@ -451,8 +451,10 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
                      (make-git (setf path (temp-file-name))
                                :remote remote
                                :ssh-key git-ssh-key)
-                     (setf path (make-pathname :directory path
-                                               :name git-sub-path))
+                     ;; Update path if working in sub-directory of repository.
+                     (when git-sub-path
+                       (setf path (make-pathname :directory path
+                                                 :name git-sub-path)))
                      ;; Reset guessed language, now that repo is cloned.
                      (unless language-p
                        (setf language-p t ; Treat as explicitly set.
