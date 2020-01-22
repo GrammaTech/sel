@@ -48,6 +48,7 @@ techniques."
   :build-pathname "bin/rest-server"
   :entry-point "software-evolution-library/rest::run-rest-server")
 
+#+debug
 (defsystem "software-evolution-library/run-new-clang-round-trip"
     :author "Eric Schulte and GrammaTech"
     :licence "GPL V3"
@@ -58,6 +59,7 @@ techniques."
     :build-pathname "test/commands/new-clang-round-trip"
     :entry-point "software-evolution-library/components/new-clang-round-trip::run-new-clang-round-trip")
 
+#+debug
 (defsystem "software-evolution-library/run-clang-diff-test"
     :author "Eric Schulte and GrammaTech"
     :licence "GPL V3"
