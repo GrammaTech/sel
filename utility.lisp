@@ -417,7 +417,14 @@ Raise an error if no such parent exists."
                   (make-condition 'git-error
                     :description (format nil "~s finding git directory." e)))))
              (git-directory- (butlast d))))
-    (git-directory- directory)))
+    (git-directory-
+     (if (listp directory)
+         directory
+         (pathname-directory (ensure-directory-pathname directory))))))
+
+(defmethod initialize-instance :after ((git git) &key)
+  (when (and (work-tree git) (not (git-dir git)))
+    (setf (git-dir git) (git-from-directory (work-tree git)))))
 
 (defun make-git (local-directory &key remote ssh-key clone-args)
   "Make a git object in LOCAL-DIRECTORY.
@@ -433,8 +440,6 @@ be specified as part of the REMOTE URL.  E.g. as
          (make-instance 'git
            :git-dir git-dir :work-tree work-tree :ssh-key ssh-key)))
    (git-from-directory)
-   (pathname-directory)
-   (ensure-directory-pathname)
    (if (directory-exists-p (ensure-directory-pathname local-directory))
        local-directory)
    (if (not remote)
@@ -454,18 +459,16 @@ be specified as part of the REMOTE URL.  E.g. as
            local-directory)))))
 
 (defmacro define-direct-git-command (data (arg) &body body)
-  (with-gensyms (implementation)
-    `(flet ((,implementation (,arg) ,@body))
-       (defgeneric
-           ,(intern (concatenate 'string "CURRENT-GIT-" (symbol-name data)))
-           (repository)
-         (:documentation ,(format nil "Return the current git ~a by directly ~
-                                      reading git data on disk."
-                                  (string-downcase (symbol-name data))))
-         (:method ((dir list)) (,implementation (git-from-directory dir)))
-         (:method ((dir string))
-           (,implementation (git-from-directory (pathname-directory (ensure-directory-pathname dir)))))
-         (:method ((git git)) (,implementation (dir git)))))))
+  (let ((name (intern (concatenate 'string "CURRENT-GIT-" (symbol-name data))
+                      *package*)))
+    `(defgeneric ,name (repository)
+       (:documentation ,(format nil "Return the current git ~a by directly ~
+                                         reading git data on disk."
+                                (string-downcase (symbol-name data))))
+       (:method ((dir list))
+         (,name (make-instance 'git :work-tree (make-pathname :directory dir))))
+       (:method ((dir string)) (,name (make-instance 'git :work-tree dir)))
+       (:method ((git git)) (let ((,arg (git-dir git))) ,@body)))))
 
 (define-direct-git-command commit (git-dir)
   (with-open-file (git-head-in (merge-pathnames "HEAD" git-dir))
@@ -480,19 +483,6 @@ be specified as part of the REMOTE URL.  E.g. as
 (define-direct-git-command branch (git-dir)
   (with-open-file (git-head-in (merge-pathnames "HEAD" git-dir))
     (lastcar (split-sequence #\/ (read-line git-head-in)))))
-
-(defgeneric current-git-status (repository)
-  (:documentation
-   "Return the git status of REPOSITORY as a list of lists of (status file).
-Return nil if there are no modified, untracked, or deleted files.")
-  (:method ((git git))
-    (mapcar (lambda (line)
-              (multiple-value-bind (status point)
-                  (read-from-string line nil)
-                (list (make-keyword status) (subseq line point))))
-            (run git "status" "--porcelain")))
-  (:method ((directory string))
-    (current-git-status (make-git directory))))
 
 (defun git-url-p (url)
   "Return nil if URL does not look like a URL to a git valid remote."
