@@ -391,9 +391,7 @@
 (defconstant +worst-c-fitness+ #xffffffffffffffff)
 
 (defparameter *optimize-included-lines* nil
-  "Optimize the additional lines of assembler.
- Append them to the function being modified, so each variation
- contains these lines.")
+  "This option is no longer supported")
 
 (defparameter *inline-included-lines* nil
   "Inline the additional lines of assembler.
@@ -1621,7 +1619,7 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
     (add-externs asm-variants asm-super)
 
     ;; add additionally specified functions or code lines
-    (unless (or *optimize-included-lines* *inline-included-lines*)
+    (unless *inline-included-lines*
       (add-included-lines asm-super asm-variants))
     (add-included-funcs asm-super asm-variants)
 
