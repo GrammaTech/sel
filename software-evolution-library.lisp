@@ -171,14 +171,14 @@
     (concatenate 'string +software-evolution-library-major-version+ "-"
                  (handler-case
                      (current-git-commit +software-evolution-library-dir+)
-                   (git (e) (declare (ignorable e)) "UNKNOWN"))))
+                   (git-error (e) (declare (ignorable e)) "UNKNOWN"))))
   "Current version of the SOFTWARE-EVOLUTION-LIBRARY.")
 
 (defvar +software-evolution-library-branch+
   (eval-when (:compile-toplevel :load-toplevel :execute)
     (handler-case
         (current-git-branch +software-evolution-library-dir+)
-      (git (e) (declare (ignorable e)) "UNKNOWN")))
+      (git-error (e) (declare (ignorable e)) "UNKNOWN")))
   "Current branch of the SOFTWARE-EVOLUTION-LIBRARY.")
 
 (let ((oid-counter 0))
