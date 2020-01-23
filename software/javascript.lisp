@@ -316,14 +316,7 @@
                                      (list (subseq genome
                                                    start
                                                    (aget :end alist)))))))
-             (let ((text (subseq genome (aget :start alist) (aget :end alist))))
-               (if (and (equal "Identifier" (aget :type alist))
-                        (not (member
-                               (aget :type parent-alist)
-                               +js-bound-id-parent-classes+
-                               :test #'equal)))
-                   (list (unpeel-bananas text))
-                   (list text)))))
+             (list (subseq genome (aget :start alist) (aget :end alist)))))
        (make-tree (genome parent-ast-alist ast-alist
                           &aux (children (collect-children ast-alist))
                         (new-ast-node (-> (make-javascript-ast-node
