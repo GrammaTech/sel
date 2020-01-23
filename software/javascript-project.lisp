@@ -32,20 +32,19 @@
      :initarg :package-spec
      :accessor package-spec
      :initform nil
-     :documentation "Javascript project specification from package.json file.")
-   (ignore-paths
-    :initarg :ignore-paths
-    :reader ignore-paths
-    :initform (list "node_modules/**/*")
-    :documentation
-    "List of paths to ignore when collecting evolve-files.
-This default value is particular to node.js JavaScript projects."))
+     :documentation "Javascript project specification from package.json file."))
   (:documentation "Project specialization for javascript software objects."))
 
 (defmethod initialize-instance :after ((javascript-project javascript-project)
                                        &key)
   (setf (slot-value javascript-project 'component-class)
-        (or (component-class javascript-project) 'javascript)))
+        (or (component-class javascript-project) 'javascript)
+        (slot-value javascript-project 'ignore-other-paths)
+        (append (ignore-other-paths javascript-project)
+                (list "node_modules/**/*"))
+        (slot-value javascript-project 'ignore-paths)
+        (append (ignore-paths javascript-project)
+                (list "node_modules/**/*"))))
 
 (defmethod from-file :around ((obj javascript-project) path)
   ;; Sanity check that a package.json file exists
