@@ -47,6 +47,8 @@
                 (list "node_modules/**/*"))))
 
 (defmethod from-file :around ((obj javascript-project) path)
+  ;; Ensure PATH is a directory
+  (setf path (ensure-directory-pathname path))
   ;; Sanity check that a package.json file exists
   (assert (probe-file (merge-pathnames-as-file path "package.json")) (path)
           "JavaScript project requires a package.json file in ~a." path)
