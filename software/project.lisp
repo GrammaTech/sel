@@ -89,8 +89,6 @@ Paths may contain wildcards.")
 E.g., a multi-file C software project may include multiple clang
 software objects in it's `evolve-files'."))
 
-
-
 (defvar *build-dir* nil
   "Directory in which to build projects with `phenome'.
 When non-nil `phenome' builds projects in this directory instead of
@@ -101,6 +99,13 @@ build directory.  To do this set *BUILD-DIR* to a different location
 in each thread and then initialize *BUILD-DIR* in each thread by
 calling `{to-file _ *BUILD_DIR*}' against a base software
 object (e.g., the original program).")
+
+(defmethod initialize-instance :after ((project project) &key)
+  "Wrapper to ensure software objects are not created from git artifacts."
+  (setf (slot-value project 'ignore-other-paths)
+        (append (ignore-other-paths project) (list ".git/**/*"))
+        (slot-value project 'ignore-paths)
+        (append (ignore-paths project) (list ".git/**/*"))))
 
 (defun ignored-path-p (path &key ignore-paths only-paths
                        &aux (canonical-path (canonical-pathname path)))
