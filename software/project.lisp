@@ -224,7 +224,7 @@ non-symlink text files that don't end in \"~\" and are not ignored by
              (not (equalp path (canonical-pathname (project-dir project)))))
     (multiple-value-bind (stdout stderr errno)
         (if (probe-file path) ; Different copy if directory already exists.
-            (shell "cp -pr ~a/* ~a/" (project-dir project) path)
+            (shell "cp -pr ~a/. ~a/" (project-dir project) path)
             (shell "cp -pr ~a ~a" (project-dir project) path))
       (declare (ignorable stdout))
       (assert (zerop errno) (path)
