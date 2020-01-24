@@ -378,6 +378,11 @@
     :initform nil
     :documentation
     "Optional list of names of functions to include in fitness file.")
+   (max-asm-function-size
+    :initarg :max-asm-function-size
+    :accessor max-asm-function-size
+    :initform 1000
+    :documentation)
    (eval-meta-results
     :initarg :eval-meta-results
     :accessor eval-meta-results
@@ -1619,8 +1624,8 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
     (add-externs asm-variants asm-super)
 
     ;; add additionally specified functions or code lines
-    (unless *inline-included-lines*
-      (add-included-lines asm-super asm-variants))
+
+    (add-included-lines asm-super asm-variants)
     (add-included-funcs asm-super asm-variants)
 
     (add-init-regs asm-super asm-variants)
@@ -1702,16 +1707,8 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
            t))))
 
 (defun optimize-included-lines (asm lines)
-  "Optimize the included lines into target.
- If *inline-included-lines* the lines are inlined, otherwise
- they are appended onto each variant."
+  "Merge the included lines into target."
   (when lines
-    ;; put boundary markers around the included lines
-    (unless *inline-included-lines*
-      (setf lines
-          (append (list "        start_included_lines")
-                  lines
-                  (list "        end_included_lines"))))
     (let* ((temp (make-instance 'asm-heap))
            (prefix (local-prefix (asm-syntax asm)))
            (func-index nil)
@@ -1745,32 +1742,29 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
                                    prefix
                                    (asm-line-info-label first-line-info))
                            (cddr flines)) ; trim off starting labels
-                     updates)))
-              (unless *inline-included-lines*
-                (insert-new-lines asm flines))))
+                     updates)))))
       ;; now we need to update any branch targets with modified label names
       (let ((inline-targets '()))
         (iter
           (for update in updates)
           (let ((targets (update-label asm (first update) (second update))))
-            (when *inline-included-lines*
-              (iter (for target in targets)
-                    (push
-                     (list target (second update)(third update))
-                     inline-targets))
-              ;; sort targets for inlining into descending order
-              (setf inline-targets (sort inline-targets '> :key 'first))
-              (iter (for it in inline-targets)
-                    (for i from 0)
-                    (inline-func asm (first it) (third it) i)))))))))
 
+            (iter (for target in targets)
+                  (push
+                   (list target (second update)(third update))
+                   inline-targets))
+            ;; sort targets for inlining into descending order
+            (setf inline-targets (sort inline-targets '> :key 'first))
+            (iter (for it in inline-targets)
+                  (for i from 0)
+                  (inline-func asm (first it) (third it) i))))))))
 
 (defun create-target (asm-super)
   "Returns an ASM-HEAP software object which contains only the target lines."
   (let ((asm (make-instance 'asm-heap :super-owner asm-super)))
     (setf (lines asm)(map 'list 'asm-line-info-text (target-lines asm-super)))
     ;; add included lines if inlining
-    (if (or *optimize-included-lines* *inline-included-lines*)
+    (if *inline-included-lines*
         (optimize-included-lines asm (include-lines asm-super)))
     asm))
 
@@ -1886,7 +1880,7 @@ needs to have been loaded, along with the var-table by PARSE-SANITY-FILE."
                   (shell "timeout ~d ~a" *timeout-seconds* bin-path)
 		(declare (ignorable stderr errno))
 		(if (/= errno 0)
-                    (setf phenome-execute-error t))
+		    (setf phenome-execute-error t))
                 (let ((input-str (make-string-input-stream stdout)))
                   (setf meta-results (read input-str))
                   (setf test-results (read input-str))
@@ -1918,7 +1912,7 @@ needs to have been loaded, along with the var-table by PARSE-SANITY-FILE."
                         src
                         phenome-create-error
                         phenome-execute-error)))
-                (assert nil ()  errmsg)))
+                  (assert nil ()  errmsg)))
 	  (let* ((num-tests (length (input-spec asm-super)))
 		 (num-variants (/ (length test-results) num-tests))
 		 (results '()))
