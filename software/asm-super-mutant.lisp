@@ -382,7 +382,7 @@
     :initarg :max-asm-function-size
     :accessor max-asm-function-size
     :initform 1000
-    :documentation)
+    :documentation "Maximum number of lines in a function for optimization.")
    (eval-meta-results
     :initarg :eval-meta-results
     :accessor eval-meta-results
@@ -1706,14 +1706,20 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
            (getf (asm-line-info-properties (elt (genome asm) i)) :inline)
            t))))
 
-(defun optimize-included-lines (asm lines)
-  "Merge the included lines into target."
+(defun optimize-included-lines (asm lines limit)
+  "Merge the included lines into target asm-heap. asm-heap is updated ~
+   with additional lines, up to limit. ~
+   Two values are returned: ~
+   The number of potential inline targets, and the ~
+   number actually inlined due to size limit."
   (when lines
     (let* ((temp (make-instance 'asm-heap))
            (prefix (local-prefix (asm-syntax asm)))
            (func-index nil)
            (flines nil)
-           (updates nil))
+           (updates nil)
+           (num-potential-inlines 0)
+           (num-actual-inlines 0))
       (setf (lines temp) lines)
       (setf func-index (function-index temp))
       (iter (for fie in-vector func-index) ; for each function
@@ -1748,24 +1754,33 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
         (iter
           (for update in updates)
           (let ((targets (update-label asm (first update) (second update))))
-
             (iter (for target in targets)
                   (push
                    (list target (second update)(third update))
                    inline-targets))
             ;; sort targets for inlining into descending order
             (setf inline-targets (sort inline-targets '> :key 'first))
+            (incf num-potential-inlines (length inline-targets))
             (iter (for it in inline-targets)
+                  (while (< (+ (size asm) (length (third it))) limit))
                   (for i from 0)
-                  (inline-func asm (first it) (third it) i))))))))
+                  (inline-func asm (first it) (third it) i)
+                  (incf num-actual-inlines)))))
+      (values num-potential-inlines num-actual-inlines))))
 
 (defun create-target (asm-super)
   "Returns an ASM-HEAP software object which contains only the target lines."
   (let ((asm (make-instance 'asm-heap :super-owner asm-super)))
     (setf (lines asm)(map 'list 'asm-line-info-text (target-lines asm-super)))
     ;; add included lines if inlining
-    (if *inline-included-lines*
-        (optimize-included-lines asm (include-lines asm-super)))
+    (when *inline-included-lines*
+      (multiple-value-bind (possible actual)
+          (optimize-included-lines asm
+                                   (include-lines asm-super)
+                                   (max-asm-function-size asm-super))
+        (record-meta-results asm-super
+                             (list :possible-inlines possible
+                                   :actual-inlines actual))))
     asm))
 
 (defvar *lib-papi*

@@ -839,7 +839,7 @@ void exit_with_status(int code, char* errmsg) {
     for (int i = 0; i < num_variants; i++) {
         for (int j = 0; j < num_tests; j++) {
             if (p[i * num_tests + j] == 0) {
-                fprintf(stderr, "Error: test_result (0) is not valid!");
+                //fprintf(stderr, "Error: test_result (0) is not valid!");
                 p[i * num_tests + j] = ULONG_MAX;
             }
             fprintf(stdout, "%lu ", p[i * num_tests + j]);
