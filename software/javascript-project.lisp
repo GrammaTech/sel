@@ -58,43 +58,43 @@
           (decode-json-from-string (file-to-string "package.json"))))
   (call-next-method))
 
-(defmethod collect-evolve-files ((obj javascript-project)
-                                 &aux result (project-dir (project-dir obj)))
-  (with-current-directory (project-dir)
+(defmethod collect-evolve-files ((project javascript-project) &aux result)
+  (with-current-directory ((project-dir project))
     (walk-directory
-      project-dir
-      (lambda (file &aux (rel-path (pathname-relativize project-dir file))
-                 (pkg (package-spec obj)))
-        (push (cons (namestring rel-path)
-                    (from-file
-                     (make-instance (component-class obj)
-                       :parsing-mode
-                       (cond ((find rel-path (aget :bin pkg)
-                                    :key [#'canonical-pathname #'cdr]
-                                    :test #'equal)
-                              :script)
-                             ((equal rel-path
-                                     (canonical-pathname
-                                      (or (aget :main pkg)
-                                          "index.js")))
-                              :script)
-                             (t :module)))
-                     file))
-              result))
-      :test (lambda (file &aux
-                       (rel-path (pathname-relativize project-dir file))
-                       (pkg (package-spec obj)))
+      (project-dir project)
+      (lambda (file)
+        (let ((rel-path (pathname-relativize (project-dir project) file))
+              (pkg (package-spec project)))
+          (push (cons (namestring rel-path)
+                      (from-file
+                       (make-instance (component-class project)
+                         :parsing-mode
+                         (cond ((find rel-path (aget :bin pkg)
+                                      :key [#'canonical-pathname #'cdr]
+                                      :test #'equal)
+                                :script)
+                               ((equal rel-path
+                                       (nest (canonical-pathname)
+                                             (or (aget :main pkg)
+                                                 "index.js")))
+                                :script)
+                               (t :module)))
+                       file))
+                result)))
+      :test (lambda (file)
               ;; Heuristics for identifying files in the project:
               ;; 1) The file is not in an ignored directory.
               ;; 2) The file has a "js" extension.
               ;; 3) The file is listed as a "bin" in package.json.
               ;; 4) The file is listed as "main" in package.json.
-              (or (and (not (ignored-evolve-path-p obj rel-path))
-                       (equal "js" (pathname-type rel-path)))
-                  (find rel-path (aget :bin pkg)
-                        :key [#'canonical-pathname #'cdr]
-                        :test #'equal)
-                  (equal rel-path (aget :main pkg))))))
+              (let ((rel-path (pathname-relativize (project-dir project) file))
+                    (pkg (package-spec project)))
+                (or (and (not (ignored-evolve-path-p project rel-path))
+                         (equal "js" (pathname-type rel-path)))
+                    (find rel-path (aget :bin pkg)
+                          :key [#'canonical-pathname #'cdr]
+                          :test #'equal)
+                    (equal rel-path (aget :main pkg)))))))
   result)
 
 (defmethod phenome ((obj javascript-project) &key (bin (temp-file-name)))
