@@ -622,6 +622,10 @@ Define an :around method on this function to record crossovers."))
 (defmethod to-file ((software software) file)
   (string-to-file (genome software) file))
 
+(defmethod to-file :before ((software software) file)
+  (declare (ignorable software))
+  (ensure-directories-exist (pathname-directory-pathname file)))
+
 (defgeneric apply-path (software key PATH) ; TODO: is this used?
   (:documentation "Apply the execution trace PATH behind KEY in SOFTWARE."))
 
