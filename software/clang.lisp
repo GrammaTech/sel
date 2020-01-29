@@ -10,6 +10,7 @@
         :uiop/pathname
         :software-evolution-library
         :software-evolution-library/utility/json
+        :software-evolution-library/software/file
         :software-evolution-library/software/source
         :software-evolution-library/software/parseable
         :software-evolution-library/components/formatting
@@ -4565,14 +4566,14 @@ valid hash.
                        :bash t)))
         (when (find exit '(131 132 134 136 139))
           (error
-           (make-condition 'located-mutate
+           (make-condition 'mutate
                            :text (format nil "clang core dump with ~d, ~s"
                                          exit stderr)
                            :obj obj)))
         (restart-case
             (unless (zerop exit)
               (error
-               (make-condition 'located-mutate
+               (make-condition 'mutate
                                :text (format nil
                                              "clang exit ~d~%cmd:~s~%stderr:~s"
                                              exit

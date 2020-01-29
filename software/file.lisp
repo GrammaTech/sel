@@ -11,7 +11,9 @@
   (:use :gt/full
         :software-evolution-library)
   #-windows (:import-from :osicat :file-permissions)
-  (:export :file))
+  (:export :file
+           :original-path
+           :original-directory))
 (in-package :software-evolution-library/software/file)
 
 (defclass file ()
@@ -46,6 +48,12 @@
             modifiedp (modifiedp obj)
             original-path (original-path obj)))
     copy))
+
+(defgeneric original-directory (obj)
+  (:documentation "Return the original directory OBJ was populated from.")
+  (:method ((obj file))
+    (when (original-path obj)
+      (namestring (pathname-directory-pathname (original-path obj))))))
 
 (defmethod from-file :before ((obj file) path)
   "Wrapper around the `from-file` method to store the file at PATH's

@@ -11,6 +11,8 @@
         :software-evolution-library/utility/debug
         :software-evolution-library/software/parseable
         :software-evolution-library/software/source
+        :software-evolution-library/software/file
+        :software-evolution-library/software/parseable
         :software-evolution-library/software/clang
         :software-evolution-library/software/project
         :software-evolution-library/software/clang-project
@@ -323,7 +325,8 @@ which maps (test-casel: position)"
            (ann-line (annotation) (second annotation)))
       (let ((file-annotations (nest
                                (remove-if-not ; Filter to just this file.
-                                [{search _ (original-file obj)} #'ann-file])
+                                [{search _ (namestring (original-path obj))}
+                                 #'ann-file])
                                (mapcar #'read-from-string)
                                (split-sequence #\Newline
                                                (file-to-string ast-annotations)

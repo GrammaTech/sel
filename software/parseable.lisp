@@ -7,6 +7,7 @@
         :bordeaux-threads
         :software-evolution-library
         :software-evolution-library/software/source
+        :software-evolution-library/software/file
         :software-evolution-library/utility/range)
   (:export :ast
            :ast-stub
@@ -1462,8 +1463,8 @@ if the original file is known.")
       ((error (lambda (e)
                 (declare (ignore e))
                 (when *show-update-asts-errors*
-                  (when-let ((ofile (original-file sw)))
-                    (format t "Failure in update-asts: original-file = ~a~%"
+                  (when-let ((ofile (original-path sw)))
+                    (format t "Failure in update-asts: original-path = ~a~%"
                             ofile))))))
     (call-next-method)))
 
