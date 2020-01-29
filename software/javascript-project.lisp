@@ -99,9 +99,16 @@
 
 (defmethod phenome ((obj javascript-project) &key (bin (temp-file-name)))
   "Create a phenotype of the JAVASCRIPT-PROJECT.  In this case,
-override the phenome method to output the genome of OBJ to BIN as JavaScript
-is not a compiled language.
+override the phenome method to return BIN where the genome of OBJ
+is output.  JavaScript is not a compiled language, so we return the
+genome instead of a binary.
+
 OBJ object to create a phenome for
 BIN location where the phenome will be created on the filesystem"
-  (to-file obj bin)
   (values bin 0 nil nil nil))
+
+(defmethod phenome :around ((obj javascript-project) &key (bin (temp-file-name)))
+  "Bind *build-dir* to BIN ensuring the genome of OBJ in written to BIN."
+  (ensure-directories-exist (ensure-directory-pathname bin))
+  (let ((*build-dir* bin))
+    (call-next-method)))
