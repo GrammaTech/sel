@@ -17,18 +17,22 @@
 (in-package :software-evolution-library/software/file)
 
 (defclass file ()
-  ((permissions       :initarg :permissions
-                      :accessor permissions
-                      :initform nil)
-   (modification-time :initarg :modification-time
-                      :accessor modification-time
-                      :initform nil)
-   (modifiedp         :initarg :modifiedp
-                      :accessor modifiedp
-                      :initform nil)
-   (original-path     :initarg :original-path
-                      :accessor original-path
-                      :initform nil))
+  ((permissions
+    :initarg :permissions
+    :accessor permissions
+    :initform nil)
+   (modification-time
+    :initarg :modification-time
+    :accessor modification-time
+    :initform nil)
+   (original-path
+    :initarg :original-path
+    :accessor original-path
+    :initform nil)
+   (original-genome-string
+    :initarg :original-genome-string
+    :accessor original-genome-string
+    :initform nil))
   (:documentation
    "Mixin class for software where preserving file attributes is important."))
 
@@ -42,11 +46,12 @@
 (defmethod copy :around ((obj file) &key)
   "Wrap the copy method to ensure the OBJ's fields are copied."
   (let ((copy (call-next-method)))
-    (with-slots (permissions modification-time modifiedp original-path) copy
+    (with-slots (permissions modification-time
+                 original-path original-genome-string) copy
       (setf permissions (permissions obj)
             modification-time (modification-time obj)
-            modifiedp (modifiedp obj)
-            original-path (original-path obj)))
+            original-path (original-path obj)
+            original-genome-string (original-genome-string obj)))
     copy))
 
 (defgeneric original-directory (obj)
@@ -62,14 +67,9 @@ permissions and modification time when creating OBJ."
         (permissions obj) (file-permissions path)))
 
 (defmethod from-file :after ((obj file) path)
-  "Reading from a file sets `modifiedp' to nil and saves PATH."
-  (setf (modifiedp obj) nil
-        (original-path obj) path))
-
-(defmethod (setf genome) :after (new (obj file))
-  "Changing a genome sets `modifiedp' to t."
-  (declare (ignorable new))
-  (setf (modifiedp obj) t))
+  "Reading from a file sets ORIGINAL-GENOME-STRING and saves PATH."
+  (setf (original-path obj) path
+        (original-genome-string obj) (genome-string obj)))
 
 (defmethod to-file :after ((obj file) path)
   "Wrapper around the `to-file` method to preserve permissions and
@@ -84,7 +84,7 @@ modification time when writing OBJ to PATH."
 
 (defmethod to-file :around ((obj file) path)
   ;; Copy from original-path unless obj is modified or original-path is invalid
-  (if (or (modifiedp obj)
+  (if (or (not (equal (original-genome-string obj) (genome-string obj)))
           (not (original-path obj))
           (not (probe-file (original-path obj))))
       (call-next-method)
