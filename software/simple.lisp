@@ -23,7 +23,7 @@
 
 
 ;;; simple software objects
-(define-software simple (software file)
+(define-software simple (software file-w-attributes)
   ((genome :initarg :genome :accessor genome :initform nil
            :copier enhanced-copy-seq))
   (:documentation "The simplest base software object."))
