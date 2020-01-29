@@ -20,7 +20,7 @@
   ((permissions
     :initarg :permissions
     :accessor permissions
-    :initform nil)
+    :initform (list :user-read :user-write))
    (modification-time
     :initarg :modification-time
     :accessor modification-time
