@@ -75,6 +75,11 @@ void restore_heap_funcs() {
 
 #define IN_HEAP_FUNC (in_malloc || in_free || in_realloc)
 
+#define UNTRACED_CALL_TYPE_NULL      0
+#define UNTRACED_CALL_TYPE_MALLOC    1
+#define UNTRACED_CALL_TYPE_FREE      2
+#define UNTRACED_CALL_TYPE_REALLOC   3
+ 
 void exit_with_status(int code, char* errmsg);
 
 // variant function pointer
@@ -102,6 +107,7 @@ extern unsigned long input_regs[];
 extern unsigned long output_regs[];
 extern unsigned long input_mem[];
 extern unsigned long output_mem[];
+extern unsigned long untraced_calls[];
 extern unsigned long num_tests;   // number of test cases
 extern unsigned long test_results[]; // storage for test results
 
@@ -240,7 +246,23 @@ void map_output_page(unsigned long* addr) {
 }
 
 //
-// Map a single page as read/write only, given an address that falls on
+// Map pages as read/write to ensure that the specified block is on
+// read/write committed pages.
+//
+void map_memory_range(unsigned long* addr, unsigned long size) {
+    unsigned char* start = (unsigned char*) addr;
+    unsigned char* end = start + size - 1;
+    unsigned char* start_page_addr = (unsigned char*)(((unsigned long)start) & PAGE_MASK);
+    unsigned char* end_page_addr = (unsigned char*)(((unsigned long)end) & PAGE_MASK);
+    unsigned char* p = start_page_addr;
+    while (p <= end_page_addr) {
+        map_output_page((unsigned long*)p);
+        p += PAGE_SIZE;
+    }
+}
+
+//
+// Map a single page as read only, given an address that falls on
 // that page
 void map_input_page(unsigned long* addr) {
     unsigned long* page_addr = (unsigned long*)(((unsigned long)addr) & PAGE_MASK);
@@ -280,6 +302,47 @@ int map_output_pages(unsigned long* p) {
             p += 3;
         }
         p++;
+    }
+    return 0; // return normally
+}
+
+//
+// Traverse the untraced call records, and
+// ensure all pages that are referenced are committed.
+// When we get to a null record (null type), we've reached the end of
+// the records.
+// We only need to check malloc and realloc return values, and
+// the size param of each to determine block extents.
+//
+int map_untraced_call_pages(unsigned long* p) {
+    int i = 0;
+    segfault = 0;
+
+    for (int k = 0; k < num_tests; k++) {
+        while (*p) {
+            i = setjmp(bailout); // safe place to return to
+            if (segfault || i != 0) {
+                segfault = 0;
+                return -1;  // segment violation was caught!
+            }
+            unsigned long type = *p++;
+            if (type == UNTRACED_CALL_TYPE_NULL)
+                break;
+            else if (type == UNTRACED_CALL_TYPE_MALLOC) {
+                unsigned long size = *p++;
+                unsigned long* addr = (unsigned long*)*p++;
+                map_memory_range(addr, size);
+            }
+            else if (type == UNTRACED_CALL_TYPE_FREE) {
+                p++;  // skip argument, nothing to map
+            }
+            else if (type == UNTRACED_CALL_TYPE_REALLOC) {
+                unsigned long* prev_addr = (unsigned long*)*p++;
+                unsigned long new_size = *p++;
+                unsigned long* new_addr = (unsigned long*)*p++;
+                map_memory_range(new_addr, new_size);
+            }
+        }
     }
     return 0; // return normally
 }
@@ -330,6 +393,7 @@ int init_pages() {
     int ret =  map_input_pages(input_mem); // map pages indicated by
                                            // the memory i/o
     ret |= map_output_pages(output_mem);
+    ret |= map_untraced_call_pages(untraced_calls);
     return ret;
 }
 

@@ -277,6 +277,7 @@
            :input-specification
            :input-spec
            :output-spec
+           :untraced-call-spec
            :input-specification-regs
            :input-specification-mem
            :reg-contents
@@ -307,6 +308,12 @@
     :initform (make-array 0 :fill-pointer 0 :adjustable t)
     :documentation
     "Vector of INPUT-SPECIFICATION structs, one for each test case.")
+   (untraced-call-spec
+    :initarg :untraced-call-spec
+    :accessor untraced-call-spec
+    :initform (make-array 0 :fill-pointer 0 :adjustable t)
+    :documentation
+    "Vector of UNTRACED-CALL-SPECIFICATION structs, one for each test case.")
    (var-table
     :initarg :var-table
     :accessor var-table
@@ -511,6 +518,14 @@
      (length (input-specification-simd-regs spec))
      (length (input-specification-mem spec)))))
 
+(defstruct untraced-call
+  name
+  args    ; list of args passed
+  result) ; returned value
+
+(defstruct untraced-call-specification
+  calls) ;; vector of UNTRACED-CALL
+
 (defmethod initialize-instance :after ((instance asm-super-mutant)
 				       &rest initargs)
   (declare (ignore initargs))
@@ -570,20 +585,19 @@
 ;;;   xxxxxxxx xxxxxxxx
 ;;; (16 hex digits, with 8 digits + space + 8 digits = 17 chars)
 ;;;;
-(defun parse-address (line pos)
+(defun parse-address (line)
   (let ((result 0))
     (dotimes (i 8)
       (setf result (+ (* result #x10)
-		      (digit-char-p (char line (+ i pos)) #x10))))
+		      (digit-char-p (char line i) #x10))))
     (dotimes (i 8)
       (setf result (+ (* result #x10)
-		      (digit-char-p (char line (+ i 9 pos)) #x10))))
-    (values result (+ pos 17))))
+		      (digit-char-p (char line (+ i 9)) #x10))))
+    (values result 17)))
 
-(defun parse-mem-spec (line pos)
-  (multiple-value-bind (addr i)
-      (parse-address line pos)
-    (setf pos i)
+(defun parse-mem-spec (line)
+  (multiple-value-bind (addr pos)
+      (parse-address line)
     (iter (while (is-whitespace (char line pos))) (incf pos)) ; skip spaces
     (let ((b (make-array 8 :element-type 'bit)))
       (dotimes (i 8)
@@ -596,13 +610,14 @@
 					    (remove #\space
 						    (subseq line pos)))))))
 
-(defun parse-reg-spec (line pos)
-  (let ((name               ; get the register name (string)
-	 (do ((c (char line (incf pos))(char line (incf pos)))
-	      (chars '()))
-	     ((is-whitespace c)
-	      (concatenate 'string (nreverse chars)))
-	   (push c chars))))
+(defun parse-reg-spec (line)
+  (let* ((pos 0)
+         (name               ; get the register name (string)
+	  (do ((c (char line (incf pos))(char line (incf pos)))
+	       (chars '()))
+	      ((is-whitespace c)
+	       (concatenate 'string (nreverse chars)))
+	    (push c chars))))
     (if (simd-reg-p name)  ; was it a SIMD register?
         (make-reg-contents
 	 :name name
@@ -614,11 +629,35 @@
 	 :value (parse-bytes 8
 			     (remove #\space (subseq line pos)))))))
 
+(defparameter *untraced-call-regx*
+  "([a-zA-Z0-9@]*)\\({1}([a-fA-F0-9\\,]*)\\){1}( = [a-fA-F0-9]*)?"
+  "Example: malloc@plt(1A) = 1A00000")
+
+(defun parse-untraced-call (line)
+  (multiple-value-bind (start end starts ends)
+      (cl-ppcre:scan  *untraced-call-regx* line)
+    (declare (ignore start end))
+    (if (and (> (length starts) 1) (> (length ends) 1))
+        (let ((name (subseq line (elt starts 0) (elt ends 0)))
+              (args (subseq line (elt starts 1) (elt ends 1)))
+              (result (if (integerp (elt starts 2))
+                          (subseq line (+ (elt starts 2) 3) (elt ends 2)))))
+          (make-untraced-call
+           :name name
+           :args (mapcar
+                  (lambda (x) (parse-integer x :radix 16))
+                  (split-sequence #\, args))
+           :result (if result (parse-integer result :radix 16)))))))
+
 (defun new-io-spec ()
   (make-input-specification
    :regs (make-array 16 :fill-pointer 0)
    :simd-regs (make-array 16 :fill-pointer 0)
    :mem (make-array 0 :fill-pointer 0 :adjustable t)))
+
+(defun new-untraced-call-spec ()
+  (make-untraced-call-specification
+   :calls (make-array 8 :fill-pointer 0 :adjustable t)))
 
 (defun sort-registers (reg-list)
   (let ((reg-values
@@ -680,10 +719,10 @@
   "Load the file containing input and output state information"
   (let ((input-spec (new-io-spec))
 	(output-spec (new-io-spec))
-	(parsing-inputs t))
+        (untraced-call-spec (new-untraced-call-spec))
+        (state :input))
     (with-open-file (input filename :direction :input)
-      (do ((line (get-next-line input) (get-next-line input))
-	   (pos 0 0))
+      (do ((line (get-next-line input) (get-next-line input)))
 	  ((null line)
            (when (or
                   (> (length (input-specification-regs output-spec)) 0)
@@ -699,7 +738,9 @@
                    (sort-reg-contents
                     (input-specification-regs output-spec)))
              (vector-push-extend input-spec (input-spec super-asm))
-             (vector-push-extend output-spec (output-spec super-asm))))
+             (vector-push-extend output-spec (output-spec super-asm))
+             (vector-push-extend untraced-call-spec
+                                 (untraced-call-spec super-asm))))
 	(cond ((zerop (length line))) ; do nothing, empty line
 	      ((search "Input data" line)
                ;; store the previous input/output set (if any)
@@ -716,32 +757,50 @@
                         (input-specification-regs output-spec)))
                  (vector-push-extend input-spec (input-spec super-asm))
                  (vector-push-extend output-spec (output-spec super-asm))
+                 (vector-push-extend untraced-call-spec
+                                     (untraced-call-spec super-asm))
                  (setf input-spec (new-io-spec))
-	         (setf output-spec (new-io-spec)))
-	       (setf parsing-inputs t))
+	         (setf output-spec (new-io-spec))
+                 (setf untraced-call-spec (new-untraced-call-spec)))
+               (setf state :input))
 	      ((search "Output data" line)
-               (setf parsing-inputs nil))
+               (setf state :output))
+              ((search "Untraced Calls" line)
+               (setf state :untraced-calls))
+              ((eq state :untraced-calls)
+               (let ((call-rec (parse-untraced-call line)))
+                 (vector-push-extend
+                  call-rec
+                  (untraced-call-specification-calls untraced-call-spec))))
 	      ((char= (char line 0) #\%) ; register spec?
-	       (let ((spec (parse-reg-spec line pos)))
+               (unless (or (eq state :input) (eq state :output))
+                 (error "Register spec not expected:~A"
+                        line))
+	       (let ((spec (parse-reg-spec line)))
 		 (if (simd-reg-p (reg-contents-name spec))  ; SIMD register?
 		     (vector-push
 		      spec
 		      (input-specification-simd-regs
-		       (if parsing-inputs input-spec output-spec)))
+		       (if (eq state :input) input-spec output-spec)))
                      ;; else a general-purpose register--don't collect duplicate
                      (unless (find (reg-contents-name spec)
                                    (input-specification-regs
-                                    (if parsing-inputs input-spec output-spec))
+                                    (if (eq state :input)
+                                        input-spec
+                                        output-spec))
                                    :key 'reg-contents-name :test 'equal)
                        (vector-push
                         spec
                         (input-specification-regs
-                         (if parsing-inputs input-spec output-spec)))))))
+                         (if (eq state :input) input-spec output-spec)))))))
 	      (t ; assume memory specification
+               (unless (or (eq state :input) (eq state :output))
+                 (error "Memory spec not expected:~A"
+                        line))
 	       (vector-push-extend
-		(parse-mem-spec line pos)
+		(parse-mem-spec line)
 		(input-specification-mem
-		 (if parsing-inputs input-spec output-spec)))))))
+		 (if (eq state :input) input-spec output-spec)))))))
     (if (> (length (input-spec super-asm)) 0)
         (setf *input-registers*
               (sort-registers
@@ -962,6 +1021,7 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 	 "        global output_regs"
 	 "        global input_mem"
 	 "        global output_mem"
+         "        global untraced_calls"
 	 "        global num_tests"
 	 "        global save_rsp"
 	 "        global save_rbx"
@@ -1010,6 +1070,7 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 	 "        .globl output_regs"
 	 "        .globl input_mem"
 	 "        .globl output_mem"
+         "        .globl untraced_calls"
 	 "        .globl num_tests"
 	 "        .globl save_rsp"
 	 "        .globl save_rbx"
@@ -1252,6 +1313,58 @@ a symbol, the SYMBOL-NAME of the symbol is used."
      (length (genome asm-variants)))
     (insert-new-line asm-variants "")))
 
+(defconstant untraced-call-type-nil 0 "No type")
+(defconstant untraced-call-type-malloc 1 "malloc")
+(defconstant untraced-call-type-free 2 "free")
+(defconstant untraced-call-type-realloc 3 "realloc")
+
+(defun encode-call-type (type-name)
+  (let ((name (first (split-sequence #\@ type-name)))) ; remove @plt if present
+    (cond ((null type-name) untraced-call-type-nil)
+          ((string-equal name "malloc") untraced-call-type-malloc)
+          ((string-equal name "free") untraced-call-type-free)
+          ((string-equal name "realloc") untraced-call-type-realloc))))
+
+;;;
+;;; for each untraced call entry, add type, argument(s), and
+;;; (optional) return-value quad words.
+;;;
+;;; Number of arguments and presence of return value depend on the type.
+;;; All are formatted as quad-words.
+;;;
+;;; Types:
+;;;   0 - Null terminator (end of untraced calls) -- 1 quad (type)
+;;;   1 - result malloc(arg1) -- 3 quads (type + arg + result)
+;;;   2 - void free(arg1) -- 2 quads (type + arg)
+;;;   3 - void realloc(arg1,arg2) -- 4 quads (type + 2 args + result)
+;;;
+(defun format-untraced-call-specs (io-spec asm-syntax)
+  (let ((quad-decl (if (intel-syntax-p asm-syntax) "dq" ".quad")))
+    (let ((lines
+           (iter (for spec in-vector
+                      (untraced-call-specification-calls io-spec))
+                 (collect
+                     (format
+                      nil
+                      "    ~A 0x~16,'0X~{, 0x~16,'0X~}~{, 0x~16,'0X~}"
+                      quad-decl
+                      (encode-call-type (untraced-call-name spec))
+                      (untraced-call-args spec)
+                      (if (untraced-call-result spec)
+                          (list (untraced-call-result spec))))))))
+      (append
+       lines
+       (list (format nil "    ~A 0x0" quad-decl)))))) ; terminate with 0 address
+
+(defun format-untraced-calls (asm-variants spec-vec asm-syntax label)
+  (insert-new-lines asm-variants (list "" label))
+  (dotimes (i (length spec-vec))
+    (insert-new-lines
+     asm-variants
+     (format-untraced-call-specs (aref spec-vec i) asm-syntax)
+     (length (genome asm-variants)))
+    (insert-new-line asm-variants "")))
+
 (defparameter *system-stack-size* #x400000)  ;; assume 4 meg stack for now
 
 (defun remove-mem-below-sp (io-specs)
@@ -1412,7 +1525,11 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
   (format-mem-info asm-variants
 		   (output-spec asm-super)
 		   (asm-syntax asm-super)
-		   "output_mem:"))
+		   "output_mem:")
+  (format-untraced-calls asm-variants
+                         (untraced-call-spec asm-super)
+                         (asm-syntax asm-super)
+                         "untraced_calls:"))
 
 (defun add-included-lines (asm-super asm-variants)
   "If any extra lines were supplied, paste them in now."
