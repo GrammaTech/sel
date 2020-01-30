@@ -98,7 +98,8 @@ extern vfunc variant_table[]; // 0-terminated array of variant
 #define DEBUG 1               // set this to 1, to turn on debugging messages
 
 #define PAGE_SIZE 4096
-#define PAGE_MASK 0xfffffffffffff000
+#define PAGE_MASK        0xfffffffffffff000
+#define PAGE_OFFSET_MASK (PAGE_SIZE-1)
 
 // allocate pages for the first 16k of stack (below current rsp)
 #define INIT_STACK_PAGES (0x4000 / PAGE_SIZE)
@@ -248,17 +249,24 @@ void map_output_page(unsigned long* addr) {
 //
 // Map pages as read/write to ensure that the specified block is on
 // read/write committed pages.
+// Since addr may not be the beginning of a page, we have to add its
+// offset into the page (addr % PAGE_SIZE) to the length, to ensure
+// enough pages get allocated.
 //
 void map_memory_range(unsigned long* addr, unsigned long size) {
-    unsigned char* start = (unsigned char*) addr;
-    unsigned char* end = start + size - 1;
-    unsigned char* start_page_addr = (unsigned char*)(((unsigned long)start) & PAGE_MASK);
-    unsigned char* end_page_addr = (unsigned char*)(((unsigned long)end) & PAGE_MASK);
-    unsigned char* p = start_page_addr;
-    while (p <= end_page_addr) {
-        map_output_page((unsigned long*)p);
-        p += PAGE_SIZE;
-    }
+    unsigned char* page_addr = (unsigned char*)(((unsigned long)addr) & PAGE_MASK);
+    unsigned long extra = ((unsigned long)addr) & PAGE_OFFSET_MASK;
+    void* anon = mmap(page_addr, size + extra,
+                          PROT_READ|PROT_WRITE,
+                              MAP_ANONYMOUS|MAP_PRIVATE|MAP_FIXED,
+                          -1,
+                          0);
+#if DEBUG
+    fprintf(stderr, "Allocated page at address 0x%lx, length 0x%lx, result: %lx\n",
+            (unsigned long)page_addr,
+            (unsigned long)(size + extra),
+            (unsigned long)anon);
+#endif
 }
 
 //
