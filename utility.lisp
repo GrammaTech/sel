@@ -458,7 +458,33 @@ be specified as part of the REMOTE URL.  E.g. as
            (error (make-instance 'git-error :description stderr))
            local-directory)))))
 
+(defgeneric current-git-status (directory)
+  (:documentation
+   "Return the git status of DIRECTORY as a list of lists of (status file).
+Return nil if there are no modified, untracked, or deleted files.")
+  (:method ((dir list))
+    (current-git-status
+     (make-instance 'git :work-tree (make-pathname :directory dir))))
+  (:method ((dir string))
+    (current-git-status (make-instance 'git :work-tree dir)))
+  (:method ((dir pathname))
+    (current-git-status (pathname-directory (ensure-directory-pathname dir))))
+  (:method ((git git))
+    (multiple-value-bind (stdout stderr errno)
+        (with-slots (git-dir work-tree) git
+          (shell "GIT_WORK_TREE=~a GIT_DIR=~a git status --porcelain"
+                 (namestring work-tree)
+                 (namestring git-dir)))
+      (declare (ignorable stderr errno))
+      (mapcar (lambda (line)
+                (multiple-value-bind (status point)
+                    (read-from-string line nil)
+                  (list (make-keyword status) (subseq line point))))
+              (split-sequence #\Newline stdout :remove-empty-subseqs t)))))
+
 (defmacro define-direct-git-command (data (arg) &body body)
+  "Define a git command which reads directly from the file system.
+These commands don't actually have to invoke git commands directly."
   (let ((name (intern (concatenate 'string "CURRENT-GIT-" (symbol-name data))
                       *package*)))
     `(defgeneric ,name (repository)
@@ -468,6 +494,8 @@ be specified as part of the REMOTE URL.  E.g. as
        (:method ((dir list))
          (,name (make-instance 'git :work-tree (make-pathname :directory dir))))
        (:method ((dir string)) (,name (make-instance 'git :work-tree dir)))
+       (:method ((dir pathname))
+         (,name (pathname-directory (ensure-directory-pathname dir))))
        (:method ((git git)) (let ((,arg (git-dir git))) ,@body)))))
 
 (define-direct-git-command commit (git-dir)
