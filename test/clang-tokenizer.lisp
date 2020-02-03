@@ -25,8 +25,140 @@
 (in-readtable :curry-compose-reader-macros)
 (defsuite clang-tokenizer)
 
+(define-constant +fl-tiny-dir+ (append +etc-dir+ (list "fl-test"))
+  :test #'equalp
+  :documentation "Path to condition fault localization example.")
+
+(defun fl-tiny-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +fl-tiny-dir+))
+
+(defixture fl-tiny-clang
+  (:setup (setf *soft*
+                (from-file (make-clang)
+                           (fl-tiny-dir "tiny-test.c")))
+          (setf *test-suite*
+                (make-instance 'test-suite
+                  :test-cases
+                  (iter (for i below 6)
+                        (collecting
+                         (make-instance 'test-case
+                           :program-name (namestring (fl-tiny-dir "fitness.sh"))
+                           :program-args (list :bin (write-to-string i))))))))
+  (:teardown
+   (setf *soft* nil)
+   (setf *test-suite* nil)))
+
+(define-constant +cs-tiny-dir+ (append +condition-synthesis-dir+
+                                       (list "tiny-test"))
+  :test #'equalp
+  :documentation "Path to condition synthesis tighten-condition example.")
+
+
+(defun cs-tiny-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +cs-tiny-dir+))
+
+(defixture cs-tiny-clang
+  (:setup (setf *soft*
+                (from-file (make-clang)
+                           (cs-tiny-dir "tiny-test.c")))
+          (setf *test-suite*
+                (make-instance 'test-suite
+                  :test-cases
+                  (iter (for i below 6)
+                        (collecting
+                         (make-instance 'test-case
+                           :program-name (namestring (cs-tiny-dir "fitness.sh"))
+                           :program-args (list :bin (write-to-string i))))))))
+  (:teardown
+   (setf *soft* nil)
+   (setf *test-suite* nil)))
+
+(define-constant +cs-tighten-dir+ (append +condition-synthesis-dir+
+                                          (list "test-tighten"))
+  :test #'equalp
+  :documentation "Path to condition synthesis tighten-condition example.")
+
+(defun cs-tighten-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +cs-tighten-dir+))
+
+(defixture cs-tighten-clang
+  (:setup (setf
+           *soft*
+           (from-file (make-clang)
+                      (cs-tighten-dir "test-tighten.c"))
+           *test-suite*
+           (make-instance 'test-suite
+             :test-cases
+             (iter (for i below 6)
+                   (collecting
+                    (make-instance 'test-case
+                      :program-name (namestring (cs-tighten-dir "fitness.sh"))
+                      :program-args (list :bin (write-to-string i))))))))
+  (:teardown
+   (setf *soft* nil)
+   (setf *test-suite* nil)))
+
+(define-constant +cs-add-guard-dir+ (append +condition-synthesis-dir+
+                                            (list "test-add-guard"))
+  :test #'equalp
+  :documentation "Path to condition synthesis add guard example.")
+
+(defun cs-add-guard-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +cs-add-guard-dir+))
+
+(defixture cs-add-guard-clang
+  (:setup (setf
+           *soft*
+           (from-file (make-clang)
+                      (cs-add-guard-dir "test-add-guard.c"))
+           *test-suite*
+           (nest
+            (make-instance 'test-suite :test-cases)
+            (iter (for i below 8))
+            (collecting
+             (make-instance 'test-case
+               :program-name (namestring (cs-add-guard-dir "fitness.sh"))
+               :program-args (list :bin (write-to-string i)))))))
+  (:teardown
+   (setf *soft* nil)
+   (setf *test-suite* nil)))
+
+(define-constant +cs-divide-dir+ (append +condition-synthesis-dir+
+                                         (list "divide"))
+  :test #'equalp
+  :documentation "Path to condition synthesis if to while repair example.")
+
+(defun cs-divide-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +cs-divide-dir+))
+
+(defixture cs-divide-clang
+  (:setup (setf
+           *soft*
+           (from-file (make-clang)
+                      (cs-divide-dir "divide.c"))
+           *test-suite*
+           (make-instance 'test-suite
+             :test-cases
+             (iter (for i below 5)
+                   (collecting
+                    (make-instance 'test-case
+                      :program-name (namestring (cs-divide-dir "fitness.sh"))
+                      :program-args (list :bin (write-to-string i))))))))
+  (:teardown
+   (setf *soft* nil)
+   (setf *test-suite* nil)))
+
 (defvar *test-suite* nil "Holds condition synthesis test suite object.")
-(defvar *variety* nil "Holds the variety software object.")
 
 (deftest (case-tokens :long-running) ()
   (with-fixture variety-clang

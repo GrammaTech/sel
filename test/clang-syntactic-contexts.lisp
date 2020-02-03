@@ -27,6 +27,23 @@
 
 (defvar *contexts* nil "Holds the syntactic-contexts software object.")
 
+(define-constant +contexts-dir+ (append +etc-dir+ (list "syntactic-contexts"))
+  :test #'equalp
+  :documentation "Path to the syntactic-contexts example.")
+
+(defun contexts-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +contexts-dir+))
+
+(defixture contexts
+  (:setup
+   (setf *contexts*
+         (from-file (make-clang :compiler "clang-3.7")
+                    (contexts-dir "contexts.c"))))
+  (:teardown
+   (setf *contexts* nil)))
+
 ;; Tests of basic clang mutation operators
 (defun count-matching-chars-in-stmt (char stmt)
   (let ((ast (if (listp stmt) (car stmt) stmt)))

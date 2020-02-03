@@ -25,6 +25,41 @@
 (in-readtable :curry-compose-reader-macros)
 (defsuite clang-utility)
 
+(define-constant +typedef-type-dir+
+    (append +etc-dir+ (list "typedef-type"))
+  :test #'equalp
+  :documentation "Path to the typedef-type program example")
+
+(defun typedef-type-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +typedef-type-dir+))
+
+(defixture typedef-type-clang
+  (:setup
+   (setf *soft*
+         (from-file (make-clang)
+                    (typedef-type-dir "typedef-type.c"))))
+  (:teardown
+   (setf *soft* nil)))
+
+(define-constant +assert-dir+ (append +etc-dir+ (list "assert"))
+  :test #'equalp
+  :documentation "Path to assert example.")
+
+(defun assert-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +assert-dir+))
+
+(defixture assert-clang
+  (:setup
+   (setf *soft*
+         (from-file (make-clang)
+                    (assert-dir "assert.c"))))
+  (:teardown
+   (setf *soft* nil)))
+
 (deftest asts-populated-on-creation ()
   (with-fixture hello-world-clang
     (is (= 10 (length (asts *hello-world*))))))

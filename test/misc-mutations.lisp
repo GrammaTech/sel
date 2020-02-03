@@ -25,8 +25,33 @@
 (in-readtable :curry-compose-reader-macros)
 (defsuite misc-mutations)
 
-(defvar *scopes* nil "Holds the scopes software object.")
 (defvar *empty-while* nil "Holds the empty-while software object.")
+
+(define-constant +coalesce-while-loop-dir+
+    (append +etc-dir+ (list "coalesce-while-loop"))
+  :test #'equalp
+  :documentation "Location of the coalesce while loop example dir")
+
+(defun coalesce-while-loop-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +coalesce-while-loop-dir+))
+
+(defixture empty-while-clang
+  (:setup
+   (setf *empty-while*
+         (from-file (make-clang)
+                    (coalesce-while-loop-dir "empty-while.c"))))
+  (:teardown
+   (setf *empty-while* nil)))
+
+(defixture while-with-no-precedent-clang
+  (:setup
+   (setf *soft*
+         (from-file (make-clang)
+                    (coalesce-while-loop-dir "no-precedent.c"))))
+  (:teardown
+   (setf *soft* nil)))
 
 (deftest single-decl-works ()
   (with-fixture scopes-clang

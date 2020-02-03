@@ -25,9 +25,6 @@
 (in-readtable :curry-compose-reader-macros)
 (defsuite clang-super-mutants)
 
-(defvar *fib* nil "Holds the fibonacci software object.")
-(defvar *huf* nil "Holds the huf software object.")
-
 (deftest (super-mutant-genome-works :long-running) ()
   (with-fixture fib-clang
     (let* ((mutant-a (copy *fib*))

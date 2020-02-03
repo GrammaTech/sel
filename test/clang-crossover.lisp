@@ -25,9 +25,27 @@
 (in-readtable :curry-compose-reader-macros)
 (defsuite clang-crossover)
 
-(defvar *fib* nil "Holds the fibonacci software object.")
 (defvar *collatz* nil "Holds the collatz software object.")
-(defvar *scopes* nil "Holds the scopes software object.")
+
+(define-constant +collatz-dir+
+    (append +etc-dir+ (list "collatz"))
+  :test #'equalp
+  :documentation "Location of the collatz example dir")
+
+(defun collatz-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +collatz-dir+))
+
+(defixture collatz-clang
+  (:setup
+   (setf *collatz*
+         (from-file (make-clang
+                     :compiler "clang"
+                     :flags '("-m32" "-O0" "-g" "-c"))
+                    (collatz-dir "collatz.c"))))
+  (:teardown
+   (setf *collatz* nil)))
 
 (defun select-intraprocedural-pair-with-adjustments-test (obj)
   (let ((function (first (functions obj))))

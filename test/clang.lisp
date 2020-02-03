@@ -25,9 +25,41 @@
 (in-readtable :curry-compose-reader-macros)
 (defsuite clang)
 
-(defvar *fib* nil "Holds the fibonacci software object.")
 (defvar *huf* nil "Holds the huf software object.")
-(defvar *sqrt* nil "Holds the hello world software object.")
+
+(define-constant +switch-macros-dir+ (append +etc-dir+ (list "switch-macros"))
+  :test #'equalp
+  :documentation "Path to the switch-macros example.")
+
+(define-constant +simple-macros-dir+ (append +etc-dir+ (list "simple-macros"))
+  :test #'equalp
+  :documentation "Path to the simple-macros example.")
+
+(defun switch-macros-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +switch-macros-dir+))
+
+(defun simple-macros-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +simple-macros-dir+))
+
+(defixture switch-macros-clang
+  (:setup
+   (setf *soft*
+         (from-file (make-clang)
+                    (switch-macros-dir "switch-macros.c"))))
+  (:teardown
+   (setf *soft* nil)))
+
+(defixture simple-macros-clang
+  (:setup
+   (setf *soft*
+         (from-file (make-clang)
+                    (simple-macros-dir "simple-macros.c"))))
+  (:teardown
+   (setf *soft* nil)))
 
 (deftest simply-able-to-load-a-clang-software-object()
   (with-fixture hello-world-clang

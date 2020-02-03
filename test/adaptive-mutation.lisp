@@ -6,6 +6,7 @@
    :alexandria
    :closer-mop
    :software-evolution-library/test/util
+   :software-evolution-library/test/util-clang
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -14,7 +15,8 @@
    :cl-ppcre
    #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/software/adaptive-mutation)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
@@ -23,7 +25,7 @@
   (:export :adaptive-mutation))
 (in-package :software-evolution-library/test/adaptive-mutation)
 (in-readtable :curry-compose-reader-macros)
-(defsuite adaptive-mutation)
+(defsuite test-adaptive-mutation "Adaptive-mutation tests.")
 
 (deftest bad-cut-changes-mutation-probability ()
   (let* ((*mutation-results-queue* #((cut . :worse) (cut . :dead)))

@@ -1,10 +1,12 @@
-(defpackage :software-evolution-library/test/util
-  (:nicknames :sel/test/util)
+(defpackage :software-evolution-library/test/util-clang
+  (:nicknames :sel/test/util-clang)
   (:use :common-lisp
         :alexandria
         :software-evolution-library
         :software-evolution-library/utility
+        :software-evolution-library/stefil-plus
         :software-evolution-library/software/clang
+        :software-evolution-library/software/clang-w-fodder
         :software-evolution-library/test/util)
   (:export :+etc-dir+
            :+gcd-dir+
@@ -13,8 +15,29 @@
            :+headers-dir+
            ;; Variables referenced in tests
            :*headers*
-           :*hello-world*))
-(in-package :software-evolution-library/test/util)
+           :*sqrt*
+           :*hello-world*
+           :*good-asts*
+           :*bad-asts*
+           :*huf*
+           :*scopes*
+           :*variety*))
+(in-package :software-evolution-library/test/util-clang)
+
+(defvar *good-asts* nil "Control pick-good")
+(defvar *bad-asts* nil "Control pick-bad")
+(defvar *headers* nil "Holds the headers software object.")
+(defvar *sqrt* nil "Holds the hello world software object.")
+(defvar *huf* nil "Holds the huf software object.")
+(defvar *scopes* nil "Holds the scopes software object.")
+(defvar *variety* nil "Holds the variety software object.")
+
+(define-software clang-control-picks (clang) ())
+(define-software new-clang-control-picks (new-clang) ())
+
+(define-software clang-styleable-test-class (clang styleable) ())
+(define-software new-clang-styleable-test-class (new-clang styleable) ())
+(define-software mutation-failure-tester (clang) ())
 
 (defmethod good-stmts ((obj clang-control-picks))
   (or *good-asts* (stmt-asts obj)))
@@ -34,9 +57,142 @@
   :test #'equalp
   :documentation "Location of the hello world example directory")
 
+(define-constant +clang-crossover-dir+
+    (append +etc-dir+ (list "clang-crossover"))
+  :test #'equalp
+  :documentation "Location of clang crossover example directory")
+
+(defun clang-crossover-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +clang-crossover-dir+))
+
+(define-constant +lisp-bugs-dir+
+    (append +etc-dir+ (list "lisp-bugs"))
+  :test #'equalp
+  :documentation "Location of the lisp bugs directory")
+
+(defun lisp-bugs-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +lisp-bugs-dir+))
+
+(define-constant +typedef-dir+ (append +etc-dir+ (list "typedef"))
+  :test #'equalp
+  :documentation "Path to the typedef example.")
+
+(defun typedef-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +typedef-dir+))
+
+(define-constant +strings-dir+ (append +etc-dir+ (list "strings"))
+  :test #'equalp
+  :documentation "Path to the strings examples.")
+
+(defun strings-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +strings-dir+))
+
+(defun make-clang-control-picks (&rest args)
+  (apply #'make-instance
+         (if *new-clang?* 'new-clang-control-picks 'clang-control-picks)
+         :allow-other-keys t
+         args))
+
+(defun headers-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +headers-dir+))
+
+(defun hello-world-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +hello-world-dir+))
+
+(define-constant +huf-dir+ (append +etc-dir+ (list "huf"))
+  :test #'equalp
+  :documentation "Location of the huf example directory")
+
+(defun huf-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +huf-dir+))
+
+(define-constant +scopes-dir+ (append +etc-dir+ (list "scopes"))
+  :test #'equalp
+  :documentation "Location of the scopes example directory")
+
+(defun scopes-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +scopes-dir+))
+
+(define-constant +clang-tidy-dir+
+    (append +etc-dir+ (list "clang-tidy"))
+  :test #'equalp
+  :documentation "Location of the clang-tidy example dir")
+
+(defun clang-tidy-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +clang-tidy-dir+))
+
+(define-constant +type-of-var-dir+
+    (append +etc-dir+ (list "type-of-var"))
+  :test #'equalp
+  :documentation "Location of the type-of-var example dir")
+
+(defun type-of-var-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +type-of-var-dir+))
+
+(define-constant +variety-dir+
+    (append +etc-dir+ (list "variety"))
+  :test #'equalp
+  :documentation "Location of the variety example dir")
+
+(defun variety-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +variety-dir+))
+
+(define-constant +shadow-dir+ (append +etc-dir+ (list "shadow"))
+  :test #'equalp
+  :documentation "Path to the shadow example.")
+
+(defun shadow-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +shadow-dir+))
+
+(define-constant +unicode-dir+ (append +etc-dir+ (list "unicode"))
+  :test #'equalp
+  :documentation "Path to the unicode example.")
+
+(defun unicode-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +unicode-dir+))
+
+(define-constant +unbound-fun-dir+ (append +etc-dir+ (list "unbound-fun"))
+  :test #'equalp
+  :documentation "Location of the unbound-fun example directory")
+
+(defun unbound-fun-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +unbound-fun-dir+))
+
 (defvar *new-clang?* t)
 (defvar *hello-world* nil "Holds the hello world software object.")
 
+(defun make-clang (&rest key-args)
+  (apply #'make-instance (if *new-clang?* 'new-clang 'clang) key-args))
+
+
 (defixture empty-function-body-crossover-bug-clang
   (:setup
    (setf *soft*
@@ -66,22 +222,6 @@
                      "intraprocedural-2pt-crossover-bug.c"))))
   (:teardown
    (setf *soft* nil)))
-
-(defun make-clang-control-picks (&rest args)
-  (apply #'make-instance
-         (if *new-clang?* 'new-clang-control-picks 'clang-control-picks)
-         :allow-other-keys t
-         args))
-
-(defun headers-dir (filename)
-  (make-pathname :name (pathname-name filename)
-                 :type (pathname-type filename)
-                 :directory +headers-dir+))
-
-(defun hello-world-dir (filename)
-  (make-pathname :name (pathname-name filename)
-                 :type (pathname-type filename)
-                 :directory +hello-world-dir+))
 
 (defixture binary-search-clang
   (:setup
@@ -201,14 +341,6 @@
    (setf *database* nil)
    (setf *soft* nil)))
 
-(defixture contexts
-  (:setup
-   (setf *contexts*
-         (from-file (make-clang :compiler "clang-3.7")
-                    (contexts-dir "contexts.c"))))
-  (:teardown
-   (setf *contexts* nil)))
-
 (defixture typedef
   (:setup
    (setf *soft*
@@ -236,11 +368,11 @@
 (defun inject-missing-swap-macro (obj)
   ;; Inject a macro that clang-mutate currently misses, then force the ASTs to
   ;; be recalculated by setting the genome-string.
-  (->> (make-clang-macro
-        :name "swap_"
-        :body "swap_(I,J) do { int t_; t_ = a[(I)]; a[(I)] = a[(J)]; a[(J)] = t_; } while (0)"
-        :hash 1179176719466053316)
-       (add-macro obj))
+  (add-macro obj
+             (make-clang-macro
+              :name "swap_"
+              :body "swap_(I,J) do { int t_; t_ = a[(I)]; a[(I)] = a[(J)]; a[(J)] = t_; } while (0)"
+              :hash 1179176719466053316))
   (setf (genome-string obj) (genome-string obj)))
 
 (defixture gcd-clang-w-fodder
@@ -261,22 +393,6 @@
    (setf *database* nil)
    (setf *gcd* nil)))
 
-(defixture empty-while-clang
-  (:setup
-   (setf *empty-while*
-         (from-file (make-clang)
-                    (coalesce-while-loop-dir "empty-while.c"))))
-  (:teardown
-   (setf *empty-while* nil)))
-
-(defixture while-with-no-precedent-clang
-  (:setup
-   (setf *soft*
-         (from-file (make-clang)
-                    (coalesce-while-loop-dir "no-precedent.c"))))
-  (:teardown
-   (setf *soft* nil)))
-
 (defixture huf-clang
   (:setup
    (setf *huf*
@@ -285,15 +401,6 @@
    (inject-missing-swap-macro *huf*))
   (:teardown
    (setf *huf* nil)))
-
-(defixture nested-clang
-  (:setup
-   (setf *nested*
-         (from-file (make-clang :compiler "gcc" :flags '("-g -m32 -O0"))
-                    (nested-dir "nested.c")))
-   (inject-missing-swap-macro *nested*))
-  (:teardown
-   (setf *nested* nil)))
 
 (defixture scopes-clang
   (:setup
@@ -329,16 +436,6 @@
                     (scopes-dir "scopes.cxx"))))
   (:teardown
    (setf *scopes* nil)))
-
-(defixture collatz-clang
-  (:setup
-   (setf *collatz*
-         (from-file (make-clang
-                     :compiler "clang"
-                     :flags '("-m32" "-O0" "-g" "-c"))
-                    (collatz-dir "collatz.c"))))
-  (:teardown
-   (setf *collatz* nil)))
 
 (defixture fib-clang
   (:setup
@@ -415,130 +512,6 @@
    (setf *soft*
          (from-file (make-clang)
                     (unicode-dir "unicode.c"))))
-  (:teardown
-   (setf *soft* nil)))
-
-(defixture fl-tiny-clang
-  (:setup (setf *soft*
-                (from-file (make-clang)
-                           (fl-tiny-dir "tiny-test.c")))
-          (setf *test-suite*
-                (make-instance 'test-suite
-                  :test-cases
-                  (iter (for i below 6)
-                        (collecting
-                         (make-instance 'test-case
-                           :program-name (namestring (fl-tiny-dir "fitness.sh"))
-                           :program-args (list :bin (write-to-string i))))))))
-  (:teardown
-   (setf *soft* nil)
-   (setf *test-suite* nil)))
-
-(defixture cs-tiny-clang
-  (:setup (setf *soft*
-                (from-file (make-clang)
-                           (cs-tiny-dir "tiny-test.c")))
-          (setf *test-suite*
-                (make-instance 'test-suite
-                  :test-cases
-                  (iter (for i below 6)
-                        (collecting
-                         (make-instance 'test-case
-                           :program-name (namestring (cs-tiny-dir "fitness.sh"))
-                           :program-args (list :bin (write-to-string i))))))))
-  (:teardown
-   (setf *soft* nil)
-   (setf *test-suite* nil)))
-
-(defixture cs-tighten-clang
-  (:setup (setf
-           *soft*
-           (from-file (make-clang)
-                      (cs-tighten-dir "test-tighten.c"))
-           *test-suite*
-           (make-instance 'test-suite
-             :test-cases
-             (iter (for i below 6)
-                   (collecting
-                    (make-instance 'test-case
-                      :program-name (namestring (cs-tighten-dir "fitness.sh"))
-                      :program-args (list :bin (write-to-string i))))))))
-  (:teardown
-   (setf *soft* nil)
-   (setf *test-suite* nil)))
-
-(defixture cs-add-guard-clang
-  (:setup (setf
-           *soft*
-           (from-file (make-clang)
-                      (cs-add-guard-dir "test-add-guard.c"))
-           *test-suite*
-           (nest
-            (make-instance 'test-suite :test-cases)
-            (iter (for i below 8))
-            (collecting
-             (make-instance 'test-case
-               :program-name (namestring (cs-add-guard-dir "fitness.sh"))
-               :program-args (list :bin (write-to-string i)))))))
-  (:teardown
-   (setf *soft* nil)
-   (setf *test-suite* nil)))
-
-(defixture cs-divide-clang
-  (:setup (setf
-           *soft*
-           (from-file (make-clang)
-                      (cs-divide-dir "divide.c"))
-           *test-suite*
-           (make-instance 'test-suite
-             :test-cases
-             (iter (for i below 5)
-                   (collecting
-                    (make-instance 'test-case
-                      :program-name (namestring (cs-divide-dir "fitness.sh"))
-                      :program-args (list :bin (write-to-string i))))))))
-  (:teardown
-   (setf *soft* nil)
-   (setf *test-suite* nil)))
-
-
-(defixture switch-macros-clang
-  (:setup
-   (setf *soft*
-         (from-file (make-clang)
-                    (switch-macros-dir "switch-macros.c"))))
-  (:teardown
-   (setf *soft* nil)))
-
-(defixture simple-macros-clang
-  (:setup
-   (setf *soft*
-         (from-file (make-clang)
-                    (simple-macros-dir "simple-macros.c"))))
-  (:teardown
-   (setf *soft* nil)))
-
-(defixture assert-clang
-  (:setup
-   (setf *soft*
-         (from-file (make-clang)
-                    (assert-dir "assert.c"))))
-  (:teardown
-   (setf *soft* nil)))
-
-(defixture long-running-program-clang
-  (:setup
-   (setf *soft*
-         (from-file (make-clang)
-                    (long-running-program-dir "long-running-program.c"))))
-  (:teardown
-   (setf *soft* nil)))
-
-(defixture typedef-type-clang
-  (:setup
-   (setf *soft*
-         (from-file (make-clang)
-                    (typedef-type-dir "typedef-type.c"))))
   (:teardown
    (setf *soft* nil)))
 

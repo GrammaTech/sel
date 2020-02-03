@@ -25,6 +25,23 @@
 (in-readtable :curry-compose-reader-macros)
 (defsuite traceable)
 
+(define-constant +long-running-program-dir+
+    (append +etc-dir+  (list "long-running-program"))
+  :test #'equalp
+  :documentation "Path to long running program example.")
+
+(defun long-running-program-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +long-running-program-dir+))
+
+(defixture long-running-program-clang
+  (:setup
+   (setf *soft*
+         (from-file (make-clang)
+                    (long-running-program-dir "long-running-program.c"))))
+  (:teardown
+   (setf *soft* nil)))
 
 (defixture traceable-gcd
   (:setup (setf *gcd* (from-file

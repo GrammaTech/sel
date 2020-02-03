@@ -25,8 +25,6 @@
 (in-readtable :curry-compose-reader-macros)
 (defsuite clang-scopes-and-types)
 
-(defvar *scopes* nil "Holds the scopes software object.")
-
 (defun compare-scopes (result expected)
   (is (equal (length result) (length expected)))
   (is (every (lambda (a b)

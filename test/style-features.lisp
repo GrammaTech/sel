@@ -25,8 +25,6 @@
 (in-readtable :curry-compose-reader-macros)
 (defsuite style-features)
 
-(defvar *variety* nil "Holds the variety software object.")
-
 (deftest uni-grams-ht-test ()
   (let* ((sentence (list "the" "quick" "brown" "fox"
                          "the" "lazy" "brown" "dog"

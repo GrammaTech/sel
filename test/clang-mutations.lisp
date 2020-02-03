@@ -27,6 +27,24 @@
 
 (defvar *nested* nil "Holds the nested software object.")
 
+(define-constant +nested-dir+ (append +etc-dir+ (list "nested"))
+  :test #'equalp
+  :documentation "Location of the nested example directory")
+
+(defun nested-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +nested-dir+))
+
+(defixture nested-clang
+  (:setup
+   (setf *nested*
+         (from-file (make-clang :compiler "gcc" :flags '("-g -m32 -O0"))
+                    (nested-dir "nested.c")))
+   (inject-missing-swap-macro *nested*))
+  (:teardown
+   (setf *nested* nil)))
+
 (defixture gcd-clang-control-picks
   (:setup
    (setf *gcd*
