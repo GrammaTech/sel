@@ -5,7 +5,7 @@
    :common-lisp
    :alexandria
    :closer-mop
-   :software-evolution-library/test/constants
+   :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -24,8 +24,6 @@
 (in-package :software-evolution-library/test/csurf-asm)
 (in-readtable :curry-compose-reader-macros)
 (defsuite csurf-asm)
-
-(defvar *soft* nil "Software used in tests.")
 
 (deftest dynamic-linker-path-has-been-set ()
   (is *dynamic-linker-path* "Ensure `*dynamic-linker-path*' has been set."))

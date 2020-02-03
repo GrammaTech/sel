@@ -5,7 +5,7 @@
    :common-lisp
    :alexandria
    :closer-mop
-   :software-evolution-library/test/constants
+   :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -24,8 +24,6 @@
 (in-package :software-evolution-library/test/javascript)
 (in-readtable :curry-compose-reader-macros)
 (defsuite javascript)
-
-(defvar *soft* nil "Software used in tests.")
 
 (deftest simply-able-to-load-a-javascript-software-object ()
   (with-fixture hello-world-javascript

@@ -5,7 +5,7 @@
    :common-lisp
    :alexandria
    :closer-mop
-   :software-evolution-library/test/constants
+   :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -26,8 +26,6 @@
 (defsuite clang-mutations)
 
 (defvar *nested* nil "Holds the nested software object.")
-(defvar *hello-world* nil "Holds the hello world software object.")
-(defvar *gcd* nil "Holds the gcd software object.")
 
 (defixture gcd-clang-control-picks
   (:setup

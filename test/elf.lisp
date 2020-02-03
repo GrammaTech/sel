@@ -5,7 +5,7 @@
    :common-lisp
    :alexandria
    :closer-mop
-   :software-evolution-library/test/constants
+   :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -25,7 +25,6 @@
 (in-readtable :curry-compose-reader-macros)
 (defsuite elf)
 
-(defvar *gcd* nil "Holds the gcd software object.")
 
 (defun bytes (elf) (mappend [#'cdr {assoc :code}] (genome elf)))
 

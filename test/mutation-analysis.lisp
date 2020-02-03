@@ -5,7 +5,7 @@
    :common-lisp
    :alexandria
    :closer-mop
-   :software-evolution-library/test/constants
+   :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -25,7 +25,6 @@
 (in-readtable :curry-compose-reader-macros)
 (defsuite mutation-analysis)
 
-(defvar *hello-world* nil "Holds the hello world software object.")
 (defvar *project* nil "Software used in project fixtures.")
 (defvar *test* nil "Variable to hold evaluation function for tests.")
 

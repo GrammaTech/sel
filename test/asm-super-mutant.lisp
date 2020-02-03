@@ -5,7 +5,7 @@
    :common-lisp
    :alexandria
    :closer-mop
-   :software-evolution-library/test/constants
+   :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -25,7 +25,83 @@
 (in-readtable :curry-compose-reader-macros)
 (defsuite asm-super-mutant)
 
-(defvar *soft*        nil "Software used in tests.")
+(defixture asm-super-dead-stack-test
+  (:setup
+   (setf *soft* (from-file (make-instance 'asm-super-mutant)
+                           (asm-test-dir "re_set_syntax.s.att"))
+         (fitness-harness *soft*) (software-dir "asm-super-mutant-fitness.c"))
+   (setf (sel/sw/asm-super-mutant::io-file *soft*)
+         (asm-test-dir "re_set_syntax.io"))
+   (target-function-name *soft* "re_set_syntax"))
+
+  (:teardown (setf *soft* nil)))
+
+(defixture odd-even-asm-super-intel
+  (:setup
+   (setf *soft* (from-file (make-instance 'asm-super-mutant)
+                           (asm-test-dir "is-even.s.intel"))
+         (fitness-harness *soft*) (software-dir "asm-super-mutant-fitness.c"))
+   (setf (sel/sw/asm-super-mutant::io-file *soft*) (asm-test-dir "is_even.io"))
+   (target-function-name *soft* "is_even"))
+
+  (:teardown (setf *soft* nil)))
+
+(defixture odd-even-asm-super-att
+  (:setup
+   (setf *soft* (from-file (make-instance 'asm-super-mutant)
+                           (asm-test-dir "is-even.s.att"))
+         (fitness-harness *soft*) (software-dir "asm-super-mutant-fitness.c"))
+   (setf (sel/sw/asm-super-mutant::io-file *soft*) (asm-test-dir "is_even.io"))
+   (target-function-name *soft* "is_even"))
+
+  (:teardown (setf *soft* nil)))
+
+(defixture odd-even-asm-super-reg-test-intel
+  (:setup
+   (setf *soft* (from-file (make-instance 'asm-super-mutant)
+                           (asm-test-dir "is-even.s.intel"))
+         (fitness-harness *soft*) (software-dir "asm-super-mutant-fitness.c"))
+   (setf (sel/sw/asm-super-mutant::io-file *soft*)
+         (asm-test-dir "is_even-reg-test.io"))
+   (target-function-name *soft* "is_even"))
+
+  (:teardown (setf *soft* nil)))
+
+(defixture odd-even-asm-super-reg-test-att
+  (:setup
+   (setf *soft* (from-file (make-instance 'asm-super-mutant)
+                           (asm-test-dir "is-even.s.att"))
+         (fitness-harness *soft*) (software-dir "asm-super-mutant-fitness.c"))
+   (setf (sel/sw/asm-super-mutant::io-file *soft*)
+         (asm-test-dir "is_even-reg-test.io"))
+   (target-function-name *soft* "is_even"))
+
+  (:teardown (setf *soft* nil)))
+
+(defixture asm-super-rip-test-att
+  (:setup
+   (setf *soft* (from-file (make-instance 'asm-super-mutant)
+                           (asm-test-dir "re_set_syntax.s.att"))
+         (fitness-harness *soft*) (software-dir "asm-super-mutant-fitness.c"))
+   (setf (sel/sw/asm-super-mutant::io-file *soft*)
+         (asm-test-dir "re_set_syntax.io"))
+   (target-function-name *soft* "re_set_syntax"))
+
+  (:teardown (setf *soft* nil)))
+
+(defixture asm-super-inline-test-att
+  (:setup
+   (setf *soft* (from-file (make-instance 'asm-super-mutant)
+                           (asm-test-dir "inline-test-target.s.att"))
+         (fitness-harness *soft*) (software-dir "asm-super-mutant-fitness.c"))
+   (setf (sel/sw/asm-super-mutant::io-file *soft*)
+         (asm-test-dir "inline-test-testcases.io"))
+   (target-function-name *soft* "debloat__insert_op1")
+   (setf (sel/sw/asm-super-mutant::include-lines *soft*)
+         (let ((asm (from-file (make-instance 'sel/sw/asm-heap:asm-heap)
+                               (asm-test-dir "inline-test-includes.s.att"))))
+           (lines asm))))
+  (:teardown (setf *soft* nil)))
 
 (defun asm-super-mutant-finds-improved-version ()
   ;; Add target function, and all possible single-cut variants.

@@ -5,7 +5,7 @@
    :common-lisp
    :alexandria
    :closer-mop
-   :software-evolution-library/test/constants
+   :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -24,9 +24,6 @@
 (in-package :software-evolution-library/test/clang-utility)
 (in-readtable :curry-compose-reader-macros)
 (defsuite clang-utility)
-
-(defvar *hello-world* nil "Holds the hello world software object.")
-(defvar *soft* nil "Software used in tests.")
 
 (deftest asts-populated-on-creation ()
   (with-fixture hello-world-clang

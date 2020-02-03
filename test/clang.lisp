@@ -5,7 +5,7 @@
    :common-lisp
    :alexandria
    :closer-mop
-   :software-evolution-library/test/constants
+   :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -28,11 +28,6 @@
 (defvar *fib* nil "Holds the fibonacci software object.")
 (defvar *huf* nil "Holds the huf software object.")
 (defvar *sqrt* nil "Holds the hello world software object.")
-(defvar *hello-world* nil "Holds the hello world software object.")
-(defvar *headers* nil "Holds the headers software object.")
-(defvar *binary-search* nil "Holds the binary_search software object.")
-(defvar *gcd* nil "Holds the gcd software object.")
-(defvar *soft* nil "Software used in tests.")
 
 (deftest simply-able-to-load-a-clang-software-object()
   (with-fixture hello-world-clang

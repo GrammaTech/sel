@@ -5,7 +5,7 @@
    :common-lisp
    :alexandria
    :closer-mop
-   :software-evolution-library/test/constants
+   :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -26,7 +26,6 @@
 (defsuite style-features)
 
 (defvar *variety* nil "Holds the variety software object.")
-(defvar *gcd* nil "Holds the gcd software object.")
 
 (deftest uni-grams-ht-test ()
   (let* ((sentence (list "the" "quick" "brown" "fox"

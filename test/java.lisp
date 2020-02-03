@@ -5,7 +5,7 @@
    :common-lisp
    :alexandria
    :closer-mop
-   :software-evolution-library/test/constants
+   :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -34,7 +34,24 @@
   :documentation "Path to directory holding the Build Folder jars.")
 
 (defvar *java-file-name* nil "File name to be tested in a test case.")
-(defvar *soft* nil "Software used in tests.")
+
+(defixture general-fixture-java
+  (:setup
+   (setf *soft*
+         (from-file (make-instance 'java)
+                    (java-dir (concatenate 'string
+                                           *java-file-name* ".java")))))
+  (:teardown
+   (setf *soft* nil)))
+
+(defixture general-fixture-java-traceable
+  (:setup
+   (setf *soft*
+         (from-file (make-instance 'java-traceable)
+                    (java-dir (concatenate 'string
+                                           *java-file-name* ".java")))))
+  (:teardown
+   (setf *soft* nil)))
 
 ;; Copy software object.
 (deftest (java-test-copy :long-running) ()

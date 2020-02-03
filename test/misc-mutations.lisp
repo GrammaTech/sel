@@ -5,7 +5,7 @@
    :common-lisp
    :alexandria
    :closer-mop
-   :software-evolution-library/test/constants
+   :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -27,7 +27,6 @@
 
 (defvar *scopes* nil "Holds the scopes software object.")
 (defvar *empty-while* nil "Holds the empty-while software object.")
-(defvar *soft* nil "Software used in tests.")
 
 (deftest single-decl-works ()
   (with-fixture scopes-clang

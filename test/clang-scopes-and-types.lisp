@@ -5,7 +5,7 @@
    :common-lisp
    :alexandria
    :closer-mop
-   :software-evolution-library/test/constants
+   :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -26,7 +26,6 @@
 (defsuite clang-scopes-and-types)
 
 (defvar *scopes* nil "Holds the scopes software object.")
-(defvar *soft* nil "Software used in tests.")
 
 (defun compare-scopes (result expected)
   (is (equal (length result) (length expected)))

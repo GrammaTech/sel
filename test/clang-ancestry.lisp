@@ -5,7 +5,7 @@
    :common-lisp
    :alexandria
    :closer-mop
-   :software-evolution-library/test/constants
+   :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -24,8 +24,6 @@
 (in-package :software-evolution-library/test/clang-ancestry)
 (in-readtable :curry-compose-reader-macros)
 (defsuite clang-ancestry)
-
-(defvar *hello-world* nil "Holds the hello world software object.")
 
 (defclass clang-w-ancestry (clang ancestral) ())
 

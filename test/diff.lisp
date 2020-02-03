@@ -5,7 +5,7 @@
    :common-lisp
    :alexandria
    :closer-mop
-   :software-evolution-library/test/constants
+   :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -24,9 +24,6 @@
 (in-package :software-evolution-library/test/diff)
 (in-readtable :curry-compose-reader-macros)
 (defsuite diff)
-
-(defvar *tfos* nil "Another software used in tests.")
-(defvar *soft* nil "Software used in tests.")
 
 (defmacro with-static-reference (software &rest body)
   (let ((ref-sym (gensym)))

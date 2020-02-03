@@ -5,7 +5,7 @@
    :common-lisp
    :alexandria
    :closer-mop
-   :software-evolution-library/test/constants
+   :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -24,10 +24,6 @@
 (in-package :software-evolution-library/test/clang-w-fodder)
 (in-readtable :curry-compose-reader-macros)
 (defsuite clang-w-fodder)
-
-(defvar *hello-world* nil "Holds the hello world software object.")
-(defvar *gcd* nil "Holds the gcd software object.")
-(defvar *soft* nil "Software used in tests.")
 
 (deftest (clang-parse-source-snippet-body-statement :long-running) ()
   (with-fixture gcd-clang

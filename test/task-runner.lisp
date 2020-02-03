@@ -5,7 +5,7 @@
    :common-lisp
    :alexandria
    :closer-mop
-   :software-evolution-library/test/constants
+   :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -24,8 +24,6 @@
 (in-package :software-evolution-library/test/task-runner)
 (in-readtable :curry-compose-reader-macros)
 (defsuite task-runner)
-
-(defvar *soft* nil "Software used in tests.")
 
 ;; simple test to see if the whole file parsed correctly
 (deftest (task-runner-1 :long-running) ( )

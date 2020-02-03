@@ -5,7 +5,7 @@
    :common-lisp
    :alexandria
    :closer-mop
-   :software-evolution-library/test/constants
+   :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -27,7 +27,6 @@
 
 (defvar *fib* nil "Holds the fibonacci software object.")
 (defvar *huf* nil "Holds the huf software object.")
-(defvar *gcd* nil "Holds the gcd software object.")
 
 (deftest (super-mutant-genome-works :long-running) ()
   (with-fixture fib-clang

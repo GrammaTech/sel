@@ -5,7 +5,7 @@
    :common-lisp
    :alexandria
    :closer-mop
-   :software-evolution-library/test/constants
+   :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -28,6 +28,39 @@
 (defvar *rest-client* nil "Client-id (cid) for REST API test client.")
 (defvar *clack-port*  9003 "Default port for clack web server instance.")
 (defvar *clack-delay* 0.5 "Seconds to delay after starting server")
+
+#-windows
+(defixture rest-server
+  (:setup (unless *clack* (setf *clack* (initialize-clack))))
+  (:teardown (clack:stop *clack*)(setf *clack* nil)(setf *rest-client* nil)))
+
+#-windows
+(let (old-standard-out old-error-out)
+  (defixture fact-rest-server
+    (:setup
+     (setf old-standard-out *standard-output*
+           old-error-out *error-output*
+           *standard-output* (make-broadcast-stream)
+           *error-output* (make-broadcast-stream))
+     (define-command-async-rest (fact-entry :environment (*population*))
+         ((n integer) &spec +common-command-line-options+)
+       "Test that canonical REST endpoints work. Computes factorial."
+       #.(format nil
+                 "~%Built from SEL ~a, and ~a ~a.~%"
+                 +software-evolution-library-version+
+                 (lisp-implementation-type) (lisp-implementation-version))
+       (declare (ignorable quiet verbose language))
+       (if help
+           (let ((*standard-output* (make-broadcast-stream)))
+             (show-help-for-fact-entry))
+           (factorial n)))
+     (unless *clack* (setf *clack* (initialize-clack))))
+    (:teardown
+     (clack:stop *clack*)
+     (setf *clack* nil
+           *rest-client* nil
+           *standard-output* old-standard-out
+           *error-output* old-error-out))))
 
 #-windows
 (defun initialize-clack ()

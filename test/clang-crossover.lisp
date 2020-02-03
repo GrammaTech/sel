@@ -5,7 +5,7 @@
    :common-lisp
    :alexandria
    :closer-mop
-   :software-evolution-library/test/constants
+   :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -28,7 +28,6 @@
 (defvar *fib* nil "Holds the fibonacci software object.")
 (defvar *collatz* nil "Holds the collatz software object.")
 (defvar *scopes* nil "Holds the scopes software object.")
-(defvar *soft* nil "Software used in tests.")
 
 (defun select-intraprocedural-pair-with-adjustments-test (obj)
   (let ((function (first (functions obj))))

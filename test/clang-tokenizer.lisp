@@ -5,7 +5,7 @@
    :common-lisp
    :alexandria
    :closer-mop
-   :software-evolution-library/test/constants
+   :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -27,8 +27,6 @@
 
 (defvar *test-suite* nil "Holds condition synthesis test suite object.")
 (defvar *variety* nil "Holds the variety software object.")
-(defvar *gcd* nil "Holds the gcd software object.")
-(defvar *soft* nil "Software used in tests.")
 
 (deftest (case-tokens :long-running) ()
   (with-fixture variety-clang

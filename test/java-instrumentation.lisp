@@ -5,7 +5,7 @@
    :common-lisp
    :alexandria
    :closer-mop
-   :software-evolution-library/test/constants
+   :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -24,8 +24,6 @@
 (in-package :software-evolution-library/test/java-instrumentation)
 (in-readtable :curry-compose-reader-macros)
 (defsuite java-instrumentation)
-
-(defvar *soft* nil "Software used in tests.")
 
 (deftest (multi-threaded-java-instrument-test :long-running) ()
   (with-fixture java-project

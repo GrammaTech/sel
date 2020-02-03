@@ -5,7 +5,7 @@
    :common-lisp
    :alexandria
    :closer-mop
-   :software-evolution-library/test/constants
+   :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -24,9 +24,6 @@
 (in-package :software-evolution-library/test/range-representation)
 (in-readtable :curry-compose-reader-macros)
 (defsuite range-representation)
-
-(defvar *tfos* nil "Another software used in tests.")
-(defvar *soft* nil "Software used in tests.")
 
 (deftest range-size ()
   (with-fixture range (is (= 6 (size *soft*)))))

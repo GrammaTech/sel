@@ -5,7 +5,7 @@
    :common-lisp
    :alexandria
    :closer-mop
-   :software-evolution-library/test/constants
+   :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -23,7 +23,6 @@
 (in-package :software-evolution-library/test/condition-synthesis)
 (in-readtable :curry-compose-reader-macros)
 
-(defvar *soft* nil "Software used in tests.")
 (defvar *test-suite* nil "Holds condition synthesis test suite object.")
 
 (deftest flip-works ()

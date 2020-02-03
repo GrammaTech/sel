@@ -5,7 +5,7 @@
    :common-lisp
    :alexandria
    :closer-mop
-   :software-evolution-library/test/constants
+   :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -25,8 +25,6 @@
 (in-readtable :curry-compose-reader-macros)
 (defsuite traceable)
 
-(defvar *gcd* nil "Holds the gcd software object.")
-(defvar *soft* nil "Software used in tests.")
 
 (defixture traceable-gcd
   (:setup (setf *gcd* (from-file
