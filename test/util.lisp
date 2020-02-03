@@ -196,15 +196,6 @@
   :test #'equalp
   :documentation "Path to directory holding Javascript test programs.")
 
-(define-constant +asm-test-dir+ (append +etc-dir+ (list "asm-test"))
-  :test #'equalp
-  :documentation "Path to asm-test examples.")
-
-(define-constant +software-dir+
-    (append (butlast (butlast +etc-dir+)) (list "software"))
-  :test #'equalp
-  :documentation "Path to sel/software directory (software source components)")
-
 (define-constant +coq-test-dir+ (append +etc-dir+ (list "coq"))
   :test #'equalp
   :documentation "Path to Coq test examples.")
@@ -370,16 +361,6 @@
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
                  :directory +java-dir+))
-
-(defun asm-test-dir (filename)
-  (make-pathname :name (pathname-name filename)
-                 :type (pathname-type filename)
-                 :directory +asm-test-dir+))
-
-(defun software-dir (filename)
-  (make-pathname :name (pathname-name filename)
-                 :type (pathname-type filename)
-                 :directory +software-dir+))
 
 (defun coq-test-dir (filename)
   (make-pathname :name (pathname-name filename)

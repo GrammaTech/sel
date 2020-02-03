@@ -14,7 +14,12 @@
    :cl-ppcre
    #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/software/simple
+   :software-evolution-library/software/asm-heap
+   :software-evolution-library/software/super-mutant
+   :software-evolution-library/software/asm-super-mutant
+   :software-evolution-library/components/lexicase)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
@@ -23,7 +28,26 @@
   (:export :asm-super-mutant))
 (in-package :software-evolution-library/test/asm-super-mutant)
 (in-readtable :curry-compose-reader-macros)
-(defsuite asm-super-mutant)
+(defsuite test-asm-super-mutant "ASM-SUPER-MUTANT representation." *lib-papi*)
+
+(define-constant +asm-test-dir+ (append +etc-dir+ (list "asm-test"))
+  :test #'equalp
+  :documentation "Path to asm-test examples.")
+
+(defun asm-test-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +asm-test-dir+))
+
+(define-constant +software-dir+
+    (append (butlast (butlast +etc-dir+)) (list "software"))
+  :test #'equalp
+  :documentation "Path to sel/software directory (software source components)")
+
+(defun software-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +software-dir+))
 
 (defixture asm-super-dead-stack-test
   (:setup
