@@ -33,7 +33,7 @@ check-format:
     - docker pull $DOCKER_REGISTRY/synthesis/clang-mutate:${PULL_TAG}
     - docker pull $DOCKER_REGISTRY/synthesis/java-mutator:${PULL_TAG}
     - docker pull $DOCKER_REGISTRY/synthesis/cl:${PULL_TAG}
-    - docker build --build-arg=GT=yes  --build-arg=LISP=${LISP} -f .ci/Dockerfile.${OS} -t ${LOCAL_IMAGE_NAME}-${OS}-${LISP} .
+    - docker build --no-cache --build-arg=GT=yes  --build-arg=LISP=${LISP} -f .ci/Dockerfile.${OS} -t ${LOCAL_IMAGE_NAME}-${OS}-${LISP} .
     - if [ ! "$CI_BUILD_REF_NAME" = "latest" ];
       then
           docker tag ${LOCAL_IMAGE_NAME}-${OS}-${LISP} $DOCKER_REGISTRY/$CI_PROJECT_PATH/${OS}-${LISP}:${CI_BUILD_REF_NAME};
