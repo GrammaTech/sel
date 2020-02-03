@@ -5,10 +5,13 @@
         :software-evolution-library
         :software-evolution-library/utility
         :software-evolution-library/stefil-plus)
-  (:export :+etc-dir+
+  (:export :test
+           :+etc-dir+
            :+gcd-dir+
            :+grep-prj-dir+
            :+multi-file-dir+
+           ;; Directory functions
+           :gcd-dir
            ;; Variables referenced in tests
            :*tfos*
            :*soft*
@@ -20,6 +23,8 @@
 (defvar *soft* nil "Software used in tests.")
 (defvar *gcd* nil "Holds the gcd software object.")
 (defvar *binary-search* nil "Holds the binary_search software object.")
+
+(defroot test)
 
 (define-constant +etc-dir+
     (append (pathname-directory
@@ -492,22 +497,6 @@
    (setf *soft* (make-instance 'diff)
          (genome *soft*) #(((:code 1)) ((:code 2)) ((:code 3)) ((:code 4)))))
   (:teardown (setf *soft* nil)))
-
-(defixture gcd-asm
-  (:setup (setf *gcd* (from-file (make-instance 'asm) (gcd-dir "gcd.s.intel"))))
-  (:teardown (setf *gcd* nil)))
-
-(defixture gcd-asm-heap-att
-  (:setup
-   (setf *gcd* (from-file (make-instance 'asm-heap)
-                          (gcd-dir "gcd.s.att"))))
-  (:teardown (setf *gcd* nil)))
-
-(defixture gcd-asm-heap-intel
-  (:setup
-   (setf *gcd* (from-file (make-instance 'asm-heap)
-                          (gcd-dir "gcd.s.intel"))))
-  (:teardown (setf *gcd* nil)))
 
 (defixture gcd-elf
   (:setup

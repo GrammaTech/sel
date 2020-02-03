@@ -14,21 +14,38 @@
    :cl-ppcre
    #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/software/asm
+   :software-evolution-library/software/asm-heap)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :asm))
+  (:export :asm-tests))
 (in-package :software-evolution-library/test/asm)
 (in-readtable :curry-compose-reader-macros)
-(defsuite asm)
-
+(defsuite asm-tests "ASM representation.")
 
 (define-constant +asm-test-dir+ (append +etc-dir+ (list "asm-test"))
   :test #'equalp
   :documentation "Path to asm-test examples.")
+
+(defixture gcd-asm
+  (:setup (setf *gcd* (from-file (make-instance 'asm) (gcd-dir "gcd.s.intel"))))
+  (:teardown (setf *gcd* nil)))
+
+(defixture gcd-asm-heap-att
+  (:setup
+   (setf *gcd* (from-file (make-instance 'asm-heap)
+                          (gcd-dir "gcd.s.att"))))
+  (:teardown (setf *gcd* nil)))
+
+(defixture gcd-asm-heap-intel
+  (:setup
+   (setf *gcd* (from-file (make-instance 'asm-heap)
+                          (gcd-dir "gcd.s.intel"))))
+  (:teardown (setf *gcd* nil)))
 
 (deftest simple-read ()
   (with-fixture gcd-asm
