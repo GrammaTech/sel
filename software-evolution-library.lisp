@@ -117,7 +117,6 @@
    :*running*
    :*start-time*
    :elapsed-time
-   :*simple-mutation-types*
    :*target-fitness-p*
    :*worst-fitness*
    :*worst-fitness-p*
