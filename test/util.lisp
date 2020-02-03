@@ -31,7 +31,7 @@
              #.(or *compile-file-truename*
                    *load-truename*
                    *default-pathname-defaults*))
-            (list "test" "etc"))
+            (list "etc"))
   :test #'equalp
   :documentation "Path to directory holding testing artifacts.")
 

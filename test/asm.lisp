@@ -15,6 +15,7 @@
    #+gt :testbot
    :software-evolution-library
    :software-evolution-library/utility
+   :software-evolution-library/software/simple
    :software-evolution-library/software/asm
    :software-evolution-library/software/asm-heap)
   (:import-from :uiop :nest)
@@ -22,10 +23,10 @@
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :asm-tests))
+  (:export :test-asm))
 (in-package :software-evolution-library/test/asm)
 (in-readtable :curry-compose-reader-macros)
-(defsuite asm-tests "ASM representation.")
+(defsuite test-asm "ASM representation.")
 
 (define-constant +asm-test-dir+ (append +etc-dir+ (list "asm-test"))
   :test #'equalp
