@@ -5,7 +5,9 @@
    :common-lisp
    :alexandria
    :closer-mop
+   :cl-store
    :software-evolution-library/test/util
+   :software-evolution-library/test/util-clang
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -14,7 +16,11 @@
    :cl-ppcre
    #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/software/ast
+   :software-evolution-library/software/parseable
+   :software-evolution-library/software/clang
+   :software-evolution-library/software/new-clang)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
@@ -23,7 +29,7 @@
   (:export :clang))
 (in-package :software-evolution-library/test/clang)
 (in-readtable :curry-compose-reader-macros)
-(defsuite clang)
+(defsuite test-clang "Clang representation." (clang-mutate-available-p))
 
 (defvar *huf* nil "Holds the huf software object.")
 

@@ -94,33 +94,6 @@
           (evolve #'test))
         (is (= *fitness-evals* 5))))))
 
-
-;;;; Helper functions to avoid hard-coded statement numbers.
-(defun stmt-with-text (obj text &key no-error (trim t))
-  "Return the AST in OBJ holding TEXT.
-Unless optional argument NO-ERROR is non-nil an error is raised if no
-AST holding STMT is found."
-  (when trim
-    (setf text (trim-whitespace text)))
-  (or (let ((result
-             (find-if [{string= text} (if trim #'trim-whitespace #'identity)
-                       #'peel-bananas #'source-text]
-                      (asts obj))))
-        result)
-      (if no-error
-          nil
-          (error "`stmt-with-text' failed to find ~S in ~S"
-                 text
-                 (mapcar [#'peel-bananas #'source-text] (asts obj))))))
-
-(defun stmt-starting-with-text (obj text)
-  (find-if (lambda (ast)
-             (and ast
-                  (equal 0
-                         (search text
-                                 (peel-bananas (source-text ast))))))
-           (asts obj)))
-
 (deftest (swap-can-recontextualize :long-running) ()
   (with-fixture huf-clang
     (let ((mut (make-instance 'clang-swap :targets

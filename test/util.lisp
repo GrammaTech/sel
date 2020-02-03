@@ -10,6 +10,9 @@
            :+gcd-dir+
            :+grep-prj-dir+
            :+multi-file-dir+
+           ;; Other functions
+           :stmt-with-text
+           :stmt-starting-with-text
            ;; Directory functions
            :gcd-dir
            :fib-dir
@@ -126,6 +129,33 @@
 (defun javascript-dir (path)
   (merge-pathnames-as-file (make-pathname :directory +javascript-dir+)
                            path))
+
+
+;;;; Helper functions to avoid hard-coded statement numbers.
+(defun stmt-with-text (obj text &key no-error (trim t))
+  "Return the AST in OBJ holding TEXT.
+Unless optional argument NO-ERROR is non-nil an error is raised if no
+AST holding STMT is found."
+  (when trim
+    (setf text (trim-whitespace text)))
+  (or (let ((result
+             (find-if [{string= text} (if trim #'trim-whitespace #'identity)
+                       #'peel-bananas #'source-text]
+                      (asts obj))))
+        result)
+      (if no-error
+          nil
+          (error "`stmt-with-text' failed to find ~S in ~S"
+                 text
+                 (mapcar [#'peel-bananas #'source-text] (asts obj))))))
+
+(defun stmt-starting-with-text (obj text)
+  (find-if (lambda (ast)
+             (and ast
+                  (equal 0
+                         (search text
+                                 (peel-bananas (source-text ast))))))
+           (asts obj)))
 
 
 ;;; Software.

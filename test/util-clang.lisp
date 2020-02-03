@@ -8,7 +8,10 @@
         :software-evolution-library/software/clang
         :software-evolution-library/software/clang-w-fodder
         :software-evolution-library/test/util)
-  (:export :+etc-dir+
+  (:export :clang-mutate-available-p
+           :make-clang
+           :*new-clang?*
+           :+etc-dir+
            :+gcd-dir+
            :+grep-prj-dir+
            :+multi-file-dir+
@@ -21,8 +24,22 @@
            :*bad-asts*
            :*huf*
            :*scopes*
-           :*variety*))
+           :*variety*
+           ;; Fixtures.
+           :hello-world-clang
+           :huf-clang
+           :sqrt-clang
+           :empty-function-body-crossover-bug-clang
+           :select-intraprocedural-pair-non-null-clang
+           :unicode-dir
+           :unicode-clang))
 (in-package :software-evolution-library/test/util-clang)
+
+(defun clang-mutate-available-p ()
+  #+windows
+  nil
+  #-windows
+  (zerop (nth-value 2 (shell "which clang-mutate"))))
 
 (defvar *good-asts* nil "Control pick-good")
 (defvar *bad-asts* nil "Control pick-bad")
