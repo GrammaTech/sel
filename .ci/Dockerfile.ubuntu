@@ -58,7 +58,7 @@ WORKDIR /root/quicklisp/local-projects/sel
 RUN export __TEMP_LD_LIBRARY_PATH=$(if [ -z "$LD_LIBRARY_PATH" ]; then echo "" ;else echo ":$LD_LIBRARY_PATH";fi)
 ENV LISP=$LISP \
     PATH=/root/quicklisp/local-projects/sel/bin:/root/.opam/4.06.0/bin:/usr/synth/bin:$PATH \
-    LD_LIBRARY_PATH=/root/quicklisp/dists/trace-db/software/trace-db/:/usr/synth/lib/$__TEMP_LD_LIBRARY_PATH \
+    LD_LIBRARY_PATH=/usr/synth/lib/$__TEMP_LD_LIBRARY_PATH \
     SERAPI=/root/.opam/4.06.0/bin/sertop \
     COQLIB=/root/.opam/4.06.0/lib/coq/ \
     QUICK_LISP=/root/quicklisp/ \
