@@ -1460,7 +1460,7 @@ of the same length"
 
 
 ;;; ASM representation.
-(defsuite asm-tests "ASM representation." #+windows nil)
+(defsuite asm "ASM representation." #+windows nil)
 
 (deftest simple-read ()
   (with-fixture gcd-asm
@@ -1897,7 +1897,7 @@ of the same length"
 
 
 ;;; ASM-SUPER-MUTANT representation.
-(defsuite asm-super-mutant-tests
+(defsuite asm-super-mutant
     "ASM-SUPER-MUTANT representation."
   ;; Only run these tests if we found libpapi.so.
   *lib-papi*)
@@ -1995,7 +1995,7 @@ of the same length"
            1)))))
 
 ;;; Command Line tests
-(defsuite cl-tests "Command Line tool tests.")
+(defsuite cl "Command Line tool tests.")
 
 (define-command fact-cl-entry
     (n &spec +common-command-line-options+)
@@ -2017,7 +2017,7 @@ of the same length"
 
 ;;; REST tests
 #-windows
-(defsuite rest-tests "REST API tests.")
+(defsuite rest "REST API tests.")
 
 #-windows
 (defun rest-test-create-client ()
@@ -2217,7 +2217,7 @@ of the same length"
 #-windows
 (progn
 
-(defsuite csurf-asm-tests "CSURF-ASM representation.")
+  (defsuite csurf-asm "CSURF-ASM representation.")
 
 (deftest dynamic-linker-path-has-been-set ()
   (is *dynamic-linker-path* "Ensure `*dynamic-linker-path*' has been set."))
@@ -2280,7 +2280,7 @@ of the same length"
 ;;;
 ;;; Test the TASK-RUNNER modules.
 ;;;
-(defsuite task-runner-tests "TASK-RUNNER tests.")
+(defsuite task-runner "TASK-RUNNER tests.")
 
 ;; simple test to see if the whole file parsed correctly
 (deftest (task-runner-1 :long-running) ( )
@@ -2340,7 +2340,7 @@ of the same length"
 ;;;
 ;;; NOTE: Currently failing because not populating .text section.
 ;;;
-(defsuite elf-tests "ELF representation." :silent)
+(defsuite elf "ELF representation." :silent)
 
 
 (defun bytes (elf) (mappend [#'cdr {assoc :code}] (genome elf)))
@@ -2467,7 +2467,7 @@ of the same length"
   #-windows
   (zerop (nth-value 2 (shell "which clang-mutate"))))
 
-(defsuite clang-tests "Clang representation." (clang-mutate-available-p))
+(defsuite clang "Clang representation." (clang-mutate-available-p))
 
 (deftest simply-able-to-load-a-clang-software-object()
   (with-fixture hello-world-clang
@@ -3519,7 +3519,7 @@ int x = CHARSIZE;")))
 
 
 ;;;; Clang w/ mutation fodder representation.
-(defsuite clang-w-fodder-tests "Clang w/ mutation fodder representation."
+(defsuite clang-w-fodder "Clang w/ mutation fodder representation."
             (clang-mutate-available-p))
 
 
@@ -3837,7 +3837,7 @@ int x = CHARSIZE;")))
 (defun java-mutate-available-p ()
   (zerop (nth-value 2 (shell "which java-mutator"))))
 
-(defsuite java-tests "JAVA representation."
+(defsuite java "JAVA representation."
   ;; (java-mutate-available-p)
   :silent)
 
@@ -4049,7 +4049,7 @@ int x = CHARSIZE;")))
 (defun acorn-available-p ()
   (which "acorn"))
 
-(defsuite javascript-tests "Javascript representation." (acorn-available-p))
+(defsuite javascript "Javascript representation." (acorn-available-p))
 
 (deftest simply-able-to-load-a-javascript-software-object ()
   (with-fixture hello-world-javascript
@@ -4469,7 +4469,7 @@ int x = CHARSIZE;")))
 (defun npm-available-p ()
   (which "npm"))
 
-(defsuite javascript-project-tests "Javascript project."
+(defsuite javascript-project "Javascript project."
   (npm-available-p))
 
 (deftest (can-parse-a-javascript-project :long-running) ()
@@ -4913,7 +4913,7 @@ int x = CHARSIZE;")))
 
 
 ;;;; Diff tests.
-(defsuite diff-tests "Diff tests.")
+(defsuite diff "Diff tests.")
 
 
 (defmacro with-static-reference (software &rest body)
@@ -5033,7 +5033,7 @@ int x = CHARSIZE;")))
 
 
 ;;;; Population tests.
-(defsuite population-tests "Population tests."
+(defsuite population "Population tests."
             (clang-mutate-available-p))
 
 
@@ -5290,7 +5290,7 @@ Useful for printing or returning differences in the REPL."
 
 
 ;;;; Fix compilation tests.
-(defsuite fix-compilation-tests "Fix compilation tests."
+(defsuite fix-compilation "Fix compilation tests."
             (clang-mutate-available-p))
 
 (defvar *broken-clang* nil "")
@@ -6793,7 +6793,7 @@ Useful for printing or returning differences in the REPL."
 
 
 ;;;; Adaptive-mutation tests.
-(defsuite adaptive-mutation-tests "Adaptive-mutation tests.")
+(defsuite adaptive-mutation "Adaptive-mutation tests.")
 
 
 (deftest bad-cut-changes-mutation-probability ()
@@ -7542,7 +7542,7 @@ prints unique counters in the trace"
         "`uninstrument` should yield the same ASTs regardless of the ~
          number of threads utilized.")))
 
-(defsuite clang-instrumentation-tests "Tests for Clang instrumentation."
+(defsuite clang-instrumentation "Tests for Clang instrumentation."
   (clang-mutate-available-p))
 
 (deftest (multi-threaded-clang-instrument-test :long-running) ()
@@ -7551,7 +7551,7 @@ prints unique counters in the trace"
   (with-fixture grep-bear-project
     (do-multi-threaded-instrument-clang-test *project*)))
 
-(defsuite java-instrumentation-tests "Tests for Java instrumentation."
+(defsuite java-instrumentation "Tests for Java instrumentation."
   ;; (zerop (nth-value 2 (shell "which java-mutator")))
   :silent)
 
@@ -7575,7 +7575,7 @@ prints unique counters in the trace"
 
 
 ;;;; Traceable tests.
-(defsuite traceable-tests "Traceable tests."
+(defsuite traceable "Traceable tests."
             (clang-mutate-available-p))
 
 (defixture traceable-gcd
@@ -7732,7 +7732,7 @@ prints unique counters in the trace"
 
 
 ;;;; Lisp representation.
-(defsuite sexp-tests "Sexp representation.")
+(defsuite sexp "Sexp representation.")
 
 
 (defvar *clang-expr*  nil "The clang expression (sexp) software object.")
@@ -7808,7 +7808,7 @@ prints unique counters in the trace"
 
 
 ;;;; Mutations and evaluation of clang expressions in Lisp form.
-(defsuite clang-expression-tests
+(defsuite clang-expression
             "Mutation and evaluation of clang expressions in Lisp form."
             (clang-mutate-available-p))
 
@@ -7919,7 +7919,7 @@ prints unique counters in the trace"
 
 
 ;;;; Utility tests.
-(defsuite utility-tests "Utility tests.")
+(defsuite utility "Utility tests.")
 
 (deftest intersects-does-not-include-endpoints ()
   (is (not (intersects (make-instance 'range :begin 0 :end 1)
@@ -8041,7 +8041,7 @@ prints unique counters in the trace"
 
 
 ;;;; Command-line tests.
-(defsuite command-line-tests "Command line tests")
+(defsuite command-line "Command line tests")
 
 ;;; FIXME: this does not work if (sel/test:test) is run while
 ;;; in some directory other than the sel root directory.
@@ -8086,7 +8086,7 @@ prints unique counters in the trace"
 
 
 ;;;; Project tests.
-(defsuite clang-project-tests "Project tests."
+(defsuite clang-project "Project tests."
             (clang-mutate-available-p))
 
 
@@ -8256,7 +8256,7 @@ prints unique counters in the trace"
 
 
 ;;;; Tests that require bear.
-(defsuite bear-tests "Clang representation."
+(defsuite bear "Clang representation."
             (lambda () (zerop (nth-value 2 (shell "which bear")))))
 #-windows
 (deftest (able-to-create-a-bear-project :long-running) ()
@@ -9567,7 +9567,7 @@ prints unique counters in the trace"
 
 
 ;;;; Types and traces tests.
-(defsuite type-traces-tests "Types and traces tests."
+(defsuite type-traces "Types and traces tests."
             (clang-mutate-available-p))
 
 
@@ -10935,7 +10935,7 @@ int main() { puts(\"~d\"); return 0; }
             (is (member expected result2-strs :test #'equal)))))))
 
 ;;; conflict asts
-(defsuite conflict-ast-tests "Conflict ast tests.")
+(defsuite conflict-ast "Conflict ast tests.")
 
 (deftest conflict-ast.1 ()
   (let ((c1 (make-conflict-ast
@@ -10955,7 +10955,7 @@ int main() { puts(\"~d\"); return 0; }
 
 (defun is-comma (c) (eql c #\,))
 
-(defsuite cpp-scan-tests "Tests of CPP-SCAN")
+(defsuite cpp-scan "Tests of CPP-SCAN")
 
 (deftest cpp-scan-basic ()
   (is (null (cpp-scan "" #'is-comma)))
