@@ -742,7 +742,7 @@
              (vector-push-extend untraced-call-spec
                                  (untraced-call-spec super-asm))))
 	(cond ((zerop (length line))) ; do nothing, empty line
-	      ((search "Input data" line)
+	      ((search "Input data" line :test 'striing-equal)
                ;; store the previous input/output set (if any)
                (when (or
                       (> (length (input-specification-regs output-spec)) 0)
@@ -763,9 +763,9 @@
 	         (setf output-spec (new-io-spec))
                  (setf untraced-call-spec (new-untraced-call-spec)))
                (setf state :input))
-	      ((search "Output data" line)
+	      ((search "Output data" line :test 'string-equal)
                (setf state :output))
-              ((search "Untraced Calls" line)
+              ((search "Untraced Calls" line :test 'string-equal)
                (setf state :untraced-calls))
               ((eq state :untraced-calls)
                (let ((call-rec (parse-untraced-call line)))
