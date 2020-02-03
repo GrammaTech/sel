@@ -18,11 +18,13 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :clang-instrumentation))
 (in-package :software-evolution-library/test/clang-instrumentation)
 (in-readtable :curry-compose-reader-macros)
+(defsuite clang-instrumentation)
 
-(clang-mutate-available-p))
+(defvar *project* nil "Software used in project fixtures.")
 
 (deftest (multi-threaded-clang-instrument-test :long-running) ()
   (with-fixture clang-project

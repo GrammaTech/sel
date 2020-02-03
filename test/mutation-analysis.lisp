@@ -18,13 +18,14 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :mutation-analysis))
 (in-package :software-evolution-library/test/mutation-analysis)
 (in-readtable :curry-compose-reader-macros)
+(defsuite mutation-analysis)
 
-(clang-mutate-available-p))
-
-
+(defvar *hello-world* nil "Holds the hello world software object.")
+(defvar *project* nil "Software used in project fixtures.")
 (defvar *test* nil "Variable to hold evaluation function for tests.")
 
 (defixture hello-world-clang-w-fitness

@@ -18,12 +18,14 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :style-features))
 (in-package :software-evolution-library/test/style-features)
 (in-readtable :curry-compose-reader-macros)
+(defsuite style-features)
 
-(clang-mutate-available-p))
-
+(defvar *variety* nil "Holds the variety software object.")
+(defvar *gcd* nil "Holds the gcd software object.")
 
 (deftest uni-grams-ht-test ()
   (let* ((sentence (list "the" "quick" "brown" "fox"

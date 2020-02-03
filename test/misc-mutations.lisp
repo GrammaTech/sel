@@ -18,12 +18,15 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :misc-mutations))
 (in-package :software-evolution-library/test/misc-mutations)
 (in-readtable :curry-compose-reader-macros)
+(defsuite misc-mutations)
 
-(clang-mutate-available-p))
-
+(defvar *scopes* nil "Holds the scopes software object.")
+(defvar *empty-while* nil "Holds the empty-while software object.")
+(defvar *soft* nil "Software used in tests.")
 
 (deftest single-decl-works ()
   (with-fixture scopes-clang

@@ -1,114 +1,62 @@
 ;;; test.lisp --- tests for the `software-evolution-library' package
 (defpackage :software-evolution-library/test
   (:nicknames :sel/test)
-  (:use
-   :common-lisp
-   :alexandria
-   :closer-mop
-   :metabang-bind
-   :named-readtables
-   :curry-compose-reader-macros
-   :arrow-macros
-   :iterate
-   :split-sequence
-   :cl-ppcre
-   :cl-store
-   :snooze
-   :clack
-   #-windows :drakma
-   #+gt :testbot
-   #-windows :trace-db
-   :uiop
-   ;; TODO: Remove those which aren't actually needed for testing.
-   :software-evolution-library
-   :software-evolution-library/utility
-   :software-evolution-library/command-line
-   #-windows :software-evolution-library/command-line-rest
-   #-windows :software-evolution-library/rest
-   :software-evolution-library/components/instrument
-   #-windows :software-evolution-library/components/clang-instrument
-   :software-evolution-library/components/clang-tokens
-   #-windows :software-evolution-library/components/condition-synthesis
-   :software-evolution-library/components/fault-loc
-   :software-evolution-library/components/fix-compilation
-   :software-evolution-library/components/fodder-database
-   :software-evolution-library/components/formatting
-   :software-evolution-library/components/in-memory-fodder-database
-   :software-evolution-library/components/java-instrument
-   :software-evolution-library/components/javascript-instrument
-   :software-evolution-library/components/json-fodder-database
-   :software-evolution-library/components/lexicase
-   :software-evolution-library/components/multi-objective
-   :software-evolution-library/components/pliny-fodder-database
-   :software-evolution-library/components/searchable
-   #-windows :software-evolution-library/components/serapi-io
-   :software-evolution-library/components/test-suite
-   #-windows :software-evolution-library/components/traceable
-   :software-evolution-library/software/adaptive-mutation
-   :software-evolution-library/software/ancestral
-   :software-evolution-library/software/asm
-   :software-evolution-library/software/asm-heap
-   :software-evolution-library/software/super-mutant
-   :software-evolution-library/software/asm-super-mutant
-   :software-evolution-library/software/super-mutant-clang
-   :software-evolution-library/software/super-mutant-project
-   :software-evolution-library/software/ast
-   :software-evolution-library/software/cil
-   :software-evolution-library/software/clang
-   :software-evolution-library/software/new-clang
-   :software-evolution-library/software/clang-expression
-   :software-evolution-library/software/clang-project
-   :software-evolution-library/software/clang-w-fodder
-   :software-evolution-library/software/coq
-   :software-evolution-library/software/coq-project
-   #-windows  :software-evolution-library/software/csurf-asm
-   :software-evolution-library/software/diff
-   :software-evolution-library/software/elf
-   :software-evolution-library/software/elf-cisc
-   :software-evolution-library/software/elf-risc
-   :software-evolution-library/software-evolution-library
-   :software-evolution-library/software/expression
-   :software-evolution-library/software/forth
-   :software-evolution-library/software/java
-   :software-evolution-library/software/java-project
-   :software-evolution-library/software/javascript
-   :software-evolution-library/software/javascript-project
-   :software-evolution-library/software/json
-   :software-evolution-library/software/sexp
-   :software-evolution-library/software/lisp
-   :software-evolution-library/software/llvm
-   :software-evolution-library/software/parseable
-   :software-evolution-library/software/project
-   :software-evolution-library/software/git-project
-   :software-evolution-library/software/simple
-   :software-evolution-library/software/source
-   :software-evolution-library/software/styleable
-   :software-evolution-library/software/with-exe
-   :software-evolution-library/stefil-plus)
-  #-windows (:import-from :hunchentoot)
-  #-windows (:import-from :osicat :file-permissions :pathname-as-directory)
-  (:shadowing-import-from :common-lisp :type)
-  (:shadowing-import-from :software-evolution-library :size)
-  (:shadowing-import-from :clack :stop)
-  (:shadowing-import-from :iterate :iter :for :until :collecting :in)
-  (:shadowing-import-from
-   :closer-mop
-   :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric)
-  (:shadowing-import-from :uiop :getenv :quit #-windows :parameter-error )
-  (:shadowing-import-from
-   :alexandria
-   :appendf :ensure-list :featurep :emptyp
-   :if-let :ensure-function :ensure-gethash :copy-file
-   :parse-body :simple-style-warning)
+  (:use :common-lisp
+        :software-evolution-library/stefil-plus
+        #+gt :testbot
+        :software-evolution-library/test/adaptive-mutation.lisp
+        :software-evolution-library/test/asm-super-mutant.lisp
+        :software-evolution-library/test/asm.lisp
+        :software-evolution-library/test/bear.lisp
+        :software-evolution-library/test/cl.lisp
+        :software-evolution-library/test/clang-ancestry.lisp
+        :software-evolution-library/test/clang-crossover.lisp
+        :software-evolution-library/test/clang-expression.lisp
+        :software-evolution-library/test/clang-instrumentation.lisp
+        :software-evolution-library/test/clang-mutations.lisp
+        :software-evolution-library/test/clang-project.lisp
+        :software-evolution-library/test/clang-scopes-and-types.lisp
+        :software-evolution-library/test/clang-super-mutants.lisp
+        :software-evolution-library/test/clang-syntactic-contexts.lisp
+        :software-evolution-library/test/clang-tokenizer.lisp
+        :software-evolution-library/test/clang-utility.lisp
+        :software-evolution-library/test/clang-w-fodder.lisp
+        :software-evolution-library/test/clang.lisp
+        :software-evolution-library/test/command-line.lisp
+        :software-evolution-library/test/condition-synthesis.lisp
+        :software-evolution-library/test/conflict-ast.lisp
+        :software-evolution-library/test/coq.lisp
+        :software-evolution-library/test/cpp-scan.lisp
+        :software-evolution-library/test/csurf-asm-ancestry.lisp
+        :software-evolution-library/test/csurf-asm.lisp
+        :software-evolution-library/test/database.lisp
+        :software-evolution-library/test/declaration-type-databases.lisp
+        :software-evolution-library/test/diff.lisp
+        :software-evolution-library/test/elf.lisp
+        :software-evolution-library/test/fix-compilation.lisp
+        :software-evolution-library/test/instrumentation.lisp
+        :software-evolution-library/test/java-instrumentation.lisp
+        :software-evolution-library/test/java.lisp
+        :software-evolution-library/test/javascript-project.lisp
+        :software-evolution-library/test/javascript.lisp
+        :software-evolution-library/test/misc-mutations.lisp
+        :software-evolution-library/test/mutation-analysis.lisp
+        :software-evolution-library/test/new-clang-debug.lisp
+        :software-evolution-library/test/new-clang-round-trip.lisp
+        :software-evolution-library/test/population.lisp
+        :software-evolution-library/test/range-representation.lisp
+        :software-evolution-library/test/rest.lisp
+        :software-evolution-library/test/selection.lisp
+        :software-evolution-library/test/serapi.lisp
+        :software-evolution-library/test/sexp.lisp
+        :software-evolution-library/test/style-features.lisp
+        :software-evolution-library/test/task-runner.lisp
+        :software-evolution-library/test/traceable.lisp
+        :software-evolution-library/test/type-traces.lisp
+        :software-evolution-library/test/utility.lisp)
   (:export :test :batch-test :testbot-test))
 (in-package :software-evolution-library/test)
 (named-readtables:in-readtable :sel-readtable)
-
-(defvar *this-file*
-  #.(or *compile-file-truename*
-        *load-truename*
-        *default-pathname-defaults*))
 
 #-gt
 (progn
@@ -134,75 +82,12 @@
                 (prog1 t
                   (format *error-output* "SUCCESS~%")))))))
 
-(defroot test)                          ; The root test suite.
-
-;; Disable clang-format and any other helpers
-(defmacro every-is (function &rest lists)
-  (let ((args-sym (gensym "args")))
-    `(mapc (lambda (&rest ,args-sym)
-             (is (apply ,function ,args-sym)))
-           ,@lists)))
-
 (defun run-batch (&rest a)
   (declare (ignorable a))
   #+ccl (setf ccl::*interactive-streams-initialized* nil)
   (batch-test #'test "SEL" +software-evolution-library-branch+))
 
-(defvar *genome*      nil "Genome used in tests.")
-(defvar *soft*        nil "Software used in tests.")
-(defvar *project*     nil "Software used in project fixtures.")
-(defvar *base*        nil "Software used in diff/merge tests.")
-(defvar *left*        nil "Software used in diff/merge tests.")
-(defvar *right*       nil "Software used in diff/merge tests.")
-(defvar *tfos*        nil "Another software used in tests.")
-(defvar *gcd*         nil "Holds the gcd software object.")
-(defvar *gcd-trace-path* nil "Holds the file of gcd traces.")
-(defvar *binary-search* nil "Holds the binary_search software object.")
-(defvar *empty-while* nil "Holds the empty-while software object.")
-(defvar *headers*     nil "Holds the headers software object.")
-(defvar *hello-world* nil "Holds the hello world software object.")
-(defvar *sqrt*        nil "Holds the hello world software object.")
-(defvar *huf*         nil "Holds the huf software object.")
-(defvar *nested*      nil "Holds the nested software object.")
-(defvar *scopes*      nil "Holds the scopes software object.")
-(defvar *range-ref* #("one" "two" "three" "four" "five" "six")
-  "Example range software object.")
-(defvar *collatz*     nil "Holds the collatz software object.")
-(defvar *fib*         nil "Holds the fibonacci software object.")
-(defvar *variety*     nil "Holds the variety software object.")
-(defvar *contexts*    nil "Holds the syntactic-contexts software object.")
-(defvar *test-suite*  nil "Holds condition synthesis test suite object.")
-(defvar *java-file-name* nil "File name to be tested in a test case.")
-(defvar *coq*         nil "Coq software object.")
-(defvar *clack-port*  9003 "Default port for clack web server instance.")
-(defvar *clack* nil "Web server instance used in tests.")
-(defvar *rest-client*  nil "Client-id (cid) for REST API test client.")
-(defvar *clack-delay* 0.5 "Seconds to delay after starting server")
-
-#-windows
-(defun initialize-clack ()
-  (let ((tries 0))
-    (handler-bind
-        ((usocket:socket-error
-          (lambda (e)
-            (warn "Starting web server on ~a failed with ~a" *clack-port* e)
-            (if (< tries 20)
-                (progn (incf tries)
-                       (invoke-restart 'try-a-new-port))
-                (error e)))))
-      (restart-case
-          (prog1
-              ;; Inhibit the clack "Hunchentoot server is started." messages.
-              (let ((*standard-output* (make-broadcast-stream)))
-                (clack:clackup (snooze:make-clack-app) :port *clack-port*))
-            ;; Wait for a second before continuing, to ensure the server is up.
-	    (sleep *clack-delay*))
-        (try-a-new-port ()
-          :report "Try using a new port"
-          (incf *clack-port*)
-          (prog1 (clack:clackup (snooze:make-clack-app)
-				:port *clack-port*)
-	    (sleep *clack-delay*)))))))
+(defun test ())
 
 (define-constant +etc-dir+
     (append (pathname-directory
@@ -379,13 +264,7 @@
   :test #'equalp
   :documentation "Path to directory holding java.")
 
-(define-constant +maven-prj-dir+ (append +java-dir+ (list "SimpleMaven"))
-  :test #'equalp
-  :documentation "Path to directory holding the SimpleMaven java project.")
 
-(define-constant +java-jars-dir+ (append +java-dir+ (list "Jars"))
-  :test #'equalp
-  :documentation "Path to directory holding the Build Folder jars.")
 
 (define-constant +javascript-dir+ (append +etc-dir+ (list "javascript"))
   :test #'equalp

@@ -18,12 +18,16 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :instrumentation))
 (in-package :software-evolution-library/test/instrumentation)
 (in-readtable :curry-compose-reader-macros)
+(defsuite instrumentation)
 
-(clang-mutate-available-p))
-
+(defvar *binary-search* nil "Holds the binary_search software object.")
+(defvar *gcd* nil "Holds the gcd software object.")
+(defvar *project* nil "Software used in project fixtures.")
+(defvar *soft* nil "Software used in tests.")
 
 (defun count-traceable (obj)
   "Return a count of full statements parented by compound statements"

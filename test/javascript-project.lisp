@@ -18,11 +18,13 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :javascript-project))
 (in-package :software-evolution-library/test/javascript-project)
 (in-readtable :curry-compose-reader-macros)
+(defsuite javascript-project)
 
-(npm-available-p))
+(defvar *soft* nil "Software used in tests.")
 
 (deftest (can-parse-a-javascript-project :long-running) ()
   (with-fixture fib-project-javascript
@@ -87,4 +89,4 @@
                                       #("a" "number" 1 nil)
                                       #("num" "number" 1 nil)))
                   (nth 11 (aget :trace
-                                (get-trace (traces instrumented) 0)))))))))
+                                (get-trace (traces instrumented) 0))))))))

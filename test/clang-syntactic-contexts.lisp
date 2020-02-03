@@ -18,12 +18,13 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :clang-syntactic-contexts))
 (in-package :software-evolution-library/test/clang-syntactic-contexts)
 (in-readtable :curry-compose-reader-macros)
+(defsuite clang-syntactic-contexts)
 
-(clang-mutate-available-p))
-
+(defvar *contexts* nil "Holds the syntactic-contexts software object.")
 
 ;; Tests of basic clang mutation operators
 (defun count-matching-chars-in-stmt (char stmt)

@@ -18,12 +18,22 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :java))
 (in-package :software-evolution-library/test/java)
 (in-readtable :curry-compose-reader-macros)
+(defsuite java)
 
-;; (java-mutate-available-p)
-:silent)
+(define-constant +maven-prj-dir+ (append +java-dir+ (list "SimpleMaven"))
+  :test #'equalp
+  :documentation "Path to directory holding the SimpleMaven java project.")
+
+(define-constant +java-jars-dir+ (append +java-dir+ (list "Jars"))
+  :test #'equalp
+  :documentation "Path to directory holding the Build Folder jars.")
+
+(defvar *java-file-name* nil "File name to be tested in a test case.")
+(defvar *soft* nil "Software used in tests.")
 
 ;; Copy software object.
 (deftest (java-test-copy :long-running) ()

@@ -18,10 +18,17 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :asm))
 (in-package :software-evolution-library/test/asm)
 (in-readtable :curry-compose-reader-macros)
+(defsuite asm)
 
+(defvar *gcd* nil "Holds the gcd software object.")
+
+(define-constant +asm-test-dir+ (append +etc-dir+ (list "asm-test"))
+  :test #'equalp
+  :documentation "Path to asm-test examples.")
 
 (deftest simple-read ()
   (with-fixture gcd-asm

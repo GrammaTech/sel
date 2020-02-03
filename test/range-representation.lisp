@@ -18,11 +18,14 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :range-representation))
 (in-package :software-evolution-library/test/range-representation)
 (in-readtable :curry-compose-reader-macros)
+(defsuite range-representation)
 
-
+(defvar *tfos* nil "Another software used in tests.")
+(defvar *soft* nil "Software used in tests.")
 
 (deftest range-size ()
   (with-fixture range (is (= 6 (size *soft*)))))

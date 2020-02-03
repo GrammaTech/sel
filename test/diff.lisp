@@ -18,11 +18,14 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :diff))
 (in-package :software-evolution-library/test/diff)
 (in-readtable :curry-compose-reader-macros)
+(defsuite diff)
 
-
+(defvar *tfos* nil "Another software used in tests.")
+(defvar *soft* nil "Software used in tests.")
 
 (defmacro with-static-reference (software &rest body)
   (let ((ref-sym (gensym)))

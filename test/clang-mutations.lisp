@@ -18,11 +18,15 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :clang-mutations))
 (in-package :software-evolution-library/test/clang-mutations)
 (in-readtable :curry-compose-reader-macros)
+(defsuite clang-mutations)
 
-(clang-mutate-available-p))
+(defvar *nested* nil "Holds the nested software object.")
+(defvar *hello-world* nil "Holds the hello world software object.")
+(defvar *gcd* nil "Holds the gcd software object.")
 
 (defixture gcd-clang-control-picks
   (:setup

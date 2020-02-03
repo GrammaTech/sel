@@ -18,11 +18,15 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :clang-super-mutants))
 (in-package :software-evolution-library/test/clang-super-mutants)
 (in-readtable :curry-compose-reader-macros)
+(defsuite clang-super-mutants)
 
-(clang-mutate-available-p))
+(defvar *fib* nil "Holds the fibonacci software object.")
+(defvar *huf* nil "Holds the huf software object.")
+(defvar *gcd* nil "Holds the gcd software object.")
 
 (deftest (super-mutant-genome-works :long-running) ()
   (with-fixture fib-clang
@@ -397,14 +401,3 @@ int main() { puts(\"~d\"); return 0; }
     ;; Each proxy had genome identical to the corresponding mutant
     (is (equal (mapcar #'genome mutants)
                (mapcar [#'cdr #'fitness] mutants)))))
-
-
-#-windows
-(progn
-
-;;; Test SerAPI (low-level Coq interaction)
-  (defun serapi-available-p ()
-    (set-serapi-paths)
-    (zerop (nth-value 2 (shell "which ~a" *sertop-path*))))
-
-  (setf *serapi-timeout* 10)

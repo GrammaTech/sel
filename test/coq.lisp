@@ -18,12 +18,13 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :coq))
 (in-package :software-evolution-library/test/coq)
-(in-readtable :curry-compose-reader-macros)
-
-
 (in-readtable :serapi-readtable)
+(defsuite coq)
+
+(defvar *coq* nil "Coq software object.")
 
 (defixture ls-test
   (:setup (setf *coq* (make-instance

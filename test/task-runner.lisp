@@ -18,10 +18,13 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :task-runner))
 (in-package :software-evolution-library/test/task-runner)
 (in-readtable :curry-compose-reader-macros)
+(defsuite task-runner)
 
+(defvar *soft* nil "Software used in tests.")
 
 ;; simple test to see if the whole file parsed correctly
 (deftest (task-runner-1 :long-running) ( )

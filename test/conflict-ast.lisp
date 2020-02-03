@@ -18,10 +18,11 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :conflict-ast))
 (in-package :software-evolution-library/test/conflict-ast)
 (in-readtable :curry-compose-reader-macros)
-
+(defsuite conflict-ast)
 
 (deftest conflict-ast.1 ()
   (let ((c1 (make-conflict-ast

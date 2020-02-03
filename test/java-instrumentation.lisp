@@ -18,9 +18,13 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :java-instrumentation))
 (in-package :software-evolution-library/test/java-instrumentation)
 (in-readtable :curry-compose-reader-macros)
+(defsuite java-instrumentation)
+
+(defvar *soft* nil "Software used in tests.")
 
 (deftest (multi-threaded-java-instrument-test :long-running) ()
   (with-fixture java-project

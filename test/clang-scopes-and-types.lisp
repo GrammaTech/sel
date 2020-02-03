@@ -18,11 +18,14 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :clang-scopes-and-types))
 (in-package :software-evolution-library/test/clang-scopes-and-types)
 (in-readtable :curry-compose-reader-macros)
+(defsuite clang-scopes-and-types)
 
-
+(defvar *scopes* nil "Holds the scopes software object.")
+(defvar *soft* nil "Software used in tests.")
 
 (defun compare-scopes (result expected)
   (is (equal (length result) (length expected)))

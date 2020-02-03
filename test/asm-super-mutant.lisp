@@ -18,10 +18,13 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :asm-super-mutant))
 (in-package :software-evolution-library/test/asm-super-mutant)
 (in-readtable :curry-compose-reader-macros)
+(defsuite asm-super-mutant)
 
+(defvar *soft*        nil "Software used in tests.")
 
 (defun asm-super-mutant-finds-improved-version ()
   ;; Add target function, and all possible single-cut variants.

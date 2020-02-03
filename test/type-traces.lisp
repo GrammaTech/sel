@@ -18,12 +18,11 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :type-traces))
 (in-package :software-evolution-library/test/type-traces)
 (in-readtable :curry-compose-reader-macros)
-
-(clang-mutate-available-p))
-
+(defsuite type-traces)
 
 (deftest type-trace-string-test ()
   (is (equalp "int"

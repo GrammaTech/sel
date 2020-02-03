@@ -18,10 +18,11 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :utility))
 (in-package :software-evolution-library/test/utility)
 (in-readtable :curry-compose-reader-macros)
-
+(defsuite utility)
 
 (deftest intersects-does-not-include-endpoints ()
   (is (not (intersects (make-instance 'range :begin 0 :end 1)

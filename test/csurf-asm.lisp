@@ -18,10 +18,13 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :csurf-asm))
 (in-package :software-evolution-library/test/csurf-asm)
 (in-readtable :curry-compose-reader-macros)
+(defsuite csurf-asm)
 
+(defvar *soft* nil "Software used in tests.")
 
 (deftest dynamic-linker-path-has-been-set ()
   (is *dynamic-linker-path* "Ensure `*dynamic-linker-path*' has been set."))
@@ -65,9 +68,6 @@
 
 (defun csurf-tools-available-p ()
   (zerop (nth-value 2 (shell "which ~a" *elf-edit-symtab-path*))))
-
-(defsuite test-csurf-asm-compile "Tests that rebuild csurf-asm objects"
-  (csurf-tools-available-p))
 
 (deftest csurf-asm-can-compile ()
   (with-fixture csurf-asm-calc

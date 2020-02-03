@@ -18,12 +18,11 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :clang-expression))
 (in-package :software-evolution-library/test/clang-expression)
 (in-readtable :curry-compose-reader-macros)
-
-(clang-mutate-available-p))
-
+(defsuite clang-expression)
 
 ;;;; Mutations of clang expressions in Lisp form.
 (deftest change-operator-first ()

@@ -18,11 +18,11 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :sexp))
 (in-package :software-evolution-library/test/sexp)
 (in-readtable :curry-compose-reader-macros)
-
-
+(defsuite sexp)
 
 (defvar *clang-expr*  nil "The clang expression (sexp) software object.")
 (defixture clang-expr

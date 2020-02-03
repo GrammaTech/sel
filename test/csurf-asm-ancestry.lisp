@@ -18,11 +18,13 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :csurf-asm-ancestry))
 (in-package :software-evolution-library/test/csurf-asm-ancestry)
 (in-readtable :curry-compose-reader-macros)
+(defsuite csurf-asm-ancestry)
 
-
+(defvar *soft* nil "Software used in tests.")
 
 (defclass csurf-asm-w/ancestry (csurf-asm ancestral) ())
 
@@ -55,4 +57,4 @@
 
       (is (= 0 (plist-get :id (second (ancestors *soft*)))))
       (is (equal 'from-file
-                 (plist-get :how (second (ancestors *soft*)))))))))
+                 (plist-get :how (second (ancestors *soft*))))))))

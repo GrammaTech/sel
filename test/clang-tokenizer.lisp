@@ -18,12 +18,16 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :clang-tokenizer))
 (in-package :software-evolution-library/test/clang-tokenizer)
 (in-readtable :curry-compose-reader-macros)
+(defsuite clang-tokenizer)
 
-(clang-mutate-available-p))
-
+(defvar *test-suite* nil "Holds condition synthesis test suite object.")
+(defvar *variety* nil "Holds the variety software object.")
+(defvar *gcd* nil "Holds the gcd software object.")
+(defvar *soft* nil "Software used in tests.")
 
 (deftest (case-tokens :long-running) ()
   (with-fixture variety-clang

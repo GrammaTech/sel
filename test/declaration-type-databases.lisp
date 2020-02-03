@@ -18,12 +18,13 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :declaration-type-databases))
 (in-package :software-evolution-library/test/declaration-type-databases)
 (in-readtable :curry-compose-reader-macros)
+(defsuite declaration-type-databases)
 
-(clang-mutate-available-p))
-
+(defvar *huf* nil "Holds the huf software object.")
 
 (deftest (huf-knows-types :long-running) ()
   (with-fixture huf-clang

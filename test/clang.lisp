@@ -18,10 +18,20 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :clang))
 (in-package :software-evolution-library/test/clang)
 (in-readtable :curry-compose-reader-macros)
+(defsuite clang)
 
+(defvar *fib* nil "Holds the fibonacci software object.")
+(defvar *huf* nil "Holds the huf software object.")
+(defvar *sqrt* nil "Holds the hello world software object.")
+(defvar *hello-world* nil "Holds the hello world software object.")
+(defvar *headers* nil "Holds the headers software object.")
+(defvar *binary-search* nil "Holds the binary_search software object.")
+(defvar *gcd* nil "Holds the gcd software object.")
+(defvar *soft* nil "Software used in tests.")
 
 (deftest simply-able-to-load-a-clang-software-object()
   (with-fixture hello-world-clang

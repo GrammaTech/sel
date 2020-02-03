@@ -18,12 +18,14 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :clang-utility))
 (in-package :software-evolution-library/test/clang-utility)
 (in-readtable :curry-compose-reader-macros)
+(defsuite clang-utility)
 
-(clang-mutate-available-p))
-
+(defvar *hello-world* nil "Holds the hello world software object.")
+(defvar *soft* nil "Software used in tests.")
 
 (deftest asts-populated-on-creation ()
   (with-fixture hello-world-clang

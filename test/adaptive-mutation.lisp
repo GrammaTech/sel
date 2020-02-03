@@ -18,11 +18,11 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :adaptive-mutation))
 (in-package :software-evolution-library/test/adaptive-mutation)
 (in-readtable :curry-compose-reader-macros)
-
-
+(defsuite adaptive-mutation)
 
 (deftest bad-cut-changes-mutation-probability ()
   (let* ((*mutation-results-queue* #((cut . :worse) (cut . :dead)))

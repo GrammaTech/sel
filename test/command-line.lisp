@@ -18,10 +18,11 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :command-line))
 (in-package :software-evolution-library/test/command-line)
 (in-readtable :curry-compose-reader-macros)
-
+(defsuite command-line)
 
 ;;; FIXME: this does not work if (sel/test:test) is run while
 ;;; in some directory other than the sel root directory.

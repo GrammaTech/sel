@@ -18,12 +18,16 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :clang-crossover))
 (in-package :software-evolution-library/test/clang-crossover)
 (in-readtable :curry-compose-reader-macros)
+(defsuite clang-crossover)
 
-(clang-mutate-available-p))
-
+(defvar *fib* nil "Holds the fibonacci software object.")
+(defvar *collatz* nil "Holds the collatz software object.")
+(defvar *scopes* nil "Holds the scopes software object.")
+(defvar *soft* nil "Software used in tests.")
 
 (defun select-intraprocedural-pair-with-adjustments-test (obj)
   (let ((function (first (functions obj))))

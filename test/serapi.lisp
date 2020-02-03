@@ -18,12 +18,11 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :serapi))
 (in-package :software-evolution-library/test/serapi)
-(in-readtable :curry-compose-reader-macros)
-
-
 (in-readtable :serapi-readtable)
+(defsuite serapi)
 
 (defixture serapi
   (:setup (sleep 0.1)

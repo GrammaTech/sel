@@ -18,11 +18,11 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :selection))
 (in-package :software-evolution-library/test/selection)
 (in-readtable :curry-compose-reader-macros)
-
-
+(defsuite selection)
 
 (deftest select-best-single-winner ()
   (let ((group (list (make-instance 'simple :fitness 1.0)

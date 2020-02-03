@@ -18,12 +18,13 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :clang-ancestry))
 (in-package :software-evolution-library/test/clang-ancestry)
 (in-readtable :curry-compose-reader-macros)
+(defsuite clang-ancestry)
 
-(clang-mutate-available-p))
-
+(defvar *hello-world* nil "Holds the hello world software object.")
 
 (defclass clang-w-ancestry (clang ancestral) ())
 
@@ -99,8 +100,3 @@
           (when (probe-file svg) (delete-file svg))
           (when (probe-file dot) (delete-file dot)))
         (is (zerop errno))))))
-
-
-;;; CSURF-ASM ancestry tests.
-#-windows
-(progn

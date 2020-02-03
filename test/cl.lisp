@@ -18,9 +18,11 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :cl))
 (in-package :software-evolution-library/test/cl)
 (in-readtable :curry-compose-reader-macros)
+(defsuite cl)
 
 
 (define-command fact-cl-entry

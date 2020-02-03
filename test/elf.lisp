@@ -18,11 +18,13 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :elf))
 (in-package :software-evolution-library/test/elf)
 (in-readtable :curry-compose-reader-macros)
+(defsuite elf)
 
-
+(defvar *gcd* nil "Holds the gcd software object.")
 
 (defun bytes (elf) (mappend [#'cdr {assoc :code}] (genome elf)))
 

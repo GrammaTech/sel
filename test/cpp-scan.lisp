@@ -18,9 +18,11 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :cpp-scan))
 (in-package :software-evolution-library/test/cpp-scan)
 (in-readtable :curry-compose-reader-macros)
+(defsuite cpp-scan)
 
 (deftest cpp-scan-basic ()
   (is (null (cpp-scan "" #'is-comma)))

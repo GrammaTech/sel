@@ -18,10 +18,40 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :rest))
 (in-package :software-evolution-library/test/rest)
 (in-readtable :curry-compose-reader-macros)
+(defsuite rest)
 
+(defvar *rest-client* nil "Client-id (cid) for REST API test client.")
+(defvar *clack-port*  9003 "Default port for clack web server instance.")
+(defvar *clack-delay* 0.5 "Seconds to delay after starting server")
+
+#-windows
+(defun initialize-clack ()
+  (let ((tries 0))
+    (handler-bind
+        ((usocket:socket-error
+          (lambda (e)
+            (warn "Starting web server on ~a failed with ~a" *clack-port* e)
+            (if (< tries 20)
+                (progn (incf tries)
+                       (invoke-restart 'try-a-new-port))
+                (error e)))))
+      (restart-case
+          (prog1
+              ;; Inhibit the clack "Hunchentoot server is started." messages.
+              (let ((*standard-output* (make-broadcast-stream)))
+                (clack:clackup (snooze:make-clack-app) :port *clack-port*))
+            ;; Wait for a second before continuing, to ensure the server is up.
+            (sleep *clack-delay*))
+        (try-a-new-port ()
+          :report "Try using a new port"
+          (incf *clack-port*)
+          (prog1 (clack:clackup (snooze:make-clack-app)
+                                :port *clack-port*)
+            (sleep *clack-delay*)))))))
 
 #-windows
 (defun rest-test-create-client ()

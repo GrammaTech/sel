@@ -18,12 +18,19 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :population))
 (in-package :software-evolution-library/test/population)
 (in-readtable :curry-compose-reader-macros)
+(defsuite population)
 
-(clang-mutate-available-p))
+(defvar *huf* nil "Holds the huf software object.")
 
+(defmacro every-is (function &rest lists)
+  (let ((args-sym (gensym "args")))
+    `(mapc (lambda (&rest ,args-sym)
+             (is (apply ,function ,args-sym)))
+           ,@lists)))
 
 (deftest evict-population ()
   (with-fixture population

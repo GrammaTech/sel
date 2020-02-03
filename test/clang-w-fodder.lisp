@@ -18,12 +18,15 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :clang-w-fodder))
 (in-package :software-evolution-library/test/clang-w-fodder)
 (in-readtable :curry-compose-reader-macros)
+(defsuite clang-w-fodder)
 
-(clang-mutate-available-p))
-
+(defvar *hello-world* nil "Holds the hello world software object.")
+(defvar *gcd* nil "Holds the gcd software object.")
+(defvar *soft* nil "Software used in tests.")
 
 (deftest (clang-parse-source-snippet-body-statement :long-running) ()
   (with-fixture gcd-clang

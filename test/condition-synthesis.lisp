@@ -22,7 +22,8 @@
 (in-package :software-evolution-library/test/condition-synthesis)
 (in-readtable :curry-compose-reader-macros)
 
-(clang-mutate-available-p))
+(defvar *soft* nil "Software used in tests.")
+(defvar *test-suite* nil "Holds condition synthesis test suite object.")
 
 (deftest flip-works ()
   (is (string= (flip "") ""))
@@ -201,4 +202,4 @@
                      (->> (get-immediate-children repaired-prog stmt)
                           (first)
                           (source-text)
-                          (peel-bananas))))))))))
+                          (peel-bananas)))))))))

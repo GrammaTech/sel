@@ -18,11 +18,14 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :traceable))
 (in-package :software-evolution-library/test/traceable)
 (in-readtable :curry-compose-reader-macros)
+(defsuite traceable)
 
-(clang-mutate-available-p))
+(defvar *gcd* nil "Holds the gcd software object.")
+(defvar *soft* nil "Software used in tests.")
 
 (defixture traceable-gcd
   (:setup (setf *gcd* (from-file

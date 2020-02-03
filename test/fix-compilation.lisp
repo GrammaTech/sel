@@ -18,11 +18,11 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :fix-compilation))
 (in-package :software-evolution-library/test/fix-compilation)
 (in-readtable :curry-compose-reader-macros)
-
-(clang-mutate-available-p))
+(defsuite fix-compilation)
 
 (defvar *broken-clang* nil "")
 (defvar *broken-gcc* nil "")

@@ -13,6 +13,10 @@
                           (SETF A (- A B))
                           (SETF B (- B A))))))))
 
+
+
+
+
 (setq *test-forms*
       (mapcar (lambda-bind ((a b gcd)) `(= (euclids-gcd ,a ,b) ,gcd))
               '((1071 1029 21)

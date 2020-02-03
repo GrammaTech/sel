@@ -18,11 +18,14 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :bear))
 (in-package :software-evolution-library/test/bear)
 (in-readtable :curry-compose-reader-macros)
+(defsuite bear)
 
-(lambda () (zerop (nth-value 2 (shell "which bear")))))
+(defvar *project* nil "Software used in project fixtures.")
+
 #-windows
 (deftest (able-to-create-a-bear-project :long-running) ()
   (with-fixture grep-bear-project

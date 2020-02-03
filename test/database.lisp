@@ -18,11 +18,11 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :database))
 (in-package :software-evolution-library/test/database)
 (in-readtable :curry-compose-reader-macros)
-
-
+(defsuite database)
 
 (defixture json-database
   (:setup

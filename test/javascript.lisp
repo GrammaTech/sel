@@ -18,10 +18,13 @@
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric))
+   :defmethod :defgeneric)
+  (:export :javascript))
 (in-package :software-evolution-library/test/javascript)
 (in-readtable :curry-compose-reader-macros)
+(defsuite javascript)
 
+(defvar *soft* nil "Software used in tests.")
 
 (deftest simply-able-to-load-a-javascript-software-object ()
   (with-fixture hello-world-javascript
@@ -431,12 +434,3 @@
     (is (equalp (mapc-ast (ast-root *soft*) #'ast-path)
                 '(NIL ((1)) ((2)))))
     (is (string= (ast-text (ast-root *soft*)) "topleftaright"))))
-
-
-;;;; Javascript project.
-
-#-windows
-(progn
-
-  (defun npm-available-p ()
-    (which "npm"))
