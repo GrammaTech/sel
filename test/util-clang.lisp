@@ -32,6 +32,9 @@
            :*scopes*
            :*variety*
            :*clang-expr*
+           ;; Misc. functions.
+           :inject-missing-swap-macro
+           :make-clang-control-picks
            ;; Fixtures.
            :hello-world-clang
            :huf-clang

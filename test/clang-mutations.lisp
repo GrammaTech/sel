@@ -6,6 +6,7 @@
    :alexandria
    :closer-mop
    :software-evolution-library/test/util
+   :software-evolution-library/test/util-clang
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -14,16 +15,22 @@
    :cl-ppcre
    #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/software/ast
+   :software-evolution-library/software/parseable
+   :software-evolution-library/software/clang
+   :software-evolution-library/software/new-clang
+   :software-evolution-library/components/condition-synthesis)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :clang-mutations))
+  (:export :test-clang-mutations))
 (in-package :software-evolution-library/test/clang-mutations)
 (in-readtable :curry-compose-reader-macros)
-(defsuite clang-mutations)
+(defsuite test-clang-mutations "Detailed clang mutation tests."
+  (clang-mutate-available-p))
 
 (defvar *nested* nil "Holds the nested software object.")
 
@@ -225,12 +232,12 @@
 
 (deftest (unguard-conditional-compound-statements :long-running) ()
   (flet ((subsequent-lines-p (genome-string first second)
-           (-<>> genome-string
-                 (split-sequence #\Newline)
-                 (mapcar {string-trim " "})
-                 (member first <> :test #'string=)
-                 (second)
-                 (string= second))))
+           (nest
+            (string= second)
+            (second)
+            (member first (mapcar {string-trim " "}
+                                  (split-sequence #\Newline genome-string))
+                    :test #'string=))))
     (with-fixture nested-clang
       (is (subsequent-lines-p
            (let ((copy (copy *nested*)))
@@ -238,9 +245,9 @@
               (apply-mutation copy
                               (make-instance 'clang-promote-guarded
                                 :object copy
-                                :targets (->> (stmt-with-text *nested* "puts('WHILE');")
-                                              (get-parent-asts *nested*)
-                                              (third))))))
+                                :targets (nest (third)
+                                               (get-parent-asts *nested*)
+                                               (stmt-with-text *nested* "puts('WHILE');"))))))
            "/* While loop. */"
            "puts('WHILE');")
           "Promotes single-line body from within while loop.")
@@ -250,9 +257,9 @@
               (apply-mutation copy
                               (make-instance 'clang-promote-guarded
                                 :object copy
-                                :targets (->> (stmt-with-text *nested* "puts('DO');")
-                                              (get-parent-asts *nested*)
-                                              (third))))))
+                                :targets (nest (third)
+                                               (get-parent-asts *nested*)
+                                               (stmt-with-text *nested* "puts('DO');"))))))
            "/* Do loop. */"
            "puts('DO');")
           "Promotes single-line body from within do loop.")
@@ -262,9 +269,9 @@
               (apply-mutation copy
                               (make-instance 'clang-promote-guarded
                                 :object copy
-                                :targets (->> (stmt-with-text *nested* "puts('FOR-1');")
-                                              (get-parent-asts *nested*)
-                                              (third))))))
+                                :targets (nest (third)
+                                               (get-parent-asts *nested*)
+                                               (stmt-with-text *nested* "puts('FOR-1');"))))))
            "/* For loop. */"
            "puts('FOR-1');")
           "Promotes single-line body from within for loop.")
@@ -274,9 +281,9 @@
               (apply-mutation copy
                               (make-instance 'clang-promote-guarded
                                 :object copy
-                                :targets (->> (stmt-with-text *nested* "puts('FOR-2');")
-                                              (get-parent-asts *nested*)
-                                              (third))))))
+                                :targets (nest (third)
+                                               (get-parent-asts *nested*)
+                                               (stmt-with-text *nested* "puts('FOR-2');"))))))
            "/* For loop with empty header. */"
            "puts('FOR-2');")
           "Promotes single-line body from within for loop 2.")
@@ -286,9 +293,9 @@
               (apply-mutation copy
                               (make-instance 'clang-promote-guarded
                                 :object copy
-                                :targets (->> (stmt-with-text *nested* "puts('IF-1');")
-                                              (get-parent-asts *nested*)
-                                              (third))))))
+                                :targets (nest (third)
+                                               (get-parent-asts *nested*)
+                                               (stmt-with-text *nested* "puts('IF-1');"))))))
            "/* Single child. */"
            "puts('IF-1');")
           "Promotes single-line sole branch of if.")
@@ -298,9 +305,9 @@
               (apply-mutation copy
                               (make-instance 'clang-promote-guarded
                                 :object copy
-                                :targets (->> (stmt-with-text *nested* "puts('IF-2');")
-                                              (get-parent-asts *nested*)
-                                              (third))))))
+                                :targets (nest (third)
+                                               (get-parent-asts *nested*)
+                                               (stmt-with-text *nested* "puts('IF-2');"))))))
            "/* Empty then. */"
            "puts('IF-2');")
           "Promotes single-line else of if w/o then.")
@@ -310,9 +317,9 @@
               (apply-mutation copy
                               (make-instance 'clang-promote-guarded
                                 :object copy
-                                :targets (->> (stmt-with-text *nested* "puts('IF-3');")
-                                              (get-parent-asts *nested*)
-                                              (third))))))
+                                :targets (nest (third)
+                                               (get-parent-asts *nested*)
+                                               (stmt-with-text *nested* "puts('IF-3');"))))))
            "/* Empty else. */"
            "puts('IF-3');")
           "Promotes single-line then of if w/o else.")
@@ -322,9 +329,9 @@
               (apply-mutation copy
                               (make-instance 'clang-promote-guarded
                                 :object copy
-                                :targets (->> (stmt-with-text *nested* "puts('IF-3');")
-                                              (get-parent-asts *nested*)
-                                              (third))))))
+                                :targets (nest (third)
+                                               (get-parent-asts *nested*)
+                                               (stmt-with-text *nested* "puts('IF-3');"))))))
            "/* Empty else. */"
            "puts('IF-3');")
           "Promotes single-line then of if w/o else.")
@@ -334,9 +341,9 @@
                 (apply-mutation copy
                                 (make-instance 'clang-promote-guarded
                                   :object copy
-                                  :targets (->> (stmt-with-text *nested* "puts('MULTILINE');")
-                                                (get-parent-asts *nested*)
-                                                (third))))))))
+                                  :targets (nest (third)
+                                                 (get-parent-asts *nested*)
+                                                 (stmt-with-text *nested* "puts('MULTILINE');"))))))))
         (is (and (subsequent-lines-p genome-string
                                      "/* Multiline loop. */"
                                      "puts('MULTILINE');")
