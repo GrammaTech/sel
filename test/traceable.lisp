@@ -6,6 +6,7 @@
    :alexandria
    :closer-mop
    :software-evolution-library/test/util
+   :software-evolution-library/test/util-clang
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -14,16 +15,41 @@
    :cl-ppcre
    #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/software/source
+   :software-evolution-library/software/clang
+   :software-evolution-library/software/new-clang
+   :software-evolution-library/components/instrument
+   :software-evolution-library/components/traceable
+   :software-evolution-library/components/test-suite)
   (:import-from :uiop :nest)
+  (:import-from :uiop/pathname :ensure-directory-pathname)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :traceable))
+  (:export :test-traceable))
 (in-package :software-evolution-library/test/traceable)
 (in-readtable :curry-compose-reader-macros)
-(defsuite traceable)
+(defsuite test-traceable "Traceable tests." (clang-mutate-available-p))
+
+(define-software clang-traceable (clang binary-traceable) ())
+(define-software new-clang-traceable (new-clang binary-traceable) ())
+(define-software java-traceable  (java sexp-traceable) ())
+(define-software javascript-traceable  (javascript sexp-traceable) ())
+(define-software javascript-traceable-project  (javascript-project sexp-traceable) ())
+(define-software collect-traces-handles-directory-phenomes-mock
+    (source binary-traceable)
+  ((phenome-dir :initarg phenome-dir :accessor phenome-dir :initform nil
+                :copier :direct)))
+
+(defixture print-env-clang
+  (:setup (setf *soft*
+                (from-file (make-clang :compiler "clang")
+                           (make-pathname :directory +etc-dir+
+                                          :name "print-env"
+                                          :type "c"))))
+  (:teardown (setf *soft* nil)))
 
 (define-constant +long-running-program-dir+
     (append +etc-dir+  (list "long-running-program"))

@@ -12,6 +12,7 @@
    :iterate
    :split-sequence
    :cl-ppcre
+   :cl-store
    #+gt :testbot
    :software-evolution-library
    :software-evolution-library/utility)
@@ -20,10 +21,10 @@
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :utility))
+  (:export :test-utility))
 (in-package :software-evolution-library/test/utility)
 (in-readtable :curry-compose-reader-macros)
-(defsuite utility)
+(defsuite test-utility "Utility tests.")
 
 (deftest intersects-does-not-include-endpoints ()
   (is (not (intersects (make-instance 'range :begin 0 :end 1)

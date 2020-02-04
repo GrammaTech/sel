@@ -347,14 +347,6 @@
   (:teardown
    (setf *sqrt* nil)))
 
-(defixture print-env-clang
-  (:setup (setf *soft*
-                (from-file (make-clang :compiler "clang")
-                           (make-pathname :directory +etc-dir+
-                                          :name "print-env"
-                                          :type "c"))))
-  (:teardown (setf *soft* nil)))
-
 (defixture hello-world-clang-control-picks
   (:setup
    (setf *hello-world*

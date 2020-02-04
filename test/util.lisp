@@ -87,10 +87,6 @@
   :test #'equalp
   :documentation "Path to condition synthesis examples.")
 
-(define-constant +java-dir+ (append +etc-dir+ (list "java" "non-instrumented"))
-  :test #'equalp
-  :documentation "Path to directory holding java.")
-
 (define-constant +javascript-dir+ (append +etc-dir+ (list "javascript"))
   :test #'equalp
   :documentation "Path to directory holding Javascript test programs.")
@@ -121,11 +117,6 @@
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
                  :directory +fib-dir+))
-
-(defun java-dir (filename)
-  (make-pathname :name (pathname-name filename)
-                 :type (pathname-type filename)
-                 :directory +java-dir+))
 
 (defun javascript-dir (path)
   (merge-pathnames-as-file (make-pathname :directory +javascript-dir+)
@@ -162,15 +153,6 @@ AST holding STMT is found."
 ;;; Software.
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
-(define-software clang-traceable (clang binary-traceable) ())
-(define-software new-clang-traceable (new-clang binary-traceable) ())
-(define-software java-traceable  (java sexp-traceable) ())
-(define-software javascript-traceable  (javascript sexp-traceable) ())
-(define-software javascript-traceable-project  (javascript-project sexp-traceable) ())
-(define-software collect-traces-handles-directory-phenomes-mock
-    (source binary-traceable)
-  ((phenome-dir :initarg phenome-dir :accessor phenome-dir :initform nil
-                :copier :direct)))
 
 (defvar *soft-mutate-errors* nil
   "Control when mutations on soft objects throw errors.")
@@ -213,23 +195,6 @@ AST holding STMT is found."
                          :genome (coerce (loop :for i :from 0 :to 9 :collect i)
                                          'vector))))
   (:teardown (setf *soft* nil)))
-
-(defixture range
-  (:setup (setf *soft* (make-instance 'sw-range
-                         :genome '((0 . 2) (1 . 1) (1 . 2))
-                         :reference #("one" "two" "three"))))
-  (:teardown (setf *soft* nil)))
-
-(defvar *range-ref* nil)
-(defixture double-range
-  (:setup
-   (setf *soft* (make-instance 'sw-range
-                  :genome '((0 . 2) (1 . 1) (1 . 2))
-                  :reference *range-ref*)
-         *tfos* (make-instance 'sw-range
-                  :genome '((2 . 5) (4 . 4) (4 . 5))
-                  :reference *range-ref*)))
-  (:teardown (setf *soft* nil *tfos* nil)))
 
 (defixture gcd-elf
   (:setup

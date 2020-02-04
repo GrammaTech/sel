@@ -14,16 +14,31 @@
    :cl-ppcre
    #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/software/source
+   :software-evolution-library/software/java
+   :software-evolution-library/software/project
+   :software-evolution-library/software/java-project
+   :software-evolution-library/components/instrument
+   :software-evolution-library/components/traceable)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :java))
+  (:export :test-java))
 (in-package :software-evolution-library/test/java)
 (in-readtable :curry-compose-reader-macros)
-(defsuite java)
+(defsuite test-java "JAVA representation." :silent)
+
+(define-constant +java-dir+ (append +etc-dir+ (list "java" "non-instrumented"))
+  :test #'equalp
+  :documentation "Path to directory holding java.")
+
+(defun java-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +java-dir+))
 
 (define-constant +maven-prj-dir+ (append +java-dir+ (list "SimpleMaven"))
   :test #'equalp
@@ -156,11 +171,12 @@
   (let ((*java-file-name* file))
     (with-fixture general-fixture-java-traceable
       (instrument *soft*)
-      (is (equalp (-<>> (make-instance 'test-suite
-                          :test-cases (list (make-instance 'test-case
-                                              :program-name :bin)))
-                        (collect-traces *soft*)
-                        (get-trace <> 0))
+      (is (equalp (get-trace
+                   (collect-traces
+                    *soft*
+                    (make-instance 'test-suite
+                      :test-cases (list (make-instance 'test-case
+                                          :program-name :bin)))) 0)
                   target)))))
 
 (deftest (collect-traces-testsimple :long-running) ()

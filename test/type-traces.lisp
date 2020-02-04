@@ -6,6 +6,7 @@
    :alexandria
    :closer-mop
    :software-evolution-library/test/util
+   :software-evolution-library/test/util-clang
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -14,16 +15,18 @@
    :cl-ppcre
    #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/software/clang)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :type-traces))
+  (:export :test-type-traces))
 (in-package :software-evolution-library/test/type-traces)
 (in-readtable :curry-compose-reader-macros)
-(defsuite type-traces)
+(defsuite test-type-traces "Types and traces tests."
+  (clang-mutate-available-p))
 
 (deftest type-trace-string-test ()
   (is (equalp "int"

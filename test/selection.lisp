@@ -14,16 +14,19 @@
    :cl-ppcre
    #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/software/simple
+   :software-evolution-library/components/lexicase
+   :software-evolution-library/components/multi-objective)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :selection))
+  (:export :test-selection))
 (in-package :software-evolution-library/test/selection)
 (in-readtable :curry-compose-reader-macros)
-(defsuite selection)
+(defsuite test-selection "Selection tests.")
 
 (deftest select-best-single-winner ()
   (let ((group (list (make-instance 'simple :fitness 1.0)
@@ -71,12 +74,11 @@
 
 (deftest lexicase-select-works ()
   (is (eq 2
-          (-<> (list (make-instance 'simple :fitness #(0 1 1))
-                     (make-instance 'simple :fitness #(0 1 1))
-                     (make-instance 'simple :fitness #(1 1 0))
-                     (make-instance 'simple :fitness #(1 1 0)))
-               (lexicase-select <> 2)
-               (length)))))
+          (length (lexicase-select
+                   (list (make-instance 'simple :fitness #(0 1 1))
+                         (make-instance 'simple :fitness #(0 1 1))
+                         (make-instance 'simple :fitness #(1 1 0))
+                         (make-instance 'simple :fitness #(1 1 0))) 2)))))
 
 (deftest tournament-works ()
   (let ((*population* (list (make-instance 'simple :fitness 0.1)

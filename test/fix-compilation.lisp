@@ -6,6 +6,7 @@
    :alexandria
    :closer-mop
    :software-evolution-library/test/util
+   :software-evolution-library/test/util-clang
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -14,16 +15,23 @@
    :cl-ppcre
    #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/software/ast
+   :software-evolution-library/software/parseable
+   :software-evolution-library/software/clang
+   :software-evolution-library/software/new-clang
+   :software-evolution-library/software/clang-w-fodder
+   :software-evolution-library/components/fix-compilation)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :fix-compilation))
+  (:export :test-fix-compilation))
 (in-package :software-evolution-library/test/fix-compilation)
 (in-readtable :curry-compose-reader-macros)
-(defsuite fix-compilation)
+(defsuite test-fix-compilation "Fix compilation tests."
+  (clang-mutate-available-p))
 
 (defvar *broken-clang* nil "")
 (defvar *broken-gcc* nil "")

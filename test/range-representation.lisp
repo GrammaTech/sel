@@ -14,16 +14,34 @@
    :cl-ppcre
    #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/software/simple)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :range-representation))
+  (:export :test-range-representation))
 (in-package :software-evolution-library/test/range-representation)
 (in-readtable :curry-compose-reader-macros)
-(defsuite range-representation)
+(defsuite test-range-representation "Range representation.")
+
+(defixture range
+  (:setup (setf *soft* (make-instance 'sw-range
+                         :genome '((0 . 2) (1 . 1) (1 . 2))
+                         :reference #("one" "two" "three"))))
+  (:teardown (setf *soft* nil)))
+
+(defvar *range-ref* nil)
+(defixture double-range
+  (:setup
+   (setf *soft* (make-instance 'sw-range
+                  :genome '((0 . 2) (1 . 1) (1 . 2))
+                  :reference *range-ref*)
+         *tfos* (make-instance 'sw-range
+                  :genome '((2 . 5) (4 . 4) (4 . 5))
+                  :reference *range-ref*)))
+  (:teardown (setf *soft* nil *tfos* nil)))
 
 (deftest range-size ()
   (with-fixture range (is (= 6 (size *soft*)))))
