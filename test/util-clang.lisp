@@ -11,6 +11,7 @@
         :software-evolution-library/software/parseable
         :software-evolution-library/software/clang
         :software-evolution-library/software/new-clang
+        :software-evolution-library/software/clang-expression
         :software-evolution-library/software/clang-w-fodder
         :software-evolution-library/test/util)
   (:export :clang-mutate-available-p
@@ -30,6 +31,7 @@
            :*huf*
            :*scopes*
            :*variety*
+           :*clang-expr*
            ;; Fixtures.
            :hello-world-clang
            :huf-clang
@@ -47,7 +49,10 @@
            :no-mutation-targets-clang
            :cpp-strings
            :typedef
-           :gcd-clang))
+           :gcd-clang
+           :grep-bear-project
+           :clang-expr
+           :clang-project))
 (in-package :software-evolution-library/test/util-clang)
 (in-readtable :curry-compose-reader-macros)
 
@@ -64,6 +69,7 @@
 (defvar *huf* nil "Holds the huf software object.")
 (defvar *scopes* nil "Holds the scopes software object.")
 (defvar *variety* nil "Holds the variety software object.")
+(defvar *clang-expr*  nil "The clang expression (sexp) software object.")
 
 (define-software clang-control-picks (clang) ())
 (define-software new-clang-control-picks (new-clang) ())
@@ -570,3 +576,20 @@
                            (lisp-bugs-dir "no-mutation-targets.c"))))
   (:teardown
    (setf *soft* nil)))
+
+(defixture grep-bear-project
+  (:setup
+   (setf *project*
+         (from-file (make-instance 'clang-project
+                      :build-command "make grep"
+                      :artifacts '("grep"))
+                    (make-pathname :directory +grep-prj-dir+))))
+  (:teardown (setf *project* nil)))
+
+(defixture clang-expr
+  (:setup
+   (setf *clang-expr*
+         (make-instance 'clang-expression
+           :genome (copy-tree '(:+ 1 (:* 2 (:- 3 :y)))))))
+  (:teardown
+   (setf *clang-expr* nil)))

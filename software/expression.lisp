@@ -423,14 +423,11 @@
       (/ (factorial set)
          (* (factorial subset) (factorial (- set subset))))))
 
+(defgeneric evaluate-expression (object environment &optional expression)
+  (:documentation "Evaluate OBJECT's expression in ENVIRONMENT."))
+
 (defmethod evaluate-expression ((obj expression) free-vars
                                 &optional (expression (genome obj)))
-  "DOCFIXME
-
-* OBJ DOCFIXME
-* FREE-VARS DOCFIXME
-* EXPRESSION DOCFIXME
-"
   (cond
     ((listp expression)
      (apply (operator-to-function obj (car expression))

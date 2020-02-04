@@ -6,6 +6,7 @@
    :alexandria
    :closer-mop
    :software-evolution-library/test/util
+   :software-evolution-library/test/util-clang
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -14,16 +15,19 @@
    :cl-ppcre
    #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/software/project
+   :software-evolution-library/software/clang-project)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :bear))
+  (:export :test-bear))
 (in-package :software-evolution-library/test/bear)
 (in-readtable :curry-compose-reader-macros)
-(defsuite bear)
+(defsuite test-bear "Clang representation."
+  (lambda () (zerop (nth-value 2 (shell "which bear")))))
 
 (defvar *project* nil "Software used in project fixtures.")
 

@@ -14,17 +14,17 @@
    :cl-ppcre
    #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/command-line)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :cl))
+  (:export :test-cl))
 (in-package :software-evolution-library/test/cl)
 (in-readtable :curry-compose-reader-macros)
-(defsuite cl)
-
+(defsuite test-cl "Command Line tool tests.")
 
 (define-command fact-cl-entry
     (n &spec +common-command-line-options+)

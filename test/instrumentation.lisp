@@ -6,6 +6,7 @@
    :alexandria
    :closer-mop
    :software-evolution-library/test/util
+   :software-evolution-library/test/util-clang
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -14,18 +15,63 @@
    :cl-ppcre
    #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/software/ast
+   :software-evolution-library/software/parseable
+   :software-evolution-library/software/clang
+   :software-evolution-library/software/new-clang
+   :software-evolution-library/components/instrument
+   :software-evolution-library/components/clang-instrument)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :instrumentation))
+  (:export :test-instrumentation))
 (in-package :software-evolution-library/test/instrumentation)
 (in-readtable :curry-compose-reader-macros)
-(defsuite instrumentation)
+(defsuite test-instrumentation
+    "Tests for Clang instrumentation."
+  (clang-mutate-available-p))
 
 (defvar *project* nil "Software used in project fixtures.")
+
+(defun do-multi-threaded-instrument-clang-test (obj)
+  (let ((st-instrumented
+         (instrument (copy obj)
+                     :functions
+                     (list (lambda (instrumenter ast)
+                             (var-instrument {get-vars-in-scope
+                                              (software instrumenter)}
+                                             instrumenter
+                                             ast)))
+                     :num-threads 1))
+        (mt-instrumented
+         (instrument (copy obj)
+                     :functions
+                     (list (lambda (instrumenter ast)
+                             (var-instrument {get-vars-in-scope
+                                              (software instrumenter)}
+                                             instrumenter
+                                             ast)))
+                     :num-threads 4)))
+    (is (equalp (mapcar #'ast-class (asts st-instrumented))
+                (mapcar #'ast-class (asts mt-instrumented)))
+        "`instrument` should yield the same ASTs regardless of the ~
+         number of threads utilized.")
+
+    (uninstrument st-instrumented :num-threads 1)
+    (uninstrument mt-instrumented :num-threads 4)
+    (is (equalp (mapcar #'ast-class (asts st-instrumented))
+                (mapcar #'ast-class (asts mt-instrumented)))
+        "`uninstrument` should yield the same ASTs regardless of the ~
+         number of threads utilized.")))
+
+(deftest (multi-threaded-clang-instrument-test :long-running) ()
+  (with-fixture clang-project
+    (do-multi-threaded-instrument-clang-test *project*))
+  (with-fixture grep-bear-project
+    (do-multi-threaded-instrument-clang-test *project*)))
 
 (defun count-traceable (obj)
   "Return a count of full statements parented by compound statements"
@@ -39,7 +85,6 @@
       (let ((trace (read-binary-trace trace-file)))
         (is (listp trace))
         trace))))
-
 
 (deftest instrumented-p-test ()
   (with-fixture gcd-clang
@@ -464,15 +509,6 @@ prints unique counters in the trace"
              (from-file (make-pathname :directory +grep-prj-dir+)))))
   (:teardown (setf *project* nil)))
 
-(defixture grep-bear-project
-  (:setup
-   (setf *project*
-         (from-file (make-instance 'clang-project
-                      :build-command "make grep"
-                      :artifacts '("grep"))
-                    (make-pathname :directory +grep-prj-dir+))))
-  (:teardown (setf *project* nil)))
-
 (deftest (can-instrument-clang-project :long-running) ()
   (with-fixture clang-project
     (instrument *project* :functions
@@ -637,34 +673,3 @@ prints unique counters in the trace"
                                             ast)))))
       (is (equal (genome orig) (genome (uninstrument instrumented)))
           "(uninstrument (instrument obj ...)) is not an identity"))))
-
-(defun do-multi-threaded-instrument-clang-test (obj)
-  (let ((st-instrumented
-         (instrument (copy obj)
-                     :functions
-                     (list (lambda (instrumenter ast)
-                             (var-instrument {get-vars-in-scope
-                                              (software instrumenter)}
-                                             instrumenter
-                                             ast)))
-                     :num-threads 1))
-        (mt-instrumented
-         (instrument (copy obj)
-                     :functions
-                     (list (lambda (instrumenter ast)
-                             (var-instrument {get-vars-in-scope
-                                              (software instrumenter)}
-                                             instrumenter
-                                             ast)))
-                     :num-threads 4)))
-    (is (equalp (mapcar #'ast-class (asts st-instrumented))
-                (mapcar #'ast-class (asts mt-instrumented)))
-        "`instrument` should yield the same ASTs regardless of the ~
-         number of threads utilized.")
-
-    (uninstrument st-instrumented :num-threads 1)
-    (uninstrument mt-instrumented :num-threads 4)
-    (is (equalp (mapcar #'ast-class (asts st-instrumented))
-                (mapcar #'ast-class (asts mt-instrumented)))
-        "`uninstrument` should yield the same ASTs regardless of the ~
-         number of threads utilized.")))

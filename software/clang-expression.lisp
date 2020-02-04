@@ -15,7 +15,8 @@
         :software-evolution-library/software/clang
         :software-evolution-library/software/expression)
   (:export :expression-intern
-           :expression-to-c))
+           :expression-to-c
+           :clang-expression))
 (in-package :software-evolution-library/software/clang-expression)
 (in-readtable :curry-compose-reader-macros)
 

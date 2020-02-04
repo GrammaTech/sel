@@ -25,15 +25,6 @@
 (in-readtable :curry-compose-reader-macros)
 (defsuite sexp)
 
-(defvar *clang-expr*  nil "The clang expression (sexp) software object.")
-(defixture clang-expr
-  (:setup
-   (setf *clang-expr*
-         (make-instance 'clang-expression
-           :genome (copy-tree '(:+ 1 (:* 2 (:- 3 :y)))))))
-  (:teardown
-   (setf *clang-expr* nil)))
-
 (deftest sexp-cut-first ()
   (with-fixture clang-expr
     (apply-mutation *clang-expr* (make-instance 'sexp-cut :targets 0))
