@@ -6,6 +6,7 @@
    :alexandria
    :closer-mop
    :software-evolution-library/test/util
+   :software-evolution-library/test/util-clang
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -14,16 +15,22 @@
    :cl-ppcre
    #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/software/ast
+   :software-evolution-library/software/parseable
+   :software-evolution-library/software/clang
+   :software-evolution-library/software/new-clang)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :clang-syntactic-contexts))
+  (:export :test-clang-syntactic-contexts))
 (in-package :software-evolution-library/test/clang-syntactic-contexts)
 (in-readtable :curry-compose-reader-macros)
-(defsuite clang-syntactic-contexts)
+(defsuite test-clang-syntactic-contexts
+    "Clang syntactic contexts."
+  (clang-mutate-available-p))
 
 (defvar *contexts* nil "Holds the syntactic-contexts software object.")
 
@@ -118,11 +125,11 @@
                           `((:insert (:stmt1 . ,location)
                                      (:value1 . ,target))))
       (is (not (ast-full-stmt target))))
-    (is (->> (find-function *contexts* "braced_body")
-             (function-body *contexts*)
-             (get-immediate-children *contexts*)
-             (first)
-             (ast-full-stmt)))))
+    (is (nest (ast-full-stmt)
+              (first)
+              (get-immediate-children *contexts*)
+              (function-body *contexts*)
+              (find-function *contexts* "braced_body")))))
 
 (deftest cut-list-elt-removes-comma ()
   (with-fixture contexts
@@ -220,25 +227,26 @@
                #\;
                (find-function *contexts* "unbraced_body"))))
     (is (eq :NullStmt
-            (some->> (stmt-starting-with-text *contexts* "if (2)")
-                     (get-immediate-children *contexts*)
-                     (second)
-                     (ast-class))))))
+            (nest (ast-class)           ; Was some->>
+                  (second)
+                  (get-immediate-children *contexts*)
+                  (stmt-starting-with-text *contexts* "if (2)"))))))
 
 (deftest cut-braced-body-adds-nullstmt ()
   (with-fixture contexts
-    (let ((target (->> (stmt-with-text *contexts* "int x = 1;")
-                       (get-parent-ast *contexts*))))
+    (let ((target (nest
+                   (get-parent-ast *contexts*)
+                   (stmt-with-text *contexts* "int x = 1;"))))
       (apply-mutation-ops *contexts*
                           `((:cut (:stmt1 . ,target)))))
     (is (eq 1 (count-matching-chars-in-stmt
                #\;
                (find-function *contexts* "braced_body"))))
     (is (eq :NullStmt
-            (some->> (stmt-starting-with-text *contexts* "if (1)")
-                     (get-immediate-children *contexts*)
-                     (second)
-                     (ast-class))))))
+            (nest (ast-class)           ; Was some->>
+                  (second)
+                  (get-immediate-children *contexts*)
+                  (stmt-starting-with-text *contexts* "if (1)"))))))
 
 (deftest replace-unbraced-body-keeps-semicolon ()
   (with-fixture contexts
@@ -277,8 +285,8 @@
 
 (deftest insert-after-braced-body-adds-trailing-semicolon ()
   (with-fixture contexts
-    (let ((target (->> (stmt-with-text *contexts* "int x = 1;")
-                       (get-parent-ast *contexts*)))
+    (let ((target (nest (get-parent-ast *contexts*)
+                        (stmt-with-text *contexts* "int x = 1;")))
           (inserted (stmt-with-text *contexts* "int x = 0;")))
       (apply-mutation-ops *contexts*
                           `((:insert-after (:stmt1 . ,target)
@@ -292,8 +300,8 @@
 
 (deftest insert-braced-after-braced-body-does-not-add-semicolon ()
   (with-fixture contexts
-    (let ((target (->> (stmt-with-text *contexts* "int x = 1;")
-                       (get-parent-ast *contexts*))))
+    (let ((target (nest (get-parent-ast *contexts*)
+                        (stmt-with-text *contexts* "int x = 1;"))))
       (apply-mutation-ops *contexts*
                           `((:insert-after (:stmt1 . ,target)
                                            (:value1 . ,target)))))
@@ -394,11 +402,11 @@
       (is (not (stmt-with-text *contexts* "int x = 0;" :no-error t)))
       (is (stmt-with-text *contexts* "int x = 1;" :no-error t))
       (is (eq 1
-              (->> (stmt-starting-with-text *contexts* "void full_stmt")
-                   (function-body *contexts*)
-                   (get-immediate-children *contexts*)
-                   (remove-if-not #'ast-full-stmt)
-                   (length))))
+              (nest (length)
+                    (remove-if-not (function ast-full-stmt))
+                    (get-immediate-children *contexts*)
+                    (function-body *contexts*)
+                    (stmt-starting-with-text *contexts* "void full_stmt"))))
       (is (search "comment 1" (genome *contexts*)))
       (is (search "comment 2" (genome *contexts*))))))
 
@@ -407,17 +415,18 @@
     (let ((target (stmt-with-text *contexts* "{ 1, 2, 3 }")))
       (apply-mutation-ops *contexts*
                           `((:cut (:stmt1 . ,target)))))
-    (is (eq 1 (->> (find-function *contexts* "initialization_list")
-                   (count-matching-chars-in-stmt #\;))))))
+    (is (eq 1 (nest (count-matching-chars-in-stmt #\;)
+                    (find-function *contexts* "initialization_list"))))))
 
 (deftest replace-removes-trailing-semicolon-with-whitespace ()
   (with-fixture contexts
     (let ((location (stmt-starting-with-text *contexts* "MACRO"))
-          (replacement (->> (find-function *contexts* "unbraced_body")
-                            (get-immediate-children *contexts*)
-                            (first))))
+          (replacement (nest (first)
+                             (get-immediate-children *contexts*)
+                             (find-function *contexts* "unbraced_body"))))
       (apply-mutation-ops *contexts*
                           `((:cut (:stmt1 . ,location)
                                   (:value1 . ,replacement)))))
-    (is (eq 0 (->> (find-function *contexts* "trailing_semi_with_whitespace")
-                   (count-matching-chars-in-stmt #\;))))))
+    (is (eq 0 (nest
+               (count-matching-chars-in-stmt #\;)
+               (find-function *contexts* "trailing_semi_with_whitespace"))))))
