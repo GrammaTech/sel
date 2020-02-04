@@ -25,7 +25,12 @@
            :*soft*
            :*gcd*
            :*binary-search*
-           :*fib*))
+           :*fib*
+           ;; Fixtures.
+           :soft
+           :range
+           :double-range
+           :gcd-elf))
 (in-package :software-evolution-library/test/util)
 (in-readtable :curry-compose-reader-macros)
 
@@ -90,10 +95,6 @@
   :test #'equalp
   :documentation "Path to directory holding Javascript test programs.")
 
-(define-constant +coq-test-dir+ (append +etc-dir+ (list "coq"))
-  :test #'equalp
-  :documentation "Path to Coq test examples.")
-
 
 ;;; Functions on constants.
 (defun gcd-dir (filename)
@@ -125,11 +126,6 @@
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
                  :directory +java-dir+))
-
-(defun coq-test-dir (filename)
-  (make-pathname :name (pathname-name filename)
-                 :type (pathname-type filename)
-                 :directory +coq-test-dir+))
 
 (defun javascript-dir (path)
   (merge-pathnames-as-file (make-pathname :directory +javascript-dir+)
@@ -234,26 +230,6 @@ AST holding STMT is found."
                   :genome '((2 . 5) (4 . 4) (4 . 5))
                   :reference *range-ref*)))
   (:teardown (setf *soft* nil *tfos* nil)))
-
-(defixture diff
-  (:setup
-   (setf *soft* (make-instance 'diff)
-         (genome *soft*) '(((:code 1)) ((:code 2)) ((:code 3)) ((:code 4)))))
-  (:teardown (setf *soft* nil)))
-
-(defixture double-diff
-  (:setup
-   (setf *soft* (make-instance 'diff)
-         (genome *soft*) '(((:code 1)) ((:code 2)) ((:code 3)) ((:code 4)))
-         *tfos* (make-instance 'diff)
-         (genome *tfos*) '(((:code 1)) ((:code 2)) ((:code 3)) ((:code 4)))))
-  (:teardown (setf *soft* nil *tfos* nil)))
-
-(defixture diff-array
-  (:setup
-   (setf *soft* (make-instance 'diff)
-         (genome *soft*) #(((:code 1)) ((:code 2)) ((:code 3)) ((:code 4)))))
-  (:teardown (setf *soft* nil)))
 
 (defixture gcd-elf
   (:setup

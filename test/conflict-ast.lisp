@@ -14,16 +14,17 @@
    :cl-ppcre
    #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/software/ast)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :conflict-ast))
+  (:export :test-conflict-ast))
 (in-package :software-evolution-library/test/conflict-ast)
 (in-readtable :curry-compose-reader-macros)
-(defsuite conflict-ast)
+(defsuite test-conflict-ast "Conflict ast tests.")
 
 (deftest conflict-ast.1 ()
   (let ((c1 (make-conflict-ast
@@ -38,7 +39,3 @@
           "conflict ast alists are merged")
       (is (equalp (conflict-ast-default-children c) '(c f))
           "conflict ast defaults are merged"))))
-
-;;; cpp-scan
-
-(defun is-comma (c) (eql c #\,))

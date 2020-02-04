@@ -25,6 +25,8 @@
 (in-readtable :curry-compose-reader-macros)
 (defsuite cpp-scan)
 
+(defun is-comma (c) (eql c #\,))
+
 (deftest cpp-scan-basic ()
   (is (null (cpp-scan "" #'is-comma)))
   (is (eql (cpp-scan "," #'is-comma) 0))

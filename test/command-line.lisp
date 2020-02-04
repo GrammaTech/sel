@@ -1,4 +1,4 @@
-;;;; command-line.lisp --- Command line tests
+;;;; cl.lisp --- Command Line tool tests.
 (defpackage :software-evolution-library/test/command-line
   (:nicknames :sel/test/command-line)
   (:use
@@ -6,6 +6,7 @@
    :alexandria
    :closer-mop
    :software-evolution-library/test/util
+   :software-evolution-library/test/util-clang
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -14,16 +15,39 @@
    :cl-ppcre
    #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/command-line
+   :software-evolution-library/software/simple
+   :software-evolution-library/software/clang
+   :software-evolution-library/software/new-clang
+   :software-evolution-library/software/clang-project
+   :software-evolution-library/software/json)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :command-line))
+  (:export :test-cl))
 (in-package :software-evolution-library/test/command-line)
 (in-readtable :curry-compose-reader-macros)
-(defsuite command-line)
+(defsuite test-command-line "Command Line tool tests.")
+
+(define-command fact-cl-entry
+    (n &spec +common-command-line-options+)
+  "Test that canonical REST endpoints work. Computes factorial."
+  #.(format nil
+            "~%Built from SEL ~a, and ~a ~a.~%"
+            +software-evolution-library-version+
+            (lisp-implementation-type) (lisp-implementation-version))
+  (declare (ignorable quiet verbose language))
+  (if help
+      (show-help-for-fact-cl-entry)
+      (factorial n)))
+
+(deftest run-factorial-cl-func ()
+  (let ((*standard-output* (make-broadcast-stream)))
+    (is (eql (fact-cl-entry 5 :verbose 3) 120))
+    (is (eql (fact-cl-entry 52235215 :help T) nil))))
 
 ;;; FIXME: this does not work if (sel/test:test) is run while
 ;;; in some directory other than the sel root directory.

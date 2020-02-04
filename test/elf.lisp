@@ -14,17 +14,18 @@
    :cl-ppcre
    #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/software/elf
+   :software-evolution-library/software/elf-risc)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :elf))
+  (:export :test-elf))
 (in-package :software-evolution-library/test/elf)
 (in-readtable :curry-compose-reader-macros)
-(defsuite elf)
-
+(defsuite test-elf "ELF representation." :silent)
 
 (defun bytes (elf) (mappend [#'cdr {assoc :code}] (genome elf)))
 

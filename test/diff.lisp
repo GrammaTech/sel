@@ -14,16 +14,38 @@
    :cl-ppcre
    #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/software/simple
+   :software-evolution-library/software/diff)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :diff))
+  (:export :test-diff))
 (in-package :software-evolution-library/test/diff)
 (in-readtable :curry-compose-reader-macros)
-(defsuite diff)
+(defsuite test-diff "Diff tests.")
+
+(defixture diff
+  (:setup
+   (setf *soft* (make-instance 'diff)
+         (genome *soft*) '(((:code 1)) ((:code 2)) ((:code 3)) ((:code 4)))))
+  (:teardown (setf *soft* nil)))
+
+(defixture double-diff
+  (:setup
+   (setf *soft* (make-instance 'diff)
+         (genome *soft*) '(((:code 1)) ((:code 2)) ((:code 3)) ((:code 4)))
+         *tfos* (make-instance 'diff)
+         (genome *tfos*) '(((:code 1)) ((:code 2)) ((:code 3)) ((:code 4)))))
+  (:teardown (setf *soft* nil *tfos* nil)))
+
+(defixture diff-array
+  (:setup
+   (setf *soft* (make-instance 'diff)
+         (genome *soft*) #(((:code 1)) ((:code 2)) ((:code 3)) ((:code 4)))))
+  (:teardown (setf *soft* nil)))
 
 (defmacro with-static-reference (software &rest body)
   (let ((ref-sym (gensym)))
@@ -85,7 +107,7 @@
            '(((:CODE 3)) ((:CODE 2)) ((:CODE 1)) ((:CODE 4))))))))
 
 (deftest diff-copy ()
-  (with-fixture diff (is (typep (copy *soft*) 'diff))))
+  (with-fixture diff (is (typep (copy *soft*) 'sel/sw/diff:diff))))
 
 (deftest diff-single-point-crossover ()
   (with-fixture double-diff

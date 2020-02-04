@@ -6,6 +6,7 @@
    :alexandria
    :closer-mop
    :software-evolution-library/test/util
+   :software-evolution-library/test/serapi
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -14,16 +15,18 @@
    :cl-ppcre
    #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/software/coq
+   :software-evolution-library/components/serapi-io)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :coq))
+  (:export :test-coq))
 (in-package :software-evolution-library/test/coq)
 (in-readtable :serapi-readtable)
-(defsuite coq)
+(defsuite test-coq "Coq software object tests." (serapi-available-p))
 
 (defvar *coq* nil "Coq software object.")
 
@@ -97,11 +100,16 @@
 
 
 (deftest coq-find-nearest-type-works ()
-  (let* ((ls (copy-tree'(a (b ((c d) e)) f (() (g) ()))))
-         (coq (make-instance 'coq :genome ls))
-         (types (iter (for i below (tree-size ls))
-                      (collecting (find-nearest-type coq i)))))
-    (is (equal types '(a b b c c c d e f g g g g f)))))
+  (labels ((tree-size (tree)
+             "Return the number of cons cells in TREE."
+             (if (and tree (consp tree))
+                 (+ 1 (tree-size (car tree)) (tree-size (cdr tree)))
+                 0)))
+    (let* ((ls (copy-tree'(a (b ((c d) e)) f (() (g) ()))))
+           (coq (make-instance 'coq :genome ls))
+           (types (iter (for i below (tree-size ls))
+                        (collecting (find-nearest-type coq i)))))
+      (is (equal types '(a b b c c c d e f g g g g f))))))
 
 (deftest can-pick-coq-subtree-matching-type ()
   (let* ((ls '(a (b ((c d) e)) f (() (g) ())))

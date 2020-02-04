@@ -14,16 +14,36 @@
    :cl-ppcre
    #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/components/serapi-io
+   :software-evolution-library/software/coq)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :serapi))
+  (:export :test-serapi
+           :serapi-available-p
+           :coq-test-dir))
 (in-package :software-evolution-library/test/serapi)
 (in-readtable :serapi-readtable)
-(defsuite serapi)
+
+(defun serapi-available-p ()
+  (set-serapi-paths)
+  (zerop (nth-value 2 (shell "which ~a" *sertop-path*))))
+
+(setf *serapi-timeout* 10)
+
+(define-constant +coq-test-dir+ (append +etc-dir+ (list "coq"))
+  :test #'equalp
+  :documentation "Path to Coq test examples.")
+
+(defun coq-test-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +coq-test-dir+))
+
+(defsuite test-serapi "Coq SerAPI interaction." (serapi-available-p))
 
 (defixture serapi
   (:setup (sleep 0.1)

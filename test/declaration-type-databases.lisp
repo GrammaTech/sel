@@ -6,6 +6,7 @@
    :alexandria
    :closer-mop
    :software-evolution-library/test/util
+   :software-evolution-library/test/util-clang
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -14,16 +15,21 @@
    :cl-ppcre
    #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/software/parseable
+   :software-evolution-library/software/clang
+   :software-evolution-library/software/new-clang)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :declaration-type-databases))
+  (:export :test-declaration-type-databases))
 (in-package :software-evolution-library/test/declaration-type-databases)
 (in-readtable :curry-compose-reader-macros)
-(defsuite declaration-type-databases)
+(defsuite test-declaration-type-databases
+    "Tests of declaration and type databases on clang objects."
+  (clang-mutate-available-p))
 
 (defvar *huf* nil "Holds the huf software object.")
 
@@ -72,10 +78,10 @@
 
 (deftest (huf-finds-type-info-for-variables :long-running) ()
   (with-fixture huf-clang
-    (let ((type (->> (stmt-with-text *huf* "p = test;")
-                     (get-vars-in-scope *huf*)
-                     (find-if [{name= "strbit"} {aget :name}])
-                     (find-var-type *huf*))))
+    (let ((type (nest (find-var-type *huf*)
+                      (find-if [{name= "strbit" } {aget :name}])
+                      (get-vars-in-scope *huf*)
+                      (stmt-with-text *huf* "p = test;"))))
       (is type "Found type for \"strbit\" in huf.")
       (is (string= "[100]" (type-array type))
           "Variable \"strbit\" in huf is a dynamically sized array.")
