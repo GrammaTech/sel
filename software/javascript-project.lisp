@@ -63,24 +63,10 @@
     (walk-directory
       (project-dir project)
       (lambda (file)
-        (let ((rel-path (pathname-relativize (project-dir project) file))
-              (pkg (package-spec project)))
-          (push (cons (namestring rel-path)
-                      (from-file
-                       (make-instance (component-class project)
-                         :parsing-mode
-                         (cond ((find rel-path (aget :bin pkg)
-                                      :key [#'canonical-pathname #'cdr]
-                                      :test #'equal)
-                                :script)
-                               ((equal rel-path
-                                       (nest (canonical-pathname)
-                                             (or (aget :main pkg)
-                                                 "index.js")))
-                                :script)
-                               (t :module)))
-                       file))
-                result)))
+        (push (cons (pathname-relativize (project-dir project) file)
+                    (from-file (make-instance (component-class project))
+                               file))
+              result))
       :test (lambda (file)
               ;; Heuristics for identifying files in the project:
               ;; 1) The file is not in an ignored directory.
