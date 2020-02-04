@@ -2,10 +2,15 @@
   (:nicknames :sel/test/util-clang)
   (:use :common-lisp
         :alexandria
+        :named-readtables
+        :curry-compose-reader-macros
         :software-evolution-library
         :software-evolution-library/utility
         :software-evolution-library/stefil-plus
+        :software-evolution-library/software/ast
+        :software-evolution-library/software/parseable
         :software-evolution-library/software/clang
+        :software-evolution-library/software/new-clang
         :software-evolution-library/software/clang-w-fodder
         :software-evolution-library/test/util)
   (:export :clang-mutate-available-p
@@ -32,8 +37,19 @@
            :empty-function-body-crossover-bug-clang
            :select-intraprocedural-pair-non-null-clang
            :unicode-dir
-           :unicode-clang))
+           :unicode-clang
+           :gcd-wo-curlies-clang
+           :headers-clang
+           :fib-clang
+           :gcd-clang
+           :binary-search-clang
+           :hello-world-clang-control-picks
+           :no-mutation-targets-clang
+           :cpp-strings
+           :typedef
+           :gcd-clang))
 (in-package :software-evolution-library/test/util-clang)
+(in-readtable :curry-compose-reader-macros)
 
 (defun clang-mutate-available-p ()
   #+windows
@@ -55,6 +71,14 @@
 (define-software clang-styleable-test-class (clang styleable) ())
 (define-software new-clang-styleable-test-class (new-clang styleable) ())
 (define-software mutation-failure-tester (clang) ())
+
+(defvar *test-mutation-count* 0)
+(defmethod mutate ((soft mutation-failure-tester))
+  (incf *test-mutation-count*)
+  ;; Every other mutation fails
+  (when (zerop (mod *test-mutation-count* 2))
+    (error (make-condition 'mutate)))
+  soft)
 
 (defmethod good-stmts ((obj clang-control-picks))
   (or *good-asts* (stmt-asts obj)))

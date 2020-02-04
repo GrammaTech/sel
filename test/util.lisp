@@ -2,9 +2,13 @@
   (:nicknames :sel/test/util)
   (:use :common-lisp
         :alexandria
+        :named-readtables
+        :curry-compose-reader-macros
         :software-evolution-library
         :software-evolution-library/utility
-        :software-evolution-library/stefil-plus)
+        :software-evolution-library/stefil-plus
+        :software-evolution-library/software/ast
+        :software-evolution-library/software/parseable)
   (:export :test
            :+etc-dir+
            :+gcd-dir+
@@ -23,6 +27,7 @@
            :*binary-search*
            :*fib*))
 (in-package :software-evolution-library/test/util)
+(in-readtable :curry-compose-reader-macros)
 
 (defvar *tfos* nil "Another software used in tests.")
 (defvar *soft* nil "Software used in tests.")
@@ -186,14 +191,6 @@ AST holding STMT is found."
                              :obj a
                              :op '(:fake)))
       (values (copy a) (list :fake))))
-
-(defvar *test-mutation-count* 0)
-(defmethod mutate ((soft mutation-failure-tester))
-  (incf *test-mutation-count*)
-  ;; Every other mutation fails
-  (when (zerop (mod *test-mutation-count* 2))
-    (error (make-condition 'mutate)))
-  soft)
 
 
 ;;;
