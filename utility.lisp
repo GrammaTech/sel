@@ -463,12 +463,14 @@ be specified as part of the REMOTE URL.  E.g. as
    "Return the git status of DIRECTORY as a list of lists of (status file).
 Return nil if there are no modified, untracked, or deleted files.")
   (:method ((dir list))
-    (current-git-status
-     (make-instance 'git :work-tree (make-pathname :directory dir))))
+    (current-git-status (make-pathname :directory dir)))
   (:method ((dir string))
-    (current-git-status (make-instance 'git :work-tree dir)))
+    (current-git-status (pathname dir)))
   (:method ((dir pathname))
-    (current-git-status (pathname-directory (ensure-directory-pathname dir))))
+    (multiple-value-bind (git-dir work-tree)
+        (git-from-directory dir)
+      (current-git-status (make-instance 'git :git-dir git-dir
+                                         :work-tree work-tree))))
   (:method ((git git))
     (multiple-value-bind (stdout stderr errno)
         (with-slots (git-dir work-tree) git
