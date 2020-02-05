@@ -242,174 +242,22 @@
                        :mutants (list base change-arg-name)))))
 
   ;; Different return types
-  (or )
-  (let* ((base (from-string (make-clang)
-                            "void foo(int a, int b) {}"))
-         (remove-arg (copy base))
-         (change-arg-type (copy base))
-         (change-arg-name (copy base)))
-    ;; Different argument count
-    (apply-mutation remove-arg
-                    `(clang-cut (:stmt1 . ,(stmt-with-text remove-arg
-                                                           "int b"))))
-    (signals mutate
-             (genome (make-instance 'super-mutant
-                       :mutants (list base remove-arg))))
-    ;; Different argument type
-    (apply-mutation change-arg-type
-                    `(clang-replace (:stmt1 . ,(stmt-with-text change-arg-type
-                                                               "int b"))
-                                    (:value1 . ,(make-statement :ParmVar
-                                                                :finallistelt
-                                                                '("char b")))))
-    (signals mutate
-             (genome (make-instance 'super-mutant
-                       :mutants (list base change-arg-type))))
-    ;; Different argument name
-    (apply-mutation change-arg-name
-                    `(clang-replace (:stmt1 . ,(stmt-with-text change-arg-name
-                                                               "int b"))
-                                    (:value1 . ,(make-statement :ParmVar
-                                                                :finallistelt
-                                                                '("int c")))))
-    (signals mutate
-             (genome (make-instance 'super-mutant
-                       :mutants (list base change-arg-name)))))
+  (signals mutate
+           (genome (make-instance 'super-mutant
+                     :mutants
+                     (list (from-string (make-clang)
+                                        "void foo() {}")
+                           (from-string (make-clang)
+                                        "int foo() { return 1; }")))))
 
-  let* ((base (from-string (make-clang)
-                           "void foo(int a, int b) {}"))
-        (remove-arg (copy base))
-        (change-arg-type (copy base))
-        (change-arg-name (copy base)))
-  (base (from-string (make-clang)
-                     "void foo(int a, int b) {}"))
-  base (from-string (make-clang)
-                    "void foo(int a, int b) {}")from-string (make-clang)
-  make-clang)
-"void foo(int a, int b) {}"))
-(remove-arg (copy base))
-remove-arg (copy base)copy base))
-(change-arg-type (copy base))
-change-arg-type (copy base)copy base))
-(change-arg-name (copy base))change-arg-name (copy base)copy base)))
-;; Different argument count
-(apply-mutation remove-arg
-                `(clang-cut (:stmt1 . ,(stmt-with-text remove-arg
-                                                       "int b"))))
-apply-mutation remove-arg
-`(clang-cut (:stmt1 . ,(stmt-with-text remove-arg
-                                       "int b")))(clang-cut (:stmt1 . ,(stmt-with-text remove-arg
-                                       "int b")))clang-cut (:stmt1 . ,(stmt-with-text remove-arg
-                                                                                      "int b")):stmt1 . ,(stmt-with-text remove-arg
-                                                                                                                         "int b")(stmt-with-text remove-arg
-                                                                                                                         "int b")stmt-with-text remove-arg
-"int b"))))
-(signals mutate
-         (genome (make-instance 'super-mutant
-                   :mutants (list base remove-arg))))
-signals mutate
-(genome (make-instance 'super-mutant
-          :mutants (list base remove-arg)))genome (make-instance 'super-mutant
-                                                    :mutants (list base remove-arg))make-instance 'super-mutant
-super-mutant
-:mutants (list base remove-arg)list base remove-arg))))
-;; Different argument type
-(apply-mutation change-arg-type
-                `(clang-replace (:stmt1 . ,(stmt-with-text change-arg-type
-                                                           "int b"))
-                                (:value1 . ,(make-statement :ParmVar
-                                                            :finallistelt
-                                                            '("char b")))))
-apply-mutation change-arg-type
-`(clang-replace (:stmt1 . ,(stmt-with-text change-arg-type
-                                           "int b"))
-                (:value1 . ,(make-statement :ParmVar
-                                            :finallistelt
-                                            '("char b"))))(clang-replace (:stmt1 . ,(stmt-with-text change-arg-type
-                                            "int b"))
-                (:value1 . ,(make-statement :ParmVar
-                                            :finallistelt
-                                            '("char b"))))clang-replace (:stmt1 . ,(stmt-with-text change-arg-type
-                                                                                                   "int b"))
-:stmt1 . ,(stmt-with-text change-arg-type
-                          "int b")(stmt-with-text change-arg-type
-                          "int b")stmt-with-text change-arg-type
-"int b"))
-(:value1 . ,(make-statement :ParmVar
-                            :finallistelt
-                            '("char b"))):value1 . ,(make-statement :ParmVar
-                                                                    :finallistelt
-                                                                    '("char b"))(make-statement :ParmVar
-                                                                    :finallistelt
-                                                                    '("char b"))make-statement :ParmVar
-:finallistelt
-'("char b")("char b")"char b")))))
-(signals mutate
-         (genome (make-instance 'super-mutant
-                   :mutants (list base change-arg-type))))
-signals mutate
-(genome (make-instance 'super-mutant
-          :mutants (list base change-arg-type)))genome (make-instance 'super-mutant
-                                                         :mutants (list base change-arg-type))make-instance 'super-mutant
-super-mutant
-:mutants (list base change-arg-type)list base change-arg-type))))
-;; Different argument name
-(apply-mutation change-arg-name
-                `(clang-replace (:stmt1 . ,(stmt-with-text change-arg-name
-                                                           "int b"))
-                                (:value1 . ,(make-statement :ParmVar
-                                                            :finallistelt
-                                                            '("int c")))))
-apply-mutation change-arg-name
-`(clang-replace (:stmt1 . ,(stmt-with-text change-arg-name
-                                           "int b"))
-                (:value1 . ,(make-statement :ParmVar
-                                            :finallistelt
-                                            '("int c"))))(clang-replace (:stmt1 . ,(stmt-with-text change-arg-name
-                                            "int b"))
-                (:value1 . ,(make-statement :ParmVar
-                                            :finallistelt
-                                            '("int c"))))clang-replace (:stmt1 . ,(stmt-with-text change-arg-name
-                                                                                                  "int b"))
-:stmt1 . ,(stmt-with-text change-arg-name
-                          "int b")(stmt-with-text change-arg-name
-                          "int b")stmt-with-text change-arg-name
-"int b"))
-(:value1 . ,(make-statement :ParmVar
-                            :finallistelt
-                            '("int c"))):value1 . ,(make-statement :ParmVar
-                                                                   :finallistelt
-                                                                   '("int c"))(make-statement :ParmVar
-                                                                   :finallistelt
-                                                                   '("int c"))make-statement :ParmVar
-:finallistelt
-'("int c")("int c")"int c")))))
-(signals mutate
-         (genome (make-instance 'super-mutant
-                   :mutants (list base change-arg-name))))signals mutate
-(genome (make-instance 'super-mutant
-          :mutants (list base change-arg-name)))genome (make-instance 'super-mutant
-                                                         :mutants (list base change-arg-name))make-instance 'super-mutant
-super-mutant
-:mutants (list base change-arg-name)list base change-arg-name)))))
-
-;; Different return types
-(signals mutate
-         (genome (make-instance 'super-mutant
-                   :mutants
-                   (list (from-string (make-clang)
-                                      "void foo() {}")
-                         (from-string (make-clang)
-                                      "int foo() { return 1; }")))))
-
-;; Prototype vs. complete function
-(signals mutate
-         (genome (make-instance 'super-mutant
-                   :mutants
-                   (list (from-string (make-clang)
-                                      "void foo() {}")
-                         (from-string (make-clang)
-                                      "void foo();"))))))
+  ;; Prototype vs. complete function
+  (signals mutate
+           (genome (make-instance 'super-mutant
+                     :mutants
+                     (list (from-string (make-clang)
+                                        "void foo() {}")
+                           (from-string (make-clang)
+                                        "void foo();"))))))
 
 (deftest super-mutant-genome-detects-mismatched-globals ()
   (let* ((base (from-string (make-clang)
