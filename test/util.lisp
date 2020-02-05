@@ -20,6 +20,7 @@
            :stmt-with-text
            :stmt-starting-with-text
            :fully-every
+           :different-asts
            ;; Directory functions
            :gcd-dir
            :fib-dir
@@ -224,6 +225,16 @@ of the same length"
   (let ((len (length seq)))
     (and (every (lambda (s) (= (length s) len)) other-seqs)
          (apply #'every fn seq other-seqs))))
+
+;; Check if the two AST lists differ. Do a smoke test with
+;; the list lengths; if they match, use the src-text
+;; field as a proxy for equality. Strict equality isn't
+;; useful because of nondeterministic fields like :src-file.
+(defun different-asts (this that)
+  (or (not (equal (length this) (length that)))
+      (not (every (lambda (x y)
+                    (string= (source-text x) (source-text y)))
+                  this that))))
 
 (defixture task-runner
   (:setup (setf

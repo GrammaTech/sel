@@ -20,7 +20,9 @@
    :software-evolution-library/software/ast
    :software-evolution-library/software/parseable
    :software-evolution-library/software/clang
-   :software-evolution-library/components/formatting)
+   :software-evolution-library/components/formatting
+   :software-evolution-library/components/fodder-database
+   :software-evolution-library/components/json-fodder-database)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop

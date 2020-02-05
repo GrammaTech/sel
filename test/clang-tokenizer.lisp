@@ -207,7 +207,6 @@
                (if (numberp loc)
                    nil  ; The root node has "0" for a range.
                    (new-clang-loc-line loc)))))
-    (setf *new-clang?* t)
     (with-fixture gcd-clang
       (decorate-with-annotations *gcd* (make-pathname :directory +gcd-dir+
                                                       :name "gcd-fault-loc"))
@@ -217,7 +216,6 @@
                                        collect (when (equal (cdr tup) 1.0)
                                                  (car tup)))))
              (bad-lines (remove-duplicates (sort (mapcar #'ast-start-line bad-stmts) #'<))))
-        (setf *new-clang?* nil) ; set back
         (is (equal bad-lines (list 16 17 18 19 20 21 24)))))))
 
 #+nil

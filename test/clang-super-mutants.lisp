@@ -20,6 +20,7 @@
    :software-evolution-library/software/ast
    :software-evolution-library/software/parseable
    :software-evolution-library/software/clang
+   :software-evolution-library/software/new-clang
    :software-evolution-library/software/super-mutant)
   (:import-from :uiop :nest)
   (:shadowing-import-from
@@ -30,6 +31,15 @@
 (in-package :software-evolution-library/test/clang-super-mutants)
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-clang-super-mutants "Clang representation." (clang-mutate-available-p))
+
+(define-software mutation-failure-tester (clang) ())
+(defvar *test-mutation-count* 0)
+(defmethod mutate ((soft mutation-failure-tester))
+  (incf *test-mutation-count*)
+  ;; Every other mutation fails
+  (when (zerop (mod *test-mutation-count* 2))
+    (error (make-condition 'mutate)))
+  soft)
 
 (deftest (super-mutant-genome-works :long-running) ()
   (with-fixture fib-clang

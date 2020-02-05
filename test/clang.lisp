@@ -163,16 +163,6 @@
                     :key #'ast-class))
         "Ensure no Function statement ASTs")))
 
-;; Check if the two AST lists differ. Do a smoke test with
-;; the list lengths; if they match, use the src-text
-;; field as a proxy for equality. Strict equality isn't
-;; useful because of nondeterministic fields like :src-file.
-(defun different-asts (this that)
-  (or (not (equal (length this) (length that)))
-      (not (every (lambda (x y)
-                    (string= (source-text x) (source-text y)))
-                  this that))))
-
 (deftest can-compile-clang-software-object ()
   (with-fixture hello-world-clang
     (with-temp-file (bin)

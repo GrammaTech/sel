@@ -35,6 +35,9 @@
            ;; Misc. functions.
            :inject-missing-swap-macro
            :make-clang-control-picks
+           ;; Softwares
+           :clang-control-picks
+           :new-clang-control-picks
            ;; Fixtures.
            :hello-world-clang
            :huf-clang
@@ -85,18 +88,6 @@
 
 (define-software clang-control-picks (clang) ())
 (define-software new-clang-control-picks (new-clang) ())
-
-(define-software clang-styleable-test-class (clang styleable) ())
-(define-software new-clang-styleable-test-class (new-clang styleable) ())
-(define-software mutation-failure-tester (clang) ())
-
-(defvar *test-mutation-count* 0)
-(defmethod mutate ((soft mutation-failure-tester))
-  (incf *test-mutation-count*)
-  ;; Every other mutation fails
-  (when (zerop (mod *test-mutation-count* 2))
-    (error (make-condition 'mutate)))
-  soft)
 
 (defmethod good-stmts ((obj clang-control-picks))
   (or *good-asts* (stmt-asts obj)))

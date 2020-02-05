@@ -15,6 +15,7 @@
    #+gt :testbot
    :software-evolution-library
    :software-evolution-library/utility
+   :software-evolution-library/software/csurf-asm
    :software-evolution-library/software/ancestral
    :software-evolution-library/software/asm-super-mutant)
   (:import-from :uiop :nest)

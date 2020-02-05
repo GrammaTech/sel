@@ -16,6 +16,7 @@
    :software-evolution-library
    :software-evolution-library/utility
    :software-evolution-library/software/clang-w-fodder
+   :software-evolution-library/components/json-fodder-database
    :software-evolution-library/components/fodder-database)
   (:import-from :uiop :nest)
   (:shadowing-import-from

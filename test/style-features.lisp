@@ -21,6 +21,7 @@
    :software-evolution-library/software/ast
    :software-evolution-library/software/parseable
    :software-evolution-library/software/clang
+   :software-evolution-library/software/new-clang
    :software-evolution-library/software/styleable)
   (:import-from :uiop :nest)
   (:shadowing-import-from
@@ -32,6 +33,9 @@
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-style-features "Style features tests."
   (clang-mutate-available-p))
+
+(define-software clang-styleable-test-class (clang styleable) ())
+(define-software new-clang-styleable-test-class (new-clang styleable) ())
 
 (deftest uni-grams-ht-test ()
   (let* ((sentence (list "the" "quick" "brown" "fox"
