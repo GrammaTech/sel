@@ -53,6 +53,9 @@
         :software-evolution-library/test/traceable
         :software-evolution-library/test/type-traces
         :software-evolution-library/test/utility)
+  (:import-from :software-evolution-library
+                :+software-evolution-library-branch+)
+  (:import-from :software-evolution-library/test/util :test)
   (:export :test :batch-test :testbot-test))
 (in-package :software-evolution-library/test)
 (named-readtables:in-readtable :sel-readtable)

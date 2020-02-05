@@ -14,6 +14,7 @@
    :split-sequence
    :cl-ppcre
    #+gt :testbot
+   :trace-db
    :software-evolution-library
    :software-evolution-library/utility
    :software-evolution-library/software/source

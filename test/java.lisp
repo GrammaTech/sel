@@ -13,6 +13,7 @@
    :split-sequence
    :cl-ppcre
    #+gt :testbot
+   :trace-db
    :software-evolution-library
    :software-evolution-library/utility
    :software-evolution-library/software/source
@@ -22,6 +23,8 @@
    :software-evolution-library/components/instrument
    :software-evolution-library/components/traceable)
   (:import-from :uiop :nest)
+  (:shadowing-import-from :software-evolution-library/test/util
+                          :java-project)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function

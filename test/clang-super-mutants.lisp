@@ -13,6 +13,7 @@
    :iterate
    :split-sequence
    :cl-ppcre
+   :arrow-macros                        ; FIXME: Remove.
    #+gt :testbot
    :software-evolution-library
    :software-evolution-library/utility

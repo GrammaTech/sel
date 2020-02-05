@@ -23,7 +23,9 @@
    :software-evolution-library/command-line-rest
    :software-evolution-library/rest/async-jobs
    :software-evolution-library/software/clang)
+  #-windows (:import-from :hunchentoot)
   (:import-from :uiop :nest)
+  (:shadowing-import-from :clack :stop)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
