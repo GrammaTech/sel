@@ -22,17 +22,11 @@
         :software-evolution-library/software/javascript
         :software-evolution-library/software/parseable-project
         :software-evolution-library/software/project)
-  (:export :javascript-project
-           :package-spec))
+  (:export :javascript-project))
 (in-package :software-evolution-library/software/javascript-project)
 (in-readtable :curry-compose-reader-macros)
 
-(define-software javascript-project (parseable-project)
-  ((package-spec
-     :initarg :package-spec
-     :accessor package-spec
-     :initform nil
-     :documentation "Javascript project specification from package.json file."))
+(define-software javascript-project (parseable-project) ()
   (:documentation "Project specialization for javascript software objects."))
 
 (defmethod initialize-instance :after ((javascript-project javascript-project)
@@ -46,41 +40,34 @@
         (append (ignore-paths javascript-project)
                 (list "node_modules/**/*"))))
 
-(defmethod from-file :around ((obj javascript-project) path)
-  ;; Ensure PATH is a directory
-  (setf path (ensure-directory-pathname path))
-  ;; Sanity check that a package.json file exists
-  (assert (probe-file (merge-pathnames-as-file path "package.json")) (path)
-          "JavaScript project requires a package.json file in ~a." path)
-  (with-current-directory (path)
-    ;; Load the package.json file
-    (setf (package-spec obj)
-          (decode-json-from-string (file-to-string "package.json"))))
-  (call-next-method))
-
 (defmethod collect-evolve-files ((project javascript-project) &aux result)
   (with-current-directory ((project-dir project))
-    (walk-directory
-      (project-dir project)
-      (lambda (file)
-        (push (cons (pathname-relativize (project-dir project) file)
-                    (from-file (make-instance (component-class project))
-                               file))
-              result))
-      :test (lambda (file)
-              ;; Heuristics for identifying files in the project:
-              ;; 1) The file is not in an ignored directory.
-              ;; 2) The file has a "js" extension.
-              ;; 3) The file is listed as a "bin" in package.json.
-              ;; 4) The file is listed as "main" in package.json.
-              (let ((rel-path (pathname-relativize (project-dir project) file))
-                    (pkg (package-spec project)))
-                (or (and (not (ignored-evolve-path-p project rel-path))
-                         (equal "js" (pathname-type rel-path)))
-                    (find rel-path (aget :bin pkg)
-                          :key [#'canonical-pathname #'cdr]
-                          :test #'equal)
-                    (equal rel-path (aget :main pkg)))))))
+    (assert (probe-file "package.json") ((project-dir project))
+            "JavaScript project requires a package.json file in ~a."
+            (project-dir project))
+    (let ((package-spec (nest (decode-json-from-string)
+                              (file-to-string "package.json"))))
+      (walk-directory
+        (project-dir project)
+        (lambda (file)
+          (push (cons (pathname-relativize (project-dir project) file)
+                      (from-file (make-instance (component-class project))
+                                 file))
+                result))
+        :test (lambda (file)
+                ;; Heuristics for identifying files in the project:
+                ;; 1) The file is not in an ignored directory.
+                ;; 2) The file has a "js" extension.
+                ;; 3) The file is listed as a "bin" in package.json.
+                ;; 4) The file is listed as "main" in package.json.
+                (let ((rel-path (pathname-relativize (project-dir project)
+                                                     file)))
+                  (or (and (not (ignored-evolve-path-p project rel-path))
+                           (equal "js" (pathname-type rel-path)))
+                      (find rel-path (aget :bin package-spec)
+                            :key [#'canonical-pathname #'cdr]
+                            :test #'equal)
+                      (equal rel-path (aget :main package-spec))))))))
   result)
 
 (defmethod phenome ((obj javascript-project) &key (bin (temp-file-name)))
