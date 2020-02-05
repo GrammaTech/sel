@@ -16,13 +16,14 @@
    #+gt :testbot
    :software-evolution-library
    :software-evolution-library/utility
-   :software-evolution-library/software/adaptive-mutation)
+   :software-evolution-library/software/adaptive-mutation
+   :software-evolution-library/software/clang)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :adaptive-mutation))
+  (:export :test-adaptive-mutation))
 (in-package :software-evolution-library/test/adaptive-mutation)
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-adaptive-mutation "Adaptive-mutation tests.")

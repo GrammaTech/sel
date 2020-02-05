@@ -14,16 +14,17 @@
    :cl-ppcre
    #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/software/new-clang)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :cpp-scan))
+  (:export :test-cpp-scan))
 (in-package :software-evolution-library/test/cpp-scan)
 (in-readtable :curry-compose-reader-macros)
-(defsuite cpp-scan)
+(defsuite test-cpp-scan "Tests of CPP-SCAN")
 
 (defun is-comma (c) (eql c #\,))
 

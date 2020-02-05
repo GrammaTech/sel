@@ -32,16 +32,6 @@
 
 (defvar *collatz* nil "Holds the collatz software object.")
 
-(define-constant +clang-crossover-dir+
-    (append +etc-dir+ (list "clang-crossover"))
-  :test #'equalp
-  :documentation "Location of clang crossover example directory")
-
-(defun clang-crossover-dir (filename)
-  (make-pathname :name (pathname-name filename)
-                 :type (pathname-type filename)
-                 :directory +clang-crossover-dir+))
-
 (define-constant +collatz-dir+
     (append +etc-dir+ (list "collatz"))
   :test #'equalp

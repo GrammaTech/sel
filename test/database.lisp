@@ -14,16 +14,18 @@
    :cl-ppcre
    #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/software/clang-w-fodder
+   :software-evolution-library/components/fodder-database)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :database))
+  (:export :test-database))
 (in-package :software-evolution-library/test/database)
 (in-readtable :curry-compose-reader-macros)
-(defsuite database)
+(defsuite test-database "Database tests.")
 
 (defixture json-database
   (:setup

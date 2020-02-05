@@ -13,17 +13,48 @@
    :split-sequence
    :cl-ppcre
    #+gt :testbot
+   :trace-db
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/software/ast
+   :software-evolution-library/software/parseable
+   :software-evolution-library/software/javascript
+   :software-evolution-library/components/formatting
+   :software-evolution-library/components/traceable
+   :software-evolution-library/components/instrument
+   :software-evolution-library/components/javascript-instrument)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :javascript))
+  (:export :test-javascript))
 (in-package :software-evolution-library/test/javascript)
 (in-readtable :curry-compose-reader-macros)
-(defsuite javascript)
+(defsuite test-javascript "Javascript representation." (acorn-available-p))
+
+(defixture hello-world-javascript
+  (:setup
+   (setf *soft*
+         (from-file (make-instance 'javascript-traceable)
+                    (javascript-dir #P"hello-world/hello-world.js"))))
+  (:teardown
+   (setf *soft* nil)))
+
+(defixture fib-javascript
+  (:setup
+   (setf *soft*
+         (from-file (make-instance 'javascript-traceable)
+                    (javascript-dir #P"fib/fib.js"))))
+  (:teardown
+   (setf *soft* nil)))
+
+(defixture trivial-json
+  (:setup
+   (setf *soft*
+         (from-file (make-instance 'json) (javascript-dir #P"trivial.json"))))
+  (:teardown
+   (setf *soft* nil)))
 
 (deftest simply-able-to-load-a-javascript-software-object ()
   (with-fixture hello-world-javascript

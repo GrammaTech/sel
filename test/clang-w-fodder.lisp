@@ -6,6 +6,7 @@
    :alexandria
    :closer-mop
    :software-evolution-library/test/util
+   :software-evolution-library/test/util-clang
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -14,16 +15,67 @@
    :cl-ppcre
    #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/software/ast
+   :software-evolution-library/software/parseable
+   :software-evolution-library/software/clang
+   :software-evolution-library/software/new-clang
+   :software-evolution-library/software/clang-w-fodder
+   :software-evolution-library/components/fodder-database)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :clang-w-fodder))
+  (:export :test-clang-w-fodder))
 (in-package :software-evolution-library/test/clang-w-fodder)
 (in-readtable :curry-compose-reader-macros)
-(defsuite clang-w-fodder)
+(defsuite test-clang-w-fodder "Clang representation." (clang-mutate-available-p))
+
+(defixture no-insert-fodder-decl-mutation-targets-clang
+  (:setup
+   (setf *database*
+         (with-open-file (in (make-pathname :name "euler-example.json"
+                                            :directory +etc-dir+))
+           (make-instance 'json-database :json-stream in)))
+   (setf *soft* (from-file (make-instance 'clang-w-fodder)
+                           (lisp-bugs-dir
+                            "no-insert-fodder-decl-mutation-targets.c"))))
+  (:teardown
+   (setf *database* nil)
+   (setf *soft* nil)))
+
+(defixture hello-world-clang-w-fodder
+  (:setup
+   (setf *database*
+         (with-open-file (in (make-pathname :name "euler-example.json"
+                                            :directory +etc-dir+))
+           (make-instance 'json-database :json-stream in)))
+   (setf *hello-world*
+         (from-file (make-instance 'clang-w-fodder :compiler "clang"
+                                   :flags '("-g -m32 -O0"))
+                    (hello-world-dir "hello_world.c"))))
+  (:teardown
+   (setf *database* nil)
+   (setf *hello-world* nil)))
+
+(defixture gcd-clang-w-fodder
+  (:setup
+   (setf *database*
+         (with-open-file (in (make-pathname :name "euler-example"
+                                            :type "json"
+                                            :directory +etc-dir+))
+           (make-instance 'json-database :json-stream in)))
+   (setf *gcd*
+         (from-file
+          (make-instance 'clang-w-fodder
+            :flags (list
+                    "-I"
+                    (namestring (make-pathname :directory +etc-dir+))))
+          (gcd-dir "gcd.c"))))
+  (:teardown
+   (setf *database* nil)
+   (setf *gcd* nil)))
 
 (deftest (clang-parse-source-snippet-body-statement :long-running) ()
   (with-fixture gcd-clang

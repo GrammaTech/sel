@@ -14,16 +14,18 @@
    :cl-ppcre
    #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/software/ancestral
+   :software-evolution-library/software/asm-super-mutant)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :csurf-asm-ancestry))
+  (:export :test-csurf-asm-ancestry))
 (in-package :software-evolution-library/test/csurf-asm-ancestry)
 (in-readtable :curry-compose-reader-macros)
-(defsuite csurf-asm-ancestry)
+(defsuite test-csurf-asm-ancestry "CSURF-ASM representation.")
 
 (defclass csurf-asm-w/ancestry (csurf-asm ancestral) ())
 

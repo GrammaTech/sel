@@ -14,12 +14,17 @@
            :+gcd-dir+
            :+grep-prj-dir+
            :+multi-file-dir+
+           :+asm-test-dir+
            ;; Other functions
+           :acorn-available-p
            :stmt-with-text
            :stmt-starting-with-text
+           :fully-every
            ;; Directory functions
            :gcd-dir
            :fib-dir
+           :asm-test-dir
+           :javascript-dir
            ;; Variables referenced in tests
            :*tfos*
            :*soft*
@@ -28,11 +33,13 @@
            :*fib*
            :*test*
            :*project*
+           :*soft-mutate-errors*
            ;; Fixtures.
            :soft
            :range
            :double-range
-           :gcd-elf))
+           :gcd-elf
+           :java-project))
 (in-package :software-evolution-library/test/util)
 (in-readtable :curry-compose-reader-macros)
 
@@ -71,29 +78,23 @@
   :test #'equalp
   :documentation "Location of the clang-format example directory")
 
-(define-constant +expand-arithmatic-op-dir+
-    (append +etc-dir+ (list "expand-arithmatic-op"))
-  :test #'equalp
-  :documentation "Location of the expand arithmatic op example dir")
-
-(define-constant +explode-for-loop-dir+
-    (append +etc-dir+ (list "explode-for-loop"))
-  :test #'equalp
-  :documentation "Location of the explode for loop example dir")
-
 (define-constant +fib-dir+
     (append +etc-dir+ (list "fib"))
   :test #'equalp
   :documentation "Location of the fib example dir")
 
-(define-constant +condition-synthesis-dir+
-    (append +etc-dir+ (list "condition-synthesis"))
-  :test #'equalp
-  :documentation "Path to condition synthesis examples.")
-
 (define-constant +javascript-dir+ (append +etc-dir+ (list "javascript"))
   :test #'equalp
   :documentation "Path to directory holding Javascript test programs.")
+
+(define-constant +asm-test-dir+ (append +etc-dir+ (list "asm-test"))
+  :test #'equalp
+  :documentation "Path to asm-test examples.")
+
+(defun asm-test-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +asm-test-dir+))
 
 
 ;;; Functions on constants.
@@ -107,16 +108,6 @@
                  :type (pathname-type filename)
                  :directory +clang-format-dir+))
 
-(defun expand-arithmatic-op-dir (filename)
-  (make-pathname :name (pathname-name filename)
-                 :type (pathname-type filename)
-                 :directory +expand-arithmatic-op-dir+))
-
-(defun explode-for-loop-dir (filename)
-  (make-pathname :name (pathname-name filename)
-                 :type (pathname-type filename)
-                 :directory +explode-for-loop-dir+))
-
 (defun fib-dir (filename)
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
@@ -127,7 +118,10 @@
                            path))
 
 
-;;;; Helper functions to avoid hard-coded statement numbers.
+;;;; Helper functions.
+(defun acorn-available-p ()
+  (which "acorn"))
+
 (defun stmt-with-text (obj text &key no-error (trim t))
   "Return the AST in OBJ holding TEXT.
 Unless optional argument NO-ERROR is non-nil an error is raised if no
@@ -194,6 +188,21 @@ AST holding STMT is found."
 
 
 ;;; Fixtures
+(defixture java-project
+  (:setup
+   (setf *soft*
+         (with-warnings-as-notes 3
+           (from-file
+            (make-instance 'java-project
+              :build-command "./gt-harness.sh build"
+              :artifacts
+              (list (format nil "target/~
+                          simpleMultifileMaven-1.~
+                          0-SNAPSHOT-jar-with-dependencies.jar")))
+            (make-pathname :directory +maven-prj-dir+)))))
+  (:teardown
+   (setf *soft* nil)))
+
 (defixture soft
   (:setup (setf *soft* (make-instance 'soft
                          :genome (coerce (loop :for i :from 0 :to 9 :collect i)
@@ -215,69 +224,6 @@ of the same length"
   (let ((len (length seq)))
     (and (every (lambda (s) (= (length s) len)) other-seqs)
          (apply #'every fn seq other-seqs))))
-
-(defixture population
-  (:setup (setf *population* (loop :for i :from 1 :to 9
-                                collect (make-instance 'soft
-                                          :genome (loop :for j :from 0 :to i
-                                                     :collect j)
-                                          :fitness i))
-                *fitness-evals* 0
-                *mutation-stats* (make-hash-table)
-                *crossover-stats* (make-hash-table)))
-  (:teardown (setf *population* nil
-                   *fitness-evals* 0
-                   *mutation-stats* nil
-                   *crossover-stats* nil)))
-
-(defixture hello-world-javascript
-  (:setup
-   (setf *soft*
-         (from-file (make-instance 'javascript-traceable)
-                    (javascript-dir #P"hello-world/hello-world.js"))))
-  (:teardown
-   (setf *soft* nil)))
-
-(defixture fib-javascript
-  (:setup
-   (setf *soft*
-         (from-file (make-instance 'javascript-traceable)
-                    (javascript-dir #P"fib/fib.js"))))
-  (:teardown
-   (setf *soft* nil)))
-
-(defixture trivial-json
-  (:setup
-   (setf *soft*
-         (from-file (make-instance 'json) (javascript-dir #P"trivial.json"))))
-  (:teardown
-   (setf *soft* nil)))
-
-(let ((fib-path (merge-pathnames-as-file (javascript-dir #P"fib-project/")
-                                         "fib.js"))
-      (app-path (merge-pathnames-as-file (javascript-dir #P"fib-project/")
-                                         "app.js"))
-      fib-contents app-contents)
-  (defixture fib-project-javascript
-    (:setup
-     (setf fib-contents (file-to-string fib-path)
-           app-contents (file-to-string app-path)
-           *soft*
-           (from-file (make-instance 'javascript-traceable-project
-                        :component-class 'javascript-traceable)
-                      (javascript-dir #P"fib-project/"))))
-    (:teardown
-     (setf *soft* nil)
-     (string-to-file fib-contents fib-path)
-     (string-to-file app-contents app-path))))
-
-(defixture csurf-asm-calc
-  (:setup (setf *soft*
-                (from-file
-                 (make-instance 'csurf-asm)
-                 (asm-test-dir "calc.s.intel"))))
-  (:teardown
-   (setf *soft* nil)))
 
 (defixture task-runner
   (:setup (setf

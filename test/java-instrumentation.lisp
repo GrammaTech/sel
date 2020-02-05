@@ -14,16 +14,19 @@
    :cl-ppcre
    #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/components/instrument)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :java-instrumentation))
+  (:export :test-java-instrumentation))
 (in-package :software-evolution-library/test/java-instrumentation)
 (in-readtable :curry-compose-reader-macros)
-(defsuite java-instrumentation)
+(defsuite test-java-instrumentation "JAVA representation."
+  ;; (java-mutate-available-p)
+  :silent-instrumentation)
 
 (deftest (multi-threaded-java-instrument-test :long-running) ()
   (with-fixture java-project

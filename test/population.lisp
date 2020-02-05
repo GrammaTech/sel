@@ -6,6 +6,7 @@
    :alexandria
    :closer-mop
    :software-evolution-library/test/util
+   :software-evolution-library/test/util-clang
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -14,18 +15,36 @@
    :cl-ppcre
    #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/software/ast
+   :software-evolution-library/software/parseable
+   :software-evolution-library/software/clang)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :population))
+  (:export :test-population))
 (in-package :software-evolution-library/test/population)
 (in-readtable :curry-compose-reader-macros)
-(defsuite population)
+(defsuite test-population "Population tests."
+  (clang-mutate-available-p))
 
 (defvar *huf* nil "Holds the huf software object.")
+
+(defixture population
+  (:setup (setf *population* (loop :for i :from 1 :to 9
+                                collect (make-instance 'soft
+                                          :genome (loop :for j :from 0 :to i
+                                                     :collect j)
+                                          :fitness i))
+                *fitness-evals* 0
+                *mutation-stats* (make-hash-table)
+                *crossover-stats* (make-hash-table)))
+  (:teardown (setf *population* nil
+                   *fitness-evals* 0
+                   *mutation-stats* nil
+                   *crossover-stats* nil)))
 
 (defmacro every-is (function &rest lists)
   (let ((args-sym (gensym "args")))

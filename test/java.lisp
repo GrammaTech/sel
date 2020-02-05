@@ -242,21 +242,6 @@
                             ("test2" "int" 30)))))
      (:INPUT :BIN))))
 
-(defixture java-project
-  (:setup
-   (setf *soft*
-         (with-warnings-as-notes 3
-           (from-file
-            (make-instance 'java-project
-              :build-command "./gt-harness.sh build"
-              :artifacts
-              (list (format nil "target/~
-                          simpleMultifileMaven-1.~
-                          0-SNAPSHOT-jar-with-dependencies.jar")))
-            (make-pathname :directory +maven-prj-dir+)))))
-  (:teardown
-   (setf *soft* nil)))
-
 (deftest (java-project-test :long-running) ()
   (with-fixture java-project
     (is (equal "./gt-harness.sh build" (build-command *soft*)))
@@ -271,8 +256,3 @@
   "Tests if applicable file names in a build-folder are found."
   (with-temp-dir-of (temp-dir) (make-pathname :directory +java-jars-dir+)
                     (is (equal 9 (length (get-files-jar temp-dir))))))
-
-
-;;;; Javascript representation.
-(defun acorn-available-p ()
-  (which "acorn"))

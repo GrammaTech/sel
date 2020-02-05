@@ -28,10 +28,6 @@
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-asm "ASM representation.")
 
-(define-constant +asm-test-dir+ (append +etc-dir+ (list "asm-test"))
-  :test #'equalp
-  :documentation "Path to asm-test examples.")
-
 (defixture gcd-asm
   (:setup (setf *gcd* (from-file (make-instance 'asm) (gcd-dir "gcd.s.intel"))))
   (:teardown (setf *gcd* nil)))

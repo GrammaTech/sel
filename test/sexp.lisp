@@ -6,6 +6,7 @@
    :alexandria
    :closer-mop
    :software-evolution-library/test/util
+   :software-evolution-library/test/util-clang
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -20,10 +21,10 @@
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :sexp))
+  (:export :test-sexp))
 (in-package :software-evolution-library/test/sexp)
 (in-readtable :curry-compose-reader-macros)
-(defsuite sexp)
+(defsuite test-sexp "Sexp representation.")
 
 (deftest sexp-cut-first ()
   (with-fixture clang-expr

@@ -35,6 +35,38 @@
     "Mutation and evaluation of clang expressions in Lisp form."
   (clang-mutate-available-p))
 
+(deftest (clang-expression-test :long-running) ()
+  (flet ((test-conversion (obj pair)
+           (destructuring-bind (text expected-expression) pair
+             (let ((result (expression obj (stmt-with-text obj text))))
+               (is (equalp result expected-expression)
+                   "Statement ~S yields ~S not ~S."
+                   text result expected-expression)))))
+    (append
+     (with-fixture gcd-clang
+       (mapc {test-conversion *gcd*}
+             '(("b = b - a;" (:= :b (:- :b :a)))
+               ("a = a - b;" (:= :a (:- :a :b)))
+               ("b != 0"    (:!= :b 0))
+               ("a > b"     (:> :a :b))
+               ("a == 0"    (:== :a 0)))))
+     (with-fixture binary-search-clang
+       (mapc {test-conversion *binary-search*}
+             '(("mid = (start + end) / 2;"
+                (:= :mid (:/ (:+ :start :end) 2)))
+               ("haystack[i] = malloc(256 * sizeof(*haystack[i]));"
+                (:= (:|[]| :haystack :i)
+                 (:malloc (:* 256
+                              (:sizeof (:unary-* (:|[]| :haystack :i))))))))))
+     (with-fixture huf-clang
+       (mapc {test-conversion *huf*}
+             '(("h->h = malloc(sizeof(int)*s);"
+                (:= (:-> :h :h) (:malloc (:* (:sizeof :int) :s))))
+               ("heap->h = realloc(heap->h, heap->s + heap->cs);"
+                (:= (:-> :heap :h)
+                 (:realloc (:-> :heap :h) (:+ (:-> :heap :s)
+                                              (:-> :heap :cs)))))))))))
+
 ;;;; Mutations of clang expressions in Lisp form.
 (deftest change-operator-first ()
   (with-fixture clang-expr

@@ -6,6 +6,7 @@
    :alexandria
    :closer-mop
    :software-evolution-library/test/util
+   :software-evolution-library/test/util-clang
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -14,16 +15,21 @@
    :cl-ppcre
    #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/software/ast
+   :software-evolution-library/software/parseable
+   :software-evolution-library/software/clang
+   :software-evolution-library/software/styleable)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :style-features))
+  (:export :test-style-features))
 (in-package :software-evolution-library/test/style-features)
 (in-readtable :curry-compose-reader-macros)
-(defsuite style-features)
+(defsuite test-style-features "Style features tests."
+  (clang-mutate-available-p))
 
 (deftest uni-grams-ht-test ()
   (let* ((sentence (list "the" "quick" "brown" "fox"
@@ -224,9 +230,9 @@
         (is (equal '(1 1) vals))))))
 
 (deftest extract-style-features-no-asts ()
-  (is (-> (from-string (make-instance (if *new-clang?*
-                                          'new-clang-styleable-test-class
-                                          'clang-styleable-test-class))
-                       "")
-          (extract-baseline-features))
+  (is (extract-baseline-features
+       (from-string (make-instance (if *new-clang?*
+                                       'new-clang-styleable-test-class
+                                       'clang-styleable-test-class))
+                    ""))
       "extract-baseline-features should not throw an error on empty software"))

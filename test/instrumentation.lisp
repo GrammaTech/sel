@@ -20,9 +20,12 @@
    :software-evolution-library/software/parseable
    :software-evolution-library/software/clang
    :software-evolution-library/software/new-clang
+   :software-evolution-library/components/traceable
    :software-evolution-library/components/instrument
    :software-evolution-library/components/clang-instrument)
   (:import-from :uiop :nest)
+  (:import-from :trace-db :read-binary-trace)
+  (:shadowing-import-from :uiop/run-program :run-program)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
@@ -33,6 +36,31 @@
 (defsuite test-instrumentation
     "Tests for Clang instrumentation."
   (clang-mutate-available-p))
+
+(defixture c-strings
+  (:setup
+   (setf *soft*
+         (from-file (make-clang)
+                    (strings-dir "c-strings.c"))))
+  (:teardown
+   (setf *soft* nil)))
+
+(define-constant +shadow-dir+ (append +etc-dir+ (list "shadow"))
+  :test #'equalp
+  :documentation "Path to the shadow example.")
+
+(defun shadow-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +shadow-dir+))
+
+(defixture shadow-clang
+  (:setup
+   (setf *soft*
+         (from-file (make-clang)
+                    (shadow-dir "shadow.c"))))
+  (:teardown
+   (setf *soft* nil)))
 
 (defun do-multi-threaded-instrument-clang-test (obj)
   (let ((st-instrumented
@@ -449,63 +477,6 @@ prints unique counters in the trace"
                                            (software instrumenter)}
                                           instrumenter
                                           ast)))))))
-
-(let ((foo-path (make-pathname :directory +multi-file-dir+
-                               :name "foo"
-                               :type "cpp"))
-      (bar-path (make-pathname :directory +multi-file-dir+
-                               :name "bar"
-                               :type "cpp"))
-      foo-contents bar-contents)
-  (defixture clang-project
-    ;; Has to preserve some files which are overwritten by the test.
-    (:setup
-     (setf foo-contents (file-to-string foo-path)
-           bar-contents (file-to-string bar-path)
-           *project*
-           (from-file
-            (make-instance 'clang-project
-              :build-command "make foo"
-              :artifacts '("foo")
-              :compilation-database
-              `(((:file . ,(namestring foo-path))
-                 (:directory . ,(directory-namestring
-                                 (make-pathname :directory +multi-file-dir+)))
-                 (:command . "make"))
-                ((:file . ,(namestring bar-path))
-                 (:directory . ,(directory-namestring
-                                 (make-pathname :directory +multi-file-dir+)))
-                 (:command . "make"))))
-            (make-pathname :directory +multi-file-dir+))))
-    (:teardown (setf *project* nil)
-               (string-to-file foo-contents foo-path)
-               (string-to-file bar-contents bar-path))))
-
-(defixture grep-project
-  (:setup
-   (setf *project*
-         (-> (make-instance 'clang-project
-               :build-command "make grep"
-               :artifacts '("grep")
-               :compilation-database
-               (list
-                (list
-                 (cons :file
-                       (-> (make-pathname :directory +grep-prj-dir+
-                                          :name "grep"
-                                          :type "c")
-                           (namestring)))
-                 (cons :directory
-                       (-> (make-pathname :directory +grep-prj-dir+)
-                           (directory-namestring)))
-                 (cons :command
-                       (format nil "cc -c -o grep ~a"
-                               (-> (make-pathname :directory +grep-prj-dir+
-                                                  :name "grep"
-                                                  :type "c")
-                                   (namestring)))))))
-             (from-file (make-pathname :directory +grep-prj-dir+)))))
-  (:teardown (setf *project* nil)))
 
 (deftest (can-instrument-clang-project :long-running) ()
   (with-fixture clang-project

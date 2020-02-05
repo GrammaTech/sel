@@ -6,6 +6,7 @@
    :alexandria
    :closer-mop
    :software-evolution-library/test/util
+   :software-evolution-library/test/util-clang
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -14,18 +15,43 @@
    :cl-ppcre
    #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/software/ast
+   :software-evolution-library/software/parseable
+   :software-evolution-library/software/clang
+   :software-evolution-library/software/new-clang)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :misc-mutations))
+  (:export :test-misc-mutations))
 (in-package :software-evolution-library/test/misc-mutations)
 (in-readtable :curry-compose-reader-macros)
-(defsuite misc-mutations)
+(defsuite test-misc-mutations "Misc. mutation tests."
+  (clang-mutate-available-p))
 
 (defvar *empty-while* nil "Holds the empty-while software object.")
+
+(define-constant +explode-for-loop-dir+
+    (append +etc-dir+ (list "explode-for-loop"))
+  :test #'equalp
+  :documentation "Location of the explode for loop example dir")
+
+(defun explode-for-loop-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +explode-for-loop-dir+))
+
+(define-constant +expand-arithmatic-op-dir+
+    (append +etc-dir+ (list "expand-arithmatic-op"))
+  :test #'equalp
+  :documentation "Location of the expand arithmatic op example dir")
+
+(defun expand-arithmatic-op-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +expand-arithmatic-op-dir+))
 
 (define-constant +coalesce-while-loop-dir+
     (append +etc-dir+ (list "coalesce-while-loop"))

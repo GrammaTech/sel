@@ -25,19 +25,10 @@
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :asm-super-mutant))
+  (:export :test-asm-super-mutant))
 (in-package :software-evolution-library/test/asm-super-mutant)
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-asm-super-mutant "ASM-SUPER-MUTANT representation." *lib-papi*)
-
-(define-constant +asm-test-dir+ (append +etc-dir+ (list "asm-test"))
-  :test #'equalp
-  :documentation "Path to asm-test examples.")
-
-(defun asm-test-dir (filename)
-  (make-pathname :name (pathname-name filename)
-                 :type (pathname-type filename)
-                 :directory +asm-test-dir+))
 
 (define-constant +software-dir+
     (append (butlast (butlast +etc-dir+)) (list "software"))

@@ -6,6 +6,7 @@
    :alexandria
    :closer-mop
    :software-evolution-library/test/util
+   :software-evolution-library/test/util-clang
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -14,17 +15,22 @@
    :cl-ppcre
    #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/software/simple
+   :software-evolution-library/software/source
+   :software-evolution-library/software/clang
+   :software-evolution-library/software/project
+   :software-evolution-library/software/clang-project)
   (:import-from :uiop :nest)
+  #-windows (:shadowing-import-from :osicat :file-permissions :pathname-as-directory)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :clang-project))
+  (:export :test-clang-project))
 (in-package :software-evolution-library/test/clang-project)
 (in-readtable :curry-compose-reader-macros)
-(defsuite clang-project)
-
+(defsuite test-clang-project "Clang representation." (clang-mutate-available-p))
 
 (defvar *s1*)
 (defvar *s2*)
@@ -115,8 +121,6 @@
                                  :type "sh"
                                  :directory (append dir (list "support")))))))))
 
-
-
 (deftest (clang-project-test :long-running) ()
   (with-fixture grep-project
     (is (equal "make grep" (build-command *project*)))
@@ -150,9 +154,8 @@
                                                     (bad-stmts obj))))))
                            10)
         (declare (ignorable objs))
-        (is (< 1 (-> (mapcar {targets} muts)
-                     (remove-duplicates :test #'equalp)
-                     (length))))))))
+        (is (< 1 (length (remove-duplicates (mapcar {targets} muts)
+                                            :test #'equalp))))))))
 
 (deftest (apply-picked-mutations-to-project-unique-test :long-running) ()
   (with-fixture clang-project

@@ -6,6 +6,7 @@
    :alexandria
    :closer-mop
    :software-evolution-library/test/util
+   :software-evolution-library/test/util-clang
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -14,16 +15,20 @@
    :cl-ppcre
    #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/software/ast
+   :software-evolution-library/software/parseable
+   :software-evolution-library/software/clang
+   :software-evolution-library/components/fodder-database)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :clang-scopes-and-types))
+  (:export :test-clang-scopes-and-types))
 (in-package :software-evolution-library/test/clang-scopes-and-types)
 (in-readtable :curry-compose-reader-macros)
-(defsuite clang-scopes-and-types)
+(defsuite test-clang-scopes-and-types "Clang representation." (clang-mutate-available-p))
 
 (defun compare-scopes (result expected)
   (is (equal (length result) (length expected)))
@@ -36,6 +41,49 @@
         (is (aget :type var-info))
         (is (aget :decl var-info))
         (is (aget :scope var-info))))
+
+(define-constant +unbound-fun-dir+ (append +etc-dir+ (list "unbound-fun"))
+  :test #'equalp
+  :documentation "Location of the unbound-fun example directory")
+
+(defun unbound-fun-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +unbound-fun-dir+))
+
+(defixture unbound-fun-clang
+  (:setup
+   (setf *soft*
+         (from-file (make-clang)
+                    (unbound-fun-dir "unbound-fun.c"))))
+  (:teardown
+   (setf *soft* nil)))
+
+(defixture scopes-type-field-clang
+  (:setup
+   (setf *scopes*
+         (from-file (make-clang
+                     :compiler "clang" :flags '("-g -m32 -O0"))
+                    (scopes-dir "scopes-type-field.c"))))
+  (:teardown
+   (setf *scopes* nil)))
+
+(defixture scopes2-clang
+  (:setup
+   (setf *scopes*
+         (from-file (make-clang-control-picks
+                     :compiler "clang" :flags '("-g -m32 -O0"))
+                    (scopes-dir "scopes2.c"))))
+  (:teardown
+   (setf *scopes* nil)))
+
+(defixture scopes-cxx-clang
+  (:setup
+   (setf *scopes*
+         (from-file (make-clang-control-picks :compiler "clang")
+                    (scopes-dir "scopes.cxx"))))
+  (:teardown
+   (setf *scopes* nil)))
 
 (deftest scopes-are-correct ()
   (with-fixture scopes2-clang

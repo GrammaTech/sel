@@ -20,10 +20,10 @@
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :task-runner))
+  (:export :test-task-runner))
 (in-package :software-evolution-library/test/task-runner)
 (in-readtable :curry-compose-reader-macros)
-(defsuite task-runner)
+(defsuite test-task-runner "TASK-RUNNER tests.")
 
 ;; simple test to see if the whole file parsed correctly
 (deftest (task-runner-1 :long-running) ( )

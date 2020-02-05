@@ -6,6 +6,7 @@
    :alexandria
    :closer-mop
    :software-evolution-library/test/util
+   :software-evolution-library/test/util-clang
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -14,16 +15,24 @@
    :cl-ppcre
    #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/software/ast
+   :software-evolution-library/software/parseable
+   :software-evolution-library/software/clang
+   :software-evolution-library/software/new-clang
+   :software-evolution-library/components/clang-tokens
+   :software-evolution-library/components/fault-loc)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :clang-tokenizer))
+  (:export :test-clang-tokenizer))
 (in-package :software-evolution-library/test/clang-tokenizer)
 (in-readtable :curry-compose-reader-macros)
-(defsuite clang-tokenizer)
+(defsuite test-clang-tokenizer "Clang representation." (clang-mutate-available-p))
+
+(defvar *test-suite* nil "Holds condition synthesis test suite object.")
 
 (define-constant +fl-tiny-dir+ (append +etc-dir+ (list "fl-test"))
   :test #'equalp
@@ -49,6 +58,11 @@
   (:teardown
    (setf *soft* nil)
    (setf *test-suite* nil)))
+
+(define-constant +condition-synthesis-dir+
+    (append +etc-dir+ (list "condition-synthesis"))
+  :test #'equalp
+  :documentation "Path to condition synthesis examples.")
 
 (define-constant +cs-tiny-dir+ (append +condition-synthesis-dir+
                                        (list "tiny-test"))
@@ -157,8 +171,6 @@
   (:teardown
    (setf *soft* nil)
    (setf *test-suite* nil)))
-
-(defvar *test-suite* nil "Holds condition synthesis test suite object.")
 
 (deftest (case-tokens :long-running) ()
   (with-fixture variety-clang

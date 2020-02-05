@@ -6,6 +6,7 @@
    :alexandria
    :closer-mop
    :software-evolution-library/test/util
+   :software-evolution-library/test/util-clang
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -14,16 +15,20 @@
    :cl-ppcre
    #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/software/ast
+   :software-evolution-library/software/parseable
+   :software-evolution-library/software/clang
+   :software-evolution-library/components/formatting)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :clang-utility))
+  (:export :test-clang-utility))
 (in-package :software-evolution-library/test/clang-utility)
 (in-readtable :curry-compose-reader-macros)
-(defsuite clang-utility)
+(defsuite test-clang-utility "Clang representation." (clang-mutate-available-p))
 
 (define-constant +typedef-type-dir+
     (append +etc-dir+ (list "typedef-type"))
@@ -34,6 +39,36 @@
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
                  :directory +typedef-type-dir+))
+
+(defixture tidy-adds-braces-clang
+  (:setup
+   (setf *soft*
+         (from-file (make-clang
+                     :compiler "clang"
+                     :flags '("-m32" "-O0" "-g"))
+                    (clang-tidy-dir "tidy-adds-braces.c"))))
+  (:teardown
+   (setf *soft* nil)))
+
+(define-constant +type-of-var-dir+
+    (append +etc-dir+ (list "type-of-var"))
+  :test #'equalp
+  :documentation "Location of the type-of-var example dir")
+
+(defun type-of-var-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +type-of-var-dir+))
+
+(defixture type-of-var-clang
+  (:setup
+   (setf *soft*
+         (from-file (make-clang
+                     :compiler "clang"
+                     :flags '("-m32" "-O0" "-g"))
+                    (type-of-var-dir "type-of-var.c"))))
+  (:teardown
+   (setf *soft* nil)))
 
 (defixture typedef-type-clang
   (:setup

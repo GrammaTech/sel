@@ -20,7 +20,6 @@
            :*new-clang?*
            :+etc-dir+
            :+gcd-dir+
-           :+grep-prj-dir+
            :+multi-file-dir+
            :+headers-dir+
            ;; Variables referenced in tests
@@ -42,6 +41,10 @@
            :sqrt-clang
            :empty-function-body-crossover-bug-clang
            :select-intraprocedural-pair-non-null-clang
+           :strings-dir
+           :lisp-bugs-dir
+           :clang-tidy-dir
+           :scopes-dir
            :unicode-dir
            :unicode-clang
            :hello-world-dir
@@ -55,9 +58,13 @@
            :cpp-strings
            :typedef
            :gcd-clang
+           :grep-project
            :grep-bear-project
            :clang-expr
-           :clang-project))
+           :clang-crossover-dir
+           :clang-project
+           :variety-clang
+           :scopes-clang))
 (in-package :software-evolution-library/test/util-clang)
 (in-readtable :curry-compose-reader-macros)
 
@@ -181,16 +188,6 @@
                  :type (pathname-type filename)
                  :directory +clang-tidy-dir+))
 
-(define-constant +type-of-var-dir+
-    (append +etc-dir+ (list "type-of-var"))
-  :test #'equalp
-  :documentation "Location of the type-of-var example dir")
-
-(defun type-of-var-dir (filename)
-  (make-pathname :name (pathname-name filename)
-                 :type (pathname-type filename)
-                 :directory +type-of-var-dir+))
-
 (define-constant +variety-dir+
     (append +etc-dir+ (list "variety"))
   :test #'equalp
@@ -201,15 +198,6 @@
                  :type (pathname-type filename)
                  :directory +variety-dir+))
 
-(define-constant +shadow-dir+ (append +etc-dir+ (list "shadow"))
-  :test #'equalp
-  :documentation "Path to the shadow example.")
-
-(defun shadow-dir (filename)
-  (make-pathname :name (pathname-name filename)
-                 :type (pathname-type filename)
-                 :directory +shadow-dir+))
-
 (define-constant +unicode-dir+ (append +etc-dir+ (list "unicode"))
   :test #'equalp
   :documentation "Path to the unicode example.")
@@ -219,14 +207,15 @@
                  :type (pathname-type filename)
                  :directory +unicode-dir+))
 
-(define-constant +unbound-fun-dir+ (append +etc-dir+ (list "unbound-fun"))
+(define-constant +clang-crossover-dir+
+    (append +etc-dir+ (list "clang-crossover"))
   :test #'equalp
-  :documentation "Location of the unbound-fun example directory")
+  :documentation "Location of clang crossover example directory")
 
-(defun unbound-fun-dir (filename)
+(defun clang-crossover-dir (filename)
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
-                 :directory +unbound-fun-dir+))
+                 :directory +clang-crossover-dir+))
 
 (defvar *new-clang?* t)
 (defvar *hello-world* nil "Holds the hello world software object.")
@@ -235,6 +224,7 @@
   (apply #'make-instance (if *new-clang?* 'new-clang 'clang) key-args))
 
 
+;;; Fixtures
 (defixture empty-function-body-crossover-bug-clang
   (:setup
    (setf *soft*
@@ -348,33 +338,6 @@
   (:teardown
    (setf *hello-world* nil)))
 
-(defixture hello-world-clang-w-fodder
-  (:setup
-   (setf *database*
-         (with-open-file (in (make-pathname :name "euler-example.json"
-                                            :directory +etc-dir+))
-           (make-instance 'json-database :json-stream in)))
-   (setf *hello-world*
-         (from-file (make-instance 'clang-w-fodder :compiler "clang"
-                                   :flags '("-g -m32 -O0"))
-                    (hello-world-dir "hello_world.c"))))
-  (:teardown
-   (setf *database* nil)
-   (setf *hello-world* nil)))
-
-(defixture no-insert-fodder-decl-mutation-targets-clang
-  (:setup
-   (setf *database*
-         (with-open-file (in (make-pathname :name "euler-example.json"
-                                            :directory +etc-dir+))
-           (make-instance 'json-database :json-stream in)))
-   (setf *soft* (from-file (make-instance 'clang-w-fodder)
-                           (lisp-bugs-dir
-                            "no-insert-fodder-decl-mutation-targets.c"))))
-  (:teardown
-   (setf *database* nil)
-   (setf *soft* nil)))
-
 (defixture typedef
   (:setup
    (setf *soft*
@@ -391,14 +354,6 @@
   (:teardown
    (setf *soft* nil)))
 
-(defixture c-strings
-  (:setup
-   (setf *soft*
-         (from-file (make-clang)
-                    (strings-dir "c-strings.c"))))
-  (:teardown
-   (setf *soft* nil)))
-
 (defun inject-missing-swap-macro (obj)
   ;; Inject a macro that clang-mutate currently misses, then force the ASTs to
   ;; be recalculated by setting the genome-string.
@@ -408,24 +363,6 @@
               :body "swap_(I,J) do { int t_; t_ = a[(I)]; a[(I)] = a[(J)]; a[(J)] = t_; } while (0)"
               :hash 1179176719466053316))
   (setf (genome-string obj) (genome-string obj)))
-
-(defixture gcd-clang-w-fodder
-  (:setup
-   (setf *database*
-         (with-open-file (in (make-pathname :name "euler-example"
-                                            :type "json"
-                                            :directory +etc-dir+))
-           (make-instance 'json-database :json-stream in)))
-   (setf *gcd*
-         (from-file
-          (make-instance 'clang-w-fodder
-            :flags (list
-                    "-I"
-                    (namestring (make-pathname :directory +etc-dir+))))
-          (gcd-dir "gcd.c"))))
-  (:teardown
-   (setf *database* nil)
-   (setf *gcd* nil)))
 
 (defixture huf-clang
   (:setup
@@ -445,32 +382,6 @@
   (:teardown
    (setf *scopes* nil)))
 
-(defixture scopes2-clang
-  (:setup
-   (setf *scopes*
-         (from-file (make-clang-control-picks
-                     :compiler "clang" :flags '("-g -m32 -O0"))
-                    (scopes-dir "scopes2.c"))))
-  (:teardown
-   (setf *scopes* nil)))
-
-(defixture scopes-type-field-clang
-  (:setup
-   (setf *scopes*
-         (from-file (make-clang
-                     :compiler "clang" :flags '("-g -m32 -O0"))
-                    (scopes-dir "scopes-type-field.c"))))
-  (:teardown
-   (setf *scopes* nil)))
-
-(defixture scopes-cxx-clang
-  (:setup
-   (setf *scopes*
-         (from-file (make-clang-control-picks :compiler "clang")
-                    (scopes-dir "scopes.cxx"))))
-  (:teardown
-   (setf *scopes* nil)))
-
 (defixture fib-clang
   (:setup
    (setf *fib*
@@ -480,26 +391,6 @@
                     (fib-dir "fib.c"))))
   (:teardown
    (setf *fib* nil)))
-
-(defixture tidy-adds-braces-clang
-  (:setup
-   (setf *soft*
-         (from-file (make-clang
-                     :compiler "clang"
-                     :flags '("-m32" "-O0" "-g"))
-                    (clang-tidy-dir "tidy-adds-braces.c"))))
-  (:teardown
-   (setf *soft* nil)))
-
-(defixture type-of-var-clang
-  (:setup
-   (setf *soft*
-         (from-file (make-clang
-                     :compiler "clang"
-                     :flags '("-m32" "-O0" "-g"))
-                    (type-of-var-dir "type-of-var.c"))))
-  (:teardown
-   (setf *soft* nil)))
 
 (defixture variety-clang
   (:setup
@@ -511,27 +402,11 @@
   (:teardown
    (setf *variety* nil)))
 
-(defixture shadow-clang
-  (:setup
-   (setf *soft*
-         (from-file (make-clang)
-                    (shadow-dir "shadow.c"))))
-  (:teardown
-   (setf *soft* nil)))
-
 (defixture unicode-clang
   (:setup
    (setf *soft*
          (from-file (make-clang)
                     (unicode-dir "unicode.c"))))
-  (:teardown
-   (setf *soft* nil)))
-
-(defixture unbound-fun-clang
-  (:setup
-   (setf *soft*
-         (from-file (make-clang)
-                    (unbound-fun-dir "unbound-fun.c"))))
   (:teardown
    (setf *soft* nil)))
 
@@ -541,6 +416,64 @@
                            (lisp-bugs-dir "no-mutation-targets.c"))))
   (:teardown
    (setf *soft* nil)))
+
+(let ((foo-path (make-pathname :directory +multi-file-dir+
+                               :name "foo"
+                               :type "cpp"))
+      (bar-path (make-pathname :directory +multi-file-dir+
+                               :name "bar"
+                               :type "cpp"))
+      foo-contents bar-contents)
+  (defixture clang-project
+    ;; Has to preserve some files which are overwritten by the test.
+    (:setup
+     (setf foo-contents (file-to-string foo-path)
+           bar-contents (file-to-string bar-path)
+           *project*
+           (from-file
+            (make-instance 'clang-project
+              :build-command "make foo"
+              :artifacts '("foo")
+              :compilation-database
+              `(((:file . ,(namestring foo-path))
+                 (:directory . ,(directory-namestring
+                                 (make-pathname :directory +multi-file-dir+)))
+                 (:command . "make"))
+                ((:file . ,(namestring bar-path))
+                 (:directory . ,(directory-namestring
+                                 (make-pathname :directory +multi-file-dir+)))
+                 (:command . "make"))))
+            (make-pathname :directory +multi-file-dir+))))
+    (:teardown (setf *project* nil)
+               (string-to-file foo-contents foo-path)
+               (string-to-file bar-contents bar-path))))
+
+(defixture grep-project
+  (:setup
+   (setf *project*
+         (from-file
+          (make-instance 'clang-project
+            :build-command "make grep"
+            :artifacts '("grep")
+            :compilation-database
+            (list
+             (list
+              (cons :file
+                    (namestring
+                     (make-pathname :directory +grep-prj-dir+
+                                    :name "grep"
+                                    :type "c")))
+              (cons :directory
+                    (directory-namestring
+                     (make-pathname :directory +grep-prj-dir+)))
+              (cons :command
+                    (format nil "cc -c -o grep ~a"
+                            (namestring
+                             (make-pathname :directory +grep-prj-dir+
+                                            :name "grep"
+                                            :type "c")))))))
+          (make-pathname :directory +grep-prj-dir+))))
+  (:teardown (setf *project* nil)))
 
 (defixture grep-bear-project
   (:setup

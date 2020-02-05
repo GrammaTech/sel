@@ -13,17 +13,43 @@
    :split-sequence
    :cl-ppcre
    #+gt :testbot
+   :trace-db
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/software/ast
+   :software-evolution-library/software/parseable
+   :software-evolution-library/software/javascript
+   :software-evolution-library/software/project
+   :software-evolution-library/software/javascript-project
+   :software-evolution-library/components/instrument
+   :software-evolution-library/components/traceable)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :javascript-project))
+  (:export :test-javascript-project))
 (in-package :software-evolution-library/test/javascript-project)
 (in-readtable :curry-compose-reader-macros)
-(defsuite javascript-project)
+(defsuite test-javascript-project "Javascript representation." (acorn-available-p))
+
+(let ((fib-path (merge-pathnames-as-file (javascript-dir #P"fib-project/")
+                                         "fib.js"))
+      (app-path (merge-pathnames-as-file (javascript-dir #P"fib-project/")
+                                         "app.js"))
+      fib-contents app-contents)
+  (defixture fib-project-javascript
+    (:setup
+     (setf fib-contents (file-to-string fib-path)
+           app-contents (file-to-string app-path)
+           *soft*
+           (from-file (make-instance 'javascript-traceable-project
+                        :component-class 'javascript-traceable)
+                      (javascript-dir #P"fib-project/"))))
+    (:teardown
+     (setf *soft* nil)
+     (string-to-file fib-contents fib-path)
+     (string-to-file app-contents app-path))))
 
 (deftest (can-parse-a-javascript-project :long-running) ()
   (with-fixture fib-project-javascript

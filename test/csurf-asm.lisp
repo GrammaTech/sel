@@ -14,19 +14,29 @@
    :cl-ppcre
    #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/software/asm-heap
+   :software-evolution-library/software/csurf-asm)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :csurf-asm))
+  (:export :test-csurf-asm))
 (in-package :software-evolution-library/test/csurf-asm)
 (in-readtable :curry-compose-reader-macros)
-(defsuite csurf-asm)
+(defsuite test-csurf-asm "CSURF-ASM representation.")
 
 (deftest dynamic-linker-path-has-been-set ()
   (is *dynamic-linker-path* "Ensure `*dynamic-linker-path*' has been set."))
+
+(defixture csurf-asm-calc
+  (:setup (setf *soft*
+                (from-file
+                 (make-instance 'csurf-asm)
+                 (asm-test-dir "calc.s.intel"))))
+  (:teardown
+   (setf *soft* nil)))
 
 ;; simple test to see if the whole file parsed correctly
 (deftest parser-test-1 ()

@@ -6,6 +6,7 @@
    :alexandria
    :closer-mop
    :software-evolution-library/test/util
+   :software-evolution-library/test/util-clang
    :software-evolution-library/stefil-plus
    :named-readtables
    :curry-compose-reader-macros
@@ -13,21 +14,29 @@
    :split-sequence
    :cl-ppcre
    #+gt :testbot
+   :clack
+   :snooze
+   :drakma
    :software-evolution-library
-   :software-evolution-library/utility)
+   :software-evolution-library/utility
+   :software-evolution-library/command-line
+   :software-evolution-library/command-line-rest
+   :software-evolution-library/rest/async-jobs
+   :software-evolution-library/software/clang)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :rest))
+  (:export :test-rest))
 (in-package :software-evolution-library/test/rest)
 (in-readtable :curry-compose-reader-macros)
-(defsuite rest)
+(defsuite test-rest "REST API tests.")
 
 (defvar *rest-client* nil "Client-id (cid) for REST API test client.")
 (defvar *clack-port*  9003 "Default port for clack web server instance.")
 (defvar *clack-delay* 0.5 "Seconds to delay after starting server")
+(defvar *clack* nil)
 
 #-windows
 (defixture rest-server
