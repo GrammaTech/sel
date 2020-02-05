@@ -117,8 +117,8 @@
                     '("d"))
 
       (compare-vals (get-unbound-vals *scopes*
-                                      (->> "void foo"
-                                           (stmt-starting-with-text *scopes* )))
+                                      (nest (stmt-starting-with-text *scopes* )
+                                            "void foo"))
                     '("global")))))
 
 (defun unbound-funs-equal (result expected)
@@ -160,22 +160,22 @@
 (deftest scopes-type-field-is-correct ()
   (with-fixture scopes-type-field-clang
     (is (equal "char"
-               (->> (scopes *scopes* (stmt-with-text *scopes* "return 0;"))
-                    (lastcar)
-                    (first)
-                    (aget :type)
-                    (find-type *scopes*)
-                    (type-name)))
+               (nest (type-name)
+                     (find-type *scopes*)
+                     (aget :type)
+                     (first)
+                     (lastcar)
+                     (scopes *scopes* (stmt-with-text *scopes* "return 0;"))))
         "char variable should have been found at the global scope")))
 
 (deftest get-vars-in-scope-keep-globals-flag ()
   (with-fixture scopes-type-field-clang
     (is (name= "time_args"
-               (->> (get-vars-in-scope *scopes*
-                                       (stmt-with-text *scopes* "return 0;")
-                                       t)
-                    (first)
-                    (aget :name)))
+               (nest (aget :name)
+                     (first)
+                     (get-vars-in-scope *scopes*
+                                        (stmt-with-text *scopes* "return 0;")
+                                        t)))
         "time_args variable should have been found at the global scope")
     (is (equal nil (get-vars-in-scope *scopes*
                                       (stmt-with-text *scopes* "return 0;")

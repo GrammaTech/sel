@@ -43,13 +43,13 @@
 
 (deftest json-database-find-snippet-respects-decl ()
   (with-fixture json-database
-    (is (null (->> (find-snippets *database* :decls nil)
-                   (remove-if-not {aget :is-decl}))))))
+    (is (null (nest (remove-if-not {aget :is-decl})
+                    (find-snippets *database* :decls nil))))))
 
 (deftest json-database-find-snippet-respects-full-stmt ()
   (with-fixture json-database
-    (is (null (->> (find-snippets *database* :full-stmt t)
-                   (remove-if {aget :full-stmt}))))))
+    (is (null (nest (remove-if {aget :full-stmt})
+                    (find-snippets *database* :full-stmt t))))))
 
 (deftest json-database-find-snippet-is-random ()
   (with-fixture json-database

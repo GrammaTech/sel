@@ -263,22 +263,22 @@ prints unique counters in the trace"
                (format
                 nil
                 "__write_trace_id(__sel_trace_file, __sel_trace_file_lock, ~du)"
-                (->> (find-if [{string= "a = atoi(argv[1]);"}
-                               #'peel-bananas #'source-text]
-                              (asts variant)
-                              :from-end nil)
-                     (index-of-ast variant)))
+                (nest (index-of-ast variant)
+                      (find-if [{string= "a = atoi(argv[1]);"}
+                                #'peel-bananas #'source-text]
+                               (asts variant)
+                               :from-end nil)))
                (genome instrumented))
               "instrumentation was not added for the inserted statement")
           (is (search
                (format
                 nil
                 "__write_trace_id(__sel_trace_file, __sel_trace_file_lock, ~du)"
-                (->> (find-if [{string= "a = atoi(argv[1]);"}
-                               #'peel-bananas #'source-text]
-                              (asts variant)
-                              :from-end t)
-                     (index-of-ast variant)))
+                (nest (index-of-ast variant)
+                      (find-if [{string= "a = atoi(argv[1]);"}
+                                #'peel-bananas #'source-text]
+                               (asts variant)
+                               :from-end t)))
                (genome instrumented))
               "instrumentation was not added for the original statement"))))))
 

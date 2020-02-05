@@ -87,9 +87,9 @@
   (with-fixture tidy-adds-braces-clang
     (let ((variant (copy *soft*)))
       (clang-tidy variant)
-      (is (= 2 (->> (stmt-asts variant)
-                    (remove-if-not [{eq :CompoundStmt} #'ast-class])
-                    (length)))))))
+      (is (= 2 (nest (length)
+                     (remove-if-not [{eq :CompoundStmt} #'ast-class])
+                     (stmt-asts variant)))))))
 
 (deftest (format-a-clang-software-object :long-running) ()
   (flet ((run (obj)
@@ -189,11 +189,11 @@
       (let* ((copy (copy *soft*))
              (stmt (stmt-with-text copy "assert(argc > 0);")))
         (is (equalp (peel-banana-tree "assert((|someVal|) > 0);")
-                    (->> (rebind-vars stmt
-                                      (peel-banana-tree
-                                       '(("(|argc|)" "(|someVal|)")))
-                                      nil)
-                         (source-text)))
+                    (nest (source-text)
+                          (rebind-vars stmt
+                                       (peel-banana-tree
+                                        '(("(|argc|)" "(|someVal|)")))
+                                       nil)))
             "rebind-vars did not rebind a variable within a macro")))))
 
 

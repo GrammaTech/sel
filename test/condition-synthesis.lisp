@@ -199,7 +199,7 @@
           (is stmt)
           (is (eq :WhileStmt (ast-class stmt)))
           (is (equal "(x >= 2) && !(x == 2)"
-                     (->> (get-immediate-children repaired-prog stmt)
-                          (first)
-                          (source-text)
-                          (peel-bananas)))))))))
+                     (nest (peel-bananas)
+                           (source-text)
+                           (first)
+                           (get-immediate-children repaired-prog stmt)))))))))

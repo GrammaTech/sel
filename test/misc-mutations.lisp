@@ -65,9 +65,9 @@
 
 (deftest (pick-for-loop-works :long-running) ()
   (with-fixture scopes-clang
-    (is (eq :ForStmt (->> (pick-for-loop *scopes*)
-                          (aget :stmt1)
-                          (ast-class)))
+    (is (eq :ForStmt (nest (ast-class)
+                           (aget :stmt1)
+                           (pick-for-loop *scopes*)))
         "Simply able to pick a for loop.")
     (let ((var (copy *scopes*)))
       (apply-mutation var (make-instance 'explode-for-loop :object var))
@@ -134,9 +134,9 @@
 
 (deftest (pick-while-loop-works :long-running) ()
   (with-fixture scopes-clang
-    (is (eq :WhileStmt (->> (pick-while-loop *scopes*)
-                            (aget :stmt1)
-                            (ast-class)))
+    (is (eq :WhileStmt (nest (ast-class)
+                             (aget :stmt1)
+                             (pick-while-loop *scopes*)))
         "Simply able to pick a while loop.")
     (let ((var (copy *scopes*)))
       (apply-mutation var (make-instance 'coalesce-while-loop :object var))
