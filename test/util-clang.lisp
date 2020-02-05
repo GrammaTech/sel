@@ -12,6 +12,7 @@
         :software-evolution-library/software/clang
         :software-evolution-library/software/new-clang
         :software-evolution-library/software/clang-expression
+        :software-evolution-library/software/clang-project
         :software-evolution-library/software/clang-w-fodder
         :software-evolution-library/test/util)
   (:export :clang-mutate-available-p
@@ -43,6 +44,7 @@
            :select-intraprocedural-pair-non-null-clang
            :unicode-dir
            :unicode-clang
+           :hello-world-dir
            :gcd-wo-curlies-clang
            :headers-clang
            :fib-clang
@@ -106,16 +108,6 @@
 (define-constant +hello-world-dir+ (append +etc-dir+ (list "hello-world"))
   :test #'equalp
   :documentation "Location of the hello world example directory")
-
-(define-constant +clang-crossover-dir+
-    (append +etc-dir+ (list "clang-crossover"))
-  :test #'equalp
-  :documentation "Location of clang crossover example directory")
-
-(defun clang-crossover-dir (filename)
-  (make-pathname :name (pathname-name filename)
-                 :type (pathname-type filename)
-                 :directory +clang-crossover-dir+))
 
 (define-constant +lisp-bugs-dir+
     (append +etc-dir+ (list "lisp-bugs"))
@@ -488,28 +480,6 @@
                     (fib-dir "fib.c"))))
   (:teardown
    (setf *fib* nil)))
-
-(defixture crossover-no-compound-stmt-clang
-  (:setup
-   (setf *soft*
-         (from-file (make-clang
-                     :compiler "clang"
-                     :flags '("-m32" "-O0" "-g"))
-                    (clang-crossover-dir
-                     "crossover-no-compound-stmt.c"))))
-  (:teardown
-   (setf *soft* nil)))
-
-(defixture crossover-switch-stmt-clang
-  (:setup
-   (setf *soft*
-         (from-file (make-clang
-                     :compiler "clang"
-                     :flags '("-m32" "-O0" "-g"))
-                    (clang-crossover-dir
-                     "crossover-switch-stmt.c"))))
-  (:teardown
-   (setf *soft* nil)))
 
 (defixture tidy-adds-braces-clang
   (:setup

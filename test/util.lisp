@@ -26,6 +26,8 @@
            :*gcd*
            :*binary-search*
            :*fib*
+           :*test*
+           :*project*
            ;; Fixtures.
            :soft
            :range
@@ -39,6 +41,8 @@
 (defvar *gcd* nil "Holds the gcd software object.")
 (defvar *binary-search* nil "Holds the binary_search software object.")
 (defvar *fib* nil "Holds the fibonacci software object.")
+(defvar *test* nil "Variable to hold evaluation function for tests.")
+(defvar *project* nil "Software used in project fixtures.")
 
 (defroot test)
 

@@ -34,8 +34,6 @@
     "Tests for Clang instrumentation."
   (clang-mutate-available-p))
 
-(defvar *project* nil "Software used in project fixtures.")
-
 (defun do-multi-threaded-instrument-clang-test (obj)
   (let ((st-instrumented
          (instrument (copy obj)

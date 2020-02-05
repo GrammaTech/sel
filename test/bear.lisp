@@ -29,8 +29,6 @@
 (defsuite test-bear "Clang representation."
   (lambda () (zerop (nth-value 2 (shell "which bear")))))
 
-(defvar *project* nil "Software used in project fixtures.")
-
 #-windows
 (deftest (able-to-create-a-bear-project :long-running) ()
   (with-fixture grep-bear-project

@@ -25,11 +25,9 @@
 (in-readtable :curry-compose-reader-macros)
 (defsuite clang-project)
 
-(defvar *project* nil "Software used in project fixtures.")
 
 (defvar *s1*)
 (defvar *s2*)
-(defvar *project*)
 (defixture project
   (:setup
    (setf *s1* (make-instance 'simple))

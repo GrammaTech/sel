@@ -20,13 +20,10 @@
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:export :mutation-analysis))
+  (:export :test-mutation-analysis))
 (in-package :software-evolution-library/test/mutation-analysis)
 (in-readtable :curry-compose-reader-macros)
-(defsuite mutation-analysis)
-
-(defvar *project* nil "Software used in project fixtures.")
-(defvar *test* nil "Variable to hold evaluation function for tests.")
+(defsuite test-mutation-analysis)
 
 (defixture hello-world-clang-w-fitness
   (:setup
