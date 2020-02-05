@@ -25,7 +25,8 @@
   (:export :test-csurf-asm))
 (in-package :software-evolution-library/test/csurf-asm)
 (in-readtable :curry-compose-reader-macros)
-(defsuite test-csurf-asm "CSURF-ASM representation.")
+(defsuite test-csurf-asm "CSURF-ASM representation."
+  (zerop (nth-value 2 (shell "which ~a" *elf-edit-symtab-path*))))
 
 (deftest dynamic-linker-path-has-been-set ()
   (is *dynamic-linker-path* "Ensure `*dynamic-linker-path*' has been set."))

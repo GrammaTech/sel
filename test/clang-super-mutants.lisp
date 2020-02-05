@@ -21,7 +21,8 @@
    :software-evolution-library/software/parseable
    :software-evolution-library/software/clang
    :software-evolution-library/software/new-clang
-   :software-evolution-library/software/super-mutant)
+   :software-evolution-library/software/super-mutant
+   :software-evolution-library/software/super-mutant-clang)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop

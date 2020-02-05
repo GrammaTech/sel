@@ -19,6 +19,7 @@
    :software-evolution-library/software/ast
    :software-evolution-library/software/parseable
    :software-evolution-library/software/javascript
+   :software-evolution-library/software/json
    :software-evolution-library/components/formatting
    :software-evolution-library/components/traceable
    :software-evolution-library/components/instrument
@@ -32,6 +33,8 @@
 (in-package :software-evolution-library/test/javascript)
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-javascript "Javascript representation." (acorn-available-p))
+
+(define-software javascript-traceable  (javascript sexp-traceable) ())
 
 (defixture hello-world-javascript
   (:setup
