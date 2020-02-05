@@ -57,9 +57,9 @@
         :test (lambda (file)
                 ;; Heuristics for identifying files in the project:
                 ;; 1) The file is not in an ignored directory.
-                ;; 2) The file has a "js" extension.
-                ;; 3) The file is listed as a "bin" in package.json.
-                ;; 4) The file is listed as "main" in package.json.
+                ;;    and the file has a "js" extension.
+                ;; 2) The file is listed as a "bin" in package.json.
+                ;; 3) The file is listed as "main" in package.json.
                 (let ((rel-path (pathname-relativize (project-dir project)
                                                      file)))
                   (or (and (not (ignored-evolve-path-p project rel-path))
