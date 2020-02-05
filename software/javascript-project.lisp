@@ -70,6 +70,17 @@
                       (equal rel-path (aget :main package-spec))))))))
   result)
 
+(defmethod collect-other-files :around ((project javascript-project))
+  "Wrapper to represent JSON files as JSON software objects instead of
+simple text software objects."
+  (mapcar (lambda (pair &aux (file (car pair)))
+            (if (equal "json" (pathname-type file))
+                (cons file (nest (from-file (make-instance 'json))
+                                 (merge-pathnames-as-file (project-dir project)
+                                                          file)))
+                pair))
+          (call-next-method)))
+
 (defmethod phenome ((obj javascript-project) &key (bin (temp-file-name)))
   "Create a phenotype of the JAVASCRIPT-PROJECT.  In this case,
 override the phenome method to return BIN where the genome of OBJ
