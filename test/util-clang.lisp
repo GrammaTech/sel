@@ -265,7 +265,8 @@
 (defixture gcd-clang
   (:setup
    (setf *gcd*
-         (from-file (make-instance 'clang :compiler "clang")
+         (from-file (make-instance (if *new-clang?* 'new-clang 'clang)
+                      :compiler "clang")
                     (gcd-dir "gcd.c"))))
   (:teardown
    (setf *gcd* nil)))

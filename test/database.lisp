@@ -12,12 +12,14 @@
    :iterate
    :split-sequence
    :cl-ppcre
+   :arrow-macros                        ; FIXME: Remove.
    #+gt :testbot
    :software-evolution-library
    :software-evolution-library/utility
    :software-evolution-library/software/clang-w-fodder
    :software-evolution-library/components/json-fodder-database
-   :software-evolution-library/components/fodder-database)
+   :software-evolution-library/components/fodder-database
+   :software-evolution-library/components/searchable)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop

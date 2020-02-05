@@ -36,6 +36,7 @@
            :*project*
            :*soft-mutate-errors*
            ;; Fixtures.
+           :javascript-traceable
            :soft
            :range
            :double-range
@@ -152,6 +153,8 @@ AST holding STMT is found."
 ;;; Software.
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
+
+(define-software javascript-traceable  (javascript sexp-traceable) ())
 
 (defvar *soft-mutate-errors* nil
   "Control when mutations on soft objects throw errors.")

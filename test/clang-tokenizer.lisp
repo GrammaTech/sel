@@ -198,9 +198,6 @@
                           "identifier" "--" "}"))))
       (is (equal tokens while-tokens)))))
 
-                                        ; def this with lables
-                                        ;(defun
-
 (deftest annotations-with-fault-loc ()
   (labels ((ast-start-line (ast)
              (let ((loc (new-clang-range-begin (ast-range ast))))

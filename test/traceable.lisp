@@ -37,7 +37,6 @@
 (define-software clang-traceable (clang binary-traceable) ())
 (define-software new-clang-traceable (new-clang binary-traceable) ())
 (define-software java-traceable  (java sexp-traceable) ())
-(define-software javascript-traceable  (javascript sexp-traceable) ())
 (define-software javascript-traceable-project  (javascript-project sexp-traceable) ())
 (define-software collect-traces-handles-directory-phenomes-mock
     (source binary-traceable)
