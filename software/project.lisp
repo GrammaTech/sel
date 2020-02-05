@@ -171,7 +171,6 @@ object (e.g., the original program).")
 Assumes `evolve-files' has been initialized.  Only applies to
 non-symlink text files that don't end in \"~\" and are not ignored by
 `ignore-other-paths', or `only-other-paths'.")
-  (:method (obj) (declare (ignorable obj)) nil)
   (:method ((project project))
     ;; Create software objects for these other files.
     (nest
