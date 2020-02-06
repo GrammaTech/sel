@@ -979,7 +979,7 @@ in preorder.  The ancestor list is in decreasing order of depth in the AST."))
   (:documentation "Return textual representation of AST.")
   (:method (ast)
     (if (ast-p ast)
-        (peel-bananas (source-text ast))
+        (source-text ast)
         (format nil "~A" ast))))
 
 (defgeneric ast-hash (ast)

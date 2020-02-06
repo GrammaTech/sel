@@ -97,6 +97,7 @@
 
 (defmethod eclector.reader:interpret-symbol
     ((client client) input-stream package-indicator symbol-name internp)
+  (declare (ignorable input-stream))
   (let ((package (case package-indicator
                    (:current *package*)
                    (:keyword (find-package "KEYWORD"))
@@ -131,6 +132,7 @@
 ;;; one that skips the "#.".
 (defgeneric wrap-in-sharpsign-dot (client material)
   (:method (client material)
+    (declare (ignorable client))
     (list '|#.| material)))
 
 (defun eclector.reader::sharpsign-dot (stream char parameter)

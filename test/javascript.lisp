@@ -169,12 +169,11 @@
 (deftest javascript-can-rebind-vars ()
   (with-fixture fib-javascript
     (is (string= "temp = b;"
-                 (trim-whitespace
-                  (nest (peel-bananas)
-                        (source-text)
-                        (rebind-vars (stmt-with-text *soft* "temp = a;")
-                                     (list (list "a" "b"))
-                                     nil)))))))
+                 (nest (trim-whitespace)
+                       (source-text)
+                       (rebind-vars (stmt-with-text *soft* "temp = a;")
+                                    (list (list "a" "b"))
+                                    nil))))))
 
 (deftest javascript-get-vars-in-scope ()
   (with-fixture fib-javascript

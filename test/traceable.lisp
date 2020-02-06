@@ -19,7 +19,6 @@
    :software-evolution-library/utility
    :software-evolution-library/software/source
    :software-evolution-library/software/clang
-   :software-evolution-library/software/new-clang
    :software-evolution-library/components/instrument
    :software-evolution-library/components/traceable
    :software-evolution-library/components/test-suite)
@@ -32,10 +31,9 @@
   (:export :test-traceable))
 (in-package :software-evolution-library/test/traceable)
 (in-readtable :curry-compose-reader-macros)
-(defsuite test-traceable "Traceable tests." (clang-mutate-available-p))
+(defsuite test-traceable "Traceable tests." (clang-available-p))
 
 (define-software clang-traceable (clang binary-traceable) ())
-(define-software new-clang-traceable (new-clang binary-traceable) ())
 (define-software java-traceable  (java sexp-traceable) ())
 (define-software javascript-traceable  (javascript sexp-traceable) ())
 (define-software javascript-traceable-project  (javascript-project sexp-traceable) ())
@@ -46,7 +44,7 @@
 
 (defixture print-env-clang
   (:setup (setf *soft*
-                (from-file (make-clang :compiler "clang")
+                (from-file (make-instance 'clang :compiler "clang")
                            (make-pathname :directory +etc-dir+
                                           :name "print-env"
                                           :type "c"))))
@@ -65,19 +63,16 @@
 (defixture long-running-program-clang
   (:setup
    (setf *soft*
-         (from-file (make-clang)
+         (from-file (make-instance 'clang)
                     (long-running-program-dir "long-running-program.c"))))
   (:teardown
    (setf *soft* nil)))
 
 (defixture traceable-gcd
-  (:setup (setf *gcd* (from-file
-                       (if *new-clang?*
-                           (make-instance 'new-clang-traceable)
-                           (make-instance 'clang-traceable))
-                       (make-pathname :name "gcd"
-                                      :type "c"
-                                      :directory +gcd-dir+)))))
+  (:setup (setf *gcd* (from-file (make-instance 'clang-traceable)
+                                 (make-pathname :name "gcd"
+                                                :type "c"
+                                                :directory +gcd-dir+)))))
 
 (defvar *gcd-inputs* '((:bin "1071" "1029")
                        (:bin "555" "666")

@@ -8,19 +8,16 @@ RUN eval `opam config env` && \
     opam install coq-serapi=8.7.2+0.4.13
 
 
-# FROM cl-ubuntu as cl
-# FROM java-mutator-ubuntu as java-mutator
-# FROM clang-mutate-ubuntu as clang-mutate
 FROM docker.grammatech.com/synthesis/cl as cl
 FROM docker.grammatech.com/synthesis/java-mutator as java-mutator
-FROM docker.grammatech.com/synthesis/clang-mutate as clang-mutate
+FROM docker.grammatech.com/synthesis/clang/ubuntu as clang
 FROM ubuntu:16.04
 
 RUN apt-get -y update && \
     apt-get -y install g++ gcc gcc-multilib graphviz libffi-dev man-db maven opam openjdk-8-jdk pandoc pkg-config texinfo unzip expect wget curl libboost-all-dev
 
 COPY --from=coq-serapi /root/.opam /root/.opam
-COPY --from=clang-mutate /usr/synth/ /usr/synth/
+COPY --from=clang /usr/synth/ /usr/synth/
 COPY --from=cl /usr/synth/quicklisp /usr/synth/quicklisp
 COPY --from=cl /usr/synth/lib/ccl /usr/synth/lib/ccl
 COPY --from=cl /usr/synth/lib/sbcl /usr/synth/lib/sbcl

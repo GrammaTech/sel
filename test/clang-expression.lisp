@@ -21,7 +21,6 @@
    :software-evolution-library/software/clang
    :software-evolution-library/software/expression
    :software-evolution-library/software/clang-expression
-   :software-evolution-library/software/new-clang
    :software-evolution-library/software/clang-expression)
   (:import-from :uiop :nest)
   (:shadowing-import-from
@@ -33,7 +32,7 @@
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-clang-expression
     "Mutation and evaluation of clang expressions in Lisp form."
-  (clang-mutate-available-p))
+  (clang-available-p))
 
 (deftest (clang-expression-test :long-running) ()
   (flet ((test-conversion (obj pair)

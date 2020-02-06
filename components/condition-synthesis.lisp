@@ -117,10 +117,7 @@ E.g., if(foo) becomes if(foo || abst_cond())."))
                    (make-statement
                     :ImplicitCastExpr :generic
                     (list
-                     (make-statement :DeclRefExpr :generic
-                                     '("(|abst_cond|)")
-                                     :unbound-funs '(("(|abst_cond|)"
-                                                      nil nil 0)))))
+                     (make-statement :DeclRefExpr :generic '("abst_cond"))))
                    "()")))
 
 
@@ -374,7 +371,7 @@ along with start and end index of abst_cond() in the source text.
 "
   (iter (for ast in (remove-if-not #'ast-guard-stmt (asts software)))
         (multiple-value-bind (match-start match-end reg-start reg-end)
-            (scan "abst_cond\\(\\)" (peel-bananas (source-text ast)))
+            (scan "abst_cond\\(\\)" (source-text ast))
           (declare (ignorable reg-start reg-end))
           (when match-start
             (collect ast into asts)
@@ -842,9 +839,10 @@ expressions can be passed as EXTRA-INSTRUMENTATION-EXPRS to
          (loop for b in rest
             collecting
               (cons (format nil (aget :compare type)
-                         (peel-bananas (source-text a))
-                         (peel-bananas (source-text b)))
-                    (make-clang-type :name "int" :array "" :hash 0))))))
+                            (source-text a)
+                            (source-text b))
+                    (make-instance 'ct+
+                      :type (make-instance 'clang-type :qual "int")))))))
 
 (defun types-equal (type1 type2)
   "Return T if TYPE1 represents the same type as TYPE2.

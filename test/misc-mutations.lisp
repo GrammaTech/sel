@@ -18,8 +18,7 @@
    :software-evolution-library/utility
    :software-evolution-library/software/ast
    :software-evolution-library/software/parseable
-   :software-evolution-library/software/clang
-   :software-evolution-library/software/new-clang)
+   :software-evolution-library/software/clang)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
@@ -28,8 +27,7 @@
   (:export :test-misc-mutations))
 (in-package :software-evolution-library/test/misc-mutations)
 (in-readtable :curry-compose-reader-macros)
-(defsuite test-misc-mutations "Misc. mutation tests."
-  (clang-mutate-available-p))
+(defsuite test-misc-mutations "Misc. mutation tests." (clang-available-p))
 
 (defvar *empty-while* nil "Holds the empty-while software object.")
 
@@ -66,7 +64,7 @@
 (defixture empty-while-clang
   (:setup
    (setf *empty-while*
-         (from-file (make-clang)
+         (from-file (make-instance 'clang)
                     (coalesce-while-loop-dir "empty-while.c"))))
   (:teardown
    (setf *empty-while* nil)))
@@ -74,7 +72,7 @@
 (defixture while-with-no-precedent-clang
   (:setup
    (setf *soft*
-         (from-file (make-clang)
+         (from-file (make-instance 'clang)
                     (coalesce-while-loop-dir "no-precedent.c"))))
   (:teardown
    (setf *soft* nil)))
@@ -113,19 +111,19 @@
 
 (deftest (explode-for-loop-mutation-works :long-running) ()
   "Test conversion of for loop variants computing factorials to while loops"
-  (let ((simple-loop       (from-file (make-clang)
+  (let ((simple-loop       (from-file (make-instance 'clang)
                                       (explode-for-loop-dir
                                        "simple-loop.c")))
-        (no-initialization (from-file (make-clang)
+        (no-initialization (from-file (make-instance 'clang)
                                       (explode-for-loop-dir
                                        "loop-no-initialization.c")))
-        (no-conditional    (from-file (make-clang)
+        (no-conditional    (from-file (make-instance 'clang)
                                       (explode-for-loop-dir
                                        "loop-no-conditional.c")))
-        (no-increment      (from-file (make-clang)
+        (no-increment      (from-file (make-instance 'clang)
                                       (explode-for-loop-dir
                                        "loop-no-increment.c")))
-        (no-body           (from-file (make-clang)
+        (no-body           (from-file (make-instance 'clang)
                                       (explode-for-loop-dir
                                        "loop-no-body.c"))))
     (apply-mutation simple-loop
@@ -248,7 +246,7 @@
                       (genome-string variant)))))))
 
 (deftest expand-arithmatic-op-throws-error-if-no-arithmatic-ops ()
-  (let ((obj (from-file (make-clang
+  (let ((obj (from-file (make-instance 'clang
                          :compiler "clang"
                          :flags '("-g" "-m32" "-O0"))
                         (expand-arithmatic-op-dir "no-compound-assign.c"))))
@@ -256,7 +254,7 @@
              (build-op (make-instance 'expand-arithmatic-op :object obj) obj))))
 
 (deftest expand-arithmatic-op-works-simple-compound-assignment ()
-  (let ((obj (from-file (make-clang
+  (let ((obj (from-file (make-instance 'clang
                          :compiler "clang"
                          :flags '("-g" "-m32" "-O0"))
                         (expand-arithmatic-op-dir
@@ -265,7 +263,7 @@
     (is (stmt-with-text obj "argc = argc * 2" :no-error t))))
 
 (deftest expand-arithmatic-op-works-complex-compound-assignment ()
-  (let ((obj (from-file (make-clang
+  (let ((obj (from-file (make-instance 'clang
                          :compiler "clang"
                          :flags '("-g" "-m32" "-O0"))
                         (expand-arithmatic-op-dir
@@ -274,7 +272,7 @@
     (is (stmt-with-text obj "argc = argc + ((argc*4) / rand())" :no-error t))))
 
 (deftest expand-arithmatic-op-works-increment ()
-  (let ((obj (from-file (make-clang
+  (let ((obj (from-file (make-instance 'clang
                          :compiler "clang"
                          :flags '("-g" "-m32" "-O0"))
                         (expand-arithmatic-op-dir "increment.c"))))
@@ -282,7 +280,7 @@
     (is (stmt-with-text obj "i = i + 1" :no-error t))))
 
 (deftest expand-arithmatic-op-works-decrement ()
-  (let ((obj (from-file (make-clang
+  (let ((obj (from-file (make-instance 'clang
                          :compiler "clang"
                          :flags '("-g" "-m32" "-O0"))
                         (expand-arithmatic-op-dir "decrement.c"))))
@@ -290,7 +288,7 @@
     (is (stmt-with-text obj "argc = argc - 1" :no-error t))))
 
 (deftest expand-arithmatic-op-works-field-increment ()
-  (let ((obj (from-file (make-clang
+  (let ((obj (from-file (make-instance 'clang
                          :compiler "clang"
                          :flags '("-g" "-m32" "-O0"))
                         (expand-arithmatic-op-dir "field-increment.c"))))
@@ -298,7 +296,7 @@
     (is (stmt-with-text obj "t.x = t.x + 1" :no-error t))))
 
 (deftest expand-arithmatic-op-works-field-decrement ()
-  (let ((obj (from-file (make-clang
+  (let ((obj (from-file (make-instance 'clang
                          :compiler "clang"
                          :flags '("-g" "-m32" "-O0"))
                         (expand-arithmatic-op-dir "field-decrement.c"))))
@@ -306,7 +304,7 @@
     (is (stmt-with-text obj "t.x = t.x - 1" :no-error t))))
 
 (deftest expand-arithmatic-op-works-class-member-increment ()
-  (let ((obj (nest (from-file (make-clang
+  (let ((obj (nest (from-file (make-instance 'clang
                                :compiler "clang"
                                :flags '("-g" "-m32" "-O0")))
                    (expand-arithmatic-op-dir "class-member-increment.cpp"))))
@@ -314,7 +312,7 @@
     (is (stmt-with-text obj "x = x + 1" :no-error t))))
 
 (deftest expand-arithmatic-op-works-class-member-decrement ()
-  (let ((obj (nest (from-file (make-clang
+  (let ((obj (nest (from-file (make-instance 'clang
                                :compiler "clang"
                                :flags '("-g" "-m32" "-O0")))
                    (expand-arithmatic-op-dir "class-member-decrement.cpp"))))

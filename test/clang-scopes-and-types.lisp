@@ -28,7 +28,7 @@
   (:export :test-clang-scopes-and-types))
 (in-package :software-evolution-library/test/clang-scopes-and-types)
 (in-readtable :curry-compose-reader-macros)
-(defsuite test-clang-scopes-and-types "Clang representation." (clang-mutate-available-p))
+(defsuite test-clang-scopes-and-types "Clang representation." (clang-available-p))
 
 (defun compare-scopes (result expected)
   (is (equal (length result) (length expected)))
@@ -54,7 +54,7 @@
 (defixture unbound-fun-clang
   (:setup
    (setf *soft*
-         (from-file (make-clang)
+         (from-file (make-instance 'clang)
                     (unbound-fun-dir "unbound-fun.c"))))
   (:teardown
    (setf *soft* nil)))
@@ -62,7 +62,7 @@
 (defixture scopes-type-field-clang
   (:setup
    (setf *scopes*
-         (from-file (make-clang
+         (from-file (make-instance 'clang
                      :compiler "clang" :flags '("-g -m32 -O0"))
                     (scopes-dir "scopes-type-field.c"))))
   (:teardown
@@ -71,7 +71,7 @@
 (defixture scopes2-clang
   (:setup
    (setf *scopes*
-         (from-file (make-clang-control-picks
+         (from-file (make-instance 'clang-control-picks
                      :compiler "clang" :flags '("-g -m32 -O0"))
                     (scopes-dir "scopes2.c"))))
   (:teardown
@@ -80,7 +80,7 @@
 (defixture scopes-cxx-clang
   (:setup
    (setf *scopes*
-         (from-file (make-clang-control-picks :compiler "clang")
+         (from-file (make-instance 'clang-control-picks :compiler "clang")
                     (scopes-dir "scopes.cxx"))))
   (:teardown
    (setf *scopes* nil)))
@@ -175,9 +175,7 @@
         (lambda (r e)
           (and (consp r) (consp e)
                (equal (cdr r) (cdr e))
-               (name= (car r) (if *new-clang?*
-                                  (peel-bananas (car e))
-                                  (car e)))))
+               (name= (car r) (car e))))
         result expected)))
 
 (deftest unbound-funs-are-correct ()
@@ -187,23 +185,23 @@
     (is (unbound-funs-equal
          (get-unbound-funs *scopes*
                            (stmt-with-text *scopes* "foo(0);"))
-         '(("(|foo|)" t nil 1))))
+         '(("foo" t nil 1))))
     (is (unbound-funs-equal
          (get-unbound-funs *scopes*
                            (stmt-with-text *scopes* "bar();"))
-         '(("(|bar|)" t nil 0))))
+         '(("bar" t nil 0))))
     (is (unbound-funs-equal
          (get-unbound-funs *scopes*
                            (stmt-starting-with-text *scopes* "void bar"))
-         '(("(|foo|)" t nil 1)
-           ("(|bar|)" t nil 0))))))
+         '(("foo" t nil 1)
+           ("bar" t nil 0))))))
 
 (deftest unbound-fun-not-defined ()
   (with-fixture unbound-fun-clang
     (is (unbound-funs-equal
          (get-unbound-funs *soft*
                            (stmt-with-text *soft* "g();"))
-         '(("(|g|)" nil nil 0))))))
+         '(("g" nil nil 0))))))
 
 (deftest scopes-type-field-is-correct ()
   (with-fixture scopes-type-field-clang
@@ -268,7 +266,7 @@
     (is (unbound-funs-equal
          (get-unbound-funs *scopes*
                            (stmt-starting-with-text *scopes* "void bar"))
-         '(("(|bar|)" t nil 0))))))
+         '(("bar" t nil 0))))))
 
 (deftest insert-statement-updates-unbound-funs ()
   (with-fixture scopes2-clang
@@ -279,7 +277,7 @@
     (is (unbound-funs-equal
          (get-unbound-funs *scopes*
                            (stmt-starting-with-text *scopes* "void foo"))
-         '(("(|bar|)" t nil 0))))))
+         '(("bar" t nil 0))))))
 
 (deftest cut-statement-updates-unbound-vals ()
   (with-fixture scopes2-clang

@@ -13,15 +13,14 @@
    :iterate
    :split-sequence
    :cl-ppcre
-   :metabang-bind                       ; FIXME: Remove.
    :arrow-macros                        ; FIXME: Remove.
+   :metabang-bind                       ; FIXME: Remove.
    #+gt :testbot
    :software-evolution-library
    :software-evolution-library/utility
    :software-evolution-library/software/ast
    :software-evolution-library/software/parseable
    :software-evolution-library/software/clang
-   :software-evolution-library/software/new-clang
    :software-evolution-library/software/styleable)
   (:import-from :uiop :nest)
   (:shadowing-import-from
@@ -31,11 +30,9 @@
   (:export :test-style-features))
 (in-package :software-evolution-library/test/style-features)
 (in-readtable :curry-compose-reader-macros)
-(defsuite test-style-features "Style features tests."
-  (clang-mutate-available-p))
+(defsuite test-style-features "Style features tests." (clang-available-p))
 
 (define-software clang-styleable-test-class (clang styleable) ())
-(define-software new-clang-styleable-test-class (new-clang styleable) ())
 
 (deftest uni-grams-ht-test ()
   (let* ((sentence (list "the" "quick" "brown" "fox"
@@ -237,8 +234,6 @@
 
 (deftest extract-style-features-no-asts ()
   (is (extract-baseline-features
-       (from-string (make-instance (if *new-clang?*
-                                       'new-clang-styleable-test-class
-                                       'clang-styleable-test-class))
+       (from-string (make-instance 'clang-styleable-test-class)
                     ""))
       "extract-baseline-features should not throw an error on empty software"))

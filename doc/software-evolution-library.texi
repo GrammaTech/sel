@@ -1053,8 +1053,8 @@ Depending on the type of software object used the following may also
 be required.
 @itemize
 @item
-clang-mutate for @code{clang} object support  (available from
-@url{https://github.com/GrammaTech/clang-mutate}).
+clang v9.0+ for @code{clang} object support  (available from
+@url{https://github.com/llvm/llvm-project}).
 @item
 cil-mutate for @code{cil} object support (available from
 @url{https://github.com/eschulte/cil-mutate}).
@@ -1065,7 +1065,7 @@ llvm-mutate for @code{llvm} object support (available from
 
 
 
-Install llvm-mutate, cil-mutate and clang-mutate as per the
+Install llvm-mutate, cil-mutate and clang v9.0+ as per the
 instructions in their respective repositories. (Note, it is only
 necessary to install the tools for the specific software backends you
 intend to use.) Install SEL by cloning the repository into your

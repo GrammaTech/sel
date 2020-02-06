@@ -19,7 +19,6 @@
    :software-evolution-library/software/ast
    :software-evolution-library/software/parseable
    :software-evolution-library/software/clang
-   :software-evolution-library/software/new-clang
    :software-evolution-library/components/condition-synthesis)
   (:import-from :uiop :nest)
   (:shadowing-import-from
@@ -30,7 +29,7 @@
 (in-package :software-evolution-library/test/clang-mutations)
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-clang-mutations "Detailed clang mutation tests."
-  (clang-mutate-available-p))
+  (clang-available-p))
 
 (defvar *nested* nil "Holds the nested software object.")
 
@@ -46,7 +45,8 @@
 (defixture nested-clang
   (:setup
    (setf *nested*
-         (from-file (make-clang :compiler "gcc" :flags '("-g -m32 -O0"))
+         (from-file (make-instance 'clang :compiler "gcc"
+                                   :flags '("-g -m32 -O0"))
                     (nested-dir "nested.c")))
    (inject-missing-swap-macro *nested*))
   (:teardown
@@ -55,7 +55,7 @@
 (defixture gcd-clang-control-picks
   (:setup
    (setf *gcd*
-         (from-file (make-clang-control-picks :compiler "clang-3.7")
+         (from-file (make-instance 'clang-control-picks :compiler "clang-3.7")
                     (gcd-dir "gcd.c"))))
   (:teardown
    (setf *gcd* nil)))
@@ -350,7 +350,7 @@
                  (subsequent-lines-p genome-string
                                      "puts('MULTILINE');"
                                      "puts('WHILE-1');")
-                 (subsequent-lines-p genome-string ; Ensure peels bananas.
+                 (subsequent-lines-p genome-string
                                      "puts('WHILE-1');"
                                      "j++;"))
             "Promotes multi-line body from within while loop.")))

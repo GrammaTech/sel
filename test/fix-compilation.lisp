@@ -19,7 +19,6 @@
    :software-evolution-library/software/ast
    :software-evolution-library/software/parseable
    :software-evolution-library/software/clang
-   :software-evolution-library/software/new-clang
    :software-evolution-library/software/clang-w-fodder
    :software-evolution-library/components/fix-compilation
    :software-evolution-library/components/json-fodder-database)
@@ -31,8 +30,7 @@
   (:export :test-fix-compilation))
 (in-package :software-evolution-library/test/fix-compilation)
 (in-readtable :curry-compose-reader-macros)
-(defsuite test-fix-compilation "Fix compilation tests."
-  (clang-mutate-available-p))
+(defsuite test-fix-compilation "Fix compilation tests." (clang-available-p))
 
 (defvar *broken-clang* nil "")
 (defvar *broken-gcc* nil "")
@@ -42,27 +40,18 @@
                 (make-instance 'clang-w-fodder
                   :genome "int main(int argc, char **argv) {
         printf(\"Hello, World!\\n\");
-        return missing_variable;}"))
-          (setf *database*
-                (with-open-file (in (make-pathname :name "euler-example.json"
-                                                   :directory +etc-dir+))
-                  (make-instance 'json-database :json-stream in))))
-  (:teardown (setf *database* nil)))
+        return missing_variable;}")))
+  (:teardown (setf *broken-clang* nil)))
 
 (defixture broken-compilation-gcc
   (:setup (setf *broken-gcc*
-                (make-instance 'clang-w-fodder
+                (make-instance 'clang
                   :compiler "gcc"
                   :flags '("-m32" "-O0" "-g")
                   :genome "int main(int argc, char **argv) {
         printf(\"Hello, World!\\n\");
-        return missing_variable;}"))
-          (setf *database*
-                (with-open-file (in (make-pathname :name "euler-example"
-                                                   :type "json"
-                                                   :directory +etc-dir+))
-                  (make-instance 'json-database :json-stream in))))
-  (:teardown (setf *database* nil)))
+        return missing_variable;}")))
+  (:teardown (setf *broken-gcc* nil)))
 
 (deftest (fix-compilation-inserts-missing-include :long-running) ()
   (with-fixture broken-compilation
@@ -110,11 +99,11 @@
                         return *y;
                       }"
                       genome)
-      (let ((broken-clang (from-file (make-clang
+      (let ((broken-clang (from-file (make-instance 'clang
                                       :compiler "clang"
                                       :flags '("-m32" "-O0" "-g"))
                                      genome))
-            (broken-gcc   (from-file (make-clang
+            (broken-gcc   (from-file (make-instance 'clang
                                       :compiler "gcc"
                                       :flags '("-m32" "-O0" "-g"))
                                      genome)))

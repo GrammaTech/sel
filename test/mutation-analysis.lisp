@@ -29,13 +29,13 @@
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-mutation-analysis
     "Mutation analysis and statistics collection tests."
-  (clang-mutate-available-p))
+  (clang-available-p))
 
 (defixture hello-world-clang-w-fitness
   (:setup
    (setf *hello-world*
-         (from-file (make-clang :compiler "clang"
-                                :flags '("-g -m32 -O0"))
+         (from-file (make-instance 'clang :compiler "clang"
+                                   :flags '("-g -m32 -O0"))
                     (hello-world-dir "hello_world.c"))
          *test* [#'length #'genome]
          *fitness-predicate* #'>

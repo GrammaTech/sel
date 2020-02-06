@@ -20,7 +20,6 @@
    :software-evolution-library/software/ast
    :software-evolution-library/software/parseable
    :software-evolution-library/software/clang
-   :software-evolution-library/software/new-clang
    :software-evolution-library/software/super-mutant
    :software-evolution-library/software/super-mutant-clang)
   (:import-from :uiop :nest)
@@ -31,7 +30,7 @@
   (:export :test-clang-super-mutants))
 (in-package :software-evolution-library/test/clang-super-mutants)
 (in-readtable :curry-compose-reader-macros)
-(defsuite test-clang-super-mutants "Clang representation." (clang-mutate-available-p))
+(defsuite test-clang-super-mutants "Clang representation." (clang-available-p))
 
 (define-software mutation-failure-tester (clang) ())
 (defvar *test-mutation-count* 0)
@@ -217,67 +216,12 @@
             "Super-function contains correct number of case statements.")))))
 
 (deftest super-mutant-genome-handles-function-prototypes ()
-  (let ((mutant (from-string (make-clang) "int foo();")))
+  (let ((mutant (from-string (make-instance 'clang) "int foo();")))
     (is (genome (make-instance 'super-mutant
                   :mutants (list (copy mutant) (copy mutant)))))))
 
-(deftest (super-mutant-genome-detects-incompatible-functions :long-running) ()
-  ;; These all fail because ast-args is set by clang-mutate and does not
-  ;; update upon mutation
-  #+(or )
-  (let* ((base (from-string (make-clang)
-                            "void foo(int a, int b) {}"))
-         (remove-arg (copy base))
-         (change-arg-type (copy base))
-         (change-arg-name (copy base)))
-    ;; Different argument count
-    (apply-mutation remove-arg
-                    `(clang-cut (:stmt1 . ,(stmt-with-text remove-arg
-                                                           "int b"))))
-    (signals mutate
-             (genome (make-instance 'super-mutant
-                       :mutants (list base remove-arg))))
-    ;; Different argument type
-    (apply-mutation change-arg-type
-                    `(clang-replace (:stmt1 . ,(stmt-with-text change-arg-type
-                                                               "int b"))
-                                    (:value1 . ,(make-statement :ParmVar
-                                                                :finallistelt
-                                                                '("char b")))))
-    (signals mutate
-             (genome (make-instance 'super-mutant
-                       :mutants (list base change-arg-type))))
-    ;; Different argument name
-    (apply-mutation change-arg-name
-                    `(clang-replace (:stmt1 . ,(stmt-with-text change-arg-name
-                                                               "int b"))
-                                    (:value1 . ,(make-statement :ParmVar
-                                                                :finallistelt
-                                                                '("int c")))))
-    (signals mutate
-             (genome (make-instance 'super-mutant
-                       :mutants (list base change-arg-name)))))
-
-  ;; Different return types
-  (signals mutate
-           (genome (make-instance 'super-mutant
-                     :mutants
-                     (list (from-string (make-clang)
-                                        "void foo() {}")
-                           (from-string (make-clang)
-                                        "int foo() { return 1; }")))))
-
-  ;; Prototype vs. complete function
-  (signals mutate
-           (genome (make-instance 'super-mutant
-                     :mutants
-                     (list (from-string (make-clang)
-                                        "void foo() {}")
-                           (from-string (make-clang)
-                                        "void foo();"))))))
-
 (deftest super-mutant-genome-detects-mismatched-globals ()
-  (let* ((base (from-string (make-clang)
+  (let* ((base (from-string (make-instance 'clang)
                             "int a; int b; int c;"))
          (variant (copy base)))
     (apply-mutation variant
@@ -291,7 +235,7 @@
                        :mutants (list base variant))))))
 
 (deftest super-mutant-genome-detects-delete-function-body ()
-  (let* ((base (from-string (make-clang)
+  (let* ((base (from-string (make-instance 'clang)
                             "void foo() {}"))
          (variant (copy base)))
     ;; This is a useless mutation but it happens sometimes. Ensure
@@ -398,13 +342,13 @@
 int main() { puts(\"~d\"); return 0; }
 ")
          (mutants (mapcar (lambda (i)
-                            (from-string (make-clang)
+                            (from-string (make-instance 'clang)
                                          (format nil template i)))
                           '(1 2 3 4)))
          (super (make-instance 'super-mutant :mutants mutants)))
     (evaluate (lambda (obj)
                 ;; Proxies are the same type as mutants
-                (is (typep obj 'clang-base))
+                (is (typep obj 'clang))
                 (cons (some->> (phenome obj)
                                (shell)
                                (parse-integer))

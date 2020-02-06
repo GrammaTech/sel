@@ -538,13 +538,13 @@ instrumentation of function exit.
                        :full-stmt t
                        :aux-data '((:instrumentation t))))))
 
-(defmethod instrumented-p ((clang clang-base))
+(defmethod instrumented-p ((clang clang))
   "Return true if CLANG is instrumented
 * CLANG a clang software object
 "
   (search +instrument-log-variable-name+ (genome clang)))
 
-(defmethod instrument ((obj clang-base) &rest args)
+(defmethod instrument ((obj clang) &rest args)
   "Instrumentation for clang software objects.
 Creates a CLANG-INSTRUMENTER for OBJ and calls its instrument method.
 
@@ -730,7 +730,7 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
 
     obj))
 
-(defmethod uninstrument ((clang clang-base) &key (num-threads 0))
+(defmethod uninstrument ((clang clang) &key (num-threads 0))
   "Remove instrumentation from CLANG"
   (declare (ignorable num-threads))
   (labels ((uninstrument-genome-prologue (clang)
@@ -894,8 +894,7 @@ Returns a list of strings containing C source code."))
                         "int32_t" "long" "int64_t")
                       :test #'name=)
               (list :__GT_TRACEDB_SIGNED
-                    (format nil "sizeof(~a)"
-                                (type-decl-string type :qualified nil))))
+                    (format nil "sizeof(~a)" (type-qual (ct+-type type)))))
              ;; Unsigned integers
              ((member unqualified-c-type
                       '("unsigned char" "uint8_t" "unsigned short" "uint16_t"
@@ -903,8 +902,7 @@ Returns a list of strings containing C source code."))
                         "size_t")
                       :test #'name=)
               (list :__GT_TRACEDB_UNSIGNED
-                    (format nil "sizeof(~a)"
-                                (type-decl-string type :qualified nil))))
+                    (format nil "sizeof(~a)" (type-qual (ct+-type type)))))
              ((name= unqualified-c-type "float")
               '(:__GT_TRACEDB_FLOAT "sizeof(float)"))
              ((name= unqualified-c-type "double")
@@ -988,7 +986,7 @@ Returns a list of strings containing C source code."))
                   (remove-if #'null)))))))
 
 (defmethod var-instrument
-    (key (instrumenter clang-instrumenter) (ast clang-ast-base) &key print-strings)
+    (key (instrumenter clang-instrumenter) (ast clang-ast) &key print-strings)
   "Generate ASTs for variable instrumentation.
 * KEY a function used to pull the variable list out of AST
 * INSTRUMENTER current instrumentation state
@@ -1012,7 +1010,7 @@ Returns a list of strings containing C source code."))
 or NIL if there is no entry point.")
   (:method ((soft software)) nil))
 
-(defmethod get-entry ((obj clang-base))
+(defmethod get-entry ((obj clang))
   "Return the AST of the entry point (main function) in SOFTWARE.
 
 OBJ a clang software object
@@ -1034,7 +1032,7 @@ OBJ a clang software object
 * ENV-NAME environment variable from which to read the trace output file
 * CONTAINS-ENTRY does this object contain the entry point?
 "
-  (assert (typep obj 'clang-base))
+  (assert (typep obj 'clang))
 
   (labels ((file-open-str ()
              ;; Open the file at FILE-NAME or in the environment variable

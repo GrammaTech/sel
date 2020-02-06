@@ -200,9 +200,6 @@
    :random-sample-with-replacement
    :random-sample-without-replacement
    :apply-replacements
-   :peel-bananas
-   :peel-bananas-or-same
-   :unpeel-bananas
    :replace-all
    :aget
    :areplace
@@ -2018,23 +2015,6 @@ occurences of the part is replaced with replacement."))
                  (replace-all str (caar list) (cdar list))
                  str)))
         (apply-replacements (cdr list) new-str))))
-
-;;  Helper function for removing tags identifying DeclRefs
-;;  from a code snippet.
-(defgeneric peel-bananas (text)
-  (:documentation  "Helper function for removing tags identifying DeclRefs
-from a code snippet.")
-  (:method ((text string))
-    (apply-replacements '(("(|" . "") ("|)" . "")) text))
-  (:method (text) text))
-
-(defun peel-bananas-or-same (text)
-  (let ((new (peel-bananas text)))
-    (if (equal text new) text new)))
-
-(defgeneric unpeel-bananas (text)
-  (:method ((text string)) (concatenate 'string "(|" text "|)"))
-  (:method (text) text))
 
 (defun aget (item list &key (test #'eql))
   "Get KEY from association list LIST."

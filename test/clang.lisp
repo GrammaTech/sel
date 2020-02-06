@@ -20,7 +20,6 @@
    :software-evolution-library/software/ast
    :software-evolution-library/software/parseable
    :software-evolution-library/software/clang
-   :software-evolution-library/software/new-clang
    :software-evolution-library/software/clang-expression
    :software-evolution-library/components/fodder-database)
   (:import-from :uiop :nest)
@@ -31,7 +30,7 @@
   (:export :test-clang))
 (in-package :software-evolution-library/test/clang)
 (in-readtable :curry-compose-reader-macros)
-(defsuite test-clang "Clang representation." (clang-mutate-available-p))
+(defsuite test-clang "Clang representation." (clang-available-p))
 
 (defvar *huf* nil "Holds the huf software object.")
 
@@ -56,7 +55,7 @@
 (defixture switch-macros-clang
   (:setup
    (setf *soft*
-         (from-file (make-clang)
+         (from-file (make-instance 'clang)
                     (switch-macros-dir "switch-macros.c"))))
   (:teardown
    (setf *soft* nil)))
@@ -64,7 +63,7 @@
 (defixture simple-macros-clang
   (:setup
    (setf *soft*
-         (from-file (make-clang)
+         (from-file (make-instance 'clang)
                     (simple-macros-dir "simple-macros.c"))))
   (:teardown
    (setf *soft* nil)))
@@ -93,12 +92,8 @@
     (is (null  (includes *hello-world*)))
     (is (null  (macros *hello-world*)))
     (is (null  (fitness *hello-world*)))
-    ;; This is not zero for new clang, as it contains
-    ;; builtins
-    (if *new-clang?*
-        (is (zerop (count-if [#'type-i-file #'nct+-type]
-                             (hash-table-values (types *hello-world*)))))
-        (is (zerop (hash-table-count (types *hello-world*)))))))
+    (is (zerop (count-if [#'type-i-file #'ct+-type]
+                         (hash-table-values (types *hello-world*)))))))
 
 (deftest normalize-flags-test ()
   (is (equal (normalize-flags "/foo/" (list "-Wall"))
@@ -364,7 +359,7 @@
       ;; the types table, not the includes attribute.
       ;; TODO: determine if it is ok to have "first.c"
       ;; here instead.
-      (is (= (if *new-clang?* 3 2) (length includes)))
+      (is (= 3 (length includes)))
       (is (member "\"second.c\"" includes :test #'equal))
       (is (member "\"third.c\"" includes :test #'equal)))))
 
@@ -417,12 +412,14 @@
 
 (deftest add-type-with-include-test ()
   (with-fixture fib-clang
-    (add-type *fib* (make-clang-type :array ""
-                                     :hash 3346600377836954008
-                                     :i-file "<stdio.h>"
-                                     :pointer t
-                                     :reqs nil
-                                     :name "FILE"))
+    (add-type *fib*
+              (nest (make-instance 'ct+ :type)
+                    (make-instance 'clang-type
+                      :qual "FILE *"
+                      :i-file "<stdio.h>"
+                      :modifiers +pointer+
+                      :reqs nil
+                      :name "FILE")))
     (is (equal 1 (length (includes *fib*))))))
 
 (deftest add-bad-include-doesnt-change-number-of-asts ()
@@ -435,8 +432,11 @@
   (with-fixture hello-world-clang
     (let ((orig-num-asts (size *hello-world*)))
       (add-type *hello-world*
-                (make-clang-type :decl "struct printf { chocolate cake; }"
-                                 :array "" :hash 0 :name "struct printf"))
+                (nest (make-instance 'ct+ :type)
+                      (make-instance 'clang-type
+                        :decl "struct printf { chocolate cake; }"
+                        :array ""
+                        :name "struct printf")))
       (is (equal orig-num-asts (size *hello-world*))))))
 
 (deftest add-new-type-changes-genome-and-types ()
@@ -445,8 +445,9 @@
           (orig-num-types (hash-table-count (types *hello-world*)))
           (struct-str "struct printf { chocolate cake; }"))
       (add-type *hello-world*
-                (make-clang-type :decl struct-str
-                                 :array "" :hash 0 :name "struct printf"))
+                (nest (make-instance 'ct+ :type)
+                      (make-instance 'clang-type
+                        :decl struct-str :name "struct printf")))
       ;; new type gets added to genome
       (is (= (+ orig-genome-length (length struct-str)
                 (length (genome *hello-world*)))))
@@ -546,9 +547,7 @@ statement pick"
 a no-mutation-targets error when a second statement with the same AST class
 is not to be found"
   (with-fixture hello-world-clang-control-picks
-    (let ((*bad-asts* (list (make-clang-ast
-                             :node (from-alist 'clang-ast-node
-                                               '((:class . :Nothing)))))))
+    (let ((*bad-asts* (list (make-clang-ast :class :Nothing))))
       (signals no-mutation-targets
                (pick-general *hello-world* #'stmt-asts
                              :filter #'same-class-filter
@@ -580,7 +579,7 @@ is not to be found"
     (signals no-mutation-targets (pick-rename-variable *soft*))))
 
 (deftest (cpp-strings-works :long-running) ()
-  ;; On this example, clang-mutate generates ASTs that are out of
+  ;; On this example, clang generates ASTs that are out of
   ;; order. Check that asts->tree handles this case correctly.
   (with-fixture cpp-strings
     (is *soft*)
@@ -624,48 +623,48 @@ is not to be found"
 
 (deftest replace-in-ast-subtree ()
   (let ((subtree (make-clang-ast
-                  :node (make-clang-ast-node :class :sub)
+                  :class :sub
                   :children '("1" "2"))))
     (is (equalp (replace-in-ast
                  (make-clang-ast
-                  :node (make-clang-ast-node :class :root)
+                  :class :root
                   :children `(,(make-clang-ast
-                                :node (make-clang-ast-node :class :left)
+                                :class :left
                                 :children (list "3" "4"))
                                ,subtree))
                  `((,subtree . ,(make-clang-ast
-                                 :node (make-clang-ast-node :class :right)
+                                 :class :right
                                  :children (list "5" "6"))))
                  :test #'equalp)
                 (make-clang-ast
-                 :node (make-clang-ast-node :class :root)
+                 :class :root
                  :children `(,(make-clang-ast
-                               :node (make-clang-ast-node :class :left)
+                               :class :left
                                :children (list "3" "4"))
                               ,(make-clang-ast
-                                :node (make-clang-ast-node :class :right)
+                                :class :right
                                 :children (list "5" "6"))))))))
 
 (deftest replace-in-ast-string ()
   (is (equalp (replace-in-ast (make-clang-ast
-                               :node (make-clang-ast-node :class :root)
+                               :class :root
                                :children
                                (list (make-clang-ast
-                                      :node (make-clang-ast-node :class :left)
+                                      :class :left
                                       :children '("left"))
                                      (make-clang-ast
-                                      :node (make-clang-ast-node :class :right)
+                                      :class :right
                                       :children '("right"))))
                               '(("right" . "replacement"))
                               :test #'equal)
               (make-clang-ast
-               :node (make-clang-ast-node :class :root)
+               :class :root
                :children
                (list (make-clang-ast
-                      :node (make-clang-ast-node :class :left)
+                      :class :left
                       :children '("left"))
                      (make-clang-ast
-                      :node (make-clang-ast-node :class :right)
+                      :class :right
                       :children '("replacement")))))))
 
 (deftest find-or-add-type-finds-existing-type ()
@@ -699,7 +698,7 @@ is not to be found"
              (find-or-add-type *gcd* "char" :pointer t)))))
 
 (deftest var-decl-has-correct-types ()
-  (let* ((obj (make-clang :genome "int x = sizeof(int);"))
+  (let* ((obj (make-instance 'clang :genome "int x = sizeof(int);"))
          (*soft* obj))
     ;; A var decl should always directly reference the type of its
     ;; declaration. This is tricky due to the de-aggregating of types
@@ -716,7 +715,7 @@ is not to be found"
 (deftest macro-expansion-has-correct-types ()
   ;; Types inside a macro expansion should be visible. This is trick
   ;; due to the de-aggregating of types done by asts->tree.
-  (let* ((obj (make-clang :genome "#define CHARSIZE (sizeof (char))
+  (let* ((obj (make-instance 'clang :genome "#define CHARSIZE (sizeof (char))
 int x = CHARSIZE;")))
     (let ((types
            (sort (mapcar [#'type-name {find-type obj}]

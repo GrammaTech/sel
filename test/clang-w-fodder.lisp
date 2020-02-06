@@ -19,7 +19,6 @@
    :software-evolution-library/software/ast
    :software-evolution-library/software/parseable
    :software-evolution-library/software/clang
-   :software-evolution-library/software/new-clang
    :software-evolution-library/software/clang-w-fodder
    :software-evolution-library/components/fodder-database
    :software-evolution-library/components/json-fodder-database)
@@ -31,7 +30,7 @@
   (:export :test-clang-w-fodder))
 (in-package :software-evolution-library/test/clang-w-fodder)
 (in-readtable :curry-compose-reader-macros)
-(defsuite test-clang-w-fodder "Clang representation." (clang-mutate-available-p))
+(defsuite test-clang-w-fodder "Clang representation." (clang-available-p))
 
 (defixture no-insert-fodder-decl-mutation-targets-clang
   (:setup
@@ -87,8 +86,9 @@
                                  ("y" ,(type-from-trace-string "char"))))))
       (is (eq 1 (length asts)))
       (is (eq :BinaryOperator (ast-class (car asts))))
-      (is (equalp '(((:name . "y")) ((:name . "x")))
-                  (get-unbound-vals *gcd* (car asts)))))))
+      (is (equal '("y" "x")
+                 (mapcar [#'ast-name {aget :name}]
+                         (get-unbound-vals *gcd* (car asts))))))))
 
 (deftest clang-parse-source-snippet-handles-includes ()
   (let ((asts (parse-source-snippet
@@ -99,7 +99,7 @@
     (is (eq 1 (length asts)))
     (is (eq :CallExpr (ast-class (car asts))))
     (is (equalp '("<stdio.h>")
-                (ast-includes (car asts))))))
+                (ast-includes nil (car asts))))))
 
 (deftest clang-parse-source-snippet-multiple-statements ()
   (let ((asts (parse-source-snippet
@@ -120,7 +120,7 @@
                :top-level t)))
     (is (eq 1 (length asts)))
     (is (eq :Function (ast-class (car asts))))
-    (is (eq :CompoundStmt (ast-class (function-body (make-clang)
+    (is (eq :CompoundStmt (ast-class (function-body (make-instance 'clang)
                                                     (car asts)))))))
 
 (deftest clang-parse-source-snippet-preamble ()
@@ -184,8 +184,15 @@
       (apply-mutation var mut)
       (is (string/= (genome var) (genome *gcd*))
           "Genome of *gcd* changed by INSERT-FODDER-DECL-REP.")
+      ;; FIXME: Variable rebinding may overwrite the variable
+      ;; declaration. This mutation was broken prior to the commit
+      ;; associated with this comment, and the below test appears to
+      ;; have succeeded (and continues to succeed) mainly by coincidence.
       (is
-       (> (length (split (aget :new-var (aget :rename-variable (targets mut)))
+       (> (length (split (nest (ast-name)
+                               (aget :new-var)
+                               (aget :rename-variable)
+                               (targets mut))
                          (genome var)))
           2)
        "New decl variable appears in more than just the declaring ast."))))

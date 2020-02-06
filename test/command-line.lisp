@@ -19,7 +19,6 @@
    :software-evolution-library/command-line
    :software-evolution-library/software/simple
    :software-evolution-library/software/clang
-   :software-evolution-library/software/new-clang
    :software-evolution-library/software/project
    :software-evolution-library/software/clang-project
    :software-evolution-library/software/json)
@@ -53,8 +52,7 @@
 ;;; FIXME: this does not work if (sel/test:test) is run while
 ;;; in some directory other than the sel root directory.
 (deftest guess-language-test ()
-  (is (eql (if *new-clang?* 'new-clang 'clang)
-           (guess-language #P"this/foo.cpp")))
+  (is (eql 'clang (guess-language #P"this/foo.cpp")))
   (is (eql 'json (guess-language #P"this/foo.json")))
   (is (eql 'json (guess-language #P"this/foo.json" #P"this/bar.json")))
   (is (eql 'clang-project

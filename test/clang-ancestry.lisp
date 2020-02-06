@@ -26,8 +26,7 @@
   (:export :test-clang-ancestry))
 (in-package :software-evolution-library/test/clang-ancestry)
 (in-readtable :curry-compose-reader-macros)
-(defsuite test-clang-ancestry "Ancestry tests."
-  (clang-mutate-available-p))
+(defsuite test-clang-ancestry "Ancestry tests." (clang-available-p))
 
 (defclass clang-w-ancestry (clang ancestral) ())
 

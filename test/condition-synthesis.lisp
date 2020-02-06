@@ -19,7 +19,6 @@
    :software-evolution-library/software/ast
    :software-evolution-library/software/parseable
    :software-evolution-library/software/clang
-   :software-evolution-library/software/new-clang
    :software-evolution-library/components/condition-synthesis
    :software-evolution-library/components/test-suite)
   (:import-from :uiop :nest)
@@ -31,7 +30,7 @@
 (in-package :software-evolution-library/test/condition-synthesis)
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-condition-synthesis "Condition synthesis tests."
-  (clang-mutate-available-p))
+  (clang-available-p))
 
 (defvar *test-suite* nil "Holds condition synthesis test suite object.")
 
@@ -53,7 +52,7 @@
 
 (defixture cs-tiny-clang
   (:setup (setf *soft*
-                (from-file (make-clang)
+                (from-file (make-instance 'clang)
                            (cs-tiny-dir "tiny-test.c")))
           (setf *test-suite*
                 (make-instance 'test-suite
@@ -80,7 +79,7 @@
 (defixture cs-tighten-clang
   (:setup (setf
            *soft*
-           (from-file (make-clang)
+           (from-file (make-instance 'clang)
                       (cs-tighten-dir "test-tighten.c"))
            *test-suite*
            (make-instance 'test-suite
@@ -107,7 +106,7 @@
 (defixture cs-add-guard-clang
   (:setup (setf
            *soft*
-           (from-file (make-clang)
+           (from-file (make-instance 'clang)
                       (cs-add-guard-dir "test-add-guard.c"))
            *test-suite*
            (nest
@@ -134,7 +133,7 @@
 (defixture cs-divide-clang
   (:setup (setf
            *soft*
-           (from-file (make-clang)
+           (from-file (make-instance 'clang)
                       (cs-divide-dir "divide.c"))
            *test-suite*
            (make-instance 'test-suite
@@ -322,7 +321,6 @@
           (is stmt)
           (is (eq :WhileStmt (ast-class stmt)))
           (is (equal "(x >= 2) && !(x == 2)"
-                     (nest (peel-bananas)
-                           (source-text)
+                     (nest (source-text)
                            (first)
                            (get-immediate-children repaired-prog stmt)))))))))

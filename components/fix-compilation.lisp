@@ -34,6 +34,7 @@
         :software-evolution-library/components/formatting
         :software-evolution-library/components/searchable
         :software-evolution-library/components/fodder-database)
+  (:import-from :uiop :nest)
   (:export :register-fixer
            :fix-compilation
            :*compilation-fixers*))
@@ -52,7 +53,7 @@ applied.")
   (unless (member regex (mapcar #'car *compilation-fixers*) :test #'string=)
     (push (cons regex function) *compilation-fixers*)))
 
-(defmethod fix-compilation ((obj clang-base) max-attempts &aux matches)
+(defmethod fix-compilation ((obj clang) max-attempts &aux matches)
   "Fix compilation errors in clang software object OBJ.
 Try to make any changes necessary for that object to compile
 successfully.  This will first employ `clang-tidy', which calls the
@@ -63,7 +64,7 @@ associated element of `*compilation-fixers*'.
 * OBJ Clang software object to fix.
 * MAX-ATTEMPTS Maximum number of fix attempts to try."
   (handler-bind
-      ;; While compilation is broken we expect all clang-mutate calls
+      ;; While compilation is broken we expect all clang calls
       ;; to return non-zero.  Simply restart keeping as many of the
       ;; source ASTs as possible.
       ((mutate
@@ -96,7 +97,7 @@ associated element of `*compilation-fixers*'.
   obj)
 
 ;; Fallback strategy: just delete the offending line entirely.
-(defmethod delete-line-with-error ((obj clang-base) match-data)
+(defmethod delete-line-with-error ((obj clang) match-data)
   "DOCFIXME
 
 * OBJ DOCFIXME
@@ -111,7 +112,7 @@ associated element of `*compilation-fixers*'.
 
 
 ;;; Resolve missing functions by adding #includes.
-(defmethod resolve-function ((obj clang-base) match-data)
+(defmethod resolve-function ((obj clang) match-data)
   "DOCFIXME
 
 * OBJ DOCFIXME
@@ -128,7 +129,7 @@ associated element of `*compilation-fixers*'.
 ;;; Add declaration and initialize uninitialized variables.
 (defmethod add-declaration-and-initialize (line-number-index
                                            variable-name-index
-                                           (obj clang-w-fodder)
+                                           (obj clang)
                                            match-data)
   "DOCFIXME
 * LINE-NUMBER-INDEX DOCFIXME
@@ -136,97 +137,33 @@ associated element of `*compilation-fixers*'.
 * OBJ DOCFIXME
 * MATCH-DATA DOCFIXME
 "
-  (flet ((random-type ()
-           (random-elt ; TODO: More types.
-            (mappend (lambda (type)
-                       (list type type (concatenate 'string type "* ")))
-                     +c-numeric-types+))))
-    ;; TODO: For now we'll just synthesize a random instantiation, in
-    ;;       the future we should pull variable names from DeclStmt's,
-    ;;       and grab a DeclStmt, possibly of a particular type.
-    (let ((line-number (parse-integer (aref match-data line-number-index)))
-          (variable-name (aref match-data variable-name-index))
-          (lines (lines obj)))
-      ;; Insert a declaration.
-      (setf (lines obj)
-            (append (take (1- line-number) lines)
-                    (list (format nil "~a ~a;" (random-type) variable-name))
-                    (drop (1- line-number) lines)))
-      ;; Find the ID of the declaration.
-      (let* ((decl-stmt (find-if (lambda (ast)
-                                   (and (eq (ast-class ast)
-                                            :DeclStmt)
-                                        (= (->> (ast-to-source-range obj ast)
-                                                (begin)
-                                                (line))
-                                           line-number)))
-                                 (asts obj)))
-             (fodder
-              (random-elt
-               (remove-if-not [{scan "\\(\\|\\w+\\|\\) = "} {aget :src-text}]
-                              (find-snippets *database*
-                                :ast-class "BinaryOperator"
-                                :limit 512))))
-             ;; Find the "assigned-to" free-variable.
-             (assigned-variable
-              (multiple-value-bind (matchp match-data)
-                  (scan-to-strings "(\\(\\|\\w+\\|\\)) = "
-                                   (aget :src-text fodder))
-                (assert matchp (fodder)
-                        "Assignment fodder should assign to a free variable.")
-                (aref match-data 0)))
-             (scope-vars (mapcar {aget :name}
-                                 (get-vars-in-scope obj decl-stmt))))
-        ;; Insert a BinaryOperator assignment after the DeclStmt binding
-        ;; its first free variable to the newly declared variable.
-        (when decl-stmt
-          (let* ((unbound (remove-if [{string= assigned-variable} #'car]
-                                     (aget :unbound-vals fodder)))
-                 (replacements (cons
-                                (cons assigned-variable variable-name)
-                                (mapcar
-                                 (lambda (val-scope-pair)
-                                   (cons (car val-scope-pair)
-                                         (or (random-elt-with-decay scope-vars
-                                                                    0.5)
-                                             "/* no bound vars */")))
-                                 unbound)))
-                 (text (apply-replacements replacements
-                                           (aget :src-text fodder)))
-                 ;; First full statement after decl.
-                 (stmt1 (find-if «and #'ast-full-stmt
-                                      {ast-later-p _ decl-stmt}»
-                                 (asts obj))))
-
-            (apply-clang-mutate-ops
-              obj
-              `((:insert-value (:stmt1 . ,(1+ (index-of-ast obj stmt1)))
-                               (:value1 . ,text)))))))))
+  ;; TODO: For now we'll just synthesize a random instantiation, in
+  ;;       the future we should pull variable names from DeclStmt's,
+  ;;       and grab a DeclStmt, possibly of a particular type.
+  (let ((line-number (parse-integer (aref match-data line-number-index)))
+        (lines (lines obj))
+        (random-type (random-elt ; TODO: More types.
+                      (mappend (lambda (type)
+                                 (list type type
+                                       (concatenate 'string type "* ")))
+                               +c-numeric-types+)))
+        (variable-name (aref match-data variable-name-index)))
+    ;; Insert a declaration and initialization
+    (setf (lines obj)
+          (append (take (1- line-number) lines)
+                  (list (format nil "~a ~a;" random-type variable-name)
+                        (format nil "~a = ~a;"
+                                variable-name
+                                (- (random (expt 2 32)) (expt 2 31))))
+                  (drop (1- line-number) lines))))
   obj)
-
-;; For clang software objects with no fodder database,
-;; just delete the offending line.
-(defmethod add-declaration-and-initialize (line-number-index
-                                           variable-name-index
-                                           (obj clang-base)
-                                           match-data)
-  "DOCFIXME
-
-* LINE-NUMBER-INDEX DOCFIXME
-* VARIABLE-NAME-INDEX DOCFIXME
-* OBJ DOCFIXME
-* MATCH-DATA DOCFIXME
-"
-  (declare (ignorable line-number-index)
-           (ignorable variable-name-index))
-  (delete-line-with-error obj match-data))
 
 (register-fixer
  ":(\\d+):\\d+: error: use of undeclared identifier '(\\S+)'"
  {add-declaration-and-initialize 0 1})
 
 ;; Replace C++-style casts with C-style casts.
-(defmethod c++-casts-to-c-casts ((obj clang-base) match-data)
+(defmethod c++-casts-to-c-casts ((obj clang) match-data)
   "DOCFIXME
 
 * OBJ DOCFIXME
@@ -294,7 +231,7 @@ associated element of `*compilation-fixers*'.
  #'expected-expression-before)
 
 ;; #include <stdint.h> when using types like int32_t.
-(defmethod require-stdint ((obj clang-base) match-data)
+(defmethod require-stdint ((obj clang) match-data)
   "DOCFIXME
 
 * OBJ DOCFIXME
@@ -327,7 +264,7 @@ associated element of `*compilation-fixers*'.
  ":(\\d+):(\\d+): error: unknown type name (‘|')(int|uint)1_t(’|')"
  #'add-int1-macros)
 
-(defmethod delete-redefinitions ((obj clang-base) match-data)
+(defmethod delete-redefinitions ((obj clang) match-data)
   "DOCFIXME
 
 * OBJ DOCFIXME
@@ -348,7 +285,7 @@ associated element of `*compilation-fixers*'.
  ": error: redefinition of '(.*)'"
  #'delete-redefinitions)
 
-(defmethod delete-undefined-references ((obj clang-base) match-data)
+(defmethod delete-undefined-references ((obj clang) match-data)
   "DOCFIXME
 
 * OBJ DOCFIXME
@@ -380,7 +317,7 @@ associated element of `*compilation-fixers*'.
  ": undefined reference to `(\\S+)'"
  #'delete-undefined-references)
 
-(defmethod declare-var-as-pointer ((obj clang-base) match-data)
+(defmethod declare-var-as-pointer ((obj clang) match-data)
   "DOCFIXME
 
 * OBJ DOCFIXME
@@ -391,24 +328,20 @@ associated element of `*compilation-fixers*'.
          (variable (scan-to-strings
                      "^[a-zA-Z_][a-zA-Z0-9_]*"
                      (subseq (nth (1- line-number) (lines obj))
-                             col-number)))
-         (*matching-free-var-retains-name-bias* 1)
-         (*matching-free-function-retains-name-bias* 1))
+                             col-number))))
     (when variable
-      ;; Run through clang-mutate to get accurate counters
-      (update-asts obj)
       (iter (for ast in (reverse (asts obj)))
-            (for i downfrom (length (asts obj)))
             (when (and (eq (ast-class ast) :DeclStmt)
                        (scan (concatenate 'string variable "\\s*=")
                              (source-text ast)))
-              (let ((text (regex-replace variable
-                                         (source-text ast)
-                                         (concatenate 'string "*" variable))))
-                (apply-clang-mutate-ops obj
-                  `((:set . ((:stmt1 . ,i)
-                             (:value1 . ,text)))))
-                (return obj)))))
+              (replace-ast obj ast
+                           (nest (first)
+                                 (parse-source-snippet :clang)
+                                 (regex-replace variable
+                                                (source-text ast)
+                                                (format nil "*~a" variable)))
+                           :literal t)
+              (return obj))))
     obj))
 
 (register-fixer
@@ -418,6 +351,7 @@ associated element of `*compilation-fixers*'.
 (register-fixer
  ":(\\d+):(\\d+): error: indirection requires pointer operand"
  #'declare-var-as-pointer)
+
 
 ;; These fixers just delete the offending line, because there is not much
 ;; intelligent recovery we can do.

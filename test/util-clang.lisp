@@ -10,14 +10,11 @@
         :software-evolution-library/software/ast
         :software-evolution-library/software/parseable
         :software-evolution-library/software/clang
-        :software-evolution-library/software/new-clang
         :software-evolution-library/software/clang-expression
         :software-evolution-library/software/clang-project
         :software-evolution-library/software/clang-w-fodder
         :software-evolution-library/test/util)
-  (:export :clang-mutate-available-p
-           :make-clang
-           :*new-clang?*
+  (:export :clang-available-p
            :+etc-dir+
            :+gcd-dir+
            :+multi-file-dir+
@@ -34,10 +31,8 @@
            :*clang-expr*
            ;; Misc. functions.
            :inject-missing-swap-macro
-           :make-clang-control-picks
            ;; Softwares
            :clang-control-picks
-           :new-clang-control-picks
            ;; Fixtures.
            :hello-world-clang
            :huf-clang
@@ -71,11 +66,11 @@
 (in-package :software-evolution-library/test/util-clang)
 (in-readtable :curry-compose-reader-macros)
 
-(defun clang-mutate-available-p ()
+(defun clang-available-p ()
   #+windows
-  nil
+  (zerop (nth-value 2 (shell "which clang-cl.exe")))
   #-windows
-  (zerop (nth-value 2 (shell "which clang-mutate"))))
+  (zerop (nth-value 2 (shell "which clang"))))
 
 (defvar *good-asts* nil "Control pick-good")
 (defvar *bad-asts* nil "Control pick-bad")
@@ -87,16 +82,10 @@
 (defvar *clang-expr*  nil "The clang expression (sexp) software object.")
 
 (define-software clang-control-picks (clang) ())
-(define-software new-clang-control-picks (new-clang) ())
 
 (defmethod good-stmts ((obj clang-control-picks))
   (or *good-asts* (stmt-asts obj)))
 (defmethod bad-stmts ((obj clang-control-picks))
-  (or *bad-asts* (stmt-asts obj)))
-
-(defmethod good-stmts ((obj new-clang-control-picks))
-  (or *good-asts* (stmt-asts obj)))
-(defmethod bad-stmts ((obj new-clang-control-picks))
   (or *bad-asts* (stmt-asts obj)))
 
 (define-constant +headers-dir+ (append +etc-dir+ (list "headers"))
@@ -134,12 +123,6 @@
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
                  :directory +strings-dir+))
-
-(defun make-clang-control-picks (&rest args)
-  (apply #'make-instance
-         (if *new-clang?* 'new-clang-control-picks 'clang-control-picks)
-         :allow-other-keys t
-         args))
 
 (defun headers-dir (filename)
   (make-pathname :name (pathname-name filename)
@@ -208,19 +191,15 @@
                  :type (pathname-type filename)
                  :directory +clang-crossover-dir+))
 
-(defvar *new-clang?* t)
 (defvar *hello-world* nil "Holds the hello world software object.")
-
-(defun make-clang (&rest key-args)
-  (apply #'make-instance (if *new-clang?* 'new-clang 'clang) key-args))
 
 
 ;;; Fixtures
 (defixture empty-function-body-crossover-bug-clang
   (:setup
    (setf *soft*
-         (from-file (make-clang :compiler "clang"
-                                :flags '("-g -m32 -O0"))
+         (from-file (make-instance 'clang :compiler "clang"
+                                   :flags '("-g -m32 -O0"))
                     (clang-crossover-dir
                      "empty-function-body-crossover-bug.c"))))
   (:teardown
@@ -229,8 +208,8 @@
 (defixture select-intraprocedural-pair-non-null-clang
   (:setup
    (setf *soft*
-         (from-file (make-clang :compiler "clang"
-                                :flags '("-g -m32 -O0"))
+         (from-file (make-instance 'clang :compiler "clang"
+                                   :flags '("-g -m32 -O0"))
                     (clang-crossover-dir
                      "select-intraprocedural-pair-non-null.c"))))
   (:teardown
@@ -240,7 +219,7 @@
   (:setup
    (setf *binary-search*
          (from-file
-          (make-instance 'new-clang
+          (make-instance 'clang
             :flags (list
                     "-I"
                     (namestring (make-pathname :directory +etc-dir+))))
@@ -255,8 +234,7 @@
 (defixture gcd-clang
   (:setup
    (setf *gcd*
-         (from-file (make-instance (if *new-clang?* 'new-clang 'clang)
-                      :compiler "clang")
+         (from-file (make-instance 'clang :compiler "clang")
                     (gcd-dir "gcd.c"))))
   (:teardown
    (setf *gcd* nil)))
@@ -265,9 +243,9 @@
 (defixture gcd-clang
   (:setup
    (setf *gcd*
-         (from-file (make-clang :compiler "clang")
+         (from-file (make-instance 'clang :compiler "clang")
                     (gcd-dir "gcd.windows.c")))
-   (setf (sel/sw/new-clang::include-dirs *gcd*)
+   (setf (sel/sw/clang::include-dirs *gcd*)
          (split ";" (uiop:getenv "INCLUDE"))))
   (:teardown
    (setf *gcd* nil)))
@@ -283,7 +261,7 @@
 (defixture headers-clang
   (:setup
    (setf *headers*
-         (from-file (make-clang
+         (from-file (make-instance 'clang
                      :compiler "clang"
                      :flags (list "-I" (namestring
                                         (make-pathname
@@ -295,7 +273,7 @@
 (defixture hello-world-clang
   (:setup
    (setf *hello-world*
-         (from-file (make-clang :compiler "clang"
+         (from-file (make-instance 'clang :compiler "clang"
                                 :flags '("-g -m32 -O0"))
                     (hello-world-dir "hello_world.c"))))
   (:teardown
@@ -304,7 +282,7 @@
 (defixture sqrt-clang
   (:setup
    (setf *sqrt*
-         (from-file (make-clang)
+         (from-file (make-instance 'clang)
                     (make-pathname :name "sqrt"
                                    :type "c"
                                    :directory +etc-dir+))))
@@ -314,8 +292,9 @@
 (defixture hello-world-clang-control-picks
   (:setup
    (setf *hello-world*
-         (from-file (make-clang-control-picks :compiler "clang-3.7"
-                                              :flags '("-g -m32 -O0"))
+         (from-file (make-instance 'clang-control-picks
+                      :compiler "clang-3.7"
+                      :flags '("-g -m32 -O0"))
                     (hello-world-dir "hello_world.c"))))
   (:teardown
    (setf *hello-world* nil)))
@@ -323,7 +302,7 @@
 (defixture typedef
   (:setup
    (setf *soft*
-         (from-file (make-clang :compiler "clang-3.7")
+         (from-file (make-instance 'clang :compiler "clang-3.7")
                     (typedef-dir "typedef.c"))))
   (:teardown
    (setf *soft* nil)))
@@ -331,13 +310,13 @@
 (defixture cpp-strings
   (:setup
    (setf *soft*
-         (from-file (make-clang :compiler "clang++")
+         (from-file (make-instance 'clang :compiler "clang++")
                     (strings-dir "cpp-strings.cpp"))))
   (:teardown
    (setf *soft* nil)))
 
 (defun inject-missing-swap-macro (obj)
-  ;; Inject a macro that clang-mutate currently misses, then force the ASTs to
+  ;; Inject a macro, then force the ASTs to
   ;; be recalculated by setting the genome-string.
   (add-macro obj
              (make-clang-macro
@@ -349,7 +328,8 @@
 (defixture huf-clang
   (:setup
    (setf *huf*
-         (from-file (make-clang :compiler "gcc" :flags '("-g -m32 -O0"))
+         (from-file (make-instance 'clang :compiler "gcc"
+                                   :flags '("-g -m32 -O0"))
                     (huf-dir "huf.c")))
    (inject-missing-swap-macro *huf*))
   (:teardown
@@ -358,7 +338,7 @@
 (defixture scopes-clang
   (:setup
    (setf *scopes*
-         (from-file (make-clang-control-picks
+         (from-file (make-instance 'clang-control-picks
                      :compiler "clang" :flags '("-g -m32 -O0"))
                     (scopes-dir "scopes.c"))))
   (:teardown
@@ -367,7 +347,7 @@
 (defixture fib-clang
   (:setup
    (setf *fib*
-         (from-file (make-clang
+         (from-file (make-instance 'clang
                      :compiler "clang"
                      :flags '("-m32" "-O0" "-g" "-c"))
                     (fib-dir "fib.c"))))
@@ -377,7 +357,7 @@
 (defixture variety-clang
   (:setup
    (setf *variety*
-         (from-file (make-clang
+         (from-file (make-instance 'clang
                      :compiler "clang"
                      :flags '("-m32" "-O0" "-g"))
                     (variety-dir "variety.c"))))
@@ -387,14 +367,14 @@
 (defixture unicode-clang
   (:setup
    (setf *soft*
-         (from-file (make-clang)
+         (from-file (make-instance 'clang)
                     (unicode-dir "unicode.c"))))
   (:teardown
    (setf *soft* nil)))
 
 (defixture no-mutation-targets-clang
   (:setup
-   (setf *soft* (from-file (make-clang)
+   (setf *soft* (from-file (make-instance 'clang)
                            (lisp-bugs-dir "no-mutation-targets.c"))))
   (:teardown
    (setf *soft* nil)))

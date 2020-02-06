@@ -23,8 +23,7 @@
         :software-evolution-library/software/llvm
         :software-evolution-library/software/project
         :software-evolution-library/software/simple
-        :software-evolution-library/software/clang
-        :software-evolution-library/software/new-clang)
+        :software-evolution-library/software/clang)
   (:import-from :uiop :nest truenamize)
   (:export :dump-store :run-dump-store))
 (in-package :software-evolution-library/components/dump-store)

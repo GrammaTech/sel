@@ -33,7 +33,6 @@
         :software-evolution-library/software/git-project
         :software-evolution-library/software/clang
         :software-evolution-library/software/ast
-        :software-evolution-library/software/new-clang
         :software-evolution-library/software/javascript
         :software-evolution-library/software/java
         :software-evolution-library/software/lisp
@@ -148,11 +147,6 @@
 
 (defun handle-swank-port-argument (port)
   (create-server :port port :style :spawn :dont-close t))
-
-(defun handle-old-clang-argument (old-clang-p)
-  "Handler for --old-clang argument.  If true, use old clang
-front end."
-  (setf *new-clang?* (not old-clang-p)))
 
 (defun handle-load (path)
   (load path
@@ -324,8 +318,6 @@ input is not positive."
       ((and source (directory-p source))
        (intern (concatenate 'string (symbol-name class) "-PROJECT")
                :sel/command-line))
-      ((and *new-clang?* (eq class 'clang))
-       'new-clang)
       (t class))))
 
 (defun wait-on-manual (manual)
@@ -352,8 +344,7 @@ with a language.")
     (if (ends-with-subseq "-PROJECT" (symbol-name language))
         language
         ;; FIXME:  never use INTERN without an explicit package
-        (intern (concatenate 'string (symbol-name language) "-PROJECT"))))
-  (:method ((language (eql 'new-clang))) 'clang-project))
+        (intern (concatenate 'string (symbol-name language) "-PROJECT")))))
 
 (defun guess-language (&rest sources)
   "Guess the SEL software object class that best matches SOURCES.
@@ -387,15 +378,8 @@ directories and if files based on their extensions."
                              (("java") java)
                              (("js") javascript)
                              (("json") json)
-                             (("c" "cpp" "cc" "cxx")
-                              ,(if *new-clang?* 'new-clang 'clang))
-                             ;; We cannot parse header files, as they
-                             ;; don't have entries in the compile
-                             ;; commands database.  Treat them as
-                             ;; simple files instead.
-                             #|(("h" "hpp" "hxx") clang)|#)))
+                             (("c" "cpp" "cc" "cxx") clang))))
                         sources)))
-           #+debug (format t "GUESSES:~S~%" guesses)
            (cond
              (project-p
               ;; Inside of a project we remove all JSON and SIMPLE software
@@ -526,8 +510,6 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
       (decorate-with-annotations obj (pathname ast-annotations))
       (when fault-loc
         (perform-fault-loc obj)))
-    ;; (mapcar (lambda (elt) (note 0 "ast: ~a" (ast-attr elt :annotations)))
-    ;;         (flatten (mapcar #'stmt-asts (mapcar #'cdr (evolve-files obj)))))
     obj))
 
 (defgeneric create-test (script)
@@ -610,9 +592,6 @@ in SCRIPT.")
       (("flags" #\F) :type string
        :action #'handle-comma-delimited-argument
        :documentation "comma-separated list of compiler flags")
-      (("old-clang") :type boolean
-       :action #'handle-old-clang-argument
-       :documentation "Use old clang front end")
       (("split-lines" #\S) :type boolean :optional t
        :documentation "Split top level strings at newlines")))
   (defparameter +project-command-line-options+

@@ -27,8 +27,7 @@
   (:export :test-clang-crossover))
 (in-package :software-evolution-library/test/clang-crossover)
 (in-readtable :curry-compose-reader-macros)
-(defsuite test-clang-crossover "Crossover tests."
-  (clang-mutate-available-p))
+(defsuite test-clang-crossover "Crossover tests." (clang-available-p))
 
 (defvar *collatz* nil "Holds the collatz software object.")
 
@@ -45,7 +44,7 @@
 (defixture collatz-clang
   (:setup
    (setf *collatz*
-         (from-file (make-clang
+         (from-file (make-instance 'clang
                      :compiler "clang"
                      :flags '("-m32" "-O0" "-g" "-c"))
                     (collatz-dir "collatz.c"))))
@@ -55,7 +54,7 @@
 (defixture crossover-no-compound-stmt-clang
   (:setup
    (setf *soft*
-         (from-file (make-clang
+         (from-file (make-instance 'clang
                      :compiler "clang"
                      :flags '("-m32" "-O0" "-g"))
                     (clang-crossover-dir
@@ -66,7 +65,7 @@
 (defixture crossover-switch-stmt-clang
   (:setup
    (setf *soft*
-         (from-file (make-clang
+         (from-file (make-instance 'clang
                      :compiler "clang"
                      :flags '("-m32" "-O0" "-g"))
                     (clang-crossover-dir
@@ -1221,8 +1220,8 @@
 (defixture intraprocedural-2pt-crossover-bug-clang
   (:setup
    (setf *soft*
-         (from-file (make-clang :compiler "clang"
-                                :flags '("-g -m32 -O0"))
+         (from-file (make-instance 'clang :compiler "clang"
+                                   :flags '("-g -m32 -O0"))
                     (clang-crossover-dir
                      "intraprocedural-2pt-crossover-bug.c"))))
   (:teardown

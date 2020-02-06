@@ -78,10 +78,10 @@
         (sel/sw/adaptive-mutation::*mutation-results-queue-next* 0)
         (*mutation-results-queue*
          (copy-seq +initial-mutation-results-queue+))
-        (parent-a (make-clang :fitness 2))
-        (parent-b (make-clang :fitness 2))
-        (crossed  (make-clang :fitness 1))
-        (mutant   (make-clang :fitness 0)))
+        (parent-a (make-instance 'clang :fitness 2))
+        (parent-b (make-instance 'clang :fitness 2))
+        (crossed  (make-instance 'clang :fitness 1))
+        (mutant   (make-instance 'clang :fitness 0)))
     (adaptive-analyze-mutation mutant
                                `(clang-cut ,parent-a 0
                                            ,crossed ,parent-b 0)

@@ -19,7 +19,6 @@
    :software-evolution-library/software/ast
    :software-evolution-library/software/parseable
    :software-evolution-library/software/clang
-   :software-evolution-library/software/new-clang
    :software-evolution-library/components/clang-tokens
    :software-evolution-library/components/fault-loc)
   (:import-from :uiop :nest)
@@ -30,7 +29,7 @@
   (:export :test-clang-tokenizer))
 (in-package :software-evolution-library/test/clang-tokenizer)
 (in-readtable :curry-compose-reader-macros)
-(defsuite test-clang-tokenizer "Clang representation." (clang-mutate-available-p))
+(defsuite test-clang-tokenizer "Clang representation." (clang-available-p))
 
 (defvar *test-suite* nil "Holds condition synthesis test suite object.")
 
@@ -45,7 +44,7 @@
 
 (defixture fl-tiny-clang
   (:setup (setf *soft*
-                (from-file (make-clang)
+                (from-file (make-instance 'clang)
                            (fl-tiny-dir "tiny-test.c")))
           (setf *test-suite*
                 (make-instance 'test-suite
@@ -200,10 +199,10 @@
 
 (deftest annotations-with-fault-loc ()
   (labels ((ast-start-line (ast)
-             (let ((loc (new-clang-range-begin (ast-range ast))))
+             (let ((loc (clang-range-begin (ast-range ast))))
                (if (numberp loc)
                    nil  ; The root node has "0" for a range.
-                   (new-clang-loc-line loc)))))
+                   (clang-loc-line loc)))))
     (with-fixture gcd-clang
       (decorate-with-annotations *gcd* (make-pathname :directory +gcd-dir+
                                                       :name "gcd-fault-loc"))

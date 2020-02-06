@@ -27,8 +27,7 @@
   (:export :test-population))
 (in-package :software-evolution-library/test/population)
 (in-readtable :curry-compose-reader-macros)
-(defsuite test-population "Population tests."
-  (clang-mutate-available-p))
+(defsuite test-population "Population tests." (clang-available-p))
 
 (defixture population
   (:setup (setf *population* (loop :for i :from 1 :to 9
@@ -253,7 +252,7 @@ Useful for printing or returning differences in the REPL."
 ;; When recontextualizing, function should be considered defined even
 ;; if its body is not present.
 (deftest bodyless-function-is-not-recontextualized ()
-  (let* ((obj (make-clang
+  (let* ((obj (make-instance 'clang
                :genome "void test(int x);
                           int main(int argc, char **argv) {
                             test(0); return 0;

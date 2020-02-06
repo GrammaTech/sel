@@ -24,7 +24,7 @@
 (in-package :software-evolution-library/software/super-mutant-clang)
 (in-readtable :curry-compose-reader-macros)
 
-(defmethod create-super-soft ((base clang-base) mutants)
+(defmethod create-super-soft ((base clang) mutants)
   (labels
       ((ensure-functions-compatible (f1 f2 mutant)
          (unless (ast-equal-p f1 f2)

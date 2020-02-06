@@ -25,281 +25,244 @@
   (:export :test-type-traces))
 (in-package :software-evolution-library/test/type-traces)
 (in-readtable :curry-compose-reader-macros)
-(defsuite test-type-traces "Types and traces tests."
-  (clang-mutate-available-p))
+(defsuite test-type-traces "Types and traces tests." (clang-available-p))
 
 (deftest type-trace-string-test ()
   (is (equalp "int"
-              (type-trace-string (make-clang-type :name "int"
-                                                  :pointer nil
-                                                  :array ""
-                                                  :storage-class :None
-                                                  :hash 0
-                                                  :reqs nil))))
+              (nest (type-trace-string)
+                    (make-instance 'ct+ :storage-class :none :type)
+                    (make-instance 'clang-type :qual "int" :name "int"))))
   (is (equalp "*int"
-              (type-trace-string (make-clang-type :name "int"
-                                                  :pointer t
-                                                  :array ""
-                                                  :storage-class :None
-                                                  :hash 0
-                                                  :reqs nil))))
+              (nest (type-trace-string)
+                    (make-instance 'ct+ :storage-class :none :type)
+                    (make-instance 'clang-type
+                      :qual "int *"
+                      :modifiers +pointer+
+                      :name "int"))))
   (is (equalp "[]int"
-              (type-trace-string (make-clang-type :name "int"
-                                                  :pointer nil
-                                                  :array "[]"
-                                                  :storage-class :None
-                                                  :hash 0
-                                                  :reqs nil))))
+              (nest (type-trace-string)
+                    (make-instance 'ct+ :storage-class :none :type)
+                    (make-instance 'clang-type
+                      :qual "int []"
+                      :array "[]"
+                      :name "int"))))
   (is (equalp "[5]int"
-              (type-trace-string (make-clang-type :name "int"
-                                                  :pointer nil
-                                                  :array "[5]"
-                                                  :storage-class :None
-                                                  :hash 0
-                                                  :reqs nil))))
+              (nest (type-trace-string)
+                    (make-instance 'ct+ :storage-class :none :type)
+                    (make-instance 'clang-type
+                      :qual "int [5]"
+                      :array "[5]"
+                      :name "int"))))
   (is (equalp "*[]int"
-              (type-trace-string (make-clang-type :name "int"
-                                                  :pointer t
-                                                  :array "[]"
-                                                  :storage-class :None
-                                                  :hash 0
-                                                  :reqs nil))))
+              (nest (type-trace-string)
+                    (make-instance 'ct+ :storage-class :none :type)
+                    (make-instance 'clang-type
+                      :qual "int *[]"
+                      :array "[]"
+                      :modifiers +pointer+
+                      :name "int"))))
   (is (equalp "*[5]int"
-              (type-trace-string (make-clang-type :name "int"
-                                                  :pointer t
-                                                  :array "[5]"
-                                                  :storage-class :None
-                                                  :hash 0
-                                                  :reqs nil))))
+              (nest (type-trace-string)
+                    (make-instance 'ct+ :storage-class :none :type)
+                    (make-instance 'clang-type
+                      :qual "int *[5]"
+                      :array "[5]"
+                      :modifiers +pointer+
+                      :name "int"))))
   (is (equalp "const int"
-              (type-trace-string (make-clang-type :name "int"
-                                                  :pointer nil
-                                                  :array ""
-                                                  :const t
-                                                  :storage-class :None
-                                                  :hash 0
-                                                  :reqs nil))))
+              (nest (type-trace-string)
+                    (make-instance 'ct+ :storage-class :none :type)
+                    (make-instance 'clang-type
+                      :qual "const int"
+                      :modifiers +const+
+                      :name "int"))))
   (is (equalp "volatile int"
-              (type-trace-string (make-clang-type :name "int"
-                                                  :pointer nil
-                                                  :array ""
-                                                  :volatile t
-                                                  :storage-class :None
-                                                  :hash 0
-                                                  :reqs nil))))
+              (nest (type-trace-string)
+                    (make-instance 'ct+ :storage-class :none :type)
+                    (make-instance 'clang-type
+                      :qual "volatile int"
+                      :modifiers +volatile+
+                      :name "int"))))
   (is (equalp "*restrict int"
-              (type-trace-string (make-clang-type :name "int"
-                                                  :pointer t
-                                                  :array ""
-                                                  :restrict t
-                                                  :storage-class :None
-                                                  :hash 0
-                                                  :reqs nil))))
+              (nest (type-trace-string)
+                    (make-instance 'ct+ :storage-class :none :type)
+                    (make-instance 'clang-type
+                      :qual "restrict int *"
+                      :modifiers (logior +pointer+ +restrict+)
+                      :name "int"))))
   (is (equalp "auto int"
-              (type-trace-string (make-clang-type :name "int"
-                                                  :pointer nil
-                                                  :array ""
-                                                  :storage-class :Auto
-                                                  :hash 0
-                                                  :reqs nil))))
+              (nest (type-trace-string)
+                    (make-instance 'ct+ :storage-class :auto :type)
+                    (make-instance 'clang-type :qual "int" :name "int"))))
   (is (equalp "static int"
-              (type-trace-string (make-clang-type :name "int"
-                                                  :pointer nil
-                                                  :array ""
-                                                  :storage-class :static
-                                                  :hash 0
-                                                  :reqs nil))))
+              (nest (type-trace-string)
+                    (make-instance 'ct+ :storage-class :static :type)
+                    (make-instance 'clang-type :qual "int" :name "int"))))
   (is (equalp "extern int"
-              (type-trace-string (make-clang-type :name "int"
-                                                  :pointer nil
-                                                  :array ""
-                                                  :storage-class :extern
-                                                  :hash 0
-                                                  :reqs nil))))
+              (nest (type-trace-string)
+                    (make-instance 'ct+ :storage-class :extern :type)
+                    (make-instance 'clang-type :qual "int" :name "int"))))
   (is (equalp "register int"
-              (type-trace-string (make-clang-type :name "int"
-                                                  :pointer nil
-                                                  :array ""
-                                                  :storage-class :register
-                                                  :hash 0
-                                                  :reqs nil)))))
+              (nest (type-trace-string)
+                    (make-instance 'ct+ :storage-class :register :type)
+                    (make-instance 'clang-type :qual "int" :name "int")))))
 
-(deftest type-from-trace-string-test ()
-  (is (equalp (type-from-trace-string "int")
-              (make-clang-type :name "int"
-                               :pointer nil
-                               :array ""
-                               :storage-class :None
-                               :hash 0
-                               :reqs nil)))
-  (is (equalp (type-from-trace-string "*int")
-              (make-clang-type :name "int"
-                               :pointer t
-                               :array ""
-                               :storage-class :None
-                               :hash 0
-                               :reqs nil)))
-  (is (equalp (type-from-trace-string "[]int")
-              (make-clang-type :name "int"
-                               :pointer nil
-                               :array "[]"
-                               :storage-class :None
-                               :hash 0
-                               :reqs nil)))
-  (is (equalp (type-from-trace-string "[5]int")
-              (make-clang-type :name "int"
-                               :pointer nil
-                               :array "[5]"
-                               :storage-class :None
-                               :hash 0
-                               :reqs nil)))
-  (is (equalp (type-from-trace-string "*[]int")
-              (make-clang-type :name "int"
-                               :pointer t
-                               :array "[]"
-                               :storage-class :None
-                               :hash 0
-                               :reqs nil)))
-  (is (equalp (type-from-trace-string "*[5]int")
-              (make-clang-type :name "int"
-                               :pointer t
-                               :array "[5]"
-                               :storage-class :None
-                               :hash 0
-                               :reqs nil)))
-  (is (equalp (type-from-trace-string "const int")
-              (make-clang-type :name "int"
-                               :pointer nil
-                               :array ""
-                               :const t
-                               :storage-class :None
-                               :hash 0
-                               :reqs nil)))
-  (is (equalp (type-from-trace-string "volatile int")
-              (make-clang-type :name "int"
-                               :pointer nil
-                               :array ""
-                               :volatile t
-                               :storage-class :None
-                               :hash 0
-                               :reqs nil)))
-  (is (equalp (type-from-trace-string "*restrict int")
-              (make-clang-type :name "int"
-                               :pointer t
-                               :array ""
-                               :restrict t
-                               :storage-class :None
-                               :hash 0
-                               :reqs nil)))
-  (is (equalp (type-from-trace-string "auto int")
-              (make-clang-type :name "int"
-                               :pointer nil
-                               :array ""
-                               :storage-class :Auto
-                               :hash 0
-                               :reqs nil)))
-  (is (equalp (type-from-trace-string "static int")
-              (make-clang-type :name "int"
-                               :pointer nil
-                               :array ""
-                               :storage-class :Static
-                               :hash 0
-                               :reqs nil)))
-  (is (equalp (type-from-trace-string "extern int")
-              (make-clang-type :name "int"
-                               :pointer nil
-                               :array ""
-                               :storage-class :Extern
-                               :hash 0
-                               :reqs nil)))
-  (is (equalp (type-from-trace-string "register int")
-              (make-clang-type :name "int"
-                               :pointer nil
-                               :array ""
-                               :storage-class :Register
-                               :hash 0
-                               :reqs nil))))
+(deftest trace-string-to-type-alist-test ()
+  (is (equalp (trace-string-to-type-alist "int")
+              (list (cons :pointer nil)
+                    (cons :array "")
+                    (cons :const nil)
+                    (cons :volatile nil)
+                    (cons :restrict nil)
+                    (cons :storage-class :none)
+                    (cons :name "int"))))
+  (is (equalp (trace-string-to-type-alist "*int")
+              (list (cons :pointer t)
+                    (cons :array "")
+                    (cons :const nil)
+                    (cons :volatile nil)
+                    (cons :restrict nil)
+                    (cons :storage-class :none)
+                    (cons :name "int"))))
+  (is (equalp (trace-string-to-type-alist "[]int")
+              (list (cons :pointer nil)
+                    (cons :array "[]")
+                    (cons :const nil)
+                    (cons :volatile nil)
+                    (cons :restrict nil)
+                    (cons :storage-class :none)
+                    (cons :name "int"))))
+  (is (equalp (trace-string-to-type-alist "[5]int")
+              (list (cons :pointer nil)
+                    (cons :array "[5]")
+                    (cons :const nil)
+                    (cons :volatile nil)
+                    (cons :restrict nil)
+                    (cons :storage-class :none)
+                    (cons :name "int"))))
+  (is (equalp (trace-string-to-type-alist "*[]int")
+              (list (cons :pointer t)
+                    (cons :array "[]")
+                    (cons :const nil)
+                    (cons :volatile nil)
+                    (cons :restrict nil)
+                    (cons :storage-class :none)
+                    (cons :name "int"))))
+  (is (equalp (trace-string-to-type-alist "*[5]int")
+              (list (cons :pointer t)
+                    (cons :array "[5]")
+                    (cons :const nil)
+                    (cons :volatile nil)
+                    (cons :restrict nil)
+                    (cons :storage-class :none)
+                    (cons :name "int"))))
+  (is (equalp (trace-string-to-type-alist "const int")
+              (list (cons :pointer nil)
+                    (cons :array "")
+                    (cons :const t)
+                    (cons :volatile nil)
+                    (cons :restrict nil)
+                    (cons :storage-class :none)
+                    (cons :name "int"))))
+  (is (equalp (trace-string-to-type-alist "volatile int")
+              (list (cons :pointer nil)
+                    (cons :array "")
+                    (cons :const nil)
+                    (cons :volatile t)
+                    (cons :restrict nil)
+                    (cons :storage-class :none)
+                    (cons :name "int"))))
+  (is (equalp (trace-string-to-type-alist "*restrict int")
+              (list (cons :pointer t)
+                    (cons :array "")
+                    (cons :const nil)
+                    (cons :volatile nil)
+                    (cons :restrict t)
+                    (cons :storage-class :none)
+                    (cons :name "int"))))
+  (is (equalp (trace-string-to-type-alist "auto int")
+              (list (cons :pointer nil)
+                    (cons :array "")
+                    (cons :const nil)
+                    (cons :volatile nil)
+                    (cons :restrict nil)
+                    (cons :storage-class :auto)
+                    (cons :name "int"))))
+  (is (equalp (trace-string-to-type-alist "static int")
+              (list (cons :pointer nil)
+                    (cons :array "")
+                    (cons :const nil)
+                    (cons :volatile nil)
+                    (cons :restrict nil)
+                    (cons :storage-class :static)
+                    (cons :name "int"))))
+  (is (equalp (trace-string-to-type-alist "extern int")
+              (list (cons :pointer nil)
+                    (cons :array "")
+                    (cons :const nil)
+                    (cons :volatile nil)
+                    (cons :restrict nil)
+                    (cons :storage-class :extern)
+                    (cons :name "int"))))
+  (is (equalp (trace-string-to-type-alist "register int")
+              (list (cons :pointer nil)
+                    (cons :array "")
+                    (cons :const nil)
+                    (cons :volatile nil)
+                    (cons :restrict nil)
+                    (cons :storage-class :register)
+                    (cons :name "int")))))
 
 (deftest type-decl-string-test ()
   (is (equalp "int"
-              (type-decl-string (make-clang-type :name "int"
-                                                 :pointer nil
-                                                 :array ""
-                                                 :storage-class :None
-                                                 :hash 0
-                                                 :reqs nil))))
+              (nest (type-decl-string)
+                    (make-instance 'ct+ :storage-class :none :type)
+                    (make-instance 'clang-type :qual "int"))))
   (is (equalp "int *"
-              (type-decl-string (make-clang-type :name "int"
-                                                 :pointer t
-                                                 :array ""
-                                                 :storage-class :None
-                                                 :hash 0
-                                                 :reqs nil))))
+              (nest (type-decl-string)
+                    (make-instance 'ct+ :storage-class :none :type)
+                    (make-instance 'clang-type
+                      :qual "int *"
+                      :modifiers +pointer+))))
   (is (equalp "const int"
-              (type-decl-string (make-clang-type :name "int"
-                                                 :pointer nil
-                                                 :array ""
-                                                 :const t
-                                                 :storage-class :None
-                                                 :hash 0
-                                                 :reqs nil))))
+              (nest (type-decl-string)
+                    (make-instance 'ct+ :storage-class :none :type)
+                    (make-instance 'clang-type
+                      :qual "const int"
+                      :modifiers +const+))))
   (is (equalp "volatile int"
-              (type-decl-string (make-clang-type :name "int"
-                                                 :pointer nil
-                                                 :array ""
-                                                 :volatile t
-                                                 :storage-class :None
-                                                 :hash 0
-                                                 :reqs nil))))
+              (nest (type-decl-string)
+                    (make-instance 'ct+ :storage-class :none :type)
+                    (make-instance 'clang-type
+                      :qual "volatile int"
+                      :modifiers +volatile+))))
   (is (equalp "restrict int"
-              (type-decl-string (make-clang-type :name "int"
-                                                 :pointer nil
-                                                 :array ""
-                                                 :restrict t
-                                                 :storage-class :None
-                                                 :hash 0
-                                                 :reqs nil))))
+              (nest (type-decl-string)
+                    (make-instance 'ct+ :storage-class :none :type)
+                    (make-instance 'clang-type
+                      :qual "restrict int"
+                      :modifiers +restrict+))))
   (is (equalp "auto int"
-              (type-decl-string (make-clang-type :name "int"
-                                                 :pointer nil
-                                                 :array ""
-                                                 :storage-class :Auto
-                                                 :hash 0
-                                                 :reqs nil))))
+              (nest (type-decl-string)
+                    (make-instance 'ct+ :storage-class :auto :type)
+                    (make-instance 'clang-type :qual "int"))))
   (is (equalp "static int"
-              (type-decl-string (make-clang-type :name "int"
-                                                 :pointer nil
-                                                 :array ""
-                                                 :storage-class :Static
-                                                 :hash 0
-                                                 :reqs nil))))
+              (nest (type-decl-string)
+                    (make-instance 'ct+ :storage-class :static :type)
+                    (make-instance 'clang-type :qual "int"))))
   (is (equalp "extern int"
-              (type-decl-string (make-clang-type :name "int"
-                                                 :pointer nil
-                                                 :array ""
-                                                 :storage-class :Extern
-                                                 :hash 0
-                                                 :reqs nil))))
+              (nest (type-decl-string)
+                    (make-instance 'ct+ :storage-class :extern :type)
+                    (make-instance 'clang-type :qual "int"))))
   (is (equalp "register int"
-              (type-decl-string (make-clang-type :name "int"
-                                                 :pointer nil
-                                                 :array ""
-                                                 :storage-class :Register
-                                                 :hash 0
-                                                 :reqs nil))))
+              (nest (type-decl-string)
+                    (make-instance 'ct+ :storage-class :register :type)
+                    (make-instance 'clang-type :qual "int"))))
   (is (equalp "struct struct_type"
-              (type-decl-string (make-clang-type :name "struct_type"
-                                                 :pointer nil
-                                                 :array ""
-                                                 :storage-class :None
-                                                 :decl "struct struct_type;"
-                                                 :hash 0
-                                                 :reqs nil))))
+              (nest (type-decl-string)
+                    (make-instance 'ct+ :storage-class :none :type)
+                    (make-instance 'clang-type :qual "struct struct_type"))))
   (is (equalp "union union_type"
-              (type-decl-string (make-clang-type :name "union_type"
-                                                 :pointer nil
-                                                 :array ""
-                                                 :storage-class :None
-                                                 :decl "union union_type;"
-                                                 :hash 0
-                                                 :reqs nil)))))
+              (nest (type-decl-string)
+                    (make-instance 'ct+ :storage-class :none :type)
+                    (make-instance 'clang-type :qual "union union_type")))))

@@ -36,7 +36,7 @@ SOFTWARE."))
 ;;;; if else while do typedef -> . va-arg return goto for offset-of
 ;;;; generic sizeof alignof struct union char-literal int-literal string-literal
 ;;;; float-literal i-literal ... macro
-(defmethod tokens ((clang clang-base) &optional (roots (roots clang)))
+(defmethod tokens ((clang clang) &optional (roots (roots clang)))
   "Return a list of keyword tokens representing the ASTs in SOFTWARE below ROOTS.
 * CLANG software object to tokenize
 * ROOTS limit to tokens below elements of ROOT ASTs in CLANG

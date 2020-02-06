@@ -134,21 +134,18 @@ AST holding STMT is found."
     (setf text (trim-whitespace text)))
   (or (let ((result
              (find-if [{string= text} (if trim #'trim-whitespace #'identity)
-                       #'peel-bananas #'source-text]
+                       #'source-text]
                       (asts obj))))
         result)
       (if no-error
           nil
           (error "`stmt-with-text' failed to find ~S in ~S"
                  text
-                 (mapcar [#'peel-bananas #'source-text] (asts obj))))))
+                 (mapcar #'source-text (asts obj))))))
 
 (defun stmt-starting-with-text (obj text)
   (find-if (lambda (ast)
-             (and ast
-                  (equal 0
-                         (search text
-                                 (peel-bananas (source-text ast))))))
+             (and ast (equal 0 (search text (source-text ast)))))
            (asts obj)))
 
 

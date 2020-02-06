@@ -31,7 +31,7 @@
   (:export :test-clang-project))
 (in-package :software-evolution-library/test/clang-project)
 (in-readtable :curry-compose-reader-macros)
-(defsuite test-clang-project "Clang representation." (clang-mutate-available-p))
+(defsuite test-clang-project "Clang representation." (clang-available-p))
 
 (defvar *s1*)
 (defvar *s2*)

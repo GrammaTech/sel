@@ -18,8 +18,7 @@
    :software-evolution-library/utility
    :software-evolution-library/software/ast
    :software-evolution-library/software/parseable
-   :software-evolution-library/software/clang
-   :software-evolution-library/software/new-clang)
+   :software-evolution-library/software/clang)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
@@ -30,7 +29,7 @@
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-clang-syntactic-contexts
     "Clang syntactic contexts."
-  (clang-mutate-available-p))
+  (clang-available-p))
 
 (defvar *contexts* nil "Holds the syntactic-contexts software object.")
 
@@ -46,7 +45,7 @@
 (defixture contexts
   (:setup
    (setf *contexts*
-         (from-file (make-clang :compiler "clang-3.7")
+         (from-file (make-instance 'clang :compiler "clang-3.7")
                     (contexts-dir "contexts.c"))))
   (:teardown
    (setf *contexts* nil)))
@@ -311,30 +310,6 @@
       (is (eq 3 (count-matching-chars-in-stmt #\} function)))
       (is (eq 2 (count-if [{string= "int x = 1"} #'source-text]
                           (asts *contexts*)))))))
-
-;; FIXME: this behavior is not implemented, so we can get incorrect
-;; trees in some cases.
-;; (deftest insert-before-unbraced-body-adds-braces ()
-;;   ;; clang-mutate will simply insert at the given location, leading to
-;;   ;; text like
-;;   ;; if (2) int x = 1; x = 2
-
-;;   ;; This is problematic when working directly on the ASTs because
-;;   ;; both statements end up as direct children of the "if". We can fix
-;;   ;; that by wrapping them in braces.
-;;   (with-fixture contexts
-;;     (let ((target (stmt-with-text *contexts* "x = 2"))
-;;           (insert (stmt-with-text *contexts* "int x = 1")))
-;;       (apply-mutation-ops *contexts*
-;;                               `((:insert (:stmt1 . ,target)
-;;                                          (:value1 . ,insert)))))
-;;     (let ((function (find-function *contexts* "unbraced_body")))
-;;       (is (eq 2 (count-matching-chars-in-stmt #\{ function)))
-;;       (is (eq 2 (count-matching-chars-in-stmt #\} function)))
-;;       (is (eq 2 (count-matching-chars-in-stmt #\; function)))
-;;       (is (eq 2 (count-if «and [{string= "CompoundStmt"} #'ast-class]
-;;                                {ancestor-of *contexts* function}»
-;;                           (stmt-asts *contexts*)))))))
 
 (deftest cut-field-removes-semicolon ()
   (with-fixture contexts

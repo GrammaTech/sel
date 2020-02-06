@@ -25,7 +25,7 @@
 This is used to intern string names by `expression'."
   (make-keyword (string-upcase string)))
 
-(defmethod expression ((obj clang-base) (ast clang-ast-base))
+(defmethod expression ((obj clang) (ast clang-ast))
   "Convert AST to an expression tree.
 * OBJ clang software object containing AST
 * AST the AST to convert
@@ -47,7 +47,7 @@ This is used to intern string names by `expression'."
       (:CompoundAssignOperator (->> (ast-opcode ast)
                                     (expression-intern)
                                     (over-children)))
-      (:DeclRefExpr (expression-intern (peel-bananas (source-text ast))))
+      (:DeclRefExpr (expression-intern (source-text ast)))
       (:ImplicitCastExpr (only-child))
       (:IntegerLiteral
        (handler-bind ((parse-number

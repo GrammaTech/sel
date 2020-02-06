@@ -19,7 +19,6 @@
    :software-evolution-library/software/ast
    :software-evolution-library/software/parseable
    :software-evolution-library/software/clang
-   :software-evolution-library/software/new-clang
    :software-evolution-library/components/traceable
    :software-evolution-library/components/instrument
    :software-evolution-library/components/clang-instrument)
@@ -35,12 +34,12 @@
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-instrumentation
     "Tests for Clang instrumentation."
-  (clang-mutate-available-p))
+  (clang-available-p))
 
 (defixture c-strings
   (:setup
    (setf *soft*
-         (from-file (make-clang)
+         (from-file (make-instance 'clang)
                     (strings-dir "c-strings.c"))))
   (:teardown
    (setf *soft* nil)))
@@ -57,7 +56,7 @@
 (defixture shadow-clang
   (:setup
    (setf *soft*
-         (from-file (make-clang)
+         (from-file (make-instance 'clang)
                     (shadow-dir "shadow.c"))))
   (:teardown
    (setf *soft* nil)))
@@ -279,11 +278,11 @@ prints unique counters in the trace"
           (declare (ignorable stdout stderr))
           (is (zerop errno))
           (is (not (equal (find-if [{string= "a = atoi(argv[1]);"}
-                                    #'peel-bananas #'source-text]
+                                    #'source-text]
                                    (asts variant)
                                    :from-end nil)
                           (find-if [{string= "a = atoi(argv[1]);"}
-                                    #'peel-bananas #'source-text]
+                                    #'source-text]
                                    (asts variant)
                                    :from-end t)))
               "a = atoi(argv[1]) was not inserted into the genome")
@@ -292,8 +291,7 @@ prints unique counters in the trace"
                 nil
                 "__write_trace_id(__sel_trace_file, __sel_trace_file_lock, ~du)"
                 (nest (index-of-ast variant)
-                      (find-if [{string= "a = atoi(argv[1]);"}
-                                #'peel-bananas #'source-text]
+                      (find-if [{string= "a = atoi(argv[1]);"} #'source-text]
                                (asts variant)
                                :from-end nil)))
                (genome instrumented))
@@ -303,8 +301,7 @@ prints unique counters in the trace"
                 nil
                 "__write_trace_id(__sel_trace_file, __sel_trace_file_lock, ~du)"
                 (nest (index-of-ast variant)
-                      (find-if [{string= "a = atoi(argv[1]);"}
-                                #'peel-bananas #'source-text]
+                      (find-if [{string= "a = atoi(argv[1]);"} #'source-text]
                                (asts variant)
                                :from-end t)))
                (genome instrumented))
@@ -512,7 +509,7 @@ prints unique counters in the trace"
                     (if (find-restart 'keep-partial-asts)
                         (invoke-restart 'keep-partial-asts)
                         (error e)))))
-    (let ((soft (make-clang
+    (let ((soft (make-instance 'clang
                  :genome "int test(int) { return 1; }")))
       (instrument soft :functions
                   (list (lambda (instrumenter ast)
@@ -557,7 +554,6 @@ prints unique counters in the trace"
                          [{eq index} {aget :c}]»
                      trace)))))))
 
-#+fixme ; FIXME: define ast-includes on new-clang or delete this test.
 (deftest (uninstrument-instrument-is-identity :long-running) ()
   (with-fixture gcd-clang
     (let ((orig (copy *gcd*))

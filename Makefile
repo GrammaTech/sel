@@ -91,11 +91,6 @@ TEST_ARTIFACTS = \
 # FIXME: move test binaries into test/bin or bin/test/
 # Extend cl.mk to have a separate build target for test binaries
 BINS = rest-server dump-store
-TEST_BIN_DIR = test/commands
-TEST_BINS = 			\
-	new-clang-round-trip	\
-	clang-diff-test
-
 BIN_TEST_DIR = test/bin
 BIN_TESTS =			\
 	example-001-mutate

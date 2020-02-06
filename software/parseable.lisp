@@ -57,7 +57,6 @@
            :traceable-stmt-p
            :can-be-made-traceable-p
            :enclosing-traceable-stmt
-           :force-include
            :asts-containing-source-location
            :ast-to-source-range
            :parent-ast-p
@@ -73,10 +72,7 @@
            :replace-ast
            :remove-ast
            ;; Restarts
-           :expand-stmt-pool
-           :name=
-           :name-emptyp
-           :equal-with-name=))
+           :expand-stmt-pool))
 (in-package :software-evolution-library/software/parseable)
 (in-readtable :curry-compose-reader-macros)
 
@@ -133,26 +129,6 @@ and :SCOPE.
 
 (defgeneric get-vars-in-scope (software ast &optional keep-globals)
   (:documentation "Return all variables in enclosing scopes."))
-
-;; These name functions are used by CLANG and NEW-CLANG.  When old CLANG
-;; goes away, move it down into the remaining package, as it is
-;; not generic to all parseables.
-(defgeneric name= (n1 n2)
-  (:documentation "Generalized name equality for AST names")
-  (:method ((n1 string) (n2 string))
-    (string= n1 n2)))
-
-(defgeneric name-emptyp (n)
-  (:documentation "Generalized name emptiness check")
-  (:method ((n sequence)) (emptyp n))
-  (:method (n) (declare (ignorable n)) nil))
-
-(defun equal-with-name= (n1 n2)
-  (if (consp n1)
-      (and (consp n2)
-           (equal-with-name= (car n1) (car n2))
-           (equal-with-name= (cdr n1) (cdr n2)))
-      (name= n1 n2)))
 
 (defgeneric update-asts (software)
   (:documentation "Update the store of asts associated with SOFTWARE.
@@ -229,10 +205,6 @@ into a list of free-floating ASTs."))
 If a statement is reached which is not itself traceable, but which could be
 made traceable by wrapping with curly braces, return that."))
 
-(defgeneric force-include (software include)
-  (:documentation "Add an #include directive for an INCLUDE to SOFTWARE
-even if such an INCLUDE already exists in SOFTWARE."))
-
 (defgeneric stmt-range (software function)
   (:documentation
    "The indices of the first and last statements in a function.
@@ -287,7 +259,7 @@ the list returned by (asts software)."  ) )
     (progn (assert (null (slot-value obj 'ast-root)) (obj)
                    "Software object ~a has both genome and ASTs saved" obj)
            val)
-    (peel-bananas (source-text (ast-root obj)))))
+    (source-text (ast-root obj))))
 
 (defmethod (setf genome) :before (new (obj parseable))
   "Clear ASTs, fitness, and other caches prior to updating the NEW genome."
@@ -507,8 +479,7 @@ otherwise.
                                          (scopes obj ast)
                                          (butlast (scopes obj ast))))
                      :from-end t
-                     :key {aget :name}
-                     :test #'name=))
+                     :key {aget :name}))
 
 (defgeneric ast-to-source-range (software ast)
   (:documentation "Convert AST to pair of SOURCE-LOCATIONS.")

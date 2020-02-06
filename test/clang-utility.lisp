@@ -31,7 +31,7 @@
   (:export :test-clang-utility))
 (in-package :software-evolution-library/test/clang-utility)
 (in-readtable :curry-compose-reader-macros)
-(defsuite test-clang-utility "Clang representation." (clang-mutate-available-p))
+(defsuite test-clang-utility "Clang representation." (clang-available-p))
 
 (define-constant +typedef-type-dir+
     (append +etc-dir+ (list "typedef-type"))
@@ -46,7 +46,7 @@
 (defixture tidy-adds-braces-clang
   (:setup
    (setf *soft*
-         (from-file (make-clang
+         (from-file (make-instance 'clang
                      :compiler "clang"
                      :flags '("-m32" "-O0" "-g"))
                     (clang-tidy-dir "tidy-adds-braces.c"))))
@@ -66,7 +66,7 @@
 (defixture type-of-var-clang
   (:setup
    (setf *soft*
-         (from-file (make-clang
+         (from-file (make-instance 'clang
                      :compiler "clang"
                      :flags '("-m32" "-O0" "-g"))
                     (type-of-var-dir "type-of-var.c"))))
@@ -76,7 +76,7 @@
 (defixture typedef-type-clang
   (:setup
    (setf *soft*
-         (from-file (make-clang)
+         (from-file (make-instance 'clang)
                     (typedef-type-dir "typedef-type.c"))))
   (:teardown
    (setf *soft* nil)))
@@ -93,7 +93,7 @@
 (defixture assert-clang
   (:setup
    (setf *soft*
-         (from-file (make-clang)
+         (from-file (make-instance 'clang)
                     (assert-dir "assert.c"))))
   (:teardown
    (setf *soft* nil)))
@@ -153,7 +153,7 @@
             (var-type4 (get-var-type "a" "int a[N][N];"))
             (var-type5 (get-var-type "b" "return 2;")))
         (is (null var-type4))
-        (is (equal (if *new-clang?* "[10]" "[10][10]") (type-array var-type1)))
+        (is (equal "[10]"     (type-array var-type1)))
         (is (equal ""         (type-array var-type2)))
         (is (equal "[10][10]" (type-array var-type3)))
         (is (equal ""         (type-array var-type5)))
@@ -161,7 +161,7 @@
         (is (equal t          (type-pointer var-type2)))
         (is (equal nil        (type-pointer var-type3)))
         (is (equal t          (type-pointer var-type5)))
-        (is (equal (if *new-clang?* "int (*)" "int") (type-name var-type1)))
+        (is (equal "int (*)"  (type-name var-type1)))
         (is (equal "int"      (type-name var-type2)))
         (is (equal "int"      (type-name var-type3)))
         (is (equal "int*"     (remove #\Space (type-name var-type5))))))))
@@ -212,24 +212,10 @@
 
 (deftest rebind-vars-in-macro-test ()
   (with-fixture assert-clang
-    (labels ((peel-banana-tree (tree)
-               (if *new-clang?*
-                   (cond ((stringp tree)
-                          (peel-bananas tree))
-                         ((consp tree)
-                          (let ((car (peel-banana-tree (car tree)))
-                                (cdr (peel-banana-tree (cdr tree))))
-                            (if (and (eql car (car tree)) (eql cdr (cdr tree)))
-                                tree
-                                (cons car cdr))))
-                         (t tree))
-                   tree)))
-      (let* ((copy (copy *soft*))
-             (stmt (stmt-with-text copy "assert(argc > 0);")))
-        (is (equalp (peel-banana-tree "assert((|someVal|) > 0);")
-                    (nest (source-text)
-                          (rebind-vars stmt
-                                       (peel-banana-tree
-                                        '(("(|argc|)" "(|someVal|)")))
-                                       nil)))
-            "rebind-vars did not rebind a variable within a macro")))))
+    (let* ((copy (copy *soft*))
+           (stmt (stmt-with-text copy "assert(argc > 0);")))
+      (is (equalp "assert(someVal > 0);"
+                  (source-text (rebind-vars stmt
+                                            '(("argc" "someVal"))
+                                            nil)))
+          "rebind-vars did not rebind a variable within a macro"))))

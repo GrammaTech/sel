@@ -4,7 +4,7 @@
 
 # NAME
 
-clang-mutate - Instrument C-language source files
+clang-instrument - Instrument C-language source files
 
 # SYNOPSIS
 
@@ -111,10 +111,3 @@ can produce large volumes of highly repetitive output.
     # [...]
 
     run_it [args];
-
-# SEE ALSO
-
-`clang-mutate` (1).
-The `clang-mutate` tool is used by `clang-instrument` to performs
-performs source-to-source transformations (or mutations) over C
-language source..

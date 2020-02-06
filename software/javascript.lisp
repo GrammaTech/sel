@@ -302,7 +302,7 @@
                                    (aget :local ast-alist))
                              :test #'equal))
                           (t nil))))
-       (make-children (genome parent-alist alist child-alists child-asts)
+       (make-children (genome alist child-alists child-asts)
          (if child-alists
              (iter (with start = (aget :start alist))
                    (for child-alist in child-alists)
@@ -317,26 +317,24 @@
                                                    start
                                                    (aget :end alist)))))))
              (list (subseq genome (aget :start alist) (aget :end alist)))))
-       (make-tree (genome parent-ast-alist ast-alist
+       (make-tree (genome ast-alist
                           &aux (children (collect-children ast-alist))
-                        (new-ast-node (-> (make-javascript-ast-node
-                                            :class (make-keyword
+                          (new-ast-node (-> (make-javascript-ast-node
+                                             :class (make-keyword
                                                      (string-upcase
-                                                       (aget :type ast-alist))))
-                                           (add-aux-data ast-alist))))
+                                                      (aget :type ast-alist))))
+                                            (add-aux-data ast-alist))))
          (make-javascript-ast
            :node new-ast-node
            :children (make-children
                        genome
-                       parent-ast-alist
                        ast-alist
                        children
                        (iter (for child in children)
                              (collect (make-tree genome
-                                                 ast-alist
                                                  child)))))))
     (setf (ast-root obj)
-          (fix-newlines (make-tree (genome obj) nil (parse-asts obj))))
+          (fix-newlines (make-tree (genome obj) (parse-asts obj))))
     (setf (slot-value obj 'genome)
           nil)
     obj))
@@ -378,8 +376,19 @@ BIN location where the phenome will be created on the filesystem"
 * VAR-REPLACEMENTS list of old-name, new-name pairs defining the rebinding
 * FUN-REPLACEMENTS list of old-function-info, new-function-info pairs defining
 the rebinding"
-  (copy ast :children (mapcar {rebind-vars _ var-replacements fun-replacements}
-                              (ast-children ast))))
+  (if (eq (ast-class ast) :Identifier)
+      (copy ast :children (mapcar {rebind-vars _
+                                               var-replacements
+                                               fun-replacements}
+                                  (ast-children ast)))
+      (let ((c (mapcar (lambda (c)
+                         (cond ((stringp c) c)
+                               (t (rebind-vars c var-replacements
+                                               fun-replacements))))
+                       (ast-children ast))))
+        (if (every #'eql c (ast-children ast))
+            ast
+            (copy ast :children c)))))
 
 (defmethod enclosing-scope ((obj javascript) (ast javascript-ast))
   "Return the enclosing scope of AST in OBJ.
@@ -455,7 +464,7 @@ AST ast to return the scopes for"
                    ; build result
                    (mappend
                      (lambda (ast)
-                       `(((:name . ,(peel-bananas (source-text ast)))
+                       `(((:name . ,(source-text ast))
                           (:decl . ,(get-parent-decl obj ast))
                           (:scope . ,scope)))))
                    (reverse))
@@ -474,7 +483,7 @@ AST ast to return the scopes for"
                                                 +js-bound-id-parent-classes+
                                                 (list :CallExpression
                                                       :MemberExpression)))))
-                        (list (cons :name (peel-bananas (source-text ast)))))
+                        (list (cons :name (source-text ast))))
                       (mapcar {get-unbound-vals-helper obj ast}
                               (get-immediate-children obj ast)))
                :test #'equal)))
@@ -492,14 +501,12 @@ AST ast to return the scopes for"
              (cond ((eq (ast-class callee) :Identifier)
                     ;; Free function call
                     (list (-> (source-text callee)
-                              (peel-bananas)
                               (list nil nil (length (cdr children))))))
                    ((eq (ast-class callee) :MemberExpression)
                     ;; Member function call
                     (list (-> (get-immediate-children obj callee)
                               (second)
                               (source-text)
-                              (peel-bananas)
                               (list nil nil (length (cdr children))))))
                    (t nil)))
            (mapcar {get-unbound-funs obj}

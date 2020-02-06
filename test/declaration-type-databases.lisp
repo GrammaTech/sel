@@ -17,8 +17,7 @@
    :software-evolution-library
    :software-evolution-library/utility
    :software-evolution-library/software/parseable
-   :software-evolution-library/software/clang
-   :software-evolution-library/software/new-clang)
+   :software-evolution-library/software/clang)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
@@ -29,7 +28,7 @@
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-declaration-type-databases
     "Tests of declaration and type databases on clang objects."
-  (clang-mutate-available-p))
+  (clang-available-p))
 
 (defvar *huf* nil "Holds the huf software object.")
 
