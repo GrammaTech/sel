@@ -15,6 +15,9 @@
    #+gt :testbot
    :software-evolution-library
    :software-evolution-library/utility
+   :software-evolution-library/software/java
+   :software-evolution-library/software/project
+   :software-evolution-library/software/java-project
    :software-evolution-library/components/instrument)
   (:import-from :uiop :nest)
   (:shadowing-import-from

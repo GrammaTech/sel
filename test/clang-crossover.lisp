@@ -1218,6 +1218,16 @@
         (is (not (stmt-with-text variant "int b;" :no-error t)))
         (is (not (stmt-with-text variant "b = 1;" :no-error t)))))))
 
+(defixture intraprocedural-2pt-crossover-bug-clang
+  (:setup
+   (setf *soft*
+         (from-file (make-clang :compiler "clang"
+                                :flags '("-g -m32 -O0"))
+                    (clang-crossover-dir
+                     "intraprocedural-2pt-crossover-bug.c"))))
+  (:teardown
+   (setf *soft* nil)))
+
 (deftest (intraprocedural-2pt-crossover-does-not-crash :long-running) ()
   (with-fixture intraprocedural-2pt-crossover-bug-clang
     (let ((variant (intraprocedural-2pt-crossover

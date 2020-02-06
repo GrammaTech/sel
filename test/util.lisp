@@ -8,7 +8,8 @@
         :software-evolution-library/utility
         :software-evolution-library/stefil-plus
         :software-evolution-library/software/ast
-        :software-evolution-library/software/parseable)
+        :software-evolution-library/software/parseable
+        :software-evolution-library/software/java-project)
   (:export :test
            :+etc-dir+
            :+gcd-dir+

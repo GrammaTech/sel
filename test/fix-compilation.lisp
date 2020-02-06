@@ -21,7 +21,8 @@
    :software-evolution-library/software/clang
    :software-evolution-library/software/new-clang
    :software-evolution-library/software/clang-w-fodder
-   :software-evolution-library/components/fix-compilation)
+   :software-evolution-library/components/fix-compilation
+   :software-evolution-library/components/json-fodder-database)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop

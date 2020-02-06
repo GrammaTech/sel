@@ -18,6 +18,8 @@
    :software-evolution-library/utility
    :software-evolution-library/software/ast
    :software-evolution-library/software/parseable
+   :software-evolution-library/software/clang
+   :software-evolution-library/software/new-clang
    :software-evolution-library/components/condition-synthesis
    :software-evolution-library/components/test-suite)
   (:import-from :uiop :nest)

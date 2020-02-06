@@ -33,6 +33,9 @@
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-javascript-project "Javascript representation." (acorn-available-p))
 
+(define-software javascript-traceable  (javascript sexp-traceable) ())
+(define-software javascript-traceable-project  (javascript-project sexp-traceable) ())
+
 (let ((fib-path (merge-pathnames-as-file (javascript-dir #P"fib-project/")
                                          "fib.js"))
       (app-path (merge-pathnames-as-file (javascript-dir #P"fib-project/")

@@ -20,6 +20,7 @@
    :software-evolution-library/software/simple
    :software-evolution-library/software/clang
    :software-evolution-library/software/new-clang
+   :software-evolution-library/software/project
    :software-evolution-library/software/clang-project
    :software-evolution-library/software/json)
   (:import-from :uiop :nest)

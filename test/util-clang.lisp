@@ -236,16 +236,6 @@
   (:teardown
    (setf *soft* nil)))
 
-(defixture intraprocedural-2pt-crossover-bug-clang
-  (:setup
-   (setf *soft*
-         (from-file (make-clang :compiler "clang"
-                                :flags '("-g -m32 -O0"))
-                    (clang-crossover-dir
-                     "intraprocedural-2pt-crossover-bug.c"))))
-  (:teardown
-   (setf *soft* nil)))
-
 (defixture binary-search-clang
   (:setup
    (setf *binary-search*

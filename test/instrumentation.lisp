@@ -557,6 +557,7 @@ prints unique counters in the trace"
                          [{eq index} {aget :c}]»
                      trace)))))))
 
+#+fixme ; FIXME: define ast-includes on new-clang or delete this test.
 (deftest (uninstrument-instrument-is-identity :long-running) ()
   (with-fixture gcd-clang
     (let ((orig (copy *gcd*))
