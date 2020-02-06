@@ -34,18 +34,10 @@
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-java "JAVA representation." :silent)
 
-(define-constant +java-dir+ (append +etc-dir+ (list "java" "non-instrumented"))
-  :test #'equalp
-  :documentation "Path to directory holding java.")
-
 (defun java-dir (filename)
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
                  :directory +java-dir+))
-
-(define-constant +maven-prj-dir+ (append +java-dir+ (list "SimpleMaven"))
-  :test #'equalp
-  :documentation "Path to directory holding the SimpleMaven java project.")
 
 (define-constant +java-jars-dir+ (append +java-dir+ (list "Jars"))
   :test #'equalp

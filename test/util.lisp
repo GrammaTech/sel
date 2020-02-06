@@ -16,6 +16,8 @@
            :+grep-prj-dir+
            :+multi-file-dir+
            :+asm-test-dir+
+           :+java-dir+
+           :+maven-prj-dir+
            ;; Other functions
            :acorn-available-p
            :stmt-with-text
@@ -190,6 +192,14 @@ AST holding STMT is found."
 
 
 ;;; Fixtures
+(define-constant +java-dir+ (append +etc-dir+ (list "java" "non-instrumented"))
+  :test #'equalp
+  :documentation "Path to directory holding java.")
+
+(define-constant +maven-prj-dir+ (append +java-dir+ (list "SimpleMaven"))
+  :test #'equalp
+  :documentation "Path to directory holding the SimpleMaven java project.")
+
 (defixture java-project
   (:setup
    (setf *soft*
