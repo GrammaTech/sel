@@ -18,7 +18,8 @@
    :software-evolution-library/software/java
    :software-evolution-library/software/project
    :software-evolution-library/software/java-project
-   :software-evolution-library/components/instrument)
+   :software-evolution-library/components/instrument
+   :software-evolution-library/components/java-instrument)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop

@@ -21,9 +21,10 @@
    :software-evolution-library/software/javascript
    :software-evolution-library/software/json
    :software-evolution-library/components/formatting
-   :software-evolution-library/components/traceable
    :software-evolution-library/components/instrument
-   :software-evolution-library/components/javascript-instrument)
+   :software-evolution-library/components/javascript-instrument
+   :software-evolution-library/components/traceable
+   :software-evolution-library/components/test-suite)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop
