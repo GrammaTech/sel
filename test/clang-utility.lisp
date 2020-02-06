@@ -233,8 +233,3 @@
                                         '(("(|argc|)" "(|someVal|)")))
                                        nil)))
             "rebind-vars did not rebind a variable within a macro")))))
-
-
-;;;; Java representation.
-(defun java-mutate-available-p ()
-  (zerop (nth-value 2 (shell "which java-mutator"))))

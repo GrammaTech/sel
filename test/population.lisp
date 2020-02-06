@@ -30,8 +30,6 @@
 (defsuite test-population "Population tests."
   (clang-mutate-available-p))
 
-(defvar *huf* nil "Holds the huf software object.")
-
 (defixture population
   (:setup (setf *population* (loop :for i :from 1 :to 9
                                 collect (make-instance 'soft

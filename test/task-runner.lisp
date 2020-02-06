@@ -25,6 +25,32 @@
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-task-runner "TASK-RUNNER tests.")
 
+;;; Task support
+(defclass child-task (task) ())
+(defclass parent-task (task) ())
+(defmethod task-job ((task parent-task) runner)
+  (declare (ignore runner))
+  (let ((index 0))
+    (lambda ()
+      (if (<= (incf index) 20)
+          (make-instance 'child-task
+            :object (format nil "~A-~D"
+                            (task-object task) index))))))
+(defmethod process-task ((task child-task) runner)
+  (task-save-result runner (task-object task)) ;; save the object
+  (sleep 1)) ;; sleep 1 second
+
+(defixture task-runner
+  (:setup (setf
+           *soft*
+           (list (run-task (make-instance 'parent-task :object "test1") 10)
+                 (run-task (make-instance 'parent-task :object "test2") 20)))
+          ;; wait for all the threads to terminate
+          (mapcar 'bt:join-thread (task-runner-workers (first *soft*)))
+          (mapcar 'bt:join-thread (task-runner-workers (second *soft*))))
+  (:teardown
+   (setf *soft* nil)))
+
 ;; simple test to see if the whole file parsed correctly
 (deftest (task-runner-1 :long-running) ( )
   (let (length)

@@ -173,24 +173,6 @@ AST holding STMT is found."
       (values (copy a) (list :fake))))
 
 
-;;;
-;;; Task support
-;;;
-(defclass child-task (task) ())
-(defclass parent-task (task) ())
-(defmethod task-job ((task parent-task) runner)
-  (declare (ignore runner))
-  (let ((index 0))
-    (lambda ()
-      (if (<= (incf index) 20)
-          (make-instance 'child-task
-            :object (format nil "~A-~D"
-                            (task-object task) index))))))
-(defmethod process-task ((task child-task) runner)
-  (task-save-result runner (task-object task)) ;; save the object
-  (sleep 1)) ;; sleep 1 second
-
-
 ;;; Fixtures
 (define-constant +java-dir+ (append +etc-dir+ (list "java" "non-instrumented"))
   :test #'equalp
@@ -246,14 +228,3 @@ of the same length"
       (not (every (lambda (x y)
                     (string= (source-text x) (source-text y)))
                   this that))))
-
-(defixture task-runner
-  (:setup (setf
-           *soft*
-           (list (run-task (make-instance 'parent-task :object "test1") 10)
-                 (run-task (make-instance 'parent-task :object "test2") 20)))
-          ;; wait for all the threads to terminate
-          (mapcar 'bt:join-thread (task-runner-workers (first *soft*)))
-          (mapcar 'bt:join-thread (task-runner-workers (second *soft*))))
-  (:teardown
-   (setf *soft* nil)))

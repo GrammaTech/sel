@@ -16,6 +16,7 @@
    :software-evolution-library
    :software-evolution-library/utility
    :software-evolution-library/software/elf
+   :software-evolution-library/software/elf-cisc
    :software-evolution-library/software/elf-risc)
   (:import-from :uiop :nest)
   (:shadowing-import-from
@@ -142,11 +143,3 @@
       (let ((new (crossover variant *gcd*)))
         (is (not (equal-it (genome new) (genome *gcd*))))
         (is (= (length (bytes *gcd*)) (length (bytes variant))))))))
-
-
-;;; Clang representation.
-(defun clang-mutate-available-p ()
-  #+windows
-  nil
-  #-windows
-  (zerop (nth-value 2 (shell "which clang-mutate"))))

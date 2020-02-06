@@ -23,6 +23,7 @@
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
   (:export :test-serapi
+           :serapi
            :serapi-available-p
            :coq-test-dir))
 (in-package :software-evolution-library/test/serapi)

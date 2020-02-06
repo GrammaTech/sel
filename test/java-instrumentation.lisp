@@ -29,7 +29,6 @@
 (in-package :software-evolution-library/test/java-instrumentation)
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-java-instrumentation "JAVA representation."
-  ;; (java-mutate-available-p)
   :silent-instrumentation)
 
 (deftest (multi-threaded-java-instrument-test :long-running) ()
