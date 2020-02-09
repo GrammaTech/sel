@@ -92,11 +92,12 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defstruct async-job-type
     "Entry in async-job-type table."
-    job-name        ; Symbol names the job type.
-    arg-names       ; Lambda-list for user-defined function.
+    (job-name nil)        ; Symbol names the job type.
+    (arg-names nil)       ; Lambda-list for user-defined function.
     ;; Type of each argument :LAMBDA-LIST-KEYWORD pseudo-type is used
     ;; for lambda list keywords.
-    arg-types func)
+    (arg-types nil)
+    (func nil))
 
   (defvar *async-job-types* (make-hash-table :test 'equalp)
     "Registry of async-job-types.")

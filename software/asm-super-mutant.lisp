@@ -468,11 +468,11 @@
 (defun simd-reg-p (name) (char= (elt name 0) #\y))
 
 (defstruct memory-spec
-  addr   ; 64-bit address as an int
-  mask   ; bit set for each live byte starting at addr,
+  (addr nil)   ; 64-bit address as an int
+  (mask nil)   ; bit set for each live byte starting at addr,
 					; low-bit (bit 0) = addr,
                                         ; bit 1 = addr+1, etc.
-  bytes) ; 8 bytes starting at addr
+  (bytes nil)) ; 8 bytes starting at addr
 
 (defun bytes-to-string (ba)
   (format nil "~{ ~2,'0X~}" (concatenate 'list ba)))
@@ -484,8 +484,8 @@
 	  (bytes-to-string (memory-spec-bytes mem))))
 
 (defstruct reg-contents
-  name     ; name of register (string) i.e. "rax", "ymm1", etc.
-  value)   ; integer value (64 bits for gen. purpose, 256 bit for SIMD)
+  (name nil)     ; name of register (string) i.e. "rax", "ymm1", etc.
+  (value nil))   ; integer value (64 bits for gen. purpose, 256 bit for SIMD)
 
 (defmethod print-object ((reg reg-contents) stream)
   (format stream "~4A: ~A" (reg-contents-name reg)
@@ -495,9 +495,9 @@
 ;;; This struct also is used to specify outputs.
 ;;;
 (defstruct input-specification
-  regs
-  simd-regs
-  mem)   ;; vector of memory-spec to indicate all memory inputs
+  (regs nil)
+  (simd-regs nil)
+  (mem nil))   ;; vector of memory-spec to indicate all memory inputs
 
 (defmethod print-object ((spec input-specification) stream)
   (print-unreadable-object (spec stream)
@@ -529,9 +529,9 @@
 ;;; Store name and address of data variables
 ;;;
 (defstruct var-rec
-  name     ; string, name of variable
-  type     ; string, "b", "r", "d", "?"
-  address) ; integer address
+  (name nil)     ; string, name of variable
+  (type nil)     ; string, "b", "r", "d", "?"
+  (address nil)) ; integer address
 
 ;;; whitespace handling
 ;;;

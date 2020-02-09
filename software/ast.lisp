@@ -363,8 +363,10 @@ a given conflict key, and for each conflict node, get the list of children
 corresponding to that key (default if the key is not present), and splice
 that list of children in place of the conflict node in its parent's children
 list."
-  child-alist    ; Mapping from conflict options to lists of children.
-  default-children) ; Children to use for keys not present in CHILD-ALIST.
+  ;; Mapping from conflict options to lists of children.
+  (child-alist nil)
+  ;; Children to use for keys not present in CHILD-ALIST.
+  (default-children nil))
 
 (defmethod copy
     ((struct conflict-ast) &key
@@ -1048,8 +1050,8 @@ modile +AST-HASH-BASE+"
                    (a (aref a-coeffs im))
                    (b (aref b-coeffs im)))
               ;; RESULT is squared to avoid linearity
-              ;; Without this, trees that have certain permutations of leaf
-              ;; values can be likely to hash to the same integer.
+              ;; Without this, trees that have certain permutations
+              ;; of leaf values can be likely to hash to the same integer.
               (setf result (mod (+ i b (* a hv) (* result result p)) hb))))
       result))
 
@@ -1070,6 +1072,8 @@ modile +AST-HASH-BASE+"
               (setf result (mod (+ i b (* a hv) (* result result p)) hb))))
       result))
 
+  (defmethod ast-hash ((x t)) 0)
+
   (defmethod ast-hash ((i integer))
     (let ((c1 34188292748050745)
           (c2 38665981814718286))
@@ -1085,17 +1089,26 @@ modile +AST-HASH-BASE+"
 
   (defmethod ast-hash ((l cons))
     ;; Assumes not a circular list
-    (apply #'ast-combine-hash-values
-           16335929882652762
-           (iter
-            (collect (if (consp l)
-                         (ast-hash (car l))
-                         ;; add a constant to distinguish (X Y)
-                         ;; from (X . Y)
-                         (+ 41019876016299766
-                            (ast-hash l))))
-            (while (consp l))
-            (pop l))))
+    (declare (notinline ast-combine-hash-values))
+    (let* ((any? nil)
+           (args
+            (iter
+             (collect (if (consp l)
+                          (let ((h (ast-hash (car l))))
+                            (unless (eql h 0) (setf any? t))
+                            h)
+                          ;; add a constant to distinguish (X Y)
+                          ;; from (X . Y)
+                          (let ((h (ast-hash l)))
+                            (unless (eql h 0) (setf any? t))
+                            (+ 41019876016299766 h))))
+             (while (consp l))
+             (pop l))))
+      (if any?
+          (apply #'ast-combine-hash-values
+                 16335929882652762
+                 args)
+          0)))
 
   (defmethod ast-hash ((n null))
     46757794301535766)

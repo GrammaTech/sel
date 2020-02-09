@@ -83,27 +83,27 @@
 (in-readtable :curry-compose-reader-macros)
 
 (defstruct (asm-line-info (:copier copy-asm-line-info))
-  text     ; original text
-  tokens   ; list of tokens after parsing
-  type     ; empty (white space/comments), decl, data, label-decl, op)
-  label    ; for operations which refer to labels
-  opcode   ; for operations
-  operands ; the operands that are associated with the opcode
-  id       ; unique index in heap, sequential starting at 0
-  orig-file   ; path of the orignal .asm file that was loaded (if any)
-  orig-line ; line number (0-based) of line in original .asm file (if any)
-  address  ; original address of code or data
-  properties)   ; properties (used for custom purposes)
+  (text nil)     ; original text
+  (tokens nil)   ; list of tokens after parsing
+  (type nil)     ; empty (white space/comments), decl, data, label-decl, op)
+  (label nil)    ; for operations which refer to labels
+  (opcode nil)   ; for operations
+  (operands nil) ; the operands that are associated with the opcode
+  (id nil)       ; unique index in heap, sequential starting at 0
+  (orig-file nil)  ; path of the orignal .asm file that was loaded (if any)
+  (orig-line nil) ; line number (0-based) of line in original .asm file (if any)
+  (address nil)  ; original address of code or data
+  (properties nil))   ; properties (used for custom purposes)
 
 (defstruct function-index-entry
   "Entry into the index, which is a vector of all the functions in the file."
-  name              ; function name
-  start-line        ; first line index, zero-based, of genome
-  start-address     ; address of first line
-  end-line          ; last line index, zero-based, of genome
-  end-address       ; address of last line
-  is-leaf           ; true, if function does not make any calls
-  declarations)     ; list of declaration lines found for the function
+  (name nil)              ; function name
+  (start-line nil)        ; first line index, zero-based, of genome
+  (start-address nil)     ; address of first line
+  (end-line nil)          ; last line index, zero-based, of genome
+  (end-address nil)       ; address of last line
+  (is-leaf nil)           ; true, if function does not make any calls
+  (declarations nil))     ; list of declaration lines found for the function
 
 
 (define-software asm-heap (asm)

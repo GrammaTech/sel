@@ -354,7 +354,7 @@ methods")
   (types nil :type list)
   (unbound-funs nil :type list)
   (unbound-vals nil :type list)
-  varargs
+  (varargs nil)
   (void-ret nil :type boolean)) ;; this is set by from-alist
 
 (define-immutable-node-struct (clang-type (:conc-name type-impl))
