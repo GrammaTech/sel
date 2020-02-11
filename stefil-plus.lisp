@@ -54,7 +54,7 @@
    :parse-body :simple-style-warning)
   (:export :defroot
            :defsuite
-	   :*long-tests*
+           :*long-tests*
            :*time-threshold*
            :deftest
            :defixture
@@ -65,8 +65,8 @@
            :run-failed-tests
            :*debug-on-unexpected-error*
            :*debug-on-assertion-failure*
-	   :long-running-p
-	   :long-running
+           :long-running-p
+           :long-running
            :with-retries))
 
 (in-package :sel/stefil+)
@@ -122,58 +122,58 @@ return non-nil when the test suite should be run and nil otherwise."
          (assert *root-suite* (*root-suite*)
               "Default suite *root-suite* must be set to use `DEFSUITE'.")
 
-	 (when (or (boundp ',name) (fboundp ',name))
-	   (warn 'stefil::test-style-warning
+         (when (or (boundp ',name) (fboundp ',name))
+           (warn 'stefil::test-style-warning
                  :format-control
                  "Defining ~a with `DEFSUITE' overwrites existing definition."
-		 :format-arguments (list ',name)))
-	 (when (or (boundp ',long-name) (fboundp ',long-name))
-	   (warn 'stefil::test-style-warning
+                 :format-arguments (list ',name)))
+         (when (or (boundp ',long-name) (fboundp ',long-name))
+           (warn 'stefil::test-style-warning
                  :format-control
                  "Defining ~a with `DEFSUITE' overwrites existing definition."
-		 :format-arguments (list ',long-name)))
-	 (defsuite* (,name :in ,(intern (symbol-name *root-suite*) *package*)
-			   :documentation ,documentation) ()
-	   (let ((,test (find-test ',name)))
+                 :format-arguments (list ',long-name)))
+         (defsuite* (,name :in ,(intern (symbol-name *root-suite*) *package*)
+                           :documentation ,documentation) ()
+           (let ((,test (find-test ',name)))
              #'run-child-tests ;; included to suppress compiler note
-	     (cond
-	       ((stefil::test-was-run-p ,test)
-		(warn "Skipped executing already run tests suite ~S"
-		      (stefil::name-of ,test)))
-	       ,@(if (eq test-pre-check :silent)
-		     '()
-		     `(,@(if test-pre-check
-			     `((,test-pre-check
-				(run-child-tests)))
-			     nil)
-			 (t (warn "Skipped executing disabled tests suite ~S."
-				  (stefil::name-of ,test))))))))
-	 (defsuite* (,long-name :in
-				,(intern (symbol-name *root-suite*) *package*)
-				:documentation ,documentation)
+             (cond
+               ((stefil::test-was-run-p ,test)
+                (warn "Skipped executing already run tests suite ~S"
+                      (stefil::name-of ,test)))
+               ,@(if (eq test-pre-check :silent)
+                     '()
+                     `(,@(if test-pre-check
+                             `((,test-pre-check
+                                (run-child-tests)))
+                             nil)
+                         (t (warn "Skipped executing disabled tests suite ~S."
+                                  (stefil::name-of ,test))))))))
+         (defsuite* (,long-name :in
+                                ,(intern (symbol-name *root-suite*) *package*)
+                                :documentation ,documentation)
              ()
-	   (let ((,test (find-test ',long-name)))
+           (let ((,test (find-test ',long-name)))
              #'run-child-tests ;; included to suppress compiler note
-	     (cond
-	       ((stefil::test-was-run-p ,test)
-		(warn "Skipped executing already run tests suite ~S"
-		      (stefil::name-of ,test)))
-	       ,@(if (eq test-pre-check :silent)
-		     '()
-		     `(,@(if test-pre-check
-			     `((,test-pre-check
-				(when *long-tests* (run-child-tests))))
-			     nil)
-			 (t (warn "Skipped executing disabled tests suite ~S."
-				  (stefil::name-of ,test))))))))
-	 (in-suite ,name)))))
+             (cond
+               ((stefil::test-was-run-p ,test)
+                (warn "Skipped executing already run tests suite ~S"
+                      (stefil::name-of ,test)))
+               ,@(if (eq test-pre-check :silent)
+                     '()
+                     `(,@(if test-pre-check
+                             `((,test-pre-check
+                                (when *long-tests* (run-child-tests))))
+                             nil)
+                         (t (warn "Skipped executing disabled tests suite ~S."
+                                  (stefil::name-of ,test))))))))
+         (in-suite ,name)))))
 
 (defun mov-test (test-name new-parent-name &rest test-args)
   "Move a child test to a different parent."
   (bind ((test (apply #'find-test test-name test-args))
          (parent (when test
                    (stefil::parent-of test)))
-	 (new-parent (find-test new-parent-name)))
+         (new-parent (find-test new-parent-name)))
     (when test
       (assert parent
               () "You can not move a test which has no parent")
@@ -202,9 +202,9 @@ the argument."
   (:report
    (lambda (condition stream)
      (format stream
-	     "Test ~A took ~F seconds to run, it is considered long-running."
-	     (test-exceeds-threshold-name condition)
-	     (test-exceeds-threshold-time condition)))))
+             "Test ~A took ~F seconds to run, it is considered long-running."
+             (test-exceeds-threshold-name condition)
+             (test-exceeds-threshold-time condition)))))
 
 (defmacro check-time (test-name &body body)
   "If elapsed real time of test exceeds *time-threshold*, a warning
@@ -212,18 +212,18 @@ is output. In any case, this macro executes BODY and returns any resulting
 values."
   (with-gensyms (start-time result end-time elapsed)
     `(let* ((,start-time (get-internal-real-time))
-	    (,result (progn ,@body))
-	    (,end-time (get-internal-real-time))
+            (,result (progn ,@body))
+            (,end-time (get-internal-real-time))
             (,elapsed (float
-		       (/ (- ,end-time ,start-time)
-		          internal-time-units-per-second))))
+                       (/ (- ,end-time ,start-time)
+                          internal-time-units-per-second))))
        (declare (special *time-threshold*))
        (if (and
-	    (> ,elapsed *time-threshold*)
-	    (not (long-running-p ,test-name)))
-	   (warn 'test-exceeds-time-threshold
-	         :name ,test-name
-	         :time ,elapsed))
+            (> ,elapsed *time-threshold*)
+            (not (long-running-p ,test-name)))
+           (warn 'test-exceeds-time-threshold
+                 :name ,test-name
+                 :time ,elapsed))
        ,result)))
 
 ;;;
@@ -236,44 +236,44 @@ values."
   than *TIME-THRESHOLD* seconds, a warning is output."
 
   (let ((long-running nil)
-	(decls-or-doc '())
-	(body-remaining '()))
+        (decls-or-doc '())
+        (body-remaining '()))
     (when (listp name)
       (if (member ':long-running name)
-	  (setf long-running t))
+          (setf long-running t))
       (if (symbolp (first name))
-	  (setf name (first name))))
+          (setf name (first name))))
 
     ;; separate the declarations and doc strings from remaining forms
     (do ((b body (cdr b)))
-	((null b))
+        ((null b))
       (if (or (stringp (car b))
-	      (and (listp (car b)) (eq (caar b) 'declare)))
-	  (push (car b) decls-or-doc)
-	  (progn (setf body-remaining b) (return))))
+              (and (listp (car b)) (eq (caar b) 'declare)))
+          (push (car b) decls-or-doc)
+          (progn (setf body-remaining b) (return))))
 
     (if long-running
         `(let ((stefil::*suite*
-	        (find-test
-	         (find-long-running-suite
-	          (stefil::name-of stefil::*suite*)))))
+                (find-test
+                 (find-long-running-suite
+                  (stefil::name-of stefil::*suite*)))))
            (stefil::deftest ,name ,args
-	     ,@(append (nreverse decls-or-doc) '((declare (long-running t))))
-			    (check-time ',name (progn ,@body-remaining))))
+             ,@(append (nreverse decls-or-doc) '((declare (long-running t))))
+             (check-time ',name (progn ,@body-remaining))))
         `(stefil::deftest ,name ,args ,@(nreverse decls-or-doc)
-			  (check-time ',name (progn ,@body-remaining))))))
+                          (check-time ',name (progn ,@body-remaining))))))
 
 (defun long-running-p (test)
   "Given the name of a test, returns true iff test has been flagged
 long-running."
   (let ((test-obj (find-test test)))
     (and test-obj
-	 (find-if
-	  (lambda (x)
-	    (and (listp x)
-		 (equalp x '(declare (sel/stefil+::long-running t)))))
-	  (stefil::declarations-of test-obj))
-	 t)))
+         (find-if
+          (lambda (x)
+            (and (listp x)
+                 (equalp x '(declare (sel/stefil+::long-running t)))))
+          (stefil::declarations-of test-obj))
+         t)))
 
 (defmacro with-retries ((number &optional failure) &body body)
   "Try BODY NUMBER times.  If no try returns then return FAILURE.
