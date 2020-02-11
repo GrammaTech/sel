@@ -132,40 +132,47 @@ return non-nil when the test suite should be run and nil otherwise."
                  :format-control
                  "Defining ~a with `DEFSUITE' overwrites existing definition."
                  :format-arguments (list ',long-name)))
-         (defsuite* (,name :in ,(intern (symbol-name *root-suite*) *package*)
-                           :documentation ,documentation) ()
-           (let ((,test (find-test ',name)))
-             #'run-child-tests ;; included to suppress compiler note
-             (cond
-               ((stefil::test-was-run-p ,test)
-                (warn "Skipped executing already run tests suite ~S"
-                      (stefil::name-of ,test)))
-               ,@(if (eq test-pre-check :silent)
-                     '()
-                     `(,@(if test-pre-check
-                             `((,test-pre-check
-                                (run-child-tests)))
-                             nil)
-                         (t (warn "Skipped executing disabled tests suite ~S."
-                                  (stefil::name-of ,test))))))))
-         (defsuite* (,long-name :in
-                                ,(intern (symbol-name *root-suite*) *package*)
-                                :documentation ,documentation)
-             ()
-           (let ((,test (find-test ',long-name)))
-             #'run-child-tests ;; included to suppress compiler note
-             (cond
-               ((stefil::test-was-run-p ,test)
-                (warn "Skipped executing already run tests suite ~S"
-                      (stefil::name-of ,test)))
-               ,@(if (eq test-pre-check :silent)
-                     '()
-                     `(,@(if test-pre-check
-                             `((,test-pre-check
-                                (when *long-tests* (run-child-tests))))
-                             nil)
-                         (t (warn "Skipped executing disabled tests suite ~S."
-                                  (stefil::name-of ,test))))))))
+         (handler-bind
+             ((stefil::test-style-warning
+               (lambda (condition)
+                 (if (search "Adding test under parent"
+                             (simple-condition-format-control condition))
+                     (muffle-warning condition)
+                     condition))))
+           (defsuite* (,name :in ,(intern (symbol-name *root-suite*) *package*)
+                             :documentation ,documentation) ()
+             (let ((,test (find-test ',name)))
+               #'run-child-tests ;; included to suppress compiler note
+               (cond
+                 ((stefil::test-was-run-p ,test)
+                  (warn "Skipped executing already run tests suite ~S"
+                        (stefil::name-of ,test)))
+                 ,@(if (eq test-pre-check :silent)
+                       '()
+                       `(,@(if test-pre-check
+                               `((,test-pre-check
+                                  (run-child-tests)))
+                               nil)
+                           (t (warn "Skipped executing disabled tests suite ~S."
+                                    (stefil::name-of ,test))))))))
+           (defsuite* (,long-name :in
+                                  ,(intern (symbol-name *root-suite*) *package*)
+                                  :documentation ,documentation)
+               ()
+             (let ((,test (find-test ',long-name)))
+               #'run-child-tests ;; included to suppress compiler note
+               (cond
+                 ((stefil::test-was-run-p ,test)
+                  (warn "Skipped executing already run tests suite ~S"
+                        (stefil::name-of ,test)))
+                 ,@(if (eq test-pre-check :silent)
+                       '()
+                       `(,@(if test-pre-check
+                               `((,test-pre-check
+                                  (when *long-tests* (run-child-tests))))
+                               nil)
+                           (t (warn "Skipped executing disabled tests suite ~S."
+                                    (stefil::name-of ,test)))))))))
          (in-suite ,name)))))
 
 (defun mov-test (test-name new-parent-name &rest test-args)
