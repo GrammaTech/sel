@@ -16,7 +16,6 @@
            :random-subtree
            :change-operator
            :change-constant
-           :clang-expression
            :scope
            :mult-divide
            :add-subtract
