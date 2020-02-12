@@ -694,21 +694,21 @@ REPLACEMENT.
                             replacement
                             (subseq (ast-children ast) (+ 1 n))))))
 
-(defgeneric replace-ast (tree location replacement)
-  (:documentation "Replace the AST at LOCATION in TREE with REPLACEMENT.
-
-* TREE Applicative AST tree to be modified
-* LOCATION AST marking location where replacement is to occur
-* NEW-ASTS ASTs to be inserted into TREE
-
-Note: This method is a helper for performing an AST mutation operation
-specified in parseable.lisp and should not be called directly without
-knowledge of the underlying code architecture.  Please consider using
-the methods in parseable.lisp instead.")
-  (:method ((tree ast) (location ast) (replacement ast))
-    (replace-ast tree (ast-path location) replacement))
-
-  (:method ((tree ast) (location list) (replacement ast))
+(defgeneric replace-ast
+    (tree location replacement &key literal &allow-other-keys)
+  (:documentation "Modify and return TREE with the AST at LOCATION replaced
+with REPLACEMENT.
+* OBJ object to be modified
+* LOCATION location where replacement is to occur
+* REPLACEMENT AST or ASTs to insert
+* LITERAL keyword to control whether recontextualization is performed
+          For modifications where the replacement is to be directly
+          inserted, pass this keyword as true.")
+  (:method ((tree t) (location ast) (replacement ast)
+            &rest args &key &allow-other-keys)
+    (apply #'replace-ast tree (ast-path location) replacement args))
+  (:method ((tree ast) (location list) (replacement ast)
+            &key &allow-other-keys)
     (labels        ; TODO: Remove or relocate all of this "fixup" logic.
         ((non-empty (str)
            "Return STR only if it's not empty.
@@ -775,22 +775,41 @@ the methods in parseable.lisp instead.")
                             (lastcar fixed))))))))
       (if location
           (helper tree location nil)
-          replacement))))
+          replacement)))
+  (:method ((obj parseable) (location list) (replacement ast)
+            &key literal &allow-other-keys)
+    (apply-mutation obj (at-targets (make-instance 'parseable-replace)
+                                    (list (cons :stmt1 location)
+                                          (cons (if literal :literal1 :value1)
+                                                replacement)))))
+  (:method ((obj parseable) (location ast) (replacement string)
+            &rest args &key &allow-other-keys)
+    (apply #'replace-ast obj (ast-path location) (list replacement) args))
+  (:method ((obj parseable) (location list) (replacement string)
+            &rest args &key &allow-other-keys)
+    (apply #'replace-ast obj location (list replacement) args))
+  (:method ((obj parseable) (location ast) (replacement list)
+            &rest args &key &allow-other-keys)
+    (apply #'replace-ast obj (ast-path location) replacement args))
+  (:method ((obj parseable) (location list) (replacement list)
+            &key literal &allow-other-keys)
+    (apply-mutation obj
+                    (at-targets (make-instance 'parseable-replace)
+                                (list (cons :stmt1 (butlast location))
+                                      (cons (if literal :literal1 :value1)
+                                            (replace-nth-child
+                                             (get-ast obj (butlast location))
+                                             (lastcar location)
+                                             replacement)))))))
 
-(defgeneric remove-ast (tree location)
+(defgeneric remove-ast (tree location &key &allow-other-keys)
   (:documentation "Return the modified TREE with the AST at LOCATION removed.
 
 * TREE Applicative AST tree to be modified
-* LOCATION AST to be removed in TREE
-
-Note: This method is a helper for performing an AST mutation operation
-specified in parseable.lisp and should not be called directly without
-knowledge of the underlying code architecture.  Please consider using
-the methods in parseable.lisp instead.")
-  (:method ((tree ast) (location ast))
-    (remove-ast tree (ast-path location)))
-
-  (:method ((tree ast) (location list))
+* LOCATION AST to be removed in TREE")
+  (:method ((tree t) (location ast) &rest args &key &allow-other-keys)
+    (apply #'remove-ast tree (ast-path location) args))
+  (:method ((tree ast) (location list) &key &allow-other-keys)
     (labels
         ((helper (tree path)
            (bind (((head . tail) path)
@@ -811,7 +830,10 @@ the methods in parseable.lisp instead.")
                                              nil
                                              (or (nth (1+ head) children) ""))
                                             (nthcdr (+ 2 head) children)))))))
-      (helper tree location))))
+      (helper tree location)))
+  (:method ((obj parseable) (location list) &key &allow-other-keys)
+    (apply-mutation obj (at-targets (make-instance 'parseable-cut)
+                                    (list (cons :stmt1 location))))))
 
 (defgeneric splice-asts (tree location new-asts)
   (:documentation "Splice NEW-ASTS directly into the given LOCATION in TREE,
@@ -847,22 +869,20 @@ the methods in parseable.lisp instead.")
                                             (nthcdr (1+ head) children)))))))
       (helper tree location))))
 
-(defgeneric insert-ast (tree location ast)
-  (:documentation "Return the modified TREE with AST inserted at
-LOCATION.
+(defgeneric insert-ast (tree location ast &key literal &allow-other-keys)
+  (:documentation "Return the modified OBJ with AST inserted at LOCATION.
+* OBJ object to be modified
+* LOCATION location where insertion is to occur
+* AST AST to insert
+* LITERAL keyword to control whether recontextualization is performed
+          For modifications where the replacement is to be directly
+          inserted, pass this keyword as true.")
 
-* TREE Applicative AST tree to be modified
-* LOCATION AST marking location where insertion is to occur
-* REPLACEMENT AST to insert
-
-Note: This method is a helper for performing an AST mutation operation
-specified in parseable.lisp and should not be called directly without
-knowledge of the underlying code architecture.  Please consider using
-the methods in parseable.lisp instead.")
-  (:method ((tree ast) (location ast) (replacement ast))
-    (insert-ast tree (ast-path location) replacement))
-
-  (:method ((tree ast) (location list) (replacement ast))
+  (:method ((tree t) (location ast) (ast ast)
+            &rest args &key &allow-other-keys)
+    (apply #'insert-ast tree (ast-path location) ast args))
+  (:method ((tree ast) (location list) (replacement ast)
+            &key &allow-other-keys)
     (labels
         ((helper (tree path)
            (bind (((head . tail) path)
@@ -885,7 +905,13 @@ the methods in parseable.lisp instead.")
                                              replacement
                                              (or (nth head children) ""))
                                             (nthcdr (1+ head) children)))))))
-      (helper tree location))))
+      (helper tree location)))
+  (:method ((obj parseable) (location list) (ast ast)
+            &key literal &allow-other-keys)
+    (apply-mutation obj (at-targets (make-instance 'parseable-insert)
+                                    (list (cons :stmt1 location)
+                                          (cons (if literal :literal1 :value1)
+                                                ast))))))
 
 (defgeneric insert-ast-after (tree location ast)
   (:documentation "Insert AST immediately after LOCATION in TREE, returning
@@ -2159,51 +2185,3 @@ to allow for successful mutation of SOFTWARE at PT."
                                           (cons (if literal :literal1 :value1)
                                                 ast))))))
 
-(defgeneric replace-ast (obj location replacement
-                         &key literal &allow-other-keys)
-  (:documentation "Modify and return OBJ with the AST at LOCATION replaced
-with REPLACEMENT.
-* OBJ object to be modified
-* LOCATION location where replacement is to occur
-* REPLACEMENT AST or ASTs to insert
-* LITERAL keyword to control whether recontextualization is performed
-          For modifications where the replacement is to be directly
-          inserted, pass this keyword as true.")
-  (:method ((obj parseable) (location ast) (replacement ast)
-            &rest args &key &allow-other-keys)
-    (apply #'replace-ast obj (ast-path location) replacement args))
-  (:method ((obj parseable) (location list) (replacement ast)
-            &key literal &allow-other-keys)
-    (apply-mutation obj (at-targets (make-instance 'parseable-replace)
-                                    (list (cons :stmt1 location)
-                                          (cons (if literal :literal1 :value1)
-                                                replacement)))))
-  (:method ((obj parseable) (location ast) (replacement string)
-            &rest args &key &allow-other-keys)
-    (apply #'replace-ast obj (ast-path location) (list replacement) args))
-  (:method ((obj parseable) (location list) (replacement string)
-            &rest args &key &allow-other-keys)
-    (apply #'replace-ast obj location (list replacement) args))
-  (:method ((obj parseable) (location ast) (replacement list)
-            &rest args &key &allow-other-keys)
-    (apply #'replace-ast obj (ast-path location) replacement args))
-  (:method ((obj parseable) (location list) (replacement list)
-            &key literal &allow-other-keys)
-    (apply-mutation obj
-                    (at-targets (make-instance 'parseable-replace)
-                                (list (cons :stmt1 (butlast location))
-                                      (cons (if literal :literal1 :value1)
-                                            (replace-nth-child
-                                             (get-ast obj (butlast location))
-                                             (lastcar location)
-                                             replacement)))))))
-
-(defgeneric remove-ast (obj location &key &allow-other-keys)
-  (:documentation "Return the modified OBJ with the AST at LOCATION removed.
-* OBJ object to be modified
-* LOCATION location to be removed in OBJ")
-  (:method ((obj parseable) (location ast) &rest args &key &allow-other-keys)
-    (apply #'remove-ast obj (ast-path location) args))
-  (:method ((obj parseable) (location list) &key &allow-other-keys)
-    (apply-mutation obj (at-targets (make-instance 'parseable-cut)
-                                    (list (cons :stmt1 location))))))
