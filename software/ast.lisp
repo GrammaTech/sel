@@ -1089,26 +1089,17 @@ modile +AST-HASH-BASE+"
 
   (defmethod ast-hash ((l cons))
     ;; Assumes not a circular list
-    (declare (notinline ast-combine-hash-values))
-    (let* ((any? nil)
-           (args
-            (iter
-             (collect (if (consp l)
-                          (let ((h (ast-hash (car l))))
-                            (unless (eql h 0) (setf any? t))
-                            h)
-                          ;; add a constant to distinguish (X Y)
-                          ;; from (X . Y)
-                          (let ((h (ast-hash l)))
-                            (unless (eql h 0) (setf any? t))
-                            (+ 41019876016299766 h))))
-             (while (consp l))
-             (pop l))))
-      (if any?
-          (apply #'ast-combine-hash-values
-                 16335929882652762
-                 args)
-          0)))
+    (apply #'ast-combine-hash-values
+           16335929882652762
+           (iter
+            (collect (if (consp l)
+                         (ast-hash (car l))
+                         ;; add a constant to distinguish (X Y)
+                         ;; from (X . Y)
+                         (+ 41019876016299766
+                            (ast-hash l))))
+            (while (consp l))
+            (pop l))))
 
   (defmethod ast-hash ((n null))
     46757794301535766)
