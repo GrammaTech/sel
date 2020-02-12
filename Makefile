@@ -42,7 +42,6 @@ DOC_PACKAGES =								\
 	software-evolution-library/software/asm				\
 	software-evolution-library/software/asm-heap			\
 	software-evolution-library/software/asm-super-mutant		\
-	software-evolution-library/software/ast				\
 	software-evolution-library/software/cil				\
 	software-evolution-library/software/clang			\
 	software-evolution-library/software/clang-expression		\
