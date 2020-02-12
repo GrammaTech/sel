@@ -14,9 +14,8 @@
         :split-sequence
         :software-evolution-library
         :software-evolution-library/utility
-        :software-evolution-library/software/ast
-        :software-evolution-library/software/source
         :software-evolution-library/software/parseable
+        :software-evolution-library/software/source
         :software-evolution-library/software/clang
         :software-evolution-library/software/project
         :software-evolution-library/software/clang-project

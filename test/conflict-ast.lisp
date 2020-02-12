@@ -15,7 +15,7 @@
    #+gt :testbot
    :software-evolution-library
    :software-evolution-library/utility
-   :software-evolution-library/software/ast)
+   :software-evolution-library/software/parseable)
   (:import-from :uiop :nest)
   (:shadowing-import-from
    :closer-mop

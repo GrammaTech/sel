@@ -32,7 +32,7 @@
         :software-evolution-library/software/project
         :software-evolution-library/software/git-project
         :software-evolution-library/software/clang
-        :software-evolution-library/software/ast
+        :software-evolution-library/software/parseable
         :software-evolution-library/software/javascript
         :software-evolution-library/software/java
         :software-evolution-library/software/lisp

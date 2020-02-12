@@ -18,7 +18,6 @@
         :uiop/pathname
         :software-evolution-library
         :software-evolution-library/utility
-        :software-evolution-library/software/ast
         :software-evolution-library/software/source
         :software-evolution-library/software/parseable
         :software-evolution-library/components/formatting
@@ -3039,7 +3038,7 @@ Returns outermost AST of context.
                  (outer-path (ast-path outer-stmt))
                  (rel-path (last inner-path
                                  (- (length inner-path) (length outer-path)))))
-            (setf outer-stmt (sel/sw/ast::replace-ast outer-stmt rel-path value)))))
+            (setf outer-stmt (sel/sw/parseable::replace-ast outer-stmt rel-path value)))))
 
      (cond
        ((null inward-target) outward-target)

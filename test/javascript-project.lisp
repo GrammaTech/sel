@@ -16,7 +16,6 @@
    :trace-db
    :software-evolution-library
    :software-evolution-library/utility
-   :software-evolution-library/software/ast
    :software-evolution-library/software/parseable
    :software-evolution-library/software/javascript
    :software-evolution-library/software/project
