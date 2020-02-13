@@ -288,10 +288,6 @@ first value from the `phenome' method."
 (defmethod (setf fitness-extra-data) (extra-data (obj software))
   (declare (ignorable extra-data)))
 
-(defgeneric copy (software &key &allow-other-keys)
-  (:documentation "Return a deep copy of a software object.
-Keyword arguments may be used to pass new values for specific slots."))
-
 (defmethod copy ((obj software) &key)
   (make-instance (class-of obj) :fitness (fitness obj)))
 
