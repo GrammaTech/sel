@@ -40,9 +40,8 @@
                :documentation "eval STRING as lisp code")
               (("out-dir" #\o) :type string
                :action #'handle-out-dir-argument
-               :documentation "write final population into DIR"))
-            ;; pulled from BI
-            `((("language" #\L) :type string :initial-value "c"
+               :documentation "write final population into DIR")
+              (("language" #\L) :type string :initial-value "c"
                :documentation
                "language of input files (e.g. c, c++, java, or javascript)"))
             +clang-command-line-options+
