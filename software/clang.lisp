@@ -2316,8 +2316,7 @@ it will transform this into:
        (get-parent-ast obj ast)
        (eq :CompoundStmt (ast-class (get-parent-ast obj ast)))))
 
-(defmethod nesting-depth ((clang clang) (stmt clang-ast)
-                          &optional orig-depth)
+(defmethod nesting-depth ((clang clang) stmt &optional orig-depth)
   "DOCFIXME
 * CLANG DOCFIXME
 * STMT DOCFIXME
