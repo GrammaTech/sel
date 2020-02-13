@@ -24,7 +24,15 @@
 
 (defclass lisp-ast (ast)
   ((expression :initarg :expression :initform nil :reader expression
-               :type list))
+               :type list)
+   (children :reader children
+             :type list
+             :initarg :children
+             :initform nil
+             :documentation "The list of children of the node,
+which may be more nodes, or other values.")
+   (child-slots :initform '(children) :allocation :class)
+   (data-slot :initform 'expression :allocation :class))
   (:documentation "Class of Common Lisp ASTs."))
 
 (defmethod fset-default-node-accessor ((node-type (eql 'lisp-ast)))
