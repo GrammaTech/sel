@@ -656,21 +656,6 @@ operations."
                       (t (path-later-p tail-a tail-b))))))))
     (path-later-p (ast-path ast-a) (ast-path ast-b))))
 
-#+not-needed
-(defgeneric deep-copy (ast)
-  (:documentation "Perform a deep copy of an AST.")
-  (:method ((obj string)) (copy-seq obj))
-  (:method ((obj (eql nil))) (error "Not callable on nil!"))
-  (:method ((obj ast))
-    (copy obj :children (mapcar #'deep-copy (ast-children obj))))
-  (:method ((obj conflict-ast))
-    (copy obj
-          :children (mapcar #'deep-copy (ast-children obj))
-          :child-alist (mapcar (lambda (pair)
-                                 (destructuring-bind (key . value) pair
-                                   (cons key (mapcar #'deep-copy value))))
-                               (conflict-ast-child-alist obj)))))
-
 
 ;;; Tree manipulations
 ;;;
