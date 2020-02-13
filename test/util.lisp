@@ -165,7 +165,7 @@ AST holding STMT is found."
       (error (make-condition 'mutate
                              :text "FAKE"
                              :obj a
-                             :op '(:fake)))
+                             :operation '(:fake)))
       (values (copy a) (list :fake))))
 
 

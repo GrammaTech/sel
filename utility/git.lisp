@@ -1,6 +1,16 @@
 (defpackage :software-evolution-library/utility/git
   (:nicknames :sel/util/git)
-  (:use :gt/full))
+  (:use :gt/full)
+  (:export :git-error
+           :git
+           :git-dir
+           :work-tree
+           :ssh-key
+           :make-git
+           :run
+           :current-git-commit
+           :current-git-branch
+           :current-git-status))
 (in-package :software-evolution-library/utility/git)
 
 (define-condition git-error (error)

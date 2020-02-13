@@ -44,7 +44,7 @@ See http://kerneis.github.io/cil/."))
         (error (make-condition 'mutate
                  :text (format nil "cil-mutate:~a" stderr)
                  :obj cil
-                 :op op)))
+                 :operation op)))
       (setf (genome cil) stdout)))
   cil)
 

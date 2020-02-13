@@ -498,7 +498,7 @@ condition."
         (list type-index second)
         (error (make-condition 'no-mutation-targets
                                :obj obj
-                               :op 'pick-typesafe-bad-good
+                               :operation 'pick-typesafe-bad-good
                                :text "Typesafe mutation targets not found.")))))
 
 (define-mutation type-safe-swap (sexp-swap)

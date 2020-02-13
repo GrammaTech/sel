@@ -94,7 +94,7 @@
                 :text (format nil "acorn exit ~d~%stderr:~s"
                               exit
                               stderr)
-                :obj obj :op :parse))))))
+                :obj obj :operation :parse))))))
 
 (defun convert-acorn-jsown-tree (jt)
   (convert-jsown-tree jt #'jsown-str-to-acorn-keyword))

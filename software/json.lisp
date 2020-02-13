@@ -43,7 +43,7 @@ hand side."
            :text (format nil "acorn exit ~d~%stderr:~s"
                          exit
                          stderr)
-           :obj obj :op :parse)))
+           :obj obj :operation :parse)))
       (let* ((raw (decode-json-from-string stdout))
              (expr (aget :right (aget :expression (car (aget :body raw))))))
         (assert (and expr (string= "ObjectExpression" (aget :type expr)))

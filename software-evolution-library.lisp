@@ -2,34 +2,8 @@
 (defpackage :software-evolution-library/software-evolution-library
   (:nicknames :sel :software-evolution-library)
   (:use
-   :common-lisp
-   :alexandria
-   :arrow-macros
-   :named-readtables
-   :curry-compose-reader-macros
-   :iterate
-   :closer-mop
-   :uiop
-   :bordeaux-threads
-   :cl-ppcre
-   :cl-store
-   :split-sequence
-   :software-evolution-library/utility
-   :usocket
-   #-windows :fast-io)
-  (:shadow :elf :size :magic-number :diff :insert :index)
-  (:shadowing-import-from :software-evolution-library/utility :quit)
-  (:shadowing-import-from :uiop :getenv :directory-exists-p)
-  (:shadowing-import-from :iterate :iter :for :until :collecting :in)
-  (:shadowing-import-from
-   :closer-mop
-   :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric)
-  (:shadowing-import-from
-   :alexandria
-   :appendf :ensure-list :featurep :emptyp
-   :if-let :ensure-function :ensure-gethash :copy-file :copy-stream
-   :parse-body :simple-style-warning)
+   :gt/full
+   :software-evolution-library/utility/git)
   (:export
    :+software-evolution-library-dir+
    :+software-evolution-library-major-version+
@@ -281,7 +255,7 @@ first value from the `phenome' method."
 
 (defmethod phenome-p ((obj software))
   (ignore-phenome-errors
-    (with-temp-file (bin)
+    (with-temporary-file (:pathname bin)
       (phenome obj :bin bin))))
 
 (defgeneric evaluate (function software &rest extra-keys &key &allow-other-keys)
@@ -326,9 +300,6 @@ Keyword arguments may be used to pass new values for specific slots."))
   (:documentation "Return the size of the `genome' of SOFTWARE."))
 
 (defmethod size ((software software)) (length (genome software)))
-
-(defgeneric lines (software)
-  (:documentation "Return the lines of code of the `genome' of SOFTWARE."))
 
 (defgeneric genome-string (software &optional stream)
   (:documentation "Return a string of the `genome' of SOFTWARE."))
@@ -565,10 +536,10 @@ elements.")
 (define-condition mutate (error)
   ((text :initarg :text :initform nil :reader text)
    (obj  :initarg :obj  :initform nil :reader obj)
-   (op   :initarg :op   :initform nil :reader op))
+   (operation :initarg :operation :initform nil :reader operation))
   (:report (lambda (condition stream)
              (format stream "Mutation error, ~a, ~:[on~;~:*applying ~S to~] ~S"
-                     (text condition) (op condition) (obj condition))))
+                     (text condition) (operation condition) (obj condition))))
   (:documentation
    "Mutation errors are thrown when a mutation fails.
 These may often be safely ignored.  A common restart is
@@ -590,7 +561,7 @@ file location, if any."))
 (define-condition no-mutation-targets (mutate)
   ((text :initarg :text :initform nil :reader text)
    (obj  :initarg :obj  :initform nil :reader obj)
-   (op   :initarg :op   :initform nil :reader op))
+   (operation :initarg :operation :initform nil :reader operation))
   (:report (lambda (condition stream)
              (format stream "No targets error ~a ~:[on~;~:*applying ~S to~] ~S"
                      (text condition) (op condition) (obj condition))))
@@ -970,7 +941,7 @@ Default selection function for `tournament'."
                (try-another-mutation ()
                  :report "Try another mutation"
                  (safe-mutate)))))
-    (iter (with new-count = 0)
+    (iter (iterate:with new-count = 0)
           (multiple-value-bind (variant mutation-info)
               (safe-mutate)
             (unless (and (null variant) (null mutation-info))

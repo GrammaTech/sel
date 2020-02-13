@@ -69,7 +69,7 @@ See http://llvm.org)."))
       (declare (ignorable stdout stderr))
       (unless (zerop exit)
         (error (make-condition 'mutate
-                 :text "llvm-mutate" :obj llvm :op op)))
+                 :text "llvm-mutate" :obj llvm :operation op)))
       llvm)))
 
 (defmethod phenome ((llvm llvm) &key (bin (temp-file-name)))
