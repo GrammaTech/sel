@@ -1564,7 +1564,6 @@ appendix holds each individual package's API in turn.
 * sel-sw-asm::                  Software-Evolution-Library/Software asm.
 * sel-sw-asm-heap::             Software-Evolution-Library/Software asm-heap.
 * sel-sw-asm-super-mutant::     Software-Evolution-Library/Software asm-super-mutant.
-* sel-sw-ast::                  Software-Evolution-Library/Software ast.
 * sel-sw-cil::                  Software-Evolution-Library/Software cil.
 * sel-sw-clang::                Software-Evolution-Library/Software clang.
 * sel-sw-clang-expression::     Software-Evolution-Library/Software clang-expression.
@@ -1648,15 +1647,11 @@ appendix holds each individual package's API in turn.
 @section sel-sw-asm-heap
 @include sel-sw-asm-heap-api.texi
 
-@node sel-sw-asm-super-mutant, sel-sw-ast, sel-sw-asm-heap, SEL Packages
+@node sel-sw-asm-super-mutant, sel-sw-cil, sel-sw-asm-heap, SEL Packages
 @section sel-sw-asm-super-mutant
 @include sel-sw-asm-super-mutant-api.texi
 
-@node sel-sw-ast, sel-sw-cil, sel-sw-asm-super-mutant, SEL Packages
-@section sel-sw-ast
-@include sel-sw-ast-api.texi
-
-@node sel-sw-cil, sel-sw-clang, sel-sw-ast, SEL Packages
+@node sel-sw-cil, sel-sw-clang, sel-sw-asm-super-mutant, SEL Packages
 @section sel-sw-cil
 @include sel-sw-cil-api.texi
 
