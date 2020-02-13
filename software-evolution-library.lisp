@@ -27,7 +27,6 @@
    :retry-project-build
    :evaluate
    :copy
-   :size
    :lines
    :line-breaks
    :genome-string
@@ -296,10 +295,7 @@ Keyword arguments may be used to pass new values for specific slots."))
 (defmethod copy ((obj software) &key)
   (make-instance (class-of obj) :fitness (fitness obj)))
 
-(defgeneric size (software)
-  (:documentation "Return the size of the `genome' of SOFTWARE."))
-
-(defmethod size ((software software)) (length (genome software)))
+(defmethod size ((software software)) (size (genome software)))
 
 (defgeneric genome-string (software &optional stream)
   (:documentation "Return a string of the `genome' of SOFTWARE."))
