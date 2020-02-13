@@ -22,36 +22,41 @@
 
 (defvar *string*)
 
-(defclass result ()
-  ((start :initarg :start
-          :reader  start)
-   (end   :initarg :end
-          :reader  end)
-   (string-pointer :initarg :string-pointer
-                   :initform *string*
-                   :reader  string-pointer)))
+(defclass lisp-ast (ast)
+  ((expression :initarg :expression :initform nil :reader expression
+               :type list))
+  (:documentation "Class of Common Lisp ASTs."))
 
-(defclass expression-result (result)
-  ((expression :initarg :expression
-               :reader  expression)
-   (children   :initarg :children
-               :accessor children)))
+(defmethod fset-default-node-accessor ((node-type (eql 'lisp-ast)))
+  'expression)
+
+(defclass result (lisp-ast)
+  ((start :initarg :start :initform (when *string* 0)
+          :reader start :type (or null (integer 0 *)))
+   (end :initarg :end :initform (when *string* (length *string*))
+        :reader end :type (or null (integer 0 *)))
+   (string-pointer :initarg :string-pointer :initform *string*
+                   :reader string-pointer :type (or null string))))
+
+(defmethod copy ((lisp-ast lisp-ast) &rest args &key &allow-other-keys)
+  (apply #'ft:copy lisp-ast args))
+
+(defclass expression-result (result) ())
 
 (defmethod print-object ((obj expression-result) stream)
-  (nest (with-slots (start end string-pointer expression children) obj)
-        (if *print-readably*
-            (format stream "~S" `(make-instance 'expression-result
-                                   :start ,start
-                                   :end ,end
-                                   :string-pointer *string*
-                                   :expression ,expression
-                                   :children (list ,@children))))
-        (print-unreadable-object (obj stream :type t))
-        (format stream ":EXPRESSION ~a :CHILDREN ~S" expression children)))
+  (with-slots (start end string-pointer expression children) obj
+    (if *print-readably*
+        (format stream "~S" `(make-instance 'expression-result
+                               :start ,start
+                               :end ,end
+                               :string-pointer *string*
+                               :expression ,expression
+                               :children (list ,@children)))
+        (print-unreadable-object (obj stream :type t)
+          (format stream ":EXPRESSION ~a" expression)))))
 
 (defclass skipped-input-result (result)
-  ((reason :initarg :reason
-           :reader  reason)))
+  ((reason :initarg :reason :reader  reason)))
 
 (defmethod print-object ((obj skipped-input-result) stream &aux (max-length 8))
   (nest (with-slots (start end string-pointer reason) obj)
@@ -88,7 +93,6 @@
 
 (defmethod eclector.reader:interpret-symbol
     ((client client) input-stream package-indicator symbol-name internp)
-  (declare (ignorable input-stream))
   (let ((package (case package-indicator
                    (:current *package*)
                    (:keyword (find-package "KEYWORD"))
@@ -123,7 +127,6 @@
 ;;; one that skips the "#.".
 (defgeneric wrap-in-sharpsign-dot (client material)
   (:method (client material)
-    (declare (ignorable client))
     (list '|#.| material)))
 
 (defun eclector.reader::sharpsign-dot (stream char parameter)
@@ -141,32 +144,39 @@
              (list (make-instance 'skipped-input-result
                      :start start :end end :reason 'whitespace))))
          (w/space (tree from to)
-           (etypecase tree
-             (list
-              (append
-               (iter (for subtree in tree)
-                     (appending (make-space from (start subtree)))
-                     (appending (w/space subtree (start subtree) (end subtree)))
-                     (setf from (end subtree)))
-               (make-space from to)))
-             (result
-              (when (subtypep (type-of tree) 'expression-result)
-                (when (children tree)
-                  (setf (children tree)
-                        (w/space
-                         (children tree) (start tree) (end tree)))))
-              (append
-               (make-space from (start tree))
-               (list tree)
-               (make-space (end tree) to))))))
-      (w/space (with-input-from-string (input string)
-                 (loop :with eof = '#:eof
-                    :for n :from 0
-                    :for form = (if (and count (>= n count))
-                                    eof
-                                    (eclector.parse-result:read client input nil eof))
-                    :until (eq form eof) :collect form))
-               0 (length string)))))
+           (let ((result
+                  (etypecase tree
+                    (list
+                     (append
+                      (iter (for subtree in tree)
+                            (appending (make-space from (start subtree)))
+                            (appending (w/space subtree
+                                                (start subtree) (end subtree)))
+                            (setf from (end subtree)))
+                      (make-space from to)))
+                    (result
+                     (when (subtypep (type-of tree) 'expression-result)
+                       (when (children tree)
+                         ;; Use (sef slot-value) because this is now a
+                         ;; functional tree node so the default setf would
+                         ;; have no effect (it would create a copy).
+                         (setf (slot-value tree 'children)
+                               (w/space
+                                (children tree) (start tree) (end tree)))))
+                     (append
+                      (make-space from (start tree))
+                      (list tree)
+                      (make-space (end tree) to))))))
+             result)))
+      (w/space
+       (with-input-from-string (input string)
+         (loop :with eof = '#:eof
+            :for n :from 0
+            :for form = (if (and count (>= n count))
+                            eof
+                            (eclector.parse-result:read client input nil eof))
+            :until (eq form eof) :collect form))
+       0 (length string)))))
 
 (defun walk-skipped-forms (function forms)
   (mapcar
@@ -205,68 +215,61 @@
 (defmethod from-file ((lisp lisp) file)
   (from-string lisp (file-to-string file)))
 
-(define-ast (lisp-ast (:conc-name ast)))
-
-(defmethod print-object ((obj lisp-ast-node) stream)
-  (if *print-readably*
-      (call-next-method)
-      (print-unreadable-object (obj stream :type t)
-        (format stream "~a" (ast-class obj)))))
-
-(defmethod parse-asts ((obj lisp))
-  (read-forms+ (genome obj)))
-
 (defmethod update-asts ((obj lisp))
   ;; NOTE: It is required that.
   ;; - All text be stored as a string in a child of an AST.
   ;; - The class of an AST, along with it's children, determines
   ;;   equality of that AST.
-  (labels
-      ((text (form)
-         (subseq (string-pointer form) (start form) (end form)))
-       (make-tree (form)
-         (make-lisp-ast
-          :node
-          (etypecase form
-            (skipped-input-result
-             (make-lisp-ast-node
-              :class :skipped))
-            (expression-result
-             (make-lisp-ast-node
-              :class :expression)))
-          :annotations
-          (etypecase form
-            (skipped-input-result
-             (list (cons :reason (reason form))))
-            (expression-result
-             (cons (cons :expression (expression form))
-                   (unless (children form)
-                     (list (cons :text (text form)))))))
-          :children
-          (etypecase form
-            (skipped-input-result
-             (list (text form)))
-            (expression-result
-             (if (children form)
-                 (mapcar #'make-tree (children form))
-                 (list (text form))))))))
-    (setf (ast-root obj)
-          (make-lisp-ast :node (make-lisp-ast-node :class :top)
-                         :children (mapcar #'make-tree (parse-asts obj)))
-          (slot-value obj 'genome) nil)
-    obj))
+  (let ((string (genome obj)))
+    (setf (slot-value obj 'genome) nil
+          (ast-root obj)
+          (make-instance 'lisp-ast :children (read-forms+ string))))
+  obj)
 
-(defmethod convert ((to-type (eql 'lisp-ast)) (spec list)
-                    &key &allow-other-keys)
-  "Create a LISP AST from the SPEC (specification) list."
-  (convert-to-node
-   spec
-   (lambda (class keys children)
-     (funcall #'make-lisp-ast
-              :node (apply #'make-lisp-ast-node
-                           :class (if (keywordp class)
-                                      class
-                                      (intern (symbol-name class) "KEYWORD"))
-                           (plist-drop :annotations keys))
-              :annotations (plist-get :annotations keys)
-              :children children))))
+(defmethod update-paths ((node node) &optional path)
+  (declare (ignorable path))
+  node)
+
+(defmethod source-text ((obj result))
+  (if (children obj)
+      (with-output-to-string (out)
+        (mapc [{write-string _ out} #'source-text] (children obj)))
+      (subseq (string-pointer obj) (start obj) (end obj))))
+
+#+example
+(progn
+
+;;; Rewrite ->> to use nest instead.
+  (defun fix-double-arrow (node)
+    (flet ((children (node)
+             (let* ((*string* "nest")
+                    (nest (make-instance 'expression-result
+                            :expression 'nest :start 0 :end (length *string*)))
+                    (space (remove-if-not
+                            {typep _ 'skipped-input-result} (children node)))
+                    (exprs (cons nest (reverse (cdr (remove-if-not
+                                                     {typep _ 'expression-result}
+                                                     (children node)))))))
+               (mapcar ‹etypecase (skipped-input-result (pop space))
+                        (expression-result (pop exprs))›
+                        (children node)))))
+      (let* ((*string* nil)
+             (expression (cons 'nest (reverse (cdr (expression node)))))
+             (children (children node)))
+        (make-instance 'expression-result
+          :expression expression
+          :children children))))
+
+  (defun rewrite-double-arrow (software)
+    (setf (ast-root software)
+          (map-tree (lambda (node)
+                      (if (and (typep node 'expression-result)
+                               (listp (expression node))
+                               (equal '->> (first (expression node))))
+                          (values (fix-double-arrow node) t)
+                          (values node nil)))
+                    (ast-root software))))
+
+  (defun rewrite-double-arrow-in-place (file)
+    (string-to-file (source-text (rewrite-double-arrow
+                                  (from-file (make-instance 'lisp) file))) file)))
