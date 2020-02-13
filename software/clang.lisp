@@ -3038,7 +3038,7 @@ Returns outermost AST of context.
                  (outer-path (ast-path outer-stmt))
                  (rel-path (last inner-path
                                  (- (length inner-path) (length outer-path)))))
-            (setf outer-stmt (sel/sw/parseable::replace-ast outer-stmt rel-path value)))))
+            (setf outer-stmt (replace-ast outer-stmt rel-path value)))))
 
      (cond
        ((null inward-target) outward-target)
