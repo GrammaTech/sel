@@ -33,8 +33,26 @@
 ;;; simple software objects
 (define-software simple (software file)
   ((genome :initarg :genome :accessor genome :initform nil
-           :copier sel/utility:enhanced-copy-seq))
+           :copier enhanced-copy-seq))
   (:documentation "The simplest base software object."))
+
+(defun sel-copy-array (array)
+  (let* ((element-type (array-element-type array))
+         (fill-pointer (and (array-has-fill-pointer-p array)(fill-pointer array)))
+         (adjustable (adjustable-array-p array))
+         (new (make-array (array-dimensions array)
+                          :element-type element-type
+                          :adjustable adjustable
+                          :fill-pointer fill-pointer)))
+    (dotimes (i (array-total-size array) new)
+      (setf (row-major-aref new i)(row-major-aref array i)))))
+
+(defun enhanced-copy-seq (sequence)
+  "Copies any type of array (except :displaced-to) and lists. Otherwise returns NIL."
+  (if (arrayp sequence)
+      (sel-copy-array sequence)
+      (if (listp sequence)
+          (copy-list sequence))))
 
 (defmethod lines ((simple simple))
   (remove nil (map 'list {aget :code} (genome simple))))
