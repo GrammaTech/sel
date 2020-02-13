@@ -2149,24 +2149,3 @@ the mutation operations to be performed as an association list.
 to allow for successful mutation of SOFTWARE at PT."
   (declare (ignorable software pt))
   ast)
-
-
-;;; Generic tree interface
-(defgeneric insert-ast (obj location ast &key literal &allow-other-keys)
-  (:documentation "Return the modified OBJ with AST inserted at LOCATION.
-* OBJ object to be modified
-* LOCATION location where insertion is to occur
-* AST AST to insert
-* LITERAL keyword to control whether recontextualization is performed
-          For modifications where the replacement is to be directly
-          inserted, pass this keyword as true.")
-  (:method ((obj parseable) (location ast) (ast ast)
-            &rest args &key &allow-other-keys)
-    (apply #'insert-ast obj (ast-path location) ast args))
-  (:method ((obj parseable) (location list) (ast ast)
-            &key literal &allow-other-keys)
-    (apply-mutation obj (at-targets (make-instance 'parseable-insert)
-                                    (list (cons :stmt1 location)
-                                          (cons (if literal :literal1 :value1)
-                                                ast))))))
-
