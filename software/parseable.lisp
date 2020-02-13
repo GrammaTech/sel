@@ -121,6 +121,20 @@
 (in-package :software-evolution-library/software/parseable)
 (in-readtable :curry-compose-reader-macros)
 
+(define-software parseable (source)
+  ((ast-root :initarg :ast-root :initform nil :accessor ast-root
+             :documentation "Root node of AST.")
+   (asts     :initarg :asts :reader asts
+             :initform nil :copier :direct
+             :type #-sbcl list #+sbcl (or null (cons (cons keyword *) *))
+             :documentation
+             "List of all ASTs.
+See the documentation of `update-asts' for required invariants.")
+   (copy-lock :initform (make-lock "parseable-copy")
+              :copier :none
+              :documentation "Lock while copying parseable objects."))
+  (:documentation "Parsed AST tree software representation."))
+
 
 ;;; AST data structure definitions.
 (defstruct ast-node "Base type of immutable portion of ast nodes.")
@@ -1245,20 +1259,6 @@ All list operations are destructive."
 
 
 ;;; parseable software objects
-(define-software parseable (source)
-  ((ast-root :initarg :ast-root :initform nil :accessor ast-root
-             :documentation "Root node of AST.")
-   (asts     :initarg :asts :reader asts
-             :initform nil :copier :direct
-             :type #-sbcl list #+sbcl (or null (cons (cons keyword *) *))
-             :documentation
-             "List of all ASTs.
-See the documentation of `update-asts' for required invariants.")
-   (copy-lock :initform (make-lock "parseable-copy")
-              :copier :none
-              :documentation "Lock while copying parseable objects."))
-  (:documentation "Parsed AST tree software representation."))
-
 (defgeneric roots (obj)
   (:documentation "Return all top-level ASTs in OBJ."))
 
