@@ -1,16 +1,8 @@
 ;;; source.lisp --- source software representation
 (defpackage :software-evolution-library/software/source
   (:nicknames :sel/software/source :sel/sw/source)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
-        :uiop/pathname
-        :split-sequence
-        :software-evolution-library
-        :software-evolution-library/utility)
+  (:use :gt/full
+        :software-evolution-library)
   (:export :source
            :compiler
            :ext
@@ -41,12 +33,12 @@
              :copier :none))
   (:documentation "Raw source code software representation."))
 
-(defmethod phenome ((obj source) &key (bin (temp-file-name)))
+(defmethod phenome ((obj source) &key (bin (get-temporary-file)))
   "Compile OBJ to create an executable version of the software
 on the filesystem at BIN."
   #-ccl (declare (values t fixnum string string string))
   (setf bin (namestring bin))
-  (with-temp-file-of (src (ext obj)) (genome-string obj)
+  (with-temporary-file-of (src (ext obj)) (genome-string obj)
     (multiple-value-bind (stdout stderr errno)
         (shell "~a ~a -o ~a ~{~a~^ ~}" (compiler obj) src bin (flags obj))
       (restart-case
@@ -78,7 +70,7 @@ on the filesystem at BIN."
   obj)
 
 (defmethod from-file :before ((obj source) path)
-  (setf (original-file obj) (truenamestring path)))
+  (setf (original-file obj) (namestring (truename path))))
 
 (defmethod from-string ((obj source) string)
   "Initialize OBJ with the contents of STRING."
