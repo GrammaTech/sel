@@ -1,6 +1,7 @@
-(uiop/package:define-package :software-evolution-library/utility/git
-    (:use :gt))
-(in-package :software-evolution-library/utilitygit)
+(defpackage :software-evolution-library/utility/git
+  (:nicknames :sel/util/git)
+  (:use :gt/full))
+(in-package :software-evolution-library/utility/git)
 
 (define-condition git-error (error)
   ((description :initarg :description :initform nil :reader description))
@@ -104,7 +105,6 @@ be specified as part of the REMOTE URL.  E.g. as
      (when ssh-key
        (setf clone-cmd (format nil "GIT_SSH_COMMAND='ssh -i ~a -F /dev/null' ~a"
                                ssh-key clone-cmd)))
-     (note 2 "cloning git repo: ~a" clone-cmd)
      (multiple-value-bind (stdout stderr errno) (shell clone-cmd)
        (declare (ignorable stdout))
        (if (not (zerop errno))

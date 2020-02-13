@@ -5,6 +5,11 @@
 ;;;       provide this?
 ;;;
 ;;; @texi{process}
+(defpackage :software-evolution-library/utility/process
+  (:nicknames :sel/util/process)
+  (:use :gt/full))
+(in-package :software-evolution-library/utility/process)
+
 (defclass process ()
   ((os-process
     :initarg :os-process :initform nil :reader os-process

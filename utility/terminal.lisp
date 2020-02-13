@@ -1,3 +1,12 @@
+(defpackage software-evolution-library/utility/terminal
+  (:nicknames :sel/util/terminal)
+  (:use :gt)
+  (:import-from :cffi :defcfun :defcstruct
+                :define-foreign-type
+                :with-foreign-object :with-foreign-slots)
+  (:import-from :cffi-sys :null-pointer :null-pointer-p))
+(in-package :software-evolution-library/utility/terminal)
+
 (defun make-terminal-raw ()
   "Place the terminal into 'raw' mode, no echo or delete.
 This allows characters to be read directly without waiting for a newline.

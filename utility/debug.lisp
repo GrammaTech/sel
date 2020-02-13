@@ -5,6 +5,13 @@
 ;;; `*note-out*' variables which provide a basic logging framework.
 ;;;
 ;;; @texi{debugging}
+(defpackage software-evolution-library/utility/debug
+  (:nicknames :sel/util/debug)
+  (:use :gt/full)
+  (:import-from :diff :original-length :modified-length))
+(in-package :software-evolution-library/utility/debug)
+(in-readtable :curry-compose-reader-macros)
+
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defvar *compile-w/tracing* nil
     "Controls compilation of tracing information with the `traced' macro."))

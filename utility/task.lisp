@@ -108,6 +108,10 @@
 ;;; macro or require new objects and methods to be defined on the fly.
 ;;;
 ;;; @texi{task}
+(defpackage software-evolution-library/utility/task
+  (:nicknames :sel/util/task)
+  (:use :gt))
+(in-package :software-evolution-library/utility/task)
 
 (defstruct task-runner
 "The state needed to run multi-threaded tasks and associated jobs.

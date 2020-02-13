@@ -1,5 +1,7 @@
 (defpackage software-evolution-library/utility/range
+  (:nicknames :sel/util/range)
   (:use :gt))
+(in-package :software-evolution-library/utility/range)
 
 
 ;;;; Source and binary locations and ranges.

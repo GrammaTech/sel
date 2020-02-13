@@ -1,4 +1,8 @@
 ;;; Utilities associated with json processing
+(defpackage software-evolution-library/utility/json
+  (:nicknames :sel/util/json)
+  (:use :gt/full))
+(in-package :software-evolution-library/utility/json)
 
 (defun convert-jsown-tree (jt &optional (key-fn (lambda (s)
                                                   (intern (string-upcase s)
