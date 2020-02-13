@@ -591,9 +591,7 @@ in SCRIPT.")
        :documentation "use CC as the C compiler")
       (("flags" #\F) :type string
        :action #'handle-comma-delimited-argument
-       :documentation "comma-separated list of compiler flags")
-      (("split-lines" #\S) :type boolean :optional t
-       :documentation "Split top level strings at newlines")))
+       :documentation "comma-separated list of compiler flags")))
   (defparameter +project-command-line-options+
     '((("build-command" #\b) :type string :initial-value "make"
        :documentation "shell command to build project directory")
