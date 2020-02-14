@@ -1126,6 +1126,9 @@ will not be generated automatically.
   ;; The lookup function just returns the object in that case.
   tp)
 
+(defmethod find-type ((obj clang) (tp null))
+  nil)
+
 (defgeneric find-or-add-type (obj trace-name &rest args &key &allow-other-keys)
   (:documentation "Find the type with the given TRACE-NAME representation in
 a execution trace in OBJ.")
