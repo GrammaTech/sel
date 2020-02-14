@@ -46,9 +46,6 @@ which may be more nodes, or other values.")
    (string-pointer :initarg :string-pointer :initform *string*
                    :reader string-pointer :type (or null string))))
 
-(defmethod copy ((lisp-ast lisp-ast) &rest args &key &allow-other-keys)
-  (apply #'ft:copy lisp-ast args))
-
 (defclass expression-result (result) ())
 
 (defmethod print-object ((obj expression-result) stream)
@@ -217,32 +214,20 @@ which may be more nodes, or other values.")
   (:documentation "Common Lisp source represented naturally as lists of code."))
 
 (defmethod from-string ((lisp lisp) string)
-  (setf (genome lisp) string)
+  (setf (asts lisp) (make-instance 'lisp-ast :children (read-forms+ string)))
   lisp)
 
 (defmethod from-file ((lisp lisp) file)
   (from-string lisp (file-to-string file)))
 
-(defmethod update-asts ((obj lisp))
-  ;; NOTE: It is required that.
-  ;; - All text be stored as a string in a child of an AST.
-  ;; - The class of an AST, along with it's children, determines
-  ;;   equality of that AST.
-  (let ((string (genome obj)))
-    (setf (slot-value obj 'genome) nil
-          (ast-root obj)
-          (make-instance 'lisp-ast :children (read-forms+ string))))
-  obj)
-
 (defmethod update-paths ((node node) &optional path)
   (declare (ignorable path))
   node)
 
-(defmethod source-text ((obj result))
+(defmethod source-text ((obj result) &optional stream)
   (if (children obj)
-      (with-output-to-string (out)
-        (mapc [{write-string _ out} #'source-text] (children obj)))
-      (subseq (string-pointer obj) (start obj) (end obj))))
+      (mapc [{write-string _ stream} #'source-text] (children obj))
+      (write-string (subseq (string-pointer obj) (start obj) (end obj)) stream)))
 
 #+example
 (progn
@@ -268,16 +253,16 @@ which may be more nodes, or other values.")
           :expression expression
           :children children))))
 
-  (defun rewrite-double-arrow (software)
-    (setf (ast-root software)
-          (map-tree (lambda (node)
-                      (if (and (typep node 'expression-result)
-                               (listp (expression node))
-                               (equal '->> (first (expression node))))
-                          (values (fix-double-arrow node) t)
-                          (values node nil)))
-                    (ast-root software))))
+(defun rewrite-double-arrow (software)
+  (setf (asts software)
+        (map-tree (lambda (node)
+                    (if (and (typep node 'expression-result)
+                             (listp (expression node))
+                             (equal '->> (first (expression node))))
+                        (values (fix-double-arrow node) t)
+                        (values node nil)))
+                  (asts software))))
 
-  (defun rewrite-double-arrow-in-place (file)
-    (string-to-file (source-text (rewrite-double-arrow
-                                  (from-file (make-instance 'lisp) file))) file)))
+(defun rewrite-double-arrow-in-place (file)
+  (string-to-file (source-text (rewrite-double-arrow
+                                (from-file (make-instance 'lisp) file))) file)))
