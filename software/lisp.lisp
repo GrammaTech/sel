@@ -214,7 +214,7 @@ which may be more nodes, or other values.")
   (:documentation "Common Lisp source represented naturally as lists of code."))
 
 (defmethod from-string ((lisp lisp) string)
-  (setf (asts lisp) (make-instance 'lisp-ast :children (read-forms+ string)))
+  (setf (genome lisp) (make-instance 'lisp-ast :children (read-forms+ string)))
   lisp)
 
 (defmethod from-file ((lisp lisp) file)
@@ -254,14 +254,14 @@ which may be more nodes, or other values.")
           :children children))))
 
 (defun rewrite-double-arrow (software)
-  (setf (asts software)
+  (setf (genome software)
         (map-tree (lambda (node)
                     (if (and (typep node 'expression-result)
                              (listp (expression node))
                              (equal '->> (first (expression node))))
                         (values (fix-double-arrow node) t)
                         (values node nil)))
-                  (asts software))))
+                  (genome software))))
 
 (defun rewrite-double-arrow-in-place (file)
   (string-to-file (source-text (rewrite-double-arrow
