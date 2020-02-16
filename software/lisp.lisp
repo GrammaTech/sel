@@ -81,7 +81,7 @@ which may be more nodes, or other values.")
             (subseq string-pointer start end))))
 
 (defmethod convert ((to-type (eql 'lisp-ast)) (sequence list)
-                    &key (spaces nil) &allow-other-keys)
+                    &key (spaces nil) (expression sequence) &allow-other-keys)
   (labels ((m/space (&optional string)
              (or (and (not string) spaces (pop spaces))
                  (let ((*string* (or string " ")))
@@ -108,20 +108,21 @@ which may be more nodes, or other values.")
                          (appending (list (m/space) el))
                          (collecting el))
                      (setf last el))))
-           (convert (expression)
-             (when expression
-               (cond
-                 ((listp expression)
+           (convert (node)
+             (when node
+               (typecase node
+                 (lisp-ast node)
+                 (keyword (m/keyword node))
+                 (symbol (m/symbol node))
+                 (list
                   (let ((*string* ""))
                     (make-instance 'expression-result :expression expression
                                    :children
                                    (intersperse-spaces
                                     (append (list (m/space "("))
-                                            (mapcar #'convert expression)
+                                            (mapcar #'convert node)
                                             (list (m/space ")")))))))
-                 ((keywordp expression) (m/keyword expression))
-                 ((symbolp expression) (m/symbol expression))
-                 (t (m/other expression))))))
+                 (t (m/other node))))))
     (populate-fingers (convert sequence))))
 
 ;;; Trivial Eclector client used to customize parsing for SEL.
