@@ -80,6 +80,51 @@ which may be more nodes, or other values.")
              "...")
             (subseq string-pointer start end))))
 
+(defmethod convert ((to-type (eql 'lisp-ast)) (sequence list)
+                    &key (spaces nil) &allow-other-keys)
+  (labels ((m/space (&optional string)
+             (if (and (not string) spaces)
+                 (pop spaces)
+                 (let ((*string* (or string " ")))
+                   (make-instance 'skipped-input-result :reason :whitespace))))
+           (m/keyword (symbol)
+             (let ((*string* (concatenate 'string ":" (string-downcase
+                                                       (symbol-name symbol)))))
+               (make-instance 'expression-result :expression symbol)))
+           (m/symbol (symbol)
+             (let ((*string* (string-downcase (symbol-name symbol))))
+               (make-instance 'expression-result :expression symbol)))
+           (m/other (other)
+             (let ((*string* (format nil "~S" other)))
+               (make-instance 'expression-result :expression other)))
+           (intersperse-spaces (list)
+             (let ((ult (length list))
+                   (last nil))
+               (iter (for el in list)
+                     (for i upfrom 0)
+                     (if (and (< i ult)
+                              (> i 0)
+                              (not (string= "(" (source-text last)))
+                              (not (string= ")" (source-text el))))
+                         (appending (list (m/space) el))
+                         (collecting el))
+                     (setf last el))))
+           (convert (expression)
+             (when expression
+               (cond
+                 ((listp expression)
+                  (let ((*string* ""))
+                    (make-instance 'expression-result :expression expression
+                                   :children
+                                   (intersperse-spaces
+                                    (append (list (m/space "("))
+                                            (mapcar #'convert expression)
+                                            (list (m/space ")")))))))
+                 ((keywordp expression) (m/keyword expression))
+                 ((symbolp expression) (m/symbol expression))
+                 (t (m/other expression))))))
+    (populate-fingers (convert sequence))))
+
 ;;; Trivial Eclector client used to customize parsing for SEL.
 (defclass client (parse-result-client) ())
 
