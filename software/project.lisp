@@ -214,17 +214,15 @@ non-symlink text files that don't end in \"~\" and are not ignored by
   ;; Ensure path is a canonical directory path.
   (setf path (canonical-pathname (ensure-directory-pathname path)))
 
-  ;; Verify parent directory exists, otherwise the copy will fail.
-  (ensure-directories-exist (pathname-parent-directory-pathname path))
+  ;; Verify directory exists, otherwise the copy will fail.
+  (ensure-directories-exist path)
 
   ;; Copy the project directory to the output path.
   (when (and (project-dir project)
              (probe-file (project-dir project))
              (not (equalp path (canonical-pathname (project-dir project)))))
     (multiple-value-bind (stdout stderr errno)
-        (if (probe-file path) ; Different copy if directory already exists.
-            (shell "cp -pr ~a/. ~a/" (project-dir project) path)
-            (shell "cp -pr ~a ~a" (project-dir project) path))
+        (shell "cp -pr ~a/. ~a/" (project-dir project) path)
       (declare (ignorable stdout))
       (assert (zerop errno) (path)
               "Creation of output directory failed with: ~a" stderr)))
