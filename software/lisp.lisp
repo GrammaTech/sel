@@ -258,8 +258,11 @@ which may be more nodes, or other values.")
   ()
   (:documentation "Common Lisp source represented naturally as lists of code."))
 
+(defmethod convert ((to-type (eql 'lisp-ast)) (collection string))
+  (make-instance 'lisp-ast :children (read-forms+ string)))
+
 (defmethod from-string ((lisp lisp) string)
-  (setf (genome lisp) (make-instance 'lisp-ast :children (read-forms+ string)))
+  (setf (genome lisp) (convert 'lisp-ast string))
   lisp)
 
 (defmethod from-file ((lisp lisp) file)
