@@ -15,7 +15,8 @@
                           :read
                           :read-from-string
                           :read-preserving-whitespace)
-  (:export :lisp :lisp-ast :lisp-ast-p))
+  (:export :lisp :lisp-ast :lisp-ast-p
+           :expression :expression-result))
 (in-package :software-evolution-library/software/lisp)
 (in-readtable :curry-compose-reader-macros)
 
@@ -258,7 +259,8 @@ which may be more nodes, or other values.")
   ()
   (:documentation "Common Lisp source represented naturally as lists of code."))
 
-(defmethod convert ((to-type (eql 'lisp-ast)) (collection string))
+(defmethod convert ((to-type (eql 'lisp-ast)) (string string)
+                    &key &allow-other-keys)
   (make-instance 'lisp-ast :children (read-forms+ string)))
 
 (defmethod from-string ((lisp lisp) string)
