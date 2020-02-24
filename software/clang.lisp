@@ -185,6 +185,7 @@
            :type-decl
            :type-hash
            :type-i-file
+           :type-modifiers
            :type-pointer
            :type-const
            :type-volatile
