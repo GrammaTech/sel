@@ -39,24 +39,75 @@ int segment_violations = 0;
 int in_malloc = 0;
 int in_free = 0;
 int in_realloc = 0;
-int exit_early = 0;
 int num_variants = 0;
 
 int *null_pointer = 0; // used to trigger segfaults
 
+extern unsigned long untraced_calls[];
+extern unsigned long untraced_calls_offset;
+extern unsigned long untraced_call_results[];
+
+unsigned long untraced_calls_current = 0;
+unsigned long untraced_call_results_index = 0;
+
+#define UNTRACED_CALL_TYPE_NULL      0
+#define UNTRACED_CALL_TYPE_MALLOC    1
+#define UNTRACED_CALL_TYPE_FREE      2
+#define UNTRACED_CALL_TYPE_REALLOC   3
+
 void *malloc_stub (size_t __size, const void *caller) {
+    unsigned long uctype = untraced_calls[untraced_calls_current];
+    if (uctype == UNTRACED_CALL_TYPE_MALLOC) {
+        unsigned long length =  untraced_calls[untraced_calls_current + 1];
+        unsigned long retval =  untraced_calls[untraced_calls_current + 2];
+        untraced_calls_current += 3;
+        if (length == __size) {
+            untraced_call_results[untraced_call_results_index++] = UNTRACED_CALL_TYPE_MALLOC;
+            untraced_call_results[untraced_call_results_index++] = length;
+            untraced_call_results[untraced_call_results_index++] = retval;
+            return (void *)retval;
+        }
+    }
+    // otherwise error return
     in_malloc = 1;
     int temp = *null_pointer;
     return (void *)0; // never gets here
 }
 
+// not yet supported
 void *realloc_stub (void *__ptr, size_t __size, const void *caller) {
+    unsigned long uctype = untraced_calls[untraced_calls_current];
+    if (uctype == UNTRACED_CALL_TYPE_REALLOC) {
+        unsigned long addr =  untraced_calls[untraced_calls_current + 1];
+        unsigned long length =  untraced_calls[untraced_calls_current + 2];
+        unsigned long retval =  untraced_calls[untraced_calls_current + 3];
+        untraced_calls_current += 4;
+        if (addr == ((unsigned long)__ptr) && length == __size) {
+            untraced_call_results[untraced_call_results_index++] = UNTRACED_CALL_TYPE_REALLOC;
+            untraced_call_results[untraced_call_results_index++] = addr;
+            untraced_call_results[untraced_call_results_index++] = length;
+            untraced_call_results[untraced_call_results_index++] = retval;
+            return (void *)retval;
+        }
+    }
+    // otherwise error return
     in_realloc = 1;
     int temp = *null_pointer;
     return (void *)0;
 }
 
 extern void free_stub (void *__ptr, const void *caller) {
+    unsigned long uctype = untraced_calls[untraced_calls_current];
+    if (uctype == UNTRACED_CALL_TYPE_FREE) {
+        unsigned long addr =  untraced_calls[untraced_calls_current + 1];
+        untraced_calls_current += 2;
+        if ((void *)addr == __ptr) {
+            untraced_call_results[untraced_call_results_index++] = UNTRACED_CALL_TYPE_FREE;
+            untraced_call_results[untraced_call_results_index++] = addr;
+            return;
+        }
+    }
+    // otherwise error return
     in_free = 1;
     int temp = *null_pointer;
 }
@@ -75,11 +126,6 @@ void restore_heap_funcs() {
 
 #define IN_HEAP_FUNC (in_malloc || in_free || in_realloc)
 
-#define UNTRACED_CALL_TYPE_NULL      0
-#define UNTRACED_CALL_TYPE_MALLOC    1
-#define UNTRACED_CALL_TYPE_FREE      2
-#define UNTRACED_CALL_TYPE_REALLOC   3
- 
 void exit_with_status(int code, char* errmsg);
 
 // variant function pointer
@@ -108,7 +154,7 @@ extern unsigned long input_regs[];
 extern unsigned long output_regs[];
 extern unsigned long input_mem[];
 extern unsigned long output_mem[];
-extern unsigned long untraced_calls[];
+
 extern unsigned long num_tests;   // number of test cases
 extern unsigned long test_results[]; // storage for test results
 
@@ -121,6 +167,8 @@ extern unsigned long result_return_address;
 extern unsigned long result_regs[NUM_REGS]; // for storing the
                                             // resulting values
 extern unsigned long test_offset;
+
+unsigned long untraced_call_index = 0;
 
 //
 // Live input register mask contains uses bits to represent
@@ -152,6 +200,8 @@ unsigned long overhead = 0;    // number of instructions in
                                // setup/restore code
 unsigned long heap_address = 0;
 
+unsigned long untraced_call_results_size = 02000; // 8k space for each log
+
 enum ExecutionState {
     NormalState = 0,
     RunningTest = 1,
@@ -182,6 +232,25 @@ extern void _init_registers();
         asm("rdtscp" : "=a" (lo), "=d" (hi));\
         elapsed_name = (lo | (hi << 32)) - start_name;\
     }
+
+// Given the test index, return the offset (into untraced_calls array)
+// of untraced calls for that test.
+unsigned long find_untraced_calls(int test)
+{
+    unsigned long current = 0;
+    for (int i = 1; i < test; i++) {
+        // skip to next
+        while (untraced_calls[current] != UNTRACED_CALL_TYPE_NULL) {
+        switch (untraced_calls[current]) {
+            case UNTRACED_CALL_TYPE_MALLOC:  current += 3; break;
+            case UNTRACED_CALL_TYPE_FREE:    current += 2; break;
+            case UNTRACED_CALL_TYPE_REALLOC: current += 4; break;
+        }
+            current++; // skip UNTRACED_CALL_TYPE_NULL
+        }
+    }
+    return current;
+}
 
 //
 // Determine which register position contains RSP, given the mask.
@@ -275,7 +344,7 @@ void map_memory_range(unsigned long* addr, unsigned long size) {
 void map_input_page(unsigned long* addr) {
     unsigned long* page_addr = (unsigned long*)(((unsigned long)addr) & PAGE_MASK);
     void* anon = mmap(page_addr, PAGE_SIZE,
-                          PROT_READ,
+                      PROT_READ|PROT_WRITE,
                               MAP_ANONYMOUS|MAP_PRIVATE|MAP_FIXED /*|MAP_UNINITIALIZED*/,
                           -1,
                           0);
@@ -688,6 +757,9 @@ unsigned long run_variant(int v, int test) {
     int retval;
 
     test_offset = test * num_input_registers * sizeof(unsigned long);
+    untraced_calls_offset =
+        test * untraced_call_results_size; // output call log
+    untraced_calls_current = find_untraced_calls(test); // input call log
     execaddr = variant_table[v];
     executing = InitMemory;
     retval = init_mem(test);
@@ -724,11 +796,6 @@ unsigned long run_variant(int v, int test) {
     end_timer();  // stop POSIX timer
     restore_heap_funcs();
     sigunblock();
-
-    if (IN_HEAP_FUNC) {
-        exit_early = 1;
-        return ULONG_MAX;
-    }
 
     if (retval < 0) {
         exit_with_status(1, "PAPI_read() error");
@@ -995,13 +1062,8 @@ int main(int argc, char* argv[]) {
 
     for (int i = 0; variant_table[i]; i++) {
         run_variant_tests(i, p + (i * num_tests));
-        if (exit_early)
-            break;
     }
 
-    if (exit_early)
-        exit_with_status(1, "Heap function not supported");
-    else
-        exit_with_status(0, "ok");
+    exit_with_status(0, "ok");
     return 0; // never gets here
 }

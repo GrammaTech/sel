@@ -219,11 +219,15 @@
 ;;; This can be accomplished with the following:
 ;;;   sudo sh -c 'echo 1 >/proc/sys/kernel/perf_event_paranoid'
 ;;;   sudo sysctl -w kernel.perf_event_paranoid=1
+;;;   You may need to use:
+;;;    sudo sh -c 'echo kernel.perf_event_paranoid=1 > /etc/sysctl.d/local.conf'
+;;;    and then reboot for it to take effect.
 ;;;
 ;;; It's also a good idea to turn off randomizing of address base
 ;;; (to get more consistency):
 ;;;   sudo sh -c 'echo 0 >/proc/sys/kernel/randomize_va_space'
 ;;;   sudo sysctl -w kernel.randomize_va_space=0
+;;;   sudo sh -c 'echo kernel.randomize_va_space=0 >> /etc/sysctl.d/local.conf'
 ;;;
 ;;; To get necessary include (.h) file for compiling C harness with PAPI
 ;;; (needed to perform fitness evaluation):
@@ -402,6 +406,9 @@
 ;; C 64-bit unsigned long MAXINT, is the worst possible fitness score
 (defconstant +worst-c-fitness+ #xffffffffffffffff)
 
+;; maximum size of untraced-call-log (per variant)
+(defconstant +max-untraced-call-results+ #x2000)
+
 (defparameter *optimize-included-lines* nil
   "This option is no longer supported")
 
@@ -412,6 +419,9 @@
 
 (defparameter *timeout-seconds* 60
   "Number of seconds before the fitness process is timed out.")
+
+(defparameter *reverse-bytes-in-io-file* nil
+  "If true, reverse the bytes in the memory spec within the i/o file.")
 
 (defparameter *all-registers*
   '("rax"
@@ -604,11 +614,12 @@
 	(setf (bit b i)
 	      (if (char= (char line pos) #\v) 1 0))
 	(incf pos 2))
-      (make-memory-spec :addr addr
-			:mask b
-			:bytes (parse-bytes 8
-					    (remove #\space
-						    (subseq line pos)))))))
+      (let ((bytes (parse-bytes 8 (remove #\space (subseq line pos)))))
+        (if *reverse-bytes-in-io-file*
+            (setf bytes (nreverse bytes)))
+        (make-memory-spec :addr addr
+                          :mask b
+                          :bytes bytes)))))
 
 (defun parse-reg-spec (line)
   (let* ((pos 0)
@@ -630,7 +641,7 @@
 			     (remove #\space (subseq line pos)))))))
 
 (defparameter *untraced-call-regx*
-  "([a-zA-Z0-9@]*)\\({1}([a-fA-F0-9\\,]*)\\){1}( = [a-fA-F0-9]*)?"
+  "([a-zA-Z0-9@]*)\\({1}([a-fA-F0-9\\, ]*)\\){1}( = [a-fA-F0-9]*)?"
   "Example: malloc@plt(1A) = 1A00000")
 
 (defun parse-untraced-call (line)
@@ -742,7 +753,7 @@
              (vector-push-extend untraced-call-spec
                                  (untraced-call-spec super-asm))))
 	(cond ((zerop (length line))) ; do nothing, empty line
-	      ((search "Input data" line :test 'striing-equal)
+	      ((search "Input data" line :test 'string-equal)
                ;; store the previous input/output set (if any)
                (when (or
                       (> (length (input-specification-regs output-spec)) 0)
@@ -765,10 +776,13 @@
                (setf state :input))
 	      ((search "Output data" line :test 'string-equal)
                (setf state :output))
-              ((search "Untraced Calls" line :test 'string-equal)
+              ((search "Untraced calls" line :test 'string-equal)
                (setf state :untraced-calls))
               ((eq state :untraced-calls)
                (let ((call-rec (parse-untraced-call line)))
+                 (assert call-rec (call-rec)
+                         (format nil "Invalid untraced call record: ~A"
+                                 line))
                  (vector-push-extend
                   call-rec
                   (untraced-call-specification-calls untraced-call-spec))))
@@ -1035,7 +1049,9 @@ a symbol, the SYMBOL-NAME of the symbol is used."
          "        global num_input_registers"
          "        global live_output_registers"
          "        global num_output_registers"
-         "        global test_results")
+         "        global test_results"
+         "        global untraced_call_results"
+         "        global untraced_calls_offset")
 	(iter (for i from 0 below num-variants)
 	      (collect (format nil "        global variant_~D" i)))
         ;;
@@ -1084,7 +1100,9 @@ a symbol, the SYMBOL-NAME of the symbol is used."
          "        .globl num_input_registers"
          "        .globl live_output_registers"
          "        .globl num_output_registers"
-         "        .globl test_results")
+         "        .globl test_results"
+         "        .globl untraced_call_results"
+         "        .globl untraced_calls_offset")
 	(iter (for i from 0 below num-variants)
 	      (collect (format nil "        .globl variant_~D" i)))
         ;;
@@ -1465,6 +1483,19 @@ a symbol, the SYMBOL-NAME of the symbol is used."
        (format nil "        test_results: .zero 0x~X"
                (* num-tests num-variants 8)))))
 
+(defun add-untraced-call-results-var (asm-variants asm-syntax num-tests)
+  (let ((decl-string (if (intel-syntax-p asm-syntax) "resb" ".zero")))
+    (insert-new-line
+     asm-variants
+     (format nil "        untraced_call_results: ~A 0x~X"
+             decl-string
+             (* num-tests +max-untraced-call-results+)))
+    (insert-new-line
+     asm-variants
+     (format nil "        untraced_calls_offset: ~A 0x~X"
+             decl-string
+             (* num-tests +max-untraced-call-results+)))))
+
 (defun calc-live-regs (register-list)
   "Calculate live input register bit mask.
 RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
@@ -1769,6 +1800,10 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
                           (asm-syntax asm-super)
                           (length (input-spec asm-super))
                           number-of-variants)
+    (add-untraced-call-results-var
+     asm-variants
+     (asm-syntax asm-super)
+     (length (input-spec asm-super)))
     (setf (super-soft asm-super) asm-variants)  ;; cache the asm-heap
     (with-open-file (os output-path :direction :output :if-exists :supersede)
       (dolist (line (lines asm-variants))
