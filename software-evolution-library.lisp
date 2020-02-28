@@ -254,7 +254,7 @@ first value from the `phenome' method."
 
 (defmethod phenome-p ((obj software))
   (ignore-phenome-errors
-    (with-temporary-file (:pathname bin)
+    (with-temp-file (bin)
       (phenome obj :bin bin))))
 
 (defgeneric evaluate (function software &rest extra-keys &key &allow-other-keys)

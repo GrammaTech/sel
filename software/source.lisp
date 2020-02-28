@@ -33,12 +33,12 @@
              :copier :none))
   (:documentation "Raw source code software representation."))
 
-(defmethod phenome ((obj source) &key (bin (get-temporary-file)))
+(defmethod phenome ((obj source) &key (bin (temp-file-name)))
   "Compile OBJ to create an executable version of the software
 on the filesystem at BIN."
   #-ccl (declare (values t fixnum string string string))
   (setf bin (namestring bin))
-  (with-temporary-file-of (src (ext obj)) (genome-string obj)
+  (with-temp-file-of (src (ext obj)) (genome-string obj)
     (multiple-value-bind (stdout stderr errno)
         (shell "~a ~a -o ~a ~{~a~^ ~}" (compiler obj) src bin (flags obj))
       (restart-case
