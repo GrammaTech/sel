@@ -2,29 +2,16 @@
 (defpackage :software-evolution-library/test/clang-tokenizer
   (:nicknames :sel/test/clang-tokenizer)
   (:use
-   :common-lisp
-   :alexandria
-   :closer-mop
+   :gt/full
+   #+gt :testbot
    :software-evolution-library/test/util
    :software-evolution-library/test/util-clang
    :software-evolution-library/stefil-plus
-   :named-readtables
-   :curry-compose-reader-macros
-   :iterate
-   :split-sequence
-   :cl-ppcre
-   #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility
    :software-evolution-library/software/parseable
    :software-evolution-library/software/clang
    :software-evolution-library/components/clang-tokens
    :software-evolution-library/components/fault-loc)
-  (:import-from :uiop :nest)
-  (:shadowing-import-from
-   :closer-mop
-   :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric)
   (:export :test-clang-tokenizer))
 (in-package :software-evolution-library/test/clang-tokenizer)
 (in-readtable :curry-compose-reader-macros)
@@ -60,7 +47,7 @@
 (deftest (case-tokens :long-running) ()
   (with-fixture variety-clang
     (let* ((root (stmt-starting-with-text *variety* "case 1"))
-           (tokens (tokens *variety* (list root)))
+           (tokens (clang-tokens *variety* (list root)))
            (switch-tokens
             (mapcar #'make-keyword
                     ;; case 1:
@@ -74,7 +61,7 @@
 (deftest (do-while-tokens :long-running) ()
   (with-fixture variety-clang
     (let* ((root (stmt-starting-with-text *variety* "do {"))
-           (tokens (tokens *variety* (list root))))
+           (tokens (clang-tokens *variety* (list root))))
       (is (equal tokens
                  ;; do {
                  (mapcar #'make-keyword
@@ -89,7 +76,7 @@
 (deftest (function-tokens :long-running) ()
   (with-fixture variety-clang
     (let* ((root (stmt-starting-with-text *variety* "int add3"))
-           (tokens (tokens *variety* (list root))))
+           (tokens (clang-tokens *variety* (list root))))
       (is (equal
            tokens
            ;; int add3(int x) {
@@ -104,7 +91,7 @@
 (deftest (mixed-tokens :long-running) ()
   (with-fixture variety-clang
     (let* ((root (stmt-starting-with-text *variety* "tun->foo"))
-           (tokens (tokens *variety* (list root))))
+           (tokens (clang-tokens *variety* (list root))))
       (is
        (equal
         tokens
@@ -122,7 +109,7 @@
     (let* ((roots (remove-if-not {eq :MemberExpr}
                                  (asts *variety*)
                                  :key #'ast-class))
-           (token-lists (mapcar [{tokens *variety*} #'list] roots)))
+           (token-lists (mapcar [{clang-tokens *variety*} #'list] roots)))
       (is (every [{<= 3} #'length] token-lists))
       (is (every (lambda (ls)
                    (or (equal ls (mapcar #'make-keyword
@@ -139,7 +126,7 @@
     (let* ((roots (remove-if-not {eq :ParenExpr}
                                  (asts *variety*)
                                  :key #'ast-class))
-           (token-lists (mapcar [{tokens *variety*} #'list] roots)))
+           (token-lists (mapcar [{clang-tokens *variety*} #'list] roots)))
       (is (= 1 (length token-lists)))
       (is (every [{<= 3} #'length] token-lists))
       (is (every [{eql (make-keyword "(")} #'first] token-lists))
@@ -150,7 +137,7 @@
     (let* ((parmvars (remove-if-not {eq :ParmVar}
                                     (asts *variety*)
                                     :key #'ast-class))
-           (token-lists (mapcar [{tokens *variety*} #'list] parmvars))
+           (token-lists (mapcar [{clang-tokens *variety*} #'list] parmvars))
            (argv-tokens (mapcar #'make-keyword
                                 (list "char" "*" "*" "identifier")))
            (int-tokens (mapcar #'make-keyword
@@ -165,7 +152,7 @@
     (let* ((records (remove-if-not {eq :Record}
                                    (asts *variety*)
                                    :key #'ast-class))
-           (token-lists (mapcar [{tokens *variety*} #'list] records))
+           (token-lists (mapcar [{clang-tokens *variety*} #'list] records))
            (union-tokens (mapcar #'make-keyword
                                  (list "union" "{"
                                        "int" "identifier"
@@ -183,7 +170,7 @@
     (let* ((root (remove-if-not {eq :WhileStmt}
                                 (asts *variety*)
                                 :key #'ast-class))
-           (tokens (tokens *variety* root))
+           (tokens (clang-tokens *variety* root))
            (while-tokens
             (mapcar #'make-keyword
                     ;; while((next = va_arg(nums, int))

@@ -8,14 +8,8 @@
 ;;; @texi{formatting}
 (defpackage :software-evolution-library/components/formatting
   (:nicknames :sel/components/formatting :sel/cp/formatting)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
+  (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/utility
         :software-evolution-library/software/simple
         :software-evolution-library/software/parseable
         :software-evolution-library/software/source)

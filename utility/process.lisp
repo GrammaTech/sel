@@ -6,8 +6,18 @@
 ;;;
 ;;; @texi{process}
 (defpackage :software-evolution-library/utility/process
-  (:nicknames :sel/util/process)
-  (:use :gt/full))
+  (:nicknames :sel/utility/process)
+  (:use :gt/full)
+  (:export
+   :process
+   :os-process
+   :process-id
+   :process-input-stream
+   :process-output-stream
+   :process-error-stream
+   :process-exit-code
+   :process-running-p
+   :kill-process))
 (in-package :software-evolution-library/utility/process)
 
 (defclass process ()

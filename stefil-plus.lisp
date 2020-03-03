@@ -28,13 +28,8 @@
 (defpackage :software-evolution-library/stefil-plus
   (:nicknames :sel/stefil-plus :sel/stefil+)
   (:use
-   :common-lisp
-   :iterate
-   :alexandria
-   :cl-store
-   :metabang-bind
-   :software-evolution-library/utility
-   :uiop)
+   :gt/full
+   :metabang-bind)
   (:shadowing-import-from
    :stefil
    :defixture :with-fixture :defsuite* :in-suite
@@ -45,13 +40,6 @@
    :run-failed-tests
    :*debug-on-unexpected-error*
    :*debug-on-assertion-failure*)
-  (:shadowing-import-from :iterate :iter :for :until :collecting :in)
-  (:shadowing-import-from :uiop :getenv :quit)
-  (:shadowing-import-from
-   :alexandria
-   :appendf :ensure-list :featurep :emptyp
-   :if-let :ensure-function :ensure-gethash :copy-file
-   :parse-body :simple-style-warning)
   (:export :defroot
            :defsuite
            :*long-tests*

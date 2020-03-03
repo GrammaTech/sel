@@ -2,27 +2,14 @@
 (defpackage :software-evolution-library/test/elf
   (:nicknames :sel/test/elf)
   (:use
-   :common-lisp
-   :alexandria
-   :closer-mop
+   :gt/full
+   #+gt :testbot
    :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
-   :named-readtables
-   :curry-compose-reader-macros
-   :iterate
-   :split-sequence
-   :cl-ppcre
-   #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility
    :software-evolution-library/software/elf
    :software-evolution-library/software/elf-cisc
    :software-evolution-library/software/elf-risc)
-  (:import-from :uiop :nest)
-  (:shadowing-import-from
-   :closer-mop
-   :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric)
   (:export :test-elf))
 (in-package :software-evolution-library/test/elf)
 (in-readtable :curry-compose-reader-macros)
@@ -46,8 +33,8 @@
 
 (deftest elf-copy-same-genome ()
   (with-fixture gcd-elf
-    (is (equal-it (genome *gcd*)
-                  (genome (copy *gcd*))))))
+    (is (equal (genome-string *gcd*)
+               (genome-string (copy *gcd*))))))
 
 (deftest elf-idempotent-read-copy-write ()
   (with-temp-file (a)
@@ -65,7 +52,7 @@
           (ant (copy *gcd*)))
       (handler-case (mutate ant)
         (mutate (obj) (declare (ignorable obj)) nil))
-      (is (not (equal-it (genome ant) (genome *gcd*))))
+      (is (not (equal (sxhash (genome ant)) (sxhash (genome *gcd*)))))
       (is (equal orig-hash (sxhash (genome *gcd*)))))))
 
 (deftest elf-cut-changes-but-maintains-byte-length ()
@@ -73,7 +60,7 @@
     (let ((variant (copy *gcd*)))
       (apply-mutation variant '(:cut 4))
       (is (= (length (bytes *gcd*)) (length (bytes variant))))
-      (is (not (equal-it (bytes *gcd*) (bytes variant)))))))
+      (is (not (equalp (bytes *gcd*) (bytes variant)))))))
 
 (deftest elf-insertion-changes-but-maintains-lengthens ()
   (with-fixture gcd-elf
@@ -84,10 +71,10 @@
           ;; may fail in the future or on other systems.
           (to-copy
            (without-compiler-notes
-               (position-if [{eql 1} #'length {aget :code}] (genome *gcd*)))))
+            (position-if [{eql 1} #'length {aget :code}] (genome *gcd*)))))
       (apply-mutation variant (list :insert 0 to-copy))
       (is (= (length (bytes *gcd*)) (length (bytes variant))))
-      (is (not (equal-it (bytes *gcd*) (bytes variant)))))))
+      (is (not (equalp (bytes *gcd*) (bytes variant)))))))
 
 (deftest elf-replace-changes-but-maintains-length ()
   (with-fixture gcd-elf
@@ -95,13 +82,13 @@
            ;; See FIND-SMALL in `elf-insertion-changes-but-maintains-lengthens'
            (to-copy
             (without-compiler-notes
-                (position-if [{eql 1} #'length {aget :code}] (genome *gcd*))))
+             (position-if [{eql 1} #'length {aget :code}] (genome *gcd*))))
            (new-genome (elf-replace
                         variant 0 (copy-tree (nth to-copy (genome *gcd*))))))
-      (is (= (length (mappend {aget :code} (genome *gcd*)))
-             (length (mappend {aget :code} new-genome))))
-      (is (not (equal-it (mappend {aget :code} (genome *gcd*))
-                         (mappend {aget :code} new-genome)))))))
+      (is (= (length (genome *gcd*))
+             (length new-genome)))
+      (is (not (equalp (format nil "~S" (genome *gcd*))
+                       (format nil "~S" new-genome)))))))
 
 (deftest elf-swap-changes-but-maintains-length ()
   (with-fixture gcd-elf
@@ -115,7 +102,7 @@
                                (genome *gcd*))))
       (apply-mutation variant (list :swap place (1- place)))
       (is (= (length (bytes *gcd*)) (length (bytes variant))))
-      (is (not (equal-it (bytes *gcd*) (bytes variant)))))))
+      (is (not (equalp (bytes *gcd*) (bytes variant)))))))
 
 (deftest elf-swap-touching-last-element ()
   (with-fixture gcd-elf
@@ -127,19 +114,19 @@
       (apply-mutation variant (list :swap place1 place2))
       (is (= (length (bytes *gcd*)) (length (bytes variant))))
       (is (or (tree-equal value1 value2)
-              (not (equal-it (bytes *gcd*) (bytes variant))))))))
+              (not (equalp (bytes *gcd*) (bytes variant))))))))
 
 (deftest elf-swap-with-self ()
   (with-fixture gcd-elf
     (let* ((place (random (length (genome *gcd*))))
            (variant (copy *gcd*)))
       (apply-mutation variant (list :swap place place))
-      (is (equal-it (genome variant) (genome *gcd*))))))
+      (is (equal (genome-string variant) (genome-string *gcd*))))))
 
 (deftest elf-crossover-test ()
   (with-fixture gcd-elf
     (let ((variant (copy *gcd*)))
       (apply-mutation variant '(:cut 0))
       (let ((new (crossover variant *gcd*)))
-        (is (not (equal-it (genome new) (genome *gcd*))))
+        (is (not (equal (genome-string new) (genome-string *gcd*))))
         (is (= (length (bytes *gcd*)) (length (bytes variant))))))))

@@ -2,29 +2,16 @@
 (defpackage :software-evolution-library/test/asm-super-mutant
   (:nicknames :sel/test/asm-super-mutant)
   (:use
-   :common-lisp
-   :alexandria
-   :closer-mop
+   :gt/full
+   #+gt :testbot
    :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
-   :named-readtables
-   :curry-compose-reader-macros
-   :iterate
-   :split-sequence
-   :cl-ppcre
-   #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility
    :software-evolution-library/software/simple
    :software-evolution-library/software/asm-heap
    :software-evolution-library/software/super-mutant
    :software-evolution-library/software/asm-super-mutant
    :software-evolution-library/components/lexicase)
-  (:import-from :uiop :nest)
-  (:shadowing-import-from
-   :closer-mop
-   :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric)
   (:export :test-asm-super-mutant))
 (in-package :software-evolution-library/test/asm-super-mutant)
 (in-readtable :curry-compose-reader-macros)

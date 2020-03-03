@@ -5,15 +5,10 @@
 ;;; entirely within the current LISP image
 (defpackage :software-evolution-library/components/json-fodder-database
   (:nicknames :sel/components/json-fodder-database :sel/cp/json-fodder-database)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
-        :cl-ppcre
+  (:use :gt/full
+        :cl-json
+        :cl-store
         :software-evolution-library
-        :software-evolution-library/utility
         :software-evolution-library/components/fodder-database
         :software-evolution-library/components/in-memory-fodder-database)
   (:export :json-database))

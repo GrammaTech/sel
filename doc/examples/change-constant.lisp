@@ -1,15 +1,8 @@
 ;;; change-constant.lisp --- Simple example to mutate constants in source.
 (defpackage :software-evolution-library/doc/examples/change-constant
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
+  (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/utility
-        :software-evolution-library/software/clang
-        :split-sequence))
+        :software-evolution-library/software/clang))
 (in-package :software-evolution-library/doc/examples/change-constant)
 (in-readtable :curry-compose-reader-macros)
 

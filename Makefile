@@ -75,7 +75,13 @@ DOC_PACKAGES =								\
 	software-evolution-library/software/super-mutant-clang		\
 	software-evolution-library/software/super-mutant-project	\
 	software-evolution-library/software/with-exe			\
-	software-evolution-library/utility				\
+	software-evolution-library/utility/debug			\
+	software-evolution-library/utility/git				\
+	software-evolution-library/utility/json				\
+	software-evolution-library/utility/process			\
+	software-evolution-library/utility/range			\
+	software-evolution-library/utility/task				\
+	software-evolution-library/utility/terminal			\
 	software-evolution-library/view
 
 LISP_DEPS =				\

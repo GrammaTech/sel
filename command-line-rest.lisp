@@ -1,16 +1,12 @@
 (defpackage :software-evolution-library/command-line-rest
   (:nicknames :sel/command-line-rest)
   (:use
-   :named-readtables
-   :curry-compose-reader-macros
-   :common-lisp
+   :gt/full
    :software-evolution-library
-   :software-evolution-library/utility
    :software-evolution-library/command-line
    :software-evolution-library/rest/define-command-endpoint
    :software-evolution-library/rest/async-jobs
    :software-evolution-library/rest)
-  (:import-from :uiop :writeln :truenamize :nest)
   (:import-from :software-evolution-library/rest/async-jobs
                 :lookup-session-job-status)
   (:import-from :clack :clackup :stop)

@@ -15,18 +15,12 @@
   (:nicknames :sel/command-line)
   (:documentation
    "Generally useful functionality for SEL-based command-line tools.")
-  (:use :common-lisp
-        :alexandria
-        :named-readtables
-        :curry-compose-reader-macros
+  (:use :gt/full
         :command-line-arguments
-        :iterate
-        :split-sequence
         :cl-store
-        :closer-mop
-        :uiop/filesystem
         :software-evolution-library
-        :software-evolution-library/utility
+        :software-evolution-library/utility/debug
+        :software-evolution-library/utility/git
         ;; Software objects.
         :software-evolution-library/software/source
         :software-evolution-library/software/project
@@ -45,26 +39,12 @@
         ;; Components.
         :software-evolution-library/components/fault-loc
         :software-evolution-library/components/test-suite)
-  (:import-from :bordeaux-threads :all-threads :thread-name :join-thread)
-  (:import-from :cl-ppcre :scan)
   (:import-from :swank :create-server)
   (:import-from :cl-json :decode-json-from-source)
-  (:import-from :uiop/utility :nest)
-  (:import-from :uiop/image :*lisp-interaction*)
-  (:import-from :uiop/stream :detect-encoding)
-  (:import-from :uiop/pathname
-                :ensure-directory-pathname
-                :pathname-directory-pathname
-                :pathname-parent-directory-pathname)
-  (:shadowing-import-from
-   :closer-mop
-   :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric)
-  (:shadowing-import-from :uiop/filesystem
-                          :file-exists-p
-                          :directory-exists-p
-                          :directory-files)
-  (:shadowing-import-from :asdf-encodings :encoding-external-format)
+  (:import-from :uiop/image :quit :*lisp-interaction*)
+  (:shadowing-import-from :asdf-encodings
+                          :detect-file-encoding
+                          :encoding-external-format)
   (:export :define-command
            :interrupt-signal
            :*lisp-interaction*
@@ -149,8 +129,9 @@
   (create-server :port port :style :spawn :dont-close t))
 
 (defun handle-load (path)
-  (load path
-        :external-format (encoding-external-format (detect-encoding path))))
+  (nest (load path :external-format)
+        (encoding-external-format)
+        (detect-file-encoding path)))
 
 (defun handle-eval (string)
   (eval (read-from-string string)))
@@ -333,7 +314,7 @@ input is not positive."
 COMMAND-NAME should be the name of the enclosing function defined with
 `define-command'.  Command-line or interactive state is determined by
 inspecting the value of `*lisp-interaction*'."
-  `(if uiop/image:*lisp-interaction*
+  `(if *lisp-interaction*
        (return-from ,command-name ,interactive-return-val)
        (quit ,errno)))
 
@@ -353,12 +334,12 @@ based on heuristics based on whether SOURCES points to files or
 directories and if files based on their extensions."
   (labels
       ((best-guess (guesses)
-         (iter (with ht = (make-hash-table))
-               (for guess in guesses)
-               (setf (gethash guess ht)
-                     (1+ (or (gethash guess ht) 0)))
-               (finally (return (car (first (sort (hash-table-alist ht) #'>
-                                                  :key #'cdr)))))))
+         (let ((ht (make-hash-table)))
+           (iter (for guess in guesses)
+                 (setf (gethash guess ht)
+                       (1+ (or (gethash guess ht) 0)))
+                 (finally (return (car (first (sort (hash-table-alist ht) #'>
+                                                    :key #'cdr))))))))
        (guess-helper (sources project-p)
          (let ((guesses
                 (mapcar (lambda (source)

@@ -16,16 +16,8 @@
 ;;;
 (defpackage :software-evolution-library/components/fix-compilation
   (:nicknames :sel/components/fix-compilation :sel/cp/fix-compilation)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
-        :split-sequence
-        :cl-ppcre
+  (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/utility
         :software-evolution-library/software/parseable
         :software-evolution-library/software/source
         :software-evolution-library/software/clang
@@ -33,7 +25,6 @@
         :software-evolution-library/components/formatting
         :software-evolution-library/components/searchable
         :software-evolution-library/components/fodder-database)
-  (:import-from :uiop :nest)
   (:export :register-fixer
            :fix-compilation
            :*compilation-fixers*))
@@ -120,6 +111,29 @@ associated element of `*compilation-fixers*'.
   (mapc {add-include obj} (resolve-function-includes (aref match-data 2)))
   obj)
 
+
+(defvar *resolved-header-files* (make-hash-table :test 'equal)
+  "A map from function name to a list of headers where
+that function may be declared.")
+
+(defun headers-in-manpage (section name)
+  (multiple-value-bind (stdout stderr errno)
+      (shell
+       "man -P cat ~a ~a | sed -n \"/DESCRIPTION/q;p\" | ~
+        grep \"#include\" | cut -d'<' -f 2 | cut -d'>' -f 1"
+       section name)
+    (declare (ignorable stderr errno))
+    (split-sequence #\Newline stdout :remove-empty-subseqs t)))
+
+(defun resolve-function-includes (func)
+  (let ((headers (gethash func *resolved-header-files* 'not-found)))
+    (mapcar {format nil "<~a>"}
+            (if (eq headers 'not-found)
+                (setf (gethash func *resolved-header-files*)
+                      (or (headers-in-manpage 3 func)
+                          (headers-in-manpage 2 func)))
+                headers))))
+
 (register-fixer
  "implicit( declaration of built-in|ly declaring library) function (‘|')(\\S+)(’|')"
  #'resolve-function)
@@ -197,19 +211,18 @@ associated element of `*compilation-fixers*'.
          (new-expression
            (bind-vars-in-snippet
              obj
-             (->> (find-snippets *database*
-                                 :ast-class (->> '("FloatingLiteral"
-                                                   "IntegerLiteral"
-                                                   "CharacterLiteral"
-                                                   "StringLiteral"
-                                                   "ParenExpr"
-                                                   "DeclRefExpr"
-                                                   "UnaryExprOrTypeTraitExpr"
-                                                   "ImplicitCastExpr"
-                                                   "CStyleCastExpr")
-                                                 (random-elt))
-                                 :limit 1)
-                  (first))
+             (car (find-snippets *database*
+                                 :ast-class
+                                 (random-elt '("FloatingLiteral"
+                                               "IntegerLiteral"
+                                               "CharacterLiteral"
+                                               "StringLiteral"
+                                               "ParenExpr"
+                                               "DeclRefExpr"
+                                               "UnaryExprOrTypeTraitExpr"
+                                               "ImplicitCastExpr"
+                                               "CStyleCastExpr"))
+                                 :limit 1))
              (lastcar (asts-containing-source-location
                        obj (make-instance 'source-location
                                           :line line-number
@@ -299,18 +312,16 @@ associated element of `*compilation-fixers*'.
                    :test #'string=)
        :do (setf (gethash (enclosing-full-stmt obj ast)
                           to-delete) t))
-    (-<>> (hash-table-keys to-delete)
-          (remove nil)
-          ;; NOTE: Potential bug here where a function is passed nil
-          ;;       which requires a number...  Not easy to reproduce.
-          ;;
-          ;; (mapc (lambda (it) (format t "IT:~S~%" it)))
-          ;;
-          ;; NOTE: Another potential bug here in which asts are
-          ;;       returned instead of numbers and asts can't be
-          ;;       compared with `>'.
-          (sort <> #'ast-later-p)
-          (mapc [{apply-mutation obj} {list 'clang-cut} {cons :stmt1}]))))
+    ;; NOTE: Potential bug here where a function is passed nil
+    ;;       which requires a number...  Not easy to reproduce.
+    ;;
+    ;; (mapc (lambda (it) (format t "IT:~S~%" it)))
+    ;;
+    ;; NOTE: Another potential bug here in which asts are
+    ;;       returned instead of numbers and asts can't be
+    ;;       compared with `>'.
+    (nest (mapc [{apply-mutation obj} {list 'clang-cut} {cons :stmt1}])
+          (sort (remove nil (hash-table-keys to-delete)) #'ast-later-p))))
 
 (register-fixer
  ": undefined reference to `(\\S+)'"

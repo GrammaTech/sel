@@ -1,16 +1,13 @@
 ;;; repair.lisp --- repair software
 (defpackage :software-evolution-library/doc/examples/repair
-  (:use :common-lisp
-        :alexandria
-        :metabang-bind
-        :named-readtables
-        :curry-compose-reader-macros
+  (:use :gt/full
         :cl-store
-        :split-sequence
-        :bordeaux-threads
         :uiop/image
         :software-evolution-library
-        :software-evolution-library/utility)
+        :software-evolution-library/software/asm
+        :software-evolution-library/software/elf
+        :software-evolution-library/software/cil
+        :software-evolution-library/utility/debug)
   (:export :main))
 (in-package :software-evolution-library/doc/examples/repair)
 (in-readtable :curry-compose-reader-macros)

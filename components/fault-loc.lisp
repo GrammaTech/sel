@@ -5,22 +5,16 @@
 ;;;
 (defpackage :software-evolution-library/components/fault-loc
   (:nicknames :sel/components/fault-loc :sel/cp/fault-loc)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
+  (:use :gt/full
         :split-sequence
         :software-evolution-library
-        :software-evolution-library/utility
+        :software-evolution-library/utility/debug
         :software-evolution-library/software/parseable
         :software-evolution-library/software/source
         :software-evolution-library/software/clang
         :software-evolution-library/software/project
         :software-evolution-library/software/clang-project
         :software-evolution-library/components/test-suite)
-  (:shadowing-import-from :uiop/utility :nest)
   (:export :*default-fault-loc-weight*
            :*default-fault-loc-cutoff*
            :error-funcs
@@ -59,20 +53,20 @@ No assumptions are made about the format or contents of the traces."))
 
 (defmethod collect-fault-loc-traces (bin test-suite read-trace-fn
                                      &optional fl-neg-test)
-  (iter (for test in (test-cases test-suite))
-        (note 3 "Begin running test ~a" test)
-        (let* ((f (evaluate bin test :output :stream :error :stream))
-               ;; Set is-good-trace based on actual outcome, or the
-               ;; user-specified "bad test."
-               (is-good-trace (cond
-                                (fl-neg-test (if (member test fl-neg-test)
-                                                 nil
-                                                 t))
-                                (t (>= f 1.0)))))
-          (with accumulated-result = nil)
-          (setf accumulated-result
-                (funcall read-trace-fn accumulated-result is-good-trace test))
-          (finally (return accumulated-result)))))
+  (let ((accumulated-result nil))
+    (iter (for test in (test-cases test-suite))
+          (note 3 "Begin running test ~a" test)
+          (let* ((f (evaluate bin test :output :stream :error :stream))
+                 ;; Set is-good-trace based on actual outcome, or the
+                 ;; user-specified "bad test."
+                 (is-good-trace (cond
+                                  (fl-neg-test (if (member test fl-neg-test)
+                                                   nil
+                                                   t))
+                                  (t (>= f 1.0)))))
+            (setf accumulated-result
+                  (funcall read-trace-fn accumulated-result is-good-trace test))
+            (finally (return accumulated-result))))))
 
 (defun error-funcs (software bad-traces good-traces)
   "Find statements which call functions which are only called during bad runs.

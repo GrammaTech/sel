@@ -4,14 +4,8 @@
 (defpackage :software-evolution-library/components/in-memory-fodder-database
   (:nicknames :sel/components/in-memory-fodder-database
               :sel/cp/in-memory-fodder-database)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
+  (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/utility
         :software-evolution-library/software/parseable
         :software-evolution-library/software/clang
         :software-evolution-library/components/searchable
@@ -86,17 +80,17 @@ property is true.
 
 Otherwise, consider all ASTs."
 
-  (let ((snippets (->> (cond (ast-class
-                              (gethash ast-class (ast-database-ht db)))
-                             (full-stmt
-                              (ast-database-full-stmt-list db))
-                             (t (ast-database-list db)))
-                       (remove-if
-                        (cond
-                          ((eql decls :only)
-                           (complement {aget :is-decl}))
-                          (decls #'null)
-                          (t {aget :is-decl}))))))
+  (let ((snippets (nest (remove-if
+                         (cond
+                           ((eql decls :only)
+                            (complement {aget :is-decl}))
+                           (decls #'null)
+                           (t {aget :is-decl})))
+                        (cond (ast-class
+                               (gethash ast-class (ast-database-ht db)))
+                              (full-stmt
+                               (ast-database-full-stmt-list db))
+                              (t (ast-database-list db))))))
     (if (and limit (< limit (length snippets)))
         (mapcar {aref (coerce snippets 'vector)}
                 (random-sample-without-replacement (length snippets) limit))

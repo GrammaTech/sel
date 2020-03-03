@@ -1,11 +1,8 @@
 (defpackage :software-evolution-library/test/util
   (:nicknames :sel/test/util)
-  (:use :common-lisp
-        :alexandria
-        :named-readtables
-        :curry-compose-reader-macros
+  (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/utility
+        :software-evolution-library/utility/debug
         :software-evolution-library/stefil-plus
         :software-evolution-library/software/parseable
         :software-evolution-library/software/java-project)

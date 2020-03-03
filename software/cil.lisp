@@ -1,14 +1,8 @@
 ;;; cil.lisp --- cil software representation
 (defpackage :software-evolution-library/software/cil
   (:nicknames :sel/software/cil :sel/sw/cil)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
+  (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/utility
         :software-evolution-library/software/source)
   (:export :cil))
 (in-package :software-evolution-library/software/cil)

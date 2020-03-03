@@ -29,14 +29,9 @@
 ;;; @texi{javascript}
 (defpackage :software-evolution-library/software/javascript
   (:nicknames :sel/software/javascript :sel/sw/javascript)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
+  (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/utility
+        :software-evolution-library/utility/json
         :software-evolution-library/software/parseable
         :software-evolution-library/software/source
         :software-evolution-library/components/formatting)
@@ -301,10 +296,10 @@
                                    (aget :local ast-alist))
                              :test #'equal))
                           (t nil))))
-       (make-children (genome alist child-alists child-asts)
+       (make-children (genome alist child-alists child-asts
+                       &aux (start (aget :start alist)))
          (if child-alists
-             (iter (with start = (aget :start alist))
-                   (for child-alist in child-alists)
+             (iter (for child-alist in child-alists)
                    (for child-ast in child-asts)
                    (collect (subseq genome start (aget :start child-alist))
                             into result)
@@ -316,22 +311,23 @@
                                                    start
                                                    (aget :end alist)))))))
              (list (subseq genome (aget :start alist) (aget :end alist)))))
-       (make-tree (genome ast-alist
-                          &aux (children (collect-children ast-alist))
-                          (new-ast-node (-> (make-javascript-ast-node
-                                             :class (make-keyword
-                                                     (string-upcase
-                                                      (aget :type ast-alist))))
-                                            (add-aux-data ast-alist))))
-         (make-javascript-ast
-           :node new-ast-node
-           :children (make-children
-                       genome
-                       ast-alist
-                       children
-                       (iter (for child in children)
-                             (collect (make-tree genome
-                                                 child)))))))
+       (make-tree (genome ast-alist)
+         (let ((children (collect-children ast-alist))
+               (new-ast-node (add-aux-data
+                              (make-javascript-ast-node
+                               :class (make-keyword
+                                       (string-upcase
+                                        (aget :type ast-alist))))
+                              ast-alist)))
+           (make-javascript-ast
+             :node new-ast-node
+             :children (make-children
+                         genome
+                         ast-alist
+                         children
+                         (iter (for child in children)
+                               (collect (make-tree genome
+                                                   child))))))))
     (setf (ast-root obj)
           (fix-newlines (make-tree (genome obj) (parse-asts obj))))
     (setf (slot-value obj 'genome)
@@ -440,33 +436,33 @@ AST ast to return the scopes for"
                  ;; (e.g. [a, b, c] = [1, 2, 3]).  In this case, we need
                  ;; all of the variables on the left-hand side of the
                  ;; expression.
-                 (->> (remove-if-not [{eq :VariableDeclaration} #'ast-class]
-                                     children)
-                      (mappend {get-immediate-children obj})
-                      (remove-if-not [{eq :VariableDeclarator} #'ast-class])
-                      (mappend (lambda (ast)
-                                 (let ((child (get-first-child-ast obj ast)))
-                                   (if (eq :Identifier (ast-class child))
-                                       (list child) ;; single var
-                                       (get-children
-                                         obj
-                                         child))))) ;; destructuring
-                      (remove-if-not [{eq :Identifier} #'ast-class])))))
+                 (nest (remove-if-not [{eq :Identifier} #'ast-class])
+                       (mappend (lambda (ast)
+                                  (let ((child (get-first-child-ast obj ast)))
+                                    (if (eq :Identifier (ast-class child))
+                                        ;; single var
+                                        (list child)
+                                        ;; destructuring
+                                        (get-children obj child)))))
+                       (remove-if-not [{eq :VariableDeclarator} #'ast-class])
+                       (mappend {get-immediate-children obj})
+                       (remove-if-not [{eq :VariableDeclaration} #'ast-class]
+                                      children)))))
     (when (not (eq :Program (ast-class ast)))
       (let ((scope (enclosing-scope obj ast)))
-        (cons (->> (iter (for c in
-                              (get-immediate-children obj scope))
-                         (while (ast-later-p ast c))
-                         (collect c))
-                   ; remove ASTs which are not variable identifiers
-                   (filter-identifiers obj scope)
-                   ; build result
-                   (mappend
-                     (lambda (ast)
-                       `(((:name . ,(source-text ast))
-                          (:decl . ,(get-parent-decl obj ast))
-                          (:scope . ,scope)))))
-                   (reverse))
+        (cons (nest (reverse)
+                    ; build result
+                    (mappend
+                      (lambda (ast)
+                        `(((:name . ,(source-text ast))
+                           (:decl . ,(get-parent-decl obj ast))
+                           (:scope . ,scope)))))
+                    ; remove ASTs which are not variable identifiers
+                    (filter-identifiers obj scope)
+                    (iter (for c in
+                               (get-immediate-children obj scope))
+                          (while (ast-later-p ast c))
+                          (collect c)))
               (scopes obj scope))))))
 
 (defmethod get-unbound-vals ((obj javascript) (ast javascript-ast))
@@ -499,14 +495,14 @@ AST ast to return the scopes for"
            (when (eq (ast-class ast) :CallExpression)
              (cond ((eq (ast-class callee) :Identifier)
                     ;; Free function call
-                    (list (-> (source-text callee)
-                              (list nil nil (length (cdr children))))))
+                    (list (list (source-text callee)
+                                nil nil (length (cdr children)))))
                    ((eq (ast-class callee) :MemberExpression)
                     ;; Member function call
-                    (list (-> (get-immediate-children obj callee)
-                              (second)
-                              (source-text)
-                              (list nil nil (length (cdr children))))))
+                    (list (list (nest (source-text)
+                                      (second)
+                                      (get-immediate-children obj callee))
+                                nil nil (length (cdr children)))))
                    (t nil)))
            (mapcar {get-unbound-funs obj}
                    (get-immediate-children obj ast)))

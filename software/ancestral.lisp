@@ -5,19 +5,13 @@
 ;;; @texi{ancestral}
 (defpackage :software-evolution-library/software/ancestral
   (:nicknames :sel/software/ancestral :sel/sw/ancestral)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
-        :software-evolution-library
-        :software-evolution-library/utility)
+  (:use :gt/full
+        :software-evolution-library)
   (:export :ancestral
            :ancestors
            :save-ancestry
            :reset-ancestry-id
-	   :get-fresh-ancestry-id
+           :get-fresh-ancestry-id
            :*next-ancestry-id*))
 (in-package :software-evolution-library/software/ancestral)
 (in-readtable :curry-compose-reader-macros)

@@ -31,16 +31,8 @@
 ;;;
 (defpackage :software-evolution-library/software/asm-heap
   (:nicknames :sel/software/asm-heap :sel/sw/asm-heap)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
-        :split-sequence
-        :cl-ppcre
+  (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/utility
         :software-evolution-library/software/simple
         :software-evolution-library/software/asm
         :software-evolution-library/software/super-mutant)
@@ -555,7 +547,7 @@ linking process, (5) the source file name used during linking."
                  (flags asm))
         (declare (ignorable stdout ))
         (without-compiler-notes
-            (values bin errno stderr stdout src))))))
+          (values bin errno stderr stdout src))))))
 
 (defun vector-cut (a index)
   "Destructively remove and return an element from a vector with a fill pointer."
@@ -766,13 +758,13 @@ Used by `homologous-crossover'."
                       (1- (length (genome b)))
                       id-a))
            ;; max value we can add to start and still have a valid index in b
-           (add-upper-bound (- (1- (length (genome b))) start)))
+           (add-upper-bound (- (1- (length (genome b))) start))
+           ;; keep track of closest difference in case there's no exact match
+           (closest start)
+           (closest-diff (abs (- id-a (lookup-id b start)))))
       ;; search above/below start simultaneously, adding and subtracting i
       ;; to get the indices to check (upper and lower, resp.)
       (iter (for i below (max start (1+ add-upper-bound)))
-            ;; keep track of closest difference in case there's no exact match
-            (with closest = start)
-            (with closest-diff = (abs (- id-a (lookup-id b start))))
             (let ((lower (- start (min i start)))
                   (upper (+ start (min i add-upper-bound))))
               (cond

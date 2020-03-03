@@ -1,16 +1,9 @@
 ;;; styleable.lisp --- Add stylability to software
 (defpackage :software-evolution-library/software/styleable
   (:nicknames :sel/software/styleable :sel/sw/styleable)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
+  (:use :gt/full
         :metabang-bind
-        :iterate
-        :cl-ppcre
         :software-evolution-library
-        :software-evolution-library/utility
         :software-evolution-library/software/project
         :software-evolution-library/software/parseable
         :software-evolution-library/software/clang)
@@ -296,12 +289,12 @@ denominators DENOM1 and DENOM2, respectively
 * DENOM2 denominator used to normalize VEC2
 "
   (without-compiler-notes
-      (let ((v1 (map 'vector {* denom1} vec1))
-            (v2 (map 'vector {* denom2} vec2)))
-        (values (map 'vector [{/ _ (+ denom1 denom2)} #'+]
-                     v1
-                     v2)
-                (+ denom1 denom2)))))
+    (let ((v1 (map 'vector {* denom1} vec1))
+          (v2 (map 'vector {* denom2} vec2)))
+      (values (map 'vector [{/ _ (+ denom1 denom2)} #'+]
+                   v1
+                   v2)
+              (+ denom1 denom2)))))
 
 (define-feature ast-node-type-tf-feature
     "Term frequency of AST node types."
@@ -310,10 +303,8 @@ denominators DENOM1 and DENOM2, respectively
 
 The returned vector will have one entry for each ast class listed in `clang-c-ast-classes'.
 "
-    (-<>> (ast-node-types clang)
-          (uni-grams)
-          (to-feature-vector <> *clang-c-ast-classes*)
-          (normalize-vector)))
+    (normalize-vector (to-feature-vector (uni-grams (ast-node-types clang))
+                                         *clang-c-ast-classes*)))
   (merge-normalized))
 
 
@@ -511,20 +502,20 @@ hash-table BI-GRAMS.
     "Number of occurrences of AST node type bi-grams in each full
      statement in an AST."
   (ast-full-stmt-bi-grams-extractor ((clang clang))
-                                    "Return a feature vector counting AST node type bi-grams for
-       full statements."
-                                    (->> (ast-full-stmt-bi-grams clang)
-                                         (bi-grams-hashtable-to-feature clang)
-                                         (normalize-vector)))
+    "Return a feature vector counting AST node type bi-grams for
+     full statements."
+    (nest (normalize-vector)
+          (bi-grams-hashtable-to-feature clang)
+          (ast-full-stmt-bi-grams clang)))
   (merge-normalized))
 
 (define-feature ast-bi-grams-feature
     "Number of occurrences of AST node type bi-grams in an AST."
   (ast-bi-grams-extractor ((clang clang))
     "Return a feature vector counting AST node type bi-grams."
-    (->> (ast-bi-grams clang)
-         (bi-grams-hashtable-to-feature clang)
-         (normalize-vector)))
+    (nest (normalize-vector)
+          (bi-grams-hashtable-to-feature clang)
+          (ast-bi-grams clang)))
   (merge-normalized))
 
 

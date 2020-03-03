@@ -2,29 +2,15 @@
 (defpackage :software-evolution-library/test/database
   (:nicknames :sel/test/database)
   (:use
-   :common-lisp
-   :alexandria
-   :closer-mop
+   :gt/full
+   #+gt :testbot
    :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
-   :named-readtables
-   :curry-compose-reader-macros
-   :iterate
-   :split-sequence
-   :cl-ppcre
-   :arrow-macros                        ; FIXME: Remove.
-   #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility
    :software-evolution-library/software/clang-w-fodder
    :software-evolution-library/components/json-fodder-database
    :software-evolution-library/components/fodder-database
    :software-evolution-library/components/searchable)
-  (:import-from :uiop :nest)
-  (:shadowing-import-from
-   :closer-mop
-   :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric)
   (:export :test-database))
 (in-package :software-evolution-library/test/database)
 (in-readtable :curry-compose-reader-macros)
@@ -42,9 +28,10 @@
 
 (deftest json-database-find-snippet-respects-class ()
   (with-fixture json-database
-    (is (null (-<>> (find-snippets *database* :ast-class "CompoundStmt")
-                    (remove "CompoundStmt" <> :test #'string=
-                            :key {aget :class}))))))
+    (is (null (remove "CompoundStmt"
+                      (find-snippets *database* :ast-class "CompoundStmt")
+                      :test #'string=
+                      :key {aget :class})))))
 
 (deftest json-database-find-snippet-respects-decl ()
   (with-fixture json-database

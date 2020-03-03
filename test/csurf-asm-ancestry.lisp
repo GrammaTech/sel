@@ -2,28 +2,15 @@
 (defpackage :software-evolution-library/test/csurf-asm-ancestry
   (:nicknames :sel/test/csurf-asm-ancestry)
   (:use
-   :common-lisp
-   :alexandria
-   :closer-mop
+   :gt/full
+   #+gt :testbot
    :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
-   :named-readtables
-   :curry-compose-reader-macros
-   :iterate
-   :split-sequence
-   :cl-ppcre
-   #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility
    :software-evolution-library/software/simple
    :software-evolution-library/software/csurf-asm
    :software-evolution-library/software/ancestral
    :software-evolution-library/software/asm-super-mutant)
-  (:import-from :uiop :nest)
-  (:shadowing-import-from
-   :closer-mop
-   :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric)
   (:export :test-csurf-asm-ancestry))
 (in-package :software-evolution-library/test/csurf-asm-ancestry)
 (in-readtable :curry-compose-reader-macros)

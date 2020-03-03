@@ -2,26 +2,13 @@
 (defpackage :software-evolution-library/test/csurf-asm
   (:nicknames :sel/test/csurf-asm)
   (:use
-   :common-lisp
-   :alexandria
-   :closer-mop
+   :gt/full
+   #+gt :testbot
    :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
-   :named-readtables
-   :curry-compose-reader-macros
-   :iterate
-   :split-sequence
-   :cl-ppcre
-   #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility
    :software-evolution-library/software/asm-heap
    :software-evolution-library/software/csurf-asm)
-  (:import-from :uiop :nest)
-  (:shadowing-import-from
-   :closer-mop
-   :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric)
   (:export :test-csurf-asm))
 (in-package :software-evolution-library/test/csurf-asm)
 (in-readtable :curry-compose-reader-macros)
@@ -84,7 +71,7 @@
     (apply-config *soft* (asm-test-dir "calc.log"))
     (with-temp-file (bin)
       (multiple-value-bind (bin errno)
-          (with-cwd ((make-pathname :directory +asm-test-dir+))
+          (with-current-directory (+asm-test-dir+)
             (phenome *soft* :bin bin))
         (is (zerop errno) "Calc compilation successful.")
         (is (= 4 (parse-number (shell "~a + 2 2" bin)))

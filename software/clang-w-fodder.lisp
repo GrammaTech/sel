@@ -7,15 +7,9 @@
 ;;; applicable, the corresponding binary bytes.
 (defpackage :software-evolution-library/software/clang-w-fodder
   (:nicknames :sel/software/clang-w-fodder :sel/sw/clang-w-fodder)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
+  (:use :gt/full
         :metabang-bind
-        :iterate
         :software-evolution-library
-        :software-evolution-library/utility
         :software-evolution-library/software/parseable
         :software-evolution-library/software/clang
         :software-evolution-library/components/searchable
@@ -163,11 +157,11 @@ mutations.")
 body entry of SOFTWARE.
 * SOFTWARE clang object to pick a DeclStmt AST for
 "
-  (let ((function-entry-stmts (->> (functions software)
-                                   (mapcar {function-body software})
-                                   (mapcar {get-immediate-children software})
-                                   (mapcar {first})
-                                   (remove-if #'null))))
+  (let ((function-entry-stmts (nest (remove-if #'null)
+                                    (mapcar {first})
+                                    (mapcar {get-immediate-children software})
+                                    (mapcar {function-body software})
+                                    (functions software))))
     (if (null function-entry-stmts)
         (error (make-condition 'no-mutation-targets
                  :obj software
@@ -234,8 +228,8 @@ Returns modified text, and names of bound variables.
 "
   (flet
       ((var-type (in-scope var-name)
-         (->> (find-if [{name= var-name} {aget :name}] in-scope)
-              (find-var-type obj))))
+         (nest (find-var-type obj)
+               (find-if [{name= var-name} {aget :name}] in-scope))))
     (multiple-value-bind (text vars)
         (bind-vars-in-snippet obj snippet pt)
       (let ((in-scope (get-vars-in-scope obj pt)))
@@ -248,9 +242,9 @@ Returns modified text, and names of bound variables.
                                          vars
                                          (mapcar {var-type in-scope} vars))
                    :includes (aget :includes snippet)
-                   :macros (->> (mapcar {find-macro database}
-                                        (aget :macros snippet))
-                                (remove-if #'null)))))
+                   :macros (nest (remove-if #'null)
+                                 (mapcar {find-macro database}
+                                         (aget :macros snippet))))))
           (car asts)
           (error (make-condition 'mutate
                                  :text "Failed to parse fodder"

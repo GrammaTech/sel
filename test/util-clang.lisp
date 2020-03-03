@@ -1,11 +1,7 @@
 (defpackage :software-evolution-library/test/util-clang
   (:nicknames :sel/test/util-clang)
-  (:use :common-lisp
-        :alexandria
-        :named-readtables
-        :curry-compose-reader-macros
+  (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/utility
         :software-evolution-library/stefil-plus
         :software-evolution-library/software/parseable
         :software-evolution-library/software/clang

@@ -5,12 +5,8 @@
 ;;; @texi{parseable-project}
 (defpackage :software-evolution-library/software/parseable-project
   (:nicknames :sel/software/parseable-project :sel/sw/parseable-project)
-  (:use :common-lisp
-        :alexandria
-        :named-readtables
-        :curry-compose-reader-macros
+  (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/utility
         :software-evolution-library/software/parseable
         :software-evolution-library/software/project)
   (:export :parseable-project))

@@ -2,8 +2,10 @@
 (defpackage :software-evolution-library/test
   (:nicknames :sel/test)
   (:use :common-lisp
-        :software-evolution-library/stefil-plus
+        :named-readtables
+        :curry-compose-reader-macros
         #+gt :testbot
+        :software-evolution-library/stefil-plus
         :software-evolution-library/test/adaptive-mutation
         :software-evolution-library/test/asm-super-mutant
         :software-evolution-library/test/asm
@@ -11,7 +13,6 @@
         :software-evolution-library/test/clang-ancestry
         :software-evolution-library/test/clang-crossover
         :software-evolution-library/test/clang-expression
-        ;; :software-evolution-library/test/clang-instrumentation
         :software-evolution-library/test/clang-mutations
         :software-evolution-library/test/clang-project
         :software-evolution-library/test/clang-scopes-and-types
@@ -56,7 +57,7 @@
   (:import-from :software-evolution-library/test/util :test)
   (:export :test :batch-test :testbot-test))
 (in-package :software-evolution-library/test)
-(named-readtables:in-readtable :sel-readtable)
+(in-readtable :curry-compose-reader-macros)
 
 #-gt
 (progn

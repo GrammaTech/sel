@@ -2,16 +2,11 @@
 (defpackage :software-evolution-library/software/lisp-project
   (:nicknames :sel/software/lisp-project
               :sel/sw/lisp-project)
-  (:use :common-lisp
-        :cl-json
-        :named-readtables
-        :curry-compose-reader-macros
-        :uiop/pathname
+  (:use :gt/full
         :software-evolution-library
         :software-evolution-library/software/lisp
         :software-evolution-library/software/parseable-project
-        :software-evolution-library/software/project
-        :software-evolution-library/utility)
+        :software-evolution-library/software/project)
   (:export :lisp-project))
 (in-package :software-evolution-library/software/lisp-project)
 (in-readtable :curry-compose-reader-macros)
@@ -24,12 +19,13 @@
   (setf (component-class lisp-project)
         (or (component-class lisp-project) 'lisp)))
 
-(defmethod collect-evolve-files ((obj lisp-project) &aux result)
-  (assert (project-dir obj) (obj) "directory-dir must be set on ~S" obj)
-  (with-cwd ((project-dir obj))
-    (walk-directory (project-dir obj)
+(defmethod collect-evolve-files ((obj lisp-project)
+                                 &aux result (project-dir (project-dir obj)))
+  (assert project-dir (project-dir) "project-dir must be set on ~S" obj)
+  (with-current-directory (project-dir)
+    (walk-directory project-dir
       (lambda (file)
-        (push (cons (namestring (pathname-relativize (project-dir obj) file))
+        (push (cons (namestring (pathname-relativize project-dir file))
                     (from-file (make-instance (component-class obj)) file))
               result))
       :test «and [{member _ '("lisp" "asd") :test #'equal} #'pathname-type]

@@ -1,26 +1,12 @@
 ;;; project.lisp --- evolve multiple source files
 (defpackage :software-evolution-library/software/project
   (:nicknames :sel/software/project :sel/sw/project)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
+  (:use :gt/full
         :metabang-bind
-        :iterate
-        :uiop
         :software-evolution-library
         :software-evolution-library/software/simple
         :software-evolution-library/software/source
-        :software-evolution-library/components/formatting
-        :software-evolution-library/utility)
-  (:shadowing-import-from :uiop/run-program :run-program)
-  (:shadowing-import-from :uiop :quit)
-  (:shadowing-import-from
-   :alexandria
-   :appendf :ensure-list :featurep :emptyp
-   :if-let :ensure-function :ensure-gethash :copy-file
-   :parse-body :simple-style-warning)
+        :software-evolution-library/components/formatting)
   (:export :project
            :*build-dir*
            :build-command
@@ -246,7 +232,7 @@ non-symlink text files that don't end in \"~\" and are not ignored by
                           (file-access-operation c) (file-access-path c))
                     (invoke-restart 'set-file-writable))))
     (loop for (file . obj) in (all-files project)
-       do (to-file obj (in-directory path file)))))
+       do (to-file obj (merge-pathnames-as-file path file)))))
 
 (defmethod size ((obj project))
   "Return summed size across all `evolve-files'."
@@ -289,10 +275,10 @@ the alist.")
                                             (targets mut)))
                    (for i below n)
                    (collect targeted into mutations)
-                   (collect (->> (apply-mutation (copy (cdr evolve-file))
-                                                 targeted)
-                                 (incorporate (copy project)
-                                              (car evolve-file)))
+                   (collect (nest (incorporate (copy project)
+                                               (car evolve-file))
+                                  (apply-mutation (copy (cdr evolve-file))
+                                                  targeted))
                             into results)
                    (finally (return (values results mutations)))))
            (incorporate (project src-file obj)
@@ -314,10 +300,10 @@ the alist.")
              (setf (slot-value mut 'targets) nil)
              (when-let* ((picked (funcall (picker mut) (cdr evolve-file)))
                          (targeted (at-targets mut picked)))
-               (values (->> (apply-mutation (copy (cdr evolve-file))
-                                            targeted)
-                            (incorporate (copy project)
-                                         (car evolve-file)))
+               (values (nest (incorporate (copy project)
+                                          (car evolve-file))
+                             (apply-mutation (copy (cdr evolve-file))
+                                             targeted))
                        targeted)))
            (incorporate (project src-file obj)
              (setf (aget src-file (evolve-files project) :test #'equal) obj)
@@ -374,7 +360,7 @@ the alist.")
     ;; Using `call-next-method' with arguments to ensure build-dir has
     ;; the same value in the main `phenome' method.
     (unwind-protect (call-next-method obj :bin bin :build-dir build-dir)
-      (unless keep-file-p (sel/utility::ensure-temp-file-free build-dir)))))
+      (unless keep-file-p (delete-path build-dir)))))
 
 (defmethod phenome
     ((obj project) &key
@@ -391,7 +377,10 @@ the alist.")
               ;; Copy artifacts to BIN.
               (iter (for artifact in (artifacts obj))
                     (shell "cp -r ~a ~a"
-                           (namestring (in-directory build-dir artifact)) bin)))
+                           (namestring (merge-pathnames-as-file
+                                        (ensure-directory-pathname build-dir)
+                                        artifact))
+                           bin)))
             (error (make-condition 'phenome
                      :text stderr :obj obj :loc build-dir)))
       (retry-project-build ()
@@ -402,4 +391,7 @@ the alist.")
         (setf bin nil)))
     (when bin (assert (probe-file bin) (bin) "BIN not created!"))
     (values bin exit stderr stdout
-            (mapcar [{in-directory build-dir} #'first] (evolve-files obj)))))
+            (mapcar [{merge-pathnames-as-file
+                      (ensure-directory-pathname build-dir)}
+                     #'first]
+                    (evolve-files obj)))))

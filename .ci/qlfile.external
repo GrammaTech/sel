@@ -1,3 +1,5 @@
+git cl-utils https://github.com/GrammaTech/cl-utils.git
 git command-line-arguments https://github.com/fare/command-line-arguments.git
-git trace-db https://github.com/grammatech/trace-db.git
 git Eclector https://github.com/robert-strandh/Eclector.git
+git functional-trees https://github.com/GrammaTech/functional-trees.git
+git trace-db https://github.com/grammatech/trace-db.git

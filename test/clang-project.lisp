@@ -2,32 +2,18 @@
 (defpackage :software-evolution-library/test/clang-project
   (:nicknames :sel/test/clang-project)
   (:use
-   :common-lisp
-   :alexandria
-   :closer-mop
+   :gt/full
+   #+gt :testbot
    :software-evolution-library/test/util
    :software-evolution-library/test/util-clang
    :software-evolution-library/stefil-plus
-   :named-readtables
-   :curry-compose-reader-macros
-   :iterate
-   :split-sequence
-   :cl-ppcre
-   :arrow-macros                        ; FIXME: Remove.
-   #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility
    :software-evolution-library/software/simple
    :software-evolution-library/software/source
    :software-evolution-library/software/clang
    :software-evolution-library/software/project
    :software-evolution-library/software/clang-project)
-  (:import-from :uiop :nest)
   #-windows (:shadowing-import-from :osicat :file-permissions :pathname-as-directory)
-  (:shadowing-import-from
-   :closer-mop
-   :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric)
   (:export :test-clang-project))
 (in-package :software-evolution-library/test/clang-project)
 (in-readtable :curry-compose-reader-macros)
@@ -175,9 +161,8 @@
                                                     (bad-stmts obj))))))
                            10)
         (declare (ignorable objs))
-        (is (< 1 (-> (mapcar {targets} muts)
-                     (remove-duplicates :test #'equalp)
-                     (length))))))))
+        (is (< 1 (length (remove-duplicates (mapcar {targets} muts)
+                                            :test #'equalp))))))))
 
 (deftest clang-project-compilation-database-flags-test ()
   (is (equal (list "-DDIR='\"/tmp\"'" "-DIN" "\"-D_U_=a\"")

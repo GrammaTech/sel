@@ -204,18 +204,11 @@
 (defpackage :software-evolution-library/rest/std-api
   (:nicknames :sel/rest/std-api)
   (:use
-   :common-lisp
-   :alexandria
-   :named-readtables
-   :curry-compose-reader-macros
-   :common-lisp
+   :gt/full
    :snooze
-   :split-sequence
    :cl-json
-   :iterate
    :trace-db
    :software-evolution-library/software-evolution-library
-   :software-evolution-library/utility
    :software-evolution-library/components/test-suite
    :software-evolution-library/components/formatting
    :software-evolution-library/components/instrument
@@ -685,7 +678,7 @@ Resource lookups are of the form \"<resource>:<oid>\""
         (with-trace-error-handling
             (with-temp-dir-of (temp)
               (make-pathname :directory (pathname-directory inst-bin))
-              (with-cwd (temp)
+              (with-current-directory (temp)
                 (apply 'collect-traces soft test-suite
                        :max nil
                        (if inst-bin (list :bin inst-bin))))))

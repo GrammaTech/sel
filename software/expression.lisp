@@ -1,16 +1,11 @@
 ;;; expression.lisp --- evolve single expressions
 (defpackage :software-evolution-library/software/expression
   (:nicknames :sel/software/expression :sel/sw/expression)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
+  (:use :gt/full
         :metabang-bind
-        :iterate
         :software-evolution-library
-        :software-evolution-library/utility
         :software-evolution-library/software/sexp)
+  (:import-from :arrow-macros :some->>) ; FIXME: Remove.
   (:export :expression
            :constant-fold
            :random-subtree
@@ -184,7 +179,7 @@
   "DOCFIXME"
   (flet ((binopp (subtree) (and (listp subtree) (= 3 (length subtree)))))
     (some->> (iter (for i below (size obj))
-               (collect (list i (subtree (genome obj) i))))
+                   (collect (list i (subtree (genome obj) i))))
              (remove-if-not (lambda-bind ((i subtree))
                               (declare (ignorable i))
                               (and (binopp subtree) (binopp (third subtree)))))
@@ -416,11 +411,9 @@
 (defun choose (set subset)
   "Number of ways to choose SUBSET elements from SET."
   (declare (optimize speed))
-  ;; (declare (type fixnum set))
-  ;; (declare (type fixnum subset))
   (without-compiler-notes
-      (/ (factorial set)
-         (* (factorial subset) (factorial (- set subset))))))
+    (/ (factorial set)
+       (* (factorial subset) (factorial (- set subset))))))
 
 (defgeneric evaluate-expression (object environment &optional expression)
   (:documentation "Evaluate OBJECT's expression in ENVIRONMENT."))

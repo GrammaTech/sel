@@ -1,14 +1,10 @@
 ;;; test-suite.lisp --- Object to hold test suites.
 (defpackage :software-evolution-library/components/test-suite
   (:nicknames :sel/components/test-suite :sel/cp/test-suite)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
+  (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/utility)
+        :software-evolution-library/utility/debug
+        :software-evolution-library/utility/process)
   #-windows (:shadowing-import-from :uiop :wait-process)
   (:export :*process-sleep-interval*
            :*process-kill-timeout*
@@ -211,11 +207,15 @@ running, send a SIGKILL signal.
       (note 0 "WARNING: Unable to kill process ~a" test-process)))
 
   ;; Now that we've made every effort to kill it, read the output.
-  (let* ((stdout (stream-to-string (process-output-stream test-process)))
+  (let* ((stdout (unless (null (process-output-stream test-process))
+                   (read-stream-content-into-string
+                    (process-output-stream test-process))))
          ;; Can't read from error stream if it's the same as stdout.
-         (stderr (unless (eq (process-output-stream test-process)
-                             (process-error-stream test-process))
-                   (stream-to-string (process-error-stream test-process))))
+         (stderr (unless (or (null (process-error-stream test-process))
+                             (eq (process-output-stream test-process)
+                                 (process-error-stream test-process)))
+                   (read-stream-content-into-string
+                    (process-error-stream test-process))))
          (exit-code (or (process-exit-code test-process)
                         (wait-process (os-process test-process)))))
     (when *shell-debug*

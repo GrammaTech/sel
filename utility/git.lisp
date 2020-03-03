@@ -1,5 +1,5 @@
 (defpackage :software-evolution-library/utility/git
-  (:nicknames :sel/util/git)
+  (:nicknames :sel/utility/git)
   (:use :gt/full)
   (:export :git-error
            :git
@@ -8,6 +8,7 @@
            :ssh-key
            :make-git
            :run
+           :git-url-p
            :current-git-commit
            :current-git-branch
            :current-git-status))

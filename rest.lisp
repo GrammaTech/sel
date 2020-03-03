@@ -59,16 +59,10 @@
 (defpackage :software-evolution-library/rest
   (:nicknames :sel/rest)
   (:use
-   :alexandria
-   :named-readtables
-   :curry-compose-reader-macros
-   :common-lisp
+   :gt/full
    :snooze
-   :split-sequence
    :cl-json
-   :iterate
    :software-evolution-library/software-evolution-library
-   :software-evolution-library/utility
    :software-evolution-library/components/test-suite
    :software-evolution-library/components/formatting
    :software-evolution-library/components/instrument

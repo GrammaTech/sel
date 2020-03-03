@@ -2,33 +2,20 @@
 (defpackage :software-evolution-library/test/java
   (:nicknames :sel/test/java)
   (:use
-   :common-lisp
-   :alexandria
-   :closer-mop
+   :gt/full
+   :trace-db
+   #+gt :testbot
    :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
-   :named-readtables
-   :curry-compose-reader-macros
-   :iterate
-   :split-sequence
-   :cl-ppcre
-   #+gt :testbot
-   :trace-db
    :software-evolution-library
-   :software-evolution-library/utility
    :software-evolution-library/software/source
    :software-evolution-library/software/java
    :software-evolution-library/software/project
    :software-evolution-library/software/java-project
    :software-evolution-library/components/instrument
    :software-evolution-library/components/traceable)
-  (:import-from :uiop :nest)
   (:shadowing-import-from :software-evolution-library/test/util
                           :java-project)
-  (:shadowing-import-from
-   :closer-mop
-   :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric)
   (:export :test-java))
 (in-package :software-evolution-library/test/java)
 (in-readtable :curry-compose-reader-macros)

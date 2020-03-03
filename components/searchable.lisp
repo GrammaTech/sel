@@ -5,18 +5,14 @@
 ;;;
 (defpackage :software-evolution-library/components/searchable
   (:nicknames :sel/components/searchable :sel/cp/searchable)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
-        :software-evolution-library
-        :software-evolution-library/utility)
+  (:use :gt/full
+        :diff
+        :software-evolution-library)
   (:export :searchable
-	   :find-snippets
+           :find-snippets
            :weighted-pick
-           :similar-snippets))
+           :similar-snippets
+           :diff-scalar))
 (in-package :software-evolution-library/components/searchable)
 (in-readtable :curry-compose-reader-macros)
 
@@ -84,3 +80,19 @@ All other arguments are passed through to sorted snippets."))
                     predicate :key [{funcall metric target}
                                     {funcall key}])))
     (if limit (take limit base) base)))
+
+(defun diff-scalar (original-seq modified-seq)
+  "Return an integer representing the diff size of two sequences
+Sum O + |O - M| over each diff region.  O is the length of the
+original diff region and M is the length of the modified diff
+region."
+  (reduce (lambda (acc region)
+            (+ acc
+               (ecase (type-of region)
+                 (common-diff-region 0)
+                 (modified-diff-region
+                   (+ (original-length region)
+                      (abs (- (original-length region)
+                              (modified-length region))))))))
+          (diff:compute-raw-seq-diff original-seq modified-seq)
+          :initial-value 0))

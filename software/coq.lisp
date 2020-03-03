@@ -77,21 +77,13 @@
 ;;; @texi{coq}
 (defpackage :software-evolution-library/software/coq
   (:nicknames :sel/software/coq :sel/sw/coq)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
+  (:use :gt/full
         :metabang-bind
-        :iterate
-        :split-sequence
-        :cl-ppcre
         :software-evolution-library
-        :software-evolution-library/utility
+        :software-evolution-library/utility/debug
         :software-evolution-library/software/parseable
         :software-evolution-library/software/sexp
         :software-evolution-library/components/serapi-io)
-  (:shadowing-import-from :uiop :pathname-directory-pathname)
   (:export :coq
            :ast-ids
            :project-file
@@ -217,38 +209,38 @@ See also `tag-loc-info'."
     (set-load-paths project-file)
     (insert-reset-point))
   (with-open-file (in file)
-    (iter (for line = (read-line in nil nil))
-          (while line)
-          (with current-ast = "")
-          ;; if line is the end of a Coq stmt, look up the Coq ast
-          (if (ends-with #\. line)
-              (let* ((ast-string (format nil "~a ~a~%" current-ast line))
-                     (ast-ids (add-coq-string ast-string))
-                     (asts
-                      (iter (for ast-id in ast-ids)
-                            (with found-error = nil)
-                            (handler-case
-                                (let ((ast (lookup-coq-ast ast-id)))
-                                  (if (and ast (lookup-coq-string ast))
-                                      (collect ast into coq-genome)
-                                      (setf found-error t)))
-                              ;; On error, ast isn't re-serializable, so save
-                              ;; the raw string. Otherwise, save the ASTs.
-                              (serapi-error ()
-                                (setf found-error t))
-                              (condition ()
-                                (setf found-error t)))
-                            (finally
-                             (return (if found-error
-                                         (list ast-string)
-                                         coq-genome))))))
-                (appending asts into genome-asts)
-                (setf current-ast ""))
-              ;; line doesn't end with ., append to current-ast statement
-              (setf current-ast (format nil "~a ~a" current-ast line)))
-          (finally
-           (reset-serapi-process)
-           (return genome-asts)))))
+    (let ((current-ast ""))
+      (iter (for line = (read-line in nil nil))
+            (while line)
+            ;; if line is the end of a Coq stmt, look up the Coq ast
+            (if (ends-with #\. line)
+                (let* ((ast-string (format nil "~a ~a~%" current-ast line))
+                       (ast-ids (add-coq-string ast-string))
+                       (found-error nil)
+                       (asts
+                        (iter (for ast-id in ast-ids)
+                              (handler-case
+                                  (let ((ast (lookup-coq-ast ast-id)))
+                                    (if (and ast (lookup-coq-string ast))
+                                        (collect ast into coq-genome)
+                                        (setf found-error t)))
+                                ;; On error, ast isn't re-serializable, so save
+                                ;; the raw string. Otherwise, save the ASTs.
+                                (serapi-error ()
+                                  (setf found-error t))
+                                (condition ()
+                                  (setf found-error t)))
+                              (finally
+                               (return (if found-error
+                                           (list ast-string)
+                                           coq-genome))))))
+                  (appending asts into genome-asts)
+                  (setf current-ast ""))
+                ;; line doesn't end with ., append to current-ast statement
+                (setf current-ast (format nil "~a ~a" current-ast line)))
+            (finally
+             (reset-serapi-process)
+             (return genome-asts))))))
 
 (defmethod from-file ((obj coq) file)
   "Load Coq OBJ from file FILE, initializing fields in OBJ.
@@ -260,28 +252,28 @@ file have been added."
   (bind ((asts (coq-asts-from-file file (project-file obj)))
          ((import-asts import-strs genome-asts modules sections
                        assumptions definitions)
-          (iter (for ast in asts)
-                (with initial-imports = t)
-                ;; Collect all ASTs except imports into genome.
-                (if (and initial-imports (coq-import-ast-p ast))
-                    ;; separate out import asts at top of file
-                    (progn
-                      (collect ast into imports)
-                      (collect (lookup-coq-string ast) into import-strs))
-                    ;; all other asts
-                    (progn
-                      (setf initial-imports nil)
-                      (collect ast into genome-asts)))
-                (when-let ((module (coq-module-ast-p ast)))
-                  (collect module into modules))
-                (when-let ((section (coq-section-ast-p ast)))
-                  (collect section into sections))
-                (when-let ((assumption (coq-assumption-ast-p ast)))
-                  (collect assumption into assumptions))
-                (when-let ((definition (coq-definition-ast-p ast)))
-                  (collect definition into definitions))
-                (finally (return (list imports import-strs genome-asts modules
-                                       sections assumptions definitions))))))
+          (let ((initial-imports t))
+            (iter (for ast in asts)
+                  ;; Collect all ASTs except imports into genome.
+                  (if (and initial-imports (coq-import-ast-p ast))
+                      ;; separate out import asts at top of file
+                      (progn
+                        (collect ast into imports)
+                        (collect (lookup-coq-string ast) into import-strs))
+                      ;; all other asts
+                      (progn
+                        (setf initial-imports nil)
+                        (collect ast into genome-asts)))
+                  (when-let ((module (coq-module-ast-p ast)))
+                    (collect module into modules))
+                  (when-let ((section (coq-section-ast-p ast)))
+                    (collect section into sections))
+                  (when-let ((assumption (coq-assumption-ast-p ast)))
+                    (collect assumption into assumptions))
+                  (when-let ((definition (coq-definition-ast-p ast)))
+                    (collect definition into definitions))
+                  (finally (return (list imports import-strs genome-asts modules
+                                         sections assumptions definitions)))))))
     (setf (genome obj) (tag-loc-info genome-asts))
     (setf (file-source obj) file)
     (setf (imports obj) import-asts)

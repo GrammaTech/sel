@@ -1,14 +1,9 @@
 ;;; instrument.lisp --- Generic interface for instrumentation.
 (defpackage :software-evolution-library/components/instrument
   (:nicknames :sel/components/instrument :sel/cp/instrument)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
+  (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/utility
+        :software-evolution-library/utility/task
         :software-evolution-library/software/project)
   (:export :instrument
            :uninstrument

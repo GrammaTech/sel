@@ -2,24 +2,12 @@
 (defpackage :software-evolution-library/test/task-runner
   (:nicknames :sel/test/task-runner)
   (:use
-   :common-lisp
-   :alexandria
-   :closer-mop
+   :gt/full
+   #+gt :testbot
    :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
-   :named-readtables
-   :curry-compose-reader-macros
-   :iterate
-   :split-sequence
-   :cl-ppcre
-   #+gt :testbot
-   :software-evolution-library
-   :software-evolution-library/utility)
-  (:import-from :uiop :nest)
-  (:shadowing-import-from
-   :closer-mop
-   :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric)
+   :software-evolution-library/utility/task
+   :software-evolution-library)
   (:export :test-task-runner))
 (in-package :software-evolution-library/test/task-runner)
 (in-readtable :curry-compose-reader-macros)

@@ -2,31 +2,18 @@
 (defpackage :software-evolution-library/test/clang-utility
   (:nicknames :sel/test/clang-utility)
   (:use
-   :common-lisp
-   :alexandria
-   :closer-mop
+   :gt/full
+   #+gt :testbot
    :software-evolution-library/test/util
    :software-evolution-library/test/util-clang
    :software-evolution-library/stefil-plus
-   :named-readtables
-   :curry-compose-reader-macros
-   :iterate
-   :split-sequence
-   :cl-ppcre
-   :arrow-macros                        ; FIXME: Remove.
-   #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility
    :software-evolution-library/software/parseable
    :software-evolution-library/software/clang
    :software-evolution-library/components/formatting
    :software-evolution-library/components/fodder-database
    :software-evolution-library/components/json-fodder-database)
-  (:import-from :uiop :nest)
-  (:shadowing-import-from
-   :closer-mop
-   :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric)
+  (:import-from :arrow-macros :some->>) ; FIXME: Remove.
   (:export :test-clang-utility))
 (in-package :software-evolution-library/test/clang-utility)
 (in-readtable :curry-compose-reader-macros)

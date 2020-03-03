@@ -2,34 +2,21 @@
 (defpackage :software-evolution-library/test/rest
   (:nicknames :sel/test/rest)
   (:use
-   :common-lisp
-   :alexandria
-   :closer-mop
-   :software-evolution-library/test/util
-   :software-evolution-library/test/util-clang
-   :software-evolution-library/stefil-plus
-   :named-readtables
-   :curry-compose-reader-macros
-   :iterate
-   :split-sequence
-   :cl-ppcre
-   #+gt :testbot
+   :gt/full
    :clack
    :snooze
    :drakma
+   #+gt :testbot
+   :software-evolution-library/test/util
+   :software-evolution-library/test/util-clang
+   :software-evolution-library/stefil-plus
    :software-evolution-library
-   :software-evolution-library/utility
    :software-evolution-library/command-line
    :software-evolution-library/command-line-rest
    :software-evolution-library/rest/async-jobs
    :software-evolution-library/software/clang)
   #-windows (:import-from :hunchentoot)
-  (:import-from :uiop :nest)
   (:shadowing-import-from :clack :stop)
-  (:shadowing-import-from
-   :closer-mop
-   :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric)
   (:export :test-rest))
 (in-package :software-evolution-library/test/rest)
 (in-readtable :curry-compose-reader-macros)

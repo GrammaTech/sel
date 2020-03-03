@@ -1073,7 +1073,6 @@ quicklisp local-projects directory and then running:
 @example
     (ql:register-local-projects)
     (ql:quickload :software-evolution-library)
-    (ql:quickload :software-evolution-library/utility)
 @end example
 
 

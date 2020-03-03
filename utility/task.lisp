@@ -109,8 +109,36 @@
 ;;;
 ;;; @texi{task}
 (defpackage software-evolution-library/utility/task
-  (:nicknames :sel/util/task)
-  (:use :gt))
+  (:nicknames :sel/utility/task)
+  (:use :gt)
+  (:export
+   :task-runner
+   :*task-runner*
+   :task-runner-jobs
+   :task-runner-workers
+   :task-runner-workers-count
+   :task-runner-results
+   :task-runner-completed-jobs
+   :task-runner-completed-tasks
+   :task-runner-remaining-jobs
+   :task-runner-init-jobs
+   :task-runner-stop-jobs
+   :task-runner-add-job
+   :task-runner-create-worker
+   :task
+   :task-job
+   :process-task
+   :task-object
+   :task-save-result
+   :run-task
+   :run-as-task
+   :task-map
+   :task-map-async
+   :simple-task-async-runner
+   :run-task-and-block
+   :some-task
+   :some-task-pred
+   :some-test-task))
 (in-package :software-evolution-library/utility/task)
 
 (defstruct task-runner

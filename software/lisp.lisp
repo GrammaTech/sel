@@ -6,23 +6,15 @@
 ;;; @texi{lisp}
 (defpackage :software-evolution-library/software/lisp
   (:nicknames :sel/software/lisp :sel/sw/lisp)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :metabang-bind
-        :iterate
+  (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/utility
         :software-evolution-library/software/parseable
         :software-evolution-library/software/source
-	:eclector.parse-result)
+        :eclector.parse-result)
   (:shadowing-import-from :eclector.parse-result
                           :read
                           :read-from-string
                           :read-preserving-whitespace)
-  (:import-from :uiop :nest)
   (:export :lisp :lisp-ast :lisp-ast-p))
 (in-package :software-evolution-library/software/lisp)
 (in-readtable :curry-compose-reader-macros)

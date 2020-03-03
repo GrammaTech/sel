@@ -1,18 +1,13 @@
 ;;; parseable.lisp --- Software which may be parsed into ASTs
 (defpackage :software-evolution-library/software/parseable
   (:nicknames :sel/software/parseable :sel/sw/parseable)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
+  (:use :gt/full
         :metabang-bind
-        :iterate
         :cl-store
         :bordeaux-threads
         :software-evolution-library
-        :software-evolution-library/utility
-        :software-evolution-library/software/source)
+        :software-evolution-library/software/source
+        :software-evolution-library/utility/range)
   (:export :ast
            :ast-stub
            :ast-p
@@ -525,18 +520,19 @@ to `to-ast`.  E.g.
   (labels ((convert-to-node (spec)
              (destructuring-bind (class &rest options-and-children) spec
                (multiple-value-bind (keys children)
-                   (iter (for item in options-and-children)
-                         (with previous)
-                         (if (or (keywordp previous)
-                                 (keywordp item))
-                             ;; Collect keyword arguments.
-                             (collect item into keys)
-                             ;; Process lists as new AST nodes.
-                             (if (listp item)
-                                 (collect (convert-to-node item) into children)
-                                 (collect item into children)))
-                         (setf previous item)
-                         (finally (return (values keys children))))
+                   (let ((previous nil))
+                     (iter (for item in options-and-children)
+                           (if (or (keywordp previous)
+                                   (keywordp item))
+                               ;; Collect keyword arguments.
+                               (collect item into keys)
+                               ;; Process lists as new AST nodes.
+                               (if (listp item)
+                                   (collect (convert-to-node item)
+                                            into children)
+                                   (collect item into children)))
+                           (setf previous item)
+                           (finally (return (values keys children)))))
                  (funcall fn class keys children)))))
     (convert-to-node spec)))
 
@@ -1250,11 +1246,15 @@ All list operations are destructive."
                               (stringp (cadr p))
                               (funcall allowed-fn node)
                               (funcall prefix-fn (cadr p))))
-                    (l (last (ast-children node))))
-          (if (stringp (car l))
-              (setf (car l) (concatenate 'string (car l)
-                                         (subseq (cadr p) 0 pos)))
-              (setf (cdr l) (list (subseq (cadr p) 0 pos))))
+                    (l (lastcar (ast-children node))))
+          (if (stringp l)
+              (setf (ast-children node)
+                    (append (butlast (ast-children node))
+                            (list (format nil "~a~a"
+                                          l (subseq (cadr p) 0 pos)))))
+              (setf (ast-children node)
+                    (append (ast-children node)
+                            (list (subseq (cadr p) 0 pos)))))
           (setf (cadr p) (subseq (cadr p) pos)))))
 
 
@@ -1612,8 +1612,7 @@ otherwise.
                    (cons new-subtree
                          (get-parent-asts-helper new-subtree
                                                  (cdr path)))))))
-    (-> (get-parent-asts-helper (ast-root obj) (ast-path ast))
-        (reverse))))
+    (reverse (get-parent-asts-helper (ast-root obj) (ast-path ast)))))
 
 (defmethod get-children ((obj parseable) (ast ast))
   "Return all the children of AST in OBJ.
@@ -1886,21 +1885,23 @@ FIRST-POOL and SECOND-POOL are methods on SOFTWARE which return a list
 of ASTs.  An optional filter function having the signature 'f ast
 &optional first-pick', may be passed, returning true if the given AST
 should be included as a possible pick or false (nil) otherwise."
-  (let* ((first-pick (some-> (mutation-targets software :filter filter
-                                               :stmt-pool first-pool)
-                             (random-elt))))
-    (if (null second-pool)
-        (list (cons :stmt1 first-pick))
-        (list (cons :stmt1 first-pick)
-              (cons :stmt2 (some->
+  (flet ((safe-random-elt (pool)
+           (when pool (random-elt pool))))
+    (let* ((first-pick (nest (safe-random-elt)
+                             (mutation-targets software :filter filter
+                                               :stmt-pool first-pool))))
+      (if (null second-pool)
+          (list (cons :stmt1 first-pick))
+          (list (cons :stmt1 first-pick)
+                (cons :stmt2
+                      (nest (safe-random-elt)
                             (mutation-targets
                              software
                              :filter (lambda (ast)
                                        (if filter
                                            (funcall filter ast first-pick)
                                            t))
-                             :stmt-pool second-pool)
-                            (random-elt)))))))
+                             :stmt-pool second-pool))))))))
 
 (defmethod pick-bad-good ((software parseable) &key filter
                           (bad-pool #'bad-asts) (good-pool #'good-asts))

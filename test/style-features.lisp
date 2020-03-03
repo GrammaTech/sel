@@ -2,30 +2,16 @@
 (defpackage :software-evolution-library/test/style-features
   (:nicknames :sel/test/style-features)
   (:use
-   :common-lisp
-   :alexandria
-   :closer-mop
+   :gt/full
+   :metabang-bind                       ; FIXME: Remove.
+   #+gt :testbot
    :software-evolution-library/test/util
    :software-evolution-library/test/util-clang
    :software-evolution-library/stefil-plus
-   :named-readtables
-   :curry-compose-reader-macros
-   :iterate
-   :split-sequence
-   :cl-ppcre
-   :arrow-macros                        ; FIXME: Remove.
-   :metabang-bind                       ; FIXME: Remove.
-   #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility
    :software-evolution-library/software/parseable
    :software-evolution-library/software/clang
    :software-evolution-library/software/styleable)
-  (:import-from :uiop :nest)
-  (:shadowing-import-from
-   :closer-mop
-   :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric)
   (:export :test-style-features))
 (in-package :software-evolution-library/test/style-features)
 (in-readtable :curry-compose-reader-macros)
@@ -156,9 +142,8 @@
 
 (deftest ast-keyword-tf-extractor-correct ()
   (with-fixture variety-clang
-    (let ((ls-count (-<>> (ast-keyword-tf-extractor *variety*)
-                          (coerce <> 'list)
-                          (mapcar {* 44}))))
+    (let ((ls-count (nest (mapcar {* 44})
+                          (coerce (ast-keyword-tf-extractor *variety*) 'list))))
       (is
        (equal
         (mapcar #'cons

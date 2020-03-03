@@ -935,14 +935,12 @@ Default selection function for `tournament'."
                (try-another-mutation ()
                  :report "Try another mutation"
                  (safe-mutate)))))
-    (iter (iterate:with new-count = 0)
-          (multiple-value-bind (variant mutation-info)
+    (iter (multiple-value-bind (variant mutation-info)
               (safe-mutate)
             (unless (and (null variant) (null mutation-info))
               (collect variant into variants)
-              (collect mutation-info into infos)
-              (incf new-count)))
-          (while (< new-count count))
+              (collect mutation-info into infos)))
+          (while (< (length variants) count))
           (finally (return (values variants infos))))))
 
 (defmacro -search (specs step &rest body)

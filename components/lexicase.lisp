@@ -8,14 +8,8 @@
 ;;; have their scores in the same order.
 (defpackage :software-evolution-library/components/lexicase
   (:nicknames :sel/components/lexicase :sel/cp/lexicase)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
-        :software-evolution-library
-        :software-evolution-library/utility)
+  (:use :gt/full
+        :software-evolution-library)
   (:export :lexicase-select
            :lexicase-select-best
            :*lexicase-key*
@@ -30,10 +24,10 @@
   "Choose max-size individuals from the population by lexicase selection.
 The same individual may be selected multiple times."
   (without-compiler-notes
-      (assert
-       (= 1 (length (remove-duplicates population :key [#'length #'fitness])))
-       (population)
-       "All fitness vectors must be the same length."))
+    (assert
+     (= 1 (length (remove-duplicates population :key [#'length #'fitness])))
+     (population)
+     "All fitness vectors must be the same length."))
   (iter (for n below max-size)
         (collect (funcall *tournament-tie-breaker*
                           (lexicase-select-best population)))))

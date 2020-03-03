@@ -109,20 +109,20 @@ bin/%: $(LISP_DEPS) $(MANIFEST)
 	@rm -f $@
 	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LISP) $(LISP_FLAGS) \
 	--load $(QUICK_LISP)/setup.lisp \
-	--eval '(ql:quickload :software-evolution-library/utility)' \
+	--eval '(ql:quickload :gt/misc)' \
 	--eval '(ql:quickload :$(PACKAGE_NAME)/run-$*)' \
 	--eval '(setf uiop/image::*lisp-interaction* nil)' \
-	--eval '(sel/utility::with-quiet-compilation (asdf:make :$(PACKAGE_NAME)/run-$* :type :program :monolithic t))' \
+	--eval '(gt/misc:with-quiet-compilation (asdf:make :$(PACKAGE_NAME)/run-$* :type :program :monolithic t))' \
 	--eval '(quit)'
 
 $(TEST_BIN_DIR)/%: $(LISP_DEPS) $(MANIFEST)
 	@rm -f $@
 	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LISP) $(LISP_FLAGS) \
 	--load $(QUICK_LISP)/setup.lisp \
-	--eval '(ql:quickload :software-evolution-library/utility)' \
+	--eval '(ql:quickload :gt/misc)' \
 	--eval '(ql:quickload :$(PACKAGE_NAME)/run-$*)' \
 	--eval '(setf uiop/image::*lisp-interaction* nil)' \
-	--eval '(sel/utility::with-quiet-compilation (asdf:make :$(PACKAGE_NAME)/run-$* :type :program :monolithic t))' \
+	--eval '(gt/misc:with-quiet-compilation (asdf:make :$(PACKAGE_NAME)/run-$* :type :program :monolithic t))' \
 	--eval '(quit)'
 
 bin:
@@ -139,7 +139,6 @@ test-artifacts: $(TEST_ARTIFACTS)
 unit-check: test-artifacts $(TEST_LISP_DEPS) $(LISP_DEPS) $(MANIFEST)
 	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LISP) $(LISP_FLAGS) \
 	--load $(QUICK_LISP)/setup.lisp \
-	--eval '(ql:quickload :software-evolution-library/utility)' \
 	--eval '(ql:quickload :$(PACKAGE_NAME)/test)' \
 	--eval '(setq sel/stefil+:*long-tests* t)' \
 	--eval '($(PACKAGE_NAME)/test::run-batch)' \
@@ -148,12 +147,12 @@ unit-check: test-artifacts $(TEST_LISP_DEPS) $(LISP_DEPS) $(MANIFEST)
 unit-check/%: test-artifacts $(TEST_LISP_DEPS) $(LISP_DEPS) $(MANIFEST)
 	@CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LISP) $(LISP_FLAGS) \
 	--load $(QUICK_LISP)/setup.lisp \
-	--eval '(ql:quickload :software-evolution-library/utility :silent t)' \
+	--eval '(ql:quickload :gt/misc :silent t)' \
 	--eval '(ql:quickload :$(PACKAGE_NAME)/test :silent t)' \
 	--eval '(setq sel/stefil+:*long-tests* t)' \
 	--eval '(setf uiop/image::*lisp-interaction* nil)' \
-	--eval '(setf sel/utility:*uninteresting-conditions* (list (quote stefil::test-style-warning)))' \
-	--eval '(sel/utility::with-quiet-compilation (handler-bind ((t (lambda (e) (declare (ignorable e)) (format t "FAIL~%") (uiop::quit 1)))) (progn ($(PACKAGE_NAME)/test::$*) (format t "PASS~%") (uiop:quit 0))))'
+	--eval '(setf gt/misc:*uninteresting-conditions* (list (quote stefil::test-style-warning)))' \
+	--eval '(gt/misc:with-quiet-compilation (handler-bind ((t (lambda (e) (declare (ignorable e)) (format t "FAIL~%") (uiop::quit 1)))) (progn ($(PACKAGE_NAME)/test::$*) (format t "PASS~%") (uiop:quit 0))))'
 #	--eval '(uiop:quit (if (ignore-errors ($(PACKAGE_NAME)/test::$*) t) 0 1))'
 
 check: unit-check bin-check
@@ -174,11 +173,12 @@ swank: $(QUICK_LISP)/setup.lisp
 swank-test: $(QUICK_LISP)/setup.lisp test-artifacts
 	$(LISP_HOME) $(LISP) $(LISP_FLAGS)			\
 	--load $<						\
+	--eval '(ql:quickload :gt/misc :silent t)' \
 	--eval '(ql:quickload :swank)'				\
 	--eval '(ql:quickload :$(PACKAGE_NAME))'		\
 	--eval '(ql:quickload :$(PACKAGE_NAME)-test)'		\
 	--eval '(in-package :$(PACKAGE_NAME)-test)'		\
-	--eval '(sel/utility::with-quiet-compilation (swank:create-server :port $(SWANK_PORT) :style :spawn :dont-close t))'
+	--eval '(gt/misc:with-quiet-compilation (swank:create-server :port $(SWANK_PORT) :style :spawn :dont-close t))'
 
 repl: $(QUICK_LISP)/setup.lisp
 	$(LISP_HOME) $(LISP) $(LISP_FLAGS)			\
@@ -191,10 +191,11 @@ repl-test: $(QUICK_LISP)/setup.lisp test-artifacts
 	$(LISP_HOME) $(LISP) $(LISP_FLAGS)			\
 	--load $<						\
 	--eval '(ql:quickload :repl)'				\
+	--eval '(ql:quickload :gt/misc :silent t)' \
 	--eval '(ql:quickload :$(PACKAGE_NAME))'		\
 	--eval '(ql:quickload :$(PACKAGE_NAME)-test)'		\
 	--eval '(in-package :$(PACKAGE_NAME)-test)'		\
-	--eval '(sel/utility::with-quiet-compilation $(REPL_STARTUP))'
+	--eval '(gt/misc:with-quiet-compilation $(REPL_STARTUP))'
 
 
 ## Command-line testing.
@@ -281,7 +282,7 @@ LOADS=$(addprefix $(cparen)$(oparen)ql:quickload :, $(DOC_PACKAGES))
 
 doc/include/sb-texinfo.texinfo: $(LISP_DEPS) $(wildcard software/*.lisp)
 	SBCL_HOME=$(dir $(shell which sbcl))../lib/sbcl sbcl --load $(QUICK_LISP)/setup.lisp \
-	--eval '(ql:quickload :software-evolution-library/utility)' \
+	--eval '(ql:quickload :gt/full)' \
 	--eval '(progn (list $(LOADS) $(cparen))' \
 	--script .ci/.generate-api-docs packages $(DOC_PACKAGES)
 

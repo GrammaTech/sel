@@ -7,16 +7,8 @@
 ;;; @texi{csurf-asm}
 (defpackage :software-evolution-library/software/csurf-asm
   (:nicknames :sel/software/csurf-asm :sel/sw/csurf-asm)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
-        :split-sequence
-        :cl-ppcre
+  (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/utility
         :software-evolution-library/software/asm
         :software-evolution-library/software/asm-heap)
   (:export :apply-config
@@ -68,11 +60,11 @@
 
 (defvar *dynamic-linker-path*
   ;; Find the dynamic linker by pulling it from an executable on the system.
-  #+unix (->> (split-sequence #\Newline
-                (shell "ldd ~a" (trim-whitespace (shell "which ls"))))
-              (mappend {split-sequence #\space})
-              (mapcar #'trim-whitespace)
-              (find-if {search "ld-linux"} ))
+  #+unix (nest (find-if {search "ld-linux"} )
+               (mapcar #'trim-whitespace)
+               (mappend {split-sequence #\space})
+               (split-sequence #\Newline)
+               (shell "ldd ~a" (trim-whitespace (shell "which ls"))))
   #-unix (error "No analog for dynamic linker when not on Linux.")
   "Path to the dynamic linker on this system.")
 
@@ -204,45 +196,47 @@ Currently only populates the `weak-symbols' field from the log."
            ;; Keep only flags listed in `linker-flags-to-keep'.
 
            ;; Use cdr to remove linker program name.
-           (iter (for str in (cdr cmd))
-                 (for i upfrom 0)
-                 (with prev-str = (car cmd))
-                 ;; Keep if the element is in the whitelist of keep-able flags.
-                 (when (or
-                        ;; Space between flag and param.
-                        (member prev-str linker-flags-to-keep :test #'equal)
-                        ;; Flag with no space before param.
-                        (some {starts-with-subseq _ str} linker-flags-to-keep))
-                   (collect str into extract-flags))
-                 (setf prev-str str)
-                 (finally (return extract-flags))))
+           (let ((prev-str (car cmd)))
+             (iter (for str in (cdr cmd))
+                   (for i upfrom 0)
+                   ;; Keep if element is in the whitelist of keep-able flags.
+                   (when (or
+                          ;; Space between flag and param.
+                          (member prev-str linker-flags-to-keep
+                                  :test #'equal)
+                          ;; Flag with no space before param.
+                          (some {starts-with-subseq _ str}
+                                linker-flags-to-keep))
+                     (collect str into extract-flags))
+                   (setf prev-str str)
+                   (finally (return extract-flags)))))
          ;; Collect linked libraries
          (extract-linked-files (cmd)
-           (iter (for str in (cdr cmd))
-                 (for i upfrom 0)
-                 (with prev-str = (car cmd))
-                 (with dropped-first-o-file = nil)
-                 ;; Current arg is a path: it starts with /, is a file, and
-                 ;; isn't a flag param (i.e., prev-str isn't a single dash flag)
-                 ;; Additionally, we drop the first .o file on the assumption
-                 ;; that it links the code contained in this software object.
-                 (when (and (starts-with-subseq "/" str)
-                            (not (equal "--dynamic-linker" prev-str))
-                            (or (starts-with-subseq "--" prev-str)
-                                (not (starts-with-subseq "-" prev-str)))
-                            ;; drop first .o file
-                            (or (not (ends-with-subseq ".o" str))
-                                (and (ends-with-subseq ".o" str)
-                                     dropped-first-o-file)))
-                   (collect str into files-to-link))
-                 ;; indicate when first .o file in command has been dropped
-                 (when (and (ends-with-subseq ".o" str)
-                            (not dropped-first-o-file))
-                   (setf dropped-first-o-file t))
-                 (setf prev-str str)
-                 (finally (return files-to-link)))))
-    (let ((cmd (->> (subseq bracket-cmd 1 (1- (length bracket-cmd)))
-                    (split "\\s+"))))
+           (let ((prev-str (car cmd))
+                 (dropped-first-o-file nil))
+             (iter (for str in (cdr cmd))
+                   (for i upfrom 0)
+                   ;; Current arg is a path: it starts with /, is a file, and
+                   ;; isn't a flag param (i.e., prev-str isn't a single dash
+                   ;; flag).  Additionally, we drop the first .o file on the
+                   ;; assumption that it links the code contained in this
+                   ;; software object.
+                   (when (and (starts-with-subseq "/" str)
+                              (not (equal "--dynamic-linker" prev-str))
+                              (or (starts-with-subseq "--" prev-str)
+                                  (not (starts-with-subseq "-" prev-str)))
+                              ;; drop first .o file
+                              (or (not (ends-with-subseq ".o" str))
+                                  (and (ends-with-subseq ".o" str)
+                                       dropped-first-o-file)))
+                     (collect str into files-to-link))
+                   ;; indicate when first .o file in command has been dropped
+                   (when (and (ends-with-subseq ".o" str)
+                              (not dropped-first-o-file))
+                     (setf dropped-first-o-file t))
+                   (setf prev-str str)
+                   (finally (return files-to-link))))))
+    (let ((cmd (split "\\s+" (subseq bracket-cmd 1 (1- (length bracket-cmd))))))
       (cond
         ;; NOTE: Disabled as the defaults above are generally better for now.
         ;; Assembler command.

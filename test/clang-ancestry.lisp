@@ -2,27 +2,14 @@
 (defpackage :software-evolution-library/test/clang-ancestry
   (:nicknames :sel/test/clang-ancestry)
   (:use
-   :common-lisp
-   :alexandria
-   :closer-mop
+   :gt/full
+   #+gt :testbot
    :software-evolution-library/test/util
    :software-evolution-library/test/util-clang
    :software-evolution-library/stefil-plus
-   :named-readtables
-   :curry-compose-reader-macros
-   :iterate
-   :split-sequence
-   :cl-ppcre
-   #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility
    :software-evolution-library/software/ancestral
    :software-evolution-library/software/clang)
-  (:import-from :uiop :nest)
-  (:shadowing-import-from
-   :closer-mop
-   :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric)
   (:export :test-clang-ancestry))
 (in-package :software-evolution-library/test/clang-ancestry)
 (in-readtable :curry-compose-reader-macros)

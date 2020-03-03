@@ -2,27 +2,14 @@
 (defpackage :software-evolution-library/test/asm
   (:nicknames :sel/test/asm)
   (:use
-   :common-lisp
-   :alexandria
-   :closer-mop
+   :gt/full
+   #+gt :testbot
    :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
-   :named-readtables
-   :curry-compose-reader-macros
-   :iterate
-   :split-sequence
-   :cl-ppcre
-   #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility
    :software-evolution-library/software/simple
    :software-evolution-library/software/asm
    :software-evolution-library/software/asm-heap)
-  (:import-from :uiop :nest)
-  (:shadowing-import-from
-   :closer-mop
-   :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric)
   (:export :test-asm))
 (in-package :software-evolution-library/test/asm)
 (in-readtable :curry-compose-reader-macros)
@@ -60,10 +47,6 @@
              (is (= 0 ret))))
       (delete-file a))))
 
-(deftest idempotent-copy ()
-  (with-fixture gcd-asm
-    (is (equal-it *gcd* (copy *gcd*) nil '(oid)))))
-
 (deftest (idempotent-read-copy-write :long-running) ()
   (let ((a (temp-file-name)))
     (unwind-protect
@@ -90,7 +73,7 @@
                     (declare (ignorable c))
                     (invoke-restart 'try-another-mutation))))
               (mutate ant))
-            (when (not (equal-it (genome ant) (genome *gcd*)))
+            (when (not (equal (genome-string ant) (genome-string *gcd*)))
               (return t)))
           "In 100 tries, a mutation results in a different mutated genome.")
       (is (equal orig-hash (sxhash (genome *gcd*)))))))
@@ -275,14 +258,6 @@
   (with-fixture gcd-asm-heap-att
     (idempotent-asm-heap-read-write "gcd.s.att")))
 
-(deftest (idempotent-asm-heap-copy-intel :long-running) ()
-  (with-fixture gcd-asm-heap-intel
-    (is (equal-it *gcd* (copy *gcd*) nil '(oid)))))
-
-(deftest (idempotent-asm-heap-copy-att :long-running) ()
-  (with-fixture gcd-asm-heap-att
-    (is (equal-it *gcd* (copy *gcd*) nil '(oid)))))
-
 (defun idempotent-asm-heap-read-copy-write (filename)
   (let ((a (temp-file-name)))
     (unwind-protect
@@ -314,7 +289,7 @@
                   (declare (ignorable c))
                   (invoke-restart 'try-another-mutation))))
             (mutate variant))
-          (when (not (equal-it (genome variant) (genome *gcd*)))
+          (when (not (equal (genome-string variant) (genome-string *gcd*)))
             (return t)))
         "In 100 tries, a mutation results in a different mutated genome.")
     (is (equal orig-hash (sxhash (genome *gcd*))))))

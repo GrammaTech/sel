@@ -54,18 +54,11 @@
 (defpackage :software-evolution-library/rest/async-jobs
   (:nicknames :sel/rest/async-jobs)
   (:use
-   :common-lisp
-   :alexandria
-   :named-readtables
-   :curry-compose-reader-macros
-   :common-lisp
+   :gt/full
    :snooze
-   :split-sequence
-   :iterate
    :trace-db
    :software-evolution-library/software-evolution-library
    :software-evolution-library/command-line
-   :software-evolution-library/utility
    :software-evolution-library/components/test-suite
    :software-evolution-library/components/formatting
    :software-evolution-library/components/instrument
@@ -74,7 +67,8 @@
    :software-evolution-library/software/clang
    :software-evolution-library/rest/sessions
    :software-evolution-library/rest/std-api
-   :software-evolution-library/rest/utility)
+   :software-evolution-library/rest/utility
+   :software-evolution-library/utility/task)
   (:shadowing-import-from :clack :clackup :stop)
   (:export :apply-async-job-func
            :async-job
@@ -237,7 +231,7 @@
          :arguments arguments
          :func func
          :task-runner
-         (sel/utility::task-map-async
+         (task-map-async
           threads
           func
           (if (typep arguments 'population)

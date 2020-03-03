@@ -65,7 +65,7 @@
      ;; Re-run to update the doc/foo-api.texi files with new links to
      ;; newly documented classes, functions, methods, types, structures,
      ;; and macros.
-     (sel/utility:cd "doc/")
+     (uiop:chdir "doc/")
      (mapc (lambda (package path title)
              (document-package package
                                :output-file path

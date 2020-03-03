@@ -1,30 +1,14 @@
 ;;; clang-project.lisp --- Projects with a clang compilation database
 (defpackage :software-evolution-library/software/clang-project
   (:nicknames :sel/software/clang-project :sel/sw/clang-project)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
-        :split-sequence
-        :cl-ppcre
-        :uiop/filesystem
+  (:use :gt/full
+        :cl-json
         :software-evolution-library
-        :software-evolution-library/utility
         :software-evolution-library/software/simple
         :software-evolution-library/software/parseable
         :software-evolution-library/software/clang
         :software-evolution-library/software/project
         :software-evolution-library/software/parseable-project)
-  (:shadowing-import-from :uiop
-                          :nest
-                          :ensure-directory-pathname
-                          :absolute-pathname-p
-                          :directory-exists-p
-                          :run-program
-                          :resolve-symlinks
-                          :directory*)
   (:export :clang-project
            :compilation-database))
 (in-package :software-evolution-library/software/clang-project)
@@ -103,11 +87,12 @@ information on the format of compilation databases."))
                          (regex-replace
                           "\"([^\"]*)\"" arg "'\"\\1\"'"))
                        (cdr (aget :arguments entry)))
-               (-<>> (or (aget :command entry) "")
-                     (regex-replace-all "\\\\\\\"(.*?)\\\\\\\"" <> "'\"\\1\"'")
-                     (unescape-string)
+               (nest (cdr)
                      (split-quoted)
-                     (cdr)))))
+                     (unescape-string)
+                     (regex-replace-all "\\\\\\\"(.*?)\\\\\\\""
+                                        (or (aget :command entry) "")
+                                        "'\"\\1\"'")))))
     (nest
      ;; Normalize the list of compiler flags
      (normalize-flags (aget :directory entry))
@@ -118,9 +103,9 @@ information on the format of compilation databases."))
 
 (defmethod collect-evolve-files ((clang-project clang-project))
   (labels ((get-file-path (entry)
-             (-<>> (aget :directory entry)
-                   (ensure-directory-pathname)
-                   (merge-pathnames-as-file <> (aget :file entry)))))
+             (merge-pathnames-as-file (nest (ensure-directory-pathname)
+                                            (aget :directory entry))
+                                      (aget :file entry))))
     (mapcar (lambda (entry)
               (cons (pathname-relativize (project-dir clang-project)
                                          (get-file-path entry))

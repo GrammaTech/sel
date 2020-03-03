@@ -1,15 +1,8 @@
 ;;; forth.lisp --- software representation of Forth code
 (defpackage :software-evolution-library/software/forth
   (:nicknames :sel/software/forth :sel/sw/forth)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
-        :cl-ppcre
+  (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/utility
         :software-evolution-library/software/simple)
   (:export :forth))
 (in-package :software-evolution-library/software/forth)

@@ -4,31 +4,25 @@
 ;;;
 (defpackage :software-evolution-library/components/condition-synthesis
   (:nicknames :sel/components/condition-synthesis :sel/cp/condition-synthesis)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
+  (:use :gt/full
         :metabang-bind
-        :iterate
-        :cl-ppcre
-        :trace-db              ; TODO: Is this really required here...
-                               ; Used for `read-binary-trace'.
+        :trace-db
         :software-evolution-library
-        :software-evolution-library/utility
+        :software-evolution-library/utility/debug
         :software-evolution-library/software/parseable
         :software-evolution-library/software/source
         :software-evolution-library/software/clang
         :software-evolution-library/components/test-suite
         :software-evolution-library/components/instrument
         :software-evolution-library/components/clang-instrument)
+  (:import-from :arrow-macros :some->>) ; FIXME: Remove.
   (:export :instrumentation-exprs
            :synthesize-condition
            :synthesize-conditions
            :entails
            :find-best-condition
            :add-condition
-           :flip
+           :flip-bit-str
            :tighten-condition
            :loosen-condition
            :refine-condition
@@ -144,13 +138,13 @@ a refine-condition MUTATION to SOFTWARE."
   ((targeter
     :initform
     (lambda (software)
-      (->> (asts software)
-           (remove-if-not #'ast-full-stmt)
-           (remove-if [{eq :Function} #'ast-class])
-           (remove-if [{eq :DeclStmt} #'ast-class])
-           (random-elt)
-           (index-of-ast software)
-           (1+))))
+      (nest (1+)
+            (index-of-ast software)
+            (random-elt)
+            (remove-if [{eq :DeclStmt} #'ast-class])
+            (remove-if [{eq :Function} #'ast-class])
+            (remove-if-not #'ast-full-stmt)
+            (asts software))))
    (abst-cond :accessor abst-cond :initform nil))
   (:documentation "Guard a statement with an abstract condition.
 E.g., foo\; becomes if(abst_cond()) foo\;."))
@@ -400,12 +394,12 @@ and EXTRA-EXPRS
 * AST ast to instrument
 * EXTRA-EXPRS additional expressions to include in instrumentation
 "
-  (let ((exprs (->> (mapcar (lambda (v)
-                              (cons (aget :name v)
-                                    (find-var-type (software instrumenter) v)))
-                            (get-vars-in-scope (software instrumenter) ast))
-                    (append extra-exprs)
-                    (remove nil))))
+  (let ((exprs (nest (remove nil)
+                     (append extra-exprs)
+                     (mapcar (lambda (v)
+                               (cons (aget :name v)
+                                     (find-var-type (software instrumenter) v)))
+                             (get-vars-in-scope (software instrumenter) ast)))))
     (instrument-c-exprs instrumenter exprs t)))
 
 (defun instrument-abst-cond-traces (software trace-file-name extra-exprs)
@@ -457,20 +451,20 @@ recorded abst-cond decisions.
 Return two values: a list of strings of the abst-cond decisions and the list of
 environments."
   (when (probe-file trace-results-file)
-    (iter (for sexpr in (read-binary-trace trace-results-file))
-          ;; iter can exhaust the stack on long traces. Bail out
-          ;; before that happens.
-          (for i below *max-trace-length*)
-          (with prev-env = nil)
-          (while sexpr)
-          (when (aget :scopes sexpr)
-            (setf prev-env (aget :scopes sexpr)))
-          (when (aget :aux sexpr)
-            ;; Convert var infos from vectors to lists
-            (collect (mapcar [{take 3} {coerce _ 'list}] prev-env) into envs)
-            (collect (aref (aget :aux sexpr) 0) into abst-conds))
-          (finally (return (values (format nil "~{~a~}" abst-conds)
-                                   (apply #'append envs)))))))
+    (let ((prev-env nil))
+      (iter (for sexpr in (read-binary-trace trace-results-file))
+            ;; iter can exhaust the stack on long traces. Bail out
+            ;; before that happens.
+            (for i below *max-trace-length*)
+            (while sexpr)
+            (when (aget :scopes sexpr)
+              (setf prev-env (aget :scopes sexpr)))
+            (when (aget :aux sexpr)
+              ;; Convert var infos from vectors to lists
+              (collect (mapcar [{take 3} {coerce _ 'list}] prev-env) into envs)
+              (collect (aref (aget :aux sexpr) 0) into abst-conds))
+            (finally (return (values (format nil "~{~a~}" abst-conds)
+                                     (apply #'append envs))))))))
 
 (defun synthesize-conditions (envs)
   "For each assignment in each environment in ENVS, create a list of condition
@@ -559,7 +553,7 @@ Otherwise, return DEFAULT or 0 if default is unspecified.
     (values output conds envs)))
 
 
-(defun flip (bit-str)
+(defun flip-bit-str (bit-str)
   "Return the string obtained by dropping all trailing 1s from BIT-STR and then
 changing the final 0 to a 1.
 * BIT-STR a string containing only \"0\" and \"1\"
@@ -567,7 +561,7 @@ changing the final 0 to a 1.
   (cond
     ((emptyp bit-str) bit-str)
     ((ends-with "1" bit-str :test #'string=)
-     (flip (subseq bit-str 0 (1- (length bit-str)))))
+     (flip-bit-str (subseq bit-str 0 (1- (length bit-str)))))
     (t (concatenate 'string (subseq bit-str 0 (1- (length bit-str))) "1"))))
 
 
@@ -602,9 +596,9 @@ found, return the recorded decisions and environments.
   ;; and loop conditions. In the former case, we match SPR's
   ;; algorithm: start with all zeroes (preserving the original
   ;; behavior), record conditions from that run, and then apply the
-  ;; "flip" function to the sequence to search variations near the end
-  ;; of the run. After a fixed number of attempts, try all ones in
-  ;; case the original condition is wrong all the time.
+  ;; "flip-bit-str" function to the sequence to search variations near
+  ;; the end of the run. After a fixed number of attempts, try all
+  ;; ones in case the original condition is wrong all the time.
 
   ;; For loop conditions we try to find a loop count that fixes the
   ;; test. The assumption is that the original condition will loop
@@ -641,7 +635,7 @@ found, return the recorded decisions and environments.
                 (multiple-value-bind (tr2 rc2 e2)
                     (run-test-case test bin
                                    :abst-conds (unless loop-condition
-                                                 (flip recorded-conds))
+                                                 (flip-bit-str recorded-conds))
                                    :loop-count (when loop-condition (1+ count)))
                   (setf test-result tr2)
                   (setf recorded-conds rc2)

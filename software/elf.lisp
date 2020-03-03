@@ -1,18 +1,13 @@
 ;;; elf.lisp --- software representation of ELF files
 (defpackage :software-evolution-library/software/elf
   (:nicknames :sel/software/elf :sel/sw/elf)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
+  (:use :gt/full
         :elf
         :software-evolution-library
-        :software-evolution-library/utility
         :software-evolution-library/software/simple)
   (:shadowing-import-from :common-lisp :type)
   (:shadowing-import-from :software-evolution-library :size)
+  (:shadowing-import-from :elf :insert :ordering :data)
   (:export :elf
            :base
            :genome-bytes))
@@ -65,11 +60,10 @@ and applies the changed data in `genome' of ELF."))
 
 (defmethod mutate ((elf elf))
   "Randomly mutate ELF."
-  (let ((op (case (random-elt '(cut insert swap))
-              (cut      `(:cut    ,(pick-bad elf)))
-              (insert   `(:insert ,(pick-bad elf) ,(pick-good elf)))
-              (swap     `(:swap   ,(pick-bad elf) ,(pick-good elf)))
-              )))
+  (let ((op (case (random-elt '(:cut :insert :swap))
+              (:cut      `(:cut    ,(pick-bad elf)))
+              (:insert   `(:insert ,(pick-bad elf) ,(pick-good elf)))
+              (:swap     `(:swap   ,(pick-bad elf) ,(pick-good elf))))))
     (apply-mutation elf op)
     (values elf op)))
 

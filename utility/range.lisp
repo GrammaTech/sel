@@ -1,6 +1,20 @@
 (defpackage software-evolution-library/utility/range
-  (:nicknames :sel/util/range)
-  (:use :gt))
+  (:nicknames :sel/utility/range)
+  (:use :gt)
+  (:export
+   :source-location
+   :line
+   :column
+   :source-range
+   :range
+   :begin
+   :end
+   :source-<
+   :source-<=
+   :source->
+   :source->=
+   :contains
+   :intersects))
 (in-package :software-evolution-library/utility/range)
 
 

@@ -18,14 +18,8 @@
 ;;; @texi{diff}
 (defpackage :software-evolution-library/software/diff
   (:nicknames :sel/software/diff :sel/sw/diff)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
+  (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/utility
         :software-evolution-library/software/simple)
   (:shadowing-import-from :diff
                           :unified-diff

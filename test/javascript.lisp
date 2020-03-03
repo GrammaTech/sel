@@ -2,20 +2,12 @@
 (defpackage :software-evolution-library/test/javascript
   (:nicknames :sel/test/javascript)
   (:use
-   :common-lisp
-   :alexandria
-   :closer-mop
+   :gt/full
+   :trace-db
+   #+gt :testbot
    :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
-   :named-readtables
-   :curry-compose-reader-macros
-   :iterate
-   :split-sequence
-   :cl-ppcre
-   #+gt :testbot
-   :trace-db
    :software-evolution-library
-   :software-evolution-library/utility
    :software-evolution-library/software/parseable
    :software-evolution-library/software/javascript
    :software-evolution-library/software/json
@@ -24,11 +16,6 @@
    :software-evolution-library/components/javascript-instrument
    :software-evolution-library/components/traceable
    :software-evolution-library/components/test-suite)
-  (:import-from :uiop :nest)
-  (:shadowing-import-from
-   :closer-mop
-   :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric)
   (:export :test-javascript))
 (in-package :software-evolution-library/test/javascript)
 (in-readtable :curry-compose-reader-macros)

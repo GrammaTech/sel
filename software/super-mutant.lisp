@@ -80,15 +80,9 @@
 ;;; @texi{super-mutant}
 (defpackage :software-evolution-library/software/super-mutant
   (:nicknames :sel/software/super-mutant :sel/sw/super-mutant)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
+  (:use :gt/full
         :metabang-bind
-        :iterate
-        :software-evolution-library
-        :software-evolution-library/utility)
+        :software-evolution-library)
   (:export :super-mutant
            :mutants
            :super-soft
@@ -231,41 +225,40 @@ inserted or deleted ASTs, the variant list will contain nils.
 We assume that the order of common keys is consistent across all
 variants. If this is not true, the result may have duplicate keys.
 "
-  (iter (for roots in ast-roots)
-        (for i upfrom 0)
-        ;; Dummy value avoids special cases due to empty result list
-        (with result = (list 'dummy))
-        (iter (for (key . variant) in roots)
-              (with previous = result)
-              (with current = (cdr result))
+  (let ((result (list 'dummy))) ;; dummy value avoids special cases
+    (iter (for roots in ast-roots)
+          (for i upfrom 0)
+          (let ((previous result)
+                (current (cdr result)))
+            (iter (for (key . variant) in roots)
+                  ;; Search for a matching key in the results
+                  (if-let ((matching (find key (tails current)
+                                           :key #'caar
+                                           :test #'equal)))
+                    ;; If found, advance to that key and
+                    ;; add the new variant there
+                    (progn
+                      ;; add a nil in each skipped key
+                      (iter (for c on current)
+                            (while (not (eq c matching)))
+                            (push nil (cdr (car c))))
+                      (push variant (cdr (car matching)))
+                      (setf previous matching
+                            current (cdr matching)))
+                    ;; Otherwise, insert new entry at current position,
+                    ;; with nils for the previous mutants
+                    (progn
+                      (setf (cdr previous) (cons (list* key variant
+                                                        (make-list i))
+                                                 current)
+                            previous (cdr previous))))
 
-              ;; Search for a matching key in the results
-              (if-let ((matching (find key (tails current)
-                                       :key #'caar
-                                       :test #'equal)))
-                ;; If found, advance to that key and add the new variant there
-                (progn
-                  ;; add a nil in each skipped key
-                  (iter (for c on current)
-                        (while (not (eq c matching)))
-                        (push nil (cdr (car c))))
-                  (push variant (cdr (car matching)))
-                  (setf previous matching
-                        current (cdr matching)))
-                ;; Otherwise, insert new entry at current position,
-                ;; with nils for the previous mutants
-                (progn
-                  (setf (cdr previous) (cons (list* key variant
-                                                    (make-list i))
-                                             current)
-                        previous (cdr previous))))
-
-              ;; Add nil to remaining keys
-              (finally (iter (for c on current)
-                             (push nil (cdr (car c))))))
-        (finally
-         ;; Strip dummy value and keys, and put variants in correct order.
-         (return (mapcar [#'reverse #'cdr] (cdr result))))))
+                  ;; Add nil to remaining keys
+                  (finally (iter (for c on current)
+                                 (push nil (cdr (car c)))))))
+          (finally
+           ;; Strip dummy value and keys, and put variants in correct order.
+           (return (mapcar [#'reverse #'cdr] (cdr result)))))))
 
 (defgeneric create-super-soft (base mutants)
   (:documentation "Create a software object which combines multiple variants.

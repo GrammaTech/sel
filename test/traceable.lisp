@@ -2,32 +2,19 @@
 (defpackage :software-evolution-library/test/traceable
   (:nicknames :sel/test/traceable)
   (:use
-   :common-lisp
-   :alexandria
-   :closer-mop
+   :gt/full
+   :trace-db
+   #+gt :testbot
    :software-evolution-library/test/util
    :software-evolution-library/test/util-clang
    :software-evolution-library/stefil-plus
-   :named-readtables
-   :curry-compose-reader-macros
-   :iterate
-   :split-sequence
-   :cl-ppcre
-   #+gt :testbot
-   :trace-db
    :software-evolution-library
-   :software-evolution-library/utility
+   :software-evolution-library/utility/process
    :software-evolution-library/software/source
    :software-evolution-library/software/clang
    :software-evolution-library/components/instrument
    :software-evolution-library/components/traceable
    :software-evolution-library/components/test-suite)
-  (:import-from :uiop :nest)
-  (:import-from :uiop/pathname :ensure-directory-pathname)
-  (:shadowing-import-from
-   :closer-mop
-   :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric)
   (:export :test-traceable))
 (in-package :software-evolution-library/test/traceable)
 (in-readtable :curry-compose-reader-macros)
@@ -145,7 +132,7 @@
       (phenome *soft* :bin bin)
       (is (string=
            (concatenate 'string "__sel_bar" '(#\Newline))
-           (stream-to-string
+           (read-stream-content-into-string
             (process-output-stream
              (start-test bin
                          (make-instance 'test-case

@@ -2,25 +2,12 @@
 (defpackage :software-evolution-library/test/conflict-ast
   (:nicknames :sel/test/conflict-ast)
   (:use
-   :common-lisp
-   :alexandria
-   :closer-mop
+   :gt/full
+   #+gt :testbot
    :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
-   :named-readtables
-   :curry-compose-reader-macros
-   :iterate
-   :split-sequence
-   :cl-ppcre
-   #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility
    :software-evolution-library/software/parseable)
-  (:import-from :uiop :nest)
-  (:shadowing-import-from
-   :closer-mop
-   :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric)
   (:export :test-conflict-ast))
 (in-package :software-evolution-library/test/conflict-ast)
 (in-readtable :curry-compose-reader-macros)

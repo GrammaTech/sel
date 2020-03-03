@@ -1,15 +1,8 @@
 ;;; clang-expression.lisp --- calculate lisp expressions from clang ASTs
 (defpackage :software-evolution-library/software/clang-expression
   (:nicknames :sel/software/clang-expression :sel/sw/clang-expression)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
-        :cl-ppcre
+  (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/utility
         :software-evolution-library/software/parseable
         :software-evolution-library/software/clang
         :software-evolution-library/software/expression)
@@ -43,9 +36,9 @@ This is used to intern string names by `expression'."
            (expression obj (first (get-immediate-children obj ast)))))
     (switch ((ast-class ast))
       (:BinaryOperator (over-children (expression-intern (ast-opcode ast))))
-      (:CompoundAssignOperator (->> (ast-opcode ast)
-                                    (expression-intern)
-                                    (over-children)))
+      (:CompoundAssignOperator (nest (over-children)
+                                     (expression-intern)
+                                     (ast-opcode ast)))
       (:DeclRefExpr (expression-intern (source-text ast)))
       (:ImplicitCastExpr (only-child))
       (:IntegerLiteral

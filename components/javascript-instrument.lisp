@@ -2,14 +2,9 @@
 (defpackage :software-evolution-library/components/javascript-instrument
   (:nicknames :sel/components/javascript-instrument
               :sel/cp/javascript-instrument)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
+  (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/utility
+        :software-evolution-library/utility/task
         :software-evolution-library/software/parseable
         :software-evolution-library/software/source
         :software-evolution-library/software/project
@@ -139,6 +134,8 @@ Creates a JAVASCRIPT-INSTRUMENTER for OBJ and calls its instrument method.
 
   (labels ((get-ast-id (ast)
              (gethash ast (ast-ids instrumenter)))
+           (sort-asts (asts)
+             (sort asts #'ast-later-p))
            (instrument-before (instrumenter ast)
              (to-ast 'javascript-ast
                      `(:ExpressionStatement
@@ -184,11 +181,11 @@ Creates a JAVASCRIPT-INSTRUMENTER for OBJ and calls its instrument method.
                    (instrument-after instrumenter ast)))
            (instrument-asts (instrumenter)
              (let ((obj (software instrumenter)))
-               (-<>> (asts obj)
-                     (remove-if-not {traceable-stmt-p obj})
+               (nest (mapcar {instrument-ast instrumenter})
+                     (sort-asts)
                      (remove-if-not {funcall filter obj})
-                     (sort <> #'ast-later-p)
-                     (mapcar {instrument-ast instrumenter}))))
+                     (remove-if-not {traceable-stmt-p obj})
+                     (asts obj))))
            (create-value (obj before ast after)
              (remove-if #'null
                         (append (list before)
@@ -255,16 +252,15 @@ Creates a JAVASCRIPT-INSTRUMENTER for OBJ and calls its instrument method.
   (with-slots (ast-root) obj
     (setf ast-root
           (copy ast-root
-                :children (append (-> (ast-children ast-root)
-                                      (first)
-                                      (replace-all +javascript-trace-code+ "")
-                                      (list))
-                                  (cdr (ast-children ast-root))))))
+                :children (cons (replace-all (first (ast-children ast-root))
+                                             +javascript-trace-code+
+                                             "")
+                                (cdr (ast-children ast-root))))))
   (apply-mutation-ops
     obj
-    (iter (for ast in (->> (asts obj)
-                           (remove-if-not [{aget :instrumentation}
-                                           {ast-aux-data}])
-                           (reverse)))
+    (iter (for ast in (nest (reverse)
+                            (remove-if-not [{aget :instrumentation}
+                                            {ast-aux-data}])
+                            (asts obj)))
           (collect `(:cut (:stmt1 . ,ast)))))
   obj)

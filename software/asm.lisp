@@ -14,16 +14,8 @@
 ;;; @texi{asm}
 (defpackage :software-evolution-library/software/asm
   (:nicknames :sel/software/asm :sel/sw/asm)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
-        :split-sequence
-        :cl-ppcre
+  (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/utility
         :software-evolution-library/software/simple)
   (:export :asm
            :asm-range
@@ -173,13 +165,13 @@ Used by `homologous-crossover'."
                       (1- (length (genome b)))
                       id-a))
            ;; max value we can add to start and still have a valid index in b
-           (add-upper-bound (- (1- (length (genome b))) start)))
+           (add-upper-bound (- (1- (length (genome b))) start))
+           ;; keep track of closest difference in case there's no exact match
+           (closest start)
+           (closest-diff (abs (- id-a (lookup-id b start)))))
       ;; search above/below start simultaneously, adding and subtracting i
       ;; to get the indices to check (upper and lower, resp.)
       (iter (for i below (max start (1+ add-upper-bound)))
-            ;; keep track of closest difference in case there's no exact match
-            (with closest = start)
-            (with closest-diff = (abs (- id-a (lookup-id b start))))
             (let ((lower (- start (min i start)))
                   (upper (+ start (min i add-upper-bound))))
               (cond
@@ -241,9 +233,8 @@ with an operand in the second."))
 
 (defun asm-split-instruction (instruction)
   "Split INSTRUCTION string on white space or commas. Return a list of strings."
-  (->> instruction
-       (string-trim '(#\Space #\Tab #\Newline))
-       (split "(\\s*,\\s*)|(\\s+)")))
+  (nest (split "(\\s*,\\s*)|(\\s+)")
+        (string-trim '(#\Space #\Tab #\Newline) instruction)))
 
 (defun asm-nth-instruction (asm n)
   "Extract the string portion of the Nth instruction from the genome of ASM."
@@ -263,9 +254,10 @@ operand, a `no-mutation-targets' condition is raised."
            (bad (first bad-good))
            (bad-instr-string (asm-nth-instruction asm bad))
            (bad-operands (cdr (asm-split-instruction bad-instr-string)))
-           (good-operands (->> (asm-nth-instruction asm (second bad-good))
-                               (asm-split-instruction)
-                               (cdr))))
+           (good-operands (nest (cdr)
+                                (asm-split-instruction)
+                                (asm-nth-instruction asm)
+                                (second bad-good))))
       (when (or (null bad-operands) (null good-operands))
         (error (make-condition 'no-mutation-targets
                                :text "No operands in instruction(s)"

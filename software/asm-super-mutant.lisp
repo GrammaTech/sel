@@ -250,16 +250,8 @@
 
 (defpackage :software-evolution-library/software/asm-super-mutant
   (:nicknames :sel/software/asm-super-mutant :sel/sw/asm-super-mutant)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
-        :split-sequence
-        :cl-ppcre
+  (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/utility
         :software-evolution-library/software/asm
         :software-evolution-library/software/asm-heap
         :software-evolution-library/software/super-mutant)

@@ -2,30 +2,17 @@
 (defpackage :software-evolution-library/test/clang-super-mutants
   (:nicknames :sel/test/clang-super-mutants)
   (:use
-   :common-lisp
-   :alexandria
-   :closer-mop
+   :gt/full
+   #+gt :testbot
    :software-evolution-library/test/util
    :software-evolution-library/test/util-clang
    :software-evolution-library/stefil-plus
-   :named-readtables
-   :curry-compose-reader-macros
-   :iterate
-   :split-sequence
-   :cl-ppcre
-   :arrow-macros                        ; FIXME: Remove.
-   #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility
    :software-evolution-library/software/parseable
    :software-evolution-library/software/clang
    :software-evolution-library/software/super-mutant
    :software-evolution-library/software/super-mutant-clang)
-  (:import-from :uiop :nest)
-  (:shadowing-import-from
-   :closer-mop
-   :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric)
+  (:import-from :arrow-macros :some->>) ; FIXME: Remove.
   (:export :test-clang-super-mutants))
 (in-package :software-evolution-library/test/clang-super-mutants)
 (in-readtable :curry-compose-reader-macros)

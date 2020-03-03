@@ -2,29 +2,16 @@
 (defpackage :software-evolution-library/test/condition-synthesis
   (:nicknames :sel/test/condition-synthesis)
   (:use
-   :common-lisp
-   :alexandria
-   :closer-mop
+   :gt/full
+   #+gt :testbot
    :software-evolution-library/test/util
    :software-evolution-library/test/util-clang
    :software-evolution-library/stefil-plus
-   :named-readtables
-   :curry-compose-reader-macros
-   :iterate
-   :split-sequence
-   :cl-ppcre
-   #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility
    :software-evolution-library/software/parseable
    :software-evolution-library/software/clang
    :software-evolution-library/components/condition-synthesis
    :software-evolution-library/components/test-suite)
-  (:import-from :uiop :nest)
-  (:shadowing-import-from
-   :closer-mop
-   :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric)
   (:export :test-condition-synthesis))
 (in-package :software-evolution-library/test/condition-synthesis)
 (in-readtable :curry-compose-reader-macros)
@@ -146,10 +133,10 @@
    (setf *soft* nil)
    (setf *test-suite* nil)))
 
-(deftest flip-works ()
-  (is (string= (flip "") ""))
-  (is (string= (flip "0000") "0001"))
-  (is (string= (flip "0001") "001")))
+(deftest flip-bit-str-works ()
+  (is (string= (flip-bit-str "") ""))
+  (is (string= (flip-bit-str "0000") "0001"))
+  (is (string= (flip-bit-str "0001") "001")))
 
 (deftest synthesize-all-conditions ()
   (let* ((substs '((("x" "int" "5") ("y" "int" "6"))

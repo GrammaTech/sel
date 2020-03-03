@@ -1,19 +1,11 @@
 ;;; clang-tokens.lisp --- Tokenize C/C++ source files
 (defpackage :software-evolution-library/components/clang-tokens
   (:nicknames :sel/components/clang-tokens :sel/cp/clang-tokens)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
-        :cl-ppcre
+  (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/utility
         :software-evolution-library/software/parseable
         :software-evolution-library/software/clang)
-  (:export
-   :tokens))
+  (:export :clang-tokens))
 (in-package :software-evolution-library/components/clang-tokens)
 (in-readtable :curry-compose-reader-macros)
 
@@ -25,7 +17,7 @@
   (:documentation "UNHANDLED-TOKEN-CLASS is raised when an
 unknown AST class is encountered."))
 
-(defgeneric tokens (software &optional roots)
+(defgeneric clang-tokens (software &optional roots)
   (:documentation "Return a list of keyword tokens in SOFTWARE.
 Optional argument ROOTS limits to tokens below elements of ROOT ASTs in
 SOFTWARE."))
@@ -35,7 +27,7 @@ SOFTWARE."))
 ;;;; if else while do typedef -> . va-arg return goto for offset-of
 ;;;; generic sizeof alignof struct union char-literal int-literal string-literal
 ;;;; float-literal i-literal ... macro
-(defmethod tokens ((clang clang) &optional (roots (roots clang)))
+(defmethod clang-tokens ((clang clang) &optional (roots (roots clang)))
   "Return a list of keyword tokens representing the ASTs in SOFTWARE below ROOTS.
 * CLANG software object to tokenize
 * ROOTS limit to tokens below elements of ROOT ASTs in CLANG
@@ -157,11 +149,11 @@ SOFTWARE."))
              ;; [const or range]*.field-ident = init
              (:DesignatedInitExpr
               (let* ((src (source-text root))
-                     (eq-index (position #\= src)))
+                     (eq-index (position #\= src))
+                     (child 0))
                 (append
                  ;; scan characters for [], . , ...
                  (iter (for i from 0 below eq-index)
-                       (with child = 0)
                        (switch ((char src i))
                          (#\[ (appending (list (token-from-string "["))
                                          into tokens))
@@ -306,10 +298,10 @@ SOFTWARE."))
              (:ParenExpr (append (list (token-from-string "("))
                                  (tokenize-children children)
                                  (list (token-from-string ")"))))
-             (:ParmVar (->> (replace-identifiers (idents clang root)
-                                                 (source-text root))
-                            (split-tokens)
-                            (mapcar #'token-from-string)))
+             (:ParmVar (nest (mapcar #'token-from-string)
+                             (split-tokens)
+                             (replace-identifiers (idents clang root)
+                                                  (source-text root))))
              (:PredefinedExpr (list (token-from-string (source-text root))))
              ;; NOTE: struct, union. May include fields or just be a declaration.
              (:Record
@@ -368,14 +360,14 @@ SOFTWARE."))
                         (mapcar #'token-from-string type)
                         (list (token-from-string ")")))))
              ;; get all tokens from children
-             (:Var (let ((idents (idents clang root)))
+             (:Var (let ((idents (idents clang root))
+                         (child 0))
                      (iter (for item in (ast-children root))
-                           (with child = 0)
                            (appending
                             (if (stringp item)
-                                (->> (replace-identifiers idents item)
-                                     (split-tokens)
-                                     (mapcar #'token-from-string))
+                                (nest (mapcar #'token-from-string)
+                                      (split-tokens)
+                                      (replace-identifiers idents item))
                                 (prog1 (tokenize (nth child children))
                                   (incf child)))))))
              (:WhileStmt

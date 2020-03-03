@@ -2,32 +2,19 @@
 (defpackage :software-evolution-library/test/instrumentation
   (:nicknames :sel/test/instrumentation)
   (:use
-   :common-lisp
-   :alexandria
-   :closer-mop
+   :gt/full
+   #+gt :testbot
    :software-evolution-library/test/util
    :software-evolution-library/test/util-clang
    :software-evolution-library/stefil-plus
-   :named-readtables
-   :curry-compose-reader-macros
-   :iterate
-   :split-sequence
-   :cl-ppcre
-   #+gt :testbot
    :software-evolution-library
-   :software-evolution-library/utility
    :software-evolution-library/software/parseable
    :software-evolution-library/software/clang
    :software-evolution-library/components/traceable
    :software-evolution-library/components/instrument
    :software-evolution-library/components/clang-instrument)
-  (:import-from :uiop :nest)
   (:import-from :trace-db :read-binary-trace)
   (:shadowing-import-from :uiop/run-program :run-program)
-  (:shadowing-import-from
-   :closer-mop
-   :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric)
   (:export :test-instrumentation))
 (in-package :software-evolution-library/test/instrumentation)
 (in-readtable :curry-compose-reader-macros)
@@ -454,9 +441,9 @@ prints unique counters in the trace"
           "Successfully compiled instrumented program.")
       (let ((trace (get-gcd-trace bin)))
         (without-compiler-notes
-            (is (every [{eql 1} #'length {aget :scopes}]
-                       trace)
-                "No duplicate variables."))
+          (is (every [{eql 1} #'length {aget :scopes}]
+                     trace)
+              "No duplicate variables."))
 
         (is (every [«or {equalp '(#("x" "int" 1 nil))}
                         {equalp '(#("x" "short" 0 nil))}»

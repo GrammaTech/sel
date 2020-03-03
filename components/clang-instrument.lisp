@@ -1,16 +1,11 @@
 ;;; clang-instrument.lisp --- Instrument C-language source files.
 (defpackage :software-evolution-library/components/clang-instrument
   (:nicknames :sel/components/clang-instrument :sel/cp/clang-instrument)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
-        :split-sequence
+  (:use :gt/full
         :trace-db
         :software-evolution-library
-        :software-evolution-library/utility
+        :software-evolution-library/utility/debug
+        :software-evolution-library/utility/task
         :software-evolution-library/command-line
         :software-evolution-library/software/parseable
         :software-evolution-library/software/source
@@ -21,7 +16,7 @@
         :software-evolution-library/components/instrument
         :software-evolution-library/components/fodder-database
         :software-evolution-library/components/traceable)
-  (:import-from :uiop :nest truenamize)
+  (:import-from :arrow-macros :some->>) ; FIXME: Remove.
   (:export :clang-instrumenter
            :clang-instrument
            :instrument-c-exprs))
@@ -390,16 +385,16 @@ trace statement ID for each AST in OBJ.
 * OBJ CLANG software object
 * FILE-ID index of OBJ in a project
 "
-  (iter (with ht = (make-hash-table :test #'eq))
-        (for ast in (asts obj))
-        (for ast-i upfrom 0)
-        (setf (gethash ast ht)
-              (if file-id
-                  (logior (ash 1 63)                              ; flag bit
-                          (ash file-id +trace-id-statement-bits+) ; file ID
-                          ast-i)                                  ; AST ID
-                  ast-i))
-        (finally (return ht))))
+  (let ((ht (make-hash-table :test #'eq)))
+    (iter (for ast in (asts obj))
+          (for ast-i upfrom 0)
+          (setf (gethash ast ht)
+                (if file-id
+                    (logior (ash 1 63)                              ; flag bit
+                            (ash file-id +trace-id-statement-bits+) ; file ID
+                            ast-i)                                  ; AST ID
+                    ast-i))
+          (finally (return ht)))))
 
 
 (defgeneric write-trace-id (instrumenter ast)
@@ -567,10 +562,10 @@ Creates a CLANG-INSTRUMENTER for OBJ and calls its instrument method.
          (stmts (append (mapcar {add-semicolon _ :after} before)
                         (if (and instrument-exit
                                  (eq (ast-class ast) :ReturnStmt))
-                            (->> (instrument-return instrumenter
-                                                    new-ast
-                                                    (null return-type))
-                              (mapcar {add-semicolon _ :both}))
+                            (nest (mapcar {add-semicolon _ :both})
+                                  (instrument-return instrumenter
+                                                     new-ast
+                                                     (null return-type)))
                             (list new-ast))
                         (mapcar {add-semicolon _ :both} after))))
     ;; Wrap in compound statement if needed
@@ -587,10 +582,10 @@ Creates a CLANG-INSTRUMENTER for OBJ and calls its instrument method.
   "The last traceable statement in the body of a function
 declaration, or NIL if PROTO is not a function declaration or there
 is no such traceable statement."
-  (->> (function-body obj proto)
-    (get-immediate-children obj)
-    (lastcar)
-    (enclosing-traceable-stmt obj)))
+  (nest (enclosing-traceable-stmt obj)
+        (lastcar)
+        (get-immediate-children obj)
+        (function-body obj proto)))
 
 (defun first-traceable-stmt (obj proto)
   "The first traceable statement in the body of a function
@@ -631,15 +626,12 @@ is no such traceable statement."
                                     ast)))))
                     points))))
     (labels
-        ((instrument-asts (obj)
+        ((sort-asts (asts)
+           (sort asts #'ast-later-p))
+         (instrument-asts (obj)
            "Generate instrumentation for all ASTs in OBJ.  As a side-effect,
 update POINTS after instrumenting ASTs."
-           (-<>> (asts obj)
-                 (remove-if-not {can-be-made-traceable-p obj})
-                 (remove-if-not {funcall filter obj})
-                 (sort <> #'ast-later-p)
-                 ;; Generate all instrumentation before applying changes
-                 (mapcar
+           (nest (mapcar
                    (lambda (ast)
                      (prog1
                          (instrument-ast ast
@@ -650,7 +642,11 @@ update POINTS after instrumenting ASTs."
                                          (when points
                                            (aget ast points :test #'equalp)))
                        (when points
-                         (setf (aget ast points :test #'equalp) nil)))))))
+                         (setf (aget ast points :test #'equalp) nil)))))
+                 (sort-asts)
+                 (remove-if-not {funcall filter obj})
+                 (remove-if-not {can-be-made-traceable-p obj})
+                 (asts obj)))
          (instrument-ast (ast extra-stmts extra-stmts-after aux-values)
            "Generate instrumentation for AST.
 Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER).
@@ -746,9 +742,9 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
                (setf ast-root
                  (copy ast-root
                        :children
-                       (let ((last-child (-> (ast-root clang)
-                                             (ast-children)
-                                             (lastcar))))
+                       (let ((last-child (nest (lastcar)
+                                               (ast-children)
+                                               (ast-root clang))))
                          (if (stringp last-child)
                              (append
                               (butlast (ast-children (ast-root clang)))
@@ -767,29 +763,30 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
           (*matching-free-function-retains-name-bias* 1.0))
       (apply-mutation-ops
         clang
-        (iter (for ast in (->> (asts clang)
-                               (remove-if-not [{aget :instrumentation}
-                                               {ast-aux-data}])
-                               (remove-if-not {block-p clang})
-                               (reverse)))
+        (iter (for ast in (nest (reverse)
+                                (remove-if-not {block-p clang})
+                                (remove-if-not [{aget :instrumentation}
+                                                {ast-aux-data}])
+                                (asts clang)))
               (collect `(:set (:stmt1 . ,ast)
                               (:value1 .
                                ,{get-ast clang
-                                         (->> (get-ast clang (ast-path ast))
-                                               (get-immediate-children clang)
+                                         (nest (ast-path)
+                                               (first)
                                                (remove-if
                                                  [{aget :instrumentation}
                                                   {ast-aux-data}])
-                                               (first)
-                                               (ast-path))})))))
+                                               (get-immediate-children clang)
+                                               (get-ast clang)
+                                               (ast-path ast))})))))
 
       (apply-mutation-ops
         clang
-        (iter (for ast in (->> (asts clang)
-                               (remove-if-not [{aget :instrumentation}
-                                               {ast-aux-data}])
-                               (remove-if {block-p clang})
-                               (reverse)))
+        (iter (for ast in (nest (reverse)
+                                (remove-if {block-p clang})
+                                (remove-if-not [{aget :instrumentation}
+                                                {ast-aux-data}])
+                                (asts clang)))
               (collect `(:splice (:stmt1 . ,ast) (:value1 . nil)))))))
 
   ;; Return the software object
@@ -976,13 +973,13 @@ Returns a list of strings containing C source code."))
                      into var-args))))))
           (finally
            (return
-             (->> (append (list (make-instrumentation-ast
-                                 "__write_trace_variables"
-                                 var-args))
-                          (list (make-instrumentation-ast
-                                 "__write_trace_blobs"
-                                 blob-args)))
-                  (remove-if #'null)))))))
+             (nest (remove-if #'null)
+                   (append (list (make-instrumentation-ast
+                                  "__write_trace_variables"
+                                  var-args))
+                           (list (make-instrumentation-ast
+                                  "__write_trace_blobs"
+                                  blob-args)))))))))
 
 (defmethod var-instrument
     (key (instrumenter clang-instrumenter) (ast clang-ast) &key print-strings)
@@ -1044,29 +1041,31 @@ OBJ a clang software object
                (file-name (format nil "fopen(~s, \"w\")" (namestring file-name)))
                ((stringp env-name) (format nil "fopen(getenv(~a), \"w\")" env-name))
                (t (format nil "fopen(buffer, \"w\")"))))
+           (sort-names-alist (names-alist)
+             (sort names-alist #'< :key #'cdr))
+           (sort-types-alist (types-alist)
+             (sort types-alist #'<
+                   :key [{gethash _ (types instrumenter)} #'car]))
            (names-initialization-str ()
              (if (zerop (hash-table-count (names instrumenter)))
                  (format nil "const char **~a = NULL"
                          +names-variable-name+)
                  (format nil "const char *~a[] = {~{~s, ~}}"
                          +names-variable-name+
-                         (-<>> (names instrumenter)
+                         (nest (mapcar [#'ast-name #'car])
+                               (sort-names-alist)
                                (hash-table-alist)
-                               (sort <> #'< :key #'cdr)
-                               (mapcar [#'ast-name #'car])))))
+                               (names instrumenter)))))
            (types-initialization-str ()
              (if (zerop (hash-table-count (types instrumenter)))
                  (format nil "const __trace_type_description *~a = NULL"
                          +types-variable-name+)
                  (format nil "const __trace_type_description ~a[] = {~{~a, ~}}"
                          +types-variable-name+
-                         (-<>> (type-descriptions instrumenter)
+                         (nest (mapcar [#'ast-text #'cdr])
+                               (sort-types-alist)
                                (hash-table-alist)
-                               (sort <> #'<
-                                     :key [{gethash _
-                                            (types instrumenter)}
-                                           #'car])
-                               (mapcar [#'ast-text #'cdr]))))))
+                               (type-descriptions instrumenter))))))
 
     (when contains-entry
       ;; Object contains main() so insert setup code. The goal is to
@@ -1132,7 +1131,7 @@ OBJ a clang software object
   (setf original (make-instance 'clang
                    :compiler compiler
                    :flags flags)
-        source (truenamize source)
+        source (namestring (truename source))
         out-dir (or out-dir (resolve-out-dir-from-source source))
         project-name (resolve-name-from-source source)
         project-type (pathname-type source)

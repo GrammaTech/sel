@@ -1,18 +1,10 @@
 ;;; simple.lisp --- simple software rep. to manipulate lines of code
 (defpackage :software-evolution-library/software/simple
   (:nicknames :sel/software/simple :sel/sw/simple)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
+  (:use :gt/full
         :metabang-bind
-        :iterate
-        :split-sequence
         :software-evolution-library
-        :software-evolution-library/software/file
-        :software-evolution-library/utility)
-  (:shadowing-import-from :uiop :ensure-directory-pathname)
+        :software-evolution-library/software/file)
   (:import-from :asdf-encodings :detect-file-encoding)
   (:export :simple
            :light

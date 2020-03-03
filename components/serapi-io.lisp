@@ -34,20 +34,14 @@
 (defpackage :software-evolution-library/components/serapi-io
   (:nicknames :sel/components/serapi-io :sel/cp/serapi-io)
   (:use
-   :common-lisp
-   :alexandria
-   :metabang-bind
-   :named-readtables
-   :curry-compose-reader-macros
-   :arrow-macros
-   :iterate
-   :split-sequence
-   :cl-ppcre
-   :optima
+   :gt/full
    :fare-quasiquote
-   :software-evolution-library/utility)
+   :software-evolution-library/software/sexp
+   :software-evolution-library/utility/process
+   :software-evolution-library/utility/debug)
   (:shadowing-import-from :fare-quasiquote :quasiquote :unquote
                           :unquote-splicing :unquote-nsplicing)
+  (:shadowing-import-from :arrow-macros :-<>> :-<> :<>) ; FIXME: Remove.
   (:export :set-serapi-paths
            :insert-reset-point
            :reset-serapi-process
@@ -118,11 +112,17 @@
     ;; package are loaded before we use the fare-quasiquote readtable.
     (require :fare-quasiquote-readtable)
     (require :fare-quasiquote-optima)
+    (defun read-preserving-case (stream char n)
+      (declare (ignorable char) (ignorable n))
+      (let ((*readtable* (copy-readtable nil)))
+        (setf (readtable-case *readtable*) :preserve)
+        (read stream t nil t)))
     (defreadtable :serapi-readtable
       ;; Must fuse FQ after SEL because otherwise the SBCL quasiquoter
       ;; clobbers the FQ quasiquoter. Alt. fix is for CCRM and SEL to
       ;; define a mixin readtable as done by FQ.
-      (:fuse :sel-readtable :fare-quasiquote-mixin)))
+      (:fuse :curry-compose-reader-macros :fare-quasiquote-mixin)
+      (:dispatch-macro-char #\# #\! #'read-preserving-case)))
   (in-readtable :serapi-readtable))
 
 (defvar *sertop-path* "sertop" "Path to sertop program.")
@@ -900,24 +900,26 @@ Return a list of IDs for the ASTs that were added."
   (with-open-file (in file-name)
     (let ((lines (iter (for line = (read-line in nil nil))
                        (while line)
-                       (concatenating (format nil "~a~%" line)))))
+                       (collect (format nil "~a~%" line) into results)
+                       (finally (return (apply #'concatenate 'string
+                                               results))))))
       (add-coq-string lines :qtag qtag))))
 
 (defun list-coq-libraries (&key (imported-only t)
                              (keep-prefix "Coq.")
                              (qtag (gensym "v")))
   (let ((all-loaded
-         (->> (run-coq-vernacular (format nil "Print Libraries.") :qtag qtag)
-              (coq-message-contents)
-              ;; filter message contents to just include strings
-              (filter-subtrees
-               [{eql (intern "Pp_string" :sel/cp/serapi-io)} #'car])
-              ;; remove spaces
-              (mapcar [#'trim-whitespace #'second])
-              ;; remove empty strings
-              (remove-if #'emptyp)
-              ;; remove leading "Loaded and imported" string
-              (cdr)))
+         (nest ;; remove leading "Loaded and imported" string
+               (cdr)
+               ;; remove empty strings
+               (remove-if #'emptyp)
+               ;; remove spaces
+               (mapcar [#'trim-whitespace #'second])
+               ;; filter message contents to just include strings
+               (filter-subtrees
+                [{eql (intern "Pp_string" :sel/cp/serapi-io)} #'car])
+               (coq-message-contents)
+               (run-coq-vernacular (format nil "Print Libraries.") :qtag qtag)))
         (end-of-imports-str "Loaded and not imported"))
     (cond
       ;; keep only loaded and imported library names that start with prefix
@@ -991,15 +993,16 @@ E.g., if COQ-TYPE is bool, functions of type nat->bool will be included."
     ;; Translates to vernacular:
     ;; SearchPattern (coq-type) inside module. or
     ;; SearchPattern (coq-type).
-    (-<>> (format nil "SearchPattern ~a ~a"
-                  (parenthesize coq-type)
-                  (if module
-                      (format nil "inside ~a." module)
-                      (format nil ".")))
-      (run-coq-vernacular <> :qtag qtag)
-      (coq-message-contents)
-      (mapcar [#'tokenize-coq-type
-               {lookup-coq-string _ :input-format '|CoqPp|}]))))
+    (nest (mapcar [#'tokenize-coq-type
+                   {lookup-coq-string _ :input-format '|CoqPp|}])
+          (coq-message-contents)
+          (run-coq-vernacular
+           (format nil "SearchPattern ~a ~a"
+                   (parenthesize coq-type)
+                   (if module
+                       (format nil "inside ~a." module)
+                       (format nil ".")))
+           :qtag qtag))))
 
 
 ;;; Building Coq expressions
