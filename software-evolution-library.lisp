@@ -291,7 +291,9 @@ first value from the `phenome' method."
 (defmethod copy ((obj software) &key)
   (make-instance (class-of obj) :fitness (fitness obj)))
 
-(defmethod size ((software software)) (size (genome software)))
+(defmethod size ((software software))
+  "Return the size of the `genome' of SOFTWARE."
+  (size (genome software)))
 
 (defgeneric genome-string (software &optional stream)
   (:documentation "Return a string of the `genome' of SOFTWARE."))
