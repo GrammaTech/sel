@@ -1620,7 +1620,10 @@ jump_table:
          (lines included))
         (insert-new-lines
          asm-variants
-         (add-leaf-jump-table asm-super (function-index included))))))
+         (add-leaf-jump-table asm-super (function-index included))))
+      (insert-new-lines
+       asm-variants
+       (add-leaf-jump-table asm-super '()))))
 
 (defun get-function-lines-from-name (asm-super name)
   "Given a function name, return the lines of that function (if found)."
