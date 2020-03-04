@@ -170,6 +170,9 @@ extern unsigned long test_offset;
 
 unsigned long untraced_call_index = 0;
 
+extern unsigned long jump_table_size;
+extern unsigned long jump_table[];
+
 //
 // Live input register mask contains uses bits to represent
 // each live register.
@@ -572,7 +575,8 @@ int check_results(int variant, int test) {
         unsigned long* addr = (unsigned long*)*p++;
         unsigned long data = *p++;
         unsigned long mask = *p++;
-
+        unsigned long i;
+        int found;
         unsigned long* rsp = (unsigned long*)output_regs[test * num_output_registers
                                                          + rsp_pos];
         if (addr < rsp && (rsp - addr) < 64)
@@ -580,6 +584,19 @@ int check_results(int variant, int test) {
                          // of the stack (i.e. not on the stack, which
                          // grows down)
         if ((*addr & mask) != (data & mask)) {
+            // See if it may be a function address. If so, check
+            // original address of the function and if that matches,
+            // consider it valid. This handles function pointers.
+            for (i = 0, found = 0; i < jump_table_size; i++) {
+                if (jump_table[2 * i + 1] == (*addr & mask)
+                    && (data & mask) == jump_table[2 * i]) {
+                    found = 1;
+                    break;
+                }
+            }
+            if (found)
+                continue;
+
             fprintf(stderr, "Variant %d, test %d failed at addr: %lx, expected: %lx, "
                    "mask: %lx, found: %lx, orig rsp: %lx\n",
                    variant,

@@ -1051,7 +1051,9 @@ a symbol, the SYMBOL-NAME of the symbol is used."
          "        global num_output_registers"
          "        global test_results"
          "        global untraced_call_results"
-         "        global untraced_calls_offset")
+         "        global untraced_calls_offset"
+         "        global jump_table_size"
+         "        global jump_table")
 	(iter (for i from 0 below num-variants)
 	      (collect (format nil "        global variant_~D" i)))
         ;;
@@ -1102,7 +1104,9 @@ a symbol, the SYMBOL-NAME of the symbol is used."
          "        .globl num_output_registers"
          "        .globl test_results"
          "        .globl untraced_call_results"
-         "        .globl untraced_calls_offset")
+         "        .globl untraced_calls_offset"
+         "        .globl jump_table_size"
+         "        .globl jump_table")
 	(iter (for i from 0 below num-variants)
 	      (collect (format nil "        .globl variant_~D" i)))
         ;;
@@ -1399,12 +1403,14 @@ a symbol, the SYMBOL-NAME of the symbol is used."
                          (reg-contents-value rsp-spec)))))
              (if rsp-val
                  (setf (input-specification-mem spec)
-                       (remove-if (lambda (mem-spec)
-                                    (let ((addr (memory-spec-addr mem-spec)))
-                                      (and (< addr rsp-val)
-                                           (> addr (- rsp-val
-                                                      *system-stack-size*)))))
-                                  (input-specification-mem spec)))))))
+                       (copy-array
+                        (remove-if (lambda (mem-spec)
+                                     (let ((addr (memory-spec-addr mem-spec)))
+                                       (and (< addr rsp-val)
+                                            (> addr (- rsp-val
+                                                       *system-stack-size*)))))
+                                   (input-specification-mem spec))
+                        :fill-pointer t :adjustable t))))))
 
 (defun add-bss-section (asm-variants asm-super)
   ;; if bss section found, add it
@@ -1561,6 +1567,45 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
                          (untraced-call-spec asm-super)
                          (asm-syntax asm-super)
                          "untraced_calls:"))
+#|
+Jump table format
+-----------------
+.align 16
+jump_table_size:
+        .quad 2
+.align 16
+jump_table:
+.align 16
+        .quad <orig_child_func1_addr> # eg. 0x401051
+        .quad child_func1
+.align 16
+        .quad <orig_child_func2_addr>
+        .quad child_func2
+|#
+(defun add-leaf-jump-table (asm-super function-index)
+  "Returns lines for jump table with addresses of local child functions.
+ These will be relocated at run time by the fitness harness."
+  (append
+   (list (if (intel-syntax-p asm-super) "align 16" ".align 16")
+         "jump_table_size:"
+         (if (intel-syntax-p asm-super)
+                      (format nil "        dq ~A" (length function-index))
+                      (format nil "        .quad ~A" (length function-index)))
+         (if (intel-syntax-p asm-super) "align 16" ".align 16")
+         "jump_table:")
+   (iter (for x in-vector function-index)
+         (collect (if (intel-syntax-p asm-super) "align 16" ".align 16"))
+         (collect (if (intel-syntax-p asm-super)
+                      (format nil "        dq 0x~X"
+                              (function-index-entry-start-address x))
+                      (format nil "        .quad 0x~X"
+                              (function-index-entry-start-address x))))
+         (collect (if (intel-syntax-p asm-super)
+                      (format nil "        dq ~A"
+                              (function-index-entry-name x))
+                      (format nil "        .quad ~A"
+                              (function-index-entry-name x)))))
+   (list "")))
 
 (defun add-included-lines (asm-super asm-variants)
   "If any extra lines were supplied, paste them in now."
@@ -1572,7 +1617,10 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
           (convert-rip-relative-to-absolute included i))
         (insert-new-lines
          asm-variants
-         (lines included)))))
+         (lines included))
+        (insert-new-lines
+         asm-variants
+         (add-leaf-jump-table asm-super (function-index included))))))
 
 (defun get-function-lines-from-name (asm-super name)
   "Given a function name, return the lines of that function (if found)."
@@ -1761,6 +1809,7 @@ RAX=#x1, RBX=#x2,RCX=#x4,RDX=#x8,...,R15=#x8000."
 ;;; genome is equalp to the target asm-super-mutant
 ;;;
 (defun generate-file (asm-super output-path number-of-variants)
+  (setf *asm-super* asm-super)
   (let ((asm-variants (make-instance 'asm-heap :super-owner asm-super)))
     (if (input-spec asm-super)
         (remove-mem-below-sp (input-spec asm-super)))

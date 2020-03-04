@@ -889,13 +889,20 @@ those we assume a function name."
 	  (let ((info (elt genome i)))
 	    (if (line-is-function-label info)
 		;; look for the end of the function
-		(let ((start-index i)
-		      (name (function-name-from-label
-			     (asm-line-info-label info) asm))
-		      (leaf t))
+		(let* ((start-index i)
+		       (name (function-name-from-label
+                              (asm-line-info-label info) asm))
+                       (start-addr (asm-line-info-address info))
+                       (end-addr start-addr)
+		       (leaf t))
 		  (incf i)
 		  (iter (while (< i (length genome)))
 			(let ((info2 (elt genome i)))
+                          ;; If the first line didn't have an address specified,
+                          ;; get it from the first line that does have one.
+                          (unless start-addr
+                            (setf start-addr (asm-line-info-address info2)))
+                          (setf end-addr (asm-line-info-address info2))
 			  (if (member (asm-line-info-opcode info2)
                                       '("call" "callq") :test 'equalp)
 			      (setf leaf nil)) ;found a call, so not a leaf
@@ -915,9 +922,9 @@ those we assume a function name."
 			     (make-function-index-entry
 			      :name name
 			      :start-line start-index
-			      :start-address (asm-line-info-address info)
+			      :start-address start-addr
 			      :end-line i
-			      :end-address (asm-line-info-address info2)
+			      :end-address end-addr
 			      :is-leaf leaf
 			      :declarations (gethash name table)) entries)
 			    (return)))
