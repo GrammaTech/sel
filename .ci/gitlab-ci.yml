@@ -121,13 +121,6 @@ trigger_bed:
   only:
     - master
 
-trigger_bug-injector:
-  stage: dependents
-  script:
-    - "curl -X POST -F token=eb76bc2f8009af7005b43bf8f63bb0 -F ref=$CI_BUILD_REF_NAME https://git.grammatech.com/api/v4/projects/347/trigger/pipeline"
-  only:
-    - master
-
 trigger_evo-rings:
   stage: dependents
   script:
@@ -135,11 +128,31 @@ trigger_evo-rings:
   only:
     - master
 
+trigger_genpatcher:
+  stage: dependents
+  script:
+    - "curl -X POST -F token=86d8095830c9823728e4204584dc16 -F ref=$CI_BUILD_REF_NAME https://git.grammatech.com/api/v4/projects/943/trigger/pipeline"
+  only:
+    - master
+
+trigger_refactoring-mutations:
+  stage: dependents
+  script:
+    - "curl -X POST -F token=5ad3804083cbeb694cea4c126029e8 -F ref=$CI_BUILD_REF_NAME https://git.grammatech.com/api/v4/projects/1271/trigger/pipeline"
+  only:
+    - master
 
 trigger_resolve:
   stage: dependents
   script:
     - "curl -X POST -F token=943ae481fed1a7ea21d7439bf3a8f3 -F ref=$CI_BUILD_REF_NAME https://git.grammatech.com/api/v4/projects/881/trigger/pipeline"
+  only:
+    - master
+
+trigger_ssr:
+  stage: dependents
+  script:
+    - "curl -X POST -F token=c83ba713bf7f104805a160a169f586 -F ref=$CI_BUILD_REF_NAME https://git.grammatech.com/api/v4/projects/787/trigger/pipeline"
   only:
     - master
 
