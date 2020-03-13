@@ -70,6 +70,7 @@
    :software-evolution-library/rest/utility
    :software-evolution-library/utility/task)
   (:shadowing-import-from :clack :clackup :stop)
+  (:shadowing-import-from :trace-db :distinct)
   (:export :apply-async-job-func
            :async-job
            :async-job-name

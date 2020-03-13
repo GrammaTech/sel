@@ -65,6 +65,7 @@
    :software-evolution-library/software/clang
    :software-evolution-library/command-line)
   (:shadowing-import-from :clack :clackup :stop)
+  (:shadowing-import-from :trace-db :distinct)
   (:export :lookup-session
            :lookup-session-value
            :set-session-value

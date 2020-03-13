@@ -18,7 +18,8 @@
            :trace-error
            :skip-trace-collection
            :nil-traces
-           :ignore-empty-trace))
+           :ignore-empty-trace)
+  (:shadowing-import-from :trace-db :distinct))
 (in-package :software-evolution-library/components/traceable)
 (in-readtable :curry-compose-reader-macros)
 
