@@ -68,6 +68,7 @@
     (declare (ignorable project branch args))
 
     (let* ((stefil::*test-progress-print-right-margin* (expt 2 20))
+           (sel/stefil+:*long-tests* t)
            (failures (coerce (stefil::failure-descriptions-of
                               (without-debugging (funcall test)))
                              'list)))

@@ -105,7 +105,7 @@ LONG_BIN_TESTS =		\
 	example-003-neutral	\
 	example-004-evolve
 
-include cl.mk
+include .cl-make/cl.mk
 
 test/etc/gcd/gcd: test/etc/gcd/gcd.c
 	$(CC) $< -o $@
