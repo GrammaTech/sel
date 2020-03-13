@@ -19,12 +19,13 @@
           "All project mutants must have the same file names.")
 
   (let ((super (copy base)))
-    (nest (setf (evolve-files super)))
+    (nest (setf (evolve-files super))
           (mapcar (lambda (base-file super-file) ; combine with filenames
                     (cons (car base-file) super-file))
                   (evolve-files base))
           (apply #'mapcar                ; create super-soft for each file
                  (lambda (&rest mutants)
                    (create-super-soft (car mutants) mutants))
-                 (mapcar [{mapcar #'cdr} #'evolve-files] mutants))
+                 (mapcar [{mapcar #'cdr} #'evolve-files] mutants)))
+
     super))
