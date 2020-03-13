@@ -5,7 +5,7 @@ tokens that represent a software object.
 @subsection API Support
 
 
-The @refapigeneric{tokens} method takes a @refapiclass{software} object and an
+The @refapigeneric{clang-tokens} method takes a @refapiclass{software} object and an
 optional list of roots indicating the elements that should be
 tokenized. It returns a list of symbols representing all the tokens
 under each of the roots.

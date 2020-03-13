@@ -254,7 +254,6 @@ Class @code{source}
   @item @refapimethod{lines,lines}
   @item @refapimethod{mutate,mutate}
   @item @refapimethod{phenome,phenome}
-  @item @refapimethod{size,size}
   @end itemize
 
 @end itemize
@@ -315,7 +314,6 @@ Class @code{parseable}
   @item @refapigeneric{get-vars-in-scope}
   @item @refapigeneric{parse-source-snippet}
   @item @refapigeneric{roots}
-  @item @refapigeneric{size}
   @item @refapigeneric{update-asts}
   @end itemize
 
@@ -326,7 +324,6 @@ Class @code{parseable}
     @item @refapimethod{get-ast,get-ast}
     @item @refapimethod{get-immediate-children,get-immediate-children}
     @item @refapimethod{roots,roots}
-    @item @refapimethod{size,size}
   @end itemize
 
 @end itemize
@@ -651,7 +648,6 @@ Class @code{project}
   @item @refapimethod{genome,genome}
   @item @refapimethod{mutate,mutate}
   @item @refapimethod{phenome,phenome}
-  @item @refapimethod{size,size}
   @end itemize
 @end itemize
 
@@ -820,7 +816,6 @@ Class @code{simple}
   @item @refapimethod{mcmc-step,mcmc-step}
   @item @refapimethod{mutate,mutate}
   @item @refapimethod{pick-mutation-type,pick-mutation-type}
-  @item @refapimethod{size,size}
   @item @refapimethod{to-file,to-file}
   @item @refapimethod{two-point-crossover,two-point-crossover}
   @item @refapimethod{one-point-crossover,one-point-crossover}
@@ -1212,7 +1207,6 @@ Class @code{lisp}
   @item @refapimethod{genome-string,genome-string}
   @item @refapimethod{mutate,mutate}
   @item @refapimethod{pick-mutation-type,pick-mutation-type}
-  @item @refapimethod{size,size}
   @item @refapimethod{to-file,to-file}
   @end itemize
 @end itemize

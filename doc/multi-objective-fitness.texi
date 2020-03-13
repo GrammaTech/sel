@@ -72,4 +72,4 @@ neighbors in fitness space.
 The following code will enable multi-objective optimization with
 Pareto selection.
 
-@verbatiminclude ./examples/005-multi-objective.lisp
+@verbatiminclude ./doc/examples/005-multi-objective.lisp

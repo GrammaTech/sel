@@ -103,6 +103,13 @@ doc/sel-test-api.texi
 doc/sel-utility-api.texi
 doc/sel-view-api.texi
 doc/software-evolution-library-api.texi
+doc/sel-utility-debug-api.texi
+doc/sel-utility-git-api.texi
+doc/sel-utility-json-api.texi
+doc/sel-utility-process-api.texi
+doc/sel-utility-range-api.texi
+doc/sel-utility-task-api.texi
+doc/sel-utility-terminal-api.texi
 
 # Backup files
 *~
