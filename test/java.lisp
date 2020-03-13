@@ -16,7 +16,6 @@
    :software-evolution-library/components/traceable)
   (:shadowing-import-from :software-evolution-library/test/util
                           :java-project)
-  (:shadowing-import-from :trace-db :distinct)
   (:export :test-java))
 (in-package :software-evolution-library/test/java)
 (in-readtable :curry-compose-reader-macros)

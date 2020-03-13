@@ -16,7 +16,6 @@
    :software-evolution-library/components/javascript-instrument
    :software-evolution-library/components/traceable
    :software-evolution-library/components/test-suite)
-  (:shadowing-import-from :trace-db :distinct)
   (:export :test-javascript))
 (in-package :software-evolution-library/test/javascript)
 (in-readtable :curry-compose-reader-macros)

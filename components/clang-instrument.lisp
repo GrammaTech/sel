@@ -17,7 +17,6 @@
         :software-evolution-library/components/fodder-database
         :software-evolution-library/components/traceable)
   (:import-from :arrow-macros :some->>) ; FIXME: Remove.
-  (:shadowing-import-from :trace-db :distinct)
   (:export :clang-instrumenter
            :clang-instrument
            :instrument-c-exprs))

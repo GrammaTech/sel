@@ -15,7 +15,6 @@
    :software-evolution-library/components/instrument
    :software-evolution-library/components/traceable
    :software-evolution-library/components/test-suite)
-  (:shadowing-import-from :trace-db :distinct)
   (:export :test-traceable))
 (in-package :software-evolution-library/test/traceable)
 (in-readtable :curry-compose-reader-macros)

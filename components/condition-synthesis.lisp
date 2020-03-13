@@ -16,7 +16,6 @@
         :software-evolution-library/components/instrument
         :software-evolution-library/components/clang-instrument)
   (:import-from :arrow-macros :some->>) ; FIXME: Remove.
-  (:shadowing-import-from :trace-db :distinct)
   (:export :instrumentation-exprs
            :synthesize-condition
            :synthesize-conditions
