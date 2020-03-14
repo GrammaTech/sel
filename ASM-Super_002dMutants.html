@@ -287,17 +287,22 @@ to PAPI. This also requires a .h file to compile.
 </pre></div>
 
 <p>Perf requires system permission to run. In linux, the value in
-/proc/sys/kernel/perf_event_paranoid should be set to -1 (Not paranoid).
+/proc/sys/kernel/perf_event_paranoid should be set to 1
+(Disallow <code>cpu</code> event access by users without CAP_SYS_ADMIN).
 This is typically set to 3 (maximum paranoia) by default.
 </p>
 <p>This can be accomplished with the following:
-  sudo sh -c &rsquo;echo -1 &gt;/proc/sys/kernel/perf_event_paranoid&rsquo;
-  sudo sysctl -w kernel.perf_event_paranoid=-1
+  sudo sh -c &rsquo;echo 1 &gt;/proc/sys/kernel/perf_event_paranoid&rsquo;
+  sudo sysctl -w kernel.perf_event_paranoid=1
+  You may need to use:
+   sudo sh -c &rsquo;echo kernel.perf_event_paranoid=1 <code>&gt;</code> /etc/sysctl.d/local.conf&rsquo;
+   and then reboot for it to take effect.
 </p>
 <p>It&rsquo;s also a good idea to turn off randomizing of address base
 (to get more consistency):
   sudo sh -c &rsquo;echo 0 &gt;/proc/sys/kernel/randomize_va_space&rsquo;
   sudo sysctl -w kernel.randomize_va_space=0
+  sudo sh -c &rsquo;echo kernel.randomize_va_space=0 <code>&gt;&gt;</code> /etc/sysctl.d/local.conf&rsquo;
 </p>
 <p>To get necessary include (.h) file for compiling C harness with PAPI
 (needed to perform fitness evaluation):

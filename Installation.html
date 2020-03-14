@@ -94,8 +94,8 @@ be downloaded into your Quicklisp <code>local-projects/</code> folder.
 <p>Depending on the type of software object used the following may also
 be required.
 </p><ul>
-<li> clang-mutate for <code>clang</code> object support  (available from
-<a href="https://github.com/GrammaTech/clang-mutate">https://github.com/GrammaTech/clang-mutate</a>).
+<li> clang v9.0+ for <code>clang</code> object support  (available from
+<a href="https://github.com/llvm/llvm-project">https://github.com/llvm/llvm-project</a>).
 </li><li> cil-mutate for <code>cil</code> object support (available from
 <a href="https://github.com/eschulte/cil-mutate">https://github.com/eschulte/cil-mutate</a>).
 </li><li> llvm-mutate for <code>llvm</code> object support (available from
@@ -104,7 +104,7 @@ be required.
 
 
 
-<p>Install llvm-mutate, cil-mutate and clang-mutate as per the
+<p>Install llvm-mutate, cil-mutate and clang v9.0+ as per the
 instructions in their respective repositories. (Note, it is only
 necessary to install the tools for the specific software backends you
 intend to use.) Install SEL by cloning the repository into your
@@ -112,7 +112,6 @@ quicklisp local-projects directory and then running:
 </p><div class="example">
 <pre class="example">    (ql:register-local-projects)
     (ql:quickload :software-evolution-library)
-    (ql:quickload :software-evolution-library/utility)
 </pre></div>
 
 

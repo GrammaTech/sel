@@ -67,32 +67,10 @@ Next: <a href="SEL-API.html" accesskey="n" rel="next">SEL API</a>, Previous: <a 
 <span id="troubleshooting_002dbuild"></span><span id="Troubleshooting-Build-Issues"></span><h3 class="section">6.1 Troubleshooting Build Issues</h3>
 
 <ul>
-<li> <a href="#troubleshoot_002dclang_002dmutate_002dnot_002don_002dpath">           <code>clang-mutate</code> is not on my path</a>
-</li><li> <a href="#troubleshoot_002dinstrumented_002dcompilation_002dlong">           It takes a long time to compile an instrumented project</a>
+<li> <a href="#troubleshoot_002dinstrumented_002dcompilation_002dlong">           It takes a long time to compile an instrumented project</a>
 </li><li> <a href="#troubleshoot_002dcurry_002dcompose_002dreader_002dmacros">           <code>CURRY-COMPOSE-READER-MACROS::LCURLY-BRACE-READER</code> is undefined</a>
 </li><li> <a href="#troubleshoot_002ddelete_002dcache_002dfiles">Deleting cache files</a>
 </li></ul>
-
-
-<span id="troubleshoot_002dclang_002dmutate_002dnot_002don_002dpath"></span><span id="clang_002dmutate-is-not-on-my-path"></span><h4 class="subheading"><code>clang-mutate</code> is not on my path</h4>
-
-<p>SEL assumes that the <code>clang-mutate</code> executable (see
-<a href="https://git.grammatech.com/synthesis/clang-mutate">clang-mutate</a>)
-is available on the shell&rsquo;s <code>$PATH</code>.
-</p>
-<ul>
-<li> Ensure that <code>clang-mutate</code> is on your <code>$PATH</code>.
-</li></ul>
-
-<p>If this is not sufficient, the path used by SBCL may not be inheriting
-<code>$PATH</code> changes made in your user environment. In this case:
-</p>
-<ul>
-<li> place a <code>clang-mutate</code> executable on the standard
-system search path, or
-</li><li> update the path in <code>/etc/profile</code>.
-</li></ul>
-
 
 
 <span id="troubleshoot_002dinstrumented_002dcompilation_002dlong"></span><span id="It-takes-a-long-time-to-compile-an-instrumented-project"></span><h4 class="subheading">It takes a long time to compile an instrumented project</h4>
@@ -162,22 +140,16 @@ is missing.  To debug, try the following.
 </p>
 
 <ol>
-<li> Ensure <code>clang</code> and <code>clang-mutate</code> are on your <code>$PATH</code>.
+<li> Ensure <code>clang</code> is on your <code>$PATH</code>.
 
 </li><li> Execute
 <div class="example">
 <pre class="example">clang -m32 -g -O0 test/etc/hello-world/hello_world.c
 </pre></div>
 
-</li><li> Execute
-<div class="example">
-<pre class="example">clang-mutate -json test/etc/hello-world/hello_world.c -- -g -O0 -m32
-</pre></div>
-
 </li></ol>
 
-
-<p>If any of the above fail, the unit test failure is due to an external
+<p>If the above fails, the unit test failure is due to an external
 tool failing.  To debug the issue:
 </p>
 <ol>

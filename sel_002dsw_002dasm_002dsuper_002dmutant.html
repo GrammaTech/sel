@@ -24,7 +24,7 @@ A copy of the license is included in the section entitled
 <link href="Index.html" rel="index" title="Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
 <link href="SEL-Packages.html" rel="up" title="SEL Packages">
-<link href="sel_002dsw_002dast.html" rel="next" title="sel-sw-ast">
+<link href="sel_002dsw_002dcil.html" rel="next" title="sel-sw-cil">
 <link href="sel_002dsw_002dasm_002dheap.html" rel="prev" title="sel-sw-asm-heap">
 <style type="text/css">
 <!--
@@ -51,22 +51,25 @@ ul.no-bullet {list-style: none}
 <body lang="en">
 <span id="sel_002dsw_002dasm_002dsuper_002dmutant"></span><div class="header">
 <p>
-Next: <a href="sel_002dsw_002dast.html" accesskey="n" rel="next">sel-sw-ast</a>, Previous: <a href="sel_002dsw_002dasm_002dheap.html" accesskey="p" rel="prev">sel-sw-asm-heap</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
+Next: <a href="sel_002dsw_002dcil.html" accesskey="n" rel="next">sel-sw-cil</a>, Previous: <a href="sel_002dsw_002dasm_002dheap.html" accesskey="p" rel="prev">sel-sw-asm-heap</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<span id="sel_002dsw_002dasm_002dsuper_002dmutant-1"></span><h3 class="section">C.9 sel-sw-asm-super-mutant</h3>
+<span id="sel_002dsw_002dasm_002dsuper_002dmutant-1"></span><h3 class="section">C.8 sel-sw-asm-super-mutant</h3>
 <span id="Class-asm_002dsuper_002dmutant"></span><dl>
 <dt id="index-asm_002dsuper_002dmutant">Class: <strong>asm-super-mutant</strong></dt>
 <dd><p>Class precedence list: <code>asm-super-mutant, asm-heap, asm, simple, super-mutant, software, oid-object, file, standard-object, t</code>
 </p>
 <p>Slots:
 </p><ul>
-<li> <code>input-spec</code> &mdash; initarg: <code><span class="nolinebreak">:input-spec</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant::input-spec</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant::input-spec)</span><!-- /@w --></code>
+<li> <code>input-spec</code> &mdash; initarg: <code><span class="nolinebreak">:input-spec</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant:input-spec</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant:input-spec)</span><!-- /@w --></code>
 
 <p>Vector of <code>input-specification</code> structs, one for each test case.
-</p></li><li> <code>output-spec</code> &mdash; initarg: <code><span class="nolinebreak">:output-spec</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant::output-spec</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant::output-spec)</span><!-- /@w --></code>
+</p></li><li> <code>output-spec</code> &mdash; initarg: <code><span class="nolinebreak">:output-spec</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant:output-spec</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant:output-spec)</span><!-- /@w --></code>
 
 <p>Vector of <code>input-specification</code> structs, one for each test case.
+</p></li><li> <code>untraced-call-spec</code> &mdash; initarg: <code><span class="nolinebreak">:untraced-call-spec</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant:untraced-call-spec</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant:untraced-call-spec)</span><!-- /@w --></code>
+
+<p>Vector of <code>untraced-call-specification</code> structs, one for each test case.
 </p></li><li> <code>var-table</code> &mdash; initarg: <code><span class="nolinebreak">:var-table</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant:var-table</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant:var-table)</span><!-- /@w --></code>
 
 <p>Vector of var-rec (data/address records)
@@ -109,6 +112,9 @@ Next: <a href="sel_002dsw_002dast.html" accesskey="n" rel="next">sel-sw-ast</a>,
 </p></li><li> <code>libraries</code> &mdash; initarg: <code>:libraries<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant::libraries</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant::libraries)</span><!-- /@w --></code>
 
 <p>Optional list of names of functions to include in fitness file.
+</p></li><li> <code>max-asm-function-size</code> &mdash; initarg: <code><span class="nolinebreak">:max-asm-function-size</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant::max-asm-function-size</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant::max-asm-function-size)</span><!-- /@w --></code>
+
+<p>Maximum number of lines in a function for optimization.
 </p></li><li> <code>eval-meta-results</code> &mdash; initarg: <code><span class="nolinebreak">:eval-meta-results</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant:eval-meta-results</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant:eval-meta-results)</span><!-- /@w --></code>
 
 <p>After evaluation, may contain meta-information about results.
@@ -119,6 +125,11 @@ Next: <a href="sel_002dsw_002dast.html" accesskey="n" rel="next">sel-sw-ast</a>,
 <span id="Variable-_002abss_002dsegment_002dstart_002a"></span><dl>
 <dt id="index-_002abss_002dsegment_002dstart_002a">Variable: <strong>*bss-segment-start*</strong></dt>
 <dd><p>If non-nil, address of .bss segment
+</p></dd></dl>
+<span id="Variable-_002acallee_002dsaved_002dinit_002dvalue_002a"></span><dl>
+<dt id="index-_002acallee_002dsaved_002dinit_002dvalue_002a">Variable: <strong>*callee-saved-init-value*</strong></dt>
+<dd><p>Arbitrary value to initialize callee-save registers which are
+ not otherwise initialized by the io spec.
 </p></dd></dl>
 <span id="Variable-_002adata_002dsegment_002dstart_002a"></span><dl>
 <dt id="index-_002adata_002dsegment_002dstart_002a">Variable: <strong>*data-segment-start*</strong></dt>
@@ -136,9 +147,7 @@ Next: <a href="sel_002dsw_002dast.html" accesskey="n" rel="next">sel-sw-ast</a>,
 </p></dd></dl>
 <span id="Variable-_002aoptimize_002dincluded_002dlines_002a"></span><dl>
 <dt id="index-_002aoptimize_002dincluded_002dlines_002a">Variable: <strong>*optimize-included-lines*</strong></dt>
-<dd><p>Optimize the additional lines of assembler.
- Append them to the function being modified, so each variation
- contains these lines.
+<dd><p>This option is no longer supported
 </p></dd></dl>
 <span id="Variable-_002aseldata_002dsegment_002dstart_002a"></span><dl>
 <dt id="index-_002aseldata_002dsegment_002dstart_002a">Variable: <strong>*seldata-segment-start*</strong></dt>
@@ -185,7 +194,7 @@ a symbol, the <code>symbol-name</code> of the symbol is used.
 <hr>
 <div class="header">
 <p>
-Next: <a href="sel_002dsw_002dast.html" accesskey="n" rel="next">sel-sw-ast</a>, Previous: <a href="sel_002dsw_002dasm_002dheap.html" accesskey="p" rel="prev">sel-sw-asm-heap</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
+Next: <a href="sel_002dsw_002dcil.html" accesskey="n" rel="next">sel-sw-cil</a>, Previous: <a href="sel_002dsw_002dasm_002dheap.html" accesskey="p" rel="prev">sel-sw-asm-heap</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 
 

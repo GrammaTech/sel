@@ -54,7 +54,7 @@ ul.no-bullet {list-style: none}
 Next: <a href="sel_002dcp_002djava_002dinstrument.html" accesskey="n" rel="next">sel-cp-java-instrument</a>, Previous: <a href="sel_002dcp_002din_002dmemory_002dfodder_002ddatabase.html" accesskey="p" rel="prev">sel-cp-in-memory-fodder-database</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<span id="sel_002dcp_002dinstrument-1"></span><h3 class="section">C.49 sel-cp-instrument</h3>
+<span id="sel_002dcp_002dinstrument-1"></span><h3 class="section">C.47 sel-cp-instrument</h3>
 <span id="Constant-_002binstrument_002dlog_002dlock_002dvariable_002dname_002b"></span><dl>
 <dt id="index-_002binstrument_002dlog_002dlock_002dvariable_002dname_002b">Constant: <strong>+instrument-log-lock-variable-name+</strong></dt>
 <dd><p>File lock variable used for instrumentation
@@ -67,8 +67,7 @@ Next: <a href="sel_002dcp_002djava_002dinstrument.html" accesskey="n" rel="next"
 <dt id="index-instrument">Generic Function: <strong>instrument</strong> <em>obj &amp;key points functions functions-after trace-file trace-env instrument-exit filter num-threads &amp;allow-other-keys</em></dt>
 <dd><p>Instrument <code>obj</code> to print AST index before each full statement.
 </p>
-<p>The indices printed here are not clang-mutate counters, but rather the
-position of the ast in (asts obj).
+<p>The indices printed here are the position of the ast in (asts obj).
 </p>
 <p>Keyword arguments are as follows:
   <code>points</code> <code>---------------</code> alist of additional values to print at specific points
@@ -107,8 +106,8 @@ position of the ast in (asts obj).
 </li><li> <code>num-threads</code> number of threads to use for instrumentation
 </li></ul>
 </dd></dl>
-<span id="Method-instrument-_0028_0028obj-clang_002dbase_0029-_0026rest-args_0029"></span><dl>
-<dt id="index-instrument-3">Method: <strong>instrument</strong> <em>(obj clang-base) &amp;rest args</em></dt>
+<span id="Method-instrument-_0028_0028obj-clang_0029-_0026rest-args_0029"></span><dl>
+<dt id="index-instrument-3">Method: <strong>instrument</strong> <em>(obj clang) &amp;rest args</em></dt>
 <dd><p>Instrumentation for clang software objects.
 Creates a <code>clang-instrumenter</code> for <code>obj</code> and calls its instrument method.
 </p>
@@ -157,8 +156,8 @@ Creates a <code>javascript-instrumenter</code> for <code>obj</code> and calls it
 <dt id="index-instrumented_002dp">Generic Function: <strong>instrumented-p</strong> <em>obj</em></dt>
 <dd><p>Return true if <code>obj</code> is instrumented
 </p></dd></dl>
-<span id="Method-instrumented_002dp-_0028_0028clang-clang_002dbase_0029_0029"></span><dl>
-<dt id="index-instrumented_002dp-1">Method: <strong>instrumented-p</strong> <em>(clang clang-base)</em></dt>
+<span id="Method-instrumented_002dp-_0028_0028clang-clang_0029_0029"></span><dl>
+<dt id="index-instrumented_002dp-1">Method: <strong>instrumented-p</strong> <em>(clang clang)</em></dt>
 <dd><p>Return true if <code>clang</code> is instrumented
 * <code>clang</code> a clang software object
 </p></dd></dl>
@@ -194,8 +193,8 @@ operations.
 <p>Keyword arguments are as follows:
   <code>num-threads</code> <code>----------</code> number of threads to use for uninstrumenting
 </p></dd></dl>
-<span id="Method-uninstrument-_0028_0028clang-clang_002dbase_0029-_0026key-_0028num_002dthreads-0_0029_0029"></span><dl>
-<dt id="index-uninstrument-1">Method: <strong>uninstrument</strong> <em>(clang clang-base) &amp;key (num-threads 0)</em></dt>
+<span id="Method-uninstrument-_0028_0028clang-clang_0029-_0026key-_0028num_002dthreads-0_0029_0029"></span><dl>
+<dt id="index-uninstrument-1">Method: <strong>uninstrument</strong> <em>(clang clang) &amp;key (num-threads 0)</em></dt>
 <dd><p>Remove instrumentation from <code>clang</code>
 </p></dd></dl>
 <span id="Method-uninstrument-_0028_0028obj-javascript_0029-_0026key-_0028num_002dthreads-1_0029_0029"></span><dl>
@@ -216,8 +215,8 @@ operations.
 </li><li> AST the AST to instrument
 </li></ul>
 </dd></dl>
-<span id="Method-var_002dinstrument-_0028key-_0028instrumenter-clang_002dinstrumenter_0029-_0028ast-clang_002dast_002dbase_0029-_0026key--print_002dstrings_0029"></span><dl>
-<dt id="index-var_002dinstrument-1">Method: <strong>var-instrument</strong> <em>key (instrumenter clang-instrumenter) (ast clang-ast-base) &amp;key print-strings</em></dt>
+<span id="Method-var_002dinstrument-_0028key-_0028instrumenter-clang_002dinstrumenter_0029-_0028ast-clang_002dast_0029-_0026key--print_002dstrings_0029"></span><dl>
+<dt id="index-var_002dinstrument-1">Method: <strong>var-instrument</strong> <em>key (instrumenter clang-instrumenter) (ast clang-ast) &amp;key print-strings</em></dt>
 <dd><p>Generate ASTs for variable instrumentation.
 </p><ul>
 <li> <code>key</code> a function used to pull the variable list out of AST

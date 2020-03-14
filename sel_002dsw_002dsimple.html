@@ -54,7 +54,23 @@ ul.no-bullet {list-style: none}
 Next: <a href="sel_002dsw_002dsource.html" accesskey="n" rel="next">sel-sw-source</a>, Previous: <a href="sel_002dsw_002dsexp.html" accesskey="p" rel="prev">sel-sw-sexp</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<span id="sel_002dsw_002dsimple-1"></span><h3 class="section">C.34 sel-sw-simple</h3>
+<span id="sel_002dsw_002dsimple-1"></span><h3 class="section">C.32 sel-sw-simple</h3>
+<span id="Class-double_002dcut"></span><dl>
+<dt id="index-double_002dcut">Class: <strong>double-cut</strong></dt>
+<dd><p>Class precedence list: <code>double-cut, simple-mutation, mutation, oid-object, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p>Remove two random elements of the genome.
+</p></dd></dl>
 <span id="Class-light"></span><dl>
 <dt id="index-light">Class: <strong>light</strong></dt>
 <dd><p>Class precedence list: <code>light, simple, software, oid-object, file, standard-object, t</code>
@@ -145,6 +161,10 @@ The sw-range <code>software</code> genome is a list of references to this genome
 <p>Alternative to <code>simple</code> software objects which should use less memory.
 Instead of directly holding code in the <code>genome</code>, each <code>genome</code> is a list
 of range references to an external <code>reference</code> code array.
+</p></dd></dl>
+<span id="Variable-_002asimple_002dmutation_002dtypes_002a"></span><dl>
+<dt id="index-_002asimple_002dmutation_002dtypes_002a">Variable: <strong>*simple-mutation-types*</strong></dt>
+<dd><p>Default list of mutations to apply to simple software objects.
 </p></dd></dl>
 <span id="Function-range_002dnth"></span><dl>
 <dt id="index-range_002dnth">Function: <strong>range-nth</strong> <em>index genome</em></dt>

@@ -54,7 +54,20 @@ ul.no-bullet {list-style: none}
 Next: <a href="sel_002dcp_002dserapi_002dio.html" accesskey="n" rel="next">sel-cp-serapi-io</a>, Previous: <a href="sel_002dcp_002dpliny_002dfodder_002ddatabase.html" accesskey="p" rel="prev">sel-cp-pliny-fodder-database</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<span id="sel_002dcp_002dsearchable-1"></span><h3 class="section">C.56 sel-cp-searchable</h3>
+<span id="sel_002dcp_002dsearchable-1"></span><h3 class="section">C.54 sel-cp-searchable</h3>
+<span id="Class-searchable"></span><dl>
+<dt id="index-searchable">Class: <strong>searchable</strong></dt>
+<dd><p>Class precedence list: <code>searchable, standard-object, t</code>
+</p>
+<p><code>docfixme</code>
+</p></dd></dl>
+<span id="Function-diff_002dscalar"></span><dl>
+<dt id="index-diff_002dscalar">Function: <strong>diff-scalar</strong> <em>original-seq modified-seq</em></dt>
+<dd><p>Return an integer representing the diff size of two sequences
+Sum <code>o</code> <code>+</code> |O <code>-</code> M| over each diff region.  <code>o</code> is the length of the
+original diff region and <code>m</code> is the length of the modified diff
+region.
+</p></dd></dl>
 <span id="Generic_002dFunction-find_002dsnippets"></span><dl>
 <dt id="index-find_002dsnippets">Generic Function: <strong>find-snippets</strong> <em>database &amp;key ast-class full-stmt decls limit</em></dt>
 <dd><p>Find snippets in the fodder database <code>database</code>.
@@ -95,12 +108,6 @@ consider only ASTs of that class.
 property is true.
 </p>
 <p>Otherwise, consider all ASTs.
-</p></dd></dl>
-<span id="Class-searchable"></span><dl>
-<dt id="index-searchable">Class: <strong>searchable</strong></dt>
-<dd><p>Class precedence list: <code>searchable, standard-object, t</code>
-</p>
-<p><code>docfixme</code>
 </p></dd></dl>
 <span id="Generic_002dFunction-similar_002dsnippets"></span><dl>
 <dt id="index-similar_002dsnippets">Generic Function: <strong>similar-snippets</strong> <em>searchable target &amp;key predicate metric key limit ast-class limit-considered filter</em></dt>

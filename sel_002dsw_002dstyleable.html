@@ -54,7 +54,7 @@ ul.no-bullet {list-style: none}
 Next: <a href="sel_002dsw_002dsuper_002dmutant.html" accesskey="n" rel="next">sel-sw-super-mutant</a>, Previous: <a href="sel_002dsw_002dsource.html" accesskey="p" rel="prev">sel-sw-source</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<span id="sel_002dsw_002dstyleable-1"></span><h3 class="section">C.36 sel-sw-styleable</h3>
+<span id="sel_002dsw_002dstyleable-1"></span><h3 class="section">C.34 sel-sw-styleable</h3>
 <span id="Variable-_002aclang_002dc_002dast_002dclasses_002a"></span><dl>
 <dt id="index-_002aclang_002dc_002dast_002dclasses_002a">Variable: <strong>*clang-c-ast-classes*</strong></dt>
 <dd><p>List of clang C ast-class types.
@@ -72,8 +72,8 @@ extraction.
 <dt id="index-all_002dast_002dnode_002dtypes">Generic Function: <strong>all-ast-node-types</strong> <em>software</em></dt>
 <dd><p>Return a list of all possible types of AST nodes for ASTs in <code>software</code>.
 </p></dd></dl>
-<span id="Method-all_002dast_002dnode_002dtypes-_0028_0028clang-clang_002dbase_0029_0029"></span><dl>
-<dt id="index-all_002dast_002dnode_002dtypes-1">Method: <strong>all-ast-node-types</strong> <em>(clang clang-base)</em></dt>
+<span id="Method-all_002dast_002dnode_002dtypes-_0028_0028clang-clang_0029_0029"></span><dl>
+<dt id="index-all_002dast_002dnode_002dtypes-1">Method: <strong>all-ast-node-types</strong> <em>(clang clang)</em></dt>
 <dd><p>Return a list of all possible types of AST nodes for ASTs in <code>clang</code>.
 Uses &lsquo;*clang-c-ast-classes*&rsquo;.
 </p></dd></dl>
@@ -81,8 +81,8 @@ Uses &lsquo;*clang-c-ast-classes*&rsquo;.
 <dt id="index-all_002dkeywords">Generic Function: <strong>all-keywords</strong> <em>software</em></dt>
 <dd><p>Return the list of possible keywords that may appear in <code>software</code>.
 </p></dd></dl>
-<span id="Method-all_002dkeywords-_0028_0028clang-clang_002dbase_0029_0029"></span><dl>
-<dt id="index-all_002dkeywords-1">Method: <strong>all-keywords</strong> <em>(clang clang-base)</em></dt>
+<span id="Method-all_002dkeywords-_0028_0028clang-clang_0029_0029"></span><dl>
+<dt id="index-all_002dkeywords-1">Method: <strong>all-keywords</strong> <em>(clang clang)</em></dt>
 <dd><p>Return the list of possible keywords that may appear in <code>clang</code>.
 Uses &lsquo;*clang-c-keywords*&rsquo;.
 </p></dd></dl>
@@ -91,8 +91,8 @@ Uses &lsquo;*clang-c-keywords*&rsquo;.
 <dd><p>Update and return data structure <code>bi-grams</code> with counts of
 bi-grams in the ASTs of all statements in <code>software</code>.
 </p></dd></dl>
-<span id="Method-ast_002dbi_002dgrams-_0028_0028clang-clang_002dbase_0029-_0026key--_0028bi_002dgrams_002dht-_0028make_002dhash_002dtable-test-_0023_0027equal_0029_0029_0029"></span><dl>
-<dt id="index-ast_002dbi_002dgrams-1">Method: <strong>ast-bi-grams</strong> <em>(clang clang-base) &amp;key (bi-grams-ht (make-hash-table test (function equal)))</em></dt>
+<span id="Method-ast_002dbi_002dgrams-_0028_0028clang-clang_0029-_0026key-_0028bi_002dgrams_002dht-_0028make_002dhash_002dtable-test-_0023_0027equal_0029_0029_0029"></span><dl>
+<dt id="index-ast_002dbi_002dgrams-1">Method: <strong>ast-bi-grams</strong> <em>(clang clang) &amp;key (bi-grams-ht (make-hash-table test (function equal)))</em></dt>
 <dd><p>Update and return hash-table <code>bi-grams-ht</code> with counts of bi-grams in the
 ASTs of all statements in <code>clang</code>.
 </p><ul>
@@ -112,8 +112,8 @@ ASTs of all statements in <code>clang</code>.
 <dt id="index-ast_002ddepth">Generic Function: <strong>ast-depth</strong> <em>software ast</em></dt>
 <dd><p>Depth of AST in <code>software</code>. The root node has a depth of 0.
 </p></dd></dl>
-<span id="Method-ast_002ddepth-_0028_0028clang-clang_002dbase_0029-ast_0029"></span><dl>
-<dt id="index-ast_002ddepth-1">Method: <strong>ast-depth</strong> <em>(clang clang-base) ast</em></dt>
+<span id="Method-ast_002ddepth-_0028_0028clang-clang_0029-ast_0029"></span><dl>
+<dt id="index-ast_002ddepth-1">Method: <strong>ast-depth</strong> <em>(clang clang) ast</em></dt>
 <dd><p>Depth of AST in <code>clang</code>. The root node has a depth of 0
 </p><ul>
 <li> <code>clang</code> software object
@@ -125,8 +125,8 @@ ASTs of all statements in <code>clang</code>.
 <dd><p>Update and return data structure <code>bi-grams</code> with counts of
 bi-grams in the ASTs of full statements in <code>software</code>.
 </p></dd></dl>
-<span id="Method-ast_002dfull_002dstmt_002dbi_002dgrams-_0028_0028clang-clang_002dbase_0029-_0026key--_0028bi_002dgrams_002dht-_0028make_002dhash_002dtable-test-_0023_0027equal_0029_0029_0029"></span><dl>
-<dt id="index-ast_002dfull_002dstmt_002dbi_002dgrams-1">Method: <strong>ast-full-stmt-bi-grams</strong> <em>(clang clang-base) &amp;key (bi-grams-ht (make-hash-table test (function equal)))</em></dt>
+<span id="Method-ast_002dfull_002dstmt_002dbi_002dgrams-_0028_0028clang-clang_0029-_0026key--_0028bi_002dgrams_002dht-_0028make_002dhash_002dtable-test-_0023_0027equal_0029_0029_0029"></span><dl>
+<dt id="index-ast_002dfull_002dstmt_002dbi_002dgrams-1">Method: <strong>ast-full-stmt-bi-grams</strong> <em>(clang clang) &amp;key (bi-grams-ht (make-hash-table test (function equal)))</em></dt>
 <dd><p>Update and return hash-table <code>bi-grams-ht</code> with counts of bi-grams in the
 ASTs of full statements in <code>clang</code>.
 </p><ul>
@@ -137,7 +137,7 @@ ASTs of full statements in <code>clang</code>.
 <span id="Generic_002dFunction-ast_002dfull_002dstmt_002dbi_002dgrams_002dextractor"></span><dl>
 <dt id="index-ast_002dfull_002dstmt_002dbi_002dgrams_002dextractor">Generic Function: <strong>ast-full-stmt-bi-grams-extractor</strong> <em>software</em></dt>
 <dd><p>Return a feature vector counting AST node type bi-grams for
-       full statements.
+     full statements.
 </p></dd></dl>
 <span id="Variable-ast_002dfull_002dstmt_002dbi_002dgrams_002dfeature"></span><dl>
 <dt id="index-ast_002dfull_002dstmt_002dbi_002dgrams_002dfeature">Variable: <strong>ast-full-stmt-bi-grams-feature</strong></dt>
@@ -148,8 +148,8 @@ ASTs of full statements in <code>clang</code>.
 <dt id="index-ast_002dkeyword_002dtf">Generic Function: <strong>ast-keyword-tf</strong> <em>software keyword ast</em></dt>
 <dd><p>Count term frequency of <code>keyword</code> in an AST of <code>software</code>.
 </p></dd></dl>
-<span id="Method-ast_002dkeyword_002dtf-_0028_0028clang-clang_002dbase_0029-_0028keyword-string_0029-ast_0029"></span><dl>
-<dt id="index-ast_002dkeyword_002dtf-1">Method: <strong>ast-keyword-tf</strong> <em>(clang clang-base) (keyword string) ast</em></dt>
+<span id="Method-ast_002dkeyword_002dtf-_0028_0028clang-clang_0029-_0028keyword-string_0029-ast_0029"></span><dl>
+<dt id="index-ast_002dkeyword_002dtf-1">Method: <strong>ast-keyword-tf</strong> <em>(clang clang) (keyword string) ast</em></dt>
 <dd><p>Count term frequency of <code>keyword</code> in an AST of <code>clang</code>. Uses &lsquo;auto-count-keyword&rsquo;
 and &lsquo;search-keyword&rsquo;.
 </p><ul>
@@ -174,8 +174,8 @@ listed in &lsquo;*clang-c-keywords*&rsquo;.
 <dt id="index-ast_002dnode_002dtype_002davg_002ddepth">Generic Function: <strong>ast-node-type-avg-depth</strong> <em>software node-type</em></dt>
 <dd><p>Average depth of nodes with type <code>node-type</code> in the ASTs in <code>software</code>.
 </p></dd></dl>
-<span id="Method-ast_002dnode_002dtype_002davg_002ddepth-_0028_0028clang-clang_002dbase_0029-_0028node_002dtype-symbol_0029_0029"></span><dl>
-<dt id="index-ast_002dnode_002dtype_002davg_002ddepth-1">Method: <strong>ast-node-type-avg-depth</strong> <em>(clang clang-base) (node-type symbol)</em></dt>
+<span id="Method-ast_002dnode_002dtype_002davg_002ddepth-_0028_0028clang-clang_0029-_0028node_002dtype-symbol_0029_0029"></span><dl>
+<dt id="index-ast_002dnode_002dtype_002davg_002ddepth-1">Method: <strong>ast-node-type-avg-depth</strong> <em>(clang clang) (node-type symbol)</em></dt>
 <dd><p>Average depth of nodes with type <code>node-type</code> in the ASTs in <code>clang</code>.
 </p><ul>
 <li> <code>clang</code> a clang software object
@@ -207,8 +207,8 @@ corresponding type in the AST of <code>software</code>.
 <dt id="index-ast_002dnode_002dtypes">Generic Function: <strong>ast-node-types</strong> <em>software</em></dt>
 <dd><p>Return a list of the node types present in the ASTs in <code>software</code>.
 </p></dd></dl>
-<span id="Method-ast_002dnode_002dtypes-_0028_0028clang-clang_002dbase_0029_0029"></span><dl>
-<dt id="index-ast_002dnode_002dtypes-1">Method: <strong>ast-node-types</strong> <em>(clang clang-base)</em></dt>
+<span id="Method-ast_002dnode_002dtypes-_0028_0028clang-clang_0029_0029"></span><dl>
+<dt id="index-ast_002dnode_002dtypes-1">Method: <strong>ast-node-types</strong> <em>(clang clang)</em></dt>
 <dd><p>Return a list of the ast classes that occur in <code>clang</code>
 </p></dd></dl>
 <span id="Generic_002dFunction-auto_002dcount_002dkeyword"></span><dl>
@@ -253,8 +253,8 @@ which will be paired with another such value to create a key.
 <dd><p>Return a feature-vector containing counts of bi-grams in
 <code>software</code> stored in <code>bi-grams</code>.
 </p></dd></dl>
-<span id="Method-bi_002dgrams_002dhashtable_002dto_002dfeature-_0028_0028clang-clang_002dbase_0029-_0028bi_002dgrams-hash_002dtable_0029_0029"></span><dl>
-<dt id="index-bi_002dgrams_002dhashtable_002dto_002dfeature-1">Method: <strong>bi-grams-hashtable-to-feature</strong> <em>(clang clang-base) (bi-grams hash-table)</em></dt>
+<span id="Method-bi_002dgrams_002dhashtable_002dto_002dfeature-_0028_0028clang-clang_0029-_0028bi_002dgrams-hash_002dtable_0029_0029"></span><dl>
+<dt id="index-bi_002dgrams_002dhashtable_002dto_002dfeature-1">Method: <strong>bi-grams-hashtable-to-feature</strong> <em>(clang clang) (bi-grams hash-table)</em></dt>
 <dd><p>Return a feature-vector containing counts of bi-grams in <code>clang</code> stored in
 hash-table <code>bi-grams</code>.
 </p><ul>
@@ -327,8 +327,8 @@ by feature merge functions).
 <dt id="index-max_002ddepth_002dast">Generic Function: <strong>max-depth-ast</strong> <em>software asts</em></dt>
 <dd><p>Return the maximum depth of the <code>asts</code> in <code>software</code>.
 </p></dd></dl>
-<span id="Method-max_002ddepth_002dast-_0028_0028clang-clang_002dbase_0029-asts_0029"></span><dl>
-<dt id="index-max_002ddepth_002dast-1">Method: <strong>max-depth-ast</strong> <em>(clang clang-base) asts</em></dt>
+<span id="Method-max_002ddepth_002dast-_0028_0028clang-clang_0029-asts_0029"></span><dl>
+<dt id="index-max_002ddepth_002dast-1">Method: <strong>max-depth-ast</strong> <em>(clang clang) asts</em></dt>
 <dd><p>Return the maximum depth of the <code>asts</code> in <code>clang</code>.
 All depths are relative to the top-level of the <code>clang</code> software object (not
 relative to elements in the list of ASTs).
@@ -388,8 +388,8 @@ to be a &lsquo;styleable&rsquo; object containing the merged feature vectors and
 <dd><p>Return 1 if <code>keyword</code> occurs anywhere in the text of an AST in
 <code>software</code>, 0 otherwise.
 </p></dd></dl>
-<span id="Method-search_002dkeyword-_0028_0028clang-clang_002dbase_0029-_0028keyword-string_0029-ast_0029"></span><dl>
-<dt id="index-search_002dkeyword-1">Method: <strong>search-keyword</strong> <em>(clang clang-base) (keyword string) ast</em></dt>
+<span id="Method-search_002dkeyword-_0028_0028clang-clang_0029-_0028keyword-string_0029-ast_0029"></span><dl>
+<dt id="index-search_002dkeyword-1">Method: <strong>search-keyword</strong> <em>(clang clang) (keyword string) ast</em></dt>
 <dd><p>Return 1 if <code>keyword</code> occurs anywhere in the source text of an AST in <code>clang</code>, 0
 otherwise. Only searches ASTs whose &lsquo;ast-class&rsquo; is in
 &lsquo;*clang-c-ast-keywords-search-count*&rsquo;.

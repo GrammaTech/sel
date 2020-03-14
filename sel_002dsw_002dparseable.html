@@ -54,11 +54,7 @@ ul.no-bullet {list-style: none}
 Next: <a href="sel_002dsw_002dproject.html" accesskey="n" rel="next">sel-sw-project</a>, Previous: <a href="sel_002dsw_002dllvm.html" accesskey="p" rel="prev">sel-sw-llvm</a>, Up: <a href="SEL-Packages.html" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<span id="sel_002dsw_002dparseable-1"></span><h3 class="section">C.31 sel-sw-parseable</h3>
-<span id="Variable-_002aparseable_002dmutation_002dtypes_002a"></span><dl>
-<dt id="index-_002aparseable_002dmutation_002dtypes_002a">Variable: <strong>*parseable-mutation-types*</strong></dt>
-<dd><p>Cumulative distribution of normalized probabilities of weighted mutations.
-</p></dd></dl>
+<span id="sel_002dsw_002dparseable-1"></span><h3 class="section">C.29 sel-sw-parseable</h3>
 <span id="Generic_002dFunction-append_002dto_002dgenome"></span><dl>
 <dt id="index-append_002dto_002dgenome">Generic Function: <strong>append-to-genome</strong> <em>software text</em></dt>
 <dd><p>Append non-AST <code>text</code> to <code>obj</code> genome.  The new text will not be parsed.
@@ -77,6 +73,20 @@ Next: <a href="sel_002dsw_002dproject.html" accesskey="n" rel="next">sel-sw-proj
 </li><li> <code>text</code> text to append to the genome preamble
 </li></ul>
 </dd></dl>
+<span id="Structure-ast"></span><dl>
+<dt id="index-ast">Structure: <strong>ast</strong></dt>
+<dd><p>Class precedence list: <code>ast, structure-object, t</code>
+</p>
+<p>Base structure of mutable portion of ast nodes.
+</p></dd></dl>
+<span id="Generic_002dFunction-ast_002dannotations"></span><dl>
+<dt id="index-ast_002dannotations">Generic Function: <strong>ast-annotations</strong> <em>a</em></dt>
+<dd><p>Genericized version of annotations reader for AST structs
+</p></dd></dl>
+<span id="Generic_002dFunction-_0028setf-ast_002dannotations_0029"></span><dl>
+<dt id="index-_0028setf-ast_002dannotations_0029">Generic Function: <strong>(setf ast-annotations)</strong> <em>v a</em></dt>
+<dd><p>Genericized version of annotations writer for AST structs
+</p></dd></dl>
 <span id="Generic_002dFunction-ast_002dat_002dindex"></span><dl>
 <dt id="index-ast_002dat_002dindex">Generic Function: <strong>ast-at-index</strong> <em>software index</em></dt>
 <dd><p>Return the AST in <code>obj</code> at <code>index</code>.
@@ -85,6 +95,85 @@ Next: <a href="sel_002dsw_002dproject.html" accesskey="n" rel="next">sel-sw-proj
 </li><li> <code>index</code> nth AST to retrieve
 </li></ul>
 </dd></dl>
+<span id="Generic_002dFunction-ast_002daux_002ddata"></span><dl>
+<dt id="index-ast_002daux_002ddata">Generic Function: <strong>ast-aux-data</strong> <em>a</em></dt>
+<dd><p>Genericized version of aux-data reader for AST structs
+</p></dd></dl>
+<span id="Generic_002dFunction-_0028setf-ast_002daux_002ddata_0029"></span><dl>
+<dt id="index-_0028setf-ast_002daux_002ddata_0029">Generic Function: <strong>(setf ast-aux-data)</strong> <em>v a</em></dt>
+<dd><p>Genericized version of aux-data writer for AST structs
+</p></dd></dl>
+<span id="Generic_002dFunction-ast_002dchildren"></span><dl>
+<dt id="index-ast_002dchildren">Generic Function: <strong>ast-children</strong> <em>a</em></dt>
+<dd><p>Genericized version of children reader for AST structs
+</p></dd></dl>
+<span id="Generic_002dFunction-_0028setf-ast_002dchildren_0029"></span><dl>
+<dt id="index-_0028setf-ast_002dchildren_0029">Generic Function: <strong>(setf ast-children)</strong> <em>v a</em></dt>
+<dd><p>Genericized version of children writer for AST structs
+</p></dd></dl>
+<span id="Generic_002dFunction-ast_002dclass"></span><dl>
+<dt id="index-ast_002dclass">Generic Function: <strong>ast-class</strong> <em>ast</em></dt>
+<dd><p>Class of AST.
+</p></dd></dl>
+<span id="Generic_002dFunction-ast_002dclass_002dmeld_003f"></span><dl>
+<dt id="index-ast_002dclass_002dmeld_003f">Generic Function: <strong>ast-class-meld?</strong> <em>ast-class ast</em></dt>
+<dd><p>Dispatches on the ast-class of an ast to compute &lsquo;ast-meld-p&rsquo;
+</p></dd></dl>
+<span id="Generic_002dFunction-ast_002dequal_002dp"></span><dl>
+<dt id="index-ast_002dequal_002dp">Generic Function: <strong>ast-equal-p</strong> <em>ast-a ast-b</em></dt>
+<dd><p>Return <code>t</code> <code>ast-a</code> and <code>ast-b</code> are equal for differencing.
+</p></dd></dl>
+<span id="Generic_002dFunction-ast_002dhash"></span><dl>
+<dt id="index-ast_002dhash">Generic Function: <strong>ast-hash</strong> <em>ast</em></dt>
+<dd><p>A hash value for the AST, which is a nonnegative
+integer.  It should be the case that (ast-equal-p x y) implies
+(eql (ast-hash x) (ast-hash y)), and that if (not (ast-equal-p x y))
+then the equality of the hashes is unlikely.
+</p></dd></dl>
+<span id="Generic_002dFunction-ast_002dmeld_002dp"></span><dl>
+<dt id="index-ast_002dmeld_002dp">Generic Function: <strong>ast-meld-p</strong> <em>ast</em></dt>
+<dd><p>Returns true if the children of AST are to be combined on merge conflict.
+</p></dd></dl>
+<span id="Structure-ast_002dnode"></span><dl>
+<dt id="index-ast_002dnode">Structure: <strong>ast-node</strong></dt>
+<dd><p>Class precedence list: <code>ast-node, structure-object, t</code>
+</p>
+<p>Base type of immutable portion of ast nodes.
+</p></dd></dl>
+<span id="Generic_002dFunction-ast_002dpath"></span><dl>
+<dt id="index-ast_002dpath">Generic Function: <strong>ast-path</strong> <em>a</em></dt>
+<dd><p>Genericized version of path reader for AST structs
+</p></dd></dl>
+<span id="Generic_002dFunction-_0028setf-ast_002dpath_0029"></span><dl>
+<dt id="index-_0028setf-ast_002dpath_0029">Generic Function: <strong>(setf ast-path)</strong> <em>v a</em></dt>
+<dd><p>Genericized version of path writer for AST structs
+</p></dd></dl>
+<span id="Generic_002dFunction-ast_002dstored_002dhash"></span><dl>
+<dt id="index-ast_002dstored_002dhash">Generic Function: <strong>ast-stored-hash</strong> <em>a</em></dt>
+<dd><p>Genericized version of stored-hash reader for AST structs
+</p></dd></dl>
+<span id="Generic_002dFunction-_0028setf-ast_002dstored_002dhash_0029"></span><dl>
+<dt id="index-_0028setf-ast_002dstored_002dhash_0029">Generic Function: <strong>(setf ast-stored-hash)</strong> <em>v a</em></dt>
+<dd><p>Genericized version of children writer for AST structs
+</p></dd></dl>
+<span id="Structure-ast_002dstub"></span><dl>
+<dt id="index-ast_002dstub">Structure: <strong>ast-stub</strong></dt>
+<dd><p>Class precedence list: <code>ast-stub, ast, structure-object, t</code>
+</p>
+<p>Base type of sub-tree of an applicative AST tree.
+</p></dd></dl>
+<span id="Variable-_002aparseable_002dmutation_002dtypes_002a"></span><dl>
+<dt id="index-_002aparseable_002dmutation_002dtypes_002a">Variable: <strong>*parseable-mutation-types*</strong></dt>
+<dd><p>Cumulative distribution of normalized probabilities of weighted mutations.
+</p></dd></dl>
+<span id="Generic_002dFunction-ast_002dtext"></span><dl>
+<dt id="index-ast_002dtext">Generic Function: <strong>ast-text</strong> <em>ast</em></dt>
+<dd><p>Return textual representation of AST.
+</p></dd></dl>
+<span id="Generic_002dFunction-ast_002dto_002dlist"></span><dl>
+<dt id="index-ast_002dto_002dlist">Generic Function: <strong>ast-to-list</strong> <em>obj</em></dt>
+<dd><p>Return ASTs under <code>obj</code> as a list.
+</p></dd></dl>
 <span id="Generic_002dFunction-ast_002dto_002dsource_002drange"></span><dl>
 <dt id="index-ast_002dto_002dsource_002drange">Generic Function: <strong>ast-to-source-range</strong> <em>software ast</em></dt>
 <dd><p>Convert AST to pair of <code>source-locations</code>.
@@ -106,8 +195,8 @@ Next: <a href="sel_002dsw_002dproject.html" accesskey="n" rel="next">sel-sw-proj
 <dd><p>Return a list of all bad mutation targets in
 <code>software</code> matching <code>filter</code>.
 </p></dd></dl>
-<span id="Method-bad_002dmutation_002dtargets-_0028_0028clang-clang_002dbase_0029-_0026key-filter_0029"></span><dl>
-<dt id="index-bad_002dmutation_002dtargets-1">Method: <strong>bad-mutation-targets</strong> <em>(clang clang-base) &amp;key filter</em></dt>
+<span id="Method-bad_002dmutation_002dtargets-_0028_0028clang-clang_0029-_0026key-filter_0029"></span><dl>
+<dt id="index-bad_002dmutation_002dtargets-1">Method: <strong>bad-mutation-targets</strong> <em>(clang clang) &amp;key filter</em></dt>
 <dd><p>Return a list of all bad statement ASTs in <code>clang</code> matching <code>filter</code>.
 </p><ul>
 <li> <code>clang</code> software object to query for bad statements
@@ -126,8 +215,8 @@ Next: <a href="sel_002dsw_002dproject.html" accesskey="n" rel="next">sel-sw-proj
 <dt id="index-can_002dbe_002dmade_002dtraceable_002dp">Generic Function: <strong>can-be-made-traceable-p</strong> <em>software ast</em></dt>
 <dd><p>Check if AST can be made a traceable statement in <code>software</code>.
 </p></dd></dl>
-<span id="Method-can_002dbe_002dmade_002dtraceable_002dp-_0028_0028obj-clang_002dbase_0029-_0028ast-ast_0029_0029"></span><dl>
-<dt id="index-can_002dbe_002dmade_002dtraceable_002dp-1">Method: <strong>can-be-made-traceable-p</strong> <em>(obj clang-base) (ast ast)</em></dt>
+<span id="Method-can_002dbe_002dmade_002dtraceable_002dp-_0028_0028obj-clang_0029-_0028ast-clang_002dast_0029_0029"></span><dl>
+<dt id="index-can_002dbe_002dmade_002dtraceable_002dp-1">Method: <strong>can-be-made-traceable-p</strong> <em>(obj clang) (ast clang-ast)</em></dt>
 <dd><p><code>docfixme</code>
 </p><ul>
 <li> <code>obj</code> <code>docfixme</code>
@@ -141,13 +230,39 @@ Next: <a href="sel_002dsw_002dproject.html" accesskey="n" rel="next">sel-sw-proj
 <span id="Method-clear_002dcaches-_0028_0028obj-clang_0029_0029"></span><dl>
 <dt id="index-clear_002dcaches-1">Method: <strong>clear-caches</strong> <em>(obj clang)</em></dt>
 <dd><p>Clear cached fields on <code>obj</code>, including &lsquo;stmt-asts&rsquo;, &lsquo;non-stmt-asts&rsquo;,
-&lsquo;functions&rsquo;, &lsquo;prototypes&rsquo;, and &lsquo;includes&rsquo;.
+&lsquo;functions&rsquo;, &lsquo;prototypes&rsquo;, &lsquo;includes&rsquo;, &lsquo;types&rsquo;, and &lsquo;name-symbol-table.<code>'</code>
 * <code>obj</code> object to clear caches for.
 </p></dd></dl>
 <span id="Method-clear_002dcaches-_0028_0028obj-parseable_0029_0029"></span><dl>
 <dt id="index-clear_002dcaches-2">Method: <strong>clear-caches</strong> <em>(obj parseable)</em></dt>
 <dd><p>Clear cached fields on <code>obj</code> such as &lsquo;asts&rsquo;.
 * <code>obj</code> object to clear caches for.
+</p></dd></dl>
+<span id="Generic_002dFunction-combine_002dconflict_002dasts"></span><dl>
+<dt id="index-combine_002dconflict_002dasts">Generic Function: <strong>combine-conflict-asts</strong> <em>ca1 ca2</em></dt>
+<dd><p>Merge conflict ast nodes CA1 and CA2, their alists and default values.
+</p></dd></dl>
+<span id="Structure-conflict_002dast"></span><dl>
+<dt id="index-conflict_002dast">Structure: <strong>conflict-ast</strong></dt>
+<dd><p>Class precedence list: <code>conflict-ast, ast-stub, ast, structure-object, t</code>
+</p>
+<p>Node representing several possibilities for insertion into an AST.
+The mapping from a conflicted AST into a regular AST is as follows: for
+a given conflict key, and for each conflict node, get the list of children
+corresponding to that key (default if the key is not present), and splice
+that list of children in place of the conflict node in its parent&rsquo;s children
+list.
+</p></dd></dl>
+<span id="Macro-define_002dast"></span><dl>
+<dt id="index-define_002dast">Macro: <strong>define-ast</strong> <em>name-and-options &amp;rest slot-descriptions</em></dt>
+<dd><p>Implicitly defines an AST wrapper for the defined AST-node.
+</p></dd></dl>
+<span id="Function-ast_002dlater_002dp"></span><dl>
+<dt id="index-ast_002dlater_002dp">Function: <strong>ast-later-p</strong> <em>ast-a ast-b</em></dt>
+<dd><p>Is <code>ast-a</code> later in the genome than <code>ast-b</code>?
+</p>
+<p>Use this to sort AST asts for mutations that perform multiple
+operations.
 </p></dd></dl>
 <span id="Generic_002dFunction-enclosing_002dscope"></span><dl>
 <dt id="index-enclosing_002dscope">Generic Function: <strong>enclosing-scope</strong> <em>software ast</em></dt>
@@ -159,8 +274,8 @@ Next: <a href="sel_002dsw_002dproject.html" accesskey="n" rel="next">sel-sw-proj
 <code>obj</code> javascript software object
 AST ast to return the enclosing scope for
 </p></dd></dl>
-<span id="Method-enclosing_002dscope-_0028_0028software-clang_002dbase_0029-_0028ast-ast_0029_0029"></span><dl>
-<dt id="index-enclosing_002dscope-2">Method: <strong>enclosing-scope</strong> <em>(software clang-base) (ast ast)</em></dt>
+<span id="Method-enclosing_002dscope-_0028_0028software-clang_0029-_0028ast-clang_002dast_0029_0029"></span><dl>
+<dt id="index-enclosing_002dscope-2">Method: <strong>enclosing-scope</strong> <em>(software clang) (ast clang-ast)</em></dt>
 <dd><p><code>docfixme</code>
 </p><ul>
 <li> <code>software</code> <code>docfixme</code>
@@ -173,28 +288,37 @@ AST ast to return the enclosing scope for
 If a statement is reached which is not itself traceable, but which could be
 made traceable by wrapping with curly braces, return that.
 </p></dd></dl>
-<span id="Method-enclosing_002dtraceable_002dstmt-_0028_0028obj-clang_002dbase_0029-_0028ast-ast_0029_0029"></span><dl>
-<dt id="index-enclosing_002dtraceable_002dstmt-1">Method: <strong>enclosing-traceable-stmt</strong> <em>(obj clang-base) (ast ast)</em></dt>
+<span id="Method-enclosing_002dtraceable_002dstmt-_0028_0028obj-clang_0029-_0028ast-clang_002dast_0029_0029"></span><dl>
+<dt id="index-enclosing_002dtraceable_002dstmt-1">Method: <strong>enclosing-traceable-stmt</strong> <em>(obj clang) (ast clang-ast)</em></dt>
 <dd><p><code>docfixme</code>
 </p><ul>
 <li> <code>obj</code> <code>docfixme</code>
 </li><li> AST <code>docfixme</code>
 </li></ul>
 </dd></dl>
-<span id="Generic_002dFunction-force_002dinclude"></span><dl>
-<dt id="index-force_002dinclude">Generic Function: <strong>force-include</strong> <em>software include</em></dt>
-<dd><p>Add an #include directive for an <code>include</code> to <code>software</code>
-even if such an <code>include</code> already exists in <code>software</code>.
+<span id="Generic_002dFunction-fixup_002dmutation"></span><dl>
+<dt id="index-fixup_002dmutation">Generic Function: <strong>fixup-mutation</strong> <em>operation current before ast after</em></dt>
+<dd><p>Adjust mutation result according to syntactic context.
 </p></dd></dl>
-<span id="Method-force_002dinclude-_0028_0028obj-clang_002dbase_0029-include_0029"></span><dl>
-<dt id="index-force_002dinclude-1">Method: <strong>force-include</strong> <em>(obj clang-base) include</em></dt>
-<dd><p>Add an #include directive for an <code>include</code> to <code>obj</code>
-even if such an <code>include</code> already exists in <code>obj</code>.
+<span id="Method-fixup_002dmutation-_0028operation-_0028current-clang_002dast_0029-before-ast-after_0029"></span><dl>
+<dt id="index-fixup_002dmutation-1">Method: <strong>fixup-mutation</strong> <em>operation (current clang-ast) before ast after</em></dt>
+<dd><p>Adjust mutation result according to syntactic context.
+</p>
+<p>Adds and removes semicolons, commas, and braces.
+</p>
+<p>* <code>operation</code> mutation operation performed (:cut, :set, :insert,
+:insert-after, :splice)
 </p><ul>
-<li> <code>obj</code> object to modify
-</li><li> <code>include</code> header to include in <code>obj</code>
+<li> <code>current</code> AST node to be replaced
+</li><li> <code>before</code> string or ast prior to the mutation point
+</li><li> AST replacement ast in the mutation operation
+</li><li> <code>after</code> string or ast following the mutation point
 </li></ul>
 </dd></dl>
+<span id="Generic_002dFunction-from_002dalist"></span><dl>
+<dt id="index-from_002dalist">Generic Function: <strong>from-alist</strong> <em>symbol alist</em></dt>
+<dd><p>Convert alist to struct representation.
+</p></dd></dl>
 <span id="Generic_002dFunction-get_002dast"></span><dl>
 <dt id="index-get_002dast">Generic Function: <strong>get-ast</strong> <em>obj path</em></dt>
 <dd><p>Return the AST in <code>obj</code> at the given <code>path</code>.
@@ -211,8 +335,8 @@ even if such an <code>include</code> already exists in <code>obj</code>.
 <dt id="index-get_002dast_002dtypes">Generic Function: <strong>get-ast-types</strong> <em>software ast</em></dt>
 <dd><p>Types directly referenced within AST.
 </p></dd></dl>
-<span id="Method-get_002dast_002dtypes-_0028_0028software-clang_002dbase_0029-_0028ast-ast_0029_0029"></span><dl>
-<dt id="index-get_002dast_002dtypes-1">Method: <strong>get-ast-types</strong> <em>(software clang-base) (ast ast)</em></dt>
+<span id="Method-get_002dast_002dtypes-_0028_0028software-clang_0029-_0028ast-clang_002dast_0029_0029"></span><dl>
+<dt id="index-get_002dast_002dtypes-1">Method: <strong>get-ast-types</strong> <em>(software clang) (ast clang-ast)</em></dt>
 <dd><p>Compute all the types mentioned in AST.  <code>ast-types</code> is
 the types used at a node; this function closes over all the nodes
 in the AST.  <code>software</code> is the software object to which AST belongs.
@@ -277,16 +401,8 @@ in the AST.  <code>software</code> is the software object to which AST belongs.
 </li><li> AST ast to retrieve unbound functions within
 </li></ul>
 </dd></dl>
-<span id="Method-get_002dunbound_002dfuns-_0028_0028software-clang_002dbase_0029-ast_0029"></span><dl>
-<dt id="index-get_002dunbound_002dfuns-2">Method: <strong>get-unbound-funs</strong> <em>(software clang-base) ast</em></dt>
-<dd><p><code>docfixme</code>
-</p><ul>
-<li> <code>software</code> <code>docfixme</code>
-</li><li> AST <code>docfixme</code>
-</li></ul>
-</dd></dl>
-<span id="Method-get_002dunbound_002dfuns-_0028_0028software-clang_002dbase_0029-_0028ast-ast_0029_0029"></span><dl>
-<dt id="index-get_002dunbound_002dfuns-3">Method: <strong>get-unbound-funs</strong> <em>(software clang-base) (ast ast)</em></dt>
+<span id="Method-get_002dunbound_002dfuns-_0028_0028software-clang_0029-_0028ast-clang_002dast_0029_0029"></span><dl>
+<dt id="index-get_002dunbound_002dfuns-2">Method: <strong>get-unbound-funs</strong> <em>(software clang) (ast clang-ast)</em></dt>
 <dd><p>Compute all the unbound funs in AST.   <code>ast-unbound-funs</code> is
 the unbound funs at a node; this function closes over all the nodes
 in the AST.  <code>software</code> is the software object to which AST belongs.
@@ -303,16 +419,8 @@ in the AST.  <code>software</code> is the software object to which AST belongs.
 </li><li> AST ast to retrieve unbound variables within
 </li></ul>
 </dd></dl>
-<span id="Method-get_002dunbound_002dvals-_0028_0028software-clang_002dbase_0029-ast_0029"></span><dl>
-<dt id="index-get_002dunbound_002dvals-2">Method: <strong>get-unbound-vals</strong> <em>(software clang-base) ast</em></dt>
-<dd><p><code>docfixme</code>
-</p><ul>
-<li> <code>software</code> <code>docfixme</code>
-</li><li> AST <code>docfixme</code>
-</li></ul>
-</dd></dl>
-<span id="Method-get_002dunbound_002dvals-_0028_0028software-clang_002dbase_0029-_0028ast-ast_0029_0029"></span><dl>
-<dt id="index-get_002dunbound_002dvals-3">Method: <strong>get-unbound-vals</strong> <em>(software clang-base) (ast ast)</em></dt>
+<span id="Method-get_002dunbound_002dvals-_0028_0028software-clang_0029-_0028ast-clang_002dast_0029_0029"></span><dl>
+<dt id="index-get_002dunbound_002dvals-2">Method: <strong>get-unbound-vals</strong> <em>(software clang) (ast clang-ast)</em></dt>
 <dd><p><code>docfixme</code>
 </p><ul>
 <li> <code>software</code> <code>docfixme</code>
@@ -323,6 +431,14 @@ in the AST.  <code>software</code> is the software object to which AST belongs.
 <dt id="index-get_002dvars_002din_002dscope">Generic Function: <strong>get-vars-in-scope</strong> <em>software ast &amp;optional keep-globals</em></dt>
 <dd><p>Return all variables in enclosing scopes.
 </p></dd></dl>
+<span id="Method-get_002dvars_002din_002dscope-around-_0028_0028obj-clang_0029-_0028ast-clang_002dast_0029-_0026optional--_0028keep_002dglobals-t_0029_0029"></span><dl>
+<dt id="index-around-get_002dvars_002din_002dscope">Method: <strong>around get-vars-in-scope</strong> <em>(obj clang) (ast clang-ast) &amp;optional (keep-globals t)</em></dt>
+<dd><p>Return all variables in enclosing scopes.
+</p><ul>
+<li> <code>obj</code> clang software object containing AST and its enclosing scopes
+</li><li> AST node to find variables in scope for
+</li></ul>
+</dd></dl>
 <span id="Method-get_002dvars_002din_002dscope-_0028_0028obj-parseable_0029-_0028ast-ast_0029-_0026optional-_0028keep_002dglobals-t_0029_0029"></span><dl>
 <dt id="index-get_002dvars_002din_002dscope-1">Method: <strong>get-vars-in-scope</strong> <em>(obj parseable) (ast ast) &amp;optional (keep-globals t)</em></dt>
 <dd><p>Return all variables in enclosing scopes.
@@ -336,8 +452,8 @@ in the AST.  <code>software</code> is the software object to which AST belongs.
 <dd><p>Return a list of all good mutation targets in
 <code>software</code> matching <code>filter</code>.
 </p></dd></dl>
-<span id="Method-good_002dmutation_002dtargets-_0028_0028clang-clang_002dbase_0029-_0026key-filter_0029"></span><dl>
-<dt id="index-good_002dmutation_002dtargets-1">Method: <strong>good-mutation-targets</strong> <em>(clang clang-base) &amp;key filter</em></dt>
+<span id="Method-good_002dmutation_002dtargets-_0028_0028clang-clang_0029-_0026key-filter_0029"></span><dl>
+<dt id="index-good_002dmutation_002dtargets-1">Method: <strong>good-mutation-targets</strong> <em>(clang clang) &amp;key filter</em></dt>
 <dd><p>Return a list of all good statement ASTs in <code>clang</code> matching <code>filter</code>.
 </p><ul>
 <li> <code>clang</code> software object to query for good statements
@@ -361,7 +477,7 @@ in the AST.  <code>software</code> is the software object to which AST belongs.
 </li></ul>
 </dd></dl>
 <span id="Generic_002dFunction-insert_002dast"></span><dl>
-<dt id="index-insert_002dast">Generic Function: <strong>insert-ast</strong> <em>obj location ast &amp;key literal &amp;allow-other-keys</em></dt>
+<dt id="index-insert_002dast">Generic Function: <strong>insert-ast</strong> <em>tree location ast &amp;key literal &amp;allow-other-keys</em></dt>
 <dd><p>Return the modified <code>obj</code> with AST inserted at <code>location</code>.
 </p><ul>
 <li> <code>obj</code> object to be modified
@@ -372,13 +488,23 @@ in the AST.  <code>software</code> is the software object to which AST belongs.
           inserted, pass this keyword as true.
 </li></ul>
 </dd></dl>
-<span id="Generic_002dFunction-name_002demptyp"></span><dl>
-<dt id="index-name_002demptyp">Generic Function: <strong>name-emptyp</strong> <em>n</em></dt>
-<dd><p>Generalized name emptiness check
+<span id="Generic_002dFunction-map_002dast"></span><dl>
+<dt id="index-map_002dast">Generic Function: <strong>map-ast</strong> <em>tree fn</em></dt>
+<dd><p>Apply <code>fn</code> to each node of AST, in preorder.
 </p></dd></dl>
-<span id="Generic_002dFunction-name_003d"></span><dl>
-<dt id="index-name_003d">Generic Function: <strong>name=</strong> <em>n1 n2</em></dt>
-<dd><p>Generalized name equality for AST names
+<span id="Generic_002dFunction-map_002dast_002dpostorder"></span><dl>
+<dt id="index-map_002dast_002dpostorder">Generic Function: <strong>map-ast-postorder</strong> <em>tree fn</em></dt>
+<dd><p>Apply <code>fn</code> to each node of AST, in postorder.
+</p></dd></dl>
+<span id="Generic_002dFunction-map_002dast_002dstrings"></span><dl>
+<dt id="index-map_002dast_002dstrings">Generic Function: <strong>map-ast-strings</strong> <em>tree fn</em></dt>
+<dd><p>Build a new AST obtained by replacing each string with
+(funcall <code>fn</code> string).  If the <code>fn</code> returns <code>nil</code> do not replace.
+</p></dd></dl>
+<span id="Generic_002dFunction-map_002dast_002dwith_002dancestors"></span><dl>
+<dt id="index-map_002dast_002dwith_002dancestors">Generic Function: <strong>map-ast-with-ancestors</strong> <em>tree fn &amp;optional ancestors</em></dt>
+<dd><p>Apply <code>fn</code> to each node of the AST, and its list of ancestors,
+in preorder.  The ancestor list is in decreasing order of depth in the AST.
 </p></dd></dl>
 <span id="Generic_002dFunction-parent_002dast_002dp"></span><dl>
 <dt id="index-parent_002dast_002dp">Generic Function: <strong>parent-ast-p</strong> <em>software possible-parent-ast ast</em></dt>
@@ -404,11 +530,6 @@ of the assignment, and fix-up the :start and :end source range
 pointers to adjust for the extra offset introduced by the added left
 hand side.
 </p></dd></dl>
-<span id="Method-parse_002dasts-_0028_0028obj-clang_0029_0029"></span><dl>
-<dt id="index-parse_002dasts-2">Method: <strong>parse-asts</strong> <em>(obj clang)</em></dt>
-<dd><p>Parse the genome of <code>obj</code> and update its ASTs.
-* <code>obj</code> object to update
-</p></dd></dl>
 <span id="Generic_002dFunction-parse_002dsource_002dsnippet"></span><dl>
 <dt id="index-parse_002dsource_002dsnippet">Generic Function: <strong>parse-source-snippet</strong> <em>type snippet &amp;key unbound-vals includes macros preamble top-level keep-comments</em></dt>
 <dd><p>Parse a source <code>snippet</code> of the given <code>type</code> (e.g clang)
@@ -418,31 +539,8 @@ into a list of free-floating ASTs.
 <dt id="index-parse_002dsource_002dsnippet-1">Method: <strong>parse-source-snippet</strong> <em>(type (eql javascript)) (snippet string) &amp;key</em></dt>
 <dd><p>Parse the <code>snippet</code> into a list of free-floating JavaScript ASTs.
 </p></dd></dl>
-<span id="Method-parse_002dsource_002dsnippet-_0028_0028type-_0028eql-new_002dclang_0029_0029-_0028snippet-string_0029-_0026key-unbound_002dvals--includes-macros-preamble-top_002dlevel-keep_002dcomments_0029"></span><dl>
-<dt id="index-parse_002dsource_002dsnippet-2">Method: <strong>parse-source-snippet</strong> <em>(type (eql new-clang)) (snippet string) &amp;key unbound-vals includes macros preamble top-level keep-comments</em></dt>
-<dd><p>Build ASTs for <code>snippet</code>, returning a list of root asts.
-</p>
-<ul>
-<li> <code>snippet</code> may include one or more full statements. It should compile in
-  a context where all <code>unbound-vals</code> are defined and all <code>includes</code> are
-  included.
-
-</li><li> <code>unbound-vals</code> should have the form ((name clang-type) ... )
-
-</li><li> <code>includes</code> is a list of files to include.
-
-</li><li> <code>macros</code> is a list of macros to define
-
-</li><li> <code>preamble</code> source to add prior to snippet
-
-</li><li> <code>top-level</code> indicates that the snippet is a construct which can exist
-  outside a function body, such as a type or function declaration.
-
-</li><li> <code>keep-comments</code> indicates comments should be retained
-</li></ul>
-</dd></dl>
 <span id="Method-parse_002dsource_002dsnippet-_0028_0028type-_0028eql-clang_0029_0029-_0028snippet-string_0029-_0026key-unbound_002dvals--includes-macros-preamble-top_002dlevel-keep_002dcomments_0029"></span><dl>
-<dt id="index-parse_002dsource_002dsnippet-3">Method: <strong>parse-source-snippet</strong> <em>(type (eql clang)) (snippet string) &amp;key unbound-vals includes macros preamble top-level keep-comments</em></dt>
+<dt id="index-parse_002dsource_002dsnippet-2">Method: <strong>parse-source-snippet</strong> <em>(type (eql clang)) (snippet string) &amp;key unbound-vals includes macros preamble top-level keep-comments</em></dt>
 <dd><p>Build ASTs for <code>snippet</code>, returning a list of root asts.
 </p>
 <ul>
@@ -589,6 +687,24 @@ software object.
 
 <p>Perform a swap operation on a parseable software object.
 </p></dd></dl>
+<span id="Function-mapc_002dast"></span><dl>
+<dt id="index-mapc_002dast">Function: <strong>mapc-ast</strong> <em>ast fn</em></dt>
+<dd><p>Apply <code>fn</code> to AST collecting the results with &lsquo;cons&rsquo;.
+</p></dd></dl>
+<span id="Function-mapc_002dast_002dand_002dstrings"></span><dl>
+<dt id="index-mapc_002dast_002dand_002dstrings">Function: <strong>mapc-ast-and-strings</strong> <em>ast fn</em></dt>
+<dd><p>Apply <code>fn</code> to ASTs and strings in AST collecting the results with &lsquo;cons&rsquo;.
+</p></dd></dl>
+<span id="Function-move_002dprefixes_002ddown"></span><dl>
+<dt id="index-move_002dprefixes_002ddown">Function: <strong>move-prefixes-down</strong> <em>children allowed-fn prefix-fn</em></dt>
+<dd><p>Give a list <code>children</code> of strings and AST nodes, find children
+that satisfy <code>allowed-fn</code>, are followed by a string, and for for which
+<code>prefix-fn</code> returns a non-null value, which must be a position
+in the string.   Move the [0..pos) prefix of that string
+down into the list of children of the preceding node, concatenating
+it onto the end of the last string in that node&rsquo;s children.
+All list operations are destructive.
+</p></dd></dl>
 <span id="Function-pick_002dgeneral"></span><dl>
 <dt id="index-pick_002dgeneral">Function: <strong>pick-general</strong> <em>software first-pool &amp;key second-pool filter</em></dt>
 <dd><p>Pick ASTs from <code>first-pool</code> and optionally <code>second-pool</code>.
@@ -606,13 +722,37 @@ should be included as a possible pick or false (nil) otherwise.
 </li><li> <code>text</code> text to prepend to the genome
 </li></ul>
 </dd></dl>
+<span id="Generic_002dFunction-rebind_002dvars"></span><dl>
+<dt id="index-rebind_002dvars">Generic Function: <strong>rebind-vars</strong> <em>ast var-replacements fun-replacements</em></dt>
+<dd><p>Replace variable and function references, returning a new AST.
+</p></dd></dl>
+<span id="Method-rebind_002dvars-_0028_0028ast-javascript_002dast_0029-var_002dreplacements-fun_002dreplacements_0029"></span><dl>
+<dt id="index-rebind_002dvars-1">Method: <strong>rebind-vars</strong> <em>(ast javascript-ast) var-replacements fun-replacements</em></dt>
+<dd><p>Replace variable and function references, returning a new AST.
+</p><ul>
+<li> AST node to rebind variables and function references for
+</li><li> <code>var-replacements</code> list of old-name, new-name pairs defining the rebinding
+</li><li> <code>fun-replacements</code> list of old-function-info, new-function-info pairs defining
+</li></ul>
+<p>the rebinding
+</p></dd></dl>
+<span id="Method-rebind_002dvars-_0028_0028ast-string_0029-var_002dreplacements-fun_002dreplacements_0029"></span><dl>
+<dt id="index-rebind_002dvars-2">Method: <strong>rebind-vars</strong> <em>(ast string) var-replacements fun-replacements</em></dt>
+<dd><p>Replace variable and function references, returning a new AST.
+</p><ul>
+<li> AST node to rebind variables and function references for
+</li><li> <code>var-replacements</code> list of old-name, new-name pairs defining the rebinding
+</li><li> <code>fun-replacements</code> list of old-function-info, new-function-info pairs defining
+</li></ul>
+<p>the rebinding
+</p></dd></dl>
 <span id="Generic_002dFunction-recontextualize"></span><dl>
 <dt id="index-recontextualize">Generic Function: <strong>recontextualize</strong> <em>parseable ast pt</em></dt>
 <dd><p>Perform any modifications to AST (e.g. variable rebinding)
 to allow for successful mutation of <code>software</code> at <code>pt</code>.
 </p></dd></dl>
-<span id="Method-recontextualize-_0028_0028clang-clang_002dbase_0029-_0028ast-ast_0029-_0028pt-ast_0029_0029"></span><dl>
-<dt id="index-recontextualize-1">Method: <strong>recontextualize</strong> <em>(clang clang-base) (ast ast) (pt ast)</em></dt>
+<span id="Method-recontextualize-_0028_0028clang-clang_0029-_0028ast-clang_002dast_0029-_0028pt-clang_002dast_0029_0029"></span><dl>
+<dt id="index-recontextualize-1">Method: <strong>recontextualize</strong> <em>(clang clang) (ast clang-ast) (pt clang-ast)</em></dt>
 <dd><p>Bind free variables and function in AST to concrete values
 required for successful mutation in <code>clang</code> at <code>pt</code>
 </p><ul>
@@ -664,16 +804,17 @@ the mutation operations to be performed as an association list.
 </li></ul>
 </dd></dl>
 <span id="Generic_002dFunction-remove_002dast"></span><dl>
-<dt id="index-remove_002dast">Generic Function: <strong>remove-ast</strong> <em>obj location &amp;key &amp;allow-other-keys</em></dt>
-<dd><p>Return the modified <code>obj</code> with the AST at <code>location</code> removed.
-</p><ul>
-<li> <code>obj</code> object to be modified
-</li><li> <code>location</code> location to be removed in <code>obj</code>
+<dt id="index-remove_002dast">Generic Function: <strong>remove-ast</strong> <em>tree location &amp;key &amp;allow-other-keys</em></dt>
+<dd><p>Return the modified <code>tree</code> with the AST at <code>location</code> removed.
+</p>
+<ul>
+<li> <code>tree</code> Applicative AST tree to be modified
+</li><li> <code>location</code> AST to be removed in <code>tree</code>
 </li></ul>
 </dd></dl>
 <span id="Generic_002dFunction-replace_002dast"></span><dl>
-<dt id="index-replace_002dast">Generic Function: <strong>replace-ast</strong> <em>obj location replacement &amp;key literal &amp;allow-other-keys</em></dt>
-<dd><p>Modify and return <code>obj</code> with the AST at <code>location</code> replaced
+<dt id="index-replace_002dast">Generic Function: <strong>replace-ast</strong> <em>tree location replacement &amp;key literal &amp;allow-other-keys</em></dt>
+<dd><p>Modify and return <code>tree</code> with the AST at <code>location</code> replaced
 with <code>replacement</code>.
 </p><ul>
 <li> <code>obj</code> object to be modified
@@ -682,6 +823,40 @@ with <code>replacement</code>.
 </li><li> <code>literal</code> keyword to control whether recontextualization is performed
           For modifications where the replacement is to be directly
           inserted, pass this keyword as true.
+</li></ul>
+</dd></dl>
+<span id="Generic_002dFunction-replace_002din_002dast"></span><dl>
+<dt id="index-replace_002din_002dast">Generic Function: <strong>replace-in-ast</strong> <em>ast replacements &amp;key test</em></dt>
+<dd><p>Make arbitrary replacements within AST, returning a new
+AST.
+</p></dd></dl>
+<span id="Method-replace_002din_002dast-_0028_0028ast-string_0029-replacements-_0026key-_0028test-_0023_0027equalp_0029_0029"></span><dl>
+<dt id="index-replace_002din_002dast-1">Method: <strong>replace-in-ast</strong> <em>(ast string) replacements &amp;key (test (function equalp))</em></dt>
+<dd><p>Make arbritrary replacements within AST, returning a new AST.
+</p><ul>
+<li> AST node to perform modifications to
+</li><li> <code>replacements</code> association list of key, value pairs to replace in AST
+</li><li> <code>test</code> function to test if a given replacement key can be found in AST
+</li></ul>
+</dd></dl>
+<span id="Method-replace_002din_002dast-_0028_0028ast-ast_0029-replacements-_0026key-_0028test-_0023_0027equalp_0029_0029"></span><dl>
+<dt id="index-replace_002din_002dast-2">Method: <strong>replace-in-ast</strong> <em>(ast ast) replacements &amp;key (test (function equalp))</em></dt>
+<dd><p>Make arbritrary replacements within AST, returning a new AST.
+</p><ul>
+<li> AST node to perform modifications to
+</li><li> <code>replacements</code> association list of key, value pairs to replace in AST
+</li><li> <code>test</code> function to test if a given replacement key can be found in AST
+</li></ul>
+</dd></dl>
+<span id="Generic_002dFunction-replace_002dnth_002dchild"></span><dl>
+<dt id="index-replace_002dnth_002dchild">Generic Function: <strong>replace-nth-child</strong> <em>ast n replacement</em></dt>
+<dd><p>Return AST with the nth child of AST replaced with
+<code>replacement</code>.
+</p>
+<ul>
+<li> AST tree to modify
+</li><li> <code>n</code> child to modify
+</li><li> <code>replacement</code> replacement for the nth child
 </li></ul>
 </dd></dl>
 <span id="Generic_002dFunction-roots"></span><dl>
@@ -711,8 +886,8 @@ Each variable is represented by an alist containing <code>:name</code>, <code>:d
 <code>obj</code> javascript software object
 AST ast to return the scopes for
 </p></dd></dl>
-<span id="Method-scopes-_0028_0028software-clang_002dbase_0029-_0028ast-ast_0029_0029"></span><dl>
-<dt id="index-scopes-2">Method: <strong>scopes</strong> <em>(software clang-base) (ast ast)</em></dt>
+<span id="Method-scopes-_0028_0028software-clang_0029-_0028ast-clang_002dast_0029_0029"></span><dl>
+<dt id="index-scopes-2">Method: <strong>scopes</strong> <em>(software clang) (ast clang-ast)</em></dt>
 <dd><p><code>docfixme</code>
 </p><ul>
 <li> <code>software</code> <code>docfixme</code>
@@ -724,14 +899,30 @@ AST ast to return the scopes for
 <dd><p>Select suitable crossover points in A and <code>b</code>.
 If no suitable points are found the returned points may be nil.
 </p></dd></dl>
-<span id="Method-select_002dcrossover_002dpoints-_0028_0028a-clang_002dbase_0029-_0028b-clang_002dbase_0029_0029"></span><dl>
-<dt id="index-select_002dcrossover_002dpoints-1">Method: <strong>select-crossover-points</strong> <em>(a clang-base) (b clang-base)</em></dt>
+<span id="Method-select_002dcrossover_002dpoints-_0028_0028a-clang_0029-_0028b-clang_0029_0029"></span><dl>
+<dt id="index-select_002dcrossover_002dpoints-1">Method: <strong>select-crossover-points</strong> <em>(a clang) (b clang)</em></dt>
 <dd><p><code>docfixme</code>
 </p><ul>
 <li> A <code>docfixme</code>
 </li><li> <code>b</code> <code>docfixme</code>
 </li></ul>
 </dd></dl>
+<span id="Generic_002dFunction-source_002dtext"></span><dl>
+<dt id="index-source_002dtext">Generic Function: <strong>source-text</strong> <em>ast</em></dt>
+<dd><p>Source code corresponding to an AST.
+</p></dd></dl>
+<span id="Method-source_002dtext-_0028_0028str-string_0029_0029"></span><dl>
+<dt id="index-source_002dtext-1">Method: <strong>source-text</strong> <em>(str string)</em></dt>
+<dd><p>Return the source code corresponding to <code>str</code>.
+</p></dd></dl>
+<span id="Method-source_002dtext-_0028_0028node-ast_002dnode_0029_0029"></span><dl>
+<dt id="index-source_002dtext-2">Method: <strong>source-text</strong> <em>(node ast-node)</em></dt>
+<dd><p>Return a source text representation of a single, immutable, AST node.
+</p></dd></dl>
+<span id="Method-source_002dtext-_0028_0028ast-ast_0029_0029"></span><dl>
+<dt id="index-source_002dtext-3">Method: <strong>source-text</strong> <em>(ast ast)</em></dt>
+<dd><p>Return the source code corresponding to AST.
+</p></dd></dl>
 <span id="Generic_002dFunction-stmt_002drange"></span><dl>
 <dt id="index-stmt_002drange">Generic Function: <strong>stmt-range</strong> <em>software function</em></dt>
 <dd><p>The indices of the first and last statements in a function.
@@ -743,13 +934,37 @@ the list returned by (asts software).
 <dd><p>Return a list of the indices of the first and last ASTs of <code>function</code> in <code>obj</code>.
 Assumes <code>function</code> is defined in a top-level AST in <code>obj</code>.
 </p></dd></dl>
-<span id="Method-stmt_002drange-_0028_0028software-clang_002dbase_0029-_0023_0027ast_0029"></span><dl>
-<dt id="index-stmt_002drange-2">Method: <strong>stmt-range</strong> <em>(software clang-base) (function ast)</em></dt>
+<span id="Method-stmt_002drange-_0028_0028software-clang_0029-_0023_0027clang_002dast_0029"></span><dl>
+<dt id="index-stmt_002drange-2">Method: <strong>stmt-range</strong> <em>(software clang) (function clang-ast)</em></dt>
 <dd><p><code>docfixme</code>
 </p><ul>
 <li> <code>software</code> <code>docfixme</code>
 </li><li> <code>function</code> <code>docfixme</code>
 </li></ul>
+</dd></dl>
+<span id="Generic_002dFunction-to_002dalist"></span><dl>
+<dt id="index-to_002dalist">Generic Function: <strong>to-alist</strong> <em>struct</em></dt>
+<dd><p>Convert struct to alist representation.
+</p></dd></dl>
+<span id="Generic_002dFunction-to_002dast"></span><dl>
+<dt id="index-to_002dast">Generic Function: <strong>to-ast</strong> <em>ast-type spec</em></dt>
+<dd><p>Walk a potentially recursive AST <code>spec</code> creating an <code>ast-type</code> AST.
+A <code>spec</code> should have the form
+</p>
+<div class="lisp">
+<pre class="lisp">  (ast-class &lt;optional-keyword-args-to-`make-&lt;AST-TYPE&gt;-node'&gt;
+             CHILDREN)
+</pre></div>
+
+<p>where <code>children</code> may themselves be specifications suitable for passing
+to &lsquo;to-ast&lsquo;.  <code>e</code>.g.
+</p>
+<div class="lisp">
+<pre class="lisp">  (to-ast 'clang-ast (:callexpr (:implicitcastexpr
+                                 :includes '(&quot;&lt;string.h&gt;&quot;)
+                                 &quot;&quot; &quot;(|strcpy|)&quot; &quot;&quot;)
+                                &quot;(&quot; &quot;arg-1&quot; &quot;,&quot; &quot;arg-2&quot; &quot;)&quot;))
+</pre></div>
 </dd></dl>
 <span id="Generic_002dFunction-traceable_002dstmt_002dp"></span><dl>
 <dt id="index-traceable_002dstmt_002dp">Generic Function: <strong>traceable-stmt-p</strong> <em>software ast</em></dt>
@@ -759,8 +974,8 @@ Assumes <code>function</code> is defined in a top-level AST in <code>obj</code>.
 <dt id="index-traceable_002dstmt_002dp-1">Method: <strong>traceable-stmt-p</strong> <em>(obj javascript) (ast javascript-ast)</em></dt>
 <dd><p>Return <code>true</code> if AST is a traceable statement in the javascript software <code>obj</code>.
 </p></dd></dl>
-<span id="Method-traceable_002dstmt_002dp-_0028_0028obj-clang_002dbase_0029-_0028ast-ast_0029_0029"></span><dl>
-<dt id="index-traceable_002dstmt_002dp-2">Method: <strong>traceable-stmt-p</strong> <em>(obj clang-base) (ast ast)</em></dt>
+<span id="Method-traceable_002dstmt_002dp-_0028_0028obj-clang_0029-_0028ast-clang_002dast_0029_0029"></span><dl>
+<dt id="index-traceable_002dstmt_002dp-2">Method: <strong>traceable-stmt-p</strong> <em>(obj clang) (ast clang-ast)</em></dt>
 <dd><p><code>docfixme</code>
 </p><ul>
 <li> <code>obj</code> <code>docfixme</code>
@@ -782,11 +997,6 @@ There are some requirements for the ASTs constructed by this method:
 <p>Other methods in on parseable objects, specifically &lsquo;ast-can-recurse&rsquo;
 and &lsquo;ast-equal-p&rsquo; depend on these invariants.
 </p></dd></dl>
-<span id="Method-update_002dasts-_0028_0028obj-clang_0029_0029"></span><dl>
-<dt id="index-update_002dasts-1">Method: <strong>update-asts</strong> <em>(obj clang)</em></dt>
-<dd><p>Parse and return the ASTs in <code>obj</code> using &lsquo;clang-mutate&rsquo;.
-* <code>obj</code> object to parse
-</p></dd></dl>
 <span id="Generic_002dFunction-update_002dasts_002dif_002dnecessary"></span><dl>
 <dt id="index-update_002dasts_002dif_002dnecessary">Generic Function: <strong>update-asts-if-necessary</strong> <em>software</em></dt>
 <dd><p>Parse ASTs in <code>software</code> if the &lsquo;ast-root&rsquo; field
@@ -804,8 +1014,9 @@ has not been set.
 <span id="Method-update_002dcaches-_0028_0028obj-clang_0029_0029"></span><dl>
 <dt id="index-update_002dcaches-1">Method: <strong>update-caches</strong> <em>(obj clang)</em></dt>
 <dd><p>Update cached fields of <code>obj</code>, including &lsquo;asts&rsquo;, &lsquo;stmt-asts&rsquo;, &lsquo;non-stmt-asts&rsquo;,
-&lsquo;functions&rsquo;, &lsquo;prototypes&rsquo;, and &lsquo;includes&rsquo;, return <code>obj</code>
-* <code>obj</code> object to update caches for
+&lsquo;functions&rsquo;, &lsquo;prototypes&rsquo;, &lsquo;includes&lsquo;, &lsquo;types&lsquo;, &lsquo;symbol-table&lsquo;, and
+&lsquo;name-symbol-table&lsquo;, returning <code>obj</code>.
+* <code>obj</code> object to update caches for.
 </p></dd></dl>
 <span id="Generic_002dFunction-update_002dcaches_002dif_002dnecessary"></span><dl>
 <dt id="index-update_002dcaches_002dif_002dnecessary">Generic Function: <strong>update-caches-if-necessary</strong> <em>software</em></dt>
