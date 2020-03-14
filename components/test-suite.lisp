@@ -207,20 +207,21 @@ running, send a SIGKILL signal.
       (note 0 "WARNING: Unable to kill process ~a" test-process)))
 
   ;; Now that we've made every effort to kill it, read the output.
-  (let* ((stdout (unless (null (process-output-stream test-process))
-                   (read-stream-content-into-string
-                    (process-output-stream test-process))))
-         ;; Can't read from error stream if it's the same as stdout.
-         (stderr (unless (or (null (process-error-stream test-process))
-                             (eq (process-output-stream test-process)
-                                 (process-error-stream test-process)))
-                   (read-stream-content-into-string
-                    (process-error-stream test-process))))
-         (exit-code (or (process-exit-code test-process)
-                        (wait-process (os-process test-process)))))
+  (flet ((read-and-close (stream)
+           (when stream
+             (prog1
+               (read-stream-content-into-string stream)
+               (close stream)))))
+    (let* ((stdout (read-and-close (process-output-stream test-process)))
+           ;; Can't read from error stream if it's the same as stdout.
+           (stderr (unless (eq (process-output-stream test-process)
+                               (process-error-stream test-process))
+                     (read-and-close (process-error-stream test-process))))
+           (exit-code (or (process-exit-code test-process)
+                          (wait-process (os-process test-process)))))
     (when *shell-debug*
       (format t "~&stdout:~a~%stderr:~a~%errno:~a" stdout stderr exit-code))
-    (values stdout stderr exit-code)))
+    (values stdout stderr exit-code))))
 
 (defmethod run-test (phenome (test-case test-case) &rest extra-keys
                      &key &allow-other-keys)
