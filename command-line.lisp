@@ -15,25 +15,18 @@
   (:nicknames :sel/command-line)
   (:documentation
    "Generally useful functionality for SEL-based command-line tools.")
-  (:use :common-lisp
-        :alexandria
-        :named-readtables
-        :curry-compose-reader-macros
+  (:use :gt/full
         :command-line-arguments
-        :iterate
-        :split-sequence
         :cl-store
-        :closer-mop
-        :uiop/filesystem
         :software-evolution-library
-        :software-evolution-library/utility
+        :software-evolution-library/utility/debug
+        :software-evolution-library/utility/git
         ;; Software objects.
         :software-evolution-library/software/source
         :software-evolution-library/software/project
         :software-evolution-library/software/git-project
         :software-evolution-library/software/clang
-        :software-evolution-library/software/ast
-        :software-evolution-library/software/new-clang
+        :software-evolution-library/software/parseable
         :software-evolution-library/software/javascript
         :software-evolution-library/software/java
         :software-evolution-library/software/lisp
@@ -46,26 +39,12 @@
         ;; Components.
         :software-evolution-library/components/fault-loc
         :software-evolution-library/components/test-suite)
-  (:import-from :bordeaux-threads :all-threads :thread-name :join-thread)
-  (:import-from :cl-ppcre :scan)
   (:import-from :swank :create-server)
   (:import-from :cl-json :decode-json-from-source)
-  (:import-from :uiop/utility :nest)
-  (:import-from :uiop/image :*lisp-interaction*)
-  (:import-from :uiop/stream :detect-encoding)
-  (:import-from :uiop/pathname
-                :ensure-directory-pathname
-                :pathname-directory-pathname
-                :pathname-parent-directory-pathname)
-  (:shadowing-import-from
-   :closer-mop
-   :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric)
-  (:shadowing-import-from :uiop/filesystem
-                          :file-exists-p
-                          :directory-exists-p
-                          :directory-files)
-  (:shadowing-import-from :asdf-encodings :encoding-external-format)
+  (:import-from :uiop/image :quit :*lisp-interaction*)
+  (:shadowing-import-from :asdf-encodings
+                          :detect-file-encoding
+                          :encoding-external-format)
   (:export :define-command
            :interrupt-signal
            :*lisp-interaction*
@@ -149,14 +128,10 @@
 (defun handle-swank-port-argument (port)
   (create-server :port port :style :spawn :dont-close t))
 
-(defun handle-old-clang-argument (old-clang-p)
-  "Handler for --old-clang argument.  If true, use old clang
-front end."
-  (setf *new-clang?* (not old-clang-p)))
-
 (defun handle-load (path)
-  (load path
-        :external-format (encoding-external-format (detect-encoding path))))
+  (nest (load path :external-format)
+        (encoding-external-format)
+        (detect-file-encoding path)))
 
 (defun handle-eval (string)
   (eval (read-from-string string)))
@@ -324,8 +299,6 @@ input is not positive."
       ((and source (directory-p source))
        (intern (concatenate 'string (symbol-name class) "-PROJECT")
                :sel/command-line))
-      ((and *new-clang?* (eq class 'clang))
-       'new-clang)
       (t class))))
 
 (defun wait-on-manual (manual)
@@ -341,7 +314,7 @@ input is not positive."
 COMMAND-NAME should be the name of the enclosing function defined with
 `define-command'.  Command-line or interactive state is determined by
 inspecting the value of `*lisp-interaction*'."
-  `(if uiop/image:*lisp-interaction*
+  `(if *lisp-interaction*
        (return-from ,command-name ,interactive-return-val)
        (quit ,errno)))
 
@@ -352,8 +325,7 @@ with a language.")
     (if (ends-with-subseq "-PROJECT" (symbol-name language))
         language
         ;; FIXME:  never use INTERN without an explicit package
-        (intern (concatenate 'string (symbol-name language) "-PROJECT"))))
-  (:method ((language (eql 'new-clang))) 'clang-project))
+        (intern (concatenate 'string (symbol-name language) "-PROJECT")))))
 
 (defun guess-language (&rest sources)
   "Guess the SEL software object class that best matches SOURCES.
@@ -362,12 +334,12 @@ based on heuristics based on whether SOURCES points to files or
 directories and if files based on their extensions."
   (labels
       ((best-guess (guesses)
-         (iter (with ht = (make-hash-table))
-               (for guess in guesses)
-               (setf (gethash guess ht)
-                     (1+ (or (gethash guess ht) 0)))
-               (finally (return (car (first (sort (hash-table-alist ht) #'>
-                                                  :key #'cdr)))))))
+         (let ((ht (make-hash-table)))
+           (iter (for guess in guesses)
+                 (setf (gethash guess ht)
+                       (1+ (or (gethash guess ht) 0)))
+                 (finally (return (car (first (sort (hash-table-alist ht) #'>
+                                                    :key #'cdr))))))))
        (guess-helper (sources project-p)
          (let ((guesses
                 (mapcar (lambda (source)
@@ -387,15 +359,8 @@ directories and if files based on their extensions."
                              (("java") java)
                              (("js") javascript)
                              (("json") json)
-                             (("c" "cpp" "cc" "cxx")
-                              ,(if *new-clang?* 'new-clang 'clang))
-                             ;; We cannot parse header files, as they
-                             ;; don't have entries in the compile
-                             ;; commands database.  Treat them as
-                             ;; simple files instead.
-                             #|(("h" "hpp" "hxx") clang)|#)))
+                             (("c" "cpp" "cc" "cxx") clang))))
                         sources)))
-           #+debug (format t "GUESSES:~S~%" guesses)
            (cond
              (project-p
               ;; Inside of a project we remove all JSON and SIMPLE software
@@ -418,7 +383,7 @@ directories and if files based on their extensions."
                           (language (guess-language path) language-p)
                           compiler flags build-command artifacts
                           ast-annotations compilation-database store-path
-                          fault-loc git-sub-path git-ssh-key git-user git-password
+                          fault-loc git-sub-path git-ssh-key
                           &allow-other-keys)
   "Build a software object from a common superset of language-specific options.
 
@@ -446,25 +411,25 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
   ;; When `path` is a git repository, generate a new temp dir,
   ;; check out the repo, and set relevant variables
   (let* ((repo (when (git-url-p path)
-                 (let ((url path)
-                       (local-repo (temp-file-name)))
-                   (clone-git-repo url local-repo
-                                   :ssh-key git-ssh-key
-                                   :user git-user :pass git-password)
-                   (setf path (probe-file
-                               (make-pathname :directory local-repo
-                                              :name git-sub-path)))
-                   ;; Reset guessed language, now that repo is cloned.
-                   (unless language-p
-                     (setf language-p t ; Treat as explicitly set.
-                           language
-                           (ecase (guess-language path)
-                             (clang-project 'clang-git-project)
-                             (javascript-project 'javascript-git-project)
-                             (java-project 'java-git-project)
-                             (lisp-project 'lisp-git-project)
-                             (simple 'simple))))
-                   url)))
+                 (let ((remote path))
+                   (prog1 remote
+                     (make-git (setf path (temp-file-name))
+                               :remote remote
+                               :ssh-key git-ssh-key)
+                     ;; Update path if working in sub-directory of repository.
+                     (when git-sub-path
+                       (setf path (make-pathname :directory path
+                                                 :name git-sub-path)))
+                     ;; Reset guessed language, now that repo is cloned.
+                     (unless language-p
+                       (setf language-p t ; Treat as explicitly set.
+                             language
+                             (ecase (guess-language path)
+                               (clang-project 'clang-git-project)
+                               (javascript-project 'javascript-git-project)
+                               (java-project 'java-git-project)
+                               (lisp-project 'lisp-git-project)
+                               (simple 'simple))))))))
          (obj (from-file
                (nest
                 ;; These options are interdependent.  Resolve any
@@ -526,8 +491,6 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
       (decorate-with-annotations obj (pathname ast-annotations))
       (when fault-loc
         (perform-fault-loc obj)))
-    ;; (mapcar (lambda (elt) (note 0 "ast: ~a" (ast-attr elt :annotations)))
-    ;;         (flatten (mapcar #'stmt-asts (mapcar #'cdr (evolve-files obj)))))
     obj))
 
 (defgeneric create-test (script)
@@ -603,23 +566,13 @@ in SCRIPT.")
     '((("git-sub-path" #\p) :type string :initial-value nil
        :documentation "sub path to software, when using a git repo")
       (("git-ssh-key" #\k) :type string :initial-value nil
-       :documentation "path to ssh key used for pushing a git repo")
-      (("git-user" #\U) :type string :initial-value nil
-       :documentation "user used for pushing a git repo")
-      (("git-password" #\P) :type string :initial-value nil
-       :documentation
-       "password (NOTE: insecure!) used when pushing to a git repo")))
+       :documentation "path to ssh key used for pushing a git repo")))
   (defparameter +clang-command-line-options+
     '((("compiler" #\c) :type string :initial-value "clang"
        :documentation "use CC as the C compiler")
       (("flags" #\F) :type string
        :action #'handle-comma-delimited-argument
-       :documentation "comma-separated list of compiler flags")
-      (("old-clang") :type boolean
-       :action #'handle-old-clang-argument
-       :documentation "Use old clang front end")
-      (("split-lines" #\S) :type boolean :optional t
-       :documentation "Split top level strings at newlines")))
+       :documentation "comma-separated list of compiler flags")))
   (defparameter +project-command-line-options+
     '((("build-command" #\b) :type string :initial-value "make"
        :documentation "shell command to build project directory")

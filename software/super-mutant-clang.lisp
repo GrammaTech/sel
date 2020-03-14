@@ -1,30 +1,18 @@
 ;;; super-mutant-clang.lisp --- Super mutant specialization for Clang software.
 (defpackage :software-evolution-library/software/super-mutant-clang
   (:nicknames :sel/software/super-mutant-clang :sel/sw/super-mutant-clang)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
+  (:use :gt/full
         :metabang-bind
-        :iterate
         :software-evolution-library
-        :software-evolution-library/utility
-        :software-evolution-library/software/ast
+        :software-evolution-library/software/parseable
         :software-evolution-library/software/source
         :software-evolution-library/software/parseable
         :software-evolution-library/software/clang
-        :software-evolution-library/software/super-mutant)
-  (:export ;; :super-mutant
-           ;; :mutants
-           ;; :super-soft
-           ;; :phenome-results
-           ;; :create-super-soft
-	   ))
+        :software-evolution-library/software/super-mutant))
 (in-package :software-evolution-library/software/super-mutant-clang)
 (in-readtable :curry-compose-reader-macros)
 
-(defmethod create-super-soft ((base clang-base) mutants)
+(defmethod create-super-soft ((base clang) mutants)
   (labels
       ((ensure-functions-compatible (f1 f2 mutant)
          (unless (ast-equal-p f1 f2)
@@ -114,20 +102,20 @@ true, create a complete function decl which contains the body."
                                         (list (make-literal "SUPER_MUTANT"))
                                         :generic))
                 (body
-                 (->> (mapcar (lambda-bind ((decl body indices))
-                                (declare (ignorable decl))
-                                ;; Add default case to make the
-                                ;; compiler happy.
-                                (list (if (ast-equal-p decl (caar variants))
-                                          (cons t indices)
-                                          indices)
-                                      (list body (make-break-stmt))))
-                              variants)
-                      (make-switch-stmt
-                       (make-call-expr "atoi" (list getenv)
-                                       :generic))
-                      (list)
-                      (make-block))))
+                 (nest (make-block)
+                       (list)
+                       (make-switch-stmt
+                        (make-call-expr "atoi" (list getenv)
+                                        :generic))
+                       (mapcar (lambda-bind ((decl body indices))
+                                 (declare (ignorable decl))
+                                 ;; Add default case to make the
+                                 ;; compiler happy.
+                                 (list (if (ast-equal-p decl (caar variants))
+                                           (cons t indices)
+                                           indices)
+                                       (list body (make-break-stmt))))
+                               variants))))
            (if make-decl
                (let ((decl (caar variants)))
                  (replace-nth-child decl
@@ -139,51 +127,53 @@ true, create a complete function decl which contains the body."
                                     body))
                body)))
        (create-mutation-ops (variants-list)
-         (iter (for (orig . variants) in variants-list)
-               (with inserts = nil)
-               (cond
-                 (orig
-                  ;; We've reached an AST in the base genome. If we're waiting
-                  ;; to insert any ASTs, handle them now.
-                  (when inserts
-                    (appending
-                     (mapcar (lambda (ast)
-                               `(:insert
-                                 (:stmt1 . ,orig)
-                                 ;; For function with variants, insert the
-                                 ;; merged version. Otherwise just insert the
-                                 ;; ast.
-                                 (:value1 . ,(if (consp ast)
-                                                 (make-super-body ast
-                                                                  :make-decl t)
-                                                 ast))))
-                             (reverse inserts)))
-                    (setf inserts nil))
-                  ;; Function with multiple variants. Replace the original
-                  ;; function body with the merged version.
-                  (when (consp variants)
-                    (collecting
-                     `(:set (:stmt1 . ,orig)
-                            (:value1 . ,(make-super-body variants))))))
-                 ;; New AST not present in base genome. Save these
-                 ;; and insert them before the next AST in the base
-                 ;; genome.
-                 (variants
-                  (push variants inserts))))))
-    (-<>>
-     ;; Collect top-level ASTs and their declared identifiers
-     (mapcar [{mapcar (lambda (ast)
-                        (cons (mapcar #'ast-name (ast-declares ast)) ast))}
-              #'roots]
-             mutants)
-     (collate-ast-variants)
-     (mapcar #'process-ast)
-     (remove nil)
-     ;; Create mutations to insert super-functions into genome of
-     ;; first variant
-     (create-mutation-ops)
-     (sort <>
-           #'ast-later-p :key [{aget :stmt1} #'cdr])
-     (apply-mutation-ops (copy base))
-     ;; Needed for getenv()
-     (add-include <> "<stdlib.h>"))))
+         (let ((inserts nil))
+           (iter (for (orig . variants) in variants-list)
+                 (cond
+                   (orig
+                    ;; We've reached an AST in the base genome. If we're waiting
+                    ;; to insert any ASTs, handle them now.
+                    (when inserts
+                      (appending
+                       (mapcar (lambda (ast)
+                                 `(:insert
+                                   (:stmt1 . ,orig)
+                                   ;; For function with variants, insert the
+                                   ;; merged version. Otherwise just insert the
+                                   ;; ast.
+                                   (:value1 .
+                                    ,(if (consp ast)
+                                         (make-super-body ast :make-decl t)
+                                         ast))))
+                               (reverse inserts)))
+                      (setf inserts nil))
+                    ;; Function with multiple variants. Replace the original
+                    ;; function body with the merged version.
+                    (when (consp variants)
+                      (collecting
+                       `(:set (:stmt1 . ,orig)
+                              (:value1 . ,(make-super-body variants))))))
+                   ;; New AST not present in base genome. Save these
+                   ;; and insert them before the next AST in the base
+                   ;; genome.
+                   (variants
+                    (push variants inserts))))))
+       (sort-mutation-ops (ops)
+         (sort ops #'ast-later-p :key [{aget :stmt1} #'cdr]))
+       (add-stdlib-include (obj)
+         ;; Needed for getenv()
+         (add-include obj "<stdlib.h>")))
+    (nest (add-stdlib-include)
+          (apply-mutation-ops (copy base))
+          (sort-mutation-ops)
+          ;; Create mutations to insert super-functions into genome of
+          ;; first variant
+          (create-mutation-ops)
+          (remove nil)
+          (mapcar #'process-ast)
+          (collate-ast-variants)
+          ;; Collect top-level ASTs and their declared identifiers
+          (mapcar [{mapcar (lambda (ast)
+                             (cons (mapcar #'ast-name (ast-declares ast)) ast))}
+                   #'roots]
+                  mutants))))

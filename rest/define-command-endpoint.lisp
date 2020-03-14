@@ -63,16 +63,10 @@
 (defpackage :software-evolution-library/rest/define-command-endpoint
   (:nicknames :sel/rest/define-command-endpoint)
   (:use
-   :common-lisp
-   :alexandria
-   :named-readtables
-   :curry-compose-reader-macros
-   :common-lisp
+   :gt/full
    :snooze
-   :split-sequence
    :software-evolution-library/software-evolution-library
    :software-evolution-library/command-line
-   :software-evolution-library/utility
    :software-evolution-library/components/test-suite
    :software-evolution-library/components/formatting
    :software-evolution-library/components/instrument
@@ -81,7 +75,8 @@
    :software-evolution-library/rest/async-jobs
    :software-evolution-library/rest/utility
    :software-evolution-library/software/parseable
-   :software-evolution-library/software/clang)
+   :software-evolution-library/software/clang
+   :software-evolution-library/utility/task)
   (:shadowing-import-from :clack :clackup :stop)
   (:import-from :software-evolution-library/rest/async-jobs
                 :lookup-session-job-status)
@@ -136,7 +131,7 @@ client session jobs."
                      :func job-fn
                      :arguments args
                      :task-runner
-                     (sel/utility::simple-task-async-runner
+                     (simple-task-async-runner
                       threads
                       job-fn
                       args)

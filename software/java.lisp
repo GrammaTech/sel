@@ -14,15 +14,8 @@
 ;;; @texi{java}
 (defpackage :software-evolution-library/software/java
   (:nicknames :sel/software/java :sel/sw/java)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
-        :cl-ppcre
+  (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/utility
         :software-evolution-library/software/source
         :software-evolution-library/components/formatting)
   (:export :java
@@ -154,7 +147,7 @@ insert)."
 (defmethod phenome ((obj java) &key (bin (temp-file-name)))
   "Compiles the software object to a jar and converts it to a linux executable"
   (with-temp-dir (sandbox)
-    (with-cwd (sandbox)
+    (with-current-directory (sandbox)
       (let ((bin (namestring bin))
             (file-path (namestring (make-pathname :directory sandbox
                                                   :name (file-name obj)

@@ -18,7 +18,7 @@ here.
 @item @ref{doc-test-classes,
            @code{test-case} and @code{test-suite} classes}
 @item @ref{doc-test-case-methods, @code{test-case} Methods}
-@item @ref{doc-process-methods, @code{process} Methods}
+@c @item @ref{doc-process-methods, @code{process} Methods}
 
 @end itemize
 

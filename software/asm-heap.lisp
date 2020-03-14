@@ -31,16 +31,8 @@
 ;;;
 (defpackage :software-evolution-library/software/asm-heap
   (:nicknames :sel/software/asm-heap :sel/sw/asm-heap)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
-        :split-sequence
-        :cl-ppcre
+  (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/utility
         :software-evolution-library/software/simple
         :software-evolution-library/software/asm
         :software-evolution-library/software/super-mutant)
@@ -83,27 +75,27 @@
 (in-readtable :curry-compose-reader-macros)
 
 (defstruct (asm-line-info (:copier copy-asm-line-info))
-  text     ; original text
-  tokens   ; list of tokens after parsing
-  type     ; empty (white space/comments), decl, data, label-decl, op)
-  label    ; for operations which refer to labels
-  opcode   ; for operations
-  operands ; the operands that are associated with the opcode
-  id       ; unique index in heap, sequential starting at 0
-  orig-file   ; path of the orignal .asm file that was loaded (if any)
-  orig-line ; line number (0-based) of line in original .asm file (if any)
-  address  ; original address of code or data
-  properties)   ; properties (used for custom purposes)
+  (text nil)     ; original text
+  (tokens nil)   ; list of tokens after parsing
+  (type nil)     ; empty (white space/comments), decl, data, label-decl, op)
+  (label nil)    ; for operations which refer to labels
+  (opcode nil)   ; for operations
+  (operands nil) ; the operands that are associated with the opcode
+  (id nil)       ; unique index in heap, sequential starting at 0
+  (orig-file nil)  ; path of the orignal .asm file that was loaded (if any)
+  (orig-line nil) ; line number (0-based) of line in original .asm file (if any)
+  (address nil)  ; original address of code or data
+  (properties nil))   ; properties (used for custom purposes)
 
 (defstruct function-index-entry
   "Entry into the index, which is a vector of all the functions in the file."
-  name              ; function name
-  start-line        ; first line index, zero-based, of genome
-  start-address     ; address of first line
-  end-line          ; last line index, zero-based, of genome
-  end-address       ; address of last line
-  is-leaf           ; true, if function does not make any calls
-  declarations)     ; list of declaration lines found for the function
+  (name nil)              ; function name
+  (start-line nil)        ; first line index, zero-based, of genome
+  (start-address nil)     ; address of first line
+  (end-line nil)          ; last line index, zero-based, of genome
+  (end-address nil)       ; address of last line
+  (is-leaf nil)           ; true, if function does not make any calls
+  (declarations nil))     ; list of declaration lines found for the function
 
 
 (define-software asm-heap (asm)
@@ -555,7 +547,7 @@ linking process, (5) the source file name used during linking."
                  (flags asm))
         (declare (ignorable stdout ))
         (without-compiler-notes
-            (values bin errno stderr stdout src))))))
+          (values bin errno stderr stdout src))))))
 
 (defun vector-cut (a index)
   "Destructively remove and return an element from a vector with a fill pointer."
@@ -766,13 +758,13 @@ Used by `homologous-crossover'."
                       (1- (length (genome b)))
                       id-a))
            ;; max value we can add to start and still have a valid index in b
-           (add-upper-bound (- (1- (length (genome b))) start)))
+           (add-upper-bound (- (1- (length (genome b))) start))
+           ;; keep track of closest difference in case there's no exact match
+           (closest start)
+           (closest-diff (abs (- id-a (lookup-id b start)))))
       ;; search above/below start simultaneously, adding and subtracting i
       ;; to get the indices to check (upper and lower, resp.)
       (iter (for i below (max start (1+ add-upper-bound)))
-            ;; keep track of closest difference in case there's no exact match
-            (with closest = start)
-            (with closest-diff = (abs (- id-a (lookup-id b start))))
             (let ((lower (- start (min i start)))
                   (upper (+ start (min i add-upper-bound))))
               (cond
@@ -889,13 +881,20 @@ those we assume a function name."
 	  (let ((info (elt genome i)))
 	    (if (line-is-function-label info)
 		;; look for the end of the function
-		(let ((start-index i)
-		      (name (function-name-from-label
-			     (asm-line-info-label info) asm))
-		      (leaf t))
+		(let* ((start-index i)
+		       (name (function-name-from-label
+                              (asm-line-info-label info) asm))
+                       (start-addr (asm-line-info-address info))
+                       (end-addr start-addr)
+		       (leaf t))
 		  (incf i)
 		  (iter (while (< i (length genome)))
 			(let ((info2 (elt genome i)))
+                          ;; If the first line didn't have an address specified,
+                          ;; get it from the first line that does have one.
+                          (unless start-addr
+                            (setf start-addr (asm-line-info-address info2)))
+                          (setf end-addr (asm-line-info-address info2))
 			  (if (member (asm-line-info-opcode info2)
                                       '("call" "callq") :test 'equalp)
 			      (setf leaf nil)) ;found a call, so not a leaf
@@ -915,9 +914,9 @@ those we assume a function name."
 			     (make-function-index-entry
 			      :name name
 			      :start-line start-index
-			      :start-address (asm-line-info-address info)
+			      :start-address start-addr
 			      :end-line i
-			      :end-address (asm-line-info-address info2)
+			      :end-address end-addr
 			      :is-leaf leaf
 			      :declarations (gethash name table)) entries)
 			    (return)))

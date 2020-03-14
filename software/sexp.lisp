@@ -7,15 +7,9 @@
 ;;; @texi{sexp}
 (defpackage :software-evolution-library/software/sexp
   (:nicknames :sel/software/sexp :sel/sw/sexp)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
+  (:use :gt/full
         :metabang-bind
-        :iterate
         :software-evolution-library
-        :software-evolution-library/utility
         :software-evolution-library/software/simple)
   (:export :sexp
            :sexp-cut
@@ -23,6 +17,7 @@
            :sexp-swap
            :subtree
            :tree-size
+           :filter-subtrees
            :*sexp-mutation-types*))
 (in-package :software-evolution-library/software/sexp)
 (in-readtable :curry-compose-reader-macros)
@@ -90,10 +85,12 @@
 (defmethod size ((sexp sexp))
   (tree-size (genome sexp)))
 
-(defmethod filter-subtrees (predicate (sexp sexp))
-  "Return list of subtrees of SEXP satisfying PREDICATE."
-  (remove-if-not [predicate {subtree (genome sexp)}]
-                 (iter (for i below (size sexp)) (collect i))))
+
+(defgeneric filter-subtrees (predicate tree)
+  (:documentation "Return a list of subtrees of TREE satisfying PREDICATE.")
+  (:method (predicate (sexp sexp))
+    (remove-if-not [predicate {subtree (genome sexp)}]
+                   (iter (for i below (size sexp)) (collect i)))))
 
 
 ;;; Mutations

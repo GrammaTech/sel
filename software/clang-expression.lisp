@@ -1,21 +1,14 @@
 ;;; clang-expression.lisp --- calculate lisp expressions from clang ASTs
 (defpackage :software-evolution-library/software/clang-expression
   (:nicknames :sel/software/clang-expression :sel/sw/clang-expression)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
-        :cl-ppcre
+  (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/utility
-        :software-evolution-library/software/ast
         :software-evolution-library/software/parseable
         :software-evolution-library/software/clang
         :software-evolution-library/software/expression)
   (:export :expression-intern
-           :expression-to-c))
+           :expression-to-c
+           :clang-expression))
 (in-package :software-evolution-library/software/clang-expression)
 (in-readtable :curry-compose-reader-macros)
 
@@ -24,7 +17,7 @@
 This is used to intern string names by `expression'."
   (make-keyword (string-upcase string)))
 
-(defmethod expression ((obj clang-base) (ast clang-ast-base))
+(defmethod expression ((obj clang) (ast clang-ast))
   "Convert AST to an expression tree.
 * OBJ clang software object containing AST
 * AST the AST to convert
@@ -43,10 +36,10 @@ This is used to intern string names by `expression'."
            (expression obj (first (get-immediate-children obj ast)))))
     (switch ((ast-class ast))
       (:BinaryOperator (over-children (expression-intern (ast-opcode ast))))
-      (:CompoundAssignOperator (->> (ast-opcode ast)
-                                    (expression-intern)
-                                    (over-children)))
-      (:DeclRefExpr (expression-intern (peel-bananas (source-text ast))))
+      (:CompoundAssignOperator (nest (over-children)
+                                     (expression-intern)
+                                     (ast-opcode ast)))
+      (:DeclRefExpr (expression-intern (source-text ast)))
       (:ImplicitCastExpr (only-child))
       (:IntegerLiteral
        (handler-bind ((parse-number

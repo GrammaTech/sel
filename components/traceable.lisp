@@ -1,20 +1,14 @@
 ;;; traceable.lisp --- Instrumentable software objects with dynamic traces.
 (defpackage :software-evolution-library/components/traceable
   (:nicknames :sel/components/traceable :sel/cp/traceable)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
+  (:use :gt/full
         :trace-db
         :software-evolution-library
-        :software-evolution-library/utility
+        :software-evolution-library/utility/debug
+        :software-evolution-library/utility/process
         :software-evolution-library/components/test-suite
         :software-evolution-library/components/instrument
         :software-evolution-library/software/clang)
-  (:shadowing-import-from :uiop :directory-pathname-p
-                          :delete-directory-tree)
   (:export :traceable
            :binary-traceable
            :sexp-traceable

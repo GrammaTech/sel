@@ -52,17 +52,10 @@
 (defpackage :software-evolution-library/rest/sessions
   (:nicknames :sel/rest/sessions)
   (:use
-   :common-lisp
-   :alexandria
-   :named-readtables
-   :curry-compose-reader-macros
-   :common-lisp
+   :gt/full
    :snooze
-   :split-sequence
-   :iterate
    :trace-db
    :software-evolution-library/software-evolution-library
-   :software-evolution-library/utility
    :software-evolution-library/components/test-suite
    :software-evolution-library/components/formatting
    :software-evolution-library/components/instrument

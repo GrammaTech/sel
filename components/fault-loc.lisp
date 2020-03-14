@@ -5,25 +5,16 @@
 ;;;
 (defpackage :software-evolution-library/components/fault-loc
   (:nicknames :sel/components/fault-loc :sel/cp/fault-loc)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
+  (:use :gt/full
         :split-sequence
         :software-evolution-library
-        :software-evolution-library/utility
-        :software-evolution-library/software/ast
-        :software-evolution-library/software/source
+        :software-evolution-library/utility/debug
         :software-evolution-library/software/parseable
-        ;; TODO: Remove clang dependency (might require another package).
+        :software-evolution-library/software/source
         :software-evolution-library/software/clang
-        :software-evolution-library/software/new-clang
         :software-evolution-library/software/project
         :software-evolution-library/software/clang-project
         :software-evolution-library/components/test-suite)
-  (:shadowing-import-from :uiop/utility :nest)
   (:export :*default-fault-loc-weight*
            :*default-fault-loc-cutoff*
            :error-funcs
@@ -62,20 +53,20 @@ No assumptions are made about the format or contents of the traces."))
 
 (defmethod collect-fault-loc-traces (bin test-suite read-trace-fn
                                      &optional fl-neg-test)
-  (iter (for test in (test-cases test-suite))
-        (note 3 "Begin running test ~a" test)
-        (let* ((f (evaluate bin test :output :stream :error :stream))
-               ;; Set is-good-trace based on actual outcome, or the
-               ;; user-specified "bad test."
-               (is-good-trace (cond
-                                (fl-neg-test (if (member test fl-neg-test)
-                                                 nil
-                                                 t))
-                                (t (>= f 1.0)))))
-          (with accumulated-result = nil)
-          (setf accumulated-result
-                (funcall read-trace-fn accumulated-result is-good-trace test))
-          (finally (return accumulated-result)))))
+  (let ((accumulated-result nil))
+    (iter (for test in (test-cases test-suite))
+          (note 3 "Begin running test ~a" test)
+          (let* ((f (evaluate bin test :output :stream :error :stream))
+                 ;; Set is-good-trace based on actual outcome, or the
+                 ;; user-specified "bad test."
+                 (is-good-trace (cond
+                                  (fl-neg-test (if (member test fl-neg-test)
+                                                   nil
+                                                   t))
+                                  (t (>= f 1.0)))))
+            (setf accumulated-result
+                  (funcall read-trace-fn accumulated-result is-good-trace test))
+            (finally (return accumulated-result))))))
 
 (defun error-funcs (software bad-traces good-traces)
   "Find statements which call functions which are only called during bad runs.
@@ -316,10 +307,10 @@ which maps (test-casel: position)"
 (defgeneric annotate-line-nums (object ast)
   (:documentation
    "Add line numbers to annotations, generally for debugging purposes")
-  (:method ((obj new-clang) (ast new-clang-ast))
-    (let ((loc (new-clang-range-begin (ast-range ast))))
+  (:method ((obj clang) (ast clang-ast))
+    (let ((loc (clang-range-begin (ast-range ast))))
       (unless (numberp loc)
-        (let* ((line (new-clang-loc-line loc)))
+        (let* ((line (clang-loc-line loc)))
           (setf (ast-attr ast :annotations) (cons :line line)))))))
 
 (defgeneric decorate-with-annotations (software file)
@@ -327,7 +318,7 @@ which maps (test-casel: position)"
   (:method ((obj clang-project) (ast-annotations pathname))
     (mapcar (lambda (efile) (decorate-with-annotations (cdr efile) ast-annotations))
             (evolve-files obj)))
-  (:method ((obj new-clang) (ast-annotations pathname))
+  (:method ((obj clang) (ast-annotations pathname))
     (flet ((ann-file (annotation) (first annotation))
            (ann-line (annotation) (second annotation)))
       (let ((file-annotations (nest
@@ -375,31 +366,15 @@ return the original pool."
           filtered-lst ;  return it,
           pool)))) ;  otherwise return the original set.
 
-(defmethod mutation-targets ((obj new-clang)
-                             &key (filter nil)
-                               (stmt-pool #'stmt-asts stmt-pool-supplied-p))
-  "Return ASTs from STMT-POOL (with optional fault localization).
-Throw a `no-mutation-targets' exception if none are available.
+(defmethod mutation-targets :around ((obj clang)
+                                     &key (filter nil) (stmt-pool #'stmt-asts))
+  "Wrap mutation targets to perform optional fault localization.
 
 * OBJ software object to query for mutation targets
 * FILTER filter AST from consideration when this function returns nil
 * STMT-POOL method on OBJ returning a list of ASTs"
-  (labels ((do-mutation-targets ()
-             (if-let ((target-stmts
-                       (if filter
-                           (remove-if-not filter (funcall stmt-pool obj))
-                           (funcall stmt-pool obj))))
-               target-stmts
-               (error
-                (make-condition 'no-mutation-targets
-                                :obj obj
-                                :text "No stmts match the given filter")))))
-    (if (not stmt-pool-supplied-p)
-        (filter-fault-loc (do-mutation-targets))
-        (restart-case (do-mutation-targets)
-          (expand-stmt-pool ()
-            :report "Expand statement pool of potential mutation targets"
-            (mutation-targets obj :filter filter))))))
+  (call-next-method obj :filter filter
+                    :stmt-pool [#'filter-fault-loc {funcall stmt-pool}]))
 
 (defun add-default-weights (ast)
   "Add default weight for those AST nodes that currently lack one."
@@ -411,7 +386,7 @@ Throw a `no-mutation-targets' exception if none are available.
 ;;;; implements "ast-root" and "stmt-asts" can use FL (this should be
 ;;;; anything "clang" or below).  This function serves to as an
 ;;;; interface to hide the chosen fault loc strategy
-(defmethod perform-fault-loc ((obj clang-base))
+(defmethod perform-fault-loc ((obj clang))
   (fault-loc-tarantula obj)
   (mapc #'add-default-weights (stmt-asts obj)))
 
@@ -420,7 +395,7 @@ Throw a `no-mutation-targets' exception if none are available.
   (mapc #'add-default-weights
         (flatten (mapcar [#'stmt-asts #'cdr] (evolve-files obj)))))
 
-(defmethod fault-loc-tarantula ((obj clang-base))
+(defmethod fault-loc-tarantula ((obj clang))
   "Annotate ast nodes in obj with :fl-weight tag and a `score`
 indicating how suspect a node is, using the popular spectrum-based
 Tarantula technique. Note: here we use the inverse, scoring 'suspect'
@@ -437,7 +412,7 @@ statements high rather than low."
                   (cons stmt score)))))
           (stmt-asts obj)))
 
-(defmethod fault-loc-only-on-bad-traces ((obj clang-base))
+(defmethod fault-loc-only-on-bad-traces ((obj clang))
   "Annotate ast nodes in obj with :fl-weight tag and a `score` indicating
 how suspect a node is, targeting nodes that appear only on failing traces."
   (mapcar (lambda (stmt)

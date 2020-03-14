@@ -1,24 +1,9 @@
 ;;; git.lisp --- Git backed software projects
 (defpackage :software-evolution-library/software/git-project
   (:nicknames :sel/software/git-project :sel/sw/git-project)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :metabang-bind
-        :iterate
-        :uiop
+  (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/software/project
-        :software-evolution-library/utility)
-  (:shadowing-import-from :uiop/run-program :run-program)
-  (:shadowing-import-from :uiop :quit)
-  (:shadowing-import-from
-   :alexandria
-   :appendf :ensure-list :featurep :emptyp
-   :if-let :ensure-function :ensure-gethash :copy-file
-   :parse-body :simple-style-warning)
+        :software-evolution-library/software/project)
   (:export :git-project :git-repo))
 (in-package :software-evolution-library/software/git-project)
 (in-readtable :curry-compose-reader-macros)

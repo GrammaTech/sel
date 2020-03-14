@@ -7,16 +7,9 @@
 ;;; applicable, the corresponding binary bytes.
 (defpackage :software-evolution-library/software/clang-w-fodder
   (:nicknames :sel/software/clang-w-fodder :sel/sw/clang-w-fodder)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
+  (:use :gt/full
         :metabang-bind
-        :iterate
         :software-evolution-library
-        :software-evolution-library/utility
-        :software-evolution-library/software/ast
         :software-evolution-library/software/parseable
         :software-evolution-library/software/clang
         :software-evolution-library/components/searchable
@@ -164,11 +157,11 @@ mutations.")
 body entry of SOFTWARE.
 * SOFTWARE clang object to pick a DeclStmt AST for
 "
-  (let ((function-entry-stmts (->> (functions software)
-                                   (mapcar {function-body software})
-                                   (mapcar {get-immediate-children software})
-                                   (mapcar {first})
-                                   (remove-if #'null))))
+  (let ((function-entry-stmts (nest (remove-if #'null)
+                                    (mapcar {first})
+                                    (mapcar {get-immediate-children software})
+                                    (mapcar {function-body software})
+                                    (functions software))))
     (if (null function-entry-stmts)
         (error (make-condition 'no-mutation-targets
                  :obj software
@@ -184,7 +177,11 @@ rename target to use this new name."
   (let ((decl-target (pick-decl-fodder software))
         (rename-target (pick-rename-variable software)))
     (when-let ((new-name (car (aget :declares (aget :value1 decl-target)))))
-      (setf (aget :new-var rename-target) new-name))
+      (setf (aget :new-var rename-target)
+            (to-ast 'clang
+                    `(:var ,new-name
+                           :attrs ((:name . ,new-name))
+                           :syn-ctx :generic))))
     (list (cons :decl-fodder decl-target)
           (cons :rename-variable rename-target))))
 
@@ -193,27 +190,34 @@ rename target to use this new name."
 
 Returns modified text, and names of bound variables.
 "
-  (let* ((in-scope (mapcar [#'unpeel-bananas {aget :name}]
-                           (get-vars-in-scope obj pt)))
-         (var-replacements
-          (mapcar
-           (lambda-bind ((var index))
-              (declare (ignorable index))
-              (cons var (binding-for-var obj in-scope var)))
-           (aget :unbound-vals snippet)))
-         (replacements
-          (append var-replacements
-                  (mapcar
-                   (lambda-bind ((fun . fun-info))
-                     (cons fun
-                           (car (binding-for-function obj
-                                                      (prototypes obj)
-                                                      (peel-bananas fun)
-                                                      (third fun-info)))))
-                   (aget :unbound-funs snippet)))))
-    (values (peel-bananas
-             (apply-replacements replacements (aget :src-text snippet)))
-            (mapcar [#'peel-bananas #'cdr] var-replacements))))
+  (labels ((unpeel-bananas (text)
+             (concatenate 'string "(|" text "|)"))
+           (peel-bananas (text)
+             (apply-replacements '(("(|" . "") ("|)" . "")) text)))
+    (let* ((in-scope (mapcar [#'unpeel-bananas #'ast-name {aget :name}]
+                             (get-vars-in-scope obj pt)))
+           (var-replacements
+            (mapcar
+             (lambda-bind ((var index))
+               (declare (ignorable index))
+               (cons var (binding-for-var obj in-scope var)))
+             (aget :unbound-vals snippet)))
+           (replacements
+            (append var-replacements
+                    (mapcar
+                     (lambda-bind ((fun . fun-info))
+                       (cons fun
+                             (bind (((new-fun _1 _2 _3)
+                                     (binding-for-function obj
+                                                           (prototypes obj)
+                                                           (peel-bananas fun)
+                                                           (third fun-info))))
+                                   (declare (ignorable _1 _2 _3))
+                                   (unpeel-bananas (ast-name new-fun)))))
+                     (aget :unbound-funs snippet)))))
+      (values (peel-bananas
+               (apply-replacements replacements (aget :src-text snippet)))
+              (mapcar [#'peel-bananas #'cdr] var-replacements)))))
 
 (defun prepare-fodder (obj database snippet pt)
   "Prepare SNIPPET for insertion into OBJ at PT.
@@ -224,8 +228,8 @@ Returns modified text, and names of bound variables.
 "
   (flet
       ((var-type (in-scope var-name)
-         (->> (find-if [{string= var-name} {aget :name}] in-scope)
-              (find-var-type obj))))
+         (nest (find-var-type obj)
+               (find-if [{name= var-name} {aget :name}] in-scope))))
     (multiple-value-bind (text vars)
         (bind-vars-in-snippet obj snippet pt)
       (let ((in-scope (get-vars-in-scope obj pt)))
@@ -238,9 +242,9 @@ Returns modified text, and names of bound variables.
                                          vars
                                          (mapcar {var-type in-scope} vars))
                    :includes (aget :includes snippet)
-                   :macros (->> (mapcar {find-macro database}
-                                        (aget :macros snippet))
-                                (remove-if #'null)))))
+                   :macros (nest (remove-if #'null)
+                                 (mapcar {find-macro database}
+                                         (aget :macros snippet))))))
           (car asts)
           (error (make-condition 'mutate
                                  :text "Failed to parse fodder"
@@ -287,7 +291,6 @@ Ensure that the name of the inserted decl is used by
 * OBJ object to be modified by the mutation
 "
   ;; Apply the var op first as it has the higher value of STMT1.
-
   (sort
    (append (build-op (make-instance 'rename-variable
                                     :object obj

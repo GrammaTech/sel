@@ -1,6 +1,7 @@
 variables:
   DOCKER_REGISTRY: "docker.grammatech.com"
   LOCAL_IMAGE_NAME: '$CI_PROJECT_PATH-$CI_BUILD_REF_NAME-$CI_PIPELINE_ID'
+  GIT_SUBMODULE_STRATEGY: recursive
 
 before_script:
   - docker info
@@ -30,7 +31,7 @@ check-format:
           export PULL_TAG=${OS};
       fi
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY
-    - docker pull $DOCKER_REGISTRY/synthesis/clang-mutate:${PULL_TAG}
+    - docker pull $DOCKER_REGISTRY/synthesis/clang/${OS}
     - docker pull $DOCKER_REGISTRY/synthesis/java-mutator:${PULL_TAG}
     - docker pull $DOCKER_REGISTRY/synthesis/cl:${PULL_TAG}
     - docker build --build-arg=GT=yes  --build-arg=LISP=${LISP} -f .ci/Dockerfile.${OS} -t ${LOCAL_IMAGE_NAME}-${OS}-${LISP} .
@@ -121,13 +122,6 @@ trigger_bed:
   only:
     - master
 
-trigger_bug-injector:
-  stage: dependents
-  script:
-    - "curl -X POST -F token=eb76bc2f8009af7005b43bf8f63bb0 -F ref=$CI_BUILD_REF_NAME https://git.grammatech.com/api/v4/projects/347/trigger/pipeline"
-  only:
-    - master
-
 trigger_evo-rings:
   stage: dependents
   script:
@@ -135,11 +129,17 @@ trigger_evo-rings:
   only:
     - master
 
-
-trigger_shaker:
+trigger_genpatcher:
   stage: dependents
   script:
-    - "curl -X POST -F token=7f07bb7592421ffa0dd9a72bf86525 -F ref=$CI_BUILD_REF_NAME https://git.grammatech.com/api/v4/projects/343/trigger/pipeline"
+    - "curl -X POST -F token=86d8095830c9823728e4204584dc16 -F ref=$CI_BUILD_REF_NAME https://git.grammatech.com/api/v4/projects/943/trigger/pipeline"
+  only:
+    - master
+
+trigger_refactoring-mutations:
+  stage: dependents
+  script:
+    - "curl -X POST -F token=5ad3804083cbeb694cea4c126029e8 -F ref=$CI_BUILD_REF_NAME https://git.grammatech.com/api/v4/projects/1271/trigger/pipeline"
   only:
     - master
 
@@ -147,6 +147,20 @@ trigger_resolve:
   stage: dependents
   script:
     - "curl -X POST -F token=943ae481fed1a7ea21d7439bf3a8f3 -F ref=$CI_BUILD_REF_NAME https://git.grammatech.com/api/v4/projects/881/trigger/pipeline"
+  only:
+    - master
+
+trigger_ssr:
+  stage: dependents
+  script:
+    - "curl -X POST -F token=c83ba713bf7f104805a160a169f586 -F ref=$CI_BUILD_REF_NAME https://git.grammatech.com/api/v4/projects/787/trigger/pipeline"
+  only:
+    - master
+
+trigger_variegate:
+  stage: dependents
+  script:
+    - "curl -X POST -F token=759ed12ac12d057eee4118b3fe6214 -F ref=$CI_BUILD_REF_NAME https://git.grammatech.com/api/v4/projects/928/trigger/pipeline"
   only:
     - master
 

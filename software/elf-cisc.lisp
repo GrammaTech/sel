@@ -1,20 +1,14 @@
 ;;; elf-cisc.lisp --- software representation of cisc ELF files
 (defpackage :software-evolution-library/software/elf-cisc
   (:nicknames :sel/software/elf-cisc :sel/sw/elf-cisc)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
+  (:use :gt/full
         :elf
         :software-evolution-library
-        :software-evolution-library/utility
         :software-evolution-library/software/elf)
-  (:shadowing-import-from :elf :type)
+  (:shadowing-import-from :elf :type :insert :ordering :data)
   (:shadowing-import-from :software-evolution-library :size)
   (:export :elf-cisc
-	   :elf-csurf
+           :elf-csurf
            :elf-x86
            :elf-arm
            :elf-replace
@@ -146,7 +140,7 @@
   ;;       resulting ELF file.
   (flet ((byte-count (genome)
            (without-compiler-notes
-               (reduce #'+ (mapcar [#'length {aget :code}] genome)))))
+             (reduce #'+ (mapcar [#'length {aget :code}] genome)))))
     (let ((starting-bytes (byte-count (genome elf))))
       (setf (genome elf)
             (case (car mut)
@@ -160,7 +154,7 @@
                  (format nil "mutation ~S changed size of genome [~S -> ~S]"
                          mut starting-bytes (byte-count (genome elf)))
                  :obj elf
-                 :op mut)))
+                 :operation mut)))
       elf)))
 
 (defun elf-pad (elf genome place num-bytes flags)

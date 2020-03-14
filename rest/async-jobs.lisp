@@ -54,18 +54,11 @@
 (defpackage :software-evolution-library/rest/async-jobs
   (:nicknames :sel/rest/async-jobs)
   (:use
-   :common-lisp
-   :alexandria
-   :named-readtables
-   :curry-compose-reader-macros
-   :common-lisp
+   :gt/full
    :snooze
-   :split-sequence
-   :iterate
    :trace-db
    :software-evolution-library/software-evolution-library
    :software-evolution-library/command-line
-   :software-evolution-library/utility
    :software-evolution-library/components/test-suite
    :software-evolution-library/components/formatting
    :software-evolution-library/components/instrument
@@ -74,14 +67,14 @@
    :software-evolution-library/software/clang
    :software-evolution-library/rest/sessions
    :software-evolution-library/rest/std-api
-   :software-evolution-library/rest/utility)
+   :software-evolution-library/rest/utility
+   :software-evolution-library/utility/task)
   (:shadowing-import-from :clack :clackup :stop)
   (:export :apply-async-job-func
            :async-job
            :async-job-name
            :define-async-job
            :lookup-job-func
-           :format-job-as-json
            :lookup-session-job
            :lookup-session-job-status
            :session-jobs))
@@ -93,11 +86,12 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defstruct async-job-type
     "Entry in async-job-type table."
-    job-name        ; Symbol names the job type.
-    arg-names       ; Lambda-list for user-defined function.
+    (job-name nil)        ; Symbol names the job type.
+    (arg-names nil)       ; Lambda-list for user-defined function.
     ;; Type of each argument :LAMBDA-LIST-KEYWORD pseudo-type is used
     ;; for lambda list keywords.
-    arg-types func)
+    (arg-types nil)
+    (func nil))
 
   (defvar *async-job-types* (make-hash-table :test 'equalp)
     "Registry of async-job-types.")
@@ -188,18 +182,17 @@
   (car (member job-name (session-jobs client)
                :key 'async-job-name :test 'equal)))
 
-(defun format-job-as-json (async-job)
+(defun job-to-plist (async-job)
   (let ((task-runner (async-job-task-runner async-job)))
-    (json:encode-json-plist-to-string
-     (list
-      :name (async-job-name async-job)
-      :threads-running
-      (task-runner-workers-count (async-job-task-runner async-job))
-      :remaining-jobs
-      (task-runner-remaining-jobs (async-job-task-runner async-job))
-      :arguments (async-job-args async-job)
-      :completed-tasks (task-runner-completed-tasks task-runner)
-      :results (task-runner-results task-runner)))))
+    (list
+     :name (async-job-name async-job)
+     :threads-running
+     (task-runner-workers-count (async-job-task-runner async-job))
+     :remaining-jobs
+     (task-runner-remaining-jobs (async-job-task-runner async-job))
+     :arguments (async-job-args async-job)
+     :completed-tasks (task-runner-completed-tasks task-runner)
+     :results (task-runner-results task-runner))))
 
 (defun lookup-session-job (session name)
   (and name (find-job session (string-upcase name))))
@@ -207,9 +200,17 @@
 (defun lookup-session-job-status (session name)
   (when session
     (if-let ((job (lookup-session-job session name)))
-      (format-job-as-json job)
-      (json:encode-json-to-string
+      (let ((job-plist (job-to-plist job))
+            (mutation-plist
+             (list :mutations *fitness-evals*
+                   :best-fitness (fitness (extremum *population*
+                                                    *fitness-predicate*
+                                                    :key #'fitness))
+                   :time-elapsed (elapsed-time))))
+        (json:encode-json-plist-to-string (append job-plist mutation-plist)))
+      (json:encode-json-plist-to-string
        (mapcar #'async-job-name (session-jobs session))))))
+
 
 (defun lookup-job-type-entry (name)
   "Allow some special-case names, otherwise fall through to symbol
@@ -230,7 +231,7 @@
          :arguments arguments
          :func func
          :task-runner
-         (sel/utility::task-map-async
+         (task-map-async
           threads
           func
           (if (typep arguments 'population)

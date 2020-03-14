@@ -1,0 +1,4 @@
+[submodule ".cl-make"]
+	path = .cl-make
+	url = https://github.com/GrammaTech/cl-make.git
+	branch = master

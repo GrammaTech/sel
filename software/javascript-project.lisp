@@ -15,17 +15,13 @@
 (defpackage :software-evolution-library/software/javascript-project
   (:nicknames :sel/software/javascript-project
               :sel/sw/javascript-project)
-  (:use :common-lisp
+  (:use :gt/full
         :cl-json
-        :named-readtables
-        :curry-compose-reader-macros
-        :uiop/pathname
         :software-evolution-library
         :software-evolution-library/software/json
         :software-evolution-library/software/javascript
         :software-evolution-library/software/parseable-project
-        :software-evolution-library/software/project
-        :software-evolution-library/utility)
+        :software-evolution-library/software/project)
   (:export :javascript-project
            :package-spec))
 (in-package :software-evolution-library/software/javascript-project)
@@ -40,7 +36,7 @@
    (ignore-paths
     :initarg :ignore-paths
     :reader ignore-paths
-    :initform (list "test/**/*" "tests/**/*" "node_modules/**/*")
+    :initform (list "node_modules/**/*")
     :documentation
     "List of paths to ignore when collecting evolve-files.
 This default value is particular to node.js JavaScript projects."))
@@ -55,17 +51,18 @@ This default value is particular to node.js JavaScript projects."))
   ;; Sanity check that a package.json file exists
   (assert (probe-file (merge-pathnames-as-file path "package.json")) (path)
           "JavaScript project requires a package.json file in ~a." path)
-  (with-cwd (path)
+  (with-current-directory (path)
     ;; Load the package.json file
     (setf (package-spec obj)
           (decode-json-from-string (file-to-string "package.json"))))
   (call-next-method))
 
-(defmethod collect-evolve-files ((obj javascript-project) &aux result)
-  (with-cwd ((project-dir obj))
+(defmethod collect-evolve-files ((obj javascript-project)
+                                 &aux result (project-dir (project-dir obj)))
+  (with-current-directory (project-dir)
     (walk-directory
-        (project-dir obj)
-      (lambda (file &aux (rel-path (pathname-relativize (project-dir obj) file))
+      project-dir
+      (lambda (file &aux (rel-path (pathname-relativize project-dir file))
                  (pkg (package-spec obj)))
         (push (cons (namestring rel-path)
                     (from-file
@@ -84,7 +81,7 @@ This default value is particular to node.js JavaScript projects."))
                      file))
               result))
       :test (lambda (file &aux
-                       (rel-path (pathname-relativize (project-dir obj) file))
+                       (rel-path (pathname-relativize project-dir file))
                        (pkg (package-spec obj)))
               ;; Heuristics for identifying files in the project:
               ;; 1) The file is not in an ignored directory.

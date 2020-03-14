@@ -1,16 +1,12 @@
 (defpackage :software-evolution-library/command-line-rest
   (:nicknames :sel/command-line-rest)
   (:use
-   :named-readtables
-   :curry-compose-reader-macros
-   :common-lisp
+   :gt/full
    :software-evolution-library
-   :software-evolution-library/utility
    :software-evolution-library/command-line
    :software-evolution-library/rest/define-command-endpoint
    :software-evolution-library/rest/async-jobs
    :software-evolution-library/rest)
-  (:import-from :uiop :writeln :truenamize :nest)
   (:import-from :software-evolution-library/rest/async-jobs
                 :lookup-session-job-status)
   (:import-from :clack :clackup :stop)
@@ -20,17 +16,23 @@
   (:export :define-command-async-rest
            :define-command-rest
            :clackup :stop :make-clack-app :defroute
+           :*port*
+           :*address*
            :payload-as-string :http-condition
            :decode-json-from-string :encode-json-to-string))
 (in-package :software-evolution-library/command-line-rest)
 (in-readtable :curry-compose-reader-macros)
 
+(defvar *port* 5000 "Port on which to run the clack server.")
+(defvar *address* "127.0.0.1" "Address on which to bind the clack server.")
+
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defparameter +clackup-command-line-options+
-    `((("port") :type integer :optional t :initial-value 5000
+    `((("port") :type integer :optional t :initial-value *port*
        :documentation "Port to use when starting the clack server.")
       (("address") :type string :optional t :initial-value "127.0.0.1"
-       :documentation "Address to which the clack server with bind.")
+       :documentation "Address to which the clack server with bind, ~
+                       \"0.0.0.0\" allows remote connections")
       (("debug") :type boolean :optional t :initial-value nil
        :documentation "Run the clack server in debug mode.")
       (("silent") :type boolean :optional t :initial-value nil
@@ -62,6 +64,8 @@
       (when ,(in-pkg 'help)
         (,help-name)
         (exit-command ,server-name 0))
+      (setf *address* ,(in-pkg 'address))
+      (setf *port* ,(in-pkg 'port))
       ;; Install exit handler for User C-c.
       (flet ((shutdown
                  (&optional (message "Stopping server . . .") (errno 0))
@@ -75,7 +79,7 @@
             (progn
               (setf server
                     (clackup (make-clack-app)
-                             :port ,(in-pkg 'port) :address ,(in-pkg 'address)
+                             :port *port* :address *address*
                              :debug ,(in-pkg 'debug) :silent ,(in-pkg 'silent)))
               (unless *lisp-interaction*
                 (loop :for char := (read-char *standard-input* nil #\p) :do

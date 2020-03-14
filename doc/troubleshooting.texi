@@ -10,36 +10,12 @@
 @section Troubleshooting Build Issues
 
 @itemize
-@item @ref{troubleshoot-clang-mutate-not-on-path,
-           @code{clang-mutate} is not on my path}
 @item @ref{troubleshoot-instrumented-compilation-long,
            It takes a long time to compile an instrumented project}
 @item @ref{troubleshoot-curry-compose-reader-macros,
            @code{CURRY-COMPOSE-READER-MACROS::LCURLY-BRACE-READER} is undefined}
 @item @ref{troubleshoot-delete-cache-files,Deleting cache files}
 @end itemize
-
-
-@anchor{troubleshoot-clang-mutate-not-on-path}
-@subheading @code{clang-mutate} is not on my path
-
-SEL assumes that the @code{clang-mutate} executable (see
-@url{https://git.grammatech.com/synthesis/clang-mutate,clang-mutate})
-is available on the shell's @code{$PATH}.
-
-@itemize
-@item Ensure that @code{clang-mutate} is on your @code{$PATH}.
-@end itemize
-
-If this is not sufficient, the path used by SBCL may not be inheriting
-@code{$PATH} changes made in your user environment. In this case:
-
-@itemize
-@item place a @code{clang-mutate} executable on the standard
-system search path, or
-@item update the path in @code{/etc/profile}.
-@end itemize
-
 
 
 @anchor{troubleshoot-instrumented-compilation-long}
@@ -121,7 +97,7 @@ is missing.  To debug, try the following.
 @enumerate
 
 @item
-Ensure @code{clang} and @code{clang-mutate} are on your @code{$PATH}.
+Ensure @code{clang} is on your @code{$PATH}.
 
 @item
 Execute
@@ -129,16 +105,9 @@ Execute
 clang -m32 -g -O0 test/etc/hello-world/hello_world.c
 @end example
 
-@item
-Execute
-@example
-clang-mutate -json test/etc/hello-world/hello_world.c -- -g -O0 -m32
-@end example
-
 @end enumerate
 
-
-If any of the above fail, the unit test failure is due to an external
+If the above fails, the unit test failure is due to an external
 tool failing.  To debug the issue:
 
 @enumerate

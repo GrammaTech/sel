@@ -1,7 +1,6 @@
 (defpackage :example
-  (:use :common-lisp
+  (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/utility
         :software-evolution-library/software/asm))
 (in-package :example)
 

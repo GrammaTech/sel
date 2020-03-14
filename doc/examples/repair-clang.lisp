@@ -1,13 +1,13 @@
 ;;; repair-clang.lisp --- repair C program
 ;;; Repair C program, displaying progress using the viewer
 (defpackage :software-evolution-library/doc/examples/repair-clang
-  (:use :common-lisp
-        :alexandria
-        :named-readtables
-        :curry-compose-reader-macros
+  (:use :gt/full
         :uiop/image
         :software-evolution-library
-        :software-evolution-library/utility
+        :software-evolution-library/components/test-suite
+        :software-evolution-library/software/parseable
+        :software-evolution-library/software/clang
+        :software-evolution-library/utility/debug
         :software-evolution-library/view)
   (:import-from :uiop/image :*command-line-arguments*)
   (:export :repair-clang))

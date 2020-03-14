@@ -1,21 +1,18 @@
 ;;; elf-risc.lisp --- software representation of risc ELF files
 (defpackage :software-evolution-library/software/elf-risc
   (:nicknames :sel/software/elf-risc :sel/sw/elf-risc)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
+  (:use :gt/full
         :elf
         :software-evolution-library
-        :software-evolution-library/utility
         :software-evolution-library/software/elf)
   (:shadowing-import-from :elf
                           :int-to-bytes
                           :size
                           :type
-                          :ph)
+                          :ph
+                          :insert
+                          :ordering
+                          :data)
   (:export :elf-risc
            :risc-nop
            :elf-risc-max-displacement))

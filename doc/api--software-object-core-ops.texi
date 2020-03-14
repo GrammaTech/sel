@@ -29,7 +29,6 @@ See also the manual section on @ref{Software Methods}.
   @item @refapigeneric{pick-good}
   @item @refapigeneric{pick-bad-bad}
   @item @refapigeneric{pick-bad-good}
-  @item @refapigeneric{size}
   @item @refapigeneric{to-file}
   @item @refapigeneric{two-point-crossover}
 @end itemize

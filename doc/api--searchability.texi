@@ -116,7 +116,6 @@ Class @code{in-memory-database}
   @end itemize
 @item Methods
   @itemize
-  @item @refapimethod{size,size}
   @item @refapimethod{database-emptyp,database-emptyp}
   @item @refapimethod{find-macro,find-macro}
   @item @refapimethod{find-snippets,find-snippets}

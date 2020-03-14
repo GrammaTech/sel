@@ -1,14 +1,9 @@
 ;;; instrument.lisp --- Generic interface for instrumentation.
 (defpackage :software-evolution-library/components/instrument
   (:nicknames :sel/components/instrument :sel/cp/instrument)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
+  (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/utility
+        :software-evolution-library/utility/task
         :software-evolution-library/software/project)
   (:export :instrument
            :uninstrument
@@ -44,8 +39,7 @@
   (:documentation
    "Instrument OBJ to print AST index before each full statement.
 
-The indices printed here are not clang-mutate counters, but rather the
-position of the ast in (asts obj).
+The indices printed here are the position of the ast in (asts obj).
 
 Keyword arguments are as follows:
   POINTS --------------- alist of additional values to print at specific points

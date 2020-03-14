@@ -1,16 +1,8 @@
 ;;; source.lisp --- source software representation
 (defpackage :software-evolution-library/software/source
   (:nicknames :sel/software/source :sel/sw/source)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
-        :uiop/pathname
-        :split-sequence
-        :software-evolution-library
-        :software-evolution-library/utility)
+  (:use :gt/full
+        :software-evolution-library)
   (:export :source
            :compiler
            :ext
@@ -78,7 +70,7 @@ on the filesystem at BIN."
   obj)
 
 (defmethod from-file :before ((obj source) path)
-  (setf (original-file obj) (truenamestring path)))
+  (setf (original-file obj) (namestring (truename path))))
 
 (defmethod from-string ((obj source) string)
   "Initialize OBJ with the contents of STRING."

@@ -1,9 +1,7 @@
 (defpackage :example
-  (:use :common-lisp
+  (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/utility
-        :software-evolution-library/software/asm
-        :split-sequence))
+        :software-evolution-library/software/asm))
 (in-package :example)
 
 ;;; gcd.s may be compiled from gcd.c in the test/ directory.

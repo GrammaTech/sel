@@ -25,23 +25,14 @@
 (defpackage :software-evolution-library/view
   (:nicknames :sel/view)
   (:use
-   :common-lisp
-   :alexandria
-   :metabang-bind
-   :named-readtables
-   :curry-compose-reader-macros
-   :arrow-macros
-   :iterate
-   :split-sequence
-   :cl-ppcre
-   :cl-store
-   :cl-dot
+   :gt/full
    :diff
-   :bordeaux-threads
+   :cl-interpol
    :software-evolution-library
-   :software-evolution-library/utility
-   :cl-interpol)
+   :software-evolution-library/utility/debug
+   :software-evolution-library/utility/terminal)
   (:shadow :diff)
+  (:shadowing-import-from :arrow-macros :-<>> :-<> :<>) ; FIXME: Remove.
   (:export :*view-stream*
            :*view-length*
            :*view-delay*
@@ -371,10 +362,10 @@ For example a description of the evolution target.")
                    (cons :total
                          (mapcar (lambda (key)
                                    (cons key
-                                         (->> stats
-                                              (mapcar [{aget key} #'cdr])
-                                              (remove nil)
-                                              (reduce #'+))))
+                                         (nest (reduce #'+)
+                                               (remove nil)
+                                               (mapcar [{aget key} #'cdr]
+                                                       stats))))
                                  (list :better :dead :same :worse))))))))
 
 (defun notes-print (lines)
@@ -485,10 +476,10 @@ the population."
        (format nil "~6f" (median fits))
        (when vectorp
          (format nil "~6f"
-                 (->> fit-population
-                      (mapcar [{coerce _ 'list} #'fitness])
-                      (apply #'mapcar [{apply #'min} #'list])
-                      (reduce #'+))))
+                 (nest (reduce #'+)
+                       (apply #'mapcar [{apply #'min} #'list])
+                       (mapcar [{coerce _ 'list} #'fitness]
+                               fit-population))))
        (when vectorp
          (format nil "~d"
                  (/ (length (remove-duplicates
@@ -501,7 +492,7 @@ the population."
   (with-delayed-invocation (genome-data-print *population*)
     (let ((lengths
            (without-compiler-notes
-               (mapcar [#'length #'lines] *population*))))
+             (mapcar [#'length #'lines] *population*))))
       (genome-data-print (format nil "~d" (apply #'min lengths))
                          (format nil "~d" (median lengths))
                          (format nil "~d" (apply #'max lengths))))))
@@ -619,9 +610,8 @@ and returning of quickly-executing printing functions.")
    :filler #\Space :left #\Space :right #\Space)
   ;; Double-evaluate the view functions first to return the printing
   ;; functions, then to quickly call the printing functions.
-  (->> *view-functions*
-       (mapcar #'funcall)
-       (mapcar #'funcall))
+  (nest (mapcar #'funcall)
+        (mapcar #'funcall *view-functions*))
   (label-line-print :left +b-lb+ :right +b-rb+)
   (force-output *view-stream*))
 

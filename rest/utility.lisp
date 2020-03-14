@@ -6,14 +6,9 @@
 (defpackage :software-evolution-library/rest/utility
   (:nicknames :sel/rest/util :sel/rest/utility)
   (:use
-   :common-lisp
-   :alexandria
-   :named-readtables
-   :curry-compose-reader-macros
-   :common-lisp
+   :gt/full
    :cl-json
-   :snooze
-   :software-evolution-library/utility)
+   :snooze)
   (:shadowing-import-from :clack :clackup :stop)
   (:export :convert-symbol
            :make-gensym-string

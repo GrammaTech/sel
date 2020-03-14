@@ -9,14 +9,8 @@
 ;; [3] http://llvm.org/docs/LangRef.html#introduction
 (defpackage :software-evolution-library/software/llvm
   (:nicknames :sel/software/llvm :sel/sw/llvm)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
+  (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/utility
         :software-evolution-library/software/source)
   (:export :llvm))
 (in-package :software-evolution-library/software/llvm)
@@ -69,7 +63,7 @@ See http://llvm.org)."))
       (declare (ignorable stdout stderr))
       (unless (zerop exit)
         (error (make-condition 'mutate
-                 :text "llvm-mutate" :obj llvm :op op)))
+                 :text "llvm-mutate" :obj llvm :operation op)))
       llvm)))
 
 (defmethod phenome ((llvm llvm) &key (bin (temp-file-name)))

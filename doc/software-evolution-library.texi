@@ -589,7 +589,6 @@ programs or in heuristic search.
     @itemize
     @item @refapigeneric{genome-string}
     @item @refapigeneric{lines}
-    @item @refapigeneric{size}
     @end itemize
 
 @item @refapigeneric{copy}
@@ -938,7 +937,7 @@ infrastructure.
 @cindex tracing
 @include tracing.texi
 
-@node Super-Mutants, Clang Super-Mutants, Tracing, Components
+@node Super-Mutants, Utilities, Tracing, Components
 @section Super-Mutants
 @cindex super-mutants
 @include include/super-mutant.texi
@@ -948,7 +947,7 @@ infrastructure.
 @cindex utilities
 
 The Software Evolution Library provides utilities packages, including
-the @code{SEL/UTILITY} package (see @ref{SEL Utility Concept Index}) and the
+the @code{GT} package (see @ref{Basic Utilities}) and the
 @code{SEL/VIEW} package (see @ref{SEL View Concept Index}).  This chapter
 documents these utilities.
 
@@ -960,31 +959,9 @@ documents these utilities.
 
 @node Basic Utilities, View, Utilities, Utilities
 @section Basic Utilities
-@include include/utility.texi
 
-@subsection Files and Directories, Temporary and Git
-@include include/file-directory.texi
-
-@subsection Process wrapping
-@include include/process.texi
-
-@subsection Shell and system command helpers
-@include include/shell.texi
-
-@subsection Generic utility functions
-@include include/generic-utility.texi
-
-@subsection Source and binary locations and ranges.
-@include include/locations-and-ranges.texi
-
-@subsection Debugging helpers
-@include include/debugging.texi
-
-@subsection Oprofile functions
-@include include/oprofile.texi
-
-@subsection Profiling
-@include include/profiling.texi
+Note.  The SEL utilities have largely been moved to a new GT library
+available at @url{https://github.com/grammatech/cl-utils}.
 
 @node View, Task, Basic Utilities, Utilities
 @section View
@@ -1053,8 +1030,8 @@ Depending on the type of software object used the following may also
 be required.
 @itemize
 @item
-clang-mutate for @code{clang} object support  (available from
-@url{https://github.com/GrammaTech/clang-mutate}).
+clang v9.0+ for @code{clang} object support  (available from
+@url{https://github.com/llvm/llvm-project}).
 @item
 cil-mutate for @code{cil} object support (available from
 @url{https://github.com/eschulte/cil-mutate}).
@@ -1065,7 +1042,7 @@ llvm-mutate for @code{llvm} object support (available from
 
 
 
-Install llvm-mutate, cil-mutate and clang-mutate as per the
+Install llvm-mutate, cil-mutate and clang v9.0+ as per the
 instructions in their respective repositories. (Note, it is only
 necessary to install the tools for the specific software backends you
 intend to use.) Install SEL by cloning the repository into your
@@ -1073,7 +1050,6 @@ quicklisp local-projects directory and then running:
 @example
     (ql:register-local-projects)
     (ql:quickload :software-evolution-library)
-    (ql:quickload :software-evolution-library/utility)
 @end example
 
 
@@ -1188,7 +1164,7 @@ demominator (gcd) of two numbers. The source file is available in
 @code{test/etc/gcd/gcd.c}, and reproduced below.
 
 
-@verbatiminclude ../test/etc/gcd/gcd.c
+@verbatiminclude ./test/etc/gcd/gcd.c
 
 (You may notice at this point that the C code is buggy and does not
 compute correct gcd for all inputs. The @ref{Repair} example will
@@ -1241,7 +1217,7 @@ The following example applies a random mutation to @code{gcd.s}.
 @item Prints the @refapiclass{mutation} that was applied.
 @end enumerate
 
-@verbatiminclude ./examples/001-mutate.lisp
+@verbatiminclude ./doc/examples/001-mutate.lisp
 
 
 Executing this code will print output resembling the following.
@@ -1317,7 +1293,7 @@ The edits and fitness of each mutant are printed.
 @end ignore
 
 
-@verbatiminclude ./examples/002-evaluation.lisp
+@verbatiminclude ./doc/examples/002-evaluation.lisp
 
 Executing this code will print output resembling the following.
 
@@ -1351,8 +1327,8 @@ Executing this code will print output resembling the following.
   @end itemize
 @c @item [sel/utility] Macro @ref{Macro sel/utility:with-temp-file, @code{with-temp-file}}
 @c @item [sel/utility] Function @ref{Function sel/utility:shell, @code{shell}}
-@item [sel/utility] Macro @ref{Macro with-temp-file, @code{with-temp-file}}
-@item [sel/utility] Function @ref{Function shell, @code{shell}}
+@c @item [sel/utility] Macro @ref{Macro with-temp-file, @code{with-temp-file}}
+@c @item [sel/utility] Function @ref{Function shell, @code{shell}}
 @end itemize
 
 
@@ -1373,7 +1349,7 @@ The following example constructs a collection of neutral mutants of
 @ref{Evaluation} example to determine whether or not candidate
 variants have equivalent behavior to the original.
 
-@verbatiminclude ./examples/003-neutral.lisp
+@verbatiminclude ./doc/examples/003-neutral.lisp
 
 
 @subsubheading API components in this example
@@ -1435,7 +1411,7 @@ saved in the @code{*population*}.
 @end ignore
 
 
-@verbatiminclude ./examples/004-evolve.lisp
+@verbatiminclude ./doc/examples/004-evolve.lisp
 
 @subsubheading API components in this example
 
@@ -1530,20 +1506,14 @@ with the following.
 
 @menu
 * SEL Concept Index::           SEL core concepts.
-* SEL Utility Concept Index::   SEL/Utility concepts.
 * SEL View Concept Index::      SEL/View concepts.
 @end menu
 
-@node SEL Concept Index, SEL Utility Concept Index, SEL Concepts, SEL Concepts
+@node SEL Concept Index, SEL View Concept Index, SEL Concepts, SEL Concepts
 @section SEL Concept Index
 @include sel-api-index.texi
 
-@node SEL Utility Concept Index, SEL View Concept Index, SEL Concept Index, SEL Concepts
-@section SEL Utility Concept Index
-@cindex utility
-@include sel-utility-api-index.texi
-
-@node SEL View Concept Index, SEL Packages, SEL Utility Concept Index, SEL Concepts
+@node SEL View Concept Index, SEL Packages, SEL Concept Index, SEL Concepts
 @section SEL View Concept Index
 @cindex view
 @include sel-view-api-index.texi
@@ -1556,7 +1526,6 @@ appendix holds each individual package's API in turn.
 
 @menu
 * software-evolution-library::  Software-Evolution-Library.
-* sel-utility::                 Software-Evolution-Library Utilities.
 * sel-rest::                    Software-Evolution-Library Rest interface.
 * sel-view::                    Software-Evolution-Library Text GUI.
 * sel-sw-adaptive-mutation::    Software-Evolution-Library/Software adaptive mutation.
@@ -1564,7 +1533,6 @@ appendix holds each individual package's API in turn.
 * sel-sw-asm::                  Software-Evolution-Library/Software asm.
 * sel-sw-asm-heap::             Software-Evolution-Library/Software asm-heap.
 * sel-sw-asm-super-mutant::     Software-Evolution-Library/Software asm-super-mutant.
-* sel-sw-ast::                  Software-Evolution-Library/Software ast.
 * sel-sw-cil::                  Software-Evolution-Library/Software cil.
 * sel-sw-clang::                Software-Evolution-Library/Software clang.
 * sel-sw-clang-expression::     Software-Evolution-Library/Software clang-expression.
@@ -1616,15 +1584,11 @@ appendix holds each individual package's API in turn.
 * sel-cp-traceable::            Software-Evolution-Library/Component traceable.
 @end menu
 
-@node software-evolution-library, sel-utility, SEL Packages, SEL Packages
+@node software-evolution-library, sel-rest, SEL Packages, SEL Packages
 @section software-evolution-library
 @include software-evolution-library-api.texi
 
-@node sel-utility, sel-rest, software-evolution-library, SEL Packages
-@section sel-utility
-@include sel-utility-api.texi
-
-@node sel-rest, sel-view, sel-utility, SEL Packages
+@node sel-rest, sel-view, software-evolution-library, SEL Packages
 @section sel-rest
 @include sel-rest-api.texi
 
@@ -1648,15 +1612,11 @@ appendix holds each individual package's API in turn.
 @section sel-sw-asm-heap
 @include sel-sw-asm-heap-api.texi
 
-@node sel-sw-asm-super-mutant, sel-sw-ast, sel-sw-asm-heap, SEL Packages
+@node sel-sw-asm-super-mutant, sel-sw-cil, sel-sw-asm-heap, SEL Packages
 @section sel-sw-asm-super-mutant
 @include sel-sw-asm-super-mutant-api.texi
 
-@node sel-sw-ast, sel-sw-cil, sel-sw-asm-super-mutant, SEL Packages
-@section sel-sw-ast
-@include sel-sw-ast-api.texi
-
-@node sel-sw-cil, sel-sw-clang, sel-sw-ast, SEL Packages
+@node sel-sw-cil, sel-sw-clang, sel-sw-asm-super-mutant, SEL Packages
 @section sel-sw-cil
 @include sel-sw-cil-api.texi
 
@@ -2161,7 +2121,7 @@ package for general utilities and the
 filesystem and OS utilities.
 
 @item
-Check the ``Utilities'' package of SEL (see @ref{sel-utility}).
+Check the ``GT'' package (see @ref{Basic Utilities}).
 
 @end enumerate
 

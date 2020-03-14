@@ -4,7 +4,6 @@ if [[ $LISP == "ccl" ]] || [[ $LISP == "CCL" ]]; then
     ccl --quiet --no-init \
         --load ${QUICK_LISP:-quicklisp}/setup.lisp \
         --eval '(ql:quickload :software-evolution-library)' \
-        --eval '(ql:quickload :software-evolution-library/utility)' \
         --eval '(ql:quickload :software-evolution-library/software/asm)' \
         --load doc/examples/001-mutate.lisp \
         --eval '(quit)'
@@ -13,7 +12,6 @@ else
     sbcl --noinform --no-sysinit --no-userinit \
          --load ${QUICK_LISP:-quicklisp}/setup.lisp \
          --eval '(ql:quickload :software-evolution-library :silent t)' \
-         --eval '(ql:quickload :software-evolution-library/utility :silent t)' \
          --eval '(ql:quickload :software-evolution-library/software/asm :silent t)' \
          --load doc/examples/001-mutate.lisp \
          --eval '(quit)'

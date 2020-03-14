@@ -254,7 +254,6 @@ Class @code{source}
   @item @refapimethod{lines,lines}
   @item @refapimethod{mutate,mutate}
   @item @refapimethod{phenome,phenome}
-  @item @refapimethod{size,size}
   @end itemize
 
 @end itemize
@@ -315,7 +314,6 @@ Class @code{parseable}
   @item @refapigeneric{get-vars-in-scope}
   @item @refapigeneric{parse-source-snippet}
   @item @refapigeneric{roots}
-  @item @refapigeneric{size}
   @item @refapigeneric{update-asts}
   @end itemize
 
@@ -326,7 +324,6 @@ Class @code{parseable}
     @item @refapimethod{get-ast,get-ast}
     @item @refapimethod{get-immediate-children,get-immediate-children}
     @item @refapimethod{roots,roots}
-    @item @refapimethod{size,size}
   @end itemize
 
 @end itemize
@@ -437,19 +434,6 @@ Class @code{clang}
   @item @refapigeneric{wrap-ast}
   @item @refapigeneric{wrap-child}
   @end itemize
-@c @item find-or-add-type
-@c @item pick-generic
-@c  @item pick-bad-only
-
-@item Variables
-   @itemize
-   @item @refapivariable{*clang-max-json-size*}
-   @item @refapivariable{*clang-mutation-types*}
-   @item @refapivariable{*clang-json-required-aux*}
-   @item @refapivariable{*clang-json-required-fields*}
-   @item @refapivariable{*clang-mutate-additional-args*}
-   @end itemize
-
 
 @item Methods
   @itemize
@@ -478,8 +462,8 @@ Class @code{clang}
   @item @refapimethod{get-ast-types,get-ast-types}
   @item @refapimethod{get-entry,get-entry}
   @item @refapimethod{get-parent-full-stmt,get-parent-full-stmt}
-  @item @refapimethod{get-unbound-funs,get-unbound-funs} : methods for @refapistruct{clang-ast-node} and @refapistruct{clang-ast} arguments
-  @item @refapimethod{get-unbound-vals,get-unbound-vals} : methods for @refapistruct{clang-ast-node} and @refapistruct{clang-ast} arguments
+  @item @refapimethod{get-unbound-funs,get-unbound-funs}
+  @item @refapimethod{get-unbound-vals,get-unbound-vals}
   @item @refapimethod{get-vars-in-scope,get-vars-in-scope}
   @item @refapimethod{good-stmts,good-stmts}
   @item @refapimethod{instrument,instrument}
@@ -515,8 +499,6 @@ Class @code{clang}
   @end itemize
 
 @end itemize
-
-@c defmethod clang-mutate
 
 @c defmacro define-ast
 @c define-ast clang-macro
@@ -666,7 +648,6 @@ Class @code{project}
   @item @refapimethod{genome,genome}
   @item @refapimethod{mutate,mutate}
   @item @refapimethod{phenome,phenome}
-  @item @refapimethod{size,size}
   @end itemize
 @end itemize
 
@@ -835,7 +816,6 @@ Class @code{simple}
   @item @refapimethod{mcmc-step,mcmc-step}
   @item @refapimethod{mutate,mutate}
   @item @refapimethod{pick-mutation-type,pick-mutation-type}
-  @item @refapimethod{size,size}
   @item @refapimethod{to-file,to-file}
   @item @refapimethod{two-point-crossover,two-point-crossover}
   @item @refapimethod{one-point-crossover,one-point-crossover}
@@ -1227,7 +1207,6 @@ Class @code{lisp}
   @item @refapimethod{genome-string,genome-string}
   @item @refapimethod{mutate,mutate}
   @item @refapimethod{pick-mutation-type,pick-mutation-type}
-  @item @refapimethod{size,size}
   @item @refapimethod{to-file,to-file}
   @end itemize
 @end itemize

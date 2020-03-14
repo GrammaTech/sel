@@ -39,23 +39,75 @@ int segment_violations = 0;
 int in_malloc = 0;
 int in_free = 0;
 int in_realloc = 0;
-int exit_early = 0;
+int num_variants = 0;
 
 int *null_pointer = 0; // used to trigger segfaults
 
+extern unsigned long untraced_calls[];
+extern unsigned long untraced_calls_offset;
+extern unsigned long untraced_call_results[];
+
+unsigned long untraced_calls_current = 0;
+unsigned long untraced_call_results_index = 0;
+
+#define UNTRACED_CALL_TYPE_NULL      0
+#define UNTRACED_CALL_TYPE_MALLOC    1
+#define UNTRACED_CALL_TYPE_FREE      2
+#define UNTRACED_CALL_TYPE_REALLOC   3
+
 void *malloc_stub (size_t __size, const void *caller) {
+    unsigned long uctype = untraced_calls[untraced_calls_current];
+    if (uctype == UNTRACED_CALL_TYPE_MALLOC) {
+        unsigned long length =  untraced_calls[untraced_calls_current + 1];
+        unsigned long retval =  untraced_calls[untraced_calls_current + 2];
+        untraced_calls_current += 3;
+        if (length == __size) {
+            untraced_call_results[untraced_call_results_index++] = UNTRACED_CALL_TYPE_MALLOC;
+            untraced_call_results[untraced_call_results_index++] = length;
+            untraced_call_results[untraced_call_results_index++] = retval;
+            return (void *)retval;
+        }
+    }
+    // otherwise error return
     in_malloc = 1;
     int temp = *null_pointer;
     return (void *)0; // never gets here
 }
 
+// not yet supported
 void *realloc_stub (void *__ptr, size_t __size, const void *caller) {
+    unsigned long uctype = untraced_calls[untraced_calls_current];
+    if (uctype == UNTRACED_CALL_TYPE_REALLOC) {
+        unsigned long addr =  untraced_calls[untraced_calls_current + 1];
+        unsigned long length =  untraced_calls[untraced_calls_current + 2];
+        unsigned long retval =  untraced_calls[untraced_calls_current + 3];
+        untraced_calls_current += 4;
+        if (addr == ((unsigned long)__ptr) && length == __size) {
+            untraced_call_results[untraced_call_results_index++] = UNTRACED_CALL_TYPE_REALLOC;
+            untraced_call_results[untraced_call_results_index++] = addr;
+            untraced_call_results[untraced_call_results_index++] = length;
+            untraced_call_results[untraced_call_results_index++] = retval;
+            return (void *)retval;
+        }
+    }
+    // otherwise error return
     in_realloc = 1;
     int temp = *null_pointer;
     return (void *)0;
 }
 
 extern void free_stub (void *__ptr, const void *caller) {
+    unsigned long uctype = untraced_calls[untraced_calls_current];
+    if (uctype == UNTRACED_CALL_TYPE_FREE) {
+        unsigned long addr =  untraced_calls[untraced_calls_current + 1];
+        untraced_calls_current += 2;
+        if ((void *)addr == __ptr) {
+            untraced_call_results[untraced_call_results_index++] = UNTRACED_CALL_TYPE_FREE;
+            untraced_call_results[untraced_call_results_index++] = addr;
+            return;
+        }
+    }
+    // otherwise error return
     in_free = 1;
     int temp = *null_pointer;
 }
@@ -74,6 +126,8 @@ void restore_heap_funcs() {
 
 #define IN_HEAP_FUNC (in_malloc || in_free || in_realloc)
 
+void exit_with_status(int code, char* errmsg);
+
 // variant function pointer
 // This is defined to take no arguments and return nothing.
 // In reality the functions it calls may expect arguments and may
@@ -90,7 +144,8 @@ extern vfunc variant_table[]; // 0-terminated array of variant
 #define DEBUG 1               // set this to 1, to turn on debugging messages
 
 #define PAGE_SIZE 4096
-#define PAGE_MASK 0xfffffffffffff000
+#define PAGE_MASK        0xfffffffffffff000
+#define PAGE_OFFSET_MASK (PAGE_SIZE-1)
 
 // allocate pages for the first 16k of stack (below current rsp)
 #define INIT_STACK_PAGES (0x4000 / PAGE_SIZE)
@@ -99,6 +154,7 @@ extern unsigned long input_regs[];
 extern unsigned long output_regs[];
 extern unsigned long input_mem[];
 extern unsigned long output_mem[];
+
 extern unsigned long num_tests;   // number of test cases
 extern unsigned long test_results[]; // storage for test results
 
@@ -111,6 +167,11 @@ extern unsigned long result_return_address;
 extern unsigned long result_regs[NUM_REGS]; // for storing the
                                             // resulting values
 extern unsigned long test_offset;
+
+unsigned long untraced_call_index = 0;
+
+extern unsigned long jump_table_size;
+extern unsigned long jump_table[];
 
 //
 // Live input register mask contains uses bits to represent
@@ -142,6 +203,8 @@ unsigned long overhead = 0;    // number of instructions in
                                // setup/restore code
 unsigned long heap_address = 0;
 
+unsigned long untraced_call_results_size = 02000; // 8k space for each log
+
 enum ExecutionState {
     NormalState = 0,
     RunningTest = 1,
@@ -172,6 +235,25 @@ extern void _init_registers();
         asm("rdtscp" : "=a" (lo), "=d" (hi));\
         elapsed_name = (lo | (hi << 32)) - start_name;\
     }
+
+// Given the test index, return the offset (into untraced_calls array)
+// of untraced calls for that test.
+unsigned long find_untraced_calls(int test)
+{
+    unsigned long current = 0;
+    for (int i = 1; i < test; i++) {
+        // skip to next
+        while (untraced_calls[current] != UNTRACED_CALL_TYPE_NULL) {
+        switch (untraced_calls[current]) {
+            case UNTRACED_CALL_TYPE_MALLOC:  current += 3; break;
+            case UNTRACED_CALL_TYPE_FREE:    current += 2; break;
+            case UNTRACED_CALL_TYPE_REALLOC: current += 4; break;
+        }
+            current++; // skip UNTRACED_CALL_TYPE_NULL
+        }
+    }
+    return current;
+}
 
 //
 // Determine which register position contains RSP, given the mask.
@@ -237,12 +319,35 @@ void map_output_page(unsigned long* addr) {
 }
 
 //
-// Map a single page as read/write only, given an address that falls on
+// Map pages as read/write to ensure that the specified block is on
+// read/write committed pages.
+// Since addr may not be the beginning of a page, we have to add its
+// offset into the page (addr % PAGE_SIZE) to the length, to ensure
+// enough pages get allocated.
+//
+void map_memory_range(unsigned long* addr, unsigned long size) {
+    unsigned char* page_addr = (unsigned char*)(((unsigned long)addr) & PAGE_MASK);
+    unsigned long extra = ((unsigned long)addr) & PAGE_OFFSET_MASK;
+    void* anon = mmap(page_addr, size + extra,
+                          PROT_READ|PROT_WRITE,
+                              MAP_ANONYMOUS|MAP_PRIVATE|MAP_FIXED,
+                          -1,
+                          0);
+#if DEBUG
+    fprintf(stderr, "Allocated page at address 0x%lx, length 0x%lx, result: %lx\n",
+            (unsigned long)page_addr,
+            (unsigned long)(size + extra),
+            (unsigned long)anon);
+#endif
+}
+
+//
+// Map a single page as read only, given an address that falls on
 // that page
 void map_input_page(unsigned long* addr) {
     unsigned long* page_addr = (unsigned long*)(((unsigned long)addr) & PAGE_MASK);
     void* anon = mmap(page_addr, PAGE_SIZE,
-                          PROT_READ,
+                      PROT_READ|PROT_WRITE,
                               MAP_ANONYMOUS|MAP_PRIVATE|MAP_FIXED /*|MAP_UNINITIALIZED*/,
                           -1,
                           0);
@@ -277,6 +382,47 @@ int map_output_pages(unsigned long* p) {
             p += 3;
         }
         p++;
+    }
+    return 0; // return normally
+}
+
+//
+// Traverse the untraced call records, and
+// ensure all pages that are referenced are committed.
+// When we get to a null record (null type), we've reached the end of
+// the records.
+// We only need to check malloc and realloc return values, and
+// the size param of each to determine block extents.
+//
+int map_untraced_call_pages(unsigned long* p) {
+    int i = 0;
+    segfault = 0;
+
+    for (int k = 0; k < num_tests; k++) {
+        while (*p) {
+            i = setjmp(bailout); // safe place to return to
+            if (segfault || i != 0) {
+                segfault = 0;
+                return -1;  // segment violation was caught!
+            }
+            unsigned long type = *p++;
+            if (type == UNTRACED_CALL_TYPE_NULL)
+                break;
+            else if (type == UNTRACED_CALL_TYPE_MALLOC) {
+                unsigned long size = *p++;
+                unsigned long* addr = (unsigned long*)*p++;
+                map_memory_range(addr, size);
+            }
+            else if (type == UNTRACED_CALL_TYPE_FREE) {
+                p++;  // skip argument, nothing to map
+            }
+            else if (type == UNTRACED_CALL_TYPE_REALLOC) {
+                unsigned long* prev_addr = (unsigned long*)*p++;
+                unsigned long new_size = *p++;
+                unsigned long* new_addr = (unsigned long*)*p++;
+                map_memory_range(new_addr, new_size);
+            }
+        }
     }
     return 0; // return normally
 }
@@ -327,6 +473,7 @@ int init_pages() {
     int ret =  map_input_pages(input_mem); // map pages indicated by
                                            // the memory i/o
     ret |= map_output_pages(output_mem);
+    ret |= map_untraced_call_pages(untraced_calls);
     return ret;
 }
 
@@ -428,7 +575,8 @@ int check_results(int variant, int test) {
         unsigned long* addr = (unsigned long*)*p++;
         unsigned long data = *p++;
         unsigned long mask = *p++;
-
+        unsigned long i;
+        int found;
         unsigned long* rsp = (unsigned long*)output_regs[test * num_output_registers
                                                          + rsp_pos];
         if (addr < rsp && (rsp - addr) < 64)
@@ -436,6 +584,19 @@ int check_results(int variant, int test) {
                          // of the stack (i.e. not on the stack, which
                          // grows down)
         if ((*addr & mask) != (data & mask)) {
+            // See if it may be a function address. If so, check
+            // original address of the function and if that matches,
+            // consider it valid. This handles function pointers.
+            for (i = 0, found = 0; i < jump_table_size; i++) {
+                if (jump_table[2 * i + 1] == (*addr & mask)
+                    && (data & mask) == jump_table[2 * i]) {
+                    found = 1;
+                    break;
+                }
+            }
+            if (found)
+                continue;
+
             fprintf(stderr, "Variant %d, test %d failed at addr: %lx, expected: %lx, "
                    "mask: %lx, found: %lx, orig rsp: %lx\n",
                    variant,
@@ -492,7 +653,7 @@ unsigned long dummy = 0;
 
 void segfault_sigaction(int signal, siginfo_t *si, void *context) {
     if (executing == NormalState) {
-        exit(1);
+        exit_with_status(1, "Unexpected segfault");
     }
     // if we were executing init_mem(), change the address to &dummy,
     // set the segfault flag and return. The init_mem() loop should exit.
@@ -524,8 +685,7 @@ void segfault_sigaction(int signal, siginfo_t *si, void *context) {
 
 void timer_sigaction(int signal, siginfo_t *si, void *context) {
     if (executing != RunningTest) {
-        //fprintf(stderr, "Execution timer expired\n");
-        exit(1);
+        exit_with_status(1, "Execution timer expired");
     }
 
     unblock_signal(signal);
@@ -551,8 +711,7 @@ void start_timer() {
     timer.it_interval.tv_sec = 0;
     timer.it_interval.tv_nsec = 0;
     if (timer_settime(timerid, 0, &timer, NULL) == -1) {
-        fprintf(stderr, "timer_settime() error\n");
-        exit(1);
+        exit_with_status(1, "timer_settime() error");
     }
 }
 
@@ -562,8 +721,7 @@ void end_timer() {
     timer.it_interval.tv_sec = 0;
     timer.it_interval.tv_nsec = 0;
     if (timer_settime(timerid, 0, &timer, NULL) == -1) {
-        fprintf(stderr, "timer_settime() error\n");
-        exit(1);
+        exit_with_status(1, "timer_settime() error");
     }
 }
 
@@ -583,8 +741,7 @@ timer_t setup_timer() {
     tsa.sa_flags = SA_SIGINFO | SA_ONSTACK | SA_NODEFER;
     sigemptyset(&tsa.sa_mask);
     if (sigaction(SIG, &tsa, 0) == -1) {
-        fprintf(stderr, "sigaction() error\n");
-        exit(1);
+        exit_with_status(1, "sigaction() error");
     }
 
     // Create the timer
@@ -592,8 +749,7 @@ timer_t setup_timer() {
     sev.sigev_signo = SIG;
     sev.sigev_value.sival_ptr = &timerid;
     if (timer_create(CLOCKID, &sev, &timerid) == -1) {
-        fprintf(stderr, "timer_create() error\n");
-        exit(1);
+        exit_with_status(1, "timer_create() error");
     }
 
     return timerid;
@@ -601,8 +757,7 @@ timer_t setup_timer() {
 
 void destroy_timer(timer_t timerid) {
     if (timer_delete(timerid) == -1) {  // delete the timer
-        fprintf(stderr, "timer_delete() error: %d\n", errno);
-        exit(1);
+        exit_with_status(1, "timer_delete() error");
     }
 }
 
@@ -619,6 +774,9 @@ unsigned long run_variant(int v, int test) {
     int retval;
 
     test_offset = test * num_input_registers * sizeof(unsigned long);
+    untraced_calls_offset =
+        test * untraced_call_results_size; // output call log
+    untraced_calls_current = find_untraced_calls(test); // input call log
     execaddr = variant_table[v];
     executing = InitMemory;
     retval = init_mem(test);
@@ -637,14 +795,12 @@ unsigned long run_variant(int v, int test) {
 
     retval = PAPI_start(EventSet);  // start PAPI counting
     if (retval < 0) {
-        fprintf(stderr, "PAPI_start() error: %d\n", retval);
-        exit(1);
+        exit_with_status(1, "PAPI_start() error");
     }
 
     retval = PAPI_read(EventSet, start_value);     // get PAPI count
     if (retval < 0) {
-        fprintf(stderr, "PAPI_read() error: %d\n", retval);
-        exit(1);
+        exit_with_status(1, "PAPI_read() error");
     }
 
     asm("call _init_registers\n\t");
@@ -658,20 +814,13 @@ unsigned long run_variant(int v, int test) {
     restore_heap_funcs();
     sigunblock();
 
-    if (IN_HEAP_FUNC) {
-        exit_early = 1;
-        return ULONG_MAX;
-    }
-
     if (retval < 0) {
-        fprintf(stderr, "PAPI_read() error: %d\n", retval);
-        exit(1);
+        exit_with_status(1, "PAPI_read() error");
     }
 
     retval = PAPI_stop(EventSet, stop_value);
     if (retval < 0) {
-        fprintf(stderr, "PAPI_stop() error: %d\n", retval);
-        exit(1);
+        exit_with_status(1, "PAPI_stop() error");
     }
 
     long_long elapsed_instructions = end_value[0] - start_value[0];
@@ -705,14 +854,12 @@ unsigned long run_overhead() {
 
     retval = PAPI_start(EventSet);  // start PAPI counting
     if (retval < 0) {
-        fprintf(stderr, "PAPI_start() error: %d\n", retval);
-        exit(1);
+        exit_with_status(1, "PAPI_start() error");
     }
 
     retval = PAPI_read(EventSet, start_value);     // get PAPI count
     if (retval < 0) {
-        fprintf(stderr, "PAPI_read() error: %d\n", retval);
-        exit(1);
+        exit_with_status(1, "PAPI_read() error");
     }
 
     // This matches what happens during PAPI timing in run_variant,
@@ -725,14 +872,12 @@ unsigned long run_overhead() {
     retval = PAPI_read(EventSet, end_value);     // get PAPI count
 
     if (retval < 0) {
-        fprintf(stderr, "PAPI_read() error: %d\n", retval);
-        exit(1);
+        exit_with_status(1, "PAPI_read() error");
     }
 
     retval = PAPI_stop(EventSet, stop_value);
     if (retval < 0) {
-        fprintf(stderr, "PAPI_stop() error: %d\n", retval);
-        exit(1);
+        exit_with_status(1, "PAPI_stop() error");
     }
 
     overhead = (unsigned long)(end_value[0] - start_value[0]);
@@ -757,12 +902,10 @@ void papi_init() {
     int retval = PAPI_library_init(PAPI_VER_CURRENT);
 
     if (retval != PAPI_VER_CURRENT && retval > 0) {
-        fprintf(stderr,"PAPI library version mismatch!\n");
-        exit(1);
+        exit_with_status(1, "PAPI library version mismatch");
     }
     if (retval < 0) {
-        fprintf(stderr, "PAPI initialization error: %d\n", retval);
-        exit(1);
+        exit_with_status(1, "PAPI initialization error");
     }
 #if DEBUG
     fprintf(stderr, "PAPI Version Number %d.%d.%d\n",
@@ -774,20 +917,19 @@ void papi_init() {
     // Create an event set, containint Total Instructions Executed counter
     retval = PAPI_create_eventset(&EventSet);
     if (retval < 0) {
-        fprintf(stderr, "PAPI_create_eventset()  error: %d\n", retval);
-        exit(1);
+        exit_with_status(1, "PAPI_create_eventset()  error");
     }
     retval = PAPI_add_event(EventSet, PAPI_TOT_INS);
-        if (retval < 0) {
-        fprintf(stderr, "PAPI_add_event()  error: %d\n", retval);
-        exit(1);
+    if (retval < 0) {
+        exit_with_status(1, "PAPI_add_event() error");
     }
 }
 
 unsigned char sig_stack_bytes[SIGSTKSZ + 8];
 stack_t signal_stack = { sig_stack_bytes + 8, 0, SIGSTKSZ };
 
-#if 0
+#ifdef KERNEL_HANDLER // not needed currently, but may
+                      // be useful if we run into problems
 #define RESTORE(name, syscall) RESTORE2 (name, syscall)
 #define RESTORE2(name, syscall)			\
 asm						\
@@ -822,7 +964,47 @@ void setup_kernel_handler(int sig) {
     act.k_sa_restorer = restore_rt;
     syscall(SYS_rt_sigaction, sig, &act, NULL, _NSIG / 8);
 }
+#endif // KERNEL_HANDLER
+
+void exit_with_status(int code, char* errmsg) {
+#if DEBUG
+    fprintf(stderr, "Exit reason: %s\n", errmsg);
+    fprintf(stderr, "Number of segfaults: %d\n", segment_violations);
+    fprintf(stderr, "malloc() called: %s\n", in_malloc ? "true" : "false");
+    fprintf(stderr, "realloc() called: %s\n", in_realloc ? "true" : "false");
+    fprintf(stderr, "free() called: %s\n", in_free ? "true" : "false");
 #endif
+    // 1) output meta information, as common lisp plist (:key val ...)
+    //
+    // 2) output the results, with all the tests results for one variant
+    //    on each line. Wrap them in a common lisp vector #( ... ).
+    //
+    // Note: these are the only thing sent to stdout by this program.
+    //
+
+    fprintf(stdout, "(%s \"%s\" %s %d %s %d %s %d %s %d)\n",
+            ":exit-reason", errmsg,
+            ":segfaults", segment_violations,
+            ":malloc", in_malloc,
+            ":realloc", in_realloc,
+            ":free", in_free);
+
+    fprintf(stdout, "#(");
+
+    unsigned long* p = test_results;
+    for (int i = 0; i < num_variants; i++) {
+        for (int j = 0; j < num_tests; j++) {
+            if (p[i * num_tests + j] == 0) {
+                //fprintf(stderr, "Error: test_result (0) is not valid!");
+                p[i * num_tests + j] = ULONG_MAX;
+            }
+            fprintf(stdout, "%lu ", p[i * num_tests + j]);
+        }
+        fprintf(stdout, "\n");
+    }
+    fprintf(stdout, ")\n");
+    exit(code);
+}
 
 //
 //
@@ -839,10 +1021,20 @@ int main(int argc, char* argv[]) {
     // with the i/o data addresses
     char* temp = alloca(0x80000);
 
+    // count the number of variants by scanning the table, looking for
+    // terminating 0
+    for (int i = 0; variant_table[i]; i++)
+        num_variants++;
+#if DEBUG
+    fprintf(stderr, "Number of variants: %d\n", num_variants);
+#endif
+    unsigned long* p = test_results;
+    for (int i = 0; i < (num_tests * num_variants); i++)
+        p[i] = ULONG_MAX;   // set fitness to max to initialize
+
     // set up signal handling
     if (sigaltstack(&signal_stack, NULL) == -1) {
-        fprintf(stderr, "Error installing alternate signal stack\n");
-        exit(1);
+        exit_with_status(1, "Error installing alternate signal stack");
     }
     sigunblock();
 
@@ -853,12 +1045,10 @@ int main(int argc, char* argv[]) {
     sa.sa_flags = SA_SIGINFO|SA_NODEFER|SA_RESTART|SA_ONSTACK;
 
     if (sigaction(SIGSEGV, &sa, NULL) == -1) {
-        fprintf(stderr, "Error installing segfault signal handler\n");
-        exit(1);
+        exit_with_status(1, "Error installing segfault signal handler");
     }
     if (sigaction(SIGBUS, &sa, NULL) == -1) {
-        fprintf(stderr, "Error installing segfault signal handler\n");
-        exit(1);
+        exit_with_status(1, "Error installing segfault signal handler");
     }
 
     setup_timer();
@@ -874,69 +1064,23 @@ int main(int argc, char* argv[]) {
     int retval = init_pages(); // allocate any referenced pages
     executing = NormalState;
     if (retval == -1) {
+#if DEBUG
         fprintf(stderr, "Segmentation fault initializing pages at 0x%lx\n",
                 segfault_addr);
-        exit(1);
+#endif
+        exit_with_status(1, "Page init segfault");
     }
 
     unsigned long best = 0;
     int best_index = -1;
-    int num_variants = 0;
-
-    // count the number of variants by scanning the table, looking for
-    // terminating 0
-    for (int i = 0; variant_table[i]; i++)
-        num_variants++;
-#if DEBUG
-    fprintf(stderr, "Number of variants: %d\n", num_variants);
-#endif
-    unsigned long* p = test_results;
-
-    for (int i = 0; i < (num_tests * num_variants); i++)
-        p[i] = ULONG_MAX;   // set fitness to max to
-                                       // initialize
 
     // see how many overhead instructions there are
     unsigned long overhead = run_overhead();
 
     for (int i = 0; variant_table[i]; i++) {
         run_variant_tests(i, p + (i * num_tests));
-        if (exit_early)
-            break;
     }
 
-#if DEBUG
-    fprintf(stderr, "Number of segfaults: %d\n", segment_violations);
-    fprintf(stderr, "malloc() called: %s\n", in_malloc ? "true" : "false");
-    fprintf(stderr, "realloc() called: %s\n", in_realloc ? "true" : "false");
-    fprintf(stderr, "free() called: %s\n", in_free ? "true" : "false");
-#endif
-    // 1) output meta information, as common lisp plist (:key val ...)
-    //
-    // 2) output the results, with all the tests results for one variant
-    //    on each line. Wrap them in a common lisp vector #( ... ).
-    //
-    // Note: these are the only thing sent to stdout by this program.
-    //
-
-    fprintf(stdout, "(%s %d %s %d %s %d %s %d)\n",
-            ":segfaults", segment_violations,
-            ":malloc", in_malloc,
-            ":realloc", in_realloc,
-            ":free", in_free);
-    
-    fprintf(stdout, "#(");
-
-    for (int i = 0; i < num_variants; i++) {
-        for (int j = 0; j < num_tests; j++) {
-            if (p[i * num_tests + j] == 0) {
-                fprintf(stderr, "Error: test_result (0) is not valid!");
-                p[i * num_tests + j] = ULONG_MAX;
-            }
-            fprintf(stdout, "%lu ", p[i * num_tests + j]);
-        }
-        fprintf(stdout, "\n");
-    }
-    fprintf(stdout, ")\n");
-    return 0;
+    exit_with_status(0, "ok");
+    return 0; // never gets here
 }

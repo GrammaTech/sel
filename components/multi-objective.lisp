@@ -7,15 +7,9 @@
 ;;;
 (defpackage :software-evolution-library/components/multi-objective
   (:nicknames :sel/components/multi-objective :sel/cp/multi-objective)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
+  (:use :gt/full
         :metabang-bind
-        :iterate
         :software-evolution-library
-        :software-evolution-library/utility
         :software-evolution-library/components/lexicase)
   (:export :pareto-selector
            :*pareto-comparison-set-size*

@@ -1,16 +1,11 @@
 ;;; java-instrument.lisp --- Instrument java-language source files.
 (defpackage :software-evolution-library/components/java-instrument
   (:nicknames :sel/components/java-instrument :sel/cp/java-instrument)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
+  (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/utility
+        :software-evolution-library/utility/task
         :software-evolution-library/components/instrument
-        :software-evolution-library/software/ast
+        :software-evolution-library/software/parseable
         :software-evolution-library/software/source
         :software-evolution-library/software/java
         :software-evolution-library/software/project

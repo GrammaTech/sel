@@ -1,14 +1,7 @@
 ;;; fodder-database.lisp --- Generic interface to database of software fodder
 (defpackage :software-evolution-library/components/fodder-database
   (:nicknames :sel/components/fodder-database :sel/cp/fodder-database)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
-        :software-evolution-library
-        :software-evolution-library/utility
+  (:use :gt/full
         :software-evolution-library/components/searchable)
   (:export :fodder-database
            :database-emptyp

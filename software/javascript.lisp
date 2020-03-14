@@ -29,20 +29,14 @@
 ;;; @texi{javascript}
 (defpackage :software-evolution-library/software/javascript
   (:nicknames :sel/software/javascript :sel/sw/javascript)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
+  (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/utility
-        :software-evolution-library/software/ast
-        :software-evolution-library/software/source
+        :software-evolution-library/utility/json
         :software-evolution-library/software/parseable
+        :software-evolution-library/software/source
         :software-evolution-library/components/formatting)
-  (:shadowing-import-from :cl-json :decode-json-from-string)
   #-windows (:shadowing-import-from :osicat :file-permissions)
+  (:import-from :jsown)
   (:export :javascript
            :javascript-mutation
            :javascript-ast
@@ -79,6 +73,7 @@
 
 
 ;;; Javascript parsing
+
 (defmethod parse-asts ((obj javascript))
   (with-temp-file-of (src-file (ext obj)) (genome obj)
     (multiple-value-bind (stdout stderr exit)
@@ -88,13 +83,27 @@
                    "")
                src-file)
         (if (zerop exit)
-            (decode-json-from-string stdout)
+            (convert-acorn-jsown-tree (jsown:parse stdout))
             (error
               (make-instance 'mutate
                 :text (format nil "acorn exit ~d~%stderr:~s"
                               exit
                               stderr)
-                :obj obj :op :parse))))))
+                :obj obj :operation :parse))))))
+
+(defun convert-acorn-jsown-tree (jt)
+  (convert-jsown-tree jt #'jsown-str-to-acorn-keyword))
+
+(defun jsown-str-to-acorn-keyword (str)
+  (string-case-to-keywords ("delegate" "update" "await" "properties"
+                                       "method" "shorthand" "key" "elements"
+                                       "object" "property" "computed" "generator"
+                                       "async" "params" "declarations"
+                                       "id" "init " "kind" "test" "body" "left"
+                                       "right" "operator" "prefix" "argument"
+                                       "expression" "callee " "name" "arguments"
+                                       "type" "start" "end" "value" "raw" "sourcetype")
+                           str))
 
 (define-constant +js-bound-id-parent-classes+
   (list "FunctionDeclaration"
@@ -287,10 +296,10 @@
                                    (aget :local ast-alist))
                              :test #'equal))
                           (t nil))))
-       (make-children (genome parent-alist alist child-alists child-asts)
+       (make-children (genome alist child-alists child-asts
+                       &aux (start (aget :start alist)))
          (if child-alists
-             (iter (with start = (aget :start alist))
-                   (for child-alist in child-alists)
+             (iter (for child-alist in child-alists)
                    (for child-ast in child-asts)
                    (collect (subseq genome start (aget :start child-alist))
                             into result)
@@ -301,34 +310,26 @@
                                      (list (subseq genome
                                                    start
                                                    (aget :end alist)))))))
-             (let ((text (subseq genome (aget :start alist) (aget :end alist))))
-               (if (and (equal "Identifier" (aget :type alist))
-                        (not (member
-                               (aget :type parent-alist)
-                               +js-bound-id-parent-classes+
-                               :test #'equal)))
-                   (list (unpeel-bananas text))
-                   (list text)))))
-       (make-tree (genome parent-ast-alist ast-alist
-                          &aux (children (collect-children ast-alist))
-                        (new-ast-node (-> (make-javascript-ast-node
-                                            :class (make-keyword
-                                                     (string-upcase
-                                                       (aget :type ast-alist))))
-                                           (add-aux-data ast-alist))))
-         (make-javascript-ast
-           :node new-ast-node
-           :children (make-children
-                       genome
-                       parent-ast-alist
-                       ast-alist
-                       children
-                       (iter (for child in children)
-                             (collect (make-tree genome
-                                                 ast-alist
-                                                 child)))))))
+             (list (subseq genome (aget :start alist) (aget :end alist)))))
+       (make-tree (genome ast-alist)
+         (let ((children (collect-children ast-alist))
+               (new-ast-node (add-aux-data
+                              (make-javascript-ast-node
+                               :class (make-keyword
+                                       (string-upcase
+                                        (aget :type ast-alist))))
+                              ast-alist)))
+           (make-javascript-ast
+             :node new-ast-node
+             :children (make-children
+                         genome
+                         ast-alist
+                         children
+                         (iter (for child in children)
+                               (collect (make-tree genome
+                                                   child))))))))
     (setf (ast-root obj)
-          (fix-newlines (make-tree (genome obj) nil (parse-asts obj))))
+          (fix-newlines (make-tree (genome obj) (parse-asts obj))))
     (setf (slot-value obj 'genome)
           nil)
     obj))
@@ -370,8 +371,19 @@ BIN location where the phenome will be created on the filesystem"
 * VAR-REPLACEMENTS list of old-name, new-name pairs defining the rebinding
 * FUN-REPLACEMENTS list of old-function-info, new-function-info pairs defining
 the rebinding"
-  (copy ast :children (mapcar {rebind-vars _ var-replacements fun-replacements}
-                              (ast-children ast))))
+  (if (eq (ast-class ast) :Identifier)
+      (copy ast :children (mapcar {rebind-vars _
+                                               var-replacements
+                                               fun-replacements}
+                                  (ast-children ast)))
+      (let ((c (mapcar (lambda (c)
+                         (cond ((stringp c) c)
+                               (t (rebind-vars c var-replacements
+                                               fun-replacements))))
+                       (ast-children ast))))
+        (if (every #'eql c (ast-children ast))
+            ast
+            (copy ast :children c)))))
 
 (defmethod enclosing-scope ((obj javascript) (ast javascript-ast))
   "Return the enclosing scope of AST in OBJ.
@@ -424,33 +436,33 @@ AST ast to return the scopes for"
                  ;; (e.g. [a, b, c] = [1, 2, 3]).  In this case, we need
                  ;; all of the variables on the left-hand side of the
                  ;; expression.
-                 (->> (remove-if-not [{eq :VariableDeclaration} #'ast-class]
-                                     children)
-                      (mappend {get-immediate-children obj})
-                      (remove-if-not [{eq :VariableDeclarator} #'ast-class])
-                      (mappend (lambda (ast)
-                                 (let ((child (get-first-child-ast obj ast)))
-                                   (if (eq :Identifier (ast-class child))
-                                       (list child) ;; single var
-                                       (get-children
-                                         obj
-                                         child))))) ;; destructuring
-                      (remove-if-not [{eq :Identifier} #'ast-class])))))
+                 (nest (remove-if-not [{eq :Identifier} #'ast-class])
+                       (mappend (lambda (ast)
+                                  (let ((child (get-first-child-ast obj ast)))
+                                    (if (eq :Identifier (ast-class child))
+                                        ;; single var
+                                        (list child)
+                                        ;; destructuring
+                                        (get-children obj child)))))
+                       (remove-if-not [{eq :VariableDeclarator} #'ast-class])
+                       (mappend {get-immediate-children obj})
+                       (remove-if-not [{eq :VariableDeclaration} #'ast-class]
+                                      children)))))
     (when (not (eq :Program (ast-class ast)))
       (let ((scope (enclosing-scope obj ast)))
-        (cons (->> (iter (for c in
-                              (get-immediate-children obj scope))
-                         (while (ast-later-p ast c))
-                         (collect c))
-                   ; remove ASTs which are not variable identifiers
-                   (filter-identifiers obj scope)
-                   ; build result
-                   (mappend
-                     (lambda (ast)
-                       `(((:name . ,(peel-bananas (source-text ast)))
-                          (:decl . ,(get-parent-decl obj ast))
-                          (:scope . ,scope)))))
-                   (reverse))
+        (cons (nest (reverse)
+                    ; build result
+                    (mappend
+                      (lambda (ast)
+                        `(((:name . ,(source-text ast))
+                           (:decl . ,(get-parent-decl obj ast))
+                           (:scope . ,scope)))))
+                    ; remove ASTs which are not variable identifiers
+                    (filter-identifiers obj scope)
+                    (iter (for c in
+                               (get-immediate-children obj scope))
+                          (while (ast-later-p ast c))
+                          (collect c)))
               (scopes obj scope))))))
 
 (defmethod get-unbound-vals ((obj javascript) (ast javascript-ast))
@@ -466,7 +478,7 @@ AST ast to return the scopes for"
                                                 +js-bound-id-parent-classes+
                                                 (list :CallExpression
                                                       :MemberExpression)))))
-                        (list (cons :name (peel-bananas (source-text ast)))))
+                        (list (cons :name (source-text ast))))
                       (mapcar {get-unbound-vals-helper obj ast}
                               (get-immediate-children obj ast)))
                :test #'equal)))
@@ -483,16 +495,14 @@ AST ast to return the scopes for"
            (when (eq (ast-class ast) :CallExpression)
              (cond ((eq (ast-class callee) :Identifier)
                     ;; Free function call
-                    (list (-> (source-text callee)
-                              (peel-bananas)
-                              (list nil nil (length (cdr children))))))
+                    (list (list (source-text callee)
+                                nil nil (length (cdr children)))))
                    ((eq (ast-class callee) :MemberExpression)
                     ;; Member function call
-                    (list (-> (get-immediate-children obj callee)
-                              (second)
-                              (source-text)
-                              (peel-bananas)
-                              (list nil nil (length (cdr children))))))
+                    (list (list (nest (source-text)
+                                      (second)
+                                      (get-immediate-children obj callee))
+                                nil nil (length (cdr children)))))
                    (t nil)))
            (mapcar {get-unbound-funs obj}
                    (get-immediate-children obj ast)))

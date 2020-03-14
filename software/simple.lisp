@@ -1,18 +1,10 @@
 ;;; simple.lisp --- simple software rep. to manipulate lines of code
 (defpackage :software-evolution-library/software/simple
   (:nicknames :sel/software/simple :sel/sw/simple)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
+  (:use :gt/full
         :metabang-bind
-        :iterate
-        :split-sequence
         :software-evolution-library
-        :software-evolution-library/software/file
-        :software-evolution-library/utility)
-  (:shadowing-import-from :uiop :ensure-directory-pathname)
+        :software-evolution-library/software/file)
   (:import-from :asdf-encodings :detect-file-encoding)
   (:export :simple
            :light
@@ -20,10 +12,12 @@
            :reference
            :range-nth
            :range-subseq
+           :*simple-mutation-types*
            :simple-mutation
            :simple-cut
            :simple-insert
-           :simple-swap))
+           :simple-swap
+           :double-cut))
 (in-package :software-evolution-library/software/simple)
 (in-readtable :curry-compose-reader-macros)
 
@@ -31,8 +25,26 @@
 ;;; simple software objects
 (define-software simple (software file)
   ((genome :initarg :genome :accessor genome :initform nil
-           :copier sel/utility:enhanced-copy-seq))
+           :copier enhanced-copy-seq))
   (:documentation "The simplest base software object."))
+
+(defun sel-copy-array (array)
+  (let* ((element-type (array-element-type array))
+         (fill-pointer (and (array-has-fill-pointer-p array)(fill-pointer array)))
+         (adjustable (adjustable-array-p array))
+         (new (make-array (array-dimensions array)
+                          :element-type element-type
+                          :adjustable adjustable
+                          :fill-pointer fill-pointer)))
+    (dotimes (i (array-total-size array) new)
+      (setf (row-major-aref new i)(row-major-aref array i)))))
+
+(defun enhanced-copy-seq (sequence)
+  "Copies any type of array (except :displaced-to) and lists. Otherwise returns NIL."
+  (if (arrayp sequence)
+      (sel-copy-array sequence)
+      (if (listp sequence)
+          (copy-list sequence))))
 
 (defmethod lines ((simple simple))
   (remove nil (map 'list {aget :code} (genome simple))))
@@ -104,6 +116,33 @@
                        (subseq genome 0 cut)
                        (subseq genome (1+ cut))))
     simple))
+
+(define-mutation double-cut (simple-mutation)
+  ((targeter :initform #'pick-bad-bad))
+  (:documentation "Remove two random elements of the genome."))
+
+(defmethod apply-mutation ((simple simple) (mutation double-cut))
+  "Cut two random elements of the genome.
+ If the two elements indices are equal, this just becomes one simple-cut.
+ Otherwise it is implemented as two simple-cut mutations,
+ so derived mutations should only need to implement simple-cut."
+  (let ((first-cut (first (targets mutation)))
+        (second-cut (second (targets mutation)))
+        mutated)
+    (assert (and (integerp first-cut) (integerp second-cut)) (mutation)
+            "Requires mutations targets to be a list of two integers.")
+    (setf mutated
+          (apply-mutation
+           simple
+           (make-instance 'simple-cut
+             :targets (max first-cut second-cut))))
+    (unless (= first-cut second-cut)
+      (setf mutated
+            (apply-mutation
+             mutated
+             (make-instance 'simple-cut
+               :targets (min first-cut second-cut)))))
+    mutated))
 
 (define-mutation simple-insert (simple-mutation)
   ((targeter :initform #'pick-bad-good))

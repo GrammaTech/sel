@@ -7,12 +7,8 @@
 ;;; @texi{json}
 (defpackage :software-evolution-library/software/json
   (:nicknames :sel/software/json :sel/sw/json)
-  (:use :common-lisp
-        :alexandria
-        :named-readtables
-        :curry-compose-reader-macros
+  (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/utility
         :software-evolution-library/software/source
         :software-evolution-library/software/parseable
         :software-evolution-library/software/javascript)
@@ -43,7 +39,7 @@ hand side."
            :text (format nil "acorn exit ~d~%stderr:~s"
                          exit
                          stderr)
-           :obj obj :op :parse)))
+           :obj obj :operation :parse)))
       (let* ((raw (decode-json-from-string stdout))
              (expr (aget :right (aget :expression (car (aget :body raw))))))
         (assert (and expr (string= "ObjectExpression" (aget :type expr)))

@@ -48,26 +48,6 @@ techniques."
   :build-pathname "bin/rest-server"
   :entry-point "software-evolution-library/rest::run-rest-server")
 
-(defsystem "software-evolution-library/run-new-clang-round-trip"
-    :author "Eric Schulte and GrammaTech"
-    :licence "GPL V3"
-    :description "Test harness for clang parser/unparser"
-    :version "0.0.0"
-    :depends-on (software-evolution-library/components/new-clang-round-trip)
-    :build-operation "asdf:program-op"
-    :build-pathname "test/commands/new-clang-round-trip"
-    :entry-point "software-evolution-library/components/new-clang-round-trip::run-new-clang-round-trip")
-
-(defsystem "software-evolution-library/run-clang-diff-test"
-    :author "Eric Schulte and GrammaTech"
-    :licence "GPL V3"
-    :description "Differential tester for old/new clang front ends"
-    :version "0.0.0"
-    :depends-on (software-evolution-library/components/clang-diff-test)
-    :build-operation "asdf:program-op"
-    :build-pathname "test/commands/clang-diff-test"
-    :entry-point "software-evolution-library/components/clang-diff-test::run-clang-diff-test")
-
 (defsystem "software-evolution-library/run-dump-store"
     :author "Eric Schulte and GrammaTech"
     :licence "GPL V3"

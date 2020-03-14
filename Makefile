@@ -42,7 +42,6 @@ DOC_PACKAGES =								\
 	software-evolution-library/software/asm				\
 	software-evolution-library/software/asm-heap			\
 	software-evolution-library/software/asm-super-mutant		\
-	software-evolution-library/software/ast				\
 	software-evolution-library/software/cil				\
 	software-evolution-library/software/clang			\
 	software-evolution-library/software/clang-expression		\
@@ -76,7 +75,13 @@ DOC_PACKAGES =								\
 	software-evolution-library/software/super-mutant-clang		\
 	software-evolution-library/software/super-mutant-project	\
 	software-evolution-library/software/with-exe			\
-	software-evolution-library/utility				\
+	software-evolution-library/utility/debug			\
+	software-evolution-library/utility/git				\
+	software-evolution-library/utility/json				\
+	software-evolution-library/utility/process			\
+	software-evolution-library/utility/range			\
+	software-evolution-library/utility/task				\
+	software-evolution-library/utility/terminal			\
 	software-evolution-library/view
 
 LISP_DEPS =				\
@@ -91,11 +96,6 @@ TEST_ARTIFACTS = \
 # FIXME: move test binaries into test/bin or bin/test/
 # Extend cl.mk to have a separate build target for test binaries
 BINS = rest-server dump-store
-TEST_BIN_DIR = test/commands
-TEST_BINS = 			\
-	new-clang-round-trip	\
-	clang-diff-test
-
 BIN_TEST_DIR = test/bin
 BIN_TESTS =			\
 	example-001-mutate
@@ -105,7 +105,7 @@ LONG_BIN_TESTS =		\
 	example-003-neutral	\
 	example-004-evolve
 
-include cl.mk
+include .cl-make/cl.mk
 
 test/etc/gcd/gcd: test/etc/gcd/gcd.c
 	$(CC) $< -o $@

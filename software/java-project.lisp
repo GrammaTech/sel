@@ -19,22 +19,11 @@
 ;;; @texi{java-project}
 (defpackage :software-evolution-library/software/java-project
   (:nicknames :sel/software/java-project :sel/sw/java-project)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :metabang-bind
-        :iterate
-        :split-sequence
+  (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/utility
         :software-evolution-library/software/java
         :software-evolution-library/software/project)
-  (:shadowing-import-from :uiop
-                          :ensure-directory-pathname
-                          :directory-exists-p
-                          :run-program)
+  (:import-from :uiop/run-program :run-program)
   (:export :java-project
            :get-files-jar))
 (in-package :software-evolution-library/software/java-project)
@@ -62,22 +51,21 @@
 
 (defmethod collect-evolve-files ((obj java-project))
   (iter (for entry in
-             (->> (merge-pathnames-as-file
-                   (project-dir obj)
+             (nest (mapcar
+                    (lambda (file)
+                      (replace-all
+                       file
+                       (namestring
+                        (ensure-directory-pathname (project-dir obj)))
+                       "")))
+                   (get-applicable-project-files (project-dir obj))
+                   (merge-pathnames-as-file (project-dir obj))
                    ;; FIXME: The following artificially
                    ;; limits Java projects to a single
                    ;; build artifact and should be
                    ;; generalized as in
                    ;; clang-project.lisp.
-                   (first (artifacts obj)))
-               (get-applicable-project-files (project-dir obj))
-               (mapcar
-                (lambda (file)
-                  (replace-all
-                   file
-                   (namestring
-                    (ensure-directory-pathname (project-dir obj)))
-                   "")))))
+                   (first (artifacts obj))))
         (unless (ignored-evolve-path-p obj entry)
           (handler-case
               (let ((java-obj (from-file
@@ -146,17 +134,17 @@ extraction iteration"
 Jars within jars are recursivly extracted
 to the depth of 3 within the built jar"
   (with-temp-dir (sandbox)
-    (let ((jar-paths
-           (if (directory-exists-p jar-path)
-               (get-files-with-ext-in-dir jar-path "jar")
-               (list jar-path))))
+    (let* ((jar-paths
+            (if (directory-exists-p jar-path)
+                (get-files-with-ext-in-dir jar-path "jar")
+                (list jar-path)))
+           (paths (iter (for path in jar-paths)
+                        (collect
+                            (format nil "~a.~a"
+                                    (pathname-name (pathname path))
+                                    (pathname-type (pathname path)))))))
       (shell "cp ~{~a~^ ~} ~a" jar-paths sandbox)
-      (iter (with paths = (iter (for path in jar-paths)
-                                (collect
-                                    (format nil "~a.~a"
-                                            (pathname-name (pathname path))
-                                            (pathname-type (pathname path))))))
-            (for i from 1 to 4)
+      (iter (for i from 1 to 4)
             (setf paths
                   (iter (for path in paths)
                         (appending (extract-jars-in-jar sandbox path)))))

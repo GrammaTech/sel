@@ -5,19 +5,12 @@
 (defpackage :software-evolution-library/components/pliny-fodder-database
   (:nicknames :sel/components/pliny-fodder-database
               :sel/cp/pliny-fodder-database)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
-        :cl-ppcre
-        :bordeaux-threads
+  (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/utility
-        :software-evolution-library/software/ast
+        :software-evolution-library/utility/debug
+        :software-evolution-library/software/parseable
         :software-evolution-library/software/clang
-	:software-evolution-library/components/searchable
+        :software-evolution-library/components/searchable
         :software-evolution-library/components/fodder-database)
   (:export :pliny-database
            :host
@@ -289,8 +282,8 @@
              (if ast-class
                  (append features `((:class . ,ast-class)))
                  features)))
-    (let ((features (-> (add-target-feature)
-                        (add-ast-class-feature))))
+    (let ((features (nest (add-ast-class-feature)
+                          (add-target-feature))))
       (remove-if filter
                  (execute-query obj
                                 `((:*features . ,features)
@@ -321,12 +314,12 @@
 * HASH DOCFIXME
 * TO-OBJ-FN DOCFIXME
 "
-  (->> (execute-query pliny-db
-                      `((:*features (:hash . ,hash))
-                        (:*weights (:hash . 1)))
-                      1)
-       (first)
-       (funcall to-obj-fn)))
+  (nest (funcall to-obj-fn)
+        (first)
+        (execute-query pliny-db
+                       `((:*features (:hash . ,hash))
+                         (:*weights (:hash . 1)))
+                       1)))
 
 (defgeneric execute-query (pliny-database query limit)
   (:documentation

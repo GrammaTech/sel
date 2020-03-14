@@ -2,34 +2,8 @@
 (defpackage :software-evolution-library/software-evolution-library
   (:nicknames :sel :software-evolution-library)
   (:use
-   :common-lisp
-   :alexandria
-   :arrow-macros
-   :named-readtables
-   :curry-compose-reader-macros
-   :iterate
-   :closer-mop
-   :uiop
-   :bordeaux-threads
-   :cl-ppcre
-   :cl-store
-   :split-sequence
-   :software-evolution-library/utility
-   :usocket
-   #-windows :fast-io)
-  (:shadow :elf :size :type :magic-number :diff :insert :index)
-  (:shadowing-import-from :software-evolution-library/utility :quit)
-  (:shadowing-import-from :uiop :getenv :directory-exists-p)
-  (:shadowing-import-from :iterate :iter :for :until :collecting :in)
-  (:shadowing-import-from
-   :closer-mop
-   :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric)
-  (:shadowing-import-from
-   :alexandria
-   :appendf :ensure-list :featurep :emptyp
-   :if-let :ensure-function :ensure-gethash :copy-file :copy-stream
-   :parse-body :simple-style-warning)
+   :gt/full
+   :software-evolution-library/utility/git)
   (:export
    :+software-evolution-library-dir+
    :+software-evolution-library-major-version+
@@ -53,7 +27,6 @@
    :retry-project-build
    :evaluate
    :copy
-   :size
    :lines
    :line-breaks
    :genome-string
@@ -112,11 +85,11 @@
    :fitness-equal-p
    :*cross-chance*
    :*mut-rate*
+   :*elitism*
    :*fitness-evals*
    :*running*
    :*start-time*
    :elapsed-time
-   :*simple-mutation-types*
    :*target-fitness-p*
    :*worst-fitness*
    :*worst-fitness-p*
@@ -170,14 +143,14 @@
     (concatenate 'string +software-evolution-library-major-version+ "-"
                  (handler-case
                      (current-git-commit +software-evolution-library-dir+)
-                   (git (e) (declare (ignorable e)) "UNKNOWN"))))
+                   (git-error (e) (declare (ignorable e)) "UNKNOWN"))))
   "Current version of the SOFTWARE-EVOLUTION-LIBRARY.")
 
 (defvar +software-evolution-library-branch+
   (eval-when (:compile-toplevel :load-toplevel :execute)
     (handler-case
         (current-git-branch +software-evolution-library-dir+)
-      (git (e) (declare (ignorable e)) "UNKNOWN")))
+      (git-error (e) (declare (ignorable e)) "UNKNOWN")))
   "Current branch of the SOFTWARE-EVOLUTION-LIBRARY.")
 
 (let ((oid-counter 0))
@@ -315,20 +288,12 @@ first value from the `phenome' method."
 (defmethod (setf fitness-extra-data) (extra-data (obj software))
   (declare (ignorable extra-data)))
 
-(defgeneric copy (software &key &allow-other-keys)
-  (:documentation "Return a deep copy of a software object.
-Keyword arguments may be used to pass new values for specific slots."))
-
 (defmethod copy ((obj software) &key)
   (make-instance (class-of obj) :fitness (fitness obj)))
 
-(defgeneric size (software)
-  (:documentation "Return the size of the `genome' of SOFTWARE."))
-
-(defmethod size ((software software)) (length (genome software)))
-
-(defgeneric lines (software)
-  (:documentation "Return the lines of code of the `genome' of SOFTWARE."))
+(defmethod size ((software software))
+  "Return the size of the `genome' of SOFTWARE."
+  (size (genome software)))
 
 (defgeneric genome-string (software &optional stream)
   (:documentation "Return a string of the `genome' of SOFTWARE."))
@@ -565,10 +530,10 @@ elements.")
 (define-condition mutate (error)
   ((text :initarg :text :initform nil :reader text)
    (obj  :initarg :obj  :initform nil :reader obj)
-   (op   :initarg :op   :initform nil :reader op))
+   (operation :initarg :operation :initform nil :reader operation))
   (:report (lambda (condition stream)
              (format stream "Mutation error, ~a, ~:[on~;~:*applying ~S to~] ~S"
-                     (text condition) (op condition) (obj condition))))
+                     (text condition) (operation condition) (obj condition))))
   (:documentation
    "Mutation errors are thrown when a mutation fails.
 These may often be safely ignored.  A common restart is
@@ -590,7 +555,7 @@ file location, if any."))
 (define-condition no-mutation-targets (mutate)
   ((text :initarg :text :initform nil :reader text)
    (obj  :initarg :obj  :initform nil :reader obj)
-   (op   :initarg :op   :initform nil :reader op))
+   (operation :initarg :operation :initform nil :reader operation))
   (:report (lambda (condition stream)
              (format stream "No targets error ~a ~:[on~;~:*applying ~S to~] ~S"
                      (text condition) (op condition) (obj condition))))
@@ -845,6 +810,19 @@ written to as part of a running search process.")
 (defvar *tournament-eviction-size* 2
   "Number of individuals to participate in eviction tournaments.")
 
+(defvar *elitism* 0
+  "Number of individuals to automatically promote to next population.
+Range: 0..(- (length *population*) 1)
+When evolving super-mutants, or calling generational-evolve,
+*ELITISM* specifies the number of individuals which are automatically
+promoted prior to typical generational replacement or eviction
+process. The selected individuals will be the ones with the
+best fitness.
+When using super-mutants, the *ELITISM* value will reduce the number of new
+individuals created in each generation by the value of *ELITISM* (since this
+number will automatically be promoted).")
+(declaim (type (integer 0 *) *elitism*))
+
 (defvar *cross-chance* 2/3
   "Fraction of new individuals generated using crossover rather than mutation.")
 
@@ -957,14 +935,12 @@ Default selection function for `tournament'."
                (try-another-mutation ()
                  :report "Try another mutation"
                  (safe-mutate)))))
-    (iter (with new-count = 0)
-          (multiple-value-bind (variant mutation-info)
+    (iter (multiple-value-bind (variant mutation-info)
               (safe-mutate)
             (unless (and (null variant) (null mutation-info))
               (collect variant into variants)
-              (collect mutation-info into infos)
-              (incf new-count)))
-          (while (< new-count count))
+              (collect mutation-info into infos)))
+          (while (< (length variants) count))
           (finally (return (values variants infos))))))
 
 (defmacro -search (specs step &rest body)
@@ -1051,17 +1027,50 @@ criteria for this search."
                       (when (and ,period ,period-fn
                                  (zerop (mod *fitness-evals* ,period)))
                         (funcall ,period-fn)))
-                    (mapc (lambda (,variant ,mutation-info)
-                            (declare (ignorable ,mutation-info))
-                            (assert (fitness ,variant) (,variant)
-                                    "Variant with no fitness")
-                            (when (or (not ,filter) (funcall ,filter ,variant))
-                              ,@body)
-                            (when (and *target-fitness-p*
-                                       (funcall *target-fitness-p* ,variant))
-                              (return-from search-target-reached ,variant)))
-                          ,variants
-                          ,mutation-infos))
+                    ;; support for *elitism*
+                    (assert (and (typep *elitism* '(integer 0 *))
+                                 (< *elitism* (length *population*)))
+                            (*elitism*)
+                            "*ELITISM* is out of range--must be an integer >0 ~
+                            and < (length *POPULATION*)")
+                    (let* ((sorted-population
+                            (and (> *elitism* 0)
+                                 (stable-sort (copy-list *population*)
+                                              'fitness-better-p
+                                              :key 'fitness)))
+                           ;; capture elite individuals
+                           (elite-individuals
+                            (and sorted-population
+                                 (subseq sorted-population 0 *elitism*))))
+                      ;; remove elite individuals from *population*
+                      (when elite-individuals
+                        (setf *population*
+                              (subseq sorted-population *elitism*)))
+                      ;; temporarily reduce *max-population-size* by *elitism*
+                      ;; Since *elitism* range is 1..(- *max-population-size* 1)
+                      ;; this should ensure *max-population-size is always at
+                      ;; at least 1.
+                      (let ((*max-population-size*
+                             (if (integerp *max-population-size*)
+                                 (- *max-population-size* *elitism*))))
+                        (mapc (lambda (,variant ,mutation-info)
+                                (declare (ignorable ,mutation-info))
+                                (assert (fitness ,variant) (,variant)
+                                        "Variant with no fitness")
+                                (when (or (not ,filter)
+                                          (funcall ,filter ,variant))
+                                  ,@body)
+                                (when (and *target-fitness-p*
+                                           (funcall *target-fitness-p*
+                                                    ,variant))
+                                  (return-from search-target-reached ,variant)))
+                              ,variants
+                              ,mutation-infos))
+                      ;; add elite-individuals to *population*
+                      (when elite-individuals
+                        (setf *population*
+                              (concatenate 'list elite-individuals
+                                           *population*)))))
                 (ignore-failed-mutation ()
                   :report
                   "Ignore failed mutation and continue evolution"))))
@@ -1111,7 +1120,7 @@ Other keyword arguments are used as defined in the `-search' function.
   `(-search ((new mut-info)
              ,test ,max-evals ,max-time ,period ,period-fn
              ,every-pre-fn ,every-post-fn ,filter ,analyze-mutation-fn)
-            {new-individuals ,super-mutant-count}
+            {new-individuals (- ,super-mutant-count *elitism*)}
             (incorporate new)))
 
 (defun generational-evolve
@@ -1143,6 +1152,9 @@ Keyword arguments are as follows:
   (when *target-fitness-p*
     (assert (functionp *target-fitness-p*) (*target-fitness-p*)
             "`*target-fitness-p*' must be a function"))
+  (assert (typep *max-population-size* '(integer 0 *))
+          (*max-population-size*)
+          "*MAX-POPULATION-SIZE* should be an integer >= 0")
   (flet
       ((check-max (current max)
          (or (not max) (not current) (< current max))))
@@ -1162,15 +1174,38 @@ Keyword arguments are as follows:
                          children mutation-info))
              (if every-post-fn (mapc {funcall every-post-fn} children))
              (if filter (setq children (delete-if-not filter children)))
+
+             ;; support for *elitism*
+             (assert (and (typep *elitism* '(integer 0 *))
+                          (< *elitism* (length *population*)))
+                     (*elitism*)
+                     "*ELITISM* is out of range--must be an integer >0 ~
+                            and < (length *POPULATION*)")
+             (let* ((sorted-population
+                     (and (> *elitism* 0)
+                          (stable-sort (copy-list *population*)
+                                       'fitness-better-p
+                                       :key 'fitness)))
+                    ;; capture elite individuals
+                    (elite-individuals
+                     (and sorted-population
+                          (subseq sorted-population 0 *elitism*))))
+               ;; remove elite individuals from *population*
+               (when elite-individuals
+                 (setf *population*
+                       (subseq sorted-population *elitism*)))
+
              (setq *population* (append children *population*))
              (loop :for child :in children
                 :when (funcall *target-fitness-p* child) :do
                 (setf *running* nil)
-                (return-from generational-evolve child)))
-           (format t "Selecting~%")
-           (setq *population*
-                 (funcall select *population* *max-population-size*))
-           (assert (<= (length *population*) *max-population-size*))
+                  (return-from generational-evolve child))
+             ;; re-insert elite individuals at the beginning of list
+             (setq *population*
+                   (append elite-individuals
+                           (funcall select *population*
+                                    (- *max-population-size* *elitism*))))
+             (assert (<= (length *population*) *max-population-size*))))
            (if (and period period-fn (zerop (mod *generations* period)))
                (funcall period-fn)))
       (setq *running* nil))))

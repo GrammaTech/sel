@@ -10,14 +10,8 @@
 ;;; @texi{coq-project}
 (defpackage :software-evolution-library/software/coq-project
   (:nicknames :sel/software/coq-project :sel/sw/coq-project)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
+  (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/utility
         :software-evolution-library/software/project
         :software-evolution-library/software/coq
         :software-evolution-library/components/serapi-io)

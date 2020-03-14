@@ -1,16 +1,9 @@
 ;;;; adaptive-mutation.lisp --- software w/dynamically adapting mutation probs
 (defpackage :software-evolution-library/software/adaptive-mutation
   (:nicknames :sel/software/adaptive-mutation :sel/sw/adaptive-mutation)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
+  (:use :gt/full
         :metabang-bind
-        :iterate
-        :bordeaux-threads
-        :software-evolution-library
-        :software-evolution-library/utility)
+        :software-evolution-library)
   (:export :adaptive-mutation
            :*bias-toward-dynamic-mutation*
            :*better-bias*
@@ -68,9 +61,9 @@ the last *max-mutation-results-queue-length* mutations")
   (declare (optimize speed))
   (with-lock-held (*mutation-results-queue-lock*)
     (without-compiler-notes
-        (setf (the (cons symbol symbol)
-                   (aref *mutation-results-queue* *mutation-results-queue-next*))
-              (the (cons symbol symbol) (cons type classification))))
+      (setf (the (cons symbol symbol)
+                 (aref *mutation-results-queue* *mutation-results-queue-next*))
+            (the (cons symbol symbol) (cons type classification))))
     (incf (the fixnum *mutation-results-queue-next*))
     (when (= (the fixnum (length (the vector *mutation-results-queue*)))
              (the fixnum *mutation-results-queue-next*))
@@ -114,19 +107,19 @@ the last *max-mutation-results-queue-length* mutations")
         ;; Collect our accumulated mutations into association list.
         (map nil (lambda-bind ((type . result)) (push result (aget type by-type)))
              *mutation-results-queue*)
-        (->> mutation-types
-             (mapcar
-              (lambda-bind ((type . prior-probability))
-                (cons type
-                      (if (aget type by-type)
-                          ;; Take the weighted average of the static
-                          ;; mutation probability and the dynamically
-                          ;; calculated mutation probability.
-                          (+ (* (- 1 *bias-toward-dynamic-mutation*)
-                                prior-probability)
-                             (* *bias-toward-dynamic-mutation*
-                                (dynamic-weight (aget type by-type))
-                                prior-probability))
-                          prior-probability))))
-             (normalize-probabilities)
-             (cumulative-distribution))))))
+        (nest (cumulative-distribution)
+              (normalize-probabilities)
+              (mapcar
+               (lambda-bind ((type . prior-probability))
+                 (cons type
+                       (if (aget type by-type)
+                           ;; Take the weighted average of the static
+                           ;; mutation probability and the dynamically
+                           ;; calculated mutation probability.
+                           (+ (* (- 1 *bias-toward-dynamic-mutation*)
+                                 prior-probability)
+                              (* *bias-toward-dynamic-mutation*
+                                 (dynamic-weight (aget type by-type))
+                                 prior-probability))
+                           prior-probability)))
+               mutation-types))))))

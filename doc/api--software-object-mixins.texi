@@ -156,7 +156,6 @@ Class @code{sw-range}
   @item @refapimethod{one-point-crossover,one-point-crossover}
   @item @refapimethod{reference,referencce}
   @item @refapimethod{reference,(setf reference)}
-  @item @refapimethod{size,size}
   @item @refapimethod{two-point-crossover,two-point-crossover}
 
   @end itemize

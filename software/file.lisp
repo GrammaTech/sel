@@ -8,9 +8,8 @@
 
 (defpackage :software-evolution-library/software/file
   (:nicknames :sel/software/file :sel/sw/file)
-  (:use :common-lisp
-        :software-evolution-library
-        :software-evolution-library/utility)
+  (:use :gt/full
+        :software-evolution-library)
   #-windows (:import-from :osicat :file-permissions)
   (:export :file))
 (in-package :software-evolution-library/software/file)
