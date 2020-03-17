@@ -163,12 +163,12 @@ that function may be declared.")
         (variable-name (aref match-data variable-name-index)))
     ;; Insert a declaration and initialization
     (setf (lines obj)
-          (append (take (1- line-number) lines)
+          (append (subseq lines 0 (1- line-number))
                   (list (format nil "~a ~a;" random-type variable-name)
                         (format nil "~a = ~a;"
                                 variable-name
                                 (- (random (expt 2 32)) (expt 2 31))))
-                  (drop (1- line-number) lines))))
+                  (subseq lines (1- line-number)))))
   obj)
 
 (register-fixer
@@ -230,12 +230,12 @@ that function may be declared.")
          (lines (lines obj))
          (orig (nth (1- line-number) lines)))
     (setf (lines obj)
-          (append (take (1- line-number) lines)
+          (append (subseq lines 0 (1- line-number))
                   (list (concatenate 'string
                           (subseq orig 0 col-number)
                           new-expression
                           (subseq orig col-number)))
-                  (drop line-number lines))))
+                  (subseq lines line-number))))
   obj)
 
 (register-fixer
