@@ -3,8 +3,7 @@
   (:nicknames :sel/components/test-suite :sel/cp/test-suite)
   (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/utility/debug
-        :software-evolution-library/utility/process)
+        :software-evolution-library/utility/debug)
   #-windows (:shadowing-import-from :uiop :wait-process)
   (:export :*process-sleep-interval*
            :*process-kill-timeout*
@@ -136,41 +135,39 @@ Some EXTRA-KEYS that may be useful are:
         (format t "  cmd: ~{~a ~}~%" real-cmd))
 
       #-windows
-      (make-instance
-       'process
-       :os-process
-       (apply #'uiop:launch-program real-cmd
-              :output output
-              :error-output error-output
-              #+sbcl
-              ;; Ensure environment values are specified as a list of
-              ;; KEY=VALUE strings expected by SBCL's :environment
-              ;; keyword argument to `sb-ext:run-program'.
-              (iter (for arg in extra-keys)
-                    (for prev previous arg)
-                    (cond ((eq arg :env)
-                           (collect :environment))
-                          ((eq prev :env)
-                           (collect (append
-                                     (mapcar
-                                      (lambda (pair)
-                                        (destructuring-bind (key . value) pair
-                                          (concatenate 'string
-                                            key "=" value)))
-                                      arg)
-                                     (sb-ext:posix-environ))))
-                          (t (collect arg))))
-              #+ccl
-              extra-keys
-              #+ecl
-              (mapcar (lambda (it) (if (eq it :env) :environ it))
-                      extra-keys))))))
+      (apply #'uiop:launch-program real-cmd
+             :output output
+             :error-output error-output
+             #+sbcl
+             ;; Ensure environment values are specified as a list of
+             ;; KEY=VALUE strings expected by SBCL's :environment
+             ;; keyword argument to `sb-ext:run-program'.
+             (iter (for arg in extra-keys)
+                   (for prev previous arg)
+                   (cond ((eq arg :env)
+                          (collect :environment))
+                         ((eq prev :env)
+                          (collect (append
+                                    (mapcar
+                                     (lambda (pair)
+                                       (destructuring-bind (key . value) pair
+                                         (concatenate 'string
+                                           key "=" value)))
+                                     arg)
+                                    (sb-ext:posix-environ))))
+                         (t (collect arg))))
+             #+ccl
+             extra-keys
+             #+ecl
+             (mapcar (lambda (it) (if (eq it :env) :environ it))
+                     extra-keys)))))
 
-(defmethod finish-test ((test-process process))
+(defmethod finish-test (test-process)
   "Ensure that TEST-PROCESS either runs to completion or is killed.
 Return the standard output, error output, and process exit code as strings.
 
-* TEST-PROCESS the `process' associated with the test case.
+* TEST-PROCESS the `process-info' object returned by `launch-program'
+associated with the test case.
 
 See also `*process-sleep-interval*' and `*process-kill-timeout*'. If
 TEST-PROCESS is still running when `finish-test' is called, alternate between
@@ -180,45 +177,52 @@ the timeout, send a SIGTERM signal if TEST-PROCESS is still running, sleep for
 `*process-sleep-interval*' seconds once more and then if the process is still
 running, send a SIGKILL signal.
 "
-  ;; If still running and there are timeout and sleep intervals, sleep up to
-  ;; timeout, checking if process is still running every sleep-interval seconds.
-  (when (and (process-running-p test-process)
-             *process-kill-timeout* (> *process-kill-timeout* 0)
-             *process-sleep-interval* (> *process-sleep-interval* 0))
-    (iter (for i below (floor (/ *process-kill-timeout*
-                                 *process-sleep-interval*)))
-          (if (process-running-p test-process)
-              (sleep *process-sleep-interval*)
-              (leave t))))
+  (labels ((read-and-close (stream)
+             (when stream
+               (prog1
+                 (read-stream-content-into-string stream)
+                 (close stream))))
+           (kill-process (process &key urgent)
+             (if (os-unix-p)
+                 ;; Kill the entire process group (process and its children).
+                 (shell "kill -~d -$(ps -o pgid= ~d | tr -d ' ')"
+                        (if urgent 9 15) (process-info-pid process))
+                 ;; If non-unix, utilize the standard terminate process
+                 ;; which should be acceptable in most cases.
+                 (terminate-process process :urgent urgent))))
+    ;; If still running and there are timeout and sleep intervals, sleep up to
+    ;; timeout, checking if process is still running every sleep-interval seconds.
+    (when (and (process-alive-p test-process)
+               *process-kill-timeout* (> *process-kill-timeout* 0)
+               *process-sleep-interval* (> *process-sleep-interval* 0))
+      (iter (for i below (floor (/ *process-kill-timeout*
+                                   *process-sleep-interval*)))
+            (if (process-alive-p test-process)
+                (sleep *process-sleep-interval*)
+                (leave t))))
 
-  ;; Send a non-urgent kill signal (SIGTERM) to the process and all its children
-  (when (process-running-p test-process)
-    (kill-process test-process :children t))
+    ;; Send a non-urgent kill signal (SIGTERM) to the process and all its children
+    (when (process-alive-p test-process)
+      (terminate-process test-process))
 
-  ;; If still running, sleep short interval, then send an urgent kill signal
-  ;; (SIGKILL), to the process and all its children
-  (when (process-running-p test-process)
-    (sleep *process-sleep-interval*)
-    (when (process-running-p test-process)
-      (kill-process test-process :urgent t :children t))
+    ;; If still running, sleep short interval, then send an urgent kill signal
+    ;; (SIGKILL), to the process and all its children
+    (when (process-alive-p test-process)
+      (sleep *process-sleep-interval*)
+      (when (process-alive-p test-process)
+        (kill-process test-process :urgent t))
 
-    ;; If it's *still* running, warn someone.
-    (when (process-running-p test-process)
-      (note 0 "WARNING: Unable to kill process ~a" test-process)))
+      ;; If it's *still* running, warn someone.
+      (when (process-alive-p test-process)
+        (note 0 "WARNING: Unable to kill process ~a" test-process)))
 
-  ;; Now that we've made every effort to kill it, read the output.
-  (flet ((read-and-close (stream)
-           (when stream
-             (prog1
-               (read-stream-content-into-string stream)
-               (close stream)))))
-    (let* ((stdout (read-and-close (process-output-stream test-process)))
+    ;; Now that we've made every effort to kill it, read the output.
+    (let* ((stdout (read-and-close (process-info-output test-process)))
            ;; Can't read from error stream if it's the same as stdout.
-           (stderr (unless (eq (process-output-stream test-process)
-                               (process-error-stream test-process))
-                     (read-and-close (process-error-stream test-process))))
-           (exit-code (or (process-exit-code test-process)
-                          (wait-process (os-process test-process)))))
+           (stderr (unless (eq (process-info-output test-process)
+                               (process-info-error-output test-process))
+                     (read-and-close (process-info-error-output test-process))))
+           (exit-code (wait-process test-process)))
     (when *shell-debug*
       (format t "~&stdout:~a~%stderr:~a~%errno:~a" stdout stderr exit-code))
     (values stdout stderr exit-code))))

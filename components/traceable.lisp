@@ -5,7 +5,6 @@
         :trace-db
         :software-evolution-library
         :software-evolution-library/utility/debug
-        :software-evolution-library/utility/process
         :software-evolution-library/components/test-suite
         :software-evolution-library/components/instrument
         :software-evolution-library/software/clang)
@@ -162,7 +161,7 @@ times.
                                ;; of the function, an error will be thrown.
                                (declare (ignorable e))))
 
-                           (unless (process-running-p proc)
+                           (unless (process-alive-p proc)
                              (note 4 "Test process exited")
                              (return nil))
 

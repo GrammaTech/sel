@@ -78,7 +78,6 @@ DOC_PACKAGES =								\
 	software-evolution-library/utility/debug			\
 	software-evolution-library/utility/git				\
 	software-evolution-library/utility/json				\
-	software-evolution-library/utility/process			\
 	software-evolution-library/utility/range			\
 	software-evolution-library/utility/task				\
 	software-evolution-library/utility/terminal			\

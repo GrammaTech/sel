@@ -37,7 +37,6 @@
    :gt/full
    :fare-quasiquote
    :software-evolution-library/software/sexp
-   :software-evolution-library/utility/process
    :software-evolution-library/utility/debug)
   (:shadowing-import-from :fare-quasiquote :quasiquote :unquote
                           :unquote-splicing :unquote-nsplicing)
@@ -47,6 +46,7 @@
            :reset-serapi-process
            :make-serapi
            :with-serapi
+           :serapi-process-alive-p
            :kill-serapi
            :write-to-serapi
            :sanitize-process-string
@@ -173,8 +173,10 @@ to `*sertop-args*'."
   "Coq no-op statement which may be inserted to serve as a reset point.
 See `insert-reset-point'.")
 
-(defclass serapi-process (process)
-  ((reset-points :accessor reset-points :initform nil
+(defclass serapi-process ()
+  ((process-info :accessor process-info :initarg :process-info :initform nil
+                 :documentation "Process-info obj returned by launch-program")
+   (reset-points :accessor reset-points :initarg :reset-points :initform nil
                  :documentation "List of points to which a reset will return."))
   (:documentation "A SerAPI process."))
 
@@ -183,7 +185,7 @@ See `insert-reset-point'.")
   (note 3 "Creating new serapi instance.")
   #-windows
   (make-instance 'serapi-process
-                 :os-process
+                 :process-info
                  (apply #'uiop:launch-program (cons program args)
                         (append
                          (list
@@ -254,7 +256,7 @@ a left paren symbol followed by a right paren symbol.
                (t (list sexpr)))))
     (mappend #'escape-strs #!`,SEXPR)))
 
-(defmethod write-to-serapi ((serapi process) (forms list))
+(defmethod write-to-serapi ((serapi serapi-process) (forms list))
   "Write FORMS to the SERAPI process over its input stream.
 Set READTABLE-CASE to :PRESERVE to ensure printing in valid case-sensitive
 format."
@@ -263,10 +265,11 @@ format."
     (setf (readtable-case *readtable*) :preserve)
     (let ((full-string (format nil format-string (escape-cmd forms))))
       (when (and *shell-debug*
-                 (not (eq *standard-output* (process-input-stream serapi))))
+                 (not (eq *standard-output*
+                      (process-info-input (process-info serapi)))))
         (format t (concatenate 'string "  cmd: " full-string)))
-      (format (process-input-stream serapi) full-string)
-      (finish-output (process-input-stream serapi)))))
+      (format (process-info-input (process-info serapi)) full-string)
+      (finish-output (process-info-input (process-info serapi))))))
 
 (defun sanitize-process-string (string &aux (last nil))
   "Ensure that special characters are properly escaped in STRING.
@@ -295,23 +298,24 @@ Backslashes and quotation marks are escaped, and whitespace characters (\\n,
               (setf last nil)
               (setf last char)))))
 
-(defmethod read-process-string ((process process)
+(defmethod read-process-string ((process serapi-process)
                                 &optional (eof-error-p t) eof-value)
   "Read the next line from the PROCESS output stream. Return a string."
   (sanitize-process-string
-   (read-line (process-output-stream process) eof-error-p eof-value)))
+   (read-line (process-info-output (process-info process))
+              eof-error-p eof-value)))
 
-(defmethod read-with-timeout ((process process) timeout interval
+(defmethod read-with-timeout ((process serapi-process) timeout interval
                               &optional (eof-error-p t) eof-value)
   "Read from PROCESS output stream, waiting up to TIMEOUT seconds for output.
 Use `listen' to check if data is available in the PROCESS output stream before
 reading. If no data is available, sleep INTERVAL seconds and check again up to a
 maximum of TIMEOUT seconds. Return NIL if no data becomes available."
   (or (iter (for i below (floor (/ timeout interval)))
-            (when (listen (process-output-stream process))
+            (when (listen (process-info-output (process-info process)))
               (leave (read-process-string process eof-error-p eof-value)))
             (sleep interval))
-      (when (listen (process-output-stream process))
+      (when (listen (process-info-output (process-info process)))
         (read-process-string process eof-error-p eof-value))
       (restart-case
           (error (make-condition
@@ -361,7 +365,7 @@ for failed responses it will be an error string."
                           <>
                           "(CoqString \"\\1\")")))
 
-(defmethod read-serapi-response ((serapi process))
+(defmethod read-serapi-response ((serapi serapi-process))
   "Read FORMS from the SERAPI process over its output stream.
 Sets READTABLE-CASE to :PRESERVE to ensure printing in valid case-sensitive
 format."
@@ -374,7 +378,9 @@ format."
                  (while str)
                  (collect str into strings)
                  (when (and (is-terminating str)
-                            (not (listen (process-output-stream serapi))))
+                            (not (nest (listen)
+                                       (process-info-output)
+                                       (process-info serapi))))
                    (leave strings))
                  (finally (return strings)))))
       (when *shell-debug*
@@ -426,6 +432,10 @@ AST ID. See also `reset-serapi-process'."
         (push (first ast-ids) (reset-points *serapi-process*))
         (push ast-ids (reset-points *serapi-process*)))))
 
+(defun serapi-process-alive-p (&optional (process *serapi-process*))
+  "Return T if the serapi PROCESS is running."
+  (when process (process-alive-p (process-info process))))
+
 (defun reset-serapi-process ()
   "Reset `*serapi-process*' to the last reset point in its `reset-points'.
 See also `insert-reset-point'."
@@ -434,7 +444,7 @@ See also `insert-reset-point'."
 
 (defmethod kill-serapi ((serapi serapi-process) &key (signal 9))
   "Ensure SerAPI process is terminated."
-  (kill-process serapi :urgent (eql signal 9))
+  (terminate-process (process-info serapi) :urgent (eql signal 9))
   (setf (reset-points serapi) nil))
 
 (defmacro with-serapi ((&optional (process *serapi-process*))
@@ -445,7 +455,7 @@ Uses default path and arguments for sertop (`*sertop-path*' and
   (let ((old-proc (gensym)))
     `(let ((,old-proc
             ;; save old process
-            (when (and ,process (process-running-p ,process))
+            (when (and ,process (process-alive-p (process-info ,process)))
               ,process)))
        (let ((*serapi-process* (or ,old-proc (make-serapi))))
          (unwind-protect
