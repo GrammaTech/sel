@@ -57,7 +57,7 @@ which may be more nodes, or other values.")
 (defmethod print-object ((obj expression-result) stream)
   (with-slots (start end string-pointer expression children) obj
     (if *print-readably*
-        (format stream "~S" `(make-instance 'expression-result
+        (format stream "~S" `(make-instance ',(class-name (class-of obj))
                                :start ,start
                                :end ,end
                                :string-pointer *string*
@@ -66,13 +66,22 @@ which may be more nodes, or other values.")
         (print-unreadable-object (obj stream :type t)
           (format stream ":EXPRESSION ~a" expression)))))
 
+(defclass sharpsign-dot (expression-result) ())
+
+(defclass sharpsign-sign (expression-result)
+  ((feature-expression :initarg :feature-expression
+                       :reader feature-expression)))
+
+(defclass sharpsign-plus (sharpsign-sign) ())
+(defclass sharpsign-minus (sharpsign-sign) ())
+
 (defclass skipped-input-result (result)
   ((reason :initarg :reason :reader  reason)))
 
 (defmethod print-object ((obj skipped-input-result) stream &aux (max-length 8))
   (nest (with-slots (start end string-pointer reason) obj)
         (if *print-readably*
-            (format stream "~S" `(make-instance 'skipped-input-result
+            (format stream "~S" `(make-instance ',(class-name (class-of obj))
                                    :start ,start
                                    :end ,end
                                    :string-pointer *string*
@@ -153,10 +162,34 @@ which may be more nodes, or other values.")
 
 (defmethod make-expression-result
     ((client client) (result t) (children t) (source cons))
-  (make-instance 'expression-result :expression result
-                 :children children
-                 :start (car source)
-                 :end (cdr source)))
+  (destructuring-bind (start . end) source
+    (match result
+           ((list '|#.| result)
+            (make-instance 'sharpsign-dot
+              :expression result
+              :children children
+              :start start
+              :end end))
+           ((list '|#+| feature-expr result)
+            (make-instance 'sharpsign-plus
+              :expression result
+              :children children
+              :feature-expression feature-expr
+              :start start
+              :end end))
+           ((list '|#-| feature-expr result)
+            (make-instance 'sharpsign-minus
+              :expression result
+              :children children
+              :feature-expression feature-expr
+              :start start
+              :end end))
+           (otherwise
+            (make-instance 'expression-result
+              :expression result
+              :children children
+              :start start
+              :end end)))))
 
 (defmethod make-skipped-input-result
     ((client client) stream reason source)
