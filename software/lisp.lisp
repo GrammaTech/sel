@@ -1,6 +1,6 @@
 ;;; lisp.lisp --- software representation of lisp code
 ;;;
-;;; Eclector, see @url{https://github.com:robert-strandh/Eclector},
+;;; Eclector, see @url{https://github.com/robert-strandh/Eclector},
 ;;; is used to parse lisp source into concrete ASTs.
 ;;;
 ;;; @texi{lisp}
@@ -9,8 +9,13 @@
   (:use :gt/full
         :software-evolution-library
         :software-evolution-library/software/parseable
-        :software-evolution-library/software/source
         :eclector.parse-result)
+  (:import-from :eclector.reader
+                :evaluate-expression
+                :interpret-symbol)
+  (:shadowing-import-from :eclector.readtable
+                          :copy-readtable
+                          :set-dispatch-macro-character)
   (:shadowing-import-from :eclector.parse-result
                           :read
                           :read-from-string
@@ -129,6 +134,23 @@ which may be more nodes, or other values.")
 ;;; Trivial Eclector client used to customize parsing for SEL.
 (defclass client (parse-result-client) ())
 
+(defun sharpsign-sign-reader (stream char n)
+  (declare (ignore n))
+  (let* ((client (make-instance 'client))
+         (prefix
+          (ecase char
+            (#\+ '|#+|)
+            (#\- '|#-|)))
+         (feature-expression (read client stream))
+         (expression (read client stream)))
+    (list prefix feature-expression expression)))
+
+(defparameter *lisp-ast-readtable*
+  (let ((readtable (copy-readtable eclector.readtable:*readtable*)))
+    (set-dispatch-macro-character readtable #\# #\+ 'sharpsign-sign-reader)
+    (set-dispatch-macro-character readtable #\# #\- 'sharpsign-sign-reader)
+    readtable))
+
 (defmethod make-expression-result
     ((client client) (result t) (children t) (source cons))
   (make-instance 'expression-result :expression result
@@ -142,7 +164,7 @@ which may be more nodes, or other values.")
   (make-instance 'skipped-input-result
     :reason reason :start (car source) :end (cdr source)))
 
-(defmethod eclector.reader:interpret-symbol
+(defmethod interpret-symbol
     ((client client) input-stream package-indicator symbol-name internp)
   (let ((package (case package-indicator
                    (:current *package*)
@@ -178,13 +200,14 @@ which may be more nodes, or other values.")
   (:method (client material)
     (list '|#.| material)))
 
-(defmethod eclector.reader:evaluate-expression ((client client) expression)
+(defmethod evaluate-expression ((client client) expression)
   (wrap-in-sharpsign-dot client expression))
 
 (defun read-forms+ (string &key count)
   (check-type count (or null integer))
   (let ((*string* string)
-        (client (make-instance 'client)))
+        (client (make-instance 'client))
+        (eclector.readtable:*readtable* *lisp-ast-readtable*))
     (labels
         ((make-space (start end)
            (when (< start end)
@@ -221,7 +244,7 @@ which may be more nodes, or other values.")
             :for n :from 0
             :for form = (if (and count (>= n count))
                             eof
-                            (eclector.parse-result:read client input nil eof))
+                            (read client input nil eof))
             :until (eq form eof) :collect form))
        0 (length string)))))
 
@@ -299,16 +322,16 @@ which may be more nodes, or other values.")
           :expression expression
           :children children))))
 
-(defun rewrite-double-arrow (software)
-  (setf (genome software)
-        (map-tree (lambda (node)
-                    (if (and (typep node 'expression-result)
-                             (listp (expression node))
-                             (equal '->> (first (expression node))))
-                        (values (fix-double-arrow node) t)
-                        (values node nil)))
-                  (genome software))))
+  (defun rewrite-double-arrow (software)
+    (setf (genome software)
+          (map-tree (lambda (node)
+                      (if (and (typep node 'expression-result)
+                               (listp (expression node))
+                               (equal '->> (first (expression node))))
+                          (values (fix-double-arrow node) t)
+                          (values node nil)))
+                    (genome software))))
 
-(defun rewrite-double-arrow-in-place (file)
-  (string-to-file (source-text (rewrite-double-arrow
-                                (from-file (make-instance 'lisp) file))) file)))
+  (defun rewrite-double-arrow-in-place (file)
+    (string-to-file (source-text (rewrite-double-arrow
+                                  (from-file (make-instance 'lisp) file))) file)))
