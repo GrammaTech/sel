@@ -173,17 +173,13 @@ which may be more nodes, or other values.")
 ;;; The next two forms are used to avoid throwing errors when a
 ;;; #. reader macro attempts to execute code during parsing.  We want
 ;;; to avoid this as we will typically not have the requisite
-;;; variables defined.  This is currently done simply by overriding
-;;; the existing definition of SHARPSIGN-DOT in ECLECTOR.READER with
-;;; one that skips the "#.".
+;;; variables defined.
 (defgeneric wrap-in-sharpsign-dot (client material)
   (:method (client material)
     (list '|#.| material)))
 
-(defun eclector.reader::sharpsign-dot (stream char parameter)
-  (declare (ignore char parameter))
-  (let ((material (eclector.reader::read stream t nil t)))
-    (wrap-in-sharpsign-dot eclector.reader::*client* material)))
+(defmethod eclector.reader:evaluate-expression ((client client) expression)
+  (wrap-in-sharpsign-dot client expression))
 
 (defun read-forms+ (string &key count)
   (check-type count (or null integer))
