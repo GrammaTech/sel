@@ -15,6 +15,8 @@
    :software-evolution-library
    :software-evolution-library/software/lisp)
   (:import-from :uiop :nest)
+  (:import-from :asdf
+                :system-relative-pathname)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
@@ -24,3 +26,10 @@
 (in-readtable :curry-compose-reader-macros)
 
 (defsuite test-lisp "Lisp representation")
+
+(deftest self-parse ()
+  (nest
+   (finishes)
+   (from-file (make-instance 'lisp))
+   (namestring)
+   (system-relative-pathname "software-evolution-library" "test/lisp.lisp")))
