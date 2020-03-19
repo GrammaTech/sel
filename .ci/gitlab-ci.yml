@@ -115,13 +115,6 @@ run-arch-sbcl:
     LISP: 'sbcl'
   <<: *run
 
-trigger_bed:
-  stage: dependents
-  script:
-    - "curl -X POST -F token=53072adf26824b62fe4bd75f81a816 -F ref=$CI_BUILD_REF_NAME https://git.grammatech.com/api/v4/projects/209/trigger/pipeline"
-  only:
-    - master
-
 trigger_evo-rings:
   stage: dependents
   script:
