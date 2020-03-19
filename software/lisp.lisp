@@ -150,7 +150,9 @@ which may be more nodes, or other values.")
           (ecase char
             (#\+ '|#+|)
             (#\- '|#-|)))
-         (feature-expression (read client stream))
+         (feature-expression
+          (let ((*package* (find-package :keyword)))
+            (read client stream)))
          (expression (read client stream)))
     (list prefix feature-expression expression)))
 
