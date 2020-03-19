@@ -310,15 +310,18 @@ which may be more nodes, or other values.")
                       (list tree)
                       (make-space (end tree) to))))))
              result)))
-      (w/space
-       (with-input-from-string (input string)
-         (loop :with eof = '#:eof
-            :for n :from 0
-            :for form = (if (and count (>= n count))
-                            eof
-                            (read client input nil eof))
-            :until (eq form eof) :collect form))
-       0 (length string)))))
+      (let ((end (length string)))
+        (w/space
+         (with-input-from-string (input string)
+           (loop :with eof = '#:eof
+              :for n :from 0
+              :for form = (if (and count (>= n count))
+                              eof
+                              (read client input nil eof))
+              :until (eq form eof) :collect form
+              :finally (when count
+                         (setf end (file-position input)))))
+         0 end)))))
 
 (defun walk-skipped-forms (function forms)
   (mapcar
