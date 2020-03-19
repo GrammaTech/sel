@@ -24,12 +24,13 @@
            :expression :expression-result
            :feature-expression
            :sharpsign-plus
-           :sharpsign-minus))
+           :sharpsign-minus
+           :*string*))
 (in-package :software-evolution-library/software/lisp)
 (in-readtable :curry-compose-reader-macros)
 
 
-(defvar *string*)
+(defvar *string* nil)
 
 (defclass lisp-ast (ast)
   ((expression :initarg :expression :initform nil :reader expression
@@ -97,6 +98,7 @@ which may be more nodes, or other values.")
 (defmethod source-text ((object sharpsign-sign) &optional stream)
   (write-string (sharpsign-prefix object) stream)
   (source-text (feature-expression object) stream)
+  (write-char #\Space stream)
   (source-text (expression object) stream))
 
 (defclass sharpsign-plus (sharpsign-sign) ())

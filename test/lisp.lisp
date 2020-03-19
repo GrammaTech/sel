@@ -18,13 +18,15 @@
   (:import-from :asdf
                 :system-relative-pathname)
   (:import-from :functional-trees
-                :traverse-nodes)
+                :traverse-nodes :map-tree)
   (:import-from :fset
                 :convert)
   (:import-from :trivia
                 :match)
   (:import-from :software-evolution-library/software/parseable
                 :source-text)
+  (:import-from :software-evolution-library/software/lisp
+                :*string*)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
@@ -112,3 +114,22 @@
     (is (set-equal
          '(:clasp :ecl :mkcl :clisp)
          (gather-features (convert 'lisp-ast example))))))
+
+(deftest rewrite-empty-feature-expression ()
+  (is (equal "#+(or) (coda-non-grata)"
+             (let* ((ast (map-tree (lambda (node)
+                                     (if (and (typep node 'sharpsign-plus)
+                                              (null (expression (feature-expression node))))
+                                         (values
+                                          (make-instance 'sharpsign-plus
+                                            :feature-expression
+                                            (make-instance 'expression-result
+                                              :expression '(:or)
+                                              :start 0
+                                              :end 4
+                                              :string-pointer "(or)")
+                                            :expression (expression node))
+                                          t)
+                                         node))
+                                   (convert 'lisp-ast "#+() (coda-non-grata)"))))
+               (source-text ast)))))
