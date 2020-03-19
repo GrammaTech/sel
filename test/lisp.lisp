@@ -133,3 +133,23 @@
                                          node))
                                    (convert 'lisp-ast "#+() (coda-non-grata)"))))
                (source-text ast)))))
+
+(defun flip-conditions (ast)
+  (map-tree (lambda (node)
+              (typecase node
+                (sharpsign-plus
+                 (make-instance 'sharpsign-minus
+                   :feature-expression (feature-expression node)
+                   :expression (expression node)))
+                (sharpsign-minus
+                 (make-instance 'sharpsign-plus
+                   :feature-expression (feature-expression node)
+                   :expression (expression node)))
+                (otherwise node)))
+            ast))
+
+(deftest test-flip-conditions ()
+  (is (equal "(list #-sbcl :sbcl #+sbcl :not-sbcl)"
+             (source-text
+              (flip-conditions
+               (convert 'lisp-ast "(list #+sbcl :sbcl #-sbcl :not-sbcl)"))))))
