@@ -71,7 +71,7 @@ exit 0")
         (values stdout stderr exit-code))))
 
 (defmethod java-ids-aux ((java java))
-  (with-temp-file-of (src-file (ext java)) (genome java)
+  (with-temporary-file-of (:pathname src-file :type (ext java)) (genome java)
     (multiple-value-bind (stdout stderr errno)
         (java-jar-exec (format nil "-ids ~a" src-file))
       (declare (ignorable stderr))
@@ -93,7 +93,7 @@ exit 0")
 
 ;;;; Core Mutations.
 (defmethod java-insert-aux ((java java) stmt1 value1)
-  (with-temp-file-of (src-file (ext java)) (genome java)
+  (with-temporary-file-of (:pathname src-file :type (ext java)) (genome java)
     (java-jar-exec (format nil "-insert ~a -out=~a -stmt1=~a -value=~a"
                            src-file
                            (directory-namestring src-file)
@@ -146,7 +146,7 @@ insert)."
 
 (defmethod phenome ((obj java) &key (bin (temp-file-name)))
   "Compiles the software object to a jar and converts it to a linux executable"
-  (with-temp-dir (sandbox)
+  (with-temporary-directory (:pathname sandbox)
     (with-current-directory (sandbox)
       (let ((bin (namestring bin))
             (file-path (namestring (make-pathname :directory sandbox
@@ -173,7 +173,9 @@ insert)."
                    (file-name obj) (file-name obj))
 
           ;; Create the bin using the jar file and the input.
-          (with-temp-file-of (script-file) *java-execution-script-template*
+          (with-temporary-file-of
+            (:pathname script-file)
+            *java-execution-script-template*
             (shell "cat ~a ~a.jar > ~a && chmod +x ~a"
                    script-file (file-name obj) bin bin))
 

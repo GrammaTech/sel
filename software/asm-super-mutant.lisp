@@ -1985,11 +1985,11 @@ jump_table:
   "Path to papi library.  See http://icl.cs.utk.edu/papi/.")
 
 (defmethod phenome ((asm asm-super-mutant)
-		    &key (bin (temp-file-name "out"))
-		      (src (temp-file-name "asm")))
+		    &key (bin (temp-file-name :type "out"))
+		      (src (temp-file-name :type "asm")))
   "Create ASM file, assemble it, and link to create binary BIN."
   (let ((src (generate-file asm src (length (mutants asm)))))
-    (with-temp-file (obj "o")
+    (with-temporary-file (:pathname obj :type "o")
       ;; Assemble.
       (multiple-value-bind (stdout stderr errno)
           (shell "~a ~a -o ~a ~a"
@@ -2077,7 +2077,7 @@ needs to have been loaded, along with the var-table by PARSE-SANITY-FILE."
 	 (*worst-fitness* (worst-numeric-fitness))
          (phenome-create-error nil)
          (phenome-execute-error nil))
-    (with-temp-file (bin)
+    (with-temporary-file (:pathname bin)
       (multiple-value-bind (bin-path phenome-errno stderr stdout src)
 	  (phenome asm-super :bin bin)
 	(declare (ignorable phenome-errno stderr stdout src))

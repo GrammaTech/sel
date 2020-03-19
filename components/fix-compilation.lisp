@@ -66,7 +66,7 @@ associated element of `*compilation-fixers*'.
     (clang-tidy obj)
     (loop :for attempt :below max-attempts :do
        ;; Compile
-       (with-temp-file (bin)
+       (with-temporary-file (:pathname bin)
          (multiple-value-bind (bin errno stderr)
              (ignore-phenome-errors
               (phenome obj :bin bin))

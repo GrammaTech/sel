@@ -27,7 +27,7 @@
                                         (list :bin (write-to-string i))))))
 
 (defun test (obj)
-  (with-temp-file (bin)
+  (with-temporary-file (:pathname bin)
     (phenome obj :bin bin)
     ;; run the test-suite on bin, returning the number of passing tests
     (evaluate bin *test-suite*)))

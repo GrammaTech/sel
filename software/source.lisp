@@ -38,7 +38,7 @@
 on the filesystem at BIN."
   #-ccl (declare (values t fixnum string string string))
   (setf bin (namestring bin))
-  (with-temp-file-of (src (ext obj)) (genome-string obj)
+  (with-temporary-file-of (:pathname src :type (ext obj)) (genome-string obj)
     (multiple-value-bind (stdout stderr errno)
         (shell "~a ~a -o ~a ~{~a~^ ~}" (compiler obj) src bin (flags obj))
       (restart-case

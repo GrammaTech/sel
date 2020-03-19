@@ -37,7 +37,7 @@
                       trace-file trace-env
                       instrument-exit filter
                       num-threads))
-  (with-temp-file-of (src-file (ext obj)) (genome obj)
+  (with-temporary-file-of (:pathname src-file :type (ext obj)) (genome obj)
     (if (null (file-id instrumenter))
         (java-jar-exec (format nil "-instrument ~a -out=~a"
                                src-file
@@ -52,7 +52,7 @@
 
 (defmethod uninstrument ((obj java) &key (num-threads 1))
   (declare (ignorable num-threads))
-  (with-temp-file-of (src-file (ext obj)) (genome obj)
+  (with-temporary-file-of (:pathname src-file :type (ext obj)) (genome obj)
     (java-jar-exec (format nil "-uninstrument ~a -out=~a"
                            src-file
                            (directory-namestring src-file)))

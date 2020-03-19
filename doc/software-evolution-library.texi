@@ -1325,10 +1325,6 @@ Executing this code will print output resembling the following.
   @item @refapigeneric{mutate}
   @item @refapigeneric{phenome}
   @end itemize
-@c @item [sel/utility] Macro @ref{Macro sel/utility:with-temp-file, @code{with-temp-file}}
-@c @item [sel/utility] Function @ref{Function sel/utility:shell, @code{shell}}
-@c @item [sel/utility] Macro @ref{Macro with-temp-file, @code{with-temp-file}}
-@c @item [sel/utility] Function @ref{Function shell, @code{shell}}
 @end itemize
 
 

@@ -17,7 +17,7 @@
 (defvar *test*  "./test/gcd/test.sh")
 
 (defun test-suite (ast)
-  (with-temp-file (bin)
+  (with-temporary-file (:pathname bin)
     (if (zerop (second (multiple-value-list (phenome ast :bin bin))))
         (count t (loop :for num :upto 10 :collect
                     (multiple-value-bind (output err-output exit)

@@ -129,7 +129,7 @@
   (let ((*java-file-name* file))
     (with-fixture general-fixture-java
       (instrument *soft*)
-      (with-temp-file (bin)
+      (with-temporary-file (:pathname bin)
         (phenome *soft* :bin bin)
         (is (probe-file bin))))))
 
@@ -236,5 +236,6 @@
 
 (deftest (java-build-folder-jar-test :long-running) ()
   "Tests if applicable file names in a build-folder are found."
-  (with-temp-dir-of (temp-dir) (make-pathname :directory +java-jars-dir+)
-                    (is (equal 9 (length (get-files-jar temp-dir))))))
+  (with-temporary-directory-of (:pathname temp-dir)
+    (make-pathname :directory +java-jars-dir+)
+    (is (equal 9 (length (get-files-jar temp-dir))))))

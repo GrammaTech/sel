@@ -54,7 +54,7 @@ See http://llvm.org)."))
 * LLVM DOCFIXME
 * OP DOCFIXME
 "
-  (with-temp-file-of (src (ext llvm)) (genome llvm)
+  (with-temporary-file-of (:pathname src :type (ext llvm)) (genome llvm)
     (multiple-value-bind (stdout stderr exit)
         (shell "cat ~a|llvm-mutate --~a ~a"
                src
@@ -74,7 +74,7 @@ See http://llvm.org)."))
 "
   #-ccl (declare (values t fixnum string string string))
   (setf bin (namestring bin))
-  (with-temp-file-of (src (ext llvm)) (genome llvm)
+  (with-temporary-file-of (:pathname src :type (ext llvm)) (genome llvm)
     (multiple-value-bind (stdout stderr errno)
         (shell "cat ~a|~a|~a ~{~a~^ ~} -x assembler - -o ~a"
                src (compiler llvm) (linker llvm) (flags llvm) bin)

@@ -89,7 +89,7 @@
   (count-if {can-be-made-traceable-p obj} (asts obj)))
 
 (defun get-gcd-trace (bin)
-  (with-temp-file (trace-file)
+  (with-temporary-file (:pathname trace-file)
     (let ((errno (nth-value 2 (run-program (format nil "~a 4 8 2>~a"
                                                    bin trace-file)))))
       (is (zerop errno))
@@ -109,7 +109,7 @@
       (is (<= (count-traceable *gcd*)
               (count-traceable instrumented)))
       ;; Instrumented compiles and runs.
-      (with-temp-file (bin)
+      (with-temporary-file (:pathname bin)
         (is (zerop (nth-value 1 (ignore-phenome-errors
                                  (phenome instrumented :bin bin)))))
         (is (probe-file bin))
@@ -124,7 +124,7 @@
                                               (eq 92 (index-of-ast obj ast)))
                                     :trace-file :stderr)))
       ;; Instrumented compiles and runs.
-      (with-temp-file (bin)
+      (with-temporary-file (:pathname bin)
         (is (zerop (nth-value 1 (ignore-phenome-errors
                                  (phenome instrumented :bin bin)))))
         (is (probe-file bin))
@@ -153,7 +153,7 @@
            :no-error t))
 
       ;; Instrumented compiles and runs.
-      (with-temp-file (bin)
+      (with-temporary-file (:pathname bin)
         (is (zerop (nth-value 1 (ignore-phenome-errors
                                  (phenome instrumented :bin bin)))))
         (is (probe-file bin))
@@ -175,7 +175,7 @@
                 (genome-string instrumented))
           "We find code to print auxiliary values in the instrumented source.")
       ;; Instrumented compiles and runs.
-      (with-temp-file (bin)
+      (with-temporary-file (:pathname bin)
         (is (zerop (nth-value 1 (ignore-phenome-errors
                                  (phenome instrumented :bin bin)))))
         (is (probe-file bin))
@@ -186,8 +186,8 @@
 
 (deftest (instrumentation-insertion-w-trace-file-test :long-running) ()
   (with-fixture gcd-clang
-    (with-temp-file (trace)
-      (with-temp-file (bin)
+    (with-temporary-file (:pathname trace)
+      (with-temporary-file (:pathname bin)
         (let ((instrumented
                (instrument (copy *gcd*) :trace-file trace)))
           (is (scan (quote-meta-chars trace) (genome-string instrumented)))
@@ -213,7 +213,7 @@
           (is (scan (quote-meta-chars "b = b - a;")
                     (nth location (lines instrumented))))))
       ;; Finally, lets be sure we still compile.
-      (with-temp-file (bin)
+      (with-temporary-file (:pathname bin)
         (is (zerop (nth-value 1 (ignore-phenome-errors
                                  (phenome instrumented :bin bin)))))
         (is (probe-file bin))
@@ -234,7 +234,7 @@
           "The point trace value ~S appears in the instrumented program text."
           cookie)
       ;; Instrumented compiles and runs.
-      (with-temp-file (bin)
+      (with-temporary-file (:pathname bin)
         (is (zerop (nth-value 1 (ignore-phenome-errors
                                  (phenome instrumented :bin bin)))))
         (is (probe-file bin))
@@ -256,7 +256,7 @@ prints unique counters in the trace"
                       `(clang-insert (:stmt1 . ,stmt1) (:stmt2 . ,stmt2)))
       (instrument instrumented)
 
-      (with-temp-file (bin)
+      (with-temporary-file (:pathname bin)
         (is (zerop (nth-value 1 (ignore-phenome-errors
                                  (phenome instrumented :bin bin)))))
         (is (probe-file bin))
@@ -306,7 +306,7 @@ prints unique counters in the trace"
     (is (scan (quote-meta-chars "__write_trace_variables(__sel_trace_file")
               (genome-string *gcd*))
         "We find code to print unbound variables in the instrumented source.")
-    (with-temp-file (bin)
+    (with-temporary-file (:pathname bin)
       (is (zerop (nth-value 1 (ignore-phenome-errors
                                (phenome *gcd* :bin bin))))
           "Successfully compiled instrumented GCD.")
@@ -331,7 +331,7 @@ prints unique counters in the trace"
     (is (scan (quote-meta-chars "__write_trace_variables(__sel_trace_file")
               (genome-string *gcd*))
         "We find code to print unbound variables in the instrumented source.")
-    (with-temp-file (bin)
+    (with-temporary-file (:pathname bin)
       (is (zerop (nth-value 1 (ignore-phenome-errors
                                (phenome *gcd* :bin bin))))
           "Successfully compiled instrumented GCD.")
@@ -364,7 +364,7 @@ prints unique counters in the trace"
     (is (scan (quote-meta-chars "__write_trace_blobs(__sel_trace_file")
               (genome-string *soft*))
         "We find code to print strings in the instrumented source.")
-    (with-temp-file (bin)
+    (with-temporary-file (:pathname bin)
       (is (zerop (nth-value 1 (ignore-phenome-errors
                                (phenome *soft* :bin bin))))
           "Successfully compiled instrumented SOFT.")
@@ -390,7 +390,7 @@ prints unique counters in the trace"
     (is (scan (quote-meta-chars "__write_trace_blobs(__sel_trace_file")
               (genome-string *soft*))
         "We find code to print strings in the instrumented source.")
-    (with-temp-file (bin)
+    (with-temporary-file (:pathname bin)
       (is (zerop (nth-value 1 (ignore-phenome-errors
                                (phenome *soft* :bin bin))))
           "Successfully compiled instrumented SOFT.")
@@ -413,7 +413,7 @@ prints unique counters in the trace"
     (is (scan (quote-meta-chars "__write_trace_variables(__sel_trace_file")
               (genome-string *gcd*))
         "We find code to print unbound variables in the instrumented source.")
-    (with-temp-file (bin)
+    (with-temporary-file (:pathname bin)
       (is (zerop (nth-value 1 (ignore-phenome-errors
                                (phenome *gcd* :bin bin))))
           "Successfully compiled instrumented GCD.")
@@ -435,7 +435,7 @@ prints unique counters in the trace"
     (is (scan (quote-meta-chars "__write_trace_variables(__sel_trace_file")
               (genome-string *soft*))
         "We find code to print unbound variables in the instrumented source.")
-    (with-temp-file (bin)
+    (with-temporary-file (:pathname bin)
       (is (zerop (nth-value 1 (ignore-phenome-errors
                                (phenome *soft* :bin bin))))
           "Successfully compiled instrumented program.")
@@ -470,11 +470,11 @@ prints unique counters in the trace"
                                         instrumenter
                                         ast)))
                 :trace-file :stderr)
-    (with-temp-file (bin)
+    (with-temporary-file (:pathname bin)
       (is (zerop (nth-value 1 (ignore-phenome-errors
                                (phenome *project* :bin bin))))
           "Successfully compiled instrumented project.")
-      (with-temp-file (trace-file)
+      (with-temporary-file (:pathname trace-file)
         (let ((errno (nth-value 2 (run-program (format nil "~a 2>~a"
                                                        bin trace-file)))))
           (is (zerop errno))
@@ -526,7 +526,7 @@ prints unique counters in the trace"
                                             ast))))
                   :trace-file :stderr)
 
-      (with-temp-file (bin)
+      (with-temporary-file (:pathname bin)
         (is (zerop (nth-value 1 (ignore-phenome-errors
                                  (phenome *gcd* :bin bin))))
             "Successfully compiled instrumented GCD.")

@@ -42,7 +42,7 @@
 * OPTIONS list of additional options to astyle
 * ERRNO exit code of astyle binary
 "
-  (with-temp-file-of (src (ext obj)) (genome obj)
+  (with-temporary-file-of (:pathname src :type (ext obj)) (genome obj)
     (setf (genome obj)
           (multiple-value-bind (stdout stderr exit)
               (shell "astyle --suffix=none ~{~a~^ ~} --style=~a ~a"
@@ -79,7 +79,7 @@
 * ERRNO exit code of clang-tidy
 "
   (setf (genome obj)
-        (with-temp-file-of (src (ext obj)) (genome obj)
+        (with-temporary-file-of (:pathname src :type (ext obj)) (genome obj)
           (multiple-value-bind (stdout stderr exit)
               (shell
                "clang-tidy -fix -fix-errors -checks=~{~a~^,~} ~a -- ~a 1>&2"
@@ -97,7 +97,7 @@
 * STYLE clang-format style to utilize
 * ERRNO exit code of clang-format
 "
-  (with-temp-file-of (src (ext obj)) (genome obj)
+  (with-temporary-file-of (:pathname src :type (ext obj)) (genome obj)
     (setf (genome obj)
           (multiple-value-bind (stdout stderr exit)
               (shell "clang-format ~a ~a"
@@ -123,7 +123,7 @@
 * OBJ object to format and return
 * ERRNO exit code of prettier
 "
-  (with-temp-file-of (src (ext obj)) (genome obj)
+  (with-temporary-file-of (:pathname src :type (ext obj)) (genome obj)
     (setf (genome obj)
           (multiple-value-bind (stdout stderr exit)
               (shell "prettier ~a" src)

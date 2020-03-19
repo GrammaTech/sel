@@ -79,7 +79,7 @@ Options:
      (make-pathname :directory (list :relative res-dir)))
     (flet ((test (asm)
              ;; Return numerical fitness printed to STDOUT by SCRIPT or zero.
-             (with-temp-file (bin)
+             (with-temporary-file (:pathname bin)
                (or (ignore-errors
                      (and (multiple-value-bind (bin exit) (phenome asm :bin bin)
                             (declare (ignorable bin)) (zerop exit))

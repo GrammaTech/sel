@@ -39,7 +39,7 @@
 
 ;;; Evaluate fitness (looking at cycles to execute).
 (defun test-sqrt (obj &aux (total 0))
-  (with-temp-file (bin)
+  (with-temporary-file (:pathname bin)
     (phenome obj :bin bin)
     (or (ignore-errors
           (dotimes (n 20 total)

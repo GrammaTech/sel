@@ -74,7 +74,7 @@
                       :object *hello-world*
                       :targets `((:stmt1 . ,(stmt-with-text *hello-world*
                                                             "return 0;")))))
-    (with-temp-file (save-base)
+    (with-temporary-file (:pathname save-base)
       (multiple-value-bind (stdout stderr errno)
           (save-ancestry *hello-world*
                          (pathname-directory save-base)

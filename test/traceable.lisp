@@ -115,7 +115,7 @@
 
 (deftest (long-running-program-killed-test :long-running) ()
   (with-fixture long-running-program-clang
-    (with-temp-file (bin)
+    (with-temporary-file (:pathname bin)
       (phenome *soft* :bin bin)
       (let ((proc (start-test bin
                               (make-instance 'test-case :program-name bin)
@@ -127,7 +127,7 @@
 
 (deftest (env-variables-passed-through-to-test-suites :long-running) ()
   (with-fixture print-env-clang
-    (with-temp-file (bin)
+    (with-temporary-file (:pathname bin)
       (phenome *soft* :bin bin)
       (is (string=
            (concatenate 'string "__sel_bar" '(#\Newline))

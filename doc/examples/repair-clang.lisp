@@ -39,7 +39,7 @@
 
 (defun run (obj)
   "Compile software object OBJ and return number of tests passed."
-  (with-temp-file (bin)
+  (with-temporary-file (:pathname bin)
     (phenome obj :bin bin)
     (loop :for test :in (test-cases *test-suite*)
        ;; `evaluate' runs test and returns 1 if the exit code is 0 (success)

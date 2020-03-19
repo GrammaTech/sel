@@ -238,7 +238,7 @@
   "Retrieve the paths on the default clang system include search path."
   (nest
    (when (which "clang"))
-   (with-temp-file-of (bin "cpp") "")
+   (with-temporary-file-of (:pathname bin :type "cpp") "")
    (multiple-value-bind (stdout stderr exit)
        (shell "clang -v ~a" bin)
      (declare (ignorable stdout exit))
@@ -257,7 +257,7 @@
   "Retrieve the paths on the default clang system include search path."
   (nest
    (when (which "clang-cl.exe"))
-   (with-temp-file-of (bin "cpp") "")
+   (with-temporary-file-of (:pathname bin :type "cpp") "")
    (multiple-value-bind (stdout stderr exit)
        (shell "clang-cl.exe -v ~a" bin)
      (declare (ignorable stdout exit))
@@ -4542,52 +4542,52 @@ valid hash.
 ;;; Invocation of clang to get json
 
 (defmethod clang-json ((obj clang) &key &allow-other-keys)
-  (with-temp-file-of (src-file (ext obj)) (genome obj)
-                     (let ((cmd-fmt "clang -cc1 -ast-dump=json ~
-                                           -fgnuc-version=4.2.1 ~
-                                           -fcxx-exceptions ~
-                                           ~{~a~^ ~} ~a ~a")
-                           (filter "| sed -e \"s/  *//\" ; exit ${PIPESTATUS[0]}")
-                           (genome-len (length (genome obj)))
-                           (flags (append (clang-frontend-flags (flags obj))
-                                          (mappend {list "-isystem"}
-                                                   *clang-default-includes*))))
-                       (multiple-value-bind (stdout stderr exit)
-                           (let ((*trace-output* *standard-output*))
-                             (if (boundp '*clang-json-file*)
-                                 (shell "cat ~a ~a;"
-                                        (namestring *clang-json-file*)
-                                        filter)
-                                 (shell cmd-fmt
-                                        flags
-                                        src-file
-                                        filter
-                                        :bash t)))
-                         (when (find exit '(131 132 134 136 139))
-                           (error
-                            (make-condition 'located-mutate
-                                            :text (format nil "clang core dump with ~d, ~s"
-                                                          exit stderr)
-                                            :obj obj)))
-                         (restart-case
-                             (unless (zerop exit)
-                               (error
-                                (make-condition 'located-mutate
-                                                :text (format nil
-                                                              "clang exit ~d~%cmd:~s~%stderr:~s"
-                                                              exit
-                                                              (format nil cmd-fmt
-                                                                      flags
-                                                                      src-file
-                                                                      filter)
-                                                              stderr)
-                                                :obj obj)))
-                           (keep-partial-asts ()
-                             :report "Ignore error retaining partial ASTs for software object."
-                             nil))
-                         (values (convert-clang-jsown-tree (jsown:parse stdout))
-                                 src-file
-                                 genome-len)))))
+  (with-temporary-file-of (:pathname src-file :type (ext obj)) (genome obj)
+    (let ((cmd-fmt "clang -cc1 -ast-dump=json ~
+                          -fgnuc-version=4.2.1 ~
+                          -fcxx-exceptions ~
+                          ~{~a~^ ~} ~a ~a")
+          (filter "| sed -e \"s/  *//\" ; exit ${PIPESTATUS[0]}")
+          (genome-len (length (genome obj)))
+          (flags (append (clang-frontend-flags (flags obj))
+                         (mappend {list "-isystem"}
+                                  *clang-default-includes*))))
+      (multiple-value-bind (stdout stderr exit)
+          (let ((*trace-output* *standard-output*))
+            (if (boundp '*clang-json-file*)
+                (shell "cat ~a ~a;"
+                       (namestring *clang-json-file*)
+                       filter)
+                (shell cmd-fmt
+                       flags
+                       src-file
+                       filter
+                       :bash t)))
+        (when (find exit '(131 132 134 136 139))
+          (error
+           (make-condition 'located-mutate
+                           :text (format nil "clang core dump with ~d, ~s"
+                                         exit stderr)
+                           :obj obj)))
+        (restart-case
+            (unless (zerop exit)
+              (error
+               (make-condition 'located-mutate
+                               :text (format nil
+                                             "clang exit ~d~%cmd:~s~%stderr:~s"
+                                             exit
+                                             (format nil cmd-fmt
+                                                     flags
+                                                     src-file
+                                                     filter)
+                                             stderr)
+                               :obj obj)))
+          (keep-partial-asts ()
+            :report "Ignore error retaining partial ASTs for software object."
+            nil))
+        (values (convert-clang-jsown-tree (jsown:parse stdout))
+                src-file
+                genome-len)))))
 
 (defun convert-clang-jsown-tree (jt)
   (convert-jsown-tree jt #'jsown-str-to-clang-keyword))
@@ -5373,7 +5373,7 @@ using the clang front-end.
   "Return a list of CLANG-MACRO structures with the macro definitions
 in OBJ's genome.  The macros are populated after evaluating pre-processor
 if/else clauses."
-  (with-temp-file-of (src-file (ext obj)) genome
+  (with-temporary-file-of (:pathname src-file :type (ext obj)) genome
     (let ((file nil)
           (file-line-scanner (create-scanner "^# [0-9]+ \"(.*)\"")))
       (iter (for line in (nest (remove-if #'emptyp)

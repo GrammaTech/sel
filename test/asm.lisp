@@ -142,7 +142,7 @@
 
 (deftest (asm-can-form-a-phenome :long-running) ()
   (with-fixture gcd-asm
-    (with-temp-file (bin)
+    (with-temporary-file (:pathname bin)
       (ignore-phenome-errors
        (is (phenome *gcd* :bin bin)
            "Phenome works on an ASM software object.")
@@ -422,7 +422,7 @@
     (asm-heap-simple-crossover-test)))
 
 (defun asm-heap-can-form-a-phenome ()
-  (with-temp-file (bin)
+  (with-temporary-file (:pathname bin)
     (ignore-phenome-errors
      (is (phenome *gcd* :bin bin)
          "Phenome works on an ASM-HEAP software object.")

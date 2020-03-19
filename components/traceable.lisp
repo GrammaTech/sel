@@ -122,7 +122,7 @@ times.
           (skip-test-case ()
             :report "Skip trace collection for test case and return NIL."
             (return-from collect-test-case-traces nil)))
-      (with-temp-file (handshake-file) ;; Start running the test case.
+      (with-temporary-file (:pathname handshake-file) ;; Start running the test case.
         (let ((proc (start-test bin test-case
                                 :env (list (cons *instrument-handshake-env-name*
                                                  handshake-file))
@@ -168,7 +168,7 @@ times.
                            (finally (note 3 "No handshake after ~d seconds"
                                           *trace-open-timeout*)))))
             (iter (for i below num-traces)
-                  (while (with-temp-fifo (pipe)
+                  (while (with-temporary-fifo (:pathname pipe)
                            (when (handshake pipe)
                              (add-trace (traces obj) pipe *trace-open-timeout*
                                         (list ;; keep :bin symbol if present
@@ -208,7 +208,7 @@ times.
           (skip-test-case ()
             :report "Skip trace collection for test case and return NIL."
             (return-from collect-test-case-traces nil)))
-      (with-temp-fifo (pipe)
+      (with-temporary-fifo (:pathname pipe)
         ;; Start run on the input.
         (let ((proc (start-test bin test-case
                                 :env (list (cons *instrument-log-env-name*

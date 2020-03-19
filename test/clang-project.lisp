@@ -42,17 +42,17 @@
 (deftest (simple-to-from-file-without-project-dir-works :long-running) ()
   (with-fixture project
     (setf (project-dir *project*) nil)
-    (with-temp-dir (file)
+    (with-temporary-directory (:pathname dir)
       (progn
-        (to-file *project* file)
-        (is (member :user-read (file-permissions file)))
-        (is (member :user-write (file-permissions file)))
+        (to-file *project* dir)
+        (is (member :user-read (file-permissions dir)))
+        (is (member :user-write (file-permissions dir)))
         (let ((s1-2 (from-file (make-instance 'simple)
                                (make-pathname :name "s1"
-                                              :directory file)))
+                                              :directory dir)))
               (s2-2 (from-file (make-instance 'simple)
                                (make-pathname :name "s2"
-                                              :directory file))))
+                                              :directory dir))))
           (is (equalp (genome *s1*) (genome s1-2)))
           (is (equalp (genome *s2*) (genome s2-2))))))))
 
@@ -98,7 +98,7 @@
   ;; Ensure `to-file' preserves permissions on executable files.
   (nest
    (with-fixture grep-project)
-   (with-temp-file (dir-path))
+   (with-temporary-file (:pathname dir-path))
    (let ((dir (pathname-directory (pathname-as-directory dir-path))))
      (is (project-dir *project*))
      (to-file *project* dir-path)

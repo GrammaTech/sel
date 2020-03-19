@@ -23,7 +23,7 @@
             (equal 'elf-mips (type-of *gcd*))))))
 
 (deftest elf-idempotent-read-write ()
-  (with-temp-file (a)
+  (with-temporary-file (:pathname a)
     (with-fixture gcd-elf
       (phenome *gcd* :bin a)
       (multiple-value-bind (out err ret)
@@ -37,7 +37,7 @@
                (genome-string (copy *gcd*))))))
 
 (deftest elf-idempotent-read-copy-write ()
-  (with-temp-file (a)
+  (with-temporary-file (:pathname a)
     (with-fixture gcd-elf
       (phenome (copy *gcd*) :bin a)
       (multiple-value-bind (out err ret)

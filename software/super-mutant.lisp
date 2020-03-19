@@ -154,7 +154,7 @@ the first return value.
                      &rest extra-keys &key &allow-other-keys)
   "Evaluate SUPER-MUTANT, setting fitness for all variants."
   (declare (ignorable extra-keys))
-  (with-temp-file (super-bin)
+  (with-temporary-file (:pathname super-bin)
     (flet
         ((make-phenome-proxy (obj which-mutant)
            ;; Make a copy of OBJ and dynamically add an eql-specialized
