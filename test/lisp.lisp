@@ -75,21 +75,26 @@
                           :keep-going)))
     (is (and found-sbcl? found-not-sbcl?))))
 
+(deftest read-conditional-preserves-whitespace ()
+  (is (equal "#+sbcl
+t"
+             (source-text
+              (convert 'lisp-ast "#+sbcl
+t")))))
+
 (defun gather-features (ast)
   "Report all the features referenced in AST."
   (let ((features '()))
     (traverse-nodes ast
                     (lambda (node)
-                      (if (typep node '(or sharpsign-minus sharpsign-plus))
+                      (if (typep node 'feature-expression-result)
                           (let ((feature-expression (flatten (ensure-list (feature-expression node)))))
                             (dolist (feature feature-expression)
                               (pushnew feature features))
                             :keep-going)
                           :keep-going)))
-    (nest (remove-if {member _ '(:or :and :not)})
-          (flatten)
-          (mapcar #'expression
-                  features))))
+    (remove-if {member _ '(:or :and :not)}
+               (flatten (mapcar #'expression features)))))
 
 (deftest test-gather-features ()
   (let ((example
@@ -118,17 +123,16 @@
 (deftest rewrite-empty-feature-expression ()
   (is (equal "#+(or) (coda-non-grata)"
              (let* ((ast (map-tree (lambda (node)
-                                     (if (and (typep node 'sharpsign-plus)
-                                              (null (expression (feature-expression node))))
+                                     (if (typep node 'feature-expression-result)
                                          (values
-                                          (make-instance 'sharpsign-plus
-                                            :feature-expression
-                                            (make-instance 'expression-result
-                                              :expression '(:or)
-                                              :start 0
-                                              :end 4
-                                              :string-pointer "(or)")
-                                            :expression (expression node))
+                                          (transform-feature-expression
+                                           node
+                                           (lambda (sign test expr)
+                                             (if (null test)
+                                                 (values sign
+                                                         '(:or)
+                                                         expr)
+                                                 (values sign test expr))))
                                           t)
                                          node))
                                    (convert 'lisp-ast "#+() (coda-non-grata)"))))
@@ -136,16 +140,18 @@
 
 (defun flip-conditions (ast)
   (map-tree (lambda (node)
-              (typecase node
-                (sharpsign-plus
-                 (make-instance 'sharpsign-minus
-                   :feature-expression (feature-expression node)
-                   :expression (expression node)))
-                (sharpsign-minus
-                 (make-instance 'sharpsign-plus
-                   :feature-expression (feature-expression node)
-                   :expression (expression node)))
-                (otherwise node)))
+              (if (not (typep node 'feature-expression-result))
+                  node
+                  (values (transform-feature-expression
+                           node
+                           (lambda (sign test expr)
+                             (values
+                              (ecase sign
+                                (#\+ #\-)
+                                (#\- #\+))
+                              test
+                              expr)))
+                          t)))
             ast))
 
 (deftest test-flip-conditions ()

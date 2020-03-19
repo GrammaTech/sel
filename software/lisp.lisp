@@ -22,10 +22,11 @@
                           :read-preserving-whitespace)
   (:export :lisp :lisp-ast :lisp-ast-p
            :expression :expression-result
+           :feature-expression-result
            :feature-expression
-           :sharpsign-plus
-           :sharpsign-minus
-           :*string*))
+           :*string*
+           :transform-feature-expression
+           :feature-expression-sign))
 (in-package :software-evolution-library/software/lisp)
 (in-readtable :curry-compose-reader-macros)
 
@@ -70,43 +71,9 @@ which may be more nodes, or other values.")
         (print-unreadable-object (obj stream :type t)
           (format stream ":EXPRESSION ~a" expression)))))
 
-(defclass sharpsign-dot (expression-result) ())
-
-(defmethod source-text ((object sharpsign-dot) &optional stream)
-  (write-string "#." stream)
-  (call-next-method))
-
-(defclass sharpsign-sign (expression-result)
+(defclass feature-expression-result (expression-result)
   ((feature-expression :initarg :feature-expression
-                       :reader feature-expression)
-   (child-slots :initform '((feature-expression . 1) (expression . 1))
-                :allocation :class)))
-
-(defmethod print-object ((obj sharpsign-sign) stream)
-  (with-slots (start end string-pointer expression children feature-expression) obj
-    (if *print-readably*
-        (format stream "~S" `(make-instance ',(class-name (class-of obj))
-                               :start ,start
-                               :end ,end
-                               :string-pointer *string*
-                               :expression ,expression
-                               :feature-expression ,feature-expression
-                               :children (list ,@children)))
-        (print-unreadable-object (obj stream :type t)
-          (format stream ":TEST ~a :EXPRESSION ~a" feature-expression expression)))))
-
-(defmethod source-text ((object sharpsign-sign) &optional stream)
-  (write-string (sharpsign-prefix object) stream)
-  (source-text (feature-expression object) stream)
-  (write-char #\Space stream)
-  (source-text (expression object) stream))
-
-(defclass sharpsign-plus (sharpsign-sign) ())
-(defclass sharpsign-minus (sharpsign-sign) ())
-
-(defgeneric sharpsign-prefix (object)
-  (:method ((object sharpsign-plus))  "#+")
-  (:method ((object sharpsign-minus)) "#-"))
+                       :reader feature-expression)))
 
 (defclass skipped-input-result (result)
   ((reason :initarg :reason :reader  reason)))
@@ -128,15 +95,47 @@ which may be more nodes, or other values.")
              "...")
             (subseq string-pointer start end))))
 
+(defclass reader-token (skipped-input-result)
+  ())
+
+(defmethod source-text ((obj reader-token) &optional stream)
+  (with-slots (string-pointer) obj
+    (write-string string-pointer stream)))
+
+(defclass sharpsign-dot (reader-token)
+  ((reason :initform :read-eval)
+   (string-pointer :initform "#.")
+   (start :initform 0)
+   (end :initform 2)))
+
+(defclass reader-conditional (reader-token)
+  ((reason :initform :reader-conditional)
+   (start :initform 0)
+   (end :initform 2)))
+
+(defclass sharpsign-plus (reader-conditional)
+  ((string-pointer :initform "#+")))
+
+(defclass sharpsign-minus (reader-conditional)
+  ((string-pointer :initform "#-")))
+
+(def sharpsign-dot (make-instance 'sharpsign-dot))
+(def sharpsign-plus (make-instance 'sharpsign-plus))
+(def sharpsign-minus (make-instance 'sharpsign-minus))
+
 (defmethod convert ((to-type (eql 'lisp-ast)) (sequence list)
-                    &key (spaces nil) (expression sequence) &allow-other-keys)
+                    &key (spaces nil) (expression sequence)
+                      (keyword-prefix ":")
+                      &allow-other-keys)
   (labels ((m/space (&optional string)
              (or (and (not string) spaces (pop spaces))
                  (let ((*string* (or string " ")))
                    (make-instance 'skipped-input-result :reason :whitespace))))
            (m/keyword (symbol)
-             (let ((*string* (concatenate 'string ":" (string-downcase
-                                                       (symbol-name symbol)))))
+             (let ((*string* (concatenate 'string
+                                          keyword-prefix
+                                          (string-downcase
+                                           (symbol-name symbol)))))
                (make-instance 'expression-result :expression symbol)))
            (m/symbol (symbol)
              (let ((*string* (string-downcase (symbol-name symbol))))
@@ -177,19 +176,81 @@ which may be more nodes, or other values.")
 (defclass client (parse-result-client) ())
 
 (defun sharpsign-sign-reader (stream char n)
-  (declare (ignore n))
-  (let* ((client (make-instance 'client))
-         (prefix
-          (ecase char
-            (#\+ '|#+|)
-            (#\- '|#-|)))
-         (start (file-position stream))
-         (feature-expression
-          (let ((*package* (find-package :keyword)))
-            (read client stream)))
-         (expression (read client stream))
-         (end (file-position stream)))
-    (make-expression-result client (list prefix feature-expression expression) nil (cons start end))))
+  ;; TODO: back up according to digits in n
+  (assert (not n))
+  (nest
+   (let* ((client (make-instance 'client))
+          (start (- (file-position stream) 2))
+          (feature-expression
+           (let ((*package* (find-package :keyword)))
+             (read client stream)))
+          (expression (read client stream))
+          (end (file-position stream))))
+   (make 'feature-expression-result
+         :start start
+         :end end
+         :feature-expression feature-expression
+         :expression expression
+         :children (append
+                    (list
+                     (make (ecase char
+                             (#\+ 'sharpsign-plus)
+                             (#\- 'sharpsign-minus))
+                           ;; These are for the benefit of read+.
+                           :start start
+                           :end (+ start 2)))
+                    (list feature-expression)
+                    (list expression)))))
+
+(defgeneric transform-feature-expression (result fn)
+  (:documentation "If RESULT is a feature expression, call FN with three arguments: the sign, as a character (+ or -); the actual test, as a list; and the guarded expression. FN should return three values - a new sign, a new test, and a new expression - which are used to build a new feature expression that replaces the old one."))
+
+(defmethod transform-feature-expression ((result feature-expression-result) fn)
+  (mvlet* ((children (children result))
+           (token (find-if (of-type 'reader-token) children))
+           (sign
+            (etypecase token
+              (sharpsign-plus #\+)
+              (sharpsign-minus #\-)))
+           (test ex
+                 (nest
+                  (values-list)
+                  (remove-if-not (of-type 'expression-result))
+                  children))
+           (new-sign new-test new-ex
+                     (funcall fn sign (expression test) ex))
+           (*string* nil))
+          (if (and (eql new-sign sign)
+                   (eql new-test test)
+                   (eql ex new-ex))
+              ;; Nothing has changed.
+              result
+              (make 'feature-expression-result
+                    :start (start result)
+                    :end (end result)
+                    :feature-expression new-test
+                    :expression ex
+                    :children
+                    (mapcar (lambda (child)
+                              (typecase child
+                                (reader-token
+                                 (ecase new-sign
+                                   (#\+ sharpsign-plus)
+                                   (#\- sharpsign-minus)))
+                                (expression-result
+                                 (econd ((eql child test)
+                                         (if (eql new-test (expression test))
+                                             test
+                                             (convert 'lisp-ast new-test :keyword-prefix "")))
+                                        ((eql child ex) new-ex)))
+                                (t child)))
+                            children)))))
+
+(defmethod feature-expression-sign ((ex feature-expression-result))
+  (let ((token (find-if (of-type 'reader-token) (children ex))))
+    (etypecase token
+      (sharpsign-plus #\+)
+      (sharpsign-minus #\-))))
 
 (defparameter *lisp-ast-readtable*
   (let ((readtable (copy-readtable eclector.readtable:*readtable*)))
@@ -206,23 +267,11 @@ which may be more nodes, or other values.")
   (destructuring-bind (start . end) source
     (match result
            ((list '|#.| result)
-            (make-instance 'sharpsign-dot
+            (make-instance 'expression-result
               :expression result
-              :children children
+              :children (cons sharpsign-dot children)
               :start start
               :end end))
-           ((list '|#+| feature-expr result)
-            (make-instance 'sharpsign-plus
-              :expression result
-              :children children
-              :feature-expression feature-expr
-              :string-pointer nil))
-           ((list '|#-| feature-expr result)
-            (make-instance 'sharpsign-minus
-              :expression result
-              :children children
-              :feature-expression feature-expr
-              :string-pointer nil))
            (otherwise
             (make-instance 'expression-result
               :expression result
