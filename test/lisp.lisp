@@ -23,6 +23,8 @@
                 :convert)
   (:import-from :trivia
                 :match)
+  (:import-from :software-evolution-library/software/parseable
+                :source-text)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
@@ -70,3 +72,43 @@
                             (t :keep-going))
                           :keep-going)))
     (is (and found-sbcl? found-not-sbcl?))))
+
+(defun gather-features (ast)
+  "Report all the features referenced in AST."
+  (let ((features '()))
+    (traverse-nodes ast
+                    (lambda (node)
+                      (if (typep node '(or sharpsign-minus sharpsign-plus))
+                          (let ((feature-expression (flatten (ensure-list (feature-expression node)))))
+                            (dolist (feature feature-expression)
+                              (pushnew feature features))
+                            :keep-going)
+                          :keep-going)))
+    (nest (remove-if {member _ '(:or :and :not)})
+          (flatten)
+          (mapcar #'expression
+                  features))))
+
+(deftest test-gather-features ()
+  (let ((example
+         ;; A real bit of code from ASDF.
+         "(let* ((i (first (input-files o c)))
+           (f (compile-file-pathname
+               i #+clasp :output-type #+ecl :type #+(or clasp ecl) :fasl
+               #+mkcl :fasl-p #+mkcl t)))
+      `(,f ;; the fasl is the primary output, in first position
+        #+clasp
+        ,@(unless nil ;; was (use-ecl-byte-compiler-p)
+            `(,(compile-file-pathname i :output-type :object)))
+        #+clisp
+        ,@`(,(make-pathname :type \"lib\" :defaults f))
+        #+ecl
+        ,@(unless (use-ecl-byte-compiler-p)
+            `(,(compile-file-pathname i :type :object)))
+        #+mkcl
+        ,(compile-file-pathname i :fasl-p nil) ;; object file
+        ,@(when (and *warnings-file-type* (not (builtin-system-p (component-system c))))
+            `(,(make-pathname :type *warnings-file-type* :defaults f)))))"))
+    (is (set-equal
+         '(:clasp :ecl :mkcl :clisp)
+         (gather-features (convert 'lisp-ast example))))))

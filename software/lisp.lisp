@@ -21,7 +21,10 @@
                           :read-from-string
                           :read-preserving-whitespace)
   (:export :lisp :lisp-ast :lisp-ast-p
-           :expression :expression-result))
+           :expression :expression-result
+           :feature-expression
+           :sharpsign-plus
+           :sharpsign-minus))
 (in-package :software-evolution-library/software/lisp)
 (in-readtable :curry-compose-reader-macros)
 
@@ -68,12 +71,40 @@ which may be more nodes, or other values.")
 
 (defclass sharpsign-dot (expression-result) ())
 
+(defmethod source-text ((object sharpsign-dot) &optional stream)
+  (write-string "#." stream)
+  (call-next-method))
+
 (defclass sharpsign-sign (expression-result)
   ((feature-expression :initarg :feature-expression
-                       :reader feature-expression)))
+                       :reader feature-expression)
+   (child-slots :initform '((feature-expression . 1) (expression . 1))
+                :allocation :class)))
+
+(defmethod print-object ((obj sharpsign-sign) stream)
+  (with-slots (start end string-pointer expression children feature-expression) obj
+    (if *print-readably*
+        (format stream "~S" `(make-instance ',(class-name (class-of obj))
+                               :start ,start
+                               :end ,end
+                               :string-pointer *string*
+                               :expression ,expression
+                               :feature-expression ,feature-expression
+                               :children (list ,@children)))
+        (print-unreadable-object (obj stream :type t)
+          (format stream ":TEST ~a :EXPRESSION ~a" feature-expression expression)))))
+
+(defmethod source-text ((object sharpsign-sign) &optional stream)
+  (write-string (sharpsign-prefix object) stream)
+  (source-text (feature-expression object) stream)
+  (source-text (expression object) stream))
 
 (defclass sharpsign-plus (sharpsign-sign) ())
 (defclass sharpsign-minus (sharpsign-sign) ())
+
+(defgeneric sharpsign-prefix (object)
+  (:method ((object sharpsign-plus))  "#+")
+  (:method ((object sharpsign-minus)) "#-"))
 
 (defclass skipped-input-result (result)
   ((reason :initarg :reason :reader  reason)))
@@ -150,17 +181,23 @@ which may be more nodes, or other values.")
           (ecase char
             (#\+ '|#+|)
             (#\- '|#-|)))
+         (start (file-position stream))
          (feature-expression
           (let ((*package* (find-package :keyword)))
             (read client stream)))
-         (expression (read client stream)))
-    (list prefix feature-expression expression)))
+         (expression (read client stream))
+         (end (file-position stream)))
+    (make-expression-result client (list prefix feature-expression expression) nil (cons start end))))
 
 (defparameter *lisp-ast-readtable*
   (let ((readtable (copy-readtable eclector.readtable:*readtable*)))
     (set-dispatch-macro-character readtable #\# #\+ 'sharpsign-sign-reader)
     (set-dispatch-macro-character readtable #\# #\- 'sharpsign-sign-reader)
     readtable))
+
+(defmethod make-expression-result
+    ((client client) (result expression-result) children source)
+  result)
 
 (defmethod make-expression-result
     ((client client) (result t) (children t) (source cons))
@@ -177,15 +214,13 @@ which may be more nodes, or other values.")
               :expression result
               :children children
               :feature-expression feature-expr
-              :start start
-              :end end))
+              :string-pointer nil))
            ((list '|#-| feature-expr result)
             (make-instance 'sharpsign-minus
               :expression result
               :children children
               :feature-expression feature-expr
-              :start start
-              :end end))
+              :string-pointer nil))
            (otherwise
             (make-instance 'expression-result
               :expression result
