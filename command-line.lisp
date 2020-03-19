@@ -41,7 +41,6 @@
         :software-evolution-library/components/test-suite)
   (:import-from :swank :create-server)
   (:import-from :cl-json :decode-json-from-source)
-  (:import-from :uiop/image :quit :*lisp-interaction*)
   (:shadowing-import-from :asdf-encodings
                           :detect-file-encoding
                           :encoding-external-format)

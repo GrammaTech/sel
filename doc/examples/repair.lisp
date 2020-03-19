@@ -2,7 +2,6 @@
 (defpackage :software-evolution-library/doc/examples/repair
   (:use :gt/full
         :cl-store
-        :uiop/image
         :software-evolution-library
         :software-evolution-library/software/asm
         :software-evolution-library/software/elf

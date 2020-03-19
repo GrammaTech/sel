@@ -2,7 +2,6 @@
 ;;; Repair C program, displaying progress using the viewer
 (defpackage :software-evolution-library/doc/examples/repair-clang
   (:use :gt/full
-        :uiop/image
         :software-evolution-library
         :software-evolution-library/components/test-suite
         :software-evolution-library/software/parseable

@@ -1,7 +1,6 @@
 ;;; neutral.lisp --- Evolve neutral variants of an original program
 (defpackage :software-evolution-library/doc/examples/neutral
   (:use :gt/full
-        :uiop/image
         :software-evolution-library)
   (:export :main))
 (in-package :software-evolution-library/doc/examples/neutral)
