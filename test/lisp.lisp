@@ -18,8 +18,10 @@
   (:import-from :asdf
                 :system-relative-pathname)
   (:import-from :functional-trees
+                :node-equalp
                 :traverse-nodes :map-tree)
   (:import-from :fset
+                :remove
                 :convert)
   (:import-from :trivia
                 :match)
@@ -160,22 +162,32 @@ t")))))
               (flip-conditions
                (convert 'lisp-ast "(list #+sbcl :sbcl #-sbcl :not-sbcl)"))))))
 
-
 (deftest test-remove-feature-expressions ()
   (let* ((*features* (cons :foo *features*))
          (string
-          "(list #+foo :foo)")
-         (ast (convert 'lisp-ast string)))
+          "(list #+foo :foo #-foo :bar)")
+         (ast (convert 'lisp-ast string))
+         (to-remove '())
+         (ast
+          (map-tree (lambda (n)
+                      (if (typep n 'feature-expression-result)
+                          (let* ((test (expression (feature-expression n)))
+                                 (sign (feature-expression-sign n))
+                                 (test
+                                  (ecase sign
+                                    (#\+ test)
+                                    (#\- `(:not ,test)))))
+                            (if (featurep test)
+                                (values (expression n) t)
+                                (progn
+                                  (push n to-remove)
+                                  (values n t))))
+                          n))
+                    ast))
+         (ast
+          (reduce (lambda (ast node)
+                    (remove node ast :test #'node-equalp))
+                  to-remove
+                  :initial-value ast)))
     (is (equal "(list :foo)"
-               (source-text
-                ;; TODO How to omit the node if the test is not met?
-                (map-tree (lambda (n)
-                            (if (typep n 'feature-expression-result)
-                                (if (eql #\+ (feature-expression-sign n))
-                                    (let* ((test (expression (feature-expression n))))
-                                      (if (featurep test)
-                                          (values (expression n) t)
-                                          n))
-                                    n)
-                                n))
-                          ast))))))
+               (source-text ast)))))
