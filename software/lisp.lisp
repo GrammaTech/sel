@@ -102,6 +102,11 @@ which may be more nodes, or other values.")
   (with-slots (string-pointer) obj
     (write-string string-pointer stream)))
 
+(defmethod print-object ((obj reader-token) stream)
+  (if *print-readably*
+      (call-next-method)
+      (print-unreadable-object (obj stream :type t))))
+
 (defclass sharpsign-dot (reader-token)
   ((reason :initform :read-eval)
    (string-pointer :initform "#.")
