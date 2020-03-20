@@ -88,7 +88,7 @@ which may be more nodes, or other values.")
    (if *print-readably* (call-next-method))
    (print-unreadable-object (obj stream :type t))
    (format stream "#~a~a :EXPRESSION ~a"
-           (feature-expression-sign obj)
+           (feature-guard-sign obj)
            feature-expression expression)))
 
 (defclass skipped-input-result (result)
@@ -268,7 +268,7 @@ which may be more nodes, or other values.")
                                 (t child)))
                             children)))))
 
-(defmethod feature-expression-sign ((ex feature-guard))
+(defmethod feature-guard-sign ((ex feature-guard))
   (let ((token (find-if (of-type 'reader-token) (children ex))))
     (etypecase token
       (sharpsign-plus #\+)
@@ -471,7 +471,7 @@ which may be more nodes, or other values.")
          (traverse-nodes ast
                          (lambda (node)
                            (when (typep node 'feature-guard)
-                             (fn (feature-expression-sign node)
+                             (fn (feature-guard-sign node)
                                  (expression (feature-expression node))
                                  (expression node)))
                            :keep-going))
