@@ -226,7 +226,7 @@ which may be more nodes, or other values.")
                      (funcall fn sign (expression test) ex))
            (*string* nil))
           (if (and (eql new-sign sign)
-                   (eql new-test test)
+                   (equal new-test test)
                    (eql ex new-ex))
               ;; Nothing has changed.
               result
@@ -244,7 +244,7 @@ which may be more nodes, or other values.")
                                    (#\- sharpsign-minus)))
                                 (expression-result
                                  (econd ((eql child test)
-                                         (if (eql new-test (expression test))
+                                         (if (equal new-test (expression test))
                                              test
                                              (convert 'lisp-ast new-test :keyword-prefix "")))
                                         ((eql child ex) new-ex)))
