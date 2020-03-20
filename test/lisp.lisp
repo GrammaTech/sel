@@ -1,38 +1,18 @@
 (defpackage :software-evolution-library/test/lisp
   (:nicknames :sel/test/lisp)
   (:use
-   :common-lisp
-   :alexandria
-   :closer-mop
+   :gt/full
    :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
-   :named-readtables
-   :curry-compose-reader-macros
-   :iterate
-   :split-sequence
-   :cl-ppcre
    #+gt :testbot
    :software-evolution-library
    :software-evolution-library/software/lisp)
-  (:import-from :uiop :nest)
   (:import-from :asdf
                 :system-relative-pathname)
-  (:import-from :functional-trees
-                :node-equalp
-                :traverse-nodes :map-tree)
-  (:import-from :fset
-                :remove
-                :convert)
-  (:import-from :trivia
-                :match)
   (:import-from :software-evolution-library/software/parseable
                 :source-text)
   (:import-from :software-evolution-library/software/lisp
                 :*string*)
-  (:shadowing-import-from
-   :closer-mop
-   :standard-method :standard-class :standard-generic-function
-   :defmethod :defgeneric)
   (:export :test-lisp))
 (in-package :software-evolution-library/test/lisp)
 (in-readtable :curry-compose-reader-macros)
