@@ -203,7 +203,7 @@ running, send a SIGKILL signal.
 
     ;; Send a non-urgent kill signal (SIGTERM) to the process and all its children
     (when (process-alive-p test-process)
-      (terminate-process test-process))
+      (kill-process test-process))
 
     ;; If still running, sleep short interval, then send an urgent kill signal
     ;; (SIGKILL), to the process and all its children
