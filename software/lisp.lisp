@@ -232,6 +232,7 @@ which may be more nodes, or other values.")
            (new-sign new-test new-ex
                      (funcall fn sign (expression test) ex))
            (*string* nil))
+          (assert (typep new-test '(or symbol list)))
           (if (and (eql new-sign sign)
                    (equal new-test test)
                    (eql ex new-ex))
