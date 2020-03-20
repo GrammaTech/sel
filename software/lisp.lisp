@@ -82,6 +82,18 @@ which may be more nodes, or other values.")
   ((feature-expression :initarg :feature-expression
                        :reader feature-expression)))
 
+(defmethod initialize-instance :after ((obj feature-guard) &key)
+  (with-slots (feature-expression) obj
+    (when (typep feature-expression 'expression-result)
+      (callf #'expression feature-expression))
+    (assert (typep feature-expression '(or symbol list)))))
+
+(defmethod copy ((obj feature-guard) &rest args &key &allow-other-keys)
+  (apply #'call-next-method
+         obj
+         :feature-expression (feature-expression obj)
+         args))
+
 (defmethod print-object ((obj feature-guard) stream)
   (nest
    (with-slots (feature-expression expression) obj)
@@ -472,7 +484,7 @@ which may be more nodes, or other values.")
                          (lambda (node)
                            (when (typep node 'feature-guard)
                              (fn (feature-guard-sign node)
-                                 (expression (feature-expression node))
+                                 (feature-expression node)
                                  (expression node)))
                            :keep-going))
          (values)))
