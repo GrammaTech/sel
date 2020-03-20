@@ -180,3 +180,96 @@ t")))))
                   :initial-value ast)))
     (is (equal "(list :foo)"
                (source-text ast)))))
+
+(defun transform-features (featurex fn)
+  (match featurex
+         (nil nil)
+         ((and symbol (type symbol))
+          (funcall fn symbol))
+         ((list (or :and :or :not))
+          nil)
+         ((list* (and prefix (or :and :or :not)) features)
+          (let ((new
+                 (cons prefix
+                       (remove nil
+                               (mapcar (op (transform-features _ fn))
+                                       features)))))
+            (if (equal new featurex) new
+                (transform-features new fn))))))
+
+(defun remove-features (feature-expression to-remove)
+  (transform-features feature-expression
+                      (lambda (feature)
+                        (unless (member feature to-remove)
+                          feature))))
+
+(deftest test-remove-features ()
+  (is (equal :mcl (remove-features :mcl '(:genera))))
+  (is (equal '() (remove-features :genera '(:genera))))
+  (is (equal '() (remove-features '(:or :genera) '(:genera))))
+  (is (equal '() (remove-features '(:and :genera) '(:genera))))
+  (is (equal '() (remove-features '(:and :genera) '(:genera))))
+  (is (equal '(:or :mcl) (remove-features '(:or :genera :mcl) '(:genera))))
+  (is (equal '(:and :mcl) (remove-features '(:and :genera :mcl) '(:genera)))))
+
+(defun strip-features (ast to-remove)
+  (let* ((nodes-to-remove '())
+         (ast
+          (map-tree (lambda (node)
+                      (if (typep node 'feature-expression-result)
+                          (values
+                           (block replace
+                             (transform-feature-expression
+                              node
+                              (lambda (sign features expr)
+                                (if (null features)
+                                    (values sign features expr)
+                                    (let ((features (remove-features features to-remove)))
+                                      (if (null features)
+                                          (return-from replace
+                                            (ecase sign
+                                              (#\+
+                                               (push node nodes-to-remove)
+                                               node)
+                                              (#\-
+                                               (expression node))))
+                                          (values sign features expr)))))))
+                           t)
+                          node))
+                    ast)))
+    (reduce (lambda (ast node)
+              (remove node ast :test #'node-equalp))
+            nodes-to-remove
+            :initial-value ast)))
+
+(deftest test-strip-feature ()
+  (let ((start
+         #?(uiop/package:define-package :uiop/common-lisp
+               (:nicknames :uoip/cl)
+             (:use :uiop/package)
+             (:use-reexport #-genera :common-lisp #+genera :future-common-lisp)
+             #+allegro (:intern #:*acl-warn-save*)
+             #+cormanlisp (:shadow #:user-homedir-pathname)
+             #+cormanlisp
+             (:export
+              #:logical-pathname #:translate-logical-pathname
+              #:make-broadcast-stream #:file-namestring)
+             #+genera (:shadowing-import-from :scl #:boolean)
+             #+genera (:export #:boolean #:ensure-directories-exist #:read-sequence #:write-sequence)
+             #+(or mcl cmucl) (:shadow #:user-homedir-pathname)))
+        (goal
+         #?(uiop/package:define-package :uiop/common-lisp
+               (:nicknames :uoip/cl)
+             (:use :uiop/package)
+             (:use-reexport :common-lisp)
+             #+allegro (:intern #:*acl-warn-save*)
+             #+cormanlisp (:shadow #:user-homedir-pathname)
+             #+cormanlisp
+             (:export
+              #:logical-pathname #:translate-logical-pathname
+              #:make-broadcast-stream #:file-namestring)
+             #+(or mcl cmucl) (:shadow #:user-homedir-pathname))))
+    (is (equal (collapse-whitespace goal)
+               (collapse-whitespace
+                (source-text (strip-features (convert 'lisp-ast start)
+                                             '(:genera))))))))
