@@ -82,6 +82,15 @@ which may be more nodes, or other values.")
   ((feature-expression :initarg :feature-expression
                        :reader feature-expression)))
 
+(defmethod print-object ((obj feature-guard) stream)
+  (nest
+   (with-slots (feature-expression expression) obj)
+   (if *print-readably* (call-next-method))
+   (print-unreadable-object (obj stream :type t))
+   (format stream "#~a~a :EXPRESSION ~a"
+           (feature-expression-sign obj)
+           feature-expression expression)))
+
 (defclass skipped-input-result (result)
   ((reason :initarg :reason :reader  reason)))
 
