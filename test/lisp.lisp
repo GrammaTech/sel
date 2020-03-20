@@ -75,17 +75,13 @@ t")))))
 
 (defun gather-features (ast)
   "Report all the features referenced in AST."
-  (let ((features '()))
-    (traverse-nodes ast
-                    (lambda (node)
-                      (if (typep node 'feature-expression-result)
-                          (let ((feature-expression (flatten (ensure-list (feature-expression node)))))
-                            (dolist (feature feature-expression)
-                              (pushnew feature features))
-                            :keep-going)
-                          :keep-going)))
-    (remove-if {member _ '(:or :and :not)}
-               (flatten (mapcar #'expression features)))))
+  (nest
+   (remove-if {member _ '(:or :and :not)})
+   (serapeum:collecting)
+   (walk-feature-expressions (lambda (featurex)
+                               (dolist (feature (flatten (ensure-list featurex)))
+                                 (collect feature)))
+                             ast)))
 
 (deftest test-gather-features ()
   (let ((example
@@ -113,37 +109,23 @@ t")))))
 
 (deftest rewrite-empty-feature-expression ()
   (is (equal "#+(or) (coda-non-grata)"
-             (let* ((ast (map-tree (lambda (node)
-                                     (if (typep node 'feature-expression-result)
-                                         (values
-                                          (transform-feature-expression
-                                           node
-                                           (lambda (sign test expr)
-                                             (if (null test)
-                                                 (values sign
-                                                         '(:or)
-                                                         expr)
-                                                 (values sign test expr))))
-                                          t)
-                                         node))
-                                   (convert 'lisp-ast "#+() (coda-non-grata)"))))
+             (let* ((ast (map-feature-guards
+                          (lambda (sign featurex ex)
+                            (values sign
+                                    (if (null featurex) '(:or) '())
+                                    ex))
+                          (convert 'lisp-ast "#+() (coda-non-grata)"))))
                (source-text ast)))))
 
 (defun flip-conditions (ast)
-  (map-tree (lambda (node)
-              (if (not (typep node 'feature-expression-result))
-                  node
-                  (values (transform-feature-expression
-                           node
-                           (lambda (sign test expr)
-                             (values
-                              (ecase sign
-                                (#\+ #\-)
-                                (#\- #\+))
-                              test
-                              expr)))
-                          t)))
-            ast))
+  (map-feature-guards (lambda (sign featurex ex)
+                        (values
+                         (ecase sign
+                           (#\+ #\-)
+                           (#\- #\+))
+                         featurex
+                         ex))
+                      ast))
 
 (deftest test-flip-conditions ()
   (is (equal "(list #-sbcl :sbcl #+sbcl :not-sbcl)"
@@ -156,104 +138,30 @@ t")))))
          (string
           "(list #+foo :foo #-foo :bar)")
          (ast (convert 'lisp-ast string))
-         (to-remove '())
-         (ast
-          (map-tree (lambda (n)
-                      (if (typep n 'feature-expression-result)
-                          (let* ((test (expression (feature-expression n)))
-                                 (sign (feature-expression-sign n))
-                                 (test
-                                  (ecase sign
-                                    (#\+ test)
-                                    (#\- `(:not ,test)))))
-                            (if (featurep test)
-                                (values (expression n) t)
-                                (progn
-                                  (push n to-remove)
-                                  (values n t))))
-                          n))
-                    ast))
-         (ast
-          (reduce (lambda (ast node)
-                    (remove node ast :test #'node-equalp))
-                  to-remove
-                  :initial-value ast)))
+         (ast (map-feature-guards
+               (lambda (sign featurex ex)
+                 (let ((test
+                        (ecase sign
+                          (#\+ featurex)
+                          (#\- `(:not ,featurex)))))
+                   (if (featurep test)
+                       ;; Trivial, only the expression is kept.
+                       (values #\- '(:or) ex)
+                       ;; Impossible, the whole guard is removed.
+                       (values #\+ '(:or) ex))))
+               ast
+               :remove-newly-empty t)))
     (is (equal "(list :foo)"
                (source-text ast)))))
 
-(defun transform-features (featurex fn)
-  (match featurex
-         (nil nil)
-         ((and symbol (type symbol))
-          (funcall fn symbol))
-         ((list (or :and :or :not))
-          nil)
-         ((list :and feature)
-          (transform-features feature fn))
-         ((list :or feature)
-          (transform-features feature fn))
-         ((list* (and prefix (or :and :or :not)) features)
-          (let ((new
-                 (cons prefix
-                       (remove nil
-                               (remove-duplicates
-                                (mappend (lambda (featurex)
-                                           (match (transform-features featurex fn)
-                                                  ((list* (and subprefix (or :and :or :not))
-                                                          features)
-                                                   (if (eql subprefix prefix)
-                                                       features
-                                                       (list features)))
-                                                  (x (list x))))
-                                         features)
-                                :test #'equal)))))
-            (if (equal new featurex) new
-                (transform-features new fn))))))
-
-(defun remove-features (feature-expression to-remove)
-  (transform-features feature-expression
-                      (lambda (feature)
-                        (unless (member feature to-remove)
-                          feature))))
-
 (deftest test-remove-features ()
-  (is (equal :mcl (remove-features :mcl '(:genera))))
-  (is (equal '() (remove-features :genera '(:genera))))
-  (is (equal '() (remove-features '(:or :genera) '(:genera))))
-  (is (equal '() (remove-features '(:and :genera) '(:genera))))
-  (is (equal '() (remove-features '(:and :genera) '(:genera))))
-  (is (equal :mcl (remove-features '(:or :genera :mcl) '(:genera))))
-  (is (equal :mcl (remove-features '(:and :genera :mcl) '(:genera)))))
-
-(defun strip-features (ast to-remove)
-  (let* ((nodes-to-remove '())
-         (ast
-          (map-tree (lambda (node)
-                      (if (typep node 'feature-expression-result)
-                          (values
-                           (block replace
-                             (transform-feature-expression
-                              node
-                              (lambda (sign features expr)
-                                (if (null features)
-                                    (values sign features expr)
-                                    (let ((features (remove-features features to-remove)))
-                                      (if (null features)
-                                          (return-from replace
-                                            (ecase sign
-                                              (#\+
-                                               (push node nodes-to-remove)
-                                               node)
-                                              (#\-
-                                               (expression node))))
-                                          (values sign features expr)))))))
-                           t)
-                          node))
-                    ast)))
-    (reduce (lambda (ast node)
-              (remove node ast :test #'node-equalp))
-            nodes-to-remove
-            :initial-value ast)))
+  (is (equal :mcl (remove-expression-features :mcl '(:genera))))
+  (is (equal '() (remove-expression-features :genera '(:genera))))
+  (is (equal '() (remove-expression-features '(:or :genera) '(:genera))))
+  (is (equal '() (remove-expression-features '(:and :genera) '(:genera))))
+  (is (equal '() (remove-expression-features '(:and :genera) '(:genera))))
+  (is (equal :mcl (remove-expression-features '(:or :genera :mcl) '(:genera))))
+  (is (equal :mcl (remove-expression-features '(:and :genera :mcl) '(:genera)))))
 
 (deftest test-strip-feature ()
   (let ((start
@@ -284,29 +192,29 @@ t")))))
              #+(or mcl cmucl) (:shadow #:user-homedir-pathname))))
     (is (equal (collapse-whitespace goal)
                (collapse-whitespace
-                (source-text (strip-features (convert 'lisp-ast start)
-                                             '(:genera))))))))
+                (source-text (remove-feature-support (convert 'lisp-ast start)
+                                                     '(:genera))))))))
 
 (deftest test-rename-feature ()
   (let ((string
          #?(#+openmcl t #+clozure t #+ccl t #-(or openmcl clozure ccl) t)))
     (is (equal #?(#+ccl t #+ccl t #+ccl t #-ccl t)
                (source-text
-                (map-tree
-                 (lambda (node)
-                   (if (typep node 'feature-expression-result)
-                       (values (transform-feature-expression
-                                node
-                                (lambda (sign featurex ex)
-                                  (values sign
-                                          (transform-features
-                                           featurex
-                                           (lambda (feature)
-                                             (case feature
-                                               (:openmcl :ccl)
-                                               (:clozure :ccl)
-                                               (t feature))))
-                                          ex)))
-                               t)
-                       node))
+                (map-feature-expressions
+                 (lambda (featurex)
+                   (transform-feature-expression
+                    featurex
+                    (lambda (feature)
+                      (case feature
+                        (:openmcl :ccl)
+                        (:clozure :ccl)
+                        (t feature)))))
                  (convert 'lisp-ast string)))))))
+
+(deftest test-feature-expansion ()
+  (let ((fn (lambda (featurex)
+              (if (featurep-with featurex '(:x))
+                  `(:or ,featurex :z)
+                  featurex))))
+    (is (equal '(:or :x :z :y)
+               (transform-feature-expression '(:or :x :y) fn)))))

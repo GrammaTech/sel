@@ -25,8 +25,15 @@
            :feature-expression-result
            :feature-expression
            :*string*
+           :transform-feature-guard
+           :walk-feature-expressions
+           :walk-feature-guards
+           :map-feature-guards
+           :map-feature-expressions
            :transform-feature-expression
-           :feature-expression-sign))
+           :featurep-with
+           :remove-expression-features
+           :remove-feature-support))
 (in-package :software-evolution-library/software/lisp)
 (in-readtable :curry-compose-reader-macros)
 
@@ -207,10 +214,10 @@ which may be more nodes, or other values.")
                     (list feature-expression)
                     (list expression)))))
 
-(defgeneric transform-feature-expression (result fn)
+(defgeneric transform-feature-guard (result fn)
   (:documentation "If RESULT is a feature expression, call FN with three arguments: the sign, as a character (+ or -); the actual test, as a list; and the guarded expression. FN should return three values - a new sign, a new test, and a new expression - which are used to build a new feature expression that replaces the old one."))
 
-(defmethod transform-feature-expression ((result feature-expression-result) fn)
+(defmethod transform-feature-guard ((result feature-expression-result) fn)
   (mvlet* ((children (children result))
            (token (find-if (of-type 'reader-token) children))
            (sign
@@ -441,6 +448,136 @@ which may be more nodes, or other values.")
                     &key &allow-other-keys)
   (make-instance 'lisp-ast
     :children (list (convert 'expression-result symbol))))
+
+(defun walk-feature-expressions (fn ast)
+  (fbind (fn)
+         (walk-feature-guards (lambda (sign featurex ex)
+                                (declare (ignore sign ex))
+                                (fn featurex))
+                              ast)))
+
+(defun walk-feature-guards (fn ast)
+  (fbind (fn)
+         (traverse-nodes ast
+                         (lambda (node)
+                           (when (typep node 'feature-expression-result)
+                             (fn (feature-expression-sign node)
+                                 (expression (feature-expression node))
+                                 (expression node)))
+                           :keep-going))
+         (values)))
+
+(defun featurex-empty? (featurex)
+  (or (null featurex)
+      (equal featurex '(:or))))
+
+(defun map-feature-expressions (fn ast &key
+                                         remove-empty
+                                         (remove-newly-empty remove-empty))
+  (fbind (fn)
+         (map-feature-guards (lambda (sign featurex ex)
+                               (values sign (fn featurex) ex))
+                             ast
+                             :remove-empty remove-empty
+                             :remove-newly-empty remove-newly-empty)))
+
+(defun map-feature-guards (fn ast &key
+                                    remove-empty
+                                    (remove-newly-empty remove-empty))
+  (assert (if remove-empty remove-newly-empty t))
+  ;; TOD can changes be batched with `encapsulate'?
+  (nest
+   (fbind (fn))
+   (let* ((to-remove '())
+          (ast
+           (map-tree
+            (lambda (node)
+              (if (typep node 'feature-expression-result)
+                  (values
+                   (block replace
+                     (flet ((mark-for-remove (sign node)
+                              (return-from replace
+                                (ecase sign
+                                  (#\+
+                                   (push node to-remove)
+                                   node)
+                                  (#\-
+                                   (expression node))))))
+                       (transform-feature-guard
+                        node
+                        (lambda (sign featurex ex)
+                          (if (and (featurex-empty? featurex) remove-empty)
+                              (mark-for-remove sign node)
+                              (receive (sign featurex ex)
+                                       (fn sign featurex ex)
+                                       (if (and (featurex-empty? featurex)
+                                                remove-newly-empty)
+                                           (mark-for-remove sign node)
+                                           (values sign featurex ex))))))))
+                   t)
+                  node))
+            ast))))
+   (reduce (lambda (ast node)
+             (remove node ast :test #'node-equalp))
+           to-remove
+           :initial-value ast)))
+
+(defun transform-feature-expression (feature-expression fn)
+  "Call FN on each feature in FEATURE-EXPRESSION.
+If FN returns nil, the feature is removed.
+
+FN may return any feature expression, not just a symbol."
+  (match feature-expression
+         (nil nil)
+         ((and symbol (type symbol))
+          (funcall fn symbol))
+         ((list (or :and :or :not))
+          nil)
+         ((list :and feature)
+          (transform-feature-expression feature fn))
+         ((list :or feature)
+          (transform-feature-expression feature fn))
+         ((list* (and prefix (or :and :or :not)) features)
+          (let ((new
+                 (cons prefix
+                       (remove nil
+                               (remove-duplicates
+                                (mappend (lambda (feature-expression)
+                                           (match (transform-feature-expression feature-expression fn)
+                                                  ((list* (and subprefix (or :and :or))
+                                                          features)
+                                                   (if (eql subprefix prefix)
+                                                       features
+                                                       (list features)))
+                                                  (x (list x))))
+                                         features)
+                                :test #'equal)))))
+            (if (equal new feature-expression) new
+                (transform-feature-expression new fn))))))
+
+(defun featurep-with (feature-expression *features*)
+  "Test FEATURE-EXPRESSION against the features in *FEATURES*.
+
+The global value of `*features*` is ignored."
+  (featurep feature-expression))
+
+(defun remove-expression-features (feature-expression features)
+  "Remove FEATURES from FEATURE-EXPRESSION."
+  (transform-feature-expression feature-expression
+                                (lambda (feature)
+                                  (unless (member feature features)
+                                    feature))))
+
+(defun remove-feature-support (ast features)
+  "Remove support for FEATURES from AST.
+Each feature in FEATURES will be removed from all feature expressions,
+and if any of the resulting expressions are empty their guards (and
+possibly expressions) will be omitted according to the sign of the guard."
+  (map-feature-guards (lambda (sign featurex ex)
+                        (let ((featurex (remove-expression-features featurex features)))
+                          (values sign featurex ex)))
+                      ast
+                      :remove-newly-empty t))
 
 #+example
 (progn
