@@ -188,12 +188,25 @@ t")))))
           (funcall fn symbol))
          ((list (or :and :or :not))
           nil)
+         ((list :and feature)
+          (transform-features feature fn))
+         ((list :or feature)
+          (transform-features feature fn))
          ((list* (and prefix (or :and :or :not)) features)
           (let ((new
                  (cons prefix
                        (remove nil
-                               (mapcar (op (transform-features _ fn))
-                                       features)))))
+                               (remove-duplicates
+                                (mappend (lambda (featurex)
+                                           (match (transform-features featurex fn)
+                                                  ((list* (and subprefix (or :and :or :not))
+                                                          features)
+                                                   (if (eql subprefix prefix)
+                                                       features
+                                                       (list features)))
+                                                  (x (list x))))
+                                         features)
+                                :test #'equal)))))
             (if (equal new featurex) new
                 (transform-features new fn))))))
 
@@ -209,8 +222,8 @@ t")))))
   (is (equal '() (remove-features '(:or :genera) '(:genera))))
   (is (equal '() (remove-features '(:and :genera) '(:genera))))
   (is (equal '() (remove-features '(:and :genera) '(:genera))))
-  (is (equal '(:or :mcl) (remove-features '(:or :genera :mcl) '(:genera))))
-  (is (equal '(:and :mcl) (remove-features '(:and :genera :mcl) '(:genera)))))
+  (is (equal :mcl (remove-features '(:or :genera :mcl) '(:genera))))
+  (is (equal :mcl (remove-features '(:and :genera :mcl) '(:genera)))))
 
 (defun strip-features (ast to-remove)
   (let* ((nodes-to-remove '())
@@ -273,3 +286,27 @@ t")))))
                (collapse-whitespace
                 (source-text (strip-features (convert 'lisp-ast start)
                                              '(:genera))))))))
+
+(deftest test-rename-feature ()
+  (let ((string
+         #?(#+openmcl t #+clozure t #+ccl t #-(or openmcl clozure ccl) t)))
+    (is (equal #?(#+ccl t #+ccl t #+ccl t #-ccl t)
+               (source-text
+                (map-tree
+                 (lambda (node)
+                   (if (typep node 'feature-expression-result)
+                       (values (transform-feature-expression
+                                node
+                                (lambda (sign featurex ex)
+                                  (values sign
+                                          (transform-features
+                                           featurex
+                                           (lambda (feature)
+                                             (case feature
+                                               (:openmcl :ccl)
+                                               (:clozure :ccl)
+                                               (t feature))))
+                                          ex)))
+                               t)
+                       node))
+                 (convert 'lisp-ast string)))))))

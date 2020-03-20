@@ -427,6 +427,21 @@ which may be more nodes, or other values.")
       (mapc [{write-string _ stream} #'source-text] (children obj))
       (write-string (subseq (string-pointer obj) (start obj) (end obj)) stream)))
 
+(defmethod convert ((to-type (eql 'expression-result)) (symbol symbol)
+                    &key &allow-other-keys)
+  (let ((*string*
+         (string-invert-case
+          (symbol-name symbol))))
+    (make-instance 'expression-result
+      :expression symbol
+      :start 0
+      :end (length *string*))))
+
+(defmethod convert ((to-type (eql 'lisp-ast)) (symbol symbol)
+                    &key &allow-other-keys)
+  (make-instance 'lisp-ast
+    :children (list (convert 'expression-result symbol))))
+
 #+example
 (progn
 
