@@ -13,18 +13,27 @@
                 :source-text)
   (:import-from :software-evolution-library/software/lisp
                 :*string*)
+  (:import-from :cl-interpol)
   (:export :test-lisp))
 (in-package :software-evolution-library/test/lisp)
-(in-readtable :curry-compose-reader-macros)
+
+;;; Set up a readtable using cl-interpol (with interpolation
+;;; disabled).. This gives us a nice way of quoting Lisp code as
+;;; strings, usind #?(...), so the editor sees it as Lisp but the
+;;; reader sees it as a string.
+
+(eval-always
+ (defun interpol-reader-no-interpol (s c arg)
+   (let ((cl-interpol:*inner-delimiters* '()))
+     (cl-interpol:interpol-reader s c arg)))
+
+ (defreadtable lisp-test
+     (:fuse :standard :curry-compose-reader-macros)
+   (:dispatch-macro-char #\# #\? 'interpol-reader-no-interpol)))
+
+(in-readtable lisp-test)
 
 (defsuite test-lisp "Lisp representation")
-
-(deftest self-parse ()
-  (nest
-   (finishes)
-   (from-file (make-instance 'lisp))
-   (namestring)
-   (system-relative-pathname "software-evolution-library" "test/lisp.lisp")))
 
 (deftest read-eval-preserved ()
   (let ((ast (convert 'lisp-ast "(defvar *day-seconds* (* 24 60 60))"))
@@ -81,23 +90,23 @@ t")))))
 (deftest test-gather-features ()
   (let ((example
          ;; A real bit of code from ASDF.
-         "(let* ((i (first (input-files o c)))
-           (f (compile-file-pathname
-               i #+clasp :output-type #+ecl :type #+(or clasp ecl) :fasl
-               #+mkcl :fasl-p #+mkcl t)))
-      `(,f ;; the fasl is the primary output, in first position
-        #+clasp
-        ,@(unless nil ;; was (use-ecl-byte-compiler-p)
-            `(,(compile-file-pathname i :output-type :object)))
-        #+clisp
-        ,@`(,(make-pathname :type \"lib\" :defaults f))
-        #+ecl
-        ,@(unless (use-ecl-byte-compiler-p)
-            `(,(compile-file-pathname i :type :object)))
-        #+mkcl
-        ,(compile-file-pathname i :fasl-p nil) ;; object file
-        ,@(when (and *warnings-file-type* (not (builtin-system-p (component-system c))))
-            `(,(make-pathname :type *warnings-file-type* :defaults f)))))"))
+         #?(let* ((i (first (input-files o c)))
+                  (f (compile-file-pathname
+                      i #+clasp :output-type #+ecl :type #+(or clasp ecl) :fasl
+                      #+mkcl :fasl-p #+mkcl t)))
+             `(,f ;; the fasl is the primary output, in first position
+               #+clasp
+               ,@(unless nil ;; was (use-ecl-byte-compiler-p)
+                   `(,(compile-file-pathname i :output-type :object)))
+               #+clisp
+               ,@`(,(make-pathname :type "lib" :defaults f))
+               #+ecl
+               ,@(unless (use-ecl-byte-compiler-p)
+                   `(,(compile-file-pathname i :type :object)))
+               #+mkcl
+               ,(compile-file-pathname i :fasl-p nil) ;; object file
+               ,@(when (and *warnings-file-type* (not (builtin-system-p (component-system c))))
+                   `(,(make-pathname :type *warnings-file-type* :defaults f)))))))
     (is (set-equal
          '(:clasp :ecl :mkcl :clisp)
          (gather-features (convert 'lisp-ast example))))))
