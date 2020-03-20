@@ -22,7 +22,7 @@
                           :read-preserving-whitespace)
   (:export :lisp :lisp-ast :lisp-ast-p
            :expression :expression-result
-           :feature-expression-result
+           :feature-guard
            :feature-expression
            :*string*
            :transform-feature-guard
@@ -78,7 +78,7 @@ which may be more nodes, or other values.")
         (print-unreadable-object (obj stream :type t)
           (format stream ":EXPRESSION ~a" expression)))))
 
-(defclass feature-expression-result (expression-result)
+(defclass feature-guard (expression-result)
   ((feature-expression :initarg :feature-expression
                        :reader feature-expression)))
 
@@ -198,7 +198,7 @@ which may be more nodes, or other values.")
              (read client stream)))
           (expression (read client stream))
           (end (file-position stream))))
-   (make 'feature-expression-result
+   (make 'feature-guard
          :start start
          :end end
          :feature-expression feature-expression
@@ -217,7 +217,7 @@ which may be more nodes, or other values.")
 (defgeneric transform-feature-guard (result fn)
   (:documentation "If RESULT is a feature expression, call FN with three arguments: the sign, as a character (+ or -); the actual test, as a list; and the guarded expression. FN should return three values - a new sign, a new test, and a new expression - which are used to build a new feature expression that replaces the old one."))
 
-(defmethod transform-feature-guard ((result feature-expression-result) fn)
+(defmethod transform-feature-guard ((result feature-guard) fn)
   (mvlet* ((children (children result))
            (token (find-if (of-type 'reader-token) children))
            (sign
@@ -237,7 +237,7 @@ which may be more nodes, or other values.")
                    (eql ex new-ex))
               ;; Nothing has changed.
               result
-              (make 'feature-expression-result
+              (make 'feature-guard
                     :start (start result)
                     :end (end result)
                     :feature-expression new-test
@@ -258,7 +258,7 @@ which may be more nodes, or other values.")
                                 (t child)))
                             children)))))
 
-(defmethod feature-expression-sign ((ex feature-expression-result))
+(defmethod feature-expression-sign ((ex feature-guard))
   (let ((token (find-if (of-type 'reader-token) (children ex))))
     (etypecase token
       (sharpsign-plus #\+)
@@ -460,7 +460,7 @@ which may be more nodes, or other values.")
   (fbind (fn)
          (traverse-nodes ast
                          (lambda (node)
-                           (when (typep node 'feature-expression-result)
+                           (when (typep node 'feature-guard)
                              (fn (feature-expression-sign node)
                                  (expression (feature-expression node))
                                  (expression node)))
@@ -492,7 +492,7 @@ which may be more nodes, or other values.")
           (ast
            (map-tree
             (lambda (node)
-              (if (typep node 'feature-expression-result)
+              (if (typep node 'feature-guard)
                   (values
                    (block replace
                      (flet ((mark-for-remove (sign node)
