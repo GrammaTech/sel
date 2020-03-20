@@ -77,6 +77,7 @@ t")))))
   "Report all the features referenced in AST."
   (nest
    (remove-if {member _ '(:or :and :not)})
+   remove-duplicates
    (serapeum:collecting)
    (walk-feature-expressions (lambda (featurex)
                                (dolist (feature (flatten (ensure-list featurex)))
@@ -105,17 +106,27 @@ t")))))
                    `(,(make-pathname :type *warnings-file-type* :defaults f)))))))
     (is (set-equal
          '(:clasp :ecl :mkcl :clisp)
-         (gather-features (convert 'lisp-ast example))))))
+         (gather-features (convert 'lisp-ast example))))
 
-(deftest rewrite-empty-feature-expression ()
+    (is (set-equal
+         '(:sbcl :unix :windows)
+         (gather-features (convert 'lisp-ast "#+sbcl #+unix t #+sbcl #+windows nil"))))))
+
+(defun rewrite-empty (ast)
+  (map-feature-guards
+   (lambda (sign featurex ex)
+     (values sign
+             (if (null featurex) '(:or) featurex)
+             ex))
+   ast))
+
+(deftest test-rewrite-empty-feature-expression ()
   (is (equal "#+(or) (coda-non-grata)"
-             (let* ((ast (map-feature-guards
-                          (lambda (sign featurex ex)
-                            (values sign
-                                    (if (null featurex) '(:or) '())
-                                    ex))
-                          (convert 'lisp-ast "#+() (coda-non-grata)"))))
-               (source-text ast)))))
+             (let* ((ast (convert 'lisp-ast "#+() (coda-non-grata)")))
+               (source-text (rewrite-empty ast)))))
+  (is (equal "#+sbcl #+(or) (coda-non-grata)"
+             (let* ((ast (convert 'lisp-ast "#+sbcl #+() (coda-non-grata)")))
+               (source-text (rewrite-empty ast))))))
 
 (defun flip-conditions (ast)
   (map-feature-guards (lambda (sign featurex ex)
@@ -194,6 +205,25 @@ t")))))
                (collapse-whitespace
                 (source-text (remove-feature-support (convert 'lisp-ast start)
                                                      '(:genera))))))))
+
+(deftest test-strip-feature-nested ()
+  (let ((string
+         #?(list
+            1
+            #+(or genera mcl)
+            (list #+genera 2 #+mcl 3)
+            4))
+        (goal
+         #?(list 1
+                 #+mcl
+                 (list #+mcl 3)
+                 4)))
+    (is (equal (collapse-whitespace goal)
+               (collapse-whitespace
+                (source-text
+                 (remove-feature-support
+                  (convert 'lisp-ast string)
+                  '(:genera))))))))
 
 (deftest test-rename-feature ()
   (let ((string
