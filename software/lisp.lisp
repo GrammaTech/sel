@@ -515,28 +515,26 @@ which may be more nodes, or other values.")
            (map-tree
             (lambda (node)
               (if (typep node 'feature-guard)
-                  (values
-                   (block replace
-                     (flet ((mark-for-remove (sign node)
-                              (return-from replace
-                                (ecase sign
-                                  (#\+
-                                   (push node to-remove)
-                                   node)
-                                  (#\-
-                                   (expression node))))))
-                       (transform-feature-guard
-                        node
-                        (lambda (sign featurex ex)
-                          (if (and (featurex-empty? featurex) remove-empty)
-                              (mark-for-remove sign node)
-                              (receive (sign featurex ex)
-                                       (fn sign featurex ex)
-                                       (if (and (featurex-empty? featurex)
-                                                remove-newly-empty)
-                                           (mark-for-remove sign node)
-                                           (values sign featurex ex))))))))
-                   t)
+                  (block replace
+                    (flet ((mark-for-remove (sign node)
+                             (return-from replace
+                               (ecase sign
+                                 (#\+
+                                  (push node to-remove)
+                                  node)
+                                 (#\-
+                                  (expression node))))))
+                      (transform-feature-guard
+                       node
+                       (lambda (sign featurex ex)
+                         (if (and (featurex-empty? featurex) remove-empty)
+                             (mark-for-remove sign node)
+                             (receive (sign featurex ex)
+                                      (fn sign featurex ex)
+                                      (if (and (featurex-empty? featurex)
+                                               remove-newly-empty)
+                                          (mark-for-remove sign node)
+                                          (values sign featurex ex))))))))
                   node))
             ast))))
    (reduce (lambda (ast node)
