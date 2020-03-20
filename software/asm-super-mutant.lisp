@@ -1001,8 +1001,9 @@ a symbol, the SYMBOL-NAME of the symbol is used."
                  (or
                   (starts-with-subseq "j" trimmed)
                   (starts-with-subseq "call" trimmed)
-                  (starts-with-subseq "push" trimmed) ; we sometimes push a label
-                  (starts-with-subseq "mov" trimmed)  ; handle labels in offset calc
+                  (starts-with-subseq "push" trimmed) ; Sometimes push a label
+                  (starts-with-subseq "mov" trimmed)  ; Handle labels in offset
+                                        ; calc
                   (if (intel-syntax-p asm-syntax)
                       (char= #\$ (char trimmed 0))
                       (char= #\. (char trimmed 0))))))
@@ -1029,8 +1030,23 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 	 "        global output_mem"
          "        global untraced_calls"
 	 "        global num_tests"
-	 "        global save_rsp"
+         "        global save_rax"
 	 "        global save_rbx"
+         "        global save_rcx"
+         "        global save_rdx"
+         "        global save_rsp"
+         "        global save_rbp"
+         "        global save_rsi"
+         "        global save_rdi"
+         "        global save_r8"
+         "        global save_r9"
+         "        global save_r10"
+         "        global save_r11"
+         "        global save_r12"
+         "        global save_r13"
+         "        global save_r14"
+         "        global save_r15"
+         "        global temp_rbx"
 	 "        global save_return_address"
 	 "        global result_return_address"
 	 "        global test_offset"
@@ -1082,8 +1098,23 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 	 "        .globl output_mem"
          "        .globl untraced_calls"
 	 "        .globl num_tests"
-	 "        .globl save_rsp"
-	 "        .globl save_rbx"
+         "        .globl save_rax"
+         "        .globl save_rbx"
+         "        .globl save_rcx"
+         "        .globl save_rdx"
+         "        .globl save_rsp"
+         "        .globl save_rbp"
+         "        .globl save_rsi"
+         "        .globl save_rdi"
+         "        .globl save_r8"
+         "        .globl save_r9"
+         "        .globl save_r10"
+         "        .globl save_r11"
+         "        .globl save_r12"
+         "        .globl save_r13"
+         "        .globl save_r14"
+         "        .globl save_r15"
+         "        .globl temp_rbx"
 	 "        .globl save_return_address"
 	 "        .globl result_return_address"
 	 "        .globl test_offset"
@@ -1297,6 +1328,15 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 	"#    table of function pointers, 0-terminated")
     "variant_table:"))
 
+  ;; 2 copies of original function at start
+  (dotimes (i 2)
+    (insert-new-line
+     asm
+     (format nil
+             (if (intel-syntax-p asm-syntax)
+                 "        dq original_~D"
+                 "        .quad original_~D")
+             i)))
   (dotimes (i num-variants)
     (insert-new-line
      asm
@@ -1404,6 +1444,16 @@ a symbol, the SYMBOL-NAME of the symbol is used."
                                    (input-specification-mem spec))
                         :fill-pointer t :adjustable t))))))
 
+(defun add-seldata-header (asm-variants asm-super)
+  (if (intel-syntax-p asm-super)
+      (insert-new-lines
+       asm-variants
+       (list "section .seldata2 alloc noexec write align=4"))
+      ;; att syntax
+      (insert-new-lines
+       asm-variants
+       (list  ".section .seldata2, \"wa\""))))
+
 (defun add-bss-section (asm-variants asm-super)
   ;; if bss section found, add it
   (let ((bss (extract-section asm-super ".BSS")))
@@ -1449,8 +1499,23 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 	"        result_return_address: resb 8"
         "        ; local use only"
         "        temp_return_address: resb 8"
-        "        save_rsp: resb 8"
+        "        save_rax: resb 8"
         "        save_rbx: resb 8"
+        "        save_rcx: resb 8"
+        "        save_rdx: resb 8"
+        "        save_rsp: resb 8"
+        "        save_rbp: resb 8"
+        "        save_rsi: resb 8"
+        "        save_rdi: resb 8"
+        "        save_r8: resb 8"
+        "        save_r9: resb 8"
+        "        save_r10: resb 8"
+        "        save_r11: resb 8"
+        "        save_r12: resb 8"
+        "        save_r13: resb 8"
+        "        save_r14: resb 8"
+        "        save_r15: resb 8"
+        "        temp_rbx: resb 8"
         "        test_offset: resb 8"
         (format nil "        result_regs: resb 0x~X" (* +num-regs+ 8))
         ""))
@@ -1463,8 +1528,23 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 	"        # save the address found on the stack (should be the same)"
 	"        result_return_address: .zero 8"
         "        temp_return_address: .zero 8"
-        "        save_rsp: .zero 8"
+        "        save_rax: .zero 8"
         "        save_rbx: .zero 8"
+        "        save_rcx: .zero 8"
+        "        save_rdx: .zero 8"
+        "        save_rsp: .zero 8"
+        "        save_rbp: .zero 8"
+        "        save_rsi: .zero 8"
+        "        save_rdi: .zero 8"
+        "        save_r8:  .zero 8"
+        "        save_r9:  .zero 8"
+        "        save_r10: .zero 8"
+        "        save_r11: .zero 8"
+        "        save_r12: .zero 8"
+        "        save_r13: .zero 8"
+        "        save_r14: .zero 8"
+        "        save_r15: .zero 8"
+        "        temp_rbx: .zero 8"
         "        test_offset: .zero 8"
         (format nil "        result_regs: .zero 0x~X" (* +num-regs+ 8))
 	""))))
@@ -1656,34 +1736,54 @@ jump_table:
           "        pop qword [temp_return_address]"
           "        popq temp_return_address")))
 
-    ;; push all the registers except rsp
-    (insert-new-lines
-     asm-variants
-     (mapcan
-      (lambda (x)
-        (unless (equalp x "RSP")
-          (list
-           (if (intel-syntax-p asm-super)
-               (format nil "        push ~A" (string-downcase x))
-               (format nil "        push %~A" (string-downcase x))))))
-      *all-registers*))
+    ;; save all the registers
 
-    ;; initialize registers with input_regs data
     (insert-new-lines
      asm-variants
      (if (intel-syntax-p asm-super)
          (list
+          "        mov qword [save_rax], rax"
+          "        mov qword [save_rbx], rbx"
+          "        mov qword [save_rcx], rcx"
+          "        mov qword [save_rdx], rdx"
           "        mov qword [save_rsp], rsp"
+          "        mov qword [save_rbp], rbp"
+          "        mov qword [save_rsi], rsi"
+          "        mov qword [save_rdi], rdi"
+          "        mov qword [save_r8],  r8"
+          "        mov qword [save_r9],  r9"
+          "        mov qword [save_r10], r10"
+          "        mov qword [save_r11], r11"
+          "        mov qword [save_r12], r12"
+          "        mov qword [save_r13], r13"
+          "        mov qword [save_r14], r14"
+          "        mov qword [save_r15], r15"
           "        mov rax, qword [test_offset]"
           "        lea rbx, [input_regs]"
           "        add rbx, rax")
          (list
+          "        movq %rax, save_rax"
+          "        movq %rbx, save_rbx"
+          "        movq %rcx, save_rcx"
+          "        movq %rdx, save_rdx"
           "        movq %rsp, save_rsp"
+          "        movq %rbp, save_rbp"
+          "        movq %rsi, save_rsi"
+          "        movq %rdi, save_rdi"
+          "        movq %r8,  save_r8"
+          "        movq %r9,  save_r9"
+          "        movq %r10, save_r10"
+          "        movq %r11, save_r11"
+          "        movq %r12, save_r12"
+          "        movq %r13, save_r13"
+          "        movq %r14, save_r14"
+          "        movq %r15, save_r15"
           "        movq test_offset, %rax"
           "        leaq input_regs, %rbx"
           "        add %rax, %rbx")))
 
-    ;; rbx now points to register data
+    ;; Initialize registers with input_regs data.
+    ;; RBX now points to register data.
     (insert-new-lines
      asm-variants
      (iter
@@ -1735,8 +1835,7 @@ jump_table:
          (append
           (list
            "_restore_registers: "
-           "        pop qword [temp_return_address]"
-           "        mov qword [save_rbx], rbx"
+           "        mov qword [temp_return_address], rbx"
            "        lea rbx, [result_regs]")
           (iter
             (for x in *output-registers*)
@@ -1750,10 +1849,25 @@ jump_table:
           (if rbx-pos ; if rbx is live, handle it specially
               (list
                "        mov rcx, rbx"
-               "        mov rbx, qword [save_rbx]"
+               "        mov rbx, qword [temp_rbx]"
                (format nil "        mov qword [rcx + 0x~X], rbx" rbx-pos)))
           (list
-           "        mov rsp, qword [save_rsp]")
+           "        mov rax, qword [save_rax]"
+           "        mov rbx, qword [save_rbx]"
+           "        mov rcx, qword [save_rcx]"
+           "        mov rdx, qword [save_rdx]"
+           "        mov rsp, qword [save_rsp]"
+           "        mov rbp, qword [save_rbp]"
+           "        mov rsi, qword [save_rsi]"
+           "        mov rdi, qword [save_rdi]"
+           "        mov r8,  qword [save_r8]"
+           "        mov r9,  qword [save_r9]"
+           "        mov r10, qword [save_r10]"
+           "        mov r11, qword [save_r11]"
+           "        mov r12, qword [save_r12]"
+           "        mov r13, qword [save_r13]"
+           "        mov r14, qword [save_r14]"
+           "        mov r15, qword [save_r15]")
           (iter
             (for x in (reverse *all-registers*))
             (unless (equalp x "RSP")
@@ -1769,8 +1883,7 @@ jump_table:
          (append
           (list
            "_restore_registers: "
-           "        popq temp_return_address"
-           "        movq %rbx, save_rbx"
+           "        movq %rbx, temp_return_address"
            "        lea result_regs, %rbx")
           (iter
             (for x in *output-registers*)
@@ -1784,16 +1897,25 @@ jump_table:
           (if rbx-pos ; if rbx is live, handle it specially
               (list
                "        mov %rbx, %rcx"
-               "        movq save_rbx, %rbx"
+               "        movq temp_rbx, %rbx"
                (format nil "        movq %rbx, 0x~X(%rcx)" rbx-pos)))
           (list
-           "        movq save_rsp, %rsp")
-          (iter
-            (for x in (reverse *all-registers*))
-            (unless (equalp x "RSP")
-              (collect
-                  (format nil "        popq %~A"
-                          (string-downcase x)))))
+           "        movq save_rax, %rax"
+           "        movq save_rbx, %rbx"
+           "        movq save_rcx, %rcx"
+           "        movq save_rdx, %rdx"
+           "        movq save_rsp, %rsp"
+           "        movq save_rbp, %rbp"
+           "        movq save_rsi, %rsi"
+           "        movq save_rdi, %rdi"
+           "        movq save_r8,  %r8"
+           "        movq save_r9,  %r9"
+           "        movq save_r10, %r10"
+           "        movq save_r11, %r11"
+           "        movq save_r12, %r12"
+           "        movq save_r13, %r13"
+           "        movq save_r14, %r14"
+           "        movq save_r15, %r15")
           (list
            "        pushq temp_return_address"
            "        retq"
@@ -1823,6 +1945,19 @@ jump_table:
     (add-init-regs asm-super asm-variants)
     (add-restore-regs asm-super asm-variants)
 
+    ;; start with two copies of original function
+    (dotimes (i 2)
+      (let ((v (create-target asm-super)))
+        ;; ensure any rip-relative addresses are converted to absolute
+        (dotimes (j (length (genome v)))
+          (convert-rip-relative-to-absolute v j))
+        (add-variant-func
+         asm-variants
+         (format nil "original_~D" i)
+         (asm-syntax asm-super)
+         (mapcar 'asm-line-info-text
+                 (handle-ret-ops (genome v) (asm-syntax asm-super))))))
+
     (let ((count 0))
       (dolist (v (mutants asm-super))
         ;; ensure any rip-relative addresses are converted to absolute
@@ -1837,6 +1972,7 @@ jump_table:
 		 (handle-ret-ops (genome v) (asm-syntax asm-super))))
 	(incf count)))
     (add-variant-table asm-variants number-of-variants (asm-syntax asm-super))
+    (add-seldata-header asm-variants asm-super)
     (add-io-tests asm-super asm-variants)
     (add-bss-section asm-variants asm-super)
     (add-return-address-vars asm-variants (asm-syntax asm-super))
@@ -1915,7 +2051,8 @@ jump_table:
            (flines nil)
            (updates nil)
            (num-potential-inlines 0)
-           (num-actual-inlines 0))
+           (num-actual-inlines 0)
+           (count 0))
       (setf (lines temp) lines)
       (setf func-index (function-index temp))
       (iter (for fie in-vector func-index) ; for each function
@@ -1930,21 +2067,19 @@ jump_table:
               (if (eq (asm-line-info-type first-line-info) ':label-decl)
                   (unless
                       (starts-with prefix (asm-line-info-label first-line-info))
-
-                    (setf flines
-                          (cons (format nil
-                                        "~A~A:"
-                                        prefix
-                                        (asm-line-info-label first-line-info))
-                                (rest flines)))
-                    (push
-                     (list (asm-line-info-label first-line-info)
+                    (let ((new-label
                            (format nil
                                    "~A~A"
                                    prefix
-                                   (asm-line-info-label first-line-info))
-                           (cddr flines)) ; trim off starting labels
-                     updates)))))
+                                   (asm-line-info-label first-line-info))))
+                      (setf flines
+                            (cons (concatenate 'string new-label ":")
+                                  (rest flines)))
+                      (push
+                       (list (asm-line-info-label first-line-info)
+                             new-label
+                             (cddr flines)) ; trim off starting labels
+                       updates))))))
       ;; now we need to update any branch targets with modified label names
       (let ((inline-targets '()))
         (iter
@@ -2112,7 +2247,6 @@ needs to have been loaded, along with the var-table by PARSE-SANITY-FILE."
           (if (null (getf (eval-meta-results asm-super) :exit-reason))
               (setf (getf (eval-meta-results asm-super) :exit-reason)
                     (getf meta-results :exit-reason)))
-
           (if (and phenome-execute-error *break-on-fitness-failure*)
               (let ((errmsg
                        (format
@@ -2123,7 +2257,7 @@ needs to have been loaded, along with the var-table by PARSE-SANITY-FILE."
                         src
                         phenome-create-error
                         phenome-execute-error)))
-                  (assert nil ()  errmsg)))
+                (assert nil ()  errmsg)))
 	  (let* ((num-tests (length (input-spec asm-super)))
 		 (num-variants (/ (length test-results) num-tests))
 		 (results '()))
