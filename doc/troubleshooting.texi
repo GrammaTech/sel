@@ -13,7 +13,7 @@
 @item @ref{troubleshoot-instrumented-compilation-long,
            It takes a long time to compile an instrumented project}
 @item @ref{troubleshoot-curry-compose-reader-macros,
-           @code{CURRY-COMPOSE-READER-MACROS::LCURLY-BRACE-READER} is undefined}
+           @code{CURRY-COMPOSE-READER-MACROS  LCURLY-BRACE-READER} is undefined}
 @item @ref{troubleshoot-delete-cache-files,Deleting cache files}
 @end itemize
 
@@ -52,7 +52,7 @@ cache as described
 @url{http://soc.if.usp.br/manual/cl-asdf/asdf/Controlling-where-ASDF-saves-compiled-files.html,in the ASDF manual}.
 When dealing with some compilation issues
 (see @ref{troubleshoot-curry-compose-reader-macros,
-@code{CURRY-COMPOSE-READER-MACROS::LCURLY-BRACE-READER} is undefined}),
+@code{CURRY-COMPOSE-READER-MACROS  LCURLY-BRACE-READER} is undefined}),
 it may be necessary to delete the cache.
 
 By default, the cache should be located in
