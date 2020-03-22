@@ -94,7 +94,7 @@ that was applied.
             (declare (ignorable e))
             (invoke-restart 'try-another-mutation))))
       (mutate (copy *orig*)))
-  (let ((temp (temp-file-name &quot;s&quot;)))
+  (let ((temp (temp-file-name :type &quot;s&quot;)))
     ;; save MUTANT to temp file TEMP
     (to-file mutant temp)
     (format t &quot;Results of applying ~S to gcd written to ~S~%&quot;

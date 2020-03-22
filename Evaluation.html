@@ -89,7 +89,7 @@ established, it can be recorded in the object&rsquo;s <code>fitness</code> field
 (defun test (asm)
   &quot;Run the GCD unit tests on ASM. Return the number of passing tests.&quot;
   (ignore-errors
-    (with-temp-file (bin)
+    (with-temporary-file (:pathname bin)
       ;; Build executable
       (phenome asm :bin bin)
       (count-if #'identity

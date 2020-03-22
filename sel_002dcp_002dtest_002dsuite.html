@@ -66,12 +66,13 @@ Return the standard output, error output, and process exit code as strings.
 </p>
 <p>* <code>test-process</code> the &lsquo;process&rsquo; associated with the test case.
 </p></dd></dl>
-<span id="Method-finish_002dtest-_0028_0028test_002dprocess-process_0029_0029"></span><dl>
-<dt id="index-finish_002dtest-1">Method: <strong>finish-test</strong> <em>(test-process process)</em></dt>
+<span id="Method-finish_002dtest-_0028test_002dprocess_0029"></span><dl>
+<dt id="index-finish_002dtest-1">Method: <strong>finish-test</strong> <em>test-process</em></dt>
 <dd><p>Ensure that <code>test-process</code> either runs to completion or is killed.
 Return the standard output, error output, and process exit code as strings.
 </p>
-<p>* <code>test-process</code> the &lsquo;process&rsquo; associated with the test case.
+<p>* <code>test-process</code> the &lsquo;process-info&rsquo; object returned by &lsquo;launch-program&rsquo;
+associated with the test case.
 </p>
 <p>See also &lsquo;*process-sleep-interval*&rsquo; and &lsquo;*process-kill-timeout*&rsquo;. If
 <code>test-process</code> is still running when &lsquo;finish-test&rsquo; is called, alternate between
