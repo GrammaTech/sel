@@ -136,8 +136,8 @@ set."
                            ;; non-standard name, use :name
                            (collecting (format nil " :~a"
                                                (file-namestring file)))))))))
-    (with-temp-file-of (src "s") (genome-string asm)
-      (with-temp-file (obj)
+    (with-temporary-file-of (:pathname src :type "s") (genome-string asm)
+      (with-temporary-file (:pathname obj)
         ;; Assemble.
         (multiple-value-bind (stdout stderr errno)
             (shell "~a -o ~a ~a ~{~a~^ ~}"

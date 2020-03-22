@@ -14,8 +14,9 @@ install: $(PROJECT).info
 	install -m 644 $< "$(DESTDIR)$(INFODIR)"
 	install-info --info-dir="$(DESTDIR)$(INFODIR)" "$(DESTDIR)$(INFODIR)/$<"
 
-html: $(PROJECT).texi
+html: $(PROJECT).texi GrammaTech-CLA-SEL.pdf
 	makeinfo --html $<
+	cp GrammaTech-CLA-SEL.pdf software-evolution-library/
 
 clean:
 	rm -f *.info;

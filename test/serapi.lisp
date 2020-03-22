@@ -7,7 +7,6 @@
    :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
    :software-evolution-library
-   :software-evolution-library/utility/process
    :software-evolution-library/components/serapi-io
    :software-evolution-library/software/coq)
   (:export :test-serapi
@@ -52,10 +51,10 @@
   (is *sertop-path*)
   (let ((serapi (make-serapi)))
     (is serapi)
-    (is (process-running-p serapi))
+    (is (serapi-process-alive-p serapi))
     (kill-serapi serapi)
     (sleep 0.1)
-    (is (not (process-running-p serapi)))))
+    (is (not (serapi-process-alive-p serapi)))))
 
 (deftest (with-serapi-creates-new-process :long-running) ()
   (is (not *serapi-process*))
@@ -72,7 +71,7 @@
 
 (deftest (with-serapi-can-capture-process :long-running) ()
   (with-fixture serapi
-    (is (process-running-p *serapi-process*))
+    (is (serapi-process-alive-p))
     (let ((serproc (make-serapi)))
       ;; serproc is a different process than *serapi-process*
       (is (not (eq serproc *serapi-process*)))
@@ -87,10 +86,10 @@
                     (read-serapi-response serproc)
                     :test #'equal)))
       ;; serproc isn't killed after with-serapi ends
-      (is (process-running-p serproc))
+      (is (serapi-process-alive-p serproc))
       (kill-serapi serproc))
     ;; *serapi-process isn't killed after with-serapi ends
-    (is (process-running-p *serapi-process*))))
+    (is (serapi-process-alive-p))))
 
 (deftest serapi-special-character-handling ()
   (let* ((src0 "[[\\\"expr\\\" ::== \\\"coords\\\" \\\\n || \\\"coords\\\" \\\\n \\\"expr\\\" <{< fun x _ y => Row x y >}>]] ;;.")

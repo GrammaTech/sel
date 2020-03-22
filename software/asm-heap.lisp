@@ -518,8 +518,8 @@ linking process, (5) the source file name used during linking."
   (when (intel-syntax-p asm)
     (return-from phenome (call-next-method)))
 
-  (with-temp-file-of (src "s") (genome-string asm)
-    (with-temp-file (obj "o")
+  (with-temporary-file-of (:pathname src :type "s") (genome-string asm)
+    (with-temporary-file (:pathname obj :type "o")
       ;; Assemble.
       (multiple-value-bind (stdout stderr errno)
           (shell "~a -o ~a ~a"

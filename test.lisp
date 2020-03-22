@@ -68,7 +68,6 @@
     (declare (ignorable project branch args))
 
     (let* ((stefil::*test-progress-print-right-margin* (expt 2 20))
-           (sel/stefil+:*long-tests* t)
            (failures (coerce (stefil::failure-descriptions-of
                               (without-debugging (funcall test)))
                              'list)))
@@ -87,4 +86,5 @@
 (defun run-batch (&rest a)
   (declare (ignorable a))
   #+ccl (setf ccl::*interactive-streams-initialized* nil)
+  (setf sel/stefil+:*long-tests* t)
   (batch-test #'test "SEL" +software-evolution-library-branch+))

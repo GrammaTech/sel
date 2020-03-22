@@ -138,11 +138,11 @@ STATUS
                              package))
          (spec-symbol (intern "&SPEC" package))
          (rest-symbol (intern "&REST" package))
-         (command-line-specification (plist-get spec-symbol args))
+         (command-line-specification (second (member spec-symbol args)))
          (typed-positional-args (take-until
                                  «and [#'not #'listp]
                                       [{equal #\&} {aref _ 0} #'symbol-name]»
-                                 (plist-drop rest-symbol args)))
+                                 (take-until {eql rest-symbol} args)))
          (positional-args (mapcar #'car typed-positional-args)))
     ;; NOTE: Results just status or "finished/path."
     `(progn

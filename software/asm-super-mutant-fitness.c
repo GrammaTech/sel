@@ -31,6 +31,7 @@
 //   (d) number of variants aborted because realloc was called
 //
 int segment_violations = 0;
+int sigterms = 0;
 
 ////////////////////////////////////////////////////////////////////////
 // Override all the library heap allocation functions.
@@ -74,7 +75,6 @@ void *malloc_stub (size_t __size, const void *caller) {
     return (void *)0; // never gets here
 }
 
-// not yet supported
 void *realloc_stub (void *__ptr, size_t __size, const void *caller) {
     unsigned long uctype = untraced_calls[untraced_calls_current];
     if (uctype == UNTRACED_CALL_TYPE_REALLOC) {
@@ -241,16 +241,16 @@ extern void _init_registers();
 unsigned long find_untraced_calls(int test)
 {
     unsigned long current = 0;
-    for (int i = 1; i < test; i++) {
+    for (int i = 0; i < test; i++) {
         // skip to next
         while (untraced_calls[current] != UNTRACED_CALL_TYPE_NULL) {
-        switch (untraced_calls[current]) {
-            case UNTRACED_CALL_TYPE_MALLOC:  current += 3; break;
-            case UNTRACED_CALL_TYPE_FREE:    current += 2; break;
-            case UNTRACED_CALL_TYPE_REALLOC: current += 4; break;
+            switch (untraced_calls[current]) {
+                case UNTRACED_CALL_TYPE_MALLOC:  current += 3; break;
+                case UNTRACED_CALL_TYPE_FREE:    current += 2; break;
+                case UNTRACED_CALL_TYPE_REALLOC: current += 4; break;
+            }
         }
-            current++; // skip UNTRACED_CALL_TYPE_NULL
-        }
+        current++; // skip UNTRACED_CALL_TYPE_NULL
     }
     return current;
 }
@@ -492,7 +492,7 @@ int init_mem(int test) {
     // words (qwords containing 0)
     unsigned long count = test;
     while (count > 0) {
-        do { p += 3; } while (*p != 0);
+        while (*p != 0) { p += 3; }
         p++;  // advance p to start of next test data
         count--;
     }
@@ -609,6 +609,112 @@ int check_results(int variant, int test) {
     return success;
 }
 
+//
+// Runs original function, and if any of the expected resulting memory or
+// register values differ, substitute the newly computed output value
+// into the testcase.
+// Returns 0 if all results are correct, >0 if changes were made (with
+// the returned value being the number of changes made, or -1 if an
+// error occurs.
+// Assumes the output register values have been copied
+// into result_regs[] (via copy_result_regs macro).
+//
+int check_original(int variant, int test) {
+    int updates = 0;
+    int success = 1;
+
+    // check that the return address did not get messed up by stack
+    // corruption
+    if (result_return_address == 1) {
+#if DEBUG
+        fprintf(stderr, "Original function test %d timed out and was terminated.\n",
+                test);
+#endif
+    }
+
+    if (save_return_address != result_return_address) {
+#if DEBUG
+        fprintf(stderr, "Expected return address: %lx, found: %lx\n",
+                save_return_address,
+                result_return_address);
+#endif
+        success = 0;
+    }
+
+    int rsp_pos = RSP_position(live_output_registers);
+
+    // check registers
+    for (int i = 0; i < num_output_registers; i++) {
+        if (i != rsp_pos
+            && output_regs[test * num_output_registers + i] != result_regs[i]) {
+#if DEBUG
+            fprintf(stderr, "Original function test %d failed at register: %s, expected: %lx, "
+                  "found: %lx, updating test result with new value\n",
+                  test,
+                  reg_name(live_output_registers, i),
+                  output_regs[test * num_output_registers + i],
+                    result_regs[i]);
+#endif
+            output_regs[test * num_output_registers + i] = result_regs[i]; // update
+            updates++;
+        }
+    }
+
+    // check memory
+    unsigned long* p = output_mem;
+
+    // skip to the indicated test, by advancing past (test - 1) 0
+    // words (qwords containing 0)
+    unsigned long count = test;
+    while (count > 0 && *p != 0) {
+        do { p += 3; } while (*p != 0);
+        p++;  // advance p to start of next test data
+        count--;
+    }
+    // p should now be positioned at the correct test data
+
+    while (*p) {
+        unsigned long* addr = (unsigned long*)*p++;
+        unsigned long data = *p++;
+        unsigned long mask = *p++;
+        unsigned long i;
+        int found;
+        unsigned long* rsp = (unsigned long*)output_regs[test * num_output_registers
+                                                         + rsp_pos];
+        if (addr < rsp && (rsp - addr) < 64)
+            continue;    // ignore changes in the 1024 below the top
+                         // of the stack (i.e. not on the stack, which
+                         // grows down)
+        if ((*addr & mask) != (data & mask)) {
+            // See if it may be a function address. If so, check
+            // original address of the function and if that matches,
+            // consider it valid. This handles function pointers.
+            for (i = 0, found = 0; i < jump_table_size; i++) {
+                if (jump_table[2 * i + 1] == (*addr & mask)
+                    && (data & mask) == jump_table[2 * i]) {
+                    found = 1;
+                    break;
+                }
+            }
+            if (found) {
+                *addr = data; // update
+                updates++;
+                continue;
+            }
+#if DEBUG
+            fprintf(stderr, "Original function, test %d failed at addr: %lx, expected: %lx, "
+                    "mask: %lx, found: %lx\n",
+                   test,
+                   (unsigned long)addr,
+                   data, mask, *addr);
+#endif
+            *addr = data; // update
+            updates++;
+        }
+    }
+    return success == 0 ? -1 : updates;
+}
+
 // Unblock a signal.  Unless we do this, the signal may only be sent once.
 static void unblock_signal(int signum)
 {
@@ -681,6 +787,42 @@ void segfault_sigaction(int signal, siginfo_t *si, void *context) {
     asm("        popq result_return_address\n\t");
     asm("        movq save_return_address, %rbx\n\t");
     asm("        jmp *%rbx\n\t");
+}
+
+void sigterm_sigaction(int signal, siginfo_t *si, void *context) {
+    if (executing == NormalState) {
+        exit_with_status(1, "Fitness program terminated");
+    }
+    // if we were executing init_mem(), change the address to &dummy,
+    // set the sigterm flag and return. The init_mem() loop should exit.
+    if (executing == RunningTest) {
+        if (!IN_HEAP_FUNC)
+            sigterms++;
+
+        // we are executing a variant function (executing = RunningTest)
+        unblock_signal(signal);
+
+        ucontext_t* p = (ucontext_t*)context;
+        p->uc_mcontext.gregs[REG_RIP] = (greg_t)save_return_address;
+
+        asm("        pushq $1\n\t");
+        asm("        popq result_return_address\n\t");
+        asm("        movq save_return_address, %rbx\n\t");
+        asm("        jmp *%rbx\n\t");
+    }
+    // else don't do anything and let it terminate
+}
+
+void exit_action() {
+    if (executing == RunningTest) {
+        if (!IN_HEAP_FUNC)
+            sigterms++;
+        executing = NormalState;
+        asm("        pushq $1\n\t");
+        asm("        popq result_return_address\n\t");
+        asm("        movq save_return_address, %rbx\n\t");
+        asm("        jmp *%rbx\n\t");
+    }
 }
 
 void timer_sigaction(int signal, siginfo_t *si, void *context) {
@@ -766,6 +908,7 @@ void destroy_timer(timer_t timerid) {
 // if the outputs did not match expected outputs.
 //
 static vfunc execaddr = 0;
+static int num_originals = 2; // variant table starts with 2 copies of original
 
 unsigned long run_variant(int v, int test) {
     long_long start_value[1];
@@ -784,7 +927,7 @@ unsigned long run_variant(int v, int test) {
     if (retval == -1) {
 #if DEBUG
         fprintf(stderr, "Variant %d, test %d failed to initialize address %lx\n",
-                v, test, segfault_addr);
+                (v - num_originals), test, segfault_addr);
 #endif
         return ULONG_MAX;
     }
@@ -807,7 +950,10 @@ unsigned long run_variant(int v, int test) {
     executing = RunningTest;
     execaddr();
     executing = NormalState;
-    asm("call _restore_registers\n\t");
+    asm("movq %rbx, temp_rbx");       // save %rbx
+    asm("leaq next_restore,%rbx");    // store return address in %rbx
+    asm("jmp _restore_registers\n\t");
+    asm("next_restore:");
 
     retval = PAPI_read(EventSet, end_value);     // get PAPI count
     end_timer();  // stop POSIX timer
@@ -819,24 +965,44 @@ unsigned long run_variant(int v, int test) {
     }
 
     retval = PAPI_stop(EventSet, stop_value);
-    if (retval < 0) {
-        exit_with_status(1, "PAPI_stop() error");
-    }
+//    if (retval < 0) {
+//        exit_with_status(1, "PAPI_stop() error");
+//    }
 
     long_long elapsed_instructions = end_value[0] - start_value[0];
-
-    int res = check_results(v, test);   // make sure all the registers had expected
-                                 // output values
+    long long res;
+    if (v == 0) { // original function, requires special handling
+        res = check_original(v, test);
 #if DEBUG
-    fprintf(stderr, "variant %d valid: %s instructions: %lld\n", v,
+        fprintf(stderr,
+                "original valid: %s, instructions: %lld, updated values: %lld\n",
+           (res >= 0 ? "yes" : "no"),
+            elapsed_instructions - overhead,
+            res);
+#endif
+        return 0;
+    } else if (v == 1) { // original function copy, requires special handling
+        res = check_results(v, test);
+#if DEBUG
+        fprintf(stderr, "original (2nd) valid: %s, instructions: %lld\n",
+           (res ? "yes" : "no"),
+            elapsed_instructions - overhead);
+#endif
+        return 0;
+    } else {
+        res = check_results(v, test); // make sure all the registers had expected
+                                      // output values
+    #if DEBUG
+        fprintf(stderr, "variant %d valid: %s instructions: %lld\n", (v-num_originals),
            (res ? "yes" : "no"),
            elapsed_instructions - overhead);
-#endif
-    if (res && elapsed_instructions == 0) {
-        fprintf(stderr, "Error: elapsed_instructions (0) is not valid!");
-        elapsed_instructions = ULONG_MAX;
+    #endif
+        if (res && elapsed_instructions == 0) {
+            fprintf(stderr, "Error: elapsed_instructions (0) is not valid!");
+            elapsed_instructions = ULONG_MAX;
+        }
+        return res == 0 ? ULONG_MAX : elapsed_instructions - overhead;
     }
-    return res == 0 ? ULONG_MAX : elapsed_instructions - overhead;
 }
 
 //
@@ -868,7 +1034,11 @@ unsigned long run_overhead() {
     asm("call _init_registers\n\t");
     executing = RunningTest;
     executing = NormalState;
-    asm("call _restore_registers\n\t");
+    asm("movq %rbx, temp_rbx");       // save %rbx
+    asm("leaq next_restore2,%rbx");    // store return address in %rbx
+    asm("jmp _restore_registers\n\t");
+    asm("next_restore2:");
+
     retval = PAPI_read(EventSet, end_value);     // get PAPI count
 
     if (retval < 0) {
@@ -876,9 +1046,9 @@ unsigned long run_overhead() {
     }
 
     retval = PAPI_stop(EventSet, stop_value);
-    if (retval < 0) {
-        exit_with_status(1, "PAPI_stop() error");
-    }
+//    if (retval < 0) {
+//        exit_with_status(1, "PAPI_stop() error");
+//    }
 
     overhead = (unsigned long)(end_value[0] - start_value[0]);
 #if DEBUG
@@ -889,8 +1059,9 @@ unsigned long run_overhead() {
 
 void run_variant_tests(int v, unsigned long results[]) {
 #if DEBUG
-    fprintf(stderr, "Testing variant %d: ", v);
+    fprintf(stderr, "Testing variant %d: ", (v - num_originals));
 #endif
+    untraced_call_results_index = 0;
     for (int k = 0; k < num_tests; k++) {
         results[k] = run_variant(v, k);
         if (results[k] == ULONG_MAX)
@@ -970,6 +1141,7 @@ void exit_with_status(int code, char* errmsg) {
 #if DEBUG
     fprintf(stderr, "Exit reason: %s\n", errmsg);
     fprintf(stderr, "Number of segfaults: %d\n", segment_violations);
+    fprintf(stderr, "Number of sigterms: %d\n", sigterms);
     fprintf(stderr, "malloc() called: %s\n", in_malloc ? "true" : "false");
     fprintf(stderr, "realloc() called: %s\n", in_realloc ? "true" : "false");
     fprintf(stderr, "free() called: %s\n", in_free ? "true" : "false");
@@ -982,17 +1154,18 @@ void exit_with_status(int code, char* errmsg) {
     // Note: these are the only thing sent to stdout by this program.
     //
 
-    fprintf(stdout, "(%s \"%s\" %s %d %s %d %s %d %s %d)\n",
+    fprintf(stdout, "(%s \"%s\" %s %d %s %d %s %d %s %d %s %d)\n",
             ":exit-reason", errmsg,
             ":segfaults", segment_violations,
             ":malloc", in_malloc,
             ":realloc", in_realloc,
-            ":free", in_free);
+            ":free", in_free,
+            ":sigterms", sigterms);
 
     fprintf(stdout, "#(");
 
     unsigned long* p = test_results;
-    for (int i = 0; i < num_variants; i++) {
+    for (int i = 0; i < (num_variants - num_originals); i++) {
         for (int j = 0; j < num_tests; j++) {
             if (p[i * num_tests + j] == 0) {
                 //fprintf(stderr, "Error: test_result (0) is not valid!");
@@ -1004,6 +1177,33 @@ void exit_with_status(int code, char* errmsg) {
     }
     fprintf(stdout, ")\n");
     exit(code);
+}
+
+void setup_sigsegv_handler() {
+    struct sigaction sa;
+    memset(&sa, 0, sizeof(struct sigaction));
+    sigemptyset(&sa.sa_mask);
+    sa.sa_sigaction = segfault_sigaction;
+    sa.sa_flags = SA_SIGINFO|SA_NODEFER|SA_RESTART|SA_ONSTACK;
+
+    if (sigaction(SIGSEGV, &sa, NULL) == -1) {
+        exit_with_status(1, "Error installing segfault signal handler");
+    }
+    if (sigaction(SIGBUS, &sa, NULL) == -1) {
+        exit_with_status(1, "Error installing segfault signal handler");
+    }
+}
+
+void setup_sigterm_handler() {
+    struct sigaction sa;
+    memset(&sa, 0, sizeof(struct sigaction));
+    sigemptyset(&sa.sa_mask);
+    sa.sa_sigaction = sigterm_sigaction;
+    sa.sa_flags = SA_SIGINFO|SA_NODEFER|SA_RESTART|SA_ONSTACK;
+
+    if (sigaction(SIGTERM, &sa, NULL) == -1) {
+        exit_with_status(1, "Error installing sigterm signal handler");
+    }
 }
 
 //
@@ -1037,22 +1237,11 @@ int main(int argc, char* argv[]) {
         exit_with_status(1, "Error installing alternate signal stack");
     }
     sigunblock();
-
-    struct sigaction sa;
-    memset(&sa, 0, sizeof(struct sigaction));
-    sigemptyset(&sa.sa_mask);
-    sa.sa_sigaction = segfault_sigaction;
-    sa.sa_flags = SA_SIGINFO|SA_NODEFER|SA_RESTART|SA_ONSTACK;
-
-    if (sigaction(SIGSEGV, &sa, NULL) == -1) {
-        exit_with_status(1, "Error installing segfault signal handler");
-    }
-    if (sigaction(SIGBUS, &sa, NULL) == -1) {
-        exit_with_status(1, "Error installing segfault signal handler");
-    }
-
+    setup_sigsegv_handler();
+    setup_sigterm_handler();
     setup_timer();
-
+    if (atexit(exit_action))  // setup exit handler
+        exit_with_status(1, "Error installing exit handler.");
     // show the page size
     long sz = sysconf(_SC_PAGESIZE);
 #if DEBUG
@@ -1077,8 +1266,12 @@ int main(int argc, char* argv[]) {
     // see how many overhead instructions there are
     unsigned long overhead = run_overhead();
 
-    for (int i = 0; variant_table[i]; i++) {
-        run_variant_tests(i, p + (i * num_tests));
+    // discard the results of running the originals
+    run_variant_tests(0, p); // 1st original
+    run_variant_tests(1, p); // 2nd original
+
+    for (int i = num_originals; variant_table[i]; i++) {
+        run_variant_tests(i, p + ((i - num_originals) * num_tests));
     }
 
     exit_with_status(0, "ok");

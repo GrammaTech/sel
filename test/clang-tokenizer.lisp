@@ -203,7 +203,7 @@
 #+nil
 (deftest rinard-fault-loc ()
   (with-fixture fl-tiny-clang
-    (with-temp-file (trace-file)
+    (with-temporary-file (:pathname trace-file)
       (let* ((copy *soft*)
              (instrumented
               (instrument copy :trace-file trace-file))
@@ -225,7 +225,7 @@
                         (ignore-errors (delete-file trace-file))))
                     (error "Something went wrong with trace file: ~a"
                            trace-file)))))
-        (with-temp-file (bin)
+        (with-temporary-file (:pathname bin)
           (multiple-value-bind (bin phenome-exit stderr stdout src)
               (phenome instrumented :bin bin)
             (declare (ignorable stdout src))

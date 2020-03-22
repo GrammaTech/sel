@@ -14,7 +14,7 @@
 ;;; Run the GCD unit tests on ASM. Return the number of passing tests.
 (defun test (asm)
   (ignore-errors
-    (with-temp-file (bin)
+    (with-temporary-file (:pathname bin)
       ;; Build executable
       (phenome asm :bin bin)
       (count-if #'identity

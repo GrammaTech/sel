@@ -39,7 +39,7 @@ If there is a tie after all tests, return all remaining individuals.
 
 Set the value of `*tournament-selector*' to `lexicase-select-best' to
 use lexicase-style selection in tournament selection."
-  (iter (for which in (shuffle (iota (1- (length (fitness (first group)))))))
+  (iter (for which in (shuffle (iota (length (fitness (first group))))))
         (setf group
               ;; Keep individuals with the highest score on the current test.
               (remove-if-not

@@ -133,7 +133,7 @@ extraction iteration"
   "Returns a list of class files in a jar or directory.
 Jars within jars are recursivly extracted
 to the depth of 3 within the built jar"
-  (with-temp-dir (sandbox)
+  (with-temporary-directory (:pathname sandbox)
     (let* ((jar-paths
             (if (directory-exists-p jar-path)
                 (get-files-with-ext-in-dir jar-path "jar")

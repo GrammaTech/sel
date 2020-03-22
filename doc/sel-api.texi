@@ -1,0 +1,317 @@
+@include include/sb-texinfo.texinfo
+
+@menu
+* SEL Concepts::                SEL API grouped by concepts.
+* SEL Packages::                SEL API grouped by packages.
+@end menu
+
+@node SEL Concepts, SEL Concept Index, Troubleshooting, SEL API
+@chapter SEL Concepts
+
+@menu
+* SEL Concept Index::           SEL core concepts.
+* SEL View Concept Index::      SEL/View concepts.
+@end menu
+
+@node SEL Concept Index, SEL View Concept Index, SEL Concepts, SEL Concepts
+@section SEL Concept Index
+@include sel-api-index.texi
+
+@node SEL View Concept Index, SEL Packages, SEL Concept Index, SEL Concepts
+@section SEL View Concept Index
+@cindex view
+@include sel-view-api-index.texi
+
+@node SEL Packages, software-evolution-library, SEL View Concept Index, SEL API
+@chapter SEL Packages
+
+SEL is a collection of multiple Common Lisp @emph{packages}.  This
+appendix holds each individual package's API in turn.
+
+@menu
+* software-evolution-library::  Software-Evolution-Library.
+* sel-rest::                    Software-Evolution-Library Rest interface.
+* sel-view::                    Software-Evolution-Library Text GUI.
+* sel-sw-adaptive-mutation::    Software-Evolution-Library/Software adaptive mutation.
+* sel-sw-ancestral::            Software-Evolution-Library/Software ancestral.
+* sel-sw-asm::                  Software-Evolution-Library/Software asm.
+* sel-sw-asm-heap::             Software-Evolution-Library/Software asm-heap.
+* sel-sw-asm-super-mutant::     Software-Evolution-Library/Software asm-super-mutant.
+* sel-sw-cil::                  Software-Evolution-Library/Software cil.
+* sel-sw-clang::                Software-Evolution-Library/Software clang.
+* sel-sw-clang-expression::     Software-Evolution-Library/Software clang-expression.
+* sel-sw-clang-project::        Software-Evolution-Library/Software clang-project.
+* sel-sw-clang-w-fodder::       Software-Evolution-Library/Software clang-w-fodder.
+* sel-sw-coq::                  Software-Evolution-Library/Software coq.
+* sel-sw-coq-project::          Software-Evolution-Library/Software coq-project.
+* sel-sw-csurf-asm::            Software-Evolution-Library/Software csurf-asm.
+* sel-sw-diff::                 Software-Evolution-Library/Software diff.
+* sel-sw-elf::                  Software-Evolution-Library/Software elf.
+* sel-sw-elf-cisc::             Software-Evolution-Library/Software elf-cisc.
+* sel-sw-elf-risc::             Software-Evolution-Library/Software elf-risc.
+* sel-sw-expression::           Software-Evolution-Library/Software expression.
+* sel-sw-forth::                Software-Evolution-Library/Software forth.
+* sel-sw-java::                 Software-Evolution-Library/Software java.
+* sel-sw-java-project::         Software-Evolution-Library/Software java-project.
+* sel-sw-javascript::           Software-Evolution-Library/Software javascript.
+* sel-sw-javascript-project::   Software-Evolution-Library/Software javascript-project.
+* sel-sw-lisp::                 Software-Evolution-Library/Software lisp.
+* sel-sw-llvm::                 Software-Evolution-Library/Software llvm.
+* sel-sw-parseable::            Software-Evolution-Library/Software parseable.
+* sel-sw-project::              Software-Evolution-Library/Software project.
+* sel-sw-sexp::                 Software-Evolution-Library/Software sexp.
+* sel-sw-simple::               Software-Evolution-Library/Software simple.
+* sel-sw-source::               Software-Evolution-Library/Software source.
+* sel-sw-styleable::            Software-Evolution-Library/Software styleable.
+* sel-sw-super-mutant::         Software-Evolution-Library/Software super-mutant.
+* sel-sw-super-mutant-clang::   Software-Evolution-Library/Software super-mutant-clang.
+* sel-sw-super-mutant-project:: Software-Evolution-Library/Software super-mutant-project.
+* sel-sw-with-exe::             Software-Evolution-Library/Software with-exe.
+* sel-cp-clang-instrument::     Software-Evolution-Library/Component clang-instrument.
+* sel-cp-clang-tokens::         Software-Evolution-Library/Component clang-tokens.
+* sel-cp-condition-synthesis::  Software-Evolution-Library/Component condition-synthesis.
+* sel-cp-fault-loc::            Software-Evolution-Library/Component fault-loc.
+* sel-cp-fix-compilation::      Software-Evolution-Library/Component fix-compilation.
+* sel-cp-fodder-database::      Software-Evolution-Library/Component fodder-database.
+* sel-cp-formatting::           Software-Evolution-Library/Component formatting.
+* sel-cp-in-memory-fodder-database:: Software-Evolution-Library/Component in-memory-fodder-database.
+* sel-cp-instrument::           Software-Evolution-Library/Component instrument.
+* sel-cp-java-instrument::      Software-Evolution-Library/Component java-instrument.
+* sel-cp-javascript-instrument:: Software-Evolution-Library/Component javascript-instrument.
+* sel-cp-json-fodder-database:: Software-Evolution-Library/Component json-fodder-database.
+* sel-cp-lexicase::             Software-Evolution-Library/Component lexicase.
+* sel-cp-multi-objective::      Software-Evolution-Library/Component multi-objective.
+* sel-cp-pliny-fodder-database:: Software-Evolution-Library/Component pliny-fodder-database.
+* sel-cp-searchable::           Software-Evolution-Library/Component searchable.
+* sel-cp-serapi-io::            Software-Evolution-Library/Component serapi-io.
+* sel-cp-test-suite::           Software-Evolution-Library/Component test-suite.
+* sel-cp-traceable::            Software-Evolution-Library/Component traceable.
+@end menu
+
+@node software-evolution-library, sel-rest, SEL Packages, SEL Packages
+@section software-evolution-library
+@include software-evolution-library-api.texi
+
+@node sel-rest, sel-view, software-evolution-library, SEL Packages
+@section sel-rest
+@include sel-rest-api.texi
+
+@node sel-view, sel-sw-adaptive-mutation, sel-rest, SEL Packages
+@section sel-view
+@include sel-view-api.texi
+
+@node sel-sw-adaptive-mutation, sel-sw-ancestral, sel-view, SEL Packages
+@section sel-sw-adaptive-mutation
+@include sel-sw-adaptive-mutation-api.texi
+
+@node sel-sw-ancestral, sel-sw-asm, sel-sw-adaptive-mutation, SEL Packages
+@section sel-sw-ancestral
+@include sel-sw-ancestral-api.texi
+
+@node sel-sw-asm, sel-sw-asm-heap, sel-sw-ancestral, SEL Packages
+@section sel-sw-asm
+@include sel-sw-asm-api.texi
+
+@node sel-sw-asm-heap, sel-sw-asm-super-mutant, sel-sw-asm, SEL Packages
+@section sel-sw-asm-heap
+@include sel-sw-asm-heap-api.texi
+
+@node sel-sw-asm-super-mutant, sel-sw-cil, sel-sw-asm-heap, SEL Packages
+@section sel-sw-asm-super-mutant
+@include sel-sw-asm-super-mutant-api.texi
+
+@node sel-sw-cil, sel-sw-clang, sel-sw-asm-super-mutant, SEL Packages
+@section sel-sw-cil
+@include sel-sw-cil-api.texi
+
+@node sel-sw-clang, sel-sw-clang-expression, sel-sw-cil, SEL Packages
+@section sel-sw-clang
+@include sel-sw-clang-api.texi
+
+@node sel-sw-clang-expression, sel-sw-clang-project, sel-sw-clang, SEL Packages
+@section sel-sw-clang-expression
+@include sel-sw-clang-expression-api.texi
+
+@node sel-sw-clang-project, sel-sw-clang-w-fodder, sel-sw-clang-expression, SEL Packages
+@section sel-sw-clang-project
+@include sel-sw-clang-project-api.texi
+
+@node sel-sw-clang-w-fodder, sel-sw-coq, sel-sw-clang-project, SEL Packages
+@section sel-sw-clang-w-fodder
+@include sel-sw-clang-w-fodder-api.texi
+
+@node sel-sw-coq, sel-sw-coq-project, sel-sw-clang-w-fodder, SEL Packages
+@section sel-sw-coq
+@include sel-sw-coq-api.texi
+
+@node sel-sw-coq-project, sel-sw-csurf-asm, sel-sw-coq, SEL Packages
+@section sel-sw-coq-project
+@include sel-sw-coq-project-api.texi
+
+@node sel-sw-csurf-asm, sel-sw-diff, sel-sw-coq-project, SEL Packages
+@section sel-sw-csurf-asm
+@include sel-sw-csurf-asm-api.texi
+
+@node sel-sw-diff, sel-sw-elf, sel-sw-csurf-asm, SEL Packages
+@section sel-sw-diff
+@include sel-sw-diff-api.texi
+
+@node sel-sw-elf, sel-sw-elf-cisc, sel-sw-diff, SEL Packages
+@section sel-sw-elf
+@include sel-sw-elf-api.texi
+
+@node sel-sw-elf-cisc, sel-sw-elf-risc, sel-sw-elf, SEL Packages
+@section sel-sw-elf-cisc
+@include sel-sw-elf-cisc-api.texi
+
+@node sel-sw-elf-risc, sel-sw-expression, sel-sw-elf-cisc, SEL Packages
+@section sel-sw-elf-risc
+@include sel-sw-elf-risc-api.texi
+
+@node sel-sw-expression, sel-sw-forth, sel-sw-elf-risc, SEL Packages
+@section sel-sw-expression
+@include sel-sw-expression-api.texi
+
+@node sel-sw-forth, sel-sw-java, sel-sw-expression, SEL Packages
+@section sel-sw-forth
+@include sel-sw-forth-api.texi
+
+@node sel-sw-java, sel-sw-java-project, sel-sw-forth, SEL Packages
+@section sel-sw-java
+@include sel-sw-java-api.texi
+
+@node sel-sw-java-project, sel-sw-javascript, sel-sw-java, SEL Packages
+@section sel-sw-java-project
+@include sel-sw-java-project-api.texi
+
+@node sel-sw-javascript, sel-sw-javascript-project, sel-sw-java-project, SEL Packages
+@section sel-sw-javascript
+@include sel-sw-javascript-api.texi
+
+@node sel-sw-javascript-project, sel-sw-lisp, sel-sw-javascript, SEL Packages
+@section sel-sw-javascript-project
+@include sel-sw-javascript-project-api.texi
+
+@node sel-sw-lisp, sel-sw-llvm, sel-sw-javascript-project, SEL Packages
+@section sel-sw-lisp
+@include sel-sw-lisp-api.texi
+
+@node sel-sw-llvm, sel-sw-parseable, sel-sw-lisp, SEL Packages
+@section sel-sw-llvm
+@include sel-sw-llvm-api.texi
+
+@node sel-sw-parseable, sel-sw-project, sel-sw-llvm, SEL Packages
+@section sel-sw-parseable
+@include sel-sw-parseable-api.texi
+
+@node sel-sw-project, sel-sw-sexp, sel-sw-parseable, SEL Packages
+@section sel-sw-project
+@include sel-sw-project-api.texi
+
+@node sel-sw-sexp, sel-sw-simple, sel-sw-project, SEL Packages
+@section sel-sw-sexp
+@include sel-sw-sexp-api.texi
+
+@node sel-sw-simple, sel-sw-source, sel-sw-sexp, SEL Packages
+@section sel-sw-simple
+@include sel-sw-simple-api.texi
+
+@node sel-sw-source, sel-sw-styleable, sel-sw-simple, SEL Packages
+@section sel-sw-source
+@include sel-sw-source-api.texi
+
+@node sel-sw-styleable, sel-sw-super-mutant, sel-sw-source, SEL Packages
+@section sel-sw-styleable
+@include sel-sw-styleable-api.texi
+
+@node sel-sw-super-mutant, sel-sw-super-mutant-clang, sel-sw-styleable, SEL Packages
+@section sel-sw-super-mutant
+@include sel-sw-super-mutant-api.texi
+
+@node sel-sw-super-mutant-clang, sel-sw-super-mutant-project, sel-sw-super-mutant, SEL Packages
+@section sel-sw-super-mutant-clang
+@include sel-sw-super-mutant-clang-api.texi
+
+@node sel-sw-super-mutant-project, sel-sw-with-exe, sel-sw-super-mutant-clang, SEL Packages
+@section sel-sw-super-mutant-project
+@include sel-sw-super-mutant-project-api.texi
+
+@node sel-sw-with-exe, sel-cp-clang-instrument, sel-sw-super-mutant-project, SEL Packages
+@section sel-sw-with-exe
+@include sel-sw-with-exe-api.texi
+
+@node sel-cp-clang-instrument, sel-cp-clang-tokens, sel-sw-with-exe, SEL Packages
+@section sel-cp-clang-instrument
+@include sel-cp-clang-instrument-api.texi
+
+@node sel-cp-clang-tokens, sel-cp-condition-synthesis, sel-cp-clang-instrument, SEL Packages
+@section sel-cp-clang-tokens
+@include sel-cp-clang-tokens-api.texi
+
+@node sel-cp-condition-synthesis, sel-cp-fault-loc, sel-cp-clang-tokens, SEL Packages
+@section sel-cp-condition-synthesis
+@include sel-cp-condition-synthesis-api.texi
+
+@node sel-cp-fault-loc, sel-cp-fix-compilation, sel-cp-condition-synthesis, SEL Packages
+@section sel-cp-fault-loc
+@include sel-cp-fault-loc-api.texi
+
+@node sel-cp-fix-compilation, sel-cp-fodder-database, sel-cp-fault-loc, SEL Packages
+@section sel-cp-fix-compilation
+@include sel-cp-fix-compilation-api.texi
+
+@node sel-cp-fodder-database, sel-cp-formatting, sel-cp-fix-compilation, SEL Packages
+@section sel-cp-fodder-database
+@include sel-cp-fodder-database-api.texi
+
+@node sel-cp-formatting, sel-cp-in-memory-fodder-database, sel-cp-fodder-database, SEL Packages
+@section sel-cp-formatting
+@include sel-cp-formatting-api.texi
+
+@node sel-cp-in-memory-fodder-database, sel-cp-instrument, sel-cp-formatting, SEL Packages
+@section sel-cp-in-memory-fodder-database
+@include sel-cp-in-memory-fodder-database-api.texi
+
+@node sel-cp-instrument, sel-cp-java-instrument, sel-cp-in-memory-fodder-database, SEL Packages
+@section sel-cp-instrument
+@include sel-cp-instrument-api.texi
+
+@node sel-cp-java-instrument, sel-cp-javascript-instrument, sel-cp-instrument, SEL Packages
+@section sel-cp-java-instrument
+@include sel-cp-java-instrument-api.texi
+
+@node sel-cp-javascript-instrument, sel-cp-json-fodder-database, sel-cp-java-instrument, SEL Packages
+@section sel-cp-javascript-instrument
+@include sel-cp-javascript-instrument-api.texi
+
+@node sel-cp-json-fodder-database, sel-cp-lexicase, sel-cp-javascript-instrument, SEL Packages
+@section sel-cp-json-fodder-database
+@include sel-cp-json-fodder-database-api.texi
+
+@node sel-cp-lexicase, sel-cp-multi-objective, sel-cp-json-fodder-database, SEL Packages
+@section sel-cp-lexicase
+@include sel-cp-lexicase-api.texi
+
+@node sel-cp-multi-objective, sel-cp-pliny-fodder-database, sel-cp-lexicase, SEL Packages
+@section sel-cp-multi-objective
+@include sel-cp-multi-objective-api.texi
+
+@node sel-cp-pliny-fodder-database, sel-cp-searchable, sel-cp-multi-objective, SEL Packages
+@section sel-cp-pliny-fodder-database
+@include sel-cp-pliny-fodder-database-api.texi
+
+@node sel-cp-searchable, sel-cp-serapi-io, sel-cp-pliny-fodder-database, SEL Packages
+@section sel-cp-searchable
+@include sel-cp-searchable-api.texi
+
+@node sel-cp-serapi-io, sel-cp-test-suite, sel-cp-searchable, SEL Packages
+@section sel-cp-serapi-io
+@include sel-cp-serapi-io-api.texi
+
+@node sel-cp-test-suite, sel-cp-traceable, sel-cp-serapi-io, SEL Packages
+@section sel-cp-test-suite
+@include sel-cp-test-suite-api.texi
+
+@node sel-cp-traceable, SEL API, sel-cp-test-suite, SEL Packages
+@section sel-cp-traceable
+@include sel-cp-traceable-api.texi

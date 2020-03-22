@@ -701,7 +701,7 @@ condition.
 (defun collect-tests (software test-suite)
   "Build SOFTWARE and run TEST-SUITE, dividing the test cases into positive and
 negative tests."
-  (with-temp-file (bin)
+  (with-temporary-file (:pathname bin)
     (phenome software :bin bin)
     (iter (for case in (test-cases test-suite))
           (let ((test-fitness (evaluate bin case
@@ -737,8 +737,8 @@ target of REPAIR-MUTATION.
   with `instrumentation-exprs'.
 "
   ;; only applies if repair mutation introduced abst_cond()
-  (with-temp-file (trace-file)
-    (with-temp-file (bin)
+  (with-temporary-file (:pathname trace-file)
+    (with-temporary-file (:pathname bin)
       (when (contains-abstract-condition repair-mutation)
         (let ((*trace-file* trace-file)
               (loop-condition (contains-loop-condition repair-mutation))

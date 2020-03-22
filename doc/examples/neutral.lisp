@@ -1,7 +1,6 @@
 ;;; neutral.lisp --- Evolve neutral variants of an original program
 (defpackage :software-evolution-library/doc/examples/neutral
   (:use :gt/full
-        :uiop/image
         :software-evolution-library)
   (:export :main))
 (in-package :software-evolution-library/doc/examples/neutral)
@@ -79,7 +78,7 @@ Options:
      (make-pathname :directory (list :relative res-dir)))
     (flet ((test (asm)
              ;; Return numerical fitness printed to STDOUT by SCRIPT or zero.
-             (with-temp-file (bin)
+             (with-temporary-file (:pathname bin)
                (or (ignore-errors
                      (and (multiple-value-bind (bin exit) (phenome asm :bin bin)
                             (declare (ignorable bin)) (zerop exit))

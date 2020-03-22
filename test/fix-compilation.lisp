@@ -79,7 +79,7 @@
               {starts-with-subseq ":(\\d+):(\\d+): error: indirection requir"}»
           *compilation-fixers*
           :key #'car)))
-    (with-temp-file (genome ".c")
+    (with-temporary-file (:pathname genome :type ".c")
       (string-to-file "int main(int argc, char **argv) {
                         int y = 0;
                         return *y;

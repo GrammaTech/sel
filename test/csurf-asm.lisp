@@ -69,7 +69,7 @@
 (deftest csurf-asm-can-compile ()
   (with-fixture csurf-asm-calc
     (apply-config *soft* (asm-test-dir "calc.log"))
-    (with-temp-file (bin)
+    (with-temporary-file (:pathname bin)
       (multiple-value-bind (bin errno)
           (with-current-directory (+asm-test-dir+)
             (phenome *soft* :bin bin))

@@ -9,7 +9,6 @@
    :software-evolution-library/test/util-clang
    :software-evolution-library/stefil-plus
    :software-evolution-library
-   :software-evolution-library/utility/process
    :software-evolution-library/software/source
    :software-evolution-library/software/clang
    :software-evolution-library/components/instrument
@@ -116,24 +115,24 @@
 
 (deftest (long-running-program-killed-test :long-running) ()
   (with-fixture long-running-program-clang
-    (with-temp-file (bin)
+    (with-temporary-file (:pathname bin)
       (phenome *soft* :bin bin)
       (let ((proc (start-test bin
                               (make-instance 'test-case :program-name bin)
                               :wait nil))
             (*process-kill-timeout* 4))
         (finish-test proc)
-        (is (not (process-running-p proc))
+        (is (not (process-alive-p proc))
             "finish-test did not kill a long running process")))))
 
 (deftest (env-variables-passed-through-to-test-suites :long-running) ()
   (with-fixture print-env-clang
-    (with-temp-file (bin)
+    (with-temporary-file (:pathname bin)
       (phenome *soft* :bin bin)
       (is (string=
            (concatenate 'string "__sel_bar" '(#\Newline))
            (read-stream-content-into-string
-            (process-output-stream
+            (process-info-output
              (start-test bin
                          (make-instance 'test-case
                            :program-name bin

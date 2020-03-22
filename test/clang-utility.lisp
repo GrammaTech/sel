@@ -117,7 +117,7 @@
 
 (deftest (format-a-clang-software-object :long-running) ()
   (flet ((run (obj)
-           (with-temp-file (bin)
+           (with-temporary-file (:pathname bin)
              (phenome obj :bin bin)
              (shell bin))))
     (with-fixture hello-world-clang

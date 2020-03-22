@@ -676,7 +676,7 @@ Resource lookups are of the form \"<resource>:<oid>\""
             (phenome soft :bin inst-bin))
 
         (with-trace-error-handling
-            (with-temp-dir-of (temp)
+            (with-temporary-directory-of (:pathname temp)
               (make-pathname :directory (pathname-directory inst-bin))
               (with-current-directory (temp)
                 (apply 'collect-traces soft test-suite

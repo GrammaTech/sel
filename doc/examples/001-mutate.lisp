@@ -16,7 +16,7 @@
             (declare (ignorable e))
             (invoke-restart 'try-another-mutation))))
       (mutate (copy *orig*)))
-  (let ((temp (temp-file-name "s")))
+  (let ((temp (temp-file-name :type "s")))
     ;; save MUTANT to temp file TEMP
     (to-file mutant temp)
     (format t "Results of applying ~S to gcd written to ~S~%"

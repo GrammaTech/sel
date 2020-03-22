@@ -1,0 +1,8 @@
+Thank you for your interest in contributing to SEL.
+
+See @ref{SEL Coding Standards} for technical guidance and standards.
+
+We ask that all contributors complete our Contributor License
+Agreement (CLA), which can be found at
+@url{https://grammatech.github.io/sel/GrammaTech-CLA-SEL.pdf}, and
+email the completed form to @code{CLA@@GrammaTech.com}.

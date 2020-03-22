@@ -187,7 +187,7 @@ slot in DIRECT-SLOTS may be one of the following:
      (defclass ,name ,(if (member 'software direct-superclasses)
                           direct-superclasses
                           `(,@direct-superclasses software))
-       ,(mapcar {plist-drop :copier} direct-slots)
+       ,(mapcar «cons #'car [{plist-drop :copier} #'cdr]» direct-slots)
        ,@options)
      ;; Define the copy method
      ,(unless (null direct-slots)
@@ -216,7 +216,7 @@ slot in DIRECT-SLOTS may be one of the following:
                                          `(,name obj)))))))
                   direct-slot-names
                   (mapcar {symbol-cat _ 'supplied-p} direct-slot-names)
-                  (mapcar {plist-get :copier} direct-slots))
+                  (mapcar [{plist-get :copier} #'cdr] direct-slots))
                copy))))
      (find-class ',name)))
 
@@ -254,7 +254,7 @@ first value from the `phenome' method."
 
 (defmethod phenome-p ((obj software))
   (ignore-phenome-errors
-    (with-temp-file (bin)
+    (with-temporary-file (:pathname bin)
       (phenome obj :bin bin))))
 
 (defgeneric evaluate (function software &rest extra-keys &key &allow-other-keys)

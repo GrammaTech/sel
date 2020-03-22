@@ -29,7 +29,7 @@ parse the resulting JavaScript into ASTs, extract the right hand side
 of the assignment, and fix-up the :start and :end source range
 pointers to adjust for the extra offset introduced by the added left
 hand side."
-  (with-temp-file-of (src-file (ext obj))
+  (with-temporary-file-of (:pathname src-file :type (ext obj))
       (concatenate 'string "x=" (genome obj))
     (multiple-value-bind (stdout stderr exit)
         (shell "acorn ~a" src-file)

@@ -186,14 +186,14 @@
 * OBJ DOCFIXME
 * DB DOCFIXME
 "
-  (with-temp-file (logfile)
+  (with-temporary-file (:pathname logfile)
     (shell "~a ~a ~d ~a --storage ~a --logfile ~a"
            (loader-bin obj) (host obj) (port obj) db (storage obj) logfile)))
 
 (defmethod shutdown-server ((obj pliny-database))
   "DOCFIXME"
   (or (or (null (host obj)) (null (port obj)))
-      (with-temp-file (logfile)
+      (with-temporary-file (:pathname logfile)
         (shell "~a ~a ~d --logfile ~a"
                (shutdown-bin obj) (host obj) (port obj) logfile)))
   (or (null (server-thread obj)) (join-thread (server-thread obj)))
@@ -332,9 +332,9 @@
 * QUERY DOCFIXME
 * LIMIT DOCFIXME
 "
-  (with-temp-file-of (query-file "json")
+  (with-temporary-file-of (:pathname query-file :type "json")
     (cl-json:encode-json-to-string query)
-    (with-temp-file (log-file)
+    (with-temporary-file (:pathname log-file)
       (let ((query-command (format nil "~a ~a ~D ~D ~a --logfile ~a"
                                    (query-bin obj) (host obj) (port obj) limit
                                    query-file log-file))

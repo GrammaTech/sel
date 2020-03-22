@@ -2,7 +2,6 @@
 (defpackage :software-evolution-library/doc/examples/repair
   (:use :gt/full
         :cl-store
-        :uiop/image
         :software-evolution-library
         :software-evolution-library/software/asm
         :software-evolution-library/software/elf
@@ -27,7 +26,7 @@
       *tournament-eviction-size* 2)
 
 (defun run (src)
-  (with-temp-file-of (src "s") (genome-string src)
+  (with-temporary-file-of (:pathname src :type "s") (genome-string src)
     (multiple-value-bind (stdout stderr errno)
 	(shell *script* src)
       (declare (ignorable stderr) (ignorable stdout))

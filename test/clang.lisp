@@ -146,7 +146,7 @@
 
 (deftest can-compile-clang-software-object ()
   (with-fixture hello-world-clang
-    (with-temp-file (bin)
+    (with-temporary-file (:pathname bin)
       (multiple-value-bind (bin errno stderr stdout src)
           (ignore-phenome-errors
            (phenome *hello-world* :bin bin))
@@ -284,7 +284,7 @@
 
 (deftest can-serialize-a-clang-software-obj ()
   (with-fixture hello-world-clang
-    (with-temp-file (store-file)
+    (with-temporary-file (:pathname store-file)
       (store *hello-world* store-file)
       (is (equalp (genome (restore store-file)) (genome *hello-world*))))))
 
