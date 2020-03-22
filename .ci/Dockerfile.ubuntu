@@ -40,7 +40,7 @@ RUN wget https://downloads.sourceforge.net/project/astyle/astyle/astyle%203.1/as
     rm -rf astyle_3.1_linux.tar.gz
 
 # Javascript
-RUN curl -sL https://deb.nodesource.com/setup_8.x | bash - && \
+RUN curl -sL https://deb.nodesource.com/setup_13.x | bash - && \
     apt-get -y update && \
     apt-get -y install nodejs && \
     npm install --global acorn && \
