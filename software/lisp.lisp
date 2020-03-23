@@ -152,10 +152,6 @@ which may be more nodes, or other values.")
 (defclass sharpsign-minus (reader-conditional-token)
   ((string-pointer :initform "#-")))
 
-(def sharpsign-dot (make-instance 'sharpsign-dot))
-(def sharpsign-plus (make-instance 'sharpsign-plus))
-(def sharpsign-minus (make-instance 'sharpsign-minus))
-
 (defmethod convert ((to-type (eql 'lisp-ast)) (sequence list)
                     &key (spaces nil) (expression sequence)
                       (keyword-prefix ":")
@@ -269,8 +265,8 @@ which may be more nodes, or other values.")
                               (typecase child
                                 (reader-token
                                  (ecase new-sign
-                                   (#\+ sharpsign-plus)
-                                   (#\- sharpsign-minus)))
+                                   (#\+ (make 'sharpsign-plus))
+                                   (#\- (make 'sharpsign-minus))))
                                 (expression-result
                                  (econd ((eql child test)
                                          (if (equal new-test (expression test))
@@ -303,7 +299,7 @@ which may be more nodes, or other values.")
            ((list '|#.| result)
             (make-instance 'expression-result
               :expression result
-              :children (cons sharpsign-dot children)
+              :children (cons (make 'sharpsign-dot) children)
               :start start
               :end end))
            (otherwise
