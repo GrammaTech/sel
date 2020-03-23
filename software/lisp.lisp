@@ -225,14 +225,24 @@ which may be more nodes, or other values.")
                      (make (ecase char
                              (#\+ 'sharpsign-plus)
                              (#\- 'sharpsign-minus))
-                           ;; These are for the benefit of read+.
+                           ;; These are for the benefit of read+, so
+                           ;; it doesn't insert needless whitespace.
                            :start start
                            :end (+ start 2)))
                     (list feature-expression)
                     (list expression)))))
 
-(defgeneric transform-reader-conditional (result fn)
-  (:documentation "If RESULT is a feature expression, call FN with three arguments: the sign, as a character (+ or -); the actual test, as a list; and the guarded expression. FN should return three values - a new sign, a new test, and a new expression - which are used to build a new feature expression that replaces the old one."))
+(defgeneric transform-reader-conditional (reader-conditional fn)
+  (:documentation "Build a new reader condition by calling FN on READER-CONDITIONAL.
+
+FN is called with three arguments: the sign, as a character \(+ or -);
+the feature expresion \(as a list); and the guarded expression.
+
+FN should return three values - a new sign, a new test, and a new
+expression - which are used to build a new reader conditional.
+
+If the sign, the test, and the expression are unchanged,
+READER-CONDITIONAL is returned unchanged."))
 
 (defmethod transform-reader-conditional ((result reader-conditional) fn)
   (mvlet* ((children (children result))
@@ -468,6 +478,7 @@ which may be more nodes, or other values.")
     :children (list (convert 'expression-result symbol))))
 
 (defun walk-feature-expressions (fn ast)
+  "Call FN, a function, on each feature expression in AST."
   (fbind (fn)
          (walk-reader-conditionals (lambda (sign featurex ex)
                                      (declare (ignore sign ex))
@@ -475,6 +486,11 @@ which may be more nodes, or other values.")
                                    ast)))
 
 (defun walk-reader-conditionals (fn ast)
+  "Call FN, a function, on each reader conditional in AST.
+
+FN is called with three arguments: the sign of the reader conditional
+\(+ or -), the feature expression \(as a list), and the guarded
+expression."
   (fbind (fn)
          (traverse-nodes ast
                          (lambda (node)
@@ -492,6 +508,12 @@ which may be more nodes, or other values.")
 (defun map-feature-expressions (fn ast &key
                                          remove-empty
                                          (remove-newly-empty remove-empty))
+  "Build a new ast by calling FN, a function, on each feature
+expression in AST, substituting the old feature expression with the
+return value of FN.
+
+REMOVE-EMPTY and REMOVE-NOT-EMPTY have the same meaning as for
+`map-reader-conditionals'."
   (fbind (fn)
          (map-reader-conditionals (lambda (sign featurex ex)
                                     (values sign (fn featurex) ex))
@@ -502,6 +524,18 @@ which may be more nodes, or other values.")
 (defun map-reader-conditionals (fn ast &key
                                          remove-empty
                                          (remove-newly-empty remove-empty))
+  "Build a new ast by calling FN, an function, on each reader
+conditional in AST (as if by `transform-reader-conditional') and
+substituting the old reader conditional with the new one.
+
+If :REMOVE-EMPTY is true, remove any reader conditionals where the
+feature expression is empty. If the sign is +, the entire reader
+conditional is removed. If the sign is -, then only the guarded
+expression is retained.
+
+If :REMOVE-NEWLY-EMPTY is true, reader conditionals are removed if the
+new feature expression is empty, but reader conditionals that were
+already empty are retained."
   (assert (if remove-empty remove-newly-empty t))
   ;; TOD can changes be batched with `encapsulate'?
   (nest
@@ -539,12 +573,14 @@ which may be more nodes, or other values.")
            :initial-value ast)))
 
 (defun transform-feature-expression (feature-expression fn)
-  "Call FN on each feature in FEATURE-EXPRESSION.
+  "Call FN, a function, on each feature in FEATURE-EXPRESSION.
+Substitute the return value of FN for the existing feature.
+
 If FN returns nil, the feature is removed.
 
 FN may return any feature expression, not just a symbol."
   (match feature-expression
-         (nil nil)
+         ((or nil (list :or)) nil)
          ((and symbol (type symbol))
           (funcall fn symbol))
          ((list (or :and :or :not))
@@ -578,7 +614,8 @@ The global value of `*features*` is ignored."
   (featurep feature-expression))
 
 (defun remove-expression-features (feature-expression features)
-  "Remove FEATURES from FEATURE-EXPRESSION."
+  "Remove FEATURES from FEATURE-EXPRESSION.
+If there are no features left, `nil' is returned."
   (transform-feature-expression feature-expression
                                 (lambda (feature)
                                   (unless (member feature features)
