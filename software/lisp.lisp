@@ -22,13 +22,13 @@
                           :read-preserving-whitespace)
   (:export :lisp :lisp-ast :lisp-ast-p
            :expression :expression-result
-           :feature-guard
+           :reader-conditional
            :feature-expression
            :*string*
-           :transform-feature-guard
+           :transform-reader-conditional
            :walk-feature-expressions
-           :walk-feature-guards
-           :map-feature-guards
+           :walk-reader-conditionals
+           :map-reader-conditionals
            :map-feature-expressions
            :transform-feature-expression
            :featurep-with
@@ -78,29 +78,29 @@ which may be more nodes, or other values.")
         (print-unreadable-object (obj stream :type t)
           (format stream ":EXPRESSION ~a" expression)))))
 
-(defclass feature-guard (expression-result)
+(defclass reader-conditional (expression-result)
   ((feature-expression :initarg :feature-expression
                        :reader feature-expression)))
 
-(defmethod initialize-instance :after ((obj feature-guard) &key)
+(defmethod initialize-instance :after ((obj reader-conditional) &key)
   (with-slots (feature-expression) obj
     (when (typep feature-expression 'expression-result)
       (callf #'expression feature-expression))
     (assert (typep feature-expression '(or symbol list)))))
 
-(defmethod copy ((obj feature-guard) &rest args &key &allow-other-keys)
+(defmethod copy ((obj reader-conditional) &rest args &key &allow-other-keys)
   (apply #'call-next-method
          obj
          :feature-expression (feature-expression obj)
          args))
 
-(defmethod print-object ((obj feature-guard) stream)
+(defmethod print-object ((obj reader-conditional) stream)
   (nest
    (with-slots (feature-expression expression) obj)
    (if *print-readably* (call-next-method))
    (print-unreadable-object (obj stream :type t))
    (format stream "#~a~a :EXPRESSION ~a"
-           (feature-guard-sign obj)
+           (reader-conditional-sign obj)
            feature-expression expression)))
 
 (defclass skipped-input-result (result)
@@ -141,15 +141,15 @@ which may be more nodes, or other values.")
    (start :initform 0)
    (end :initform 2)))
 
-(defclass reader-conditional (reader-token)
+(defclass reader-conditional-token (reader-token)
   ((reason :initform :reader-conditional)
    (start :initform 0)
    (end :initform 2)))
 
-(defclass sharpsign-plus (reader-conditional)
+(defclass sharpsign-plus (reader-conditional-token)
   ((string-pointer :initform "#+")))
 
-(defclass sharpsign-minus (reader-conditional)
+(defclass sharpsign-minus (reader-conditional-token)
   ((string-pointer :initform "#-")))
 
 (def sharpsign-dot (make-instance 'sharpsign-dot))
@@ -219,7 +219,7 @@ which may be more nodes, or other values.")
              (read client stream)))
           (expression (read client stream))
           (end (file-position stream))))
-   (make 'feature-guard
+   (make 'reader-conditional
          :start start
          :end end
          :feature-expression feature-expression
@@ -235,10 +235,10 @@ which may be more nodes, or other values.")
                     (list feature-expression)
                     (list expression)))))
 
-(defgeneric transform-feature-guard (result fn)
+(defgeneric transform-reader-conditional (result fn)
   (:documentation "If RESULT is a feature expression, call FN with three arguments: the sign, as a character (+ or -); the actual test, as a list; and the guarded expression. FN should return three values - a new sign, a new test, and a new expression - which are used to build a new feature expression that replaces the old one."))
 
-(defmethod transform-feature-guard ((result feature-guard) fn)
+(defmethod transform-reader-conditional ((result reader-conditional) fn)
   (mvlet* ((children (children result))
            (token (find-if (of-type 'reader-token) children))
            (sign
@@ -259,7 +259,7 @@ which may be more nodes, or other values.")
                    (eql ex new-ex))
               ;; Nothing has changed.
               result
-              (make 'feature-guard
+              (make 'reader-conditional
                     :start (start result)
                     :end (end result)
                     :feature-expression new-test
@@ -280,7 +280,7 @@ which may be more nodes, or other values.")
                                 (t child)))
                             children)))))
 
-(defmethod feature-guard-sign ((ex feature-guard))
+(defmethod reader-conditional-sign ((ex reader-conditional))
   (let ((token (find-if (of-type 'reader-token) (children ex))))
     (etypecase token
       (sharpsign-plus #\+)
@@ -473,17 +473,17 @@ which may be more nodes, or other values.")
 
 (defun walk-feature-expressions (fn ast)
   (fbind (fn)
-         (walk-feature-guards (lambda (sign featurex ex)
-                                (declare (ignore sign ex))
-                                (fn featurex))
-                              ast)))
+         (walk-reader-conditionals (lambda (sign featurex ex)
+                                     (declare (ignore sign ex))
+                                     (fn featurex))
+                                   ast)))
 
-(defun walk-feature-guards (fn ast)
+(defun walk-reader-conditionals (fn ast)
   (fbind (fn)
          (traverse-nodes ast
                          (lambda (node)
-                           (when (typep node 'feature-guard)
-                             (fn (feature-guard-sign node)
+                           (when (typep node 'reader-conditional)
+                             (fn (reader-conditional-sign node)
                                  (feature-expression node)
                                  (expression node)))
                            :keep-going))
@@ -497,15 +497,15 @@ which may be more nodes, or other values.")
                                          remove-empty
                                          (remove-newly-empty remove-empty))
   (fbind (fn)
-         (map-feature-guards (lambda (sign featurex ex)
-                               (values sign (fn featurex) ex))
-                             ast
-                             :remove-empty remove-empty
-                             :remove-newly-empty remove-newly-empty)))
+         (map-reader-conditionals (lambda (sign featurex ex)
+                                    (values sign (fn featurex) ex))
+                                  ast
+                                  :remove-empty remove-empty
+                                  :remove-newly-empty remove-newly-empty)))
 
-(defun map-feature-guards (fn ast &key
-                                    remove-empty
-                                    (remove-newly-empty remove-empty))
+(defun map-reader-conditionals (fn ast &key
+                                         remove-empty
+                                         (remove-newly-empty remove-empty))
   (assert (if remove-empty remove-newly-empty t))
   ;; TOD can changes be batched with `encapsulate'?
   (nest
@@ -514,7 +514,7 @@ which may be more nodes, or other values.")
           (ast
            (map-tree
             (lambda (node)
-              (if (typep node 'feature-guard)
+              (if (typep node 'reader-conditional)
                   (block replace
                     (flet ((mark-for-remove (sign node)
                              (return-from replace
@@ -524,7 +524,7 @@ which may be more nodes, or other values.")
                                   node)
                                  (#\-
                                   (expression node))))))
-                      (transform-feature-guard
+                      (transform-reader-conditional
                        node
                        (lambda (sign featurex ex)
                          (if (and (featurex-empty? featurex) remove-empty)
@@ -593,11 +593,11 @@ The global value of `*features*` is ignored."
 Each feature in FEATURES will be removed from all feature expressions,
 and if any of the resulting expressions are empty their guards (and
 possibly expressions) will be omitted according to the sign of the guard."
-  (map-feature-guards (lambda (sign featurex ex)
-                        (let ((featurex (remove-expression-features featurex features)))
-                          (values sign featurex ex)))
-                      ast
-                      :remove-newly-empty t))
+  (map-reader-conditionals (lambda (sign featurex ex)
+                             (let ((featurex (remove-expression-features featurex features)))
+                               (values sign featurex ex)))
+                           ast
+                           :remove-newly-empty t))
 
 #+example
 (progn

@@ -113,7 +113,7 @@ t")))))
          (gather-features (convert 'lisp-ast "#+sbcl #+unix t #+sbcl #+windows nil"))))))
 
 (defun rewrite-empty (ast)
-  (map-feature-guards
+  (map-reader-conditionals
    (lambda (sign featurex ex)
      (values sign
              (if (null featurex) '(:or) featurex)
@@ -129,14 +129,14 @@ t")))))
                (source-text (rewrite-empty ast))))))
 
 (defun flip-conditions (ast)
-  (map-feature-guards (lambda (sign featurex ex)
-                        (values
-                         (ecase sign
-                           (#\+ #\-)
-                           (#\- #\+))
-                         featurex
-                         ex))
-                      ast))
+  (map-reader-conditionals (lambda (sign featurex ex)
+                             (values
+                              (ecase sign
+                                (#\+ #\-)
+                                (#\- #\+))
+                              featurex
+                              ex))
+                           ast))
 
 (deftest test-flip-conditions ()
   (is (equal "(list #-sbcl :sbcl #+sbcl :not-sbcl)"
@@ -149,7 +149,7 @@ t")))))
          (string
           "(list #+foo :foo #-foo :bar)")
          (ast (convert 'lisp-ast string))
-         (ast (map-feature-guards
+         (ast (map-reader-conditionals
                (lambda (sign featurex ex)
                  (let ((test
                         (ecase sign
