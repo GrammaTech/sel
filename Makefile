@@ -83,6 +83,11 @@ DOC_PACKAGES =								\
 	software-evolution-library/utility/terminal			\
 	software-evolution-library/view
 
+DOC_DEPS = doc/software-evolution-library/GrammaTech-CLA-SEL.pdf
+
+doc/software-evolution-library/GrammaTech-CLA-SEL.pdf: doc/GrammaTech-CLA-SEL.pdf
+	mkdir -p doc/software-evolution-library/ && cp $< $@
+
 LISP_DEPS =				\
 	$(wildcard *.lisp) 		\
 	$(wildcard components/*.lisp)	\
@@ -111,4 +116,3 @@ test/etc/gcd/gcd: test/etc/gcd/gcd.c
 
 test/etc/gcd/gcd.s: test/etc/gcd/gcd.c
 	gcc $< -S -masm=intel -o $@
-
