@@ -69,42 +69,29 @@
 
 ;;; Javascript parsing
 (defmethod parse-asts ((obj javascript))
-  (macrolet ((multiple-value-or (&body forms)
-               "Evaluates FORM arguments one at time, until the first
-                value returned by one of the forms is true.  It then
-                returns all the values returned by evaluating that form.
-                If none of the forms return a true first value, return
-                the values returned by the last form."
-               (with-gensyms (values)
-                 `(let ((,values (multiple-value-list ,(first forms))))
-                    (if (car ,values)
-                        (values-list ,values)
-                        ,(if (rest forms)
-                             `(multiple-value-or ,@(rest forms))
-                             `(values-list ,values)))))))
-    (labels ((acorn (parsing-mode)
-               "Invoke acorn with the given PARSING-MODE (:script or :module)."
-               (with-temporary-file (:pathname src-file :type (ext obj))
-                 (string-to-file (genome obj) src-file)
-                 (multiple-value-bind (stdout stderr exit)
-                     (shell "acorn --compact --allow-hash-bang ~a ~a"
-                            (if (eq parsing-mode :module)
-                                "--module"
-                                "")
-                            src-file)
-                   (if (zerop exit)
-                       (values stdout stderr exit)
-                       (values nil stderr exit))))))
-      (multiple-value-bind (stdout stderr exit)
-          (multiple-value-or (acorn :module) (acorn :script))
-        (if (zerop exit)
-            (convert-acorn-jsown-tree (jsown:parse stdout))
-            (error
-              (make-instance 'mutate
-                :text (format nil "acorn exit ~d~%stderr:~s"
-                              exit
-                              stderr)
-                :obj obj :op :parse)))))))
+  (labels ((acorn (parsing-mode)
+             "Invoke acorn with the given PARSING-MODE (:script or :module)."
+             (with-temporary-file (:pathname src-file :type (ext obj))
+               (string-to-file (genome obj) src-file)
+               (multiple-value-bind (stdout stderr exit)
+                   (shell "acorn --compact --allow-hash-bang ~a ~a"
+                          (if (eq parsing-mode :module)
+                              "--module"
+                              "")
+                          src-file)
+                 (if (zerop exit)
+                     (values stdout stderr exit)
+                     (values nil stderr exit))))))
+    (multiple-value-bind (stdout stderr exit)
+        (multiple-value-or (acorn :module) (acorn :script))
+      (if (zerop exit)
+          (convert-acorn-jsown-tree (jsown:parse stdout))
+          (error
+            (make-instance 'mutate
+              :text (format nil "acorn exit ~d~%stderr:~s"
+                            exit
+                            stderr)
+              :obj obj :op :parse))))))
 
 (defun convert-acorn-jsown-tree (jt)
   (convert-jsown-tree jt #'jsown-str-to-acorn-keyword))

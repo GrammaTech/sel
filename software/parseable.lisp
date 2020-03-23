@@ -1042,10 +1042,7 @@ in preorder.  The ancestor list is in decreasing order of depth in the AST."))
        (every #'ast-equal-p (ast-children ast-a) (ast-children ast-b))))
 
 (defmethod ast-equal-p ((ast-a t) (ast-b t))
-  (equalp ast-a ast-b))
-
-(defmethod ast-equal-p ((ast-a string) (ast-b string))
-  (string= ast-a ast-b))
+  (equal ast-a ast-b))
 
 (defmethod ast-equal-p ((ast-a cons) (ast-b cons))
   (and (iter (while (consp ast-a))

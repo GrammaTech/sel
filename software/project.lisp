@@ -103,9 +103,9 @@ object (e.g., the original program).")
 (defmethod initialize-instance :after ((project project) &key)
   "Wrapper to ensure software objects are not created from git artifacts."
   (setf (slot-value project 'ignore-other-paths)
-        (append (ignore-other-paths project) (list ".git/**/*"))
+        (adjoin ".git/**/*" (ignore-other-paths project) :test #'equal)
         (slot-value project 'ignore-paths)
-        (append (ignore-paths project) (list ".git/**/*"))))
+        (adjoin ".git/**/*" (ignore-paths project) :test #'equal)))
 
 (defun ignored-path-p (path &key ignore-paths only-paths
                        &aux (canonical-path (canonical-pathname path)))
