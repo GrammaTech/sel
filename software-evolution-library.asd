@@ -19,7 +19,9 @@ techniques."
 (register-system-packages
  "software-evolution-library/software-evolution-library"
  '(:software-evolution-library))
-(register-system-packages "eclector" '(:eclector.parse-result :eclector.readtable :eclector.reader))
+(register-system-packages "eclector" '(:eclector.parse-result
+                                       :eclector.readtable
+                                       :eclector.reader))
 
 ;; This one needs a defsystem to ensure fare-quasiquote-extras is loaded.
 (defsystem "software-evolution-library/components/serapi-io"

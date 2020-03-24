@@ -505,10 +505,10 @@ expression."
   (or (null featurex)
       (equal featurex '(:or))))
 
-(defun map-feature-expressions (fn ast &key
-                                         remove-empty
-                                         (remove-newly-empty remove-empty))
-  "Build a new ast by calling FN, a function, on each feature
+(defun map-feature-expressions (fn ast
+                                &key remove-empty
+                                  (remove-newly-empty remove-empty))
+  "Build a new ast by calling FUN, a function, on each feature
 expression in AST, substituting the old feature expression with the
 return value of FN.
 
@@ -521,9 +521,9 @@ REMOVE-EMPTY and REMOVE-NOT-EMPTY have the same meaning as for
                                   :remove-empty remove-empty
                                   :remove-newly-empty remove-newly-empty)))
 
-(defun map-reader-conditionals (fn ast &key
-                                         remove-empty
-                                         (remove-newly-empty remove-empty))
+(defun map-reader-conditionals (fn ast
+                                &key remove-empty
+                                  (remove-newly-empty remove-empty))
   "Build a new ast by calling FN, an function, on each reader
 conditional in AST (as if by `transform-reader-conditional') and
 substituting the old reader conditional with the new one.
