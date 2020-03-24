@@ -60,6 +60,6 @@ ENV LISP=$LISP \
     COQLIB=/root/.opam/4.06.0/lib/coq/ \
     QUICK_LISP=/root/quicklisp/ \
     SBCL_HOME=/usr/synth/lib/sbcl \
-    LISP_STACK=32678
+    LISP_HEAP=32678
 RUN make real-clean all
 CMD /bin/bash

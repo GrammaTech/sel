@@ -8,11 +8,11 @@ endif
 endif
 
 
-ifneq ($(LISP_STACK),)
+ifneq ($(LISP_HEAP),)
 ifneq (,$(findstring sbcl, $(LISP)))
-LISP_FLAGS = --dynamic-space-size $(LISP_STACK) --no-userinit --no-sysinit
+LISP_FLAGS = --dynamic-space-size $(LISP_HEAP) --no-userinit --no-sysinit
 else
-LISP_FLAGS = --stack-size $(LISP_STACK) --quiet --no-init
+LISP_FLAGS = --heap-reserve $(LISP_HEAP)M --quiet --no-init
 endif
 else
 ifneq (,$(findstring sbcl, $(LISP)))
