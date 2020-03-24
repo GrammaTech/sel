@@ -3286,7 +3286,7 @@ If PROTOTYPE has an empty function body in SOFTWARE return nil."))
 * CLANG DOCFIXME
 * FUNCTION DOCFIXME
 "
-  (destructuring-bind (first last) (stmt-range clang function)
+  (destructuring-bind (&optional first last) (stmt-range clang function)
     (if (equal first last) nil
         (+ (1+ first) (random (- last first))))))
 
