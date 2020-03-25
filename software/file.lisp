@@ -18,6 +18,7 @@
   (:use :gt/full
         :software-evolution-library)
   #-windows (:import-from :osicat :file-permissions)
+  (:import-from :cl-strftime :format-time)
   (:export :file
            :file-w-attributes
            :original-path
@@ -69,10 +70,9 @@ path from which the software was created is required."))
 
 (defun file-modification-time (file)
   "Return FILE's modification time in the form YYYYMMDDHHMM.SS"
-  (multiple-value-bind (stdout stderr exit)
-      (shell "date +%Y%m%d%H%M.%S -r ~a" file)
-    (declare (ignorable stderr))
-    (when (zerop exit) (trim-whitespace stdout))))
+  (ignore-errors
+    (format-time nil "%Y%m%d%H%M.%S"
+                 (file-write-date file))))
 
 (defmethod copy :around ((obj file-w-attributes) &key)
   "Wrap the copy method to ensure the OBJ's fields are copied."
