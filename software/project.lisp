@@ -227,14 +227,13 @@ non-symlink text files that don't end in \"~\" and are not ignored by
       (assert (zerop errno) (path)
               "Creation of output directory failed with: ~a" stderr)))
 
-  ;; Write the evolved software objects (these are the only software
-  ;; objects which should be mutated).
+  ;; Write the software objects.
   (handler-bind ((file-access
                   (lambda (c)
                     (warn "Changing permission from ~a to ~a"
                           (file-access-operation c) (file-access-path c))
                     (invoke-restart 'set-file-writable))))
-    (loop for (file . obj) in (evolve-files project)
+    (loop for (file . obj) in (all-files project)
        do (to-file obj (merge-pathnames-as-file path file)))))
 
 (defmethod size ((obj project))
