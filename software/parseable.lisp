@@ -21,7 +21,6 @@
            :ast-stored-hash
            :ast-class
            :ast-annotations
-           :ast-aux-data
            :source-text
            :rebind-vars
            :replace-in-vars
@@ -142,7 +141,6 @@ See the documentation of `update-asts' for required invariants.")
   (path nil :type list)                      ; Path to subtree from root of tree.
   (children nil :type list)                  ; Remainder of subtree.
   (annotations nil :type list)
-  (aux-data nil :type list)
   (stored-hash nil :type (or null fixnum)))
 
 (defgeneric ast-path (a)
@@ -163,12 +161,6 @@ See the documentation of `update-asts' for required invariants.")
 (defgeneric (setf ast-annotations) (v a)
   (:documentation "Genericized version of annotations writer for AST structs")
   (:method ((v list) (a ast-stub)) (setf (ast-internal-annotations a) v)))
-(defgeneric ast-aux-data (a)
-  (:documentation "Genericized version of aux-data reader for AST structs")
-  (:method ((a ast-stub)) (ast-internal-aux-data a)))
-(defgeneric (setf ast-aux-data) (v a)
-  (:documentation "Genericized version of aux-data writer for AST structs")
-  (:method ((v list) (a ast-stub)) (setf (ast-internal-aux-data a) v)))
 (defgeneric ast-stored-hash (a)
   (:documentation "Genericized version of stored-hash reader for AST structs")
   (:method ((a ast-stub)) (ast-internal-stored-hash a)))
@@ -180,13 +172,11 @@ See the documentation of `update-asts' for required invariants.")
                  &key (path nil path-provided-p)
                    (children nil children-provided-p)
                    (annotations nil annotations-provided-p)
-                   (aux-data nil aux-data-provided-p)
                    (stored-hash nil stored-hash-provided-p))
   (make-raw-ast
    :path (if path-provided-p path (ast-path a))
    :children (if children-provided-p children (ast-children a))
    :annotations (if annotations-provided-p annotations (ast-annotations a))
-   :aux-data (if aux-data-provided-p aux-data (ast-aux-data a))
    :stored-hash (if stored-hash-provided-p stored-hash (ast-stored-hash a))))
 
 (defparameter *ast-print-cutoff* 20
@@ -329,8 +319,7 @@ PRINT-OBJECT method on AST structures.")
 
 (defmacro define-ast (name-and-options &rest slot-descriptions
                       &aux (default-ast-slot-descriptions
-                               '((class nil :type symbol)
-                                 (aux-data nil :type list))))
+                               '((class nil :type symbol))))
   "Implicitly defines an AST wrapper for the defined AST-node."
   (with-gensyms ((obj obj-))
     (let* ((include (get-struct-include name-and-options))
@@ -370,7 +359,7 @@ PRINT-OBJECT method on AST structures.")
              ((,obj ,name)
               &key path
                 (children nil children-supplied-p)
-                annotations
+                (annotations nil annotations-supplied-p)
                 ,@(mapcar (lambda (name)
                             `(,name nil ,(symbol-cat name 'supplied-p)))
                           slot-names))
@@ -391,7 +380,9 @@ PRINT-OBJECT method on AST structures.")
              :children (if children-supplied-p
                            children
                            (ast-children ,obj))
-             :annotations annotations))
+             :annotations (if annotations-supplied-p
+                              annotations
+                              (ast-annotations ,obj))))
 
          ;; Define accessors for internal fields on outer structure
          (defmethod ast-path ((,obj ,name))
@@ -406,6 +397,10 @@ PRINT-OBJECT method on AST structures.")
            (,(symbol-cat name 'children) ,obj))
          (defmethod (setf ast-children) ((v list) (,obj ,name))
            (setf (,(symbol-cat name 'children) ,obj) v))
+         (defmethod ast-annotations ((,obj ,name))
+           (,(symbol-cat name 'annotations) ,obj))
+         (defmethod (setf ast-annotations) ((v list) (,obj ,name))
+           (setf (,(symbol-cat name 'annotations) ,obj) v))
          (defmethod ast-stored-hash ((,obj ,name))
            (,(symbol-cat name 'stored-hash) ,obj))
          (defmethod (setf ast-stored-hash) (v (,obj ,name))
@@ -436,7 +431,6 @@ list."
                              (path nil path-provided-p)
                              (children nil children-provided-p)
                              (annotations nil annotations-provided-p)
-                             (aux-data nil aux-data-provided-p)
                              (stored-hash nil stored-hash-provided-p)
                              (child-alist nil child-alist-provided-p)
                              (default-children nil default-children-provided-p))
@@ -446,9 +440,6 @@ list."
    :annotations (if annotations-provided-p
                     annotations
                     (ast-annotations struct))
-   :aux-data (if aux-data-provided-p
-                 aux-data
-                 (ast-aux-data struct))
    :stored-hash (if stored-hash-provided-p
                     stored-hash
                     (ast-stored-hash struct))
@@ -547,7 +538,8 @@ to `to-ast`.  E.g.
                                    :class (if (keywordp class)
                                               class
                                               (intern (symbol-name class) "KEYWORD"))
-                                   keys)
+                                   (plist-drop :annotations keys))
+                      :annotations (plist-get :annotations keys)
                       :children children))))
 
 

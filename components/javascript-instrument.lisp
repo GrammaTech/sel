@@ -139,7 +139,7 @@ Creates a JAVASCRIPT-INSTRUMENTER for OBJ and calls its instrument method.
            (instrument-before (instrumenter ast)
              (to-ast 'javascript-ast
                      `(:ExpressionStatement
-                        :aux-data ((:instrumentation . t))
+                       :annotations ((:instrumentation . t))
                         (:CallExpression
                           "__sel_trace_point("
                           (:Literal
@@ -159,7 +159,7 @@ Creates a JAVASCRIPT-INSTRUMENTER for OBJ and calls its instrument method.
              (when functions-after
                (to-ast 'javascript-ast
                        `(:ExpressionStatement
-                          :aux-data ((:instrumentation . t))
+                         :annotations ((:instrumentation . t))
                           (:CallExpression
                             "__sel_trace_point("
                             (:Literal
@@ -260,7 +260,7 @@ Creates a JAVASCRIPT-INSTRUMENTER for OBJ and calls its instrument method.
     obj
     (iter (for ast in (nest (reverse)
                             (remove-if-not [{aget :instrumentation}
-                                            {ast-aux-data}])
+                                            #'ast-annotations])
                             (asts obj)))
           (collect `(:cut (:stmt1 . ,ast)))))
   obj)

@@ -230,15 +230,18 @@
           (etypecase form
             (skipped-input-result
              (make-lisp-ast-node
-              :class :skipped
-              :aux-data (list (cons :reason (reason form)))))
+              :class :skipped))
             (expression-result
              (make-lisp-ast-node
-              :class :expression
-              :aux-data (cons
-                         (cons :expression (expression form))
-                         (unless (children form)
-                           (list (cons :text (text form))))))))
+              :class :expression)))
+          :annotations
+          (etypecase form
+            (skipped-input-result
+             (list (cons :reason (reason form))))
+            (expression-result
+             (cons (cons :expression (expression form))
+                   (unless (children form)
+                     (list (cons :text (text form)))))))
           :children
           (etypecase form
             (skipped-input-result

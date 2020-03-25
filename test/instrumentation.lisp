@@ -508,18 +508,18 @@ prints unique counters in the trace"
                      (genome soft)))
           "No code to print variables in the instrumented source."))))
 
-(deftest (instrumentation-preserves-aux-data :long-running) ()
+(deftest (instrumentation-preserves-annotations :long-running) ()
   (with-fixture gcd-clang
     (let* ((stmt (stmt-starting-with-text *gcd* "if (a == 0)"))
            (index (index-of-ast *gcd* stmt)))
       (apply-mutation *gcd*
                       `(clang-replace
                         (:stmt1 . ,stmt)
-                        (:value1 . ,(copy stmt :aux-data '((:foo . t))))))
+                        (:value1 . ,(copy stmt :annotations '((:foo . t))))))
 
       (instrument *gcd* :functions
                   (list (lambda (instrumenter ast)
-                          (when (aget :foo (ast-aux-data ast))
+                          (when (aget :foo (ast-annotations ast))
                             (var-instrument {get-vars-in-scope
                                              (software instrumenter)}
                                             instrumenter
@@ -531,7 +531,7 @@ prints unique counters in the trace"
                                  (phenome *gcd* :bin bin))))
             "Successfully compiled instrumented GCD.")
         (is (member '(:foo . t)
-                    (mappend #'ast-aux-data (asts *gcd*))
+                    (mappend #'ast-annotations (asts *gcd*))
                     :test #'equalp))
         (let ((trace (get-gcd-trace bin)))
           (is (listp trace) "We got a trace.")

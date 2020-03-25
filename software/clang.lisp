@@ -357,8 +357,8 @@ See also: https://clang.llvm.org/docs/FAQ.html#id2.")
   (id nil :type (or null integer))
   ;; Syntactic context
   (syn-ctx nil :type symbol)
-  ;; aux data
-  (aux-data nil :type list))
+  ;; annotations
+  (annotations nil :type list))
 
 ;; Special subclass for :CXXOperatorCallExpr nodes
 (defstruct (cxx-operator-call-expr (:include clang-ast))
@@ -516,7 +516,7 @@ depending on CLASS"))
     (append (%p ':class #'ast-class)
             (%p ':id #'ast-id)
             (%p ':syn-ctx #'ast-syn-ctx)
-            (%p ':aux-data #'ast-aux-data)
+            (%p ':annotations #'ast-annotations)
             (%p ':range #'ast-range)
             (%p ':type [#'%type #'ast-type])
             (%p ':attrs [#'%attrs #'ast-attrs]))))
@@ -547,7 +547,7 @@ depending on CLASS"))
     (make-clang-ast :class (aget :class alist)
                     :id (aget :id alist)
                     :syn-ctx (aget :syn-ctx alist)
-                    :aux-data (aget :aux-data alist)
+                    :annotations (aget :annotations alist)
                     :range (aget :range alist)
                     :type (%type (aget :type alist))
                     :attrs (%attrs (aget :attrs alist)))))
@@ -563,7 +563,7 @@ depending on CLASS"))
                          (attrs (ast-attrs ast) attrs-p)
                          (id (ast-id ast))
                          (syn-ctx (ast-syn-ctx ast))
-                         (aux-data (ast-aux-data ast))
+                         (annotations (ast-annotations ast))
                          &allow-other-keys)
   ;; The value of REFERENCEDDECL is not otherwise explicitly
   ;; used in this function, but it gets used as part of ARGS
@@ -575,7 +575,7 @@ depending on CLASS"))
             (let ((key (pop args2))
                   (arg (pop args2)))
               (case key
-                ((:path :children :class :id :syn-ctx :aux-data) nil)
+                ((:path :children :class :id :syn-ctx :annotations) nil)
                 ((:attrs)
                  (unless attrs-p
                    (setf attrs-p t
@@ -592,7 +592,7 @@ depending on CLASS"))
     (funcall fn :allow-other-keys t
              :path path :children children
              :class class :type type :range range :attrs attrs :id id
-             :syn-ctx syn-ctx :aux-data aux-data)))
+             :syn-ctx syn-ctx :annotations annotations)))
 
 (defmethod copy ((ast clang-ast) &rest args)
   (apply #'clang-ast-copy ast #'make-clang-ast args))
@@ -787,7 +787,7 @@ normalized form with absolute, canonical paths."
 
 ;;; Legacy AST creation routines (deprecated).  Please use `to-ast` instead.
 (defun make-statement (class syn-ctx children
-                       &key full-stmt guard-stmt opcode declares aux-data
+                       &key full-stmt guard-stmt opcode declares annotations
                          &allow-other-keys)
   "Create a statement AST of the NEW-CLANG type.
 
@@ -815,7 +815,7 @@ Other keys are allowed but are silently ignored.
      :syn-ctx syn-ctx
      :class class
      :attrs attrs
-     :aux-data aux-data
+     :annotations annotations
      :children children)))
 
 (defgeneric make-literal (value &optional kind &rest rest)
@@ -3719,10 +3719,10 @@ definition, if applicable.")
 (defmethod (setf ast-stored-hash) (value (obj clang-ast))
   (setf (ast-attr obj 'stored-hash) value))
 
-(defmethod ast-aux-data ((obj clang-ast))
-  (clang-ast-aux-data obj))
-(defmethod (setf ast-aux-data) (v (obj clang-ast))
-  (setf (clang-ast-aux-data obj) v))
+(defmethod ast-annotations ((obj clang-ast))
+  (clang-ast-annotations obj))
+(defmethod (setf ast-annotations) (v (obj clang-ast))
+  (setf (clang-ast-annotations obj) v))
 
 (defgeneric ast-attrs (ast)
   (:method ((ast clang-ast))

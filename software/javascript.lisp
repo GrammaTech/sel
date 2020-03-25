@@ -18,7 +18,7 @@
 ;;; Every AST in a @code{javascript} software object contains an AST class
 ;;; field with the AST type (e.g. BlockStatement, ForStatement).  Additional
 ;;; fields given by the @code{acorn} parser can be found in an association
-;;; list on the AST's aux-data field.  For more information on the ASTs,
+;;; list on the AST's annotations field.  For more information on the ASTs,
 ;;; see @uref{https://media.readthedocs.org/pdf/esprima/4.0/esprima.pdf,
 ;;; esprima}.
 ;;;
@@ -127,8 +127,8 @@
 
 (defmethod update-asts ((obj javascript))
   (labels
-      ((add-aux-data (ast alist)
-         (copy ast :aux-data
+      ((add-annotations (ast alist)
+         (copy ast :annotations
                    (remove-if (lambda (pair)
                                 (or (member (car pair)
                                             '(:type :start :end))
@@ -315,7 +315,7 @@
              (list (subseq genome (aget :start alist) (aget :end alist)))))
        (make-tree (genome ast-alist)
          (let ((children (collect-children ast-alist))
-               (new-ast-node (add-aux-data
+               (new-ast-node (add-annotations
                               (make-javascript-ast-node
                                :class (make-keyword
                                        (string-upcase
