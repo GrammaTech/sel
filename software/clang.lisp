@@ -162,8 +162,6 @@
            :ast-id
            :ast-type
            :ast-range
-           :ast-attr
-           :ast-attrs
            :ast-i-file
            :ast-referenceddecl
            :ast-declarations
@@ -351,8 +349,6 @@ See also: https://clang.llvm.org/docs/FAQ.html#id2.")
   (type nil)
   ;; Source location range information from parsing this ast node
   (range nil)
-  ;; Association list of attr name -> value pairs
-  (attrs nil :type list) ; TODO: Potenitally unify with parseable attributes
   ;; Hashed id number from Clang
   (id nil :type (or null integer))
   ;; Syntactic context
@@ -502,57 +498,59 @@ depending on CLASS"))
            (list (cons key (funcall fn ast))))
          (%type (tp)
            (and tp (to-alist tp)))
-         (%attrs (attrs)
-           (append (when (aget :referenceddecl attrs)
+         (%annotations (annotations)
+           (append (when (aget :referenceddecl annotations)
                      (list (cons :referenceddecl
-                                 (to-alist (aget :referenceddecl attrs)))))
-                   (when (aget :macro-child-segment attrs)
+                                 (to-alist (aget :referenceddecl
+                                                 annotations)))))
+                   (when (aget :macro-child-segment annotations)
                      (list (cons :macro-child-segment
                                  (mapcar #'to-alist
-                                         (aget :macro-child-segment attrs)))))
-                   (when (aget :argtype attrs)
-                     (list (cons :argtype (to-alist (aget :argtype attrs)))))
+                                         (aget :macro-child-segment
+                                               annotations)))))
+                   (when (aget :argtype annotations)
+                     (list (cons :argtype
+                                 (to-alist (aget :argtype annotations)))))
                    (adrop (list :type :argtype
                                 :referenceddecl :macro-child-segment)
-                          attrs))))
+                          annotations))))
     (append (%p ':class #'ast-class)
             (%p ':id #'ast-id)
             (%p ':syn-ctx #'ast-syn-ctx)
-            (%p ':annotations #'ast-annotations)
+            (%p ':annotations [#'%annotations #'ast-annotations])
             (%p ':range #'ast-range)
-            (%p ':type [#'%type #'ast-type])
-            (%p ':attrs [#'%attrs #'ast-attrs]))))
+            (%p ':type [#'%type #'ast-type]))))
 
 (defmethod from-alist ((obj (eql 'clang-ast)) alist)
   (flet ((%type (alist)
            (and alist (from-alist 'clang-type alist)))
-         (%attrs (attrs)
-           (append (when (aget :referenceddecl attrs)
+         (%annotations (annotations)
+           (append (when (aget :referenceddecl annotations)
                      (list (cons :referenceddecl
-                                 (from-alist 'clang-ast
-                                             (aget :referenceddecl attrs)))))
-                   (when (aget :macro-child-segment attrs)
+                                 (nest (from-alist 'clang-ast)
+                                       (aget :referenceddecl annotations)))))
+                   (when (aget :macro-child-segment annotations)
                      (list (cons :macro-child-segment
-                                 (mapcar {from-alist 'clang-ast}
-                                         (aget :macro-child-segment attrs)))))
-                   (when (aget :type attrs)
+                                 (nest (mapcar {from-alist 'clang-ast})
+                                       (aget :macro-child-segment
+                                             annotations)))))
+                   (when (aget :type annotations)
                      (list (cons :type
-                                 (from-alist 'clang-type
-                                             (aget :type attrs)))))
-                   (when (aget :argtype attrs)
+                                 (nest (from-alist 'clang-type)
+                                       (aget :type annotations)))))
+                   (when (aget :argtype annotations)
                      (list (cons :argtype
-                                 (from-alist 'clang-type
-                                             (aget :argtype attrs)))))
+                                 (nest (from-alist 'clang-type)
+                                       (aget :argtype annotations)))))
                    (adrop (list :type :argtype
                                 :referenceddecl :macro-child-segment)
-                          attrs))))
+                          annotations))))
     (make-clang-ast :class (aget :class alist)
                     :id (aget :id alist)
                     :syn-ctx (aget :syn-ctx alist)
-                    :annotations (aget :annotations alist)
+                    :annotations (%annotations (aget :annotations alist))
                     :range (aget :range alist)
-                    :type (%type (aget :type alist))
-                    :attrs (%attrs (aget :attrs alist)))))
+                    :type (%type (aget :type alist)))))
 
 (defun clang-ast-copy (ast fn &rest args
                        &key
@@ -562,38 +560,37 @@ depending on CLASS"))
                          (class (ast-class ast))
                          (type (ast-type ast))
                          (range (ast-range ast))
-                         (attrs (ast-attrs ast) attrs-p)
                          (id (ast-id ast))
                          (syn-ctx (ast-syn-ctx ast))
-                         (annotations (ast-annotations ast))
+                         (annotations (ast-annotations ast) annotations-p)
                          &allow-other-keys)
   ;; The value of REFERENCEDDECL is not otherwise explicitly
   ;; used in this function, but it gets used as part of ARGS
   (unless (or (null referenceddecl) (ast-p referenceddecl))
     (error "Referenceddecl not an AST: ~s~%" referenceddecl))
-  (let (new-attrs)
+  (let (new-annotations)
     (let ((args2 args))
       (iter (while args2)
             (let ((key (pop args2))
                   (arg (pop args2)))
               (case key
-                ((:path :children :class :id :syn-ctx :annotations) nil)
-                ((:attrs)
-                 (unless attrs-p
-                   (setf attrs-p t
-                         attrs arg)))
+                ((:path :children :class :id :syn-ctx) nil)
+                ((:annotations)
+                 (unless annotations-p
+                   (setf annotations-p t
+                         annotations arg)))
                 (t
-                 ;; Otherwise, it's an attribute
-                 (push (cons key arg) new-attrs))))))
-    (iter (for (key . arg) in new-attrs)
-          (setf attrs (areplace key arg attrs)))
+                 ;; Otherwise, it's an annotation
+                 (push (cons key arg) new-annotations))))))
+    (iter (for (key . arg) in new-annotations)
+          (setf annotations (areplace key arg annotations)))
 
     ;; This call includes :ALLOW-OTHER-KEYS T because
     ;; FN may be #'make-clang-ast, and we cannot
     ;; add &allow-other-keys to that.
     (funcall fn :allow-other-keys t
              :path path :children children
-             :class class :type type :range range :attrs attrs :id id
+             :class class :type type :range range :id id
              :syn-ctx syn-ctx :annotations annotations)))
 
 (defmethod copy ((ast clang-ast) &rest args)
@@ -803,20 +800,18 @@ normalized form with absolute, canonical paths."
 
 Other keys are allowed but are silently ignored.
 "
-  (let ((attrs nil))
-    (macrolet ((%push (k v)
-                 `(when ,v (push (cons ,k ,v) attrs))))
-      (%push :full-stmt full-stmt)
-      (%push :guard-stmt guard-stmt)
-      (%push :opcode opcode)
-      (%push :name (when (= (length declares) 1)
-                     ;; clang name attribute is not aggregated
-                     (ast-name (first declares)))))
+  (macrolet ((%push (k v)
+               `(when ,v (push (cons ,k ,v) annotations))))
+    (%push :full-stmt full-stmt)
+    (%push :guard-stmt guard-stmt)
+    (%push :opcode opcode)
+    (%push :name (when (= (length declares) 1)
+                   ;; clang name attribute is not aggregated
+                   (ast-name (first declares))))
     (make-clang-ast
      :path nil
      :syn-ctx syn-ctx
      :class class
-     :attrs attrs
      :annotations annotations
      :children children)))
 
@@ -3726,28 +3721,21 @@ definition, if applicable.")
 (defmethod (setf ast-annotations) (v (obj clang-ast))
   (setf (clang-ast-annotations obj) v))
 
-(defgeneric ast-attrs (ast)
-  (:method ((ast clang-ast))
-    (clang-ast-attrs ast)))
-(defgeneric (setf ast-attrs) (v ast)
-  (:method (v (ast clang-ast))
-    (setf (clang-ast-attrs ast) v)))
-(defgeneric ast-attr (ast attr)
-  (:method ((ast clang-ast) (attr symbol))
-    (aget attr (clang-ast-attrs ast))))
-(defgeneric (setf ast-attr) (v ast attr)
-  (:method (v (ast clang-ast) (attr symbol))
-    (let* ((attrs (clang-ast-attrs ast))
-           (p (assoc attr attrs)))
+(defmethod ast-annotation ((ast clang-ast) (annotation symbol))
+  (aget annotation (clang-ast-annotations ast)))
+(defgeneric (setf ast-annotation) (v ast annotation)
+  (:method (v (ast clang-ast) (annotation symbol))
+    (let* ((annotations (clang-ast-annotations ast))
+           (p (assoc annotation annotations)))
       (if p
           (setf (cdr p) v)
-          (setf (clang-ast-attrs ast)
-                (cons (cons attr v) attrs)))
+          (setf (clang-ast-annotations ast)
+                (cons (cons annotation v) annotations)))
       v)))
 
 (defmethod ast-name ((x null)) nil)
 (defmethod ast-name ((s string)) s)
-(defmethod ast-name ((obj clang-ast)) (ast-attr obj :name))
+(defmethod ast-name ((obj clang-ast)) (ast-annotation obj :name))
 
 (defmethod ast-class ((obj clang-ast))
   (clang-ast-class obj))
@@ -3767,8 +3755,8 @@ definition, if applicable.")
 (defgeneric ast-is-implicit (ast)
   (:method ((ast t)) nil)
   (:method ((ast clang-ast))
-    (or (ast-attr ast :isimplicit)
-        (ast-attr ast :implicit))))
+    (or (ast-annotation ast :isimplicit)
+        (ast-annotation ast :implicit))))
 
 (defgeneric ast-is-class (ast key)
   (:method ((ast t) (class t)) nil)
@@ -3796,7 +3784,7 @@ where class = (ast-class ast)."))
       (list obj))))
 
 (defmethod ast-unbound-vals* ((ast clang-ast) (class (eql :macroexpansion)))
-  (let ((children (ast-attr ast :macro-child-segment))
+  (let ((children (ast-annotation ast :macro-child-segment))
         (bound nil)
         (unbound nil))
     (dolist (c children)
@@ -3871,7 +3859,7 @@ where class = (ast-class ast).")
   (remove-duplicates (apply #'append
                             (ast-includes-in-current-ast obj ast)
                             (mapcar {ast-includes obj}
-                                    (ast-attr ast :macro-child-segment)))
+                                    (ast-annotation ast :macro-child-segment)))
                      :test #'equal))
 
 (defmethod ast-includes-in-current-ast ((obj clang) (ast clang-ast))
@@ -3879,8 +3867,8 @@ where class = (ast-class ast).")
         (append (mapcar {ast-i-file obj} (list ast (ast-referenceddecl ast)))
                 (when (ast-type ast)
                   (list (type-i-file (ast-type ast))))
-                (when (ast-attr ast :macro)
-                  (list (macro-i-file (ast-attr ast :macro)))))))
+                (when (ast-annotation ast :macro)
+                  (list (macro-i-file (ast-annotation ast :macro)))))))
 
 (defmethod ast-macros ((ast clang-ast))
   (ast-macros* ast (ast-class ast)))
@@ -3889,10 +3877,10 @@ where class = (ast-class ast).")
 
 (defmethod ast-macros* ((ast clang-ast) (class t))
   (remove-duplicates (apply #'append
-                            (when (and (ast-attr ast :macro)
+                            (when (and (ast-annotation ast :macro)
                                        (null (nest (macro-i-file)
-                                                   (ast-attr ast :macro))))
-                              (list (ast-attr ast :macro)))
+                                                   (ast-annotation ast :macro))))
+                              (list (ast-annotation ast :macro)))
                             (mapcar #'ast-macros (ast-children ast)))))
 
 (defmethod ast-macros* ((ast clang-ast) (class (eql :toplevel)))
@@ -3900,19 +3888,19 @@ where class = (ast-class ast).")
 
 (defmethod ast-macros* ((ast clang-ast) (class (eql :macroexpansion)))
   (remove-duplicates (apply #'append
-                            (when (and (ast-attr ast :macro)
+                            (when (and (ast-annotation ast :macro)
                                        (null (nest (macro-i-file)
-                                                   (ast-attr ast :macro))))
-                              (list (ast-attr ast :macro)))
+                                                   (ast-annotation ast :macro))))
+                              (list (ast-annotation ast :macro)))
                             (mapcar #'ast-macros
-                                    (ast-attr ast :macro-child-segment)))))
+                                    (ast-annotation ast :macro-child-segment)))))
 
 (defmethod ast-types ((ast string)) nil)
 (defmethod ast-types ((ast clang-ast))
   (ast-types* ast (ast-class ast)))
 (defun ast-types*-on-decl (ast)
   (when-let ((tp (ast-type ast))
-             (storage-class (or (ast-attr ast :storageclass) :none)))
+             (storage-class (or (ast-annotation ast :storageclass) :none)))
     (list (make-instance 'ct+ :type tp :storage-class storage-class))))
 
 (defgeneric ast-types* (ast class)
@@ -3934,14 +3922,13 @@ on various ast classes"))
 (defmethod ast-types* ((ast clang-ast) (ast-class (eql :Macroexpansion)))
   (remove-duplicates (apply #'append
                             (ast-types*-on-decl ast)
-                            (mapcar #'ast-types
-                                    (mapcan #'ast-nodes-in-subtree
-                                            (ast-attr ast
-                                                      :macro-child-segment))))
+                            (nest (mapcar #'ast-types)
+                                  (mapcan #'ast-nodes-in-subtree
+                                          (ast-annotation ast :macro-child-segment))))
                      :key #'type-hash))
 
 (defmethod ast-types* ((ast clang-ast) (ast-class (eql :UnaryExprOrTypeTraitExpr)))
-  (let ((argtype (ast-attr ast :argtype))
+  (let ((argtype (ast-annotation ast :argtype))
         (types (ast-types*-on-decl ast)))
     (if argtype
         (adjoin (make-instance 'ct+ :type argtype) types :key #'type-hash)
@@ -4006,13 +3993,13 @@ on various ast classes"))
 ;; that marks AST nodes that are full statements
 ;; (and that might not otherwise be)
 (defmethod ast-full-stmt ((obj clang-ast))
-  (ast-attr obj :full-stmt))
+  (ast-annotation obj :full-stmt))
 
 ;; This field should be filled in by a pass
 ;; that marks AST nodes that are guard statements
 ;; (and that might not otherwise be)
 (defmethod ast-guard-stmt ((obj clang-ast))
-  (ast-attr obj :guard-stmt))
+  (ast-annotation obj :guard-stmt))
 
 (eval-when (:load-toplevel :compile-toplevel :execute)
   (defparameter *clang-decl-kinds*
@@ -4080,7 +4067,7 @@ on various ast classes"))
     (t nil)))
 
 (defmethod ast-opcode ((obj clang-ast))
-  (ast-attr obj :opcode))
+  (ast-annotation obj :opcode))
 
 (defmethod ast-ret ((obj clang-ast))
   (case (ast-class obj)
@@ -4098,16 +4085,16 @@ on various ast classes"))
 
 (defmethod ast-varargs ((obj clang-ast))
   ;; Should just be :FunctionDecl objects
-  (ast-attr obj :variadic))
+  (ast-annotation obj :variadic))
 
 (defgeneric ast-referenceddecl (ast)
   (:documentation "The declaration referenced by AST.")
   (:method ((ast clang-ast))
-    (ast-attr ast :referenceddecl)))
+    (ast-annotation ast :referenceddecl)))
 
 ;; Helpers for the "ast-*" functions above
 (defun reference-decls-at-ast (a)
-  (let ((rd (ast-attr a :referencedDecl)))
+  (let ((rd (ast-annotation a :referencedDecl)))
     (when rd (list rd))))
 
 (defun ret-type-of-function-type (s)
@@ -4760,11 +4747,11 @@ form for SLOT, and stores into OBJ.  Returns OBJ or its replacement."))
 
 (defmethod store-slot ((obj clang-ast) (slot symbol) value)
   ;; Generic case
-  (let ((attrs (ast-attrs obj)))
-    (assert (null (aget slot attrs)) () "Duplicate slot ~a" slot)
+  (let ((annotations (ast-annotations obj)))
+    (assert (null (aget slot annotations)) () "Duplicate slot ~a" slot)
     (when-let ((converted-value (convert-slot-value obj slot value)))
-      (setf (ast-attrs obj)
-            (append attrs `((,slot . ,converted-value))))))
+      (setf (ast-annotations obj)
+            (append annotations `((,slot . ,converted-value))))))
   obj)
 
 (defmethod store-slot ((obj clang-ast) (slot (eql :type)) value)
@@ -5265,8 +5252,8 @@ offsets to support source text with multibyte characters.
   ;; to allow them to be properly set on the :range later.
   (map-ast ast-root
            (lambda (ast)
-             (setf (ast-attrs ast)
-                   (adrop (list :loc) (ast-attrs ast))))))
+             (setf (ast-annotations ast)
+                   (adrop (list :loc) (ast-annotations ast))))))
 
 (defgeneric compute-operator-positions (ast)
   (:documentation "Compute positions of operators in
@@ -5513,7 +5500,7 @@ from the same macroexpansion into a single macroexpansion node.")
                   :range (make-clang-range
                           :begin (copy b-loc :is-macro-arg-expansion nil)
                           :end (%create-macro-loc-end macro e-loc))
-                  :attrs
+                  :annotations
                   (list (cons :macro-child-segment macro-child-segment)
                         (cons :macro macro))))))
       (unless (eql (ast-class ast) :macroexpansion)
@@ -5741,8 +5728,8 @@ in a CXXOperatorCallExpr node.")
                    (subseq c 0 actual-pos)
                    (subseq c (1+ actual-pos))))))))))
 
-(defgeneric compute-full-stmt-attr (obj ancestors)
-  (:documentation "Fills in the :FULL-STMT attribute on clang ast
+(defgeneric compute-full-stmt-annotation (obj ancestors)
+  (:documentation "Fills in the :FULL-STMT annotation on clang ast
 nodes, as needed.")
   (:method ((obj clang-ast) ancestors)
     (let ((parent (car ancestors)))
@@ -5771,14 +5758,14 @@ nodes, as needed.")
                (and (not (eql obj-class :CompoundStmt))
                     (not (eql-nth-ast-child obj parent 0))))
               (t nil))
-          (setf (ast-attr obj :full-stmt) t))))
+          (setf (ast-annotation obj :full-stmt) t))))
     obj))
 
-(defun compute-full-stmt-attrs (ast)
-  (map-ast-with-ancestors ast #'compute-full-stmt-attr))
+(defun compute-full-stmt-annotations (ast)
+  (map-ast-with-ancestors ast #'compute-full-stmt-annotation))
 
-(defgeneric compute-guard-stmt-attr (obj ancestors)
-  (:documentation "Fills in the :GUARD-STMT attribute on clang
+(defgeneric compute-guard-stmt-annotation (obj ancestors)
+  (:documentation "Fills in the :GUARD-STMT annotation on clang
 ast nodes, as needed")
   (:method ((obj clang-ast) ancestors)
     (when ancestors
@@ -5787,11 +5774,11 @@ ast nodes, as needed")
           (case (ast-class parent)
             ((:CapturedStmt :CompoundStmt :CXXCatchStmt :DoStmt
                             :ForStmt :IfStmt :SwitchStmt :WhileStmt)
-             (setf (ast-attr obj :Guard-Stmt) t))))))
+             (setf (ast-annotation obj :Guard-Stmt) t))))))
     obj))
 
-(defun compute-guard-stmt-attrs (ast)
-  (map-ast-with-ancestors ast #'compute-guard-stmt-attr))
+(defun compute-guard-stmt-annotations (ast)
+  (map-ast-with-ancestors ast #'compute-guard-stmt-annotation))
 
 (defgeneric compute-syn-ctx (ast ancestors)
   (:documentation "Fill in the syn-ctx slot")
@@ -6064,7 +6051,7 @@ in the SYMBOL-TABLE."
                          (new-ref (find old-ref
                                         (gethash (ast-id old-ref) symbol-table)
                                         :key #'ast-name :test #'name=)))
-               (setf (ast-attr ast :referenceddecl) new-ref))))
+               (setf (ast-annotation ast :referenceddecl) new-ref))))
   ast-root)
 
 (defun update-type-table (types symbol-table ast-root)
@@ -6073,7 +6060,7 @@ ASTs in the existing SYMBOL-TABLE and AST-ROOT tree."
   (labels ((get-ct+-type (ast)
              (when-let* ((_ (clang-ast-p ast))
                          (tp (ast-type ast))
-                         (storage-class (or (ast-attr ast :storage-class)
+                         (storage-class (or (ast-annotation ast :storage-class)
                                             :none))
                          (tp+ (make-instance 'ct+
                                 :type tp
@@ -6149,8 +6136,8 @@ ASTs in the existing SYMBOL-TABLE and AST-ROOT tree."
           (combine-overlapping-siblings ast)
           (decorate-ast-with-strings obj ast)
           (put-operators-into-starting-positions obj ast)
-          (compute-full-stmt-attrs ast)
-          (compute-guard-stmt-attrs ast)
+          (compute-full-stmt-annotations ast)
+          (compute-guard-stmt-annotations ast)
           (compute-syn-ctxs ast)
           (fix-semicolons ast)
           (populate-type-fields-from-symbol-table obj types)

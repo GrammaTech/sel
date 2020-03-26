@@ -180,7 +180,7 @@ rename target to use this new name."
       (setf (aget :new-var rename-target)
             (to-ast 'clang
                     `(:var ,new-name
-                           :attrs ((:name . ,new-name))
+                           :annotations ((:name . ,new-name))
                            :syn-ctx :generic))))
     (list (cons :decl-fodder decl-target)
           (cons :rename-variable rename-target))))
