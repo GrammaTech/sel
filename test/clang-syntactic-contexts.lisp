@@ -257,46 +257,6 @@
       (is (eq 2 (count-matching-chars-in-stmt #\} function)))
       (is (eq 1 (count-matching-chars-in-stmt #\; function))))))
 
-(deftest insert-after-full-stmt-adds-semicolon ()
-  (with-fixture contexts
-    (let ((target (stmt-with-text *contexts* "int x = 0;")))
-      (apply-mutation-ops *contexts*
-                          `((:insert-after (:stmt1 . ,target)
-                                           (:value1 . ,target)))))
-    (let ((function (find-function *contexts* "full_stmt")))
-      (is (eq 2 (count-matching-chars-in-stmt #\; function)))
-      (is (eq 2 (count-if [{string= "int x = 0;"} #'source-text]
-                          (asts *contexts*)))))))
-
-(deftest insert-after-braced-body-adds-trailing-semicolon ()
-  (with-fixture contexts
-    (let ((target (nest (get-parent-ast *contexts*)
-                        (stmt-with-text *contexts* "int x = 1;")))
-          (inserted (stmt-with-text *contexts* "int x = 0;")))
-      (apply-mutation-ops *contexts*
-                          `((:insert-after (:stmt1 . ,target)
-                                           (:value1 . ,inserted)))))
-    (let ((function (find-function *contexts* "braced_body")))
-      (is (eq 2 (count-matching-chars-in-stmt #\; function)))
-      (is (eq 2 (count-matching-chars-in-stmt #\{ function)))
-      (is (eq 2 (count-matching-chars-in-stmt #\} function)))
-      (is (eq 2 (count-if [{string= "int x = 0;"} #'source-text]
-                          (asts *contexts*)))))))
-
-(deftest insert-braced-after-braced-body-does-not-add-semicolon ()
-  (with-fixture contexts
-    (let ((target (nest (get-parent-ast *contexts*)
-                        (stmt-with-text *contexts* "int x = 1;"))))
-      (apply-mutation-ops *contexts*
-                          `((:insert-after (:stmt1 . ,target)
-                                           (:value1 . ,target)))))
-    (let ((function (find-function *contexts* "braced_body")))
-      (is (eq 2 (count-matching-chars-in-stmt #\; function)))
-      (is (eq 3 (count-matching-chars-in-stmt #\{ function)))
-      (is (eq 3 (count-matching-chars-in-stmt #\} function)))
-      (is (eq 2 (count-if [{string= "int x = 1"} #'source-text]
-                          (asts *contexts*)))))))
-
 (deftest cut-field-removes-semicolon ()
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "int f1;")))

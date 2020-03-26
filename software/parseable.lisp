@@ -20,6 +20,7 @@
            :ast-node
            :ast-stored-hash
            :ast-class
+           :ast-annotation
            :ast-annotations
            :source-text
            :rebind-vars
@@ -155,12 +156,6 @@ See the documentation of `update-asts' for required invariants.")
 (defgeneric (setf ast-children) (v a)
   (:documentation "Genericized version of children writer for AST structs")
   (:method ((v list) (a ast-stub)) (setf (ast-internal-children a) v)))
-(defgeneric ast-annotations (a)
-  (:documentation "Genericized version of annotations reader for AST structs")
-  (:method ((a ast-stub)) (ast-internal-annotations a)))
-(defgeneric (setf ast-annotations) (v a)
-  (:documentation "Genericized version of annotations writer for AST structs")
-  (:method ((v list) (a ast-stub)) (setf (ast-internal-annotations a) v)))
 (defgeneric ast-stored-hash (a)
   (:documentation "Genericized version of stored-hash reader for AST structs")
   (:method ((a ast-stub)) (ast-internal-stored-hash a)))
@@ -900,42 +895,6 @@ the methods in parseable.lisp instead.")
                                     (list (cons :stmt1 location)
                                           (cons (if literal :literal1 :value1)
                                                 ast))))))
-
-(defgeneric insert-ast-after (tree location ast)
-  (:documentation "Insert AST immediately after LOCATION in TREE, returning
-new tree.
-
-* TREE Applicative AST tree to be modified
-* LOCATION path to the AST where insertion is to occur immediately after
-* REPLACEMENT AST to insert
-
-Note: This method is a helper for performing an AST mutation operation
-specified in parseable.lisp and should not be called directly without
-knowledge of the underlying code architecture.  Please consider using
-the methods in parseable.lisp instead.")
-  (:method ((tree ast) (location ast) (replacement ast))
-    (insert-ast-after tree (ast-path location) replacement))
-
-  (:method ((tree ast) (location list) (replacement ast))
-    (labels
-        ((helper (tree path)
-           (bind (((head . tail) path)
-                  (children (ast-children tree)))
-                 (if tail
-                     ;; Recurse into child
-                     (replace-nth-child tree head (helper (nth head children) tail))
-
-                     ;; Insert into children
-                     (copy tree
-                           :children (nconc (subseq children 0 (max 0 head))
-                                            (fixup-mutation
-                                             :after
-                                             (nth head children)
-                                             (nth head children)
-                                             replacement
-                                             (or (nth (1+ head) children) ""))
-                                            (nthcdr (+ 2 head) children)))))))
-      (helper tree location))))
 
 
 ;;; Map over the nodes of an AST
@@ -2091,9 +2050,7 @@ SOFTWARE.
                           (:set (replace-ast ast-root stmt1 value1))
                           (:cut (remove-ast ast-root stmt1))
                           (:insert (insert-ast ast-root stmt1 value1))
-                          (:splice (splice-asts ast-root stmt1 value1))
-                          (:insert-after
-                           (insert-ast-after ast-root stmt1 value1)))))
+                          (:splice (splice-asts ast-root stmt1 value1)))))
                 (finally (return ast-root)))))
 
   (clear-caches software)
