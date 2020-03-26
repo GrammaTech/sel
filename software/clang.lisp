@@ -357,6 +357,8 @@ See also: https://clang.llvm.org/docs/FAQ.html#id2.")
   (id nil :type (or null integer))
   ;; Syntactic context
   (syn-ctx nil :type symbol)
+  ;; stored-hash
+  (stored-hash nil :type (or null fixnum))
   ;; annotations
   (annotations nil :type list))
 
@@ -3715,9 +3717,9 @@ definition, if applicable.")
   (setf (clang-ast-children obj) value))
 
 (defmethod ast-stored-hash ((obj clang-ast))
-  (ast-attr obj 'stored-hash))
+  (clang-ast-stored-hash obj))
 (defmethod (setf ast-stored-hash) (value (obj clang-ast))
-  (setf (ast-attr obj 'stored-hash) value))
+  (setf (clang-ast-stored-hash obj) value))
 
 (defmethod ast-annotations ((obj clang-ast))
   (clang-ast-annotations obj))
