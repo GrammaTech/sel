@@ -255,3 +255,18 @@
                          :children (mapcar #'make-tree (parse-asts obj)))
           (slot-value obj 'genome) nil)
     obj))
+
+(defmethod convert ((to-type (eql 'lisp-ast)) (spec list)
+                    &key &allow-other-keys)
+  "Create a LISP AST from the SPEC (specification) list."
+  (convert-to-node
+   spec
+   (lambda (class keys children)
+     (funcall #'make-lisp-ast
+              :node (apply #'make-lisp-ast-node
+                           :class (if (keywordp class)
+                                      class
+                                      (intern (symbol-name class) "KEYWORD"))
+                           (plist-drop :annotations keys))
+              :annotations (plist-get :annotations keys)
+              :children children))))

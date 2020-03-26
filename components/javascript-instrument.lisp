@@ -137,44 +137,44 @@ Creates a JAVASCRIPT-INSTRUMENTER for OBJ and calls its instrument method.
            (sort-asts (asts)
              (sort asts #'ast-later-p))
            (instrument-before (instrumenter ast)
-             (to-ast 'javascript-ast
-                     `(:ExpressionStatement
-                       :annotations ((:instrumentation . t))
+             (convert 'javascript-ast
+                      `(:ExpressionStatement
+                        :annotations ((:instrumentation . t))
                         (:CallExpression
-                          "__sel_trace_point("
-                          (:Literal
+                         "__sel_trace_point("
+                         (:Literal
+                          ,(if (file-id instrumenter)
+                               (format nil "~d" (file-id instrumenter))
+                               "null"))
+                         ", "
+                         (:Literal
+                          ,(format nil "~d" (get-ast-id ast)))
+                         ", "
+                         ,@(interleave
+                            (mappend {funcall _ instrumenter ast}
+                                     functions)
+                            ",")
+                         ");"))))
+           (instrument-after (instrumenter ast)
+             (when functions-after
+               (convert 'javascript-ast
+                        `(:ExpressionStatement
+                          :annotations ((:instrumentation . t))
+                          (:CallExpression
+                           "__sel_trace_point("
+                           (:Literal
                             ,(if (file-id instrumenter)
                                  (format nil "~d" (file-id instrumenter))
                                  "null"))
-                          ", "
-                          (:Literal
+                           ", "
+                           (:Literal
                             ,(format nil "~d" (get-ast-id ast)))
-                          ", "
-                          ,@(interleave
+                           ", "
+                           ,@(interleave
                               (mappend {funcall _ instrumenter ast}
-                                       functions)
+                                       functions-after)
                               ",")
-                          ");"))))
-           (instrument-after (instrumenter ast)
-             (when functions-after
-               (to-ast 'javascript-ast
-                       `(:ExpressionStatement
-                         :annotations ((:instrumentation . t))
-                          (:CallExpression
-                            "__sel_trace_point("
-                            (:Literal
-                              ,(if (file-id instrumenter)
-                                   (format nil "~d" (file-id instrumenter))
-                                   "null"))
-                            ", "
-                            (:Literal
-                              ,(format nil "~d" (get-ast-id ast)))
-                            ", "
-                            ,@(interleave
-                                (mappend {funcall _ instrumenter ast}
-                                         functions-after)
-                                ",")
-                            ");")))))
+                           ");")))))
            (instrument-ast (instrumenter ast)
              (list (instrument-before instrumenter ast)
                    ast
@@ -213,18 +213,19 @@ Creates a JAVASCRIPT-INSTRUMENTER for OBJ and calls its instrument method.
 "
   (declare (ignorable print-strings))
   (iter (for var in (funcall key ast))
-        (collect (to-ast 'javascript-ast
-                         `(:ObjectExpression
+        (collect (convert 'javascript-ast
+                          `(:ObjectExpression
                             "{"
                             (:Property
-                              (:Identifier "name")
-                              ": "
-                              (:Literal ,(format nil "\"~a\"" (aget :name var))))
+                             (:Identifier "name")
+                             ": "
+                             (:Literal ,(format nil "\"~a\""
+                                                (aget :name var))))
                             ", "
                             (:Property
-                              (:Identifier "value")
-                              ": "
-                              (:Identifer ,(aget :name var)))
+                             (:Identifier "value")
+                             ": "
+                             (:Identifer ,(aget :name var)))
                             "}")))))
 
 (defmethod instrument ((javascript-project javascript-project) &rest args)

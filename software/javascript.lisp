@@ -522,14 +522,29 @@ AST ast to return the scopes for"
 
 
 ;;; Support for parsing a string directly into free-floating ASTs.
-(defmethod parse-source-snippet ((type (eql :javascript))
-                                 (snippet string)
-                                 &key)
-  "Parse the SNIPPET into a list of free-floating JavaScript ASTs."
+(defmethod convert ((to-type (eql 'javascript-ast)) (collection string)
+                    &key &allow-other-keys)
+  "Parse the COLLECTION snippet into a list of free-floating JavaScript ASTs."
   (handler-case
       (remove-if [{< 1} {length} {ast-path}]
-                 (asts (from-string (make-instance 'javascript) snippet)))
+                 (asts (from-string (make-instance 'javascript) collection)))
     (mutate (e) (declare (ignorable e)) nil)))
+
+(defmethod convert ((to-type (eql 'javascript-ast)) (spec list)
+                    &key &allow-other-keys)
+  "Create a JAVASCRIPT AST from the SPEC (specification) list."
+  (convert-to-node
+   spec
+   (lambda (class keys children)
+     (funcall #'make-javascript-ast
+              :node (apply #'make-javascript-ast-node
+                           :class (if (keywordp class)
+                                      class
+                                      (intern (symbol-name class) "KEYWORD"))
+                           (plist-drop :annotations keys))
+              :annotations (plist-get :annotations keys)
+              :children children))))
+
 
 ;;;; Fixup code for newlines.  These should be in the same AST as
 ;;;; a statement they terminate

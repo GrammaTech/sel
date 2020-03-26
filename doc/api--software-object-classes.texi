@@ -312,7 +312,6 @@ Class @code{parseable}
   @item @refapigeneric{get-unbound-funs}
   @item @refapigeneric{get-unbound-vals}
   @item @refapigeneric{get-vars-in-scope}
-  @item @refapigeneric{parse-source-snippet}
   @item @refapigeneric{roots}
   @item @refapigeneric{update-asts}
   @end itemize
@@ -479,7 +478,6 @@ Class @code{clang}
   @item @refapimethod{uninstrument,uninstrument}
   @item @refapimethod{wrap-ast,wrap-ast}
   @item @refapimethod{wrap-child,wrap-child}
-  @item @refapimethod{parse-source-snippet,parse-source-snippet}
   @end itemize
 
   @item Functions
@@ -592,7 +590,6 @@ Class @code{javascript}
   @item @refapimethod{get-unbound-vals,get-unbound-vals}
   @item @refapimethod{get-unbound-funs,get-unbound-funs}
   @item @refapimethod{get-vars-in-scope,get-vars-in-scope}
-  @item @refapimethod{parse-source-snippet,parse-source-snippet}
   @item @refapimethod{phenome,phenome}
   @item @refapimethod{traceable-stmt-p,traceable-stmt-p}
   @item @refapimethod{scopes,scopes}

@@ -63,10 +63,10 @@
    (setf *database* nil)
    (setf *gcd* nil)))
 
-(deftest (clang-parse-source-snippet-body-statement :long-running) ()
+(deftest (clang-convert-snippet-body-statement :long-running) ()
   (with-fixture gcd-clang
-    (let ((asts (parse-source-snippet
-                 :clang
+    (let ((asts (convert
+                 'clang-ast
                  "x + y"
                  :unbound-vals `(("x" ,(type-from-trace-string "int"))
                                  ("y" ,(type-from-trace-string "char"))))))
@@ -76,9 +76,9 @@
                  (mapcar [#'ast-name {aget :name}]
                          (get-unbound-vals *gcd* (car asts))))))))
 
-(deftest clang-parse-source-snippet-handles-includes ()
-  (let ((asts (parse-source-snippet
-               :clang
+(deftest clang-convert-source-snippet-handles-includes ()
+  (let ((asts (convert
+               'clang-ast
                "printf(\"hello\")"
                :unbound-vals nil
                :includes '("<stdio.h>"))))
@@ -87,9 +87,9 @@
     (is (equalp '("<stdio.h>")
                 (ast-includes nil (car asts))))))
 
-(deftest clang-parse-source-snippet-multiple-statements ()
-  (let ((asts (parse-source-snippet
-               :clang
+(deftest clang-convert-source-snippet-multiple-statements ()
+  (let ((asts (convert
+               'clang-ast
                "x = 1; y = 1"
                :unbound-vals `(("x" ,(type-from-trace-string "int"))
                                ("y" ,(type-from-trace-string "char")))
@@ -98,9 +98,9 @@
     (is (eq :BinaryOperator (ast-class (first asts))))
     (is (eq :BinaryOperator (ast-class (second asts))))))
 
-(deftest clang-parse-source-snippet-top-level ()
-  (let ((asts (parse-source-snippet
-               :clang
+(deftest clang-convert-source-snippet-top-level ()
+  (let ((asts (convert
+               'clang-ast
                "int foo() { return 1; }"
                :unbound-vals nil
                :top-level t)))
@@ -109,23 +109,23 @@
     (is (eq :CompoundStmt (ast-class (function-body (make-instance 'clang)
                                                     (car asts)))))))
 
-(deftest clang-parse-source-snippet-preamble ()
-  (let ((asts (parse-source-snippet
-               :clang
+(deftest clang-convert-source-snippet-preamble ()
+  (let ((asts (convert
+               'clang-ast
                "int *p = A + 10;"
                :unbound-vals nil
                :preamble "static int A[10];")))
     (is (eq :DeclStmt (ast-class (first asts))))))
 
-(deftest (clang-parse-source-snippet-keep-comments :long-running) ()
-  (let ((asts1 (parse-source-snippet
-                :clang
+(deftest (clang-convert-source-snippet-keep-comments :long-running) ()
+  (let ((asts1 (convert
+                'clang-ast
                 "/*POTENTIAL FLAW */ strlen(0);"
                 :unbound-vals nil
                 :includes '("<string.h>")
                 :keep-comments t))
-        (asts2 (parse-source-snippet
-                :clang
+        (asts2 (convert
+                'clang-ast
                 (format nil "// POTENTIAL FLAW~% strlen(0);")
                 :unbound-vals nil
                 :includes '("<string.h>")
@@ -201,9 +201,12 @@
     (let ((variant (copy *hello-world*)))
       (apply-mutation variant
                       `(clang-replace
-                        (:stmt1 . ,(find-if [{eq :StringLiteral} #'ast-class]
-                                            (asts variant)))
-                        (:literal1 . ,(to-ast 'clang-ast `(:StringLiteral "Hello, mutate!")))))
+                        (:stmt1 .
+                                ,(find-if [{eq :StringLiteral} #'ast-class]
+                                          (asts variant)))
+                        (:literal1 .
+                                   ,(convert 'clang-ast
+                                             `(:StringLiteral "Hello, mutate!")))))
       (is (= (size variant)
              (size *hello-world*)))
       (is (string/= (genome variant)

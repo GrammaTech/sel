@@ -457,18 +457,16 @@ the macro is defined within."
 
 
 ;;; Object creation, serialization, and copying.
-(defmethod to-ast ((ast-type (eql 'clang)) s)
-  (to-ast 'clang-ast s))
-
-(defmethod to-ast ((ast-type (eql 'clang-ast)) spec)
-  (to-ast* spec
-           (lambda (class keys children)
-             (apply
-              #'make-clang-ast*
-              class
-              :children children
-              :allow-other-keys t
-              keys))))
+(defmethod convert ((ast-type (eql 'clang-ast)) (spec list)
+                    &key &allow-other-keys)
+  (convert-to-node spec
+                   (lambda (class keys children)
+                     (apply
+                      #'make-clang-ast*
+                      class
+                      :children children
+                      :allow-other-keys t
+                      keys))))
 
 (defgeneric make-clang-ast* (class &rest args &key &allow-other-keys)
   (:documentation "Make a clang-ast node or a subclass of clang-ast,
@@ -3374,14 +3372,13 @@ within a function body, return null."))
 
 
 ;;; Support for parsing a string directly into free-floating ASTs.
-(defmethod parse-source-snippet ((type (eql :clang))
-                                 (snippet string)
-                                 &key unbound-vals includes macros preamble
-                                   top-level keep-comments)
-  "Build ASTs for SNIPPET, returning a list of root asts.
+(defmethod convert ((to-type (eql 'clang-ast)) (collection string)
+                    &key unbound-vals includes macros preamble
+                      top-level keep-comments)
+  "Build ASTs for COLLECTION, returning a list of root asts.
 
-* SNIPPET may include one or more full statements. It should compile in
-  a context where all UNBOUND-VALS are defined and all INCLUDES are
+* COLLECTION snippet including one or more full statements. It should compile
+  in a context where all UNBOUND-VALS are defined and all INCLUDES are
   included.
 
 * UNBOUND-VALS should have the form ((name clang-type) ... )
@@ -3390,7 +3387,7 @@ within a function body, return null."))
 
 * MACROS is a list of macros to define
 
-* PREAMBLE source to add prior to snippet
+* PREAMBLE source to add prior to collection
 
 * TOP-LEVEL indicates that the snippet is a construct which can exist
   outside a function body, such as a type or function declaration.
@@ -3432,7 +3429,7 @@ within a function body, return null."))
                                 (if top-level
                                     "int __snippet_marker;~%~a~%"
                                     "void main() {int __snippet_marker; ~a;~%}")
-                                snippet))
+                                collection))
                (obj (make-instance 'clang
                       :flags (list "-Wno-everything")
                       :genome (concatenate 'string

@@ -140,8 +140,8 @@
       (is (ast-equal-p (stmt-with-text *soft* "num--;")
                        (stmt-with-text variant "num--;"))))))
 
-(deftest javascript-parse-source-snippet-works ()
-  (is (equal 1 (length (parse-source-snippet :javascript "j = 0")))))
+(deftest javascript-convert-source-snippet-works ()
+  (is (equal 1 (length (convert 'javascript-ast "j = 0")))))
 
 (deftest (can-format-a-javascript-software-object :long-running) ()
   (with-fixture fib-javascript

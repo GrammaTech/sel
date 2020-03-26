@@ -39,8 +39,7 @@
            :conflict-ast-child-alist
            :conflict-ast-default-children
            :combine-conflict-asts
-           :to-ast
-           :to-ast*
+           :convert-to-node
            :ast-later-p
            :map-ast
            :map-ast-postorder
@@ -94,7 +93,6 @@
            :recontextualize-mutation
            :recontextualize
            :select-crossover-points
-           :parse-source-snippet
            :traceable-stmt-p
            :can-be-made-traceable-p
            :enclosing-traceable-stmt
@@ -495,59 +493,6 @@ list."
 
 (defmethod ast-class ((c conflict-ast)) nil)
 
-;;; There should be functions for stripping conflict nodes out of a tree,
-;;; based on option keys.
-
-(defgeneric to-ast (ast-type spec)
-  (:documentation
-   "Walk a potentially recursive AST SPEC creating an AST-TYPE AST.
-A SPEC should have the form
-
-  (ast-class <optional-keyword-args-to-`make-<AST-TYPE>-node'>
-             CHILDREN)
-
-where CHILDREN may themselves be specifications suitable for passing
-to `to-ast`.  E.g.
-
-  (to-ast 'clang-ast (:callexpr (:implicitcastexpr
-                                 :includes '(\"<string.h>\")
-                                 \"\" \"(|strcpy|)\" \"\")
-                                \"(\" \"arg-1\" \",\" \"arg-2\" \")\"))"))
-
-(defun to-ast* (spec fn)
-  (labels ((convert-to-node (spec)
-             (destructuring-bind (class &rest options-and-children) spec
-               (multiple-value-bind (keys children)
-                   (let ((previous nil))
-                     (iter (for item in options-and-children)
-                           (if (or (keywordp previous)
-                                   (keywordp item))
-                               ;; Collect keyword arguments.
-                               (collect item into keys)
-                               ;; Process lists as new AST nodes.
-                               (if (listp item)
-                                   (collect (convert-to-node item)
-                                            into children)
-                                   (collect item into children)))
-                           (setf previous item)
-                           (finally (return (values keys children)))))
-                 (funcall fn class keys children)))))
-    (convert-to-node spec)))
-
-(defmethod to-ast (ast-type spec)
-  (to-ast* spec
-           (lambda (class keys children)
-             (funcall (symbol-cat-in-package (symbol-package ast-type)
-                                             'make ast-type)
-                      :node (apply (symbol-cat-in-package (symbol-package ast-type)
-                                                          'make ast-type 'node)
-                                   :class (if (keywordp class)
-                                              class
-                                              (intern (symbol-name class) "KEYWORD"))
-                                   (plist-drop :annotations keys))
-                      :annotations (plist-get :annotations keys)
-                      :children children))))
-
 
 ;;; Generic functions on ASTs
 (defgeneric to-alist (struct)
@@ -664,6 +609,24 @@ operations."
                       ((> head-b head-a) nil)
                       (t (path-later-p tail-a tail-b))))))))
     (path-later-p (ast-path ast-a) (ast-path ast-b))))
+
+(defun convert-to-node (spec fn)
+  (destructuring-bind (class &rest options-and-children) spec
+    (multiple-value-bind (keys children)
+        (let ((previous nil))
+          (iter (for item in options-and-children)
+                (if (or (keywordp previous)
+                        (keywordp item))
+                    ;; Collect keyword arguments.
+                    (collect item into keys)
+                    ;; Process lists as new AST nodes.
+                    (if (listp item)
+                        (collect (convert-to-node item fn)
+                                 into children)
+                        (collect item into children)))
+                (setf previous item)
+                (finally (return (values keys children)))))
+      (funcall fn class keys children))))
 
 
 ;;; Tree manipulations
@@ -1318,10 +1281,6 @@ to allow for successful mutation of SOFTWARE at PT."))
 (defgeneric select-crossover-points (a b)
   (:documentation "Select suitable crossover points in A and B.
 If no suitable points are found the returned points may be nil."))
-
-(defgeneric parse-source-snippet (type snippet &key)
-  (:documentation "Parse a source SNIPPET of the given TYPE (e.g clang)
-into a list of free-floating ASTs."))
 
 (defgeneric traceable-stmt-p (software ast)
   (:documentation
