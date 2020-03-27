@@ -427,4 +427,4 @@
 
     (is (equalp (mapc-ast (ast-root *soft*) #'ast-path)
                 '(NIL ((1)) ((2)))))
-    (is (string= (ast-text (ast-root *soft*)) "topleftaright"))))
+    (is (string= (source-text (ast-root *soft*)) "topleftaright"))))

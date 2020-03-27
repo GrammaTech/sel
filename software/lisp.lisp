@@ -186,7 +186,7 @@
 
 (defun write-stream-forms+ (forms stream)
   "Write the original source text of FORMS to STREAM."
-  (walk-skipped-forms  [{format stream "~a"} #'ast-text] forms))
+  (walk-skipped-forms  [{format stream "~a"} #'source-text] forms))
 
 (defun write-string-forms+ (forms)
   "Write the original source text of FORMS to a string."

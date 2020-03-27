@@ -30,7 +30,6 @@
            :ast-children
            :ast-nodes-in-subtree
            :ast-equal-p
-           :ast-text
            :ast-hash
            :make-raw-ast
            :make-conflict-ast
@@ -540,6 +539,10 @@ AST."))
   "Return the source code corresponding to STR."
   str)
 
+(defmethod source-text ((c character))
+  "Return the source code corresponding to C."
+  (string c))
+
 (defmethod source-text ((ast ast-stub))
   (with-output-to-string (out)
     (mapc [{write-string _ out} #'source-text]
@@ -974,13 +977,6 @@ in preorder.  The ancestor list is in decreasing order of depth in the AST."))
              (while (consp ast-b))
              (always (ast-equal-p (pop ast-a) (pop ast-b))))
        (ast-equal-p ast-a ast-b)))
-
-(defgeneric ast-text (ast)
-  (:documentation "Return textual representation of AST.")
-  (:method (ast)
-    (if (ast-p ast)
-        (source-text ast)
-        (format nil "~A" ast))))
 
 (defgeneric ast-hash (ast)
   (:documentation "A hash value for the AST, which is a nonnegative

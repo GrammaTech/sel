@@ -1062,7 +1062,7 @@ OBJ a clang software object
                          +types-variable-name+)
                  (format nil "const __trace_type_description ~a[] = {~{~a, ~}}"
                          +types-variable-name+
-                         (nest (mapcar [#'ast-text #'cdr])
+                         (nest (mapcar [#'source-text #'cdr])
                                (sort-types-alist)
                                (hash-table-alist)
                                (type-descriptions instrumenter))))))

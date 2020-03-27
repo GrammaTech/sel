@@ -3631,7 +3631,7 @@ spelling location comes after the expansion location.")
   (:method ((tok-len integer) (obj clang-range))
     (setf (tok-len (clang-range-end obj)) tok-len)))
 
-;;; The end offset is one past the last character in the ast-text
+;;; The end offset is one past the last character in the source text
 ;;; for the ast
 (defgeneric begin-and-end-offsets (x)
   (:method ((obj clang-ast))
