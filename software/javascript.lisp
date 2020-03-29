@@ -37,16 +37,10 @@
         :software-evolution-library/components/formatting)
   #-windows (:shadowing-import-from :osicat :file-permissions)
   (:import-from :jsown)
+  (:import-from :cffi :translate-camelcase-name)
   (:export :javascript
            :javascript-mutation
-           :javascript-ast
-           :javascript-ast-p
-           :javascript-ast-node
-           :make-javascript-ast
-           :copy-javascript-ast
-           :make-javascript-ast-node
-           :copy-javascript-ast-node
-           :parsing-mode))
+           :javascript-ast))
 (in-package :software-evolution-library/software/javascript)
 (in-readtable :curry-compose-reader-macros)
 
@@ -55,21 +49,21 @@
 
 
 ;;; Javascript ast data structures
-(define-ast (javascript-ast (:conc-name ast)))
-
-(defmethod print-object ((obj javascript-ast-node) stream)
-  "Print a representation of the javascript-ast-node OBJ to STREAM.
-* OBJ clang-ast to print
-* STREAM stream to print OBJ to"
-  (if *print-readably*
-      (call-next-method)
-      (print-unreadable-object (obj stream :type t)
-        (format stream "~a" (ast-class obj)))))
+(defclass javascript-ast (ast)
+  ((children :reader children
+             :type list
+             :initarg :children
+             :initform nil
+             :documentation "The list of children of the node,
+which may be more nodes, or other values.")
+   (child-slots :initform '(children) :allocation :class))
+  (:documentation "Class of JavaScript ASTs."))
 
 
 ;;; Javascript parsing
 (defmethod parse-asts ((obj javascript))
-  (labels ((acorn (parsing-mode)
+  "Invoke the acorn parser on the genome of OBJ."
+  (labels ((invoke-acorn (parsing-mode)
              "Invoke acorn with the given PARSING-MODE (:script or :module)."
              (with-temporary-file (:pathname src-file :type (ext obj))
                (string-to-file (genome obj) src-file)
@@ -83,7 +77,7 @@
                      (values stdout stderr exit)
                      (values nil stderr exit))))))
     (multiple-value-bind (stdout stderr exit)
-        (multiple-value-or (acorn :module) (acorn :script))
+        (multiple-value-or (invoke-acorn :module) (invoke-acorn :script))
       (if (zerop exit)
           (convert-acorn-jsown-tree (jsown:parse stdout))
           (error
@@ -99,204 +93,182 @@
 (defun jsown-str-to-acorn-keyword (str)
   (string-case-to-keywords ("delegate" "update" "await" "properties"
                                        "method" "shorthand" "key" "elements"
-                                       "object" "property" "computed" "generator"
-                                       "async" "params" "declarations"
-                                       "id" "init " "kind" "test" "body" "left"
-                                       "right" "operator" "prefix" "argument"
+                                       "object" "property" "computed"
+                                       "generator" "async" "params"
+                                       "declarations" "id" "init " "kind"
+                                       "test" "body" "js-left" "right"
+                                       "operator" "prefix" "argument"
                                        "expression" "callee " "name" "arguments"
-                                       "type" "start" "end" "value" "raw" "sourcetype")
+                                       "value" "raw" "sourcetype"
+                                       "type" "start" "end")
                            str))
-
-(define-constant +js-bound-id-parent-classes+
-  (list "FunctionDeclaration"
-        "FunctionExpression"
-        "ArrowFunctionExpression"
-        "ClassExpression"
-        "MetaProperty"
-        "BreakStatement"
-        "ClassDeclaration"
-        "ContinueStatement"
-        "LabelledStatement"
-        "ImportSpecifier"
-        "ExportSpecifier"
-        "ExportDefaultDeclaration"
-        "VariableDeclarator")
-  :test #'equalp
-  :documentation
-  "Parent AST classes of identifiers which should be interpreted as bound.")
 
 (defmethod update-asts ((obj javascript))
   (labels
-      ((add-annotations (ast alist)
-         (copy ast :annotations
-                   (remove-if (lambda (pair)
-                                (or (member (car pair)
-                                            '(:type :start :end))
-                                    (listp (cdr pair))))
-                              alist)))
-       (collect-children (ast-alist &aux (ast-class (aget :type ast-alist)))
+      ((annotations (alist)
+         (remove-if (lambda (pair)
+                      (or (member (car pair)
+                                  '(:type :start :end))
+                          (listp (cdr pair))))
+                    alist))
+       (collect-children (ast-alist &aux (ast-class (nest (make-keyword)
+                                                          (string-upcase)
+                                                          (aget :type ast-alist))))
          (remove-if #'null
-                    (cond ((equal ast-class "MemberExpression")
+                    (cond ((eq ast-class :MemberExpression)
                            (list (aget :object ast-alist)
                                  (aget :property ast-alist)))
-                          ((equal ast-class "TaggedTemplateExpression")
+                          ((eq ast-class :TaggedTemplateExpression)
                            (list (aget :tag ast-alist)
                                  (aget :quasi ast-alist)))
-                          ((equal ast-class "TemplateLiteral")
+                          ((eq ast-class :TemplateLiteral)
                            (sort (append (aget :quasis ast-alist)
                                          (aget :expressions ast-alist))
                                  #'< :key {aget :end}))
-                          ((equal ast-class "MetaProperty")
+                          ((eq ast-class :MetaProperty)
                            (list (aget :meta ast-alist)
                                  (aget :property ast-alist)))
-                          ((equal ast-class "Property")
+                          ((eq ast-class :Property)
                            (if (< (aget :start (aget :value ast-alist))
                                   (aget :end (aget :key ast-alist)))
-                             (list (aget :value ast-alist))
-                             (list (aget :key ast-alist)
-                                   (aget :value ast-alist))))
-                          ((equal ast-class "MethodDefinition")
+                               (list (aget :value ast-alist))
+                               (list (aget :key ast-alist)
+                                     (aget :value ast-alist))))
+                          ((eq ast-class :MethodDefinition)
                            (list (aget :key ast-alist)
                                  (aget :value ast-alist)))
-                          ((equal ast-class "SequenceExpression")
+                          ((eq ast-class :SequenceExpression)
                            (aget :expressions ast-alist))
-                          ((equal ast-class "DoWhileStatement")
+                          ((eq ast-class :DoWhileStatement)
                            (list (aget :body ast-alist)
                                  (aget :test ast-alist)))
-                          ((equal ast-class "WhileStatement")
+                          ((eq ast-class :WhileStatement)
                            (list (aget :test ast-alist)
                                  (aget :body ast-alist)))
-                          ((equal ast-class "ExpressionStatement")
+                          ((eq ast-class :ExpressionStatement)
                            (list (aget :expression ast-alist)))
-                          ((equal ast-class "ForStatement")
+                          ((eq ast-class :ForStatement)
                            (list (aget :init ast-alist)
                                  (aget :test ast-alist)
                                  (aget :update ast-alist)
                                  (aget :body ast-alist)))
-                          ((equal ast-class "LabeledStatement")
+                          ((eq ast-class :LabeledStatement)
                            (list (aget :label ast-alist)
                                  (aget :body ast-alist)))
-                          ((equal ast-class "SwitchStatement")
+                          ((eq ast-class :SwitchStatement)
                            (append (list (aget :discriminant ast-alist))
                                    (aget :cases ast-alist)))
-                          ((equal ast-class "SwitchCase")
+                          ((eq ast-class :SwitchCase)
                            (append (list (aget :test ast-alist))
                                    (aget :consequent ast-alist)))
-                          ((equal ast-class "TryStatement")
+                          ((eq ast-class :TryStatement)
                            (list (aget :block ast-alist)
                                  (aget :handler ast-alist)
                                  (aget :finalizer ast-alist)))
-                          ((equal ast-class "CatchClause")
+                          ((eq ast-class :CatchClause)
                            (list (aget :param ast-alist)
                                  (aget :body ast-alist)))
-                          ((equal ast-class "VariableDeclaration")
+                          ((eq ast-class :VariableDeclaration)
                            (aget :declarations ast-alist))
-                          ((equal ast-class "VariableDeclarator")
+                          ((eq ast-class :VariableDeclarator)
                            (list (aget :id ast-alist)
                                  (aget :init ast-alist)))
-                          ((equal ast-class "WithStatement")
+                          ((eq ast-class :WithStatement)
                            (list (aget :object ast-alist)
                                  (aget :body ast-alist)))
-                          ((equal ast-class "Program")
+                          ((eq ast-class :Program)
                            (aget :body ast-alist))
-                          ((equal ast-class "ImportDeclaration")
+                          ((eq ast-class :ImportDeclaration)
                            (append (aget :specifiers ast-alist)
                                    (list (aget :source ast-alist))))
-                          ((equal ast-class "ExportAllDeclaration")
+                          ((eq ast-class :ExportAllDeclaration)
                            (list (aget :source ast-alist)))
-                          ((equal ast-class "ExportDefaultDeclaration")
+                          ((eq ast-class :ExportDefaultDeclaration)
                            (list (aget :declaration ast-alist)))
-                          ((equal ast-class "ExportNamedDeclaration")
+                          ((eq ast-class :ExportNamedDeclaration)
                            (append (list (aget :declaration ast-alist))
                                    (aget :specifiers ast-alist)
                                    (list (aget :source ast-alist))))
-                          ((equal ast-class "ExportSpecifier")
+                          ((eq ast-class :ExportSpecifier)
                            (remove-duplicates
-                             (list (aget :local ast-alist)
-                                   (aget :exported ast-alist))
-                             :test #'equal))
+                            (list (aget :local ast-alist)
+                                  (aget :exported ast-alist))
+                            :test #'equal))
                           ((member ast-class
-                                   (list "ClassExpression"
-                                         "ClassDeclaration")
-                                   :test #'equal)
+                                   (list :ClassExpression
+                                         :ClassDeclaration))
                            (list (aget :id ast-alist)
                                  (aget :superclass ast-alist)
                                  (aget :body ast-alist)))
                           ((member ast-class
-                                   (list "ForInStatement"
-                                         "ForOfStatement")
-                                   :test #'equal)
+                                   (list :ForInStatement
+                                         :ForOfStatement))
                            (list (aget :left ast-alist)
                                  (aget :right ast-alist)
                                  (aget :body ast-alist)))
                           ((member ast-class
-                                   (list "ArrayPattern"
-                                         "ArrayExpression")
-                                   :test #'equal)
+                                   (list :ArrayPattern
+                                         :ArrayExpression))
                            (aget :elements ast-alist))
                           ((member ast-class
-                                   (list "ObjectPattern"
-                                         "ObjectExpression")
-                                   :test #'equal)
+                                   (list :ObjectPattern
+                                         :ObjectExpression))
                            (aget :properties ast-alist))
                           ((member ast-class
-                                   (list "RestElement"
-                                         "SpreadElement"
-                                         "UpdateExpression"
-                                         "AwaitExpression"
-                                         "UnaryExpression"
-                                         "YieldExpression"
-                                         "ReturnStatement"
-                                         "ThrowStatement")
-                                   :test #'equal)
+                                   (list :RestElement
+                                         :SpreadElement
+                                         :UpdateExpression
+                                         :AwaitExpression
+                                         :UnaryExpression
+                                         :YieldExpression
+                                         :ReturnStatement
+                                         :ThrowStatement))
                            (list (aget :argument ast-alist)))
                           ((member ast-class
-                                   (list "AssignmentPattern"
-                                         "BinaryExpression"
-                                         "LogicalExpression"
-                                         "AssignmentExpression")
-                                   :test #'equal)
+                                   (list :AssignmentPattern
+                                         :BinaryExpression
+                                         :LogicalExpression
+                                         :AssignmentExpression))
                            (list (aget :left ast-alist)
                                  (aget :right ast-alist)))
                           ((member ast-class
-                                   (list "FunctionExpression"
-                                         "ArrowFunctionExpression"
-                                         "FunctionDeclaration")
+                                   (list :FunctionExpression
+                                         :ArrowFunctionExpression
+                                         :FunctionDeclaration)
                                    :test #'equal)
                            (append (aget :params ast-alist)
                                    (list (aget :body ast-alist))))
                           ((member ast-class
-                                   (list "ClassBody"
-                                         "BlockStatement")
+                                   (list :ClassBody
+                                         :BlockStatement)
                                    :test #'equal)
                            (aget :body ast-alist))
                           ((member ast-class
-                                   (list "CallExpression"
-                                         "NewExpression")
+                                   (list :CallExpression
+                                         :NewExpression)
                                    :test #'equal)
                            (append (list (aget :callee ast-alist))
                                    (aget :arguments ast-alist)))
                           ((member ast-class
-                                   (list "BreakStatement"
-                                         "ContinueStatement")
+                                   (list :BreakStatement
+                                         :ContinueStatement)
                                    :test #'equal)
                            (list (aget :label ast-alist)))
                           ((member ast-class
-                                   (list "ConditionalExpression"
-                                         "IfStatement")
+                                   (list :ConditionalExpression
+                                         :IfStatement)
                                    :test #'equal)
                            (list (aget :test ast-alist)
                                  (aget :consequent ast-alist)
                                  (aget :alternate ast-alist)))
                           ((member ast-class
-                                   (list "ImportSpecifier"
-                                         "ImportDefaultSpecifier"
-                                         "ImportNamespaceSpecifier")
-                                   :test #'equal)
+                                   (list :ImportSpecifier
+                                         :ImportDefaultSpecifier
+                                         :ImportNamespaceSpecifier))
                            (remove-duplicates
-                             (list (aget :imported ast-alist)
-                                   (aget :local ast-alist))
-                             :test #'equal))
+                            (list (aget :imported ast-alist)
+                                  (aget :local ast-alist))
+                            :test #'equal))
                           (t nil))))
        (make-children (genome alist child-alists child-asts
                        &aux (start (aget :start alist)))
@@ -314,43 +286,144 @@
                                                    (aget :end alist)))))))
              (list (subseq genome (aget :start alist) (aget :end alist)))))
        (make-tree (genome ast-alist)
-         (let ((children (collect-children ast-alist))
-               (new-ast-node (add-annotations
-                              (make-javascript-ast-node
-                               :class (make-keyword
-                                       (string-upcase
-                                        (aget :type ast-alist))))
-                              ast-alist)))
-           (make-javascript-ast
-             :node new-ast-node
-             :children (make-children
-                         genome
-                         ast-alist
-                         children
-                         (iter (for child in children)
-                               (collect (make-tree genome
-                                                   child))))))))
+         (let ((children (collect-children ast-alist)))
+           (make-instance 'javascript-ast
+             :class (make-keyword (string-upcase (aget :type ast-alist)))
+             :children (make-children genome
+                                      ast-alist
+                                      children
+                                      (mapcar {make-tree genome} children))
+             :annotations (annotations ast-alist)))))
     (setf (ast-root obj)
           (fix-newlines (make-tree (genome obj) (parse-asts obj))))
-    (setf (slot-value obj 'genome)
-          nil)
     obj))
+
+(defmethod convert ((to-type (eql 'javascript-ast)) (collection string)
+                    &key &allow-other-keys)
+  "Parse the COLLECTION snippet into a list of free-floating JavaScript ASTs."
+  (handler-case
+      (remove-if-not [{= 1} #'length #'ast-path]
+                     (asts (from-string (make-instance 'javascript) collection)))
+    (mutate (e) (declare (ignorable e)) nil)))
+
+(defmethod convert ((to-type (eql 'javascript-ast)) (spec list)
+                    &key &allow-other-keys)
+  "Create a JAVASCRIPT AST from the SPEC (specification) list."
+  (convert-list-to-ast-helper spec
+                              (lambda (class keys children)
+                                (apply #'make-instance 'javascript-ast
+                                       :class class
+                                       :children children
+                                       keys))))
+
+
+;;;; Fixup code for newlines.  These should be in the same AST as
+;;;; a statement they terminate
+(defun is-stmt (ast)
+  (member (ast-class ast) '(:dowhilestatement :forstatement :labeledstatement
+                            :switchstatement :trystatement :withstatement
+                            :forinstatement :forofstatement :blockstatement
+                            :breakstatement :continuestatement
+                            :expressionstatement
+                            :throwstatement :returnstatement
+                            :ifstatement)))
+
+(defun move-prefixes-down (children allowed-fn prefix-fn)
+  "Give a list CHILDREN of strings and AST nodes, find children
+that satisfy ALLOWED-FN, are followed by a string, and for for which
+PREFIX-FN returns a non-null value, which must be a position
+in the string.   Move the [0..pos) prefix of that string
+down into the list of children of the preceding node, concatenating
+it onto the end of the last string in that node's children.
+Return a new list of children."
+  (labels ((children-with-suffix (children suffix)
+             "Return a new list of CHILDREN with SUFFIX added."
+             (let ((last-child (lastcar children)))
+               (if (stringp last-child)
+                   (append (butlast children)
+                           (list (format nil "~a~a" last-child suffix)))
+                   (append children (list suffix))))))
+    (iter (for p on children)
+          (for node = (car p))
+          (for next = (cadr p))
+          (if-let ((pos (and (ast-p node)
+                             (funcall allowed-fn node)
+                             (stringp next)
+                             (funcall prefix-fn next))))
+            (prog1
+                (collect (nest (copy node :children)
+                               (children-with-suffix (ast-children node)
+                                                     (subseq next 0 pos))))
+              (setf (cadr p) (subseq next pos)))
+            (collect node)))))
+
+(defun position-after-leading-newline (str)
+  "Returns 1+ the position of the first newline in STR,
+assuming it can be reached only by skipping over whitespace
+or comments.  NIL if no such newline exists."
+  (let ((len (length str))
+        (pos 0))
+    (loop
+       (when (>= pos len) (return nil))
+       (let ((c (elt str pos)))
+         (case c
+           (#\Newline (return (1+ pos)))
+           ((#\Space #\Tab)
+            (incf pos))
+           ;; Skip over comments
+           (#\/
+            (incf pos)
+            (when (>= pos len) (return nil))
+            (let ((c (elt str pos)))
+              (unless (eql c #\/)
+                (return nil))
+              (return
+                (loop (incf pos)
+                   (when (>= pos len) (return nil))
+                   (when (eql (elt str pos) #\Newline)
+                     (return (1+ pos)))))))
+           (t (return nil)))))))
+
+(defgeneric fix-newlines (ast)
+  (:documentation "Fix newlines in JavaScript ASTs by pushing newlines
+down into child statements.  This allows for mutation operations
+to insert and replacement statements with newlines already present
+in the new ASTs, obviating the need for fixups to add missing
+newlines.")
+  (:method ((ast javascript-ast))
+    (nest (copy ast :children)
+          (mapcar #'fix-newlines)
+          (move-prefixes-down (ast-children ast)
+                              #'is-stmt
+                              #'position-after-leading-newline)))
+  (:method ((ast t)) ast))
 
 
 ;;; Javascript mutation
-(define-mutation javascript-mutation (parseable-mutation)
-  ()
+(define-mutation javascript-mutation (parseable-mutation) ()
   (:documentation
    "Specialization of the mutation interface for JavaScript software objects."))
 
-(defmethod fixup-mutation (operation (current javascript-ast)
-                           before ast after)
-  (cond ((eq operation :remove)
-         (list before after))
-        (t (list before ast after))))
-
 
 ;;; Methods common to all software objects
+(define-constant +js-bound-id-parent-classes+
+    (list "FunctionDeclaration"
+          "FunctionExpression"
+          "ArrowFunctionExpression"
+          "ClassExpression"
+          "MetaProperty"
+          "BreakStatement"
+          "ClassDeclaration"
+          "ContinueStatement"
+          "LabelledStatement"
+          "ImportSpecifier"
+          "ExportSpecifier"
+          "ExportDefaultDeclaration"
+          "VariableDeclarator")
+  :test #'equalp
+  :documentation
+  "Parent AST classes of identifiers which should be interpreted as bound.")
+
 (defmethod to-file :after ((obj javascript) file
                            &aux (preamble (car (ast-children (ast-root obj)))))
   "Ensure JavaScript scripts are marked executable."
@@ -361,8 +434,9 @@
   "Create a phenotype of the javascript software OBJ.  In this case, override
 the phenome method to output the genome of OBJ to BIN as JavaScript
 is not a compiled language.
-OBJ object to create a phenome for
-BIN location where the phenome will be created on the filesystem"
+
+* OBJ object to create a phenome for
+* BIN location where the phenome will be created on the filesystem"
   (to-file obj bin)
   (values bin 0 nil nil nil))
 
@@ -519,77 +593,3 @@ AST ast to return the scopes for"
 ;;; Implement the generic format-genome method for Javascript objects.
 (defmethod format-genome ((obj javascript) &key)
   (prettier obj))
-
-
-;;; Support for parsing a string directly into free-floating ASTs.
-(defmethod convert ((to-type (eql 'javascript-ast)) (collection string)
-                    &key &allow-other-keys)
-  "Parse the COLLECTION snippet into a list of free-floating JavaScript ASTs."
-  (handler-case
-      (remove-if [{< 1} {length} {ast-path}]
-                 (asts (from-string (make-instance 'javascript) collection)))
-    (mutate (e) (declare (ignorable e)) nil)))
-
-(defmethod convert ((to-type (eql 'javascript-ast)) (spec list)
-                    &key &allow-other-keys)
-  "Create a JAVASCRIPT AST from the SPEC (specification) list."
-  (convert-to-node
-   spec
-   (lambda (class keys children)
-     (funcall #'make-javascript-ast
-              :node (apply #'make-javascript-ast-node
-                           :class (if (keywordp class)
-                                      class
-                                      (intern (symbol-name class) "KEYWORD"))
-                           (plist-drop :annotations keys))
-              :annotations (plist-get :annotations keys)
-              :children children))))
-
-
-;;;; Fixup code for newlines.  These should be in the same AST as
-;;;; a statement they terminate
-
-(defun is-stmt (ast)
-  (member (ast-class ast) '(:dowhilestatement :forstatement :labeledstatement
-                            :switchstatement :trystatement :withstatement
-                            :forinstatement :forofstatement :blockstatement
-                            :breakstatement :continuestatement
-                            :expressionstatement
-                            :throwstatement :returnstatement
-                            :ifstatement)))
-
-(defun position-after-leading-newline (str)
-  "Returns 1+ the position of the first newline in STR,
-assuming it can be reached only by skipping over whitespace
-or comments.  NIL if no such newline exists."
-  (let ((len (length str))
-        (pos 0))
-    (loop
-       (when (>= pos len) (return nil))
-       (let ((c (elt str pos)))
-         (case c
-           (#\Newline (return (1+ pos)))
-           ((#\Space #\Tab)
-            (incf pos))
-           ;; Skip over comments
-           (#\/
-            (incf pos)
-            (when (>= pos len) (return nil))
-            (let ((c (elt str pos)))
-              (unless (eql c #\/)
-                (return nil))
-              (return
-                (loop (incf pos)
-                   (when (>= pos len) (return nil))
-                   (when (eql (elt str pos) #\Newline)
-                     (return (1+ pos)))))))
-           (t (return nil)))))))
-
-(defun fix-newlines (ast)
-  (map-ast ast #'fix-newlines-ast)
-  ast)
-
-(defun fix-newlines-ast (ast)
-  (move-prefixes-down
-   (ast-children ast)
-   #'is-stmt #'position-after-leading-newline))

@@ -14,10 +14,10 @@
 (defsuite test-conflict-ast "Conflict ast tests.")
 
 (deftest conflict-ast.1 ()
-  (let ((c1 (make-conflict-ast
+  (let ((c1 (make-instance 'conflict-ast
              :child-alist '((1 a) (2 b))
              :default-children '(c)))
-        (c2 (make-conflict-ast
+        (c2 (make-instance 'conflict-ast
              :child-alist '((2 d) (3 e))
              :default-children '(f))))
     (let ((c (combine-conflict-asts c1 c2)))

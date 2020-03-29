@@ -64,7 +64,7 @@
   (with-fixture trivial-json
     (is (not (null (asts *soft*))))
     (is (eq :OBJECTEXPRESSION
-            (ast-class (ast-node (ast-root *soft*)))))))
+            (ast-class (ast-root *soft*))))))
 
 (deftest cut-shortens-a-javascript-software-object ()
   (with-fixture fib-javascript
@@ -371,10 +371,9 @@
               (if (stringp tree)
                   tree)
               (case (car tree)
-                (:j (make-javascript-ast
-                     :node (make-javascript-ast-node)
+                (:j (make-instance 'javascript-ast
                      :children (mapcar #'to-js-ast- (cdr tree))))
-                (:c (make-conflict-ast
+                (:c (make-instance 'conflict-ast
                      :child-alist (mapcar
                                    (lambda (pair)
                                      (destructuring-bind (key . value) pair
@@ -396,37 +395,33 @@
 
 (deftest javascript-and-conflict-basic-parseable-ast-functionality ()
   (with-fixture javascript-ast-w-conflict
-    (is (javascript-ast-p (ast-root *soft*)))         ; We actually have ASTs.
-    (is (every #'ast-path (cdr (asts *soft*))))       ; Non-root ast have path.
-    (is (javascript-ast-p (copy (ast-root *soft*))))) ; Copy works.
+    (is (typep (ast-root *soft*) 'javascript-ast))         ; We actually have ASTs.
+    (is (every #'ast-path (cdr (asts *soft*))))            ; Non-root ast have path.
+    (is (typep (copy (ast-root *soft*)) 'javascript-ast))) ; Copy works.
   (with-fixture javascript-ast-w-conflict
     ;; Access ASTs.
     (is (string= "top" (get-ast *soft* '(0))))
-    (is (javascript-ast-p (get-ast *soft* '(1))))
+    (is (typep (get-ast *soft* '(1)) 'javascript-ast))
     (is (string= "left" (get-ast *soft* '(1 0))))
-    (is (javascript-ast-p (get-ast *soft* '(2))))
+    (is (typep (get-ast *soft* '(2)) 'javascript-ast))
     (is (string= "right" (get-ast *soft* '(2 0))))
-    ;; Set AST with (setf (get-ast ...) ...).
-    (setf (get-ast *soft* '(2 0)) "RIGHT")
+    ;; Set AST with (replace-ast ...).
+    (replace-ast *soft* '(2 0) "RIGHT")
     (is (string= "RIGHT" (get-ast *soft* '(2 0))))
-    (setf (get-ast *soft* '(1)) (make-javascript-ast
-                                 :node (make-javascript-ast-node :class :foo)))
+    (replace-ast *soft* '(1) (make-instance 'javascript-ast :class :foo))
     (is (eql :foo (ast-class (get-ast *soft* '(1))))))
   (with-fixture javascript-ast-w-conflict
-    (replace-ast *soft* '(1)
-                 (make-javascript-ast
-                  :node (make-javascript-ast-node :class :foo)))
+    (replace-ast *soft* '(1) (make-instance 'javascript-ast :class :foo))
     (is (eql :foo (ast-class (get-ast *soft* '(1)))))))
 
 (deftest javascript-and-conflict-replace-ast ()
   (with-fixture javascript-ast-w-conflict
-    (let ((cnf (find-if {typep _ 'conflict-ast} ; [{subtypep _ 'conflict-ast} #'type-of]
-                        (asts *soft*))))
-      (setf (get-ast *soft* (ast-path cnf))
-            (aget :my (conflict-ast-child-alist cnf))))
+    (let ((cnf (find-if {typep _ 'conflict-ast} (asts *soft*))))
+      (replace-ast *soft*
+                   (ast-path cnf)
+                   (aget :my (conflict-ast-child-alist cnf))))
 
-    (is (equalp (mapc-ast (ast-root *soft*) #'ast-path)
-                '(NIL ((1)) ((2)))))
+    (is (equalp (mapcar #'ast-path (asts *soft*)) '((1) (2))))
     (is (string= (source-text (ast-root *soft*)) "topleftaright"))))
 
 (deftest test-json-preserves-trailing-whitespace ()

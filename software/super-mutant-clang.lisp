@@ -93,6 +93,12 @@ There are several cases here:
                            mutants)
                      (cons (when (car asts) (function-body base head))
                            (hash-table-values variants)))))))
+       (replace-nth-child (ast n replacement)
+         "Return AST with the nth child of AST replaced with REPLACEMENT."
+         (copy ast
+               :children (append (subseq (ast-children ast) 0 n)
+                                 (list replacement)
+                                 (subseq (ast-children ast) (+ 1 n)))))
        (make-super-body (variants &key make-decl)
          "Create body for a super-mutant function.
 
@@ -119,8 +125,7 @@ true, create a complete function decl which contains the body."
            (if make-decl
                (let ((decl (caar variants)))
                  (replace-nth-child decl
-                                    (position-if «and [{subtypep _ 'ast}
-                                                       #'type-of]
+                                    (position-if «and #'ast-p
                                                       [{eq :CompoundStmt}
                                                        #'ast-class]»
                                                  (ast-children decl))

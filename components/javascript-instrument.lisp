@@ -186,19 +186,20 @@ Creates a JAVASCRIPT-INSTRUMENTER for OBJ and calls its instrument method.
                      (remove-if-not {funcall filter obj})
                      (remove-if-not {traceable-stmt-p obj})
                      (asts obj))))
-           (create-value (obj before ast after)
-             (remove-if #'null
-                        (append (list before)
-                                (list (get-ast obj (ast-path ast)))
-                                (list after)))))
+           (next (path)
+             (append (butlast path)
+                     (1+ (lastcar path))))
+           (create-mutation-ops (path before after)
+             (append (when before
+                       `((:insert (:stmt1 . ,path)
+                                  (:value1 . ,before))))
+                     (when after
+                       `((:insert (:stmt1 . ,(next path))
+                                  (:value1 . ,after)))))))
     (apply-mutation-ops
       obj
       (iter (for (before ast after) in (instrument-asts instrumenter))
-            (collect `(:splice (:stmt1 . ,ast)
-                               (:value1 . ,{create-value obj
-                                                         before
-                                                         ast
-                                                         after}))))))
+            (appending (create-mutation-ops (ast-path ast) before after)))))
 
   (append-to-genome-preamble obj +javascript-trace-code+)
 

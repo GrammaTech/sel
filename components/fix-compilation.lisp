@@ -18,6 +18,7 @@
   (:nicknames :sel/components/fix-compilation :sel/cp/fix-compilation)
   (:use :gt/full
         :software-evolution-library
+        :software-evolution-library/utility/range
         :software-evolution-library/software/parseable
         :software-evolution-library/software/source
         :software-evolution-library/software/clang
@@ -237,6 +238,54 @@ that function may be declared.")
                           (subseq orig col-number)))
                   (subseq lines line-number))))
   obj)
+
+(defgeneric ast-source-ranges (software)
+  (:documentation "Return (AST . SOURCE-RANGE) for each AST in OBJ.")
+  (:method ((obj clang))
+    (labels
+        ((source-location (line column)
+           (make-instance 'source-location :line line :column column))
+         (scan-ast (ast line column)
+           "Scan entire AST, updating line and column. Return the new values."
+           (let* ((begin (source-location line column))
+                  (ranges
+                   (if (stringp ast)
+                       ;; String literal
+                       (iter (for char in-string ast)
+                             (incf column)
+                             (when (eq char #\newline)
+                               (incf line)
+                               (setf column 1)))
+
+                       ;; Subtree
+                       (iter (for child in (ast-children ast))
+                             (appending
+                              (multiple-value-bind
+                                    (ranges new-line new-column)
+                                  (scan-ast child line column)
+                                (setf line new-line
+                                      column new-column)
+                                ranges)
+                              into child-ranges)
+                             (finally
+                              (return
+                                (cons (cons ast
+                                            (make-instance 'source-range
+                                              :begin begin
+                                              :end (source-location
+                                                    line column)))
+                                      child-ranges)))))))
+
+             (values ranges line column))))
+      (cdr (scan-ast (ast-root obj) 1 1)))))
+
+(defgeneric asts-containing-source-location (software location)
+  (:documentation "Return a list of ASTs in SOFTWARE containing LOC.")
+  (:method ((obj clang) (loc source-location))
+    (when loc
+      (mapcar #'car
+              (remove-if-not [{contains _ loc} #'cdr]
+                             (ast-source-ranges obj))))))
 
 (register-fixer
  ":(\\d+):(\\d+): error: expected expression before ‘(\\S+)’ "

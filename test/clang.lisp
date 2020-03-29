@@ -607,52 +607,6 @@ is not to be found"
       (is (member :MacroExpansion
                   (mapcar #'ast-class overlapping-children))))))
 
-(deftest replace-in-ast-subtree ()
-  (let ((subtree (make-clang-ast
-                  :class :sub
-                  :children '("1" "2"))))
-    (is (equalp (replace-in-ast
-                 (make-clang-ast
-                  :class :root
-                  :children `(,(make-clang-ast
-                                :class :left
-                                :children (list "3" "4"))
-                               ,subtree))
-                 `((,subtree . ,(make-clang-ast
-                                 :class :right
-                                 :children (list "5" "6"))))
-                 :test #'equalp)
-                (make-clang-ast
-                 :class :root
-                 :children `(,(make-clang-ast
-                               :class :left
-                               :children (list "3" "4"))
-                              ,(make-clang-ast
-                                :class :right
-                                :children (list "5" "6"))))))))
-
-(deftest replace-in-ast-string ()
-  (is (equalp (replace-in-ast (make-clang-ast
-                               :class :root
-                               :children
-                               (list (make-clang-ast
-                                      :class :left
-                                      :children '("left"))
-                                     (make-clang-ast
-                                      :class :right
-                                      :children '("right"))))
-                              '(("right" . "replacement"))
-                              :test #'equal)
-              (make-clang-ast
-               :class :root
-               :children
-               (list (make-clang-ast
-                      :class :left
-                      :children '("left"))
-                     (make-clang-ast
-                      :class :right
-                      :children '("replacement")))))))
-
 (deftest find-or-add-type-finds-existing-type ()
   (with-fixture gcd-clang
     (is (find (find-or-add-type *gcd* "int")

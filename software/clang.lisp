@@ -22,7 +22,6 @@
   (:import-from :jsown)
   (:export :clang
            :clang-ast
-           :clang-ast-p
            :make-clang-ast
            :headers
            :macros
@@ -44,6 +43,7 @@
            :function-body
            :function-body-p
            :function-decl-p
+           :stmt-range
            :adjust-stmt-range
            :random-point-in-function
            :select-intraprocedural-pair
@@ -339,8 +339,7 @@ See also: https://clang.llvm.org/docs/FAQ.html#id2.")
    "C language (C, C++, C#, etc...) ASTs using Clang, C language frontend
    for LLVM.  See http://clang.llvm.org/.  This is for ASTs from Clang 9+."))
 
-(defstruct (clang-ast (:include ast)
-                      (:conc-name clang-ast-))
+(defstruct (clang-ast (:conc-name clang-ast-))
   (path nil :type list)          ;; Path to subtree from root of tree.
   (children nil :type list)      ;; Remainder of subtree.
   ;; Class symbol for this ast node
@@ -456,17 +455,46 @@ the macro is defined within."
                           (when desugared (list ":DESUGARED" desugared))))))))
 
 
+;;; AST predicate, equality, and hashing
+
+;; FIXME: When clang is converted to utilize functional trees,
+;; this method specialization will no longer be required.
+(defmethod ast-p ((obj clang-ast)) (declare (ignorable obj)) t)
+
+;; FIXME: When clang is converted to utilize functional trees,
+;; this method specialization will no longer be required.
+(defmethod ast-equal-p ((ast-a clang-ast) (ast-b clang-ast))
+  (and (eq (ast-class ast-a) (ast-class ast-b))
+       (eql (length (ast-children ast-a))
+            (length (ast-children ast-b)))
+       (every #'ast-equal-p (ast-children ast-a) (ast-children ast-b))))
+
+;; FIXME: When clang is converted to utilize functional trees,
+;; this method specialization will no longer be required.
+(defmethod ast-hash ((ast clang-ast))
+  (or (ast-stored-hash ast)
+      (setf (ast-stored-hash ast)
+            (ast-hash (cons (ast-class ast) (ast-children ast))))))
+
+;; FIXME: When clang is converted to utilize functional trees,
+;; this method specialization will no longer be required.
+(defmethod ast-clear-hash ((ast clang-ast))
+  (setf (ast-stored-hash ast) nil)
+  (mapc #'ast-clear-hash (ast-children ast))
+  ast)
+
+
 ;;; Object creation, serialization, and copying.
 (defmethod convert ((ast-type (eql 'clang-ast)) (spec list)
                     &key &allow-other-keys)
-  (convert-to-node spec
-                   (lambda (class keys children)
-                     (apply
-                      #'make-clang-ast*
-                      class
-                      :children children
-                      :allow-other-keys t
-                      keys))))
+  (convert-list-to-ast-helper spec
+                              (lambda (class keys children)
+                                (apply
+                                 #'make-clang-ast*
+                                 class
+                                 :children children
+                                 :allow-other-keys t
+                                 keys))))
 
 (defgeneric make-clang-ast* (class &rest args &key &allow-other-keys)
   (:documentation "Make a clang-ast node or a subclass of clang-ast,
@@ -1746,6 +1774,15 @@ to expand.
           macros nil
           symbol-table (make-hash-table :test #'equal))))
 
+(defmethod (setf ast-root) :around (new (obj clang))
+  "Upon setting the AST root, create a deep copy of NEW to ensure ASTs
+are not shared between software objects after modification."
+  (labels ((deep-copy (ast)
+             (copy ast :children (mapcar (lambda (c)
+                                           (if (ast-p c) (deep-copy c) c))
+                                         (ast-children ast)))))
+    (call-next-method (deep-copy new) obj)))
+
 (defmethod (setf ast-root) :after (new (obj clang))
   "Upon setting the AST root, update the symbol and then update the
 :REFERENCEDDECL field on the ASTs in NEW to point to the entries
@@ -2035,8 +2072,181 @@ already in scope, it will keep that name.")
                           (remove-if-not [{member _ (list :stmt1 :stmt2)} #'car]
                                          (remove-if-not #'consp (targets op)))))))
 
-(defmethod fixup-mutation (operation (current clang-ast)
-                           before ast after)
+;; FIXME: When clang is converted to utilize functional trees,
+;; these method specializations will no longer be required.
+(defmethod with ((tree clang-ast) (location t) &optional replacement)
+  (with tree (ast-path location) replacement))
+
+(defmethod with ((tree clang-ast) (location list) &optional replacement)
+  (labels        ; TODO: Remove or relocate all of this "fixup" logic.
+      ((non-empty (str)
+         "Return STR only if it's not empty.
+
+        asts->tree tends to leave dangling empty strings at the ends of child
+        list, and we want to treat them as NIL in most cases."
+         (when (not (equalp str "")) str))
+       (helper (tree path next)
+         (bind (((head . tail) path)
+                (children (ast-children tree)))
+               (if tail
+                   ;; The insertion may need to modify text farther up the
+                   ;; tree. Pass down the next bit of non-empty text and
+                   ;; get back a new string.
+                   (multiple-value-bind (child new-next)
+                       (helper (nth head children)
+                               tail
+                               (or (non-empty (nth (1+ head) children))
+                                   next))
+                     (if (and new-next (non-empty (nth (1+ head) children)))
+                         ;; The modified text belongs here. Insert it.
+                         (values (copy tree
+                                       :children (nconc (subseq children
+                                                                0 head)
+                                                        (list child new-next)
+                                                        (subseq children
+                                                                (+ 2 head))))
+                                 nil)
+
+                         ;; Otherwise keep passing it up the tree.
+                         (values (replace-nth-child tree head child)
+                                 new-next)))
+                   (let* ((after (nth (1+ head) children))
+                          (fixed (fixup-mutation :instead
+                                                 (nth head children)
+                                                 (if (positive-integer-p head)
+                                                     (nth (1- head) children)
+                                                     "")
+                                                 replacement
+                                                 (or (non-empty after) next))))
+
+                     (if (non-empty after)
+                         ;; fixup-mutation can change the text after the
+                         ;; insertion (e.g. to remove a semicolon). If
+                         ;; that text is part of this AST, just include it
+                         ;; in the list.
+                         (values
+                          (copy tree
+                                :children (nconc (subseq children
+                                                         0 (max 0 (1- head)))
+                                                 fixed
+                                                 (nthcdr (+ 2 head) children)))
+                          nil)
+
+                         ;; If the text we need to modify came from
+                         ;; farther up the tree, return it instead of
+                         ;; inserting it here.
+                         (values
+                          (copy tree
+                                :children (nconc (subseq children
+                                                         0 (max 0 (1- head)))
+                                                 (butlast fixed)
+                                                 (nthcdr (+ 2 head) children)))
+                          (lastcar fixed))))))))
+    (if location
+        (helper tree location nil)
+        replacement)))
+
+;; FIXME: When clang is converted to utilize functional trees,
+;; these method specializations will no longer be required.
+(defmethod less ((tree clang-ast) (location t) &optional arg2)
+  (declare (ignorable arg2))
+  (less tree (ast-path location)))
+
+(defmethod less ((tree clang-ast) (location list) &optional arg2)
+  (declare (ignorable arg2))
+  (labels
+      ((helper (tree path)
+         (bind (((head . tail) path)
+                (children (ast-children tree)))
+               (if tail
+                   ;; Recurse into child
+                   (replace-nth-child tree head (helper (nth head children) tail))
+
+                   ;; Remove child
+                   (copy tree
+                         :children (nconc (subseq children 0 (max 0 (1- head)))
+                                          (fixup-mutation
+                                           :remove
+                                           (nth head children)
+                                           (if (positive-integer-p head)
+                                               (nth (1- head) children)
+                                               "")
+                                           nil
+                                           (or (nth (1+ head) children) ""))
+                                          (nthcdr (+ 2 head) children)))))))
+    (helper tree location)))
+
+;; FIXME: When clang is converted to utilize functional trees,
+;; these method specializations will no longer be required.
+(defmethod insert ((tree clang-ast) (location t) (replacement t))
+  (insert tree (ast-path location) replacement))
+
+(defmethod insert ((tree clang-ast) (location list) (replacement t))
+  (labels
+      ((helper (tree path)
+         (bind (((head . tail) path)
+                (children (ast-children tree)))
+               (assert (>= head 0))
+               (assert (< head (length children)))
+               (if tail
+                   ;; Recurse into child
+                   (replace-nth-child tree head (helper (nth head children) tail))
+
+                   ;; Insert into children
+                   (copy tree
+                         :children (nconc (subseq children 0 (max 0 (1- head)))
+                                          (fixup-mutation
+                                           :before
+                                           (nth head children)
+                                           (if (positive-integer-p head)
+                                               (nth (1- head) children)
+                                               "")
+                                           replacement
+                                           (or (nth head children) ""))
+                                          (nthcdr (1+ head) children)))))))
+    (helper tree location)))
+
+;; FIXME: When clang is converted to utilize functional trees,
+;; these method specializations will no longer be required.
+(defmethod splice ((tree clang-ast) (location t) (values list))
+  (splice tree (ast-path location) values))
+
+(defmethod splice ((tree clang-ast) (location list) (values list))
+  (labels
+      ((helper (tree path)
+         (bind (((head . tail) path)
+                (children (ast-children tree)))
+               (if tail
+                   ;; Recurse into child
+                   (replace-nth-child tree head
+                                      (helper (nth head children) tail))
+                   ;; Splice into children
+                   (copy tree
+                         :children (nconc (subseq children 0 head)
+                                          values
+                                          (nthcdr (1+ head) children)))))))
+    (helper tree location)))
+
+;; FIXME: When clang is converted to utilize functional trees,
+;; this method specialization will no longer be required.
+(defgeneric replace-nth-child (ast n replacement)
+  (:documentation "Return AST with the nth child of AST replaced with
+REPLACEMENT.
+
+* AST tree to modify
+* N child to modify
+* REPLACEMENT replacement for the nth child")
+  (:method ((ast clang-ast) (n integer) replacement)
+    (replace-nth-child ast n (list replacement)))
+  (:method ((ast clang-ast) (n integer) (replacement list))
+    (copy ast
+          :children (append (subseq (ast-children ast) 0 n)
+                            replacement
+                            (subseq (ast-children ast) (+ 1 n))))))
+
+(defgeneric fixup-mutation (operation current before ast after)
+  (:documentation "Adjust mutation result according to syntactic context.")
+  (:method (operation (current clang-ast) before ast after)
   "Adjust mutation result according to syntactic context.
 
 Adds and removes semicolons, commas, and braces.
@@ -2138,7 +2348,7 @@ Adds and removes semicolons, commas, and braces.
                         (:after (add-semicolon))
                         (:instead (add-semicolon))
                         (:remove (no-change))))
-              (:toplevel (add-semicolon-if-unbraced))))))
+              (:toplevel (add-semicolon-if-unbraced)))))))
 
 (defmethod ends-with-semicolon ((str string))
   (let ((trimmed (string-right-trim (list #\Space #\Tab #\Newline
@@ -2155,7 +2365,7 @@ Adds and removes semicolons, commas, and braces.
   (:documentation "Removes the trailing semicolon from an AST, returning a new AST node.
 If there is no trailing semicolon, return the AST unchanged."))
 
-(defmethod remove-semicolon ((obj ast))
+(defmethod remove-semicolon ((obj clang-ast))
   (let* ((children (ast-children obj))
          (last (lastcar children)))
     (if-let ((trimmed (ends-with-semicolon last)))
@@ -2202,19 +2412,20 @@ Returns nil if no full-stmt is found.
   (cond ((ast-full-stmt ast) ast)
         (ast (get-parent-full-stmt clang (get-parent-ast clang ast)))))
 
-(defmethod stmt-range ((software clang) (function clang-ast))
-  "DOCFIXME
-* SOFTWARE DOCFIXME
-* FUNCTION DOCFIXME
-"
-  (labels
-      ((rightmost-child (ast)
-         (if-let ((children (get-immediate-children software ast)))
-           (rightmost-child (lastcar children))
-           ast)))
-    (when-let ((body (function-body software function)))
-      (mapcar {index-of-ast software}
-              (list body (rightmost-child body))))))
+(defgeneric stmt-range (software function)
+  (:documentation
+   "The indices of the first and last statements in a function.
+Return as a list of (first-index last-index). Indices are positions in
+the list returned by (asts software).")
+  (:method ((software clang) (function clang-ast))
+    (labels
+        ((rightmost-child (ast)
+           (if-let ((children (get-immediate-children software ast)))
+             (rightmost-child (lastcar children))
+             ast)))
+      (when-let ((body (function-body software function)))
+        (mapcar {index-of-ast software}
+                (list body (rightmost-child body)))))))
 
 (defgeneric wrap-ast (software ast)
   (:documentation "Wrap AST in SOFTWARE in a compound statement.
@@ -3029,7 +3240,7 @@ Returns outermost AST of context.
           (let* ((inner-path (ast-path inner-stmt))
                  (outer-path (ast-path outer-stmt))
                  (rel-path (subseq inner-path (length outer-path))))
-            (setf outer-stmt (replace-ast outer-stmt rel-path value)))))
+            (setf outer-stmt (with outer-stmt rel-path value)))))
 
      (cond
        ((null inward-target) outward-target)
@@ -3719,16 +3930,12 @@ definition, if applicable.")
   (setf (clang-ast-annotations obj) v))
 
 (defmethod ast-annotation ((ast clang-ast) (annotation symbol))
-  (aget annotation (clang-ast-annotations ast)))
-(defgeneric (setf ast-annotation) (v ast annotation)
-  (:method (v (ast clang-ast) (annotation symbol))
-    (let* ((annotations (clang-ast-annotations ast))
-           (p (assoc annotation annotations)))
-      (if p
-          (setf (cdr p) v)
-          (setf (clang-ast-annotations ast)
-                (cons (cons annotation v) annotations)))
-      v)))
+  (aget annotation (ast-annotations ast)))
+(defmethod (setf ast-annotation) (v (ast clang-ast) (annotation symbol))
+  (setf (ast-annotations ast)
+        (cons (cons annotation v)
+              (adrop (list annotation) (ast-annotations ast))))
+  v)
 
 (defmethod ast-name ((x null)) nil)
 (defmethod ast-name ((s string)) s)
@@ -5903,7 +6110,7 @@ Move the semicolon in just one level, but no further"
 (defgeneric append-string-to-node (a str)
   (:documentation "Attach STR to the end of the text for a node.
 This is done without copying.")
-  (:method ((a ast) (str string))
+  (:method ((a clang-ast) (str string))
     ;; default method
     (let ((c (ast-children a)))
       (if (null c)
@@ -6080,17 +6287,25 @@ ASTs in the existing SYMBOL-TABLE and AST-ROOT tree."
                  (setf (gethash (type-hash tp+) types) tp+))))
     types))
 
-(defmethod update-paths
-    ((ast clang-ast) &optional path)
-  "Modify AST in place with all paths updated to begin at PATH"
-  (setf (ast-path ast) (reverse path)
-        (ast-children ast)
-        (iter (for c in (ast-children ast))
-              (for i upfrom 0)
-              (collect (if (typep c 'ast)
-                           (update-paths c (cons i path))
-                           c))))
-  ast)
+;; FIXME: When clang is converted to utilize functional trees,
+;; this method should no longer be required.
+(defmethod update-paths ((ast clang-ast))
+  "Modify AST in place with all paths updated to begin at the root AST."
+  (labels ((update-paths-helper (ast &optional path)
+             (if (typep ast 'clang-ast)
+                 ;; clang AST, recurse into children
+                 (setf (slot-value ast 'path) (reverse path)
+                       (slot-value ast 'children)
+                       (iter (for c in (ast-children ast))
+                             (for i upfrom 0)
+                             (collect (if (ast-p c)
+                                          (update-paths-helper c (cons i path))
+                                          c))))
+                 ;; conflict AST or AST stub w/o children
+                 (setf (slot-value ast 'finger)
+                       (make-instance 'finger :node ast :path (reverse path))))
+             ast))
+    (update-paths-helper ast)))
 
 (defmethod update-asts ((obj clang))
   (let ((*canonical-string-table* (make-hash-table :test 'equal))
@@ -6220,51 +6435,85 @@ the test or is not present."))
          (t nil))))
 
 
-;;; Reimplementations of ast-* functions for nodes
+;;; Map over the nodes of an AST
+;; FIXME: When clang is converted to utilize functional trees,
+;; these methods should no longer be required.
+
+(defgeneric map-ast (tree fn)
+  (:documentation "Apply FN to each node of AST, in preorder.")
+  (:method ((tree clang-ast) fn)
+    (funcall fn tree)
+    (dolist (c (ast-children tree))
+      (when (ast-p c) (map-ast c fn)))
+    tree)
+  (:method (tree fn)
+    (declare (ignorable tree fn))
+    nil))
+
+(defgeneric map-ast-with-ancestors (tree fn &optional ancestors)
+  (:documentation "Apply FN to each node of the AST, and its list of ancestors,
+in preorder.  The ancestor list is in decreasing order of depth in the AST.")
+  (:method ((tree clang-ast) fn &optional ancestors)
+    (funcall fn tree ancestors)
+    (let ((ancestors (cons tree ancestors)))
+      (dolist (c (ast-children tree))
+        (when (ast-p c) (map-ast-with-ancestors c fn ancestors))))
+    tree)
+  (:method (tree fn &optional ancestors)
+    (declare (ignore tree fn ancestors))
+    nil))
+
+(defgeneric map-ast-postorder (tree fn)
+  (:documentation "Apply FN to each node of AST, in postorder.")
+  (:method ((tree clang-ast) fn)
+    (dolist (c (ast-children tree))
+      (when (ast-p c) (map-ast-postorder c fn)))
+    (funcall fn tree)
+    tree))
 
 (defgeneric map-ast-while (a fn)
   (:documentation "Apply FN to the nodes of AST A, stopping
-the descent when FN returns NIL"))
-
-(defmethod map-ast-while ((a ast) fn)
-  (when (funcall fn a)
-    (dolist (c (ast-children a))
-      (when (ast-p c) (map-ast-while c fn)))))
+the descent when FN returns NIL.")
+  (:method ((a clang-ast) fn)
+    (when (funcall fn a)
+      (dolist (c (ast-children a))
+        (when (ast-p c) (map-ast-while c fn))))))
 
 (defgeneric map-ast-sets (ast fn &key key test)
-  (:documentation
-   "Evaluates FN at the nodes of AST, returning a list of
-objects.  Returns the union of this list and the value
-computed at the children"))
-
-(defmethod map-ast-sets (ast fn &key (key 'identity) (test 'eql))
-  (labels ((%recurse (a)
-             ;; This is slow
-             ;; In the future, memoize and use better data structures
-             (let ((here (funcall fn a))
-                   (child-sets
-                    (iter (for c in (ast-children a))
-                          (when (ast-p c)
-                            (collect (%recurse c))))))
-               (reduce (lambda (s1 s2)
-                         (union s1 s2 :key key :test test))
-                       child-sets :initial-value here))))
-    (%recurse ast)))
+  (:documentation "Evaluates FN at the nodes of AST, returning a list of
+objects.  Returns the union of this list and the value computed at the
+children.")
+  (:method (ast fn &key (key 'identity) (test 'eql))
+    (labels ((%recurse (a)
+               ;; This is slow
+               ;; In the future, memoize and use better data structures
+               (let ((here (funcall fn a))
+                     (child-sets
+                      (iter (for c in (ast-children a))
+                            (when (ast-p c)
+                              (collect (%recurse c))))))
+                 (reduce (lambda (s1 s2)
+                           (union s1 s2 :key key :test test))
+                         child-sets :initial-value here))))
+      (%recurse ast))))
 
 (defgeneric remove-asts-if (ast fn)
-  (:documentation "Remove all subasts for which FN is true"))
+  (:documentation "Remove all subasts for which FN is true.")
+  (:method ((ast clang-ast) fn)
+    (let* ((children (ast-children ast))
+           (new-children (mapcar (lambda (a) (remove-asts-if a fn))
+                                 (remove-if fn children))))
+      (unless (and (= (length children)
+                      (length new-children))
+                   (every #'eql children new-children))
+        (setf (ast-children ast) new-children)))
+    ast)
+  (:method (ast (fn t)) ast))
 
-(defmethod remove-asts-if ((ast clang-ast) fn)
-  (let* ((children (ast-children ast))
-         (new-children (mapcar (lambda (a) (remove-asts-if a fn))
-                               (remove-if fn children))))
-    (unless (and (= (length children)
-                    (length new-children))
-                 (every #'eql children new-children))
-      (setf (ast-children ast) new-children)))
-  ast)
-
-(defmethod remove-asts-if (ast (fn t)) ast)
+(defun ast-nodes-in-subtree (ast)
+  (let ((result nil))
+    (map-ast ast (lambda (a) (push a result)))
+    (nreverse result)))
 
 
 (defun cpp-scan (str until-fn &key (start 0) (end (length str))

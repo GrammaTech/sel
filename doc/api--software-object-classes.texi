@@ -305,15 +305,11 @@ Class @code{parseable}
 
 @item Generic Functions
   @itemize
-  @item @refapigeneric{build-op}
-  @item @refapigeneric{can-be-made-traceable-p}
   @item @refapigeneric{get-ast}
   @item @refapigeneric{get-immediate-children}
   @item @refapigeneric{get-unbound-funs}
   @item @refapigeneric{get-unbound-vals}
   @item @refapigeneric{get-vars-in-scope}
-  @item @refapigeneric{roots}
-  @item @refapigeneric{update-asts}
   @end itemize
 
 @c defvar *parseable-obj-code*
@@ -322,7 +318,6 @@ Class @code{parseable}
   @itemize
     @item @refapimethod{get-ast,get-ast}
     @item @refapimethod{get-immediate-children,get-immediate-children}
-    @item @refapimethod{roots,roots}
   @end itemize
 
 @end itemize
@@ -333,23 +328,18 @@ Class @code{parseable}
 @item ASTs
   @itemize
 
-  @item Structure @refapistruct{ast}
+  @item Class @refapiclass{ast}
 
   @item Generic Functions
     @itemize
+    @item @refapigeneric{ast-later-p}
     @item @refapigeneric{source-text}
-    @item @refapigeneric{replace-in-ast}
-    @end itemize
-
-  @item Functions
-    @itemize
-    @item @refapifunction{ast-later-p}
     @end itemize
 
   @item Methods
     @itemize
-    @item @refapimethod{source-text,source-text} : multiple methods for arguments of type string, @refapistruct{ast}, @refapistruct{ast-node}
-    @item @refapimethod{replace-in-ast,replace-in-ast} : multiple methods for arguments of type string, @refapistruct{ast}
+    @item @refapimethod{ast-later-p,ast-later-p}
+    @item @refapimethod{source-text,source-text} : multiple methods for arguments of type string, @refapiclass{ast}, @refapiclass{conflict-ast}
     @end itemize
   @end itemize
 
@@ -497,16 +487,6 @@ Class @code{clang}
   @end itemize
 
 @end itemize
-
-@c defmacro define-ast
-@c define-ast clang-macro
-@c defun asts->tree
-@c defun types->hashtable
-@c defun fixup-mutation
-@c defun replace-nth-child
-@c defmethod replace-ast
-@c defmethod pick-bad-only
-@c defun pick-general
 
 @c ----------------------------------------
 
