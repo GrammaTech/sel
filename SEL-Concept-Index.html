@@ -598,7 +598,6 @@ Class <code>parseable</code>
   </li><li> <a href="sel_002dsw_002dparseable.html#Generic_002dFunction-get_002dunbound_002dfuns"><code>get-unbound-funs</code></a>
   </li><li> <a href="sel_002dsw_002dparseable.html#Generic_002dFunction-get_002dunbound_002dvals"><code>get-unbound-vals</code></a>
   </li><li> <a href="sel_002dsw_002dparseable.html#Generic_002dFunction-get_002dvars_002din_002dscope"><code>get-vars-in-scope</code></a>
-  </li><li> <a href="sel_002dsw_002dparseable.html#Generic_002dFunction-parse_002dsource_002dsnippet"><code>parse-source-snippet</code></a>
   </li><li> <a href="sel_002dsw_002dparseable.html#Generic_002dFunction-roots"><code>roots</code></a>
   </li><li> <a href="sel_002dsw_002dparseable.html#Generic_002dFunction-update_002dasts"><code>update-asts</code></a>
   </li></ul>
@@ -757,7 +756,6 @@ Class <code>clang</code>
   </li><li> <a href="sel_002dcp_002dinstrument.html#Generic_002dFunction-uninstrument"><code>uninstrument</code></a>
   </li><li> <a href="sel_002dsw_002dclang.html#Generic_002dFunction-wrap_002dast"><code>wrap-ast</code></a>
   </li><li> <a href="sel_002dsw_002dclang.html#Generic_002dFunction-wrap_002dchild"><code>wrap-child</code></a>
-  </li><li> <a href="sel_002dsw_002dparseable.html#Generic_002dFunction-parse_002dsource_002dsnippet"><code>parse-source-snippet</code></a>
   </li></ul>
 
 </li><li> Functions
@@ -848,7 +846,6 @@ Class <code>javascript</code>
   </li><li> <a href="sel_002dsw_002dparseable.html#Generic_002dFunction-get_002dunbound_002dvals"><code>get-unbound-vals</code></a>
   </li><li> <a href="sel_002dsw_002dparseable.html#Generic_002dFunction-get_002dunbound_002dfuns"><code>get-unbound-funs</code></a>
   </li><li> <a href="sel_002dsw_002dparseable.html#Generic_002dFunction-get_002dvars_002din_002dscope"><code>get-vars-in-scope</code></a>
-  </li><li> <a href="sel_002dsw_002dparseable.html#Generic_002dFunction-parse_002dsource_002dsnippet"><code>parse-source-snippet</code></a>
   </li><li> <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-phenome"><code>phenome</code></a>
   </li><li> <a href="sel_002dsw_002dparseable.html#Generic_002dFunction-traceable_002dstmt_002dp"><code>traceable-stmt-p</code></a>
   </li><li> <a href="sel_002dsw_002dparseable.html#Generic_002dFunction-scopes"><code>scopes</code></a>
@@ -1527,11 +1524,28 @@ Class <code>adaptive-mutation</code>
 
 
 
+<span id="Generic_002dFunction-file"></span><dl>
+<dt id="index-file">Generic Function: <strong>file</strong> <em>obj &amp;optional macro?</em></dt>
+<dd><p>Return the file name associated with <code>obj</code>.
+If <code>macro</code>? is non-nil, return the file name associated with the macro
+definition, if applicable.
+</p></dd></dl>
 <span id="Class-file"></span><dl>
-<dt id="index-file">Class: <strong>file</strong></dt>
+<dt id="index-file-1">Class: <strong>file</strong></dt>
 <dd><p>Class precedence list: <code>file, standard-object, t</code>
 </p>
-<p>Mixin class for software where preserving file attributes is important.
+<p>Mixin class for software where preserving the original
+path from which the software was created is required.
+</p></dd></dl>
+<span id="Class-file_002dw_002dattributes"></span><dl>
+<dt id="index-file_002dw_002dattributes">Class: <strong>file-w-attributes</strong></dt>
+<dd><p>Class precedence list: <code>file-w-attributes, file, standard-object, t</code>
+</p>
+<p>Mixin class for software where preserving file attributes is required.
+</p></dd></dl>
+<span id="Generic_002dFunction-original_002ddirectory"></span><dl>
+<dt id="index-original_002ddirectory">Generic Function: <strong>original-directory</strong> <em>obj</em></dt>
+<dd><p>Return the original directory <code>obj</code> was populated from.
 </p></dd></dl>
 
 <span id="api_002dsoftware_002dobjects_002dfile"></span><span id="Class-file-1"></span><h4 class="subsubsection">B.3.2.3 Class <code>file</code></h4>

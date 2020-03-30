@@ -654,7 +654,7 @@ a refine-condition <code>mutation</code> to <code>software</code>.
 compared to <code>old</code>.  <code>new</code> and <code>old</code> must have fitness populated.
 </p></dd></dl>
 <span id="Generic_002dFunction-copy"></span><dl>
-<dt id="index-copy">Generic Function: <strong>copy</strong> <em>obj &amp;key traces features feature-vecs feature-vec-meta ext compiler linker shebang nop sw-project addresses base assembler flags asm-flags redirect-file linker-script weak-symbols linked-files project-file file-source imports coq-modules coq-sections coq-assumptions coq-definitions scope input-spec output-spec untraced-call-spec var-table bss-segment target-name target-start-index target-end-index target-info target-lines io-dir io-file fitness-harness include-lines include-funcs libraries max-asm-function-size eval-meta-results line-heap function-index function-bounds-file super-owner asm-syntax mutants super-soft phenome-results addr-map ancestors genome package-spec ignore-paths compilation-database path children annotations class aux-data file-name parsing-mode begin end spelling-loc expansion-loc is-macro-arg-expansion file included-from line presumed-line col offset tok-len hash name body i-file type storage-class qual desugared modifiers array reqs decl includes types macros stmt-asts non-stmt-asts functions prototypes symbol-table name-symbol-table git-repo build-command artifacts evolve-files other-files only-paths ignore-other-paths only-other-paths component-class project-dir stored-hash child-alist default-children ast-root asts copy-lock reference original-file raw-size &amp;allow-other-keys</em></dt>
+<dt id="index-copy">Generic Function: <strong>copy</strong> <em>obj &amp;key traces features feature-vecs feature-vec-meta ext compiler linker shebang nop sw-project addresses base assembler flags asm-flags redirect-file linker-script weak-symbols linked-files project-file file-source imports coq-modules coq-sections coq-assumptions coq-definitions scope input-spec output-spec untraced-call-spec var-table bss-segment target-name target-start-index target-end-index target-info target-lines io-dir io-file fitness-harness include-lines include-funcs libraries max-asm-function-size eval-meta-results line-heap function-index function-bounds-file super-owner asm-syntax mutants super-soft phenome-results addr-map ancestors genome git-repo compilation-database path children annotations class file-name begin end spelling-loc expansion-loc is-macro-arg-expansion file included-from line presumed-line col offset tok-len hash name body i-file type storage-class qual desugared modifiers array reqs decl includes types macros stmt-asts non-stmt-asts functions prototypes symbol-table name-symbol-table build-command artifacts evolve-files other-files ignore-paths only-paths ignore-other-paths only-other-paths component-class project-dir stored-hash child-alist default-children ast-root asts copy-lock reference raw-size &amp;allow-other-keys</em></dt>
 <dd><p>Generic <code>copy</code> method.
 </p></dd></dl>
 <span id="Method-copy-_0028_0028diff-diff_0029-_0026key_0029"></span><dl>
@@ -672,8 +672,12 @@ are made of the reference base genome.
 <dd><p>Update ASTs in <code>obj</code> prior to performing a copy.
 * <code>obj</code> software object to copy
 </p></dd></dl>
+<span id="Method-copy-around-_0028_0028obj-file_002dw_002dattributes_0029-_0026key_0029"></span><dl>
+<dt id="index-around-copy">Method: <strong>around copy</strong> <em>(obj file-w-attributes) &amp;key</em></dt>
+<dd><p>Wrap the copy method to ensure the OBJ&rsquo;s fields are copied.
+</p></dd></dl>
 <span id="Method-copy-around-_0028_0028obj-file_0029-_0026key_0029"></span><dl>
-<dt id="index-around-copy">Method: <strong>around copy</strong> <em>(obj file) &amp;key</em></dt>
+<dt id="index-around-copy-1">Method: <strong>around copy</strong> <em>(obj file) &amp;key</em></dt>
 <dd><p>Wrap the copy method to ensure the OBJ&rsquo;s fields are copied.
 </p></dd></dl>
 <span id="Generic_002dFunction-create_002dsuper"></span><dl>
@@ -900,18 +904,22 @@ This adds :id fields to genome elements required by &lsquo;homologous-crossover&
 <dt id="index-from_002dfile-14">Method: <strong>from-file</strong> <em>(light light) path</em></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
-<span id="Method-from_002dfile-after-_0028_0028obj-file_0029-path_0029"></span><dl>
-<dt id="index-after-from_002dfile-2">Method: <strong>after from-file</strong> <em>(obj file) path</em></dt>
-<dd><p>Reading from a file sets &lsquo;modifiedp&rsquo; to nil and saves <code>path</code>.
-</p></dd></dl>
-<span id="Method-from_002dfile-before-_0028_0028obj-file_0029-path_0029"></span><dl>
-<dt id="index-before-from_002dfile-1">Method: <strong>before from-file</strong> <em>(obj file) path</em></dt>
-<dd><p>Wrapper around the &lsquo;from-file&lsquo; method to store the file at PATH&rsquo;s
-permissions and modification time when creating <code>obj</code>.
-</p></dd></dl>
 <span id="Method-from_002dfile-_0028_0028obj-source_0029-path_0029"></span><dl>
 <dt id="index-from_002dfile-15">Method: <strong>from-file</strong> <em>(obj source) path</em></dt>
 <dd><p>Initialize <code>obj</code> with the contents of <code>path</code>.
+</p></dd></dl>
+<span id="Method-from_002dfile-after-_0028_0028obj-file_002dw_002dattributes_0029-path_0029"></span><dl>
+<dt id="index-after-from_002dfile-2">Method: <strong>after from-file</strong> <em>(obj file-w-attributes) path</em></dt>
+<dd><p>Reading from a file sets <code>original-genome-string</code>.
+</p></dd></dl>
+<span id="Method-from_002dfile-before-_0028_0028obj-file_002dw_002dattributes_0029-path_0029"></span><dl>
+<dt id="index-before-from_002dfile-1">Method: <strong>before from-file</strong> <em>(obj file-w-attributes) path</em></dt>
+<dd><p>Wrapper around the &lsquo;from-file&lsquo; method to store the file at PATH&rsquo;s
+permissions and modification time when creating <code>obj</code>.
+</p></dd></dl>
+<span id="Method-from_002dfile-after-_0028_0028obj-file_0029-path_0029"></span><dl>
+<dt id="index-after-from_002dfile-3">Method: <strong>after from-file</strong> <em>(obj file) path</em></dt>
+<dd><p>Reading from a file saves <code>path</code>.
 </p></dd></dl>
 <span id="Generic_002dFunction-from_002dstring"></span><dl>
 <dt id="index-from_002dstring">Generic Function: <strong>from-string</strong> <em>software string</em></dt>
@@ -1280,12 +1288,18 @@ linking process, (5) the source file name used during linking.
 <dd><p>Create a phenotype of the <code>lisp-project</code>.
 As lisp is not a compiled language do nothing.
 </p></dd></dl>
+<span id="Method-phenome-around-_0028_0028obj-javascript_002dproject_0029-_0026key-_0028bin-_0028temp_002dfile_002dname_0029_0029_0029"></span><dl>
+<dt id="index-around-phenome">Method: <strong>around phenome</strong> <em>(obj javascript-project) &amp;key (bin (temp-file-name))</em></dt>
+<dd><p>Bind *build-dir* to <code>bin</code> ensuring the genome of <code>obj</code> in written to <code>bin</code>.
+</p></dd></dl>
 <span id="Method-phenome-_0028_0028obj-javascript_002dproject_0029-_0026key-_0028bin-_0028temp_002dfile_002dname_0029_0029_0029"></span><dl>
 <dt id="index-phenome-10">Method: <strong>phenome</strong> <em>(obj javascript-project) &amp;key (bin (temp-file-name))</em></dt>
 <dd><p>Create a phenotype of the <code>javascript-project</code>.  In this case,
-override the phenome method to output the genome of <code>obj</code> to <code>bin</code> as JavaScript
-is not a compiled language.
-<code>obj</code> object to create a phenome for
+override the phenome method to return <code>bin</code> where the genome of <code>obj</code>
+is output.  JavaScript is not a compiled language, so we return the
+genome instead of a binary.
+</p>
+<p><code>obj</code> object to create a phenome for
 <code>bin</code> location where the phenome will be created on the filesystem
 </p></dd></dl>
 <span id="Method-phenome-_0028_0028obj-java_0029-_0026key-_0028bin-_0028temp_002dfile_002dname_0029_0029_0029"></span><dl>
@@ -2134,8 +2148,8 @@ instructions.
 <dt id="index-after-to_002dfile">Method: <strong>after to-file</strong> <em>(obj javascript) file &amp;aux (preamble (car (ast-children (ast-root obj))))</em></dt>
 <dd><p>Ensure JavaScript scripts are marked executable.
 </p></dd></dl>
-<span id="Method-to_002dfile-after-_0028_0028obj-file_0029-path_0029"></span><dl>
-<dt id="index-after-to_002dfile-1">Method: <strong>after to-file</strong> <em>(obj file) path</em></dt>
+<span id="Method-to_002dfile-after-_0028_0028obj-file_002dw_002dattributes_0029-path_0029"></span><dl>
+<dt id="index-after-to_002dfile-1">Method: <strong>after to-file</strong> <em>(obj file-w-attributes) path</em></dt>
 <dd><p>Wrapper around the &lsquo;to-file&lsquo; method to preserve permissions and
 modification time when writing <code>obj</code> to <code>path</code>.
 </p></dd></dl>

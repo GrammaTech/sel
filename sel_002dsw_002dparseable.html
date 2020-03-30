@@ -55,6 +55,16 @@ Next: <a href="sel_002dsw_002dproject.html" accesskey="n" rel="next">sel-sw-proj
 </div>
 <hr>
 <span id="sel_002dsw_002dparseable-1"></span><h3 class="section">C.29 sel-sw-parseable</h3>
+<span id="Structure-ast"></span><dl>
+<dt id="index-ast">Structure: <strong>ast</strong></dt>
+<dd><p>Class precedence list: <code>ast, structure-object, t</code>
+</p>
+<p>Base structure of mutable portion of ast nodes.
+</p></dd></dl>
+<span id="Variable-_002aparseable_002dmutation_002dtypes_002a"></span><dl>
+<dt id="index-_002aparseable_002dmutation_002dtypes_002a">Variable: <strong>*parseable-mutation-types*</strong></dt>
+<dd><p>Cumulative distribution of normalized probabilities of weighted mutations.
+</p></dd></dl>
 <span id="Generic_002dFunction-append_002dto_002dgenome"></span><dl>
 <dt id="index-append_002dto_002dgenome">Generic Function: <strong>append-to-genome</strong> <em>software text</em></dt>
 <dd><p>Append non-AST <code>text</code> to <code>obj</code> genome.  The new text will not be parsed.
@@ -73,11 +83,9 @@ Next: <a href="sel_002dsw_002dproject.html" accesskey="n" rel="next">sel-sw-proj
 </li><li> <code>text</code> text to append to the genome preamble
 </li></ul>
 </dd></dl>
-<span id="Structure-ast"></span><dl>
-<dt id="index-ast">Structure: <strong>ast</strong></dt>
-<dd><p>Class precedence list: <code>ast, structure-object, t</code>
-</p>
-<p>Base structure of mutable portion of ast nodes.
+<span id="Generic_002dFunction-ast_002dannotation"></span><dl>
+<dt id="index-ast_002dannotation">Generic Function: <strong>ast-annotation</strong> <em>a s</em></dt>
+<dd><p>Genericized version of annotation reader for AST structs
 </p></dd></dl>
 <span id="Generic_002dFunction-ast_002dannotations"></span><dl>
 <dt id="index-ast_002dannotations">Generic Function: <strong>ast-annotations</strong> <em>a</em></dt>
@@ -95,14 +103,6 @@ Next: <a href="sel_002dsw_002dproject.html" accesskey="n" rel="next">sel-sw-proj
 </li><li> <code>index</code> nth AST to retrieve
 </li></ul>
 </dd></dl>
-<span id="Generic_002dFunction-ast_002daux_002ddata"></span><dl>
-<dt id="index-ast_002daux_002ddata">Generic Function: <strong>ast-aux-data</strong> <em>a</em></dt>
-<dd><p>Genericized version of aux-data reader for AST structs
-</p></dd></dl>
-<span id="Generic_002dFunction-_0028setf-ast_002daux_002ddata_0029"></span><dl>
-<dt id="index-_0028setf-ast_002daux_002ddata_0029">Generic Function: <strong>(setf ast-aux-data)</strong> <em>v a</em></dt>
-<dd><p>Genericized version of aux-data writer for AST structs
-</p></dd></dl>
 <span id="Generic_002dFunction-ast_002dchildren"></span><dl>
 <dt id="index-ast_002dchildren">Generic Function: <strong>ast-children</strong> <em>a</em></dt>
 <dd><p>Genericized version of children reader for AST structs
@@ -161,14 +161,6 @@ then the equality of the hashes is unlikely.
 <dd><p>Class precedence list: <code>ast-stub, ast, structure-object, t</code>
 </p>
 <p>Base type of sub-tree of an applicative AST tree.
-</p></dd></dl>
-<span id="Variable-_002aparseable_002dmutation_002dtypes_002a"></span><dl>
-<dt id="index-_002aparseable_002dmutation_002dtypes_002a">Variable: <strong>*parseable-mutation-types*</strong></dt>
-<dd><p>Cumulative distribution of normalized probabilities of weighted mutations.
-</p></dd></dl>
-<span id="Generic_002dFunction-ast_002dtext"></span><dl>
-<dt id="index-ast_002dtext">Generic Function: <strong>ast-text</strong> <em>ast</em></dt>
-<dd><p>Return textual representation of AST.
 </p></dd></dl>
 <span id="Generic_002dFunction-ast_002dto_002dlist"></span><dl>
 <dt id="index-ast_002dto_002dlist">Generic Function: <strong>ast-to-list</strong> <em>obj</em></dt>
@@ -252,17 +244,6 @@ a given conflict key, and for each conflict node, get the list of children
 corresponding to that key (default if the key is not present), and splice
 that list of children in place of the conflict node in its parent&rsquo;s children
 list.
-</p></dd></dl>
-<span id="Macro-define_002dast"></span><dl>
-<dt id="index-define_002dast">Macro: <strong>define-ast</strong> <em>name-and-options &amp;rest slot-descriptions</em></dt>
-<dd><p>Implicitly defines an AST wrapper for the defined AST-node.
-</p></dd></dl>
-<span id="Function-ast_002dlater_002dp"></span><dl>
-<dt id="index-ast_002dlater_002dp">Function: <strong>ast-later-p</strong> <em>ast-a ast-b</em></dt>
-<dd><p>Is <code>ast-a</code> later in the genome than <code>ast-b</code>?
-</p>
-<p>Use this to sort AST asts for mutations that perform multiple
-operations.
 </p></dd></dl>
 <span id="Generic_002dFunction-enclosing_002dscope"></span><dl>
 <dt id="index-enclosing_002dscope">Generic Function: <strong>enclosing-scope</strong> <em>software ast</em></dt>
@@ -506,6 +487,20 @@ in the AST.  <code>software</code> is the software object to which AST belongs.
 <dd><p>Apply <code>fn</code> to each node of the AST, and its list of ancestors,
 in preorder.  The ancestor list is in decreasing order of depth in the AST.
 </p></dd></dl>
+<span id="Function-mapc_002dast_002dand_002dstrings"></span><dl>
+<dt id="index-mapc_002dast_002dand_002dstrings">Function: <strong>mapc-ast-and-strings</strong> <em>ast fn</em></dt>
+<dd><p>Apply <code>fn</code> to ASTs and strings in AST collecting the results with &lsquo;cons&rsquo;.
+</p></dd></dl>
+<span id="Function-move_002dprefixes_002ddown"></span><dl>
+<dt id="index-move_002dprefixes_002ddown">Function: <strong>move-prefixes-down</strong> <em>children allowed-fn prefix-fn</em></dt>
+<dd><p>Give a list <code>children</code> of strings and AST nodes, find children
+that satisfy <code>allowed-fn</code>, are followed by a string, and for for which
+<code>prefix-fn</code> returns a non-null value, which must be a position
+in the string.   Move the [0..pos) prefix of that string
+down into the list of children of the preceding node, concatenating
+it onto the end of the last string in that node&rsquo;s children.
+All list operations are destructive.
+</p></dd></dl>
 <span id="Generic_002dFunction-parent_002dast_002dp"></span><dl>
 <dt id="index-parent_002dast_002dp">Generic Function: <strong>parent-ast-p</strong> <em>software possible-parent-ast ast</em></dt>
 <dd><p>Return true if <code>possible-parent-ast</code> is a parent of AST in <code>obj</code>, nil
@@ -530,41 +525,9 @@ of the assignment, and fix-up the :start and :end source range
 pointers to adjust for the extra offset introduced by the added left
 hand side.
 </p></dd></dl>
-<span id="Generic_002dFunction-parse_002dsource_002dsnippet"></span><dl>
-<dt id="index-parse_002dsource_002dsnippet">Generic Function: <strong>parse-source-snippet</strong> <em>type snippet &amp;key unbound-vals includes macros preamble top-level keep-comments</em></dt>
-<dd><p>Parse a source <code>snippet</code> of the given <code>type</code> (e.g clang)
-into a list of free-floating ASTs.
-</p></dd></dl>
-<span id="Method-parse_002dsource_002dsnippet-_0028_0028type-_0028eql-javascript_0029_0029-_0028snippet-string_0029-_0026key_0029"></span><dl>
-<dt id="index-parse_002dsource_002dsnippet-1">Method: <strong>parse-source-snippet</strong> <em>(type (eql javascript)) (snippet string) &amp;key</em></dt>
-<dd><p>Parse the <code>snippet</code> into a list of free-floating JavaScript ASTs.
-</p></dd></dl>
-<span id="Method-parse_002dsource_002dsnippet-_0028_0028type-_0028eql-clang_0029_0029-_0028snippet-string_0029-_0026key-unbound_002dvals--includes-macros-preamble-top_002dlevel-keep_002dcomments_0029"></span><dl>
-<dt id="index-parse_002dsource_002dsnippet-2">Method: <strong>parse-source-snippet</strong> <em>(type (eql clang)) (snippet string) &amp;key unbound-vals includes macros preamble top-level keep-comments</em></dt>
-<dd><p>Build ASTs for <code>snippet</code>, returning a list of root asts.
-</p>
-<ul>
-<li> <code>snippet</code> may include one or more full statements. It should compile in
-  a context where all <code>unbound-vals</code> are defined and all <code>includes</code> are
-  included.
-
-</li><li> <code>unbound-vals</code> should have the form ((name clang-type) ... )
-
-</li><li> <code>includes</code> is a list of files to include.
-
-</li><li> <code>macros</code> is a list of macros to define
-
-</li><li> <code>preamble</code> source to add prior to snippet
-
-</li><li> <code>top-level</code> indicates that the snippet is a construct which can exist
-  outside a function body, such as a type or function declaration.
-
-</li><li> <code>keep-comments</code> indicates comments should be retained
-</li></ul>
-</dd></dl>
 <span id="Class-parseable"></span><dl>
 <dt id="index-parseable">Class: <strong>parseable</strong></dt>
-<dd><p>Class precedence list: <code>parseable, source, software, oid-object, standard-object, t</code>
+<dd><p>Class precedence list: <code>parseable, source, software, oid-object, file, standard-object, t</code>
 </p>
 <p>Slots:
 </p><ul>
@@ -687,23 +650,20 @@ software object.
 
 <p>Perform a swap operation on a parseable software object.
 </p></dd></dl>
+<span id="Macro-define_002dast"></span><dl>
+<dt id="index-define_002dast">Macro: <strong>define-ast</strong> <em>name-and-options &amp;rest slot-descriptions</em></dt>
+<dd><p>Implicitly defines an AST wrapper for the defined AST-node.
+</p></dd></dl>
+<span id="Function-ast_002dlater_002dp"></span><dl>
+<dt id="index-ast_002dlater_002dp">Function: <strong>ast-later-p</strong> <em>ast-a ast-b</em></dt>
+<dd><p>Is <code>ast-a</code> later in the genome than <code>ast-b</code>?
+</p>
+<p>Use this to sort AST asts for mutations that perform multiple
+operations.
+</p></dd></dl>
 <span id="Function-mapc_002dast"></span><dl>
 <dt id="index-mapc_002dast">Function: <strong>mapc-ast</strong> <em>ast fn</em></dt>
 <dd><p>Apply <code>fn</code> to AST collecting the results with &lsquo;cons&rsquo;.
-</p></dd></dl>
-<span id="Function-mapc_002dast_002dand_002dstrings"></span><dl>
-<dt id="index-mapc_002dast_002dand_002dstrings">Function: <strong>mapc-ast-and-strings</strong> <em>ast fn</em></dt>
-<dd><p>Apply <code>fn</code> to ASTs and strings in AST collecting the results with &lsquo;cons&rsquo;.
-</p></dd></dl>
-<span id="Function-move_002dprefixes_002ddown"></span><dl>
-<dt id="index-move_002dprefixes_002ddown">Function: <strong>move-prefixes-down</strong> <em>children allowed-fn prefix-fn</em></dt>
-<dd><p>Give a list <code>children</code> of strings and AST nodes, find children
-that satisfy <code>allowed-fn</code>, are followed by a string, and for for which
-<code>prefix-fn</code> returns a non-null value, which must be a position
-in the string.   Move the [0..pos) prefix of that string
-down into the list of children of the preceding node, concatenating
-it onto the end of the last string in that node&rsquo;s children.
-All list operations are destructive.
 </p></dd></dl>
 <span id="Function-pick_002dgeneral"></span><dl>
 <dt id="index-pick_002dgeneral">Function: <strong>pick-general</strong> <em>software first-pool &amp;key second-pool filter</em></dt>
@@ -911,16 +871,20 @@ If no suitable points are found the returned points may be nil.
 <dt id="index-source_002dtext">Generic Function: <strong>source-text</strong> <em>ast</em></dt>
 <dd><p>Source code corresponding to an AST.
 </p></dd></dl>
+<span id="Method-source_002dtext-_0028_0028c-character_0029_0029"></span><dl>
+<dt id="index-source_002dtext-1">Method: <strong>source-text</strong> <em>(c character)</em></dt>
+<dd><p>Return the source code corresponding to C.
+</p></dd></dl>
 <span id="Method-source_002dtext-_0028_0028str-string_0029_0029"></span><dl>
-<dt id="index-source_002dtext-1">Method: <strong>source-text</strong> <em>(str string)</em></dt>
+<dt id="index-source_002dtext-2">Method: <strong>source-text</strong> <em>(str string)</em></dt>
 <dd><p>Return the source code corresponding to <code>str</code>.
 </p></dd></dl>
 <span id="Method-source_002dtext-_0028_0028node-ast_002dnode_0029_0029"></span><dl>
-<dt id="index-source_002dtext-2">Method: <strong>source-text</strong> <em>(node ast-node)</em></dt>
+<dt id="index-source_002dtext-3">Method: <strong>source-text</strong> <em>(node ast-node)</em></dt>
 <dd><p>Return a source text representation of a single, immutable, AST node.
 </p></dd></dl>
 <span id="Method-source_002dtext-_0028_0028ast-ast_0029_0029"></span><dl>
-<dt id="index-source_002dtext-3">Method: <strong>source-text</strong> <em>(ast ast)</em></dt>
+<dt id="index-source_002dtext-4">Method: <strong>source-text</strong> <em>(ast ast)</em></dt>
 <dd><p>Return the source code corresponding to AST.
 </p></dd></dl>
 <span id="Generic_002dFunction-stmt_002drange"></span><dl>
@@ -946,26 +910,6 @@ Assumes <code>function</code> is defined in a top-level AST in <code>obj</code>.
 <dt id="index-to_002dalist">Generic Function: <strong>to-alist</strong> <em>struct</em></dt>
 <dd><p>Convert struct to alist representation.
 </p></dd></dl>
-<span id="Generic_002dFunction-to_002dast"></span><dl>
-<dt id="index-to_002dast">Generic Function: <strong>to-ast</strong> <em>ast-type spec</em></dt>
-<dd><p>Walk a potentially recursive AST <code>spec</code> creating an <code>ast-type</code> AST.
-A <code>spec</code> should have the form
-</p>
-<div class="lisp">
-<pre class="lisp">  (ast-class &lt;optional-keyword-args-to-`make-&lt;AST-TYPE&gt;-node'&gt;
-             CHILDREN)
-</pre></div>
-
-<p>where <code>children</code> may themselves be specifications suitable for passing
-to &lsquo;to-ast&lsquo;.  <code>e</code>.g.
-</p>
-<div class="lisp">
-<pre class="lisp">  (to-ast 'clang-ast (:callexpr (:implicitcastexpr
-                                 :includes '(&quot;&lt;string.h&gt;&quot;)
-                                 &quot;&quot; &quot;(|strcpy|)&quot; &quot;&quot;)
-                                &quot;(&quot; &quot;arg-1&quot; &quot;,&quot; &quot;arg-2&quot; &quot;)&quot;))
-</pre></div>
-</dd></dl>
 <span id="Generic_002dFunction-traceable_002dstmt_002dp"></span><dl>
 <dt id="index-traceable_002dstmt_002dp">Generic Function: <strong>traceable-stmt-p</strong> <em>software ast</em></dt>
 <dd><p>Return <code>true</code> if AST is a traceable statement in <code>software</code>.
