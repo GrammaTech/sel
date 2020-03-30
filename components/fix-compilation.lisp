@@ -346,7 +346,7 @@ that function may be declared.")
                              (source-text ast)))
               (replace-ast obj ast
                            (nest (first)
-                                 (parse-source-snippet :clang)
+                                 (convert 'clang-ast)
                                  (regex-replace variable
                                                 (source-text ast)
                                                 (format nil "*~a" variable)))

@@ -89,8 +89,6 @@ Paths may contain wildcards.")
 E.g., a multi-file C software project may include multiple clang
 software objects in it's `evolve-files'."))
 
-
-
 (defvar *build-dir* nil
   "Directory in which to build projects with `phenome'.
 When non-nil `phenome' builds projects in this directory instead of
@@ -101,6 +99,13 @@ build directory.  To do this set *BUILD-DIR* to a different location
 in each thread and then initialize *BUILD-DIR* in each thread by
 calling `{to-file _ *BUILD_DIR*}' against a base software
 object (e.g., the original program).")
+
+(defmethod initialize-instance :after ((project project) &key)
+  "Wrapper to ensure software objects are not created from git artifacts."
+  (setf (slot-value project 'ignore-other-paths)
+        (adjoin ".git/**/*" (ignore-other-paths project) :test #'equal)
+        (slot-value project 'ignore-paths)
+        (adjoin ".git/**/*" (ignore-paths project) :test #'equal)))
 
 (defun ignored-path-p (path &key ignore-paths only-paths
                        &aux (canonical-path (canonical-pathname path)))
@@ -166,7 +171,6 @@ object (e.g., the original program).")
 Assumes `evolve-files' has been initialized.  Only applies to
 non-symlink text files that don't end in \"~\" and are not ignored by
 `ignore-other-paths', or `only-other-paths'.")
-  (:method (obj) (declare (ignorable obj)) nil)
   (:method ((project project))
     ;; Create software objects for these other files.
     (nest
@@ -210,17 +214,15 @@ non-symlink text files that don't end in \"~\" and are not ignored by
   ;; Ensure path is a canonical directory path.
   (setf path (canonical-pathname (ensure-directory-pathname path)))
 
-  ;; Verify parent directory exists, otherwise the copy will fail.
-  (ensure-directories-exist (pathname-parent-directory-pathname path))
+  ;; Verify directory exists, otherwise the copy will fail.
+  (ensure-directories-exist path)
 
   ;; Copy the project directory to the output path.
   (when (and (project-dir project)
              (probe-file (project-dir project))
              (not (equalp path (canonical-pathname (project-dir project)))))
     (multiple-value-bind (stdout stderr errno)
-        (if (probe-file path) ; Different copy if directory already exists.
-            (shell "cp -pr ~a/* ~a/" (project-dir project) path)
-            (shell "cp -pr ~a ~a" (project-dir project) path))
+        (shell "cp -pr ~a/. ~a/" (project-dir project) path)
       (declare (ignorable stdout))
       (assert (zerop errno) (path)
               "Creation of output directory failed with: ~a" stderr)))

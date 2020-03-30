@@ -178,10 +178,10 @@ rename target to use this new name."
         (rename-target (pick-rename-variable software)))
     (when-let ((new-name (car (aget :declares (aget :value1 decl-target)))))
       (setf (aget :new-var rename-target)
-            (to-ast 'clang
-                    `(:var ,new-name
-                           :attrs ((:name . ,new-name))
-                           :syn-ctx :generic))))
+            (convert 'clang-ast
+                     `(:var ,new-name
+                            :annotations ((:name . ,new-name))
+                            :syn-ctx :generic))))
     (list (cons :decl-fodder decl-target)
           (cons :rename-variable rename-target))))
 
@@ -234,8 +234,8 @@ Returns modified text, and names of bound variables.
         (bind-vars-in-snippet obj snippet pt)
       (let ((in-scope (get-vars-in-scope obj pt)))
         (if-let ((asts
-                  (parse-source-snippet
-                   :clang
+                  (convert
+                   'clang-ast
                    text
                    ;; Variable and type names
                    :unbound-vals (mapcar #'list

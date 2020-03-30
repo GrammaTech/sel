@@ -11,6 +11,8 @@
         :software-evolution-library/utility/debug
         :software-evolution-library/software/parseable
         :software-evolution-library/software/source
+        :software-evolution-library/software/file
+        :software-evolution-library/software/parseable
         :software-evolution-library/software/clang
         :software-evolution-library/software/project
         :software-evolution-library/software/clang-project
@@ -311,7 +313,7 @@ which maps (test-casel: position)"
     (let ((loc (clang-range-begin (ast-range ast))))
       (unless (numberp loc)
         (let* ((line (clang-loc-line loc)))
-          (setf (ast-attr ast :annotations) (cons :line line)))))))
+          (appendf (ast-annotations ast) (list (cons :line line))))))))
 
 (defgeneric decorate-with-annotations (software file)
   (:documentation "Decorate SOFTWARE with annotations from FILE.")
@@ -323,7 +325,8 @@ which maps (test-casel: position)"
            (ann-line (annotation) (second annotation)))
       (let ((file-annotations (nest
                                (remove-if-not ; Filter to just this file.
-                                [{search _ (original-file obj)} #'ann-file])
+                                [{search _ (namestring (original-path obj))}
+                                 #'ann-file])
                                (mapcar #'read-from-string)
                                (split-sequence #\Newline
                                                (file-to-string ast-annotations)
@@ -334,15 +337,15 @@ which maps (test-casel: position)"
         (dolist (ast (stmt-asts obj))
           (dolist (annotation file-annotations)
             (when (within-ast-range (ast-range ast) (ann-line annotation))
-              (push annotation (ast-attr ast :annotations)))))))))
+              (push annotation (ast-annotations ast)))))))))
 
 (defun good-trace-count (stmt)
   "Count the :GOOD annotations for STMT."
-  (length (remove-if-not {eql :good} (flatten (ast-attr stmt :annotations)))))
+  (length (remove-if-not {eql :good} (flatten (ast-annotations stmt)))))
 
 (defun bad-trace-count (stmt)
   "Count the :BAD annotations for STMT."
-  (length (remove-if-not {eql :bad} (flatten (ast-attr stmt :annotations)))))
+  (length (remove-if-not {eql :bad} (flatten (ast-annotations stmt)))))
 
 (defvar *default-fault-loc-cutoff* 0.5
   "Chance of picking things that didn't appear in the trace.
@@ -355,10 +358,10 @@ suspect individual nodes are from 0 (not suspect) to 1 (fully suspect).
 If these tags are present, randomly generate a cutoff and filter out
 nodes below that cutoff.  This can result in an empty set -- in this case,
 return the original pool."
-  (unless (member :fl-weight (flatten (mapcar {ast-attr _ :annotations} pool)))
+  (unless (member :fl-weight (flatten (mapcar {ast-annotations _ } pool)))
     (return-from filter-fault-loc pool)) ; If no fl-weights, return pool as-is.
   (labels ((fl-weight (ast)
-             (let ((elt (find :fl-weight (ast-attr ast :annotations)
+             (let ((elt (find :fl-weight (ast-annotations ast)
                               :key #'car)))
                (if elt (cdr elt) *default-fault-loc-cutoff*))))
     (let ((filtered-lst (remove-if-not [{> _ (random 1.0)} #'fl-weight] pool)))
@@ -378,9 +381,9 @@ return the original pool."
 
 (defun add-default-weights (ast)
   "Add default weight for those AST nodes that currently lack one."
-  (when (not (member :fl-weight (flatten (ast-attr ast :annotations))))
+  (when (not (member :fl-weight (flatten (ast-annotations ast))))
     (push (list (cons :fl-weight *default-fault-loc-weight*))
-          (ast-attr ast :annotations))))
+          (ast-annotations ast))))
 
 ;;;; Annotations are deployed on AST objects, thus anything that
 ;;;; implements "ast-root" and "stmt-asts" can use FL (this should be
@@ -408,7 +411,7 @@ statements high rather than low."
                                 (float (+ (bad-trace-count stmt)
                                           (good-trace-count stmt))))))
                   (push (list (cons :fl-weight score))
-                        (ast-attr stmt :annotations))
+                        (ast-annotations stmt))
                   (cons stmt score)))))
           (stmt-asts obj)))
 
@@ -420,8 +423,8 @@ how suspect a node is, targeting nodes that appear only on failing traces."
                                   (= 0 (good-trace-count stmt)))
                              1.0
                              0.1)))
-              (setf (ast-attr stmt :annotations)
+              (setf (ast-annotations stmt)
                     (append (list (cons :fl-weight score))
-                            (ast-attr stmt :annotations)))
+                            (ast-annotations stmt)))
               (cons stmt score)))
           (stmt-asts obj)))

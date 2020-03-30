@@ -22,85 +22,77 @@
         :software-evolution-library/software/javascript
         :software-evolution-library/software/parseable-project
         :software-evolution-library/software/project)
-  (:export :javascript-project
-           :package-spec))
+  (:export :javascript-project))
 (in-package :software-evolution-library/software/javascript-project)
 (in-readtable :curry-compose-reader-macros)
 
-(define-software javascript-project (parseable-project)
-  ((package-spec
-     :initarg :package-spec
-     :accessor package-spec
-     :initform nil
-     :documentation "Javascript project specification from package.json file.")
-   (ignore-paths
-    :initarg :ignore-paths
-    :reader ignore-paths
-    :initform (list "node_modules/**/*")
-    :documentation
-    "List of paths to ignore when collecting evolve-files.
-This default value is particular to node.js JavaScript projects."))
+(define-software javascript-project (parseable-project) ()
   (:documentation "Project specialization for javascript software objects."))
 
 (defmethod initialize-instance :after ((javascript-project javascript-project)
                                        &key)
   (setf (slot-value javascript-project 'component-class)
-        (or (component-class javascript-project) 'javascript)))
+        (or (component-class javascript-project) 'javascript)
+        (slot-value javascript-project 'ignore-other-paths)
+        (adjoin "node_modules/**/*" (ignore-other-paths javascript-project)
+                :test #'equal)
+        (slot-value javascript-project 'ignore-paths)
+        (adjoin "node_modules/**/*" (ignore-paths javascript-project)
+                :test #'equal)))
 
-(defmethod from-file :around ((obj javascript-project) path)
-  ;; Sanity check that a package.json file exists
-  (assert (probe-file (merge-pathnames-as-file path "package.json")) (path)
-          "JavaScript project requires a package.json file in ~a." path)
-  (with-current-directory (path)
-    ;; Load the package.json file
-    (setf (package-spec obj)
-          (decode-json-from-string (file-to-string "package.json"))))
-  (call-next-method))
-
-(defmethod collect-evolve-files ((obj javascript-project)
-                                 &aux result (project-dir (project-dir obj)))
-  (with-current-directory (project-dir)
-    (walk-directory
-      project-dir
-      (lambda (file &aux (rel-path (pathname-relativize project-dir file))
-                 (pkg (package-spec obj)))
-        (push (cons (namestring rel-path)
-                    (from-file
-                     (make-instance (component-class obj)
-                       :parsing-mode
-                       (cond ((find rel-path (aget :bin pkg)
-                                    :key [#'canonical-pathname #'cdr]
-                                    :test #'equal)
-                              :script)
-                             ((equal rel-path
-                                     (canonical-pathname
-                                      (or (aget :main pkg)
-                                          "index.js")))
-                              :script)
-                             (t :module)))
-                     file))
-              result))
-      :test (lambda (file &aux
-                       (rel-path (pathname-relativize project-dir file))
-                       (pkg (package-spec obj)))
-              ;; Heuristics for identifying files in the project:
-              ;; 1) The file is not in an ignored directory.
-              ;; 2) The file has a "js" extension.
-              ;; 3) The file is listed as a "bin" in package.json.
-              ;; 4) The file is listed as "main" in package.json.
-              (or (and (not (ignored-evolve-path-p obj rel-path))
-                       (equal "js" (pathname-type rel-path)))
-                  (find rel-path (aget :bin pkg)
-                        :key [#'canonical-pathname #'cdr]
-                        :test #'equal)
-                  (equal rel-path (aget :main pkg))))))
+(defmethod collect-evolve-files ((project javascript-project) &aux result)
+  (with-current-directory ((project-dir project))
+    (assert (probe-file "package.json") ((project-dir project))
+            "JavaScript project requires a package.json file in ~a."
+            (project-dir project))
+    (let ((package-spec (nest (decode-json-from-string)
+                              (file-to-string "package.json"))))
+      (walk-directory
+        (project-dir project)
+        (lambda (file)
+          (push (cons (pathname-relativize (project-dir project) file)
+                      (from-file (make-instance (component-class project))
+                                 file))
+                result))
+        :test (lambda (file)
+                ;; Heuristics for identifying files in the project:
+                ;; 1) The file is not in an ignored directory.
+                ;;    and the file has a "js" extension.
+                ;; 2) The file is listed as a "bin" in package.json.
+                ;; 3) The file is listed as "main" in package.json.
+                (let ((rel-path (pathname-relativize (project-dir project)
+                                                     file)))
+                  (or (and (not (ignored-evolve-path-p project rel-path))
+                           (equal "js" (pathname-type rel-path)))
+                      (find rel-path (aget :bin package-spec)
+                            :key [#'canonical-pathname #'cdr]
+                            :test #'equal)
+                      (equal rel-path (aget :main package-spec))))))))
   result)
+
+(defmethod collect-other-files :around ((project javascript-project))
+  "Wrapper to represent JSON files as JSON software objects instead of
+simple text software objects."
+  (mapcar (lambda (pair &aux (file (car pair)))
+            (if (equal "json" (pathname-type file))
+                (cons file (nest (from-file (make-instance 'json))
+                                 (merge-pathnames-as-file (project-dir project)
+                                                          file)))
+                pair))
+          (call-next-method)))
 
 (defmethod phenome ((obj javascript-project) &key (bin (temp-file-name)))
   "Create a phenotype of the JAVASCRIPT-PROJECT.  In this case,
-override the phenome method to output the genome of OBJ to BIN as JavaScript
-is not a compiled language.
+override the phenome method to return BIN where the genome of OBJ
+is output.  JavaScript is not a compiled language, so we return the
+genome instead of a binary.
+
 OBJ object to create a phenome for
 BIN location where the phenome will be created on the filesystem"
-  (to-file obj bin)
   (values bin 0 nil nil nil))
+
+(defmethod phenome :around ((obj javascript-project) &key (bin (temp-file-name)))
+  "Bind *build-dir* to BIN ensuring the genome of OBJ in written to BIN."
+  (ensure-directories-exist (ensure-directory-pathname bin))
+  (let ((*build-dir* bin))
+    (call-next-method)))

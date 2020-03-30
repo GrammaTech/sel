@@ -35,7 +35,6 @@
    :pick-bad
    :mutation-targets
    :mutate
-   :located-mutate
    :no-mutation-targets
    :pick-mutation-type
    :create-super
@@ -118,8 +117,7 @@
    :*fitness-scalar-fn*
    :fitness-scalar
    :ignore-failed-mutation
-   :try-another-mutation
-   :original-file))
+   :try-another-mutation))
 (in-package :software-evolution-library/software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
@@ -539,19 +537,6 @@ elements.")
 These may often be safely ignored.  A common restart is
 `ignore-failed-mutation'."))
 
-(defgeneric original-file (obj)
-  (:method (obj) (declare (ignorable obj)) nil))
-
-(define-condition located-mutate (mutate)
-  ()
-  (:report (lambda (condition stream)
-             (format stream "Mutation error, ~a, ~:[on~;~:*applying ~S to~] ~S~@[ (~S)~]"
-                     (text condition) (op condition)
-                     (obj condition)
-                     (original-file (obj condition)))))
-  (:documentation "Version of MUTATE condition that also reports the original
-file location, if any."))
-
 (define-condition no-mutation-targets (mutate)
   ((text :initarg :text :initform nil :reader text)
    (obj  :initarg :obj  :initform nil :reader obj)
@@ -621,6 +606,10 @@ Define an :around method on this function to record crossovers."))
 
 (defmethod to-file ((software software) file)
   (string-to-file (genome software) file))
+
+(defmethod to-file :before ((software software) file)
+  (declare (ignorable software))
+  (ensure-directories-exist (pathname-directory-pathname file)))
 
 (defgeneric apply-path (software key PATH) ; TODO: is this used?
   (:documentation "Apply the execution trace PATH behind KEY in SOFTWARE."))

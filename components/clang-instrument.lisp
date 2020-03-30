@@ -416,7 +416,7 @@ trace statement ID for each AST in OBJ.
                         (make-literal (get-ast-id instrumenter ast) :unsigned))
                   :fullstmt
                   :full-stmt t
-                  :aux-data '((:instrumentation t))))
+                  :annotations '((:instrumentation t))))
 
 (defgeneric write-trace-aux (instrumenter value)
   (:documentation "Generate ASTs which write aux entries to trace.
@@ -435,7 +435,7 @@ trace statement ID for each AST in OBJ.
                         (make-literal value))
                   :fullstmt
                   :full-stmt t
-                  :aux-data '((:instrumentation t))))
+                  :annotations '((:instrumentation t))))
 
 (defgeneric write-end-entry (instrumenter)
   (:documentation "Generate ASTs which write end-entry flag to trace.
@@ -454,7 +454,7 @@ trace statement ID for each AST in OBJ.
                                             nil))
                   :fullstmt
                   :full-stmt t
-                  :aux-data '((:instrumentation t))))
+                  :annotations '((:instrumentation t))))
 
 (defgeneric instrument-return (instrumenter return-stmt return-void)
   (:documentation "Generate ASTs which instrument RETURN-STMT.
@@ -477,17 +477,17 @@ and jump to the exit point, allowing instrumentation of function exit.
   (if return-void
       `(,(make-statement :gotostmt :fullstmt '("goto inst_exit")
                          :full-stmt t
-                         :aux-data '((:instrumentation t))))
+                         :annotations '((:instrumentation t))))
       `(,(make-operator :fullstmt "="
                         (list (make-var-reference "_inst_ret" nil)
                               (car (get-immediate-children
                                      (software instrumenter)
                                      return-stmt)))
                         :full-stmt t
-                        :aux-data '((:instrumentation t)))
+                        :annotations '((:instrumentation t)))
         ,(make-statement :gotostmt :fullstmt '("goto inst_exit")
                          :full-stmt t
-                         :aux-data '((:instrumentation t))))))
+                         :annotations '((:instrumentation t))))))
 
 (defgeneric instrument-exit (instrumenter function return-void)
   (:documentation "Generate ASTs to instrument exit from FUNCTION.
@@ -522,7 +522,7 @@ instrumentation of function exit.
                                    (find-if {equalp (function-body obj
                                                                    function)}
                                             (asts obj)))
-                   :aux-data '((:instrumentation t)))
+                   :annotations '((:instrumentation t)))
       ,(write-end-entry instrumenter)
       ,(make-statement :ReturnStmt :fullstmt
                        (cons "return "
@@ -530,7 +530,7 @@ instrumentation of function exit.
                                (list (make-var-reference "_inst_ret"
                                                          nil))))
                        :full-stmt t
-                       :aux-data '((:instrumentation t))))))
+                       :annotations '((:instrumentation t))))))
 
 (defmethod instrumented-p ((clang clang))
   "Return true if CLANG is instrumented
@@ -575,7 +575,7 @@ Creates a CLANG-INSTRUMENTER for OBJ and calls its instrument method.
          :FullStmt
          `("{" ,@(interleave stmts ";") ";}")
          :full-stmt t
-         :aux-data '((:instrumentation t)))
+         :annotations '((:instrumentation t)))
         stmts)))
 
 (defun last-traceable-stmt (obj proto)
@@ -666,7 +666,7 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
                              (equalp ast (first-traceable-stmt obj function))
                              return-type)
                         `(,(make-var-decl "_inst_ret" return-type nil
-                                          :aux-data '((:instrumentation t)))))
+                                          :annotations '((:instrumentation t)))))
                 ;; Instrument before
                 ,(write-trace-id instrumenter ast)
                 ,@(mapcar {write-trace-aux instrumenter} aux-values)
@@ -766,7 +766,7 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
         (iter (for ast in (nest (reverse)
                                 (remove-if-not {block-p clang})
                                 (remove-if-not [{aget :instrumentation}
-                                                {ast-aux-data}])
+                                                #'ast-annotations])
                                 (asts clang)))
               (collect `(:set (:stmt1 . ,ast)
                               (:value1 .
@@ -775,7 +775,7 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
                                                (first)
                                                (remove-if
                                                  [{aget :instrumentation}
-                                                  {ast-aux-data}])
+                                                  #'ast-annotations])
                                                (get-immediate-children clang)
                                                (get-ast clang)
                                                (ast-path ast))})))))
@@ -785,7 +785,7 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
         (iter (for ast in (nest (reverse)
                                 (remove-if {block-p clang})
                                 (remove-if-not [{aget :instrumentation}
-                                                {ast-aux-data}])
+                                                #'ast-annotations])
                                 (asts clang)))
               (collect `(:splice (:stmt1 . ,ast) (:value1 . nil)))))))
 
@@ -939,7 +939,7 @@ Returns a list of strings containing C source code."))
                                           (length function-args)
                                           function-args))
                            :full-stmt t
-                           :aux-data '((:instrumentation t))))))
+                           :annotations '((:instrumentation t))))))
 
     (iter (for (expr . type) in exprs-and-types)
           (destructuring-bind (format size)
@@ -1062,7 +1062,7 @@ OBJ a clang software object
                          +types-variable-name+)
                  (format nil "const __trace_type_description ~a[] = {~{~a, ~}}"
                          +types-variable-name+
-                         (nest (mapcar [#'ast-text #'cdr])
+                         (nest (mapcar [#'source-text #'cdr])
                                (sort-types-alist)
                                (hash-table-alist)
                                (type-descriptions instrumenter))))))

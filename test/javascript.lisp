@@ -140,8 +140,8 @@
       (is (ast-equal-p (stmt-with-text *soft* "num--;")
                        (stmt-with-text variant "num--;"))))))
 
-(deftest javascript-parse-source-snippet-works ()
-  (is (equal 1 (length (parse-source-snippet :javascript "j = 0")))))
+(deftest javascript-convert-source-snippet-works ()
+  (is (equal 1 (length (convert 'javascript-ast "j = 0")))))
 
 (deftest (can-format-a-javascript-software-object :long-running) ()
   (with-fixture fib-javascript
@@ -230,9 +230,8 @@
                   (nth 5 (aget :trace (get-trace (traces instrumented) 0))))))))
 
 (deftest (javascript-parsing-test :long-running) ()
-  (labels ((parse-test (path parsing-mode &rest ast-classes)
-             (let ((soft (from-file (make-instance 'javascript
-                                      :parsing-mode parsing-mode)
+  (labels ((parse-test (path &rest ast-classes)
+             (let ((soft (from-file (make-instance 'javascript)
                                     (javascript-dir path))))
                (is (not (null (asts soft))))
                (is (equal (genome soft) (file-to-string (javascript-dir path))))
@@ -240,61 +239,37 @@
                        (is (find ast-class (asts soft) :key #'ast-class)))
                      ast-classes))))
     (mapc {apply #'parse-test}
-          '((#P"parsing/array-destructuring.js"
-             :script :ArrayPattern)
-            (#P"parsing/arrow-function-expression.js"
-             :script :ArrowFunctionExpression)
-            (#P"parsing/await-expression.js"
-             :script :AwaitExpression)
-            (#P"parsing/class-declaration.js"
-             :script :ClassDeclaration)
-            (#P"parsing/class-expression.js"
-             :script :ClassExpression)
-            (#P"parsing/conditional-expression.js"
-             :script :ConditionalExpression)
-            (#P"parsing/debugger-statement.js"
-             :script :DebuggerStatement)
-            (#P"parsing/empty-statement.js"
-             :script :EmptyStatement)
-            (#P"parsing/export-specifier.js"
-             :module :ExportSpecifier)
-            (#P"parsing/expression-statement.js"
-             :script :ExpressionStatement)
-            (#P"parsing/function-declaration.js"
-             :script :FunctionDeclaration)
-            (#P"parsing/function-expression.js"
-             :script :FunctionExpression)
-            (#P"parsing/if.js"
-             :script :IfStatement)
-            (#P"parsing/import-specifier.js"
-             :module :ImportSpecifier)
-            (#P"parsing/labeled-statement.js"
-             :script :LabeledStatement)
+          '((#P"parsing/array-destructuring.js" :ArrayPattern)
+            (#P"parsing/arrow-function-expression.js" :ArrowFunctionExpression)
+            (#P"parsing/await-expression.js" :AwaitExpression)
+            (#P"parsing/class-declaration.js" :ClassDeclaration)
+            (#P"parsing/class-expression.js" :ClassExpression)
+            (#P"parsing/conditional-expression.js" :ConditionalExpression)
+            (#P"parsing/debugger-statement.js" :DebuggerStatement)
+            (#P"parsing/empty-statement.js" :EmptyStatement)
+            (#P"parsing/export-specifier.js" :ExportSpecifier)
+            (#P"parsing/expression-statement.js" :ExpressionStatement)
+            (#P"parsing/function-declaration.js" :FunctionDeclaration)
+            (#P"parsing/function-expression.js" :FunctionExpression)
+            (#P"parsing/if.js" :IfStatement)
+            (#P"parsing/import-specifier.js" :ImportSpecifier)
+            (#P"parsing/labeled-statement.js" :LabeledStatement)
             (#P"parsing/loops.js"
-             :script :ForStatement :ForInStatement :ForOfStatement
+             :ForStatement :ForInStatement :ForOfStatement
              :WhileStatement :DoWhileStatement)
-            (#P"parsing/new-expression.js"
-             :script :NewExpression)
-            (#P"parsing/object-destructuring.js"
-             :script :ObjectPattern)
-            (#P"parsing/object-expression.js"
-             :script :ObjectExpression)
-            (#P"parsing/property.js"
-             :script :Property)
-            (#P"parsing/sequence-expression.js"
-             :script :SequenceExpression)
-            (#P"parsing/spread-element.js"
-             :script :SpreadElement)
-            (#P"parsing/switch.js"
-             :script :SwitchStatement)
+            (#P"parsing/new-expression.js" :NewExpression)
+            (#P"parsing/object-destructuring.js" :ObjectPattern)
+            (#P"parsing/object-expression.js" :ObjectExpression)
+            (#P"parsing/property.js" :Property)
+            (#P"parsing/sequence-expression.js" :SequenceExpression)
+            (#P"parsing/spread-element.js" :SpreadElement)
+            (#P"parsing/switch.js" :SwitchStatement)
             (#P"parsing/tagged-template-expression.js"
-             :script :TaggedTemplateExpression)
+             :TaggedTemplateExpression)
             (#P"parsing/try-catch-throw.js"
-             :script :TryStatement :CatchClause :ThrowStatement)
-            (#P"parsing/with-statement.js"
-             :script :WithStatement)
-            (#P"parsing/yield-expression.js"
-             :script :YieldExpression)))))
+             :TryStatement :CatchClause :ThrowStatement)
+            (#P"parsing/with-statement.js" :WithStatement)
+            (#P"parsing/yield-expression.js" :YieldExpression)))))
 
 (deftest array-destructuring-get-vars-in-scope-test ()
   (let ((soft (from-file (make-instance 'javascript)
@@ -452,4 +427,4 @@
 
     (is (equalp (mapc-ast (ast-root *soft*) #'ast-path)
                 '(NIL ((1)) ((2)))))
-    (is (string= (ast-text (ast-root *soft*)) "topleftaright"))))
+    (is (string= (source-text (ast-root *soft*)) "topleftaright"))))

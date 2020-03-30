@@ -18,7 +18,7 @@
 ;;; Every AST in a @code{javascript} software object contains an AST class
 ;;; field with the AST type (e.g. BlockStatement, ForStatement).  Additional
 ;;; fields given by the @code{acorn} parser can be found in an association
-;;; list on the AST's aux-data field.  For more information on the ASTs,
+;;; list on the AST's annotations field.  For more information on the ASTs,
 ;;; see @uref{https://media.readthedocs.org/pdf/esprima/4.0/esprima.pdf,
 ;;; esprima}.
 ;;;
@@ -50,12 +50,7 @@
 (in-package :software-evolution-library/software/javascript)
 (in-readtable :curry-compose-reader-macros)
 
-(define-software javascript (parseable)
-  ((parsing-mode
-     :initarg :parsing-mode
-     :reader parsing-mode
-     :initform :script
-     :documentation "Acorn parsing mode, either :script or :module."))
+(define-software javascript (parseable) ()
   (:documentation "Javascript software representation."))
 
 
@@ -73,23 +68,30 @@
 
 
 ;;; Javascript parsing
-
 (defmethod parse-asts ((obj javascript))
-  (with-temporary-file-of (:pathname src-file :type (ext obj)) (genome obj)
+  (labels ((acorn (parsing-mode)
+             "Invoke acorn with the given PARSING-MODE (:script or :module)."
+             (with-temporary-file (:pathname src-file :type (ext obj))
+               (string-to-file (genome obj) src-file)
+               (multiple-value-bind (stdout stderr exit)
+                   (shell "acorn --compact --allow-hash-bang ~a ~a"
+                          (if (eq parsing-mode :module)
+                              "--module"
+                              "")
+                          src-file)
+                 (if (zerop exit)
+                     (values stdout stderr exit)
+                     (values nil stderr exit))))))
     (multiple-value-bind (stdout stderr exit)
-        (shell "acorn --compact --allow-hash-bang ~a ~a"
-               (if (eq (parsing-mode obj) :module)
-                   "--module"
-                   "")
-               src-file)
-        (if (zerop exit)
-            (convert-acorn-jsown-tree (jsown:parse stdout))
-            (error
-              (make-instance 'mutate
-                :text (format nil "acorn exit ~d~%stderr:~s"
-                              exit
-                              stderr)
-                :obj obj :operation :parse))))))
+        (multiple-value-or (acorn :module) (acorn :script))
+      (if (zerop exit)
+          (convert-acorn-jsown-tree (jsown:parse stdout))
+          (error
+            (make-instance 'mutate
+              :text (format nil "acorn exit ~d~%stderr:~s"
+                            exit
+                            stderr)
+              :obj obj :op :parse))))))
 
 (defun convert-acorn-jsown-tree (jt)
   (convert-jsown-tree jt #'jsown-str-to-acorn-keyword))
@@ -125,8 +127,8 @@
 
 (defmethod update-asts ((obj javascript))
   (labels
-      ((add-aux-data (ast alist)
-         (copy ast :aux-data
+      ((add-annotations (ast alist)
+         (copy ast :annotations
                    (remove-if (lambda (pair)
                                 (or (member (car pair)
                                             '(:type :start :end))
@@ -313,7 +315,7 @@
              (list (subseq genome (aget :start alist) (aget :end alist)))))
        (make-tree (genome ast-alist)
          (let ((children (collect-children ast-alist))
-               (new-ast-node (add-aux-data
+               (new-ast-node (add-annotations
                               (make-javascript-ast-node
                                :class (make-keyword
                                        (string-upcase
@@ -520,14 +522,29 @@ AST ast to return the scopes for"
 
 
 ;;; Support for parsing a string directly into free-floating ASTs.
-(defmethod parse-source-snippet ((type (eql :javascript))
-                                 (snippet string)
-                                 &key)
-  "Parse the SNIPPET into a list of free-floating JavaScript ASTs."
+(defmethod convert ((to-type (eql 'javascript-ast)) (collection string)
+                    &key &allow-other-keys)
+  "Parse the COLLECTION snippet into a list of free-floating JavaScript ASTs."
   (handler-case
       (remove-if [{< 1} {length} {ast-path}]
-                 (asts (from-string (make-instance 'javascript) snippet)))
+                 (asts (from-string (make-instance 'javascript) collection)))
     (mutate (e) (declare (ignorable e)) nil)))
+
+(defmethod convert ((to-type (eql 'javascript-ast)) (spec list)
+                    &key &allow-other-keys)
+  "Create a JAVASCRIPT AST from the SPEC (specification) list."
+  (convert-to-node
+   spec
+   (lambda (class keys children)
+     (funcall #'make-javascript-ast
+              :node (apply #'make-javascript-ast-node
+                           :class (if (keywordp class)
+                                      class
+                                      (intern (symbol-name class) "KEYWORD"))
+                           (plist-drop :annotations keys))
+              :annotations (plist-get :annotations keys)
+              :children children))))
+
 
 ;;;; Fixup code for newlines.  These should be in the same AST as
 ;;;; a statement they terminate

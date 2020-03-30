@@ -592,8 +592,8 @@ is not to be found"
     ;; Even in this case we still see the "ifdef DEBUG" lines in the
     ;; source text of the top level compound statement.
     (is (search "#ifdef DEBUG"
-                (ast-text (find-if [{eql :COMPOUNDSTMT} #'ast-class]
-                                   (asts *soft*)))))))
+                (source-text (find-if [{eql :COMPOUNDSTMT} #'ast-class]
+                                      (asts *soft*)))))))
 
 (deftest overlapping-sibling-asts ()
   ;; A combination of macros and case statements produces tricky

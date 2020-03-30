@@ -2,20 +2,19 @@
 (defpackage :software-evolution-library/software/source
   (:nicknames :sel/software/source :sel/sw/source)
   (:use :gt/full
-        :software-evolution-library)
+        :software-evolution-library
+        :software-evolution-library/software/file)
   (:export :source
            :compiler
            :ext
            :flags
-           :raw-size
-           :original-file
-           :original-directory))
+           :raw-size))
 (in-package :software-evolution-library/software/source)
 (in-readtable :curry-compose-reader-macros)
 
 
 ;;; source software objects
-(define-software source (software)
+(define-software source (software file)
   ((genome   :initarg :genome   :accessor genome   :initform ""
              :copier :direct)
    (flags    :initarg :flags    :accessor flags    :initform nil
@@ -24,11 +23,6 @@
              :copier copy-seq)
    (ext      :initarg :ext      :accessor ext      :initform "c"
              :copier copy-tree)
-   ;; TODO: somehow merge these with ORIGINAL-PATH in FILE objects
-   ;;   However, since FILE is not a superclass of SOURCE, we
-   ;;   currently need to replicate here.
-   (original-file :initarg :original-file :accessor original-file
-                  :initform nil :copier :direct)
    (raw-size :initarg :size     :accessor raw-size :initform nil
              :copier :none))
   (:documentation "Raw source code software representation."))
@@ -69,23 +63,10 @@ on the filesystem at BIN."
   (setf (ext obj)  (pathname-type (pathname path)))
   obj)
 
-(defmethod from-file :before ((obj source) path)
-  (setf (original-file obj) (namestring (truename path))))
-
 (defmethod from-string ((obj source) string)
   "Initialize OBJ with the contents of STRING."
   (setf (genome obj) string)
   obj)
-
-(defmethod from-string :before ((obj source) string)
-  (declare (ignorable string))
-  (setf (original-file obj) nil))
-
-(defgeneric original-directory (obj)
-  (:documentation "Return the original directory OBJ was populated from.")
-  (:method ((obj source))
-    (when-let ((file (original-file obj)))
-      (namestring (pathname-directory-pathname file)))))
 
 (defmethod size ((obj source))
   "Return the size of OBJ"

@@ -186,7 +186,7 @@
 
 (defun write-stream-forms+ (forms stream)
   "Write the original source text of FORMS to STREAM."
-  (walk-skipped-forms  [{format stream "~a"} #'ast-text] forms))
+  (walk-skipped-forms  [{format stream "~a"} #'source-text] forms))
 
 (defun write-string-forms+ (forms)
   "Write the original source text of FORMS to a string."
@@ -230,15 +230,18 @@
           (etypecase form
             (skipped-input-result
              (make-lisp-ast-node
-              :class :skipped
-              :aux-data (list (cons :reason (reason form)))))
+              :class :skipped))
             (expression-result
              (make-lisp-ast-node
-              :class :expression
-              :aux-data (cons
-                         (cons :expression (expression form))
-                         (unless (children form)
-                           (list (cons :text (text form))))))))
+              :class :expression)))
+          :annotations
+          (etypecase form
+            (skipped-input-result
+             (list (cons :reason (reason form))))
+            (expression-result
+             (cons (cons :expression (expression form))
+                   (unless (children form)
+                     (list (cons :text (text form)))))))
           :children
           (etypecase form
             (skipped-input-result
@@ -252,3 +255,18 @@
                          :children (mapcar #'make-tree (parse-asts obj)))
           (slot-value obj 'genome) nil)
     obj))
+
+(defmethod convert ((to-type (eql 'lisp-ast)) (spec list)
+                    &key &allow-other-keys)
+  "Create a LISP AST from the SPEC (specification) list."
+  (convert-to-node
+   spec
+   (lambda (class keys children)
+     (funcall #'make-lisp-ast
+              :node (apply #'make-lisp-ast-node
+                           :class (if (keywordp class)
+                                      class
+                                      (intern (symbol-name class) "KEYWORD"))
+                           (plist-drop :annotations keys))
+              :annotations (plist-get :annotations keys)
+              :children children))))

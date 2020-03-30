@@ -7,6 +7,7 @@
         :bordeaux-threads
         :software-evolution-library
         :software-evolution-library/software/source
+        :software-evolution-library/software/file
         :software-evolution-library/utility/range)
   (:export :ast
            :ast-stub
@@ -19,8 +20,8 @@
            :ast-node
            :ast-stored-hash
            :ast-class
+           :ast-annotation
            :ast-annotations
-           :ast-aux-data
            :source-text
            :rebind-vars
            :replace-in-vars
@@ -29,7 +30,6 @@
            :ast-children
            :ast-nodes-in-subtree
            :ast-equal-p
-           :ast-text
            :ast-hash
            :make-raw-ast
            :make-conflict-ast
@@ -38,8 +38,7 @@
            :conflict-ast-child-alist
            :conflict-ast-default-children
            :combine-conflict-asts
-           :to-ast
-           :to-ast*
+           :convert-to-node
            :ast-later-p
            :map-ast
            :map-ast-postorder
@@ -93,7 +92,6 @@
            :recontextualize-mutation
            :recontextualize
            :select-crossover-points
-           :parse-source-snippet
            :traceable-stmt-p
            :can-be-made-traceable-p
            :enclosing-traceable-stmt
@@ -141,7 +139,6 @@ See the documentation of `update-asts' for required invariants.")
   (path nil :type list)                      ; Path to subtree from root of tree.
   (children nil :type list)                  ; Remainder of subtree.
   (annotations nil :type list)
-  (aux-data nil :type list)
   (stored-hash nil :type (or null fixnum)))
 
 (defgeneric ast-path (a)
@@ -156,36 +153,31 @@ See the documentation of `update-asts' for required invariants.")
 (defgeneric (setf ast-children) (v a)
   (:documentation "Genericized version of children writer for AST structs")
   (:method ((v list) (a ast-stub)) (setf (ast-internal-children a) v)))
-(defgeneric ast-annotations (a)
-  (:documentation "Genericized version of annotations reader for AST structs")
-  (:method ((a ast-stub)) (ast-internal-annotations a)))
-(defgeneric (setf ast-annotations) (v a)
-  (:documentation "Genericized version of annotations writer for AST structs")
-  (:method ((v list) (a ast-stub)) (setf (ast-internal-annotations a) v)))
-(defgeneric ast-aux-data (a)
-  (:documentation "Genericized version of aux-data reader for AST structs")
-  (:method ((a ast-stub)) (ast-internal-aux-data a)))
-(defgeneric (setf ast-aux-data) (v a)
-  (:documentation "Genericized version of aux-data writer for AST structs")
-  (:method ((v list) (a ast-stub)) (setf (ast-internal-aux-data a) v)))
 (defgeneric ast-stored-hash (a)
   (:documentation "Genericized version of stored-hash reader for AST structs")
   (:method ((a ast-stub)) (ast-internal-stored-hash a)))
 (defgeneric (setf ast-stored-hash) (v a)
   (:documentation "Genericized version of children writer for AST structs")
   (:method (v (a ast-stub)) (setf (ast-internal-stored-hash a) v)))
+(defgeneric ast-annotations (a)
+  (:documentation "Genericized version of annotations reader for AST structs")
+  (:method ((a ast-stub)) (ast-internal-annotations a)))
+(defgeneric (setf ast-annotations) (v a)
+  (:documentation "Genericized version of annotations writer for AST structs")
+  (:method ((v list) (a ast-stub)) (setf (ast-internal-annotations a) v)))
+(defgeneric ast-annotation (a s)
+  (:documentation "Genericized version of annotation reader for AST structs")
+  (:method ((a ast-stub) (s symbol)) (aget s (ast-internal-annotations a))))
 
 (defmethod copy ((a ast-stub)
                  &key (path nil path-provided-p)
                    (children nil children-provided-p)
                    (annotations nil annotations-provided-p)
-                   (aux-data nil aux-data-provided-p)
                    (stored-hash nil stored-hash-provided-p))
   (make-raw-ast
    :path (if path-provided-p path (ast-path a))
    :children (if children-provided-p children (ast-children a))
    :annotations (if annotations-provided-p annotations (ast-annotations a))
-   :aux-data (if aux-data-provided-p aux-data (ast-aux-data a))
    :stored-hash (if stored-hash-provided-p stored-hash (ast-stored-hash a))))
 
 (defparameter *ast-print-cutoff* 20
@@ -328,8 +320,7 @@ PRINT-OBJECT method on AST structures.")
 
 (defmacro define-ast (name-and-options &rest slot-descriptions
                       &aux (default-ast-slot-descriptions
-                               '((class nil :type symbol)
-                                 (aux-data nil :type list))))
+                               '((class nil :type symbol))))
   "Implicitly defines an AST wrapper for the defined AST-node."
   (with-gensyms ((obj obj-))
     (let* ((include (get-struct-include name-and-options))
@@ -369,7 +360,7 @@ PRINT-OBJECT method on AST structures.")
              ((,obj ,name)
               &key path
                 (children nil children-supplied-p)
-                annotations
+                (annotations nil annotations-supplied-p)
                 ,@(mapcar (lambda (name)
                             `(,name nil ,(symbol-cat name 'supplied-p)))
                           slot-names))
@@ -390,7 +381,9 @@ PRINT-OBJECT method on AST structures.")
              :children (if children-supplied-p
                            children
                            (ast-children ,obj))
-             :annotations annotations))
+             :annotations (if annotations-supplied-p
+                              annotations
+                              (ast-annotations ,obj))))
 
          ;; Define accessors for internal fields on outer structure
          (defmethod ast-path ((,obj ,name))
@@ -409,6 +402,12 @@ PRINT-OBJECT method on AST structures.")
            (,(symbol-cat name 'stored-hash) ,obj))
          (defmethod (setf ast-stored-hash) (v (,obj ,name))
            (setf (,(symbol-cat name 'stored-hash) ,obj) v))
+         (defmethod ast-annotations ((,obj ,name))
+           (,(symbol-cat name 'annotations) ,obj))
+         (defmethod (setf ast-annotations) ((v list) (,obj ,name))
+           (setf (,(symbol-cat name 'annotations) ,obj) v))
+         (defmethod ast-annotation ((,obj ,name) (annotation symbol))
+           (aget annotation (,(symbol-cat name 'annotations) ,obj)))
 
          ;; Define accessors for inner fields on outer structure.
          ,@(mapcar
@@ -435,7 +434,6 @@ list."
                              (path nil path-provided-p)
                              (children nil children-provided-p)
                              (annotations nil annotations-provided-p)
-                             (aux-data nil aux-data-provided-p)
                              (stored-hash nil stored-hash-provided-p)
                              (child-alist nil child-alist-provided-p)
                              (default-children nil default-children-provided-p))
@@ -445,9 +443,6 @@ list."
    :annotations (if annotations-provided-p
                     annotations
                     (ast-annotations struct))
-   :aux-data (if aux-data-provided-p
-                 aux-data
-                 (ast-aux-data struct))
    :stored-hash (if stored-hash-provided-p
                     stored-hash
                     (ast-stored-hash struct))
@@ -497,58 +492,6 @@ list."
 
 (defmethod ast-class ((c conflict-ast)) nil)
 
-;;; There should be functions for stripping conflict nodes out of a tree,
-;;; based on option keys.
-
-(defgeneric to-ast (ast-type spec)
-  (:documentation
-   "Walk a potentially recursive AST SPEC creating an AST-TYPE AST.
-A SPEC should have the form
-
-  (ast-class <optional-keyword-args-to-`make-<AST-TYPE>-node'>
-             CHILDREN)
-
-where CHILDREN may themselves be specifications suitable for passing
-to `to-ast`.  E.g.
-
-  (to-ast 'clang-ast (:callexpr (:implicitcastexpr
-                                 :includes '(\"<string.h>\")
-                                 \"\" \"(|strcpy|)\" \"\")
-                                \"(\" \"arg-1\" \",\" \"arg-2\" \")\"))"))
-
-(defun to-ast* (spec fn)
-  (labels ((convert-to-node (spec)
-             (destructuring-bind (class &rest options-and-children) spec
-               (multiple-value-bind (keys children)
-                   (let ((previous nil))
-                     (iter (for item in options-and-children)
-                           (if (or (keywordp previous)
-                                   (keywordp item))
-                               ;; Collect keyword arguments.
-                               (collect item into keys)
-                               ;; Process lists as new AST nodes.
-                               (if (listp item)
-                                   (collect (convert-to-node item)
-                                            into children)
-                                   (collect item into children)))
-                           (setf previous item)
-                           (finally (return (values keys children)))))
-                 (funcall fn class keys children)))))
-    (convert-to-node spec)))
-
-(defmethod to-ast (ast-type spec)
-  (to-ast* spec
-           (lambda (class keys children)
-             (funcall (symbol-cat-in-package (symbol-package ast-type)
-                                             'make ast-type)
-                      :node (apply (symbol-cat-in-package (symbol-package ast-type)
-                                                          'make ast-type 'node)
-                                   :class (if (keywordp class)
-                                              class
-                                              (intern (symbol-name class) "KEYWORD"))
-                                   keys)
-                      :children children))))
-
 
 ;;; Generic functions on ASTs
 (defgeneric to-alist (struct)
@@ -595,6 +538,10 @@ AST."))
 (defmethod source-text ((str string))
   "Return the source code corresponding to STR."
   str)
+
+(defmethod source-text ((c character))
+  "Return the source code corresponding to C."
+  (string c))
 
 (defmethod source-text ((ast ast-stub))
   (with-output-to-string (out)
@@ -665,6 +612,24 @@ operations."
                       ((> head-b head-a) nil)
                       (t (path-later-p tail-a tail-b))))))))
     (path-later-p (ast-path ast-a) (ast-path ast-b))))
+
+(defun convert-to-node (spec fn)
+  (destructuring-bind (class &rest options-and-children) spec
+    (multiple-value-bind (keys children)
+        (let ((previous nil))
+          (iter (for item in options-and-children)
+                (if (or (keywordp previous)
+                        (keywordp item))
+                    ;; Collect keyword arguments.
+                    (collect item into keys)
+                    ;; Process lists as new AST nodes.
+                    (if (listp item)
+                        (collect (convert-to-node item fn)
+                                 into children)
+                        (collect item into children)))
+                (setf previous item)
+                (finally (return (values keys children)))))
+      (funcall fn class keys children))))
 
 
 ;;; Tree manipulations
@@ -908,42 +873,6 @@ the methods in parseable.lisp instead.")
                                           (cons (if literal :literal1 :value1)
                                                 ast))))))
 
-(defgeneric insert-ast-after (tree location ast)
-  (:documentation "Insert AST immediately after LOCATION in TREE, returning
-new tree.
-
-* TREE Applicative AST tree to be modified
-* LOCATION path to the AST where insertion is to occur immediately after
-* REPLACEMENT AST to insert
-
-Note: This method is a helper for performing an AST mutation operation
-specified in parseable.lisp and should not be called directly without
-knowledge of the underlying code architecture.  Please consider using
-the methods in parseable.lisp instead.")
-  (:method ((tree ast) (location ast) (replacement ast))
-    (insert-ast-after tree (ast-path location) replacement))
-
-  (:method ((tree ast) (location list) (replacement ast))
-    (labels
-        ((helper (tree path)
-           (bind (((head . tail) path)
-                  (children (ast-children tree)))
-                 (if tail
-                     ;; Recurse into child
-                     (replace-nth-child tree head (helper (nth head children) tail))
-
-                     ;; Insert into children
-                     (copy tree
-                           :children (nconc (subseq children 0 (max 0 head))
-                                            (fixup-mutation
-                                             :after
-                                             (nth head children)
-                                             (nth head children)
-                                             replacement
-                                             (or (nth (1+ head) children) ""))
-                                            (nthcdr (+ 2 head) children)))))))
-      (helper tree location))))
-
 
 ;;; Map over the nodes of an AST
 (defgeneric map-ast-strings (tree fn)
@@ -1041,20 +970,13 @@ in preorder.  The ancestor list is in decreasing order of depth in the AST."))
        (every #'ast-equal-p (ast-children ast-a) (ast-children ast-b))))
 
 (defmethod ast-equal-p ((ast-a t) (ast-b t))
-  (equalp ast-a ast-b))
+  (equal ast-a ast-b))
 
 (defmethod ast-equal-p ((ast-a cons) (ast-b cons))
   (and (iter (while (consp ast-a))
              (while (consp ast-b))
              (always (ast-equal-p (pop ast-a) (pop ast-b))))
        (ast-equal-p ast-a ast-b)))
-
-(defgeneric ast-text (ast)
-  (:documentation "Return textual representation of AST.")
-  (:method (ast)
-    (if (ast-p ast)
-        (source-text ast)
-        (format nil "~A" ast))))
 
 (defgeneric ast-hash (ast)
   (:documentation "A hash value for the AST, which is a nonnegative
@@ -1356,10 +1278,6 @@ to allow for successful mutation of SOFTWARE at PT."))
   (:documentation "Select suitable crossover points in A and B.
 If no suitable points are found the returned points may be nil."))
 
-(defgeneric parse-source-snippet (type snippet &key)
-  (:documentation "Parse a source SNIPPET of the given TYPE (e.g clang)
-into a list of free-floating ASTs."))
-
 (defgeneric traceable-stmt-p (software ast)
   (:documentation
    "Return TRUE if AST is a traceable statement in SOFTWARE."))
@@ -1462,8 +1380,8 @@ if the original file is known.")
       ((error (lambda (e)
                 (declare (ignore e))
                 (when *show-update-asts-errors*
-                  (when-let ((ofile (original-file sw)))
-                    (format t "Failure in update-asts: original-file = ~a~%"
+                  (when-let ((ofile (original-path sw)))
+                    (format t "Failure in update-asts: original-path = ~a~%"
                             ofile))))))
     (call-next-method)))
 
@@ -2098,9 +2016,7 @@ SOFTWARE.
                           (:set (replace-ast ast-root stmt1 value1))
                           (:cut (remove-ast ast-root stmt1))
                           (:insert (insert-ast ast-root stmt1 value1))
-                          (:splice (splice-asts ast-root stmt1 value1))
-                          (:insert-after
-                           (insert-ast-after ast-root stmt1 value1)))))
+                          (:splice (splice-asts ast-root stmt1 value1)))))
                 (finally (return ast-root)))))
 
   (clear-caches software)
