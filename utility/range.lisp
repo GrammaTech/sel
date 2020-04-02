@@ -28,16 +28,16 @@
 ;;;
 ;;; @texi{locations-and-ranges}
 (defclass source-location ()
-  ((line :initarg :line :accessor line :type 'fixnum)
-   (column :initarg :column :accessor column :type 'fixnum)))
+  ((line :initarg :line :accessor line :type fixnum)
+   (column :initarg :column :accessor column :type fixnum)))
 
 (defclass source-range ()
-  ((begin :initarg :begin :accessor begin :type 'source-location)
-   (end   :initarg :end   :accessor end   :type 'source-location)))
+  ((begin :initarg :begin :accessor begin :type source-location)
+   (end   :initarg :end   :accessor end   :type source-location)))
 
 (defclass range ()
-  ((begin :initarg :begin :accessor begin :type 'fixnum)
-   (end   :initarg :end   :accessor end   :type 'fixnum)))
+  ((begin :initarg :begin :accessor begin :type fixnum)
+   (end   :initarg :end   :accessor end   :type fixnum)))
 
 (defmethod print-object ((obj source-location) stream)
   (print-unreadable-object (obj stream :type t)
