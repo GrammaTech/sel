@@ -119,7 +119,7 @@
 ;; Coq object
 (define-software coq (sexp)
   ((project-file
-    :initarg :project-file :accessor project-file :initform nil :copier :direct
+    :initarg :project-file :reader project-file :initform nil :copier :direct
     :documentation "Path to _CoqProject file, if it exists.")
    (file-source
     :initarg :file-source :accessor file-source :initform nil :copier :direct

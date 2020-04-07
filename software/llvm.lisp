@@ -20,7 +20,7 @@
 ;;; llvm software objects
 (define-software llvm (source)
   ((ext      :initarg :ext      :accessor ext      :initform "ll")
-   (compiler :initarg :compiler :accessor compiler :initform "llc")
+   (compiler :initarg :compiler :reader compiler   :initform "llc")
    (linker   :initarg :linker   :accessor linker   :initform "gcc"))
   (:documentation
    "Low Level Virtual Machine (LLVM) intermediate representation (IR).

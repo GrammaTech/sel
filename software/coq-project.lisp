@@ -20,7 +20,7 @@
 (in-readtable :serapi-readtable)
 
 (define-software coq-project (project)
-  ((project-file :initarg :project-file :accessor project-file :initform nil
+  ((project-file :initarg :project-file :reader project-file :initform nil
                  :copier :direct
                  :documentation "Path to _CoqProject file, if it exists."))
   (:documentation "Coq project software object."))

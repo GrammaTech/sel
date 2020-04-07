@@ -24,7 +24,7 @@
 (defvar risc-nop (coerce (elf:int-to-bytes #x0 1) 'list))
 
 (define-software elf-risc (elf)
-  ((nop :initarg :nop :accessor nop :initform risc-nop))
+  ((nop :initarg :nop :reader nop :initform risc-nop))
   (:documentation "DOCFIXME"))
 
 (defmethod elf ((elf elf-risc))

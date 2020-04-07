@@ -32,7 +32,7 @@
 
 ;;; asm software objects
 (define-software asm (simple)
-  ((addr-map :initarg :addr-map :accessor addr-map :initform nil
+  ((addr-map :initarg :addr-map :reader addr-map :initform nil
              :copier copy-tree)
    (linker   :initarg :linker   :accessor linker :initform nil)
    (flags    :initarg :flags    :accessor flags :initform nil))

@@ -104,7 +104,7 @@
                    :documentation "Create this on demand.")
    (function-bounds-file
     :initarg :function-bounds-file
-    :initform nil :accessor function-bounds-file
+    :initform nil :reader function-bounds-file
     :documentation "If this is present, use it to create function index")
    (super-owner :initarg :super-owner :accessor super-owner :initform nil
                 :documentation

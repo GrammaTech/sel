@@ -31,10 +31,10 @@
 (in-readtable :curry-compose-reader-macros)
 
 (define-software project (software)
-    ((build-command :initarg :build-command :accessor build-command
+    ((build-command :initarg :build-command :reader build-command
                     :initform nil
                     :documentation "Shell command to build the project.")
-     (artifacts :initarg :artifacts :accessor artifacts :initform nil
+     (artifacts :initarg :artifacts :reader artifacts :initform nil
                 :documentation
                 "Artifacts (e.g., executables) of the project build.")
      (evolve-files :initarg :evolve-files :accessor evolve-files

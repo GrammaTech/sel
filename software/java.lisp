@@ -48,7 +48,7 @@ exit 0")
 
 (define-software java (source)
   ((file-name :initarg :file-name
-              :accessor file-name :initform nil))
+              :reader file-name :initform nil))
   (:documentation "The Java software object represents a single java file."))
 
 (defmethod from-file ((obj java) path)

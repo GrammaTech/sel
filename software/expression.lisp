@@ -26,7 +26,7 @@
 (in-readtable :curry-compose-reader-macros)
 
 (define-software expression (sexp)
-  ((scope :initarg :scope :accessor scope :initform nil :copier :direct
+  ((scope :initarg :scope :reader scope :initform nil :copier :direct
           :documentation "List of in-scope variable names."))
   (:documentation "DOCFIXME"))
 

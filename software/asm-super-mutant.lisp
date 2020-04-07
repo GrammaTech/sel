@@ -294,19 +294,19 @@
 (define-software asm-super-mutant (asm-heap super-mutant)
   ((input-spec
     :initarg :input-spec
-    :accessor input-spec
+    :reader input-spec
     :initform (make-array 0 :fill-pointer 0 :adjustable t)
     :documentation
     "Vector of INPUT-SPECIFICATION structs, one for each test case.")
    (output-spec
     :initarg :output-spec
-    :accessor output-spec
+    :reader output-spec
     :initform (make-array 0 :fill-pointer 0 :adjustable t)
     :documentation
     "Vector of INPUT-SPECIFICATION structs, one for each test case.")
    (untraced-call-spec
     :initarg :untraced-call-spec
-    :accessor untraced-call-spec
+    :reader untraced-call-spec
     :initform (make-array 0 :fill-pointer 0 :adjustable t)
     :documentation
     "Vector of UNTRACED-CALL-SPECIFICATION structs, one for each test case.")
@@ -345,12 +345,12 @@
     "Cache the lines of the target code, as they are used often.")
    (assembler
     :initarg :assembler
-    :accessor assembler
+    :reader assembler
     :initform "nasm"
     :documentation "Assembler to use for assembling.")
    (io-dir
     :initarg :io-dir
-    :accessor io-dir
+    :reader io-dir
     :initform nil
     :documentation "Directory containing I/O files, named for the functions.")
    (io-file
@@ -1926,6 +1926,7 @@ jump_table:
 ;;; genome is equalp to the target asm-super-mutant
 ;;;
 (defun generate-file (asm-super output-path number-of-variants)
+  (declare (special *asm-super*))
   (setf *asm-super* asm-super)
   (let ((asm-variants (make-instance 'asm-heap :super-owner asm-super)))
     (if (input-spec asm-super)
@@ -2051,8 +2052,7 @@ jump_table:
            (flines nil)
            (updates nil)
            (num-potential-inlines 0)
-           (num-actual-inlines 0)
-           (count 0))
+           (num-actual-inlines 0))
       (setf (lines temp) lines)
       (setf func-index (function-index temp))
       (iter (for fie in-vector func-index) ; for each function
