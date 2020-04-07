@@ -183,6 +183,9 @@ These commands don't actually have to invoke git commands directly."
   (let ((url-str (if (typep url 'pathname)
                      (namestring url)
                      url)))
-    (or (scan "\\.git$" url-str)
-        (scan "^git://" url-str)
-        (scan "^https://git\\." url-str))))
+    (scan '(:alternation
+            (:regex "\\.git$")
+            (:regex "^git://")
+            (:regex "^https://git\\.")
+            (:regex "^git@"))
+          url-str)))
