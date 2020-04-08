@@ -110,9 +110,7 @@ object (e.g., the original program).")
 (defun ignored-path-p (path &key ignore-paths only-paths
                        &aux (canonical-path (canonical-pathname path)))
   (flet ((included (files)
-           (find-if {pathname-match-p canonical-path} files
-                    ;; Wildcard paths must also be canonical to match for CCL.
-                    :key #'canonical-pathname)))
+           (find-if {pathname-match-p canonical-path} files)))
     (or (and only-paths (not (included only-paths)))
         (included ignore-paths))))
 
