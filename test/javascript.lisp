@@ -428,3 +428,11 @@
     (is (equalp (mapc-ast (ast-root *soft*) #'ast-path)
                 '(NIL ((1)) ((2)))))
     (is (string= (source-text (ast-root *soft*)) "topleftaright"))))
+
+(deftest test-json-preserves-trailing-whitespace ()
+  (let* ((ws (fmt "     ~%"))
+         (genome (string+ "{\"x\": 1}" ws))
+         (json (make-instance 'json :genome genome)))
+    (is (string$= ws (genome json)))
+    (ast-root json)
+    (is (string$= ws (genome json)))))

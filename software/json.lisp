@@ -41,7 +41,9 @@ hand side."
                          stderr)
            :obj obj :operation :parse)))
       (let* ((raw (decode-json-from-string stdout))
+             (real-end (aget :end raw))
              (expr (aget :right (aget :expression (car (aget :body raw))))))
+        (setf (aget :end expr) real-end)
         (assert (and expr (string= "ObjectExpression" (aget :type expr)))
                 (obj) "JSON object ~s isn't an ObjectExpression" obj)
         ;; Reduce every ::start and :end value by two to makeup for
