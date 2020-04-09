@@ -21,9 +21,9 @@ output from CL-JSON.  KEY-FN, if present, maps keyword strings to keywords."
                 (mapcar-improper-list #'%convert jt))
                (base-string jt)
                (string
-                (if (every (lambda (c) (typep c 'base-char)) jt)
-                    (coerce jt 'simple-base-string)
-                    jt))
+                (handler-case (locally (declare (optimize safety))
+                                (coerce jt 'simple-base-string))
+                  (type-error () jt)))
                (t jt)))
            (%convert-obj (key-alist)
              (iter (for (key . val) in key-alist)
