@@ -21,6 +21,17 @@
   ()
   (:documentation "JSON software representation."))
 
+(defun valid-json-ast-type? (type)
+  (string-case type
+    (("ObjectExpression"
+      "ArrayExpression"
+      "Literal")
+     t)
+    (t nil)))
+
+(defun valid-json-ast? (ast)
+  (valid-json-ast-type? (aget :type ast)))
+
 (defmethod parse-asts ((obj json))
   "Parse a JSON file (with acorn as JavaScript with a simple hack).
 We do this by temporarily turning the JSON into a valid JavaScript
@@ -44,8 +55,8 @@ hand side."
              (real-end (aget :end raw))
              (expr (aget :right (aget :expression (car (aget :body raw))))))
         (setf (aget :end expr) real-end)
-        (assert (and expr (string= "ObjectExpression" (aget :type expr)))
-                (obj) "JSON object ~s isn't an ObjectExpression" obj)
+        (assert (and expr (valid-json-ast? expr))
+		(obj) "Object ~s is not valid JSON" obj)
         ;; Reduce every ::start and :end value by two to makeup for
         ;; the appended "x=" above.
         (labels ((push-back (value tree)
