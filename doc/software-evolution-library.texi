@@ -962,7 +962,8 @@ documents these utilities.
 @section Basic Utilities
 
 Note.  The SEL utilities have largely been moved to a new GT library
-available at @url{https://github.com/grammatech/cl-utils}.
+available at @url{https://github.com/grammatech/cl-utils}.  This library
+is now also available in quicklisp, and need not be installed separately.
 
 @node View, Task, Basic Utilities, Utilities
 @section View
@@ -1006,44 +1007,28 @@ ASDF/UIOP.)
 @end multitable
 
 The source code for SEL is available at
-@url{https://github.com/GrammaTech/sel}.  The following Common Lisp
+@url{https://github.com/GrammaTech/sel}.  A variety of Common Lisp
 packages are required by this library, all of which are installable
 through Quicklisp (see @url{http://www.quicklisp.org/}).
-@itemize
-@item alexandria
-@item metabang-bind
-@item curry-compose-reader-macros
-@item split-sequence
-@item cl-ppcre
-@end itemize
 
-The following additional Common Lisp packages are required by this
-library but are not (yet) installable through Quicklisp.  These should
+The following additional Common Lisp package is required by this
+library but is not (yet) installable through Quicklisp.  It should
 be downloaded into your Quicklisp @code{local-projects/} folder.
 
 @itemize
 @item trace-db (available from @url{https://github.com/GrammaTech/trace-db})
-@item command-line-arguments (available from @url{https://github.com/eschulte/command-line-arguments})
 @end itemize
 
 Depending on the type of software object used the following may also
 be required.
 @itemize
 @item
-clang v9.0+ for @code{clang} object support  (available from
+clang v10.0+ for @code{clang} object support  (available from
 @url{https://github.com/llvm/llvm-project}).
-@item
-cil-mutate for @code{cil} object support (available from
-@url{https://github.com/eschulte/cil-mutate}).
-@item
-llvm-mutate for @code{llvm} object support (available from
-@url{https://github.com/eschulte/llvm-mutate}).
 @end itemize
 
-
-
-Install llvm-mutate, cil-mutate and clang v9.0+ as per the
-instructions in their respective repositories. (Note, it is only
+Install clang v10.0+ as per the
+instructions in its repository. (Note, it is only
 necessary to install the tools for the specific software backends you
 intend to use.) Install SEL by cloning the repository into your
 quicklisp local-projects directory and then running:
@@ -1051,7 +1036,6 @@ quicklisp local-projects directory and then running:
     (ql:register-local-projects)
     (ql:quickload :software-evolution-library)
 @end example
-
 
 @menu
 * Windows Installation:: Installing SEL on Windows
