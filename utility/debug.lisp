@@ -49,19 +49,25 @@ with `cl-user:trace'."
     (format out "~d.~2,'0d.~2,'0d.~2,'0d.~2,'0d.~2,'0d"
             year month date hour minute second)))
 
-(defun note (level &rest format-args)
+(defun note (level format-control &rest format-args)
   (when (>= *note-level* level)
     (let ((*print-pretty* nil))
       (mapcar
        #'finish-output
        (mapc
-        {write-sequence
-         (concatenate 'string ";;" (print-time nil) ": "
-                      (apply #'format nil format-args)
-                      (list #\Newline))}
+        (lambda (stream)
+          (format stream ";;~a: ~?~%"
+                  (print-time nil)
+                  format-control
+                  format-args))
         *note-out*))))
   ;; Always return nil.
   nil)
+
+(define-compiler-macro note (&whole call level format-control &rest format-args)
+  (if (stringp format-control)
+      `(note ,level (formatter ,format-control) ,@format-args)
+      call))
 
 (defmacro with-warnings-as-notes (note-level &body forms)
   `(handler-bind ((warning (lambda (c)
