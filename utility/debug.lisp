@@ -37,18 +37,9 @@ with `cl-user:trace'."
       `(,fn ,@args)))
 
 (defvar *note-level* 0 "Enables execution notes.")
-(defvar *note-out* '(t) "Targets of notation.")
-
-(defun replace-stdout-in-note-targets (&optional (targets *note-out*))
-  "Replace `t' which is a place holder for `*standard-output*'.
-Ideally we would like to set the value of `*note-out*' to a list
-holding `*standard-output*', however in compiled binaries the value of
-`*standard-output*' changes each time the binary is launched.  So
-instead we use `t' as a place-holder, and provide this function for
-performing the replacement on the fly when `note' is called.  To
-specify a particular value for `*standard-output*' the user may
-replace `t' in the `*note-out*' list."
-  (mapcar (lambda (s) (if (eq s t) *standard-output* s)) targets))
+(defvar *note-out*
+  (list (make-synonym-stream '*standard-output*))
+  "Targets of notation.")
 
 (defun print-time (&optional (out t))
   (multiple-value-bind
@@ -68,7 +59,7 @@ replace `t' in the `*note-out*' list."
          (concatenate 'string ";;" (print-time nil) ": "
                       (apply #'format nil format-args)
                       (list #\Newline))}
-        (replace-stdout-in-note-targets)))))
+        *note-out*))))
   ;; Always return nil.
   nil)
 
