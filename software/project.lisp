@@ -346,6 +346,42 @@ the alist.")
   "Mapcar FUNCTION over `all-files' of PROJECT."
   (values project (mapcar [function #'cdr] (all-files project))))
 
+(defun copy-artifacts (project build-dir bin)
+  "Copies ARTIFACTS from BUILD-DIR to BIN following symbolic links.
+If there's one artifact, it will be copied directly to BIN without
+making a directory."
+  (let ((artifacts (artifacts project)))
+    (cond
+      ((> (length artifacts) 1)
+       ;; Copy artifacts to BIN.
+       (iter (for artifact in artifacts)
+             (for target-dir = (namestring (merge-pathnames-as-directory
+                                            (ensure-directory-pathname bin)
+                                            artifact)))
+             (multiple-value-bind (stdout stderr exit)
+                 (shell "mkdir -p ~a && cp -rL ~a ~a"
+                        target-dir
+                        (namestring (merge-pathnames-as-file
+                                     (ensure-directory-pathname build-dir)
+                                     artifact))
+                        target-dir)
+               (when (not (zerop exit))
+                 (error (make-condition 'phenome :text stderr
+                                        :project project
+                                        :loc build-dir))))))
+      ((car artifacts)
+       ;; Copy artifact to BIN.
+       (multiple-value-bind (stdout stderr exit)
+           (shell "cp -rL ~a ~a"
+                  (namestring (merge-pathnames-as-file
+                               (ensure-directory-pathname build-dir)
+                               (car artifacts)))
+                  bin)
+         (when (not (zerop exit))
+           (error (make-condition 'phenome :text stderr
+                                  :project project
+                                  :loc build-dir))))))))
+
 (defmethod phenome :around
     ((obj project) &key
                      (bin (temp-file-name))
@@ -371,18 +407,9 @@ the alist.")
       (shell "cd ~a && ~a" build-dir (build-command obj))
     (restart-case
         (if (zerop exit)
-            (progn
-              (when (> (length (artifacts obj)) 1)
-                (shell "mkdir ~a" bin))
-              ;; Copy artifacts to BIN.
-              (iter (for artifact in (artifacts obj))
-                    (shell "cp -r ~a ~a"
-                           (namestring (merge-pathnames-as-file
-                                        (ensure-directory-pathname build-dir)
-                                        artifact))
-                           bin)))
+            (copy-artifacts obj build-dir bin)
             (error (make-condition 'phenome
-                     :text stderr :obj obj :loc build-dir)))
+                                   :text stderr :obj obj :loc build-dir)))
       (retry-project-build ()
         :report "Retry `phenome' on OBJ."
         (phenome obj :bin bin))
