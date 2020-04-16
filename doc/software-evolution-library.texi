@@ -980,7 +980,6 @@ available at @url{https://github.com/grammatech/cl-utils}.
 @menu
 * Installation:: Installing SEL and its dependencies
 * Examples:: A series of examples demonstrating some SEL applications.
-
 @end menu
 
 
@@ -1053,6 +1052,10 @@ quicklisp local-projects directory and then running:
     (ql:quickload :software-evolution-library)
 @end example
 
+
+@menu
+* Windows Installation:: Installing SEL on Windows
+@end menu
 
 @node Windows Installation, Examples, Installation, Installation
 @subsection Windows Installation
