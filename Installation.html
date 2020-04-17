@@ -56,75 +56,51 @@ Next: <a href="Examples.html" accesskey="n" rel="next">Examples</a>, Previous: <
 <hr>
 <span id="Installation-1"></span><h3 class="section">5.1 Installation</h3>
 
-<p>The following instructions assume you are on a Linux machine, for
-installation on Windows see <a href="Windows-Installation.html">Windows Installation</a>.
+<p>TLDR; If you already have a Common Lisp development environment setup
+the Software Evolution Library (SEL) can be installed from QuickLisp
+by running <code>(ql:quickload :software-evolution-library)</code>, however
+some components and software types have additional dependencies.
 </p>
-<p>The Software Evolution Library (SEL) requires one of the following
-supported lisp distributions.  (Relatively recent versions of these
-implementations are required because of the use of new features of
-ASDF/UIOP.)
+<p>Note: The following instructions assume you are on a Linux machine,
+for installation on Windows see <a href="Windows-Installation.html">Windows Installation</a>.
 </p>
+<p>SEL requires one of the following supported lisp distributions.
+(Relatively recent versions of these implementations are required
+because of the use of new features of ASDF/UIOP.)
+</p>
+<div class="float"><span id="tab_003alisp_002dimplementations"></span>
+
 <table>
 <thead><tr><th>Implementation</th><th>Minimum Version</th><th>URL</th></tr></thead>
 <tr><td>Steel Bank Common Lisp (SBCL)</td><td>1.4</td><td><a href="https://www.cliki.net/SBCL">https://www.cliki.net/SBCL</a></td></tr>
 <tr><td>Clozure Common Lisp (CCL)</td><td>1.12-dev</td><td><a href="https://www.cliki.net/CCL">https://www.cliki.net/CCL</a></td></tr>
 </table>
 
+<div class="float-caption"><p><strong>Table 5.1: </strong>Supported Common Lisp Implementations.</p></div></div>
 <p>The source code for SEL is available at
-<a href="https://github.com/GrammaTech/sel">https://github.com/GrammaTech/sel</a>.  The following Common Lisp
-packages are required by this library, all of which are installable
-through Quicklisp (see <a href="http://www.quicklisp.org/">http://www.quicklisp.org/</a>).
-</p><ul>
-<li> alexandria
-</li><li> metabang-bind
-</li><li> curry-compose-reader-macros
-</li><li> split-sequence
-</li><li> cl-ppcre
-</li></ul>
-
-<p>The following additional Common Lisp packages are required by this
-library but are not (yet) installable through Quicklisp.  These should
-be downloaded into your Quicklisp <code>local-projects/</code> folder.
+<a href="https://github.com/GrammaTech/sel">https://github.com/GrammaTech/sel</a>.  SEL and its Common Lisp
+dependencies are installable through Quicklisp (see
+<a href="http://www.quicklisp.org/">http://www.quicklisp.org/</a>).  Some components of SEL (related to
+software execution tracing) also require the <code>trace-db</code> package
+(available from <a href="https://github.com/GrammaTech/trace-db">https://github.com/GrammaTech/trace-db</a>) which is
+not installable through QuickLisp.  If needed, it should be downloaded
+into your Quicklisp <code>local-projects/</code> folder.  Depending on the
+type of software object used the following may also be required:
 </p>
-<ul>
-<li> trace-db (available from <a href="https://github.com/GrammaTech/trace-db">https://github.com/GrammaTech/trace-db</a>)
-</li><li> command-line-arguments (available from <a href="https://github.com/eschulte/command-line-arguments">https://github.com/eschulte/command-line-arguments</a>)
-</li></ul>
+<div class="float"><span id="tab_003adependencies"></span>
 
-<p>Depending on the type of software object used the following may also
-be required.
-</p><ul>
-<li> clang v9.0+ for <code>clang</code> object support  (available from
-<a href="https://github.com/llvm/llvm-project">https://github.com/llvm/llvm-project</a>).
-</li><li> cil-mutate for <code>cil</code> object support (available from
-<a href="https://github.com/eschulte/cil-mutate">https://github.com/eschulte/cil-mutate</a>).
-</li><li> llvm-mutate for <code>llvm</code> object support (available from
-<a href="https://github.com/eschulte/llvm-mutate">https://github.com/eschulte/llvm-mutate</a>).
-</li></ul>
-
-
-
-<p>Install llvm-mutate, cil-mutate and clang v9.0+ as per the
-instructions in their respective repositories. (Note, it is only
-necessary to install the tools for the specific software backends you
-intend to use.) Install SEL by cloning the repository into your
-quicklisp local-projects directory and then running:
-</p><div class="example">
-<pre class="example">    (ql:register-local-projects)
-    (ql:quickload :software-evolution-library)
-</pre></div>
-
-
+<table>
+<thead><tr><th>Software type</th><th>Dependency</th><th>URL</th></tr></thead>
+<tr><td>C/C++</td><td>clang v10.0+</td><td><a href="https://github.com/llvm/llvm-project">https://github.com/llvm/llvm-project</a></td></tr>
+<tr><td>JavaScript</td><td>acorn</td><td><a href="https://github.com/acornjs/acorn.git">https://github.com/acornjs/acorn.git</a></td></tr>
+<tr><td>Coq</td><td>SerAPI</td><td><a href="https://github.com/ejgallego/coq-serapi">https://github.com/ejgallego/coq-serapi</a></td></tr>
+</table>
+<div class="float-caption"><p><strong>Table 5.2: </strong>Additional dependencies for specific software objects.</p></div></div>
 <table class="menu" border="0" cellspacing="0">
-<tr><td align="left" valign="top">&bull; <a href="Windows-Installation.html" accesskey="1">Windows Installation</a></td><td>&nbsp;&nbsp;</td><td align="left" valign="top">
+<tr><td align="left" valign="top">&bull; <a href="Windows-Installation.html" accesskey="1">Windows Installation</a></td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Installing SEL on Windows
 </td></tr>
 </table>
 
-<hr>
-<div class="header">
-<p>
-Next: <a href="Examples.html" accesskey="n" rel="next">Examples</a>, Previous: <a href="Usage.html" accesskey="p" rel="prev">Usage</a>, Up: <a href="Usage.html" accesskey="u" rel="up">Usage</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
-</div>
 
 
 

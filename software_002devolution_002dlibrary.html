@@ -55,21 +55,20 @@ Next: <a href="sel_002drest.html" accesskey="n" rel="next">sel-rest</a>, Previou
 </div>
 <hr>
 <span id="software_002devolution_002dlibrary-1"></span><h3 class="section">C.1 software-evolution-library</h3>
-<span id="Class-mutation"></span><dl>
-<dt id="index-mutation">Class: <strong>mutation</strong></dt>
-<dd><p>Class precedence list: <code>mutation, oid-object, standard-object, t</code>
+<span id="Condition-mutate"></span><dl>
+<dt id="index-mutate-7">Condition: <strong>mutate</strong></dt>
+<dd><p>Class precedence list: <code>mutate, error, serious-condition, condition, t</code>
 </p>
-<p>Slots:
-</p><ul>
-<li> <code>object</code> &mdash; initarg: <code>:object<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:object</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software-evolution-library:object)</span><!-- /@w --></code>
-
-<p>The software object to be mutated.
-</p></li><li> <code>targets</code> &mdash; initarg: <code>:targets<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:get-targets</span><!-- /@w --></code>
-
-<p>A calculated target set.
-</p></li></ul>
-
-<p>The base class of all software mutations.
+<p>Mutation errors are thrown when a mutation fails.
+These may often be safely ignored.  A common restart is
+&lsquo;ignore-failed-mutation&rsquo;.
+</p></dd></dl>
+<span id="Condition-no_002dmutation_002dtargets"></span><dl>
+<dt id="index-no_002dmutation_002dtargets">Condition: <strong>no-mutation-targets</strong></dt>
+<dd><p>Class precedence list: <code>no-mutation-targets, mutate, error, serious-condition, condition, t</code>
+</p>
+<p>This is a particularly benign form of mutation error.
+A common restart is &lsquo;ignore-failed-mutation&rsquo;.
 </p></dd></dl>
 <span id="Class-oid_002dobject"></span><dl>
 <dt id="index-oid_002dobject">Class: <strong>oid-object</strong></dt>
@@ -80,6 +79,10 @@ Next: <a href="sel_002drest.html" accesskey="n" rel="next">sel-rest</a>, Previou
 <span id="Variable-_002across_002dchance_002a"></span><dl>
 <dt id="index-_002across_002dchance_002a">Variable: <strong>*cross-chance*</strong></dt>
 <dd><p>Fraction of new individuals generated using crossover rather than mutation.
+</p></dd></dl>
+<span id="Variable-_002acrossover_002dstats_002a"></span><dl>
+<dt id="index-_002acrossover_002dstats_002a">Variable: <strong>*crossover-stats*</strong></dt>
+<dd><p>Variable to hold crossover statistics.
 </p></dd></dl>
 <span id="Variable-_002aelitism_002a"></span><dl>
 <dt id="index-_002aelitism_002a">Variable: <strong>*elitism*</strong></dt>
@@ -113,6 +116,12 @@ number will automatically be promoted).
 <span id="Variable-_002amax_002dpopulation_002dsize_002a"></span><dl>
 <dt id="index-_002amax_002dpopulation_002dsize_002a">Variable: <strong>*max-population-size*</strong></dt>
 <dd><p>Maximum allowable population size.
+</p></dd></dl>
+<span id="Variable-_002amcmc_002dfodder_002a"></span><dl>
+<dt id="index-_002amcmc_002dfodder_002a">Variable: <strong>*mcmc-fodder*</strong></dt>
+<dd><p>Holds the genome elements which may be used by &lsquo;mcmc-step&rsquo;.
+Should be initialized to a list of the unique possible genome
+elements.
 </p></dd></dl>
 <span id="Variable-_002amut_002drate_002a"></span><dl>
 <dt id="index-_002amut_002drate_002a">Variable: <strong>*mut-rate*</strong></dt>
@@ -148,6 +157,10 @@ written to as part of a running search process.
 <span id="Variable-_002atarget_002dfitness_002dp_002a"></span><dl>
 <dt id="index-_002atarget_002dfitness_002dp_002a">Variable: <strong>*target-fitness-p*</strong></dt>
 <dd><p>Predicate indicating whether an individual has reached the target fitness.
+</p></dd></dl>
+<span id="Variable-_002atie_002dbreaker_002dpredicate_002a"></span><dl>
+<dt id="index-_002atie_002dbreaker_002dpredicate_002a">Variable: <strong>*tie-breaker-predicate*</strong></dt>
+<dd><p>Function to compare two tie breaker values to select which is preferred.
 </p></dd></dl>
 <span id="Variable-_002atournament_002deviction_002dsize_002a"></span><dl>
 <dt id="index-_002atournament_002deviction_002dsize_002a">Variable: <strong>*tournament-eviction-size*</strong></dt>
@@ -189,16 +202,6 @@ written to as part of a running search process.
 <span id="Variable-_002bsoftware_002devolution_002dlibrary_002dversion_002b"></span><dl>
 <dt id="index-_002bsoftware_002devolution_002dlibrary_002dversion_002b">Variable: <strong>+software-evolution-library-version+</strong></dt>
 <dd><p>Current version of the <code>software-evolution-library</code>.
-</p></dd></dl>
-<span id="Function-analyze_002dmutation"></span><dl>
-<dt id="index-analyze_002dmutation">Function: <strong>analyze-mutation</strong> <em>obj mutation-info test</em></dt>
-<dd><p>Default function to collect statistics from an applied mutation.
-</p>
-<p>This function will calculate the improvements to the fitness of <code>software</code>
-as the result of crossover and mutation using &lsquo;evaluate&rsquo; and <code>test</code>.
-Each crossover and mutation will be paired with one of the following tags;
-:dead, :same, :worse, or :better.  Calculated stats will be added to the
-*crossover-stats* and *mutation-stats* variables for analysis.
 </p></dd></dl>
 <span id="Generic_002dFunction-apply_002dall_002dmutations"></span><dl>
 <dt id="index-apply_002dall_002dmutations">Generic Function: <strong>apply-all-mutations</strong> <em>software mutation</em></dt>
@@ -462,12 +465,6 @@ insert).
 <dt id="index-apply_002dmutation-34">Method: <strong>apply-mutation</strong> <em>(simple simple) (mutation simple-cut)</em></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
-<span id="Generic_002dFunction-apply_002dmutations"></span><dl>
-<dt id="index-apply_002dmutations">Generic Function: <strong>apply-mutations</strong> <em>software mutation n</em></dt>
-<dd><p>Apply <code>mutation</code> to the first <code>n</code> targets in <code>software</code>.
-Returns the resulting software objects.  Returns a list of the applied
-mutations as an optional second value.
-</p></dd></dl>
 <span id="Generic_002dFunction-apply_002dpath"></span><dl>
 <dt id="index-apply_002dpath">Generic Function: <strong>apply-path</strong> <em>software key path</em></dt>
 <dd><p>Apply the execution trace <code>path</code> behind <code>key</code> in <code>software</code>.
@@ -481,12 +478,6 @@ mutations as an optional second value.
 <dd><p>Apply a list of sampled <code>addresses</code> to the ASM&rsquo;s genome behind <code>key</code>.
 If each element of <code>addresses</code> is a cons cell then assume the car is the
 address and the cdr is the value.
-</p></dd></dl>
-<span id="Generic_002dFunction-apply_002dpicked_002dmutations"></span><dl>
-<dt id="index-apply_002dpicked_002dmutations">Generic Function: <strong>apply-picked-mutations</strong> <em>software mutation n</em></dt>
-<dd><p>Apply <code>mutation</code> to <code>n</code> randomly selected targets in <code>software</code>.
-Returns the resulting software objects.  Returns a list of the applied
-mutations as an optional second value.
 </p></dd></dl>
 <span id="Generic_002dFunction-build_002dop"></span><dl>
 <dt id="index-build_002dop">Generic Function: <strong>build-op</strong> <em>mutation software</em></dt>
@@ -643,26 +634,12 @@ a refine-condition <code>mutation</code> to <code>software</code>.
 </li><li> <code>software</code> object to be modified by the mutation
 </li></ul>
 </dd></dl>
-<span id="Macro-compose_002dmutations"></span><dl>
-<dt id="index-compose_002dmutations">Macro: <strong>compose-mutations</strong> <em>class-name mutations &amp;rest options</em></dt>
-<dd><p>Define a new mutation named <code>class-name</code> composing <code>mutations</code>.
-<code>mutations</code> is a list of the names of mutation classes.
-</p></dd></dl>
-<span id="Function-classify"></span><dl>
-<dt id="index-classify">Function: <strong>classify</strong> <em>new &amp;rest old</em></dt>
-<dd><p>Classify the fitness of <code>new</code> as <code>:better</code>, <code>:worse</code>, <code>:same</code>, or <code>:dead</code> when
-compared to <code>old</code>.  <code>new</code> and <code>old</code> must have fitness populated.
-</p></dd></dl>
 <span id="Generic_002dFunction-copy"></span><dl>
-<dt id="index-copy">Generic Function: <strong>copy</strong> <em>obj &amp;key traces features feature-vecs feature-vec-meta ext compiler linker shebang nop sw-project addresses base assembler flags asm-flags redirect-file linker-script weak-symbols linked-files project-file file-source imports coq-modules coq-sections coq-assumptions coq-definitions scope input-spec output-spec untraced-call-spec var-table bss-segment target-name target-start-index target-end-index target-info target-lines io-dir io-file fitness-harness include-lines include-funcs libraries max-asm-function-size eval-meta-results line-heap function-index function-bounds-file super-owner asm-syntax mutants super-soft phenome-results addr-map ancestors genome git-repo compilation-database path children annotations class file-name begin end spelling-loc expansion-loc is-macro-arg-expansion file included-from line presumed-line col offset tok-len hash name body i-file type storage-class qual desugared modifiers array reqs decl includes types macros stmt-asts non-stmt-asts functions prototypes symbol-table name-symbol-table build-command artifacts evolve-files other-files ignore-paths only-paths ignore-other-paths only-other-paths component-class project-dir stored-hash child-alist default-children ast-root asts copy-lock reference raw-size &amp;allow-other-keys</em></dt>
+<dt id="index-copy">Generic Function: <strong>copy</strong> <em>obj &amp;key traces features feature-vecs feature-vec-meta ext compiler linker shebang nop sw-project addresses base reference diffs diff-type assembler flags asm-flags redirect-file linker-script weak-symbols linked-files project-file file-source imports coq-modules coq-sections coq-assumptions coq-definitions scope input-spec output-spec untraced-call-spec var-table bss-segment target-name target-start-index target-end-index target-info target-lines io-dir io-file fitness-harness include-lines include-funcs libraries max-asm-function-size eval-meta-results line-heap function-index function-bounds-file super-owner asm-syntax mutants super-soft phenome-results addr-map ancestors genome compilation-database path children annotations class file-name begin end spelling-loc expansion-loc is-macro-arg-expansion file included-from line presumed-line col offset tok-len hash name body i-file type storage-class qual desugared modifiers array reqs decl includes types macros stmt-asts non-stmt-asts functions prototypes symbol-table name-symbol-table git-repo build-command artifacts evolve-files other-files ignore-paths only-paths ignore-other-paths only-other-paths component-class project-dir stored-hash child-alist default-children ast-root asts copy-lock raw-size &amp;allow-other-keys</em></dt>
 <dd><p>Generic <code>copy</code> method.
 </p></dd></dl>
-<span id="Method-copy-_0028_0028diff-diff_0029-_0026key_0029"></span><dl>
-<dt id="index-copy-1">Method: <strong>copy</strong> <em>(diff diff) &amp;key</em></dt>
-<dd><p><code>docfixme</code>
-</p></dd></dl>
 <span id="Method-copy-_0028_0028asm-asm_002drange_0029-_0026key_0029"></span><dl>
-<dt id="index-copy-2">Method: <strong>copy</strong> <em>(asm asm-range) &amp;key</em></dt>
+<dt id="index-copy-1">Method: <strong>copy</strong> <em>(asm asm-range) &amp;key</em></dt>
 <dd><p>Customized copy for &lsquo;asm-range&rsquo; software objects.
 Ensures deep copies are made of the genome (ranges) but shallow copies
 are made of the reference base genome.
@@ -679,18 +656,6 @@ are made of the reference base genome.
 <span id="Method-copy-around-_0028_0028obj-file_0029-_0026key_0029"></span><dl>
 <dt id="index-around-copy-1">Method: <strong>around copy</strong> <em>(obj file) &amp;key</em></dt>
 <dd><p>Wrap the copy method to ensure the OBJ&rsquo;s fields are copied.
-</p></dd></dl>
-<span id="Generic_002dFunction-create_002dsuper"></span><dl>
-<dt id="index-create_002dsuper">Generic Function: <strong>create-super</strong> <em>variant &amp;optional rest-variants</em></dt>
-<dd><p>Create a super-mutant populated with <code>variant</code> . <code>rest-variants</code>
-</p></dd></dl>
-<span id="Method-create_002dsuper-_0028_0028variant-asm_002dheap_0029-_0026optional-rest_002dvariants_0029"></span><dl>
-<dt id="index-create_002dsuper-1">Method: <strong>create-super</strong> <em>(variant asm-heap) &amp;optional rest-variants</em></dt>
-<dd><p>Creates a <code>asm-super-mutant</code> and populates it with single variant.
-</p></dd></dl>
-<span id="Method-create_002dsuper-_0028_0028variant-software_0029-_0026optional-rest_002dvariants_0029"></span><dl>
-<dt id="index-create_002dsuper-2">Method: <strong>create-super</strong> <em>(variant software) &amp;optional rest-variants</em></dt>
-<dd><p>Creates a <code>super-mutant</code> and populates variants. Returns the super-mutant.
 </p></dd></dl>
 <span id="Generic_002dFunction-crossover"></span><dl>
 <dt id="index-crossover">Generic Function: <strong>crossover</strong> <em>software-a software-b</em></dt>
@@ -742,10 +707,61 @@ Define an :around method on this function to record crossovers.
 <dd><p>Like &lsquo;defclass&rsquo; but inherits <code>targeter</code> slot-options from <code>mutation</code>.
 Also, ensures <code>mutation</code> is a member of superclasses
 </p></dd></dl>
-<span id="Function-default_002drandom_002dwinner"></span><dl>
-<dt id="index-default_002drandom_002dwinner">Function: <strong>default-random-winner</strong> <em>group &amp;key predicate</em></dt>
-<dd><p>Choose a random winner from <code>group</code>.
+<span id="Function-analyze_002dmutation"></span><dl>
+<dt id="index-analyze_002dmutation">Function: <strong>analyze-mutation</strong> <em>obj mutation-info test</em></dt>
+<dd><p>Default function to collect statistics from an applied mutation.
+</p>
+<p>This function will calculate the improvements to the fitness of <code>software</code>
+as the result of crossover and mutation using &lsquo;evaluate&rsquo; and <code>test</code>.
+Each crossover and mutation will be paired with one of the following tags;
+:dead, :same, :worse, or :better.  Calculated stats will be added to the
+*crossover-stats* and *mutation-stats* variables for analysis.
 </p></dd></dl>
+<span id="Generic_002dFunction-apply_002dmutations"></span><dl>
+<dt id="index-apply_002dmutations">Generic Function: <strong>apply-mutations</strong> <em>software mutation n</em></dt>
+<dd><p>Apply <code>mutation</code> to the first <code>n</code> targets in <code>software</code>.
+Returns the resulting software objects.  Returns a list of the applied
+mutations as an optional second value.
+</p></dd></dl>
+<span id="Generic_002dFunction-apply_002dpicked_002dmutations"></span><dl>
+<dt id="index-apply_002dpicked_002dmutations">Generic Function: <strong>apply-picked-mutations</strong> <em>software mutation n</em></dt>
+<dd><p>Apply <code>mutation</code> to <code>n</code> randomly selected targets in <code>software</code>.
+Returns the resulting software objects.  Returns a list of the applied
+mutations as an optional second value.
+</p></dd></dl>
+<span id="Generic_002dFunction-at_002dtargets"></span><dl>
+<dt id="index-at_002dtargets">Generic Function: <strong>at-targets</strong> <em>mutation targets &amp;key object &amp;allow-other-keys</em></dt>
+<dd><p>Return a copy of <code>mutation</code> with &lsquo;targets&rsquo; set to <code>targets</code>.
+</p></dd></dl>
+<span id="Generic_002dFunction-create_002dsuper"></span><dl>
+<dt id="index-create_002dsuper">Generic Function: <strong>create-super</strong> <em>variant &amp;optional rest-variants</em></dt>
+<dd><p>Create a super-mutant populated with <code>variant</code> . <code>rest-variants</code>
+</p></dd></dl>
+<span id="Method-create_002dsuper-_0028_0028variant-asm_002dheap_0029-_0026optional-rest_002dvariants_0029"></span><dl>
+<dt id="index-create_002dsuper-1">Method: <strong>create-super</strong> <em>(variant asm-heap) &amp;optional rest-variants</em></dt>
+<dd><p>Creates a <code>asm-super-mutant</code> and populates it with single variant.
+</p></dd></dl>
+<span id="Method-create_002dsuper-_0028_0028variant-software_0029-_0026optional-rest_002dvariants_0029"></span><dl>
+<dt id="index-create_002dsuper-2">Method: <strong>create-super</strong> <em>(variant software) &amp;optional rest-variants</em></dt>
+<dd><p>Creates a <code>super-mutant</code> and populates variants. Returns the super-mutant.
+</p></dd></dl>
+<span id="Macro-define_002dsoftware"></span><dl>
+<dt id="index-define_002dsoftware">Macro: <strong>define-software</strong> <em>name direct-superclasses direct-slots &amp;rest options</em></dt>
+<dd><p>Define a new &lsquo;software&rsquo; class <code>name</code> including a deep &lsquo;copy&rsquo; method.
+Arguments <code>name</code> <code>direct-superclasses</code> and <code>options</code> are passed through to
+&lsquo;defclass&rsquo; unmodified.  Additional optional <code>:copier</code> property on each
+slot in <code>direct-slots</code> may be one of the following:
+</p>
+<ul>
+<li> <code>:none</code> this slot is not copied and will be nil in the new object
+</li><li> <code>:direct</code> this slot is copied by direct reference to the slot value
+          skipping the accessor
+</li><li> otherwise if the value of <code>:copier</code> is nil (default) then the slot is
+            copied through its accessor, otherwise the value is
+            assumed to be a function (e.g., &lsquo;copy-tree&rsquo;) which is used
+            to copy the slot.
+</li></ul>
+</dd></dl>
 <span id="Generic_002dFunction-evaluate"></span><dl>
 <dt id="index-evaluate">Generic Function: <strong>evaluate</strong> <em>function software &amp;rest extra-keys &amp;key &amp;allow-other-keys</em></dt>
 <dd><p>Evaluate the software returning a numerical fitness.
@@ -784,22 +800,6 @@ test output, to determine the fitness score.
 </li><li> <code>extra-keys</code> additional keyword arguments to pass to &lsquo;run-test&rsquo;. See the
 </li></ul>
 <p>&lsquo;start-test&rsquo; documentation for more information.
-</p></dd></dl>
-<span id="Macro-evolve"></span><dl>
-<dt id="index-evolve">Macro: <strong>evolve</strong> <em>test &amp;key max-evals max-time period period-fn every-pre-fn every-post-fn filter analyze-mutation-fn super-mutant-count</em></dt>
-<dd><p>Evolves &lsquo;*population*&rsquo; using &lsquo;new-individual&rsquo; and <code>test</code>.
-</p>
-<ul>
-<li> <code>super-mutant-count</code> evaluate this number of mutants at once in a
-  combined genome.
-
-</li></ul>
-<p>Other keyword arguments are used as defined in the &lsquo;-search&rsquo; function.
-</p></dd></dl>
-<span id="Function-default_002dselect_002dbest"></span><dl>
-<dt id="index-default_002dselect_002dbest">Function: <strong>default-select-best</strong> <em>group &amp;key predicate</em></dt>
-<dd><p>Return the members of <code>group</code> with most <code>predicate</code> fitness.
-Default selection function for &lsquo;tournament&rsquo;.
 </p></dd></dl>
 <span id="Generic_002dFunction-fitness_002dextra_002ddata"></span><dl>
 <dt id="index-fitness_002dextra_002ddata">Generic Function: <strong>fitness-extra-data</strong> <em>software</em></dt>
@@ -950,6 +950,61 @@ a &lsquo;clang-w-fodder&rsquo; software <code>obj</code> from <code>string</code
 <dt id="index-from_002dstring-2">Method: <strong>from-string</strong> <em>(obj source) string</em></dt>
 <dd><p>Initialize <code>obj</code> with the contents of <code>string</code>.
 </p></dd></dl>
+<span id="Class-mutation"></span><dl>
+<dt id="index-mutation">Class: <strong>mutation</strong></dt>
+<dd><p>Class precedence list: <code>mutation, oid-object, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>object</code> &mdash; initarg: <code>:object<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:object</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software-evolution-library:object)</span><!-- /@w --></code>
+
+<p>The software object to be mutated.
+</p></li><li> <code>targets</code> &mdash; initarg: <code>:targets<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:get-targets</span><!-- /@w --></code>
+
+<p>A calculated target set.
+</p></li></ul>
+
+<p>The base class of all software mutations.
+</p></dd></dl>
+<span id="Macro-compose_002dmutations"></span><dl>
+<dt id="index-compose_002dmutations">Macro: <strong>compose-mutations</strong> <em>class-name mutations &amp;rest options</em></dt>
+<dd><p>Define a new mutation named <code>class-name</code> composing <code>mutations</code>.
+<code>mutations</code> is a list of the names of mutation classes.
+</p></dd></dl>
+<span id="Function-classify"></span><dl>
+<dt id="index-classify">Function: <strong>classify</strong> <em>new &amp;rest old</em></dt>
+<dd><p>Classify the fitness of <code>new</code> as <code>:better</code>, <code>:worse</code>, <code>:same</code>, or <code>:dead</code> when
+compared to <code>old</code>.  <code>new</code> and <code>old</code> must have fitness populated.
+</p></dd></dl>
+<span id="Function-default_002dselect_002dbest"></span><dl>
+<dt id="index-default_002dselect_002dbest">Function: <strong>default-select-best</strong> <em>group &amp;key predicate</em></dt>
+<dd><p>Return the members of <code>group</code> with most <code>predicate</code> fitness.
+Default selection function for &lsquo;tournament&rsquo;.
+</p></dd></dl>
+<span id="Function-fitness_002dequal_002dp"></span><dl>
+<dt id="index-fitness_002dequal_002dp">Function: <strong>fitness-equal-p</strong> <em>fitness-a fitness-b</em></dt>
+<dd><p>Return true if <code>fitness-a</code> and <code>fitness-b</code> are equal
+</p></dd></dl>
+<span id="Function-generational_002devolve"></span><dl>
+<dt id="index-generational_002devolve">Function: <strong>generational-evolve</strong> <em>reproduce evaluate-pop select &amp;key every-pre-fn every-post-fn analyze-mutation-fn test period period-fn max-generations max-evals max-time filter</em></dt>
+<dd><p>Evolves &lsquo;*population*&rsquo; using <code>reproduce</code> <code>evaluate-pop</code> and <code>select</code>.
+</p>
+<p>Required arguments are as follows:
+  <code>reproduce</code> <code>-----------</code> create new individuals from the current population
+  <code>evaluate-pop</code> <code>--------</code> evaluate-pop the entire population
+  <code>select</code> <code>--------------</code> select best individuals from the population
+Keyword arguments are as follows:
+  <code>max-generations</code> <code>-----</code> stop after this many generations
+  <code>max-evals</code> <code>-----------</code> stop after this many fitness evaluations
+  <code>max-time</code> <code>------------</code> stop after this many seconds
+  <code>period</code> <code>--------------</code> interval of generations evaluations to run <code>period-fn</code>
+  <code>period-fn</code> <code>-----------</code> function to run every <code>period</code> generations
+  <code>every-pre-fn</code> <code>--------</code> function to run on each new individual before evaluation
+  <code>every-post-fn</code> <code>-------</code> function to run on each new individual after evaluation
+  <code>analyze-mutation-fn</code> <code>-</code> function to call to analyze mutation results
+  <code>test</code> <code>----------------</code> fitness test function for mutation statistics
+  <code>filter</code> <code>--------------</code> remove individuals for which <code>filter</code> returns false
+</p></dd></dl>
 <span id="Generic_002dFunction-genome"></span><dl>
 <dt id="index-genome">Generic Function: <strong>genome</strong> <em>software</em></dt>
 <dd><p>The software genotype or &ldquo;code&rdquo;, exposed as a simplified data structure.
@@ -1016,38 +1071,6 @@ instead of Newlines.
 <dd><p>Handle errors in &lsquo;phenome&rsquo; execution by returning nil as the
 first value from the &lsquo;phenome&rsquo; method.
 </p></dd></dl>
-<span id="Function-crossed"></span><dl>
-<dt id="index-crossed">Function: <strong>crossed</strong> <em>&amp;optional a b</em></dt>
-<dd><p>Generate a new individual from <code>*population*</code> using crossover.
-</p></dd></dl>
-<span id="Function-fitness_002dbetter_002dp"></span><dl>
-<dt id="index-fitness_002dbetter_002dp">Function: <strong>fitness-better-p</strong> <em>fitness-a fitness-b</em></dt>
-<dd><p>Check if <code>fitness-a</code> is strictly better than <code>fitness-b</code>.
-</p></dd></dl>
-<span id="Function-fitness_002dequal_002dp"></span><dl>
-<dt id="index-fitness_002dequal_002dp">Function: <strong>fitness-equal-p</strong> <em>fitness-a fitness-b</em></dt>
-<dd><p>Return true if <code>fitness-a</code> and <code>fitness-b</code> are equal
-</p></dd></dl>
-<span id="Function-generational_002devolve"></span><dl>
-<dt id="index-generational_002devolve">Function: <strong>generational-evolve</strong> <em>reproduce evaluate-pop select &amp;key every-pre-fn every-post-fn analyze-mutation-fn test period period-fn max-generations max-evals max-time filter</em></dt>
-<dd><p>Evolves &lsquo;*population*&rsquo; using <code>reproduce</code> <code>evaluate-pop</code> and <code>select</code>.
-</p>
-<p>Required arguments are as follows:
-  <code>reproduce</code> <code>-----------</code> create new individuals from the current population
-  <code>evaluate-pop</code> <code>--------</code> evaluate-pop the entire population
-  <code>select</code> <code>--------------</code> select best individuals from the population
-Keyword arguments are as follows:
-  <code>max-generations</code> <code>-----</code> stop after this many generations
-  <code>max-evals</code> <code>-----------</code> stop after this many fitness evaluations
-  <code>max-time</code> <code>------------</code> stop after this many seconds
-  <code>period</code> <code>--------------</code> interval of generations evaluations to run <code>period-fn</code>
-  <code>period-fn</code> <code>-----------</code> function to run every <code>period</code> generations
-  <code>every-pre-fn</code> <code>--------</code> function to run on each new individual before evaluation
-  <code>every-post-fn</code> <code>-------</code> function to run on each new individual after evaluation
-  <code>analyze-mutation-fn</code> <code>-</code> function to call to analyze mutation results
-  <code>test</code> <code>----------------</code> fitness test function for mutation statistics
-  <code>filter</code> <code>--------------</code> remove individuals for which <code>filter</code> returns false
-</p></dd></dl>
 <span id="Function-incorporate"></span><dl>
 <dt id="index-incorporate">Function: <strong>incorporate</strong> <em>software</em></dt>
 <dd><p>Incorporate <code>software</code> into <code>population</code>, keeping <code>population</code> size constant.
@@ -1083,13 +1106,6 @@ Keyword arguments are as follows:
 <span id="Method-lines-_0028_0028obj-source_0029_0029"></span><dl>
 <dt id="index-lines-6">Method: <strong>lines</strong> <em>(obj source)</em></dt>
 <dd><p>Return a list of lines of source in <code>obj</code>
-</p></dd></dl>
-<span id="Condition-located_002dmutate"></span><dl>
-<dt id="index-located_002dmutate">Condition: <strong>located-mutate</strong></dt>
-<dd><p>Class precedence list: <code>located-mutate, mutate, error, serious-condition, condition, t</code>
-</p>
-<p>Version of <code>mutate</code> condition that also reports the original
-file location, if any.
 </p></dd></dl>
 <span id="Generic_002dFunction-mcmc_002dstep"></span><dl>
 <dt id="index-mcmc_002dstep">Generic Function: <strong>mcmc-step</strong> <em>software</em></dt>
@@ -1167,34 +1183,6 @@ a &rsquo;no-mutation-targets exception if none are available.
 </li><li> <code>stmt-pool</code> method on <code>obj</code> returning a list of ASTs
 </li></ul>
 </dd></dl>
-<span id="Condition-no_002dmutation_002dtargets"></span><dl>
-<dt id="index-no_002dmutation_002dtargets">Condition: <strong>no-mutation-targets</strong></dt>
-<dd><p>Class precedence list: <code>no-mutation-targets, mutate, error, serious-condition, condition, t</code>
-</p>
-<p>This is a particularly benign form of mutation error.
-A common restart is &lsquo;ignore-failed-mutation&rsquo;.
-</p></dd></dl>
-<span id="Variable-_002atie_002dbreaker_002dpredicate_002a"></span><dl>
-<dt id="index-_002atie_002dbreaker_002dpredicate_002a">Variable: <strong>*tie-breaker-predicate*</strong></dt>
-<dd><p>Function to compare two tie breaker values to select which is preferred.
-</p></dd></dl>
-<span id="Generic_002dFunction-at_002dtargets"></span><dl>
-<dt id="index-at_002dtargets">Generic Function: <strong>at-targets</strong> <em>mutation targets &amp;key object &amp;allow-other-keys</em></dt>
-<dd><p>Return a copy of <code>mutation</code> with &lsquo;targets&rsquo; set to <code>targets</code>.
-</p></dd></dl>
-<span id="Macro-mcmc"></span><dl>
-<dt id="index-mcmc">Macro: <strong>mcmc</strong> <em>original test &amp;key accept-fn max-evals max-time period period-fn every-pre-fn every-post-fn filter analyze-mutation-fn</em></dt>
-<dd><p><code>mcmc</code> search from <code>original</code> using &lsquo;mcmc-step&rsquo; and <code>test</code>.
-If keyword argument <code>accept-fn</code> is given it is used to determine when a
-newly found candidate replaces the current candidate.  If <code>accept-fn</code> is
-not supplied <code>mcmc</code> defaults to using Metropolis Hastings.
-</p>
-<p>Other keyword arguments are used as defined in the &lsquo;-search&rsquo; function.
-</p></dd></dl>
-<span id="Function-mutant"></span><dl>
-<dt id="index-mutant">Function: <strong>mutant</strong> <em>&amp;optional new</em></dt>
-<dd><p>Generate a new mutant from a <code>*population*</code>.
-</p></dd></dl>
 <span id="Function-new_002dindividual"></span><dl>
 <dt id="index-new_002dindividual">Function: <strong>new-individual</strong> <em>&amp;optional a b</em></dt>
 <dd><p>Generate a new individual from <code>*population*</code>.
@@ -1329,58 +1317,16 @@ on the filesystem at <code>bin</code>.
 </p>
 <p><code>docfixme</code>
 </p></dd></dl>
-<span id="Macro-define_002dsoftware"></span><dl>
-<dt id="index-define_002dsoftware">Macro: <strong>define-software</strong> <em>name direct-superclasses direct-slots &amp;rest options</em></dt>
-<dd><p>Define a new &lsquo;software&rsquo; class <code>name</code> including a deep &lsquo;copy&rsquo; method.
-Arguments <code>name</code> <code>direct-superclasses</code> and <code>options</code> are passed through to
-&lsquo;defclass&rsquo; unmodified.  Additional optional <code>:copier</code> property on each
-slot in <code>direct-slots</code> may be one of the following:
+<span id="Macro-evolve"></span><dl>
+<dt id="index-evolve">Macro: <strong>evolve</strong> <em>test &amp;key max-evals max-time period period-fn every-pre-fn every-post-fn filter analyze-mutation-fn super-mutant-count</em></dt>
+<dd><p>Evolves &lsquo;*population*&rsquo; using &lsquo;new-individual&rsquo; and <code>test</code>.
 </p>
 <ul>
-<li> <code>:none</code> this slot is not copied and will be nil in the new object
-</li><li> <code>:direct</code> this slot is copied by direct reference to the slot value
-          skipping the accessor
-</li><li> otherwise if the value of <code>:copier</code> is nil (default) then the slot is
-            copied through its accessor, otherwise the value is
-            assumed to be a function (e.g., &lsquo;copy-tree&rsquo;) which is used
-            to copy the slot.
+<li> <code>super-mutant-count</code> evaluate this number of mutants at once in a
+  combined genome.
+
 </li></ul>
-</dd></dl>
-<span id="Generic_002dFunction-mutate"></span><dl>
-<dt id="index-mutate">Generic Function: <strong>mutate</strong> <em>software</em></dt>
-<dd><p>Mutate the software.  May throw a &lsquo;mutate&rsquo; error.
-</p></dd></dl>
-<span id="Method-mutate-_0028_0028llvm-llvm_0029_0029"></span><dl>
-<dt id="index-mutate-1">Method: <strong>mutate</strong> <em>(llvm llvm)</em></dt>
-<dd><p><code>docfixme</code>
-</p></dd></dl>
-<span id="Method-mutate-_0028_0028elf-elf_0029_0029"></span><dl>
-<dt id="index-mutate-2">Method: <strong>mutate</strong> <em>(elf elf)</em></dt>
-<dd><p>Randomly mutate <code>elf</code>.
-</p></dd></dl>
-<span id="Method-mutate-_0028_0028clang-clang_0029_0029"></span><dl>
-<dt id="index-mutate-3">Method: <strong>mutate</strong> <em>(clang clang)</em></dt>
-<dd><p>Select a random mutation and mutate <code>clang</code>.
-</p></dd></dl>
-<span id="Method-mutate-_0028_0028obj-project_0029_0029"></span><dl>
-<dt id="index-mutate-4">Method: <strong>mutate</strong> <em>(obj project)</em></dt>
-<dd><p>Randomly pick one file to mutate.
-</p></dd></dl>
-<span id="Method-mutate-_0028_0028obj-parseable_0029_0029"></span><dl>
-<dt id="index-mutate-5">Method: <strong>mutate</strong> <em>(obj parseable)</em></dt>
-<dd><p>Select a random mutation and mutate <code>obj</code>.
-</p></dd></dl>
-<span id="Method-mutate-_0028_0028obj-source_0029_0029"></span><dl>
-<dt id="index-mutate-6">Method: <strong>mutate</strong> <em>(obj source)</em></dt>
-<dd><p>Apply a mutation to <code>obj</code>
-</p></dd></dl>
-<span id="Condition-mutate"></span><dl>
-<dt id="index-mutate-7">Condition: <strong>mutate</strong></dt>
-<dd><p>Class precedence list: <code>mutate, error, serious-condition, condition, t</code>
-</p>
-<p>Mutation errors are thrown when a mutation fails.
-These may often be safely ignored.  A common restart is
-&lsquo;ignore-failed-mutation&rsquo;.
+<p>Other keyword arguments are used as defined in the &lsquo;-search&rsquo; function.
 </p></dd></dl>
 <span id="Generic_002dFunction-phenome_002dp"></span><dl>
 <dt id="index-phenome_002dp">Generic Function: <strong>phenome-p</strong> <em>software</em></dt>
@@ -1476,6 +1422,33 @@ by &lsquo;good-pool&rsquo;, excluding those ASTs removed by <code>filter</code>.
 </li><li> <code>good-pool</code> function returning a pool of &rsquo;good&rsquo; ASTs in <code>software</code>
 </li></ul>
 </dd></dl>
+<span id="Generic_002dFunction-pick_002dbad_002donly"></span><dl>
+<dt id="index-pick_002dbad_002donly">Generic Function: <strong>pick-bad-only</strong> <em>software &amp;key filter bad-pool &amp;allow-other-keys</em></dt>
+<dd><p>Pick a single &rsquo;bad&rsquo; index into a software object.
+Used to target mutation.
+</p></dd></dl>
+<span id="Method-pick_002dbad_002donly-_0028_0028clang-clang_0029-_0026key-filter-_0028bad_002dpool-_0023_0027bad_002dstmts_0029_0029"></span><dl>
+<dt id="index-pick_002dbad_002donly-1">Method: <strong>pick-bad-only</strong> <em>(clang clang) &amp;key filter (bad-pool (function bad-stmts))</em></dt>
+<dd><p>Pick a single AST from <code>clang</code> from &lsquo;bad-pool&rsquo;,
+excluding those ASTs removed by <code>filter</code>.
+</p><ul>
+<li> <code>clang</code> object to perform picks for
+</li><li> <code>filter</code> function taking two AST parameters and returning non-nil if the
+</li></ul>
+<p>second should be included as a possible pick
+* <code>bad-pool</code> function returning a pool of &rsquo;bad&rsquo; ASTs in <code>software</code>
+</p></dd></dl>
+<span id="Method-pick_002dbad_002donly-_0028_0028software-parseable_0029-_0026key-filter-_0028bad_002dpool-_0023_0027bad_002dasts_0029_0029"></span><dl>
+<dt id="index-pick_002dbad_002donly-2">Method: <strong>pick-bad-only</strong> <em>(software parseable) &amp;key filter (bad-pool (function bad-asts))</em></dt>
+<dd><p>Pick a single AST from <code>software</code> from &lsquo;bad-pool&rsquo;,
+excluding those ASTs removed by <code>filter</code>.
+</p><ul>
+<li> <code>software</code> object to perform picks for
+</li><li> <code>filter</code> function taking two AST parameters and returning non-nil if the
+</li></ul>
+<p>second should be included as a possible pick
+* <code>bad-pool</code> function returning a pool of &rsquo;bad&rsquo; ASTs in <code>software</code>
+</p></dd></dl>
 <span id="Generic_002dFunction-pick_002dgood"></span><dl>
 <dt id="index-pick_002dgood">Generic Function: <strong>pick-good</strong> <em>software</em></dt>
 <dd><p>Pick a &rsquo;good&rsquo; index into a software object.
@@ -1499,34 +1472,6 @@ If none exist, raise a &lsquo;no-mutation-targets&rsquo; error.
 <dt id="index-pick_002dgood-4">Method: <strong>pick-good</strong> <em>(obj parseable)</em></dt>
 <dd><p>Pick a &rsquo;good&rsquo; index into a software object.
 Used to target mutation.
-</p></dd></dl>
-<span id="Generic_002dFunction-pick_002dmutation_002dtype"></span><dl>
-<dt id="index-pick_002dmutation_002dtype">Generic Function: <strong>pick-mutation-type</strong> <em>software</em></dt>
-<dd><p>Select a type of mutation to apply to <code>software</code>.
-</p></dd></dl>
-<span id="Method-pick_002dmutation_002dtype-_0028_0028obj-coq_0029_0029"></span><dl>
-<dt id="index-pick_002dmutation_002dtype-1">Method: <strong>pick-mutation-type</strong> <em>(obj coq)</em></dt>
-<dd><p>Randomly select a mutation that may be performed on <code>obj</code>.
-</p></dd></dl>
-<span id="Method-pick_002dmutation_002dtype-_0028_0028obj-expression_0029_0029"></span><dl>
-<dt id="index-pick_002dmutation_002dtype-2">Method: <strong>pick-mutation-type</strong> <em>(obj expression)</em></dt>
-<dd><p><code>docfixme</code>
-</p></dd></dl>
-<span id="Method-pick_002dmutation_002dtype-_0028_0028asm-asm_0029_0029"></span><dl>
-<dt id="index-pick_002dmutation_002dtype-3">Method: <strong>pick-mutation-type</strong> <em>(asm asm)</em></dt>
-<dd><p>Return a symbol naming a randomly selected ASM mutation.
-</p></dd></dl>
-<span id="Method-pick_002dmutation_002dtype-_0028_0028obj-clang_002dw_002dfodder_0029_0029"></span><dl>
-<dt id="index-pick_002dmutation_002dtype-4">Method: <strong>pick-mutation-type</strong> <em>(obj clang-w-fodder)</em></dt>
-<dd><p>Select type of mutation to apply to <code>obj</code>.
-</p></dd></dl>
-<span id="Method-pick_002dmutation_002dtype-_0028_0028obj-clang_0029_0029"></span><dl>
-<dt id="index-pick_002dmutation_002dtype-5">Method: <strong>pick-mutation-type</strong> <em>(obj clang)</em></dt>
-<dd><p>Select type of mutation to apply to <code>obj</code>.
-</p></dd></dl>
-<span id="Method-pick_002dmutation_002dtype-_0028_0028obj-parseable_0029_0029"></span><dl>
-<dt id="index-pick_002dmutation_002dtype-6">Method: <strong>pick-mutation-type</strong> <em>(obj parseable)</em></dt>
-<dd><p>Select type of mutation to apply to <code>obj</code>.
 </p></dd></dl>
 <span id="Generic_002dFunction-picker"></span><dl>
 <dt id="index-picker">Generic Function: <strong>picker</strong> <em>x</em></dt>
@@ -1798,42 +1743,42 @@ Used to target mutation.
 </p>
 <p>Base class for all software objects.
 </p></dd></dl>
-<span id="Variable-_002acrossover_002dstats_002a"></span><dl>
-<dt id="index-_002acrossover_002dstats_002a">Variable: <strong>*crossover-stats*</strong></dt>
-<dd><p>Variable to hold crossover statistics.
+<span id="Macro-mcmc"></span><dl>
+<dt id="index-mcmc">Macro: <strong>mcmc</strong> <em>original test &amp;key accept-fn max-evals max-time period period-fn every-pre-fn every-post-fn filter analyze-mutation-fn</em></dt>
+<dd><p><code>mcmc</code> search from <code>original</code> using &lsquo;mcmc-step&rsquo; and <code>test</code>.
+If keyword argument <code>accept-fn</code> is given it is used to determine when a
+newly found candidate replaces the current candidate.  If <code>accept-fn</code> is
+not supplied <code>mcmc</code> defaults to using Metropolis Hastings.
+</p>
+<p>Other keyword arguments are used as defined in the &lsquo;-search&rsquo; function.
 </p></dd></dl>
-<span id="Variable-_002amcmc_002dfodder_002a"></span><dl>
-<dt id="index-_002amcmc_002dfodder_002a">Variable: <strong>*mcmc-fodder*</strong></dt>
-<dd><p>Holds the genome elements which may be used by &lsquo;mcmc-step&rsquo;.
-Should be initialized to a list of the unique possible genome
-elements.
+<span id="Generic_002dFunction-mutate"></span><dl>
+<dt id="index-mutate">Generic Function: <strong>mutate</strong> <em>software</em></dt>
+<dd><p>Mutate the software.  May throw a &lsquo;mutate&rsquo; error.
 </p></dd></dl>
-<span id="Generic_002dFunction-pick_002dbad_002donly"></span><dl>
-<dt id="index-pick_002dbad_002donly">Generic Function: <strong>pick-bad-only</strong> <em>software &amp;key filter bad-pool &amp;allow-other-keys</em></dt>
-<dd><p>Pick a single &rsquo;bad&rsquo; index into a software object.
-Used to target mutation.
+<span id="Method-mutate-_0028_0028llvm-llvm_0029_0029"></span><dl>
+<dt id="index-mutate-1">Method: <strong>mutate</strong> <em>(llvm llvm)</em></dt>
+<dd><p><code>docfixme</code>
 </p></dd></dl>
-<span id="Method-pick_002dbad_002donly-_0028_0028clang-clang_0029-_0026key-filter-_0028bad_002dpool-_0023_0027bad_002dstmts_0029_0029"></span><dl>
-<dt id="index-pick_002dbad_002donly-1">Method: <strong>pick-bad-only</strong> <em>(clang clang) &amp;key filter (bad-pool (function bad-stmts))</em></dt>
-<dd><p>Pick a single AST from <code>clang</code> from &lsquo;bad-pool&rsquo;,
-excluding those ASTs removed by <code>filter</code>.
-</p><ul>
-<li> <code>clang</code> object to perform picks for
-</li><li> <code>filter</code> function taking two AST parameters and returning non-nil if the
-</li></ul>
-<p>second should be included as a possible pick
-* <code>bad-pool</code> function returning a pool of &rsquo;bad&rsquo; ASTs in <code>software</code>
+<span id="Method-mutate-_0028_0028elf-elf_0029_0029"></span><dl>
+<dt id="index-mutate-2">Method: <strong>mutate</strong> <em>(elf elf)</em></dt>
+<dd><p>Randomly mutate <code>elf</code>.
 </p></dd></dl>
-<span id="Method-pick_002dbad_002donly-_0028_0028software-parseable_0029-_0026key-filter-_0028bad_002dpool-_0023_0027bad_002dasts_0029_0029"></span><dl>
-<dt id="index-pick_002dbad_002donly-2">Method: <strong>pick-bad-only</strong> <em>(software parseable) &amp;key filter (bad-pool (function bad-asts))</em></dt>
-<dd><p>Pick a single AST from <code>software</code> from &lsquo;bad-pool&rsquo;,
-excluding those ASTs removed by <code>filter</code>.
-</p><ul>
-<li> <code>software</code> object to perform picks for
-</li><li> <code>filter</code> function taking two AST parameters and returning non-nil if the
-</li></ul>
-<p>second should be included as a possible pick
-* <code>bad-pool</code> function returning a pool of &rsquo;bad&rsquo; ASTs in <code>software</code>
+<span id="Method-mutate-_0028_0028clang-clang_0029_0029"></span><dl>
+<dt id="index-mutate-3">Method: <strong>mutate</strong> <em>(clang clang)</em></dt>
+<dd><p>Select a random mutation and mutate <code>clang</code>.
+</p></dd></dl>
+<span id="Method-mutate-_0028_0028obj-project_0029_0029"></span><dl>
+<dt id="index-mutate-4">Method: <strong>mutate</strong> <em>(obj project)</em></dt>
+<dd><p>Randomly pick one file to mutate.
+</p></dd></dl>
+<span id="Method-mutate-_0028_0028obj-parseable_0029_0029"></span><dl>
+<dt id="index-mutate-5">Method: <strong>mutate</strong> <em>(obj parseable)</em></dt>
+<dd><p>Select a random mutation and mutate <code>obj</code>.
+</p></dd></dl>
+<span id="Method-mutate-_0028_0028obj-source_0029_0029"></span><dl>
+<dt id="index-mutate-6">Method: <strong>mutate</strong> <em>(obj source)</em></dt>
+<dd><p>Apply a mutation to <code>obj</code>
 </p></dd></dl>
 <span id="Macro-sequence_002dmutations"></span><dl>
 <dt id="index-sequence_002dmutations">Macro: <strong>sequence-mutations</strong> <em>class-name mut-a mut-b &amp;rest options</em></dt>
@@ -1841,6 +1786,50 @@ excluding those ASTs removed by <code>filter</code>.
 <code>mut-a</code> and <code>mut-b</code> are instances of mutations.  Instead of collecting
 targets for A and then targets for <code>b</code> and then applying A and <code>b</code> as done
 by &lsquo;compose-mutations&rsquo;, &lsquo;sequence-mutations&rsquo; first targets and applies A and then targets and applied <code>b</code>.
+</p></dd></dl>
+<span id="Function-crossed"></span><dl>
+<dt id="index-crossed">Function: <strong>crossed</strong> <em>&amp;optional a b</em></dt>
+<dd><p>Generate a new individual from <code>*population*</code> using crossover.
+</p></dd></dl>
+<span id="Function-default_002drandom_002dwinner"></span><dl>
+<dt id="index-default_002drandom_002dwinner">Function: <strong>default-random-winner</strong> <em>group &amp;key predicate</em></dt>
+<dd><p>Choose a random winner from <code>group</code>.
+</p></dd></dl>
+<span id="Function-fitness_002dbetter_002dp"></span><dl>
+<dt id="index-fitness_002dbetter_002dp">Function: <strong>fitness-better-p</strong> <em>fitness-a fitness-b</em></dt>
+<dd><p>Check if <code>fitness-a</code> is strictly better than <code>fitness-b</code>.
+</p></dd></dl>
+<span id="Function-mutant"></span><dl>
+<dt id="index-mutant">Function: <strong>mutant</strong> <em>&amp;optional new</em></dt>
+<dd><p>Generate a new mutant from a <code>*population*</code>.
+</p></dd></dl>
+<span id="Generic_002dFunction-pick_002dmutation_002dtype"></span><dl>
+<dt id="index-pick_002dmutation_002dtype">Generic Function: <strong>pick-mutation-type</strong> <em>software</em></dt>
+<dd><p>Select a type of mutation to apply to <code>software</code>.
+</p></dd></dl>
+<span id="Method-pick_002dmutation_002dtype-_0028_0028obj-coq_0029_0029"></span><dl>
+<dt id="index-pick_002dmutation_002dtype-1">Method: <strong>pick-mutation-type</strong> <em>(obj coq)</em></dt>
+<dd><p>Randomly select a mutation that may be performed on <code>obj</code>.
+</p></dd></dl>
+<span id="Method-pick_002dmutation_002dtype-_0028_0028obj-expression_0029_0029"></span><dl>
+<dt id="index-pick_002dmutation_002dtype-2">Method: <strong>pick-mutation-type</strong> <em>(obj expression)</em></dt>
+<dd><p><code>docfixme</code>
+</p></dd></dl>
+<span id="Method-pick_002dmutation_002dtype-_0028_0028asm-asm_0029_0029"></span><dl>
+<dt id="index-pick_002dmutation_002dtype-3">Method: <strong>pick-mutation-type</strong> <em>(asm asm)</em></dt>
+<dd><p>Return a symbol naming a randomly selected ASM mutation.
+</p></dd></dl>
+<span id="Method-pick_002dmutation_002dtype-_0028_0028obj-clang_002dw_002dfodder_0029_0029"></span><dl>
+<dt id="index-pick_002dmutation_002dtype-4">Method: <strong>pick-mutation-type</strong> <em>(obj clang-w-fodder)</em></dt>
+<dd><p>Select type of mutation to apply to <code>obj</code>.
+</p></dd></dl>
+<span id="Method-pick_002dmutation_002dtype-_0028_0028obj-clang_0029_0029"></span><dl>
+<dt id="index-pick_002dmutation_002dtype-5">Method: <strong>pick-mutation-type</strong> <em>(obj clang)</em></dt>
+<dd><p>Select type of mutation to apply to <code>obj</code>.
+</p></dd></dl>
+<span id="Method-pick_002dmutation_002dtype-_0028_0028obj-parseable_0029_0029"></span><dl>
+<dt id="index-pick_002dmutation_002dtype-6">Method: <strong>pick-mutation-type</strong> <em>(obj parseable)</em></dt>
+<dd><p>Select type of mutation to apply to <code>obj</code>.
 </p></dd></dl>
 <span id="Function-simple_002devaluate"></span><dl>
 <dt id="index-simple_002devaluate">Function: <strong>simple-evaluate</strong> <em>test new-children</em></dt>

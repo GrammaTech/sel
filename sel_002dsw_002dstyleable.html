@@ -408,11 +408,11 @@ otherwise. Only searches ASTs whose &lsquo;ast-class&rsquo; is in
 <li> <code>feature-name</code> &mdash; initarg: <code><span class="nolinebreak">:feature-name</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/styleable:feature-name</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/styleable:feature-name)</span><!-- /@w --></code>
 
 <p>Name of style feature.
-</p></li><li> <code>extractor-fn</code> &mdash; initarg: <code><span class="nolinebreak">:extractor-fn</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/styleable:extractor-fn</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/styleable:extractor-fn)</span><!-- /@w --></code>
+</p></li><li> <code>extractor-fn</code> &mdash; initarg: <code><span class="nolinebreak">:extractor-fn</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/styleable:extractor-fn</span><!-- /@w --></code>
 
 <p>Feature extractor function, takes a software object
 and returns a feature vector and metadata necessary to merge feature vectors.
-</p></li><li> <code>merge-fn</code> &mdash; initarg: <code><span class="nolinebreak">:merge-fn</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/styleable:merge-fn</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/styleable:merge-fn)</span><!-- /@w --></code>
+</p></li><li> <code>merge-fn</code> &mdash; initarg: <code><span class="nolinebreak">:merge-fn</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/styleable:merge-fn</span><!-- /@w --></code>
 
 <p>Function to merge two feature vectors. Takes as input a
 two feature vectors and their metadata (as returned by the extractor) and
