@@ -30,28 +30,22 @@
 (in-package :software-evolution-library/software/diff)
 (in-readtable :curry-compose-reader-macros)
 
-(defclass diff (simple)
+(define-software diff (simple)
   ;; This doesn't use `define-software' because it requires special
   ;; genome handling when copying.
-  ((reference :initarg :reference :accessor reference :initform nil)
-   (diffs     :initarg :diffs     :accessor diffs     :initform nil)
+  ((reference :initarg :reference :accessor reference :initform nil
+              :copier :direct)
+   (diffs     :initarg :diffs     :accessor diffs     :initform nil
+              :copier :direct)
    ;; save type since all seqs converted to lists internally for diffing
-   (diff-type :initarg :diff-type :accessor diff-type :initform nil))
+   (diff-type :initarg :diff-type :accessor diff-type :initform nil
+              :copier :direct))
   (:documentation
    "Alternative to SIMPLE software objects which should use less memory.
 Instead of directly holding code in the GENOME, each GENOME is a list
 of range references to an external REFERENCE code array.
 
 Similar to the range approach, but striving for a simpler interface."))
-
-(defmethod copy ((diff diff) &key)
-  "DOCFIXME"
-  (let ((copy (make-instance (type-of diff))))
-    (setf (fitness copy)   (fitness diff))
-    (setf (reference copy) (reference diff))
-    (setf (diffs copy)     (diffs diff))
-    (setf (diff-type copy) (diff-type diff))
-    copy))
 
 (defmethod original ((diff diff))
   "DOCFIXME"

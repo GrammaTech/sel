@@ -31,10 +31,10 @@
 (in-readtable :curry-compose-reader-macros)
 
 (define-software project (software)
-    ((build-command :initarg :build-command :accessor build-command
+    ((build-command :initarg :build-command :reader build-command
                     :initform nil
                     :documentation "Shell command to build the project.")
-     (artifacts :initarg :artifacts :accessor artifacts :initform nil
+     (artifacts :initarg :artifacts :reader artifacts :initform nil
                 :documentation
                 "Artifacts (e.g., executables) of the project build.")
      (evolve-files :initarg :evolve-files :accessor evolve-files
@@ -110,9 +110,7 @@ object (e.g., the original program).")
 (defun ignored-path-p (path &key ignore-paths only-paths
                        &aux (canonical-path (canonical-pathname path)))
   (flet ((included (files)
-           (find-if {pathname-match-p canonical-path} files
-                    ;; Wildcard paths must also be canonical to match for CCL.
-                    :key #'canonical-pathname)))
+           (find-if {pathname-match-p canonical-path} files)))
     (or (and only-paths (not (included only-paths)))
         (included ignore-paths))))
 

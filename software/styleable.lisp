@@ -125,12 +125,12 @@ E.g., an IfStmt may or may not include an else clause.")
     :type symbol
     :documentation "Name of style feature.")
    (extractor-fn
-    :initarg :extractor-fn :initform nil :accessor extractor-fn
+    :initarg :extractor-fn :initform nil :reader extractor-fn
     :type function
     :documentation "Feature extractor function, takes a software object
 and returns a feature vector and metadata necessary to merge feature vectors.")
    (merge-fn
-    :initarg :merge-fn :initform nil :accessor merge-fn
+    :initarg :merge-fn :initform nil :reader merge-fn
     :type function
     :documentation "Function to merge two feature vectors. Takes as input a
 two feature vectors and their metadata (as returned by the extractor) and

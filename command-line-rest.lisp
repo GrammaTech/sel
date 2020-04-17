@@ -23,12 +23,11 @@
 (in-package :software-evolution-library/command-line-rest)
 (in-readtable :curry-compose-reader-macros)
 
-(defvar *port* 5000 "Port on which to run the clack server.")
-(defvar *address* "127.0.0.1" "Address on which to bind the clack server.")
-
 (eval-when (:compile-toplevel :load-toplevel :execute)
+  (defvar *port* 5000 "Port on which to run the clack server.")
+  (defvar *address* "127.0.0.1" "Address on which to bind the clack server.")
   (defparameter +clackup-command-line-options+
-    `((("port") :type integer :optional t :initial-value *port*
+    `((("port") :type integer :optional t :initial-value ,*port*
        :documentation "Port to use when starting the clack server.")
       (("address") :type string :optional t :initial-value "127.0.0.1"
        :documentation "Address to which the clack server with bind, ~

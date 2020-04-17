@@ -108,10 +108,6 @@
 (in-package :software-evolution-library/components/serapi-io)
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (unless (find-readtable :serapi-readtable)
-    ;; Ensure the two packages which compose the fare-quasiquote-extras
-    ;; package are loaded before we use the fare-quasiquote readtable.
-    (require :fare-quasiquote-readtable)
-    (require :fare-quasiquote-optima)
     (defun read-preserving-case (stream char n)
       (declare (ignorable char) (ignorable n))
       (let ((*readtable* (copy-readtable nil)))

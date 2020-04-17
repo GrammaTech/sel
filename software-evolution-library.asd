@@ -12,7 +12,9 @@ techniques."
   :depends-on (software-evolution-library/software-evolution-library)
   :class :package-inferred-system
   :defsystem-depends-on (:asdf-package-system)
-  :in-order-to ((test-op (test-op "software-evolution-library/test"))))
+  :in-order-to ((test-op (load-op "software-evolution-library/test")))
+  :perform
+  (test-op (o c) (symbol-call :software-evolution-library/test '#:run-batch)))
 
 (register-system-packages
  "software-evolution-library/software-evolution-library"
@@ -26,17 +28,11 @@ techniques."
   :description "Test the SOFTWARE-EVOLUTION-LIBRARY package."
   :version "0.0.0"
   ;; This is the reason for this whole defsystem.
-  :depends-on (fare-quasiquote-extras))
+  :depends-on (fare-quasiquote-extras)
+  :components ((:file "components/serapi-io")))
 
 
 ;;;; Tests and binaries.
-(defsystem "software-evolution-library/test"
-  :author "Eric Schulte and GrammaTech"
-  :licence "GPL V3"
-  :description "Test the SOFTWARE-EVOLUTION-LIBRARY package."
-  :version "0.0.0"
-  :perform
-  (test-op (o c) (symbol-call :software-evolution-library/test '#:run-batch)))
 
 (defsystem "software-evolution-library/run-rest-server"
   :author "Eric Schulte and GrammaTech"

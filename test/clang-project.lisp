@@ -74,7 +74,11 @@
   (is (not (sel/sw/project::ignored-path-p
             "src/foo" :ignore-paths '("etc/*"))))
   (is (not (sel/sw/project::ignored-path-p
-            "./src/foo" :ignore-paths '("etc/*")))))
+            "./src/foo" :ignore-paths '("etc/*"))))
+  (is (sel/sw/project::ignored-path-p
+       #p"dist/x.min.map" :ignore-paths '("*.min.map")))
+  (is (sel/sw/project::ignored-path-p
+       #p"dist/x.min.js" :ignore-paths '("*.min.js"))))
 
 (deftest only-paths-are-only ()
   (is (not (sel/sw/project::ignored-path-p

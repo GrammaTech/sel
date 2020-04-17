@@ -150,13 +150,6 @@ trigger_ssr:
   only:
     - master
 
-trigger_variegate:
-  stage: dependents
-  script:
-    - "curl -X POST -F token=759ed12ac12d057eee4118b3fe6214 -F ref=$CI_BUILD_REF_NAME https://git.grammatech.com/api/v4/projects/928/trigger/pipeline"
-  only:
-    - master
-
 pages:
   stage: deploy
   script:

@@ -24,6 +24,11 @@
 ;;; software objects mentioned in the following subsections of this
 ;;; section.
 ;;;
+;;; @menu
+;;; * Clang Super-Mutants:: Clang software object super-mutants
+;;; * ASM Super-Mutants:: Assembly software object super-mutants
+;;; @end menu
+;;;
 ;;; @node Clang Super-Mutants, ASM Super-Mutants, Super-Mutants, Super-Mutants
 ;;; @subsection Clang Super-Mutants
 ;;; @cindex clang-super-mutants

@@ -962,7 +962,8 @@ documents these utilities.
 @section Basic Utilities
 
 Note.  The SEL utilities have largely been moved to a new GT library
-available at @url{https://github.com/grammatech/cl-utils}.
+available at @url{https://github.com/grammatech/cl-utils}.  This library
+is now also available in quicklisp, and need not be installed separately.
 
 @node View, Task, Basic Utilities, Utilities
 @section View
@@ -980,7 +981,6 @@ available at @url{https://github.com/grammatech/cl-utils}.
 @menu
 * Installation:: Installing SEL and its dependencies
 * Examples:: A series of examples demonstrating some SEL applications.
-
 @end menu
 
 
@@ -988,14 +988,20 @@ available at @url{https://github.com/grammatech/cl-utils}.
 @node Installation, Examples, Usage, Usage
 @section Installation
 
-The following instructions assume you are on a Linux machine, for
-installation on Windows see @ref{Windows Installation}.
+TLDR; If you already have a Common Lisp development environment setup
+the Software Evolution Library (SEL) can be installed from QuickLisp
+by running @code{(ql:quickload :software-evolution-library)}, however
+some components and software types have additional dependencies.
 
-The Software Evolution Library (SEL) requires one of the following
-supported lisp distributions.  (Relatively recent versions of these
-implementations are required because of the use of new features of
-ASDF/UIOP.)
+Note: The following instructions assume you are on a Linux machine,
+for installation on Windows see @ref{Windows Installation}.
 
+SEL requires one of the following supported lisp distributions.
+(Relatively recent versions of these implementations are required
+because of the use of new features of ASDF/UIOP.)
+
+@float Table,tab:lisp-implementations
+@caption{Supported Common Lisp Implementations.}
 @multitable {} {} {}
 
 @headitem  Implementation @tab Minimum Version @tab URL
@@ -1006,53 +1012,36 @@ ASDF/UIOP.)
 
 @end multitable
 
+@end float
+
 The source code for SEL is available at
-@url{https://github.com/GrammaTech/sel}.  The following Common Lisp
-packages are required by this library, all of which are installable
-through Quicklisp (see @url{http://www.quicklisp.org/}).
-@itemize
-@item alexandria
-@item metabang-bind
-@item curry-compose-reader-macros
-@item split-sequence
-@item cl-ppcre
-@end itemize
+@url{https://github.com/GrammaTech/sel}.  SEL and its Common Lisp
+dependencies are installable through Quicklisp (see
+@url{http://www.quicklisp.org/}).  Some components of SEL (related to
+software execution tracing) also require the @code{trace-db} package
+(available from @url{https://github.com/GrammaTech/trace-db}) which is
+not installable through QuickLisp.  If needed, it should be downloaded
+into your Quicklisp @code{local-projects/} folder.  Depending on the
+type of software object used the following may also be required:
 
-The following additional Common Lisp packages are required by this
-library but are not (yet) installable through Quicklisp.  These should
-be downloaded into your Quicklisp @code{local-projects/} folder.
+@float Table,tab:dependencies
+@caption{Additional dependencies for specific software objects.}
+@multitable {} {} {}
 
-@itemize
-@item trace-db (available from @url{https://github.com/GrammaTech/trace-db})
-@item command-line-arguments (available from @url{https://github.com/eschulte/command-line-arguments})
-@end itemize
+@headitem  Software type @tab Dependency @tab URL
 
-Depending on the type of software object used the following may also
-be required.
-@itemize
-@item
-clang v9.0+ for @code{clang} object support  (available from
-@url{https://github.com/llvm/llvm-project}).
-@item
-cil-mutate for @code{cil} object support (available from
-@url{https://github.com/eschulte/cil-mutate}).
-@item
-llvm-mutate for @code{llvm} object support (available from
-@url{https://github.com/eschulte/llvm-mutate}).
-@end itemize
+@item C/C++ @tab clang v10.0+ @tab @url{https://github.com/llvm/llvm-project}
 
+@item JavaScript @tab acorn @tab @url{https://github.com/acornjs/acorn.git}
 
+@item Coq @tab SerAPI @tab @url{https://github.com/ejgallego/coq-serapi}
 
-Install llvm-mutate, cil-mutate and clang v9.0+ as per the
-instructions in their respective repositories. (Note, it is only
-necessary to install the tools for the specific software backends you
-intend to use.) Install SEL by cloning the repository into your
-quicklisp local-projects directory and then running:
-@example
-    (ql:register-local-projects)
-    (ql:quickload :software-evolution-library)
-@end example
+@end multitable
+@end float
 
+@menu
+* Windows Installation:: Installing SEL on Windows
+@end menu
 
 @node Windows Installation, Examples, Installation, Installation
 @subsection Windows Installation

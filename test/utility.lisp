@@ -7,8 +7,10 @@
    #+gt :testbot
    :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
+   :software-evolution-library/utility/json
    :software-evolution-library/utility/range
    :software-evolution-library)
+  (:import-from :jsown :parse)
   (:export :test-utility))
 (in-package :software-evolution-library/test/utility)
 (in-readtable :curry-compose-reader-macros)
@@ -27,3 +29,19 @@
                                                 :column 0)
                          :end    (make-instance 'source-location :line 3
                                                 :column 0))))))
+
+(deftest json-base-strings ()
+  (let ((ct (convert-jsown-tree (jsown:parse "{ \"x\" : \"y\"}"))))
+    (is (equal ct '((:x . "y"))))
+    (is (typep (cdar ct) 'simple-base-string)))
+  #+(or sbcl ccl)
+  (let* ((c (string #\CENT_SIGN))
+         (ct (convert-jsown-tree (jsown:parse
+                                  (concatenate 'string
+                                               "{ \"x\" : \""
+                                               c
+                                               "\"}")))))
+    (is (equal ct `((:x . ,c))))))
+
+
+

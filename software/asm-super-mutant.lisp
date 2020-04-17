@@ -1,6 +1,6 @@
 ;;; asm-super-mutant.lisp --- SUPER-MUTANT for single assembly functions
 ;;;
-;;; @subsection ASM-SUPER-MUTANT Overview
+;;; @subsubsection ASM-SUPER-MUTANT Overview
 ;;;
 ;;; ASM-SUPER-MUTANT software objects are designed to provide the
 ;;; benefits of SUPER-MUTANT to assembly programs.  Its primary
@@ -28,7 +28,7 @@
 ;;; of MUTANTS, each one being an instance of the ASM-HEAP software
 ;;; object.  Each MUTANT is a variant of the target function.
 ;;;
-;;; @subsection Fitness Evaluation
+;;; @subsubsection Fitness Evaluation
 ;;;
 ;;; To perform fitness evaluation, the ASM-SUPERMUTANT performs the
 ;;; following steps:
@@ -76,7 +76,7 @@
 ;;;   arrays). This is cached on the ASM-SUPER-MUTANT instance, and
 ;;;   can be obtained with the FITNESS method.
 ;;;
-;;; @subsection Tool Dependencies
+;;; @subsubsection Tool Dependencies
 ;;;
 ;;; The ASM-SUPER-MUTANT currently depends upon:
 ;;; * Nasm to assemble the generated fitness program
@@ -94,7 +94,7 @@
 ;;; and to replace Nasm with a more efficient assembler.
 ;;;
 ;;; @anchor{i-o-file-format}
-;;; @subsection I/O File Format
+;;; @subsubsection I/O File Format
 ;;;
 ;;; The file is ASCII.  In internal tests it s generated using the IBM
 ;;; PIN tool to observe the execution of a binary program on a test
@@ -152,7 +152,7 @@
 ;;; are live (indicated with "v") while 0x7fbbc1fcf768 is not
 ;;; (indicated with ".").
 ;;;
-;;; @subsection Components
+;;; @subsubsection Components
 ;;;
 ;;; ASM-SUPER-MUTANT software object consists of:
 ;;;
@@ -181,7 +181,7 @@
 ;;; * PHENOME-RESULTS caches the results obtained from calling the PHENOME
 ;;;   method.
 ;;;
-;;; @subsection Current Limitations
+;;; @subsubsection Current Limitations
 ;;;
 ;;; * Functions which use floating point data as input or outputs will
 ;;;   not evaluate correctly. The fitness file that is generated does
@@ -197,7 +197,7 @@
 ;;;   further fitness tests, or cause the whole fitness program to crash,
 ;;;   resulting in all variants to come back as +worst-c-fitness+.
 ;;;
-;;; @subsection Installing PAPI on Ubuntu
+;;; @subsubsection Installing PAPI on Ubuntu
 ;;; Fitness evaluation requires the PAPI component and the Linux Perf
 ;;; functionality. Building the fitness evaluation program (on the fly
 ;;; during fitness evaluation) requires a C program to compile and link
@@ -294,19 +294,19 @@
 (define-software asm-super-mutant (asm-heap super-mutant)
   ((input-spec
     :initarg :input-spec
-    :accessor input-spec
+    :reader input-spec
     :initform (make-array 0 :fill-pointer 0 :adjustable t)
     :documentation
     "Vector of INPUT-SPECIFICATION structs, one for each test case.")
    (output-spec
     :initarg :output-spec
-    :accessor output-spec
+    :reader output-spec
     :initform (make-array 0 :fill-pointer 0 :adjustable t)
     :documentation
     "Vector of INPUT-SPECIFICATION structs, one for each test case.")
    (untraced-call-spec
     :initarg :untraced-call-spec
-    :accessor untraced-call-spec
+    :reader untraced-call-spec
     :initform (make-array 0 :fill-pointer 0 :adjustable t)
     :documentation
     "Vector of UNTRACED-CALL-SPECIFICATION structs, one for each test case.")
@@ -345,12 +345,12 @@
     "Cache the lines of the target code, as they are used often.")
    (assembler
     :initarg :assembler
-    :accessor assembler
+    :reader assembler
     :initform "nasm"
     :documentation "Assembler to use for assembling.")
    (io-dir
     :initarg :io-dir
-    :accessor io-dir
+    :reader io-dir
     :initform nil
     :documentation "Directory containing I/O files, named for the functions.")
    (io-file
@@ -1926,6 +1926,7 @@ jump_table:
 ;;; genome is equalp to the target asm-super-mutant
 ;;;
 (defun generate-file (asm-super output-path number-of-variants)
+  (declare (special *asm-super*))
   (setf *asm-super* asm-super)
   (let ((asm-variants (make-instance 'asm-heap :super-owner asm-super)))
     (if (input-spec asm-super)
@@ -2051,8 +2052,7 @@ jump_table:
            (flines nil)
            (updates nil)
            (num-potential-inlines 0)
-           (num-actual-inlines 0)
-           (count 0))
+           (num-actual-inlines 0))
       (setf (lines temp) lines)
       (setf func-index (function-index temp))
       (iter (for fie in-vector func-index) ; for each function

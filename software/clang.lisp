@@ -288,7 +288,7 @@ See also: https://clang.llvm.org/docs/FAQ.html#id2.")
     :type #+sbcl '(list string *) #-sbcl list
     :documentation "Names of headers included.")
    (types
-    :initarg :types :accessor types
+    :initarg :types :reader types
     :initform (make-hash-table)
     :copier copy-hash-table
     :type #+sbcl hash-table #-sbcl hash-table
@@ -324,13 +324,13 @@ See also: https://clang.llvm.org/docs/FAQ.html#id2.")
     :type #+sbcl '(list (cons keyword *) *) #-sbcl list
     :documentation "Function prototypes.")
    (symbol-table
-    :initarg :symbol-table :accessor symbol-table
+    :initarg :symbol-table :reader symbol-table
     :initform (make-hash-table :test #'equal)
     :copier copy-hash-table
     :type hash-table
     :documentation "Map from IDs to objects")
    (name-symbol-table
-    :initarg :name-symbol-table :accessor name-symbol-table
+    :initarg :name-symbol-table :reader name-symbol-table
     :initform (make-hash-table :test #'equal)
     :copier copy-hash-table
     :type hash-table

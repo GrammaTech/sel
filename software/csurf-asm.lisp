@@ -47,7 +47,7 @@
     :initarg :redirect-file :accessor redirect-file :initform nil
     :documentation "CodeSurfer redirect file to redirect elf copy relocations.")
    (linker-script
-    :initarg :linker-script :accessor linker-script :initform nil
+    :initarg :linker-script :reader linker-script :initform nil
     :documentation "CodeSurfer linker script to pin section locations.")
    (weak-symbols
     :initarg :weak-symbols :accessor weak-symbols :initform nil

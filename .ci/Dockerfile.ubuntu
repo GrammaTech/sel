@@ -14,7 +14,7 @@ FROM docker.grammatech.com/synthesis/clang/ubuntu as clang
 FROM ubuntu:16.04
 
 RUN apt-get -y update && \
-    apt-get -y install g++ gcc gcc-multilib graphviz libffi-dev man-db maven opam openjdk-8-jdk pandoc pkg-config texinfo unzip expect wget curl libboost-all-dev
+    apt-get -y install g++ gcc gcc-multilib graphviz libffi-dev man-db maven opam openjdk-8-jdk pandoc pkg-config texinfo unzip expect wget curl libboost-all-dev time
 
 COPY --from=coq-serapi /root/.opam /root/.opam
 COPY --from=clang /usr/synth/ /usr/synth/
