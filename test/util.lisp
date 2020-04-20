@@ -14,6 +14,7 @@
            :+asm-test-dir+
            :+java-dir+
            :+maven-prj-dir+
+           :+multiple-artifact-dir+
            ;; Other functions
            :acorn-available-p
            :stmt-with-text
@@ -90,6 +91,12 @@
 (define-constant +asm-test-dir+ (append +etc-dir+ (list "asm-test"))
   :test #'equalp
   :documentation "Path to asm-test examples.")
+
+(define-constant +multiple-artifact-dir+
+    (append +etc-dir+ (list "multiple-artifacts"))
+  :test #'equalp
+  :documentation
+  "Path to directory holding a project which produces multiple artifacts.")
 
 (defun asm-test-dir (filename)
   (make-pathname :name (pathname-name filename)

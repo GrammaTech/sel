@@ -32,6 +32,18 @@
                                      ("s2" . ,*s2*)))))
   (:teardown (setf *project* nil)))
 
+(defixture multiple-artifacts-project
+  (:setup
+   (setf *project*
+         (from-file
+          (make-instance 'clang-project
+            :build-command "make"
+            :artifacts (list "run_shared"
+                             "shared.so.link"
+                             "nested-dir/helper"))
+          (make-pathname :directory +multiple-artifact-dir+))))
+  (:teardown (setf *project* nil)))
+
 (defmethod test-method ((obj simple) value)
   value)
 
@@ -111,6 +123,23 @@
                   (make-pathname :name "test"
                                  :type "sh"
                                  :directory (append dir (list "support")))))))))
+
+(deftest (project-copy-maintains-relative-paths :long-running) ()
+  (with-fixture multiple-artifacts-project
+    (with-temporary-file (:pathname dir-path)
+      ;; Check if project still runs once it is built and copied over.
+      ;; If it runs, symbolic links are followed and nested directories
+      ;; are maintained.
+      (is (zerop (nth-value 1 (ignore-phenome-errors
+                               (phenome *project* :bin dir-path))))
+          "multiple-artifacts did not build correctly")
+      (let ((bin (merge-pathnames-as-file
+                  (ensure-directory-pathname dir-path)
+                  "./run_shared")))
+        (is (zerop (nth-value 2 (shell "cd ~a && ~a"
+                                       (namestring dir-path)
+                                       (namestring bin))))
+            "copied multiple-artifacts failed to run")))))
 
 (deftest (clang-project-test :long-running) ()
   (with-fixture grep-project
