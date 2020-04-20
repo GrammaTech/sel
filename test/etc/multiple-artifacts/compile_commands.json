@@ -1,0 +1,33 @@
+[
+    {
+        "arguments": [
+            "cc",
+            "-c",
+            "-o",
+            "nested-dir/helper",
+            "nested-dir/helper.c"
+        ],
+        "directory": "/home/nberch/quicklisp/local-projects/sel/test/etc/multiple-artifacts",
+        "file": "nested-dir/helper.c"
+    },
+    {
+        "arguments": [
+            "cc",
+            "-c",
+            "-o",
+            "run_shared",
+            "run_shared.c"
+        ],
+        "directory": "/home/nberch/quicklisp/local-projects/sel/test/etc/multiple-artifacts",
+        "file": "run_shared.c"
+    },
+    {
+        "arguments": [
+            "cc",
+            "-c",
+            "shared.c"
+        ],
+        "directory": "/home/nberch/quicklisp/local-projects/sel/test/etc/multiple-artifacts",
+        "file": "shared.c"
+    }
+]
