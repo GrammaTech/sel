@@ -6,11 +6,10 @@
    :software-evolution-library/stefil-plus
    #+gt :testbot
    :software-evolution-library
+   :software-evolution-library/software/parseable
    :software-evolution-library/software/lisp)
   (:import-from :asdf
                 :system-relative-pathname)
-  (:import-from :software-evolution-library/software/parseable
-                :source-text)
   (:import-from :software-evolution-library/software/lisp
                 :*string*)
   (:import-from :cl-interpol)
@@ -248,3 +247,8 @@ t")))))
                   featurex))))
     (is (equal '(:or :x :z :y)
                (transform-feature-expression '(:or :x :y) fn)))))
+
+(deftest can-parse-a-lisp-software-object ()
+  (let ((obj (from-string (make-instance 'lisp)
+                          "(- (+ 1 2) 5)")))
+    (is (= 16 (size (ast-root obj))))))

@@ -20,7 +20,7 @@
                           :read
                           :read-from-string
                           :read-preserving-whitespace)
-  (:export :lisp :lisp-ast :lisp-ast-p
+  (:export :lisp :lisp-ast
            :expression :expression-result
            :reader-conditional
            :feature-expression
@@ -41,8 +41,7 @@
 (defvar *string* nil)
 
 (defclass lisp-ast (ast)
-  ((expression :initarg :expression :initform nil :reader expression
-               :type list)
+  ((expression :initarg :expression :initform nil :reader expression)
    (children :reader children
              :type list
              :initarg :children
@@ -126,9 +125,8 @@ which may be more nodes, or other values.")
 (defclass reader-token (skipped-input-result)
   ())
 
-(defmethod source-text ((obj reader-token) &optional stream)
-  (with-slots (string-pointer) obj
-    (write-string string-pointer stream)))
+(defmethod source-text ((obj reader-token))
+  (string-pointer obj))
 
 (defmethod print-object ((obj reader-token) stream)
   (if *print-readably*
@@ -299,7 +297,7 @@ READER-CONDITIONAL is returned unchanged."))
     readtable))
 
 (defmethod make-expression-result
-    ((client client) (result expression-result) children source)
+    ((client client) (result expression-result) (children t) (source t))
   result)
 
 (defmethod make-expression-result
@@ -327,6 +325,7 @@ READER-CONDITIONAL is returned unchanged."))
 
 (defmethod interpret-symbol
     ((client client) input-stream package-indicator symbol-name internp)
+  (declare (ignorable input-stream))
   (let ((package (case package-indicator
                    (:current *package*)
                    (:keyword (find-package "KEYWORD"))
@@ -359,6 +358,7 @@ READER-CONDITIONAL is returned unchanged."))
 ;;; variables defined.
 (defgeneric wrap-in-sharpsign-dot (client material)
   (:method (client material)
+    (declare (ignorable client))
     (list '|#.| material)))
 
 (defmethod evaluate-expression ((client client) expression)
@@ -447,20 +447,17 @@ READER-CONDITIONAL is returned unchanged."))
   (make-instance 'lisp-ast :children (read-forms+ string)))
 
 (defmethod from-string ((lisp lisp) string)
-  (setf (genome lisp) (convert 'lisp-ast string))
+  (setf (ast-root lisp) (convert 'lisp-ast string))
   lisp)
 
 (defmethod from-file ((lisp lisp) file)
   (from-string lisp (file-to-string file)))
 
-(defmethod update-paths ((node node) &optional path)
-  (declare (ignorable path))
-  node)
-
-(defmethod source-text ((obj result) &optional stream)
-  (if (children obj)
-      (mapc [{write-string _ stream} #'source-text] (children obj))
-      (write-string (subseq (string-pointer obj) (start obj) (end obj)) stream)))
+(defmethod source-text ((obj result))
+  (with-output-to-string (out)
+    (if (children obj)
+        (mapc [{write-string _ out} #'source-text] (children obj))
+        (write-string (subseq (string-pointer obj) (start obj) (end obj)) out))))
 
 (defmethod convert ((to-type (eql 'expression-result)) (symbol symbol)
                     &key &allow-other-keys)
