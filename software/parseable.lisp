@@ -24,7 +24,6 @@
            :ast-hash
            :ast-clear-hash
            :ast-later-p
-           :ast-stub
            :conflict-ast
            :conflict-ast-child-alist
            :conflict-ast-default-children
@@ -116,17 +115,6 @@ See the documentation of `update-asts' for required invariants.")
                 :documentation "A cached hash." :type (or null hash-type)))
   (:documentation "Base class for SEL ASTs.
 An applicative tree structure is used to hold the ASTs."))
-
-(defclass ast-stub (ast)
-  ((children :reader children
-             :type list
-             :initarg :children
-             :initform nil
-             :documentation "The list of children of the node,
-which may be more nodes, or other values.")
-   (child-slots :initform '(children) :allocation :class))
-  (:documentation "Minimal concrete subclass of AST useful a placeholder
-where an AST is expected."))
 
 (defclass conflict-ast (ast)
   ((child-alist :initarg :child-alist :initform nil
