@@ -150,7 +150,6 @@ PRINT-OBJECT method on AST structures.")
                     (concatenate 'string (subseq truncated 0 position) "...")
                     truncated))))))
 
-
 (defmethod print-object ((obj conflict-ast) stream)
   (if *print-readably*
       (call-next-method)

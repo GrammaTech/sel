@@ -240,7 +240,8 @@ FN should return three values - a new sign, a new test, and a new
 expression - which are used to build a new reader conditional.
 
 If the sign, the test, and the expression are unchanged,
-READER-CONDITIONAL is returned unchanged."))
+READER-CONDITIONAL is returned unchanged and a second value of t is
+returned."))
 
 (defmethod transform-reader-conditional ((result reader-conditional) fn)
   (mvlet* ((children (children result))
@@ -257,32 +258,32 @@ READER-CONDITIONAL is returned unchanged."))
            (new-sign new-test new-ex
                      (funcall fn sign (expression test) ex))
            (*string* nil))
-          (assert (typep new-test '(or symbol list)))
-          (if (and (eql new-sign sign)
-                   (equal new-test test)
-                   (eql ex new-ex))
-              ;; Nothing has changed.
-              result
-              (make 'reader-conditional
-                    :start (start result)
-                    :end (end result)
-                    :feature-expression new-test
-                    :expression ex
-                    :children
-                    (mapcar (lambda (child)
-                              (typecase child
-                                (reader-token
-                                 (ecase new-sign
-                                   (#\+ (make 'sharpsign-plus))
-                                   (#\- (make 'sharpsign-minus))))
-                                (expression-result
-                                 (econd ((eql child test)
-                                         (if (equal new-test (expression test))
-                                             test
-                                             (convert 'lisp-ast new-test :keyword-prefix "")))
-                                        ((eql child ex) new-ex)))
-                                (t child)))
-                            children)))))
+    (assert (typep new-test '(or symbol list)))
+    (if (and (eql new-sign sign)
+             (equal new-test test)
+             (eql ex new-ex))
+        ;; Nothing has changed.
+        (values result t)
+        (make 'reader-conditional
+              :start (start result)
+              :end (end result)
+              :feature-expression new-test
+              :expression ex
+              :children
+              (mapcar (lambda (child)
+                        (typecase child
+                          (reader-token
+                           (ecase new-sign
+                             (#\+ (make 'sharpsign-plus))
+                             (#\- (make 'sharpsign-minus))))
+                          (expression-result
+                           (econd ((eql child test)
+                                   (if (equal new-test (expression test))
+                                       test
+                                       (convert 'lisp-ast new-test :keyword-prefix "")))
+                                  ((eql child ex) new-ex)))
+                          (t child)))
+                      children)))))
 
 (defmethod reader-conditional-sign ((ex reader-conditional))
   (let ((token (find-if (of-type 'reader-token) (children ex))))
@@ -489,14 +490,13 @@ FN is called with three arguments: the sign of the reader conditional
 \(+ or -), the feature expression \(as a list), and the guarded
 expression."
   (fbind (fn)
-         (traverse-nodes ast
-                         (lambda (node)
-                           (when (typep node 'reader-conditional)
-                             (fn (reader-conditional-sign node)
-                                 (feature-expression node)
-                                 (expression node)))
-                           :keep-going))
-         (values)))
+    (mapc (lambda (node)
+            (when (typep node 'reader-conditional)
+              (fn (reader-conditional-sign node)
+                (feature-expression node)
+                (expression node))))
+          ast)
+    (values)))
 
 (defun featurex-empty? (featurex)
   (or (null featurex)
@@ -519,8 +519,8 @@ REMOVE-EMPTY and REMOVE-NOT-EMPTY have the same meaning as for
                                   :remove-newly-empty remove-newly-empty)))
 
 (defun map-reader-conditionals (fn ast
-                                &key remove-empty
-                                  (remove-newly-empty remove-empty))
+                                 &key remove-empty
+                                 (remove-newly-empty remove-empty))
   "Build a new ast by calling FN, an function, on each reader
 conditional in AST (as if by `transform-reader-conditional') and
 substituting the old reader conditional with the new one.
@@ -534,40 +534,33 @@ If :REMOVE-NEWLY-EMPTY is true, reader conditionals are removed if the
 new feature expression is empty, but reader conditionals that were
 already empty are retained."
   (assert (if remove-empty remove-newly-empty t))
-  ;; TOD can changes be batched with `encapsulate'?
   (nest
    (fbind (fn))
-   (let* ((to-remove '())
-          (ast
-           (map-tree
-            (lambda (node)
-              (if (typep node 'reader-conditional)
-                  (block replace
-                    (flet ((mark-for-remove (sign node)
-                             (return-from replace
-                               (ecase sign
-                                 (#\+
-                                  (push node to-remove)
-                                  node)
-                                 (#\-
-                                  (expression node))))))
-                      (transform-reader-conditional
-                       node
-                       (lambda (sign featurex ex)
-                         (if (and (featurex-empty? featurex) remove-empty)
-                             (mark-for-remove sign node)
-                             (receive (sign featurex ex)
-                                      (fn sign featurex ex)
-                                      (if (and (featurex-empty? featurex)
-                                               remove-newly-empty)
-                                          (mark-for-remove sign node)
-                                          (values sign featurex ex))))))))
-                  node))
-            ast))))
-   (reduce (lambda (ast node)
-             (remove node ast :test #'node-equalp))
-           to-remove
-           :initial-value ast)))
+   (mapcar
+    (lambda (node)
+      (if (typep node 'reader-conditional)
+          (block replace
+            (flet ((remove (sign node)
+                     (return-from replace
+                       (values t (ecase sign
+                                   (#\+ nil)
+                                   (#\- (expression node)))))))
+              (multiple-value-bind (new unchangedp)
+                  (transform-reader-conditional
+                   node
+                   (lambda (sign featurex ex)
+                     (if (and (featurex-empty? featurex) remove-empty)
+                         (remove sign node)
+                         (receive (sign featurex ex)
+                             (fn sign featurex ex)
+                           (if (and (featurex-empty? featurex)
+                                    remove-newly-empty)
+                               (remove sign node)
+                               (values sign featurex ex))))))
+                (values (not unchangedp) new))))
+          ;; Nil return meaning don't modify this node.
+          nil))
+    ast)))
 
 (defun transform-feature-expression (feature-expression fn)
   "Call FN, a function, on each feature in FEATURE-EXPRESSION.
