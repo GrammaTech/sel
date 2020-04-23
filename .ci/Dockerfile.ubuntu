@@ -50,6 +50,7 @@ ARG GT
 ARG LISP
 # Use /root/quicklisp/local-projects.
 RUN cp -R /usr/synth/quicklisp /root/quicklisp
+RUN git clone --branch sequences-handle-named-children https://git.grammatech.com/synthesis/functional-trees /root/quicklisp/local-projects/functional-trees
 COPY . /root/quicklisp/local-projects/sel
 WORKDIR /root/quicklisp/local-projects/sel
 RUN export __TEMP_LD_LIBRARY_PATH=$(if [ -z "$LD_LIBRARY_PATH" ]; then echo "" ;else echo ":$LD_LIBRARY_PATH";fi)
