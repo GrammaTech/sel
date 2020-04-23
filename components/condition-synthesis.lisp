@@ -168,7 +168,7 @@ a add-condition MUTATION to SOFTWARE."
 (defmethod valid-targets ((mutation add-condition) software)
  "Return a list of the locations in SOFTWARE where `add-condition' MUTATION can be applied."
   (remove-if «or {aget :in-macro-expansion}
-                 [#'not {full-stmt-p software}]»
+                 [#'not #'ast-full-stmt]»
 		 (bad-stmts software)))
 
 
@@ -422,7 +422,7 @@ for the guard statement(s) in the repair targets.
          ;; the overhead is not significant.
          (inst-locs (remove-if-not
                      (lambda (ast)
-                       (and (full-stmt-p software ast)
+                       (and (ast-full-stmt ast)
                             (some (lambda (loc) (ancestor-of software loc ast))
                                   repair-locs)))
                      (asts software))))

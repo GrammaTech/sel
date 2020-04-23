@@ -84,7 +84,6 @@
            :scopes-between
            :begins-scope
            :nesting-depth
-           :full-stmt-p
            :block-p
            :enclosing-full-stmt
            :enclosing-block
@@ -1336,8 +1335,8 @@ MUTATION to SOFTWARE.
   (let* ((targets (targets mutation))
          (s1 (aget :stmt1 targets))
          (s2 (aget :stmt2 targets))
-         (s1-full? (full-stmt-p software s1))
-         (s2-full? (full-stmt-p software s2))
+         (s1-full? (ast-full-stmt s1))
+         (s2-full? (ast-full-stmt s2))
          (s1-semi? (has-trailing-semicolon-p s1))
          (s2-semi? (has-trailing-semicolon-p s2)))
     `((:set (:stmt1 . ,s1)
@@ -2538,15 +2537,6 @@ it will transform this into:
   ;; First parent AST is self, skip over that.
   (find-if {block-p clang} (cdr (get-parent-asts clang ast))))
 
-(defgeneric full-stmt-p (software statement)
-  (:documentation "Check if STATEMENT is a full statement in SOFTWARE."))
-
-(defmethod full-stmt-p ((obj clang) (stmt clang-ast))
-  "Check if STMT is a full statement in clang software OBJ.
-This may depend on context."
-  (declare (ignorable obj))
-  (ast-full-stmt stmt))
-
 (defgeneric guard-stmt-p (software statement)
   (:documentation "Check if STATEMENT is a guard statement in SOFTWARE."))
 
@@ -2611,8 +2601,7 @@ This may depend on context."
 "
   (let* ((full-stmt (enclosing-full-stmt clang ast))
          (the-block (enclosing-block clang full-stmt))
-         (the-stmts (remove-if-not «or {block-p clang}
-                                       {full-stmt-p clang}»
+         (the-stmts (remove-if-not «or {block-p clang} #'ast-full-stmt»
                                    (get-immediate-children clang the-block))))
     (get-entry-after full-stmt the-stmts)))
 
@@ -2623,8 +2612,7 @@ This may depend on context."
 "
   (let* ((full-stmt (enclosing-full-stmt clang ast))
          (the-block (enclosing-block clang full-stmt))
-         (the-stmts (remove-if-not «or {block-p clang}
-                                       {full-stmt-p clang}»
+         (the-stmts (remove-if-not «or {block-p clang} #'ast-full-stmt»
                                    (get-immediate-children clang the-block))))
     (get-entry-before full-stmt the-stmts)))
 

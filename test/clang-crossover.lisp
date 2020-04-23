@@ -72,10 +72,8 @@
                       (is (<= (1+ (first (stmt-range obj function)))
                               stmt2
                               (second (stmt-range obj function))))
-                      (is (full-stmt-p obj
-                                       (ast-at-index obj stmt1)))
-                      (is (full-stmt-p obj
-                                       (ast-at-index obj stmt2)))))))))
+                      (is (ast-full-stmt (ast-at-index obj stmt1)))
+                      (is (ast-full-stmt (ast-at-index obj stmt2)))))))))
 
 (deftest select-intraprocedural-pair-with-adjustments-collatz-test ()
   (with-fixture collatz-clang

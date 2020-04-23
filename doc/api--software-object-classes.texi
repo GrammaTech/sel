@@ -421,7 +421,6 @@ Class @code{clang}
   @item @refapimethod{format-genome,format-genome}
   @item @refapimethod{from-file,from-file}
   @item @refapimethod{function-containing-ast,function-containing-ast}
-  @item @refapimethod{full-stmt-p,full-stmt-p}
   @item @refapimethod{get-ast-types,get-ast-types}
   @item @refapimethod{get-entry,get-entry}
   @item @refapimethod{get-parent-full-stmt,get-parent-full-stmt}

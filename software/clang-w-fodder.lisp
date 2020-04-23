@@ -69,7 +69,7 @@ With keyword argument :decl select a declaration."))
 "
   (let* ((snippet (first (find-snippets *database*
                                         :full-stmt
-                                        (or full (and pt (full-stmt-p obj pt)))
+                                        (or full (and pt (ast-full-stmt pt)))
                                         :ast-class (if class class nil)
                                         :decls (if decl :only nil)
                                         :limit 1))))
