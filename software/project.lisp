@@ -365,6 +365,7 @@ making a directory."
                                      (ensure-directory-pathname build-dir)
                                      artifact))
                         target-dir)
+               (declare (ignore stdout))
                (when (not (zerop exit))
                  (error (make-condition 'phenome :text stderr
                                         :project project
@@ -377,6 +378,7 @@ making a directory."
                                (ensure-directory-pathname build-dir)
                                (car artifacts)))
                   bin)
+         (declare (ignore stdout))
          (when (not (zerop exit))
            (error (make-condition 'phenome :text stderr
                                   :project project
