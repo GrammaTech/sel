@@ -58,7 +58,6 @@
            :get-vars-in-scope
            :update-asts
            :update-caches
-           :update-paths
            :parse-asts
            :clear-caches
            :update-asts-if-necessary
@@ -588,9 +587,6 @@ has not been set."))
   (:documentation "Update cached fields in SOFTWARE if these fields have
 not been set."))
 
-(defgeneric update-paths (tree)
-  (:documentation "Return TREE with all ASTs populated with PATHs."))
-
 (defgeneric bad-asts (software)
   (:documentation "Return a list of all bad asts in SOFTWARE."))
 
@@ -659,7 +655,7 @@ made traceable by wrapping with curly braces, return that."))
   (declare (ignorable initargs))
   (with-slots (ast-root genome) obj
     (when ast-root
-      (setf ast-root (update-paths ast-root)
+      (setf ast-root (populate-fingers ast-root)
             genome nil))))
 
 (defmethod copy :before ((obj parseable) &key)
@@ -706,7 +702,7 @@ the NEW ast-root."
   "Ensure the AST paths in NEW are correct after modifying the
 applicative AST tree and clear the genome string."
   (setf (slot-value obj 'ast-root)
-        (update-paths new)
+        (populate-fingers new)
         (slot-value obj 'genome)
         nil))
 
@@ -723,10 +719,6 @@ if the original file is known.")
                     (format t "Failure in update-asts: original-path = ~a~%"
                             ofile))))))
     (call-next-method)))
-
-(defmethod update-paths (tree)
-  "Return TREE with all fingers populated with PATHs."
-  (populate-fingers tree))
 
 (defmethod ast-root :before ((obj parseable))
   "Ensure the `ast-root' field is set on OBJ prior to access."

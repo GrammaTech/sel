@@ -6289,9 +6289,9 @@ ASTs in the existing SYMBOL-TABLE and AST-ROOT tree."
 
 ;; FIXME: When clang is converted to utilize functional trees,
 ;; this method should no longer be required.
-(defmethod update-paths ((ast clang-ast))
+(defmethod populate-fingers ((ast clang-ast))
   "Modify AST in place with all paths updated to begin at the root AST."
-  (labels ((update-paths-helper (ast &optional path)
+  (labels ((populate-fingers-helper (ast &optional path)
              (if (typep ast 'clang-ast)
                  ;; clang AST, recurse into children
                  (setf (slot-value ast 'path) (reverse path)
@@ -6299,13 +6299,13 @@ ASTs in the existing SYMBOL-TABLE and AST-ROOT tree."
                        (iter (for c in (ast-children ast))
                              (for i upfrom 0)
                              (collect (if (ast-p c)
-                                          (update-paths-helper c (cons i path))
+                                          (populate-fingers-helper c (cons i path))
                                           c))))
                  ;; conflict AST or AST stub w/o children
                  (setf (slot-value ast 'finger)
                        (make-instance 'finger :node ast :path (reverse path))))
              ast))
-    (update-paths-helper ast)))
+    (populate-fingers-helper ast)))
 
 (defmethod update-asts ((obj clang))
   (let ((*canonical-string-table* (make-hash-table :test 'equal))
@@ -6353,7 +6353,7 @@ ASTs in the existing SYMBOL-TABLE and AST-ROOT tree."
           (compute-syn-ctxs ast)
           (fix-semicolons ast)
           (populate-type-fields-from-symbol-table obj types)
-          (update-paths ast)
+          (populate-fingers ast)
 
           (setf ast-root ast
                 genome nil
