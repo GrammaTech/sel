@@ -51,8 +51,6 @@ appendix holds each individual package's API in turn.
 * sel-sw-elf-risc::             Software-Evolution-Library/Software elf-risc.
 * sel-sw-expression::           Software-Evolution-Library/Software expression.
 * sel-sw-forth::                Software-Evolution-Library/Software forth.
-* sel-sw-java::                 Software-Evolution-Library/Software java.
-* sel-sw-java-project::         Software-Evolution-Library/Software java-project.
 * sel-sw-javascript::           Software-Evolution-Library/Software javascript.
 * sel-sw-javascript-project::   Software-Evolution-Library/Software javascript-project.
 * sel-sw-lisp::                 Software-Evolution-Library/Software lisp.
@@ -76,7 +74,6 @@ appendix holds each individual package's API in turn.
 * sel-cp-formatting::           Software-Evolution-Library/Component formatting.
 * sel-cp-in-memory-fodder-database:: Software-Evolution-Library/Component in-memory-fodder-database.
 * sel-cp-instrument::           Software-Evolution-Library/Component instrument.
-* sel-cp-java-instrument::      Software-Evolution-Library/Component java-instrument.
 * sel-cp-javascript-instrument:: Software-Evolution-Library/Component javascript-instrument.
 * sel-cp-json-fodder-database:: Software-Evolution-Library/Component json-fodder-database.
 * sel-cp-lexicase::             Software-Evolution-Library/Component lexicase.
@@ -172,19 +169,11 @@ appendix holds each individual package's API in turn.
 @section sel-sw-expression
 @include sel-sw-expression-api.texi
 
-@node sel-sw-forth, sel-sw-java, sel-sw-expression, SEL Packages
+@node sel-sw-forth, sel-sw-javascript, sel-sw-expression, SEL Packages
 @section sel-sw-forth
 @include sel-sw-forth-api.texi
 
-@node sel-sw-java, sel-sw-java-project, sel-sw-forth, SEL Packages
-@section sel-sw-java
-@include sel-sw-java-api.texi
-
-@node sel-sw-java-project, sel-sw-javascript, sel-sw-java, SEL Packages
-@section sel-sw-java-project
-@include sel-sw-java-project-api.texi
-
-@node sel-sw-javascript, sel-sw-javascript-project, sel-sw-java-project, SEL Packages
+@node sel-sw-javascript, sel-sw-javascript-project, sel-sw-forth, SEL Packages
 @section sel-sw-javascript
 @include sel-sw-javascript-api.texi
 
@@ -272,15 +261,11 @@ appendix holds each individual package's API in turn.
 @section sel-cp-in-memory-fodder-database
 @include sel-cp-in-memory-fodder-database-api.texi
 
-@node sel-cp-instrument, sel-cp-java-instrument, sel-cp-in-memory-fodder-database, SEL Packages
+@node sel-cp-instrument, sel-cp-javascript-instrument, sel-cp-in-memory-fodder-database, SEL Packages
 @section sel-cp-instrument
 @include sel-cp-instrument-api.texi
 
-@node sel-cp-java-instrument, sel-cp-javascript-instrument, sel-cp-instrument, SEL Packages
-@section sel-cp-java-instrument
-@include sel-cp-java-instrument-api.texi
-
-@node sel-cp-javascript-instrument, sel-cp-json-fodder-database, sel-cp-java-instrument, SEL Packages
+@node sel-cp-javascript-instrument, sel-cp-json-fodder-database, sel-cp-instrument, SEL Packages
 @section sel-cp-javascript-instrument
 @include sel-cp-javascript-instrument-api.texi
 

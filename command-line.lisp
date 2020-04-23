@@ -28,13 +28,11 @@
         :software-evolution-library/software/clang
         :software-evolution-library/software/parseable
         :software-evolution-library/software/javascript
-        :software-evolution-library/software/java
         :software-evolution-library/software/lisp
         :software-evolution-library/software/json
         :software-evolution-library/software/simple
         :software-evolution-library/software/clang-project
         :software-evolution-library/software/javascript-project
-        :software-evolution-library/software/java-project
         :software-evolution-library/software/lisp-project
         ;; Components.
         :software-evolution-library/components/fault-loc
@@ -88,7 +86,6 @@
            ;; Projects including git urls.
            :git-clang-project
            :git-javascript-project
-           :git-java-project
            :git-lisp-project))
 (in-package :software-evolution-library/command-line)
 (in-readtable :curry-compose-reader-macros)
@@ -112,7 +109,6 @@
 
 (defclass clang-git-project (clang-project git-project) ())
 (defclass javascript-git-project (javascript-project git-project) ())
-(defclass java-git-project (java-project git-project) ())
 (defclass lisp-git-project (lisp-project git-project) ())
 
 
@@ -285,8 +281,7 @@ input is not positive."
   (let ((class (nest
                 (second)
                 (find-if [{find-if {equalp (string-upcase language)}} #'car])
-                '((("JAVA") java)
-                  (("JAVASCRIPT") javascript)
+                '((("JAVASCRIPT") javascript)
                   (("JSON") json)
                   (("C" "CPP" "C++" "C-PLUS-PLUS" "C PLUS PLUS") clang)
                   (("LISP" "CL" "COMMON LISP") lisp)
@@ -355,7 +350,6 @@ directories and if files based on their extensions."
                                       :test #'equalp)))
                            ;; List of extensions and associated sel/sw class.
                            `((("lisp") lisp)
-                             (("java") java)
                              (("js") javascript)
                              (("json") json)
                              (("c" "cpp" "cc" "cxx") clang))))
@@ -426,7 +420,6 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
                              (ecase (guess-language path)
                                (clang-project 'clang-git-project)
                                (javascript-project 'javascript-git-project)
-                               (java-project 'java-git-project)
                                (lisp-project 'lisp-git-project)
                                (simple 'simple))))))))
          (obj (from-file
@@ -551,7 +544,7 @@ in SCRIPT.")
        :documentation "save random seed to FILE")
       (("language" #\L) :type string
        :documentation
-       "language of input files (e.g. c, c++, java, or javascript)")))
+       "language of input files (e.g. c, c++, lisp, or javascript)")))
   (defparameter +interactive-command-line-options+
     '((("interactive") :type boolean :optional t
        :action #'handle-set-interactive-argument

@@ -21,7 +21,6 @@ DOC_PACKAGES =								\
 	software-evolution-library/components/formatting		\
 	software-evolution-library/components/in-memory-fodder-database	\
 	software-evolution-library/components/instrument		\
-	software-evolution-library/components/java-instrument		\
 	software-evolution-library/components/javascript-instrument	\
 	software-evolution-library/components/json-fodder-database	\
 	software-evolution-library/components/lexicase			\
@@ -58,8 +57,6 @@ DOC_PACKAGES =								\
 	software-evolution-library/software-evolution-library		\
 	software-evolution-library/software/expression			\
 	software-evolution-library/software/forth			\
-	software-evolution-library/software/java			\
-	software-evolution-library/software/java-project		\
 	software-evolution-library/software/javascript			\
 	software-evolution-library/software/javascript-project		\
 	software-evolution-library/software/lisp			\

@@ -28,7 +28,6 @@ Software Object Classes
        @itemize
        @item @ref{api-software-objects-clang-w-fodder, @code{clang-w-fodder}}
        @end itemize
-     @item @refapiclass{java}
      @item @ref{api-software-objects-elf, @code{elf}}
        @itemize
        @item @ref{api-software-objects-elf-cisc,  @code{elf-cisc}}
@@ -62,20 +61,6 @@ Software Object Classes
        @item @ref{api-software-objects-light, @code{light}}
        @end itemize
      @end itemize
-
-
-  @item Project subclasses
-     @itemize
-     @item @ref{api-software-objects-project, @code{project}}
-       @itemize
-       @c @item @ref{api-software-objects-parseable-project, @code{parseable-project}}
-       @c   @itemize
-       @c   @item @ref{api-software-objects-clang-project, @code{clang-project}}
-       @c   @item @ref{api-software-objects-javascript-project, @code{javascript-project}}
-       @c   @end itemize
-       @item @ref{api-software-objects-java-project, @code{java-project}}
-       @end itemize
-     @end itemize
   @end itemize
 
 @item Macro @refapimacro{define-software}
@@ -106,7 +91,6 @@ Class @code{software}
   @item @ref{api-software-objects-source, @code{source}}
     @itemize
     @item @ref{api-software-objects-cil, @code{cil}}
-    @item @refapiclass{java}
     @item @ref{api-software-objects-llvm, @code{llvm}}
     @item @ref{api-software-objects-parseable, @code{parseable}}
       @itemize
@@ -116,16 +100,6 @@ Class @code{software}
         @end itemize
       @item @ref{api-software-objects-javascript, @code{javascript}}
       @end itemize
-    @end itemize
-
-  @item @ref{api-software-objects-project, @code{project}}
-    @itemize
-    @c @item @ref{api-software-objects-parseable-project, @code{parseable-project}}
-    @c   @itemize
-    @c   @item @ref{api-software-objects-clang-project, @code{clang-project}}
-    @c   @item @ref{api-software-objects-javascript-project, @code{javascript-project}}
-    @c   @end itemize
-    @item @ref{api-software-objects-java-project, @code{java-project}}
     @end itemize
 
   @item @ref{api-software-objects-simple, @code{simple}}
@@ -694,31 +668,6 @@ Class @code{clang-project}
 
 @itemize
 @item Class @refapiclass{javascript-project}
-@item Methods
-  @itemize
-  @item @refapimethod{from-file,from-file}
-  @item @refapimethod{phenome,phenome}
-  @item @refapimethod{instrument,instrument}
-  @item @refapimethod{instrumentation-files,instrumentation-files}
-  @item @refapimethod{instrumented-p,instrumented-p}
-  @item @refapimethod{uninstrument,uninstrument}
-  @end itemize
-@end itemize
-
-@c ----------------------------------------
-
-@anchor{api-software-objects-java-project}
-@subsubsection Class @code{java-project}
-
-[
-@ref{SEL API, API} |
-@ref{api-software-objects, Software Objects} |
-@ref{api-software-object-classes,Software Object Classes} |
-Class @code{java-project}
-]
-
-@itemize
-@item Class @refapiclass{java-project}
 @item Methods
   @itemize
   @item @refapimethod{from-file,from-file}

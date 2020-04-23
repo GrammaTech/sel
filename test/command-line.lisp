@@ -57,7 +57,6 @@
           (("CL") 'lisp)
           (("JSON") 'json)
           (("C" ,(make-pathname :directory +grep-prj-dir+)) 'clang-project)
-          (("java" ,(make-pathname :directory +grep-prj-dir+)) 'java-project)
           (("lisp" "git@github.com:eschulte/lisp-format") 'lisp-git-project)
           (("C" "git://example.com:foo/bar.git") 'clang-git-project))))
 

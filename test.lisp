@@ -35,8 +35,6 @@
         :software-evolution-library/test/elf
         :software-evolution-library/test/fix-compilation
         :software-evolution-library/test/instrumentation
-        :software-evolution-library/test/java-instrumentation
-        :software-evolution-library/test/java
         :software-evolution-library/test/javascript-project
         :software-evolution-library/test/javascript
         :software-evolution-library/test/lisp

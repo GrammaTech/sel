@@ -4,16 +4,13 @@
         :software-evolution-library
         :software-evolution-library/utility/debug
         :software-evolution-library/stefil-plus
-        :software-evolution-library/software/parseable
-        :software-evolution-library/software/java-project)
+        :software-evolution-library/software/parseable)
   (:export :test
            :+etc-dir+
            :+gcd-dir+
            :+grep-prj-dir+
            :+multi-file-dir+
            :+asm-test-dir+
-           :+java-dir+
-           :+maven-prj-dir+
            :+multiple-artifact-dir+
            ;; Other functions
            :acorn-available-p
@@ -39,8 +36,7 @@
            :soft
            :range
            :double-range
-           :gcd-elf
-           :java-project))
+           :gcd-elf))
 (in-package :software-evolution-library/test/util)
 (in-readtable :curry-compose-reader-macros)
 
@@ -174,29 +170,6 @@ AST holding STMT is found."
 
 
 ;;; Fixtures
-(define-constant +java-dir+ (append +etc-dir+ (list "java" "non-instrumented"))
-  :test #'equalp
-  :documentation "Path to directory holding java.")
-
-(define-constant +maven-prj-dir+ (append +java-dir+ (list "SimpleMaven"))
-  :test #'equalp
-  :documentation "Path to directory holding the SimpleMaven java project.")
-
-(defixture java-project
-  (:setup
-   (setf *soft*
-         (with-warnings-as-notes 3
-           (from-file
-            (make-instance 'java-project
-              :build-command "./gt-harness.sh build"
-              :artifacts
-              (list (format nil "target/~
-                          simpleMultifileMaven-1.~
-                          0-SNAPSHOT-jar-with-dependencies.jar")))
-            (make-pathname :directory +maven-prj-dir+)))))
-  (:teardown
-   (setf *soft* nil)))
-
 (defixture soft
   (:setup (setf *soft* (make-instance 'soft
                          :genome (coerce (loop :for i :from 0 :to 9 :collect i)

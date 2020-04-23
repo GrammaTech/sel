@@ -32,7 +32,6 @@ check-format:
       fi
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY
     - docker pull $DOCKER_REGISTRY/synthesis/clang/${OS}
-    - docker pull $DOCKER_REGISTRY/synthesis/java-mutator:${PULL_TAG}
     - docker pull $DOCKER_REGISTRY/synthesis/cl:${PULL_TAG}
     - docker build --build-arg=GT=yes  --build-arg=LISP=${LISP} -f .ci/Dockerfile.${OS} -t ${LOCAL_IMAGE_NAME}-${OS}-${LISP} .
     - if [ ! "$CI_BUILD_REF_NAME" = "latest" ];

@@ -9,8 +9,6 @@
         :software-evolution-library/software/parseable
         :software-evolution-library/software/source
         :software-evolution-library/software/forth
-        :software-evolution-library/software/java
-        :software-evolution-library/software/java-project
         :software-evolution-library/software/javascript
         :software-evolution-library/software/javascript-project
         :software-evolution-library/software/json
@@ -39,7 +37,7 @@
                :documentation "write final population into DIR")
               (("language" #\L) :type string :initial-value "c"
                :documentation
-               "language of input files (e.g. c, c++, java, or javascript)"))
+               "language of input files (e.g. c, c++, lisp, or javascript)"))
             +clang-command-line-options+
             +project-command-line-options+
             +clang-project-command-line-options+)))

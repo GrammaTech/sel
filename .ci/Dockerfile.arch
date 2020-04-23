@@ -1,5 +1,4 @@
 FROM docker.grammatech.com/synthesis/cl:arch as cl
-FROM docker.grammatech.com/synthesis/java-mutator:arch as java-mutator
 FROM docker.grammatech.com/synthesis/clang/arch
 
 # Some of the SEL tests require multilib support for m32 tests.
@@ -8,7 +7,7 @@ FROM docker.grammatech.com/synthesis/clang/arch
 # Also, python is required for testbot to submit results to the datamanager.
 RUN sed -i 's/#\[multilib\]/\[multilib\]/; /^\[multilib\]/,/^$/ s/^#//' /etc/pacman.conf
 RUN pacman --noconfirm -Sy archlinux-keyring && \
-    pacman --noconfirm -Syu astyle base-devel boost boost-libs diffutils expect findutils gawk gcc-multilib git graphviz grep gzip jdk8-openjdk jshon less lib32-fakeroot lib32-gcc-libs lib32-glibc lib32-libltdl libffi libxcb m4 make man-db man-pages maven nodejs npm opam openssh pandoc patch python rsync sed subversion time tar texinfo unzip wget
+    pacman --noconfirm -Syu astyle base-devel boost boost-libs diffutils expect findutils gawk gcc-multilib git graphviz grep gzip jshon less lib32-fakeroot lib32-gcc-libs lib32-glibc lib32-libltdl libffi libxcb m4 make man-db man-pages nodejs npm opam openssh pandoc patch python rsync sed subversion time tar texinfo unzip wget
 
 # Install ocaml 4.06.0 via opam (for SerAPI)
 RUN opam init --disable-sandboxing -j 4 --compiler="ocaml-base-compiler.4.06.0" -y
@@ -18,7 +17,6 @@ RUN eval `opam config env` && \
     opam install -y coq-serapi=8.7.2+0.4.13
 
 COPY --from=cl /usr/synth/ /usr/synth
-COPY --from=java-mutator /usr/synth/bin/java-mutator /usr/synth/bin/java-mutator
 
 # Javascript
 RUN npm install --global acorn && \

@@ -88,7 +88,7 @@
    (file-id :reader file-id
             :initarg :file-id
             :initform nil))
-  (:documentation "Handles instrumentation for JAVA software objects."))
+  (:documentation "Handles instrumentation for JavaScript software objects."))
 
 (defmethod initialize-instance :after
     ((instrumenter javascript-instrumenter) &key)

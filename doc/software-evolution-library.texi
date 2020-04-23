@@ -190,7 +190,6 @@ information about creating new software objects.
 @item CIL                      @tab experimental
 @item LISP                     @tab experimental
 @item Forth                    @tab experimental
-@item Java                     @tab experimental
 @item JavaScript               @tab experimental
 @item Coq                      @tab experimental
 @end multitable
@@ -333,16 +332,16 @@ are given in remainder of this section.
                |               +-----+       |    ELF     |  | |--------------|
                |               | Coq |       |------------|  | | forth source |
                |               +-----+       | Executable |  | +--------------+
-       +---------+------------+              |  Linkable  |  |
-       |         |            |              |   Format   |  |    +------------+
-+-------------+  |   +----------------+      +------------+  +----|    asm     |
-|     Java    |  |   |       CIL      |  +----------+   |         |------------|
-|-------------|  |   |----------------|  | elf-risc |---+         |  assembly  |
-| Java source |  |   | C Intermediate |  +----------+   |         |    code    |
-+-------------+  |   |    Language    |  +----------+   |         +------------+
-                 |   +----------------+  | elf-cisc |---+               |
-                 |                       +----------+                   |
-        +--------+------------+                             +------------------+
+               +--------------+              |  Linkable  |  |
+               |              |              |   Format   |  |    +------------+
+               |     +----------------+      +------------+  +----|    asm     |
+               |     |       CIL      |  +----------+   |         |------------|
+               |     |----------------|  | elf-risc |---+         |  assembly  |
+               |     | C Intermediate |  +----------+   |         |    code    |
+               |     |    Language    |  +----------+   |         +------------+
+               |     +----------------+  | elf-cisc |---+               |
+               |                         +----------+                   |
+        +------+--------------+                             +------------------+
         |                     |                             |     asm-range    |
   +----------+          +-------------+                     |------------------|
   |   LLVM   |          |  Parseable  |                     | memory efficient |
@@ -406,10 +405,6 @@ with an indicate of their relative maturity.
       @tab @*  @refapiclass{elf-cisc}
       @tab mature (not recommended)
 
-@item Java source
-      @tab @refapiclass{java}
-      @tab experimental
-
 @item JavaScript source
       @tab @refapiclass{javascript}
       @tab experimental
@@ -450,7 +445,6 @@ Software Object Classes (see also @ref{api-software-object-classes,Software Obje
 * Assembler with @code{asm}::   Assembler represented as a vector
 * Executables with @code{csurf-asm}:: Executables manipulated as an
                                       assembler vector
-* Java with @code{java}::             Java language source code ASTs
 * JavaScript with @code{javascript}:: JavaScript language source code ASTs
 * Coq with @code{coq}::               Coq language source code ASTs
 
@@ -474,19 +468,13 @@ Software Object Mixins (see also @ref{api-software-object-mixins,Software Object
 
 @include include/asm.texi
 
-@node Executables with @code{csurf-asm}, Java with @code{java}, Assembler with @code{asm}, Software Objects
+@node Executables with @code{csurf-asm}, JavaScript with @code{javascript}, Assembler with @code{asm}, Software Objects
 
 @subsection Executables with @code{csurf-asm} Software Object
 
 @include include/csurf-asm.texi
 
-@node Java with @code{java}, JavaScript with @code{javascript}, Executables with @code{csurf-asm}, Software Objects
-
-@subsection Java with @code{java}
-
-@include include/java.texi
-
-@node JavaScript with @code{javascript}, Coq with @code{coq}, Java with @code{java}, Software Objects
+@node JavaScript with @code{javascript}, Coq with @code{coq}, Executables with @code{csurf-asm}, Software Objects
 
 @subsection JavaScript with @code{javascript}
 

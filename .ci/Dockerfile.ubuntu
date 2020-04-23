@@ -9,12 +9,11 @@ RUN eval `opam config env` && \
 
 
 FROM docker.grammatech.com/synthesis/cl as cl
-FROM docker.grammatech.com/synthesis/java-mutator as java-mutator
 FROM docker.grammatech.com/synthesis/clang/ubuntu as clang
 FROM ubuntu:16.04
 
 RUN apt-get -y update && \
-    apt-get -y install g++ gcc gcc-multilib graphviz libffi-dev man-db maven opam openjdk-8-jdk pandoc pkg-config texinfo unzip expect wget curl libboost-all-dev time
+    apt-get -y install g++ gcc gcc-multilib graphviz libffi-dev man-db opam pandoc pkg-config texinfo unzip expect wget curl libboost-all-dev time
 
 COPY --from=coq-serapi /root/.opam /root/.opam
 COPY --from=clang /usr/synth/ /usr/synth/
@@ -26,7 +25,6 @@ COPY --from=cl /usr/synth/bin/sbcl /usr/synth/bin/sbcl
 COPY --from=cl /usr/synth/share/ccl /usr/synth/share/ccl
 COPY --from=cl /usr/synth/share/doc/ccl /usr/synth/share/doc/ccl
 COPY --from=cl /usr/synth/share/doc/sbcl /usr/synth/share/doc/sbcl
-COPY --from=java-mutator /usr/synth/bin/java-mutator /usr/synth/bin/java-mutator
 
 # Artistic Style Version 3.0
 # Build astyle from source as the package manager only has version 2.0.
