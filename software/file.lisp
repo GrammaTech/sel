@@ -21,6 +21,7 @@
   (:import-from :cl-strftime :format-time)
   (:export :file
            :file-w-attributes
+           :ext
            :original-path
            :original-directory))
 (in-package :software-evolution-library/software/file)
@@ -40,11 +41,17 @@ path from which the software was created is required."))
     (when (original-path obj)
       (namestring (pathname-directory-pathname (original-path obj))))))
 
+(defgeneric ext (obj)
+  (:documentation "Return the file extension of OBJ.")
+  (:method ((obj file))
+    (when (original-path obj)
+      (pathname-type (original-path obj)))))
+
 (defmethod from-file :after ((obj file) path)
   "Reading from a file saves PATH."
   (setf (original-path obj) path))
 
-(defmethod copy :around ((obj file) &key)
+(defmethod copy :around ((obj file) &key &allow-other-keys)
   "Wrap the copy method to ensure the OBJ's fields are copied."
   (let ((copy (call-next-method)))
     (setf (slot-value copy 'original-path)
@@ -74,7 +81,7 @@ path from which the software was created is required."))
     (format-time nil "%Y%m%d%H%M.%S"
                  (file-write-date file))))
 
-(defmethod copy :around ((obj file-w-attributes) &key)
+(defmethod copy :around ((obj file-w-attributes) &key &allow-other-keys)
   "Wrap the copy method to ensure the OBJ's fields are copied."
   (let ((copy (call-next-method)))
     (with-slots (permissions modification-time original-genome-string) copy

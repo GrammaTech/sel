@@ -6,7 +6,6 @@
         :software-evolution-library/software/file)
   (:export :source
            :compiler
-           :ext
            :flags
            :raw-size))
 (in-package :software-evolution-library/software/source)
@@ -21,8 +20,6 @@
              :copier copy-tree)
    (compiler :initarg :compiler :accessor compiler :initform "clang"
              :copier copy-seq)
-   (ext      :initarg :ext      :accessor ext      :initform "c"
-             :copier copy-tree)
    (raw-size :initarg :size     :accessor raw-size :initform nil
              :copier :none))
   (:documentation "Raw source code software representation."))
@@ -60,7 +57,6 @@ on the filesystem at BIN."
 (defmethod from-file ((obj source) path)
   "Initialize OBJ with the contents of PATH."
   (setf (genome obj) (file-to-string path))
-  (setf (ext obj)  (pathname-type (pathname path)))
   obj)
 
 (defmethod from-string ((obj source) string)

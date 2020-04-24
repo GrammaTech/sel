@@ -11,6 +11,7 @@
   (:nicknames :sel/software/llvm :sel/sw/llvm)
   (:use :gt/full
         :software-evolution-library
+        :software-evolution-library/software/file
         :software-evolution-library/software/source)
   (:export :llvm))
 (in-package :software-evolution-library/software/llvm)
@@ -19,8 +20,7 @@
 
 ;;; llvm software objects
 (define-software llvm (source)
-  ((ext      :initarg :ext      :accessor ext      :initform "ll")
-   (compiler :initarg :compiler :reader compiler   :initform "llc")
+  ((compiler :initarg :compiler :reader compiler   :initform "llc")
    (linker   :initarg :linker   :accessor linker   :initform "gcc"))
   (:documentation
    "Low Level Virtual Machine (LLVM) intermediate representation (IR).
@@ -33,7 +33,6 @@ See http://llvm.org)."))
 * PATH DOCFIXME
 "
   (setf (genome llvm) (file-to-string path))
-  (setf (ext llvm)  (pathname-type (pathname path)))
   llvm)
 
 (defmethod mutate ((llvm llvm))

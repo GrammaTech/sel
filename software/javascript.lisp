@@ -32,8 +32,8 @@
   (:use :gt/full
         :software-evolution-library
         :software-evolution-library/utility/json
+        :software-evolution-library/software/file
         :software-evolution-library/software/parseable
-        :software-evolution-library/software/source
         :software-evolution-library/components/formatting)
   #-windows (:shadowing-import-from :osicat :file-permissions)
   (:import-from :jsown)

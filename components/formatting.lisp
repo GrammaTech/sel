@@ -11,6 +11,7 @@
   (:use :gt/full
         :software-evolution-library
         :software-evolution-library/software/simple
+        :software-evolution-library/software/file
         :software-evolution-library/software/parseable
         :software-evolution-library/software/source)
   (:export :format-genome

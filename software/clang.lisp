@@ -801,12 +801,15 @@ normalized form with absolute, canonical paths."
                  (namestring path)
                  (namestring (truename path))))
   (setf (genome obj) (file-to-string path))
-  (setf (ext obj) (pathname-type (pathname path)))
   (setf (flags obj) (nest (normalize-flags (pathname-directory-pathname path))
                           (cons (format nil "-I~a"
                                         (pathname-directory-pathname path)))
                           (flags obj)))
   obj)
+
+(defmethod ext :around ((obj clang))
+  "Ensure the default extension for clang software objects is .c"
+  (or (call-next-method) "c"))
 
 
 ;;; Legacy AST creation routines (deprecated).  Please use `to-ast` instead.
