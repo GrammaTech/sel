@@ -54,6 +54,8 @@
         (if-let* 1)
         (when-let 1)
         (when-let* 1)
+        (mvlet* 1)
+        (fbind 1)
         (defixture 1)
         (lambda-bind 1)
         (register-groups-bind 2)))
