@@ -8,7 +8,7 @@
         :software-evolution-library/utility/task
         :software-evolution-library/command-line
         :software-evolution-library/software/parseable
-        :software-evolution-library/software/source
+        :software-evolution-library/software/compilable
         :software-evolution-library/software/clang
         :software-evolution-library/software/project
         :software-evolution-library/software/clang-project

@@ -224,7 +224,6 @@ Class @code{source}
   @item @refapimethod{crossover,crossover}
   @item @refapimethod{from-file,from-file}
   @item @refapimethod{genome-string,genome-string}
-  @item @refapimethod{genome-string,(setf genome-string)}
   @item @refapimethod{lines,lines}
   @item @refapimethod{mutate,mutate}
   @item @refapimethod{phenome,phenome}

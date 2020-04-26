@@ -296,9 +296,6 @@ first value from the `phenome' method."
 (defgeneric genome-string (software &optional stream)
   (:documentation "Return a string of the `genome' of SOFTWARE."))
 
-(defgeneric (setf genome-string) (text software)
-  (:documentation "Set the `genome' of SOFTWARE to the string representation"))
-
 (defgeneric pick (software key &optional func)
   (:documentation "Pick an element of GENOME based on KEY of each element.
 KEY is passed to `proportional-pick' to return an index.  Optional

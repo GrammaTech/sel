@@ -5,8 +5,6 @@
         :metabang-bind
         :software-evolution-library
         :software-evolution-library/software/parseable
-        :software-evolution-library/software/source
-        :software-evolution-library/software/parseable
         :software-evolution-library/software/clang
         :software-evolution-library/software/super-mutant))
 (in-package :software-evolution-library/software/super-mutant-clang)

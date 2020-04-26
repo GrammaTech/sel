@@ -5,8 +5,6 @@
         :software-evolution-library
         :software-evolution-library/software/file)
   (:export :source
-           :compiler
-           :flags
            :raw-size))
 (in-package :software-evolution-library/software/source)
 (in-readtable :curry-compose-reader-macros)
@@ -16,32 +14,9 @@
 (define-software source (software file)
   ((genome   :initarg :genome   :accessor genome   :initform ""
              :copier :direct)
-   (flags    :initarg :flags    :accessor flags    :initform nil
-             :copier copy-tree)
-   (compiler :initarg :compiler :accessor compiler :initform "clang"
-             :copier copy-seq)
    (raw-size :initarg :size     :accessor raw-size :initform nil
              :copier :none))
   (:documentation "Raw source code software representation."))
-
-(defmethod phenome ((obj source) &key (bin (temp-file-name)))
-  "Compile OBJ to create an executable version of the software
-on the filesystem at BIN."
-  #-ccl (declare (values t fixnum string string string))
-  (setf bin (namestring bin))
-  (with-temporary-file-of (:pathname src :type (ext obj)) (genome-string obj)
-    (multiple-value-bind (stdout stderr errno)
-        (shell "~a ~a -o ~a ~{~a~^ ~}" (compiler obj) src bin (flags obj))
-      (restart-case
-          (unless (zerop errno)
-            (error (make-condition 'phenome :text stderr :obj obj :loc src)))
-        (retry-project-build ()
-          :report "Retry `phenome' on OBJ."
-          (phenome obj :bin bin))
-        (return-nil-for-bin ()
-          :report "Allow failure returning NIL for bin."
-          (setf bin nil)))
-      (values bin errno stderr stdout src))))
 
 ;;; NOTE: the following code assumes genome is a string
 ;;;  In the Clang json from end, offsets are in bytes, not
@@ -97,10 +72,6 @@ on the filesystem at BIN."
                       (subseq (genome a) 0 a-point)
                       (subseq (genome b) b-point))))
     (values new (list a-point b-point))))
-
-(defmethod (setf genome-string) (text (obj source))
-  "Update the source code of OBJ to TEXT."
-  (setf (genome obj) text))
 
 (defmethod lines ((obj source))
   "Return a list of lines of source in OBJ"

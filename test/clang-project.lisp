@@ -9,7 +9,7 @@
    :software-evolution-library/stefil-plus
    :software-evolution-library
    :software-evolution-library/software/simple
-   :software-evolution-library/software/source
+   :software-evolution-library/software/compilable
    :software-evolution-library/software/clang
    :software-evolution-library/software/project
    :software-evolution-library/software/clang-project)

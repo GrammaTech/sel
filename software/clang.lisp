@@ -10,8 +10,8 @@
         :uiop/pathname
         :software-evolution-library
         :software-evolution-library/utility/json
+        :software-evolution-library/software/compilable
         :software-evolution-library/software/file
-        :software-evolution-library/software/source
         :software-evolution-library/software/parseable
         :software-evolution-library/components/formatting
         :software-evolution-library/components/searchable
@@ -280,7 +280,7 @@ See also: https://clang.llvm.org/docs/FAQ.html#id2.")
 
 ;;; clang data structure definitions
 
-(define-software clang (parseable)
+(define-software clang (parseable compilable)
   ((includes
     :initarg :includes :accessor includes
     :initform nil :copier :direct
@@ -742,8 +742,11 @@ depending on CLASS"))
       (name= n1 n2)))
 
 
-;;; Massaging flags field to ensure paths are represented in canonicalized,
-;;; absolute form.
+;;; clang-specific overrides of software object creation
+;;; and slot reader/writer routines to ensure (1) paths
+;;; in flags field are represented in canonicalized,
+;;; absolute form; (2) the default compiler is 'clang';
+;;; and (3) the default file extension is '.c'.
 (defun normalize-flags (dir flags)
   "Normalize the list of compiler FLAGS so all search paths are fully
 expanded relative to DIR.
@@ -786,6 +789,8 @@ with absolute, canonical paths."
   (setf (slot-value obj 'flags)
         (normalize-flags (original-directory obj)
                          (flags obj)))
+  (setf (slot-value obj 'compiler)
+        (or (slot-value obj 'compiler) "clang"))
   obj)
 
 (defmethod (setf flags) :after ((flags list) (obj clang))
@@ -1890,6 +1895,14 @@ in the symbol table."
 (defmethod name-symbol-table :before ((obj clang))
   "Ensure the `name-symbol-table' field is set on OBJ prior to access."
   (update-caches-if-necessary obj))
+
+(defmethod lines ((obj clang))
+  "Return a list of lines of source in OBJ"
+  (split-sequence #\Newline (genome-string obj)))
+
+(defmethod (setf lines) (new (obj clang))
+  "Set the genome of OBJ from a list of lines of source"
+  (setf (genome obj) (format nil "~{~a~^~%~}" new)))
 
 (defmethod recontextualize ((clang clang) (ast clang-ast) (pt clang-ast))
   "Bind free variables and function in AST to concrete values
@@ -4035,9 +4048,7 @@ where class = (ast-class ast).")
 (defmethod ast-includes ((obj clang) (ast clang-ast))
   (ast-includes* obj ast (ast-class ast)))
 
-(defmethod ast-includes ((obj clang) (ast string)) nil)
-
-(defmethod ast-includes ((obj clang) (c conflict-ast)) nil)
+(defmethod ast-includes ((obj clang) (ignored t)) nil)
 
 (defmethod ast-includes* ((obj clang)
                           (ast clang-ast)

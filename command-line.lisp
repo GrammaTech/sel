@@ -22,9 +22,9 @@
         :software-evolution-library/utility/debug
         :software-evolution-library/utility/git
         ;; Software objects.
-        :software-evolution-library/software/source
         :software-evolution-library/software/project
         :software-evolution-library/software/git-project
+        :software-evolution-library/software/compilable
         :software-evolution-library/software/clang
         :software-evolution-library/software/parseable
         :software-evolution-library/software/javascript
@@ -435,9 +435,9 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
                                      language path))
                                    (t language)))
                        (flags
-                        (when (subtypep language 'source) flags))
+                        (when (subtypep language 'compilable) flags))
                        (compiler
-                        (when (subtypep language 'source) compiler))
+                        (when (subtypep language 'compilable) compiler))
                        (compilation-database
                         (when (eql language 'clang-project)
                           compilation-database))

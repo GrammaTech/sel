@@ -318,7 +318,7 @@
               :name "swap_"
               :body "swap_(I,J) do { int t_; t_ = a[(I)]; a[(I)] = a[(J)]; a[(J)] = t_; } while (0)"
               :hash 1179176719466053316))
-  (setf (genome-string obj) (genome-string obj)))
+  (setf (genome obj) (genome-string obj)))
 
 (defixture huf-clang
   (:setup

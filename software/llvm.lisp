@@ -12,6 +12,7 @@
   (:use :gt/full
         :software-evolution-library
         :software-evolution-library/software/file
+        :software-evolution-library/software/compilable
         :software-evolution-library/software/source)
   (:export :llvm))
 (in-package :software-evolution-library/software/llvm)
@@ -19,12 +20,16 @@
 
 
 ;;; llvm software objects
-(define-software llvm (source)
-  ((compiler :initarg :compiler :reader compiler   :initform "llc")
-   (linker   :initarg :linker   :accessor linker   :initform "gcc"))
+(define-software llvm (source compilable)
+  ((linker   :initarg :linker   :accessor linker   :initform "gcc"))
   (:documentation
    "Low Level Virtual Machine (LLVM) intermediate representation (IR).
 See http://llvm.org)."))
+
+(defmethod initialize-instance :after ((obj llvm) &key &allow-other-keys)
+  "Wrapper after the constructor to ensure the compiler slot has been
+initialized to a default value if one is not provided."
+  (setf (compiler obj) (or (compiler obj) "llc")))
 
 (defmethod from-file ((llvm llvm) path)
   "DOCFIXME

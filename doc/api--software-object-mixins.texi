@@ -17,6 +17,8 @@ Software Object ``Mixins''
 
 @item @ref{api-software-objects-file, Class @code{file}}
 
+@item @ref{api-software-objects-compilable, Class @code{compilable}}
+
 @item @ref{api-style-features-class-styleable, Class @code{styleable}}
 @item @ref{api-style-features-class-style-project, Class @code{style-project}}
 
@@ -76,8 +78,6 @@ Class @code{adaptive-mutation}
 
 @c ----------------------------------------
 
-@include sel-sw-file-api.texi
-
 @anchor{api-software-objects-file}
 @subsubsection Class @code{file}
 
@@ -95,6 +95,27 @@ Class @code{file}
   @itemize
   @item @refapimethod{from-file,from-file before}
   @item @refapimethod{to-file,to-file after}
+  @end itemize
+@end itemize
+
+@c ----------------------------------------
+
+@anchor{api-software-objects-compilable}
+@subsubsection Class @code{compilable}
+
+[
+@ref{SEL API,API} |
+@ref{api-software-objects, Software Objects} |
+@ref{api-software-object-mixins,Software Object Class ``Mixins''} |
+Class @code{compilable}
+]
+
+
+@itemize
+@item Class @refapiclass{compilable}
+@item Methods
+  @itemize
+  @item @refapimethod{phenome,phenome}
   @end itemize
 @end itemize
 

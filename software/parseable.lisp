@@ -6,7 +6,6 @@
         :cl-store
         :bordeaux-threads
         :software-evolution-library
-        :software-evolution-library/software/source
         :software-evolution-library/software/file)
   (:export ;; ASTs
    :ast
@@ -90,8 +89,10 @@
 (in-package :software-evolution-library/software/parseable)
 (in-readtable :curry-compose-reader-macros)
 
-(define-software parseable (source)
-  ((ast-root :initarg :ast-root :initform nil :accessor ast-root
+(define-software parseable (software file)
+  ((genome   :initarg :genome :accessor genome :initform "" :copier :direct
+             :documentation "Source code as a string.")
+   (ast-root :initarg :ast-root :initform nil :accessor ast-root
              :documentation "Root node of AST.")
    (asts     :initarg :asts :reader asts
              :initform nil :copier :direct
@@ -669,6 +670,11 @@ made traceable by wrapping with curly braces, return that."))
            val)
     (source-text (ast-root obj))))
 
+(defmethod genome-string ((obj parseable) &optional stream)
+  "Return the source code of OBJ, optionally writing to STREAM"
+  (let ((genome (or (genome obj) "")))
+    (if stream (write-string genome stream) genome)))
+
 (defmethod (setf genome) :before (new (obj parseable))
   "Clear ASTs, fitness, and other caches prior to updating the NEW genome."
   (declare (ignorable new))
@@ -692,6 +698,16 @@ applicative AST tree and clear the genome string."
         (populate-fingers new)
         (slot-value obj 'genome)
         nil))
+
+(defmethod from-file ((obj parseable) path)
+  "Initialize OBJ with the contents of PATH."
+  (setf (genome obj) (file-to-string path))
+  obj)
+
+(defmethod from-string ((obj parseable) string)
+  "Initialize OBJ with the contents of STRING."
+  (setf (genome obj) string)
+  obj)
 
 (defparameter *show-update-asts-errors* nil
   "When true, update-asts reports the original source file on an error,

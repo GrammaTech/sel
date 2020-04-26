@@ -6,7 +6,6 @@
         :software-evolution-library
         :software-evolution-library/utility/task
         :software-evolution-library/software/parseable
-        :software-evolution-library/software/source
         :software-evolution-library/software/project
         :software-evolution-library/software/javascript
         :software-evolution-library/software/javascript-project

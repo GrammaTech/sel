@@ -7,7 +7,6 @@
         :software-evolution-library
         :software-evolution-library/command-line
         :software-evolution-library/software/parseable
-        :software-evolution-library/software/source
         :software-evolution-library/software/forth
         :software-evolution-library/software/javascript
         :software-evolution-library/software/javascript-project

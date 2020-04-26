@@ -5,7 +5,6 @@
         :metabang-bind
         :software-evolution-library
         :software-evolution-library/software/simple
-        :software-evolution-library/software/source
         :software-evolution-library/components/formatting)
   (:export :project
            :*build-dir*

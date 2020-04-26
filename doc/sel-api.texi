@@ -44,6 +44,7 @@ appendix holds each individual package's API in turn.
 * sel-sw-clang-w-fodder::       Software-Evolution-Library/Software clang-w-fodder.
 * sel-sw-coq::                  Software-Evolution-Library/Software coq.
 * sel-sw-coq-project::          Software-Evolution-Library/Software coq-project.
+* sel-sw-compilable::           Software-Evolution-Library/Software compilable.
 * sel-sw-csurf-asm::            Software-Evolution-Library/Software csurf-asm.
 * sel-sw-diff::                 Software-Evolution-Library/Software diff.
 * sel-sw-elf::                  Software-Evolution-Library/Software elf.
@@ -51,6 +52,7 @@ appendix holds each individual package's API in turn.
 * sel-sw-elf-risc::             Software-Evolution-Library/Software elf-risc.
 * sel-sw-expression::           Software-Evolution-Library/Software expression.
 * sel-sw-forth::                Software-Evolution-Library/Software forth.
+* sel-sw-file::                 Software-Evolution-Library/Software file.
 * sel-sw-javascript::           Software-Evolution-Library/Software javascript.
 * sel-sw-javascript-project::   Software-Evolution-Library/Software javascript-project.
 * sel-sw-lisp::                 Software-Evolution-Library/Software lisp.
@@ -149,7 +151,11 @@ appendix holds each individual package's API in turn.
 @section sel-sw-csurf-asm
 @include sel-sw-csurf-asm-api.texi
 
-@node sel-sw-diff, sel-sw-elf, sel-sw-csurf-asm, SEL Packages
+@node sel-sw-compilable, sel-sw-diff, sel-sw-csurf-asm, SEL Packages
+@section sel-sw-compilable
+@include sel-sw-compilable-api.texi
+
+@node sel-sw-diff, sel-sw-elf, sel-sw-compilable, SEL Packages
 @section sel-sw-diff
 @include sel-sw-diff-api.texi
 
@@ -173,7 +179,11 @@ appendix holds each individual package's API in turn.
 @section sel-sw-forth
 @include sel-sw-forth-api.texi
 
-@node sel-sw-javascript, sel-sw-javascript-project, sel-sw-forth, SEL Packages
+@node sel-sw-file, sel-sw-javascript, sel-sw-forth, SEL Packages
+@section sel-sw-file
+@include sel-sw-file-api.texi
+
+@node sel-sw-javascript, sel-sw-javascript-project, sel-sw-file, SEL Packages
 @section sel-sw-javascript
 @include sel-sw-javascript-api.texi
 

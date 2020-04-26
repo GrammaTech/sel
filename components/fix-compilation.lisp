@@ -20,7 +20,6 @@
         :software-evolution-library
         :software-evolution-library/utility/range
         :software-evolution-library/software/parseable
-        :software-evolution-library/software/source
         :software-evolution-library/software/clang
         :software-evolution-library/software/clang-w-fodder
         :software-evolution-library/components/formatting
@@ -340,7 +339,7 @@ that function may be declared.")
                    (genome-string obj)
                    "")
     (when matched
-      (setf (genome-string obj) new-genome))))
+      (setf (genome obj) new-genome))))
 
 (register-fixer
  ": error: redefinition of '(.*)'"

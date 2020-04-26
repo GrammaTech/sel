@@ -46,6 +46,7 @@ DOC_PACKAGES =								\
 	software-evolution-library/software/clang-expression		\
 	software-evolution-library/software/clang-project		\
 	software-evolution-library/software/clang-w-fodder		\
+	software-evolution-library/software/compilable			\
 	software-evolution-library/software/coq				\
 	software-evolution-library/software/coq-project			\
 	software-evolution-library/software/csurf-asm			\

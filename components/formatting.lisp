@@ -12,8 +12,8 @@
         :software-evolution-library
         :software-evolution-library/software/simple
         :software-evolution-library/software/file
-        :software-evolution-library/software/parseable
-        :software-evolution-library/software/source)
+        :software-evolution-library/software/compilable
+        :software-evolution-library/software/parseable)
   (:export :format-genome
            :astyle
            :clang-tidy

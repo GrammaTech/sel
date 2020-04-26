@@ -215,6 +215,7 @@
    :software-evolution-library/components/traceable
    :software-evolution-library/rest/sessions
    :software-evolution-library/rest/utility
+   :software-evolution-library/software/compilable
    :software-evolution-library/software/parseable
    :software-evolution-library/software/clang
    :software-evolution-library/command-line)
@@ -668,8 +669,8 @@ Resource lookups are of the form \"<resource>:<oid>\""
              (inst-bin (aget :inst-bin json)))
 
         (if (and (typep soft 'sel/sw/clang::clang)
-                 (null (sel/software/source::compiler soft)))
-            (setf (sel/software/source::compiler soft) "clang"))
+                 (null (sel/software/compilable::compiler soft)))
+            (setf (sel/software/compilable::compiler soft) "clang"))
 
         ;; create the binary executable
         (if inst-bin
