@@ -44,7 +44,7 @@
 (in-package :software-evolution-library/software/javascript)
 (in-readtable :curry-compose-reader-macros)
 
-(define-software javascript (parseable) ()
+(define-software javascript (parseable file-w-attributes) ()
   (:documentation "Javascript software representation."))
 
 
@@ -423,12 +423,6 @@ newlines.")
   :test #'equalp
   :documentation
   "Parent AST classes of identifiers which should be interpreted as bound.")
-
-(defmethod to-file :after ((obj javascript) file
-                           &aux (preamble (car (ast-children (ast-root obj)))))
-  "Ensure JavaScript scripts are marked executable."
-  (when (string= (subseq preamble 0 (min (length preamble) 2)) "#!")
-    (push :user-exec (file-permissions file))))
 
 (defmethod phenome ((obj javascript) &key (bin (temp-file-name)))
   "Create a phenotype of the javascript software OBJ.  In this case, override
