@@ -356,17 +356,6 @@ See also: https://clang.llvm.org/docs/FAQ.html#id2.")
   ;; annotations
   (annotations nil :type list))
 
-;; Special subclass for :CXXOperatorCallExpr nodes
-(defstruct (cxx-operator-call-expr (:include clang-ast))
-  ;; POS is the "actual" position of the operator in the
-  ;; list of child ASTs (ignoring non-AST children).
-  ;; When computing ranges, and when computing
-  ;; source text, put it there.
-  ;;
-  ;; TODO: The type FIXNUM is too big; figure out how much
-  ;; smaller this can be made.
-  (pos nil :type (or null fixnum)))
-
 (defclass clang-type ()
   ((qual :reader type-qual
          :initform nil
@@ -502,10 +491,6 @@ depending on CLASS"))
 (defmethod make-clang-ast* (class &rest args &key &allow-other-keys)
   (apply #'make-clang-ast :class class args))
 
-(defmethod make-clang-ast* ((class (eql :cxxoperatorcallexpr)) &rest args
-                            &key &allow-other-keys)
-  (apply #'make-cxx-operator-call-expr :class class args))
-
 (defmethod make-clang-ast* ((class (eql :macroexpansion)) &rest args
                             &key children false-children &allow-other-keys)
   ;; :FALSE-CHILDREN is the list of ersatz children below the macroexpansion node
@@ -620,9 +605,6 @@ depending on CLASS"))
 
 (defmethod copy ((ast clang-ast) &rest args)
   (apply #'clang-ast-copy ast #'make-clang-ast args))
-
-(defmethod copy ((ast cxx-operator-call-expr) &rest args)
-  (apply #'clang-ast-copy ast #'make-cxx-operator-call-expr args))
 
 (defmethod to-alist ((clang-type clang-type))
   (flet ((%p (key fn)
@@ -4930,12 +4912,6 @@ on json-kind-symbol when special subclasses are wanted."))
           (j2ck new-json json-kind-symbol))
         (call-next-method))))
 
-(defmethod j2ck (json (json-kind-symbol (eql :CXXOperatorCallExpr)))
-  ;; CXXOperatorCallExprs must be a special subclass, as the children
-  ;; are out of order (the operator is put first even if it is not
-  ;; first in the source file)
-  (store-slots (make-cxx-operator-call-expr) json))
-
 (defgeneric store-slots (obj json)
   (:documentation "Store values in the json into obj.
 Return the object, or another object to be used in
@@ -5461,60 +5437,6 @@ offsets to support source text with multibyte characters.
              (setf (ast-annotations ast)
                    (adrop (list :loc) (ast-annotations ast))))))
 
-(defgeneric compute-operator-positions (ast)
-  (:documentation "Compute positions of operators in
-CXXOperatorCallExpr nodes")
-  (:method ((ast clang-ast))
-    (map-ast ast #'compute-operator-position)))
-
-(defgeneric compute-operator-position (ast)
-  (:documentation "Compute positions of operators at a
-CXXOperatorCallExpr node.   Also, normalize postfix operator++/--
-to remove dummy arg")
-  (:method ((ast clang-ast)) nil)
-  (:method ((ast cxx-operator-call-expr))
-    (let* ((ac (ast-children ast))
-           (op (first ac))
-           (op-begin (begin-offset op)))
-      ;; The last argument to a ++ or -- is dummy when
-      ;; it's a postfix operator.  Remove it.
-      (when (and (= (length ac) 3)
-                 (let ((rds (ast-reference-decls op)))
-                   (flet ((%m (s) (member s rds :key #'ast-name
-                                          :test #'equal)))
-                     (or (%m "operator++") (%m "operator--")))))
-        (setf ac (setf (ast-children ast) (subseq ac 0 2))))
-      ;; Position = # of child asts that are before
-      ;; the operator in the source file
-      (let ((rest-offsets (mapcar #'begin-offset (cdr ac))))
-        (when (and op-begin (every #'identity rest-offsets))
-          (setf (cxx-operator-call-expr-pos ast)
-                (count op-begin rest-offsets :test #'>)))))))
-
-(defgeneric put-operators-into-inner-positions (sw ast)
-  (:documentation "Put operators into their inner positions
-in CXXOperatorCallExpr nodes.")
-  (:method ((sw clang) (ast clang-ast))
-    (map-ast ast #'put-operator-into-inner-position)))
-
-(defgeneric put-operator-into-inner-position (ast)
-  (:documentation "Put operator into its inner position
-in a CXXOperatorCallExpr node.")
-  (:method ((ast clang-ast)) nil)
-  (:method ((ast cxx-operator-call-expr))
-    ;; This is pre-stringification, so there should only
-    ;; be ast children
-    (let* ((c (ast-children ast))
-           (op (first c))
-           (pos (cxx-operator-call-expr-pos ast)))
-      (assert (every #'ast-p c))
-      (when pos
-        (assert (< pos (length c)))
-        (setf (ast-children ast)
-              (append (subseq c 1 (1+ pos))
-                      (list op)
-                      (subseq c (1+ pos))))))))
-
 ;;; Macro-related code
 
 (defun build-macro (str &key i-file)
@@ -5904,35 +5826,6 @@ of the ranges of its children"
                    (list (%safe-subseq genome i end))))))))))
     (map-ast ast #'%decorate))
   ast)
-
-(defgeneric put-operators-into-starting-positions (sw ast)
-  (:documentation "Put operators into their starting positions
-in CXXOperatorCallExpr nodes.")
-  (:method ((sw clang) (ast clang-ast))
-    (map-ast ast #'put-operator-into-starting-position)))
-
-(defgeneric put-operator-into-starting-position (ast)
-  (:documentation "Put operator into their starting position
-in a CXXOperatorCallExpr node.")
-  (:method ((ast clang-ast)) nil)
-  (:method ((ast cxx-operator-call-expr))
-    ;; The AST will have been stringified here, so pos
-    ;; is the position in (remove-if-not #'ast-p (ast-children))
-    (let ((pos (cxx-operator-call-expr-pos ast))
-          (c (ast-children ast)))
-      (when pos
-        (assert (<= 0 pos (1- (length c))))
-        (when (> pos 0)
-          (let ((actual-pos
-                 (let ((count pos))
-                   (position-if (lambda (e)
-                                  (and (ast-p e) (zerop (decf count))))
-                                c))))
-            (setf (ast-children ast)
-                  (append
-                   (list (elt c actual-pos))
-                   (subseq c 0 actual-pos)
-                   (subseq c (1+ actual-pos))))))))))
 
 (defgeneric compute-full-stmt-annotation (obj ancestors)
   (:documentation "Fills in the :FULL-STMT annotation on clang ast
@@ -6342,14 +6235,11 @@ ASTs in the existing SYMBOL-TABLE and AST-ROOT tree."
           (convert-line-and-col-to-byte-offsets ast genome)
           (fix-multibyte-characters ast genome)
           (remove-loc-attribute ast)
-          (compute-operator-positions ast)
-          (put-operators-into-inner-positions obj ast)
           (encapsulate-macro-expansions-cheap obj macro-dump ast)
           (fix-overlapping-declstmt-children obj ast)
           (fix-ancestor-ranges ast)
           (combine-overlapping-siblings ast)
           (decorate-ast-with-strings obj ast)
-          (put-operators-into-starting-positions obj ast)
           (compute-full-stmt-annotations ast)
           (compute-guard-stmt-annotations ast)
           (compute-syn-ctxs ast)
