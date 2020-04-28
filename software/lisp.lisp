@@ -40,7 +40,7 @@
 
 (defvar *string* nil)
 
-(defclass lisp-ast (ast)
+(defclass lisp-ast (functional-tree-ast)
   ((expression :initarg :expression :initform nil :reader expression)
    (children :reader children
              :type list

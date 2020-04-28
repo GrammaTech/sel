@@ -70,7 +70,7 @@ There are several cases here:
                    ;; Function bodies may differ as long as name and arguments
                    ;; are the same. Collect all unique variants, along with the
                    ;; mutants they came from.
-                   (let ((variants (make-hash-table :test #'equalp)))
+                   (let ((variants nil))
                      (mapc (lambda-bind ((i ast) mutant)
                              (when ast
                                (ensure-functions-compatible head ast mutant)
@@ -83,14 +83,17 @@ There are several cases here:
                                                             "Missing body for ~a"
                                                             (ast-name ast))
                                                     :obj mutant)))
-                                 (if-let ((value (gethash ast variants)))
+                                 (if-let ((value (aget ast variants
+                                                       :test #'ast-equal-p)))
                                    (pushnew i (third value))
-                                   (setf (gethash ast variants)
-                                         (list ast body (list i)))))))
+                                   (setf variants
+                                         (cons (cons ast
+                                                     (list ast body (list i)))
+                                               variants))))))
                            (indexed asts)
                            mutants)
                      (cons (when (car asts) (function-body base head))
-                           (hash-table-values variants)))))))
+                           (mapcar #'cdr variants)))))))
        (replace-nth-child (ast n replacement)
          "Return AST with the nth child of AST replaced with REPLACEMENT."
          (copy ast
@@ -123,7 +126,7 @@ true, create a complete function decl which contains the body."
            (if make-decl
                (let ((decl (caar variants)))
                  (replace-nth-child decl
-                                    (position-if «and #'ast-p
+                                    (position-if «and {typep _ 'ast}
                                                       [{eq :CompoundStmt}
                                                        #'ast-class]»
                                                  (ast-children decl))

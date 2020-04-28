@@ -533,7 +533,7 @@ statement pick"
 a no-mutation-targets error when a second statement with the same AST class
 is not to be found"
   (with-fixture hello-world-clang-control-picks
-    (let ((*bad-asts* (list (make-clang-ast :class :Nothing))))
+    (let ((*bad-asts* (list (make-instance 'clang-ast :class :Nothing))))
       (signals no-mutation-targets
                (pick-general *hello-world* #'stmt-asts
                              :filter #'same-class-filter

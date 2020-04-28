@@ -49,7 +49,7 @@
 
 
 ;;; Javascript ast data structures
-(defclass javascript-ast (ast)
+(defclass javascript-ast (functional-tree-ast)
   ((children :reader children
              :type list
              :initarg :children
@@ -346,7 +346,7 @@ Return a new list of children."
     (iter (for p on children)
           (for node = (car p))
           (for next = (cadr p))
-          (if-let ((pos (and (ast-p node)
+          (if-let ((pos (and (typep node 'ast)
                              (funcall allowed-fn node)
                              (stringp next)
                              (funcall prefix-fn next))))

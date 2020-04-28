@@ -8,8 +8,8 @@
         :software-evolution-library
         :software-evolution-library/software/file)
   (:export ;; ASTs
-   :ast
-           :ast-p
+           :ast
+           :functional-tree-ast
            :to-alist
            :from-alist
            :ast-path
@@ -107,17 +107,22 @@ See the documentation of `update-asts' for required invariants.")
 
 
 ;;; AST data structure definitions.
-(defclass ast (node)
+(defclass ast () ()
+  (:documentation "Base class for all ASTs in SEL.  This class acts as a tag
+for objects to allow method dispatch on generic AST objects regardless of
+whether they inherit from the functional trees library."))
+
+(defclass functional-tree-ast (node ast)
   ((class :initarg :class :initform nil :accessor ast-class
           :documentation "Class of the AST." :type symbol)
    (annotations :initarg :annotations :initform nil :accessor ast-annotations
                 :documentation "A-list of annotations." :type list)
    (stored-hash :initarg :stored-hash :initform nil :accessor ast-stored-hash
                 :documentation "A cached hash." :type (or null hash-type)))
-  (:documentation "Base class for SEL ASTs.
+  (:documentation "Base class for SEL functional tree ASTs.
 An applicative tree structure is used to hold the ASTs."))
 
-(defclass conflict-ast (ast)
+(defclass conflict-ast (functional-tree-ast)
   ((child-alist :initarg :child-alist :initform nil
                 :accessor conflict-ast-child-alist
                 :documentation "Child-Alist of the AST." :type list)
@@ -160,11 +165,6 @@ PRINT-OBJECT method on AST structures.")
                 (ast-path obj)
                 (conflict-ast-child-alist obj)))))
 
-(defgeneric ast-p (obj)
-  (:documentation "Return T if OBJ is an AST.")
-  (:method ((obj ast)) (declare (ignorable obj)) t)
-  (:method ((obj t)) nil))
-
 (defgeneric ast-annotation (ast annotation)
   (:documentation "Return given AST ANNOTATION.")
   (:method ((ast ast) (annotation symbol))
@@ -200,7 +200,7 @@ PRINT-OBJECT method on AST structures.")
 (defgeneric ast-to-list (ast)
   (:documentation "Return AST and its children as a list.")
   (:method (ast)
-    (if (ast-p ast)
+    (if (typep ast 'ast)
         (cons ast (mappend #'ast-to-list (ast-children ast)))
         nil)))
 
@@ -748,7 +748,7 @@ if the original file is known.")
     (labels ((collect-asts (tree)
                (cons tree
                      (iter (for c in (ast-children tree))
-                           (appending (when (ast-p c)
+                           (appending (when (typep c 'ast)
                                         (collect-asts c)))))))
       (setf (slot-value obj 'asts)
             (cdr (collect-asts (ast-root obj)))))))
@@ -803,7 +803,7 @@ if the original file is known.")
         (pred nil))
     (iter (for i from 0)
           (for j in path)
-          (unless (ast-p tree)
+          (unless (typep tree 'ast)
             (if pred
                 (error "At path ~a, below~%~a, not an AST:~%~a"
                        (subseq path 0 i)
@@ -870,7 +870,7 @@ otherwise.
 "
   (declare (ignorable obj)) ;; TODO: Remove obj as a parameter
   ;; Q: can we share structure with the list from AST-CHILDREN?
-  (remove-if-not #'ast-p (ast-children ast)))
+  (remove-if-not {typep _ 'ast} (ast-children ast)))
 
 (defmethod get-vars-in-scope ((obj parseable) ast
                               &optional (keep-globals t))
@@ -1217,9 +1217,9 @@ SOFTWARE.
   (setf (ast-root software)
         (with-slots (ast-root) software
           (iter (for (op . properties) in ops)
-                (let ((stmt1 (if (ast-p (aget :stmt1 properties))
-                                 (ast-path (aget :stmt1 properties))
-                                 (aget :stmt1 properties)))
+                (let ((stmt1 (if (listp (aget :stmt1 properties))
+                                 (aget :stmt1 properties)
+                                 (ast-path (aget :stmt1 properties))))
                       (value1 (if (functionp (aget :value1 properties))
                                   (funcall (aget :value1 properties))
                                   (aget :value1 properties))))
