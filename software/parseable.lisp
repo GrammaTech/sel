@@ -199,10 +199,9 @@ PRINT-OBJECT method on AST structures.")
 ;; can utilize trees in all locations.
 (defgeneric ast-to-list (ast)
   (:documentation "Return AST and its children as a list.")
-  (:method (ast)
-    (if (typep ast 'ast)
-        (cons ast (mappend #'ast-to-list (ast-children ast)))
-        nil)))
+  (:method ((ast ast))
+    (cons ast (mappend #'ast-to-list (ast-children ast))))
+  (:method ((ast t)) nil))
 
 (defgeneric combine-conflict-asts (ca1 ca2)
   (:documentation
@@ -421,7 +420,7 @@ modile +AST-HASH-BASE+"
   (:documentation "Is AST-A later in the genome than AST-B?
 Use this to sort AST asts for mutations that perform multiple
 operations.")
-  (:method (ast-a ast-b)
+  (:method ((ast-a ast) (ast-b ast))
     (labels
         ((path-later-p (a b)
            (cond
@@ -792,7 +791,7 @@ if the original file is known.")
 * OBJ object to query for the index of AST
 * AST node to find the index of
 ")
-  (:method  ((obj parseable) ast)
+  (:method  ((obj parseable) (ast ast))
     (position ast (asts obj) :test #'equalp)))
 
 (defmethod get-ast ((obj parseable) (path list))
@@ -825,11 +824,11 @@ otherwise.
 * OBJ software object containing AST and its parents
 * POSSIBLE-PARENT-AST node to find as a parent of AST
 * AST node to start parent search from")
-  (:method ((obj parseable) possible-parent-ast ast)
+  (:method ((obj parseable) (possible-parent-ast ast) (ast ast))
     (member possible-parent-ast (get-parent-asts obj ast)
             :test #'equalp)))
 
-(defmethod get-parent-ast ((obj parseable) ast)
+(defmethod get-parent-ast ((obj parseable) (ast ast))
   "Return the parent node of AST in OBJ
 * OBJ software object containing AST and its parent
 * AST node to find the parent of
@@ -837,7 +836,7 @@ otherwise.
   (when-let ((path (butlast (ast-path ast))))
     (get-ast obj path)))
 
-(defmethod get-parent-asts ((obj parseable) ast)
+(defmethod get-parent-asts ((obj parseable) (ast ast))
   "Return the parent nodes of AST in OBJ
 * OBJ software object containing AST and its parents
 * AST node to find the parents of
@@ -851,7 +850,7 @@ otherwise.
                                                  (cdr path)))))))
     (reverse (get-parent-asts-helper (ast-root obj) (ast-path ast)))))
 
-(defmethod get-children ((obj parseable) ast)
+(defmethod get-children ((obj parseable) (ast ast))
   "Return all the children of AST in OBJ.
 * OBJ software object containing AST and its children
 * AST node to find the children of
@@ -863,7 +862,7 @@ otherwise.
                         (get-immediate-children obj ast)))))
     (get-children-helper obj ast)))
 
-(defmethod get-immediate-children ((obj parseable) ast)
+(defmethod get-immediate-children ((obj parseable) (ast ast))
   "Return the immediate children of AST in OBJ.
 * OBJ software object containing AST and its children
 * AST node to find the immediate children of
@@ -872,7 +871,7 @@ otherwise.
   ;; Q: can we share structure with the list from AST-CHILDREN?
   (remove-if-not {typep _ 'ast} (ast-children ast)))
 
-(defmethod get-vars-in-scope ((obj parseable) ast
+(defmethod get-vars-in-scope ((obj parseable) (ast ast)
                               &optional (keep-globals t))
   "Return all variables in enclosing scopes.
 * OBJ software object containing AST and its enclosing scopes
@@ -1293,9 +1292,9 @@ to allow for successful mutation of SOFTWARE at PT."
 * LITERAL keyword to control whether recontextualization is performed
           For modifications where the replacement is to be directly
           inserted, pass this keyword as true.")
-  (:method ((obj parseable) location ast &rest args)
+  (:method ((obj parseable) (location ast) (ast ast) &rest args)
     (apply #'insert-ast obj (ast-path location) ast args))
-  (:method ((obj parseable) (location list) ast &key literal)
+  (:method ((obj parseable) (location list) (ast ast) &key literal)
     (apply-mutation obj (at-targets (make-instance 'parseable-insert)
                                     (list (cons :stmt1 location)
                                           (cons (if literal :literal1 :value1)
@@ -1310,14 +1309,18 @@ with REPLACEMENT.
 * LITERAL keyword to control whether recontextualization is performed
           For modifications where the replacement is to be directly
           inserted, pass this keyword as true.")
-  (:method ((obj parseable) location replacement &rest args)
+  (:method ((obj parseable) (location ast) (replacement ast) &rest args)
     (apply #'replace-ast obj (ast-path location) replacement args))
-  (:method ((obj parseable) (location list) replacement &key literal)
+  (:method ((obj parseable) (location list) (replacement ast) &key literal)
     (apply-mutation obj (at-targets (make-instance 'parseable-replace)
                                     (list (cons :stmt1 location)
                                           (cons (if literal :literal1 :value1)
                                                 replacement)))))
-  (:method ((obj parseable) location (replacement list) &rest args)
+  (:method ((obj parseable) (location ast) (replacement string) &rest args)
+    (apply #'replace-ast obj (ast-path location) (list replacement) args))
+  (:method ((obj parseable) (location list) (replacement string) &rest args)
+    (apply #'replace-ast obj location (list replacement) args))
+  (:method ((obj parseable) (location ast) (replacement list) &rest args)
     (apply #'replace-ast obj (ast-path location) replacement args))
   (:method ((obj parseable) (location list) (replacement list) &rest args)
     (let* ((old-ast (get-ast obj (butlast location)))
@@ -1333,7 +1336,7 @@ with REPLACEMENT.
   (:documentation "Return the modified OBJ with the AST at LOCATION removed.
 * OBJ object to be modified
 * LOCATION location to be removed in OBJ")
-  (:method ((obj parseable) location)
+  (:method ((obj parseable) (location ast))
     (remove-ast obj (ast-path location)))
   (:method ((obj parseable) (location list))
     (apply-mutation obj (at-targets (make-instance 'parseable-cut)
