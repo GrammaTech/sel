@@ -34,7 +34,6 @@
            :parseable
            :ast-root
            :asts
-           :copy-lock
            :*parseable-mutation-types*
            :parseable-mutation
            :parseable-insert
@@ -99,10 +98,7 @@
              :type #-sbcl list #+sbcl (or null (cons (cons keyword *) *))
              :documentation
              "List of all ASTs.
-See the documentation of `update-asts' for required invariants.")
-   (copy-lock :initform (make-lock "parseable-copy")
-              :copier :none
-              :documentation "Lock while copying parseable objects."))
+See the documentation of `update-asts' for required invariants."))
   (:documentation "Parsed AST tree software representation."))
 
 
@@ -621,22 +617,6 @@ made traceable by wrapping with curly braces, return that."))
 
 
 ;;; Core parseable methods
-(defvar *parseable-obj-code* (register-code 45 'parseable)
-  "Object code for serialization of parseable software objects.")
-
-(defstore-cl-store (obj parseable stream)
-  ;; NOTE: Does *not* support documentation.
-  (let ((copy (copy obj)))
-    (setf (slot-value copy 'copy-lock) nil)
-    (output-type-code *parseable-obj-code* stream)
-    (cl-store::store-type-object copy stream)))
-
-(defrestore-cl-store (parseable stream)
-  ;; NOTE: Does *not* support documentation.
-  (let ((obj (cl-store::restore-type-object stream)))
-    (setf (slot-value obj 'copy-lock) (make-lock "parseable-copy"))
-    obj))
-
 (defmethod initialize-instance :after ((obj parseable) &rest initargs)
   "If an AST-ROOT is given in the initialization, ensure all ASTs have PATHs."
   (declare (ignorable initargs))
@@ -652,8 +632,7 @@ made traceable by wrapping with curly braces, return that."))
   ;; Update ASTs before copying to avoid duplicates. Lock to prevent
   ;; multiple threads from updating concurrently.
   (unless (slot-value obj 'ast-root)
-    (bordeaux-threads:with-lock-held ((slot-value obj 'copy-lock))
-      (update-asts obj))))
+    (update-asts obj)))
 
 (defmethod size ((obj parseable))
   "Return the number of ASTs in OBJ."
