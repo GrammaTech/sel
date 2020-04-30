@@ -214,24 +214,25 @@ non-symlink text files that don't end in \"~\" and are not ignored by
   ;; Verify directory exists, otherwise the copy will fail.
   (ensure-directories-exist path)
 
-  ;; Copy the project directory to the output path.
+  ;; Write the software objects.
+  (handler-bind ((file-access
+                  (lambda (c)
+                     (warn "Changing permission from ~a to ~a"
+                           (file-access-operation c) (file-access-path c))
+                     (invoke-restart 'set-file-writable))))
+    (loop for (file . obj) in (all-files project)
+        do (to-file obj (ensure-directories-exist
+                         (path-join path file)))))
+
+  ;; Copy the remainder of the project directory to the output path.
   (when (and (project-dir project)
              (probe-file (project-dir project))
              (not (equalp path (canonical-pathname (project-dir project)))))
     (multiple-value-bind (stdout stderr errno)
-        (shell "cp -pr ~a/. ~a/" (project-dir project) path)
+        (shell "cp -pnr ~a/. ~a/" (project-dir project) path)
       (declare (ignorable stdout))
       (assert (zerop errno) (path)
-              "Creation of output directory failed with: ~a" stderr)))
-
-  ;; Write the software objects.
-  (handler-bind ((file-access
-                  (lambda (c)
-                    (warn "Changing permission from ~a to ~a"
-                          (file-access-operation c) (file-access-path c))
-                    (invoke-restart 'set-file-writable))))
-    (loop for (file . obj) in (all-files project)
-       do (to-file obj (merge-pathnames-as-file path file)))))
+              "Population of output directory failed with: ~a" stderr))))
 
 (defmethod size ((obj project))
   "Return summed size across all `evolve-files'."
