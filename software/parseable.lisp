@@ -21,7 +21,6 @@
            :ast-to-list
            :ast-equal-p
            :ast-hash
-           :ast-clear-hash
            :ast-later-p
            :conflict-ast
            :conflict-ast-child-alist
@@ -109,21 +108,21 @@ for objects to allow method dispatch on generic AST objects regardless of
 whether they inherit from the functional trees library."))
 
 (defclass functional-tree-ast (node ast)
-  ((class :initarg :class :initform nil :accessor ast-class
+  ((class :initarg :class :initform nil :reader ast-class
           :documentation "Class of the AST." :type symbol)
-   (annotations :initarg :annotations :initform nil :accessor ast-annotations
+   (annotations :initarg :annotations :initform nil :reader ast-annotations
                 :documentation "A-list of annotations." :type list)
-   (stored-hash :initarg :stored-hash :initform nil :accessor ast-stored-hash
+   (stored-hash :initarg :stored-hash :initform nil
                 :documentation "A cached hash." :type (or null hash-type)))
   (:documentation "Base class for SEL functional tree ASTs.
 An applicative tree structure is used to hold the ASTs."))
 
 (defclass conflict-ast (functional-tree-ast)
   ((child-alist :initarg :child-alist :initform nil
-                :accessor conflict-ast-child-alist
+                :reader conflict-ast-child-alist
                 :documentation "Child-Alist of the AST." :type list)
    (default-children :initarg :default-children :initform nil
-                     :accessor conflict-ast-default-children
+                     :reader conflict-ast-default-children
                      :documentation "Default-Children of the AST." :type list))
   (:documentation "Node representing several possibilities for an AST.
 The mapping from a conflicted AST into a regular AST is as follows: for
@@ -165,13 +164,6 @@ PRINT-OBJECT method on AST structures.")
   (:documentation "Return given AST ANNOTATION.")
   (:method ((ast ast) (annotation symbol))
     (aget annotation (ast-annotations ast))))
-(defgeneric (setf ast-annotation) (v ast annotation)
-  (:documentation "Set the given AST ANNOTATION to V.")
-  (:method (v (ast ast) (annotation symbol))
-    (setf (ast-annotations ast)
-          (cons (cons annotation v)
-                (adrop (list annotation) (ast-annotations ast))))
-    v))
 
 ;; FIXME: When clang is converted to utilize functional trees,
 ;; this method specialization will no longer be required as we
@@ -389,20 +381,9 @@ modile +AST-HASH-BASE+"
 ;;; We cache this for ast nodes otherwise the time
 ;;; for computing ast-hash on a large tree can become very large
 (defmethod ast-hash ((ast ast))
-  (or (ast-stored-hash ast)
-      (setf (ast-stored-hash ast)
+  (or (slot-value ast 'stored-hash)
+      (setf (slot-value ast 'stored-hash)
             (ast-hash (cons (ast-class ast) (ast-children ast))))))
-
-(defgeneric ast-clear-hash (ast)
-  (:documentation "Clear the stored hash fields of an ast"))
-
-(defmethod ast-clear-hash ((ast t))
-  ast)
-
-(defmethod ast-clear-hash ((ast ast))
-  (setf (ast-stored-hash ast) nil)
-  (mapc #'ast-clear-hash (ast-children ast))
-  ast)
 
 
 ;;; Generic functions on ASTs

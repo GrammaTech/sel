@@ -360,8 +360,7 @@ See also: https://clang.llvm.org/docs/FAQ.html#id2.")
     :initarg :syn-ctx :initform nil
     :accessor ast-syn-ctx :type (or null symbol))
    (stored-hash
-    :initarg :stored-hash :initform nil
-    :accessor ast-stored-hash :type (or null fixnum))
+    :initarg :stored-hash :initform nil :type (or null fixnum))
    (annotations
     :initarg :annotations :initform nil
     :accessor ast-annotations :type list)))
@@ -451,6 +450,13 @@ the macro is defined within."
                           (when qual (list ":QUAL" qual)))
                         (let ((desugared (type-desugared obj)))
                           (when desugared (list ":DESUGARED" desugared))))))))
+
+;; FIXME: When clang is converted to utilize functional trees,
+;; this method specialization will no longer be required.
+(defmethod ast-hash ((ast clang-ast))
+  (or (slot-value ast 'stored-hash)
+      (setf (slot-value ast 'stored-hash)
+            (ast-hash (cons (ast-class ast) (ast-children ast))))))
 
 
 ;;; Object creation, serialization, and copying.
@@ -4184,6 +4190,14 @@ on various ast classes"))
   (:documentation "The declaration referenced by AST.")
   (:method ((ast clang-ast))
     (ast-annotation ast :referenceddecl)))
+
+(defgeneric (setf ast-annotation) (v ast annotation)
+  (:documentation "Set the given AST ANNOTATION to V.")
+  (:method (v (ast clang-ast) (annotation symbol))
+    (setf (ast-annotations ast)
+          (cons (cons annotation v)
+                (adrop (list annotation) (ast-annotations ast))))
+    v))
 
 ;; Helpers for the "ast-*" functions above
 (defun reference-decls-at-ast (a)
