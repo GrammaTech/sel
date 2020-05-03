@@ -50,8 +50,7 @@
 
 ;;; Javascript ast data structures
 (defclass javascript-ast (functional-tree-ast)
-  ((children :reader children
-             :type list
+  ((children :type list
              :initarg :children
              :initform nil
              :documentation "The list of children of the node,

@@ -42,8 +42,7 @@
 
 (defclass lisp-ast (functional-tree-ast)
   ((expression :initarg :expression :initform nil :reader expression)
-   (children :reader children
-             :type list
+   (children :type list
              :initarg :children
              :initform nil
              :documentation "The list of children of the node,
