@@ -1,11 +1,10 @@
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
+  GIT_CLONE_PATH: /root/quicklisp/local-projects/sel
 
 default:
   image: docker.grammatech.com/synthesis/sel
   tags: ["kubernetes", "cluster"]
-  before_script:
-    - ln -s $(pwd) /root/quicklisp/local-projects/
 
 check-format:
   stage: .pre
@@ -25,8 +24,6 @@ build-manual:
 test-ccl:
   variables:
     LISP: 'ccl'
-  # Allow this job to fail until we fix the checkout location issue.
-  allow_failure: true
   <<: *test
 
 test-sbcl:
