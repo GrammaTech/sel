@@ -31,7 +31,6 @@
            :convert-list-to-ast-helper
            ;; Parseable software object.
            :parseable
-           :ast-root
            :asts
            :*parseable-mutation-types*
            :parseable-mutation
@@ -52,11 +51,9 @@
            :enclosing-scope
            :scopes
            :get-vars-in-scope
-           :update-asts
            :update-caches
            :parse-asts
            :clear-caches
-           :update-asts-if-necessary
            :update-caches-if-necessary
            :bad-asts
            ;; :good-stmts
@@ -73,9 +70,9 @@
            :parent-ast-p
            :get-children
            :get-immediate-children
-           :prepend-to-genome
-           :append-to-genome-preamble
-           :append-to-genome
+           :prepend-text-to-genome
+           :append-text-to-genome-preamble
+           :append-text-to-genome
            :index-of-ast
            :ast-at-index
            ;; Mutation wrappers
@@ -88,16 +85,12 @@
 (in-readtable :curry-compose-reader-macros)
 
 (define-software parseable (software file)
-  ((genome   :initarg :genome :accessor genome :initform "" :copier :direct
-             :documentation "Source code as a string.")
-   (ast-root :initarg :ast-root :initform nil :accessor ast-root
-             :documentation "Root node of AST.")
+  ((genome   :initarg :genome :accessor genome :initform ""
+             :documentation "Lazily parsed AST representation of the code.")
    (asts     :initarg :asts :reader asts
              :initform nil :copier :direct
              :type #-sbcl list #+sbcl (or null (cons (cons keyword *) *))
-             :documentation
-             "List of all ASTs.
-See the documentation of `update-asts' for required invariants."))
+             :documentation "List of all ASTs."))
   (:documentation "Parsed AST tree software representation."))
 
 
@@ -527,8 +520,8 @@ and :SCOPE.
 (defgeneric get-vars-in-scope (software ast &optional keep-globals)
   (:documentation "Return all variables in enclosing scopes."))
 
-(defgeneric update-asts (software)
-  (:documentation "Update the store of asts associated with SOFTWARE.
+(defgeneric parse-asts (software)
+  (:documentation "Parse genome of SOFTWARE into an AST representation.
 There are some requirements for the ASTs constructed by this method:
 * We require that *all* source text be stored as a raw string
   somewhere in the AST tree.  Source text tucked inside of a
@@ -539,15 +532,8 @@ There are some requirements for the ASTs constructed by this method:
 Other methods in on parseable objects, specifically `ast-can-recurse'
 and `ast-equal-p' depend on these invariants."))
 
-(defgeneric parse-asts (software)
-  (:documentation "Parse genome of SOFTWARE, returning a list of ASTs."))
-
 (defgeneric clear-caches (software)
   (:documentation "Clear cached fields on SOFTWARE"))
-
-(defgeneric update-asts-if-necessary (software)
-  (:documentation "Parse ASTs in SOFTWARE if the `ast-root' field
-has not been set."))
 
 (defgeneric update-caches-if-necessary (software)
   (:documentation "Update cached fields in SOFTWARE if these fields have
@@ -601,64 +587,39 @@ made traceable by wrapping with curly braces, return that."))
 
 ;;; Core parseable methods
 (defmethod initialize-instance :after ((obj parseable) &rest initargs)
-  "If an AST-ROOT is given in the initialization, ensure all ASTs have PATHs."
+  "If a GENOME of ASTs is given in the initialization,
+ensure all ASTs have PATHs."
   (declare (ignorable initargs))
-  (with-slots (ast-root genome) obj
-    (when ast-root
-      (setf ast-root (populate-fingers ast-root)
-            genome nil))))
-
-(defmethod copy :before ((obj parseable) &key)
-  "Update ASTs in OBJ prior to performing a copy.
-* OBJ software object to copy
-"
-  ;; Update ASTs before copying to avoid duplicates. Lock to prevent
-  ;; multiple threads from updating concurrently.
-  (unless (slot-value obj 'ast-root)
-    (update-asts obj)))
+  (with-slots (genome) obj
+    (when (typep genome 'ast)
+      (setf genome (populate-fingers genome)))))
 
 (defmethod size ((obj parseable))
   "Return the number of ASTs in OBJ."
   (length (asts obj)))
 
-(defmethod genome ((obj parseable))
-  "Return the source code in OBJ."
-  ;; If genome string is stored directly, use that. Otherwise,
-  ;; build the genome by walking the AST.
-  (if-let ((val (slot-value obj 'genome)))
-    (progn (assert (null (slot-value obj 'ast-root)) (obj)
-                   "Software object ~a has both genome and ASTs saved" obj)
-           val)
-    (source-text (ast-root obj))))
-
 (defmethod genome-string ((obj parseable) &optional stream)
   "Return the source code of OBJ, optionally writing to STREAM"
-  (let ((genome (or (genome obj) "")))
-    (if stream (write-string genome stream) genome)))
+  (let ((genome-string (if (stringp (slot-value obj 'genome))
+                           (slot-value obj 'genome)
+                           (source-text (slot-value obj 'genome)))))
+    (if stream (write-string genome-string stream) genome-string)))
+
+(defmethod genome :before ((obj parseable))
+  "Lazily parse the genome upon first access."
+  (when (stringp (slot-value obj 'genome))
+    (setf (slot-value obj 'genome)
+          (populate-fingers (parse-asts obj)))))
 
 (defmethod (setf genome) :before (new (obj parseable))
-  "Clear ASTs, fitness, and other caches prior to updating the NEW genome."
+  "Clear fitness and other caches prior to updating the NEW genome."
   (declare (ignorable new))
-  (with-slots (ast-root fitness) obj
-    (setf ast-root nil
-          fitness nil))
+  (setf (slot-value obj 'fitness) nil)
   (clear-caches obj))
 
-(defmethod (setf ast-root) :before (new (obj parseable))
-  "Clear fitness and other caches prior to updating
-the NEW ast-root."
-  (declare (ignorable new))
-  (with-slots (fitness) obj
-    (setf fitness nil))
-  (clear-caches obj))
-
-(defmethod (setf ast-root) :after (new (obj parseable))
-  "Ensure the AST paths in NEW are correct after modifying the
-applicative AST tree and clear the genome string."
-  (setf (slot-value obj 'ast-root)
-        (populate-fingers new)
-        (slot-value obj 'genome)
-        nil))
+(defmethod (setf genome) :after ((new ast) (obj parseable))
+  "Ensure fingers are populated after setting the NEW genome AST."
+  (setf (slot-value obj 'genome) (populate-fingers new)))
 
 (defmethod from-file ((obj parseable) path)
   "Initialize OBJ with the contents of PATH."
@@ -684,22 +645,9 @@ if the original file is known.")
                             ofile))))))
     (call-next-method)))
 
-(defmethod ast-root :before ((obj parseable))
-  "Ensure the `ast-root' field is set on OBJ prior to access."
-  (update-asts-if-necessary obj))
-
-(defmethod size :before ((obj parseable))
-  "Ensure the `asts' field is set on OBJ prior to access."
-  (update-asts-if-necessary obj))
-
 (defmethod asts :before ((obj parseable))
   "Ensure the `asts' field is set on OBJ prior to access."
   (update-caches-if-necessary obj))
-
-(defmethod update-asts-if-necessary ((obj parseable))
-  "Parse ASTs in obj if the `ast-root' field has not been set.
-* OBJ object to potentially populate with ASTs"
-  (with-slots (ast-root) obj (unless ast-root (update-asts obj))))
 
 ;;; NOTE: The `update-caches' method assumes that the initial
 ;;;       top-level AST can be thrown away.
@@ -712,7 +660,7 @@ if the original file is known.")
                            (appending (when (typep c 'ast)
                                         (collect-asts c)))))))
       (setf (slot-value obj 'asts)
-            (cdr (collect-asts (ast-root obj)))))))
+            (cdr (collect-asts (genome obj)))))))
 
 (defmethod update-caches-if-necessary ((obj parseable))
   "Update cached fields of OBJ if these fields have not been set."
@@ -760,7 +708,7 @@ if the original file is known.")
   "Return the AST in OBJ at the given PATH.
 * OBJ software object with ASTs
 * PATH path to the AST to return"
-  (let ((tree (ast-root obj))
+  (let ((tree (genome obj))
         (pred nil))
     (iter (for i from 0)
           (for j in path)
@@ -810,7 +758,7 @@ otherwise.
                    (cons new-subtree
                          (get-parent-asts-helper new-subtree
                                                  (cdr path)))))))
-    (reverse (get-parent-asts-helper (ast-root obj) (ast-path ast)))))
+    (reverse (get-parent-asts-helper (genome obj) (ast-path ast)))))
 
 (defmethod get-children ((obj parseable) (ast ast))
   "Return all the children of AST in OBJ.
@@ -848,60 +796,57 @@ otherwise.
 
 
 ;;; Genome manipulations
-(defgeneric prepend-to-genome (software text)
+(defgeneric prepend-text-to-genome (software text)
   (:documentation "Prepend non-AST TEXT to OBJ genome.
 
 * OBJ object to modify with text
 * TEXT text to prepend to the genome")
-  (:method ((obj parseable) text)
+  (:method ((obj parseable) (text string)
+            &aux (root (genome obj)))
     (labels ((ensure-newline (text)
                (if (not (equalp #\Newline (last-elt text)))
                    (concatenate 'string text '(#\Newline))
                    text)))
-      (with-slots (ast-root) obj
-        (setf ast-root
-              (copy ast-root
-                    :children
-                    (append (list (concatenate 'string
-                                    (ensure-newline text)
-                                    (car (ast-children ast-root))))
-                            (cdr (ast-children ast-root)))))))))
+      (setf (slot-value obj 'genome)
+            (copy root
+                  :children (cons (format nil "~a~a"
+                                          (ensure-newline text)
+                                          (car (ast-children root)))
+                                  (cdr (ast-children root))))))))
 
-(defgeneric append-to-genome-preamble (software text)
+(defgeneric append-text-to-genome-preamble (software text)
   (:documentation "Append non-AST TEXT to OBJ's genome preamble.
 
 * OBJ object to modify with text
 * TEXT text to append to the genome preamble")
-  (:method ((obj parseable) text)
+  (:method ((obj parseable) (text string)
+            &aux (root (genome obj)))
     (labels ((ensure-newline (text)
                (if (not (equalp #\Newline (last-elt text)))
                    (concatenate 'string text '(#\Newline))
                    text)))
-      (with-slots (ast-root) obj
-        (setf ast-root
-              (copy ast-root
-                    :children
-                    (append (list (concatenate 'string
-                                    (car (ast-children ast-root))
-                                    (ensure-newline text)))
-                            (cdr (ast-children ast-root)))))))))
+      (setf (slot-value obj 'genome)
+            (copy root
+                  :children (cons (format nil "~a~a"
+                                              (car (ast-children root))
+                                              (ensure-newline text))
+                                  (cdr (ast-children root))))))))
 
-(defgeneric append-to-genome (software text)
-  (:documentation "Append non-AST TEXT to OBJ genome.  The new text will not be parsed.
+(defgeneric append-text-to-genome (software text)
+  (:documentation "Append non-AST TEXT to OBJ genome.
 
 * OBJ object to modify with text
 * TEXT text to append to the genome")
-  (:method ((obj parseable) text)
-    (with-slots (ast-root) obj
-      (setf ast-root
-            (copy ast-root
-                  :children
-                  (if (stringp (lastcar (ast-children ast-root)))
-                      (append (butlast (ast-children ast-root))
-                              (list (concatenate 'string
-                                      (lastcar (ast-children ast-root))
-                                      text)))
-                      (append (ast-children ast-root) (list text))))))))
+  (:method ((obj parseable) (text string)
+            &aux (root (genome obj)))
+    (setf (slot-value obj 'genome)
+          (copy root
+                :children (if (stringp (lastcar (ast-children root)))
+                              (append (butlast (ast-children root))
+                                      (list (format nil "~a~a"
+                                                    (lastcar (ast-children root))
+                                                    text)))
+                              (append (ast-children root) (list text)))))))
 
 
 ;; Targeting functions
@@ -1175,24 +1120,28 @@ SOFTWARE.
 * SOFTWARE object to be mutated
 * OPS list of association lists with operations to be performed
 "
-  (setf (ast-root software)
-        (with-slots (ast-root) software
-          (iter (for (op . properties) in ops)
-                (let ((stmt1 (if (listp (aget :stmt1 properties))
-                                 (aget :stmt1 properties)
-                                 (ast-path (aget :stmt1 properties))))
-                      (value1 (if (functionp (aget :value1 properties))
-                                  (funcall (aget :value1 properties))
-                                  (aget :value1 properties))))
-                  (setf ast-root
-                        (ecase op
-                          (:set (with ast-root stmt1 value1))
-                          (:cut (less ast-root stmt1))
-                          (:insert (insert ast-root stmt1 value1))
-                          (:splice (splice ast-root stmt1 value1)))))
-                (finally (return ast-root)))))
+  (setf (genome software)
+        (iter (for (op . properties) in ops)
+              (let ((stmt1 (if (listp (aget :stmt1 properties))
+                               (aget :stmt1 properties)
+                               (ast-path (aget :stmt1 properties))))
+                    (value1 (if (functionp (aget :value1 properties))
+                                (funcall (aget :value1 properties))
+                                (aget :value1 properties))))
+                ;; Set the genome slot directly here to avoid
+                ;; triggering any :before/:around/:after methods
+                ;; associated with setting the genome through
+                ;; the writer method.  These auxillary methods
+                ;; are triggered after all mutations ops have
+                ;; been applied.
+                (setf (slot-value software 'genome)
+                      (ecase op
+                        (:set (with (genome software) stmt1 value1))
+                        (:cut (less (genome software) stmt1))
+                        (:insert (insert (genome software) stmt1 value1))
+                        (:splice (splice (genome software) stmt1 value1)))))
+              (finally (return (slot-value software 'genome)))))
 
-  (clear-caches software)
   software)
 
 (defmethod recontextualize-mutation ((software parseable) (mutation mutation))

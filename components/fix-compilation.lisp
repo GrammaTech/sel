@@ -276,7 +276,7 @@ that function may be declared.")
                                       child-ranges)))))))
 
              (values ranges line column))))
-      (cdr (scan-ast (ast-root obj) 1 1)))))
+      (cdr (scan-ast (genome obj) 1 1)))))
 
 (defgeneric asts-containing-source-location (software location)
   (:documentation "Return a list of ASTs in SOFTWARE containing LOC.")

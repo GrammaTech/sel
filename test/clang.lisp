@@ -105,27 +105,21 @@
   (is (find "/foo/" (normalize-flags "/foo/" (list "-L" "."))
             :test (lambda (s1 s2) (search s1 s2 :test #'equal)))))
 
-(deftest asts-are-set-lazily ()
+(deftest asts-are-parsed-lazily ()
   (with-fixture hello-world-clang
-    (is (null (slot-value *hello-world* 'ast-root))
-        "ast-root is initially null")
-    (is (asts *hello-world*)
-        "ASTs are loaded when needed")
-    (is (slot-value *hello-world* 'ast-root)
-        "ast-root is set after loading ASTS.")))
+    (is (stringp (slot-value *hello-world* 'genome))
+        "genome is initially a string")
+    (is (typep (genome *hello-world*) 'ast)
+        "ASTs are parsed when needed")))
 
 (deftest asts-are-set-on-copy ()
   (with-fixture hello-world-clang
     (let ((new (copy *hello-world*)))
-      (is (slot-value new 'ast-root)
-          "ASTs set on copy")
-      (is (ast-equal-p (slot-value new 'ast-root)
-                       (slot-value *hello-world* 'ast-root))
+      (is (eq (genome new) (genome *hello-world*))
           "Copy and original share ASTs")
 
       (apply-mutation new (make-instance 'clang-swap :object new))
-      (is (ast-equal-p (slot-value new 'ast-root)
-                       (slot-value (copy new) 'ast-root))
+      (is (eq (genome new) (genome (copy new)))
           "Additional copies do not cause updates"))))
 
 (deftest (splits-global-and-stmt-asts :long-running) ()
@@ -164,7 +158,8 @@
                         (:stmt1 . ,stmt1)
                         (:value1 . ,(make-literal 0))))
       (is (different-asts (asts variant) (asts *hello-world*)))
-      (is (not (equal (genome variant) (genome *hello-world*)))))))
+      (is (not (equal (genome-string variant)
+                      (genome-string *hello-world*)))))))
 
 (deftest can-apply-mutation-w-value2 ()
   (with-fixture sqrt-clang
@@ -178,7 +173,8 @@
                         (:stmt1 . ,integer-constant)
                         (:value1 . ,(make-literal 0))))
       (is (different-asts (asts variant) (asts *sqrt*)))
-      (is (not (equal (genome variant) (genome *sqrt*))))
+      (is (not (equal (genome-string variant)
+                      (genome-string *sqrt*))))
       (is (stmt-with-text variant "0")))))
 
 (deftest cut-shortens-a-clang-software-object()
@@ -189,8 +185,8 @@
       (apply-mutation variant `(clang-cut (:stmt1 . ,stmt1)))
       (is (different-asts (asts variant)
                           (asts *hello-world*)))
-      (is (not (equal (genome variant)
-                      (genome *hello-world*))))
+      (is (not (equal (genome-string variant)
+                      (genome-string *hello-world*))))
       (is (< (size variant)
              (size *hello-world*))))))
 
@@ -205,8 +201,8 @@
                       `(clang-insert (:stmt1 . ,stmt1) (:stmt2 . ,stmt2)))
       (is (different-asts (asts variant)
                           (asts *hello-world*)))
-      (is (not (equal (genome variant)
-                      (genome *hello-world*))))
+      (is (not (equal (genome-string variant)
+                      (genome-string *hello-world*))))
       (is (> (size variant)
              (size *hello-world*))))))
 
@@ -221,35 +217,28 @@
                       `(clang-swap (:stmt1 . ,stmt1) (:stmt2 . ,stmt2)))
       (is (different-asts (asts variant)
                           (asts *hello-world*)))
-      (is (not (equal (genome variant)
-                      (genome *hello-world*))))
+      (is (not (equal (genome-string variant)
+                      (genome-string *hello-world*))))
       (is (= (size variant)
              (size *hello-world*))))))
 
 (deftest clang-copies-are-independent ()
   (with-fixture hello-world-clang
-    (let ((orig-genome (genome *hello-world*))
+    (let ((orig-genome-string (genome-string *hello-world*))
           (variant (copy *hello-world*)))
       (apply-mutation
        variant
        `(clang-cut (:stmt1 . ,(stmt-with-text
                                variant "printf(\"Hello, World!\\n\");"))))
-      (is (string= (genome *hello-world*) orig-genome))
-      (is (not (string= (genome variant) orig-genome))))))
-
-(deftest clang-copy-clears-genome-slot ()
-  (with-fixture hello-world-clang
-    (let ((variant (copy *hello-world*)))
-      (is (null (slot-value (copy *hello-world*) 'genome)))
-
-      (is (string= (genome *hello-world*)
-                   (genome variant))))))
+      (is (string= (genome-string *hello-world*)
+                   orig-genome-string))
+      (is (not (string= (genome-string variant)
+                        orig-genome-string))))))
 
 (deftest clang-copies-share-asts ()
   (with-fixture hello-world-clang
     (let ((variant (copy *hello-world*)))
-      (is (ast-equal-p (ast-root *hello-world*)
-                       (ast-root variant)))
+      (is (eq (genome *hello-world*) (genome variant)))
       (is (> (size variant) 0)))))
 
 (deftest clang-mutation-preserves-unmodified-subtrees ()
@@ -265,14 +254,12 @@
 (deftest crossover-clang-software-object-does-not-crash()
   (with-fixture hello-world-clang
     (let* ((variant (crossover (copy *hello-world*) (copy *hello-world*))))
-      (is (string/= (genome variant)
-                    "")))))
+      (is (string/= (genome-string variant) "")))))
 
 (deftest empty-function-body-crossover-does-not-crash ()
   (with-fixture empty-function-body-crossover-bug-clang
     (let ((crossed (crossover *soft* *soft*)))
-      (is (string/= (genome crossed)
-                    "")))))
+      (is (string/= (genome-string crossed) "")))))
 
 (deftest select-intraprocedural-pair-does-not-return-null ()
   (with-fixture select-intraprocedural-pair-non-null-clang
@@ -286,7 +273,8 @@
   (with-fixture hello-world-clang
     (with-temporary-file (:pathname store-file)
       (store *hello-world* store-file)
-      (is (equalp (genome (restore store-file)) (genome *hello-world*))))))
+      (is (equalp (genome-string (restore store-file))
+                  (genome-string *hello-world*))))))
 
 
 ;;; Misc. clang tests
@@ -338,7 +326,6 @@
 (deftest clang-includes-initialized ()
   (with-fixture headers-clang
     (let ((includes (includes *headers*)))
-      (ast-root *headers*)
       (is (listp includes))
       ;; As JR explained, "first.c" is handled
       ;; differently in the old clang front end, in
@@ -376,10 +363,10 @@
     ;; occurrences)
     (is (= 2 (nest (length)
                    (all-matches "#include\\w* \"first.c\"")
-                   (genome *headers*))))
+                   (genome-string *headers*))))
     (is (= 2 (nest (length)
                    (all-matches "#include\\w* \"third.c\"")
-                   (genome *headers*))))))
+                   (genome-string *headers*))))))
 
 (deftest add-macro-test ()
   (with-fixture hello-world-clang
@@ -387,7 +374,7 @@
                                                :name "ONE"
                                                :body "ONE 1"))
     (is (equal 1 (length (macros *hello-world*))))
-    (is (not (null (search "#define ONE 1" (genome *hello-world*)))))))
+    (is (not (null (search "#define ONE 1" (genome-string *hello-world*)))))))
 
 (deftest find-macro-test ()
   (with-fixture hello-world-clang
@@ -427,7 +414,7 @@
 
 (deftest add-new-type-changes-genome-and-types ()
   (with-fixture hello-world-clang
-    (let ((orig-genome-length (length (genome *hello-world*)))
+    (let ((orig-genome-str-length (length (genome-string *hello-world*)))
           (orig-num-types (hash-table-count (types *hello-world*)))
           (struct-str "struct printf { chocolate cake; }"))
       (add-type *hello-world*
@@ -435,9 +422,9 @@
                       (make-instance 'clang-type
                         :decl struct-str :name "struct printf")))
       ;; new type gets added to genome
-      (is (= (+ orig-genome-length (length struct-str)
-                (length (genome *hello-world*)))))
-      (is (search struct-str (genome *hello-world*)))
+      (is (= (+ orig-genome-str-length (length struct-str)
+                (length (genome-string *hello-world*)))))
+      (is (search struct-str (genome-string *hello-world*)))
       ;; new type is added to types
       (is (= (1+ orig-num-types) (hash-table-count (types *hello-world*)))))))
 
@@ -457,8 +444,8 @@
       (force-include copy "<system.h>")
       (is (member "<system.h>" (includes copy) :test #'string=)
           "<system.h> should have been added the software object's includes")
-      (is (not (equal (search "<system.h>" (genome copy) :from-end nil)
-                      (search "<system.h>" (genome copy) :from-end t)))
+      (is (not (equal (search "<system.h>" (genome-string copy) :from-end nil)
+                      (search "<system.h>" (genome-string copy) :from-end t)))
           "<system.h> should have been added twice to the software object"))))
 
 (deftest clang-mutation-targets-default-test ()
@@ -673,5 +660,5 @@ int x = CHARSIZE;")))
       (is (stmt-starting-with-text *soft* "int x = 0"))
       (is (stmt-starting-with-text *soft* "\"2 bytes: Δ\""))
       (is (stmt-starting-with-text *soft* "int y = 1"))
-      (is (string= (genome *soft*)
+      (is (string= (genome-string *soft*)
                    (file-to-string (unicode-dir "unicode.c")))))))

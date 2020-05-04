@@ -159,8 +159,8 @@
                                   :object variant))
         (is (> (size variant)
                (size *hello-world*)))
-        (is (string/= (genome variant)
-                      (genome *hello-world*)))))))
+        (is (string/= (genome-string variant)
+                      (genome-string *hello-world*)))))))
 
 (deftest (insert-decl-rename-lengthens-and-insinuates-a-clang-w-fodder
           :long-running) ()
@@ -168,7 +168,7 @@
     (let ((var (copy *gcd*))
           (mut (make-instance 'insert-fodder-decl-rep :object *gcd*)))
       (apply-mutation var mut)
-      (is (string/= (genome var) (genome *gcd*))
+      (is (string/= (genome-string var) (genome-string *gcd*))
           "Genome of *gcd* changed by INSERT-FODDER-DECL-REP.")
       ;; FIXME: Variable rebinding may overwrite the variable
       ;; declaration. This mutation was broken prior to the commit
@@ -179,7 +179,7 @@
                                (aget :new-var)
                                (aget :rename-variable)
                                (targets mut))
-                         (genome var)))
+                         (genome-string var)))
           2)
        "New decl variable appears in more than just the declaring ast."))))
 
@@ -192,8 +192,8 @@
                                      (:value1 . ,target)))
       (is (> (size variant)
              (size *hello-world*)))
-      (is (string/= (genome variant)
-                    (genome *hello-world*))))))
+      (is (string/= (genome-string variant)
+                    (genome-string *hello-world*))))))
 
 (deftest (set-value-changes-a-clang-w-fodder-software-object
           :long-running) ()
@@ -209,8 +209,8 @@
                                              `(:StringLiteral "Hello, mutate!")))))
       (is (= (size variant)
              (size *hello-world*)))
-      (is (string/= (genome variant)
-                    (genome *hello-world*))))))
+      (is (string/= (genome-string variant)
+                    (genome-string *hello-world*))))))
 
 (deftest (insert-fodder-lengthens-a-clang-w-fodder-software-object
           :long-running) ()
@@ -220,7 +220,8 @@
           (progn (apply-mutation variant (make-instance 'insert-fodder
                                            :object variant))
                  (is (> (size variant) (size *gcd*)))
-                 (is (string/= (genome variant) (genome *gcd*))))
+                 (is (string/= (genome-string variant)
+                               (genome-string *gcd*))))
 
         (mutate (e)
           ;; Fodder mutations may fail when bad variable bindings make

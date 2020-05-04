@@ -40,7 +40,8 @@
   (:import-from :cffi :translate-camelcase-name)
   (:export :javascript
            :javascript-mutation
-           :javascript-ast))
+           :javascript-ast
+           :acorn))
 (in-package :software-evolution-library/software/javascript)
 (in-readtable :curry-compose-reader-macros)
 
@@ -60,12 +61,15 @@ which may be more nodes, or other values.")
 
 
 ;;; Javascript parsing
-(defmethod parse-asts ((obj javascript))
-  "Invoke the acorn parser on the genome of OBJ."
+(defgeneric acorn (obj)
+  (:documentation "Invoke the acorn parser on the genome of OBJ returning a
+raw list of ASTs in OBJ for use in `parse-asts`."))
+
+(defmethod acorn ((obj javascript))
   (labels ((invoke-acorn (parsing-mode)
              "Invoke acorn with the given PARSING-MODE (:script or :module)."
-             (with-temporary-file (:pathname src-file :type (ext obj))
-               (string-to-file (genome obj) src-file)
+             (with-temporary-file-of (:pathname src-file :type (ext obj))
+               (genome-string obj)
                (multiple-value-bind (stdout stderr exit)
                    (shell "acorn --compact --allow-hash-bang ~a ~a"
                           (if (eq parsing-mode :module)
@@ -102,7 +106,7 @@ which may be more nodes, or other values.")
                                        "type" "start" "end")
                            str))
 
-(defmethod update-asts ((obj javascript))
+(defmethod parse-asts ((obj javascript))
   (labels
       ((annotations (alist)
          (remove-if (lambda (pair)
@@ -269,33 +273,32 @@ which may be more nodes, or other values.")
                                   (aget :local ast-alist))
                             :test #'equal))
                           (t nil))))
-       (make-children (genome alist child-alists child-asts
+       (make-children (source-text alist child-alists child-asts
                        &aux (start (aget :start alist)))
          (if child-alists
              (iter (for child-alist in child-alists)
                    (for child-ast in child-asts)
-                   (collect (subseq genome start (aget :start child-alist))
+                   (collect (subseq source-text start (aget :start child-alist))
                             into result)
                    (collect child-ast into result)
                    (setf start (aget :end child-alist))
                    (finally
                      (return (append result
-                                     (list (subseq genome
+                                     (list (subseq source-text
                                                    start
                                                    (aget :end alist)))))))
-             (list (subseq genome (aget :start alist) (aget :end alist)))))
-       (make-tree (genome ast-alist)
+             (list (subseq source-text (aget :start alist) (aget :end alist)))))
+       (make-tree (source-text ast-alist)
          (let ((children (collect-children ast-alist)))
            (make-instance 'javascript-ast
              :class (make-keyword (string-upcase (aget :type ast-alist)))
-             :children (make-children genome
+             :children (make-children source-text
                                       ast-alist
                                       children
-                                      (mapcar {make-tree genome} children))
+                                      (mapcar {make-tree source-text} children))
              :annotations (annotations ast-alist)))))
-    (setf (ast-root obj)
-          (fix-newlines (make-tree (genome obj) (parse-asts obj))))
-    obj))
+    (nest (fix-newlines)
+          (make-tree (genome-string obj) (acorn obj)))))
 
 (defmethod convert ((to-type (eql 'javascript-ast)) (collection string)
                     &key &allow-other-keys)
@@ -469,7 +472,7 @@ AST ast to return the enclosing scope for"
                                :ForInStatement
                                :ForOfStatement)))
                (cdr (get-parent-asts obj ast)))
-      (ast-root obj)))
+      (genome obj)))
 
 (defmethod scopes ((obj javascript) (ast javascript-ast))
   "Return lists of variables in each enclosing scope of AST.

@@ -338,10 +338,10 @@ int main() { puts(\"~d\"); return 0; }
                 (cons (some->> (phenome obj)
                                (shell)
                                (parse-integer))
-                      (genome obj)))
+                      (genome-string obj)))
               super)
     ;; Each variant printed the appropriate number
     (is (equal '(1 2 3 4) (mapcar [#'car #'fitness] mutants)))
-    ;; Each proxy had genome identical to the corresponding mutant
-    (is (equal (mapcar #'genome mutants)
+    ;; Each proxy had genome string identical to the corresponding mutant
+    (is (equal (mapcar #'genome-string mutants)
                (mapcar [#'cdr #'fitness] mutants)))))

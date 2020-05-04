@@ -32,7 +32,7 @@
 (defun valid-json-ast? (ast)
   (valid-json-ast-type? (aget :type ast)))
 
-(defmethod parse-asts ((obj json))
+(defmethod acorn ((obj json))
   "Parse a JSON file (with acorn as JavaScript with a simple hack).
 We do this by temporarily turning the JSON into a valid JavaScript
 file by pre-pending the left hand side of an assignment.  We then
@@ -41,7 +41,7 @@ of the assignment, and fix-up the :start and :end source range
 pointers to adjust for the extra offset introduced by the added left
 hand side."
   (with-temporary-file-of (:pathname src-file :type (ext obj))
-      (concatenate 'string "x=" (genome obj))
+      (concatenate 'string "x=" (genome-string obj))
     (multiple-value-bind (stdout stderr exit)
         (shell "acorn ~a" src-file)
       (unless (zerop exit)

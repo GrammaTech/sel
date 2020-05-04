@@ -50,8 +50,8 @@
 (deftest (javascript-project-instrument-uninstrument-is-identity
           :long-running) ()
   (with-fixture fib-project-javascript
-    (is (string= (genome *soft*)
-                 (genome (uninstrument (instrument (copy *soft*))))))))
+    (is (string= (genome-string *soft*)
+                 (genome-string (uninstrument (instrument (copy *soft*))))))))
 
 (deftest (javascript-project-instrument-and-collect-traces :long-running) ()
   (with-fixture fib-project-javascript

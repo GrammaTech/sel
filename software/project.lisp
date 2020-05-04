@@ -146,14 +146,15 @@ object (e.g., the original program).")
   "Returns concatenation of `evolve-files' and `other-files'."
   (append (evolve-files obj) (other-files obj)))
 
-(defmethod genome ((obj project))
-  "Returns all genomes joined with separators."
-  (format nil "~{~a~%~}"
-          (loop for (f . c) in (all-files obj)
-             collect "=============================="
-             collect f
-             collect "=============================="
-             collect (genome c))))
+(defmethod genome-string ((obj project) &optional stream)
+  "Returns all genomes joined with separators, optionally writing to STREAM."
+  (let ((genome-string (format nil "~{~a~%~}"
+                               (loop for (f . c) in (all-files obj)
+                                  collect "=============================="
+                                  collect f
+                                  collect "=============================="
+                                  collect (genome-string c)))))
+    (if stream (write-string genome-string stream) genome-string)))
 
 (defmethod (setf genome) (text (project project))
   (declare (ignore text project))

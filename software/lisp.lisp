@@ -446,12 +446,8 @@ returned."))
                     &key &allow-other-keys)
   (make-instance 'lisp-ast :children (read-forms+ string)))
 
-(defmethod from-string ((lisp lisp) string)
-  (setf (ast-root lisp) (convert 'lisp-ast string))
-  lisp)
-
-(defmethod from-file ((lisp lisp) file)
-  (from-string lisp (file-to-string file)))
+(defmethod parse-asts ((lisp lisp))
+  (convert 'lisp-ast (genome-string lisp)))
 
 (defmethod source-text ((obj result))
   (with-output-to-string (out)

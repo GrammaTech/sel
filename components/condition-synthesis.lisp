@@ -576,7 +576,7 @@ changing the final 0 to a 1.
   ;; include abst_cond implementation
 
   (setf (genome software)
-        (concatenate 'string +abst-cond-source+ (genome software)))
+        (concatenate 'string +abst-cond-source+ (genome-string software)))
   ;; instrument to output in-scope vars at abst_cond() invocations
   (instrument-abst-cond-traces software *trace-file* extra-exprs)
   ;; Build the whole project

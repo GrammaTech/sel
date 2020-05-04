@@ -536,7 +536,7 @@ instrumentation of function exit.
   "Return true if CLANG is instrumented
 * CLANG a clang software object
 "
-  (search +instrument-log-variable-name+ (genome clang)))
+  (search +instrument-log-variable-name+ (genome-string clang)))
 
 (defmethod instrument ((obj clang) &rest args)
   "Instrumentation for clang software objects.
@@ -716,8 +716,8 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
           (remove-if-not #'cdr points))
 
     ;; Add support code for tracing to obj
-    (prepend-to-genome obj +write-trace-forward-declarations+)
-    (append-to-genome obj +write-trace-implementation+)
+    (prepend-text-to-genome obj +write-trace-forward-declarations+)
+    (append-text-to-genome obj +write-trace-implementation+)
     (initialize-tracing instrumenter trace-file trace-env entry)
 
     ;; Add flag to allow building with pthreads
@@ -729,30 +729,30 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
   "Remove instrumentation from CLANG"
   (declare (ignorable num-threads))
   (labels ((uninstrument-genome-prologue (clang)
-             (with-slots (ast-root) clang
-               (setf ast-root
-                 (copy ast-root
+             (with-slots (genome) clang
+               (setf genome
+                 (copy genome
                        :children
-                       (cons (replace-all (first (ast-children ast-root))
+                       (cons (replace-all (first (ast-children genome))
                                           +write-trace-forward-declarations+
                                           "")
-                             (cdr (ast-children ast-root)))))))
+                             (cdr (ast-children genome)))))))
            (uninstrument-genome-epilogue (clang)
-             (with-slots (ast-root) clang
-               (setf ast-root
-                 (copy ast-root
+             (with-slots (genome) clang
+               (setf genome
+                 (copy genome
                        :children
                        (let ((last-child (nest (lastcar)
                                                (ast-children)
-                                               (ast-root clang))))
+                                               (genome clang))))
                          (if (stringp last-child)
                              (append
-                              (butlast (ast-children (ast-root clang)))
+                              (butlast (ast-children (genome clang)))
                               (list (subseq last-child
                                             0
                                             (search +write-trace-implementation+
                                                     last-child))))
-                             (ast-children (ast-root clang)))))))))
+                             (ast-children (genome clang)))))))))
 
     ;; Remove instrumentation setup code
     (uninstrument-genome-prologue clang)
@@ -846,8 +846,8 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
   ;; Insert log setup code in other-files with an entry point.
   (iter (for obj in (mapcar #'cdr (other-files clang-project)))
         (when-let ((entry (get-entry obj)))
-          (prepend-to-genome obj +write-trace-forward-declarations+)
-          (append-to-genome obj +write-trace-implementation+)
+          (prepend-text-to-genome obj +write-trace-forward-declarations+)
+          (append-text-to-genome obj +write-trace-implementation+)
           (initialize-tracing (make-instance 'clang-instrumenter
                                 :software obj
                                 :names names
@@ -1077,14 +1077,14 @@ OBJ a clang software object
       ;; before any other code. It optionally performs a handshake
       ;; with the trace collector, then opens the trace file and
       ;; writes the header.
-      (append-to-genome obj
-                        (format nil +write-trace-initialization+
-                                *instrument-handshake-env-name*
-                                (file-open-str)
-                                (names-initialization-str)
-                                (types-initialization-str)
-                                (hash-table-count (names instrumenter))
-                                (hash-table-count (types instrumenter))))))
+      (append-text-to-genome obj
+                             (format nil +write-trace-initialization+
+                                     *instrument-handshake-env-name*
+                                     (file-open-str)
+                                     (names-initialization-str)
+                                     (types-initialization-str)
+                                     (hash-table-count (names instrumenter))
+                                     (hash-table-count (types instrumenter))))))
 
   obj)
 

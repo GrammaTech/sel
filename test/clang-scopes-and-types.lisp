@@ -301,5 +301,5 @@
       (is (name= "global" (aget :name (car unbound))))
       (is (equalp (stmt-with-text *scopes* "int global;")
                   (aget :decl (car unbound))))
-      (is (eq (ast-root *scopes*) (aget :scope (car unbound))))
+      (is (eq (genome *scopes*) (aget :scope (car unbound))))
       (is (aget :type (car unbound))))))

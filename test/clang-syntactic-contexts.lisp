@@ -291,23 +291,23 @@
   (with-fixture contexts
     (let ((location (stmt-starting-with-text *contexts* "struct"))
           (inserted (stmt-with-text *contexts* "int x = 0;"))
-          (semicolons (count-if {eq #\;} (genome *contexts*))))
+          (semicolons (count-if {eq #\;} (genome-string *contexts*))))
       (apply-mutation-ops *contexts*
                           `((:insert (:stmt1 . ,location)
                                      (:value1 . ,inserted))))
       (is (eq (1+ semicolons)
-              (count-if {eq #\;} (genome *contexts*)))))))
+              (count-if {eq #\;} (genome-string *contexts*)))))))
 
 (deftest insert-toplevel-braced ()
   (with-fixture contexts
     (let ((location (stmt-starting-with-text *contexts* "struct"))
           (inserted (stmt-starting-with-text *contexts* "void list"))
-          (semicolons (count-if {eq #\;} (genome *contexts*))))
+          (semicolons (count-if {eq #\;} (genome-string *contexts*))))
       (apply-mutation-ops *contexts*
                           `((:insert (:stmt1 . ,location)
                                      (:value1 . ,inserted))))
       (is (eq semicolons
-              (count-if {eq #\;} (genome *contexts*)))))))
+              (count-if {eq #\;} (genome-string *contexts*)))))))
 
 (deftest splice-asts-and-text ()
   (with-fixture contexts
@@ -328,8 +328,8 @@
                     (get-immediate-children *contexts*)
                     (function-body *contexts*)
                     (stmt-starting-with-text *contexts* "void full_stmt"))))
-      (is (search "comment 1" (genome *contexts*)))
-      (is (search "comment 2" (genome *contexts*))))))
+      (is (search "comment 1" (genome-string *contexts*)))
+      (is (search "comment 2" (genome-string *contexts*))))))
 
 (deftest cut-initialization-list-preserves-semicolon ()
   (with-fixture contexts

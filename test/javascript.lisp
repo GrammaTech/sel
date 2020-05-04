@@ -54,17 +54,17 @@
   (with-fixture hello-world-javascript
     (is (= 6 (length (asts *soft*))))
     (is (equal (file-to-string (javascript-dir #P"hello-world/hello-world.js"))
-               (genome *soft*))))
+               (genome-string *soft*))))
   (with-fixture fib-javascript
     (is (= 40 (length (asts *soft*))))
     (is (equal (file-to-string (javascript-dir #P"fib/fib.js"))
-               (genome *soft*)))))
+               (genome-string *soft*)))))
 
 (deftest can-parse-a-json-software-object ()
   (with-fixture trivial-json
     (is (not (null (asts *soft*))))
     (is (eq :OBJECTEXPRESSION
-            (ast-class (ast-root *soft*))))))
+            (ast-class (genome *soft*))))))
 
 (deftest cut-shortens-a-javascript-software-object ()
   (with-fixture fib-javascript
@@ -73,8 +73,8 @@
       (apply-mutation variant
                       (make-instance 'parseable-cut
                         :targets (list (cons :stmt1 stmt1))))
-      (is (not (equal (genome variant)
-                      (genome *soft*))))
+      (is (not (equal (genome-string variant)
+                      (genome-string *soft*))))
       (is (< (size variant)
              (size *soft*))))))
 
@@ -86,8 +86,8 @@
                       (make-instance 'parseable-insert
                         :targets (list (cons :stmt1 stmt1)
                                        (cons :value1 stmt1))))
-      (is (not (equal (genome variant)
-                      (genome *soft*))))
+      (is (not (equal (genome-string variant)
+                      (genome-string *soft*))))
       (is (> (size variant)
              (size *soft*))))))
 
@@ -100,34 +100,26 @@
                       (make-instance 'parseable-swap
                         :targets (list (cons :stmt1 stmt1)
                                        (cons :stmt2 stmt2))))
-      (is (not (equal (genome variant)
-                      (genome *soft*))))
+      (is (not (equal (genome-string variant)
+                      (genome-string *soft*))))
       (is (= (size variant)
              (size *soft*))))))
 
 (deftest javascript-copies-are-independent ()
   (with-fixture fib-javascript
-    (let ((orig-genome (genome *soft*))
+    (let ((orig-genome-string (genome-string *soft*))
           (variant (copy *soft*))
           (stmt1 (stmt-with-text *soft* "temp = a;")))
       (apply-mutation variant
                       (make-instance 'parseable-cut
                         :targets (list (cons :stmt1 stmt1))))
-      (is (string= (genome *soft*) orig-genome))
-      (is (not (string= (genome variant) orig-genome))))))
-
-(deftest javascript-copy-clears-genome-slot ()
-  (with-fixture fib-javascript
-    (let ((variant (copy *soft*)))
-      (is (null (slot-value (copy *soft*) 'genome)))
-      (is (string= (genome *soft*)
-                   (genome variant))))))
+      (is (string= (genome-string *soft*) orig-genome-string))
+      (is (not (string= (genome-string variant) orig-genome-string))))))
 
 (deftest javascript-copies-share-asts ()
   (with-fixture fib-javascript
     (let ((variant (copy *soft*)))
-      (is (ast-equal-p (ast-root *soft*)
-                       (ast-root variant)))
+      (is (eq (genome *soft*) (genome variant)))
       (is (> (size variant) 0)))))
 
 (deftest javascript-mutation-preserves-unmodified-subtrees ()
@@ -145,12 +137,12 @@
 
 (deftest (can-format-a-javascript-software-object :long-running) ()
   (with-fixture fib-javascript
-    (is (not (string= (genome (copy *soft*))
-                      (genome (prettier (copy *soft*))))))
-    (is (not (string= (genome (copy *soft*))
-                      (genome (format-genome (copy *soft*))))))
-    (is (string= (genome (prettier (copy *soft*)))
-                 (genome (format-genome (copy *soft*)))))))
+    (is (not (string= (genome-string (copy *soft*))
+                      (genome-string (prettier (copy *soft*))))))
+    (is (not (string= (genome-string (copy *soft*))
+                      (genome-string (format-genome (copy *soft*))))))
+    (is (string= (genome-string (prettier (copy *soft*)))
+                 (genome-string (format-genome (copy *soft*)))))))
 
 (deftest javascript-can-rebind-vars ()
   (with-fixture fib-javascript
@@ -234,7 +226,8 @@
              (let ((soft (from-file (make-instance 'javascript)
                                     (javascript-dir path))))
                (is (not (null (asts soft))))
-               (is (equal (genome soft) (file-to-string (javascript-dir path))))
+               (is (equal (genome-string soft)
+                          (file-to-string (javascript-dir path))))
                (mapc (lambda (ast-class)
                        (is (find ast-class (asts soft) :key #'ast-class)))
                      ast-classes))))
@@ -386,18 +379,18 @@
 (defixture javascript-ast-w-conflict
   (:setup
    (setf *soft* (make-instance 'javascript
-                  :ast-root (to-js-ast '(:j "top"
-                                         (:j "left"
-                                          (:c ((:old . nil) (:my . "a") (:your . "b"))))
-                                         (:j "right"))))))
+                  :genome (to-js-ast '(:j "top"
+                                       (:j "left"
+                                        (:c ((:old . nil) (:my . "a") (:your . "b"))))
+                                       (:j "right"))))))
   (:teardown
    (setf *soft* nil)))
 
 (deftest javascript-and-conflict-basic-parseable-ast-functionality ()
   (with-fixture javascript-ast-w-conflict
-    (is (typep (ast-root *soft*) 'javascript-ast))         ; We actually have ASTs.
-    (is (every #'ast-path (cdr (asts *soft*))))            ; Non-root ast have path.
-    (is (typep (copy (ast-root *soft*)) 'javascript-ast))) ; Copy works.
+    (is (typep (genome *soft*) 'javascript-ast))         ; We actually have ASTs.
+    (is (every #'ast-path (asts *soft*)))                ; Non-root ast have path.
+    (is (typep (copy (genome *soft*)) 'javascript-ast))) ; Copy works.
   (with-fixture javascript-ast-w-conflict
     ;; Access ASTs.
     (is (string= "top" (get-ast *soft* '(0))))
@@ -422,12 +415,10 @@
                    (aget :my (conflict-ast-child-alist cnf))))
 
     (is (equalp (mapcar #'ast-path (asts *soft*)) '((1) (2))))
-    (is (string= (source-text (ast-root *soft*)) "topleftaright"))))
+    (is (string= (genome-string *soft*) "topleftaright"))))
 
 (deftest test-json-preserves-trailing-whitespace ()
   (let* ((ws (fmt "     ~%"))
          (genome (string+ "{\"x\": 1}" ws))
          (json (make-instance 'json :genome genome)))
-    (is (string$= ws (genome json)))
-    (ast-root json)
-    (is (string$= ws (genome json)))))
+    (is (string$= ws (genome-string json)))))

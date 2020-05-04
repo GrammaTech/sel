@@ -43,7 +43,8 @@
 * OPTIONS list of additional options to astyle
 * ERRNO exit code of astyle binary
 "
-  (with-temporary-file-of (:pathname src :type (ext obj)) (genome obj)
+  (with-temporary-file-of (:pathname src :type (ext obj))
+    (genome-string obj)
     (setf (genome obj)
           (multiple-value-bind (stdout stderr exit)
               (shell "astyle --suffix=none ~{~a~^ ~} --style=~a ~a"
@@ -52,7 +53,7 @@
             (setf errno exit)
             (if (zerop exit)
                 (file-to-string src)
-                (genome obj)))))
+                (genome-string obj)))))
   (values obj errno))
 
 (defun clang-tidy (obj &optional
@@ -80,7 +81,8 @@
 * ERRNO exit code of clang-tidy
 "
   (setf (genome obj)
-        (with-temporary-file-of (:pathname src :type (ext obj)) (genome obj)
+        (with-temporary-file-of (:pathname src :type (ext obj))
+          (genome-string obj)
           (multiple-value-bind (stdout stderr exit)
               (shell
                "clang-tidy -fix -fix-errors -checks=~{~a~^,~} ~a -- ~a 1>&2"
@@ -89,7 +91,7 @@
                (mapconcat #'identity (flags obj) " "))
             (declare (ignorable stdout stderr))
             (setf errno exit)
-            (if (zerop exit) (file-to-string src) (genome obj)))))
+            (if (zerop exit) (file-to-string src) (genome-string obj)))))
   (values obj errno))
 
 (defun clang-format (obj &optional style &aux errno)
@@ -98,7 +100,8 @@
 * STYLE clang-format style to utilize
 * ERRNO exit code of clang-format
 "
-  (with-temporary-file-of (:pathname src :type (ext obj)) (genome obj)
+  (with-temporary-file-of (:pathname src :type (ext obj))
+    (genome-string obj)
     (setf (genome obj)
           (multiple-value-bind (stdout stderr exit)
               (shell "clang-format ~a ~a"
@@ -116,7 +119,7 @@
                      src)
             (declare (ignorable stderr))
             (setf errno exit)
-            (if (zerop exit) stdout (genome obj)))))
+            (if (zerop exit) stdout (genome-string obj)))))
   (values obj errno))
 
 (defun prettier (obj &aux errno)
@@ -124,11 +127,12 @@
 * OBJ object to format and return
 * ERRNO exit code of prettier
 "
-  (with-temporary-file-of (:pathname src :type (ext obj)) (genome obj)
+  (with-temporary-file-of (:pathname src :type (ext obj))
+    (genome-string obj)
     (setf (genome obj)
           (multiple-value-bind (stdout stderr exit)
               (shell "prettier ~a" src)
             (declare (ignorable stderr))
             (setf errno exit)
-            (if (zerop exit) stdout (genome obj)))))
+            (if (zerop exit) stdout (genome-string obj)))))
   (values obj errno))

@@ -436,7 +436,6 @@ Class @code{clang}
   @item @refapimethod{scopes,scopes}
   @item @refapimethod{select-crossover-points,select-crossover-points}
   @item @refapimethod{select-intraprocedural-pair,select-intraprocedural-pair}
-  @item @refapimethod{update-asts,update-asts}
   @item @refapimethod{uninstrument,uninstrument}
   @item @refapimethod{wrap-ast,wrap-ast}
   @item @refapimethod{wrap-child,wrap-child}
@@ -545,7 +544,6 @@ Class @code{javascript}
   @item @refapimethod{phenome,phenome}
   @item @refapimethod{traceable-stmt-p,traceable-stmt-p}
   @item @refapimethod{scopes,scopes}
-  @item @refapimethod{update-asts,update-asts}
   @end itemize
 
 @end itemize

@@ -21,7 +21,7 @@
   (with-fixture grep-bear-project
     (is (equal "make grep" (build-command *project*)))
     (is (equalp '("grep") (artifacts *project*)))
-    (is (not (zerop (length (genome *project*)))))))
+    (is (not (zerop (length (genome-string *project*)))))))
 
 #-windows
 (deftest (able-to-copy-a-bear-project :long-running) ()

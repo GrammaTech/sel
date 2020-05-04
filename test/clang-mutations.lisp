@@ -167,7 +167,8 @@
       (multiple-value-bind (variant mut) (mutate (copy *hello-world*))
         ;; If both targets are the same, genome will not change.
         (unless (eq (aget :stmt1 (targets mut)) (aget :stmt2 (targets mut)))
-          (is (not (string= (genome *hello-world*) (genome variant)))
+          (is (not (string= (genome-string *hello-world*)
+                            (genome-string variant)))
               "Move changes genome."))
         ;; Still exist (> 0).
         (is (stmt-with-text variant bad-1 :no-error t)
@@ -177,11 +178,11 @@
         ;; No duplicates (< 2).
         (is
          (= 1 (length (all-matches-as-strings (quote-meta-chars bad-1)
-                                              (genome variant))))
+                                              (genome-string variant))))
          "Move doesn't duplicate \"Hello, World!\\n\".")
         (is
          (= 1 (length (all-matches-as-strings (quote-meta-chars bad-2)
-                                              (genome variant))))
+                                              (genome-string variant))))
          "Move doesn't duplicate \"0\".")))))
 
 (deftest swap-full-changes-full-stmts ()
@@ -227,7 +228,7 @@
     (with-fixture nested-clang
       (is (subsequent-lines-p
            (let ((copy (copy *nested*)))
-             (genome
+             (genome-string
               (apply-mutation copy
                               (make-instance 'clang-promote-guarded
                                 :object copy
@@ -239,7 +240,7 @@
           "Promotes single-line body from within while loop.")
       (is (subsequent-lines-p
            (let ((copy (copy *nested*)))
-             (genome
+             (genome-string
               (apply-mutation copy
                               (make-instance 'clang-promote-guarded
                                 :object copy
@@ -251,7 +252,7 @@
           "Promotes single-line body from within do loop.")
       (is (subsequent-lines-p
            (let ((copy (copy *nested*)))
-             (genome
+             (genome-string
               (apply-mutation copy
                               (make-instance 'clang-promote-guarded
                                 :object copy
@@ -263,7 +264,7 @@
           "Promotes single-line body from within for loop.")
       (is (subsequent-lines-p
            (let ((copy (copy *nested*)))
-             (genome
+             (genome-string
               (apply-mutation copy
                               (make-instance 'clang-promote-guarded
                                 :object copy
@@ -275,7 +276,7 @@
           "Promotes single-line body from within for loop 2.")
       (is (subsequent-lines-p
            (let ((copy (copy *nested*)))
-             (genome
+             (genome-string
               (apply-mutation copy
                               (make-instance 'clang-promote-guarded
                                 :object copy
@@ -287,7 +288,7 @@
           "Promotes single-line sole branch of if.")
       (is (subsequent-lines-p
            (let ((copy (copy *nested*)))
-             (genome
+             (genome-string
               (apply-mutation copy
                               (make-instance 'clang-promote-guarded
                                 :object copy
@@ -299,7 +300,7 @@
           "Promotes single-line else of if w/o then.")
       (is (subsequent-lines-p
            (let ((copy (copy *nested*)))
-             (genome
+             (genome-string
               (apply-mutation copy
                               (make-instance 'clang-promote-guarded
                                 :object copy
@@ -311,7 +312,7 @@
           "Promotes single-line then of if w/o else.")
       (is (subsequent-lines-p
            (let ((copy (copy *nested*)))
-             (genome
+             (genome-string
               (apply-mutation copy
                               (make-instance 'clang-promote-guarded
                                 :object copy
@@ -323,7 +324,7 @@
           "Promotes single-line then of if w/o else.")
       (let ((genome-string
              (let ((copy (copy *nested*)))
-               (genome
+               (genome-string
                 (apply-mutation copy
                                 (make-instance 'clang-promote-guarded
                                   :object copy
@@ -344,7 +345,7 @@
     (with-fixture gcd-wo-curlies-clang
       (let ((genome-string
              (let ((copy (copy *gcd*)))
-               (genome
+               (genome-string
                 (apply-mutation copy
                                 (make-instance 'clang-promote-guarded
                                   :object copy

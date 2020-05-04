@@ -1220,5 +1220,4 @@
                     (stmt-with-text *soft* "argc--;")
                     (stmt-with-text *soft* "printf(\"%d\\n\", argc + 1 < NUM);")
                     (stmt-with-text *soft* "argc--;"))))
-      (is (string/= (genome variant)
-                    "")))))
+      (is (string/= (genome-string variant) "")))))

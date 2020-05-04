@@ -602,7 +602,7 @@ Define an :around method on this function to record crossovers."))
   (:documentation "Write SOFTWARE to FILE."))
 
 (defmethod to-file ((software software) file)
-  (string-to-file (genome software) file))
+  (string-to-file (genome-string software) file))
 
 (defmethod to-file :before ((software software) file)
   (declare (ignorable software))

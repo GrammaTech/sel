@@ -99,7 +99,7 @@
   "Return true if OBJ is instrumented.
 * OBJ a javascript software object
 "
-  (search *instrument-log-env-name* (genome obj)))
+  (search *instrument-log-env-name* (genome-string obj)))
 
 (defmethod instrument ((obj javascript) &rest args)
   "Instrumentation for javascript software objects.
@@ -200,7 +200,7 @@ Creates a JAVASCRIPT-INSTRUMENTER for OBJ and calls its instrument method.
       (iter (for (before ast after) in (instrument-asts instrumenter))
             (appending (create-mutation-ops (ast-path ast) before after)))))
 
-  (append-to-genome-preamble obj +javascript-trace-code+)
+  (append-text-to-genome-preamble obj +javascript-trace-code+)
 
   obj)
 
@@ -250,13 +250,13 @@ Creates a JAVASCRIPT-INSTRUMENTER for OBJ and calls its instrument method.
 * OBJ javascript software object to uninstrument
 "
   (declare (ignorable num-threads))
-  (with-slots (ast-root) obj
-    (setf ast-root
-          (copy ast-root
-                :children (cons (replace-all (first (ast-children ast-root))
+  (with-slots (genome) obj
+    (setf genome
+          (copy genome
+                :children (cons (replace-all (first (ast-children genome))
                                              +javascript-trace-code+
                                              "")
-                                (cdr (ast-children ast-root))))))
+                                (cdr (ast-children genome))))))
   (apply-mutation-ops
     obj
     (iter (for ast in (nest (reverse)

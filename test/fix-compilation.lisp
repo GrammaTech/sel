@@ -56,7 +56,7 @@
           :key #'car)))
     (with-fixture broken-compilation
       (is (scan (quote-meta-chars "missing_variable =")
-                (genome (fix-compilation *broken-clang* 4)))))
+                (genome-string (fix-compilation *broken-clang* 4)))))
     (with-fixture broken-compilation-gcc
       (is (scan (quote-meta-chars "missing_variable =")
                 ;; Without the retries this test can fail stochastically.
@@ -69,8 +69,8 @@
                                     (invoke-restart 'keep-partial-asts))))
                               (copy *broken-gcc*))
                             4))
-                      (unless (zerop (length (genome fixed)))
-                        (return (genome fixed)))))))))
+                      (unless (zerop (length (genome-string fixed)))
+                        (return (genome-string fixed)))))))))
 
 (deftest (fix-compilation-declare-var-as-pointer :long-running) ()
   (let ((*compilation-fixers*

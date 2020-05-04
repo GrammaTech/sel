@@ -207,7 +207,7 @@
                                          (stmt-with-text *gcd* "b = b - a;")))
              (matcher (format nil "__write_trace_id\\(.*~du\\)"
                               else-counter)))
-        (is (scan matcher (genome instrumented)))
+        (is (scan matcher (genome-string instrumented)))
         ;; The next line (after flushing) should be the else branch.
         (let ((location (position-if {scan matcher} (lines instrumented))))
           (is (scan (quote-meta-chars "b = b - a;")
@@ -280,7 +280,7 @@ prints unique counters in the trace"
                       (find-if [{string= "a = atoi(argv[1]);"} #'source-text]
                                (asts variant)
                                :from-end nil)))
-               (genome instrumented))
+               (genome-string instrumented))
               "instrumentation was not added for the inserted statement")
           (is (search
                (format
@@ -290,7 +290,7 @@ prints unique counters in the trace"
                       (find-if [{string= "a = atoi(argv[1]);"} #'source-text]
                                (asts variant)
                                :from-end t)))
-               (genome instrumented))
+               (genome-string instrumented))
               "instrumentation was not added for the original statement"))))))
 
 (deftest (instrumentation-print-unbound-vars :long-running) ()
@@ -505,7 +505,7 @@ prints unique counters in the trace"
                                           ast))))
       (is (not (scan (quote-meta-chars
                       "__write_trace_variables(__sel_trace_file")
-                     (genome soft)))
+                     (genome-string soft)))
           "No code to print variables in the instrumented source."))))
 
 (deftest (instrumentation-preserves-annotations :long-running) ()
@@ -551,7 +551,8 @@ prints unique counters in the trace"
                                              (software instrumenter)}
                                             instrumenter
                                             ast)))))
-      (is (equal (genome orig) (genome (uninstrument instrumented)))
+      (is (equal (genome-string orig)
+                 (genome-string (uninstrument instrumented)))
           "(uninstrument (instrument obj ...)) is not an identity")))
   (with-fixture gcd-wo-curlies-clang
     (let ((orig (copy *gcd*))
@@ -563,7 +564,8 @@ prints unique counters in the trace"
                                              (software instrumenter)}
                                             instrumenter
                                             ast)))))
-      (is (equal (genome orig) (genome (uninstrument instrumented)))
+      (is (equal (genome-string orig)
+                 (genome-string (uninstrument instrumented)))
           "(uninstrument (instrument obj ...)) is not an identity")))
   (with-fixture clang-project
     (let ((orig (copy *project*))
@@ -575,7 +577,8 @@ prints unique counters in the trace"
                                              (software instrumenter)}
                                             instrumenter
                                             ast)))))
-      (is (equal (genome orig) (genome (uninstrument instrumented)))
+      (is (equal (genome-string orig)
+                 (genome-string (uninstrument instrumented)))
           "(uninstrument (instrument obj ...)) is not an identity")))
   (with-fixture shadow-clang
     (let ((orig (copy *soft*))
@@ -587,7 +590,8 @@ prints unique counters in the trace"
                                              (software instrumenter)}
                                             instrumenter
                                             ast)))))
-      (is (equal (genome orig) (genome (uninstrument instrumented)))
+      (is (equal (genome-string orig)
+                 (genome-string (uninstrument instrumented)))
           "(uninstrument (instrument obj ...)) is not an identity")))
   (with-fixture binary-search-clang
     (let ((orig (copy *binary-search*))
@@ -599,7 +603,8 @@ prints unique counters in the trace"
                                              (software instrumenter)}
                                             instrumenter
                                             ast)))))
-      (is (equal (genome orig) (genome (uninstrument instrumented)))
+      (is (equal (genome-string orig)
+                 (genome-string (uninstrument instrumented)))
           "(uninstrument (instrument obj ...)) is not an identity")))
   (with-fixture c-strings
     (let ((orig (copy *soft*))
@@ -611,7 +616,8 @@ prints unique counters in the trace"
                                              (software instrumenter)}
                                             instrumenter
                                             ast)))))
-      (is (equal (genome orig) (genome (uninstrument instrumented)))
+      (is (equal (genome-string orig)
+                 (genome-string (uninstrument instrumented)))
           "(uninstrument (instrument obj ...)) is not an identity")))
   (with-fixture cpp-strings
     (let ((orig (copy *soft*))
@@ -623,5 +629,6 @@ prints unique counters in the trace"
                                              (software instrumenter)}
                                             instrumenter
                                             ast)))))
-      (is (equal (genome orig) (genome (uninstrument instrumented)))
+      (is (equal (genome-string orig)
+                 (genome-string (uninstrument instrumented)))
           "(uninstrument (instrument obj ...)) is not an identity"))))

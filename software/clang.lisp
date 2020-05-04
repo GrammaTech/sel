@@ -1091,7 +1091,7 @@ will not be generated automatically.
                                 :test #'string=))
               ;; FIXME: ideally this would insert an AST for the type decl
               ;; instead of just adding the text.
-              (prepend-to-genome obj td))))
+              (prepend-text-to-genome obj td))))
       ;; always add type with new hash to types hashtable
       (setf (gethash (type-hash type) (types obj)) type))
     type))
@@ -1138,7 +1138,8 @@ a execution trace in OBJ.")
   (:documentation "Add MACRO to `macros' of SOFTWARE, unique by hash.")
   (:method ((obj clang) (macro clang-macro))
     (unless (find-macro obj (macro-hash macro))
-      (prepend-to-genome obj (format nil "#define ~a~&" (macro-body macro)))
+      (prepend-text-to-genome obj (format nil "#define ~a~&"
+                                          (macro-body macro)))
       (push macro (macros obj)))
     obj))
 
@@ -1161,7 +1162,7 @@ a execution trace in OBJ.")
   (:documentation "Add an #include directive for an INCLUDE to SOFTWARE.")
   (:method ((obj clang) (include string))
     (unless (member include (includes obj) :test #'string=)
-      (prepend-to-genome obj (format nil "#include ~a~&" include))
+      (prepend-text-to-genome obj (format nil "#include ~a~&" include))
       (push include (includes obj)))
     obj))
 
@@ -1169,7 +1170,7 @@ a execution trace in OBJ.")
   (:documentation "Add an #include directive for an INCLUDE to OBJ
 even if such an INCLUDE already exists in OBJ.")
   (:method ((obj clang) (include string))
-    (prepend-to-genome obj (format nil "#include ~a~&" include))
+    (prepend-text-to-genome obj (format nil "#include ~a~&" include))
     (unless (member include (includes obj) :test #'string=)
       (push include (includes obj)))
     obj))
@@ -1734,24 +1735,27 @@ to expand.
 (defgeneric bad-stmts (software)
   (:documentation "Return a list of all bad statement asts in SOFTWARE."))
 
-(defmethod (setf genome) :before ((new t) (obj clang))
-  "Clear types, macros, and the symbol table prior to updating the NEW genome."
+(defmethod (setf genome) :before ((new string) (obj clang))
+  "Clear types, macros, and the symbol table prior to updating genome
+to the NEW genome string.  These fields must be cleared prior to parsing
+and are invalidated when a new, unparsed genome is set."
   (with-slots (types macros symbol-table) obj
-    (setf types (make-hash-table :test 'equal)
+    (setf types (make-hash-table :test #'equal)
           macros nil
           symbol-table (make-hash-table :test #'equal))))
 
-(defmethod (setf ast-root) :around (new (obj clang))
-  "Upon setting the AST root, create a deep copy of NEW to ensure ASTs
-are not shared between software objects after modification."
+(defmethod (setf genome) :around ((new ast) (obj clang))
+  "Upon setting the genome, if the new genome is composed of ASTS,
+create a deep copy of NEW to ensure ASTs are not shared between
+software objects after modification."
   (labels ((deep-copy (ast)
              (copy ast :children (mapcar (lambda (c)
                                            (if (typep c 'ast) (deep-copy c) c))
                                          (ast-children ast)))))
     (call-next-method (deep-copy new) obj)))
 
-(defmethod (setf ast-root) :after (new (obj clang))
-  "Upon setting the AST root, update the symbol and then update the
+(defmethod (setf genome) :after ((new ast) (obj clang))
+  "After setting the genome, update the symbol table and then update the
 :REFERENCEDDECL field on the ASTs in NEW to point to the entries
 in the symbol table."
   (with-slots (symbol-table) obj
@@ -1794,14 +1798,14 @@ in the symbol table."
   ;; Update non-AST caches
   (with-slots (includes types symbol-table name-symbol-table) obj
     (setf includes
-          (ast-includes obj (ast-root obj)))
+          (ast-includes obj (genome obj)))
     (setf name-symbol-table
           (if (zerop (hash-table-count name-symbol-table))
               (update-name-symbol-table name-symbol-table symbol-table)
               name-symbol-table))
     (setf types
           (if (zerop (hash-table-count types))
-              (update-type-table types symbol-table (ast-root obj))
+              (update-type-table types symbol-table (genome obj))
               types)))
   obj)
 
@@ -2677,7 +2681,7 @@ included as the first successor."
   (or (find-if #'begins-scope
                (cdr (get-parent-asts software ast)))
       ;; Global scope
-      (ast-root software)))
+      (genome software)))
 
 (defmethod nth-enclosing-scope ((software clang)
                                 (depth integer)
@@ -3613,7 +3617,7 @@ within a function body, return null."))
                                            wrapped)))
                (block-children
                  (if top-level
-                     (mapcar #'copy (get-immediate-children obj (ast-root obj)))
+                     (mapcar #'copy (get-immediate-children obj (genome obj)))
                      (iter (for child in (nest (ast-children)
                                                (function-body obj)
                                                (lastcar)
@@ -4649,14 +4653,13 @@ valid hash.
 
 ;;; Invocation of clang to get json
 
-(defmethod clang-json ((obj clang) &key &allow-other-keys)
-  (with-temporary-file-of (:pathname src-file :type (ext obj)) (genome obj)
+(defmethod clang-json ((obj clang) &aux (source-text (genome-string obj)))
+  (with-temporary-file-of (:pathname src-file :type (ext obj)) source-text
     (let ((cmd-fmt "clang -cc1 -ast-dump=json ~
                           -fgnuc-version=4.2.1 ~
                           -fcxx-exceptions ~
                           ~{~a~^ ~} ~a ~a")
           (filter "| sed -e \"s/  *//\" ; exit ${PIPESTATUS[0]}")
-          (genome-len (length (genome obj)))
           (flags (append (clang-frontend-flags (flags obj))
                          (mappend {list "-isystem"}
                                   *clang-default-includes*))))
@@ -4695,7 +4698,7 @@ valid hash.
             nil))
         (values (convert-clang-jsown-tree (jsown:parse stdout))
                 src-file
-                genome-len)))))
+                (length source-text))))))
 
 (defun convert-clang-jsown-tree (jt)
   (convert-jsown-tree jt #'jsown-str-to-clang-keyword))
@@ -5271,12 +5274,12 @@ in TMP-FILE (the original genome)."
                   (collect byte)))))
 
 (defun convert-line-and-col-to-byte-offsets
-    (ast-root genome &aux (line-offsets (line-offsets genome)))
+    (ast-root source-text &aux (line-offsets (line-offsets source-text)))
   "Convert AST range begin/ends in AST-ROOT from line and column pairs to
 byte offsets.
 
-* AST-ROOT root of the AST tree for GENOME
-* GENOME string with the source text of the program"
+* AST-ROOT root of the AST tree for SOURCE-TEXT
+* SOURCE-TEXT string with the source text of the program"
   (labels
       ((to-byte-offset (line col)
          "Convert the given LINE and COL to a byte offset."
@@ -5314,13 +5317,13 @@ byte offsets.
         (when (> len 1)
           (collecting (cons byte (1- len))))))
 
-(defun fix-multibyte-characters (ast-root genome
-                                 &aux (mb-chars (multibyte-characters genome)))
+(defun fix-multibyte-characters
+    (ast-root source-text &aux (mb-chars (multibyte-characters source-text)))
   "Convert AST range begin/ends in AST-ROOT from byte offsets to character
 offsets to support source text with multibyte characters.
 
-* AST-ROOT root of the AST tree for GENOME
-* GENOME string with the source text of the program"
+* AST-ROOT root of the AST tree for SOURCE-TEXT
+* SOURCE-TEXT string with the source text of the program"
   (labels
       ((byte-offset-to-chars (offset)
          "Convert the given byte OFFSET to a character offset."
@@ -5329,7 +5332,8 @@ offsets to support source text with multibyte characters.
                   (while (<= pos offset))
                   (summing incr))))
        (fix-mb-chars (loc)
-         "Convert the given LOC using byte offsets to one using character offsets."
+         "Convert the given LOC using byte offsets to one using character
+          offsets."
          (cond ((typep loc 'clang-macro-loc)
                 (copy loc
                       :spelling-loc
@@ -5417,11 +5421,12 @@ using the clang front-end.
                   (starts-with-subseq "-Wno-everything" f))
           (appending (list f)))))
 
-(defun dump-preprocessor-macros (obj &aux (genome (genome obj)))
+(defun dump-preprocessor-macros (obj)
   "Return a list of CLANG-MACRO structures with the macro definitions
-in OBJ's genome.  The macros are populated after evaluating pre-processor
+in OBJ's source-text.  The macros are populated after evaluating pre-processor
 if/else clauses."
-  (with-temporary-file-of (:pathname src-file :type (ext obj)) genome
+  (with-temporary-file-of (:pathname src-file :type (ext obj))
+    (genome-string obj)
     (let ((file nil)
           (file-line-scanner (create-scanner "^# [0-9]+ \"(.*)\"")))
       (iter (for line in (nest (remove-if #'emptyp)
@@ -5443,38 +5448,40 @@ if/else clauses."
                                              (pathname-directory new-file))))
                       (setf file new-file)))))))))
 
-(defgeneric compute-macro-extent (obj off len)
+(defgeneric compute-macro-extent (source-text off len)
   (:documentation "Compute the length of a macro occurrence in
-the genome.  OBJ is the software object, OFF the starting offset,
+the source-text.  SOURCE-TEXT is the source string, OFF the starting offset,
 LEN the length of the macro name.")
-  (:method (obj off len)
-    (let* ((genome (genome obj))
-           (glen (length genome)))
-      (assert (<= 0 off))
-      (assert (< 0 len))
-      (assert (<= (+ off len) (length genome)))
-      (let ((i (+ off len)))
-        ;; Skip over whitespace after macro
-        (iter (while (< i glen))
-              (while (whitespacep (elt genome i)))
-              (incf i))
-        (if (or (>= i glen)
-                (not (eql (elt genome i) #\()))
-            len ;; give up; could not find macro arguments
-            (let ((end (cpp-scan genome (constantly t)
-                                 :start i :skip-first t)))
-              (- end off)))))))
+  (:method (source-text off len &aux (source-text-len (length source-text)))
+    (assert (<= 0 off))
+    (assert (< 0 len))
+    (assert (<= (+ off len) source-text-len))
+    (let ((i (+ off len)))
+      ;; Skip over whitespace after macro
+      (iter (while (< i source-text-len))
+            (while (whitespacep (elt source-text i)))
+            (incf i))
+      (if (or (>= i source-text-len)
+              (not (eql (elt source-text i) #\()))
+          len ;; give up; could not find macro arguments
+          (let ((end (cpp-scan source-text (constantly t)
+                               :start i :skip-first t)))
+            (- end off))))))
 
-(defgeneric encapsulate-macro-expansions-cheap (obj macros ast-root)
+(defgeneric encapsulate-macro-expansions-cheap (ast-root macros source-text)
   (:documentation "Replace macro expansions with :MACROEXPANSION nodes.")
-  (:method ((obj clang) (macros list) (ast-root clang-ast))
+  (:method ((ast-root clang-ast) (macros list) (source-text string))
     (map-ast ast-root
-             {encapsulate-macro-expansion-cheap-below-node obj macros})))
+             {encapsulate-macro-expansion-cheap-below-node _
+                                                           macros
+                                                           source-text})))
 
-(defgeneric encapsulate-macro-expansion-cheap-below-node (obj macros ast)
+(defgeneric encapsulate-macro-expansion-cheap-below-node (ast-root
+                                                          macros
+                                                          source-text)
   (:documentation "Walk over the children of AST, combining those that are
 from the same macroexpansion into a single macroexpansion node.")
-  (:method ((obj clang) (macros list) (ast clang-ast))
+  (:method ((ast clang-ast) (macros list) (source-text string))
     (labels ((%is-macro-child-segment-ast (ast macro-child-segment)
                "Return true if the given AST should be grouped with the
                existing nodes in the MACRO-CHILD-SEGMENT.  The AST is
@@ -5500,7 +5507,7 @@ from the same macroexpansion into a single macroexpansion node.")
              (%get-macro-name (loc)
                "Return the name of the macro in the source text of OBJ at LOC."
                (let ((e-loc (clang-macro-loc-expansion-loc loc)))
-                 (subseq (genome obj)
+                 (subseq source-text
                          (offset e-loc)
                          (+ (offset e-loc) (tok-len e-loc)))))
              (%function-like-macro-p (macro &optional seen)
@@ -5536,7 +5543,7 @@ from the same macroexpansion into a single macroexpansion node.")
                       (copy loc
                             :offset (+ (offset loc)
                                        (if (%function-like-macro-p macro)
-                                           (compute-macro-extent obj
+                                           (compute-macro-extent source-text
                                                                  (offset loc)
                                                                  (tok-len loc))
                                            (tok-len loc)))
@@ -5583,13 +5590,13 @@ from the same macroexpansion into a single macroexpansion node.")
                                   `(,(%create-macro-ast macro-child-segment))))
                        (return results)))))))))
 
-(defun fix-overlapping-declstmt-children (sw ast)
+(defun fix-overlapping-declstmt-children (ast source-text)
   (map-ast ast
            (lambda (a)
              (when (eq :declstmt (ast-class a))
-               (fix-overlapping-declstmt-children-at-node sw a)))))
+               (fix-overlapping-declstmt-children-at-node a source-text)))))
 
-(defun fix-overlapping-declstmt-children-at-node (sw ast)
+(defun fix-overlapping-declstmt-children-at-node (ast source-text)
   "Separate consecutive, overlapping decl children in a :DeclStmt node
 so their text ranges in the source do not overlap, if possible.  This
 mimics the previous behavior within clang-mutate."
@@ -5615,7 +5622,7 @@ mimics the previous behavior within clang-mutate."
                                 ;; There is overlap -- find the next
                                 ;; position
                                 (let ((comma-pos
-                                       (cpp-scan (genome sw)
+                                       (cpp-scan source-text
                                                  (lambda (c) (eql c #\,))
                                                  :start pos
                                                  :end (1+ end))))
@@ -5719,7 +5726,7 @@ of the ranges of its children"
                                    (setf prev child)
                                    (collect child))))))))))
 
-(defun decorate-ast-with-strings (sw ast &aux (genome (genome sw)))
+(defun decorate-ast-with-strings (ast source-text)
   (labels
       ((%assert1 (i cbegin c)
          (assert (>= cbegin i) ()
@@ -5750,11 +5757,11 @@ of the ranges of its children"
                           (begin-and-end-offsets c)
                         (when cbegin
                           (%assert1 i cbegin c)
-                          (collect (%safe-subseq genome i cbegin))
+                          (collect (%safe-subseq source-text i cbegin))
                           (when (and cend (< i cend))
                             (setf i cend)))))
                     (collect c))
-                   (list (%safe-subseq genome i end))))))))))
+                   (list (%safe-subseq source-text i end))))))))))
     (map-ast ast #'%decorate))
   ast)
 
@@ -6001,9 +6008,9 @@ on both sides of AST.  AST is a string or ast node.  SEMI-POSITION is
   (map-ast ast #'fix-semicolons-ast)
   ast)
 
-(defun populate-type-fields-from-symbol-table (obj types)
+(defun populate-type-fields-from-symbol-table (obj name-symbol-table types)
   "Populate the `i-file`, `reqs`, and `decl` fields for clang-type
-objects in TYPES using OBJ's symbol table."
+objects in TYPES using NAME-SYMBOL-TABLE."
   (labels ((populate-type-i-file (obj tp decl)
              (setf (type-i-file tp)
                    (ast-i-file obj decl)))
@@ -6018,16 +6025,15 @@ objects in TYPES using OBJ's symbol table."
            (populate-type-decl (tp decl)
              (setf (type-decl tp)
                    (source-text decl))))
-    (let ((name-symbol-table (slot-value obj 'name-symbol-table)))
-      (iter (for tp in (nest (remove-duplicates)
-                             (mapcar #'ct+-type)
-                             (hash-table-values types)))
-            (unless (and (type-i-file tp) (type-reqs tp))
-              (when-let ((decl (type-decl-ast name-symbol-table tp)))
-                (populate-type-i-file obj tp decl)
-                (populate-type-reqs tp decl)
-                (populate-type-decl tp decl)))
-            (finally (return types))))))
+    (iter (for tp in (nest (remove-duplicates)
+                           (mapcar #'ct+-type)
+                           (hash-table-values types)))
+          (unless (and (type-i-file tp) (type-reqs tp))
+            (when-let ((decl (type-decl-ast name-symbol-table tp)))
+              (populate-type-i-file obj tp decl)
+              (populate-type-reqs tp decl)
+              (populate-type-decl tp decl)))
+          (finally (return types)))))
 
 (defun update-symbol-table (symbol-table ast-root)
   "Populate SYMBOL-TABLE with a mapping of AST ID -> AST(s) for all of
@@ -6131,56 +6137,44 @@ ASTs in the existing SYMBOL-TABLE and AST-ROOT tree."
              ast))
     (populate-fingers-helper ast)))
 
-(defmethod update-asts ((obj clang))
+(defmethod parse-asts ((obj clang) &aux (source-text (genome-string obj)))
   (let ((*canonical-string-table* (make-hash-table :test 'equal))
         (*canonical-clang-type-table* (make-hash-table :test 'equal)))
-    (with-slots (ast-root genome
-                          macros types symbol-table name-symbol-table) obj
-      (unless genome     ; get genome from existing ASTs if necessary
-        (setf genome (genome obj)
-              ast-root nil
-              types (make-hash-table)
-              symbol-table (make-hash-table :test #'equal)
-              name-symbol-table (make-hash-table :test #'equal)))
-
-      (multiple-value-bind (json tmp-file genome-len)
+    (with-slots (macros types symbol-table name-symbol-table) obj
+      (multiple-value-bind (json tmp-file text-len)
           (clang-json obj)
-        (let ((ast (clang-convert-json-for-file json tmp-file genome-len))
+        (let ((ast-root (clang-convert-json-for-file json tmp-file text-len))
               (macro-dump (dump-preprocessor-macros obj)))
           ;; Populate and massage auxilliary fields such as symbol tables
           ;; and types.
-          (update-symbol-table symbol-table ast)
+          (update-symbol-table symbol-table ast-root)
           (update-name-symbol-table name-symbol-table symbol-table)
-          (remove-non-program-asts ast tmp-file)
-          (update-referenceddecl-from-symbol-table ast symbol-table)
-          (update-type-table types symbol-table ast)
+          (remove-non-program-asts ast-root tmp-file)
+          (update-referenceddecl-from-symbol-table ast-root symbol-table)
+          (update-type-table types symbol-table ast-root)
+          (setf macros (remove-if #'macro-i-file macro-dump))
 
           ;; Massage the ASTs identified by clang.
-          (remove-asts-if ast #'ast-is-implicit)
-          (remove-template-expansion-asts ast)
-          (remove-attribute-asts ast)
-          (fix-line-directives ast tmp-file)
-          (remove-file-from-asts ast tmp-file)
-          (convert-line-and-col-to-byte-offsets ast genome)
-          (fix-multibyte-characters ast genome)
-          (remove-loc-attribute ast)
-          (encapsulate-macro-expansions-cheap obj macro-dump ast)
-          (fix-overlapping-declstmt-children obj ast)
-          (fix-ancestor-ranges ast)
-          (combine-overlapping-siblings ast)
-          (decorate-ast-with-strings obj ast)
-          (compute-full-stmt-annotations ast)
-          (compute-guard-stmt-annotations ast)
-          (compute-syn-ctxs ast)
-          (fix-semicolons ast)
-          (populate-type-fields-from-symbol-table obj types)
-          (populate-fingers ast)
+          (remove-asts-if ast-root #'ast-is-implicit)
+          (remove-template-expansion-asts ast-root)
+          (remove-attribute-asts ast-root)
+          (fix-line-directives ast-root tmp-file)
+          (remove-file-from-asts ast-root tmp-file)
+          (convert-line-and-col-to-byte-offsets ast-root source-text)
+          (fix-multibyte-characters ast-root source-text)
+          (remove-loc-attribute ast-root)
+          (encapsulate-macro-expansions-cheap ast-root macro-dump source-text)
+          (fix-overlapping-declstmt-children ast-root source-text)
+          (fix-ancestor-ranges ast-root)
+          (combine-overlapping-siblings ast-root)
+          (decorate-ast-with-strings ast-root source-text)
+          (compute-full-stmt-annotations ast-root)
+          (compute-guard-stmt-annotations ast-root)
+          (compute-syn-ctxs ast-root)
+          (fix-semicolons ast-root)
+          (populate-type-fields-from-symbol-table obj name-symbol-table types)
 
-          (setf ast-root ast
-                genome nil
-                macros (remove-if #'macro-i-file macro-dump))
-
-          obj)))))
+          ast-root)))))
 
 
 ;;; Helper methods for computing attributes on new clang ast nodes
