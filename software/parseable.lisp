@@ -135,7 +135,8 @@ list."))
   "Maximum number of characters to print for TEXT in
 PRINT-OBJECT method on AST structures.")
 
-(defmethod print-object ((obj ast) stream &aux (cutoff *ast-print-cutoff*))
+(defmethod print-object ((obj functional-tree-ast) stream
+                         &aux (cutoff *ast-print-cutoff*))
   (if *print-readably*
       (call-next-method)
       (print-unreadable-object (obj stream :type t)
