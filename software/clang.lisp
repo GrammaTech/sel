@@ -530,6 +530,22 @@ the macro is defined within."
                    :range (aget :range alist)
                    :type (%type (aget :type alist)))))
 
+;; FIXME: When clang is converted to utilize functional trees,
+;; this method specialization will no longer be required.
+(defmethod ast-to-list ((ast clang-ast) &aux (result nil))
+  ;; This is not the most elegant approach but it is an exact
+  ;; translation of the previous, performant solution.
+  ;; Given the plan to transition clang to utilize functional
+  ;; trees, time was not committed to making this prettier
+  ;; at the risk of making the solution non-performant
+  ;; (the issue we want to solve first and foremost).
+  (labels ((collect-asts (ast)
+             (push ast result)
+             (dolist (c (ast-children ast))
+               (when (typep c 'ast) (collect-asts c)))
+             result))
+    (reverse (collect-asts ast))))
+
 (defmethod copy ((ast clang-ast) &rest args
                  &key
                    referenceddecl
