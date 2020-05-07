@@ -23,6 +23,7 @@
         :software-evolution-library/test/clang-w-fodder
         :software-evolution-library/test/clang
         :software-evolution-library/test/command-line
+        :software-evolution-library/test/components
         :software-evolution-library/test/condition-synthesis
         :software-evolution-library/test/conflict-ast
         :software-evolution-library/test/coq

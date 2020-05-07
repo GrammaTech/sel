@@ -23,8 +23,8 @@
 (defvar *process-sleep-interval* 0.1
   "Frequency (in seconds) at which to check if a process has completed.")
 
-(defvar *process-kill-timeout* 10
-  "Timeout (in seconds) before killing a process with SIGKILL")
+(defvar *process-kill-timeout* nil
+  "Optional timeout (in seconds) before killing a process")
 
 (defclass test-suite (oid-object)
   ((test-cases
@@ -170,17 +170,18 @@ Return the standard output, error output, and process exit code as strings.
 associated with the test case.
 
 See also `*process-sleep-interval*' and `*process-kill-timeout*'. If
-TEST-PROCESS is still running when `finish-test' is called, alternate between
-sleeping for `*process-sleep-interval*' seconds and checking again until either
-`*process-kill-timeout*' seconds have elapsed or the process completes. After
-the timeout, send a SIGTERM signal if TEST-PROCESS is still running, sleep for
-`*process-sleep-interval*' seconds once more and then if the process is still
-running, send a SIGKILL signal.
-"
+TEST-PROCESS is still running when `finish-test' is called, and if
+`*process-kill-timeout*' is bound to a non-nil value greater than 0,
+alternate between sleeping for `*process-sleep-interval*' seconds and
+checking again until either `*process-kill-timeout*' seconds have
+elapsed or the process completes. After the timeout, send a SIGTERM
+signal if TEST-PROCESS is still running, sleep for
+`*process-sleep-interval*' seconds once more and then if the process
+is still running, send a SIGKILL signal."
   (labels ((read-and-close (stream)
              (when stream
                (prog1
-                 (read-stream-content-into-string stream)
+                   (read-stream-content-into-string stream)
                  (close stream))))
            (kill-process (process &key urgent)
              (if (os-unix-p)
@@ -192,40 +193,41 @@ running, send a SIGKILL signal.
                  (terminate-process process :urgent urgent))))
     ;; If still running and there are timeout and sleep intervals, sleep up to
     ;; timeout, checking if process is still running every sleep-interval seconds.
-    (when (and (process-alive-p test-process)
-               *process-kill-timeout* (> *process-kill-timeout* 0)
-               *process-sleep-interval* (> *process-sleep-interval* 0))
+    (when (and *process-kill-timeout* (> *process-kill-timeout* 0)
+               *process-sleep-interval* (> *process-sleep-interval* 0)
+               (process-alive-p test-process))
       (iter (for i below (floor (/ *process-kill-timeout*
                                    *process-sleep-interval*)))
-            (if (process-alive-p test-process)
-                (sleep *process-sleep-interval*)
-                (leave t))))
+	    (if (process-alive-p test-process)
+		(sleep *process-sleep-interval*)
+		(leave t)))
 
-    ;; Send a non-urgent kill signal (SIGTERM) to the process and all its children
-    (when (process-alive-p test-process)
-      (kill-process test-process))
-
-    ;; If still running, sleep short interval, then send an urgent kill signal
-    ;; (SIGKILL), to the process and all its children
-    (when (process-alive-p test-process)
-      (sleep *process-sleep-interval*)
+      ;; Send a non-urgent kill signal (SIGTERM) to the process and all its children
       (when (process-alive-p test-process)
-        (kill-process test-process :urgent t))
+        (kill-process test-process))
 
-      ;; If it's *still* running, warn someone.
+      ;; If still running, sleep short interval, then send an urgent kill signal
+      ;; (SIGKILL), to the process and all its children
       (when (process-alive-p test-process)
-        (note 0 "WARNING: Unable to kill process ~a" test-process)))
+        (sleep *process-sleep-interval*)
+        (when (process-alive-p test-process)
+          (kill-process test-process :urgent t))
 
-    ;; Now that we've made every effort to kill it, read the output.
+        ;; If it's *still* running, warn someone.
+        (when (process-alive-p test-process)
+          (note 0 "WARNING: Unable to kill process ~a" test-process))))
+
+    ;; Now that it's finished, or we've made every effort to kill it,
+    ;; read the output.
     (let* ((stdout (read-and-close (process-info-output test-process)))
            ;; Can't read from error stream if it's the same as stdout.
            (stderr (unless (eq (process-info-output test-process)
                                (process-info-error-output test-process))
                      (read-and-close (process-info-error-output test-process))))
            (exit-code (wait-process test-process)))
-    (when *shell-debug*
-      (format t "~&stdout:~a~%stderr:~a~%errno:~a" stdout stderr exit-code))
-    (values stdout stderr exit-code))))
+      (when *shell-debug*
+        (format t "~&stdout:~a~%stderr:~a~%errno:~a" stdout stderr exit-code))
+      (values stdout stderr exit-code))))
 
 (defmethod run-test (phenome (test-case test-case) &rest extra-keys
                      &key &allow-other-keys)
