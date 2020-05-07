@@ -124,8 +124,8 @@ which may be more nodes, or other values.")
 (defclass reader-token (skipped-input-result)
   ())
 
-(defmethod source-text ((obj reader-token))
-  (string-pointer obj))
+(defmethod source-text ((obj reader-token) &optional stream)
+  (write-string (string-pointer obj) stream))
 
 (defmethod print-object ((obj reader-token) stream)
   (if *print-readably*
@@ -430,7 +430,7 @@ returned."))
 
 (defun write-stream-forms+ (forms stream)
   "Write the original source text of FORMS to STREAM."
-  (walk-skipped-forms  [{format stream "~a"} #'source-text] forms))
+  (walk-skipped-forms  {source-text _ stream} forms))
 
 (defun write-string-forms+ (forms)
   "Write the original source text of FORMS to a string."
@@ -449,11 +449,11 @@ returned."))
 (defmethod parse-asts ((lisp lisp))
   (convert 'lisp-ast (genome-string lisp)))
 
-(defmethod source-text ((obj result))
-  (with-output-to-string (out)
-    (if (children obj)
-        (mapc [{write-string _ out} #'source-text] (children obj))
-        (write-string (subseq (string-pointer obj) (start obj) (end obj)) out))))
+(defmethod source-text ((obj result) &optional stream)
+  (if (children obj)
+      (mapc {source-text _ stream} (children obj))
+      (write-string (string-pointer obj) stream
+                    :start (start obj) :end (end obj))))
 
 (defmethod convert ((to-type (eql 'expression-result)) (symbol symbol)
                     &key &allow-other-keys)

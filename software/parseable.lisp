@@ -409,22 +409,25 @@ operations.")
                         (t (path-later-p tail-a tail-b))))))))
       (path-later-p (ast-path ast-a) (ast-path ast-b)))))
 
-(defgeneric source-text (ast)
-  (:documentation "Source code corresponding to an AST.")
-  (:method ((ast null)) "")
-  (:method ((str string))
-    str)
-  (:method ((c character))
-    (string c))
-  (:method ((c conflict-ast))
-    (with-output-to-string (s)
-      (format s "<")
-      (iter (for e on (conflict-ast-child-alist c))
-            (format s "~a: " (caar e))
-            (iter (for x in (cdar e)) (format s "~a" (source-text x)))
-            (when (cdr e) (format s "|")))
-      (format s ">")))
-  (:method ((ast ast))
+(defgeneric source-text (ast &optional stream)
+  (:documentation "Return the source code corresponding to an AST,
+optionally writing to STREAM.")
+  (:method :around ((ast t) &optional stream)
+    (with-string (s stream) (call-next-method ast s)))
+  (:method ((ast null) &optional stream)
+    (write-string "" stream))
+  (:method ((str string) &optional stream)
+    (write-string str stream))
+  (:method ((c character) &optional stream)
+    (source-text (string c) stream))
+  (:method ((c conflict-ast) &optional stream)
+    (format stream "<")
+    (iter (for e on (conflict-ast-child-alist c))
+          (format stream "~a: " (caar e))
+          (iter (for x in (cdar e)) (source-text x stream))
+          (when (cdr e) (format stream "|")))
+    (format stream ">"))
+  (:method ((ast ast) &optional stream)
     ;; In performance comparison the combination of
     ;; `with-output-to-string' and `write-string' was faster than
     ;; alternatives using `format' (which was still pretty fast) and
@@ -432,8 +435,7 @@ operations.")
     ;;
     ;; More importantly using (apply #'concatenate ...) runs into
     ;; problems as the number of ASTs is very large.
-    (with-output-to-string (out)
-      (mapc [{write-string _ out} #'source-text] (ast-children ast)))))
+    (mapc {source-text _ stream} (ast-children ast))))
 
 (defgeneric rebind-vars (ast var-replacements fun-replacements)
   (:documentation
@@ -600,10 +602,11 @@ ensure all ASTs have PATHs."
 
 (defmethod genome-string ((obj parseable) &optional stream)
   "Return the source code of OBJ, optionally writing to STREAM"
-  (let ((genome-string (if (stringp (slot-value obj 'genome))
-                           (slot-value obj 'genome)
-                           (source-text (slot-value obj 'genome)))))
-    (if stream (write-string genome-string stream) genome-string)))
+  (with-string (s stream)
+    (with-slots (genome) obj
+      (if (stringp genome)
+          (write-string genome s)
+          (source-text genome s)))))
 
 (defmethod genome :before ((obj parseable))
   "Lazily parse the genome upon first access."
