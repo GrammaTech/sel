@@ -541,9 +541,9 @@ already empty are retained."
           (block replace
             (flet ((remove (sign node)
                      (return-from replace
-                       (values t (ecase sign
-                                   (#\+ nil)
-                                   (#\- (expression node)))))))
+                       (ecase sign
+                         (#\+ nil)
+                         (#\- (expression node))))))
               (multiple-value-bind (new unchangedp)
                   (transform-reader-conditional
                    node
@@ -556,9 +556,8 @@ already empty are retained."
                                     remove-newly-empty)
                                (remove sign node)
                                (values sign featurex ex))))))
-                (values (not unchangedp) new))))
-          ;; Nil return meaning don't modify this node.
-          nil))
+                new)))
+          node))
     ast)))
 
 (defun transform-feature-expression (feature-expression fn)
@@ -647,12 +646,12 @@ possibly expressions) will be omitted according to the sign of the guard."
 
   (defun rewrite-double-arrow (software)
     (setf (genome software)
-          (map-tree (lambda (node)
-                      (if (and (typep node 'expression-result)
-                               (listp (expression node))
-                               (equal '->> (first (expression node))))
-                          (values (fix-double-arrow node) t)
-                          (values node nil)))
+          (mapcar (lambda (node)
+                    (if (and (typep node 'expression-result)
+                             (listp (expression node))
+                             (equal '->> (first (expression node))))
+                        (fix-double-arrow node)
+                        node))
                     (genome software))))
 
   (defun rewrite-double-arrow-in-place (file)
