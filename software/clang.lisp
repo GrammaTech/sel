@@ -280,7 +280,10 @@ See also: https://clang.llvm.org/docs/FAQ.html#id2.")
 ;;; clang data structure definitions
 
 (define-software clang (parseable compilable)
-  ((includes
+  ((asts
+    :initarg :asts :reader asts :initform nil :copier :direct
+    :type list :documentation "List of all ASTs.")
+   (includes
     :initarg :includes :accessor includes
     :initform nil :copier :direct
     :type #+sbcl '(list string *) #-sbcl list
@@ -1735,14 +1738,16 @@ to expand.
 (defgeneric bad-stmts (software)
   (:documentation "Return a list of all bad statement asts in SOFTWARE."))
 
+(defmethod (setf genome) :before ((new t) (obj clang))
+  "Clear caches prior to updating to the NEW genome."
+  (clear-caches obj))
+
 (defmethod (setf genome) :before ((new string) (obj clang))
-  "Clear types, macros, and the symbol table prior to updating genome
-to the NEW genome string.  These fields must be cleared prior to parsing
-and are invalidated when a new, unparsed genome is set."
-  (with-slots (types macros symbol-table) obj
-    (setf types (make-hash-table :test #'equal)
-          macros nil
-          symbol-table (make-hash-table :test #'equal))))
+  "When the genome is set to a string and must be re-parsed, clear the
+macros and symbol table fields in addition to the normal caches.  These
+fields are re-populated when parsing ASTs."
+  (setf (slot-value obj 'macros) nil)
+  (setf (slot-value obj 'symbol-table) (make-hash-table :test #'equal)))
 
 (defmethod (setf genome) :around ((new ast) (obj clang))
   "Upon setting the genome, if the new genome is composed of ASTS,
@@ -1764,69 +1769,9 @@ in the symbol table."
     (setf new
           (update-referenceddecl-from-symbol-table new symbol-table))))
 
-(defmethod update-caches ((obj clang))
-  "Update cached fields of OBJ, including `asts', `stmt-asts', `non-stmt-asts',
-`functions', `prototypes', `includes`, `types`, `symbol-table`, and
-`name-symbol-table`, returning OBJ.
-* OBJ object to update caches for."
-  (call-next-method)
-
-  ;; Update AST-based caches
-  (with-slots (asts stmt-asts non-stmt-asts functions prototypes) obj
-    (let ((last-proto nil))
-      (iter (for ast in asts)
-            (when (function-decl-p ast)
-              (collect ast into protos)
-              (when (function-body obj ast)
-                (collect ast into funs))
-              (setf last-proto ast))
-            ;; stmt-asts are only collected in function bodies and
-            ;; non-stmt-asts are only collected outside of function bodies
-            (if (and last-proto (starts-with-subseq (ast-path last-proto)
-                                                    (ast-path ast)))
-                (unless (or (eq :ParmVar (ast-class ast))
-                            (function-decl-p ast))
-                  (collect ast into my-stmts))
-                (collect ast into my-non-stmts))
-
-            (finally
-             (setf stmt-asts my-stmts
-                   non-stmt-asts my-non-stmts
-                   functions funs
-                   prototypes protos)))))
-
-  ;; Update non-AST caches
-  (with-slots (includes types symbol-table name-symbol-table) obj
-    (setf includes
-          (ast-includes obj (genome obj)))
-    (setf name-symbol-table
-          (if (zerop (hash-table-count name-symbol-table))
-              (update-name-symbol-table name-symbol-table symbol-table)
-              name-symbol-table))
-    (setf types
-          (if (zerop (hash-table-count types))
-              (update-type-table types symbol-table (genome obj))
-              types)))
-  obj)
-
-(defmethod clear-caches ((obj clang))
-  "Clear cached fields on OBJ, including `stmt-asts', `non-stmt-asts',
-`functions', `prototypes', `includes', `types', and `name-symbol-table.'
-* OBJ object to clear caches for."
-  ;; Clear AST-based caches
-  (with-slots (stmt-asts non-stmt-asts functions prototypes includes) obj
-    (setf stmt-asts nil
-          non-stmt-asts nil
-          functions nil
-          prototypes nil
-          includes nil))
-
-  ;; Clear non-AST caches
-  (with-slots (includes types name-symbol-table) obj
-    (setf includes nil)
-    (setf types (make-hash-table))
-    (setf name-symbol-table (make-hash-table :test #'equal)))
-  (call-next-method))
+(defmethod        asts   :before ((obj clang))
+  "Ensure the `asts` field is set on OBJ prior to access."
+  (update-caches-if-necessary obj))
 
 (defmethod        macros :before ((obj clang))
   "Ensure the `macros' field is set on OBJ prior to access."
@@ -1859,6 +1804,77 @@ in the symbol table."
 (defmethod name-symbol-table :before ((obj clang))
   "Ensure the `name-symbol-table' field is set on OBJ prior to access."
   (update-caches-if-necessary obj))
+
+(defgeneric update-caches-if-necessary (obj)
+  (:documentation "Update cached fields of OBJ if these fields are not set.")
+  (:method ((obj clang))
+    (unless (slot-value obj 'asts) (update-caches obj))))
+
+(defgeneric update-caches (obj)
+  (:documentation "Update cached fields of OBJ, including `asts', `stmt-asts',
+`non-stmt-asts', `functions', `prototypes', `includes`, `types`, `symbol-table`,
+and `name-symbol-table`, returning OBJ.
+* OBJ object to update caches for.")
+  (:method ((obj clang))
+    ;; Update AST-based caches
+    (with-slots (asts stmt-asts non-stmt-asts functions prototypes) obj
+      (let ((last-proto nil))
+        (iter (for ast in (cdr (ast-to-list (genome obj))))
+              (collect ast into my-asts)
+              (when (function-decl-p ast)
+                (collect ast into protos)
+                (when (function-body obj ast)
+                  (collect ast into funs))
+                (setf last-proto ast))
+              ;; stmt-asts are only collected in function bodies and
+              ;; non-stmt-asts are only collected outside of function bodies
+              (if (and last-proto (starts-with-subseq (ast-path last-proto)
+                                                      (ast-path ast)))
+                  (unless (or (eq :ParmVar (ast-class ast))
+                              (function-decl-p ast))
+                    (collect ast into my-stmts))
+                  (collect ast into my-non-stmts))
+              (finally
+               (setf asts my-asts
+                     stmt-asts my-stmts
+                     non-stmt-asts my-non-stmts
+                     functions funs
+                     prototypes protos)))))
+
+    ;; Update non-AST caches
+    (with-slots (includes types symbol-table name-symbol-table) obj
+      (setf includes
+            (ast-includes obj (genome obj)))
+      (setf name-symbol-table
+            (if (zerop (hash-table-count name-symbol-table))
+                (update-name-symbol-table name-symbol-table symbol-table)
+                name-symbol-table))
+      (setf types
+            (if (zerop (hash-table-count types))
+                (update-type-table types symbol-table (genome obj))
+                types)))
+    obj))
+
+(defgeneric clear-caches (obj)
+  (:documentation "Clear cached fields on OBJ, including `asts', `stmt-asts',
+`non-stmt-asts', `functions', `prototypes', `includes', `types', and
+`name-symbol-table.'
+* OBJ object to clear caches for.")
+  (:method ((obj clang))
+    ;; Clear AST-based caches
+    (with-slots (asts stmt-asts non-stmt-asts functions prototypes includes) obj
+      (setf asts nil
+            stmt-asts nil
+            non-stmt-asts nil
+            functions nil
+            prototypes nil
+            includes nil))
+
+    ;; Clear non-AST caches
+    (with-slots (includes types name-symbol-table) obj
+      (setf includes nil)
+      (setf types (make-hash-table :test #'equal))
+      (setf name-symbol-table (make-hash-table :test #'equal)))))
 
 (defmethod lines ((obj clang))
   "Return a list of lines of source in OBJ"

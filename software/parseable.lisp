@@ -51,10 +51,7 @@
            :enclosing-scope
            :scopes
            :get-vars-in-scope
-           :update-caches
            :parse-asts
-           :clear-caches
-           :update-caches-if-necessary
            :bad-asts
            ;; :good-stmts
            :good-mutation-targets
@@ -86,11 +83,7 @@
 
 (define-software parseable (software file)
   ((genome   :initarg :genome :accessor genome :initform ""
-             :documentation "Lazily parsed AST representation of the code.")
-   (asts     :initarg :asts :reader asts
-             :initform nil :copier :direct
-             :type #-sbcl list #+sbcl (or null (cons (cons keyword *) *))
-             :documentation "List of all ASTs."))
+             :documentation "Lazily parsed AST representation of the code."))
   (:documentation "Parsed AST tree software representation."))
 
 
@@ -487,6 +480,9 @@ returning a newly created AST."
 (defgeneric roots (obj)
   (:documentation "Return all top-level ASTs in OBJ."))
 
+(defgeneric asts (obj)
+  (:documentation "Deprecated: Return a list of all non-root ASTs in OBJ."))
+
 (defgeneric get-ast (obj path)
   (:documentation "Return the AST in OBJ at the given PATH."))
 
@@ -534,13 +530,6 @@ There are some requirements for the ASTs constructed by this method:
 
 Other methods in on parseable objects, specifically `ast-can-recurse'
 and `ast-equal-p' depend on these invariants."))
-
-(defgeneric clear-caches (software)
-  (:documentation "Clear cached fields on SOFTWARE"))
-
-(defgeneric update-caches-if-necessary (software)
-  (:documentation "Update cached fields in SOFTWARE if these fields have
-not been set."))
 
 (defgeneric bad-asts (software)
   (:documentation "Return a list of all bad asts in SOFTWARE."))
@@ -615,11 +604,9 @@ ensure all ASTs have PATHs."
     (setf (slot-value obj 'genome)
           (populate-fingers (parse-asts obj)))))
 
-(defmethod (setf genome) :before (new (obj parseable))
-  "Clear fitness and other caches prior to updating the NEW genome."
-  (declare (ignorable new))
-  (setf (slot-value obj 'fitness) nil)
-  (clear-caches obj))
+(defmethod (setf genome) :before ((new t) (obj parseable))
+  "Clear fitness prior to updating to the NEW genome."
+  (setf (slot-value obj 'fitness) nil))
 
 (defmethod (setf genome) :after ((new ast) (obj parseable))
   "Ensure fingers are populated after setting the NEW genome AST."
@@ -649,34 +636,6 @@ if the original file is known.")
                             ofile))))))
     (call-next-method)))
 
-(defmethod asts :before ((obj parseable))
-  "Ensure the `asts' field is set on OBJ prior to access."
-  (update-caches-if-necessary obj))
-
-;;; NOTE: The `update-caches' method assumes that the initial
-;;;       top-level AST can be thrown away.
-(defgeneric update-caches (software)
-  (:documentation "Update cached fields in SOFTWARE.")
-  (:method ((obj parseable))
-    (labels ((collect-asts (tree)
-               (cons tree
-                     (iter (for c in (ast-children tree))
-                           (appending (when (typep c 'ast)
-                                        (collect-asts c)))))))
-      (setf (slot-value obj 'asts)
-            (cdr (collect-asts (genome obj)))))))
-
-(defmethod update-caches-if-necessary ((obj parseable))
-  "Update cached fields of OBJ if these fields have not been set."
-  (with-slots (asts) obj (unless asts (update-caches obj))))
-
-(defmethod clear-caches ((obj parseable))
-  "Clear cached fields on OBJ such as `asts'.
-* OBJ object to clear caches for.
-"
-  (with-slots (asts) obj
-    (setf asts nil)))
-
 
 ;;; Retrieving ASTs
 (defmethod roots ((obj parseable))
@@ -691,6 +650,13 @@ if the original file is known.")
 "
   #+sbcl (declare (optimize (speed 0))) ;; to avoid compiler note
   (remove-if-not [{= 1} #'length #'ast-path] asts))
+
+(defmethod asts ((obj parseable))
+  ;; Deprecated: This method exists for interoperability with
+  ;; legacy clang code.  If possible, clients should use
+  ;; fset/functional tree overrides of CL functions such
+  ;; as `mapcar` to iterate over ASTs.
+  (cdr (ast-to-list (genome obj))))
 
 (defgeneric ast-at-index (software index)
   (:documentation "Return the AST in OBJ at INDEX.
