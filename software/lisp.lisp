@@ -540,19 +540,17 @@ already empty are retained."
                        (ecase sign
                          (#\+ nil)
                          (#\- (expression node))))))
-              (multiple-value-bind (new unchangedp)
-                  (transform-reader-conditional
-                   node
-                   (lambda (sign featurex ex)
-                     (if (and (featurex-empty? featurex) remove-empty)
-                         (remove sign node)
-                         (receive (sign featurex ex)
-                             (fn sign featurex ex)
-                           (if (and (featurex-empty? featurex)
-                                    remove-newly-empty)
-                               (remove sign node)
-                               (values sign featurex ex))))))
-                new)))
+              (transform-reader-conditional
+               node
+               (lambda (sign featurex ex)
+                 (if (and (featurex-empty? featurex) remove-empty)
+                     (remove sign node)
+                     (receive (sign featurex ex)
+                         (fn sign featurex ex)
+                       (if (and (featurex-empty? featurex)
+                                remove-newly-empty)
+                           (remove sign node)
+                           (values sign featurex ex))))))))
           node))
     ast)))
 
