@@ -25,4 +25,4 @@
 
 (deftest timeout-test ()
   (let ((*process-kill-timeout* 0.5))
-    (is (= 143 (nth-value 2 (run-test "/tmp" (make-sleeper 1)))))))
+    (is (= 143 (nth-value 2 (run-test "/tmp" (make-sleeper 3)))))))
