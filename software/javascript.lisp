@@ -304,8 +304,7 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
                     &key &allow-other-keys)
   "Parse the COLLECTION snippet into a list of free-floating JavaScript ASTs."
   (handler-case
-      (remove-if-not [{= 1} #'length #'ast-path]
-                     (asts (from-string (make-instance 'javascript) collection)))
+      (genome (from-string (make-instance 'javascript) collection))
     (mutate (e) (declare (ignorable e)) nil)))
 
 (defmethod convert ((to-type (eql 'javascript-ast)) (spec list)

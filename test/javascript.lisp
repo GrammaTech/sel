@@ -133,7 +133,10 @@
                        (stmt-with-text variant "num--;"))))))
 
 (deftest javascript-convert-source-snippet-works ()
-  (is (equal 1 (length (convert 'javascript-ast "j = 0")))))
+  (let ((ast (convert 'javascript-ast "j = 0")))
+    (is (equal 10 (size ast)))
+    (is (equal "j = 0" (source-text ast)))
+    (is (find-if [{eq :ExpressionStatement} #'ast-class] ast))))
 
 (deftest (can-format-a-javascript-software-object :long-running) ()
   (with-fixture fib-javascript
