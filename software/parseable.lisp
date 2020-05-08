@@ -634,17 +634,17 @@ ensure all ASTs have PATHs."
   (setf (genome obj) string)
   obj)
 
-(defparameter *show-update-asts-errors* nil
-  "When true, update-asts reports the original source file on an error,
+(defparameter *show-parse-asts-errors* nil
+  "When true, parse-asts reports the original source file on an error,
 if the original file is known.")
 
-(defmethod update-asts :around ((sw parseable))
+(defmethod parse-asts :around ((sw parseable))
   (handler-bind
       ((error (lambda (e)
                 (declare (ignore e))
-                (when *show-update-asts-errors*
+                (when *show-parse-asts-errors*
                   (when-let ((ofile (original-path sw)))
-                    (format t "Failure in update-asts: original-path = ~a~%"
+                    (format t "Failure in parse-asts: original-path = ~a~%"
                             ofile))))))
     (call-next-method)))
 
