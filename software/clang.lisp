@@ -391,12 +391,12 @@ attribute of clang json objects")
          :type string
          :reader type-name)
    ;; Slots populated from the type declaration AST.
-   (i-file :accessor type-i-file
+   (i-file :reader type-i-file
            :initarg :i-file
            :initform nil
            :type (or null string)
            :documentation "Header file where the type is located.")
-   (reqs :accessor type-reqs
+   (reqs :reader type-reqs
          :initarg :reqs
          :initform nil
          :type list ;; of clang-type objects
@@ -404,7 +404,7 @@ attribute of clang json objects")
 this type.")
    ;; TODO: This field was carried forward from old clang types.
    ;; Perhaps this should be an AST instead of a string.
-   (decl :accessor type-decl
+   (decl :reader type-decl
          :initarg :decl
          :initform ""
          :type string
@@ -6028,10 +6028,10 @@ on both sides of AST.  AST is a string or ast node.  SEMI-POSITION is
   "Populate the `i-file`, `reqs`, and `decl` fields for clang-type
 objects in TYPES using NAME-SYMBOL-TABLE."
   (labels ((populate-type-i-file (obj tp decl)
-             (setf (type-i-file tp)
+             (setf (slot-value tp 'i-file)
                    (ast-i-file obj decl)))
            (populate-type-reqs (tp decl)
-             (setf (type-reqs tp)
+             (setf (slot-value tp 'reqs)
                    (unless (type-i-file tp)
                      (nest (remove tp)
                            (remove nil)
@@ -6039,7 +6039,7 @@ objects in TYPES using NAME-SYMBOL-TABLE."
                            (mapcar #'ast-type)
                            (get-children obj decl)))))
            (populate-type-decl (tp decl)
-             (setf (type-decl tp)
+             (setf (slot-value tp 'decl)
                    (source-text decl))))
     (iter (for tp in (nest (remove-duplicates)
                            (mapcar #'ct+-type)
