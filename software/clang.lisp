@@ -4208,9 +4208,6 @@ on various ast classes"))
 (defmethod ast-void-ret ((obj clang-ast))
   (equal "void" (type-qual (ct+-type (ast-ret obj)))))
 
-(defun ast-reference-decls (ast)
-  (map-ast-sets ast #'reference-decls-at-ast :key #'ast-id))
-
 (defmethod ast-varargs ((obj clang-ast))
   ;; Should just be :FunctionDecl objects
   (ast-annotation obj :variadic))
@@ -4234,11 +4231,6 @@ on various ast classes"))
   (or (slot-value ast 'stored-hash)
       (setf (slot-value ast 'stored-hash)
             (ast-hash (cons (ast-class ast) (ast-children ast))))))
-
-;; Helpers for the "ast-*" functions above
-(defun reference-decls-at-ast (a)
-  (let ((rd (ast-annotation a :referencedDecl)))
-    (when rd (list rd))))
 
 (defun ret-type-of-function-type (s)
   "Returns a string that is the return type of the function type
