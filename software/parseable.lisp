@@ -652,7 +652,9 @@ if the original file is known.")
   (cdr (ast-to-list (genome obj))))
 
 (defgeneric ast-at-index (software index)
-  (:documentation "Return the AST in OBJ at INDEX.
+  (:documentation "Deprecated: Return the AST in OBJ at INDEX.
+If possible, only use when dealing with legacy instrumentation code.
+
 * OBJ object to retrieve ASTs for
 * INDEX nth AST to retrieve
 ")
@@ -660,7 +662,9 @@ if the original file is known.")
     (nth index (asts obj))))
 
 (defgeneric index-of-ast (software ast)
-  (:documentation "Return the index of AST in OBJ.
+  (:documentation "Deprecated: Return the index of AST in OBJ.
+If possible, only use when dealing with legacy instrumentation code.
+
 * OBJ object to query for the index of AST
 * AST node to find the index of
 ")
