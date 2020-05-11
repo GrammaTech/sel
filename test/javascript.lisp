@@ -52,17 +52,17 @@
 
 (deftest (can-parse-a-javascript-software-object :long-running) ()
   (with-fixture hello-world-javascript
-    (is (= 6 (length (asts *soft*))))
+    (is (= 6 (size *soft*)))
     (is (equal (file-to-string (javascript-dir #P"hello-world/hello-world.js"))
                (genome-string *soft*))))
   (with-fixture fib-javascript
-    (is (= 40 (length (asts *soft*))))
+    (is (= 40 (size *soft*)))
     (is (equal (file-to-string (javascript-dir #P"fib/fib.js"))
                (genome-string *soft*)))))
 
 (deftest can-parse-a-json-software-object ()
   (with-fixture trivial-json
-    (is (not (null (asts *soft*))))
+    (is (not (zerop (size *soft*))))
     (is (eq :OBJECTEXPRESSION
             (ast-class (genome *soft*))))))
 
@@ -228,11 +228,11 @@
   (labels ((parse-test (path &rest ast-classes)
              (let ((soft (from-file (make-instance 'javascript)
                                     (javascript-dir path))))
-               (is (not (null (asts soft))))
+               (is (not (zerop (size soft))))
                (is (equal (genome-string soft)
                           (file-to-string (javascript-dir path))))
                (mapc (lambda (ast-class)
-                       (is (find ast-class (asts soft) :key #'ast-class)))
+                       (is (find ast-class (genome soft) :key #'ast-class)))
                      ast-classes))))
     (mapc {apply #'parse-test}
           '((#P"parsing/array-destructuring.js" :ArrayPattern)
@@ -273,9 +273,7 @@
     (is (equal (list "d" "c" "b" "a" "arr")
                (nest (mapcar {aget :name})
                      (get-vars-in-scope soft)
-                     (lastcar)
-                     (remove-if-not {traceable-stmt-p soft})
-                     (asts soft))))))
+                     (stmt-starting-with-text soft "console.log("))))))
 
 (deftest object-destructuring-get-vars-in-scope-test ()
   (let ((soft (from-file (make-instance 'javascript)
@@ -283,9 +281,7 @@
     (is (equal (list "q" "p" "o")
                (nest (mapcar {aget :name})
                      (get-vars-in-scope soft)
-                     (lastcar)
-                     (remove-if-not {traceable-stmt-p soft})
-                     (asts soft))))))
+                     (stmt-starting-with-text soft "console.log("))))))
 
 (deftest for-in-loop-get-vars-in-scope-test ()
   (let ((soft (from-file (make-instance 'javascript)
@@ -392,7 +388,8 @@
 (deftest javascript-and-conflict-basic-parseable-ast-functionality ()
   (with-fixture javascript-ast-w-conflict
     (is (typep (genome *soft*) 'javascript-ast))         ; We actually have ASTs.
-    (is (every #'ast-path (asts *soft*)))                ; Non-root ast have path.
+    (is (equal (size *soft*)
+               (count-if #'ast-path (genome *soft*))))   ; Non-root ast have path.
     (is (typep (copy (genome *soft*)) 'javascript-ast))) ; Copy works.
   (with-fixture javascript-ast-w-conflict
     ;; Access ASTs.
@@ -412,12 +409,12 @@
 
 (deftest javascript-and-conflict-replace-ast ()
   (with-fixture javascript-ast-w-conflict
-    (let ((cnf (find-if {typep _ 'conflict-ast} (asts *soft*))))
+    (let ((cnf (find-if {typep _ 'conflict-ast} (genome *soft*))))
       (replace-ast *soft*
                    (ast-path cnf)
                    (aget :my (conflict-ast-child-alist cnf))))
 
-    (is (equalp (mapcar #'ast-path (asts *soft*)) '((1) (2))))
+    (is (equal (size *soft*) (count-if #'ast-path (genome *soft*))))
     (is (string= (genome-string *soft*) "topleftaright"))))
 
 (deftest test-json-preserves-trailing-whitespace ()

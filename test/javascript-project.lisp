@@ -45,7 +45,7 @@
 (deftest (can-parse-a-javascript-project :long-running) ()
   (with-fixture fib-project-javascript
     (is (equal 2 (length (evolve-files *soft*))))
-    (is (not (null (asts *soft*))))))
+    (is (not (zerop (size *soft*))))))
 
 (deftest (javascript-project-instrument-uninstrument-is-identity
           :long-running) ()
