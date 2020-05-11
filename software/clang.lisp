@@ -454,13 +454,6 @@ the macro is defined within."
                         (let ((desugared (type-desugared obj)))
                           (when desugared (list ":DESUGARED" desugared))))))))
 
-;; FIXME: When clang is converted to utilize functional trees,
-;; this method specialization will no longer be required.
-(defmethod ast-hash ((ast clang-ast))
-  (or (slot-value ast 'stored-hash)
-      (setf (slot-value ast 'stored-hash)
-            (ast-hash (cons (ast-class ast) (ast-children ast))))))
-
 
 ;;; Object creation, serialization, and copying.
 (defmethod convert ((ast-type (eql 'clang-ast)) (spec list)
@@ -4234,6 +4227,13 @@ on various ast classes"))
           (cons (cons annotation v)
                 (adrop (list annotation) (ast-annotations ast))))
     v))
+
+;; FIXME: When clang is converted to utilize functional trees,
+;; this method specialization will no longer be required.
+(defmethod ast-hash ((ast clang-ast))
+  (or (slot-value ast 'stored-hash)
+      (setf (slot-value ast 'stored-hash)
+            (ast-hash (cons (ast-class ast) (ast-children ast))))))
 
 ;; Helpers for the "ast-*" functions above
 (defun reference-decls-at-ast (a)
