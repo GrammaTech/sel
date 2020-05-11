@@ -642,14 +642,7 @@ if the original file is known.")
   "Return all top-level ASTs in OBJ.
 * OBJ software object to search for roots
 "
-  (roots (asts obj)))
-
-(defmethod roots ((asts list))
-  "Return all top-level ASTs in ASTS.
-* ASTS list of ASTs to search for roots
-"
-  #+sbcl (declare (optimize (speed 0))) ;; to avoid compiler note
-  (remove-if-not [{= 1} #'length #'ast-path] asts))
+  (remove-if-not {typep _ 'ast} (ast-children (genome obj))))
 
 (defmethod asts ((obj parseable))
   ;; Deprecated: This method exists for interoperability with
