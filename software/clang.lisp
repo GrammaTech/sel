@@ -1869,6 +1869,12 @@ and `name-symbol-table`, returning OBJ.
       (setf types (make-hash-table :test #'equal))
       (setf name-symbol-table (make-hash-table :test #'equal)))))
 
+;; FIXME: When clang is converted to utilize functional trees,
+;; this method specialization will no longer be required.
+(defmethod size ((obj clang))
+  "Return the number of non-root ASTs in OBJ."
+  (length (asts obj)))
+
 (defmethod lines ((obj clang))
   "Return a list of lines of source in OBJ"
   (split-sequence #\Newline (genome-string obj)))

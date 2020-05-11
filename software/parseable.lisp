@@ -587,8 +587,8 @@ ensure all ASTs have PATHs."
       (setf genome (populate-fingers genome)))))
 
 (defmethod size ((obj parseable))
-  "Return the number of ASTs in OBJ."
-  (length (asts obj)))
+  "Return the number of non-root ASTs in OBJ."
+  (1- (count-if {typep _ 'ast} (genome obj))))
 
 (defmethod genome-string ((obj parseable) &optional stream)
   "Return the source code of OBJ, optionally writing to STREAM"
