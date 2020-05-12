@@ -6332,6 +6332,22 @@ children.")
     (map-ast ast (lambda (a) (push a result)))
     (nreverse result)))
 
+(defmethod substitute-if (new-item predicate (ast clang-ast)
+                          &key key copy start end from-end count
+                          &allow-other-keys)
+  (declare (ignorable key copy start end from-end count))
+  (if (funcall predicate ast)
+      new-item
+      (let ((new-children (mapcar
+                           (lambda (child)
+                             (if (typep child 'clang-ast)
+                                 (substitute-if new-item predicate child)
+                                 child))
+                           (ast-children ast))))
+        (if (every #'eql new-children (ast-children ast))
+            ast
+            (copy ast :children new-children)))))
+
 
 (defun cpp-scan (str until-fn &key (start 0) (end (length str))
                                 (skip-first nil)
