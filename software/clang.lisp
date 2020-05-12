@@ -6327,6 +6327,17 @@ children.")
     ast)
   (:method (ast (fn t)) ast))
 
+(defmethod find-if (predicate (ast clang-ast) &key key from-end end start)
+  (declare (ignorable key from-end end start))
+  (cond
+    ((funcall predicate ast) ast)
+    ((ast-children ast)
+     (iter (for child in (ast-children ast))
+           (when-let ((satisfied-p
+                       (and (typep child 'clang-ast)
+                            (find-if child predicate))))
+             (return satisfied-p))))))
+
 (defun ast-nodes-in-subtree (ast)
   (let ((result nil))
     (map-ast ast (lambda (a) (push a result)))
