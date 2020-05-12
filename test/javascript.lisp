@@ -387,10 +387,13 @@
 
 (deftest javascript-and-conflict-basic-parseable-ast-functionality ()
   (with-fixture javascript-ast-w-conflict
-    (is (typep (genome *soft*) 'javascript-ast))         ; We actually have ASTs.
+    ;; We actually have ASTs.
+    (is (typep (genome *soft*) 'javascript-ast))
+    ;; Non-root asts have path.
     (is (equal (size *soft*)
-               (count-if #'ast-path (genome *soft*))))   ; Non-root ast have path.
-    (is (typep (copy (genome *soft*)) 'javascript-ast))) ; Copy works.
+               (count-if {ast-path *soft*} (genome *soft*))))
+    ;; Copy works.
+    (is (typep (copy (genome *soft*)) 'javascript-ast)))
   (with-fixture javascript-ast-w-conflict
     ;; Access ASTs.
     (is (string= "top" (get-ast *soft* '(0))))
@@ -411,10 +414,10 @@
   (with-fixture javascript-ast-w-conflict
     (let ((cnf (find-if {typep _ 'conflict-ast} (genome *soft*))))
       (replace-ast *soft*
-                   (ast-path cnf)
+                   (ast-path *soft* cnf)
                    (aget :my (conflict-ast-child-alist cnf))))
 
-    (is (equal (size *soft*) (count-if #'ast-path (genome *soft*))))
+    (is (equal (size *soft*) (count-if {ast-path *soft*} (genome *soft*))))
     (is (string= (genome-string *soft*) "topleftaright"))))
 
 (deftest test-json-preserves-trailing-whitespace ()

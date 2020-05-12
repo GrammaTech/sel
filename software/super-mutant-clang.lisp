@@ -164,14 +164,14 @@ true, create a complete function decl which contains the body."
                    ;; genome.
                    (variants
                     (push variants inserts))))))
-       (sort-mutation-ops (ops)
-         (sort ops #'ast-later-p :key [{aget :stmt1} #'cdr]))
+       (sort-mutation-ops (obj ops)
+         (sort ops #'path-later-p :key [{ast-path obj} {aget :stmt1} #'cdr]))
        (add-stdlib-include (obj)
          ;; Needed for getenv()
          (add-include obj "<stdlib.h>")))
     (nest (add-stdlib-include)
           (apply-mutation-ops (copy base))
-          (sort-mutation-ops)
+          (sort-mutation-ops base)
           ;; Create mutations to insert super-functions into genome of
           ;; first variant
           (create-mutation-ops)

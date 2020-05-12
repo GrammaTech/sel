@@ -21,7 +21,7 @@
            :ast-to-list
            :ast-equal-p
            :ast-hash
-           :ast-later-p
+           :path-later-p
            :conflict-ast
            :conflict-ast-child-alist
            :conflict-ast-default-children
@@ -126,9 +126,8 @@ PRINT-OBJECT method on AST structures.")
   (if *print-readably*
       (call-next-method)
       (print-unreadable-object (obj stream :type t)
-        (format stream "~a :PATH ~s :TEXT ~s"
+        (format stream "~a :TEXT ~s"
                 (ft::serial-number obj)
-                (ast-path obj)
                 (let* ((text (source-text obj))
                        (truncated
                         (if (> (length text) cutoff)
@@ -142,9 +141,8 @@ PRINT-OBJECT method on AST structures.")
   (if *print-readably*
       (call-next-method)
       (print-unreadable-object (obj stream :type t)
-        (format stream "~a :PATH ~s~:_ :CHILD-ALIST ~s"
+        (format stream "~a :CHILD-ALIST ~s"
                 (ft::serial-number obj)
-                (ast-path obj)
                 (conflict-ast-child-alist obj)))))
 
 (defgeneric ast-annotation (ast annotation)
@@ -152,14 +150,17 @@ PRINT-OBJECT method on AST structures.")
   (:method ((ast ast) (annotation symbol))
     (aget annotation (ast-annotations ast))))
 
-;; FIXME: When clang is converted to utilize functional trees,
-;; this method specialization will no longer be required as we
-;; can utilize `finger`'s in all locations.
-(defgeneric ast-path (ast)
-  (:documentation "Return the children of AST.")
-  (:method ((ast ast))
-    (when (finger ast)
-      (path (finger ast)))))
+(defgeneric ast-path (obj ast)
+  (:documentation "Return the PATH to AST in OBJ.")
+  (:method :before ((root functional-tree-ast) (ast functional-tree-ast))
+    ;; lazily populate fingers when paths are requested
+    (unless (finger ast) (populate-fingers root)))
+  (:method ((obj parseable) (ast functional-tree-ast))
+    (ast-path (genome obj) ast))
+  (:method ((root functional-tree-ast) (ast functional-tree-ast))
+    (ast-path root (finger ast)))
+  (:method ((root functional-tree-ast) (finger finger))
+    (path (functional-trees::transform-finger finger root))))
 
 ;; FIXME: When clang is converted to utilize functional trees,
 ;; this method specialization will no longer be required as we
@@ -381,26 +382,23 @@ modile +AST-HASH-BASE+"
 (defgeneric from-alist (symbol alist)
   (:documentation "Convert alist to struct representation."))
 
-(defgeneric ast-later-p (ast-a ast-b)
-  (:documentation "Is AST-A later in the genome than AST-B?
+(defgeneric path-later-p (path-a path-b)
+  (:documentation "Does PATH-A represent an AST path after PATH-B?
 Use this to sort AST asts for mutations that perform multiple
 operations.")
-  (:method ((ast-a ast) (ast-b ast))
-    (labels
-        ((path-later-p (a b)
-           (cond
-             ;; Consider longer asts to be later, so in case of nested ASTs we
-             ;; will sort inner one first. Mutating the outer AST could
-             ;; invalidate the inner ast.
-             ((null a) nil)
-             ((null b) t)
-             (t (bind (((head-a . tail-a) a)
-                       ((head-b . tail-b) b))
-                      (cond
-                        ((> head-a head-b) t)
-                        ((> head-b head-a) nil)
-                        (t (path-later-p tail-a tail-b))))))))
-      (path-later-p (ast-path ast-a) (ast-path ast-b)))))
+  (:method ((path-a list) (path-b list))
+    (cond
+      ;; Consider longer paths to be later, so in case of nested ASTs we
+      ;; will sort inner one first. Mutating the outer AST could
+      ;; invalidate the inner ast.
+      ((null path-a) nil)
+      ((null path-b) t)
+      (t (bind (((head-a . tail-a) path-a)
+                ((head-b . tail-b) path-b))
+               (cond
+                 ((> head-a head-b) t)
+                 ((> head-b head-a) nil)
+                 (t (path-later-p tail-a tail-b))))))))
 
 (defgeneric source-text (ast &optional stream)
   (:documentation "Return the source code corresponding to an AST,
@@ -578,14 +576,6 @@ made traceable by wrapping with curly braces, return that."))
 
 
 ;;; Core parseable methods
-(defmethod initialize-instance :after ((obj parseable) &rest initargs)
-  "If a GENOME of ASTs is given in the initialization,
-ensure all ASTs have PATHs."
-  (declare (ignorable initargs))
-  (with-slots (genome) obj
-    (when (typep genome 'ast)
-      (setf genome (populate-fingers genome)))))
-
 (defmethod size ((obj parseable))
   "Return the number of non-root ASTs in OBJ."
   (1- (count-if {typep _ 'ast} (genome obj))))
@@ -602,15 +592,11 @@ ensure all ASTs have PATHs."
   "Lazily parse the genome upon first access."
   (when (stringp (slot-value obj 'genome))
     (setf (slot-value obj 'genome)
-          (populate-fingers (parse-asts obj)))))
+          (parse-asts obj))))
 
 (defmethod (setf genome) :before ((new t) (obj parseable))
   "Clear fitness prior to updating to the NEW genome."
   (setf (slot-value obj 'fitness) nil))
-
-(defmethod (setf genome) :after ((new ast) (obj parseable))
-  "Ensure fingers are populated after setting the NEW genome AST."
-  (setf (slot-value obj 'genome) (populate-fingers new)))
 
 (defmethod from-file ((obj parseable) path)
   "Initialize OBJ with the contents of PATH."
@@ -710,7 +696,7 @@ otherwise.
 * OBJ software object containing AST and its parent
 * AST node to find the parent of
 "
-  (when-let ((path (butlast (ast-path ast))))
+  (when-let ((path (butlast (ast-path obj ast))))
     (get-ast obj path)))
 
 (defmethod get-parent-asts ((obj parseable) (ast ast))
@@ -725,7 +711,7 @@ otherwise.
                    (cons new-subtree
                          (get-parent-asts-helper new-subtree
                                                  (cdr path)))))))
-    (reverse (get-parent-asts-helper (genome obj) (ast-path ast)))))
+    (reverse (get-parent-asts-helper (genome obj) (ast-path obj ast)))))
 
 (defmethod get-children ((obj parseable) (ast ast))
   "Return all the children of AST in OBJ.
@@ -1072,7 +1058,8 @@ MUTATION to SOFTWARE.
                       ;; Sort operations latest-first so they
                       ;; won't step on each other.
                       (sort (recontextualize-mutation software mutation)
-                            #'ast-later-p :key [{aget :stmt1} #'cdr])))
+                            #'path-later-p
+                            :key [{ast-path software} {aget :stmt1} #'cdr])))
 
 (defmethod apply-mutation ((obj parseable) (op list))
   "Apply OPS to SOFTWARE, returning the resulting SOFTWARE.
@@ -1091,7 +1078,7 @@ SOFTWARE.
         (iter (for (op . properties) in ops)
               (let ((stmt1 (if (listp (aget :stmt1 properties))
                                (aget :stmt1 properties)
-                               (ast-path (aget :stmt1 properties))))
+                               (ast-path software (aget :stmt1 properties))))
                     (value1 (if (functionp (aget :value1 properties))
                                 (funcall (aget :value1 properties))
                                 (aget :value1 properties))))
@@ -1171,7 +1158,7 @@ to allow for successful mutation of SOFTWARE at PT."
           For modifications where the replacement is to be directly
           inserted, pass this keyword as true.")
   (:method ((obj parseable) (location ast) (ast ast) &rest args)
-    (apply #'insert-ast obj (ast-path location) ast args))
+    (apply #'insert-ast obj (ast-path obj location) ast args))
   (:method ((obj parseable) (location list) (ast ast) &key literal)
     (apply-mutation obj (at-targets (make-instance 'parseable-insert)
                                     (list (cons :stmt1 location)
@@ -1188,18 +1175,18 @@ with REPLACEMENT.
           For modifications where the replacement is to be directly
           inserted, pass this keyword as true.")
   (:method ((obj parseable) (location ast) (replacement ast) &rest args)
-    (apply #'replace-ast obj (ast-path location) replacement args))
+    (apply #'replace-ast obj (ast-path obj location) replacement args))
   (:method ((obj parseable) (location list) (replacement ast) &key literal)
     (apply-mutation obj (at-targets (make-instance 'parseable-replace)
                                     (list (cons :stmt1 location)
                                           (cons (if literal :literal1 :value1)
                                                 replacement)))))
   (:method ((obj parseable) (location ast) (replacement string) &rest args)
-    (apply #'replace-ast obj (ast-path location) (list replacement) args))
+    (apply #'replace-ast obj (ast-path obj location) (list replacement) args))
   (:method ((obj parseable) (location list) (replacement string) &rest args)
     (apply #'replace-ast obj location (list replacement) args))
   (:method ((obj parseable) (location ast) (replacement list) &rest args)
-    (apply #'replace-ast obj (ast-path location) replacement args))
+    (apply #'replace-ast obj (ast-path obj location) replacement args))
   (:method ((obj parseable) (location list) (replacement list) &rest args)
     (let* ((old-ast (get-ast obj (butlast location)))
            (new-ast (nest (copy old-ast :children)
@@ -1215,7 +1202,7 @@ with REPLACEMENT.
 * OBJ object to be modified
 * LOCATION location to be removed in OBJ")
   (:method ((obj parseable) (location ast))
-    (remove-ast obj (ast-path location)))
+    (remove-ast obj (ast-path obj location)))
   (:method ((obj parseable) (location list))
     (apply-mutation obj (at-targets (make-instance 'parseable-cut)
                                     (list (cons :stmt1 location))))))

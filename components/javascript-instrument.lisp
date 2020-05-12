@@ -133,8 +133,8 @@ Creates a JAVASCRIPT-INSTRUMENTER for OBJ and calls its instrument method.
 
   (labels ((get-ast-id (ast)
              (gethash ast (ast-ids instrumenter)))
-           (sort-asts (asts)
-             (sort asts #'ast-later-p))
+           (sort-asts (obj asts)
+             (sort asts #'path-later-p :key {ast-path obj}))
            (instrument-before (instrumenter ast)
              (convert 'javascript-ast
                       `(:ExpressionStatement
@@ -181,7 +181,7 @@ Creates a JAVASCRIPT-INSTRUMENTER for OBJ and calls its instrument method.
            (instrument-asts (instrumenter)
              (let ((obj (software instrumenter)))
                (nest (mapcar {instrument-ast instrumenter})
-                     (sort-asts)
+                     (sort-asts obj)
                      (remove-if-not {funcall filter obj})
                      (remove-if-not {traceable-stmt-p obj})
                      (asts obj))))
@@ -198,7 +198,9 @@ Creates a JAVASCRIPT-INSTRUMENTER for OBJ and calls its instrument method.
     (apply-mutation-ops
       obj
       (iter (for (before ast after) in (instrument-asts instrumenter))
-            (appending (create-mutation-ops (ast-path ast) before after)))))
+            (appending (create-mutation-ops (ast-path obj ast)
+                                            before
+                                            after)))))
 
   (append-text-to-genome-preamble obj +javascript-trace-code+)
 

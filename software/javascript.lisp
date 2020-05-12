@@ -536,7 +536,8 @@ AST ast to return the scopes for"
                     (filter-identifiers obj scope)
                     (iter (for c in
                                (get-immediate-children obj scope))
-                          (while (ast-later-p ast c))
+                          (while (path-later-p (ast-path obj ast)
+                                               (ast-path obj c)))
                           (collect c)))
               (scopes obj scope))))))
 

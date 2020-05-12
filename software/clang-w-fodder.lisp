@@ -300,7 +300,8 @@ Ensure that the name of the inserted decl is used by
                                     :object obj
                                     :targets (aget :decl-fodder (targets mut)))
                      obj))
-   #'ast-later-p :key [{aget :stmt1} #'cdr]))
+   #'path-later-p
+   :key [{ast-path obj} {aget :stmt1} #'cdr]))
 
 (defmethod apply-mutation :after ((obj clang-w-fodder) mutation)
   "Inject fodder dependencies such as types, macros, and headers after a fodder

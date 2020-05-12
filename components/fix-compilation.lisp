@@ -331,7 +331,9 @@ associated element of `*compilation-fixers*'.
     ;;       returned instead of numbers and asts can't be
     ;;       compared with `>'.
     (nest (mapc [{apply-mutation obj} {list 'clang-cut} {cons :stmt1}])
-          (sort (remove nil (hash-table-keys to-delete)) #'ast-later-p))))
+          (sort (remove nil (hash-table-keys to-delete))
+                #'path-later-p
+                :key {ast-path obj}))))
 
 (register-fixer
  ": undefined reference to `(\\S+)'"

@@ -342,8 +342,7 @@ See also: https://clang.llvm.org/docs/FAQ.html#id2.")
 
 (defclass clang-ast (ast)
   ((path
-    :initarg :path :initform nil
-    :accessor ast-path :type list)
+    :initarg :path :initform nil :type list)
    (children
     :initarg :children :initform nil
     :accessor ast-children :type list)
@@ -441,8 +440,7 @@ the macro is defined within."
   (if *print-readably*
       (call-next-method)
       (print-unreadable-object (obj stream :type t)
-        (format stream "~a~@[ ~a~] ~a" (ast-class obj) (ast-name obj)
-                (ast-path obj)))))
+        (format stream "~a~@[ ~a~]" (ast-class obj) (ast-name obj)))))
 
 (defmethod print-object ((obj clang-type) stream)
   (if *print-readably*
@@ -740,14 +738,24 @@ expanded relative to DIR.
                        f)))))
 
 (defmethod initialize-instance :after ((obj clang) &key &allow-other-keys)
-  "Wrapper after the constructor to ensure the flags are in a normalized form
-with absolute, canonical paths."
-  (setf (slot-value obj 'flags)
-        (normalize-flags (original-directory obj)
-                         (flags obj)))
-  (setf (slot-value obj 'compiler)
-        (or (slot-value obj 'compiler) "clang"))
+  "Wrapper after the constructor to ensure all AST paths are populated,
+flags are in a normalized form with absolute, canonical paths, and the
+compiler is set to a default value if none is provided."
+  (with-slots (genome flags compiler) obj
+    (setf genome (if (stringp genome) genome (update-paths genome)))
+    (setf flags (normalize-flags (original-directory obj)
+                                 (flags obj)))
+    (setf compiler (or compiler "clang")))
   obj)
+
+(defmethod copy :before ((obj clang)
+                         &key (genome nil genome-supplied-p) &allow-other-keys)
+  "Wrapper before copy to ensure all AST paths are populated in the
+genome supplied as a keyword."
+  (setf genome
+        (if (and genome-supplied-p (typep genome 'ast))
+            (update-paths genome)
+            genome)))
 
 (defmethod (setf flags) :after ((flags list) (obj clang))
   "Wrapper after the flags setf to ensure the flags are in a
@@ -1750,7 +1758,7 @@ software objects after modification."
              (copy ast :children (mapcar (lambda (c)
                                            (if (typep c 'ast) (deep-copy c) c))
                                          (ast-children ast)))))
-    (call-next-method (deep-copy new) obj)))
+    (call-next-method (update-paths (deep-copy new)) obj)))
 
 (defmethod (setf genome) :after ((new ast) (obj clang))
   "After setting the genome, update the symbol table and then update the
@@ -1821,8 +1829,8 @@ and `name-symbol-table`, returning OBJ.
                 (setf last-proto ast))
               ;; stmt-asts are only collected in function bodies and
               ;; non-stmt-asts are only collected outside of function bodies
-              (if (and last-proto (starts-with-subseq (ast-path last-proto)
-                                                      (ast-path ast)))
+              (if (and last-proto (starts-with-subseq (ast-path obj last-proto)
+                                                      (ast-path obj ast)))
                   (unless (or (eq :ParmVar (ast-class ast))
                               (function-decl-p ast))
                     (collect ast into my-stmts))
@@ -2036,7 +2044,8 @@ already in scope, it will keep that name.")
                           ;; Sort operations latest-first so they
                           ;; won't step on each other.
                           (sort (recontextualize-mutation software mutation)
-                                #'ast-later-p :key [{aget :stmt1} #'cdr]))
+                                #'path-later-p
+                                :key [{ast-path software} {aget :stmt1} #'cdr]))
     (skip-mutation ()
       :report "Skip mutation and return nil"
       (values nil 1))
@@ -2069,7 +2078,7 @@ already in scope, it will keep that name.")
 ;; FIXME: When clang is converted to utilize functional trees,
 ;; these method specializations will no longer be required.
 (defmethod with ((tree clang-ast) (location t) &optional replacement)
-  (with tree (ast-path location) replacement))
+  (with tree (ast-path tree location) replacement))
 
 (defmethod with ((tree clang-ast) (location list) &optional replacement)
   (labels        ; TODO: Remove or relocate all of this "fixup" logic.
@@ -2144,7 +2153,7 @@ already in scope, it will keep that name.")
 ;; these method specializations will no longer be required.
 (defmethod less ((tree clang-ast) (location t) &optional arg2)
   (declare (ignorable arg2))
-  (less tree (ast-path location)))
+  (less tree (ast-path tree location)))
 
 (defmethod less ((tree clang-ast) (location list) &optional arg2)
   (declare (ignorable arg2))
@@ -2173,7 +2182,7 @@ already in scope, it will keep that name.")
 ;; FIXME: When clang is converted to utilize functional trees,
 ;; these method specializations will no longer be required.
 (defmethod insert ((tree clang-ast) (location t) (replacement t))
-  (insert tree (ast-path location) replacement))
+  (insert tree (ast-path tree location) replacement))
 
 (defmethod insert ((tree clang-ast) (location list) (replacement t))
   (labels
@@ -2203,7 +2212,7 @@ already in scope, it will keep that name.")
 ;; FIXME: When clang is converted to utilize functional trees,
 ;; these method specializations will no longer be required.
 (defmethod splice ((tree clang-ast) (location t) (values list))
-  (splice tree (ast-path location) values))
+  (splice tree (ast-path tree location) values))
 
 (defmethod splice ((tree clang-ast) (location list) (values list))
   (labels
@@ -2651,7 +2660,7 @@ Ends with AST.
                                         nil
                                         (cons new-acc blocks)))))))
 
-(defmethod tree-successors ((ast clang-ast) (ancestor clang-ast)
+(defmethod tree-successors ((obj clang) (ast clang-ast) (ancestor clang-ast)
                             &key include-ast)
   "Find all successors of AST within subtree at ANCESTOR.
 
@@ -2667,7 +2676,7 @@ included as the first successor."
                (list (subseq children (if include-ast head (1+ head))))))))
     (nest (reverse)
           (successors ancestor)
-          (subseq (ast-path ast) (length (ast-path ancestor))))))
+          (subseq (ast-path obj ast) (length (ast-path obj ancestor))))))
 
 (defmethod update-headers-from-snippet ((clang clang) snippet database)
   "DOCFIXME
@@ -2744,7 +2753,8 @@ included as the first successor."
                   ; get children in scope
                   (iter (for c in
                              (get-immediate-children software scope))
-                        (while (ast-later-p ast c))
+                        (while (path-later-p (ast-path software ast)
+                                             (ast-path software c)))
                         (collect c)))
             (scopes software scope)))))
 
@@ -3123,7 +3133,7 @@ Returns outermost AST of context.
 "
   (let* ((outer (common-ancestor a a-begin a-end))
          (context (create-crossover-context a outer a-begin :include-start nil))
-         (b-stmts (tree-successors b-begin
+         (b-stmts (tree-successors b b-begin
                                    (nest (get-parent-ast b)
                                          (common-ancestor b b-begin b-end))
                                    :include-ast t))
@@ -3157,11 +3167,11 @@ Returns outermost AST of context.
 * B-END DOCFIXME
 "
   (labels
-      ((child-index (parent child)
+      ((child-index (obj parent child)
          "Position of CHILD within PARENT."
-         (assert (equal (ast-path parent)
-                        (butlast (ast-path child))))
-         (lastcar (ast-path child)))
+         (assert (equal (ast-path obj parent)
+                        (butlast (ast-path obj child))))
+         (lastcar (ast-path obj child)))
        (outer-ast (obj begin end)
          "AST which strictly encloses BEGIN and END."
          (let ((ancestor (common-ancestor obj begin end)))
@@ -3171,11 +3181,11 @@ Returns outermost AST of context.
        (splice-ast (a-outer b-outer b-inner b-ast)
          ;; Splice b-ast into a-outer.
          (bind ((children (ast-children a-outer))
-                (a-index1 (child-index a-outer a-begin))
-                (a-index2 (1+ (child-index a-outer
+                (a-index1 (child-index a a-outer a-begin))
+                (a-index2 (1+ (child-index a a-outer
                                            (ancestor-after a a-outer a-end))))
-                (b-index1 (child-index b-outer b-begin))
-                (b-index2 (child-index b-outer b-inner)))
+                (b-index1 (child-index b b-outer b-begin))
+                (b-index2 (child-index b b-outer b-inner)))
                (let ((new-children
                       (append
                          ;; A children before the crossover
@@ -3195,7 +3205,7 @@ Returns outermost AST of context.
            (b-outer (outer-ast b b-begin b-end))
            (b-inner (ancestor-after b b-outer b-end))
            (context (create-crossover-context b b-inner b-end :include-start t))
-           (a-stmts (nest (tree-successors a-end)
+           (a-stmts (nest (tree-successors a a-end)
                           (get-parent-ast a)
                           (common-ancestor a a-begin a-end)))
            ;; Build ast starting a b-outer.
@@ -3220,8 +3230,8 @@ Returns outermost AST of context.
    (flet
        ((replace-in-target (outer-stmt inner-stmt value)
           (assert (not (equalp outer-stmt inner-stmt)))
-          (let* ((inner-path (ast-path inner-stmt))
-                 (outer-path (ast-path outer-stmt))
+          (let* ((inner-path (ast-path obj inner-stmt))
+                 (outer-path (ast-path obj outer-stmt))
                  (rel-path (subseq inner-path (length outer-path))))
             (setf outer-stmt (with outer-stmt rel-path value)))))
 
@@ -4230,6 +4240,21 @@ on various ast classes"))
           (cons (cons annotation v)
                 (adrop (list annotation) (ast-annotations ast))))
     v))
+
+;; FIXME: When clang is converted to utilize functional trees,
+;; these method specializations will no longer be required.
+(defmethod ast-path ((obj t) (ast clang-ast))
+  (declare (ignorable obj))
+  (slot-value ast 'path))
+
+(defmethod ast-path ((obj clang) (ast functional-tree-ast))
+  (ast-path (genome obj) ast))
+
+(defmethod ast-path ((root clang-ast) (ast functional-tree-ast))
+  (ast-path root (finger ast)))
+
+(defmethod ast-path ((root clang-ast) (finger finger))
+  (path finger))
 
 ;; FIXME: When clang is converted to utilize functional trees,
 ;; this method specialization will no longer be required.
@@ -6133,9 +6158,9 @@ ASTs in the existing SYMBOL-TABLE and AST-ROOT tree."
 
 ;; FIXME: When clang is converted to utilize functional trees,
 ;; this method should no longer be required.
-(defmethod populate-fingers ((ast clang-ast))
+(defmethod update-paths ((ast ast))
   "Modify AST in place with all paths updated to begin at the root AST."
-  (labels ((populate-fingers-helper (ast &optional path)
+  (labels ((update-paths-helper (ast &optional path)
              (if (typep ast 'clang-ast)
                  ;; clang AST, recurse into children
                  (setf (slot-value ast 'path) (reverse path)
@@ -6143,13 +6168,13 @@ ASTs in the existing SYMBOL-TABLE and AST-ROOT tree."
                        (iter (for c in (ast-children ast))
                              (for i upfrom 0)
                              (collect (if (typep c 'ast)
-                                          (populate-fingers-helper c (cons i path))
+                                          (update-paths-helper c (cons i path))
                                           c))))
                  ;; conflict AST or AST stub w/o children
                  (setf (slot-value ast 'finger)
                        (make-instance 'finger :node ast :path (reverse path))))
              ast))
-    (populate-fingers-helper ast)))
+    (update-paths-helper ast)))
 
 (defmethod parse-asts ((obj clang) &aux (source-text (genome-string obj)))
   (let ((*canonical-string-table* (make-hash-table :test 'equal))
@@ -6186,6 +6211,7 @@ ASTs in the existing SYMBOL-TABLE and AST-ROOT tree."
           (compute-guard-stmt-annotations ast-root)
           (compute-syn-ctxs ast-root)
           (fix-semicolons ast-root)
+          (update-paths ast-root)
           (populate-type-fields-from-symbol-table obj name-symbol-table types)
 
           ast-root)))))

@@ -558,7 +558,7 @@ Creates a CLANG-INSTRUMENTER for OBJ and calls its instrument method.
   (let* (;; Look up AST again in case its children have been
          ;; instrumented
          (wrap (not (traceable-stmt-p obj ast)))
-         (new-ast (get-ast obj (ast-path ast)))
+         (new-ast (get-ast obj (ast-path obj ast)))
          (stmts (append (mapcar {add-semicolon _ :after} before)
                         (if (and instrument-exit
                                  (eq (ast-class ast) :ReturnStmt))
@@ -626,8 +626,8 @@ is no such traceable statement."
                                     ast)))))
                     points))))
     (labels
-        ((sort-asts (asts)
-           (sort asts #'ast-later-p))
+        ((sort-asts (obj asts)
+           (sort asts #'path-later-p :key {ast-path obj}))
          (instrument-asts (obj)
            "Generate instrumentation for all ASTs in OBJ.  As a side-effect,
 update POINTS after instrumenting ASTs."
@@ -643,7 +643,7 @@ update POINTS after instrumenting ASTs."
                                            (aget ast points :test #'equalp)))
                        (when points
                          (setf (aget ast points :test #'equalp) nil)))))
-                 (sort-asts)
+                 (sort-asts obj)
                  (remove-if-not {funcall filter obj})
                  (remove-if-not {can-be-made-traceable-p obj})
                  (asts obj)))
@@ -771,14 +771,14 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
               (collect `(:set (:stmt1 . ,ast)
                               (:value1 .
                                ,{get-ast clang
-                                         (nest (ast-path)
+                                         (nest (ast-path clang)
                                                (first)
                                                (remove-if
                                                  [{aget :instrumentation}
                                                   #'ast-annotations])
                                                (get-immediate-children clang)
                                                (get-ast clang)
-                                               (ast-path ast))})))))
+                                               (ast-path clang ast))})))))
 
       (apply-mutation-ops
         clang
