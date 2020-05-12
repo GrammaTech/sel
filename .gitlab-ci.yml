@@ -22,14 +22,13 @@ build-manual:
   script:
     - unbuffer make check
 
-test-ccl:
-  variables:
-    LISP: 'ccl'
-  # Allow this job to fail until we fix the checkout location issue.
-  allow_failure: true
-  <<: *test
-
 test-sbcl:
   variables:
     LISP: 'sbcl'
   <<: *test
+
+# test-ccl:
+#   variables:
+#     LISP: 'ccl'
+#   allow_failure: true
+#   <<: *test
