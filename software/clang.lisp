@@ -6335,7 +6335,7 @@ children.")
      (iter (for child in (ast-children ast))
            (when-let ((satisfied-p
                        (and (typep child 'clang-ast)
-                            (find-if child predicate))))
+                            (find-if predicate child))))
              (return satisfied-p))))))
 
 (defun ast-nodes-in-subtree (ast)
