@@ -4,8 +4,9 @@ FROM ubuntu:20.04
 RUN export DEBIAN_FRONTEND=noninteractive
 RUN ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime
 RUN apt-get -y --fix-missing update \
-    && apt-get -y --fix-missing install autoconf build-essential texinfo python git curl wget expect \
-    clang bear astyle \
+    && apt-get -y --fix-missing install autoconf build-essential g++ gcc gcc-multilib \
+    texinfo graphviz python git curl wget expect time \
+    clang clang-format clang-tidy bear astyle \
     nodejs npm \
     sbcl emacs-nox elpa-paredit slime \
     pkg-config libboost-iostreams-dev libboost-system-dev libboost-serialization-dev
