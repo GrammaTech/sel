@@ -340,11 +340,15 @@ it onto the end of the last string in that node's children.
 Return a new list of children."
   (labels ((children-with-suffix (children suffix)
              "Return a new list of CHILDREN with SUFFIX added."
-             (let ((last-child (lastcar children)))
-               (if (stringp last-child)
-                   (append (butlast children)
-                           (list (format nil "~a~a" last-child suffix)))
-                   (append children (list suffix))))))
+             (iter (for tail on children)
+                   (if (endp (cdr tail))
+                       (let ((last-child (car tail)))
+                         (if (stringp last-child)
+                             (collect (concatenate 'string last-child suffix))
+                             (progn
+                               (collect last-child)
+                               (collect suffix))))
+                       (collect (car tail))))))
     (iter (for p on children)
           (for node = (car p))
           (for next = (cadr p))
