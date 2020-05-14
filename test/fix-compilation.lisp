@@ -39,14 +39,6 @@
         return missing_variable;}")))
   (:teardown (setf *broken-gcc* nil)))
 
-(deftest (fix-compilation-inserts-missing-include :long-running) ()
-  (with-fixture broken-compilation
-    (is (scan (format nil "\#include <~a>" "stdio.h")
-              (genome-string (fix-compilation *broken-clang* 1)))))
-  (with-fixture broken-compilation-gcc
-    (is (scan (format nil "\#include <~a>" "stdio.h")
-              (genome-string (fix-compilation *broken-gcc* 1))))))
-
 (deftest (fix-compilation-inserts-declaration-and-initializes :long-running) ()
   (let ((*compilation-fixers*
          (remove-if-not

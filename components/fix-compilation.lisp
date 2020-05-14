@@ -101,44 +101,6 @@ associated element of `*compilation-fixers*'.
              :collect line))))
 
 
-;;; Resolve missing functions by adding #includes.
-(defmethod resolve-function ((obj clang) match-data)
-  "DOCFIXME
-
-* OBJ DOCFIXME
-* MATCH-DATA DOCFIXME
-"
-  (mapc {add-include obj} (resolve-function-includes (aref match-data 2)))
-  obj)
-
-
-(defvar *resolved-header-files* (make-hash-table :test 'equal)
-  "A map from function name to a list of headers where
-that function may be declared.")
-
-(defun headers-in-manpage (section name)
-  (multiple-value-bind (stdout stderr errno)
-      (shell
-       "man -P cat ~a ~a | sed -n \"/DESCRIPTION/q;p\" | ~
-        grep \"#include\" | cut -d'<' -f 2 | cut -d'>' -f 1"
-       section name)
-    (declare (ignorable stderr errno))
-    (split-sequence #\Newline stdout :remove-empty-subseqs t)))
-
-(defun resolve-function-includes (func)
-  (let ((headers (gethash func *resolved-header-files* 'not-found)))
-    (mapcar {format nil "<~a>"}
-            (if (eq headers 'not-found)
-                (setf (gethash func *resolved-header-files*)
-                      (or (headers-in-manpage 3 func)
-                          (headers-in-manpage 2 func)))
-                headers))))
-
-(register-fixer
- "implicit( declaration of built-in|ly declaring library) function (‘|')(\\S+)(’|')"
- #'resolve-function)
-
-
 ;;; Add declaration and initialize uninitialized variables.
 (defmethod add-declaration-and-initialize (line-number-index
                                            variable-name-index
