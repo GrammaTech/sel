@@ -240,7 +240,7 @@
 (deftest expand-arithmatic-op-throws-error-if-no-arithmatic-ops ()
   (let ((obj (from-file (make-instance 'clang
                          :compiler "clang"
-                         :flags '("-g" "-m32" "-O0"))
+                         :flags '("-g" "-O0"))
                         (expand-arithmatic-op-dir "no-compound-assign.c"))))
     (signals no-mutation-targets
              (build-op (make-instance 'expand-arithmatic-op :object obj) obj))))
@@ -248,7 +248,7 @@
 (deftest expand-arithmatic-op-works-simple-compound-assignment ()
   (let ((obj (from-file (make-instance 'clang
                          :compiler "clang"
-                         :flags '("-g" "-m32" "-O0"))
+                         :flags '("-g" "-O0"))
                         (expand-arithmatic-op-dir
                          "simple-compound-assign.c"))))
     (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
@@ -257,7 +257,7 @@
 (deftest expand-arithmatic-op-works-complex-compound-assignment ()
   (let ((obj (from-file (make-instance 'clang
                          :compiler "clang"
-                         :flags '("-g" "-m32" "-O0"))
+                         :flags '("-g" "-O0"))
                         (expand-arithmatic-op-dir
                          "complex-compound-assign.c"))))
     (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
@@ -266,7 +266,7 @@
 (deftest expand-arithmatic-op-works-increment ()
   (let ((obj (from-file (make-instance 'clang
                          :compiler "clang"
-                         :flags '("-g" "-m32" "-O0"))
+                         :flags '("-g" "-O0"))
                         (expand-arithmatic-op-dir "increment.c"))))
     (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
     (is (stmt-with-text obj "i = i + 1" :no-error t))))
@@ -274,7 +274,7 @@
 (deftest expand-arithmatic-op-works-decrement ()
   (let ((obj (from-file (make-instance 'clang
                          :compiler "clang"
-                         :flags '("-g" "-m32" "-O0"))
+                         :flags '("-g" "-O0"))
                         (expand-arithmatic-op-dir "decrement.c"))))
     (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
     (is (stmt-with-text obj "argc = argc - 1" :no-error t))))
@@ -282,7 +282,7 @@
 (deftest expand-arithmatic-op-works-field-increment ()
   (let ((obj (from-file (make-instance 'clang
                          :compiler "clang"
-                         :flags '("-g" "-m32" "-O0"))
+                         :flags '("-g" "-O0"))
                         (expand-arithmatic-op-dir "field-increment.c"))))
     (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
     (is (stmt-with-text obj "t.x = t.x + 1" :no-error t))))
@@ -290,7 +290,7 @@
 (deftest expand-arithmatic-op-works-field-decrement ()
   (let ((obj (from-file (make-instance 'clang
                          :compiler "clang"
-                         :flags '("-g" "-m32" "-O0"))
+                         :flags '("-g" "-O0"))
                         (expand-arithmatic-op-dir "field-decrement.c"))))
     (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
     (is (stmt-with-text obj "t.x = t.x - 1" :no-error t))))
@@ -298,7 +298,7 @@
 (deftest expand-arithmatic-op-works-class-member-increment ()
   (let ((obj (nest (from-file (make-instance 'clang
                                :compiler "clang"
-                               :flags '("-g" "-m32" "-O0")))
+                               :flags '("-g" "-O0")))
                    (expand-arithmatic-op-dir "class-member-increment.cpp"))))
     (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
     (is (stmt-with-text obj "x = x + 1" :no-error t))))
@@ -306,7 +306,7 @@
 (deftest expand-arithmatic-op-works-class-member-decrement ()
   (let ((obj (nest (from-file (make-instance 'clang
                                :compiler "clang"
-                               :flags '("-g" "-m32" "-O0")))
+                               :flags '("-g" "-O0")))
                    (expand-arithmatic-op-dir "class-member-decrement.cpp"))))
     (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
     (is (stmt-with-text obj "x = x - 1" :no-error t))))

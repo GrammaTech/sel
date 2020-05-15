@@ -34,7 +34,7 @@
    (setf *soft*
          (from-file (make-instance 'clang
                      :compiler "clang"
-                     :flags '("-m32" "-O0" "-g"))
+                     :flags '("-O0" "-g"))
                     (clang-tidy-dir "tidy-adds-braces.c"))))
   (:teardown
    (setf *soft* nil)))
@@ -54,7 +54,7 @@
    (setf *soft*
          (from-file (make-instance 'clang
                      :compiler "clang"
-                     :flags '("-m32" "-O0" "-g"))
+                     :flags '("-O0" "-g"))
                     (type-of-var-dir "type-of-var.c"))))
   (:teardown
    (setf *soft* nil)))

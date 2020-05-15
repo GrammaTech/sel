@@ -1162,7 +1162,7 @@ you would like to try out the examples yourself, compile @code{gcd.c}
 to ASM. For example:
 
 @example
-gcc gcd.c -S -o gcd.s
+$(CC) gcd.c -S -o gcd.s
 @end example
 
 

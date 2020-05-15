@@ -49,7 +49,7 @@
   (:setup
    (setf *scopes*
          (from-file (make-instance 'clang
-                     :compiler "clang" :flags '("-g -m32 -O0"))
+                     :compiler "clang" :flags '("-g" "-O0"))
                     (scopes-dir "scopes-type-field.c"))))
   (:teardown
    (setf *scopes* nil)))
@@ -58,7 +58,7 @@
   (:setup
    (setf *scopes*
          (from-file (make-instance 'clang-control-picks
-                     :compiler "clang" :flags '("-g -m32 -O0"))
+                     :compiler "clang" :flags '("-g" "-O0"))
                     (scopes-dir "scopes2.c"))))
   (:teardown
    (setf *scopes* nil)))

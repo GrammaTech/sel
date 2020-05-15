@@ -73,8 +73,6 @@ To remove the cache, execute:
            Did all unit tests pass?}
 @item @ref{troubleshoot-large-number-test-failures,
            There are many test failures}
-@item @ref{troubleshoot-cross-compile,
-           Unit tests aren't running on my 64-bit machine}
 @end itemize
 
 @anchor{troubleshoot-unit-test-results}
@@ -102,34 +100,11 @@ Ensure @code{clang} is on your @code{$PATH}.
 @item
 Execute
 @example
-clang -m32 -g -O0 test/etc/hello-world/hello_world.c
+clang -g -O0 test/etc/hello-world/hello_world.c
 @end example
 
 @end enumerate
 
 If the above fails, the unit test failure is due to an external
-tool failing.  To debug the issue:
-
-@enumerate
-@item If you are testing on a 64-bit system, ensure it can compile 32-bit
-binaries. If necessary, follow the instructions in
-@ref{troubleshoot-cross-compile,Unit tests aren't running on my 64-bit
-machine} to enable cross-compilation.
-
-@item If problems persist, consult the documentation for the external tools
-to debug the issue.
-
-@end enumerate
-
-
-@anchor{troubleshoot-cross-compile}
-@subheading Unit tests aren't running on my 64-bit machine
-
-SEL builds 32-bit binaries for most unit tests.
-
-If you are running tests on a 64-bit machine, you must enable
-cross-compilation by executing
-
-@example
-sudo apt-get install gcc-multilib g++-multilib
-@end example
+tool failing.  Ensure clang and the compiler toolchain is
+properly installed on your system.

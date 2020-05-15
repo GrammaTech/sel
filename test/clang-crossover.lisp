@@ -32,7 +32,7 @@
    (setf *collatz*
          (from-file (make-instance 'clang
                      :compiler "clang"
-                     :flags '("-m32" "-O0" "-g" "-c"))
+                     :flags '("-O0" "-g" "-c"))
                     (collatz-dir "collatz.c"))))
   (:teardown
    (setf *collatz* nil)))
@@ -42,7 +42,7 @@
    (setf *soft*
          (from-file (make-instance 'clang
                      :compiler "clang"
-                     :flags '("-m32" "-O0" "-g"))
+                     :flags '("-O0" "-g"))
                     (clang-crossover-dir
                      "crossover-no-compound-stmt.c"))))
   (:teardown
@@ -53,7 +53,7 @@
    (setf *soft*
          (from-file (make-instance 'clang
                      :compiler "clang"
-                     :flags '("-m32" "-O0" "-g"))
+                     :flags '("-O0" "-g"))
                     (clang-crossover-dir
                      "crossover-switch-stmt.c"))))
   (:teardown
@@ -1205,7 +1205,7 @@
   (:setup
    (setf *soft*
          (from-file (make-instance 'clang :compiler "clang"
-                                   :flags '("-g -m32 -O0"))
+                                   :flags '("-g" "-O0"))
                     (clang-crossover-dir
                      "intraprocedural-2pt-crossover-bug.c"))))
   (:teardown

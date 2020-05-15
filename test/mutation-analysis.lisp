@@ -21,7 +21,7 @@
   (:setup
    (setf *hello-world*
          (from-file (make-instance 'clang :compiler "clang"
-                                   :flags '("-g -m32 -O0"))
+                                   :flags '("-g" "-O0"))
                     (hello-world-dir "hello_world.c"))
          *test* [#'length #'genome-string]
          *fitness-predicate* #'>

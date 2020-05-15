@@ -33,7 +33,7 @@
   (:setup (setf *broken-gcc*
                 (make-instance 'clang
                   :compiler "gcc"
-                  :flags '("-m32" "-O0" "-g")
+                  :flags '("-O0" "-g")
                   :genome "int main(int argc, char **argv) {
         printf(\"Hello, World!\\n\");
         return missing_variable;}")))
@@ -79,11 +79,11 @@
                       genome)
       (let ((broken-clang (from-file (make-instance 'clang
                                       :compiler "clang"
-                                      :flags '("-m32" "-O0" "-g"))
+                                      :flags '("-O0" "-g"))
                                      genome))
             (broken-gcc   (from-file (make-instance 'clang
                                       :compiler "gcc"
-                                      :flags '("-m32" "-O0" "-g"))
+                                      :flags '("-O0" "-g"))
                                      genome)))
         (is (phenome-p (fix-compilation broken-clang 1)))
         (is (phenome-p (fix-compilation broken-gcc 1)))))))

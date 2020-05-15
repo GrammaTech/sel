@@ -31,8 +31,8 @@
 (defixture nested-clang
   (:setup
    (setf *nested*
-         (from-file (make-instance 'clang :compiler "gcc"
-                                   :flags '("-g -m32 -O0"))
+         (from-file (make-instance 'clang :compiler "clang"
+                                   :flags '("-g -O0"))
                     (nested-dir "nested.c")))
    (inject-missing-swap-macro *nested*))
   (:teardown
@@ -41,7 +41,7 @@
 (defixture gcd-clang-control-picks
   (:setup
    (setf *gcd*
-         (from-file (make-instance 'clang-control-picks :compiler "clang-3.7")
+         (from-file (make-instance 'clang-control-picks :compiler "clang")
                     (gcd-dir "gcd.c"))))
   (:teardown
    (setf *gcd* nil)))

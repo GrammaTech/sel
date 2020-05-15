@@ -39,7 +39,7 @@
            (make-instance 'json-database :json-stream in)))
    (setf *hello-world*
          (from-file (make-instance 'clang-w-fodder :compiler "clang"
-                                   :flags '("-g -m32 -O0"))
+                                   :flags '("-g -O0"))
                     (hello-world-dir "hello_world.c"))))
   (:teardown
    (setf *database* nil)

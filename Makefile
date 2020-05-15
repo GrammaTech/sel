@@ -113,4 +113,4 @@ test/etc/gcd/gcd: test/etc/gcd/gcd.c
 	$(CC) $< -o $@
 
 test/etc/gcd/gcd.s: test/etc/gcd/gcd.c
-	gcc $< -S -masm=intel -o $@
+	$(CC) $< -S -masm=intel -o $@

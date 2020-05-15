@@ -31,7 +31,7 @@
 (defixture contexts
   (:setup
    (setf *contexts*
-         (from-file (make-instance 'clang :compiler "clang-3.7")
+         (from-file (make-instance 'clang :compiler "clang")
                     (contexts-dir "contexts.c"))))
   (:teardown
    (setf *contexts* nil)))

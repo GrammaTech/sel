@@ -194,7 +194,7 @@
   (:setup
    (setf *soft*
          (from-file (make-instance 'clang :compiler "clang"
-                                   :flags '("-g -m32 -O0"))
+                                   :flags '("-g" "-O0"))
                     (clang-crossover-dir
                      "empty-function-body-crossover-bug.c"))))
   (:teardown
@@ -204,7 +204,7 @@
   (:setup
    (setf *soft*
          (from-file (make-instance 'clang :compiler "clang"
-                                   :flags '("-g -m32 -O0"))
+                                   :flags '("-g" "-O0"))
                     (clang-crossover-dir
                      "select-intraprocedural-pair-non-null.c"))))
   (:teardown
@@ -269,7 +269,7 @@
   (:setup
    (setf *hello-world*
          (from-file (make-instance 'clang :compiler "clang"
-                                :flags '("-g -m32 -O0"))
+                                :flags '("-g" "-O0"))
                     (hello-world-dir "hello_world.c"))))
   (:teardown
    (setf *hello-world* nil)))
@@ -288,8 +288,8 @@
   (:setup
    (setf *hello-world*
          (from-file (make-instance 'clang-control-picks
-                      :compiler "clang-3.7"
-                      :flags '("-g -m32 -O0"))
+                      :compiler "clang"
+                      :flags '("-g" "-O0"))
                     (hello-world-dir "hello_world.c"))))
   (:teardown
    (setf *hello-world* nil)))
@@ -297,7 +297,7 @@
 (defixture typedef
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang :compiler "clang-3.7")
+         (from-file (make-instance 'clang :compiler "clang")
                     (typedef-dir "typedef.c"))))
   (:teardown
    (setf *soft* nil)))
@@ -323,8 +323,8 @@
 (defixture huf-clang
   (:setup
    (setf *huf*
-         (from-file (make-instance 'clang :compiler "gcc"
-                                   :flags '("-g -m32 -O0"))
+         (from-file (make-instance 'clang :compiler "clang"
+                                   :flags '("-g" "-O0"))
                     (huf-dir "huf.c")))
    (inject-missing-swap-macro *huf*))
   (:teardown
@@ -334,7 +334,7 @@
   (:setup
    (setf *scopes*
          (from-file (make-instance 'clang-control-picks
-                     :compiler "clang" :flags '("-g -m32 -O0"))
+                     :compiler "clang" :flags '("-g" "-O0"))
                     (scopes-dir "scopes.c"))))
   (:teardown
    (setf *scopes* nil)))
@@ -344,7 +344,7 @@
    (setf *fib*
          (from-file (make-instance 'clang
                      :compiler "clang"
-                     :flags '("-m32" "-O0" "-g" "-c"))
+                     :flags '("-O0" "-g" "-c"))
                     (fib-dir "fib.c"))))
   (:teardown
    (setf *fib* nil)))
@@ -354,7 +354,7 @@
    (setf *variety*
          (from-file (make-instance 'clang
                      :compiler "clang"
-                     :flags '("-m32" "-O0" "-g"))
+                     :flags '("-O0" "-g"))
                     (variety-dir "variety.c"))))
   (:teardown
    (setf *variety* nil)))
