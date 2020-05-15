@@ -282,7 +282,7 @@ See also: https://clang.llvm.org/docs/FAQ.html#id2.")
 (define-software clang (parseable compilable)
   ((asts
     :initarg :asts :reader asts :initform nil :copier :direct
-    :type list :documentation "List of all ASTs.")
+    :type list :documentation "Deprecated: List of all ASTs.")
    (includes
     :initarg :includes :accessor includes
     :initform nil :copier :direct
