@@ -305,13 +305,11 @@ Class @code{parseable}
 
   @item Generic Functions
     @itemize
-    @item @refapigeneric{ast-later-p}
     @item @refapigeneric{source-text}
     @end itemize
 
   @item Methods
     @itemize
-    @item @refapimethod{ast-later-p,ast-later-p}
     @item @refapimethod{source-text,source-text} : multiple methods for arguments of type string, @refapiclass{ast}, @refapiclass{conflict-ast}
     @end itemize
   @end itemize
