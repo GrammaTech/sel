@@ -1,4 +1,5 @@
 variables:
+  DOCKER_REGISTRY: "docker.grammatech.com"
   GIT_SUBMODULE_STRATEGY: recursive
 
 default:
@@ -11,16 +12,22 @@ check-format:
   stage: .pre
   script:
     - git lisp-format
+  except:
+    - schedules
 
 build-manual:
   stage: test
   script:
     - make doc
+  except:
+    - schedules
 
 .test-template: &test
   stage: test
   script:
     - unbuffer make check
+  except:
+    - schedules
 
 test-sbcl:
   variables:
@@ -41,3 +48,16 @@ dependents:
     - "curl -X POST -F token=c83ba713bf7f104805a160a169f586 -F ref=$CI_BUILD_REF_NAME https://git.grammatech.com/api/v4/projects/787/trigger/pipeline"  # ssr
   only:
     - master
+  except:
+    - schedules
+
+build-nightly:
+  inherit:
+    default: false
+  stage: build
+  script:
+    - docker build --no-cache -t $DOCKER_REGISTRY/$CI_PROJECT_PATH .
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY
+    - docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH
+  only:
+    - schedules
