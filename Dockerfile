@@ -47,8 +47,7 @@ RUN curl https://llvm.org/svn/llvm-project/cfe/trunk/tools/clang-format/git-clan
 RUN chmod +x /usr/bin/git-lisp-format
 
 # Pre-download and compile a number of dependency packages.
-RUN echo "Last updated 2020-05-14" \
-    && git clone https://github.com/GrammaTech/cl-utils.git /root/quicklisp/local-projects/gt \
+RUN git clone https://github.com/GrammaTech/cl-utils.git /root/quicklisp/local-projects/gt \
     && git clone https://github.com/GrammaTech/functional-trees.git /root/quicklisp/local-projects/functional-trees \
     && sbcl --eval "(mapcar #'ql:quickload '(:gt/full :swank :clack :elf :eclector))" \
     && ccl --eval "(mapcar #'ql:quickload '(:gt/full :swank :clack :elf :eclector))" \
