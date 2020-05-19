@@ -6375,7 +6375,7 @@ children.")
 
 (defmethod mapcar (function (ast clang-ast) &rest more)
   (declare (ignorable more))
-  (if-let ((value (funcall function ast)))
+  (when-let ((value (funcall function ast)))
     (let ((new-children (and (typep value 'clang-ast)
                              (mapcar
                               (lambda (child)
