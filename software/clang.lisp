@@ -6373,6 +6373,20 @@ children.")
             ast
             (copy ast :children new-children)))))
 
+(defmethod mapcar (function (ast clang-ast) &rest more)
+  (declare (ignorable more))
+  (if-let ((value (funcall function ast)))
+    (let ((new-children (and (typep value 'clang-ast)
+                             (mapcar
+                              (lambda (child)
+                                (if (typep child 'clang-ast)
+                                    (mapcar function child)
+                                    child))
+                              (ast-children value)))))
+      (if (every #'eql new-children (ast-children value))
+          value
+          (copy value :children new-children)))))
+
 
 (defun cpp-scan (str until-fn &key (start 0) (end (length str))
                                 (skip-first nil)
