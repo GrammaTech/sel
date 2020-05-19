@@ -172,7 +172,7 @@ non-symlink text files that don't end in \"~\" and are not ignored by
   (:method ((project project))
     ;; Create software objects for these other files.
     (nest
-     (flet ((text-file-p (p) (eql 'text (car (file-mime-type p))))
+     (flet ((text-file-p (p) (eql :text (car (file-mime-type p))))
             (ends-in-tilde (s)
               (let ((len (length s)))
                 (and (> len 0) (eql (elt s (1- len)) #\~))))
