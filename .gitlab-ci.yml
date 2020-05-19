@@ -6,7 +6,7 @@ default:
   image: docker.grammatech.com/synthesis/sel
   tags: ["kubernetes", "cluster"]
   before_script:
-    - cp -r $(pwd) /root/quicklisp/local-projects/$CI_PROJECT_NAME
+    - cp -r $(pwd)/ /root/quicklisp/local-projects/
 
 check-format:
   stage: .pre
