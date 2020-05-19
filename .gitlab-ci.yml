@@ -3,7 +3,7 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
 
 default:
-  image: docker.grammatech.com/synthesis/sel
+  image: $DOCKER_REGISTRY/$CI_PROJECT_PATH
   tags: ["kubernetes", "cluster"]
   before_script:
     - cp -r $(pwd)/ /root/quicklisp/local-projects/
