@@ -1,5 +1,4 @@
 variables:
-  DOCKER_REGISTRY: "docker.grammatech.com"
   GIT_SUBMODULE_STRATEGY: recursive
 
 default:
