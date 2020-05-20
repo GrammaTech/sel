@@ -18,14 +18,14 @@ check-format:
 build-manual:
   stage: test
   script:
-    - make doc
+    - GT=yes make doc
   except:
     - schedules
 
 .test-template: &test
   stage: test
   script:
-    - unbuffer make check
+    - GT=yes make check
   except:
     - schedules
 
