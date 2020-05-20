@@ -8,7 +8,7 @@ RUN apt-get -y --fix-missing update \
     texinfo graphviz python git curl wget expect time \
     clang clang-format clang-tidy bear astyle \
     nodejs npm \
-    sbcl emacs-nox elpa-paredit slime \
+    sbcl emacs-nox elpa-paredit slime jq \
     pkg-config libboost-iostreams-dev libboost-system-dev libboost-serialization-dev
 RUN npm install --global acorn
 RUN npm install --global prettier
