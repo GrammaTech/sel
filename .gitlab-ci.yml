@@ -50,7 +50,7 @@ dependents:
   except:
     - schedules
 
-build-nightly:
+scheduled-build:
   inherit:
     default: false
   stage: build
