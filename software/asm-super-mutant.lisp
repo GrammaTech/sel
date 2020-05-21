@@ -2115,7 +2115,7 @@ jump_table:
     asm))
 
 (defvar *lib-papi*
-  (or (probe-file "/usr/lib/x86_64-linux-gnu/libpapi.so")
+  (or (probe-file "/usr/lib/x86_64-linux-gnu/libpapi.a")
       (probe-file "/usr/lib/libpapi.so.5.6.1"))
   "Path to papi library.  See http://icl.cs.utk.edu/papi/.")
 
@@ -2151,8 +2151,11 @@ jump_table:
 	  (multiple-value-bind (stdout stderr errno)
 	    (shell
 	     (concatenate 'string
-                          "clang -no-pie -O0 -fnon-call-exceptions -g"
+                          "musl-clang -no-pie -O0 -fnon-call-exceptions -g"
                           " -Wno-deprecated"
+                          " -Wl,--wrap=malloc"
+                          " -Wl,--wrap=realloc"
+                          " -Wl,--wrap=free"
                           " ~a ~a ~a ~a -lrt -o ~a ~a ~a ~a ~a")
              (if (bss-segment asm)
 		 (format nil "-Wl,--section-start=.seldata=0x~x"

@@ -51,77 +51,90 @@ extern unsigned long untraced_call_results[];
 unsigned long untraced_calls_current = 0;
 unsigned long untraced_call_results_index = 0;
 
+enum ExecutionState {
+    NormalState = 0,
+    RunningTest = 1,
+    InitMemory = 2,
+    InitPages = 3
+};
+enum ExecutionState executing = NormalState;
+
 #define UNTRACED_CALL_TYPE_NULL      0
 #define UNTRACED_CALL_TYPE_MALLOC    1
 #define UNTRACED_CALL_TYPE_FREE      2
 #define UNTRACED_CALL_TYPE_REALLOC   3
 
-void *malloc_stub (size_t __size, const void *caller) {
-    unsigned long uctype = untraced_calls[untraced_calls_current];
-    if (uctype == UNTRACED_CALL_TYPE_MALLOC) {
-        unsigned long length =  untraced_calls[untraced_calls_current + 1];
-        unsigned long retval =  untraced_calls[untraced_calls_current + 2];
-        untraced_calls_current += 3;
-        if (length == __size) {
-            untraced_call_results[untraced_call_results_index++] = UNTRACED_CALL_TYPE_MALLOC;
-            untraced_call_results[untraced_call_results_index++] = length;
-            untraced_call_results[untraced_call_results_index++] = retval;
-            return (void *)retval;
+extern void *__real_malloc(size_t __size);
+extern void *__real_realloc(void *__ptr, size_t __size);
+extern void __real_free(void *__ptr);
+
+void *__wrap_malloc(size_t __size) {
+    if (executing != RunningTest)
+        return __real_malloc(__size);
+    else {
+        unsigned long uctype = untraced_calls[untraced_calls_current];
+        if (uctype == UNTRACED_CALL_TYPE_MALLOC) {
+            unsigned long length =  untraced_calls[untraced_calls_current + 1];
+            unsigned long retval =  untraced_calls[untraced_calls_current + 2];
+            untraced_calls_current += 3;
+            if (length == __size) {
+                untraced_call_results[untraced_call_results_index++] = UNTRACED_CALL_TYPE_MALLOC;
+                untraced_call_results[untraced_call_results_index++] = length;
+                untraced_call_results[untraced_call_results_index++] = retval;
+                return (void *)retval;
+            }
         }
+        // otherwise error return
+        in_malloc = 1;
+        int temp = *null_pointer;
+        return (void *)0; // never gets here
     }
-    // otherwise error return
-    in_malloc = 1;
-    int temp = *null_pointer;
-    return (void *)0; // never gets here
 }
 
-void *realloc_stub (void *__ptr, size_t __size, const void *caller) {
-    unsigned long uctype = untraced_calls[untraced_calls_current];
-    if (uctype == UNTRACED_CALL_TYPE_REALLOC) {
-        unsigned long addr =  untraced_calls[untraced_calls_current + 1];
-        unsigned long length =  untraced_calls[untraced_calls_current + 2];
-        unsigned long retval =  untraced_calls[untraced_calls_current + 3];
-        untraced_calls_current += 4;
-        if (addr == ((unsigned long)__ptr) && length == __size) {
-            untraced_call_results[untraced_call_results_index++] = UNTRACED_CALL_TYPE_REALLOC;
-            untraced_call_results[untraced_call_results_index++] = addr;
-            untraced_call_results[untraced_call_results_index++] = length;
-            untraced_call_results[untraced_call_results_index++] = retval;
-            return (void *)retval;
+void *__wrap_realloc(void *__ptr, size_t __size) {
+    if (executing != RunningTest)
+        return __real_realloc(__ptr, __size);
+    else {
+        unsigned long uctype = untraced_calls[untraced_calls_current];
+        if (uctype == UNTRACED_CALL_TYPE_REALLOC) {
+            unsigned long addr =  untraced_calls[untraced_calls_current + 1];
+            unsigned long length =  untraced_calls[untraced_calls_current + 2];
+            unsigned long retval =  untraced_calls[untraced_calls_current + 3];
+            untraced_calls_current += 4;
+            if (addr == ((unsigned long)__ptr) && length == __size) {
+                untraced_call_results[untraced_call_results_index++] = UNTRACED_CALL_TYPE_REALLOC;
+                untraced_call_results[untraced_call_results_index++] = addr;
+                untraced_call_results[untraced_call_results_index++] = length;
+                untraced_call_results[untraced_call_results_index++] = retval;
+                return (void *)retval;
+            }
         }
+        // otherwise error return
+        in_realloc = 1;
+        int temp = *null_pointer;
+        return (void *)0;
     }
-    // otherwise error return
-    in_realloc = 1;
-    int temp = *null_pointer;
-    return (void *)0;
 }
 
-extern void free_stub (void *__ptr, const void *caller) {
-    unsigned long uctype = untraced_calls[untraced_calls_current];
-    if (uctype == UNTRACED_CALL_TYPE_FREE) {
-        unsigned long addr =  untraced_calls[untraced_calls_current + 1];
-        untraced_calls_current += 2;
-        if ((void *)addr == __ptr) {
-            untraced_call_results[untraced_call_results_index++] = UNTRACED_CALL_TYPE_FREE;
-            untraced_call_results[untraced_call_results_index++] = addr;
-            return;
+void __wrap_free(void *__ptr) {
+    if (executing != RunningTest) {
+        __real_free(__ptr);
+        return;
+    } else {
+        unsigned long uctype = untraced_calls[untraced_calls_current];
+        if (uctype == UNTRACED_CALL_TYPE_FREE) {
+            unsigned long addr =  untraced_calls[untraced_calls_current + 1];
+            untraced_calls_current += 2;
+            if ((void *)addr == __ptr) {
+                untraced_call_results[untraced_call_results_index++] = UNTRACED_CALL_TYPE_FREE;
+                untraced_call_results[untraced_call_results_index++] = addr;
+                return;
+            }
         }
+        // otherwise error return
+        in_free = 1;
+        int temp = *null_pointer;
     }
-    // otherwise error return
-    in_free = 1;
-    int temp = *null_pointer;
-}
-
-void disable_heap_funcs() {
-    __malloc_hook = malloc_stub;
-    __realloc_hook = realloc_stub;
-    __free_hook = free_stub;
-}
-
-void restore_heap_funcs() {
-    __malloc_hook = 0;
-    __realloc_hook = 0;
-    __free_hook = 0;
 }
 
 #define IN_HEAP_FUNC (in_malloc || in_free || in_realloc)
@@ -142,9 +155,15 @@ extern vfunc variant_table[]; // 0-terminated array of variant
                               // file
 #define NUM_REGS 16           // total number of registers (if all are used)
 #define DEBUG 1               // set this to 1, to turn on debugging messages
+#define FORK_TEST 0           // set this to 1, to turn on fork test
+                              // version
 
+#ifndef PAGE_SIZE
 #define PAGE_SIZE 4096
+#endif
+#ifndef PAGE_MASK
 #define PAGE_MASK        0xfffffffffffff000
+#endif
 #define PAGE_OFFSET_MASK (PAGE_SIZE-1)
 
 // allocate pages for the first 16k of stack (below current rsp)
@@ -204,14 +223,6 @@ unsigned long overhead = 0;    // number of instructions in
 unsigned long heap_address = 0;
 
 unsigned long untraced_call_results_size = 02000; // 8k space for each log
-
-enum ExecutionState {
-    NormalState = 0,
-    RunningTest = 1,
-    InitMemory = 2,
-    InitPages = 3
-};
-enum ExecutionState executing = NormalState;
 
 static int EventSet = PAPI_NULL;
 static int segfault = 0;
@@ -524,8 +535,10 @@ int check_results(int variant, int test) {
     // check that the return address did not get messed up by stack
     // corruption
     if (result_return_address == 1) {
+#if DEBUG
         fprintf(stderr, "Variant %d, test %d timed out and was terminated.\n",
                 variant, test);
+#endif
     }
 
     if (save_return_address != result_return_address) {
@@ -675,6 +688,7 @@ int check_original(int variant, int test) {
 
     while (*p) {
         unsigned long* addr = (unsigned long*)*p++;
+        unsigned long* data_pointer = p;
         unsigned long data = *p++;
         unsigned long mask = *p++;
         unsigned long i;
@@ -697,7 +711,7 @@ int check_original(int variant, int test) {
                 }
             }
             if (found) {
-                *addr = data; // update
+                *data_pointer = *addr; // update
                 updates++;
                 continue;
             }
@@ -708,7 +722,7 @@ int check_original(int variant, int test) {
                    (unsigned long)addr,
                    data, mask, *addr);
 #endif
-            *addr = data; // update
+            *data_pointer = *addr; // update
             updates++;
         }
     }
@@ -769,8 +783,6 @@ void segfault_sigaction(int signal, siginfo_t *si, void *context) {
         segfault = 1;
         unblock_signal(signal);
         ucontext_t* p = (ucontext_t*)context;
-        // if (p->uc_mcontext.gregs[REG_RSI] == (greg_t)segfault_addr)
-        //    p->uc_mcontext.gregs[REG_RSI] = (greg_t)&dummy;
         longjmp(bailout, 1);  // jump to safe instruction
         return;
     }
@@ -908,7 +920,9 @@ void destroy_timer(timer_t timerid) {
 // if the outputs did not match expected outputs.
 //
 static vfunc execaddr = 0;
-static int num_originals = 2; // variant table starts with 2 copies of original
+static int num_originals = 2; // variant table starts with 2 copies of
+                              // original
+static int pid;
 
 unsigned long run_variant(int v, int test) {
     long_long start_value[1];
@@ -932,7 +946,6 @@ unsigned long run_variant(int v, int test) {
         return ULONG_MAX;
     }
 
-    disable_heap_funcs();
     start_timer();  // start POSIX timer
     sigunblock();
 
@@ -957,7 +970,6 @@ unsigned long run_variant(int v, int test) {
 
     retval = PAPI_read(EventSet, end_value);     // get PAPI count
     end_timer();  // stop POSIX timer
-    restore_heap_funcs();
     sigunblock();
 
     if (retval < 0) {
@@ -965,9 +977,6 @@ unsigned long run_variant(int v, int test) {
     }
 
     retval = PAPI_stop(EventSet, stop_value);
-//    if (retval < 0) {
-//        exit_with_status(1, "PAPI_stop() error");
-//    }
 
     long_long elapsed_instructions = end_value[0] - start_value[0];
     long long res;
@@ -1046,9 +1055,6 @@ unsigned long run_overhead() {
     }
 
     retval = PAPI_stop(EventSet, stop_value);
-//    if (retval < 0) {
-//        exit_with_status(1, "PAPI_stop() error");
-//    }
 
     overhead = (unsigned long)(end_value[0] - start_value[0]);
 #if DEBUG
@@ -1063,9 +1069,19 @@ void run_variant_tests(int v, unsigned long results[]) {
 #endif
     untraced_call_results_index = 0;
     for (int k = 0; k < num_tests; k++) {
+#if FORK_TEST
+        pid = fork();
+        if (pid == -1)
+            exit(1);
+        if (pid == 0) {
+            results[k] = run_variant(v, k);
+            exit(0);
+        }
+#else
         results[k] = run_variant(v, k);
         if (results[k] == ULONG_MAX)
             return;             // quit on the first failure
+#endif // FORK_TEST
     }
 }
 
