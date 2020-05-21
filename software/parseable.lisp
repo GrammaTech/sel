@@ -1079,9 +1079,11 @@ SOFTWARE.
               (let ((stmt1 (if (listp (aget :stmt1 properties))
                                (aget :stmt1 properties)
                                (ast-path software (aget :stmt1 properties))))
-                    (value1 (if (functionp (aget :value1 properties))
-                                (funcall (aget :value1 properties))
-                                (aget :value1 properties))))
+                    (value1
+                     (tree-copy
+                      (if (functionp (aget :value1 properties))
+                          (funcall (aget :value1 properties))
+                          (aget :value1 properties)))))
                 ;; Set the genome slot directly here to avoid
                 ;; triggering any :before/:around/:after methods
                 ;; associated with setting the genome through
