@@ -5,13 +5,14 @@ RUN export DEBIAN_FRONTEND=noninteractive
 RUN ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime
 RUN apt-get -y --fix-missing update \
     && apt-get -y --fix-missing install autoconf build-essential \
-    texinfo graphviz python git curl wget expect time \
+    texinfo graphviz python-is-python3 python3-pip git curl wget expect time \
     clang clang-format clang-tidy bear astyle \
     nodejs npm \
     sbcl emacs-nox elpa-paredit slime jq \
     pkg-config libboost-iostreams-dev libboost-system-dev libboost-serialization-dev
 RUN npm install --global acorn
 RUN npm install --global prettier
+RUN pip3 install yapf
 
 # # Install Clozure
 RUN mkdir /usr/share/ccl

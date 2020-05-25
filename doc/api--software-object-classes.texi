@@ -99,6 +99,7 @@ Class @code{software}
         @item @ref{api-software-objects-clang-w-fodder, @code{clang-w-fodder}}
         @end itemize
       @item @ref{api-software-objects-javascript, @code{javascript}}
+      @item @ref{api-software-objects-python, @code{python}}
       @end itemize
     @end itemize
 
@@ -203,14 +204,6 @@ Class @code{source}
 @item Subclasses
   @itemize
   @item @ref{api-software-objects-cil, @code{cil}}
-  @item @ref{api-software-objects-parseable, @code{parseable}}
-    @itemize
-    @item @ref{api-software-objects-clang, @code{clang}}
-      @itemize
-      @item @ref{api-software-objects-clang-w-fodder, @code{clang-w-fodder}}
-      @end itemize
-    @item @ref{api-software-objects-javascript, @code{javascript}}
-    @end itemize
   @item @ref{api-software-objects-llvm, @code{llvm}}
   @end itemize
 
@@ -274,6 +267,7 @@ Class @code{parseable}
   @itemize
   @item @ref{api-software-objects-clang, @code{clang}}
   @item @ref{api-software-objects-javascript, @code{javascript}}
+  @item @ref{api-software-objects-python, @code{python}}
   @end itemize
 
 @item Generic Functions
@@ -538,10 +532,37 @@ Class @code{javascript}
   @item @refapimethod{from-file,from-file}
   @item @refapimethod{get-unbound-vals,get-unbound-vals}
   @item @refapimethod{get-unbound-funs,get-unbound-funs}
-  @item @refapimethod{get-vars-in-scope,get-vars-in-scope}
+  @item @refapimethod{scopes,scopes}
   @item @refapimethod{phenome,phenome}
   @item @refapimethod{traceable-stmt-p,traceable-stmt-p}
+  @end itemize
+
+@end itemize
+
+@c ----------------------------------------
+
+@anchor{api-software-objects-python}
+@subsubsection Class @code{python}
+[
+@ref{SEL API, API} |
+@ref{api-software-objects, Software Objects} |
+@ref{api-software-object-classes,Software Object Classes} |
+Class @code{python}
+]
+
+@itemize
+
+@item Class @refapiclass{python}
+
+@item Methods
+  @itemize
+  @item @refapimethod{format-genome,format-genome}
+  @item @refapimethod{from-string,from-string}
+  @item @refapimethod{from-file,from-file}
+  @item @refapimethod{get-unbound-vals,get-unbound-vals}
+  @item @refapimethod{get-unbound-funs,get-unbound-funs}
   @item @refapimethod{scopes,scopes}
+  @item @refapimethod{phenome,phenome}
   @end itemize
 
 @end itemize

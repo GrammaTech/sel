@@ -1,0 +1,2 @@
+d = {}
+v = d.values

@@ -452,16 +452,6 @@ the macro is defined within."
 
 
 ;;; Object creation, serialization, and copying.
-(defmethod convert ((ast-type (eql 'clang-ast)) (spec list)
-                    &key &allow-other-keys)
-  (convert-list-to-ast-helper spec
-                              (lambda (class keys children)
-                                (apply
-                                 {make-instance 'clang-ast}
-                                 :class class
-                                 :children children
-                                 keys))))
-
 (defmethod to-alist ((ast clang-ast))
   (flet ((%p (key fn)
            (list (cons key (funcall fn ast))))

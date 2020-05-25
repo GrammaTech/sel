@@ -191,6 +191,7 @@ information about creating new software objects.
 @item LISP                     @tab experimental
 @item Forth                    @tab experimental
 @item JavaScript               @tab experimental
+@item Python                   @tab experimental
 @item Coq                      @tab experimental
 @end multitable
 
@@ -342,11 +343,11 @@ are given in remainder of this section.
  |    Language    |   | elf-risc |---+         |  assembly  |                       |
  +----------------+   +----------+   |         |    code    |  +--------------+     |
                       +----------+   |         +------------+  |     lisp     |-----+
-                      | elf-cisc |---+               |         +--------------+
-                      +----------+                   |
-                                          +------------------+
-                                          |     asm-range    |
-                                          |------------------|
+                      | elf-cisc |---+               |         +--------------+     |
+                      +----------+                   |                              |
+                                          +------------------+ +--------------+     |
+                                          |     asm-range    | |    python    |-----+
+                                          |------------------| +--------------+
                                           | memory efficient |
                                           +------------------+
 
@@ -428,6 +429,10 @@ with an indicate of their relative maturity.
       @tab @refapiclass{lisp}
       @tab experimental
 
+@item Python source
+      @tab @refapiclass{python}
+      @tab experimental
+
 @item Coq source
       @tab @refapiclass{coq}
       @tab experimental
@@ -453,6 +458,7 @@ Software Object Classes (see also @ref{api-software-object-classes,Software Obje
 * Executables with @code{csurf-asm}:: Executables manipulated as an
                                       assembler vector
 * JavaScript with @code{javascript}:: JavaScript language source code ASTs
+* Python with @code{python}::         Python language source code ASTs
 * Coq with @code{coq}::               Coq language source code ASTs
 
 Software Object Mixins (see also @ref{api-software-object-mixins,Software Object Class ``Mixins''} in the API)
@@ -487,7 +493,13 @@ Software Object Mixins (see also @ref{api-software-object-mixins,Software Object
 
 @include include/javascript.texi
 
-@node Coq with @code{coq}, Ancestor tracking with @code{ancestral}, JavaScript with @code{javascript}, Software Objects
+@node Python with @code{python}, Coq with @code{coq}, JavaScript with @code{javascript}, Software Objects
+
+@subsection Python with @code{python}
+
+@include include/python.texi
+
+@node Coq with @code{coq}, Ancestor tracking with @code{ancestral}, Python with @code{python}, Software Objects
 
 @subsection Coq with @code{coq} and @code{SerAPI}
 

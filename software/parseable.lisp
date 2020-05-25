@@ -443,6 +443,36 @@ optionally writing to STREAM.")
                             fun-replacements))
             :initial-value ast)))
 
+(defmethod convert ((ast-type symbol) (spec list)
+                    &key &allow-other-keys)
+  "Create an AST of AST-TYPE from the SPEC (specification) list.
+
+SPEC: List specification of an AST.  A SPEC should have the form
+
+  (ast-class <optional-keyword-args-to-`make-instance <AST-TYPE>'>
+             CHILDREN)
+
+where CHILDREN may themselves be specifications suitable for passing
+to `convert`"
+  (convert-list-to-ast-helper spec
+                              (lambda (class keys children)
+                                (apply #'make-instance ast-type
+                                 :class class
+                                 :children children
+                                 keys))))
+
+(defmethod convert ((ast-type symbol) (snippet string)
+                    &key &allow-other-keys
+                    &aux (sw-type (intern (nest (apply #'concatenate 'string)
+                                                (butlast)
+                                                (split-sequence #\-)
+                                                (symbol-name ast-type))
+                                          (symbol-package ast-type))))
+  "Parse SNIPPET into a free-floating AST of AST-TYPE."
+  (handler-case
+      (genome (from-string (make-instance sw-type) snippet))
+    (mutate (e) (declare (ignorable e)) nil)))
+
 (defun convert-list-to-ast-helper (spec fn)
   "Helper function for converting a list SPECification of an AST to an
 AST using FN to create the AST.
@@ -453,7 +483,7 @@ SPEC: List specification of an AST.  A SPEC should have the form
              CHILDREN)
 
 where CHILDREN may themselves be specifications suitable for passing
-to `to-ast`
+to `convert-list-to-ast-helper`
 
 FN: Function taking three arguments (class, keys, and children) and
 returning a newly created AST."

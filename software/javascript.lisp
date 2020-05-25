@@ -299,23 +299,6 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
              :annotations (annotations ast-alist)))))
     (nest (fix-newlines) (make-tree source (acorn obj)))))
 
-(defmethod convert ((to-type (eql 'javascript-ast)) (collection string)
-                    &key &allow-other-keys)
-  "Parse the COLLECTION snippet into a list of free-floating JavaScript ASTs."
-  (handler-case
-      (genome (from-string (make-instance 'javascript) collection))
-    (mutate (e) (declare (ignorable e)) nil)))
-
-(defmethod convert ((to-type (eql 'javascript-ast)) (spec list)
-                    &key &allow-other-keys)
-  "Create a JAVASCRIPT AST from the SPEC (specification) list."
-  (convert-list-to-ast-helper spec
-                              (lambda (class keys children)
-                                (apply #'make-instance 'javascript-ast
-                                       :class class
-                                       :children children
-                                       keys))))
-
 
 ;;;; Fixup code for newlines.  These should be in the same AST as
 ;;;; a statement they terminate

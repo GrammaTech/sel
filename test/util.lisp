@@ -12,8 +12,10 @@
            :+multi-file-dir+
            :+asm-test-dir+
            :+multiple-artifact-dir+
+           :+python-dir+
            ;; Other functions
            :acorn-available-p
+           :python3.8-available-p
            :stmt-with-text
            :stmt-starting-with-text
            :fully-every
@@ -23,6 +25,7 @@
            :fib-dir
            :asm-test-dir
            :javascript-dir
+           :python-dir
            ;; Variables referenced in tests
            :*tfos*
            :*soft*
@@ -84,6 +87,10 @@
   :test #'equalp
   :documentation "Path to directory holding Javascript test programs.")
 
+(define-constant +python-dir+ (append +etc-dir+ (list "python"))
+  :test #'equalp
+  :documentation "Path to directory holding python test programs.")
+
 (define-constant +asm-test-dir+ (append +etc-dir+ (list "asm-test"))
   :test #'equalp
   :documentation "Path to asm-test examples.")
@@ -120,10 +127,20 @@
   (merge-pathnames-as-file (make-pathname :directory +javascript-dir+)
                            path))
 
+(defun python-dir (path)
+  (merge-pathnames-as-file (make-pathname :directory +python-dir+)
+                           path))
+
 
 ;;;; Helper functions.
 (defun acorn-available-p ()
   (which "acorn"))
+
+(defun python3.8-available-p ()
+  (and (which "python3")
+       (register-groups-bind (major minor)
+           ("Python ([0-9]+)\.([0-9]+)" (shell "python3 --version"))
+         (and (>= (parse-integer major) 3) (>= (parse-integer minor) 8)))))
 
 (defun stmt-with-text (obj text &key no-error (trim t))
   "Return the AST in OBJ holding TEXT.

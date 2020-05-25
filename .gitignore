@@ -92,6 +92,8 @@ doc/sel-sw-llvm-api.texi
 doc/sel-sw-parseable-api.texi
 doc/sel-sw-parseable-project-api.texi
 doc/sel-sw-project-api.texi
+doc/sel-sw-python-api.texi
+doc/sel-sw-python-project-api.texi
 doc/sel-sw-sexp-api.texi
 doc/sel-sw-simple-api.texi
 doc/sel-sw-source-api.texi

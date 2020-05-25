@@ -18,7 +18,8 @@
            :astyle
            :clang-tidy
            :clang-format
-           :prettier))
+           :prettier
+           :yapf))
 (in-package :software-evolution-library/components/formatting)
 (in-readtable :curry-compose-reader-macros)
 
@@ -132,6 +133,22 @@
     (setf (genome-string obj)
           (multiple-value-bind (stdout stderr exit)
               (shell "prettier ~a" src)
+            (declare (ignorable stderr))
+            (setf errno exit)
+            (if (zerop exit) stdout (genome-string obj)))))
+  (values obj errno))
+
+(defun yapf (obj &optional (style "pep8") &aux errno)
+  "Apply `yapf` to OBJ.
+* OBJ object to format and return
+* STYLE yapf style to utilize
+* ERRNO exit code of yapf
+"
+  (with-temporary-file-of (:pathname src :type (ext obj))
+    (genome-string obj)
+    (setf (genome-string obj)
+          (multiple-value-bind (stdout stderr exit)
+              (shell "yapf --style ~a ~a" style src)
             (declare (ignorable stderr))
             (setf errno exit)
             (if (zerop exit) stdout (genome-string obj)))))

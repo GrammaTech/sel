@@ -66,6 +66,8 @@ DOC_PACKAGES =								\
 	software-evolution-library/software/parseable			\
 	software-evolution-library/software/parseable-project		\
 	software-evolution-library/software/project			\
+	software-evolution-library/software/python			\
+	software-evolution-library/software/python-project		\
 	software-evolution-library/software/simple			\
 	software-evolution-library/software/source			\
 	software-evolution-library/software/styleable			\
