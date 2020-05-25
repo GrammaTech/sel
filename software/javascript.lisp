@@ -409,24 +409,6 @@ newlines.")
 
 
 ;;; Methods common to all software objects
-(define-constant +js-bound-id-parent-classes+
-    (list "FunctionDeclaration"
-          "FunctionExpression"
-          "ArrowFunctionExpression"
-          "ClassExpression"
-          "MetaProperty"
-          "BreakStatement"
-          "ClassDeclaration"
-          "ContinueStatement"
-          "LabelledStatement"
-          "ImportSpecifier"
-          "ExportSpecifier"
-          "ExportDefaultDeclaration"
-          "VariableDeclarator")
-  :test #'equalp
-  :documentation
-  "Parent AST classes of identifiers which should be interpreted as bound.")
-
 (defmethod phenome ((obj javascript) &key (bin (temp-file-name)))
   "Create a phenotype of the javascript software OBJ.  In this case, override
 the phenome method to output the genome of OBJ to BIN as JavaScript
@@ -548,10 +530,21 @@ AST ast to return the scopes for"
                (apply #'append
                       (when (and (eq (ast-class ast) :Identifier)
                                  (not (member (ast-class parent)
-                                              (append
-                                                +js-bound-id-parent-classes+
-                                                (list :CallExpression
-                                                      :MemberExpression)))))
+                                              (list :CallExpression
+                                                    :MemberExpression
+                                                    :FunctionDeclaration
+                                                    :FunctionExpression
+                                                    :ArrowFunctionExpression
+                                                    :ClassExpression
+                                                    :MetaProperty
+                                                    :BreakStatement
+                                                    :ClassDeclaration
+                                                    :ContinueStatement
+                                                    :LabelledStatement
+                                                    :ImportSpecifier
+                                                    :ExportSpecifier
+                                                    :ExportDefaultDeclaration
+                                                    :VariableDeclarator))))
                         (list (cons :name (source-text ast))))
                       (mapcar {get-unbound-vals-helper obj ast}
                               (get-immediate-children obj ast)))
