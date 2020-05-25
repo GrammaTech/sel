@@ -35,7 +35,6 @@
         :software-evolution-library/software/file
         :software-evolution-library/software/parseable
         :software-evolution-library/components/formatting)
-  #-windows (:shadowing-import-from :osicat :file-permissions)
   (:import-from :jsown)
   (:import-from :cffi :translate-camelcase-name)
   (:export :javascript
