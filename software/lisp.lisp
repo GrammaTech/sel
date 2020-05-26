@@ -24,6 +24,10 @@
            :expression :expression-result
            :reader-conditional
            :feature-expression
+           :reader-quote
+           :reader-quasiquote
+           :reader-unquote
+           :reader-unquote-splicing
            :*string*
            :transform-reader-conditional
            :walk-feature-expressions
@@ -148,6 +152,14 @@ which may be more nodes, or other values.")
 
 (defclass sharpsign-minus (reader-conditional-token)
   ((string-pointer :initform "#-")))
+
+(defclass reader-quote (expression-result) ())
+
+(defclass reader-quasiquote (expression-result) ())
+
+(defclass reader-unquote (expression-result) ())
+
+(defclass reader-unquote-splicing (expression-result) ())
 
 (defmethod convert ((to-type (eql 'lisp-ast)) (sequence list)
                     &key (spaces nil) (expression sequence)
@@ -370,34 +382,48 @@ returned."))
         (client (make-instance 'client))
         (eclector.readtable:*readtable* *lisp-ast-readtable*))
     (labels
-        ((make-space (start end)
+        ((process-skipped-input (start end)
            (when (< start end)
-             (list (make-instance 'skipped-input-result
-                     :start start :end end :reason 'whitespace))))
+              (string-case (subseq string start end)
+                ("'"
+                 (list (make-instance 'reader-quote
+                         :start start :end end)))
+                ("`"
+                 (list (make-instance 'reader-quasiquote
+                         :start start :end end)))
+                (","
+                 (list (make-instance 'reader-unquote
+                         :start start :end end)))
+                (",@"
+                 (list (make-instance 'reader-unquote-splicing
+                                      :start start :end end)))
+                (t
+                 (list (make-instance 'skipped-input-result
+                         :start start :end end :reason 'whitespace))))))
          (w/space (tree from to)
            (let ((result
-                  (etypecase tree
-                    (list
-                     (append
-                      (iter (for subtree in tree)
-                            (appending (make-space from (start subtree)))
-                            (appending (w/space subtree
-                                                (start subtree) (end subtree)))
-                            (setf from (end subtree)))
-                      (make-space from to)))
-                    (result
-                     (when (subtypep (type-of tree) 'expression-result)
-                       (when (children tree)
-                         ;; Use (sef slot-value) because this is now a
-                         ;; functional tree node so the default setf would
-                         ;; have no effect (it would create a copy).
-                         (setf (slot-value tree 'children)
-                               (w/space
-                                (children tree) (start tree) (end tree)))))
-                     (append
-                      (make-space from (start tree))
-                      (list tree)
-                      (make-space (end tree) to))))))
+                   (etypecase tree
+                     (list
+                      (append
+                       (iter (for subtree in tree)
+                         (appending (process-skipped-input from (start subtree)))
+                         (appending (w/space subtree
+                                             (start subtree) (end subtree)))
+                         (setf from (end subtree)))
+                       (process-skipped-input from to)))
+                     (result
+                      (when (subtypep (type-of tree) 'expression-result)
+                        (when (children tree)
+                          ;; Use (sef slot-value) because this is now a
+                          ;; functional tree node so the default setf would
+                          ;; have no effect (it would create a copy).
+                          (setf (slot-value tree 'children)
+                                (w/space
+                                 (children tree) (start tree) (end tree)))))
+                      (append
+                       (process-skipped-input from (start tree))
+                       (list tree)
+                       (process-skipped-input (end tree) to))))))
              result)))
       (let ((end (length string)))
         (w/space
