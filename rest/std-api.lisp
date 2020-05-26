@@ -207,7 +207,6 @@
    :gt/full
    :snooze
    :cl-json
-   :trace-db
    :software-evolution-library/software-evolution-library
    :software-evolution-library/components/test-suite
    :software-evolution-library/components/formatting

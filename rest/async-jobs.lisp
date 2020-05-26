@@ -56,7 +56,6 @@
   (:use
    :gt/full
    :snooze
-   :trace-db
    :software-evolution-library/software-evolution-library
    :software-evolution-library/command-line
    :software-evolution-library/components/test-suite
