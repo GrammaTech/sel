@@ -44,7 +44,17 @@
 
 (defvar *string* nil)
 
-(defclass lisp-ast (functional-tree-ast)
+(defmacro define-matchable-class (class-name super-classes slots &rest options)
+  "Define a new class that is wrapped in an eval-when form. This is to work
+around an issue in SBCL--https://bugs.launchpad.net/sbcl/+bug/310120--that
+prevents trivia:match from working correctly when classes are defined in the
+same file."
+  `(eval-when (:compile-toplevel :load-toplevel :execute)
+     (defclass ,class-name ,super-classes
+       ,slots
+       ,@options)))
+
+(define-matchable-class lisp-ast (functional-tree-ast)
   ((expression :initarg :expression :initform nil :reader expression)
    (children :type list
              :initarg :children
@@ -58,7 +68,7 @@ which may be more nodes, or other values.")
 (defmethod fset-default-node-accessor ((node-type (eql 'lisp-ast)))
   'expression)
 
-(defclass result (lisp-ast)
+(define-matchable-class result (lisp-ast)
   ((start :initarg :start :initform (when *string* 0)
           :reader start :type (or null (integer 0 *)))
    (end :initarg :end :initform (when *string* (length *string*))
@@ -66,7 +76,7 @@ which may be more nodes, or other values.")
    (string-pointer :initarg :string-pointer :initform *string*
                    :reader string-pointer :type (or null string))))
 
-(defclass expression-result (result) ())
+(define-matchable-class expression-result (result) ())
 
 (defmethod print-object ((obj expression-result) stream)
   (with-slots (start end string-pointer expression children) obj
@@ -80,7 +90,7 @@ which may be more nodes, or other values.")
         (print-unreadable-object (obj stream :type t)
           (format stream ":EXPRESSION ~a" expression)))))
 
-(defclass reader-conditional (expression-result)
+(define-matchable-class reader-conditional (expression-result)
   ((feature-expression :initarg :feature-expression
                        :reader feature-expression)))
 
@@ -105,7 +115,7 @@ which may be more nodes, or other values.")
            (reader-conditional-sign obj)
            feature-expression expression)))
 
-(defclass skipped-input-result (result)
+(define-matchable-class skipped-input-result (result)
   ((reason :initarg :reason :reader  reason)))
 
 (defmethod print-object ((obj skipped-input-result) stream &aux (max-length 8))
@@ -125,7 +135,7 @@ which may be more nodes, or other values.")
              "...")
             (subseq string-pointer start end))))
 
-(defclass reader-token (skipped-input-result)
+(define-matchable-class reader-token (skipped-input-result)
   ())
 
 (defmethod source-text ((obj reader-token) &optional stream)
@@ -136,30 +146,30 @@ which may be more nodes, or other values.")
       (call-next-method)
       (print-unreadable-object (obj stream :type t))))
 
-(defclass sharpsign-dot (reader-token)
+(define-matchable-class sharpsign-dot (reader-token)
   ((reason :initform :read-eval)
    (string-pointer :initform "#.")
    (start :initform 0)
    (end :initform 2)))
 
-(defclass reader-conditional-token (reader-token)
+(define-matchable-class reader-conditional-token (reader-token)
   ((reason :initform :reader-conditional)
    (start :initform 0)
    (end :initform 2)))
 
-(defclass sharpsign-plus (reader-conditional-token)
+(define-matchable-class sharpsign-plus (reader-conditional-token)
   ((string-pointer :initform "#+")))
 
-(defclass sharpsign-minus (reader-conditional-token)
+(define-matchable-class sharpsign-minus (reader-conditional-token)
   ((string-pointer :initform "#-")))
 
-(defclass reader-quote (expression-result) ())
+(define-matchable-class reader-quote (expression-result) ())
 
-(defclass reader-quasiquote (expression-result) ())
+(define-matchable-class reader-quasiquote (expression-result) ())
 
-(defclass reader-unquote (expression-result) ())
+(define-matchable-class reader-unquote (expression-result) ())
 
-(defclass reader-unquote-splicing (expression-result) ())
+(define-matchable-class reader-unquote-splicing (expression-result) ())
 
 (defmethod convert ((to-type (eql 'lisp-ast)) (sequence list)
                     &key (spaces nil) (expression sequence)
@@ -211,7 +221,7 @@ which may be more nodes, or other values.")
     (populate-fingers (convert sequence))))
 
 ;;; Trivial Eclector client used to customize parsing for SEL.
-(defclass client (parse-result-client) ())
+(define-matchable-class client (parse-result-client) ())
 
 (defun sharpsign-sign-reader (stream char n)
   ;; TODO: back up according to digits in n
