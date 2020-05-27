@@ -37,7 +37,15 @@
            :transform-feature-expression
            :featurep-with
            :remove-expression-features
-           :remove-feature-support))
+           :remove-feature-support
+           :compound-form-p
+           :get-compound-form-args
+           :quote-p
+           :quasiquote-p
+           :quoted-p
+           :find-in-defining-form
+           :find-local-function
+           :enclosing-find-if))
 (in-package :software-evolution-library/software/lisp)
 (in-readtable :curry-compose-reader-macros)
 
@@ -48,7 +56,7 @@
   "Define a new class that is wrapped in an eval-when form. This is to work
 around an issue in SBCL--https://bugs.launchpad.net/sbcl/+bug/310120--that
 prevents trivia:match from working correctly when classes are defined in the
-same file."
+same file as the match form its being used in."
   `(eval-when (:compile-toplevel :load-toplevel :execute)
      (defclass ,class-name ,super-classes
        ,slots
@@ -650,6 +658,121 @@ possibly expressions) will be omitted according to the sign of the guard."
                            ast
                            :remove-newly-empty t))
 
+
+;;; Utility
+(-> compound-form-p (lisp-ast &key (:name symbol)) t)
+(defun compound-form-p (ast &key name)
+  "If the AST is a compound form, return the car of the form. If NAME is
+provided, return T if the car of the form is eq to NAME."
+  (match ast
+    ((lisp-ast
+      (ast-children (list* _ (expression-result (expression form-name)) _)))
+     (cond
+       (name (eq name form-name))
+       ((symbolp form-name) form-name)))))
+
+(-> get-compound-form-args (lisp-ast) list)
+(defun get-compound-form-args (ast)
+  "Return the args to the compound form represented by AST."
+  (match ast
+    ((lisp-ast
+      (ast-children (list* _ _ args)))
+     (remove-if-not {typep _ 'expression-result} args))))
+
+(-> quote-p (lisp-ast) (or null lisp-ast))
+(defun quote-p (ast)
+  "Return the quoted form if AST represents a quote ast."
+  (match ast
+    ((lisp-ast
+      (ast-children
+       (list (reader-quote) form)))
+     form)
+    ((lisp-ast
+      (ast-children
+       (list _ (expression-result (expression 'quote)) _ form _)))
+     form)))
+
+(-> quasiquote-p (lisp-ast) (or null lisp-ast))
+(defun quasiquote-p (ast)
+  "Return the quoted form if AST represents a quasiquote ast."
+  #-sbcl
+  (declare (ignorable ast))
+  #-sbcl
+  (error "~a currently only supports SBCL." #'quasiquote-p)
+  #+sbcl
+  (match ast
+    ((lisp-ast
+      (ast-children
+       (list (reader-quasiquote) form)))
+     form)
+    ((lisp-ast
+      (ast-children
+       (list _ (expression-result (expression 'sb-int:quasiquote))
+             _ form _)))
+     form)))
+
+(-> quoted-p (lisp lisp-ast) (or null lisp-ast))
+(defun quoted-p (obj ast)
+  "Return the quoted form if the AST is quoted."
+  ;; TODO: This does not currently handle unquotes;
+  ;;       it only checks if there is a quote or
+  ;;       quasiquote somewhere above.
+  (enclosing-find-if «or #'quote-p #'quasiquote-p» obj ast))
+
+(->  find-in-defining-form (lisp lisp-ast symbol
+                                 &key (:referencing-ast lisp-ast))
+     (or null lisp-ast))
+(defun find-in-defining-form (obj defining-form name &key referencing-ast)
+  "Returns the ast in DEFINING-FORM that defines NAME.
+If REFERENCING-AST is supplied, the returned ast must
+occur before it."
+  (let ((targeter (if referencing-ast
+                      (lambda (target)
+                        (and (path-later-p (ast-path obj referencing-ast)
+                                           (ast-path obj target))
+                             (compound-form-p target :name name)))
+                      {compound-form-p _ :name name})))
+    (match defining-form
+      ((lisp-ast
+        (ast-children (list* (@@ 3 _) definition-list _)))
+       (cl:find-if targeter
+                   (reverse
+                    (remove-if-not {typep _ 'expression-result}
+                                   (ast-children definition-list))))))))
+
+(-> find-local-function (lisp lisp-ast symbol &key (:referencing-ast lisp-ast))
+    (or null lisp-ast))
+(defun find-local-function (obj enclosed-form function-name
+                            &key (referencing-ast enclosed-form))
+  "Return the ast of the local function named FUNCTION-NAME
+which is in scope of ENCLOSED-FORM."
+  (when-let ((defining-form (enclosing-find-if [«or {eq 'flet} {eq 'labels}»
+                                                #'compound-form-p]
+                                               obj enclosed-form)))
+    (if-let (local-function
+             (find-in-defining-form obj defining-form function-name
+                                    :referencing-ast referencing-ast))
+      local-function
+      (find-local-function obj defining-form function-name
+                           :referencing-ast referencing-ast))))
+
+(-> enclosing-find-if (function lisp lisp-ast) (or null lisp-ast))
+(defun enclosing-find-if (predicate obj ast)
+  "Walk up OBJ's genome starting at the parent of AST.
+If a node if found that satiisfies PREDICATE, return
+that node. Otherwise, nil is returned."
+  (when-let* ((enclosing-form-path (enclosing-scope obj ast))
+              (enclosing-ast (lookup (genome obj) enclosing-form-path)))
+    (if (funcall predicate enclosing-ast)
+        enclosing-ast
+        (enclosing-find-if predicate obj enclosing-ast))))
+
+(defmethod enclosing-scope ((obj lisp) (ast lisp-ast))
+  ;; Returns nil if already at the top level.
+  (butlast (ast-path obj ast)))
+
+
+;;; Example
 #+example
 (progn
 
