@@ -52,6 +52,8 @@ RUN git clone https://github.com/ruricolist/serapeum /root/quicklisp/local-proje
     && git clone https://github.com/GrammaTech/functional-trees.git /root/quicklisp/local-projects/functional-trees \
     && sbcl --eval "(mapcar #'ql:quickload '(:gt/full :swank :clack :elf :eclector))" \
     && ccl --eval "(mapcar #'ql:quickload '(:gt/full :swank :clack :elf :eclector))" \
-    && rm -rf /root/quicklisp/local-projects/functional-trees /root/quicklisp/local-projects/gt
+    && rm -rf /root/quicklisp/local-projects/functional-trees \
+              /root/quicklisp/local-projects/gt \
+              /root/quicklisp/local-projects/system-index.txt
 
 WORKDIR /root/quicklisp/local-projects
