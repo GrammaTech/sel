@@ -273,6 +273,8 @@
            :input-specification
            :input-spec
            :output-spec
+           :compiler
+           :static-link
            :untraced-call-spec
            :input-specification-regs
            :input-specification-mem
@@ -343,11 +345,16 @@
     :accessor target-lines
     :documentation
     "Cache the lines of the target code, as they are used often.")
-   (assembler
-    :initarg :assembler
-    :reader assembler
-    :initform "nasm"
-    :documentation "Assembler to use for assembling.")
+   (compiler
+    :initarg :compiler
+    :reader compiler
+    :initform "clang"
+    :documentation "C compiler to use for building fitness harness.")
+   (static-link
+    :initarg :static-link
+    :reader static-link
+    :initform nil
+    :documentation "If true, attempt static link.")
    (io-dir
     :initarg :io-dir
     :reader io-dir
@@ -718,6 +725,28 @@
                       (input-specification-regs output-specs)
                       reg))))
 
+(defun add-unread-mem-addresses (input-spec output-spec)
+  "Ensure that any addresses which get written but not read are initialized
+ at the start, so verify they are written correctly."
+  ;; Subtract the set of input addresses from the set of output addresses
+  ;; to obtain the set of addresses which need to be added to input
+  ;; initialization.
+  (let* ((input-mem-set
+          (coerce (input-specification-mem input-spec) 'list))
+         (output-mem-set
+          (coerce (input-specification-mem output-spec) 'list))
+         (diff-set (set-difference output-mem-set input-mem-set
+                                   :key 'memory-spec-addr
+                                   :test '=)))
+    ;; add entries to the input spec which correspond with those
+    ;; entries in the output spec which are written but not read
+    (dolist (x diff-set)
+      (vector-push-extend
+       (make-memory-spec :addr (memory-spec-addr x)
+                         :mask (memory-spec-mask x)
+                         :bytes *callee-saved-init-value*)
+       (input-specification-mem input-spec)))))
+
 (defun load-io-file (super-asm filename)
   "Load the file containing input and output state information"
   (let ((input-spec (new-io-spec))
@@ -740,6 +769,7 @@
              (setf (input-specification-regs output-spec)
                    (sort-reg-contents
                     (input-specification-regs output-spec)))
+             (add-unread-mem-addresses input-spec output-spec)
              (vector-push-extend input-spec (input-spec super-asm))
              (vector-push-extend output-spec (output-spec super-asm))
              (vector-push-extend untraced-call-spec
@@ -758,6 +788,7 @@
                  (setf (input-specification-regs output-spec)
                        (sort-reg-contents
                         (input-specification-regs output-spec)))
+                 (add-unread-mem-addresses input-spec output-spec)
                  (vector-push-extend input-spec (input-spec super-asm))
                  (vector-push-extend output-spec (output-spec super-asm))
                  (vector-push-extend untraced-call-spec
@@ -2115,8 +2146,9 @@ jump_table:
     asm))
 
 (defvar *lib-papi*
-  (or (probe-file "/usr/lib/x86_64-linux-gnu/libpapi.a")
-      (probe-file "/usr/lib/libpapi.so.5.6.1"))
+  (or (probe-file "/usr/lib/x86_64-linux-gnu/libpapi.so")
+      (probe-file "/usr/local/lib/libpapi.so")
+      (probe-file "/usr/lib/libpapi.so"))
   "Path to papi library.  See http://icl.cs.utk.edu/papi/.")
 
 (defmethod phenome ((asm asm-super-mutant)
@@ -2151,12 +2183,16 @@ jump_table:
 	  (multiple-value-bind (stdout stderr errno)
 	    (shell
 	     (concatenate 'string
-                          "musl-clang -no-pie -O0 -fnon-call-exceptions -g"
+                          "~a ~a"
+                          " -O0 -fnon-call-exceptions -g"
                           " -Wno-deprecated"
                           " -Wl,--wrap=malloc"
                           " -Wl,--wrap=realloc"
                           " -Wl,--wrap=free"
-                          " ~a ~a ~a ~a -lrt -o ~a ~a ~a ~a ~a")
+                          " ~a ~a ~a ~a ~a -lrt -o ~a ~a ~a ~a ~a")
+             (compiler asm)
+             (if (static-link asm) "" "-no-pie")
+             (if (static-link asm) "--static" "")
              (if (bss-segment asm)
 		 (format nil "-Wl,--section-start=.seldata=0x~x"
 			 (bss-segment asm))
@@ -2231,8 +2267,13 @@ needs to have been loaded, along with the var-table by PARSE-SANITY-FILE."
 		(if (/= errno 0)
 		    (setf phenome-execute-error t))
                 (let ((input-str (make-string-input-stream stdout)))
-                  (setf meta-results (read input-str))
-                  (setf test-results (read input-str))
+                   (setf meta-results (read input-str nil :eof))
+                  (if (eq meta-results :eof)
+                      (error "Fitness executable terminated unexpectedly"))
+                  (setf test-results (read input-str nil nil))
+                  (if (eq test-results :eof)
+                      (error "Fitness executable terminated unexpectedly"))
+
                   (if test-results
                       (dotimes (i (length test-results))
                         (assert (> (elt test-results i) 0) (test-results)

@@ -7,6 +7,8 @@
 #define __x86_64__ 1
 #define __USE_GNU 1
 
+#define USING_INIT 0 // if true, init pages prior to main()
+
 #include <signal.h>
 #include <time.h>
 #include <stdio.h>
@@ -137,7 +139,34 @@ void __wrap_free(void *__ptr) {
     }
 }
 
+int save_stdout;
+int save_stderr;
+
+void init_stream() {
+    save_stdout = dup(STDOUT_FILENO);
+    save_stderr = dup(STDERR_FILENO);
+}
+
+void disable_streams() {
+    fflush(stdout);
+    fflush(stderr);
+    
+    // freopen("/dev/null", "r", stdin);
+    freopen("NUL", "a", stdout);
+    freopen("NUL", "a", stderr);
+}
+
+void enable_streams() {
+    // freopen("/dev/stdin", "r", stdin);
+    dup2(save_stdout, STDOUT_FILENO);
+    dup2(save_stderr, STDERR_FILENO);
+}
+
 #define IN_HEAP_FUNC (in_malloc || in_free || in_realloc)
+
+#if USING_INIT
+void initialize_pages() __attribute__ ((constructor(0)));
+#endif
 
 void exit_with_status(int code, char* errmsg);
 
@@ -319,7 +348,7 @@ void map_output_page(unsigned long* addr) {
     unsigned long* page_addr = (unsigned long*)(((unsigned long)addr) & PAGE_MASK);
     void* anon = mmap(page_addr, PAGE_SIZE,
                           PROT_READ|PROT_WRITE,
-                              MAP_ANONYMOUS|MAP_PRIVATE|MAP_FIXED /*|MAP_UNINITIALIZED*/,
+                              MAP_ANONYMOUS|MAP_PRIVATE|MAP_FIXED,
                           -1,
                           0);
 #if DEBUG
@@ -359,7 +388,7 @@ void map_input_page(unsigned long* addr) {
     unsigned long* page_addr = (unsigned long*)(((unsigned long)addr) & PAGE_MASK);
     void* anon = mmap(page_addr, PAGE_SIZE,
                       PROT_READ|PROT_WRITE,
-                              MAP_ANONYMOUS|MAP_PRIVATE|MAP_FIXED /*|MAP_UNINITIALIZED*/,
+                              MAP_ANONYMOUS|MAP_PRIVATE|MAP_FIXED,
                           -1,
                           0);
 #if DEBUG
@@ -406,13 +435,14 @@ int map_output_pages(unsigned long* p) {
 // the size param of each to determine block extents.
 //
 int map_untraced_call_pages(unsigned long* p) {
-    int i = 0;
+    int i;
+    int ret;
     segfault = 0;
 
-    for (int k = 0; k < num_tests; k++) {
+    for (int i = 0; i < num_tests; i++) {
         while (*p) {
-            i = setjmp(bailout); // safe place to return to
-            if (segfault || i != 0) {
+            ret = setjmp(bailout); // safe place to return to
+            if (segfault || ret != 0) {
                 segfault = 0;
                 return -1;  // segment violation was caught!
             }
@@ -421,8 +451,11 @@ int map_untraced_call_pages(unsigned long* p) {
                 break;
             else if (type == UNTRACED_CALL_TYPE_MALLOC) {
                 unsigned long size = *p++;
-                unsigned long* addr = (unsigned long*)*p++;
-                map_memory_range(addr, size);
+                unsigned long* page_addr = (unsigned long*)(*p & PAGE_MASK);
+                unsigned long extra = *p & PAGE_OFFSET_MASK;
+                p++;
+                mmap(page_addr, size + extra, PROT_READ|PROT_WRITE,
+                          MAP_ANONYMOUS|MAP_PRIVATE|MAP_FIXED, -1, 0);
             }
             else if (type == UNTRACED_CALL_TYPE_FREE) {
                 p++;  // skip argument, nothing to map
@@ -430,8 +463,11 @@ int map_untraced_call_pages(unsigned long* p) {
             else if (type == UNTRACED_CALL_TYPE_REALLOC) {
                 unsigned long* prev_addr = (unsigned long*)*p++;
                 unsigned long new_size = *p++;
-                unsigned long* new_addr = (unsigned long*)*p++;
-                map_memory_range(new_addr, new_size);
+                unsigned long* new_addr = (unsigned long*)(*p & PAGE_MASK);
+                unsigned long extra = *p & PAGE_OFFSET_MASK;
+                p++;
+                mmap(new_addr, new_size + extra, PROT_READ|PROT_WRITE,
+                          MAP_ANONYMOUS|MAP_PRIVATE|MAP_FIXED, -1, 0);
             }
         }
     }
@@ -487,6 +523,76 @@ int init_pages() {
     ret |= map_untraced_call_pages(untraced_calls);
     return ret;
 }
+
+#if USING_INIT
+//
+// To be called before glibc in initialized and before main() is
+// executed.
+// If segfault != 0 after this executes (i.e. when main() starts) we
+// know there was an initialization problem.
+//
+void initialize_pages() {
+    // map the initial stack page and another 1 meg of stack pages
+    int rsp_index = RSP_position(live_input_registers);
+    int i, j, k, ret;
+    unsigned long *addr, *page_addr;
+    unsigned long* p;
+    segfault = 0;
+
+    for (i = 0; i < num_tests; i++) {
+        unsigned long stack_pos =
+            input_regs[(i * num_input_registers) + rsp_index];
+
+        for (j = 0; j < INIT_STACK_PAGES; j++) {
+            page_addr = (unsigned long*)(stack_pos & PAGE_MASK);
+            mmap(page_addr, PAGE_SIZE, PROT_READ|PROT_WRITE,
+                        MAP_ANONYMOUS|MAP_PRIVATE|MAP_FIXED, -1, 0);
+            stack_pos -= PAGE_SIZE;
+        }
+    }
+
+    // map input pages
+    p = input_mem;
+    ret = 0;
+    for (i = 0; i < num_tests; i++) {
+        while (*p) {
+            ret = setjmp(bailout); // safe place to return to
+            if (ret != 0 && segfault == 0)
+                segfault = 1;
+            if (segfault)
+                return;  // segment violation was caught!
+            page_addr = (unsigned long*)(*p & PAGE_MASK);
+            mmap(page_addr, PAGE_SIZE, PROT_READ|PROT_WRITE,
+                        MAP_ANONYMOUS|MAP_PRIVATE|MAP_FIXED, -1, 0);
+            p += 3;
+        }
+        p++;
+    }
+
+    // map output pages
+    p = output_mem;
+    ret = 0;
+    for (int i = 0; i < num_tests; i++) {
+        while (*p) {
+            ret = setjmp(bailout); // safe place to return to
+            if (ret != 0 && segfault == 0)
+                segfault = 1;
+            if (segfault)
+                return;  // segment violation was caught!
+            page_addr = (unsigned long*)(*p & PAGE_MASK);
+            mmap(page_addr, PAGE_SIZE, PROT_READ|PROT_WRITE,
+                        MAP_ANONYMOUS|MAP_PRIVATE|MAP_FIXED, -1, 0);
+            p += 3;
+        }
+        p++;
+    }
+
+    // map untraced calls
+    ret = map_untraced_call_pages(untraced_calls);
+    if (ret)
+        segfault = 1;
+}
+#endif // USING_INIT
 
 //
 // Traverse the mem inputs, three qwords at a time.
@@ -953,9 +1059,10 @@ unsigned long run_variant(int v, int test) {
     if (retval < 0) {
         exit_with_status(1, "PAPI_start() error");
     }
-
+    disable_streams();
     retval = PAPI_read(EventSet, start_value);     // get PAPI count
     if (retval < 0) {
+        enable_streams();
         exit_with_status(1, "PAPI_read() error");
     }
 
@@ -970,6 +1077,7 @@ unsigned long run_variant(int v, int test) {
 
     retval = PAPI_read(EventSet, end_value);     // get PAPI count
     end_timer();  // stop POSIX timer
+    enable_streams();
     sigunblock();
 
     if (retval < 0) {
@@ -1227,11 +1335,13 @@ void setup_sigterm_handler() {
 int main(int argc, char* argv[]) {
 
     // move the heap by allocating a large block which we don't use
-    heap_address = (unsigned long)sbrk(0x1000000); // 16 megs
+    heap_address = (unsigned long)malloc(0x1000000); // 16 megs
 #if DEBUG
     fprintf(stderr, "Heap address: %ld\n", heap_address);
 #endif
 
+    init_stream();
+    
     // move our stack down effectively by allocating
     // 4 megs via alloca()--this may help prevent collisions
     // with the i/o data addresses
@@ -1265,7 +1375,9 @@ int main(int argc, char* argv[]) {
 #endif
     papi_init();
 
+#if USING_INIT==0
     executing = InitPages;
+    
     int retval = init_pages(); // allocate any referenced pages
     executing = NormalState;
     if (retval == -1) {
@@ -1275,7 +1387,8 @@ int main(int argc, char* argv[]) {
 #endif
         exit_with_status(1, "Page init segfault");
     }
-
+#endif // USING_INIT
+    
     unsigned long best = 0;
     int best_index = -1;
 
