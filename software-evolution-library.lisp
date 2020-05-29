@@ -4,6 +4,7 @@
   (:use
    :gt/full
    :software-evolution-library/utility/git)
+  (:import-from :atomics :atomic-incf)
   (:export
    :+software-evolution-library-dir+
    :+software-evolution-library-major-version+
@@ -151,10 +152,10 @@
       (git-error (e) (declare (ignorable e)) "UNKNOWN")))
   "Current branch of the SOFTWARE-EVOLUTION-LIBRARY.")
 
-(let ((oid-counter 0))
+(let ((oid-counter (list 0)))
   (defun generate-oid ()
     "Create a fresh, unique oid (object id) in range [1 ...]"
-    (incf oid-counter)))
+    (atomic-incf (car oid-counter))))
 
 (defclass oid-object (standard-object)
   ((oid :initarg :oid :reader oid :initform (generate-oid)))
