@@ -589,6 +589,9 @@ AST ast to return the scopes for"
   (or (null (get-parent-ast obj ast))
       (eq :BlockStatement (ast-class (get-parent-ast obj ast)))))
 
+(defmethod get-parent-full-stmt ((obj javascript) (ast javascript-ast))
+  (find-if #'is-stmt (get-parent-asts obj ast)))
+
 
 ;;; Implement the generic format-genome method for Javascript objects.
 (defmethod format-genome ((obj javascript) &key)
