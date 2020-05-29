@@ -325,7 +325,7 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
                             :switchstatement :trystatement :withstatement
                             :forinstatement :forofstatement :blockstatement
                             :breakstatement :continuestatement
-                            :expressionstatement
+                            :expressionstatement :whilestatement
                             :throwstatement :returnstatement
                             :ifstatement)))
 
