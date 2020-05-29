@@ -55,7 +55,6 @@
            :non-stmt-asts
            :good-stmts
            :bad-stmts
-           :get-parent-full-stmt
            :wrap-ast
            :wrap-child
            :+c-numeric-types+
@@ -2400,11 +2399,6 @@ If there is no trailing semicolon, return the AST unchanged."))
     (when (function-decl-p ast)
       (find-if [{eq :CompoundStmt} #'ast-class]
                (get-immediate-children software ast)))))
-
-(defgeneric get-parent-full-stmt (software ast)
-  (:documentation
-   "Return the first ancestor of AST in SOFTWARE which is a full stmt.
-Returns nil if no full-stmt parent is found."))
 
 (defmethod get-parent-full-stmt ((clang clang) (ast clang-ast))
   "Return the first ancestor of AST in SOFTWARE which is a full stmt.

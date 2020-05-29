@@ -45,6 +45,7 @@
            :get-ast
            :get-parent-ast
            :get-parent-asts
+           :get-parent-full-stmt
            :get-ast-types
            :get-unbound-vals
            :get-unbound-funs
@@ -489,6 +490,11 @@ returning a newly created AST."
 
 (defgeneric get-parent-asts (obj ast)
   (:documentation "Return the parent nodes of AST in OBJ"))
+
+(defgeneric get-parent-full-stmt (software ast)
+  (:documentation
+   "Return the first ancestor of AST in SOFTWARE which is a full statement.
+Returns nil if no full statement parent is found."))
 
 (defgeneric get-children (obj ast)
   (:documentation "Return all the children of AST in OBJ."))
