@@ -695,11 +695,6 @@ provided, return T if the car of the form is eq to NAME."
 (-> quasiquote-p (lisp-ast) (or null lisp-ast))
 (defun quasiquote-p (ast)
   "Return the quoted form if AST represents a quasiquote ast."
-  #-sbcl
-  (declare (ignorable ast))
-  #-sbcl
-  (error "~a currently only supports SBCL." #'quasiquote-p)
-  #+sbcl
   (match ast
     ((lisp-ast
       (ast-children
@@ -707,7 +702,14 @@ provided, return T if the car of the form is eq to NAME."
      form)
     ((lisp-ast
       (ast-children
-       (list _ (expression-result (expression 'sb-int:quasiquote))
+       (list _ #+sbcl
+               (expression-result (expression 'sb-int:quasiquote))
+               #-sbcl
+               (guard (expression-result
+                       (string-pointer string)
+                       (start start)
+                       (end end))
+                      (string= "`" (subseq str start end)))
              _ form _)))
      form)))
 
