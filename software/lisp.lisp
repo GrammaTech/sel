@@ -706,7 +706,7 @@ provided, return T if the car of the form is eq to NAME."
                (expression-result (expression 'sb-int:quasiquote))
                #-sbcl
                (guard (expression-result
-                       (string-pointer string)
+                       (string-pointer str)
                        (start start)
                        (end end))
                       (string= "`" (subseq str start end)))
