@@ -152,6 +152,7 @@
       (git-error (e) (declare (ignorable e)) "UNKNOWN")))
   "Current branch of the SOFTWARE-EVOLUTION-LIBRARY.")
 
+;;; oid-counter must be a cons for portable atomic-incf.
 (let ((oid-counter (list 0)))
   (defun generate-oid ()
     "Create a fresh, unique oid (object id) in range [1 ...]"
