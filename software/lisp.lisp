@@ -154,11 +154,8 @@ which may be more nodes, or other values.")
       (call-next-method)
       (print-unreadable-object (obj stream :type t))))
 
-(define-matchable-class sharpsign-dot (reader-token)
-  ((reason :initform :read-eval)
-   (string-pointer :initform "#.")
-   (start :initform 0)
-   (end :initform 2)))
+(define-matchable-class sharpsign-dot (skipped-input-result)
+  ((reason :initform :read-eval)))
 
 (define-matchable-class reader-conditional-token (reader-token)
   ((reason :initform :reader-conditional)
@@ -337,7 +334,9 @@ returned."))
            ((list '|#.| result)
             (make-instance 'expression-result
               :expression result
-              :children (cons (make 'sharpsign-dot) children)
+              :children (cons
+                         (make 'sharpsign-dot :start start
+                                              :end (+ 2 start)) children)
               :start start
               :end end))
            (otherwise
