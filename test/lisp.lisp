@@ -36,10 +36,14 @@
 
 
 ;;; Utility
-(defun is-convert-round-trip-p (form)
-  "Return T if converting FORM to lisp-ast and back
-maintains the same value."
-  (is (equal form (source-text (convert 'lisp-ast form)))))
+(defgeneric is-convert-round-trip-p (form)
+  (:documentation "Checks whether FORM is the same after a
+round-trip through convert.")
+  (:method ((form string))
+    (is (equal form (source-text (convert 'lisp-ast form)))))
+  (:method ((form sequence))
+    (is (equal (string-downcase (format nil "~s" form))
+               (source-text (convert 'lisp-ast form))))))
 
 
 ;;; Tests
@@ -262,4 +266,21 @@ t")))))
 
 (deftest test-sharpsign-quote-is-present ()
   ;; Strings with "#'" converted to 'lisp-ast have a sharpsign-quote node.
-  (is (find-if {typep _ 'sharpsign-quote} (convert 'lisp-ast #?(mapc #'- '(1))))))
+  (is (find-if {typep _ 'sharpsign-quote}
+               (convert 'lisp-ast #?(mapc #'- '(1))))))
+
+(deftest test-round-trip-uninterned-symbol ()
+  ;; Forms with `#:' converted to 'lisp-ast and back are the same.
+  ;; Test with string.
+  (is-convert-round-trip-p #?(test #:test))
+  ;; Test with sequence.
+  (is-convert-round-trip-p '(test #:test)))
+
+(deftest test-uninterned-symbol-is-present ()
+  ;; Uninterned symbols converted to 'lisp-ast stay uninterned.
+  ;; Test with string.
+  (is (find-if [{string= "#:TEST"} {format nil "~s"} #'expression]
+               (convert 'lisp-ast #?(#:test))))
+  ;; Test with sequence.
+  (is (find-if [{string= "#:TEST"} {format nil "~s"} #'expression]
+               (convert 'lisp-ast '#:test))))
