@@ -34,6 +34,15 @@
 
 (defsuite test-lisp "Lisp representation")
 
+
+;;; Utility
+(defun is-convert-round-trip-p (form)
+  "Return T if converting FORM to lisp-ast and back
+maintains the same value."
+  (is (equal form (source-text (convert 'lisp-ast form)))))
+
+
+;;; Tests
 (deftest read-eval-preserved ()
   (let ((found?
          (block found
@@ -242,3 +251,7 @@ t")))))
   (let ((obj (from-string (make-instance 'lisp)
                           "(- (+ 1 2) 5)")))
     (is (= 16 (size (genome obj))))))
+
+(deftest test-round-trip-sharpsign-dot ()
+  ;; Strings with `#.' converted to 'lisp-ast and back are the same.
+  (is-convert-round-trip-p #?(+ #.1 #.2)))
