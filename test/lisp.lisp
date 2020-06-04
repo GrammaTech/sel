@@ -255,3 +255,11 @@ t")))))
 (deftest test-round-trip-sharpsign-dot ()
   ;; Strings with `#.' converted to 'lisp-ast and back are the same.
   (is-convert-round-trip-p #?(+ #.1 #.2)))
+
+(deftest test-round-trip-sharpsign-quote ()
+  ;; Strings with "#'" converted to 'lisp-ast and back are the same.
+  (is-convert-round-trip-p #?(mapcar #'- '(1 2 3 4 5))))
+
+(deftest test-sharpsign-quote-is-present ()
+  ;; Strings with "#'" converted to 'lisp-ast have a sharpsign-quote node.
+  (is (find-if {typep _ 'sharpsign-quote} (convert 'lisp-ast #?(mapc #'- '(1))))))
