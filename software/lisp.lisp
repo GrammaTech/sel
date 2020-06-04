@@ -28,6 +28,7 @@
            :reader-quasiquote
            :reader-unquote
            :reader-unquote-splicing
+           :sharpsign-quote
            :*string*
            :transform-reader-conditional
            :walk-feature-expressions
@@ -175,6 +176,8 @@ which may be more nodes, or other values.")
 (define-matchable-class reader-unquote (expression-result) ())
 
 (define-matchable-class reader-unquote-splicing (expression-result) ())
+
+(define-matchable-class sharpsign-quote (expression-result) ())
 
 (defmethod convert ((to-type (eql 'lisp-ast)) (sequence list)
                     &key (spaces nil) (expression sequence)
@@ -413,6 +416,9 @@ returned."))
                          :start start :end end)))
                 (",@"
                  (list (make-instance 'reader-unquote-splicing
+                                      :start start :end end)))
+                ("#'"
+                 (list (make-instance 'sharpsign-quote
                                       :start start :end end)))
                 (t
                  (list (make-instance 'skipped-input-result
