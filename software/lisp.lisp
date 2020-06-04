@@ -194,7 +194,7 @@ which may be more nodes, or other values.")
                                            (symbol-name symbol)))))
                (make-instance 'expression-result :expression symbol)))
            (m/symbol (symbol)
-             (let ((*string* (string-downcase (symbol-name symbol))))
+             (let ((*string* (string-downcase (format nil "~s" symbol))))
                (make-instance 'expression-result :expression symbol)))
            (m/other (other)
              (let ((*string* (format nil "~S" other)))
@@ -359,30 +359,33 @@ returned."))
     ((client client) input-stream package-indicator symbol-name internp)
   (declare (ignorable input-stream))
   (let ((package (case package-indicator
+                   ;; uninterned symbols have a nil package.
+                   ((nil) nil)
                    (:current *package*)
                    (:keyword (find-package "KEYWORD"))
                    (t        (or (find-package package-indicator)
                                  ;; Return a fake package for missing packages.
                                  (find-package :missing)
                                  (make-package :missing))))))
-    (if internp
-        (intern symbol-name package)
-        (multiple-value-bind (symbol status)
-            (find-symbol symbol-name package)
-          (cond ((null status) ; Ignore `symbol-does-not-exist' errors.
-                 ;; (eclector.base::%reader-error
-                 ;;  input-stream 'eclector.reader::symbol-does-not-exist
-                 ;;  :package package
-                 ;;  :symbol-name symbol-name)
-                 symbol)
-                ((eq status :internal) ; Ignore `symbol-is-not-external' errors.
-                 ;; (eclector.base::%reader-error
-                 ;;  input-stream 'eclector.reader::symbol-is-not-external
-                 ;;  :package package
-                 ;;  :symbol-name symbol-name)
-                 symbol)
-                (t
-                 symbol))))))
+    (cond
+      ((null package) (make-symbol symbol-name))
+      (internp (intern symbol-name package))
+      (t (multiple-value-bind (symbol status)
+             (find-symbol symbol-name package)
+           (cond ((null status) ; Ignore `symbol-does-not-exist' errors.
+                  ;; (eclector.base::%reader-error
+                  ;;  input-stream 'eclector.reader::symbol-does-not-exist
+                  ;;  :package package
+                  ;;  :symbol-name symbol-name)
+                  symbol)
+                 ((eq status :internal) ; Ignore `symbol-is-not-external' errors.
+                  ;; (eclector.base::%reader-error
+                  ;;  input-stream 'eclector.reader::symbol-is-not-external
+                  ;;  :package package
+                  ;;  :symbol-name symbol-name)
+                  symbol)
+                 (t
+                  symbol)))))))
 
 ;;; The next two forms are used to avoid throwing errors when a
 ;;; #. reader macro attempts to execute code during parsing.  We want
