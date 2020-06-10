@@ -7,7 +7,7 @@
 #define __x86_64__ 1
 #define __USE_GNU 1
 
-#define USING_INIT 0 // if true, init pages prior to main()
+#define USING_INIT 1 // if true, init pages prior to main()
 
 #include <signal.h>
 #include <time.h>
@@ -532,10 +532,11 @@ int init_pages() {
 // know there was an initialization problem.
 //
 void initialize_pages() {
-    // map the initial stack page and another 1 meg of stack pages
+    // map the initial stack page and 1 meg of stack pages above and
+    // below (2 megs total) for each test
     int rsp_index = RSP_position(live_input_registers);
     int i, j, k, ret;
-    unsigned long *addr, *page_addr;
+    unsigned char *page_addr;
     unsigned long* p;
     segfault = 0;
 
@@ -543,12 +544,11 @@ void initialize_pages() {
         unsigned long stack_pos =
             input_regs[(i * num_input_registers) + rsp_index];
 
-        for (j = 0; j < INIT_STACK_PAGES; j++) {
-            page_addr = (unsigned long*)(stack_pos & PAGE_MASK);
-            mmap(page_addr, PAGE_SIZE, PROT_READ|PROT_WRITE,
-                        MAP_ANONYMOUS|MAP_PRIVATE|MAP_FIXED, -1, 0);
-            stack_pos -= PAGE_SIZE;
-        }
+        page_addr = (unsigned char*)(stack_pos & PAGE_MASK);
+        mmap(page_addr - (INIT_STACK_PAGES * PAGE_SIZE),
+                 PAGE_SIZE * INIT_STACK_PAGES * 2,
+                 PROT_READ|PROT_WRITE,
+                 MAP_ANONYMOUS|MAP_PRIVATE|MAP_FIXED, -1, 0);
     }
 
     // map input pages
@@ -561,7 +561,7 @@ void initialize_pages() {
                 segfault = 1;
             if (segfault)
                 return;  // segment violation was caught!
-            page_addr = (unsigned long*)(*p & PAGE_MASK);
+            page_addr = (unsigned char*)(*p & PAGE_MASK);
             mmap(page_addr, PAGE_SIZE, PROT_READ|PROT_WRITE,
                         MAP_ANONYMOUS|MAP_PRIVATE|MAP_FIXED, -1, 0);
             p += 3;
@@ -579,7 +579,7 @@ void initialize_pages() {
                 segfault = 1;
             if (segfault)
                 return;  // segment violation was caught!
-            page_addr = (unsigned long*)(*p & PAGE_MASK);
+            page_addr = (unsigned char*)(*p & PAGE_MASK);
             mmap(page_addr, PAGE_SIZE, PROT_READ|PROT_WRITE,
                         MAP_ANONYMOUS|MAP_PRIVATE|MAP_FIXED, -1, 0);
             p += 3;

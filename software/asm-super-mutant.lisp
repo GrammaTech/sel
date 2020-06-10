@@ -365,6 +365,12 @@
     :accessor io-file
     :initform nil
     :documentation "If this is specified, use this file (ignore io-dir).")
+   (page-block-list
+    :initarg :page-block-list
+    :accessor page-block-list
+    :initform nil
+    :documentation "Derived from io-file data, memory blocks which need to be
+ allocated by the fitness executables")
    (fitness-harness
     :initarg :fitness-harness
     :accessor fitness-harness
@@ -398,7 +404,13 @@
     :accessor eval-meta-results
     :initform nil
     :documentation
-    "After evaluation, may contain meta-information about results."))
+    "After evaluation, may contain meta-information about results.")
+  (linker-script
+   :initarg :linker-script
+   :accessor linker-script
+   :initform nil
+   :documentation "Create and cache the default linker script"))
+
   (:documentation
    "Combine SUPER-MUTANT capabilities with ASM-HEAP framework."))
 
@@ -481,6 +493,29 @@
 (defparameter *text-segment-start* #x400000 "If non-nil, base address")
 (defparameter *seldata-segment-start* nil
   "If non-nil, address of .seldata segment")
+
+(defconstant +page-size+ #x1000)
+(defconstant +page-mask+ #xfffffffffffff000)
+(defconstant +page-offset-mask+ (- +page-size+ 1))
+
+(defun page-addr (addr)
+  "Convert address to page address"
+  (logand addr +page-mask+))
+(defun page-offset (addr)
+  "Return offset into page of addr"
+  (logand addr +page-offset-mask+))
+
+(defstruct page-record
+  addr      ; address of page-aligned memory block
+  size      ; length (in bytes)--should be multiple of +page-size+
+  attr)     ; either "r" or "rw" -- for now, just supporting "rw"
+
+(defmethod print-object ((pr page-record) stream)
+  (format stream "#S(PAGE-RECORD :ADDR #x~X :SIZE #x~X :ATTR ~S)"
+	  (page-record-addr pr)
+	  (page-record-size pr)
+	  (page-record-attr pr)))
+
 ;;;
 ;;; all the SIMD register names start with 'y'
 ;;;
@@ -499,7 +534,7 @@
 (defmethod print-object ((mem memory-spec) stream)
   (format stream "~16,'0X: ~T~A ~A"
 	  (memory-spec-addr mem)
-	  (Memory-spec-mask mem)
+	  (memory-spec-mask mem)
 	  (bytes-to-string (memory-spec-bytes mem))))
 
 (defstruct reg-contents
@@ -852,6 +887,7 @@
                           (input-specification-regs
                            (aref (output-spec super-asm) 0)))
                      (collect (reg-contents-name x))))))
+    (setf (page-block-list super-asm) (create-page-block-list super-asm))
     t))
 
 ;;;
@@ -1952,6 +1988,17 @@ jump_table:
            "        retq"
            "        .align 8"))))))
 
+(defun add-io-sections (asm-super asm-variants)
+  "Append new sections required by io testcases"
+  (iter (for p in (page-block-list asm-super))
+        (for i from 0)
+        (insert-new-lines
+         asm-variants
+         (list
+          (format nil ".section .sel~D, \"wa\"" i)
+          (format nil "    .zero 0x~X" (page-record-size p))
+          ""))))
+
 ;;;
 ;;; considers the variants have the same super-owner if its super-owner's
 ;;; genome is equalp to the target asm-super-mutant
@@ -2016,6 +2063,9 @@ jump_table:
      asm-variants
      (asm-syntax asm-super)
      (length (input-spec asm-super)))
+     ;; add page block list sections
+     #+linker-script (add-io-sections asm-super asm-variants)
+
     (setf (super-soft asm-super) asm-variants)  ;; cache the asm-heap
     (with-open-file (os output-path :direction :output :if-exists :supersede)
       (dolist (line (lines asm-variants))
@@ -2180,53 +2230,78 @@ jump_table:
             (setf bin nil)))
         (when (zerop errno)
           ;; Link.
-	  (multiple-value-bind (stdout stderr errno)
-	    (shell
-	     (concatenate 'string
-                          "~a ~a"
-                          " -O0 -fnon-call-exceptions -g"
-                          " -Wno-deprecated"
-                          " -Wl,--wrap=malloc"
-                          " -Wl,--wrap=realloc"
-                          " -Wl,--wrap=free"
-                          " ~a ~a ~a ~a ~a -lrt -o ~a ~a ~a ~a ~a")
-             (compiler asm)
-             (if (static-link asm) "" "-no-pie")
-             (if (static-link asm) "--static" "")
-             (if (bss-segment asm)
-		 (format nil "-Wl,--section-start=.seldata=0x~x"
-			 (bss-segment asm))
-                 (if *seldata-segment-start*
+          #+linker-script
+          (unless (linker-script asm)
+            (setf (linker-script asm) (get-default-linker-script)))
+
+          (let (#+linker-script
+                (linker-sections-path (output-linker-sections asm))
+                compiler-command)
+            #+linker-script
+            (setf compiler-command
+                  (concatenate 'string
+                               "~a ~a"
+                               " -Wl,--script=~a"
+                               " -Wl,--script=~a"
+                               " -O0 -fnon-call-exceptions -g"
+                               " -Wno-deprecated"
+                               " -Wl,--wrap=malloc"
+                               " -Wl,--wrap=realloc"
+                               " -Wl,--wrap=free"
+                               " ~a ~a ~a ~a ~a -lrt -o ~a ~a ~a ~a ~a"))
+            #-linker-script
+            (setf compiler-command
+                  (concatenate 'string
+                               "~a ~a"
+                               " -O0 -fnon-call-exceptions -g"
+                               " -Wno-deprecated"
+                               " -Wl,--wrap=malloc"
+                               " -Wl,--wrap=realloc"
+                               " -Wl,--wrap=free"
+                               " ~a ~a ~a ~a ~a -lrt -o ~a ~a ~a ~a ~a"))
+
+            (multiple-value-bind (stdout stderr errno)
+                (shell
+                 compiler-command
+                 (compiler asm)
+                 (if (static-link asm) "" "-no-pie")
+                 #+linker-script  (linker-script asm)
+                 #+linker-script linker-sections-path
+                 (if (static-link asm) "--static" "")
+                 (if (bss-segment asm)
                      (format nil "-Wl,--section-start=.seldata=0x~x"
-                             *seldata-segment-start*)
-                     ""))
-             (if *bss-segment-start*
-                 (format nil "-Wl,-Tbss=0x~x" *bss-segment-start*)
-                 "")
-             (if *data-segment-start*
-                 (format nil "-Wl,-Tdata=0x~x" *data-segment-start*)
-                 "")
-             (if *text-segment-start*
-                 (format nil "-Wl,-Ttext-segment=0x~x" *text-segment-start*)
-                 "")
-	     bin
-	     (fitness-harness asm)
-	     obj
-	     *lib-papi*
-	     (or (libraries asm) ""))
-            (restart-case
-                (unless (zerop errno)
-                  (error (make-condition 'phenome :text stderr
-					 :obj asm :loc obj)))
-              (retry-project-build ()
-                :report "Retry `phenome' link on OBJ."
-                (phenome obj :bin bin))
-              (return-nil-for-bin ()
-                :report "Allow failure returning NIL for bin."
-                (setf bin nil)))
-	    (setf (phenome-results asm)
-		  (list bin errno stderr stdout src))
-	    (values bin errno stderr stdout src)))))))
+                             (bss-segment asm))
+                     (if *seldata-segment-start*
+                         (format nil "-Wl,--section-start=.seldata=0x~x"
+                                 *seldata-segment-start*)
+                         ""))
+                 (if *bss-segment-start*
+                     (format nil "-Wl,-Tbss=0x~x" *bss-segment-start*)
+                     "")
+                 (if *data-segment-start*
+                     (format nil "-Wl,-Tdata=0x~x" *data-segment-start*)
+                     "")
+                 (if *text-segment-start*
+                     (format nil "-Wl,-Ttext-segment=0x~x" *text-segment-start*)
+                     "")
+                 bin
+                 (fitness-harness asm)
+                 obj
+                 *lib-papi*
+                 (or (libraries asm) ""))
+              (restart-case
+                  (unless (zerop errno)
+                    (error (make-condition 'phenome :text stderr
+                                           :obj asm :loc obj)))
+                (retry-project-build ()
+                  :report "Retry `phenome' link on OBJ."
+                  (phenome obj :bin bin))
+                (return-nil-for-bin ()
+                  :report "Allow failure returning NIL for bin."
+                  (setf bin nil)))
+              (setf (phenome-results asm)
+                    (list bin errno stderr stdout src))
+              (values bin errno stderr stdout src))))))))
 
 (defun record-meta-results (asm-super meta-results)
   (do* ((x meta-results (cddr x))
@@ -2519,3 +2594,135 @@ instruction set does not support absolute addresses over 32-bits."
     (when orig
       (remf (asm-line-info-properties info) :orig)
       (setf (elt (genome asm) line-index) orig))))
+
+(defun get-default-linker-script ()
+  "Return the default linker script as a path namestring."
+  (let* ((strs (uiop/utility:split-string (shell "ld --verbose")
+                                          :separator (list #\Newline)))
+         (start (position-if
+                 (lambda (x) (starts-with-subseq "==========" x))
+                 strs))
+         (end (position-if
+                 (lambda (x) (starts-with-subseq "==========" x))
+                 strs :from-end t)))
+    (let ((out-path (temp-file-name :type "script")))
+      (with-open-file (os out-path :direction :output :if-exists :supersede)
+        (format os "~{~A~%~}" (subseq strs (+ 1 start) end)))
+      out-path)))
+
+(defparameter *stack-size-before* #x100000
+  "Number of bytes to allocate below stack pointer, should be multiple
+ of page size")
+(defparameter *stack-size-after*  #x100000
+  "Number of bytes to allocate above stack pointer, should be multiple
+ of page size")
+
+(defun add-page-record (page-rec ht)
+  "Add a page record to a hash-table. If it already exists, don't add.
+ If it is contingent with another, and attributes match, merge it."
+  (dotimes (i (/ (page-record-size page-rec) +page-size+))
+    (let ((addr (+ (page-record-addr page-rec) (* i +page-size+))))
+      (setf (gethash addr ht)
+            (make-page-record :addr addr :size +page-size+
+                           :attr (page-record-attr page-rec))))))
+
+(defun collect-pages (asm-super)
+  "Collect all virtual memory page addresses needed by testcases into hashtable"
+  (let* ((ht (make-hash-table))
+         (input-recs (input-spec asm-super))
+         (output-recs (output-spec asm-super))
+         (untraced-call-recs (untraced-call-spec asm-super)))
+    (iter (for rec in-vector input-recs)
+          ;; Allocate 1 meg of pages below and above initial rsp
+          ;; for stack for each test.
+          (let* ((regs (input-specification-regs rec))
+                 (rsp-page
+                  (page-addr
+                   (be-bytes-to-qword
+                    (reg-contents-value
+                     (find "rsp" regs :test 'equalp
+                           :key 'reg-contents-name))))))
+            (add-page-record
+             (make-page-record :addr (- rsp-page *stack-size-before*)
+                               :size (+ *stack-size-before*
+                                        *stack-size-after*)
+                               :attr "rw")
+             ht))
+          (let* ((mems (input-specification-mem rec)))
+            (iter (for mem in-vector mems)
+                  (let* ((addr (page-addr (memory-spec-addr mem))))
+                    (add-page-record
+                     (make-page-record :addr addr :size +page-size+ :attr "rw")
+                     ht)))))
+    (iter (for rec in-vector output-recs)
+          (let* ((mems (input-specification-mem rec)))
+            (iter (for mem in-vector mems)
+                  (let* ((addr (page-addr (memory-spec-addr mem))))
+                    (add-page-record
+                     (make-page-record :addr addr :size +page-size+ :attr "rw")
+                     ht)))))
+    (iter (for rec in-vector untraced-call-recs)
+          (let* ((calls (untraced-call-specification-calls rec)))
+            (iter (for call in-vector calls)
+                  (cond ((string= (untraced-call-name call) "malloc")
+                         (make-page-record :addr (untraced-call-result call)
+                                           :size
+                                           (first (untraced-call-args call))
+                                           :attr "rw"))
+                        ((string= (untraced-call-name call) "realloc")
+                         (make-page-record :addr (untraced-call-result call)
+                                           :size
+                                           (second (untraced-call-args call))
+                                           :attr "rw"))))))
+    ht))
+
+(defun page-merge (p1 p2)
+  "Return merged page records if page records are mergeable, or NIL otherwise.
+ Page records are mergeable if there are no gaps between them."
+  (if (and
+       (= (+ (page-record-addr p1) (page-record-size p1))
+          (page-record-addr p2))
+       (string= (page-record-attr p1) (page-record-attr p2)))
+      (make-page-record :addr (page-record-addr p1)
+                        :size (+ (page-record-size p1) (page-record-size p2))
+                        :attr (page-record-attr p1))
+      (if (and
+           (= (+ (page-record-addr p2) (page-record-size p2))
+              (page-record-addr p1))
+           (string= (page-record-attr p2) (page-record-attr p1)))
+          (make-page-record :addr (page-record-addr p2)
+                            :size (+ (page-record-size p2)
+                                     (page-record-size p1))
+                            :attr (page-record-attr p2)))))
+
+(defun create-page-block-list (asm-super)
+  "Collect, sort and merge all the block records for the asm-super-mutant.
+ Returns the resulting list of page-blocks."
+  (let* ((ht (collect-pages asm-super))
+         (recs (make-array (hash-table-count ht)
+                            :initial-contents
+                            (stable-sort (hash-table-values ht) '<
+                                         :key 'page-record-addr))))
+    ;; merge pages to create page blocks
+    (let ((blocks '())
+          (curr nil)
+          (p nil))
+      (iter (for rec in-vector recs)
+            (cond ((null curr) (setf curr rec))
+                  ((setf p (page-merge curr rec)) (setf curr p))
+                  (t (push curr blocks) (setf curr rec))))
+      (push curr blocks)
+      (nreverse blocks))))
+
+(defun output-linker-sections (asm-super)
+  "Write a linker-script containing the SECTIONS needed by the iodata.
+ Returns the path of the file created."
+  (let ((out-path (temp-file-name :type "script")))
+    (with-open-file (os out-path :direction :output :if-exists :supersede)
+      (format os "SECTIONS~%{~%")
+      (iter (for p in (page-block-list asm-super))
+            (for i from 0)
+            (format os "  .sel~D 0x~X :~%  {~%    *(.sel~D)~%  }~%"
+                    i (page-record-addr p) i))
+      (format os "}~%"))
+    out-path))
