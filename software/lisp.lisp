@@ -498,8 +498,8 @@ returned."))
                     &key &allow-other-keys)
   (make-instance 'lisp-ast :children (read-forms+ string)))
 
-(defmethod parse-asts ((lisp lisp))
-  (convert 'lisp-ast (genome-string lisp)))
+(defmethod parse-asts ((lisp lisp) &optional (source (genome-string lisp)))
+  (convert 'lisp-ast source))
 
 (defmethod source-text ((obj result) &optional stream)
   (if (children obj)

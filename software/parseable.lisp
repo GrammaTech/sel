@@ -523,7 +523,7 @@ and :SCOPE.
 (defgeneric get-vars-in-scope (software ast &optional keep-globals)
   (:documentation "Return all variables in enclosing scopes."))
 
-(defgeneric parse-asts (software)
+(defgeneric parse-asts (software &optional source-text)
   (:documentation "Parse genome of SOFTWARE into an AST representation.
 There are some requirements for the ASTs constructed by this method:
 * We require that *all* source text be stored as a raw string
@@ -533,7 +533,11 @@ There are some requirements for the ASTs constructed by this method:
   source text then they are equal.
 
 Other methods in on parseable objects, specifically `ast-can-recurse'
-and `ast-equal-p' depend on these invariants."))
+and `ast-equal-p' depend on these invariants.
+
+Optional argument SOURCE-TEXT holds the source code string to parse
+into ASTs.  If not supplied it is generally assumed to already be set
+in the software's genome."))
 
 (defgeneric bad-asts (software)
   (:documentation "Return a list of all bad asts in SOFTWARE."))
@@ -594,6 +598,10 @@ made traceable by wrapping with curly braces, return that."))
           (write-string genome s)
           (source-text genome s)))))
 
+(defmethod (setf genome-string) ((new string) (obj parseable))
+  ;; We will lazily parse the ASTs from the genome when it is next accessed.
+  (setf (genome obj) new))
+
 (defmethod genome :before ((obj parseable))
   "Lazily parse the genome upon first access."
   (when (stringp (slot-value obj 'genome))
@@ -618,7 +626,7 @@ made traceable by wrapping with curly braces, return that."))
   "When true, parse-asts reports the original source file on an error,
 if the original file is known.")
 
-(defmethod parse-asts :around ((sw parseable))
+(defmethod parse-asts :around ((sw parseable) &optional text)
   (handler-bind
       ((error (lambda (e)
                 (declare (ignore e))

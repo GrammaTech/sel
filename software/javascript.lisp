@@ -106,7 +106,7 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
                                        "type" "start" "end")
                            str))
 
-(defmethod parse-asts ((obj javascript))
+(defmethod parse-asts ((obj javascript) &optional (source (genome-string obj)))
   (labels
       ((annotations (alist)
          (remove-if (lambda (pair)
@@ -297,8 +297,7 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
                                       children
                                       (mapcar {make-tree source-text} children))
              :annotations (annotations ast-alist)))))
-    (nest (fix-newlines)
-          (make-tree (genome-string obj) (acorn obj)))))
+    (nest (fix-newlines) (make-tree source (acorn obj)))))
 
 (defmethod convert ((to-type (eql 'javascript-ast)) (collection string)
                     &key &allow-other-keys)

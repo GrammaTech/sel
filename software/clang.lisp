@@ -6182,7 +6182,7 @@ ASTs in the existing SYMBOL-TABLE and AST-ROOT tree."
              ast))
     (update-paths-helper ast)))
 
-(defmethod parse-asts ((obj clang) &aux (source-text (genome-string obj)))
+(defmethod parse-asts ((obj clang) &optional (source-text (genome-string obj)))
   (let ((*canonical-string-table* (make-hash-table :test 'equal))
         (*canonical-clang-type-table* (make-hash-table :test 'equal)))
     (with-slots (macros types symbol-table name-symbol-table) obj
