@@ -162,7 +162,6 @@
            :ast-i-file
            :ast-referenceddecl
            :ast-declarations
-           :ast-var-declarations
            :clang-type
            :ct+
            :ct+-type
@@ -4098,10 +4097,6 @@ on various ast classes"))
     ((function-decl-p ast) ; Function declaration.
      (mapcar #'car (ast-args ast)))  ; Does not need the hash codes
     (:otherwise nil)))
-
-(defmethod ast-var-declarations ((ast clang-ast))
-  (when (member (ast-class ast) '(:Var :ParmVar :DeclStmt))
-    (ast-declares ast)))
 
 ;; returns ast nodes, not strings
 (defmethod ast-args ((obj clang-ast))
