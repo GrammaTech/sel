@@ -2142,7 +2142,8 @@ already in scope, it will keep that name.")
                                 :children (nconc (subseq children
                                                          0 (max 0 (1- head)))
                                                  (butlast fixed)
-                                                 (nthcdr (+ 2 head) children)))
+                                                 (or (nthcdr (+ 2 head) children)
+                                                     '(""))))
                           (lastcar fixed))))))))
     (if location
         (helper tree location nil)
