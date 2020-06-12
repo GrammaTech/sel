@@ -1935,12 +1935,6 @@ jump_table:
            "        mov r13, qword [save_r13]"
            "        mov r14, qword [save_r14]"
            "        mov r15, qword [save_r15]")
-          (iter
-            (for x in (reverse *all-registers*))
-            (unless (equalp x "RSP")
-              (collect
-                  (format nil "        pop ~A"
-                          (string-downcase x)))))
           (list
            "        push qword [temp_return_address]"
            "        ret"
