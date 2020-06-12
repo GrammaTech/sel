@@ -627,6 +627,7 @@ made traceable by wrapping with curly braces, return that."))
 if the original file is known.")
 
 (defmethod parse-asts :around ((sw parseable) &optional text)
+  (declare (ignorable text))
   (handler-bind
       ((error (lambda (e)
                 (declare (ignore e))
