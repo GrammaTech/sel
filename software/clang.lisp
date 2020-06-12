@@ -6385,6 +6385,10 @@ children.")
                             (find-if predicate child))))
              (return satisfied-p))))))
 
+(defmethod find-if-not (predicate (ast clang-ast) &key key)
+  (declare (ignorable key))
+  (find-if (complement predicate) ast :key key))
+
 (defun ast-nodes-in-subtree (ast)
   (let ((result nil))
     (map-ast ast (lambda (a) (push a result)))
