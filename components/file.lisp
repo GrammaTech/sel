@@ -13,8 +13,8 @@
 ;;;
 ;;; @texi{file}
 
-(defpackage :software-evolution-library/software/file
-  (:nicknames :sel/software/file :sel/sw/file)
+(defpackage :software-evolution-library/components/file
+  (:nicknames :sel/components/file :sel/cp/file)
   (:use :gt/full
         :software-evolution-library)
   #-windows (:import-from :osicat :file-permissions)
@@ -24,7 +24,7 @@
            :ext
            :original-path
            :original-directory))
-(in-package :software-evolution-library/software/file)
+(in-package :software-evolution-library/components/file)
 
 
 (defclass file ()

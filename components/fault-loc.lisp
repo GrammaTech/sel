@@ -10,11 +10,11 @@
         :software-evolution-library
         :software-evolution-library/utility/debug
         :software-evolution-library/software/parseable
-        :software-evolution-library/software/file
         :software-evolution-library/software/parseable
         :software-evolution-library/software/clang
         :software-evolution-library/software/project
         :software-evolution-library/software/clang-project
+        :software-evolution-library/components/file
         :software-evolution-library/components/test-suite)
   (:export :*default-fault-loc-weight*
            :*default-fault-loc-cutoff*

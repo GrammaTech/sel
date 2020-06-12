@@ -40,6 +40,7 @@ doc/sel-cp-clang-instrument-api.texi
 doc/sel-cp-clang-tokens-api.texi
 doc/sel-cp-condition-synthesis-api.texi
 doc/sel-cp-fault-loc-api.texi
+doc/sel-cp-file-api.texi
 doc/sel-cp-fix-compilation-api.texi
 doc/sel-cp-fodder-database-api.texi
 doc/sel-cp-formatting-api.texi
@@ -81,7 +82,6 @@ doc/sel-sw-elf-api.texi
 doc/sel-sw-elf-cisc-api.texi
 doc/sel-sw-elf-risc-api.texi
 doc/sel-sw-expression-api.texi
-doc/sel-sw-file-api.texi
 doc/sel-sw-forth-api.texi
 doc/sel-sw-java-api.texi
 doc/sel-sw-java-project-api.texi

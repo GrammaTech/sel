@@ -6,7 +6,7 @@
         :cl-store
         :bordeaux-threads
         :software-evolution-library
-        :software-evolution-library/software/file)
+        :software-evolution-library/components/file)
   (:export ;; ASTs
            :ast
            :functional-tree-ast

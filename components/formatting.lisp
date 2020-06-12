@@ -10,8 +10,8 @@
   (:nicknames :sel/components/formatting :sel/cp/formatting)
   (:use :gt/full
         :software-evolution-library
+        :software-evolution-library/components/file
         :software-evolution-library/software/simple
-        :software-evolution-library/software/file
         :software-evolution-library/software/compilable
         :software-evolution-library/software/parseable)
   (:export :format-genome

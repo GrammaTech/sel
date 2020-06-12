@@ -52,7 +52,6 @@ appendix holds each individual package's API in turn.
 * sel-sw-elf-risc::             Software-Evolution-Library/Software elf-risc.
 * sel-sw-expression::           Software-Evolution-Library/Software expression.
 * sel-sw-forth::                Software-Evolution-Library/Software forth.
-* sel-sw-file::                 Software-Evolution-Library/Software file.
 * sel-sw-javascript::           Software-Evolution-Library/Software javascript.
 * sel-sw-javascript-project::   Software-Evolution-Library/Software javascript-project.
 * sel-sw-lisp::                 Software-Evolution-Library/Software lisp.
@@ -71,6 +70,7 @@ appendix holds each individual package's API in turn.
 * sel-cp-clang-tokens::         Software-Evolution-Library/Component clang-tokens.
 * sel-cp-condition-synthesis::  Software-Evolution-Library/Component condition-synthesis.
 * sel-cp-fault-loc::            Software-Evolution-Library/Component fault-loc.
+* sel-cp-file::                 Software-Evolution-Library/Component file.
 * sel-cp-fix-compilation::      Software-Evolution-Library/Component fix-compilation.
 * sel-cp-fodder-database::      Software-Evolution-Library/Component fodder-database.
 * sel-cp-formatting::           Software-Evolution-Library/Component formatting.
@@ -179,11 +179,7 @@ appendix holds each individual package's API in turn.
 @section sel-sw-forth
 @include sel-sw-forth-api.texi
 
-@node sel-sw-file, sel-sw-javascript, sel-sw-forth, SEL Packages
-@section sel-sw-file
-@include sel-sw-file-api.texi
-
-@node sel-sw-javascript, sel-sw-javascript-project, sel-sw-file, SEL Packages
+@node sel-sw-javascript, sel-sw-javascript-project, sel-sw-forth, SEL Packages
 @section sel-sw-javascript
 @include sel-sw-javascript-api.texi
 
@@ -251,11 +247,15 @@ appendix holds each individual package's API in turn.
 @section sel-cp-condition-synthesis
 @include sel-cp-condition-synthesis-api.texi
 
-@node sel-cp-fault-loc, sel-cp-fix-compilation, sel-cp-condition-synthesis, SEL Packages
+@node sel-cp-fault-loc, sel-cp-file, sel-cp-condition-synthesis, SEL Packages
 @section sel-cp-fault-loc
 @include sel-cp-fault-loc-api.texi
 
-@node sel-cp-fix-compilation, sel-cp-fodder-database, sel-cp-fault-loc, SEL Packages
+@node sel-cp-file, sel-cp-fault-loc, sel-cp-fodder-database, SEL Packages
+@section sel-cp-file
+@include sel-cp-file-api.texi
+
+@node sel-cp-fix-compilation, sel-cp-fodder-database, sel-cp-file, SEL Packages
 @section sel-cp-fix-compilation
 @include sel-cp-fix-compilation-api.texi
 

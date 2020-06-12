@@ -9,7 +9,7 @@
   (:nicknames :sel/software/json :sel/sw/json)
   (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/software/file
+        :software-evolution-library/components/file
         :software-evolution-library/software/parseable
         :software-evolution-library/software/javascript)
   (:shadowing-import-from :cl-json :decode-json-from-string)

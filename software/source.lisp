@@ -3,7 +3,7 @@
   (:nicknames :sel/software/source :sel/sw/source)
   (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/software/file)
+        :software-evolution-library/components/file)
   (:export :source
            :raw-size))
 (in-package :software-evolution-library/software/source)

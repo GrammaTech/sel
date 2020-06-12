@@ -32,8 +32,8 @@
   (:use :gt/full
         :software-evolution-library
         :software-evolution-library/utility/json
-        :software-evolution-library/software/file
         :software-evolution-library/software/parseable
+        :software-evolution-library/components/file
         :software-evolution-library/components/formatting)
   (:import-from :jsown)
   (:import-from :cffi :translate-camelcase-name)

@@ -11,7 +11,7 @@
   (:nicknames :sel/software/llvm :sel/sw/llvm)
   (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/software/file
+        :software-evolution-library/components/file
         :software-evolution-library/software/compilable
         :software-evolution-library/software/source)
   (:export :llvm))

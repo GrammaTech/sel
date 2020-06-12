@@ -4,7 +4,7 @@
   (:use :gt/full
         :metabang-bind
         :software-evolution-library
-        :software-evolution-library/software/file)
+        :software-evolution-library/components/file)
   (:import-from :asdf-encodings :detect-file-encoding)
   (:export :simple
            :light

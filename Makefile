@@ -16,6 +16,7 @@ DOC_PACKAGES =								\
 	software-evolution-library/components/clang-tokens		\
 	software-evolution-library/components/condition-synthesis	\
 	software-evolution-library/components/fault-loc			\
+	software-evolution-library/components/file			\
 	software-evolution-library/components/fix-compilation		\
 	software-evolution-library/components/fodder-database		\
 	software-evolution-library/components/formatting		\
@@ -54,7 +55,6 @@ DOC_PACKAGES =								\
 	software-evolution-library/software/elf				\
 	software-evolution-library/software/elf-cisc			\
 	software-evolution-library/software/elf-risc			\
-	software-evolution-library/software/file			\
 	software-evolution-library/software-evolution-library		\
 	software-evolution-library/software/expression			\
 	software-evolution-library/software/forth			\

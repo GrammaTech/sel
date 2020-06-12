@@ -11,7 +11,7 @@
   (:nicknames :sel/software/compilable :sel/sw/compilable)
   (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/software/file)
+        :software-evolution-library/components/file)
   (:export :compilable :compiler :flags))
 (in-package :software-evolution-library/software/compilable)
 (in-readtable :curry-compose-reader-macros)
