@@ -45,7 +45,7 @@
 "
   (with-temporary-file-of (:pathname src :type (ext obj))
     (genome-string obj)
-    (setf (genome obj)
+    (setf (genome-string obj)
           (multiple-value-bind (stdout stderr exit)
               (shell "astyle --suffix=none ~{~a~^ ~} --style=~a ~a"
                      options style src)
@@ -80,7 +80,7 @@
 * CHECKS list of clang-tidy checks to apply
 * ERRNO exit code of clang-tidy
 "
-  (setf (genome obj)
+  (setf (genome-string obj)
         (with-temporary-file-of (:pathname src :type (ext obj))
           (genome-string obj)
           (multiple-value-bind (stdout stderr exit)
@@ -102,7 +102,7 @@
 "
   (with-temporary-file-of (:pathname src :type (ext obj))
     (genome-string obj)
-    (setf (genome obj)
+    (setf (genome-string obj)
           (multiple-value-bind (stdout stderr exit)
               (shell "clang-format ~a ~a"
                      (if style
@@ -129,7 +129,7 @@
 "
   (with-temporary-file-of (:pathname src :type (ext obj))
     (genome-string obj)
-    (setf (genome obj)
+    (setf (genome-string obj)
           (multiple-value-bind (stdout stderr exit)
               (shell "prettier ~a" src)
             (declare (ignorable stderr))
