@@ -165,12 +165,6 @@
 (eval `(progn ,@(mappend #'expand-js-class js-children)))
 (export (mapcar {symbol-cat 'js} (mappend #'first js-children)))
 
-(defclass js-top (javascript-ast)
-  ((top-level :initarg :top-level :reader top-level :type 'javascript-ast)
-   (child-slots :initform '((top-level . 1)) :accessor child-slots
-                :allocation :class))
-  (:documentation "Top-level AST for JavaScript objects."))
-
 
 ;;; Javascript parsing
 (defgeneric acorn (obj)
@@ -249,7 +243,6 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
                 (make-skipped (end tree) to))
           tree)))
    ;; (fix-newlines)
-   (make-instance 'js-top :top-level)
    (w/skipped (convert to-type (acorn string))
               0 (length *string*))))
 
