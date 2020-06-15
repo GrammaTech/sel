@@ -41,6 +41,8 @@
   (:export :javascript
            :javascript-mutation
            :javascript-ast
+           :skipped-before
+           :skipped-after
            :acorn))
 (in-package :software-evolution-library/software/javascript)
 (in-readtable :curry-compose-reader-macros)
@@ -50,13 +52,19 @@
 
 
 ;;; Javascript ast data structures
-(defvar *string* nil)
+(defvar *string*)
 
 (defclass javascript-ast (functional-tree-ast)
   ((start :initarg :start :initform (when *string* 0)
           :reader start :type (or null (integer 0 *)))
    (end :initarg :end :initform (when *string* (length *string*))
         :reader end :type (or null (integer 0 *)))
+   (skipped-before
+    :initarg :skipped-before :initform nil
+    :reader skipped-before :type (or null javascript-ast-skipped))
+   (skipped-after
+    :initarg :skipped-after :initform nil
+    :reader skipped-after :type (or null javascript-ast-skipped))
    (string-pointer :initarg :string-pointer :initform *string*
                    :reader string-pointer :type (or null string)))
   (:documentation "Class of JavaScript ASTs."))
@@ -158,9 +166,8 @@
 (export (mapcar {symbol-cat 'js} (mappend #'first js-children)))
 
 (defclass js-top (javascript-ast)
-  ((top-level :initarg :top-level :reader top-level
-              :type '(list javascript-ast))
-   (child-slots :initform '(top-level) :accessor child-slots
+  ((top-level :initarg :top-level :reader top-level :type 'javascript-ast)
+   (child-slots :initform '((top-level . 1)) :accessor child-slots
                 :allocation :class))
   (:documentation "Top-level AST for JavaScript objects."))
 
@@ -170,11 +177,10 @@
   (:documentation "Invoke the acorn parser on the genome of OBJ returning a
 raw list of ASTs in OBJ for use in `parse-asts`."))
 
-(defmethod acorn ((obj javascript))
+(defmethod acorn ((string string))
   (labels ((invoke-acorn (parsing-mode)
              "Invoke acorn with the given PARSING-MODE (:script or :module)."
-             (with-temporary-file-of (:pathname src-file :type (ext obj))
-               (genome-string obj)
+             (with-temporary-file-of (:pathname src-file) string
                (multiple-value-bind (stdout stderr exit)
                    (shell "acorn --compact --allow-hash-bang ~a ~a"
                           (if (eq parsing-mode :module)
@@ -193,7 +199,9 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
               :text (format nil "acorn exit ~d~%stderr:~s"
                             exit
                             stderr)
-              :obj obj :operation :parse))))))
+              :operation :parse))))))
+
+(defmethod acorn ((obj javascript)) (acorn (genome-string obj)))
 
 (defun convert-acorn-jsown-tree (jt)
   (convert-jsown-tree jt #'jsown-str-to-acorn-keyword))
@@ -211,41 +219,40 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
                                        "type" "start" "end")
                            str))
 
-(defmethod convert ((to-type (eql 'javascript-ast)) (collection string)
+(defmethod convert ((to-type (eql 'javascript-ast)) (string string)
                     &key &allow-other-keys)
   (nest
-   (let ((*string* collection)))
+   (let ((*string* string)))
    (labels
        ((make-skipped (start end)
           (when (< start end)
-            (list (make-instance 'js-skipped :start start :end end))))
+            (make-instance 'javascript-ast-skipped :start start :end end)))
         (w/skipped (tree from to)
-          (etypecase tree
-            (list
-             (append
-              (iter (for subtree in tree)
-                (appending (make-skipped from (start subtree)))
-                (appending (w/skipped subtree
-                                      (start subtree) (end subtree)))
-                (setf from (end subtree)))
-              (make-skipped from to)))
-            (node
-             (let ((index (start tree)))
-               ;; Use (setf slot-value) because this is now a
-               ;; functional tree node so the default setf would
-               ;; have no effect (it would create a copy).
-               (dolist (slot (child-slots tree))
-                 (when-let ((it (slot-value tree slot)))
-                   (setf (slot-value tree slot)
-                         (w/skipped it index (setf index (end (last it)))))))
-               (append (make-skipped from (start tree))
-                       (list tree)
-                       (make-skipped (if (= index (start tree))
-                                         (end tree) index)
-                                     to))))))))
-   (fix-newlines)
+          (let ((index (start tree)))
+            ;; Use (setf slot-value) because this is now a
+            ;; functional tree node so the default setf would have
+            ;; no effect (it would create a copy).
+            (if (child-slots tree)
+                (dolist (spec (child-slots tree))
+                  (destructuring-bind (slot . arity) spec
+                    (ecase arity
+                      (0 (when-let ((it (slot-value tree slot)))
+                           (setf (slot-value tree slot)
+                                 (mapcar (lambda (element)
+                                           (w/skipped element index (setf index (end element))))
+                                         it))))
+                      (1 (when-let ((it (slot-value tree slot)))
+                           (setf (slot-value tree slot)
+                                 (w/skipped it index (setf index (end it)))))))))
+                (setf index (end tree)))
+            (setf (slot-value tree 'skipped-before)
+                  (make-skipped from (start tree)))
+            (setf (slot-value tree 'skipped-after)
+                  (make-skipped index to)))
+          tree)))
+   ;; (fix-newlines)
    (make-instance 'js-top :top-level)
-   (w/skipped (convert to-type (acorn collection))
+   (w/skipped (convert to-type (acorn string))
               0 (length *string*))))
 
 (defmethod convert ((to-type (eql 'javascript-ast)) (spec null)
@@ -254,6 +261,8 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
 (defmethod convert ((to-type (eql 'javascript-ast)) (spec list)
                     &key &allow-other-keys)
   "Create a JAVASCRIPT AST from the SPEC (specification) list."
+  (assert (boundp '*string*) (*string*)
+    "Can't create JS ASTs without `*string*'.")
   (let* ((raw-type (make-keyword (string-upcase (aget :type spec))))
          (type (symbol-cat 'js raw-type))
          (child-types (aget raw-type js-children :test #'member)))
@@ -271,9 +280,16 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
                         value))))
             (cdr spec)))))
 
-(defmethod parse-asts ((obj javascript) &optional source)
-  (declare (ignorable source))
-  (convert 'javascript-ast (acorn obj)))
+(defmethod parse-asts ((obj javascript) &optional (source (genome-string obj)))
+  (convert 'javascript-ast source))
+
+(defmethod source-text ((obj javascript-ast) &optional stream)
+  (write-string (source-text (skipped-before obj)) stream)
+  (if (children obj)
+      (mapc [{write-string _ stream} #'source-text] (children obj))
+      (write-string (subseq (string-pointer obj) (start obj) (end obj))
+                    stream))
+  (write-string (source-text (skipped-after obj)) stream))
 
 
 ;;;; Fixup code for newlines.  These should be in the same AST as
