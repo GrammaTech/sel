@@ -43,6 +43,8 @@
            :javascript-ast
            :skipped-before
            :skipped-after
+           :start
+           :end
            :acorn))
 (in-package :software-evolution-library/software/javascript)
 (in-readtable :curry-compose-reader-macros)
@@ -162,7 +164,9 @@
    ast-class-list))
 
 (eval `(progn ,@(mappend #'expand-js-class js-children)))
-(export (mapcar {symbol-cat 'js} (mappend #'first js-children)))
+(export (mapcar {symbol-cat 'js}
+                (mappend «append #'first [{mapcar #'car} #'cdr]»
+                         js-children)))
 
 
 ;;; Javascript parsing
@@ -174,6 +178,7 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
   (labels ((invoke-acorn (parsing-mode)
              "Invoke acorn with the given PARSING-MODE (:script or :module)."
              (with-temporary-file-of (:pathname src-file) string
+               (shell "cp ~a /tmp/kept" src-file)
                (multiple-value-bind (stdout stderr exit)
                    (shell "acorn --compact --allow-hash-bang ~a ~a"
                           (if (eq parsing-mode :module)
