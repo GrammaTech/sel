@@ -246,7 +246,6 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
           (setf (slot-value tree 'skipped-after)
                 (make-skipped (end tree) to))
           tree)))
-   ;; (fix-newlines)
    (w/skipped (convert to-type (acorn string))
               0 (length *string*))))
 
@@ -286,92 +285,6 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
       (write-string (subseq (string-pointer obj) (start obj) (end obj))
                     stream))
   (write-string (source-text (skipped-after obj)) stream))
-
-
-;;;; Fixup code for newlines.  These should be in the same AST as
-;;;; a statement they terminate
-(defun is-stmt (ast)
-  (member (ast-class ast) '(:dowhilestatement :forstatement :labeledstatement
-                            :switchstatement :trystatement :withstatement
-                            :forinstatement :forofstatement :blockstatement
-                            :breakstatement :continuestatement
-                            :expressionstatement :whilestatement
-                            :throwstatement :returnstatement
-                            :ifstatement)))
-
-(defun move-prefixes-down (children allowed-fn prefix-fn)
-  "Give a list CHILDREN of strings and AST nodes, find children
-that satisfy ALLOWED-FN, are followed by a string, and for for which
-PREFIX-FN returns a non-null value, which must be a position
-in the string.   Move the [0..pos) prefix of that string
-down into the list of children of the preceding node, concatenating
-it onto the end of the last string in that node's children.
-Return a new list of children."
-  (labels ((children-with-suffix (children suffix)
-             "Return a new list of CHILDREN with SUFFIX added."
-             (iter (for tail on children)
-                   (if (endp (cdr tail))
-                       (let ((last-child (car tail)))
-                         (if (stringp last-child)
-                             (collect (concatenate 'string last-child suffix))
-                             (progn
-                               (collect last-child)
-                               (collect suffix))))
-                       (collect (car tail))))))
-    (iter (for p on children)
-          (for node = (car p))
-          (for next = (cadr p))
-          (if-let ((pos (and (typep node 'ast)
-                             (funcall allowed-fn node)
-                             (stringp next)
-                             (funcall prefix-fn next))))
-            (prog1
-                (collect (nest (copy node :children)
-                               (children-with-suffix (children node)
-                                                     (subseq next 0 pos))))
-              (setf (cadr p) (subseq next pos)))
-            (collect node)))))
-
-(defun position-after-leading-newline (str)
-  "Returns 1+ the position of the first newline in STR,
-assuming it can be reached only by skipping over whitespace
-or comments.  NIL if no such newline exists."
-  (let ((len (length str))
-        (pos 0))
-    (loop
-       (when (>= pos len) (return nil))
-       (let ((c (elt str pos)))
-         (case c
-           (#\Newline (return (1+ pos)))
-           ((#\Space #\Tab)
-            (incf pos))
-           ;; Skip over comments
-           (#\/
-            (incf pos)
-            (when (>= pos len) (return nil))
-            (let ((c (elt str pos)))
-              (unless (eql c #\/)
-                (return nil))
-              (return
-                (loop (incf pos)
-                   (when (>= pos len) (return nil))
-                   (when (eql (elt str pos) #\Newline)
-                     (return (1+ pos)))))))
-           (t (return nil)))))))
-
-(defgeneric fix-newlines (ast)
-  (:documentation "Fix newlines in JavaScript ASTs by pushing newlines
-down into child statements.  This allows for mutation operations
-to insert and replacement statements with newlines already present
-in the new ASTs, obviating the need for fixups to add missing
-newlines.")
-  (:method ((ast javascript-ast))
-    (nest (copy ast :children)
-          (mapcar #'fix-newlines)
-          (move-prefixes-down (children ast)
-                              #'is-stmt
-                              #'position-after-leading-newline)))
-  (:method ((ast t)) ast))
 
 
 ;;; Javascript mutation
