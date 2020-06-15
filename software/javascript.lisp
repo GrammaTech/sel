@@ -375,6 +375,26 @@ newlines.")
    "Specialization of the mutation interface for JavaScript software objects."))
 
 
+;;; Genome manipulations
+(defmethod prepend-text-to-genome
+    ((js javascript) (text string) &aux (root (genome js)))
+  (setf (slot-value root 'skipped-before)
+        (let ((*string* (concatenate 'string
+                                     (source-text (skipped-before root))
+                                     text)))
+          (make-instance 'javascript-ast-skipped)))
+  (setf (slot-value js 'genome) root))
+
+(defmethod append-text-to-genome
+    ((js javascript) (text string) &aux (root (genome js)))
+  (setf (slot-value root 'skipped-after)
+        (let ((*string* (concatenate 'string
+                                     text
+                                     (source-text (skipped-before root)))))
+          (make-instance 'javascript-ast-skipped)))
+  (setf (slot-value js 'genome) root))
+
+
 ;;; Methods common to all software objects
 (defmethod phenome ((obj javascript) &key (bin (temp-file-name)))
   "Create a phenotype of the javascript software OBJ.  In this case, override
