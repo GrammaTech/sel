@@ -57,8 +57,7 @@
 (deftest can-parse-a-json-software-object ()
   (with-fixture trivial-json
     (is (not (zerop (size *soft*))))
-    (is (eq :OBJECTEXPRESSION
-            (ast-class (genome *soft*))))))
+    (is (typep (genome *soft*) 'js-object-expression))))
 
 (deftest cut-shortens-a-javascript-software-object ()
   (with-fixture fib-javascript

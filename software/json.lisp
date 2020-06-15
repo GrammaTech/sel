@@ -32,38 +32,14 @@
 (defun valid-json-ast? (ast)
   (valid-json-ast-type? (aget :type ast)))
 
-(defmethod acorn ((obj json))
-  "Parse a JSON file (with acorn as JavaScript with a simple hack).
-We do this by temporarily turning the JSON into a valid JavaScript
-file by pre-pending the left hand side of an assignment.  We then
-parse the resulting JavaScript into ASTs, extract the right hand side
-of the assignment, and fix-up the :start and :end source range
-pointers to adjust for the extra offset introduced by the added left
-hand side."
-  (with-temporary-file-of (:pathname src-file :type (ext obj))
-      (concatenate 'string "x=" (genome-string obj))
-    (multiple-value-bind (stdout stderr exit)
-        (shell "acorn ~a" src-file)
-      (unless (zerop exit)
-        (error
-         (make-instance 'mutate
-           :text (format nil "acorn exit ~d~%stderr:~s"
-                         exit
-                         stderr)
-           :obj obj :operation :parse)))
-      (let* ((raw (decode-json-from-string stdout))
-             (real-end (aget :end raw))
-             (expr (aget :right (aget :expression (car (aget :body raw))))))
-        (setf (aget :end expr) real-end)
-        (assert (and expr (valid-json-ast? expr))
-		(obj) "Object ~s is not valid JSON" obj)
-        ;; Reduce every ::start and :end value by two to makeup for
-        ;; the appended "x=" above.
-        (labels ((push-back (value tree)
-                   (cond
-                     ((proper-list-p tree) (mapcar {push-back value} tree))
-                     ((and (consp tree) (or (eql :start (car tree))
-                                            (eql :end (car tree))))
-                      (cons (car tree) (- (cdr tree) value)))
-                     (t tree))))
-          (push-back 2 expr))))))
+(defmethod parse-asts ((obj json) &optional (source (genome-string obj)))
+  (convert 'json-ast source))
+
+(defmethod convert ((to-type (eql 'json-ast)) (string string)
+                    &key &allow-other-keys)
+  (nest (mapcar (lambda (node)
+                  (decf (slot-value node 'start) 2)
+                  (decf (slot-value node 'end) 2)
+                  node))
+        (js-right) (js-expression) (first) (js-body)
+        (convert 'javascript-ast (concatenate 'string "x=" string))))
