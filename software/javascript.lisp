@@ -73,69 +73,68 @@
   (:documentation "Skipped region of source code text."))
 
 (defvar js-children
-  ;; TODO: Should we use `translate-camelcase-name'?
-  '(((:Program) (:body . 0))
-    ((:MemberExpression) (:object . 1) (:property . 1))
-    ((:TaggedTemplateExpression) (:tag . 1) (:quasi . 1))
-    ((:TemplateLiteral) (:quasis . 0) (:expressions . 0))
-    ((:MetaProperty) (:meta . 1) (:property . 1))
-    ((:Property)
+  '(((:program) (:body . 0))
+    ((:member-expression) (:object . 1) (:property . 1))
+    ((:tagged-template-expression) (:tag . 1) (:quasi . 1))
+    ((:template-literal) (:quasis . 0) (:expressions . 0))
+    ((:meta-property) (:meta . 1) (:property . 1))
+    ((:property)
      ;; if (< (start value) (end key)) just value
      (:key . 1) (:value . 1))
-    ((:MethodDefinition) (:key . 1) (:value . 1))
-    ((:SequenceExpression) (:expressions . 0))
-    ((:DoWhileStatement) (:body . 1) (:test . 1))
-    ((:WhileStatement) (:test . 1) (:body . 1))
-    ((:ExpressionStatement) (:expression . 1))
-    ((:ForStatement) (:init . 1) (:test . 1) (:update . 1) (:body . 1))
-    ((:LabeledStatement) (:label . 1) (:body . 1))
-    ((:SwitchStatement) (:discriminant . 1) (:cases . 0))
-    ((:SwitchCase) (:test . 1) (:consequent . 0))
-    ((:TryStatement) (:block . 1) (:handler . 1) (:finalizer . 1))
-    ((:CatchClause) (:param . 1) (:body . 1))
-    ((:VariableDeclaration) (:declarations . 0))
-    ((:VariableDeclarator) (:id . 1) (:init . 1))
-    ((:WithStatement) (:object . 1) (:body . 1))
-    ((:Program) (:body . 0))
-    ((:ImportDeclaration) (:specifiers . 0) (:source . 1))
-    ((:ExportAllDeclaration) (:source . 1))
-    ((:ExportDefaultDeclaration) (:declaration . 1))
-    ((:ExportNamedDeclaration)
+    ((:method-definition) (:key . 1) (:value . 1))
+    ((:sequence-expression) (:expressions . 0))
+    ((:do-while-statement) (:body . 1) (:test . 1))
+    ((:while-statement) (:test . 1) (:body . 1))
+    ((:expression-statement) (:expression . 1))
+    ((:for-statement) (:init . 1) (:test . 1) (:update . 1) (:body . 1))
+    ((:labeled-statement) (:label . 1) (:body . 1))
+    ((:switch-statement) (:discriminant . 1) (:cases . 0))
+    ((:switch-case) (:test . 1) (:consequent . 0))
+    ((:try-statement) (:block . 1) (:handler . 1) (:finalizer . 1))
+    ((:catch-clause) (:param . 1) (:body . 1))
+    ((:variable-declaration) (:declarations . 0))
+    ((:variable-declarator) (:id . 1) (:init . 1))
+    ((:with-statement) (:object . 1) (:body . 1))
+    ((:program) (:body . 0))
+    ((:import-declaration) (:specifiers . 0) (:source . 1))
+    ((:export-all-declaration) (:source . 1))
+    ((:export-default-declaration) (:declaration . 1))
+    ((:export-named-declaration)
      (:declaration . 1) (:specifiers . 0) (:source . 1))
-    ((:ExportSpecifier)
+    ((:export-specifier)
      ;; remove-duplicates
      (:local . 1) (:exported . 1))
-    ((:ClassExpression :ClassDeclaration)
+    ((:class-expression :class-declaration)
      (:id . 1) (:superclass . 1) (:body . 1))
-    ((:ForInStatement :ForOfStatement) (:left . 1) (:right . 1) (:body . 1))
-    ((:ArrayPattern :ArrayExpression) (:elements . 0))
-    ((:ObjectPattern :ObjectExpression) (:properties . 0))
-    ((:RestElement
-      :SpreadElement
-      :UpdateExpression
-      :AwaitExpression
-      :UnaryExpression
-      :YieldExpression
-      :ReturnStatement
-      :ThrowStatement)
+    ((:for-in-statement :for-of-statement) (:left . 1) (:right . 1) (:body . 1))
+    ((:array-pattern :array-expression) (:elements . 0))
+    ((:object-pattern :object-expression) (:properties . 0))
+    ((:rest-element
+      :spread-element
+      :update-expression
+      :await-expression
+      :unary-expression
+      :yield-expression
+      :return-statement
+      :throw-statement)
      (:argument . 1))
-    ((:AssignmentPattern
-      :BinaryExpression
-      :LogicalExpression
-      :AssignmentExpression)
+    ((:assignment-pattern
+      :binary-expression
+      :logical-expression
+      :assignment-expression)
      (:left . 1) (:right . 1))
-    ((:FunctionExpression :ArrowFunctionExpression :FunctionDeclaration)
+    ((:function-expression :arrow-function-expression :function-declaration)
      (:params . 0) (:body . 1))
-    ((:ClassBody :BlockStatement) (:body . 0))
-    ((:CallExpression :NewExpression) (:callee . 1) (:arguments . 0))
-    ((:BreakStatement :ContinueStatement) (:label . 1))
-    ((:ConditionalExpression :IfStatement)
+    ((:class-body :block-statement) (:body . 0))
+    ((:call-expression :new-expression) (:callee . 1) (:arguments . 0))
+    ((:break-statement :continue-statement) (:label . 1))
+    ((:conditional-expression :if-statement)
      (:test . 1) (:consequent . 1) (:alternate . 1))
-    ((:ImportSpecifier :ImportDefaultSpecifier :ImportNamespaceSpecifier)
+    ((:import-specifier :import-default-specifier :import-namespace-specifier)
      ;; remove-duplicates
      (:imported . 1) (:local . 1))
-    ;; Classes with no children.
-    ((:Identifier :Literal))))
+    ;; classes with no children.
+    ((:identifier :literal))))
 
 (defun expand-js-class (spec)
   (nest
@@ -254,7 +253,8 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
   "Create a JAVASCRIPT AST from the SPEC (specification) list."
   (assert (boundp '*string*) (*string*)
     "Can't create JS ASTs without `*string*'.")
-  (let* ((raw-type (make-keyword (string-upcase (aget :type spec))))
+  (let* ((raw-type (make-keyword (string-upcase (translate-camelcase-name
+                                                 (aget :type spec)))))
          (type (symbol-cat 'js raw-type))
          (child-types (aget raw-type js-children :test #'member)))
     (apply #'make-instance type
