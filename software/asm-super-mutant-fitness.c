@@ -88,7 +88,7 @@ void *__wrap_malloc(size_t __size) {
         }
         // otherwise error return
         in_malloc = 1;
-        int temp = *null_pointer;
+        int temp = *null_pointer; // force segfault--handler will take over
         return (void *)0; // never gets here
     }
 }
@@ -113,7 +113,7 @@ void *__wrap_realloc(void *__ptr, size_t __size) {
         }
         // otherwise error return
         in_realloc = 1;
-        int temp = *null_pointer;
+        int temp = *null_pointer;  // force segfault--handler will take over
         return (void *)0;
     }
 }
@@ -135,7 +135,7 @@ void __wrap_free(void *__ptr) {
         }
         // otherwise error return
         in_free = 1;
-        int temp = *null_pointer;
+        int temp = *null_pointer;  // force segfault--handler will take over
     }
 }
 
