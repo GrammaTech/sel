@@ -6,7 +6,8 @@
 (defpackage :software-evolution-library/software/ancestral
   (:nicknames :sel/software/ancestral :sel/sw/ancestral)
   (:use :gt/full
-        :software-evolution-library)
+        :software-evolution-library
+        :software-evolution-library/software/parseable)
   (:export :ancestral
            :ancestors
            :save-ancestry
@@ -54,7 +55,8 @@
                                         :id (get-fresh-ancestry-id))))
       (ancestors obj)))
 
-(defmethod apply-mutation :before ((obj ancestral) op)
+(defmethod apply-mutation :before ((obj ancestral) op
+                                   &aux (target (targets op)))
   "DOCFIXME
 * OBJ DOCFIXME
 * OP DOCFIXME
@@ -63,7 +65,17 @@
                   ;; Inhibited operations.  E.g., we don't care about
                   ;; clang-set-range which is applied by crossover.
                   '(clang-set-range cons))
-    (push (list :mutant (type-of op) :id (get-fresh-ancestry-id))
+    (push (list :mutant (type-of op) :id (get-fresh-ancestry-id)
+                :position (cond
+                            ;; Certain parseable-mutations will have their
+                            ;; targets in a list.
+                            ((listp target)
+                             (mapcar (lambda (item)
+                                       (if (typep item 'ast)
+                                           (ast-path obj item)
+                                           item))
+                                     (flatten target)))
+                            ((typep target 'ast) (ast-path obj target))))
           (ancestors obj))))
 
 (defmethod crossover :around ((a ancestral) (b ancestral))
