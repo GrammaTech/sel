@@ -238,7 +238,8 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
                                          :ArrowFunctionExpression
                                          :FunctionDeclaration)
                                    :test #'equal)
-                           (append (aget :params ast-alist)
+                           (append (list (aget :id ast-alist))
+                                   (aget :params ast-alist)
                                    (list (aget :body ast-alist))))
                           ((member ast-class
                                    (list :ClassBody
@@ -484,7 +485,9 @@ AST ast to return the scopes for"
                            ((eq (ast-class ast) :RestElement)
                             (list (first (get-immediate-children obj ast))))
                            (t nil)))
-                   children)
+                   (if (eq (ast-class scope) :FunctionDeclaration)
+                       (cdr children) ; elide function name identifer
+                       children))
                  ;; Return the variable declarations in the scope.
                  ;; Note: An variable declaration or assignment in
                  ;; JavaScript may be destructuring
