@@ -25,11 +25,6 @@ Software Object ``Mixins''
 @item @ref{api-software-objects-diff, Class @code{diff}}
 @item @ref{api-software-objects-diff, Class @code{sw-range}}
 
-@item See also
-  @itemize
-  @item @refapiclass{traceable} (@ref{api-tracing, Tracing})
-  @end itemize
-
 @end itemize
 
 

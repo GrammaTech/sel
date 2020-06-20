@@ -23,7 +23,6 @@
            :apply-to-project
            :collect-evolve-files
            :collect-other-files
-           :instrumentation-files
            :all-files
            :pick-file))
 (in-package :software-evolution-library/software/project)
@@ -45,7 +44,7 @@ This holds a list of cons cells of the form (path . software-object-for-path)."
      (other-files
       :initarg :other-files :accessor other-files :initform nil
       :documentation
-      "Source files which may be used (e.g., instrumented) but not evolved.
+      "Source files which may be used but not evolved.
 This holds a list of cons cells of the form (path . software-object-for-path)."
       :copier copy-files)
      (ignore-paths

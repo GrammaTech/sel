@@ -104,8 +104,8 @@ Some EXTRA-KEYS that may be useful are:
   handled. By default, these are captured so they can be returned as strings.
 
 * :wait - whether to wait for the process to complete before continuing.
-  The default is to wait; however, some components (such as `traceable') may
-  elect not to wait and instead to stream results through a named pipe.
+  The default is to wait; however, some components may elect not to wait
+  and instead to stream results through a named pipe.
 
 * :env - to set environment variables
 "

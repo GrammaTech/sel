@@ -65,8 +65,6 @@
    :software-evolution-library/software-evolution-library
    :software-evolution-library/components/test-suite
    :software-evolution-library/components/formatting
-   :software-evolution-library/components/instrument
-   :software-evolution-library/components/traceable
    :software-evolution-library/software/parseable
    :software-evolution-library/software/clang
    :software-evolution-library/rest/utility

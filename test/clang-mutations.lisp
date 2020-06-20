@@ -9,8 +9,7 @@
    :software-evolution-library/stefil-plus
    :software-evolution-library
    :software-evolution-library/software/parseable
-   :software-evolution-library/software/clang
-   :software-evolution-library/components/condition-synthesis)
+   :software-evolution-library/software/clang)
   (:export :test-clang-mutations))
 (in-package :software-evolution-library/test/clang-mutations)
 (in-readtable :curry-compose-reader-macros)
@@ -354,15 +353,3 @@
                                      "printf(\"%g\\n\", b);"
                                      "while (b != 0)"))
             "Promotes unbraced then from within if wi/o else.")))))
-
-(deftest if-to-while-test ()
-  (with-fixture gcd-clang-control-picks
-    (let ((*clang-mutation-types* '((if-to-while . 1)))
-          (*bad-asts* (list (find-if [{eq :IfStmt} #'ast-class]
-                                     (stmt-asts *gcd*)))))
-      (multiple-value-bind  (variant mutation) (mutate (copy *gcd*))
-        (is (eq :IfStmt
-                (ast-class (targets mutation))))
-        (let ((stmt (stmt-starting-with-text variant "while")))
-          (is stmt)
-          (is (eq :WhileStmt (ast-class stmt))))))))

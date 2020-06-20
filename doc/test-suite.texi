@@ -1,9 +1,7 @@
 
 SEL incorporates representations for runnable unit tests. This allows
-individual components (such as @ref{Condition Synthesis} and
-@ref{Tracing}) and evolution projects to
-determine whether unit tests are passing, and if their behavior has
-changed.
+individual components and evolution projects to determine whether unit
+tests are passing, and if their behavior has changed.
 
 
 

@@ -217,9 +217,6 @@ One- and two-point crossover.
 Lexicase or multi-objective fitness evaluations.
 
 @item
-Instrumentation of software objects and dynamic trace collection.
-
-@item
 Use of "fodder databases" as a source of new statements or expressions
 that can be injected by mutations.
 
@@ -236,7 +233,7 @@ Super-mutants to evaluate multiple mutations in a single genome.
 @end itemize
 
 
-@subheading Tailored feautures for for C and C++ objects
+@subheading Tailored features for C and C++ objects
 
 @itemize
 
@@ -246,16 +243,6 @@ Automatic repair for some compilation errors and warnings.
 @item
 Special mutations for renaming variables, changing loops, and
 otherwise manipulating statements.
-
-@item
-Spectrum-based fault localization, which instruments source code and
-runs (passing and failing) unit tests to attempt to locate errors.
-
-@item
-Condition synthesis, a repair technique
-@url{http://groups.csail.mit.edu/pac/patchgen/papers/spr-fse15.pdf, described by Long and Rinard}
-which tries to synthesize conditional statements that will correct
-source code so that it passes failing unit tests.
 
 @end itemize
 
@@ -355,21 +342,21 @@ are given in remainder of this section.
                                mixin classes
                              -----------------
 
- +------------+ +-----------+ +-----------+ +-----------+ +------+ +------------+
- | Searchable | | Ancestral | | Traceable | | Styleable | | File | | Compilable |
- +------------+ +-----------+ +-----------+ +-----------+ +------+ +------------+
-        |                                                     |
-   +-----------------+                              +-------------------+
-   | Fodder Database |                              | File-w-attributes |
-   +-----------------+                              +-------------------+
-     |            |
-+----------+  +--------------------+
-| Pliny DB |  | In Memory Database |
-+----------+  +--------------------+
-                        |
-                   +---------+
-                   | JSON DB |
-                   +---------+
+       +------------+ +-----------+ +-----------+ +------+ +------------+
+       | Searchable | | Ancestral | | Styleable | | File | | Compilable |
+       +------------+ +-----------+ +-----------+ +------+ +------------+
+              |                                       |
+         +-----------------+                +-------------------+
+         | Fodder Database |                | File-w-attributes |
+         +-----------------+                +-------------------+
+           |            |
+      +----------+  +--------------------+
+      | Pliny DB |  | In Memory Database |
+      +----------+  +--------------------+
+                              |
+                         +---------+
+                         | JSON DB |
+                         +---------+
 
 @end example
 @caption{Software Evolution API.  Exported functions and variables are
@@ -649,8 +636,6 @@ Randomly select elements of the genome of @code{SOFTWARE}.  Selection
 may optionally be biased towards particular portions of the genome
 based on a @code{key} supplied to @code{pick}.  Related
 @code{pick-good} and @code{pick-bad} methods may also be customized.
-Useful for e.g., using annotations or fault localization information
-to bias mutation operations.
 @end defun
 
 @anchor{mutate}
@@ -904,9 +889,6 @@ infrastructure.
 * Multi-objective Fitness::     Optimizing multiple objectives
 * Style Features::              Extracting source code features
 * Clang C Tokenizer::           Tokenize software objects
-* Condition Synthesis::         Synthesize guard conditions to repair software
-* Fault Localization::          Identify or prioritize likely-faulty code
-* Tracing::                     Trace execution of software
 * Super-Mutants::               Evaluate multiple variants in a single genome
 @end menu
 
@@ -925,27 +907,12 @@ infrastructure.
 @cindex style-features
 @include style-features.texi
 
-@node Clang C Tokenizer, Condition Synthesis, Style Features, Components
+@node Clang C Tokenizer, Super-Mutants, Style Features, Components
 @section Clang C Tokenizer
 @cindex tokenizer
 @include tokenizer.texi
 
-@node Condition Synthesis, Fault Localization, Clang C Tokenizer, Components
-@section Condition Synthesis
-@cindex condition-synthesis
-@include condition-synthesis.texi
-
-@node Fault Localization, Tracing, Condition Synthesis, Components
-@section Fault Localization
-@cindex fault-localization
-@include fault-localization.texi
-
-@node Tracing, Super-Mutants, Fault Localization, Components
-@section Tracing
-@cindex tracing
-@include tracing.texi
-
-@node Super-Mutants, Utilities, Tracing, Components
+@node Super-Mutants, Utilities, Clang C Tokenizer, Components
 @section Super-Mutants
 @cindex super-mutants
 @include include/super-mutant.texi
@@ -1024,12 +991,7 @@ because of the use of new features of ASDF/UIOP.)
 The source code for SEL is available at
 @url{https://github.com/GrammaTech/sel}.  SEL and its Common Lisp
 dependencies are installable through Quicklisp (see
-@url{http://www.quicklisp.org/}).  Some components of SEL (related to
-software execution tracing) also require the @code{trace-db} package
-(available from @url{https://github.com/GrammaTech/trace-db}) which is
-not installable through QuickLisp.  If needed, it should be downloaded
-into your Quicklisp @code{local-projects/} folder.  Depending on the
-type of software object used the following may also be required:
+@url{http://www.quicklisp.org/}).
 
 @float Table,tab:dependencies
 @caption{Additional dependencies for specific software objects.}

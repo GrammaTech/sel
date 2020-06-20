@@ -24,7 +24,6 @@
         :software-evolution-library/test/clang
         :software-evolution-library/test/command-line
         :software-evolution-library/test/components
-        :software-evolution-library/test/condition-synthesis
         :software-evolution-library/test/conflict-ast
         :software-evolution-library/test/coq
         :software-evolution-library/test/cpp-scan
@@ -35,7 +34,6 @@
         :software-evolution-library/test/diff
         :software-evolution-library/test/elf
         :software-evolution-library/test/fix-compilation
-        :software-evolution-library/test/instrumentation
         :software-evolution-library/test/javascript-project
         :software-evolution-library/test/javascript
         :software-evolution-library/test/lisp
@@ -51,7 +49,6 @@
         :software-evolution-library/test/sexp
         :software-evolution-library/test/style-features
         :software-evolution-library/test/task-runner
-        :software-evolution-library/test/traceable
         :software-evolution-library/test/type-traces
         :software-evolution-library/test/utility)
   (:import-from :software-evolution-library

@@ -49,16 +49,6 @@
 ;;;     executable file and some command-line argumants. These are
 ;;;     used to evaluate Software objects.
 ;;;
-;;;  Traces
-;;;     Models and manages the data collected from running test suites against
-;;;     instrumented Software objects.
-;;;
-;;;  Instrumented Software
-;;;     Software objects which have been instrumented.
-;;;
-;;;  Traced Software
-;;;     Instrumented Software objects which have also been traced.
-;;;
 ;;; @subsubheading Operations on Resources
 ;;;
 ;;; Note: all operations (other than session create) require a @code{cid}
@@ -157,26 +147,6 @@
 ;;;     @code{<service-base>/tests?cid=<cid>&pid=<test-suite-oid>} Delete
 ;;;     the test suite.  (work in progress)
 ;;;
-;;; Instrumented:
-;;;
-;;;  POST
-;;;     @code{<service-base>/instrumented?cid=<cid>&sid=<software-oid>}
-;;;     Creates an Instrumented Software object instance,
-;;;     owned by the client
-;;;  GET
-;;;     @code{<service-base>/instrumented?cid=<cid>&sid=<software-oid>}
-;;;     If sid is unspecified, retrieves the instrumented software
-;;;     objects owned by the client. If sid is supplied,
-;;;     returns the details of the specified instrumented software object.
-;;;
-;;; Traced Software:
-;;;
-;;;  POST
-;;;     @code{<service-base>/tracesoft?cid=<cid>&sid=<software-oid>&tests-oid=<tests oid>}
-;;;     Traces the specified software object, using the specified tests.
-;;;     Returns the oid specified (does not create a new, distinct software
-;;;     object).
-;;;
 ;;; Write Software:
 ;;;
 ;;;  POST
@@ -210,8 +180,6 @@
    :software-evolution-library/software-evolution-library
    :software-evolution-library/components/test-suite
    :software-evolution-library/components/formatting
-   :software-evolution-library/components/instrument
-   :software-evolution-library/components/traceable
    :software-evolution-library/rest/sessions
    :software-evolution-library/rest/utility
    :software-evolution-library/software/compilable
@@ -293,8 +261,7 @@
                 :class (format nil "~A"
                                (class-name (class-of software)))
                 :size (format nil "~D" (size software))
-                :fitness (fitness software)
-                :instrumented (instrumented-p software))))
+                :fitness (fitness software))))
         (let ((ids (iter (for x in (session-software client))
                          (if (or (null type)
                                  (eq (class-name (class-of x)) type))
@@ -574,117 +541,6 @@ Resource lookups are of the form \"<resource>:<oid>\""
     tests (:get "application/json" &key cid oid)
   (get-test-suite cid oid))
 
-;;;; Instrumentated Program Routes
-
-(defroute instrumented (:post "application/json" &key cid sid)
-  (handler-case
-      (let* ((session (lookup-session cid))
-             (soft (find-software session sid)))
-        (let ((inst-soft
-               (instrument
-                (copy soft)
-                :functions
-                (list
-                 (lambda (instrumenter ast)
-                   (var-instrument
-                    {get-vars-in-scope (software instrumenter)}
-                    instrumenter
-                    ast)))
-                :filter #'sel/sw/parseable::traceable-stmt-p)))
-          ;; store the software obj with the session
-          (push inst-soft (session-software session))
-          (format nil "~D" (sel::oid inst-soft))))
-    (error (e)
-      (http-condition 400 "Error in INSTRUMENTED POST method (~a)!" e))))
-
-
-(defun get-instrumented (cid sid type)
-  (let* ((result "{ \"error\": \"Nothing\"}")
-         (session (lookup-session cid)))
-    (if session
-        (let ((software (find-software session sid)))
-          (if software
-              (setf result
-                    (json:encode-json-plist-to-string
-                     (list
-                      :oid (sel::oid software)
-                      :class (format nil "~A"
-                                     (class-name (class-of software)))
-                      :size (format nil "~D" (size software))
-                      :fitness (fitness software)
-                      :instrumented (instrumented-p software))))
-              (let ((ids (iter (for x in (session-software session))
-                               (if (and
-                                    (or (null type)
-                                        (eq (class-name (class-of x)) type))
-                                    (ignore-errors (instrumented-p x)))
-                                   (collect (sel::oid x))))))
-                (setf result
-                      (json:encode-json-to-string ids))))))
-
-    result))
-
-(defroute
-    instrumented (:get :text/* &key cid sid (type nil))
-  (get-instrumented cid sid type))
-
-(defroute
-    instrumented (:get "application/json" &key cid sid (type nil))
-  (get-instrumented cid sid type))
-
-;;;
-;;; Pulled this from bi/utility
-;;;
-(defmacro with-trace-error-handling (&rest body)
-  "FIXME
-
-   * BODY FIXME
-   "
-  `(handler-bind ((end-of-file
-                   (lambda (c)
-                     (declare (ignorable c))
-                     (invoke-restart 'sel::ignore-rest-of-stream)))
-                  (trace-error (lambda (c)
-                                 (declare (ignorable c))
-                                 (cond
-                                   ((find-restart 'sel::ignore-empty-trace)
-                                    (invoke-restart 'sel::ignore-empty-trace))
-                                   ((find-restart 'sel::nil-traces)
-                                    (invoke-restart 'sel::nil-traces))
-                                   ((find-restart 'sel::skip-test-case)
-                                    (invoke-restart 'sel::skip-test-case))))))
-     (progn ,@body)))
-
-(defroute
-    tracesoft (:post "application/json" &key cid sid tests-oid)
-  (handler-case
-      (let* ((json (handler-case
-                       (decode-json-payload)
-                     (error (e)
-                       (http-condition 400 "Malformed JSON (~a)!" e))))
-             (session (lookup-session cid))
-             (soft (find-software session sid))
-             (test-suite (find-test-suite session tests-oid))
-             (inst-bin (aget :inst-bin json)))
-
-        (if (and (typep soft 'sel/sw/clang::clang)
-                 (null (sel/software/compilable::compiler soft)))
-            (setf (sel/software/compilable::compiler soft) "clang"))
-
-        ;; create the binary executable
-        (if inst-bin
-            (phenome soft :bin inst-bin))
-
-        (with-trace-error-handling
-            (with-temporary-directory-of (:pathname temp)
-              (make-pathname :directory (pathname-directory inst-bin))
-              (with-current-directory (temp)
-                (apply 'collect-traces soft test-suite
-                       :max nil
-                       (if inst-bin (list :bin inst-bin))))))
-        (format nil "~D" (sel::oid soft)))
-    (error (e)
-      (http-condition 400 "Error in TRACESOFT POST method (~a)!" e))))
 
 ;;;
 ;;; write the contents of a software object
@@ -700,7 +556,7 @@ Resource lookups are of the form \"<resource>:<oid>\""
              (soft (find-software session sid))
              (path (aget :path json)))
 
-        (to-file (format-genome (uninstrument (copy soft)))
+        (to-file (format-genome (copy soft))
                  path)
         #(format nil "Software ID ~D successfully written to ~A" sid path)
         (format nil "~D" sid))

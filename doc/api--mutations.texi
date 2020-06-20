@@ -20,7 +20,6 @@ See also the @refapiclass{software} methods for @ref{api-software-object-applyin
 
 @item Subclasses
   @itemize
-  @item @ref{api-condition-synthesis-mutations, Mutations for Condition Synthesis}
   @item @ref{api-clang-ast-mutations, @code{clang} Mutations}
   @item @ref{api-clang-w-fodder-mutations, @code{clang-w-fodder} Mutations}
   @item @ref{api-asm-mutations, @code{asm} Mutations}

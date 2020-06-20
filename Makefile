@@ -12,17 +12,12 @@ PACKAGE_NICKNAME = sel
 DOC_PACKAGES =								\
 	software-evolution-library					\
 	software-evolution-library/command-line-rest			\
-	software-evolution-library/components/clang-instrument		\
 	software-evolution-library/components/clang-tokens		\
-	software-evolution-library/components/condition-synthesis	\
-	software-evolution-library/components/fault-loc			\
 	software-evolution-library/components/file			\
 	software-evolution-library/components/fix-compilation		\
 	software-evolution-library/components/fodder-database		\
 	software-evolution-library/components/formatting		\
 	software-evolution-library/components/in-memory-fodder-database	\
-	software-evolution-library/components/instrument		\
-	software-evolution-library/components/javascript-instrument	\
 	software-evolution-library/components/json-fodder-database	\
 	software-evolution-library/components/lexicase			\
 	software-evolution-library/components/multi-objective		\
@@ -30,7 +25,6 @@ DOC_PACKAGES =								\
 	software-evolution-library/components/searchable		\
 	software-evolution-library/components/serapi-io			\
 	software-evolution-library/components/test-suite		\
-	software-evolution-library/components/traceable			\
 	software-evolution-library/rest					\
 	software-evolution-library/rest/async-jobs			\
 	software-evolution-library/rest/define-command-endpoint		\

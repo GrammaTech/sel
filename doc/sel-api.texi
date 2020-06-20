@@ -68,17 +68,12 @@ appendix holds each individual package's API in turn.
 * sel-sw-super-mutant-clang::   Software-Evolution-Library/Software super-mutant-clang.
 * sel-sw-super-mutant-project:: Software-Evolution-Library/Software super-mutant-project.
 * sel-sw-with-exe::             Software-Evolution-Library/Software with-exe.
-* sel-cp-clang-instrument::     Software-Evolution-Library/Component clang-instrument.
 * sel-cp-clang-tokens::         Software-Evolution-Library/Component clang-tokens.
-* sel-cp-condition-synthesis::  Software-Evolution-Library/Component condition-synthesis.
-* sel-cp-fault-loc::            Software-Evolution-Library/Component fault-loc.
 * sel-cp-file::                 Software-Evolution-Library/Component file.
 * sel-cp-fix-compilation::      Software-Evolution-Library/Component fix-compilation.
 * sel-cp-fodder-database::      Software-Evolution-Library/Component fodder-database.
 * sel-cp-formatting::           Software-Evolution-Library/Component formatting.
 * sel-cp-in-memory-fodder-database:: Software-Evolution-Library/Component in-memory-fodder-database.
-* sel-cp-instrument::           Software-Evolution-Library/Component instrument.
-* sel-cp-javascript-instrument:: Software-Evolution-Library/Component javascript-instrument.
 * sel-cp-json-fodder-database:: Software-Evolution-Library/Component json-fodder-database.
 * sel-cp-lexicase::             Software-Evolution-Library/Component lexicase.
 * sel-cp-multi-objective::      Software-Evolution-Library/Component multi-objective.
@@ -86,7 +81,6 @@ appendix holds each individual package's API in turn.
 * sel-cp-searchable::           Software-Evolution-Library/Component searchable.
 * sel-cp-serapi-io::            Software-Evolution-Library/Component serapi-io.
 * sel-cp-test-suite::           Software-Evolution-Library/Component test-suite.
-* sel-cp-traceable::            Software-Evolution-Library/Component traceable.
 @end menu
 
 @node software-evolution-library, sel-rest, SEL Packages, SEL Packages
@@ -241,27 +235,15 @@ appendix holds each individual package's API in turn.
 @section sel-sw-super-mutant-project
 @include sel-sw-super-mutant-project-api.texi
 
-@node sel-sw-with-exe, sel-cp-clang-instrument, sel-sw-super-mutant-project, SEL Packages
+@node sel-sw-with-exe, sel-cp-clang-tokens, sel-sw-super-mutant-project, SEL Packages
 @section sel-sw-with-exe
 @include sel-sw-with-exe-api.texi
 
-@node sel-cp-clang-instrument, sel-cp-clang-tokens, sel-sw-with-exe, SEL Packages
-@section sel-cp-clang-instrument
-@include sel-cp-clang-instrument-api.texi
-
-@node sel-cp-clang-tokens, sel-cp-condition-synthesis, sel-cp-clang-instrument, SEL Packages
+@node sel-cp-clang-tokens, sel-cp-file, sel-sw-with-exe, SEL Packages
 @section sel-cp-clang-tokens
 @include sel-cp-clang-tokens-api.texi
 
-@node sel-cp-condition-synthesis, sel-cp-fault-loc, sel-cp-clang-tokens, SEL Packages
-@section sel-cp-condition-synthesis
-@include sel-cp-condition-synthesis-api.texi
-
-@node sel-cp-fault-loc, sel-cp-file, sel-cp-condition-synthesis, SEL Packages
-@section sel-cp-fault-loc
-@include sel-cp-fault-loc-api.texi
-
-@node sel-cp-file, sel-cp-fault-loc, sel-cp-fodder-database, SEL Packages
+@node sel-cp-file, sel-cp-fix-compilation, sel-cp-clang-tokens, SEL Packages
 @section sel-cp-file
 @include sel-cp-file-api.texi
 
@@ -277,19 +259,11 @@ appendix holds each individual package's API in turn.
 @section sel-cp-formatting
 @include sel-cp-formatting-api.texi
 
-@node sel-cp-in-memory-fodder-database, sel-cp-instrument, sel-cp-formatting, SEL Packages
+@node sel-cp-in-memory-fodder-database, sel-cp-json-fodder-database, sel-cp-formatting, SEL Packages
 @section sel-cp-in-memory-fodder-database
 @include sel-cp-in-memory-fodder-database-api.texi
 
-@node sel-cp-instrument, sel-cp-javascript-instrument, sel-cp-in-memory-fodder-database, SEL Packages
-@section sel-cp-instrument
-@include sel-cp-instrument-api.texi
-
-@node sel-cp-javascript-instrument, sel-cp-json-fodder-database, sel-cp-instrument, SEL Packages
-@section sel-cp-javascript-instrument
-@include sel-cp-javascript-instrument-api.texi
-
-@node sel-cp-json-fodder-database, sel-cp-lexicase, sel-cp-javascript-instrument, SEL Packages
+@node sel-cp-json-fodder-database, sel-cp-lexicase, sel-cp-in-memory-fodder-database, SEL Packages
 @section sel-cp-json-fodder-database
 @include sel-cp-json-fodder-database-api.texi
 
@@ -313,10 +287,6 @@ appendix holds each individual package's API in turn.
 @section sel-cp-serapi-io
 @include sel-cp-serapi-io-api.texi
 
-@node sel-cp-test-suite, sel-cp-traceable, sel-cp-serapi-io, SEL Packages
+@node sel-cp-test-suite, SEL API, sel-cp-serapi-io, SEL Packages
 @section sel-cp-test-suite
 @include sel-cp-test-suite-api.texi
-
-@node sel-cp-traceable, SEL API, sel-cp-test-suite, SEL Packages
-@section sel-cp-traceable
-@include sel-cp-traceable-api.texi

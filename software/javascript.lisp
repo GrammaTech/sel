@@ -561,11 +561,6 @@ AST ast to return the scopes for"
                    (get-immediate-children obj ast)))
     :test #'equal))
 
-(defmethod traceable-stmt-p ((obj javascript) (ast javascript-ast))
-  "Return TRUE if AST is a traceable statement in the javascript software OBJ."
-  (or (null (get-parent-ast obj ast))
-      (eq :BlockStatement (ast-class (get-parent-ast obj ast)))))
-
 (defmethod get-parent-full-stmt ((obj javascript) (ast javascript-ast))
   (find-if #'is-stmt (get-parent-asts obj ast)))
 

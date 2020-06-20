@@ -29,7 +29,6 @@ Class @code{test-suite}
 
 @item Methods
   @itemize
-  @item @refapimethod{collect-test-case-traces,collect-test-case-traces}
   @item @refapimethod{evaluate,evaluate}
   @end itemize
 @end itemize

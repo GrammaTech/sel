@@ -11,7 +11,6 @@
    :software-evolution-library/software/parseable
    :software-evolution-library/software/clang
    :software-evolution-library/software/expression
-   :software-evolution-library/software/clang-expression
    :software-evolution-library/software/clang-expression)
   (:export :test-clang-expression))
 (in-package :software-evolution-library/test/clang-expression)

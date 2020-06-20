@@ -45,6 +45,7 @@ dependents:
     - "curl -X POST -F token=5ad3804083cbeb694cea4c126029e8 -F ref=$CI_BUILD_REF_NAME https://git.grammatech.com/api/v4/projects/1271/trigger/pipeline" # refactoring-mutations
     - "curl -X POST -F token=943ae481fed1a7ea21d7439bf3a8f3 -F ref=$CI_BUILD_REF_NAME https://git.grammatech.com/api/v4/projects/881/trigger/pipeline"  # resolve
     - "curl -X POST -F token=c83ba713bf7f104805a160a169f586 -F ref=$CI_BUILD_REF_NAME https://git.grammatech.com/api/v4/projects/787/trigger/pipeline"  # ssr
+    - "curl -X POST -F token=13c57efe9eec48ff860d8e6e0172b2 -F ref=$CI_BUILD_REF_NAME https://git.grammatech.com/api/v4/projects/246/trigger/pipeline"  # trace-db
   only:
     - master
   except:

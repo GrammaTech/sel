@@ -57,6 +57,7 @@
            :bad-stmts
            :wrap-ast
            :wrap-child
+           :+clang-wrapable-parents+
            :+c-numeric-types+
            :+c-relational-operators+
            :+c-arithmetic-binary-operators+
@@ -2467,44 +2468,6 @@ it will transform this into:
       (error "Will not wrap children of type ~a, only useful for ~a."
              (ast-class ast) +clang-wrapable-parents+))
   obj)
-
-(defmethod can-be-made-traceable-p ((obj clang) (ast clang-ast))
-  "DOCFIXME
-* OBJ DOCFIXME
-* AST DOCFIXME
-"
-  (or (traceable-stmt-p obj ast)
-      (unless (or (ast-guard-stmt ast) ; Don't wrap guard statements.
-                  (eq :CompoundStmt ; Don't wrap CompoundStmts.
-                      (ast-class ast)))
-        (when-let ((parent (get-parent-ast obj ast)))
-          ;; Is a child of a statement which might have a hanging body.
-          (member (ast-class parent) +clang-wrapable-parents+)))))
-
-(defmethod enclosing-traceable-stmt ((obj clang) (ast clang-ast))
-  "DOCFIXME
-* OBJ DOCFIXME
-* AST DOCFIXME
-"
-  (cond
-    ((traceable-stmt-p obj ast) ast)
-    ;; Wrap AST in a CompoundStmt to make it traceable.
-    ((can-be-made-traceable-p obj ast) ast)
-    (:otherwise
-     (some->> (get-parent-ast obj ast)
-              (enclosing-traceable-stmt obj)))))
-
-(defmethod traceable-stmt-p ((obj clang) (ast clang-ast))
-  "DOCFIXME
-* OBJ DOCFIXME
-* AST DOCFIXME
-"
-  (and (ast-full-stmt ast)
-       (not (function-decl-p ast))
-       (not (ast-in-macro-expansion ast))
-       (not (eq :NullStmt (ast-class ast)))
-       (get-parent-ast obj ast)
-       (eq :CompoundStmt (ast-class (get-parent-ast obj ast)))))
 
 (defmethod nesting-depth ((clang clang) stmt &optional orig-depth)
   "DOCFIXME
@@ -5986,8 +5949,6 @@ This is done without copying.")
                 (setf (ast-children a)
                       (append c (list str)))))))))
 
-;;; The following was moved from clang-instrument, because we need
-;;; to specialize them for macroexpansion nodes in clang.
 ;;; There is a name collision with the labels functionn ADD-SEMICOLON
 ;;; in fixup-mutation.  TODO: change one of these names
 (defgeneric add-semicolon (ast semi-position)

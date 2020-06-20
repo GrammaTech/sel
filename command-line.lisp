@@ -35,7 +35,6 @@
         :software-evolution-library/software/javascript-project
         :software-evolution-library/software/lisp-project
         ;; Components.
-        :software-evolution-library/components/fault-loc
         :software-evolution-library/components/test-suite)
   (:import-from :swank :create-server)
   (:import-from :cl-json :decode-json-from-source)
@@ -191,9 +190,6 @@
   (setf *tournament-size* tournament-size)
   (assert (> *tournament-size* 1) (*tournament-size*)
           "Tournament size must be >1"))
-
-(defun handle-ast-annotations-argument (path)
-  (resolve-file path))
 
 (defun resolve-file (file)
   "Ensure file is an actual file that exists on the filesystem."
@@ -375,8 +371,8 @@ directories and if files based on their extensions."
                         &key ; NOTE: Maintain list of keyword arguments below.
                           (language (guess-language path) language-p)
                           compiler flags build-command artifacts
-                          ast-annotations compilation-database store-path
-                          fault-loc git-sub-path git-ssh-key
+                          compilation-database store-path
+                          git-sub-path git-ssh-key
                           &allow-other-keys)
   "Build a software object from a common superset of language-specific options.
 
@@ -390,7 +386,6 @@ Keyword arguments are as follows:
   COMPILER ------------- compiler for software object
   BUILD-COMMAND -------- shell command to build project directory
   ARTIFACTS ------------ build-command products
-  AST-ANNOTATIONS ------ user-specified ast annotations
   COMPILATION-DATABASE - clang compilation database
 Other keyword arguments are allowed and are passed through to `make-instance'."
   ;; Should any of the input parameters be set in the restored objects?
@@ -479,10 +474,6 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
                   (:git-repo ,repo)
                   (:compilation-database ,compilation-database)))
                path)))
-    (when ast-annotations
-      (decorate-with-annotations obj (pathname ast-annotations))
-      (when fault-loc
-        (perform-fault-loc obj)))
     obj))
 
 (defgeneric create-test (script)
@@ -567,10 +558,7 @@ in SCRIPT.")
        :documentation "comma-separated list of compiler flags")))
   (defparameter +project-command-line-options+
     '((("build-command" #\b) :type string :initial-value "make"
-       :documentation "shell command to build project directory")
-      (("ast-annotations" #\A) :type string
-       :action #'handle-ast-annotations-argument
-       :documentation "a file holding ast annotations")))
+       :documentation "shell command to build project directory")))
   (defparameter +clang-project-command-line-options+
     '((("artifacts" #\a) :type string
        :action #'handle-comma-delimited-argument
@@ -594,6 +582,4 @@ in SCRIPT.")
       (("max-evals") :type integer
        :documentation "maximum number of evaluations to run in evolution")
       (("max-time") :type integer
-       :documentation "maximum number of seconds to run evolution")
-      (("fault-loc" #\f) :type boolean :initial-value nil
-       :documentation "perform fault loc on supplied traces (-A also required)"))))
+       :documentation "maximum number of seconds to run evolution"))))

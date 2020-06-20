@@ -10,27 +10,10 @@
 @section Troubleshooting Build Issues
 
 @itemize
-@item @ref{troubleshoot-instrumented-compilation-long,
-           It takes a long time to compile an instrumented project}
 @item @ref{troubleshoot-curry-compose-reader-macros,
            @code{CURRY-COMPOSE-READER-MACROS  LCURLY-BRACE-READER} is undefined}
 @item @ref{troubleshoot-delete-cache-files,Deleting cache files}
 @end itemize
-
-
-@anchor{troubleshoot-instrumented-compilation-long}
-@subheading It takes a long time to compile an instrumented project
-
-Instrumentation may add thousands of lines of code to your project, leading
-to a dramatic increase in compilation time.
-
-The following will often speed up compilation.
-
-@itemize
-@item Use clang as your compiler.
-@item Compile without optimizations enabled (@code{-O0}).
-@end itemize
-
 
 @anchor{troubleshoot-curry-compose-reader-macros}
 @subheading @code{CURRY-COMPOSE-READER-MACROS::LCURLY-BRACE-READER} is undefined

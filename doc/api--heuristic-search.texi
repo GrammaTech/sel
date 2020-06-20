@@ -5,7 +5,6 @@
 @item @ref{api-evolve,Evolutionary Search}
 @item @ref{api-mcmc,Markov Chain Monte Carlo (MCMC) Search}
 @item @ref{api-multi-objective, Multi-Objective Fitness}
-@item @ref{api-fault-localization, Fault Localization}
 @end itemize
 
 
@@ -17,5 +16,3 @@
 @include api--mcmc.texi
 
 @include api--multi-objective.texi
-
-@include api--fault-localization.texi

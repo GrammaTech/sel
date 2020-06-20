@@ -62,9 +62,6 @@
            :recontextualize-mutation
            :recontextualize
            :select-crossover-points
-           :traceable-stmt-p
-           :can-be-made-traceable-p
-           :enclosing-traceable-stmt
            :parent-ast-p
            :get-children
            :get-immediate-children
@@ -601,19 +598,6 @@ to allow for successful mutation of SOFTWARE at PT."))
   (:documentation "Select suitable crossover points in A and B.
 If no suitable points are found the returned points may be nil."))
 
-(defgeneric traceable-stmt-p (software ast)
-  (:documentation
-   "Return TRUE if AST is a traceable statement in SOFTWARE."))
-
-(defgeneric can-be-made-traceable-p (software ast)
-  (:documentation "Check if AST can be made a traceable statement in SOFTWARE."))
-
-(defgeneric enclosing-traceable-stmt (software ast)
-  (:documentation
-   "Return the first ancestor of AST in SOFTWARE which may be a full stmt.
-If a statement is reached which is not itself traceable, but which could be
-made traceable by wrapping with curly braces, return that."))
-
 
 ;;; Core parseable methods
 (defmethod size ((obj parseable))
@@ -684,7 +668,7 @@ if the original file is known.")
 
 (defgeneric ast-at-index (software index)
   (:documentation "Deprecated: Return the AST in OBJ at INDEX.
-If possible, only use when dealing with legacy instrumentation code.
+If possible, only use when dealing with legacy code.
 
 * OBJ object to retrieve ASTs for
 * INDEX nth AST to retrieve
@@ -694,7 +678,7 @@ If possible, only use when dealing with legacy instrumentation code.
 
 (defgeneric index-of-ast (software ast)
   (:documentation "Deprecated: Return the index of AST in OBJ.
-If possible, only use when dealing with legacy instrumentation code.
+If possible, only use when dealing with legacy code.
 
 * OBJ object to query for the index of AST
 * AST node to find the index of

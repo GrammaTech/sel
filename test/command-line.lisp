@@ -64,13 +64,7 @@
 (deftest (create-software-guesses-clang-project :long-running) ()
   (let ((sw (create-software
              (make-pathname :directory +grep-prj-dir+)
-             :build-command
-             (concatenate 'string
-                          (namestring (make-pathname :directory +grep-prj-dir+
-                                                     :name "build"
-                                                     :type "sh"))
-                          " --full --nonsense-arg"))))
+             :build-command "make")))
     (is sw)
     (is (eql 'clang-project (type-of sw)))
-    (is (not (string= "./" (subseq (build-command sw) 0 2))))
-    (is (search "--full" (build-command sw)))))
+    (is (equal "make" (build-command sw)))))

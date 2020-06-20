@@ -3,7 +3,6 @@
   (:nicknames :sel/test/javascript)
   (:use
    :gt/full
-   :trace-db
    #+gt :testbot
    :software-evolution-library/test/util
    :software-evolution-library/stefil-plus
@@ -12,21 +11,16 @@
    :software-evolution-library/software/javascript
    :software-evolution-library/software/json
    :software-evolution-library/components/formatting
-   :software-evolution-library/components/instrument
-   :software-evolution-library/components/javascript-instrument
-   :software-evolution-library/components/traceable
    :software-evolution-library/components/test-suite)
   (:export :test-javascript))
 (in-package :software-evolution-library/test/javascript)
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-javascript "Javascript representation." (acorn-available-p))
 
-(define-software javascript-traceable  (javascript sexp-traceable) ())
-
 (defixture hello-world-javascript
   (:setup
    (setf *soft*
-         (from-file (make-instance 'javascript-traceable)
+         (from-file (make-instance 'javascript)
                     (javascript-dir #P"hello-world/hello-world.js"))))
   (:teardown
    (setf *soft* nil)))
@@ -34,7 +28,7 @@
 (defixture fib-javascript
   (:setup
    (setf *soft*
-         (from-file (make-instance 'javascript-traceable)
+         (from-file (make-instance 'javascript)
                     (javascript-dir #P"fib/fib.js"))))
   (:teardown
    (setf *soft* nil)))
@@ -174,55 +168,6 @@
     (is (equal `(("fibonacci" nil nil 1))
                (nest (get-unbound-funs *soft*)
                      (stmt-with-text *soft* "fibonacci(10);"))))))
-
-(deftest (javascript-instrument-and-collect-traces :long-running) ()
-  (with-fixture fib-javascript
-    (let ((instrumented (instrument *soft*)))
-      (collect-traces instrumented
-                      (make-instance 'test-suite
-                        :test-cases (list (make-instance 'test-case
-                                            :program-name "node"
-                                            :program-args (list :bin)))))
-      (is (equal 1 (n-traces (traces instrumented))))
-      (is (equal '((:TRACE ((:C . 0))  ((:C . 37)) ((:C . 4))
-                    ((:C . 13)) ((:C . 18)) ((:C . 22))
-                    ((:C . 28)) ((:C . 32)) ((:C . 18))
-                    ((:C . 22)) ((:C . 28)) ((:C . 32))
-                    ((:C . 18)) ((:C . 22)) ((:C . 28))
-                    ((:C . 32)) ((:C . 18)) ((:C . 22))
-                    ((:C . 28)) ((:C . 32)) ((:C . 18))
-                    ((:C . 22)) ((:C . 28)) ((:C . 32))
-                    ((:C . 18)) ((:C . 22)) ((:C . 28))
-                    ((:C . 32)) ((:C . 18)) ((:C . 22))
-                    ((:C . 28)) ((:C . 32)) ((:C . 18))
-                    ((:C . 22)) ((:C . 28)) ((:C . 32))
-                    ((:C . 18)) ((:C . 22)) ((:C . 28))
-                    ((:C . 32)) ((:C . 18)) ((:C . 22))
-                    ((:C . 28)) ((:C . 32)) ((:C . 35)))
-                   (:INPUT "node" :BIN))
-                 (get-trace (traces instrumented) 0))))))
-
-(deftest (javascript-instrument-and-collect-traces-with-vars :long-running) ()
-  (with-fixture fib-javascript
-    (let ((instrumented
-           (instrument *soft*
-                       :functions
-                       (list (lambda (instrumenter ast)
-                               (var-instrument
-                                {get-vars-in-scope (software instrumenter)}
-                                instrumenter
-                                ast))))))
-      (collect-traces instrumented
-                      (make-instance 'test-suite
-                        :test-cases (list (make-instance 'test-case
-                                            :program-name "node"
-                                            :program-args (list :bin)))))
-      (is (equalp 1 (n-traces (traces instrumented))))
-      (is (equalp '((:C . 22)(:SCOPES #("temp" "number" 1 nil)
-                              #("b" "number" 0 nil)
-                              #("a" "number" 1 nil)
-                              #("num" "number" 10 nil)))
-                  (nth 5 (aget :trace (get-trace (traces instrumented) 0))))))))
 
 (deftest (javascript-parsing-test :long-running) ()
   (labels ((parse-test (path &rest ast-classes)

@@ -18,7 +18,6 @@ More information about software objects is provided in section
 @item Related Classes
   @itemize
   @item @refapiclass{searchable} (see @ref{api-searchability, Databases of Software Objects})
-  @item @refapiclass{instrumenter} (see @ref{api-instrumentation, Instrumentation})
   @end itemize
 
 

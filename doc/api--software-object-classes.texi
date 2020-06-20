@@ -175,7 +175,6 @@ Class @code{software}
 @item Methods
   @itemize
   @item @refapimethod{apply-mutation,apply-mutation before}
-  @item @refapimethod{collect-test-case-traces,collect-test-case-traces}
   @end itemize
 @end itemize
 
@@ -242,7 +241,6 @@ Class @code{cil}
 @item Methods
   @itemize
   @item @refapimethod{apply-mutation,apply-mutation}
-  @item @refapimethod{instrument,instrument}
   @end itemize
 @end itemize
 
@@ -400,7 +398,6 @@ Class @code{clang}
   @item @refapimethod{bi-grams-hashtable-to-feature,bi-grams-hashtable-to-feature}
   @item @refapimethod{block-p,block-p}
   @item @refapimethod{build-op,build-op} : multiple methods with different mutation argument types
-  @item @refapimethod{can-be-made-traceable-p,can-be-made-traceable-p}
   @item @refapimethod{crossover,crossover}
   @item @refapimethod{delete-decl-stmts,delete-decl-stmts}
   @item @refapimethod{enclosing-full-stmt,enclosing-full-stmt}
@@ -413,14 +410,11 @@ Class @code{clang}
   @item @refapimethod{from-file,from-file}
   @item @refapimethod{function-containing-ast,function-containing-ast}
   @item @refapimethod{get-ast-types,get-ast-types}
-  @item @refapimethod{get-entry,get-entry}
   @item @refapimethod{get-parent-full-stmt,get-parent-full-stmt}
   @item @refapimethod{get-unbound-funs,get-unbound-funs}
   @item @refapimethod{get-unbound-vals,get-unbound-vals}
   @item @refapimethod{get-vars-in-scope,get-vars-in-scope}
   @item @refapimethod{good-stmts,good-stmts}
-  @item @refapimethod{instrument,instrument}
-  @item @refapimethod{instrumented-p,instrumented-p}
   @item @refapimethod{max-depth-ast,max-depth-ast}
   @item @refapimethod{pick-guarded-compound,pick-guarded-compound}
   @item @refapimethod{pick-mutation-type,pick-mutation-type}
@@ -428,7 +422,6 @@ Class @code{clang}
   @item @refapimethod{scopes,scopes}
   @item @refapimethod{select-crossover-points,select-crossover-points}
   @item @refapimethod{select-intraprocedural-pair,select-intraprocedural-pair}
-  @item @refapimethod{uninstrument,uninstrument}
   @item @refapimethod{wrap-ast,wrap-ast}
   @item @refapimethod{wrap-child,wrap-child}
   @end itemize
@@ -534,7 +527,6 @@ Class @code{javascript}
   @item @refapimethod{get-unbound-funs,get-unbound-funs}
   @item @refapimethod{scopes,scopes}
   @item @refapimethod{phenome,phenome}
-  @item @refapimethod{traceable-stmt-p,traceable-stmt-p}
   @end itemize
 
 @end itemize
@@ -662,10 +654,6 @@ Class @code{clang-project}
 @item Methods
   @itemize
   @item @refapimethod{from-file,from-file}
-  @item @refapimethod{instrument,instrument}
-  @item @refapimethod{instrumentation-files,instrumentation-files}
-  @item @refapimethod{instrumented-p,instrumented-p}
-  @item @refapimethod{uninstrument,uninstrument}
   @end itemize
 @end itemize
 
@@ -687,10 +675,6 @@ Class @code{clang-project}
   @itemize
   @item @refapimethod{from-file,from-file}
   @item @refapimethod{phenome,phenome}
-  @item @refapimethod{instrument,instrument}
-  @item @refapimethod{instrumentation-files,instrumentation-files}
-  @item @refapimethod{instrumented-p,instrumented-p}
-  @item @refapimethod{uninstrument,uninstrument}
   @end itemize
 @end itemize
 

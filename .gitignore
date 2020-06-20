@@ -36,18 +36,12 @@
 doc/software-evolution-library/
 doc/include/
 doc/sel-command-line-rest-api.texi
-doc/sel-cp-clang-instrument-api.texi
 doc/sel-cp-clang-tokens-api.texi
-doc/sel-cp-condition-synthesis-api.texi
-doc/sel-cp-fault-loc-api.texi
 doc/sel-cp-file-api.texi
 doc/sel-cp-fix-compilation-api.texi
 doc/sel-cp-fodder-database-api.texi
 doc/sel-cp-formatting-api.texi
 doc/sel-cp-in-memory-fodder-database-api.texi
-doc/sel-cp-instrument-api.texi
-doc/sel-cp-java-instrument-api.texi
-doc/sel-cp-javascript-instrument-api.texi
 doc/sel-cp-json-fodder-database-api.texi
 doc/sel-cp-lexicase-api.texi
 doc/sel-cp-multi-objective-api.texi
@@ -55,7 +49,6 @@ doc/sel-cp-pliny-fodder-database-api.texi
 doc/sel-cp-searchable-api.texi
 doc/sel-cp-serapi-io-api.texi
 doc/sel-cp-test-suite-api.texi
-doc/sel-cp-traceable-api.texi
 doc/sel-rest-api.texi
 doc/sel-rest-async-jobs-api.texi
 doc/sel-rest-define-command-endpoint-api.texi
