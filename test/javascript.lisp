@@ -50,7 +50,7 @@
     (is (equal (file-to-string (javascript-dir #P"hello-world/hello-world.js"))
                (genome-string *soft*))))
   (with-fixture fib-javascript
-    (is (= 41 (size *soft*)))
+    (is (= 40 (size *soft*)))
     (is (equal (file-to-string (javascript-dir #P"fib/fib.js"))
                (genome-string *soft*)))))
 

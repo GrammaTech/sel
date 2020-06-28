@@ -155,7 +155,8 @@
                         (let ((js-field (symbol-cat 'js field)))
                           (list* js-field :reader js-field
                                           :initform nil
-                                          :initarg (make-keyword field)
+                                          :initarg (make-keyword
+                                                    (symbol-cat 'js field))
                                           (when (zerop arity)
                                             (list :type 'list))))))
                     field-specifiers))
@@ -264,7 +265,13 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
            (mappend
             (lambda (field)
               (destructuring-bind (key . value) field
-                (list key
+                ;; Key here could be :START and :END which should be
+                ;; used unmodified or could be child slot names in
+                ;; which case we prefix them with js- to avoid symbol
+                ;; conflicts.
+                (list (if (find key child-types :key #'car)
+                          (make-keyword (symbol-cat 'js key))
+                          key)
                       (if-let ((spec (find key child-types :key #'car)))
                         (destructuring-bind (key . arity) spec
                           (declare (ignorable key))
