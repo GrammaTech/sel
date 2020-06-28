@@ -109,7 +109,7 @@
 
 (deftest can-parse-a-python-software-object ()
   (with-fixture hello-world-python
-    (is (= 4 (size *soft*)))
+    (is (= 5 (size *soft*)))
     (is (equal (file-to-string (original-path *soft*))
                (genome-string *soft*))))
   (with-fixture fib-python

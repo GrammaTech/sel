@@ -50,126 +50,173 @@
 
 
 ;;; Python ast data structures
+(defvar *string*)
+
 (defclass python-ast (functional-tree-ast)
-  ((children :type list
-             :initarg :children
-             :initform nil
-             :documentation "The list of children of the node,
-which may be more nodes, or other values.")
-   (child-slots :initform '(children) :allocation :class))
+  ((start :initarg :start :initform (when *string* 0)
+          :reader start :type (or null (integer 0 *)))
+   (end :initarg :end :initform (when *string* (length *string*))
+        :reader end :type (or null (integer 0 *)))
+   (skipped-before
+    :initarg :skipped-before :initform nil
+    :reader skipped-before :type (or null python-ast-skipped))
+   (skipped-after
+    :initarg :skipped-after :initform nil
+    :reader skipped-after :type (or null python-ast-skipped))
+   (string-pointer :initarg :string-pointer :initform *string*
+                   :reader string-pointer :type (or null string)))
   (:documentation "Class of Python ASTs."))
+
+(defclass python-ast-skipped (python-ast) ()
+  (:documentation "Skipped region of source code text."))
 
 
 ;;; Python parsing
 (define-constant +asdl+
-  (alist-hash-table
-   '((:Module . ((:body . *)))
-     (:Interactive . ((:body . *)))
-     (:Expression . ((:body . 1)))
-     (:FunctionDef . ((:decorator-list . *)
-                      (:args . 1)
-                      (:body . *)
-                      (:returns . ?)))
-     (:AsyncFunctionDef . ((:decorator-list . *)
-                           (:args . 1)
-                           (:body . *)
-                           (:returns . ?)))
-     (:ClassDef . ((:decorator-list . *)
-                   (:bases . *)
-                   (:keywords . *)
-                   (:body . *)))
-     (:Return . ((:value . ?)))
-     (:Delete . ((:targets . *)))
-     (:Assign . ((:targets . *)
-                 (:value . 1)))
-     (:AugAssign . ((:target . 1)
-                    (:value . 1)))
-     (:AnnAssign . ((:target . 1)
-                    (:annotation . 1)
-                    (:value . ?)))
-     (:For . ((:target . 1)
-              (:iter . 1)
+    '((:Module . ((:body . *)))
+      (:Interactive . ((:body . *)))
+      (:Expression . ((:body . 1)))
+      (:FunctionDef . ((:decorator-list . *)
+                       (:args . 1)
+                       (:body . *)
+                       (:returns . ?)))
+      (:AsyncFunctionDef . ((:decorator-list . *)
+                            (:args . 1)
+                            (:body . *)
+                            (:returns . ?)))
+      (:ClassDef . ((:decorator-list . *)
+                    (:bases . *)
+                    (:keywords . *)
+                    (:body . *)))
+      (:Return . ((:value . ?)))
+      (:Delete . ((:targets . *)))
+      (:Assign . ((:targets . *)
+                  (:value . 1)))
+      (:AugAssign . ((:target . 1)
+                     (:value . 1)))
+      (:AnnAssign . ((:target . 1)
+                     (:annotation . 1)
+                     (:value . ?)))
+      (:For . ((:target . 1)
+               (:iter . 1)
+               (:body . *)
+               (:orelse . *)))
+      (:AsyncFor . ((:target . 1)
+                    (:iter . 1)
+                    (:body . *)
+                    (:orelse . *)))
+      (:While . ((:test . 1)
+                 (:body . *)
+                 (:orelse . *)))
+      (:If . ((:test . 1)
               (:body . *)
               (:orelse . *)))
-     (:AsyncFor . ((:target . 1)
-                   (:iter . 1)
-                   (:body . *)
-                   (:orelse . *)))
-     (:While . ((:test . 1)
-                (:body . *)
-                (:orelse . *)))
-     (:If . ((:test . 1)
-             (:body . *)
-             (:orelse . *)))
-     (:With . ((:items . *)
-               (:body . *)))
-     (:AsyncWith . ((:items . *)
-                    (:body . *)))
-     (:Raise . ((:exc . ?)
-                (:cause . ?)))
-     (:Try . ((:body . *)
-              (:handlers . *)
-              (:orelse . *)
-              (:finalbody . *)))
-     (:Assert . ((:test . 1)
-                 (:msg . ?)))
-     (:Expr . ((:value . 1)))
-     (:BoolOp . ((:values . *)))
-     (:BinOp . ((:left . 1)
-                (:right . 1)))
-     (:UnaryOp . ((:operand . 1)))
-     (:Lambda . ((:args . 1)
-                 (:body . 1)))
-     (:IfExp . ((:body . 1)
-                (:test . 1)
-                (:orelse . 1)))
-     (:Dict . ((:keys . *)
-               (:values . *)))
-     (:Set . ((:elts . *)))
-     (:ListComp . ((:elt . 1)
+      (:With . ((:items . *)
+                (:body . *)))
+      (:AsyncWith . ((:items . *)
+                     (:body . *)))
+      (:Raise . ((:exc . ?)
+                 (:cause . ?)))
+      (:Try . ((:body . *)
+               (:handlers . *)
+               (:orelse . *)
+               (:finalbody . *)))
+      (:Assert . ((:test . 1)
+                  (:msg . ?)))
+      (:Expr . ((:value . 1)))
+      (:BoolOp . ((:values . *)))
+      (:BinOp . ((:left . 1)
+                 (:right . 1)))
+      (:UnaryOp . ((:operand . 1)))
+      (:Lambda . ((:args . 1)
+                  (:body . 1)))
+      (:IfExp . ((:body . 1)
+                 (:test . 1)
+                 (:orelse . 1)))
+      (:Dict . ((:keys . *)
+                (:values . *)))
+      (:Set . ((:elts . *)))
+      (:ListComp . ((:elt . 1)
+                    (:generators . *)))
+      (:SetComp . ((:elt . 1)
                    (:generators . *)))
-     (:SetComp . ((:elt . 1)
-                  (:generators . *)))
-     (:DictComp . ((:key . 1)
-                   (:value . 1)
-                   (:generators . *)))
-     (:GeneratorExp . ((:elt . 1)
-                       (:generators . *)))
-     (:Await . ((:value . 1)))
-     (:Yield . ((:value . ?)))
-     (:YieldFrom . ((:value . 1)))
-     (:Compare . ((:left . 1)
-                  (:comparators . *)))
-     (:Call . ((:func . 1)
-               (:args . *)
-               (:keywords . *)))
-     (:Attribute . ((:value . 1)))
-     (:Subscript . ((:value . 1)
-                    (:slice . 1)))
-     (:Starred . ((:value . 1)))
-     (:List . ((:elts . *)))
-     (:Tuple . ((:elts . *)))
-     (:Slice . ((:lower . ?) (:upper . ?) (:step . ?)))
-     (:ExtSlice . ((:dims . *)))
-     (:Index . ((:value . 1)))
-     (:Comprehension . ((:target . 1)
-                        (:iter . 1)
-                        (:ifs . *)))
-     (:ExceptHandler . ((:type . ?)
-                        (:body . *)))
-     (:Arguments . ((:posonlyargs . *)
-                    (:args . *)
-                    (:defaults . *)
-                    (:vararg . ?)
-                    (:kwonlyargs . *)
-                    (:kw-defaults . *)
-                    (:kwarg . ?)))
-     (:Arg . ((:annotation . ?)))
-     (:Keyword . ((:value . 1)))
-     (:WithItem . ((:context-expr . 1)
-                   (:optional-vars . ?)))))
+      (:DictComp . ((:key . 1)
+                    (:value . 1)
+                    (:generators . *)))
+      (:GeneratorExp . ((:elt . 1)
+                        (:generators . *)))
+      (:Await . ((:value . 1)))
+      (:Yield . ((:value . ?)))
+      (:YieldFrom . ((:value . 1)))
+      (:Compare . ((:left . 1)
+                   (:comparators . *)))
+      (:Call . ((:func . 1)
+                (:args . *)
+                (:keywords . *)))
+      (:Attribute . ((:value . 1)))
+      (:Subscript . ((:value . 1)
+                     (:slice . 1)))
+      (:Starred . ((:value . 1)))
+      (:List . ((:elts . *)))
+      (:Tuple . ((:elts . *)))
+      (:Slice . ((:lower . ?) (:upper . ?) (:step . ?)))
+      (:ExtSlice . ((:dims . *)))
+      (:Index . ((:value . 1)))
+      (:Comprehension . ((:target . 1)
+                         (:iter . 1)
+                         (:ifs . *)))
+      (:ExceptHandler . ((:type . ?)
+                         (:body . *)))
+      (:Arguments . ((:posonlyargs . *)
+                     (:args . *)
+                     (:defaults . *)
+                     (:vararg . ?)
+                     (:kwonlyargs . *)
+                     (:kw-defaults . *)
+                     (:kwarg . ?)))
+      (:Arg . ((:annotation . ?)))
+      (:Keyword . ((:value . 1)))
+      (:WithItem . ((:context-expr . 1)
+                    (:optional-vars . ?)))
+      ;; Missing originally and added manually.
+      (:Name . ((:ctx . 1)))
+      (:Load)
+      (:Constant))
   :test #'equalp
   :documentation "Abstract Syntax Description Language for python.")
+
+(defun expand-py-class (spec)
+  (nest
+   (destructuring-bind (ast-class-list . field-specifiers) spec)
+   (mapcar
+    (lambda (class)
+      `(defclass ,(symbol-cat 'py class) (python-ast)
+         ((acorn-slot-name :initform ,class :allocation :class)
+          ,@(when field-specifiers
+              `((child-slots
+                 :initform
+                 (quote ,(mapcar «cons
+                                  [{symbol-cat 'py} #'car]
+                                  [‹case (* 0) (? 0) (t #'identity)› #'cdr]»
+                                 field-specifiers))
+                 :allocation :class)))
+          ,@(mapcar (lambda (field)
+                      (destructuring-bind (field . arity) field
+                        (let ((py-field (symbol-cat 'py field)))
+                          (list* py-field :reader py-field
+                                          :initform nil
+                                          :initarg (make-keyword
+                                                    (symbol-cat 'py field))
+                                          (when (member arity '(? *))
+                                            (list :type 'list))))))
+                    field-specifiers))
+         (:documentation
+          ,(format nil "Python AST node class for ~a ASDL ASTs." class)))))
+   ast-class-list))
+
+(eval `(progn ,@(mapcar #'expand-py-class +asdl+)))
+(export (mapcar {symbol-cat 'py}
+                (mappend «cons #'car [{mapcar #'car} #'cdr]» +asdl+)))
 
 (define-constant +stmt-ast-classes+
   '(:Module :FunctionDef :AsyncFunctionDef :ClassDef :Return :Delete
@@ -191,196 +238,97 @@ given by python in the line, col attributes.")
   :documentation "AST classes which may have children which are not
 in textual (sorted) order.")
 
-(defgeneric python-astdump (obj source-text)
-  (:documentation "Invoke the python-astdump script to dump ASTs in
-SOURCE-TEXT in JSON format.")
-  (:method ((obj python) (source-text string))
-    (with-temporary-file-of (:pathname src) source-text
-      (multiple-value-bind (stdout stderr exit)
-          (shell "~a ~a"
-                 (make-pathname
-                  :directory (append +software-evolution-library-dir+
-                                     (list "bin"))
-                  :name "python-astdump")
-                 src)
-        (if (zerop exit)
-            (handler-bind ((no-char-for-code
-                            (lambda (e)
-                              (declare (ignorable e))
-                              (invoke-restart 'substitute-char #\?)))
-                           (floating-point-overflow
-                            (lambda (e)
-                              (declare (ignorable e))
-                              (invoke-restart 'bignumber-string))))
-              (decode-json-from-string stdout))
-            (error (make-instance 'mutate
-                     :text (format nil "python-astdump exit ~d~%~
+(defun python-astdump (source-text)
+  "Invoke the python-astdump script to dump ASTs in SOURCE-TEXT in JSON format."
+  (with-temporary-file-of (:pathname src) source-text
+    (multiple-value-bind (stdout stderr exit)
+        (shell "~a ~a"
+               (make-pathname
+                :directory (append +software-evolution-library-dir+
+                                   (list "bin"))
+                :name "python-astdump")
+               src)
+      (if (zerop exit)
+          (handler-bind ((no-char-for-code
+                           (lambda (e)
+                             (declare (ignorable e))
+                             (invoke-restart 'substitute-char #\?)))
+                         (floating-point-overflow
+                           (lambda (e)
+                             (declare (ignorable e))
+                             (invoke-restart 'bignumber-string))))
+            (decode-json-from-string stdout))
+          (error (make-instance 'mutate
+                                :text (format nil "python-astdump exit ~d~%~
                                         stderr:~s"
-                                   exit stderr)
-                     :operation :parse
-                     :obj obj)))))))
+                                              exit stderr)
+                                :operation :parse))))))
 
-(defmethod parse-asts ((obj python) &optional (source-text (genome-string obj))
-                       &aux (source-octets (string-to-octets source-text))
-                         (line-offsets (line-offsets source-text)))
-  (labels ((ast-class (json &aux (pair (assoc :class json)))
-             "Return the AST class of the JSON AST representation."
-             ;; Update JSON if the class is a string to ensure
-             ;; subsequent calls to `ast-class` do not need to
-             ;; invoke `make-keyword`.  This halves the amount
-             ;; of time spent creating ASTs after dumping
-             ;; JSON and parsing.
-             (when (stringp (cdr pair))
-               (setf (cdr pair)
-                     (make-keyword (string-upcase (aget :class json)))))
-             (cdr pair))
-           (offset (line col)
-             "Return the offset into SOURCE-OCTETS for the given LINE and COL."
-             (+ col (aget :start (gethash line line-offsets))))
-           (last-parsed-char-in-line-p (line col)
-             "Return T if LINE and COL represent the last parsed
-             (non-whitespace, non-comment) byte in a line of
-             SOURCE-OCTETS."
-             (= (offset line col)
-                (aget :end-parsed (gethash line line-offsets))))
-           (offset-w-corrections (ast-class line col)
-             "Return the offset into SOURCE-TEXT for the given LINE and COL
-             with corrections to include the trailing newline for stmt AST
-             classes."
-             (if (and (member ast-class +stmt-ast-classes+)
-                      (last-parsed-char-in-line-p line col)
-                      (gethash (1+ line) line-offsets))
-                 (offset (1+ line) 0)
-                 (offset line col)))
-           (start (json)
-             "Return the start offset into SOURCE-OCTETS from the JSON AST
-             representation."
-             (cond ((null json) nil) ;; no json, no offset
-                   ((eq :Module (ast-class json))
-                    ;; special case for top-level AST
-                    0)
-                   ((and (null (aget :lineno json))
-                         (null (aget :col-offset json)))
-                    ;; no line info, return the start of the first child
-                    (start (car (collect-children json))))
-                   ((member (ast-class json)
-                            +ast-classes-with-larger-child-spans+)
-                    ;; special case where the parent AST may have less
-                    ;; span than the children.  If so, use the span of
-                    ;; the children.
-                    (min (or (start (car (collect-children json)))
-                             most-positive-fixnum)
-                         (offset-w-corrections (ast-class json)
-                                               (aget :lineno json)
-                                               (aget :col-offset json))))
-                    ;; offset given in JSON
-                   (t (offset-w-corrections (ast-class json)
-                                            (aget :lineno json)
-                                            (aget :col-offset json)))))
-           (end (json)
-             "Return the end offset into SOURCE-OCTETS from the JSON AST
-             representation."
-             (cond ((null json) nil)
-                   ((eq :Module (ast-class json))
-                    ;; special case for top-level AST
-                    (length source-octets))
-                   ((and (null (aget :lineno json))
-                         (null (aget :col-offset json)))
-                    ;; no line info, return the end of the last child
-                    (end (lastcar (collect-children json))))
-                   ((member (ast-class json)
-                            +ast-classes-with-larger-child-spans+)
-                    ;; special case where the parent AST may have less
-                    ;; span than the children.  If so, use the span of
-                    ;; the children.
-                    (max (or (end (lastcar (collect-children json)))
-                             most-negative-fixnum)
-                         (offset-w-corrections (ast-class json)
-                                               (aget :end-lineno json)
-                                               (aget :end-col-offset json))))
-                    ;; offset given in JSON
-                   (t (offset-w-corrections (ast-class json)
-                                            (aget :end-lineno json)
-                                            (aget :end-col-offset json)))))
-           (start-and-end-p (json)
-             "Return T if JSON AST representation contains both a start and
-             end offset."
-             (and (start json) (end json)))
-           (child-keys (ast-class)
-             "Return the AST classes of the children of AST-CLASS."
-             (mapcar #'car (gethash ast-class +asdl+)))
-           (remove-children (json &aux (keys (child-keys (ast-class json))))
-             "Remove all of the children from the JSON AST representation."
-             (remove-if {member _ keys} json :key #'car))
-           (sort-children (json children-json)
-             "Sort CHILDREN-JSON if the JSON AST representation is one where
-             children may not be in ascending textual order."
-             (if (member (ast-class json) +ast-classes-with-unsorted-children+)
-                 (sort children-json #'< :key #'start)
-                 children-json))
-           (collect-children (json)
-             "Collect the CHILD ASTs of the JSON AST representation in a list."
-             (iter (for (key . arity) in (gethash (ast-class json) +asdl+))
-                   (case arity
-                     (1 (collecting (aget key json) into result))
-                     (* (appending (aget key json) into result))
-                     (? (when-let ((child (aget key json)))
-                          (collecting child into result))))
-                   (finally
-                    (return (nest (sort-children json)
-                                  (remove-if-not #'start-and-end-p result))))))
-           (annotation-p (key value)
-             "Return T if KEY and VALUE represent an AST annotation."
-             (and (not (member key (list :class :lineno :col-offset
-                                         :end-lineno :end-col-offset)))
-                  (not (null value))))
-           (annotations (json)
-             "Return a list of the AST annotations (non-child key, value pairs)
-             in the JSON AST representation."
-             (iter (for (key . value) in (remove-children json))
-                   (when (annotation-p key value)
-                     (cond ((eq key :ctx)
-                            (collect (cons key (nest (make-keyword)
-                                                     (string-upcase)
-                                                     (aget :class value)))))
-                           ((eq key :op)
-                            (collect (cons key (aget :class value))))
-                           ((eq key :ops)
-                            (collect (cons key (mapcar {aget :class} value))))
-                           (t (collect (cons key value)))))))
-           (interleave (json children-json
-                        &key (start (start json)) (end (end json)))
-             "Interleave CHILDREN-JSON with snippets of SOURCE-TEXT based on
-             the start and end offsets of the ASTs."
-             (if children-json
-                 (iter (for child-json in children-json)
-                       (for previous-json previous child-json)
-                       (collect (nest (octets-to-string)
-                                      (subseq source-octets
-                                              (if previous-json
-                                                  (end previous-json)
-                                                  start)
-                                              (start child-json)))
-                                into result)
-                       (collect child-json into result)
-                       (finally (return (nest (append result)
-                                              (list)
-                                              (octets-to-string)
-                                              (subseq source-octets
-                                                      (end child-json) end)))))
-                 (list (octets-to-string (subseq source-octets start end)))))
-           (make-tree (json)
-             "Create a python AST from the JSON AST representation."
-             (make-instance 'python-ast
-               :class (ast-class json)
-               :annotations (annotations json)
-               :children (nest (mapcar (lambda (child)
-                                         (if (listp child)
-                                             (make-tree child)
-                                             child)))
-                               (interleave json)
-                               (collect-children json)))))
-    (make-tree (python-astdump obj source-text))))
+(defmethod convert ((to-type (eql 'python-ast)) (string string)
+                    &key &allow-other-keys)
+  (nest
+   (let ((*string* string)))
+   (labels
+       ((make-skipped (start end)
+          (when (< start end)
+            (make-instance 'python-ast-skipped :start start :end end)))
+        (ranges (ast &aux ranges)
+          (let (last)
+            (mapc (lambda (child)
+                    (when last (push (cons (start last) (start child)) ranges))
+                    (setf last child))
+                  (remove nil (children ast)))
+            (push (cons (start last) (end ast)) ranges)
+            (nreverse ranges)))
+        (w/skipped (tree from to)
+          (assert (= from (start tree)))
+          (when (children tree)
+            (setf (slot-value tree 'skipped-before)
+                  (make-skipped from (start (first (children tree)))))
+            (mapc (lambda (child range)
+                    (destructuring-bind (from . to) range
+                      (w/skipped child from to)))
+                  (remove nil (children tree))
+                  (ranges tree)))
+          (setf (slot-value tree 'skipped-after)
+                (make-skipped (end tree) to))
+          tree)))
+   (w/skipped (convert to-type (python-astdump string))
+              0 (length *string*))))
+
+(defmethod convert ((to-type (eql 'python-ast)) (spec null)
+                    &key &allow-other-keys)
+  nil)
+(defmethod convert ((to-type (eql 'python-ast)) (spec list)
+                    &key &allow-other-keys)
+  "Create a PYTHON AST from the SPEC (specification) list."
+  (assert (boundp '*string*) (*string*)
+    "Can't create PY ASTs without `*string*'.")
+  (let* ((raw-type (make-keyword (string-upcase (aget :class spec))))
+         (type (symbol-cat 'py raw-type))
+         (child-types (aget raw-type +asdl+)))
+    (apply #'make-instance type
+           (mappend
+            (lambda (field)
+              (destructuring-bind (key . value) field
+                ;; Key here could be :START and :END which should be
+                ;; used unmodified or could be child slot names in
+                ;; which case we prefix them with py- to avoid symbol
+                ;; conflicts.
+                (list (if (find key child-types :key #'car)
+                          (make-keyword (symbol-cat 'py key))
+                          key)
+                      (if-let ((spec (find key child-types :key #'car)))
+                        (destructuring-bind (key . arity) spec
+                          (declare (ignorable key))
+                          (ecase arity
+                            (1 (convert 'python-ast value))
+                            ((* ?) (mapcar {convert 'python-ast} value))))
+                        value))))
+            (cdr spec)))))
+
+(defmethod parse-asts ((obj python) &optional (source (genome-string obj)))
+  (convert 'python-ast source))
 
 (defun line-offsets (source-text)
   "Return a hash table mapping line numbers (1 indexed) to an association
@@ -485,7 +433,7 @@ AST ast to return the enclosing scope for"
 (defmethod scopes ((obj python) (ast python-ast))
   "Return lists of variables in each enclosing scope of AST.
 Each variable is represented by an alist containing :NAME, :DECL, and :SCOPE.
-OBJ javascript software object
+OBJ python software object
 AST ast to return the scopes for"
   (labels ((else-clause-p (ast)
              "Return T if AST represents the start of an else clause."
