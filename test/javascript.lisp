@@ -81,6 +81,8 @@
                                        (cons :value1 stmt1))))
       (is (not (equal (genome-string variant)
                       (genome-string *soft*))))
+      (is (not (equal? (genome variant)
+                       (genome *soft*))))
       (is (> (size variant)
              (size *soft*))))))
 
