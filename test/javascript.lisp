@@ -162,10 +162,11 @@
 
 (deftest javascript-get-vars-in-scope ()
   (with-fixture fib-javascript
-    (is (equal (list "temp" "b" "a" "num")
-               (nest (mapcar {aget :name})
-                     (get-vars-in-scope *soft*)
-                     (stmt-with-text *soft* "temp = a;"))))))
+    (is (set-equal (list "temp" "b" "a" "num")
+                   (nest (mapcar {aget :name})
+                         (get-vars-in-scope *soft*)
+                         (stmt-with-text *soft* "temp = a;"))
+                   :test #'string=))))
 
 (deftest javascript-get-unbound-vals ()
   (with-fixture fib-javascript

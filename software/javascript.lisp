@@ -389,83 +389,39 @@ AST ast to return the enclosing scope for"
     (when-let ((parent (get-parent-ast obj ast)))
       (cdr (drop-until {equal? ast} (children parent))))))
 
-;;; FIXME: is the following a valid alternate implementation of scopes
-;;; assuming we define `inner-declarations' to return the
-;;; contributions an AST makes to the scopes of it's direct
-;;; descendents and we define `outer-declarations' to return the
-;;; changes an AST makes to the scope of its right-siblings?
-#+fixme
-(defmethod scopes ((obj javascript) (ast javascript-ast))
-  (mappend (lambda (parent)
-             (append (inner-scope parent)
-                     (mappend #'outer-scope (left-siblings obj parent))))
-           (get-parent-asts obj ast)))
+(defgeneric inner-declarations (ast)
+  (:documentation
+   "Return a list of variable declarations affecting inner scopes.")
+  (:method ((ast javascript-ast)) nil)
+  (:method ((ast js-function-declaration)) (js-params ast))
+  (:method ((ast js-function-expression)) (js-params ast))
+  (:method ((ast js-arrow-function-expression)) (js-params ast))
+  (:method ((ast js-arrow-function-expression)) (js-params ast))
+  (:method ((ast js-for-of-statement)) (list (js-left ast)))
+  (:method ((ast js-for-in-statement)) (list (js-left ast)))
+  (:method ((ast js-for-statement)) (js-declarations (js-init ast))))
+
+(defgeneric outer-declarations (ast)
+  (:documentation
+   "Return a list of variable declarations affecting outer scopes.")
+  (:method ((ast javascript-ast)) nil)
+  (:method ((ast js-variable-declaration))
+    (mapcar #'js-id (js-declarations ast))))
 
 (defmethod scopes ((obj javascript) (ast javascript-ast))
-  "Return lists of variables in each enclosing scope of AST.
-Each variable is represented by an alist containing :NAME, :DECL, and :SCOPE.
-OBJ javascript software object
-AST ast to return the scopes for"
   (labels ((get-parent-decl (obj identifier)
              "For the given IDENTIFIER AST, return the parent declaration."
              (car (remove-if-not {typep _ 'js-variable-declaration}
                                  (get-parent-asts obj identifier))))
-           (get-first-child-ast (ast)
-             "Return the first child of the AST."
-             (first (child-asts ast)))
-           (filter-identifiers (scope children)
-             "Return all variable identifiers found in the CHILDREN of SCOPE."
-             (typecase scope
-               ((or js-function-declaration
-                    js-function-expression
-                    js-arrow-function-expression)
-                ;; Special case for functions.
-                ;; function foo(bar, ...baz) {...} => '(bar baz)
-                (mappend
-                 (lambda (ast)
-                   (cond ((typep ast 'js-identifier)
-                          (list ast))
-                         ((typep ast 'js-rest-element)
-                          (list (first (child-asts ast))))
-                         (t nil)))
-                 (if (typep scope 'js-function-declaration)
-                     (cdr children) ; elide function name identifer
-                     children)))
-               (t
-                ;; Return the variable declarations in the scope.
-                ;; Note: An variable declaration or assignment in
-                ;; JavaScript may be destructuring
-                ;; (e.g. [a, b, c] = [1, 2, 3]).  In this case, we need
-                ;; all of the variables on the left-hand side of the
-                ;; expression.
-                (nest (remove-if-not {typep _ 'js-identifier})
-                      (mappend (lambda (ast)
-                                 (let ((child (get-first-child-ast obj ast)))
-                                   (if (typep child 'js-identifier)
-                                       ;; single var
-                                       (list child)
-                                       ;; destructuring
-                                       (get-children obj child)))))
-                      (remove-if-not {typep _ 'js-variable-declarator})
-                      (mappend #'child-asts)
-                      (remove-if-not {typep _ 'js-variable-declarator}
-                                     children))))))
-    (when (not (typep ast 'js-program))
-      (let ((scope (enclosing-scope obj ast)))
-        (cons (nest (reverse)
-                    ; build result
-                    (mappend
-                      (lambda (ast)
-                        `(((:name . ,(limited-source-text ast))
-                           (:decl . ,(get-parent-decl obj ast))
-                           (:scope . ,scope)))))
-                    ; remove ASTs which are not variable identifiers
-                    (filter-identifiers scope)
-                    (iter (for c in (child-asts scope))
-                          (while (path-later-p (ast-path obj ast)
-                                               (ast-path obj c)))
-                          (collect c)))
-              (scopes obj scope))))))
+           (ast-to-scope (obj ast)
+             `(((:name . ,(limited-source-text ast))
+                (:decl . ,(get-parent-decl obj ast))
+                (:scope . ,(enclosing-scope obj ast))))))
+    (mappend (lambda (parent)
+               (nest (mapcar {ast-to-scope obj})
+                     (append (inner-declarations parent))
+                     (mappend #'outer-declarations (left-siblings obj parent))))
+             (get-parent-asts obj ast))))
 
 (defmethod get-unbound-vals ((obj javascript) (ast javascript-ast))
   "Return all variables used (but not defined) within AST.
