@@ -447,7 +447,7 @@ AST ast to return the enclosing scope for"
                                                     'js-export-specifier
                                                     'js-export-default-declaration
                                                     'js-variable-declarator))))
-                        (list (cons :name (source-text ast))))
+                        (list (cons :name (limited-source-text ast))))
                       (mapcar {get-unbound-vals-helper obj ast}
                               (child-asts ast)))
                :test #'equal)))
@@ -464,11 +464,11 @@ AST ast to return the enclosing scope for"
            (when (typep ast 'js-call-expression)
              (cond ((typep callee 'js-identifier)
                     ;; Free function call
-                    (list (list (source-text callee)
+                    (list (list (limited-source-text callee)
                                 nil nil (length (cdr child-asts)))))
                    ((typep callee 'js-member-expression)
                     ;; Member function call
-                    (list (list (nest (source-text)
+                    (list (list (nest (limited-source-text)
                                       (second)
                                       (child-asts callee))
                                 nil nil (length (cdr child-asts)))))
