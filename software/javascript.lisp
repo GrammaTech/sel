@@ -405,8 +405,13 @@ AST ast to return the enclosing scope for"
   (:documentation
    "Return a list of variable declarations affecting outer scopes.")
   (:method ((ast javascript-ast)) nil)
+  (:method ((ast js-identifier)) (list ast))
+  (:method ((ast js-rest-element)) (outer-declarations (js-argument ast)))
+  (:method ((ast js-variable-declarator)) (outer-declarations (js-id ast)))
   (:method ((ast js-variable-declaration))
-    (mapcar #'js-id (js-declarations ast))))
+    (mappend #'outer-declarations (js-declarations ast)))
+  (:method ((ast js-array-pattern))
+    (mappend #'outer-declarations (js-elements ast))))
 
 (defmethod scopes ((obj javascript) (ast javascript-ast))
   (labels ((get-parent-decl (obj identifier)
@@ -421,7 +426,7 @@ AST ast to return the enclosing scope for"
                (nest (mapcar {ast-to-scope obj})
                      (append (inner-declarations parent))
                      (mappend #'outer-declarations (left-siblings obj parent))))
-             (get-parent-asts obj ast))))
+             (cdr (get-parent-asts obj ast)))))
 
 (defmethod get-unbound-vals ((obj javascript) (ast javascript-ast))
   "Return all variables used (but not defined) within AST.
