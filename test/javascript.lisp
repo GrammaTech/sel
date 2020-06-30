@@ -143,21 +143,21 @@
 
 (deftest javascript-can-rebind-vars ()
   (with-fixture fib-javascript
-    (is (string= "temp = b;"
-                 (nest (trim-whitespace)
-                       (source-text)
-                       (rebind-vars (stmt-with-text *soft* "temp = a;")
-                                    (list (list "a" "b"))
-                                    nil)))
-        "`rebind-vars` did not properly rebind 'a' to 'b'"))
+    (let ((rebound (rebind-vars (stmt-with-text *soft* "temp = a;")
+                                (list (list "a" "b"))
+                                nil)))
+      (is (string= "temp = b;" (trim-whitespace (source-text rebound)))
+          "`rebind-vars` did not properly rebind 'a' to 'b'")
+      (is (find-if [{equal "b"} {ast-annotation _ :name}] rebound)
+          "`rebind-vars` did not properly rebind 'a' to 'b'")))
   (with-fixture fib-javascript
-    (is (string= "fibonacci(10);"
-                 (nest (trim-whitespace)
-                       (source-text)
-                       (rebind-vars (stmt-with-text *soft* "fibonacci(10);")
-                                    (list (list "b" "G19"))
-                                    nil)))
-        "`rebind-vars` improperly rebound 'b' to 'G19' in 'fibonacci(10)'")))
+    (let ((rebound (rebind-vars (stmt-with-text *soft* "fibonacci(10);")
+                                (list (list "b" "G19"))
+                                nil)))
+      (is (string= "fibonacci(10);" (trim-whitespace (source-text rebound)))
+          "`rebind-vars` improperly rebound 'b' to 'G19' in 'fibonacci(10)'")
+      (is (null (find-if [{equal "b"} {ast-annotation _ :name}] rebound))
+          "`rebind-vars` improperly rebound 'b' to 'G19' in 'fibonacci(10)'"))))
 
 (deftest javascript-get-vars-in-scope ()
   (with-fixture fib-javascript

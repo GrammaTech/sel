@@ -178,6 +178,23 @@ PRINT-OBJECT method on AST structures.")
           (reduce (lambda (accum a) (cons a accum)) ast)))
   (:method ((ast t)) nil))
 
+(defmethod copy :around ((ast functional-tree-ast) &rest keys)
+  "Wrapper around COPY to transform all keyword arguments which are
+not explicit slot initargs into annotations for functional tree ASTs."
+  (let ((initargs (nest (mappend #'slot-definition-initargs)
+                        (remove-if [{eql :class} #'slot-definition-allocation])
+                        (class-slots (class-of ast)))))
+    (nest (apply #'call-next-method ast)
+          (iter (for (key . value) in (plist-alist keys))
+                (cond ((eq key :annotations)
+                       (appending value into annotations))
+                      ((member key initargs)
+                       (appending (list key value) into args))
+                      (t (collecting (cons key value) into annotations)))
+                (finally (return (append (when annotations
+                                           (list :annotations annotations))
+                                         args)))))))
+
 (defgeneric combine-conflict-asts (ca1 ca2)
   (:documentation
    "Merge conflict ast nodes CA1 and CA2, their alists and default values."))

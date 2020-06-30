@@ -411,7 +411,10 @@ is not a compiled language.
 * FUN-REPLACEMENTS list of old-function-info, new-function-info pairs defining
 the rebinding"
   (if (eq (ast-class ast) :Identifier)
-      (copy ast :children (mapcar {rebind-vars _
+      (copy ast :name (rebind-vars (ast-annotation ast :name)
+                                   var-replacements
+                                   fun-replacements)
+                :children (mapcar {rebind-vars _
                                                var-replacements
                                                fun-replacements}
                                   (ast-children ast)))
