@@ -14,7 +14,6 @@
            :from-alist
            :child-asts
            :ast-path
-           :ast-class
            :ast-annotation
            :ast-annotations
            :ast-hash
@@ -91,9 +90,7 @@ for objects to allow method dispatch on generic AST objects regardless of
 whether they inherit from the functional trees library."))
 
 (defclass functional-tree-ast (node ast)
-  ((class :initarg :class :initform nil :reader ast-class
-          :documentation "Class of the AST." :type symbol)
-   (annotations :initarg :annotations :initform nil :reader ast-annotations
+  ((annotations :initarg :annotations :initform nil :reader ast-annotations
                 :documentation "A-list of annotations." :type list)
    (stored-hash :initarg :stored-hash :initform nil
                 :documentation "A cached hash." :type (or null hash-type)))
@@ -368,7 +365,7 @@ modile +AST-HASH-BASE+"
 (defmethod ast-hash ((ast ast))
   (or (slot-value ast 'stored-hash)
       (setf (slot-value ast 'stored-hash)
-            (ast-hash (cons (ast-class ast) (children ast))))))
+            (ast-hash (cons (type-of ast) (children ast))))))
 
 
 ;;; Generic functions on ASTs
@@ -428,8 +425,8 @@ optionally writing to STREAM.")
 
 SPEC: List specification of an AST.  A SPEC should have the form
 
-  (ast-class <optional-keyword-args-to-`make-instance <AST-TYPE>'>
-             CHILDREN)
+  (type-of <optional-keyword-args-to-`make-instance <AST-TYPE>'>
+           CHILDREN)
 
 where CHILDREN may themselves be specifications suitable for passing
 to `convert`"
@@ -458,8 +455,8 @@ AST using FN to create the AST.
 
 SPEC: List specification of an AST.  A SPEC should have the form
 
-  (ast-class <optional-keyword-args-to-`make-instance <AST-TYPE>'>
-             CHILDREN)
+  (type-of <optional-keyword-args-to-`make-instance <AST-TYPE>'>
+           CHILDREN)
 
 where CHILDREN may themselves be specifications suitable for passing
 to `convert-list-to-ast-helper`

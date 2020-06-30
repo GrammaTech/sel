@@ -219,21 +219,23 @@
                 (mappend «cons #'car [{mapcar #'car} #'cdr]» +asdl+)))
 
 (define-constant +stmt-ast-classes+
-  '(:Module :FunctionDef :AsyncFunctionDef :ClassDef :Return :Delete
-    :Assign :AugAssign :AnnAssign :For :AsyncFor :While :If
-    :With :AsyncWith :Raise :Try :ExceptHandler :Assert :Import :ImportFrom
-    :Global :NonLocal :Expr :Pass :Break :Continue)
+    '(py-module 'py-function-def 'py-async-function-def 'py-class-def 'py-return
+      'py-delete 'py-assign 'py-aug-assign 'py-ann-assign 'py-for 'py-async-for
+      'py-while 'py-if 'py-with 'py-async-with 'py-raise 'py-try
+      'py-except-handler 'py-assert 'py-import 'py-import-from 'py-global
+      'py-non-local 'py-expr 'py-pass 'py-break 'py-continue)
   :test #'equal
   :documentation "Stmt AST subclasses for python.")
 
 (define-constant +ast-classes-with-larger-child-spans+
-  '(:Arg :GeneratorExp :Starred :ClassDef :AsyncFunctionDef :FunctionDef)
+  '('py-arg 'py-generator-exp 'py-starred 'py-class-def 'py-async-function-def
+    'py-function-def)
   :test #'equal
   :documentation "AST classes which may have child spans larger than span
 given by python in the line, col attributes.")
 
 (define-constant +ast-classes-with-unsorted-children+
-  '(:Dict :Call :AsyncFunctionDef :FunctionDef :Arguments)
+  '('py-dict 'ph-call 'py-async-function-def 'py-function-def 'py-arguments)
   :test #'equal
   :documentation "AST classes which may have children which are not
 in textual (sorted) order.")
@@ -374,7 +376,7 @@ is not a compiled language.
   (values bin 0 nil nil nil))
 
 (defmethod get-parent-full-stmt ((obj python) (ast python-ast))
-  (cond ((member (ast-class ast) +stmt-ast-classes+) ast)
+  (cond ((member (type-of ast) +stmt-ast-classes+) ast)
         (t (get-parent-full-stmt obj (get-parent-ast obj ast)))))
 
 (defmethod rebind-vars ((ast python-ast)
@@ -384,7 +386,7 @@ is not a compiled language.
 * VAR-REPLACEMENTS list of old-name, new-name pairs defining the rebinding
 * FUN-REPLACEMENTS list of old-function-info, new-function-info pairs defining
 the rebinding"
-  (if (eq (ast-class ast) :Name)
+  (if (type-of ast 'py-name)
       (copy ast :id (rebind-vars (ast-annotation ast :id)
                                  var-replacements
                                  fun-replacements)
@@ -424,8 +426,8 @@ AST ast to return the enclosing scope for"
                      ;; Special case: For if statements, we do not
                      ;; want to create a new scope for elif clauses.
                      ;; The (or ...) below returns nil for elif clauses.
-                     (and (eq (ast-class parent) :If)
-                          (or (not (eq (ast-class ast) :If))
+                     (and (type-of parent 'py-if)
+                          (or (not (type-of ast 'py-if))
                               (starts-with-subseq "if" (source-text ast))))))
                (cdr (get-parent-asts obj ast)))
       (genome obj)))
@@ -446,7 +448,7 @@ AST ast to return the scopes for"
              "Return T if AST1 and AST2 appear in the same if statement
              clause (the body or the else)."
              (if (and parent1 parent2 (eq parent1 parent2)
-                      (eq (ast-class parent1) :If))
+                      (type-of parent1 'py-if))
                  (let ((else-path (nest (remove-if #'null)
                                         (append (ast-path obj parent1))
                                         (list)
@@ -462,10 +464,10 @@ AST ast to return the scopes for"
            (get-lhs-names (assignment)
              "Return all NAME ASTs on the left-hand-side of ASSIGNMENT."
              (nest (remove-if-not (lambda (ast)
-                                    (and (eq (ast-class ast) :Name)
-                                         (eq (ast-annotation ast :ctx) :store))))
+                                    (and (type-of ast 'py-name)
+                                         (type-of ast 'py-store))))
                    (child-asts assignment :recursive t)))
-           (build-scope-alist (scope ast)
+           (build-scope-alist (obj scope ast)
              "Return an alist containing :name, :decl, and :scope for the
              variable in AST."
              (mapcar (lambda (name)
@@ -476,7 +478,7 @@ AST ast to return the scopes for"
                             (mapcar (lambda (name)
                                       (ast-annotation name :id))
                                     (get-lhs-names ast)))
-                           ((eq (ast-class ast) :Arguments)
+                           ((type-of ast 'py-arguments)
                             (mapcar (lambda (arg)
                                       (ast-annotation arg :arg))
                                     (child-asts ast)))
@@ -530,18 +532,18 @@ AST ast to return the scopes for"
                         (match parent
                                ;; free function
                                ((ast
-                                 (ast-class :Call)
+                                 (type 'py-call)
                                  (children (list* (type string)
                                                   (guard ast (eq ast name))
                                                   _)))
                                 t)
                                ;; method
                                ((ast
-                                 (ast-class :Call)
+                                 (type 'py-call)
                                  (children
                                    (list* (type string)
                                           (ast
-                                           (ast-class :Attribute)
+                                           (type 'py-attribute)
                                            (children
                                              (list* (type string)
                                                     (guard ast (eq ast name))
@@ -549,14 +551,14 @@ AST ast to return the scopes for"
                                 t)))
                       parents))
            (bound-name-p (parent)
-             (member (ast-class parent)
-                     (list :FunctionDef
-                           :AsyncFunctionDef
-                           :ClassDef)))
+             (member (type-of parent)
+                     (list 'py-function-def
+                           'py-async-function-def
+                           'py-class-def)))
            (get-unbound-vals-helper (obj parents ast)
              (remove-duplicates
                (apply #'append
-                      (when (and (eq (ast-class ast) :Name)
+                      (when (and (type-of ast 'py-name)
                                  (not (or (bound-name-p (car parents))
                                           (call-name-p parents ast))))
                         (list (cons :name (source-text ast))))
@@ -576,12 +578,12 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
 * AST ast to retrieve unbound functions within"
   (remove-duplicates
     (apply #'append
-           (when (eq (ast-class ast) :Call)
-             (cond ((eq (ast-class callee) :Name)
+           (when (type-of ast 'py-call)
+             (cond ((type-of callee 'py-name)
                     ;; Free function call
                     (list (list (source-text callee)
                                 nil nil (length (cdr children)))))
-                  ((eq (ast-class callee) :Attribute)
+                  ((type-of callee 'py-attribute)
                    ;; Member Function call
                    (list (list (ast-annotation callee :attr)
                                nil nil (length (cdr children)))))

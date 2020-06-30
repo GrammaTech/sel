@@ -337,37 +337,31 @@ is not a compiled language.
 * VAR-REPLACEMENTS list of old-name, new-name pairs defining the rebinding
 * FUN-REPLACEMENTS list of old-function-info, new-function-info pairs defining
 the rebinding"
-  (if (eq (ast-class ast) :Identifier)
-      (copy ast :name (rebind-vars (ast-annotation ast :name)
-                                   var-replacements
-                                   fun-replacements)
-                :children (mapcar {rebind-vars _
-                                               var-replacements
-                                               fun-replacements}
-                                  (children ast)))
-      (let ((c (mapcar (lambda (c)
-                         (cond ((stringp c) c)
-                               (t (rebind-vars c var-replacements
-                                               fun-replacements))))
-                       (children ast))))
-        (if (every #'eql c (children ast))
-            ast
-            (copy ast :children c)))))
+  (mapcar (lambda (ast)
+            (when (and (typep ast 'js-identifier)
+                       (member (limited-source-text ast)
+                               (mapcar #'car var-replacements)
+                               :test #'string=))
+              (setf (limited-source-text ast)
+                    (second (find-if [{string= (limited-source-text ast)} #'car]
+                                     var-replacements))))
+            ast)
+          ast))
 
 (defmethod enclosing-scope ((obj javascript) (ast javascript-ast))
   "Return the enclosing scope of AST in OBJ.
 OBJ javascript software object
 AST ast to return the enclosing scope for"
   (or (find-if (lambda (ast)
-                 (member (ast-class ast)
-                         (list :BlockStatement
-                               :FunctionDeclaration
-                               :FunctionExpression
-                               :Program
-                               :ArrowFunctionExpression
-                               :ForStatement
-                               :ForInStatement
-                               :ForOfStatement)))
+                 (member (type-of ast)
+                         (list 'js-block-statement
+                               'js-function-declaration
+                               'js-function-expression
+                               'js-program
+                               'js-arrow-function-expression
+                               'js-for-statement
+                               'js-for-in-statement
+                               'js-for-of-statement)))
                (cdr (get-parent-asts obj ast)))
       (genome obj)))
 
@@ -378,48 +372,49 @@ OBJ javascript software object
 AST ast to return the scopes for"
   (labels ((get-parent-decl (obj identifier)
              "For the given IDENTIFIER AST, return the parent declaration."
-             (car (remove-if-not [{eq :VariableDeclaration} #'ast-class]
+             (car (remove-if-not {typep _ 'js-variable-declaration}
                                  (get-parent-asts obj identifier))))
            (get-first-child-ast (ast)
              "Return the first child of the AST."
              (first (child-asts ast)))
            (filter-identifiers (scope children)
              "Return all variable identifiers found in the CHILDREN of SCOPE."
-             (if (member (ast-class scope)
-                         (list :FunctionDeclaration
-                               :FunctionExpression
-                               :ArrowFunctionExpression))
-                 ;; Special case for functions.
-                 ;; function foo(bar, ...baz) {...} => '(bar baz)
-                 (mappend
-                   (lambda (ast)
-                     (cond ((eq (ast-class ast) :Identifier)
-                            (list ast))
-                           ((eq (ast-class ast) :RestElement)
-                            (list (first (child-asts ast))))
-                           (t nil)))
-                   (if (eq (ast-class scope) :FunctionDeclaration)
-                       (cdr children) ; elide function name identifer
-                       children))
-                 ;; Return the variable declarations in the scope.
-                 ;; Note: An variable declaration or assignment in
-                 ;; JavaScript may be destructuring
-                 ;; (e.g. [a, b, c] = [1, 2, 3]).  In this case, we need
-                 ;; all of the variables on the left-hand side of the
-                 ;; expression.
-                 (nest (remove-if-not [{eq :Identifier} #'ast-class])
-                       (mappend (lambda (ast)
-                                  (let ((child (get-first-child-ast ast)))
-                                    (if (eq :Identifier (ast-class child))
-                                        ;; single var
-                                        (list child)
-                                        ;; destructuring
-                                        (child-asts child :recursive t)))))
-                       (remove-if-not [{eq :VariableDeclarator} #'ast-class])
-                       (mappend #'child-asts)
-                       (remove-if-not [{eq :VariableDeclaration} #'ast-class]
-                                      children)))))
-    (when (not (eq :Program (ast-class ast)))
+             (typecase scope
+               ((js-function-declaration
+                 js-function-expression
+                 js-arrow-function-expression)
+                ;; Special case for functions.
+                ;; function foo(bar, ...baz) {...} => '(bar baz)
+                (mappend
+                 (lambda (ast)
+                   (cond ((typep ast 'js-identifier)
+                          (list ast))
+                         ((typep ast 'js-rest-element)
+                          (list (first (child-asts ast))))
+                         (t nil)))
+                 (if (typep scope 'js-function-declaration)
+                     (cdr children) ; elide function name identifer
+                     children)))
+               (t
+                ;; Return the variable declarations in the scope.
+                ;; Note: An variable declaration or assignment in
+                ;; JavaScript may be destructuring
+                ;; (e.g. [a, b, c] = [1, 2, 3]).  In this case, we need
+                ;; all of the variables on the left-hand side of the
+                ;; expression.
+                (nest (remove-if-not {typep _ 'js-identifier)
+                      (mappend (lambda (ast)
+                                 (let ((child (get-first-child-ast obj ast)))
+                                   (if (typep child 'js-identifier)
+                                       ;; single var
+                                       (list child)
+                                       ;; destructuring
+                                       (get-children obj child)))))
+                      (remove-if-not {typep _ 'js-variable-declarator})
+                      (mappend #'child-asts)
+                      (remove-if-not {typep _ 'js-variable-declarator}
+                                     children))))))
+    (when (not (typep ast 'js-program))
       (let ((scope (enclosing-scope obj ast)))
         (cons (nest (reverse)
                     ; build result
@@ -443,23 +438,23 @@ AST ast to return the scopes for"
   (labels ((get-unbound-vals-helper (obj parent ast)
              (remove-duplicates
                (apply #'append
-                      (when (and (eq (ast-class ast) :Identifier)
-                                 (not (member (ast-class parent)
-                                              (list :CallExpression
-                                                    :MemberExpression
-                                                    :FunctionDeclaration
-                                                    :FunctionExpression
-                                                    :ArrowFunctionExpression
-                                                    :ClassExpression
-                                                    :MetaProperty
-                                                    :BreakStatement
-                                                    :ClassDeclaration
-                                                    :ContinueStatement
-                                                    :LabelledStatement
-                                                    :ImportSpecifier
-                                                    :ExportSpecifier
-                                                    :ExportDefaultDeclaration
-                                                    :VariableDeclarator))))
+                      (when (and (typep ast 'js-identifier)
+                                 (not (member (type-of parent)
+                                              (list 'js-call-expression
+                                                    'js-member-expression
+                                                    'js-function-declaration
+                                                    'js-function-expression
+                                                    'js-arrow-function-expression
+                                                    'js-class-expression
+                                                    'js-meta-property
+                                                    'js-break-statement
+                                                    'js-class-declaration
+                                                    'js-continue-statement
+                                                    'js-labelled-statement
+                                                    'js-import-specifier
+                                                    'js-export-specifier
+                                                    'js-export-default-declaration
+                                                    'js-variable-declarator))))
                         (list (cons :name (source-text ast))))
                       (mapcar {get-unbound-vals-helper obj ast}
                               (child-asts ast)))
@@ -474,12 +469,12 @@ AST ast to return the scopes for"
 * AST ast to retrieve unbound functions within"
   (remove-duplicates
     (apply #'append
-           (when (eq (ast-class ast) :CallExpression)
-             (cond ((eq (ast-class callee) :Identifier)
+           (when (typep ast 'js-call-expression)
+             (cond ((typep callee 'js-identifier)
                     ;; Free function call
                     (list (list (source-text callee)
                                 nil nil (length (cdr child-asts)))))
-                   ((eq (ast-class callee) :MemberExpression)
+                   ((typep callee 'js-member-expression)
                     ;; Member function call
                     (list (list (nest (source-text)
                                       (second)
