@@ -284,12 +284,24 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
 (defmethod parse-asts ((obj javascript) &optional (source (genome-string obj)))
   (convert 'javascript-ast source))
 
+(defmethod limited-source-text ((obj javascript-ast) &optional stream)
+  (with-string (s stream)
+    (write-string (subseq (string-pointer obj) (start obj) (end obj)) s)))
+
+(defmethod (setf string-pointer) (new (obj javascript-ast))
+  (setf (slot-value obj 'string-pointer) new
+        (slot-value obj 'start) 0
+        (slot-value obj 'end) (length new)))
+
+(defmethod (setf limited-source-text) (new (obj javascript-ast) &optional stream)
+  (declare (ignorable stream))
+  (setf (string-pointer obj) new))
+
 (defmethod source-text ((obj javascript-ast) &optional stream)
   (write-string (source-text (skipped-before obj)) stream)
   (if (children obj)
       (mapc [{write-string _ stream} #'source-text] (children obj))
-      (write-string (subseq (string-pointer obj) (start obj) (end obj))
-                    stream))
+      (limited-source-text obj stream))
   (write-string (source-text (skipped-after obj)) stream))
 
 
@@ -365,6 +377,30 @@ AST ast to return the enclosing scope for"
                (cdr (get-parent-asts obj ast)))
       (genome obj)))
 
+(defgeneric left-siblings (obj ast)
+  (:documentation "Return all siblings of AST to the left.")
+  (:method (obj (ast ast))
+    (when-let ((parent (get-parent-ast obj ast)))
+      (take-until {equal? ast} (children parent)))))
+
+(defgeneric right-siblings (obj ast)
+  (:documentation "Return all siblings of AST to the right.")
+  (:method (obj (ast ast))
+    (when-let ((parent (get-parent-ast obj ast)))
+      (cdr (drop-until {equal? ast} (children parent))))))
+
+;;; FIXME: is the following a valid alternate implementation of scopes
+;;; assuming we define `inner-declarations' to return the
+;;; contributions an AST makes to the scopes of it's direct
+;;; descendents and we define `outer-declarations' to return the
+;;; changes an AST makes to the scope of its right-siblings?
+#+fixme
+(defmethod scopes ((obj javascript) (ast javascript-ast))
+  (mappend (lambda (parent)
+             (append (inner-scope parent)
+                     (mappend #'outer-scope (left-siblings obj parent))))
+           (get-parent-asts obj ast)))
+
 (defmethod scopes ((obj javascript) (ast javascript-ast))
   "Return lists of variables in each enclosing scope of AST.
 Each variable is represented by an alist containing :NAME, :DECL, and :SCOPE.
@@ -380,9 +416,9 @@ AST ast to return the scopes for"
            (filter-identifiers (scope children)
              "Return all variable identifiers found in the CHILDREN of SCOPE."
              (typecase scope
-               ((js-function-declaration
-                 js-function-expression
-                 js-arrow-function-expression)
+               ((or js-function-declaration
+                    js-function-expression
+                    js-arrow-function-expression)
                 ;; Special case for functions.
                 ;; function foo(bar, ...baz) {...} => '(bar baz)
                 (mappend
@@ -402,7 +438,7 @@ AST ast to return the scopes for"
                 ;; (e.g. [a, b, c] = [1, 2, 3]).  In this case, we need
                 ;; all of the variables on the left-hand side of the
                 ;; expression.
-                (nest (remove-if-not {typep _ 'js-identifier)
+                (nest (remove-if-not {typep _ 'js-identifier})
                       (mappend (lambda (ast)
                                  (let ((child (get-first-child-ast obj ast)))
                                    (if (typep child 'js-identifier)
@@ -420,7 +456,7 @@ AST ast to return the scopes for"
                     ; build result
                     (mappend
                       (lambda (ast)
-                        `(((:name . ,(source-text ast))
+                        `(((:name . ,(limited-source-text ast))
                            (:decl . ,(get-parent-decl obj ast))
                            (:scope . ,scope)))))
                     ; remove ASTs which are not variable identifiers

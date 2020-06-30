@@ -23,6 +23,7 @@
            :conflict-ast-child-alist
            :conflict-ast-default-children
            :combine-conflict-asts
+           :limited-source-text
            :source-text
            :rebind-vars
            :convert-list-to-ast-helper
@@ -374,6 +375,10 @@ modile +AST-HASH-BASE+"
 
 (defgeneric from-alist (symbol alist)
   (:documentation "Convert alist to struct representation."))
+
+(defgeneric limited-source-text (ast &optional stream)
+  (:documentation
+   "Return the source code corresponding to AST without any skipped input."))
 
 (defgeneric source-text (ast &optional stream)
   (:documentation "Return the source code corresponding to an AST,

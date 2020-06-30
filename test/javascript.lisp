@@ -129,9 +129,9 @@
 
 (deftest javascript-convert-source-snippet-works ()
   (let ((ast (convert 'javascript-ast "j = 0")))
-    (is (equal 10 (size ast)))
+    (is (equal 5 (size ast)))
     (is (equal "j = 0" (source-text ast)))
-    (is (find-if [{eq :ExpressionStatement} #'ast-class] ast))))
+    (is (find-if {typep _ 'js-expression-statement} ast))))
 
 (deftest (can-format-a-javascript-software-object :long-running) ()
   (with-fixture fib-javascript
