@@ -431,8 +431,10 @@ optionally writing to STREAM.")
   (:documentation
    "Replace variable and function references, returning a new AST.")
   (:method ((ast string) var-replacements fun-replacements)
-    (reduce (lambda (new-ast replacement)
-              (replace-all new-ast (first replacement) (second replacement)))
+    (reduce (lambda (ast replacement-pair)
+              (if (equal ast (first replacement-pair))
+                  (second replacement-pair)
+                  ast))
             (append var-replacements
                     (mapcar (lambda (fun-replacement)
                               (list (car (first fun-replacement))

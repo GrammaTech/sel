@@ -148,7 +148,16 @@
                        (source-text)
                        (rebind-vars (stmt-with-text *soft* "temp = a;")
                                     (list (list "a" "b"))
-                                    nil))))))
+                                    nil)))
+        "`rebind-vars` did not properly rebind 'a' to 'b'"))
+  (with-fixture fib-javascript
+    (is (string= "fibonacci(10);"
+                 (nest (trim-whitespace)
+                       (source-text)
+                       (rebind-vars (stmt-with-text *soft* "fibonacci(10);")
+                                    (list (list "b" "G19"))
+                                    nil)))
+        "`rebind-vars` improperly rebound 'b' to 'G19' in 'fibonacci(10)'")))
 
 (deftest javascript-get-vars-in-scope ()
   (with-fixture fib-javascript
