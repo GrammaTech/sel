@@ -2,7 +2,6 @@
 (defpackage :software-evolution-library/software/parseable
   (:nicknames :sel/software/parseable :sel/sw/parseable)
   (:use :gt/full
-        :metabang-bind
         :cl-store
         :bordeaux-threads
         :software-evolution-library
@@ -21,7 +20,6 @@
            :ast-to-list
            :ast-equal-p
            :ast-hash
-           :path-later-p
            :conflict-ast
            :conflict-ast-child-alist
            :conflict-ast-default-children
@@ -396,24 +394,6 @@ modile +AST-HASH-BASE+"
 
 (defgeneric from-alist (symbol alist)
   (:documentation "Convert alist to struct representation."))
-
-(defgeneric path-later-p (path-a path-b)
-  (:documentation "Does PATH-A represent an AST path after PATH-B?
-Use this to sort AST asts for mutations that perform multiple
-operations.")
-  (:method ((path-a list) (path-b list))
-    (cond
-      ;; Consider longer paths to be later, so in case of nested ASTs we
-      ;; will sort inner one first. Mutating the outer AST could
-      ;; invalidate the inner ast.
-      ((null path-a) nil)
-      ((null path-b) t)
-      (t (bind (((head-a . tail-a) path-a)
-                ((head-b . tail-b) path-b))
-               (cond
-                 ((> head-a head-b) t)
-                 ((> head-b head-a) nil)
-                 (t (path-later-p tail-a tail-b))))))))
 
 (defgeneric source-text (ast &optional stream)
   (:documentation "Return the source code corresponding to an AST,
