@@ -14,7 +14,7 @@
 (defmethod create-super-soft ((base clang) mutants)
   (labels
       ((ensure-functions-compatible (f1 f2 mutant)
-         (unless (ast-equal-p f1 f2)
+         (unless (equal? f1 f2)
            (unless (name= (ast-name f1) (ast-name f2))
              (error (make-condition 'mutate
                                     :text "Mismatched function names"
@@ -54,7 +54,7 @@ There are several cases here:
                (progn
                  ;; Top-level decls must be identical across variants.
                  (mapc (lambda (ast)
-                         (unless (ast-equal-p head ast)
+                         (unless (equal? head ast)
                            (error (make-condition 'mutate
                                                   :text
                                                   "Mismatched global decls"))))
@@ -65,7 +65,7 @@ There are several cases here:
                      ;; Insert decls
                      (cons nil (car non-null-asts))))
                ;; Functions
-               (if (every {ast-equal-p head} non-null-asts)
+               (if (every {equal? head} non-null-asts)
                    ;; All identical (but may be missing in some mutants)
                    (cons (car asts) (car non-null-asts))
                    ;; Function bodies may differ as long as name and arguments
@@ -85,7 +85,7 @@ There are several cases here:
                                                             (ast-name ast))
                                                     :obj mutant)))
                                  (if-let ((value (aget ast variants
-                                                       :test #'ast-equal-p)))
+                                                       :test #'equal?)))
                                    (pushnew i (third value))
                                    (setf variants
                                          (cons (cons ast
@@ -119,7 +119,7 @@ true, create a complete function decl which contains the body."
                                  (declare (ignorable decl))
                                  ;; Add default case to make the
                                  ;; compiler happy.
-                                 (list (if (ast-equal-p decl (caar variants))
+                                 (list (if (equal? decl (caar variants))
                                            (cons t indices)
                                            indices)
                                        (list body (make-break-stmt))))

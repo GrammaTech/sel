@@ -210,28 +210,16 @@ not explicit slot initargs into annotations for functional tree ASTs."
 
 
 ;;; AST equality and hashing
-(defgeneric ast-equal-p (ast-a ast-b)
-  (:documentation "Return T AST-A and AST-B are equal for differencing."))
-
-(defmethod ast-equal-p ((ast-a ast) (ast-b ast))
+(defmethod equal? ((ast-a ast) (ast-b ast))
   (and (eq (ast-class ast-a) (ast-class ast-b))
        (eql (length (children ast-a))
             (length (children ast-b)))
-       (every #'ast-equal-p (children ast-a) (children ast-b))))
-
-(defmethod ast-equal-p ((ast-a t) (ast-b t))
-  (equal ast-a ast-b))
-
-(defmethod ast-equal-p ((ast-a cons) (ast-b cons))
-  (and (iter (while (consp ast-a))
-             (while (consp ast-b))
-             (always (ast-equal-p (pop ast-a) (pop ast-b))))
-       (ast-equal-p ast-a ast-b)))
+       (every #'equal? (children ast-a) (children ast-b))))
 
 (defgeneric ast-hash (ast)
   (:documentation "A hash value for the AST, which is a nonnegative
-integer.  It should be the case that (ast-equal-p x y) implies
-(eql (ast-hash x) (ast-hash y)), and that if (not (ast-equal-p x y))
+integer.  It should be the case that (equal? x y) implies
+(eql (ast-hash x) (ast-hash y)), and that if (not (equal? x y))
 then the equality of the hashes is unlikely."))
 
 (defconstant +ast-hash-base+ (- (ash 1 56) 5)
@@ -536,7 +524,7 @@ There are some requirements for the ASTs constructed by this method:
   source text then they are equal.
 
 Other methods in on parseable objects, specifically `ast-can-recurse'
-and `ast-equal-p' depend on these invariants.
+and `equal?' depend on these invariants.
 
 Optional argument SOURCE-TEXT holds the source code string to parse
 into ASTs.  If not supplied it is generally assumed to already be set

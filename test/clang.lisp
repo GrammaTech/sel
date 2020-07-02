@@ -248,8 +248,8 @@
        variant
        `(clang-cut (:stmt1 . ,(stmt-with-text
                                variant "printf(\"Hello, World!\\n\");"))))
-      (is (ast-equal-p (stmt-with-text *hello-world* "return 0;")
-                       (stmt-with-text variant "return 0;"))))))
+      (is (equal? (stmt-with-text *hello-world* "return 0;")
+                  (stmt-with-text variant "return 0;"))))))
 
 (deftest crossover-clang-software-object-does-not-crash()
   (with-fixture hello-world-clang

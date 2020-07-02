@@ -123,8 +123,8 @@
       (apply-mutation variant
                       (make-instance 'parseable-cut
                         :targets (list (cons :stmt1 stmt1))))
-      (is (ast-equal-p (stmt-with-text *soft* "num--;")
-                       (stmt-with-text variant "num--;"))))))
+      (is (equal? (stmt-with-text *soft* "num--;")
+                  (stmt-with-text variant "num--;"))))))
 
 (deftest javascript-convert-source-snippet-works ()
   (let ((ast (convert 'javascript-ast "j = 0")))
