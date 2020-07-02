@@ -40,7 +40,6 @@
            :parseable-nop
            ;; Generic functions.
            :roots
-           :get-ast
            :get-parent-ast
            :get-parent-asts
            :get-parent-full-stmt
@@ -508,9 +507,6 @@ returning a newly created AST."
 (defgeneric asts (obj)
   (:documentation "Deprecated: Return a list of all non-root ASTs in OBJ."))
 
-(defgeneric get-ast (obj path)
-  (:documentation "Return the AST in OBJ at the given PATH."))
-
 (defgeneric get-parent-ast (obj ast)
   (:documentation "Return the parent node of AST in OBJ"))
 
@@ -599,6 +595,10 @@ If no suitable points are found the returned points may be nil."))
 
 
 ;;; Core parseable methods
+(defmethod lookup ((obj parseable) key)
+  ;; Enables the use of the `@' macro directly against parseable objects.
+  (lookup (genome obj) key))
+
 (defmethod size ((obj parseable))
   "Return the number of non-root ASTs in OBJ."
   (1- (count-if {typep _ 'ast} (genome obj))))
@@ -685,30 +685,6 @@ If possible, only use when dealing with legacy code.
   (:method  ((obj parseable) (ast ast))
     (position ast (asts obj) :test #'equalp)))
 
-(defmethod get-ast ((obj parseable) (path list))
-  "Return the AST in OBJ at the given PATH.
-* OBJ software object with ASTs
-* PATH path to the AST to return"
-  (let ((tree (genome obj))
-        (pred nil))
-    (iter (for i from 0)
-          (for j in path)
-          (unless (typep tree 'ast)
-            (if pred
-                (error "At path ~a, below~%~a, not an AST:~%~a"
-                       (subseq path 0 i)
-                       pred
-                       tree)
-                (error "Root of ~a is not an AST: ~a"
-                       obj tree)))
-          (unless (typep j '(integer 0))
-            (error "Not a valid path index: ~a" j))
-          (let ((children (ast-children tree)))
-            (unless (< j (length children))
-              (error "Not a valid child index for~%~a:~%~a" tree j))
-            (setf pred tree tree (elt children j))))
-    tree))
-
 (defgeneric parent-ast-p (software possible-parent-ast ast)
   (:documentation "Return true if POSSIBLE-PARENT-AST is a parent of AST in OBJ, nil
 otherwise.
@@ -725,7 +701,7 @@ otherwise.
 * AST node to find the parent of
 "
   (when-let ((path (butlast (ast-path obj ast))))
-    (get-ast obj path)))
+    (@ obj path)))
 
 (defmethod get-parent-asts ((obj parseable) (ast ast))
   "Return the parent nodes of AST in OBJ
@@ -1218,7 +1194,7 @@ with REPLACEMENT.
   (:method ((obj parseable) (location ast) (replacement list) &rest args)
     (apply #'replace-ast obj (ast-path obj location) replacement args))
   (:method ((obj parseable) (location list) (replacement list) &rest args)
-    (let* ((old-ast (get-ast obj (butlast location)))
+    (let* ((old-ast (@ obj (butlast location)))
            (new-ast (nest (copy old-ast :children)
                           (append (subseq (ast-children old-ast) 0
                                           (lastcar location))

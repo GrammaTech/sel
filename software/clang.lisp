@@ -2059,7 +2059,7 @@ already in scope, it will keep that name.")
   ;; stmt2 arguments.
   (cons
    (type-of op)
-   (mapcar [#'ast-class {get-ast obj} #'cdr]
+   (mapcar [#'ast-class {lookup obj} #'cdr]
            (remove-if-not [#'numberp #'cdr]
                           (remove-if-not [{member _ (list :stmt1 :stmt2)} #'car]
                                          (remove-if-not #'consp (targets op)))))))
@@ -2342,6 +2342,16 @@ Adds and removes semicolons, commas, and braces.
                         (:instead (add-semicolon))
                         (:remove (no-change))))
               (:toplevel (add-semicolon-if-unbraced)))))))
+
+;; FIXME: When clang is converted to utilize functional trees,
+;; these method specializations will no longer be required.
+(defmethod lookup ((ast clang-ast) (path list))
+  (lookup (lookup ast (car path)) (cdr path)))
+
+(defmethod lookup ((ast clang-ast) (i integer))
+  (elt (ast-children ast) i))
+
+(defmethod lookup ((ast clang-ast) (path null)) ast)
 
 (defmethod ends-with-semicolon ((str string))
   (let ((trimmed (string-right-trim (list #\Space #\Tab #\Newline

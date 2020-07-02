@@ -270,7 +270,6 @@ Class @code{parseable}
 
 @item Generic Functions
   @itemize
-  @item @refapigeneric{get-ast}
   @item @refapigeneric{get-immediate-children}
   @item @refapigeneric{get-unbound-funs}
   @item @refapigeneric{get-unbound-vals}
@@ -281,7 +280,6 @@ Class @code{parseable}
 
 @item Methods
   @itemize
-    @item @refapimethod{get-ast,get-ast}
     @item @refapimethod{get-immediate-children,get-immediate-children}
   @end itemize
 

@@ -356,19 +356,19 @@
     (is (typep (copy (genome *soft*)) 'javascript-ast)))
   (with-fixture javascript-ast-w-conflict
     ;; Access ASTs.
-    (is (string= "top" (get-ast *soft* '(0))))
-    (is (typep (get-ast *soft* '(1)) 'javascript-ast))
-    (is (string= "left" (get-ast *soft* '(1 0))))
-    (is (typep (get-ast *soft* '(2)) 'javascript-ast))
-    (is (string= "right" (get-ast *soft* '(2 0))))
+    (is (string= "top" (@ *soft* '(0))))
+    (is (typep (@ *soft* '(1)) 'javascript-ast))
+    (is (string= "left" (@ *soft* '(1 0))))
+    (is (typep (@ *soft* '(2)) 'javascript-ast))
+    (is (string= "right" (@ *soft* '(2 0))))
     ;; Set AST with (replace-ast ...).
     (replace-ast *soft* '(2 0) "RIGHT")
-    (is (string= "RIGHT" (get-ast *soft* '(2 0))))
+    (is (string= "RIGHT" (@ *soft* '(2 0))))
     (replace-ast *soft* '(1) (make-instance 'javascript-ast :class :foo))
-    (is (eql :foo (ast-class (get-ast *soft* '(1))))))
+    (is (eql :foo (ast-class (@ *soft* '(1))))))
   (with-fixture javascript-ast-w-conflict
     (replace-ast *soft* '(1) (make-instance 'javascript-ast :class :foo))
-    (is (eql :foo (ast-class (get-ast *soft* '(1)))))))
+    (is (eql :foo (ast-class (@ *soft* '(1)))))))
 
 (deftest javascript-and-conflict-replace-ast ()
   (with-fixture javascript-ast-w-conflict
