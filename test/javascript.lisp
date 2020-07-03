@@ -162,7 +162,7 @@
 
 (deftest javascript-get-vars-in-scope ()
   (with-fixture fib-javascript
-    (is (set-equal (list "temp" "b" "a" "num")
+    (is (set-equal (list "temp" "b" "a" "fibonacci" "num")
                    (nest (mapcar {aget :name})
                          (get-vars-in-scope *soft*)
                          (stmt-with-text *soft* "temp = a;"))
