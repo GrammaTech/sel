@@ -411,7 +411,10 @@ AST ast to return the enclosing scope for"
   (:method ((ast js-variable-declaration))
     (mappend #'outer-declarations (js-declarations ast)))
   (:method ((ast js-array-pattern))
-    (mappend #'outer-declarations (js-elements ast))))
+    (mappend #'outer-declarations (js-elements ast)))
+  (:method ((ast js-object-pattern))
+    (mappend #'outer-declarations (js-properties ast)))
+  (:method ((ast js-property)) (list (js-key ast))))
 
 (defmethod scopes ((obj javascript) (ast javascript-ast))
   (labels ((get-parent-decl (obj identifier)
