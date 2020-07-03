@@ -130,7 +130,7 @@
       :assignment-expression)
      (:left . 1) (:right . 1))
     ((:function-expression :arrow-function-expression :function-declaration)
-     (:params . 0) (:body . 1))
+     (:id . 1) (:params . 0) (:body . 1))
     ((:class-body :block-statement) (:body . 0))
     ((:call-expression :new-expression) (:callee . 1) (:arguments . 0))
     ((:break-statement :continue-statement) (:label . 1))
