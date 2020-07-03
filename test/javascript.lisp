@@ -251,6 +251,14 @@
                          (stmt-starting-with-text soft "console.log("))
                    :test #'string=))))
 
+(deftest ensure-do-not-duplicate-property-in-genome-string ()
+  (let ((soft (from-file (make-instance 'javascript)
+                         (javascript-dir #P"parsing/object-destructuring.js"))))
+    (nest (is) (string= "p") (limited-source-text) (@ soft)
+          '(1 js-declarations 0 js-id js-properties 0))
+    (nest (is) (string= "p, ") (source-text) (@ soft)
+          '(1 js-declarations 0 js-id js-properties 0))))
+
 (deftest for-in-loop-get-vars-in-scope-test ()
   (let ((soft (from-file (make-instance 'javascript)
                          (javascript-dir #P"parsing/loops.js"))))

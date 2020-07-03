@@ -81,6 +81,8 @@
     ((:template-literal) (:quasis . 0) (:expressions . 0))
     ((:meta-property) (:meta . 1) (:property . 1))
     ((:property)
+     ;; See the comment about js-property in the `convert' method from
+     ;; list to javascript-ast:
      ;; if (< (start value) (end key)) just value
      (:key . 1) (:value . 1))
     ((:method-definition) (:key . 1) (:value . 1))
@@ -104,6 +106,8 @@
     ((:export-named-declaration)
      (:declaration . 1) (:specifiers . 0) (:source . 1))
     ((:export-specifier)
+     ;; FIXME: The following will likely also need to become a special
+     ;; case in `convert' below.
      ;; remove-duplicates
      (:local . 1) (:exported . 1))
     ((:class-expression :class-declaration)
@@ -133,6 +137,8 @@
     ((:conditional-expression :if-statement)
      (:test . 1) (:consequent . 1) (:alternate . 1))
     ((:import-specifier :import-default-specifier :import-namespace-specifier)
+     ;; FIXME: The following will likely also need to become a special
+     ;; case in `convert' below.
      ;; remove-duplicates
      (:imported . 1) (:local . 1))
     ;; classes with no children.
@@ -261,6 +267,13 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
                                                  (aget :type spec)))))
          (type (symbol-cat 'js raw-type))
          (child-types (aget raw-type js-children :test #'member)))
+    ;; Fix an in accuracy in the parsed ASTs we get from acorn.  For a
+    ;; property with no value (e.g., "p" in "{p, q}") it sets the
+    ;; value to the key so we will explicitly drop the value.
+    (case type
+      (js-property
+       (when (= (aget :start (aget :key spec)) (aget :start (aget :value spec)))
+         (setf spec (adrop '(:value) spec)))))
     (apply #'make-instance type
            (mappend
             (lambda (field)
