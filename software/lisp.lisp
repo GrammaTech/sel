@@ -47,7 +47,15 @@
            :quoted-p
            :find-in-defining-form
            :find-local-function
-           :enclosing-find-if))
+           :enclosing-find-if
+           :*scopes-allows-symbol-macro-variables-p*
+           :*scopes-allows-top-level-variables-p*
+           :get-vars-from-binding-form
+           :define-get-vars-from-binding-form
+           :handle-as
+           :collect-var-info
+           :define-binding-form-alias
+           :children-of-type))
 (in-package :software-evolution-library/software/lisp)
 (in-readtable :curry-compose-reader-macros)
 
@@ -668,6 +676,297 @@ possibly expressions) will be omitted according to the sign of the guard."
                            :remove-newly-empty t))
 
 
+;;; Scopes
+(defvar *scopes-allows-symbol-macro-variables-p* nil
+  "A special variable that modifies the functionality
+of get-vars-from-binding-form. If set to a non-nil value,
+symbol macros will be returned as if they were variables.")
+
+(defvar *scopes-allows-top-level-variables-p* t
+  "A special variable that modifies the functionality
+of get-vars-from-binding-form. If set to a non-nil value,
+top level variable definitions will be included.")
+
+(defgeneric get-vars-from-binding-form
+    (obj car-of-form binding-form &key reference-ast)
+  (:documentation "Retrieves the variables defined by BINDING-FORM.
+CAR-OF-FORM can be used as an 'eql specializer to dispatch to a specific
+method form the form. REFERENCE-AST can be used as a reference point
+for the method to filter out variables that aren't in scope of it.
+This is useful for forms like 'let* or for forms at the top-level which
+REFERENCE-AST may not be in the body of, such as 'defun.
+
+Methods for this generic shouldn't check if CAR-OF-FORM is
+what is expected because there are different forms that
+can have their variables retrieved in the exact same way,
+such as let and when-let.")
+  (:method (obj car-of-form binding-form &key reference-ast)
+    (declare (ignorable car-of-form binding-form reference-ast))
+    ;; If it hasn't dispatched on car-of-form before here,
+    ;; it likely isn't a binding form.
+    nil))
+
+(defmacro define-get-vars-from-binding-form
+    (binding-form-name (&key (software 'obj)
+                          (binding-form 'binding-form)
+                          (reference-ast 'reference-ast))
+     &body body)
+  "Defines a specialization of get-vars-from-binding-form that specializes
+on BINDING-FORM-NAME. The keyword arguments allow for explicit naming of the
+parameters of the method.
+
+A convenience local function, handle-as, is defined
+for the method body which allows for easy transferring to another
+specialization to handle the form. For exmaple, if a 'let* form has a
+reference ast that is inside it but after its definitions,it can
+transfer control to 'let by calling handle-as: (handle-as 'let).
+handle-as has a :reference-ast keyword which serves the same purpose
+as in get-vars-from-binding-form.
+
+A convenience local function, collect-var-info, is defined for the
+method body which collects info on a form in a format that can be
+returned."
+  (let ((car-of-form (gensym)))
+    `(defmethod get-vars-from-binding-form
+         ((,software lisp) (,car-of-form (eql ',binding-form-name))
+          (,binding-form lisp-ast) &key ,reference-ast)
+       (declare (ignorable ,car-of-form))
+       (labels ((handle-as (symbol &key (reference-ast ,reference-ast))
+                  "Convenience function that allows for
+                   easy transfer to another method specialization
+                   to HANDLE the current form as if it were a SYMBOL
+                   form."
+                  (get-vars-from-binding-form ,software symbol ,binding-form
+                                              :reference-ast ,reference-ast))
+                (collect-var-info (form)
+                  "Collects info about the variable that is defined
+                   in FORM."
+                  `((:name . ,(or (compound-form-p form)
+                                  (expression form)))
+                    (:decl . ,form)
+                    (:scope . ,,binding-form))))
+         (declare (ignorable (function handle-as) (function collect-var-info)))
+         ,@body))))
+
+(defmacro define-binding-form-alias (binding-form-alias binding-form)
+  "Creates a get-vars-from-binding-form method that specializes the
+parameter car-of-form on BINDING-FORM-ALIAS. The method immediately calls
+the specialization for BINDING-FORM."
+  `(define-get-vars-from-binding-form ,binding-form-alias ()
+     (handle-as ',binding-form)))
+
+(defun get-vars-from-ordinary-lambda-list
+    (obj binding-form lambda-list &key reference-ast)
+  "Get the vars from LAMBDA-LIST treating it as an ordinary lambda list.
+Uses REFERENCE-AST to determine what's in scope of the default value forms."
+  (labels ((get-key-special-case (form)
+             "Gets the variable name of a keyword argument
+              when it has a keyword that varies from the
+              variable name."
+             (match form
+               ;; keyword special case
+               ((lisp-ast
+                 (children
+                  (list*
+                   _
+                   (lisp-ast
+                    (children
+                     (list* (@@ 3 _) name _)))
+                   _)))
+                (expression name))))
+           (collect-var-info* (form)
+             "An extended version of collect-var-info
+              that handles the case where a keyword argument
+              has a variable name that differs from the keyword."
+             `((:name . ,(or (get-key-special-case form)
+                             (compound-form-p form)
+                             (expression form)))
+               (:decl . ,form)
+               (:scope . ,binding-form)))
+           (get-parameter-asts ()
+             "Returns all asts in the children of lambda list
+              that aren't symbols starting with '&'."
+             (remove-if [{member _ lambda-list-keywords} #'expression]
+                        (children-of-type lambda-list 'expression-result))))
+     (let* ((no-reference-p (not reference-ast))
+            (ancestor-of-lambda-list-p
+              (and (not no-reference-p)
+                   (ancestor-of-p obj reference-ast lambda-list))))
+      (cond
+        ((or no-reference-p
+             (and (not ancestor-of-lambda-list-p)
+                  (later-than-p obj reference-ast lambda-list)))
+         (mapcar #'collect-var-info*
+                 (get-parameter-asts)))
+        (ancestor-of-lambda-list-p
+         ;; NOTE: in a lambda list, such as (a b c &optional d),
+         ;;       a reference ast of 'c' will return 'a' and 'b'
+         ;;       as being in scope. This shouldn't be a problem,
+         ;;       but this note is here in case it becomes one.
+         ;;
+         ;; Collect the definitions that occur before it.
+         (mapcar
+          #'collect-var-info*
+          ;; Remove the form reference-ast is in.
+          (butlast
+           (remove-if
+            (lambda (ast)
+              (later-than-p obj ast reference-ast))
+            (get-parameter-asts)))))))))
+
+(define-get-vars-from-binding-form let
+    (:software obj :binding-form binding-form :reference-ast reference-ast)
+  (match binding-form
+    ((lisp-ast
+      (children
+       (list* (@@ 3 _) definitions _)))
+     (when (or (not reference-ast)
+               (and (not (ancestor-of-p obj reference-ast definitions))
+                    (later-than-p obj reference-ast definitions)
+                    (ancestor-of-p obj reference-ast binding-form)))
+       (mapcar #'collect-var-info
+               (children-of-type definitions 'expression-result))))))
+
+(define-get-vars-from-binding-form let*
+    (:software obj :binding-form binding-form :reference-ast reference-ast)
+  (match binding-form
+    ((lisp-ast
+      (children
+       (list* (@@ 3 _) definitions _)))
+     (let* ((no-reference-p (not reference-ast))
+            (ancestor-of-definitions-p
+              (and (not no-reference-p)
+                   (ancestor-of-p obj reference-ast definitions))))
+       (cond
+         ((or no-reference-p
+              (and (not ancestor-of-definitions-p)
+                   (later-than-p obj reference-ast definitions)))
+          (handle-as 'let))
+         (ancestor-of-definitions-p
+          ;; Collect the definitions that occur before it.
+          (mapcar
+           #'collect-var-info
+           ;; Remove the form reference-ast is in.
+           (butlast
+            (remove-if
+             (lambda (ast)
+               (later-than-p obj ast reference-ast))
+             (children-of-type definitions 'expression-result))))))))))
+
+(define-binding-form-alias when-let let)
+(define-binding-form-alias when-let* let*)
+
+(define-get-vars-from-binding-form if-let
+    (:software obj :binding-form binding-form :reference-ast reference-ast)
+  (match binding-form
+    ((lisp-ast
+      (children
+       (list* (@@ 7 _) else-clause _)))
+     (unless (and reference-ast (shares-path-of-p obj reference-ast else-clause))
+      (handle-as 'let)))))
+
+(define-get-vars-from-binding-form if-let*
+    (:software obj :binding-form binding-form :reference-ast reference-ast)
+  (match binding-form
+    ((lisp-ast
+      (children
+       (list* (@@ 7 _) else-clause _)))
+     (unless (and reference-ast (shares-path-of-p obj reference-ast else-clause))
+      (handle-as 'let*)))))
+
+(define-get-vars-from-binding-form defun
+    (:software obj :binding-form binding-form :reference-ast reference-ast)
+  (match binding-form
+    ((lisp-ast
+      (children
+       (list* (@@ 5 _) lambda-list _)))
+     (when (or (not reference-ast)
+               (later-than-p obj reference-ast lambda-list))
+       (get-vars-from-ordinary-lambda-list
+        obj binding-form lambda-list :reference-ast reference-ast)))))
+
+(define-get-vars-from-binding-form flet
+    (:software obj :binding-form binding-form :reference-ast reference-ast)
+  (labels ((in-local-function-p (local-functions)
+             "If REFERENCE-AST is in a local function defintion,
+              return the local function definition."
+             (find-if {shares-path-of-p obj reference-ast}
+                      (children-of-type local-functions 'expression-result)))
+           (get-local-fun-params (local-function)
+             "Get the parameters from LOCAL-FUNCTION that are
+              in scope of reference-ast."
+             (match local-function
+               ((lisp-ast
+                 (children
+                  (list* (@@ 3 _) lambda-list _)))
+                (when (later-than-p obj reference-ast lambda-list)
+                  (get-vars-from-ordinary-lambda-list
+                   obj binding-form lambda-list
+                   :reference-ast reference-ast))))))
+    ;; Difficult to determine what should be returned without
+    ;; a reference-ast, so only return something when it is provided.
+    (when reference-ast
+      (match binding-form
+        ((lisp-ast
+          (children
+           (list* (@@ 3 _) functions _)))
+         (get-local-fun-params (in-local-function-p functions)))))))
+
+(define-binding-form-alias labels flet)
+
+(define-get-vars-from-binding-form symbol-macrolet ()
+  (when *scopes-allows-symbol-macro-variables-p*
+    (handle-as 'let)))
+
+(define-get-vars-from-binding-form defvar (:binding-form binding-form)
+  (match binding-form
+    ((lisp-ast
+      (children
+       (list* (@@ 3 _) var _)))
+     (list (collect-var-info var)))))
+
+(define-binding-form-alias defparameter defvar)
+
+(define-get-vars-from-binding-form define-symbol-macro ()
+  (when *scopes-allows-symbol-macro-variables-p*
+    (handle-as 'defvar)))
+
+(defmethod scopes ((obj lisp) (ast lisp-ast)
+                   &aux (genome (genome obj)))
+  ;; NOTE: this method is an approximation of what is in scope
+  ;;       and local to obj. If forms like defparameter or defvar
+  ;;       are not top-level, their variables will not be found.
+  ;;       The way top-level variables are collected may also
+  ;;       be slightly incorrect in some corner cases.
+  ;; TODO: add removing variables with duplicate names
+  ;;       at the very end.
+  (labels ((get-enclosing-scopes ()
+             "Get the paths of all enclosing scopes."
+             (mapcar #'reverse
+                     (maplist #'identity
+                              (cdr (reverse (ast-path obj ast))))))
+           (get-vars (form)
+             "Get the variables bound by FORM."
+             (get-vars-from-binding-form
+              obj (compound-form-p form) form
+              :reference-ast ast))
+           (get-top-level-vars-in-obj ()
+             "Get all the top-level variables that
+              are defined in obj."
+             (nest
+              (mappend #'get-vars)
+              (remove-if {shares-path-of-p obj ast})
+              (children-of-type genome 'expression-result)))
+           (get-local-vars-in-scope ()
+             "Get the local variables that are in scope
+              of reference-ast."
+             (mapcar [#'get-vars {lookup genome}]
+                     (get-enclosing-scopes))))
+    (if *scopes-allows-top-level-variables-p*
+      (cons (get-top-level-vars-in-obj) (get-local-vars-in-scope))
+      (get-local-vars-in-scope))))
+
+
 ;;; Utility
 (-> compound-form-p (lisp-ast &key (:name symbol)) t)
 (defun compound-form-p (ast &key name)
@@ -781,6 +1080,32 @@ that node. Otherwise, nil is returned."
 (defmethod enclosing-scope ((obj lisp) (ast lisp-ast))
   ;; Returns nil if already at the top level.
   (butlast (ast-path obj ast)))
+
+(-> children-of-type (lisp-ast symbol) list)
+(defun children-of-type (ast type)
+  "Returns a list of the children of AST that are of type TYPE."
+  (remove-if-not {typep _ type} (children ast)))
+
+(-> shares-path-of-p (lisp lisp-ast lisp-ast) t)
+(defun shares-path-of-p (obj target-ast shared-path-ast)
+  "Returns T if TARGET-AST has the same path or a super-path
+of SHARED-PATH-AST's path in OBJ."
+  (starts-with-subseq (ast-path obj shared-path-ast)
+                      (ast-path obj target-ast)))
+
+(-> ancestor-of-p (lisp lisp-ast lisp-ast) t)
+(defun ancestor-of-p (obj target-ast ancestor)
+  "Returns T if ANCESTOR is an ancestor of TARGET-AST in OBJ."
+  (unless (eq target-ast ancestor)
+    (shares-path-of-p obj target-ast ancestor)))
+
+(-> later-than-p (lisp lisp-ast lisp-ast) t)
+(defun later-than-p (obj later-than earlier-than)
+  "Returns T if LATER-THAN occurs later than EARLIER-THAN
+in OBJ. Note that children of EARLIER-THAN are considered
+later than."
+  (path-later-p (ast-path obj later-than)
+                (ast-path obj earlier-than)))
 
 
 ;;; Example
