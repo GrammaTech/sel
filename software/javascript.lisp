@@ -61,6 +61,9 @@
           :reader start :type (or null (integer 0 *)))
    (end :initarg :end :initform (when *string* (length *string*))
         :reader end :type (or null (integer 0 *)))
+   (name :initarg :name :initform nil :reader name :type (or null string))
+   (left :initarg :left :initform nil :reader left :type (or null string))
+   (right :initarg :right :initform nil :reader right :type (or null string))
    (skipped-before
     :initarg :skipped-before :initform nil
     :reader skipped-before :type (or null javascript-ast-skipped))
@@ -267,6 +270,9 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
                                                  (aget :type spec)))))
          (type (symbol-cat 'js raw-type))
          (child-types (aget raw-type js-children :test #'member)))
+    #+debug
+    (case type
+      (js-function-declaration (format t "SPEC:~S~%" spec)))
     ;; Fix an in accuracy in the parsed ASTs we get from acorn.  For a
     ;; property with no value (e.g., "p" in "{p, q}") it sets the
     ;; value to the key so we will explicitly drop the value.
@@ -278,10 +284,10 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
            (mappend
             (lambda (field)
               (destructuring-bind (key . value) field
-                ;; Key here could be :START and :END which should be
-                ;; used unmodified or could be child slot names in
-                ;; which case we prefix them with js- to avoid symbol
-                ;; conflicts.
+                ;; Key here could be :START, :END, :NAME, :LEFT,
+                ;; :RIGHT which should be used unmodified or could be
+                ;; child slot names in which case we prefix them with
+                ;; js- to avoid symbol conflicts.
                 (list (if (find key child-types :key #'car)
                           (make-keyword (symbol-cat 'js key))
                           key)
