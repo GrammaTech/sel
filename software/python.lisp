@@ -443,14 +443,14 @@ the rebinding"
                 :children (mapcar {rebind-vars _
                                                var-replacements
                                                fun-replacements}
-                                  (ast-children ast)))
+                                  (children ast)))
       (let ((rebound-children
              (mapcar (lambda (c)
                        (cond ((stringp c) c)
                              (t (rebind-vars c var-replacements
                                              fun-replacements))))
-                     (ast-children ast))))
-        (if (equalp rebound-children (ast-children ast))
+                     (children ast))))
+        (if (equalp rebound-children (children ast))
             ast
             (copy ast :children rebound-children)))))
 
@@ -503,7 +503,7 @@ AST ast to return the scopes for"
                                         (append (ast-path obj parent1))
                                         (list)
                                         (position-if #'else-clause-p)
-                                        (ast-children parent1))))
+                                        (children parent1))))
                    (equal (path-later-p (ast-path obj ast1) else-path)
                           (path-later-p (ast-path obj ast2) else-path)))
                  t))
@@ -511,13 +511,13 @@ AST ast to return the scopes for"
              "Return T if AST contains a variable declaration or assignment."
              (member (ast-class ast) (list :Arguments :Global :NonLocal
                                            :Assign :AnnAssign)))
-           (get-lhs-names (obj assignment)
+           (get-lhs-names (assignment)
              "Return all NAME ASTs on the left-hand-side of ASSIGNMENT."
              (nest (remove-if-not (lambda (ast)
                                     (and (eq (ast-class ast) :Name)
                                          (eq (ast-annotation ast :ctx) :store))))
-                   (get-children obj assignment)))
-           (build-scope-alist (obj scope ast)
+                   (child-asts assignment :recursive t)))
+           (build-scope-alist (scope ast)
              "Return an alist containing :name, :decl, and :scope for the
              variable in AST."
              (mapcar (lambda (name)
@@ -527,11 +527,11 @@ AST ast to return the scopes for"
                      (cond ((member (ast-class ast) (list :Assign :AnnAssign))
                             (mapcar (lambda (name)
                                       (ast-annotation name :id))
-                                    (get-lhs-names obj ast)))
+                                    (get-lhs-names ast)))
                            ((eq (ast-class ast) :Arguments)
                             (mapcar (lambda (arg)
                                       (ast-annotation arg :arg))
-                                    (get-immediate-children obj ast)))
+                                    (child-asts ast)))
                            ((member (ast-class ast) (list :Global :NonLocal))
                             (ast-annotation ast :names)))))
            (remove-duplicate-names (scope)
@@ -550,12 +550,12 @@ AST ast to return the scopes for"
                              ; first assignment
                              (remove-duplicate-names)
                              ; build result
-                             (mappend {build-scope-alist obj scope})
+                             (mappend {build-scope-alist scope})
                              ; remove ASTs where no variable
                              ; declaration/assignment found
                              (remove-if-not #'contains-scope-var-p)
                              ; collect ASTs prior to AST
-                             (iter (for c in (get-immediate-children obj scope))
+                             (iter (for c in (child-asts scope))
                                    (when (and (in-same-if-clause ast c)
                                               (path-later-p (ast-path obj ast)
                                                             (ast-path obj c)))
@@ -583,18 +583,18 @@ AST ast to return the scopes for"
                                ;; free function
                                ((ast
                                  (ast-class :Call)
-                                 (ast-children (list* (type string)
-                                                      (guard ast (eq ast name))
-                                                      _)))
+                                 (children (list* (type string)
+                                                  (guard ast (eq ast name))
+                                                  _)))
                                 t)
                                ;; method
                                ((ast
                                  (ast-class :Call)
-                                 (ast-children
+                                 (children
                                    (list* (type string)
                                           (ast
                                            (ast-class :Attribute)
-                                           (ast-children
+                                           (children
                                              (list* (type string)
                                                     (guard ast (eq ast name))
                                                     _))))))
@@ -613,12 +613,12 @@ AST ast to return the scopes for"
                                           (call-name-p parents ast))))
                         (list (cons :name (source-text ast))))
                       (mapcar {get-unbound-vals-helper obj (cons ast parents)}
-                              (get-immediate-children obj ast)))
+                              (child-asts ast)))
                :test #'equal)))
     (get-unbound-vals-helper obj (get-parent-asts obj ast) ast)))
 
 (defmethod get-unbound-funs ((obj python) (ast python-ast)
-                             &aux (children (get-immediate-children obj ast))
+                             &aux (children (child-asts ast))
                                (callee (first children)))
   "Return all functions used (but not defined) within AST.  The returned
 value will be of the form (list FUNCTION-ATTRS) where FUNCTION-ATTRS is a
@@ -639,7 +639,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
                                nil nil (length (cdr children)))))
                   (t nil)))
           (mapcar {get-unbound-funs obj}
-                  (get-immediate-children obj ast)))
+                  (child-asts ast)))
     :test #'equal))
 
 

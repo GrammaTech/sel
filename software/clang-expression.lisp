@@ -30,10 +30,9 @@ This is used to intern string names by `expression'."
   ;;        - UnaryOperator :: opcode
   ;;        - MemberExpr :: field name
   (flet ((over-children (elt)
-           (cons elt (mapcar {expression obj}
-                             (get-immediate-children obj ast))))
+           (cons elt (mapcar {expression obj} (child-asts ast))))
          (only-child ()
-           (expression obj (first (get-immediate-children obj ast)))))
+           (expression obj (first (child-asts ast)))))
     (switch ((ast-class ast))
       (:BinaryOperator (over-children (expression-intern (ast-opcode ast))))
       (:CompoundAssignOperator (nest (over-children)
@@ -51,7 +50,7 @@ This is used to intern string names by `expression'."
          (parse-number (source-text ast))))
       (:ParenExpr (only-child))
       (:ArraySubscriptExpr (over-children :|[]|))
-      (:CallExpr (mapcar {expression obj} (get-immediate-children obj ast)))
+      (:CallExpr (mapcar {expression obj} (child-asts ast)))
       (:UnaryExprOrTypeTraitExpr
        (let* ((src (source-text ast))
               (operator (cond
@@ -60,7 +59,7 @@ This is used to intern string names by `expression'."
                           ((scan "\s*vec_step" src) :vec_step)
                           (t (error
                               "Unmatched UnaryExprOrTypeTraitExpr ~s." src)))))
-         (if (get-immediate-children obj ast)
+         (if (child-asts ast)
              (over-children operator)
              ;; Otherwise the argument is a type.
              (multiple-value-bind (matchp matches)
@@ -78,7 +77,7 @@ This is used to intern string names by `expression'."
          (let ((match-data (multiple-value-list (scan "->([\\w\\a_]+)" src))))
            (if (first match-data)
                (list :->
-                     (expression obj (first (get-immediate-children obj ast)))
+                     (expression obj (first (child-asts ast)))
                      (expression-intern (subseq src
                                                 (aref (third match-data) 0)
                                                 (aref (fourth match-data) 0))))

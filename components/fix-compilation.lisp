@@ -219,7 +219,7 @@ associated element of `*compilation-fixers*'.
                                (setf column 1)))
 
                        ;; Subtree
-                       (iter (for child in (ast-children ast))
+                       (iter (for child in (children ast))
                              (appending
                               (multiple-value-bind
                                     (ranges new-line new-column)

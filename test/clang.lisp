@@ -560,16 +560,16 @@ is not to be found"
       (is stmt)
       (is (eq :CXXOperatorCallExpr (ast-class stmt)))
       (is (every [{eq :ImplicitCastExpr} #'ast-class]
-                 (get-immediate-children *soft* stmt))))))
+                 (child-asts stmt))))))
 
 (deftest typedef-workaround ()
   (with-fixture typedef
     (let ((typedef (stmt-starting-with-text *soft* "typedef")))
       (is typedef)
-      (is (not (null (get-immediate-children *soft* typedef))))
+      (is (not (null (child-asts typedef))))
       (is (equal '(:Record)
                  (mapcar #'ast-class
-                         (get-immediate-children *soft* typedef)))))))
+                         (child-asts typedef)))))))
 
 (deftest simple-macro-expansion ()
   (with-fixture simple-macros-clang
@@ -588,7 +588,7 @@ is not to be found"
   ;; correctly.
   (with-fixture switch-macros-clang
     (let ((overlapping-children
-           (nest (get-immediate-children *soft*)
+           (nest (child-asts)
                  (stmt-starting-with-text *soft* "case 'F'"))))
       (is (= 2 (length overlapping-children)))
       (is (member :MacroExpansion

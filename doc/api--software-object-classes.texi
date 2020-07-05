@@ -270,18 +270,12 @@ Class @code{parseable}
 
 @item Generic Functions
   @itemize
-  @item @refapigeneric{get-immediate-children}
   @item @refapigeneric{get-unbound-funs}
   @item @refapigeneric{get-unbound-vals}
   @item @refapigeneric{get-vars-in-scope}
   @end itemize
 
 @c defvar *parseable-obj-code*
-
-@item Methods
-  @itemize
-    @item @refapimethod{get-immediate-children,get-immediate-children}
-  @end itemize
 
 @end itemize
 

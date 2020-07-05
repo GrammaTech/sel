@@ -69,7 +69,7 @@ SOFTWARE."))
            ("|"  :pipe)
            (t (make-keyword str))))
        (tokenize (root)
-         (let ((children (get-immediate-children clang root)))
+         (let ((children (child-asts root)))
            (switch ((ast-class root) :test #'equal)
              (:AddrLabelExpr
               (assert (<= 2 (length (source-text root))))
@@ -362,7 +362,7 @@ SOFTWARE."))
              ;; get all tokens from children
              (:Var (let ((idents (idents clang root))
                          (child 0))
-                     (iter (for item in (ast-children root))
+                     (iter (for item in (children root))
                            (appending
                             (if (stringp item)
                                 (nest (mapcar #'token-from-string)

@@ -535,15 +535,14 @@ also `*clang-c-ast-keywords-auto-count*'.
               :test #'string=)
       1 0))
 
-(defgeneric search-keyword (software keyword ast)
+(defgeneric search-keyword (keyword ast)
   (:documentation "Return 1 if KEYWORD occurs anywhere in the text of an AST in
 SOFTWARE, 0 otherwise."))
 
-(defmethod search-keyword ((clang clang) (keyword string) ast)
+(defmethod search-keyword ((keyword string) ast)
   "Return 1 if KEYWORD occurs anywhere in the source text of an AST in CLANG, 0
 otherwise. Only searches ASTs whose `ast-class' is in
 `*clang-c-ast-keywords-search-count*'.
-* CLANG a clang software object
 * KEYWORD a string to be searched for in the `source-text' of AST
 * AST an ast in CLANG
 "
@@ -558,7 +557,7 @@ otherwise. Only searches ASTs whose `ast-class' is in
             (if (scan keyword (source-text ast))
                 1 0))
           ('(:IfStmt) ; Count if keyword is "else" and ast has 3 children.
-            (if (= 3 (length (get-immediate-children clang ast)))
+            (if (= 3 (length (child-asts ast)))
                 1 0))
           ('(:UnaryExprOrTypeTraitExpr :Record)
             ;; Only count if src-text begins with alignof, sizeof, struct, union.
@@ -568,18 +567,17 @@ otherwise. Only searches ASTs whose `ast-class' is in
                 1 0))
           (t 0)))))
 
-(defgeneric ast-keyword-tf (software keyword ast)
-  (:documentation "Count term frequency of KEYWORD in an AST of SOFTWARE."))
+(defgeneric ast-keyword-tf (keyword ast)
+  (:documentation "Count term frequency of KEYWORD in an AST."))
 
-(defmethod ast-keyword-tf ((clang clang) (keyword string) ast)
+(defmethod ast-keyword-tf ((keyword string) ast)
   "Count term frequency of KEYWORD in an AST of CLANG. Uses `auto-count-keyword'
 and `search-keyword'.
-* CLANG a clang software object
 * KEYWORD a string whose frequency in the AST is to be counted
 * AST an AST in CLANG to search for KEYWORD
 "
   (+ (auto-count-keyword keyword ast)
-     (search-keyword clang keyword ast)))
+     (search-keyword keyword ast)))
 
 (defgeneric all-keywords (software)
   (:documentation
@@ -602,7 +600,7 @@ The returned feature vector will have one entry for each keyword
 listed in `*clang-c-keywords*'.
 "
     (iter (for keyword in (all-keywords clang))
-          (collect (reduce #'+ (mapcar {ast-keyword-tf clang keyword}
+          (collect (reduce #'+ (mapcar {ast-keyword-tf keyword}
                                        (asts clang)))
             into keyword-tfs)
           (finally (return (normalize-vector (coerce keyword-tfs 'vector))))))

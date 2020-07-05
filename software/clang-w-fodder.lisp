@@ -159,9 +159,9 @@ body entry of SOFTWARE.
 * SOFTWARE clang object to pick a DeclStmt AST for
 "
   (let ((function-entry-stmts (nest (remove-if #'null)
-                                    (mapcar {first})
-                                    (mapcar {get-immediate-children software})
-                                    (mapcar {function-body software})
+                                    (mapcar #'first)
+                                    (mapcar #'child-asts)
+                                    (mapcar #'function-body)
                                     (functions software))))
     (if (null function-entry-stmts)
         (error (make-condition 'no-mutation-targets

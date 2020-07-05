@@ -340,7 +340,7 @@ Return a new list of children."
                              (funcall prefix-fn next))))
             (prog1
                 (collect (nest (copy node :children)
-                               (children-with-suffix (ast-children node)
+                               (children-with-suffix (children node)
                                                      (subseq next 0 pos))))
               (setf (cadr p) (subseq next pos)))
             (collect node)))))
@@ -381,7 +381,7 @@ newlines.")
   (:method ((ast javascript-ast))
     (nest (copy ast :children)
           (mapcar #'fix-newlines)
-          (move-prefixes-down (ast-children ast)
+          (move-prefixes-down (children ast)
                               #'is-stmt
                               #'position-after-leading-newline)))
   (:method ((ast t)) ast))
@@ -418,13 +418,13 @@ the rebinding"
                 :children (mapcar {rebind-vars _
                                                var-replacements
                                                fun-replacements}
-                                  (ast-children ast)))
+                                  (children ast)))
       (let ((c (mapcar (lambda (c)
                          (cond ((stringp c) c)
                                (t (rebind-vars c var-replacements
                                                fun-replacements))))
-                       (ast-children ast))))
-        (if (every #'eql c (ast-children ast))
+                       (children ast))))
+        (if (every #'eql c (children ast))
             ast
             (copy ast :children c)))))
 
@@ -454,10 +454,10 @@ AST ast to return the scopes for"
              "For the given IDENTIFIER AST, return the parent declaration."
              (car (remove-if-not [{eq :VariableDeclaration} #'ast-class]
                                  (get-parent-asts obj identifier))))
-           (get-first-child-ast (obj ast)
+           (get-first-child-ast (ast)
              "Return the first child of the AST."
-             (first (get-immediate-children obj ast)))
-           (filter-identifiers (obj scope children)
+             (first (child-asts ast)))
+           (filter-identifiers (scope children)
              "Return all variable identifiers found in the CHILDREN of SCOPE."
              (if (member (ast-class scope)
                          (list :FunctionDeclaration
@@ -470,7 +470,7 @@ AST ast to return the scopes for"
                      (cond ((eq (ast-class ast) :Identifier)
                             (list ast))
                            ((eq (ast-class ast) :RestElement)
-                            (list (first (get-immediate-children obj ast))))
+                            (list (first (child-asts ast))))
                            (t nil)))
                    (if (eq (ast-class scope) :FunctionDeclaration)
                        (cdr children) ; elide function name identifer
@@ -483,14 +483,14 @@ AST ast to return the scopes for"
                  ;; expression.
                  (nest (remove-if-not [{eq :Identifier} #'ast-class])
                        (mappend (lambda (ast)
-                                  (let ((child (get-first-child-ast obj ast)))
+                                  (let ((child (get-first-child-ast ast)))
                                     (if (eq :Identifier (ast-class child))
                                         ;; single var
                                         (list child)
                                         ;; destructuring
-                                        (get-children obj child)))))
+                                        (child-asts child :recursive t)))))
                        (remove-if-not [{eq :VariableDeclarator} #'ast-class])
-                       (mappend {get-immediate-children obj})
+                       (mappend #'child-asts)
                        (remove-if-not [{eq :VariableDeclaration} #'ast-class]
                                       children)))))
     (when (not (eq :Program (ast-class ast)))
@@ -503,9 +503,8 @@ AST ast to return the scopes for"
                            (:decl . ,(get-parent-decl obj ast))
                            (:scope . ,scope)))))
                     ; remove ASTs which are not variable identifiers
-                    (filter-identifiers obj scope)
-                    (iter (for c in
-                               (get-immediate-children obj scope))
+                    (filter-identifiers scope)
+                    (iter (for c in (child-asts scope))
                           (while (path-later-p (ast-path obj ast)
                                                (ast-path obj c)))
                           (collect c)))
@@ -537,13 +536,13 @@ AST ast to return the scopes for"
                                                     :VariableDeclarator))))
                         (list (cons :name (source-text ast))))
                       (mapcar {get-unbound-vals-helper obj ast}
-                              (get-immediate-children obj ast)))
+                              (child-asts ast)))
                :test #'equal)))
     (get-unbound-vals-helper obj (get-parent-ast obj ast) ast)))
 
 (defmethod get-unbound-funs ((obj javascript) (ast javascript-ast)
-                             &aux (children (get-immediate-children obj ast))
-                                  (callee (first children)))
+                             &aux (child-asts (child-asts ast))
+                                  (callee (first child-asts)))
   "Return all functions used (but not defined) within AST.
 * OBJ javascript software object containing AST
 * AST ast to retrieve unbound functions within"
@@ -553,16 +552,15 @@ AST ast to return the scopes for"
              (cond ((eq (ast-class callee) :Identifier)
                     ;; Free function call
                     (list (list (source-text callee)
-                                nil nil (length (cdr children)))))
+                                nil nil (length (cdr child-asts)))))
                    ((eq (ast-class callee) :MemberExpression)
                     ;; Member function call
                     (list (list (nest (source-text)
                                       (second)
-                                      (get-immediate-children obj callee))
-                                nil nil (length (cdr children)))))
+                                      (child-asts callee))
+                                nil nil (length (cdr child-asts)))))
                    (t nil)))
-           (mapcar {get-unbound-funs obj}
-                   (get-immediate-children obj ast)))
+           (mapcar {get-unbound-funs obj} child-asts))
     :test #'equal))
 
 (defmethod get-parent-full-stmt ((obj javascript) (ast javascript-ast))

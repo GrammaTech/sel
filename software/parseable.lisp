@@ -11,13 +11,12 @@
            :functional-tree-ast
            :to-alist
            :from-alist
+           :child-asts
            :ast-path
            :ast-stored-hash
            :ast-class
            :ast-annotation
            :ast-annotations
-           :ast-children
-           :ast-to-list
            :ast-equal-p
            :ast-hash
            :conflict-ast
@@ -60,8 +59,6 @@
            :recontextualize
            :select-crossover-points
            :parent-ast-p
-           :get-children
-           :get-immediate-children
            :prepend-text-to-genome
            :append-text-to-genome-preamble
            :append-text-to-genome
@@ -157,23 +154,13 @@ PRINT-OBJECT method on AST structures.")
   (:method ((root functional-tree-ast) (finger finger))
     (path (functional-trees::transform-finger finger root))))
 
-;; FIXME: When clang is converted to utilize functional trees,
-;; this method specialization will no longer be required as we
-;; can utilize `children` in all locations.
-(defgeneric ast-children (ast)
-  (:documentation "Return the children of AST.")
-  (:method ((ast ast))
-    (children ast)))
-
-;; FIXME: When clang is converted to utilize functional trees,
-;; this method specialization will no longer be required as we
-;; can utilize trees in all locations.
-(defgeneric ast-to-list (ast)
-  (:documentation "Return AST and its children as a list.")
-  (:method ((ast ast))
-    (nest (reverse)
-          (reduce (lambda (accum a) (cons a accum)) ast)))
-  (:method ((ast t)) nil))
+(defgeneric child-asts (ast &key recursive)
+  (:documentation "Return the AST children of AST.  If the keyword
+RECURSIVE is passed, recursive AST children will also be returned.")
+  (:method ((ast ast) &key recursive)
+    (if recursive
+        (cdr (reverse (reduce (flip #'cons) ast)))
+        (remove-if-not {typep _ 'ast} (children ast)))))
 
 (defmethod copy :around ((ast functional-tree-ast) &rest keys)
   "Wrapper around COPY to transform all keyword arguments which are
@@ -228,9 +215,9 @@ not explicit slot initargs into annotations for functional tree ASTs."
 
 (defmethod ast-equal-p ((ast-a ast) (ast-b ast))
   (and (eq (ast-class ast-a) (ast-class ast-b))
-       (eql (length (ast-children ast-a))
-            (length (ast-children ast-b)))
-       (every #'ast-equal-p (ast-children ast-a) (ast-children ast-b))))
+       (eql (length (children ast-a))
+            (length (children ast-b)))
+       (every #'ast-equal-p (children ast-a) (children ast-b))))
 
 (defmethod ast-equal-p ((ast-a t) (ast-b t))
   (equal ast-a ast-b))
@@ -384,7 +371,7 @@ modile +AST-HASH-BASE+"
 (defmethod ast-hash ((ast ast))
   (or (slot-value ast 'stored-hash)
       (setf (slot-value ast 'stored-hash)
-            (ast-hash (cons (ast-class ast) (ast-children ast))))))
+            (ast-hash (cons (ast-class ast) (children ast))))))
 
 
 ;;; Generic functions on ASTs
@@ -421,7 +408,7 @@ optionally writing to STREAM.")
     ;;
     ;; More importantly using (apply #'concatenate ...) runs into
     ;; problems as the number of ASTs is very large.
-    (mapc {source-text _ stream} (ast-children ast))))
+    (mapc {source-text _ stream} (children ast))))
 
 (defgeneric rebind-vars (ast var-replacements fun-replacements)
   (:documentation
@@ -517,12 +504,6 @@ returning a newly created AST."
   (:documentation
    "Return the first ancestor of AST in SOFTWARE which is a full statement.
 Returns nil if no full statement parent is found."))
-
-(defgeneric get-children (obj ast)
-  (:documentation "Return all the children of AST in OBJ."))
-
-(defgeneric get-immediate-children (obj ast)
-  (:documentation "Return the immediate children of AST in OBJ."))
 
 (defgeneric get-ast-types (software ast)
   (:documentation "Types directly referenced within AST."))
@@ -656,14 +637,14 @@ if the original file is known.")
   "Return all top-level ASTs in OBJ.
 * OBJ software object to search for roots
 "
-  (remove-if-not {typep _ 'ast} (ast-children (genome obj))))
+  (remove-if-not {typep _ 'ast} (children (genome obj))))
 
 (defmethod asts ((obj parseable))
   ;; Deprecated: This method exists for interoperability with
   ;; legacy clang code.  If possible, clients should use
   ;; fset/functional tree overrides of CL functions such
   ;; as `mapcar` to iterate over ASTs.
-  (cdr (ast-to-list (genome obj))))
+  (child-asts (genome obj) :recursive t))
 
 (defgeneric ast-at-index (software index)
   (:documentation "Deprecated: Return the AST in OBJ at INDEX.
@@ -708,35 +689,10 @@ otherwise.
 * OBJ software object containing AST and its parents
 * AST node to find the parents of
 "
-  (labels ((get-parent-asts-helper (subtree path)
-             (if (null path)
-                 nil
-                 (let ((new-subtree (nth (car path) (ast-children subtree))))
-                   (cons new-subtree
-                         (get-parent-asts-helper new-subtree
-                                                 (cdr path)))))))
-    (reverse (get-parent-asts-helper (genome obj) (ast-path obj ast)))))
-
-(defmethod get-children ((obj parseable) (ast ast))
-  "Return all the children of AST in OBJ.
-* OBJ software object containing AST and its children
-* AST node to find the children of
-"
-  (labels ((get-children-helper (obj ast)
-             (when ast
-               (mappend (lambda (child)
-                          (cons child (get-children-helper obj child)))
-                        (get-immediate-children obj ast)))))
-    (get-children-helper obj ast)))
-
-(defmethod get-immediate-children ((obj parseable) (ast ast))
-  "Return the immediate children of AST in OBJ.
-* OBJ software object containing AST and its children
-* AST node to find the immediate children of
-"
-  (declare (ignorable obj)) ;; TODO: Remove obj as a parameter
-  ;; Q: can we share structure with the list from AST-CHILDREN?
-  (remove-if-not {typep _ 'ast} (ast-children ast)))
+ (nest (remove-if-not {typep _ 'ast})  ; Remove non-ASTs.
+       (mapcar {lookup obj})           ; Lookup each prefix.
+       (maplist #'reverse) (reverse)   ; Prefixes of path.
+       (ast-path obj ast)))
 
 (defmethod get-vars-in-scope ((obj parseable) (ast ast)
                               &optional (keep-globals t))
@@ -768,8 +724,8 @@ otherwise.
             (copy root
                   :children (cons (format nil "~a~a"
                                           (ensure-newline text)
-                                          (car (ast-children root)))
-                                  (cdr (ast-children root))))))))
+                                          (car (children root)))
+                                  (cdr (children root))))))))
 
 (defgeneric append-text-to-genome-preamble (software text)
   (:documentation "Append non-AST TEXT to OBJ's genome preamble.
@@ -785,9 +741,9 @@ otherwise.
       (setf (slot-value obj 'genome)
             (copy root
                   :children (cons (format nil "~a~a"
-                                              (car (ast-children root))
+                                              (car (children root))
                                               (ensure-newline text))
-                                  (cdr (ast-children root))))))))
+                                  (cdr (children root))))))))
 
 (defgeneric append-text-to-genome (software text)
   (:documentation "Append non-AST TEXT to OBJ genome.
@@ -798,12 +754,12 @@ otherwise.
             &aux (root (genome obj)))
     (setf (slot-value obj 'genome)
           (copy root
-                :children (if (stringp (lastcar (ast-children root)))
-                              (append (butlast (ast-children root))
+                :children (if (stringp (lastcar (children root)))
+                              (append (butlast (children root))
                                       (list (format nil "~a~a"
-                                                    (lastcar (ast-children root))
+                                                    (lastcar (children root))
                                                     text)))
-                              (append (ast-children root) (list text)))))))
+                              (append (children root) (list text)))))))
 
 
 ;; Targeting functions
@@ -1196,10 +1152,10 @@ with REPLACEMENT.
   (:method ((obj parseable) (location list) (replacement list) &rest args)
     (let* ((old-ast (@ obj (butlast location)))
            (new-ast (nest (copy old-ast :children)
-                          (append (subseq (ast-children old-ast) 0
+                          (append (subseq (children old-ast) 0
                                           (lastcar location))
                                   replacement
-                                  (subseq (ast-children old-ast)
+                                  (subseq (children old-ast)
                                           (1+ (lastcar location)))))))
       (apply #'replace-ast obj old-ast new-ast args))))
 

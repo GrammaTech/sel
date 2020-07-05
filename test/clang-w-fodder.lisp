@@ -106,8 +106,7 @@
                :top-level t)))
     (is (eq 1 (length asts)))
     (is (eq :Function (ast-class (car asts))))
-    (is (eq :CompoundStmt (ast-class (function-body (make-instance 'clang)
-                                                    (car asts)))))))
+    (is (eq :CompoundStmt (ast-class (function-body (car asts)))))))
 
 (deftest clang-convert-source-snippet-preamble ()
   (let ((asts (convert

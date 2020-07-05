@@ -675,7 +675,7 @@ possibly expressions) will be omitted according to the sign of the guard."
 provided, return T if the car of the form is eq to NAME."
   (match ast
     ((lisp-ast
-      (ast-children (list* _ (expression-result (expression form-name)) _)))
+      (children (list* _ (expression-result (expression form-name)) _)))
      (cond
        (name (eq name form-name))
        ((symbolp form-name) form-name)))))
@@ -685,7 +685,7 @@ provided, return T if the car of the form is eq to NAME."
   "Return the args to the compound form represented by AST."
   (match ast
     ((lisp-ast
-      (ast-children (list* _ _ args)))
+      (children (list* _ _ args)))
      (remove-if-not {typep _ 'expression-result} args))))
 
 (-> quote-p (lisp-ast) (or null lisp-ast))
@@ -693,11 +693,11 @@ provided, return T if the car of the form is eq to NAME."
   "Return the quoted form if AST represents a quote ast."
   (match ast
     ((lisp-ast
-      (ast-children
+      (children
        (list (reader-quote) form)))
      form)
     ((lisp-ast
-      (ast-children
+      (children
        (list _ (expression-result (expression 'quote)) _ form _)))
      form)))
 
@@ -706,11 +706,11 @@ provided, return T if the car of the form is eq to NAME."
   "Return the quoted form if AST represents a quasiquote ast."
   (match ast
     ((lisp-ast
-      (ast-children
+      (children
        (list (reader-quasiquote) form)))
      form)
     ((lisp-ast
-      (ast-children
+      (children
        (list _ #+sbcl
                (expression-result (expression 'sb-int:quasiquote))
                #-sbcl
@@ -745,11 +745,11 @@ occur before it."
                       {compound-form-p _ :name name})))
     (match defining-form
       ((lisp-ast
-        (ast-children (list* (@@ 3 _) definition-list _)))
+        (children (list* (@@ 3 _) definition-list _)))
        (cl:find-if targeter
                    (reverse
                     (remove-if-not {typep _ 'expression-result}
-                                   (ast-children definition-list))))))))
+                                   (children definition-list))))))))
 
 (-> find-local-function (lisp lisp-ast symbol &key (:referencing-ast lisp-ast))
     (or null lisp-ast))

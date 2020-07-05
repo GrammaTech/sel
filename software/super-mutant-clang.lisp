@@ -75,7 +75,7 @@ There are several cases here:
                      (mapc (lambda-bind ((i ast) mutant)
                              (when ast
                                (ensure-functions-compatible head ast mutant)
-                               (let ((body (function-body mutant ast)))
+                               (let ((body (function-body ast)))
                                  (unless body
                                    (error
                                     (make-condition 'mutate
@@ -93,14 +93,14 @@ There are several cases here:
                                                variants))))))
                            (indexed asts)
                            mutants)
-                     (cons (when (car asts) (function-body base head))
+                     (cons (when (car asts) (function-body head))
                            (mapcar #'cdr variants)))))))
        (replace-nth-child (ast n replacement)
          "Return AST with the nth child of AST replaced with REPLACEMENT."
          (copy ast
-               :children (append (subseq (ast-children ast) 0 n)
+               :children (append (subseq (children ast) 0 n)
                                  (list replacement)
-                                 (subseq (ast-children ast) (+ 1 n)))))
+                                 (subseq (children ast) (+ 1 n)))))
        (make-super-body (variants &key make-decl)
          "Create body for a super-mutant function.
 
@@ -130,7 +130,7 @@ true, create a complete function decl which contains the body."
                                     (position-if «and {typep _ 'ast}
                                                       [{eq :CompoundStmt}
                                                        #'ast-class]»
-                                                 (ast-children decl))
+                                                 (children decl))
                                     body))
                body)))
        (create-mutation-ops (variants-list)

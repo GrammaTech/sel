@@ -122,8 +122,7 @@
     (let ((search-counts
            (iter (for keyword in *clang-c-keywords*)
                  (collect
-                  (cons (reduce #'+ (mapcar {search-keyword *variety*
-                                                            keyword}
+                  (cons (reduce #'+ (mapcar {search-keyword keyword}
                                             (asts *variety*)))
                         keyword)
                   into counts)

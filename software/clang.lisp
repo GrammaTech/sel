@@ -43,6 +43,7 @@
            :function-body
            :function-body-p
            :function-decl-p
+           :get-entry
            :stmt-range
            :adjust-stmt-range
            :random-point-in-function
@@ -51,7 +52,6 @@
            :update-headers-from-ast
            :prototypes
            :functions
-           :get-entry
            :stmt-asts
            :non-stmt-asts
            :good-stmts
@@ -345,7 +345,7 @@ See also: https://clang.llvm.org/docs/FAQ.html#id2.")
     :initarg :path :initform nil :type list)
    (children
     :initarg :children :initform nil
-    :accessor ast-children :type list)
+    :accessor children :type list)
    (class
     :initarg :class :initform nil
     :accessor ast-class :type (or null symbol))
@@ -514,27 +514,11 @@ the macro is defined within."
                    :range (aget :range alist)
                    :type (%type (aget :type alist)))))
 
-;; FIXME: When clang is converted to utilize functional trees,
-;; this method specialization will no longer be required.
-(defmethod ast-to-list ((ast clang-ast) &aux (result nil))
-  ;; This is not the most elegant approach but it is an exact
-  ;; translation of the previous, performant solution.
-  ;; Given the plan to transition clang to utilize functional
-  ;; trees, time was not committed to making this prettier
-  ;; at the risk of making the solution non-performant
-  ;; (the issue we want to solve first and foremost).
-  (labels ((collect-asts (ast)
-             (push ast result)
-             (dolist (c (ast-children ast))
-               (when (typep c 'ast) (collect-asts c)))
-             result))
-    (reverse (collect-asts ast))))
-
 (defmethod copy ((ast clang-ast) &rest args
                  &key
                    referenceddecl
                    path
-                   (children (ast-children ast))
+                   (children (children ast))
                    (class (ast-class ast))
                    (type (ast-type ast))
                    (range (ast-range ast))
@@ -1402,38 +1386,39 @@ software object."))
 * MUTATION defines the targets of the cut operation
 * SOFTWARE object to be modified by the mutation
 "
+  (declare (ignorable software))
   (labels
       ((compose-children (&rest parents)
          (interleave (iter (for p in parents)
                            ;; In case of an unbraced if/loop body, include
                            ;; the body directly.
                            (if (eq :CompoundStmt (ast-class p))
-                               (appending (get-immediate-children software p))
+                               (appending (child-asts p))
                                (collecting p)))
                       (format nil "~%"))))
       (let ((children
           (switch ((ast-class guarded))
             (:DoStmt
              (compose-children
-              (first (get-immediate-children software guarded))))
+              (first (child-asts guarded))))
             (:WhileStmt
              (compose-children
-              (second (get-immediate-children software guarded))))
+              (second (child-asts guarded))))
             (:ForStmt
              (compose-children
-              (lastcar (get-immediate-children software guarded))))
+              (lastcar (child-asts guarded))))
             (:IfStmt
-             (let ((children (get-immediate-children software guarded)))
+             (let ((children (child-asts guarded)))
                (if (= 2 (length children))
                    ;; If with only one branch.
                    (compose-children (second children))
                    ;; If with both branches.
                    (cond
                      ((null             ; Then branch is empty.
-                       (get-immediate-children software (second children)))
+                       (child-asts (second children)))
                       (compose-children (third children)))
                      ((null             ; Else branch is empty.
-                       (get-immediate-children software (third children)))
+                       (child-asts (third children)))
                       (compose-children (second children)))
                      (t                 ; Both branches are populated.
                       (if (random-bool) ; Both or just one.
@@ -1468,6 +1453,7 @@ This mutation will transform 'for(A;B;C)' into 'A;while(B);C'."))
 * MUTATION defines the targets of the explode-for-loop operation
 * OBJ object to be modified by the mutation
 "
+  (declare (ignorable obj))
   (labels ((is-initialization-ast (ast)
              (and (eq :BinaryOperator (ast-class ast))
                   (equal "=" (ast-opcode ast))))
@@ -1483,7 +1469,7 @@ This mutation will transform 'for(A;B;C)' into 'A;while(B);C'."))
              ;; probable ASTs for each part of a for loop.  These heuristics
              ;; undoubtedly will fail for some cases, and a non-compiling
              ;; individual will be created as a result.
-             (let ((children (get-immediate-children obj ast)))
+             (let ((children (child-asts ast)))
                (case (length children)
                  (4 (values-list children))
                  (3 (if (is-initialization-ast (first children))
@@ -1555,10 +1541,10 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
 "
   (let ((ast (aget :stmt1 (targets mutation))))
     (destructuring-bind (condition body)
-        (get-immediate-children obj ast)
+        (child-asts ast)
       (let ((precedent (block-predeccessor obj ast)))
         `((:set (:stmt1 . ,ast)
-                ,(let ((children (get-immediate-children obj body)))
+                ,(let ((children (child-asts body)))
                       (cons :literal1
                             (make-for-stmt (ast-syn-ctx ast)
                                            (remove-semicolon precedent)
@@ -1622,7 +1608,7 @@ MUTATION to CLANG.
        (eq :DeclStmt (ast-class ast)))
      (pick-another-decl-in-block (ast)
        (some->> (enclosing-block clang ast)
-                (get-immediate-children clang)
+                (child-asts)
                 (remove-if-not [{eq :DeclStmt} #'ast-class])
                 (remove-if {equalp ast})
                 (random-elt))))
@@ -1695,7 +1681,7 @@ to expand.
                         (random-elt))))
       `((:stmt1 . ,ast)
         (:literal1 .
-           ,(let* ((children (get-immediate-children clang ast))
+           ,(let* ((children (child-asts ast))
                    (lhs (first children))
                    (rhs (second children))
                    (one (make-literal 1)))
@@ -1747,7 +1733,7 @@ software objects after modification."
   (labels ((deep-copy (ast)
              (copy ast :children (mapcar (lambda (c)
                                            (if (typep c 'ast) (deep-copy c) c))
-                                         (ast-children ast)))))
+                                         (children ast)))))
     (call-next-method (update-paths (deep-copy new)) obj)))
 
 (defmethod (setf genome) :after ((new ast) (obj clang))
@@ -1810,11 +1796,11 @@ and `name-symbol-table`, returning OBJ.
     ;; Update AST-based caches
     (with-slots (asts stmt-asts non-stmt-asts functions prototypes) obj
       (let ((last-proto nil))
-        (iter (for ast in (cdr (ast-to-list (genome obj))))
+        (iter (for ast in (child-asts (genome obj) :recursive t))
               (collect ast into my-asts)
               (when (function-decl-p ast)
                 (collect ast into protos)
-                (when (function-body obj ast)
+                (when (function-body ast)
                   (collect ast into funs))
                 (setf last-proto ast))
               ;; stmt-asts are only collected in function bodies and
@@ -2080,7 +2066,7 @@ already in scope, it will keep that name.")
          (when (not (equalp str "")) str))
        (helper (tree path next)
          (bind (((head . tail) path)
-                (children (ast-children tree)))
+                (children (children tree)))
                (if tail
                    ;; The insertion may need to modify text farther up the
                    ;; tree. Pass down the next bit of non-empty text and
@@ -2151,7 +2137,7 @@ already in scope, it will keep that name.")
   (labels
       ((helper (tree path)
          (bind (((head . tail) path)
-                (children (ast-children tree)))
+                (children (children tree)))
                (if tail
                    ;; Recurse into child
                    (replace-nth-child tree head (helper (nth head children) tail))
@@ -2179,7 +2165,7 @@ already in scope, it will keep that name.")
   (labels
       ((helper (tree path)
          (bind (((head . tail) path)
-                (children (ast-children tree)))
+                (children (children tree)))
                (assert (>= head 0))
                (assert (< head (length children)))
                (if tail
@@ -2209,7 +2195,7 @@ already in scope, it will keep that name.")
   (labels
       ((helper (tree path)
          (bind (((head . tail) path)
-                (children (ast-children tree)))
+                (children (children tree)))
                (if tail
                    ;; Recurse into child
                    (replace-nth-child tree head
@@ -2234,9 +2220,9 @@ REPLACEMENT.
     (replace-nth-child ast n (list replacement)))
   (:method ((ast clang-ast) (n integer) (replacement list))
     (copy ast
-          :children (append (subseq (ast-children ast) 0 n)
+          :children (append (subseq (children ast) 0 n)
                             replacement
-                            (subseq (ast-children ast) (+ 1 n))))))
+                            (subseq (children ast) (+ 1 n))))))
 
 (defgeneric fixup-mutation (operation current before ast after)
   (:documentation "Adjust mutation result according to syntactic context.")
@@ -2350,7 +2336,7 @@ Adds and removes semicolons, commas, and braces.
   (lookup (lookup ast (car path)) (cdr path)))
 
 (defmethod lookup ((ast clang-ast) (i integer))
-  (elt (ast-children ast) i))
+  (elt (children ast) i))
 
 (defmethod lookup ((ast clang-ast) (path null)) ast)
 
@@ -2370,7 +2356,7 @@ Adds and removes semicolons, commas, and braces.
 If there is no trailing semicolon, return the AST unchanged."))
 
 (defmethod remove-semicolon ((obj clang-ast))
-  (let* ((children (ast-children obj))
+  (let* ((children (children obj))
          (last (lastcar children)))
     (if-let ((trimmed (ends-with-semicolon last)))
             (copy obj :children (append (butlast children) (list trimmed)))
@@ -2391,16 +2377,29 @@ If there is no trailing semicolon, return the AST unchanged."))
             '(:Function :CXXMethod :CXXConstructor :CXXDestructor)))
   (:method (x) (declare (ignorable x)) nil))
 
-(defgeneric function-body (software ast)
+(defgeneric function-body (ast)
   (:documentation
    "If AST is a function, return the AST representing its body.
-* SOFTWARE software object containing AST and its children
 * AST potential function AST to query for its body
 ")
-  (:method ((software clang) (ast clang-ast))
+  (:method ((ast clang-ast))
     (when (function-decl-p ast)
       (find-if [{eq :CompoundStmt} #'ast-class]
-               (get-immediate-children software ast)))))
+               (child-asts ast)))))
+
+(defgeneric get-entry (software)
+  (:documentation
+   "Return the AST of the entry point (main function) in SOFTWARE,
+or NIL if there is no entry point.")
+  (:method ((soft software)) nil)
+  (:method ((obj clang))
+    (when-let* ((main (find-if [{name= "main"} {ast-name}]
+                               (functions obj)))
+                (return-type (find-type obj (ast-ret main)))
+                (_ (and (equal :Function (ast-class main))
+                        (member (type-name return-type)
+                                '("int" "void") :test #'name=))))
+      (function-body main))))
 
 (defmethod get-parent-full-stmt ((clang clang) (ast clang-ast))
   "Return the first ancestor of AST in SOFTWARE which is a full stmt.
@@ -2419,10 +2418,10 @@ the list returned by (asts software).")
   (:method ((software clang) (function clang-ast))
     (labels
         ((rightmost-child (ast)
-           (if-let ((children (get-immediate-children software ast)))
+           (if-let ((children (child-asts ast)))
              (rightmost-child (lastcar children))
              ast)))
-      (when-let ((body (function-body software function)))
+      (when-let ((body (function-body function)))
         (mapcar {index-of-ast software}
                 (list body (rightmost-child body)))))))
 
@@ -2475,7 +2474,7 @@ it will transform this into:
 * INDEX DOCFIXME
 "
   (if (member (ast-class ast) +clang-wrapable-parents+)
-      (wrap-ast obj (nth index (get-immediate-children obj ast)))
+      (wrap-ast obj (nth index (child-asts ast)))
       (error "Will not wrap children of type ~a, only useful for ~a."
              (ast-class ast) +clang-wrapable-parents+))
   obj)
@@ -2497,33 +2496,22 @@ it will transform this into:
 * AST DOCFIXME
 "
   ;; First parent AST is self, skip over that.
-  (find-if {block-p clang} (cdr (get-parent-asts clang ast))))
+  (find-if #'block-p (cdr (get-parent-asts clang ast))))
 
-(defgeneric guard-stmt-p (software statement)
-  (:documentation "Check if STATEMENT is a guard statement in SOFTWARE."))
+(defgeneric block-p (statement)
+  (:documentation "Check if STATEMENT is a block."))
 
-(defmethod guard-stmt-p ((obj clang) (stmt clang-ast))
-  "DOCFIXME
-* SOFTWARE DOCFIXME
-* STATEMENT DOCFIXME
-"
-  (declare (ignorable obj))
-  (ast-guard-stmt stmt))
-
-(defgeneric block-p (software statement)
-  (:documentation "Check if STATEMENT is a block in SOFTWARE."))
-
-(defmethod block-p ((obj clang) (stmt clang-ast))
+(defmethod block-p ((stmt clang-ast))
   "DOCFIXME
 * OBJ DOCFIXME
 * STMT DOCFIXME
 "
   (or (eq :CompoundStmt (ast-class stmt))
       (and (member (ast-class stmt) +clang-wrapable-parents+)
-           (not (null (nest (remove-if «or {guard-stmt-p obj}
+           (not (null (nest (remove-if «or #'ast-guard-stmt
                                            [{eq :CompoundStmt}
                                             #'ast-class]»)
-                            (get-immediate-children obj stmt)))))))
+                            (child-asts stmt)))))))
 
 (defgeneric enclosing-full-stmt (software stmt)
   (:documentation
@@ -2563,8 +2551,8 @@ it will transform this into:
 "
   (let* ((full-stmt (enclosing-full-stmt clang ast))
          (the-block (enclosing-block clang full-stmt))
-         (the-stmts (remove-if-not «or {block-p clang} #'ast-full-stmt»
-                                   (get-immediate-children clang the-block))))
+         (the-stmts (remove-if-not «or #'block-p #'ast-full-stmt»
+                                   (child-asts the-block))))
     (get-entry-after full-stmt the-stmts)))
 
 (defmethod block-predeccessor ((clang clang) (ast clang-ast))
@@ -2574,8 +2562,8 @@ it will transform this into:
 "
   (let* ((full-stmt (enclosing-full-stmt clang ast))
          (the-block (enclosing-block clang full-stmt))
-         (the-stmts (remove-if-not «or {block-p clang} #'ast-full-stmt»
-                                   (get-immediate-children clang the-block))))
+         (the-stmts (remove-if-not «or #'block-p #'ast-full-stmt»
+                                   (child-asts the-block))))
     (get-entry-before full-stmt the-stmts)))
 
 (defmethod full-stmt-predecessors ((clang clang) (ast clang-ast)
@@ -2627,7 +2615,7 @@ included as the first successor."
   (labels
       ((successors (ast path)
          (bind (((head . tail) path)
-                (children (ast-children ast)))
+                (children (children ast)))
            (if tail
                (cons (subseq children (1+ head))
                      (successors (nth head children) tail))
@@ -2706,11 +2694,10 @@ included as the first successor."
                   (mappend
                    (lambda (ast)
                      (cond ((eq :DeclStmt (ast-class ast))
-                            (get-immediate-children software ast))
+                            (child-asts ast))
                            (t (list ast)))))
                   ; get children in scope
-                  (iter (for c in
-                             (get-immediate-children software scope))
+                  (iter (for c in (child-asts scope))
                         (while (path-later-p (ast-path software ast)
                                              (ast-path software c)))
                         (collect c)))
@@ -2734,7 +2721,7 @@ the types used at a node; this function closes over all the nodes
 in the AST.  SOFTWARE is the software object to which AST belongs."
   (remove-duplicates (apply #'append (ast-types ast)
                             (mapcar {get-ast-types software}
-                                    (get-immediate-children software ast)))
+                                    (child-asts ast)))
                      :key #'type-hash))
 
 (defmethod get-unbound-funs ((software clang) (ast clang-ast))
@@ -2743,7 +2730,7 @@ the unbound funs at a node; this function closes over all the nodes
 in the AST.  SOFTWARE is the software object to which AST belongs."
   (remove-duplicates (apply #'append (ast-unbound-funs ast)
                             (mapcar {get-unbound-funs software}
-                                    (get-immediate-children software ast)))
+                                    (child-asts ast)))
                      :test #'equal))
 
 (defmethod get-unbound-vals ((software clang) (ast clang-ast))
@@ -2770,7 +2757,7 @@ in the AST.  SOFTWARE is the software object to which AST belongs."
                  (push name unbound)))
 
          ;; Walk children
-         (iter (for c in (get-immediate-children software ast))
+         (iter (for c in (child-asts ast))
                (multiple-value-bind (new-unbound new-scopes)
                    (walk-scope c unbound scopes)
                  (setf unbound new-unbound
@@ -2923,8 +2910,8 @@ in the AST.  SOFTWARE is the software object to which AST belongs."
                                          (list (first oldf) (first newf)))
                                        fun-replacements))
                        :initial-value s))
-                    (ast-children ast))))
-       (if (equal (ast-children ast) new-children)
+                    (children ast))))
+       (if (equal (children ast) new-children)
            ast
            (copy ast :children new-children))))
     (:DeclRefExpr
@@ -2940,8 +2927,8 @@ in the AST.  SOFTWARE is the software object to which AST belongs."
                           (cond ((stringp c) c)
                                 (t (rebind-vars c var-replacements
                                                 fun-replacements))))
-                        (ast-children ast))))
-         (if (every #'eql c (ast-children ast))
+                        (children ast))))
+         (if (every #'eql c (children ast))
              ast
              (copy ast :children c))))))
 
@@ -2973,16 +2960,16 @@ variables to replace use of the variables declared in stmt ID."))
                              (get-used-variables obj ast)
                              (mapcar #'car old->new)
                              :test #'name=)))
-           (get-immediate-children obj block)))
+           (child-asts block)))
    ;; Remove the declaration.
    (mapcar [{list :cut} {cons :stmt1} #'car] replacements)))
 
-(defmethod get-declared-variables ((clang clang) (the-block clang-ast))
+(defmethod get-declared-variables ((the-block clang-ast))
   "DOCFIXME
 * CLANG DOCFIXME
 * THE-BLOCK DOCFIXME
 "
-  (mappend #'ast-declares (get-immediate-children clang the-block)))
+  (mappend #'ast-declares (child-asts the-block)))
 
 (defmethod get-used-variables ((clang clang) (stmt clang-ast))
   "DOCFIXME
@@ -2999,7 +2986,7 @@ variables to replace use of the variables declared in stmt ID."))
 "
   (remove-if-not [(lambda (el) (find var el :test #'equal))
                   {get-used-variables clang}]
-                 (get-immediate-children clang the-block)))
+                 (child-asts the-block)))
 
 (defmethod nth-enclosing-block ((clang clang) (depth integer) (stmt clang-ast))
   "DOCFIXME
@@ -3028,7 +3015,7 @@ Returns a list of parent ASTs from outer to inner.
          (if (eq root start)
              (values nil (when include-start
                            (list root)))
-             (bind ((children (ast-children root))
+             (bind ((children (children root))
                     ;; Last child at this level
                     (last-child (lastcar (car statements)))
                     ;; Position of last child in real AST child list
@@ -3065,7 +3052,7 @@ Returns outermost AST of context.
   ;; outward. This ensures that the levels line up.
   (lastcar (iter (for parent in (reverse context))
                  (for children in statements)
-                 (collect (copy parent :children (nconcf (ast-children parent)
+                 (collect (copy parent :children (nconcf (children parent)
                                                          children))))))
 
 ;; Perform 2-point crossover. The second point will be within the same
@@ -3138,7 +3125,7 @@ Returns outermost AST of context.
                ancestor)))
        (splice-ast (a-outer b-outer b-inner b-ast)
          ;; Splice b-ast into a-outer.
-         (bind ((children (ast-children a-outer))
+         (bind ((children (children a-outer))
                 (a-index1 (child-index a a-outer a-begin))
                 (a-index2 (1+ (child-index a a-outer
                                            (ancestor-after a a-outer a-end))))
@@ -3149,7 +3136,7 @@ Returns outermost AST of context.
                          ;; A children before the crossover
                          (subseq children 0 a-index1)
                          ;; B children up to the inner ast
-                         (subseq (ast-children b-outer)
+                         (subseq (children b-outer)
                                  b-index1
                                  (if b-ast b-index2 (1+ b-index2)))
                          ;; The inner ast if it exists
@@ -3226,7 +3213,7 @@ database."
          (mapc [{add-type clang} {find-type database}]
                (reverse (ast-types ast)))
          (mapc #'update (remove-if-not {typep _ 'clang-ast}
-                                       (ast-children ast)))))
+                                       (children ast)))))
     (update ast)))
 
 ;; Find the ancestor of STMT that is a child of ANCESTOR.
@@ -3272,7 +3259,7 @@ database."
 * ANCESTOR DOCFIXME
 "
   (iter (for ast in (get-parent-asts clang stmt))
-        (counting (block-p clang ast))
+        (counting (block-p ast))
         (until (equalp ast ancestor))))
 
 (defmethod nesting-relation ((clang clang) x y)
@@ -3525,7 +3512,7 @@ within a function body, return null."))
 * CLANG software object containing STMT
 * STMT ast to test if a function body
 "
-  (find-if [{equalp stmt} {function-body clang}] (functions clang)))
+  (find-if [{equalp stmt} #'function-body] (functions clang)))
 
 
 ;;; Implement the generic format-genome method for clang objects.
@@ -3565,7 +3552,7 @@ within a function body, return null."))
            (trim-stmt-end (text)
              (string-left-trim '(#\Space #\Backspace #\Tab #\;)
                                 text))
-           (prepend-text (ast text &aux (children (ast-children ast)))
+           (prepend-text (ast text &aux (children (children ast)))
              (copy ast
                    :children (if (stringp (first children))
                                  (cons (concatenate 'string text
@@ -3600,9 +3587,9 @@ within a function body, return null."))
                                            wrapped)))
                (block-children
                  (if top-level
-                     (mapcar #'copy (get-immediate-children obj (genome obj)))
-                     (iter (for child in (nest (ast-children)
-                                               (function-body obj)
+                     (mapcar #'copy (child-asts (genome obj)))
+                     (iter (for child in (nest (children)
+                                               (function-body)
                                                (lastcar)
                                                (functions obj)))
                            (for prev previous child)
@@ -3923,7 +3910,7 @@ where class = (ast-class ast).")
   (:method ((ast clang-ast) (c (eql :declstmt)))
     (remove-if-not (lambda (a) (and (typep a 'clang-ast)
                                     (eql (ast-class a) :var)))
-                   (ast-children ast))))
+                   (children ast))))
 
 (defmethod ast-unbound-funs ((ast clang-ast))
   (ast-unbound-funs* ast (ast-class ast)))
@@ -3943,7 +3930,7 @@ where class = (ast-class ast).")
         (list (list obj (ast-void-ret obj) (ast-varargs obj)
                     (count-if (lambda (a) (and (typep a 'clang-ast)
                                                (eql (ast-class a) :ParmVar)))
-                              (ast-children obj))))))))
+                              (children obj))))))))
 
 (defmethod ast-includes ((obj null) (ast clang-ast))
   (ast-includes (make-instance 'clang) ast))
@@ -3959,7 +3946,7 @@ where class = (ast-class ast).")
   (remove-duplicates (apply #'append
                             (ast-includes-in-current-ast obj ast)
                             (mapcar {ast-includes obj}
-                                    (ast-children ast)))
+                                    (children ast)))
                      :test #'equal))
 
 (defmethod ast-includes* ((obj clang)
@@ -3990,7 +3977,7 @@ where class = (ast-class ast).")
                                        (null (nest (macro-i-file)
                                                    (ast-annotation ast :macro))))
                               (list (ast-annotation ast :macro)))
-                            (mapcar #'ast-macros (ast-children ast)))))
+                            (mapcar #'ast-macros (children ast)))))
 
 (defmethod ast-macros* ((ast clang-ast) (class (eql :toplevel)))
   nil)
@@ -4067,7 +4054,7 @@ on various ast classes"))
   (mapcar
    (lambda (o) (list o (ast-type o)))
    (remove-if-not (lambda (c) (ast-is-class c :ParmVar))
-                  (ast-children obj))))
+                  (children obj))))
 
 (defun ast-arg-equal (arg1 arg2)
   (and (name= (first arg1) (first arg2))
@@ -4083,7 +4070,7 @@ on various ast classes"))
 (defmethod ast-declares ((obj clang-ast))
   (case (ast-class obj)
     (:DeclStmt
-     (reduce #'append (ast-children obj)
+     (reduce #'append (children obj)
              :key #'ast-declares :initial-value nil))
     ((:ParmVar :Function :Var :Field :Record :TypeDef)
      (when (ast-name obj)
@@ -4222,7 +4209,7 @@ on various ast classes"))
 (defmethod ast-hash ((ast clang-ast))
   (or (slot-value ast 'stored-hash)
       (setf (slot-value ast 'stored-hash)
-            (ast-hash (cons (ast-class ast) (ast-children ast))))))
+            (ast-hash (cons (ast-class ast) (children ast))))))
 
 (defun ret-type-of-function-type (s)
   "Returns a string that is the return type of the function type
@@ -4763,19 +4750,19 @@ on json-kind-symbol when special subclasses are wanted."))
   ;; cl-json converts these to NIL.  Just remove then,
   ;; as the old clang front end does.
   (let ((obj (call-next-method)))
-    (setf (ast-children obj) (remove nil (ast-children obj)))
+    (setf (children obj) (remove nil (children obj)))
     obj))
 
 (defmethod j2ck :around ((json t) (json-kind-symbol (eql :ImplicitListExpr)))
   ;; We remove :ImplicitValueInitExprs, turning them to NIL.
   ;; Here, remove those NILs.
   (let ((obj (call-next-method)))
-    (setf (ast-children obj) (remove nil (ast-children obj)))
+    (setf (children obj) (remove nil (children obj)))
     obj))
 
 (defmethod j2ck :around ((json t) (json-kind-symbol (eql :typedef)))
   (let ((obj (call-next-method)))
-    (pop (ast-children obj))
+    (pop (children obj))
     obj))
 
 (defmethod j2ck ((json t) (json-kind-symbol (eql :ImplicitValueInitExpr)))
@@ -4909,7 +4896,7 @@ form for SLOT, and stores into OBJ.  Returns OBJ or its replacement."))
   obj)
 
 (defmethod store-slot ((obj clang-ast) (slot (eql :inner)) value)
-  (setf (ast-children obj)
+  (setf (children obj)
         (remove nil (mapcar (lambda (o) (clang-convert-json o)) value)))
   obj)
 
@@ -5167,8 +5154,8 @@ actual source file")
     ;; Minor performance optimization.  First remove the
     ;; top-level ASTs which are included from another file.
     ;; Then remove the sub-ASTs included from another file.
-    (setf (ast-children ast-root)
-          (remove-if #'included-from (ast-children ast-root)))
+    (setf (children ast-root)
+          (remove-if #'included-from (children ast-root)))
     (remove-asts-if ast-root #'included-from)
     ast-root))
 
@@ -5182,10 +5169,10 @@ actual source file")
                       (flet ((%is-kind (c)
                                (and (typep c 'clang-ast)
                                     (eql (ast-class c) kind))))
-                        (let* ((children (ast-children a))
+                        (let* ((children (children a))
                                (num (count-if #'%is-kind children)))
                           (when (> num count)
-                            (setf (ast-children a)
+                            (setf (children a)
                                   (remove-if #'%is-kind children
                                              :from-end t
                                              :count (- num count))))))))
@@ -5572,9 +5559,9 @@ from the same macroexpansion into a single macroexpansion node.")
       (unless (eql (ast-class ast) :macroexpansion)
         ;; Scan the children of ast, grouping those that are macro expansion
         ;; nodes of the same offset.
-        (setf (ast-children ast)
+        (setf (children ast)
               (let ((macro-child-segment nil))
-                (iter (for child in (ast-children ast))
+                (iter (for child in (children ast))
                       (when (and macro-child-segment
                                  (not (%is-macro-child-segment-ast
                                        child
@@ -5601,7 +5588,7 @@ from the same macroexpansion into a single macroexpansion node.")
   "Separate consecutive, overlapping decl children in a :DeclStmt node
 so their text ranges in the source do not overlap, if possible.  This
 mimics the previous behavior within clang-mutate."
-  (let ((child-asts (ast-children ast)))
+  (let ((child-asts (children ast)))
     (let (prev pos)
       (when (and (typep (car child-asts) 'clang-ast)
                  (member (ast-class (car child-asts)) *clang-decl-kinds*))
@@ -5650,7 +5637,7 @@ of the ranges of its children"
                  (begin-and-end-offsets a)
                (let ((min-begin begin)
                      (max-end end))
-                 (iter (for c in (ast-children a))
+                 (iter (for c in (children a))
                        (when (and (typep c 'clang-ast)
                                   (equal (file a) (file c)))
                          (multiple-value-bind (cbegin cend)
@@ -5714,10 +5701,9 @@ of the ranges of its children"
                       (+ (end-offset prev) (end-tok-len prev))))))
     (map-ast ast-root
              (lambda (ast)
-               (setf (ast-children ast)
+               (setf (children ast)
                      (let ((prev nil))
-                       (iter (for child in (nest (%sorted-children)
-                                                 (ast-children ast)))
+                       (iter (for child in (%sorted-children (children ast)))
                              (if (%combine-overlapping-siblings-p prev child)
                                  (progn
                                    (setf (end-offset prev)
@@ -5726,7 +5712,7 @@ of the ranges of its children"
                                               (+ (end-offset child)
                                                  (end-tok-len child)))
                                          (end-tok-len prev) 0)
-                                   (push child (ast-children prev)))
+                                   (push child (children prev)))
                                  (progn
                                    (setf prev child)
                                    (collect child))))))))))
@@ -5747,13 +5733,13 @@ of the ranges of its children"
          ;; that are placed between the children.  Do not
          ;; place strings for children for whom offsets
          ;; cannot be computed
-         (let ((children (ast-children a)))
+         (let ((children (children a)))
            (multiple-value-bind (begin end)
                (begin-and-end-offsets a)
              (when (and begin end (null (file a)))
                (let ((i begin))
                  (setf
-                  (ast-children a)
+                  (children a)
                   (nconc
                    (iter
                     (for c in children)
@@ -5845,7 +5831,7 @@ ast nodes, as needed")
     (let ((prev nil)
           (prev-var? nil))
       (unless (eql (ast-class obj) :toplevel)
-        (iter (for c in (ast-children obj))
+        (iter (for c in (children obj))
               (when (typep c 'clang-ast)
                 (case (ast-class c)
                   ((:Var :ParmVar)
@@ -5914,7 +5900,7 @@ the tree."
          (when (and (typep e 'clang-ast)
                     (ast-full-stmt e)
                     (stringp (cadr p)))
-           (let ((e-children (ast-children e)))
+           (let ((e-children (children e)))
              (when (stringp (lastcar e-children))
                (multiple-value-bind (found? prefix suffix)
                    (position-of-leading-semicolon (cadr p))
@@ -5928,14 +5914,14 @@ the tree."
 Move the semicolon in just one level, but no further"
   ;;; Previously this was just for call-exprs in compoundstmts,
   ;;; but new clang needs more
-  (let* ((children (ast-children ast))
+  (let* ((children (children ast))
          (p children))
     (loop (unless p (return))
        (let ((e (car p)))
          (when (and (typep e 'clang-ast)
                     (stringp (cadr p))
                     (or (ast-full-stmt e) (eql (ast-class e) :field))
-                    (stringp (lastcar (ast-children e))))
+                    (stringp (lastcar (children e))))
            (multiple-value-bind (found? prefix suffix)
                (position-of-leading-semicolon (cadr p))
              (when found?
@@ -5950,14 +5936,14 @@ Move the semicolon in just one level, but no further"
 This is done without copying.")
   (:method ((a clang-ast) (str string))
     ;; default method
-    (let ((c (ast-children a)))
+    (let ((c (children a)))
       (if (null c)
-          (setf (ast-children a) (list str))
+          (setf (children a) (list str))
           (let ((lc (lastcar c)))
             (if (stringp lc)
-                (setf (ast-children a)
+                (setf (children a)
                       (append (butlast c) (list (format nil "~a~a" lc str))))
-                (setf (ast-children a)
+                (setf (children a)
                       (append c (list str)))))))))
 
 ;;; There is a name collision with the labels functionn ADD-SEMICOLON
@@ -5977,14 +5963,14 @@ on both sides of AST.  AST is a string or ast node.  SEMI-POSITION is
     (concatenate 'string ast '(#\;)))
   (:method ((ast clang-ast) (pos (eql :before)))
     (declare (ignorable pos))
-    (let ((children (ast-children ast)))
+    (let ((children (children ast)))
       (copy ast :children
             (cons (add-semicolon (car children) :before)
                   (cdr children)))))
   (:method ((ast clang-ast) (pos (eql :after)))
     (declare (ignorable pos))
     (copy ast :children
-          (append (ast-children ast) (list ";"))))
+          (append (children ast) (list ";"))))
   (:method (ast (pos (eql :both)))
     (declare (ignorable pos))
     (add-semicolon (add-semicolon ast :before) :after))
@@ -5997,13 +5983,13 @@ on both sides of AST.  AST is a string or ast node.  SEMI-POSITION is
     (string
      (position-of-trailing-semicolon ast))
     (ast
-     (has-trailing-semicolon-p (lastcar (ast-children ast))))
+     (has-trailing-semicolon-p (lastcar (children ast))))
     (t nil)))
 
 (defun fix-semicolons-ast (ast)
   "Move semicolons into the appropriate stmt nodes in the children of node AST"
   (move-semicolons-into-expr-stmts ast)
-  (move-semicolons-into-full-stmts (ast-children ast))
+  (move-semicolons-into-full-stmts (children ast))
   ast)
 
 (defun fix-semicolons (ast)
@@ -6024,7 +6010,7 @@ objects in TYPES using NAME-SYMBOL-TABLE."
                            (remove nil)
                            (remove-duplicates)
                            (mapcar #'ast-type)
-                           (get-children obj decl)))))
+                           (cons decl (child-asts decl :recursive t))))))
            (populate-type-decl (tp decl)
              (setf (slot-value tp 'decl)
                    (source-text decl))))
@@ -6129,7 +6115,7 @@ ASTs in the existing SYMBOL-TABLE and AST-ROOT tree."
                  ;; clang AST, recurse into children
                  (setf (slot-value ast 'path) (reverse path)
                        (slot-value ast 'children)
-                       (iter (for c in (ast-children ast))
+                       (iter (for c in (children ast))
                              (for i upfrom 0)
                              (collect (if (typep c 'ast)
                                           (update-paths-helper c (cons i path))
@@ -6190,7 +6176,7 @@ at zero, or NIL if there is none."))
 
 (defmethod nth-ast-child ((obj clang-ast) n)
   (declare (type (and fixnum (integer 0)) n))
-  (let ((children (ast-children obj)))
+  (let ((children (children obj)))
     (loop
        (unless children (return nil))
        (let ((next-child (pop children)))
@@ -6210,7 +6196,7 @@ the test or is not present."))
                           &key (child-fn (complement #'stringp))
                             (test #'eql))
   (let ((pos 0)
-        (children (ast-children obj)))
+        (children (children obj)))
     (loop
        (unless children (return nil))
        (let ((next-child (pop children)))
@@ -6240,7 +6226,7 @@ the test or is not present."))
              (:ForStmt
               (eql s (nest (lastcar)
                            (remove-if-not {typep _ 'ast})
-                           (ast-children p))))
+                           (children p))))
              ((:WhileStmt :SwitchStmt :CxxCatchStmt)
               (eql-nth-ast-child s p 1))
              ((:IfStmt)
@@ -6264,7 +6250,7 @@ the test or is not present."))
   (:documentation "Apply FN to each node of AST, in preorder.")
   (:method ((tree clang-ast) fn)
     (funcall fn tree)
-    (dolist (c (ast-children tree))
+    (dolist (c (children tree))
       (when (typep c 'clang-ast) (map-ast c fn)))
     tree)
   (:method (tree fn)
@@ -6277,7 +6263,7 @@ in preorder.  The ancestor list is in decreasing order of depth in the AST.")
   (:method ((tree clang-ast) fn &optional ancestors)
     (funcall fn tree ancestors)
     (let ((ancestors (cons tree ancestors)))
-      (dolist (c (ast-children tree))
+      (dolist (c (children tree))
         (when (typep c 'clang-ast) (map-ast-with-ancestors c fn ancestors))))
     tree)
   (:method (tree fn &optional ancestors)
@@ -6287,7 +6273,7 @@ in preorder.  The ancestor list is in decreasing order of depth in the AST.")
 (defgeneric map-ast-postorder (tree fn)
   (:documentation "Apply FN to each node of AST, in postorder.")
   (:method ((tree clang-ast) fn)
-    (dolist (c (ast-children tree))
+    (dolist (c (children tree))
       (when (typep c 'clang-ast) (map-ast-postorder c fn)))
     (funcall fn tree)
     tree))
@@ -6297,7 +6283,7 @@ in preorder.  The ancestor list is in decreasing order of depth in the AST.")
 the descent when FN returns NIL.")
   (:method ((a clang-ast) fn)
     (when (funcall fn a)
-      (dolist (c (ast-children a))
+      (dolist (c (children a))
         (when (typep c 'clang-ast) (map-ast-while c fn))))))
 
 (defgeneric map-ast-sets (ast fn &key key test)
@@ -6310,7 +6296,7 @@ children.")
                ;; In the future, memoize and use better data structures
                (let ((here (funcall fn a))
                      (child-sets
-                      (iter (for c in (ast-children a))
+                      (iter (for c in (children a))
                             (when (typep c 'clang-ast)
                               (collect (%recurse c))))))
                  (reduce (lambda (s1 s2)
@@ -6321,13 +6307,13 @@ children.")
 (defgeneric remove-asts-if (ast fn)
   (:documentation "Remove all subasts for which FN is true.")
   (:method ((ast clang-ast) fn)
-    (let* ((children (ast-children ast))
+    (let* ((children (children ast))
            (new-children (mapcar (lambda (a) (remove-asts-if a fn))
                                  (remove-if fn children))))
       (unless (and (= (length children)
                       (length new-children))
                    (every #'eql children new-children))
-        (setf (ast-children ast) new-children)))
+        (setf (children ast) new-children)))
     ast)
   (:method (ast (fn t)) ast))
 
@@ -6335,8 +6321,8 @@ children.")
   (declare (ignorable key from-end end start))
   (cond
     ((funcall predicate ast) ast)
-    ((ast-children ast)
-     (iter (for child in (ast-children ast))
+    ((children ast)
+     (iter (for child in (children ast))
            (when-let ((satisfied-p
                        (and (typep child 'clang-ast)
                             (find-if predicate child))))
@@ -6362,8 +6348,8 @@ children.")
                              (if (typep child 'clang-ast)
                                  (substitute-if new-item predicate child)
                                  child))
-                           (ast-children ast))))
-        (if (every #'eql new-children (ast-children ast))
+                           (children ast))))
+        (if (every #'eql new-children (children ast))
             ast
             (copy ast :children new-children)))))
 
@@ -6376,10 +6362,24 @@ children.")
                                 (if (typep child 'clang-ast)
                                     (mapcar function child)
                                     child))
-                              (ast-children value)))))
-      (if (every #'eql new-children (ast-children value))
+                              (children value)))))
+      (if (every #'eql new-children (children value))
           value
           (copy value :children new-children)))))
+
+(defmethod reduce (fn (ast clang-ast)
+                   &key key initial-value ;; start end from-end
+                   &allow-other-keys
+                   &aux (accumulator initial-value))
+  (setf accumulator
+        (funcall fn accumulator (if key (funcall key ast) ast)))
+
+  (dolist (c (children ast))
+    (when (typep c 'ast)
+      (setf accumulator
+            (reduce fn c :key key :initial-value accumulator))))
+
+  accumulator)
 
 
 (defun cpp-scan (str until-fn &key (start 0) (end (length str))

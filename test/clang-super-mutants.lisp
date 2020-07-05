@@ -75,8 +75,8 @@
                               1
                               0)
                           (count-if [{eq :SwitchStmt} #'ast-class]
-                                    (nest (get-immediate-children obj)
-                                          (function-body obj fun))))))
+                                    (nest (child-asts)
+                                          (function-body fun))))))
                 (functions obj))))))
 
 (deftest (super-mutant-genome-has-union-of-global-decls :long-running) ()
@@ -193,8 +193,8 @@
                               1
                               0)
                           (count-if [{eq :SwitchStmt} #'ast-class]
-                                    (nest (get-immediate-children obj)
-                                          (function-body obj fun))))))
+                                    (nest (child-asts)
+                                          (function-body fun))))))
                 (functions obj))
         (is (eq 1 (count-if [{eq :DefaultStmt} #'ast-class] stmts))
             "Super-function contains default statement.")
