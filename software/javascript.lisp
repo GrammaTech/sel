@@ -37,6 +37,7 @@
         :software-evolution-library/components/formatting)
   (:import-from :jsown)
   (:import-from :cffi :translate-camelcase-name)
+  (:import-from :functional-trees :path-later-p)
   (:export :javascript
            :javascript-mutation
            :javascript-ast

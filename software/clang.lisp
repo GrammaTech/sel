@@ -20,6 +20,7 @@
   (:import-from :babel :string-size-in-octets)
   (:import-from :arrow-macros :some->>) ; FIXME: Remove.
   (:import-from :jsown)
+  (:import-from :functional-trees :path-later-p)
   (:export :clang
            :clang-ast
            :headers

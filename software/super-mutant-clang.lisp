@@ -6,7 +6,8 @@
         :software-evolution-library
         :software-evolution-library/software/parseable
         :software-evolution-library/software/clang
-        :software-evolution-library/software/super-mutant))
+        :software-evolution-library/software/super-mutant)
+  (:import-from :functional-trees :path-later-p))
 (in-package :software-evolution-library/software/super-mutant-clang)
 (in-readtable :curry-compose-reader-macros)
 

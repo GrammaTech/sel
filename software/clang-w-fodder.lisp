@@ -14,6 +14,7 @@
         :software-evolution-library/software/clang
         :software-evolution-library/components/searchable
         :software-evolution-library/components/fodder-database)
+  (:import-from :functional-trees :path-later-p)
   (:export :clang-w-fodder
            :pick-snippet
            :*clang-w-fodder-mutation-types*

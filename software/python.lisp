@@ -38,6 +38,7 @@
         :software-evolution-library/software/parseable
         :software-evolution-library/components/file
         :software-evolution-library/components/formatting)
+  (:import-from :functional-trees :path-later-p)
   (:export :python
            :python-mutation
            :python-ast))

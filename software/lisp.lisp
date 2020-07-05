@@ -13,6 +13,7 @@
   (:import-from :eclector.reader
                 :evaluate-expression
                 :interpret-symbol)
+  (:import-from :functional-trees :path-later-p)
   (:shadowing-import-from :eclector.readtable
                           :copy-readtable
                           :set-dispatch-macro-character)
