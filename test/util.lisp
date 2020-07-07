@@ -12,6 +12,7 @@
            :+multi-file-dir+
            :+asm-test-dir+
            :+multiple-artifact-dir+
+           :+lisp-scopes-dir+
            :+python-dir+
            ;; Other functions
            :acorn-available-p
@@ -100,6 +101,12 @@
   :test #'equalp
   :documentation
   "Path to directory holding a project which produces multiple artifacts.")
+
+(define-constant +lisp-scopes-dir+
+    (append +etc-dir+ (list "lisp-scopes"))
+  :test #'equalp
+  :documentation
+  "Path to directory holding lisp code to test scopes.")
 
 (defun asm-test-dir (filename)
   (make-pathname :name (pathname-name filename)
