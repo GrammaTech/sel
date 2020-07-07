@@ -281,6 +281,8 @@
     (is (stmt-with-text soft "foo("))
     (is (typep (stmt-with-text soft "foo(") 'js-identifier))))
 
+#+(or  )
+(progn
 (deftest javascript.newline.post-processing.1 ()
   (is (equalp (sel/sw/javascript::position-after-leading-newline "") nil)
       "position-after-leading-newline on empty string"))
@@ -334,6 +336,7 @@
   (is (equalp (sel/sw/javascript::position-after-leading-newline " / ")
               nil)
       "position-after-leading-newline slash not at EOL not a comment"))
+)
 
 (defun to-js-ast (tree)
   (labels ((to-js-ast- (tree)
