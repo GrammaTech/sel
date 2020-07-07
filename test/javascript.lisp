@@ -278,8 +278,8 @@
 (deftest function-identifier-ast-present ()
   (let ((soft (from-file (make-instance 'javascript)
                          (javascript-dir #P"parsing/function-declaration.js"))))
-    (is (stmt-with-text soft "foo"))
-    (is (equal :Identifier (ast-class (stmt-with-text soft "foo"))))))
+    (is (stmt-with-text soft "foo("))
+    (is (typep (stmt-with-text soft "foo(") 'js-identifier))))
 
 (deftest javascript.newline.post-processing.1 ()
   (is (equalp (sel/sw/javascript::position-after-leading-newline "") nil)
