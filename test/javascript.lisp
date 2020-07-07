@@ -281,63 +281,6 @@
     (is (stmt-with-text soft "foo("))
     (is (typep (stmt-with-text soft "foo(") 'js-identifier))))
 
-#+(or  )
-(progn
-(deftest javascript.newline.post-processing.1 ()
-  (is (equalp (sel/sw/javascript::position-after-leading-newline "") nil)
-      "position-after-leading-newline on empty string"))
-
-(deftest javascript.newline.post-processing.2 ()
-  (is (equalp (sel/sw/javascript::position-after-leading-newline "x") nil)
-      "position-after-leading-newline on string with no whitespace or newline"))
-
-(deftest javascript.newline.post-processing.3 ()
-  (is (equalp (sel/sw/javascript::position-after-leading-newline "   ") nil)
-      "position-after-leading-newline on string with whitespace only, no newline"))
-
-(deftest javascript.newline.post-processing.4 ()
-  (is (equalp (sel/sw/javascript::position-after-leading-newline " x") nil)
-      "position-after-leading-newline on string with whitespace, no newline"))
-
-(deftest javascript.newline.post-processing.5 ()
-  (is (equalp (sel/sw/javascript::position-after-leading-newline (string #\Newline)) 1)
-      "position-after-leading-newline on newline"))
-
-(deftest javascript.newline.post-processing.6 ()
-  (is (equalp (sel/sw/javascript::position-after-leading-newline
-               (concatenate 'string (string #\Newline) "x"))
-              1)
-      "position-after-leading-newline on newline + other stuff"))
-
-(deftest javascript.newline.post-processing.7 ()
-  (is (equalp (sel/sw/javascript::position-after-leading-newline
-               (concatenate 'string (string #\Newline) "// foo "))
-              1)
-      "position-after-leading-newline on newline, comment"))
-
-(deftest javascript.newline.post-processing.8 ()
-  (is (equalp (sel/sw/javascript::position-after-leading-newline
-               (concatenate 'string  "// foo " (string #\Newline) "   "))
-              8)
-      "position-after-leading-newline on comment, newline "))
-
-(deftest javascript.newline.post-processing.9 ()
-  (is (equalp (sel/sw/javascript::position-after-leading-newline
-               "  // foo ")
-              nil)
-      "position-after-leading-newline on comment"))
-
-(deftest javascript.newline.post-processing.10 ()
-  (is (equalp (sel/sw/javascript::position-after-leading-newline "/")
-              nil)
-      "position-after-leading-newline slash at EOL not a comment"))
-
-(deftest javascript.newline.post-processing.11 ()
-  (is (equalp (sel/sw/javascript::position-after-leading-newline " / ")
-              nil)
-      "position-after-leading-newline slash not at EOL not a comment"))
-)
-
 (defixture javascript-ast-w-conflict
   (:setup (nest (setf *soft*)
                 (with (from-file (make-instance 'javascript-traceable)
