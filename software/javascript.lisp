@@ -43,6 +43,7 @@
            :javascript-ast
            :skipped-before
            :skipped-after
+           :name
            :start
            :end
            :acorn))
