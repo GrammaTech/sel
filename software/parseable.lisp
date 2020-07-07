@@ -1210,6 +1210,7 @@ to allow for successful mutation of SOFTWARE at PT."
                                                 ast))))))
 
 (defgeneric replace-ast (obj location replacement &key literal)
+  ;; FIXME: This implementation feels unjustifiably complex.
   (:documentation "Modify and return OBJ with the AST at LOCATION replaced
 with REPLACEMENT.
 * OBJ object to be modified
@@ -1219,7 +1220,8 @@ with REPLACEMENT.
           For modifications where the replacement is to be directly
           inserted, pass this keyword as true.")
   (:method ((obj parseable) (location ast) (replacement ast) &rest args)
-    (apply #'replace-ast obj (ast-path obj location) replacement args))
+    (apply #'replace-ast obj (path-of-node (genome obj) location) replacement
+           args))
   (:method ((obj parseable) (location list) (replacement ast) &key literal)
     (apply-mutation obj (at-targets (make-instance 'parseable-replace)
                                     (list (cons :stmt1 location)
@@ -1232,14 +1234,7 @@ with REPLACEMENT.
   (:method ((obj parseable) (location ast) (replacement list) &rest args)
     (apply #'replace-ast obj (ast-path obj location) replacement args))
   (:method ((obj parseable) (location list) (replacement list) &rest args)
-    (let* ((old-ast (@ obj (butlast location)))
-           (new-ast (nest (copy old-ast :children)
-                          (append (subseq (children old-ast) 0
-                                          (lastcar location))
-                                  replacement
-                                  (subseq (children old-ast)
-                                          (1+ (lastcar location)))))))
-      (apply #'replace-ast obj old-ast new-ast args))))
+    (apply #'replace-ast obj location (@ obj replacement) args)))
 
 (defgeneric remove-ast (obj location)
   (:documentation "Return the modified OBJ with the AST at LOCATION removed.

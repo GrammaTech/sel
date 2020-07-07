@@ -387,13 +387,14 @@
 
 (deftest javascript-and-conflict-replace-ast ()
   (with-fixture javascript-ast-w-conflict
-    (let ((cnf (find-if {typep _ 'conflict-ast} (genome *soft*))))
+    (let ((cnf (find-if {typep _ 'conflict-ast} *soft*)))
       (replace-ast *soft*
-                   (ast-path *soft* cnf)
-                   (aget :my (conflict-ast-child-alist cnf))))
+                   cnf
+                   (car (aget :my (conflict-ast-child-alist cnf)))))
 
     (is (equal (size *soft*) (count-if {ast-path *soft*} (genome *soft*))))
-    (is (string= (genome-string *soft*) "topleftaright"))))
+    (is (string= (source-text (@ *soft* '(0 js-body 1 js-body 1 js-expression)))
+                 "a = a + temp;"))))
 
 (deftest test-json-preserves-trailing-whitespace ()
   (let* ((ws (fmt "     ~%"))
