@@ -338,35 +338,20 @@
       "position-after-leading-newline slash not at EOL not a comment"))
 )
 
-(defun to-js-ast (tree)
-  (labels ((to-js-ast- (tree)
-             (assert (or (stringp tree)
-                         (and (listp tree) (keywordp (car tree))))
-                     (tree)
-                     "Every subtree must be a string or start with AST keyword")
-             (nest
-              (if (stringp tree)
-                  tree)
-              (case (car tree)
-                (:j (make-instance 'javascript-ast
-                     :children (mapcar #'to-js-ast- (cdr tree))))
-                (:c (make-instance 'conflict-ast
-                     :child-alist (mapcar
-                                   (lambda (pair)
-                                     (destructuring-bind (key . value) pair
-                                       (cons key (when value
-                                                   (to-js-ast- value)))))
-                                   (second tree))
-                     :children (mapcar #'to-js-ast- (cddr tree))))))))
-    (to-js-ast- tree)))
-
 (defixture javascript-ast-w-conflict
-  (:setup
-   (setf *soft* (make-instance 'javascript
-                  :genome (to-js-ast '(:j "top"
-                                       (:j "left"
-                                        (:c ((:old . nil) (:my . "a") (:your . "b"))))
-                                       (:j "right"))))))
+  (:setup (nest (setf *soft*)
+                (with (from-file (make-instance 'javascript-traceable)
+                                 (javascript-dir #P"fib/fib.js"))
+                      ;; The "b" in 'a = a + b'.
+                      '(0 js-body 1 js-body 1 js-expression js-right js-right))
+                (flet ((js-identifier (name)
+                         (let ((sel/sw/js::*string* name))
+                           (make-instance 'js-identifier :name name)))))
+                ;; A new conflict AST.
+                (make-instance 'conflict-ast :child-alist)
+                `((:old . nil)
+                  (:my . (,(js-identifier "temp")))
+                  (:your . (,(js-identifier "a"))))))
   (:teardown
    (setf *soft* nil)))
 
@@ -381,19 +366,24 @@
     (is (typep (copy (genome *soft*)) 'javascript-ast)))
   (with-fixture javascript-ast-w-conflict
     ;; Access ASTs.
-    (is (string= "top" (@ *soft* '(0))))
-    (is (typep (@ *soft* '(1)) 'javascript-ast))
-    (is (string= "left" (@ *soft* '(1 0))))
-    (is (typep (@ *soft* '(2)) 'javascript-ast))
-    (is (string= "right" (@ *soft* '(2 0))))
+    (is (string= "fibonacci" (name (@ *soft* '(js-body 0 js-id)))))
+    (is (typep (@ *soft* '(0 js-body 1 js-body 0)) 'javascript-ast))
+    (is (nest (string= "temp") (name) (@ *soft*)
+              '(0 js-body 1 js-body 0 js-expression js-left)))
+    (is (typep (@ *soft* '(0 js-body 1 js-body 2)) 'javascript-ast))
+    (is (nest (string= "b") (name) (@ *soft*)
+              '(0 js-body 1 js-body 2 js-expression js-left)))
     ;; Set AST with (replace-ast ...).
-    (replace-ast *soft* '(2 0) "RIGHT")
-    (is (string= "RIGHT" (@ *soft* '(2 0))))
-    (replace-ast *soft* '(1) (make-instance 'javascript-ast :class :foo))
-    (is (eql :foo (ast-class (@ *soft* '(1))))))
-  (with-fixture javascript-ast-w-conflict
-    (replace-ast *soft* '(1) (make-instance 'javascript-ast :class :foo))
-    (is (eql :foo (ast-class (@ *soft* '(1)))))))
+    (replace-ast *soft* '(0 js-body 1 js-body 2 js-expression js-left)
+                 (let ((sel/sw/js::*string* "RIGHT"))
+                   (make-instance 'js-identifier :name "RIGHT")))
+    (is (string= "RIGHT" (nest (name) (@ *soft*)
+                               '(0 js-body 1 js-body 2 js-expression js-left))))
+    (replace-ast *soft* '(0 js-body 1 js-body 0 js-expression js-left)
+                 (let ((sel/sw/js::*string* "LEFT"))
+                   (make-instance 'js-identifier :name "LEFT")))
+    (is (typep (@ *soft* '(0 js-body 1 js-body 2 js-expression js-left))
+               'js-identifier))))
 
 (deftest javascript-and-conflict-replace-ast ()
   (with-fixture javascript-ast-w-conflict
