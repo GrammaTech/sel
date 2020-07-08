@@ -372,7 +372,8 @@ the rebinding"
   (mapcar (lambda (ast)
             (when (and (typep ast 'js-identifier)
                        (member (limited-source-text ast)
-                               (mapcar #'car var-replacements)
+                               (mapcar #'car (append var-replacements
+                                                     fun-replacements))
                                :test #'string=))
               (setf (limited-source-text ast)
                     (second (find-if [{string= (limited-source-text ast)} #'car]
