@@ -381,7 +381,7 @@ is not a compiled language.
   (values bin 0 nil nil nil))
 
 (defmethod get-parent-full-stmt ((obj python) (ast python-ast))
-  (cond ((member (typep ast) +stmt-ast-classes+) ast)
+  (cond ((member (type-of ast) +stmt-ast-classes+) ast)
         (t (get-parent-full-stmt obj (get-parent-ast obj ast)))))
 
 (defmethod rebind-vars ((ast python-ast)
@@ -416,18 +416,18 @@ AST ast to return the enclosing scope for"
   (or (find-if (lambda (parent)
                  (or ;; Normal case: AST is a member of a class
                      ;; of ASTs defining a new scope.
-                     (member (ast-class parent)
-                             (list :FunctionDef
-                                   :AsyncFunctionDef
-                                   :ClassDef
-                                   :For
-                                   :AsyncFor
-                                   :While
-                                   :With
-                                   :AsyncWith
-                                   :Try
-                                   :Lambda
-                                   :ExceptHandler))
+                     (member (type-of parent)
+                             (list 'py-function-def
+                                   'py-async-function-def
+                                   'py-class-def
+                                   'py-for
+                                   'py-async-for
+                                   'py-while
+                                   'py-with
+                                   'py-async-with
+                                   'py-try
+                                   'py-lambda
+                                   'py-except-handler))
                      ;; Special case: For if statements, we do not
                      ;; want to create a new scope for elif clauses.
                      ;; The (or ...) below returns nil for elif clauses.
@@ -464,8 +464,9 @@ AST ast to return the scopes for"
                  t))
            (contains-scope-var-p (ast)
              "Return T if AST contains a variable declaration or assignment."
-             (member (ast-class ast) (list :Arguments :Global :NonLocal
-                                           :Assign :AnnAssign)))
+             (member ast (list 'py-arguments 'py-global 'py-non-local
+                               'py-assign 'py-ann-assign)
+                     :test #'typep))
            (get-lhs-names (assignment)
              "Return all NAME ASTs on the left-hand-side of ASSIGNMENT."
              (nest (remove-if-not (lambda (ast)
@@ -479,7 +480,8 @@ AST ast to return the scopes for"
                        `((:name . ,name)
                          (:decl . ,ast)
                          (:scope . ,scope)))
-                     (cond ((member (ast-class ast) (list :Assign :AnnAssign))
+                     (cond ((member ast (list 'py-assign 'py-ann-assign)
+                                    :test #'typep)
                             (mapcar (lambda (name)
                                       (ast-annotation name :id))
                                     (get-lhs-names ast)))
@@ -487,7 +489,8 @@ AST ast to return the scopes for"
                             (mapcar (lambda (arg)
                                       (ast-annotation arg :arg))
                                     (child-asts ast)))
-                           ((member (ast-class ast) (list :Global :NonLocal))
+                           ((member ast (list 'py-global 'py-non-local)
+                                    :test #'typep)
                             (ast-annotation ast :names)))))
            (remove-duplicate-names (scope)
              "Remove vars with duplicate names in SCOPE."
@@ -498,7 +501,7 @@ AST ast to return the scopes for"
            (scopes-helper (obj ast)
              "Helper function performing the recursive step of searching
              enclosing scopes for variables."
-             (when (not (eq :Module (ast-class ast)))
+             (when (not (typep ast 'py-module))
                (let ((scope (enclosing-scope obj ast)))
                  (cons (nest (reverse)
                              ; remove duplicate names, taking the
@@ -553,7 +556,7 @@ AST ast to return the scopes for"
                                 t)))
                       parents))
            (bound-name-p (parent)
-             (member (typep parent)
+             (member (type-of parent)
                      (list 'py-function-def
                            'py-async-function-def
                            'py-class-def)))
