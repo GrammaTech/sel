@@ -584,7 +584,8 @@ If no suitable points are found the returned points may be nil."))
   (let ((lambda-list (generic-function-lambda-list (ensure-function name))))
     `(defmethod ,name
          ,(substitute '(collection parseable) 'collection lambda-list)
-       (,name ,(first lambda-list) (genome collection)
+       (,name ,@(subseq lambda-list 0 (1- (position '&key lambda-list)))
+              (genome collection)
               ,@(mappend (lambda (key) (list (make-keyword key) key))
                          (cdr (member '&key lambda-list)))))))
 
