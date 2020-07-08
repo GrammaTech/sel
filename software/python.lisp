@@ -224,7 +224,7 @@
                   (mappend «cons #'car [{mapcar #'car} #'cdr]» +asdl+))))
 
 (define-constant +stmt-ast-classes+
-    '(py-module 'py-function-def 'py-async-function-def 'py-class-def 'py-return
+    '('py-module 'py-function-def 'py-async-function-def 'py-class-def 'py-return
       'py-delete 'py-assign 'py-aug-assign 'py-ann-assign 'py-for 'py-async-for
       'py-while 'py-if 'py-with 'py-async-with 'py-raise 'py-try
       'py-except-handler 'py-assert 'py-import 'py-import-from 'py-global
