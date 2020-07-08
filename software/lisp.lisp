@@ -106,7 +106,6 @@ which may be more nodes, or other values.")
 
 (defmethod equal? ((x lisp-ast) (y lisp-ast))
   (and (call-next-method)
-       (eql (class-of x) (class-of y))
        ;; We already know that x and y have the same number of
        ;; children, and that the children are `equal?`.
        (if (children x) t

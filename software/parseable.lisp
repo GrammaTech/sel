@@ -218,7 +218,7 @@ not explicit slot initargs into annotations for functional tree ASTs."
         (hash2 (slot-value ast-b 'stored-hash)))
     (if (and hash1 hash2 (not (eql hash1 hash2)))
         nil
-        (and (eq (ast-class ast-a) (ast-class ast-b))
+        (and (eq (type-of ast-a) (type-of ast-b))
              (length= (children ast-a)
                       (children ast-b))
              (every #'equal? (children ast-a) (children ast-b))))))
