@@ -13,6 +13,7 @@
            :functional-tree-ast
            :skipped-before
            :skipped-after
+           :string-pointer
            :start
            :end
            :to-alist

@@ -207,6 +207,19 @@
   (export (mapcar {symbol-cat 'py}
                   (mappend «cons #'car [{mapcar #'car} #'cdr]» +asdl+))))
 
+;;; Python ASTs sometimes don't have start and end populated.
+(defmethod start ((obj python-ast))
+  (or (slot-value obj 'start)
+      (start (first (children obj)))))
+
+(defmethod end ((obj python-ast))
+  (or (slot-value obj 'start)
+      (start (lastcar (children obj)))))
+
+(defmethod start ((obj py-module)) 0)
+(defmethod end ((obj py-module))
+  (length (slot-value obj 'string-pointer)))
+
 (define-constant +stmt-ast-classes+
     '('py-module 'py-function-def 'py-async-function-def 'py-class-def 'py-return
       'py-delete 'py-assign 'py-aug-assign 'py-ann-assign 'py-for 'py-async-for
@@ -290,6 +303,7 @@ in textual (sorted) order.")
 (defmethod convert ((to-type (eql 'python-ast)) (spec null)
                     &key &allow-other-keys)
   nil)
+
 (defmethod convert ((to-type (eql 'python-ast)) (spec list)
                     &key &allow-other-keys)
   "Create a PYTHON AST from the SPEC (specification) list."
@@ -297,26 +311,29 @@ in textual (sorted) order.")
     "Can't create PY ASTs without `sel/sw/parseable::*string*'.")
   (let* ((raw-type (make-keyword (string-upcase (aget :class spec))))
          (type (symbol-cat 'py raw-type))
-         (child-types (aget raw-type +asdl+)))
-    (apply #'make-instance type
-           (mappend
-            (lambda (field)
-              (destructuring-bind (key . value) field
-                ;; Key here could be :START, :END, :NAME, :LEFT,
-                ;; :RIGHT which should be used unmodified or could be
-                ;; child slot names in which case we prefix them with
-                ;; py- to avoid symbol conflicts.
-                (list (if (find key child-types :key #'car)
-                          (make-keyword (symbol-cat 'py key))
-                          key)
-                      (if-let ((spec (find key child-types :key #'car)))
-                        (destructuring-bind (key . arity) spec
-                          (declare (ignorable key))
-                          (ecase arity
-                            (1 (convert 'python-ast value))
-                            ((* ?) (mapcar {convert 'python-ast} value))))
-                        value))))
-            (cdr spec)))))
+         (child-types (aget raw-type +asdl+))
+         (line-offsets (line-offsets sel/sw/parseable::*string*)))
+    (flet ((offset (line col)
+             "Return the offset into SOURCE-OCTETS for the given LINE and COL."
+             (when (and line col)
+               (+ col (aget :start (gethash line line-offsets))))))
+      (apply #'make-instance type
+             :start (offset (aget :lineno spec) (aget :col-offset spec))
+             :end (offset (aget :end-lineno spec) (aget :end-col-offset spec))
+             (mappend
+              (lambda (field)
+                (destructuring-bind (key . value) field
+                  (list (if (find key child-types :key #'car)
+                            (make-keyword (symbol-cat 'py key))
+                            key)
+                        (if-let ((spec (find key child-types :key #'car)))
+                          (destructuring-bind (key . arity) spec
+                            (declare (ignorable key))
+                            (ecase arity
+                              (1 (convert 'python-ast value))
+                              ((* ?) (mapcar {convert 'python-ast} value))))
+                          value))))
+              (cdr spec))))))
 
 (defmethod parse-asts ((obj python) &optional (source (genome-string obj)))
   (convert 'python-ast source))
@@ -466,7 +483,7 @@ AST ast to return the scopes for"
                      (etypecase ast
                        ((or py-assign py-ann-assign)
                         (mapcar {ast-annotations _ :id}
-                                (get-lhs-names obj ast)))
+                                (get-lhs-names ast)))
                        (py-arguments
                         (mapcar {ast-annotations _ :id}
                                 (child-asts ast)))
