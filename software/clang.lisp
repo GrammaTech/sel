@@ -139,6 +139,7 @@
            :full-stmt-filter
            :same-class-filter
            ;; AST structures.
+           :ast-class
            :ast-args
            :ast-args-equal
            :ast-declares
