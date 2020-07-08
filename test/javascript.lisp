@@ -321,24 +321,24 @@
     (is (typep (@ *soft* '(0 js-body 1 js-body 2)) 'javascript-ast))
     (is (nest (string= "b") (name) (@ *soft*)
               '(0 js-body 1 js-body 2 js-expression js-left)))
-    ;; Set AST with (replace-ast ...).
-    (replace-ast *soft* '(0 js-body 1 js-body 2 js-expression js-left)
-                 (let ((sel/sw/parseable::*string* "RIGHT"))
-                   (make-instance 'js-identifier :name "RIGHT")))
+    ;; Set AST with (with ...).
+    (with *soft* '(0 js-body 1 js-body 2 js-expression js-left)
+          (let ((sel/sw/parseable::*string* "RIGHT"))
+            (make-instance 'js-identifier :name "RIGHT")))
     (is (string= "RIGHT" (nest (name) (@ *soft*)
                                '(0 js-body 1 js-body 2 js-expression js-left))))
-    (replace-ast *soft* '(0 js-body 1 js-body 0 js-expression js-left)
-                 (let ((sel/sw/parseable::*string* "LEFT"))
-                   (make-instance 'js-identifier :name "LEFT")))
+    (with *soft* '(0 js-body 1 js-body 0 js-expression js-left)
+          (let ((sel/sw/parseable::*string* "LEFT"))
+            (make-instance 'js-identifier :name "LEFT")))
     (is (typep (@ *soft* '(0 js-body 1 js-body 2 js-expression js-left))
                'js-identifier))))
 
 (deftest javascript-and-conflict-replace-ast ()
   (with-fixture javascript-ast-w-conflict
     (let ((cnf (find-if {typep _ 'conflict-ast} *soft*)))
-      (replace-ast *soft*
-                   cnf
-                   (car (aget :my (conflict-ast-child-alist cnf)))))
+      (with *soft*
+            cnf
+            (car (aget :my (conflict-ast-child-alist cnf)))))
 
     (is (equal (size *soft*) (count-if {ast-path *soft*} (genome *soft*))))
     (is (string= (source-text (@ *soft* '(0 js-body 1 js-body 1 js-expression)))

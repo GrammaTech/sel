@@ -311,13 +311,12 @@ associated element of `*compilation-fixers*'.
             (when (and (eq (ast-class ast) :DeclStmt)
                        (scan (concatenate 'string variable "\\s*=")
                              (source-text ast)))
-              (replace-ast obj ast
-                           (nest (first)
-                                 (convert 'clang-ast)
-                                 (regex-replace variable
-                                                (source-text ast)
-                                                (format nil "*~a" variable)))
-                           :literal t)
+              (with obj ast
+                    (nest (first)
+                          (convert 'clang-ast)
+                          (regex-replace variable
+                                         (source-text ast)
+                                         (format nil "*~a" variable))))
               (return obj))))
     obj))
 

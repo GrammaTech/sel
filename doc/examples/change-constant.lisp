@@ -26,16 +26,16 @@
 
 ;;; Replace the interesting AST with a random value.
 (defun second-integer-to-rand (obj &optional (rand (random 10000)))
-  (replace-ast obj
-               (second (remove-if-not [{equal :INTEGERLITERAL} #'ast-class]
-                                      (asts obj)))
-               (make-literal rand)))
+  (with obj
+        (second (remove-if-not [{equal :INTEGERLITERAL} #'ast-class]
+                               (asts obj)))
+        (make-literal rand)))
 
 (defun rand-integer-to-rand (obj &optional (rand (random 10000)))
-  (replace-ast obj
-               (random-elt (remove-if-not [{equal :INTEGERLITERAL} #'ast-class]
-                                          (asts obj)))
-               (make-literal rand)))
+  (with obj
+        (random-elt (remove-if-not [{equal :INTEGERLITERAL} #'ast-class]
+                                   (asts obj)))
+        (make-literal rand)))
 
 ;;; Evaluate fitness (looking at cycles to execute).
 (defun test-sqrt (obj &aux (total 0))

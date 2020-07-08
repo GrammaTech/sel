@@ -75,10 +75,6 @@
            :append-text-to-genome
            :index-of-ast
            :ast-at-index
-           ;; Mutation wrappers
-           :insert-ast
-           :remove-ast
-           :replace-ast
            ;; Restarts
            :expand-stmt-pool))
 (in-package :software-evolution-library/software/parseable)
@@ -635,6 +631,18 @@ If no suitable points are found the returned points may be nil."))
               ,@(mappend (lambda (key) (list (make-keyword key) key))
                          (cdr (member '&key lambda-list)))))))
 
+;;; FSet tree manipulations pass through to genome.
+(defun write-tree-manipulation-function-parseable-method (name)
+  (let ((lambda-list (generic-function-lambda-list (ensure-function name))))
+    `(defmethod ,name ((obj parseable) ,@(cdr lambda-list))
+       (setf (genome obj)
+             (,name (genome obj)
+                    ,(second lambda-list)
+                    ,@(nest (mapcar (lambda (param) `(tree-copy ,param)))
+                            (remove '&optional)
+                            (cddr lambda-list))))
+       obj)))
+
 (eval `(progn
          ,@(mapcar #'write-sequence-function-parseable-method
                    '(reduce
@@ -653,6 +661,13 @@ If no suitable points are found the returned points may be nil."))
                      substitute-if
                      substitute-if-not
                      substitute))))
+
+(eval `(progn
+         ,@(mapcar #'write-tree-manipulation-function-parseable-method
+                   '(less
+                     with
+                     insert
+                     splice))))
 
 (defmethod size ((obj parseable))
   "Return the number of non-root ASTs in OBJ."
@@ -1234,62 +1249,3 @@ the mutation operations to be performed as an association list.
 to allow for successful mutation of SOFTWARE at PT."
   (declare (ignorable software pt))
   ast)
-
-
-;;; Mutation wrappers for common tree manipulations.
-
-;; FIXME: When clang is converted to utilize functional trees, these
-;; should be removed and clients updated to utilize the functional
-;; tree interace.
-(defgeneric insert-ast (obj location ast &key literal)
-  (:documentation "Return the modified OBJ with AST inserted at LOCATION.
-* OBJ object to be modified
-* LOCATION location where insertion is to occur
-* AST AST to insert
-* LITERAL keyword to control whether recontextualization is performed
-          For modifications where the replacement is to be directly
-          inserted, pass this keyword as true.")
-  (:method ((obj parseable) (location ast) (ast ast) &rest args)
-    (apply #'insert-ast obj (ast-path obj location) ast args))
-  (:method ((obj parseable) (location list) (ast ast) &key literal)
-    (apply-mutation obj (at-targets (make-instance 'parseable-insert)
-                                    (list (cons :stmt1 location)
-                                          (cons (if literal :literal1 :value1)
-                                                ast))))))
-
-(defgeneric replace-ast (obj location replacement &key literal)
-  ;; FIXME: This implementation feels unjustifiably complex.
-  (:documentation "Modify and return OBJ with the AST at LOCATION replaced
-with REPLACEMENT.
-* OBJ object to be modified
-* LOCATION location where replacement is to occur
-* REPLACEMENT AST to insert as a replacement
-* LITERAL keyword to control whether recontextualization is performed
-          For modifications where the replacement is to be directly
-          inserted, pass this keyword as true.")
-  (:method ((obj parseable) (location ast) (replacement ast) &rest args)
-    (apply #'replace-ast obj (path-of-node (genome obj) location) replacement
-           args))
-  (:method ((obj parseable) (location list) (replacement ast) &key literal)
-    (apply-mutation obj (at-targets (make-instance 'parseable-replace)
-                                    (list (cons :stmt1 location)
-                                          (cons (if literal :literal1 :value1)
-                                                replacement)))))
-  (:method ((obj parseable) (location ast) (replacement string) &rest args)
-    (apply #'replace-ast obj (ast-path obj location) (list replacement) args))
-  (:method ((obj parseable) (location list) (replacement string) &rest args)
-    (apply #'replace-ast obj location (list replacement) args))
-  (:method ((obj parseable) (location ast) (replacement list) &rest args)
-    (apply #'replace-ast obj (ast-path obj location) replacement args))
-  (:method ((obj parseable) (location list) (replacement list) &rest args)
-    (apply #'replace-ast obj location (@ obj replacement) args)))
-
-(defgeneric remove-ast (obj location)
-  (:documentation "Return the modified OBJ with the AST at LOCATION removed.
-* OBJ object to be modified
-* LOCATION location to be removed in OBJ")
-  (:method ((obj parseable) (location ast))
-    (remove-ast obj (ast-path obj location)))
-  (:method ((obj parseable) (location list))
-    (apply-mutation obj (at-targets (make-instance 'parseable-cut)
-                                    (list (cons :stmt1 location))))))
