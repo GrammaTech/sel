@@ -293,7 +293,7 @@
                       ;; The "b" in 'a = a + b'.
                       '(0 js-body 1 js-body 1 js-expression js-right js-right))
                 (flet ((js-identifier (name)
-                         (let ((sel/sw/js::*string* name))
+                         (let ((sel/sw/parseable::*string* name))
                            (make-instance 'js-identifier :name name)))))
                 ;; A new conflict AST.
                 (make-instance 'conflict-ast :child-alist)
@@ -323,12 +323,12 @@
               '(0 js-body 1 js-body 2 js-expression js-left)))
     ;; Set AST with (replace-ast ...).
     (replace-ast *soft* '(0 js-body 1 js-body 2 js-expression js-left)
-                 (let ((sel/sw/js::*string* "RIGHT"))
+                 (let ((sel/sw/parseable::*string* "RIGHT"))
                    (make-instance 'js-identifier :name "RIGHT")))
     (is (string= "RIGHT" (nest (name) (@ *soft*)
                                '(0 js-body 1 js-body 2 js-expression js-left))))
     (replace-ast *soft* '(0 js-body 1 js-body 0 js-expression js-left)
-                 (let ((sel/sw/js::*string* "LEFT"))
+                 (let ((sel/sw/parseable::*string* "LEFT"))
                    (make-instance 'js-identifier :name "LEFT")))
     (is (typep (@ *soft* '(0 js-body 1 js-body 2 js-expression js-left))
                'js-identifier))))

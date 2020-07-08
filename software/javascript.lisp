@@ -41,8 +41,6 @@
   (:export :javascript
            :javascript-mutation
            :javascript-ast
-           :skipped-before
-           :skipped-after
            :name
            :start
            :end
@@ -55,24 +53,10 @@
 
 
 ;;; Javascript ast data structures
-(defvar *string*)
-
 (defclass javascript-ast (functional-tree-ast)
-  ((start :initarg :start :initform (when *string* 0)
-          :reader start :type (or null (integer 0 *)))
-   (end :initarg :end :initform (when *string* (length *string*))
-        :reader end :type (or null (integer 0 *)))
-   (name :initarg :name :initform nil :reader name :type (or null string))
+  ((name :initarg :name :initform nil :reader name :type (or null string))
    (left :initarg :left :initform nil :reader left :type (or null string))
-   (right :initarg :right :initform nil :reader right :type (or null string))
-   (skipped-before
-    :initarg :skipped-before :initform nil
-    :reader skipped-before :type (or null javascript-ast-skipped))
-   (skipped-after
-    :initarg :skipped-after :initform nil
-    :reader skipped-after :type (or null javascript-ast-skipped))
-   (string-pointer :initarg :string-pointer :initform *string*
-                   :reader string-pointer :type (or null string)))
+   (right :initarg :right :initform nil :reader right :type (or null string)))
   (:documentation "Class of JavaScript ASTs."))
 
 (defclass javascript-ast-skipped (javascript-ast) ()
@@ -230,7 +214,7 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
 (defmethod convert ((to-type (eql 'javascript-ast)) (string string)
                     &key &allow-other-keys)
   (nest
-   (let ((*string* string)))
+   (let ((sel/sw/parseable::*string* string)))
    (labels
        ((make-skipped (start end)
           (when (< start end)
@@ -257,7 +241,7 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
                 (make-skipped (end tree) to))
           tree)))
    (w/skipped (convert to-type (acorn string))
-              0 (length *string*))))
+              0 (length sel/sw/parseable::*string*))))
 
 (defmethod convert ((to-type (eql 'javascript-ast)) (spec null)
                     &key &allow-other-keys)
@@ -265,8 +249,8 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
 (defmethod convert ((to-type (eql 'javascript-ast)) (spec list)
                     &key &allow-other-keys)
   "Create a JAVASCRIPT AST from the SPEC (specification) list."
-  (assert (boundp '*string*) (*string*)
-    "Can't create JS ASTs without `*string*'.")
+  (assert (boundp 'sel/sw/parseable::*string*) (sel/sw/parseable::*string*)
+    "Can't create JS ASTs without `sel/sw/parseable::*string*'.")
   (let* ((raw-type (make-keyword (string-upcase (translate-camelcase-name
                                                  (aget :type spec)))))
          (type (symbol-cat 'js raw-type))
@@ -304,26 +288,6 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
 (defmethod parse-asts ((obj javascript) &optional (source (genome-string obj)))
   (convert 'javascript-ast source))
 
-(defmethod limited-source-text ((obj javascript-ast) &optional stream)
-  (with-string (s stream)
-    (write-string (subseq (string-pointer obj) (start obj) (end obj)) s)))
-
-(defmethod (setf string-pointer) (new (obj javascript-ast))
-  (setf (slot-value obj 'string-pointer) new
-        (slot-value obj 'start) 0
-        (slot-value obj 'end) (length new)))
-
-(defmethod (setf limited-source-text) (new (obj javascript-ast) &optional stream)
-  (declare (ignorable stream))
-  (setf (string-pointer obj) new))
-
-(defmethod source-text ((obj javascript-ast) &optional stream)
-  (write-string (source-text (skipped-before obj)) stream)
-  (if (children obj)
-      (mapc [{write-string _ stream} #'source-text] (children obj))
-      (limited-source-text obj stream))
-  (write-string (source-text (skipped-after obj)) stream))
-
 
 ;;; Javascript mutation
 (define-mutation javascript-mutation (parseable-mutation) ()
@@ -337,7 +301,7 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
   ;; FIXME: I do not believe this is allowed by the design
   ;; of functional trees.
   (setf (slot-value root 'skipped-before)
-        (let ((*string* (concatenate 'string
+        (let ((sel/sw/parseable::*string* (concatenate 'string
                                      (source-text (skipped-before root))
                                      text)))
           (make-instance 'javascript-ast-skipped)))
@@ -348,7 +312,7 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
   ;; FIXME: I do not believe this is allowed by the design
   ;; of functional trees.
   (setf (slot-value root 'skipped-after)
-        (let ((*string* (concatenate 'string
+        (let ((sel/sw/parseable::*string* (concatenate 'string
                                      text
                                      (source-text (skipped-before root)))))
           (make-instance 'javascript-ast-skipped)))

@@ -9,7 +9,12 @@
         :software-evolution-library/utility/range)
   (:export ;; ASTs
            :ast
+           :functional-tree-ast-skipped
            :functional-tree-ast
+           :skipped-before
+           :skipped-after
+           :start
+           :end
            :to-alist
            :from-alist
            :child-asts
@@ -85,18 +90,58 @@
 
 
 ;;; AST data structure definitions.
+(defvar *string*)
+
 (defclass ast () ()
   (:documentation "Base class for all ASTs in SEL.  This class acts as a tag
 for objects to allow method dispatch on generic AST objects regardless of
 whether they inherit from the functional trees library."))
 
+(defclass functional-tree-ast-skipped (functional-tree-ast) ()
+  (:documentation "Skipped region of source code text."))
+
 (defclass functional-tree-ast (node ast)
   ((annotations :initarg :annotations :initform nil :reader ast-annotations
                 :documentation "A-list of annotations." :type list)
    (stored-hash :initarg :stored-hash :initform nil
-                :documentation "A cached hash." :type (or null hash-type)))
+                :documentation "A cached hash." :type (or null hash-type))
+   (start :initarg :start :initform (when (and (boundp '*string*) *string*) 0)
+          :reader start :type (or null (integer 0 *)))
+   (end :initarg :end :initform (when (and (boundp '*string*) *string*)
+                                  (length *string*))
+        :reader end :type (or null (integer 0 *)))
+   (string-pointer :initarg :string-pointer
+                   :initform (when (and (boundp '*string*) *string*) *string*)
+                   :reader string-pointer :type (or null string))
+   (skipped-before
+    :initarg :skipped-before :initform nil
+    :reader skipped-before :type (or null functional-tree-ast-skipped))
+   (skipped-after
+    :initarg :skipped-after :initform nil
+    :reader skipped-after :type (or null functional-tree-ast-skipped)))
   (:documentation "Base class for SEL functional tree ASTs.
 An applicative tree structure is used to hold the ASTs."))
+
+(defmethod limited-source-text ((obj functional-tree-ast) &optional stream)
+  (with-string (s stream)
+    (write-string (subseq (string-pointer obj) (start obj) (end obj)) s)))
+
+(defmethod (setf string-pointer) (new (obj functional-tree-ast))
+  (setf (slot-value obj 'string-pointer) new
+        (slot-value obj 'start) 0
+        (slot-value obj 'end) (length new)))
+
+(defmethod (setf limited-source-text) (new (obj functional-tree-ast)
+                                       &optional stream)
+  (declare (ignorable stream))
+  (setf (string-pointer obj) new))
+
+(defmethod source-text ((obj functional-tree-ast) &optional stream)
+  (write-string (source-text (skipped-before obj)) stream)
+  (if (children obj)
+      (mapc [{write-string _ stream} #'source-text] (children obj))
+      (limited-source-text obj stream))
+  (write-string (source-text (skipped-after obj)) stream))
 
 (defclass conflict-ast (functional-tree-ast)
   ((child-alist :initarg :child-alist :initform nil
