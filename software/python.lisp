@@ -471,7 +471,7 @@ AST ast to return the scopes for"
              "Return all NAME ASTs on the left-hand-side of ASSIGNMENT."
              (nest (remove-if-not (lambda (ast)
                                     (and (typep ast 'py-name)
-                                         (typep ast 'py-store))))
+                                         (eq (ast-annotation ast :ctx) :store))))
                    (child-asts assignment :recursive t)))
            (build-scope-alist (obj scope ast)
              "Return an alist containing :name, :decl, and :scope for the
