@@ -381,7 +381,7 @@ is not a compiled language.
   (values bin 0 nil nil nil))
 
 (defmethod get-parent-full-stmt ((obj python) (ast python-ast))
-  (cond ((member (type-of ast) +stmt-ast-classes+) ast)
+  (cond ((member (typep ast) +stmt-ast-classes+) ast)
         (t (get-parent-full-stmt obj (get-parent-ast obj ast)))))
 
 (defmethod rebind-vars ((ast python-ast)
@@ -391,7 +391,7 @@ is not a compiled language.
 * VAR-REPLACEMENTS list of old-name, new-name pairs defining the rebinding
 * FUN-REPLACEMENTS list of old-function-info, new-function-info pairs defining
 the rebinding"
-  (if (type-of ast 'py-name)
+  (if (typep ast 'py-name)
       (copy ast :id (rebind-vars (ast-annotation ast :id)
                                  var-replacements
                                  fun-replacements)
@@ -431,8 +431,8 @@ AST ast to return the enclosing scope for"
                      ;; Special case: For if statements, we do not
                      ;; want to create a new scope for elif clauses.
                      ;; The (or ...) below returns nil for elif clauses.
-                     (and (type-of parent 'py-if)
-                          (or (not (type-of ast 'py-if))
+                     (and (typep parent 'py-if)
+                          (or (not (typep ast 'py-if))
                               (starts-with-subseq "if" (source-text ast))))))
                (cdr (get-parent-asts obj ast)))
       (genome obj)))
@@ -453,7 +453,7 @@ AST ast to return the scopes for"
              "Return T if AST1 and AST2 appear in the same if statement
              clause (the body or the else)."
              (if (and parent1 parent2 (eq parent1 parent2)
-                      (type-of parent1 'py-if))
+                      (typep parent1 'py-if))
                  (let ((else-path (nest (remove-if #'null)
                                         (append (ast-path obj parent1))
                                         (list)
@@ -469,8 +469,8 @@ AST ast to return the scopes for"
            (get-lhs-names (assignment)
              "Return all NAME ASTs on the left-hand-side of ASSIGNMENT."
              (nest (remove-if-not (lambda (ast)
-                                    (and (type-of ast 'py-name)
-                                         (type-of ast 'py-store))))
+                                    (and (typep ast 'py-name)
+                                         (typep ast 'py-store))))
                    (child-asts assignment :recursive t)))
            (build-scope-alist (obj scope ast)
              "Return an alist containing :name, :decl, and :scope for the
@@ -483,7 +483,7 @@ AST ast to return the scopes for"
                             (mapcar (lambda (name)
                                       (ast-annotation name :id))
                                     (get-lhs-names ast)))
-                           ((type-of ast 'py-arguments)
+                           ((typep ast 'py-arguments)
                             (mapcar (lambda (arg)
                                       (ast-annotation arg :arg))
                                     (child-asts ast)))
@@ -553,14 +553,14 @@ AST ast to return the scopes for"
                                 t)))
                       parents))
            (bound-name-p (parent)
-             (member (type-of parent)
+             (member (typep parent)
                      (list 'py-function-def
                            'py-async-function-def
                            'py-class-def)))
            (get-unbound-vals-helper (obj parents ast)
              (remove-duplicates
                (apply #'append
-                      (when (and (type-of ast 'py-name)
+                      (when (and (typep ast 'py-name)
                                  (not (or (bound-name-p (car parents))
                                           (call-name-p parents ast))))
                         (list (cons :name (source-text ast))))
@@ -580,12 +580,12 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
 * AST ast to retrieve unbound functions within"
   (remove-duplicates
     (apply #'append
-           (when (type-of ast 'py-call)
-             (cond ((type-of callee 'py-name)
+           (when (typep ast 'py-call)
+             (cond ((typep callee 'py-name)
                     ;; Free function call
                     (list (list (source-text callee)
                                 nil nil (length (cdr children)))))
-                  ((type-of callee 'py-attribute)
+                  ((typep callee 'py-attribute)
                    ;; Member Function call
                    (list (list (ast-annotation callee :attr)
                                nil nil (length (cdr children)))))
