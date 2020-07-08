@@ -505,7 +505,25 @@ AST ast to return the enclosing scope for"
     :test #'equal))
 
 (defmethod get-parent-full-stmt ((obj javascript) (ast javascript-ast))
-  (find-if #'is-stmt (get-parent-asts obj ast)))
+  (find-if (lambda (ast)
+             (member (type-of ast)
+                     (list 'js-do-while-statement
+                           'js-for-statement
+                           'js-labeled-statement
+                           'js-switch-statement
+                           'js-try-statement
+                           'js-with-statement
+                           'js-for-in-statement
+                           'js-for-of-statement
+                           'js-block-statement
+                           'js-break-statement
+                           'js-continue-statement
+                           'js-expression-statement
+                           'js-while-statement
+                           'js-throw-statement
+                           'js-return-statement
+                           'js-if-statement)))
+           (get-parent-asts obj ast)))
 
 
 ;;; Implement the generic format-genome method for Javascript objects.
