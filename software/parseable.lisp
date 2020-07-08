@@ -764,7 +764,8 @@ otherwise.
 * OBJ software object containing AST and its parent
 * AST node to find the parent of
 "
-  (@ obj (butlast (ast-path obj ast))))
+  (when-let ((path (butlast (ast-path obj ast))))
+    (@ obj path)))
 
 (defmethod get-parent-asts ((obj parseable) (ast ast))
   "Return the parent nodes of AST in OBJ
