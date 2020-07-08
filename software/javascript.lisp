@@ -334,6 +334,8 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
 ;;; Genome manipulations
 (defmethod prepend-text-to-genome
     ((js javascript) (text string) &aux (root (genome js)))
+  ;; FIXME: I do not believe this is allowed by the design
+  ;; of functional trees.
   (setf (slot-value root 'skipped-before)
         (let ((*string* (concatenate 'string
                                      (source-text (skipped-before root))
@@ -343,6 +345,8 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
 
 (defmethod append-text-to-genome
     ((js javascript) (text string) &aux (root (genome js)))
+  ;; FIXME: I do not believe this is allowed by the design
+  ;; of functional trees.
   (setf (slot-value root 'skipped-after)
         (let ((*string* (concatenate 'string
                                      text
@@ -375,6 +379,8 @@ the rebinding"
                                (mapcar #'car (append var-replacements
                                                      fun-replacements))
                                :test #'string=))
+              ;; FIXME: I do not believe this is allowed by the design
+              ;; of functional trees.
               (setf (limited-source-text ast)
                     (second (find-if [{string= (limited-source-text ast)} #'car]
                                      var-replacements))))
