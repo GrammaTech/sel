@@ -13,6 +13,7 @@
            :+asm-test-dir+
            :+multiple-artifact-dir+
            :+lisp-scopes-dir+
+           :+javascript-dir+
            :+python-dir+
            ;; Other functions
            :acorn-available-p
