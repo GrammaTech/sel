@@ -137,13 +137,6 @@ An applicative tree structure is used to hold the ASTs."))
   (declare (ignorable stream))
   (setf (string-pointer obj) new))
 
-(defmethod source-text ((obj functional-tree-ast) &optional stream)
-  (write-string (source-text (skipped-before obj)) stream)
-  (if (children obj)
-      (mapc [{write-string _ stream} #'source-text] (children obj))
-      (limited-source-text obj stream))
-  (write-string (source-text (skipped-after obj)) stream))
-
 (defclass conflict-ast (functional-tree-ast)
   ((child-alist :initarg :child-alist :initform nil
                 :reader conflict-ast-child-alist
@@ -453,7 +446,14 @@ optionally writing to STREAM.")
     ;;
     ;; More importantly using (apply #'concatenate ...) runs into
     ;; problems as the number of ASTs is very large.
-    (mapc {source-text _ stream} (children ast))))
+    (mapc {source-text _ stream} (children ast)))
+  (:method ((obj functional-tree-ast) &optional stream)
+    (write-string (source-text (skipped-before obj)) stream)
+    (if (children obj)
+        (mapc [{write-string _ stream} #'source-text] (children obj))
+        (limited-source-text obj stream))
+    (write-string (source-text (skipped-after obj)) stream)))
+
 
 (defgeneric rebind-vars (ast var-replacements fun-replacements)
   (:documentation
