@@ -473,7 +473,7 @@ AST ast to return the scopes for"
                                     (and (typep ast 'py-name)
                                          (eq (ast-annotation ast :ctx) :store))))
                    (child-asts assignment :recursive t)))
-           (build-scope-alist (obj scope ast)
+           (build-scope-alist (scope ast)
              "Return an alist containing :name, :decl, and :scope for the
              variable in AST."
              (mapcar (lambda (name)
