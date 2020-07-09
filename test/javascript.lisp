@@ -288,7 +288,7 @@
 
 (defixture javascript-ast-w-conflict
   (:setup (nest (setf *soft*)
-                (with (from-file (make-instance 'javascript-traceable)
+                (with (from-file (make-instance 'javascript)
                                  (javascript-dir #P"fib/fib.js"))
                       ;; The "b" in 'a = a + b'.
                       '(0 js-body 1 js-body 1 js-expression js-right js-right))
