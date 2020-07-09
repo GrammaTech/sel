@@ -59,7 +59,7 @@
    (right :initarg :right :initform nil :reader right :type (or null string)))
   (:documentation "Class of JavaScript ASTs."))
 
-(defclass javascript-ast-skipped (javascript-ast) ()
+(defclass javascript-ast-skipped (javascript-ast functional-tree-ast-skipped) ()
   (:documentation "Skipped region of source code text."))
 
 (defvar js-children
