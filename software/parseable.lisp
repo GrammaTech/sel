@@ -17,7 +17,6 @@
            :ast-class
            :ast-annotation
            :ast-annotations
-           :ast-equal-p
            :ast-hash
            :conflict-ast
            :conflict-ast-child-alist
