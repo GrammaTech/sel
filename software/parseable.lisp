@@ -210,10 +210,14 @@ not explicit slot initargs into annotations for functional tree ASTs."
 
 ;;; AST equality and hashing
 (defmethod equal? ((ast-a ast) (ast-b ast))
-  (and (eq (ast-class ast-a) (ast-class ast-b))
-       (eql (length (children ast-a))
-            (length (children ast-b)))
-       (every #'equal? (children ast-a) (children ast-b))))
+  (let ((hash1 (slot-value ast-a 'stored-hash))
+        (hash2 (slot-value ast-b 'stored-hash)))
+    (if (and hash1 hash2 (not (eql hash1 hash2)))
+        nil
+        (and (eq (ast-class ast-a) (ast-class ast-b))
+             (eql (length (children ast-a)
+                          (children ast-b)))
+             (every #'equal? (children ast-a) (children ast-b))))))
 
 (defgeneric ast-hash (ast)
   (:documentation "A hash value for the AST, which is a nonnegative
