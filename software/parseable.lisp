@@ -13,11 +13,12 @@
            :from-alist
            :child-asts
            :ast-path
-           :ast-stored-hash
            :ast-class
            :ast-annotation
            :ast-annotations
            :ast-hash
+           :ast-stored-hash
+           :stored-hash
            :conflict-ast
            :conflict-ast-child-alist
            :conflict-ast-default-children
