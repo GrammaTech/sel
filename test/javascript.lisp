@@ -245,13 +245,6 @@
     ;;        were returned previously.
     (is (set-equal (list "q" "p" "o")
                    (nest (mapcar {aget :name})
-                         ;; FIXME: It would be nice to try to remove
-                         ;;        this requirement of passing the
-                         ;;        full software object as a first
-                         ;;        argument as much as possible.  It
-                         ;;        often isn't used with functional
-                         ;;        trees and we should be able to
-                         ;;        dispatch on the class of the AST.
                          (get-vars-in-scope soft)
                          (stmt-starting-with-text soft "console.log("))
                    :test #'string=))))
