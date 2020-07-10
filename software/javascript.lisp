@@ -258,9 +258,6 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
                                                  (aget :type spec)))))
          (type (symbol-cat 'js raw-type))
          (child-types (aget raw-type js-children :test #'member)))
-    #+debug
-    (case type
-      (js-function-declaration (format t "SPEC:~S~%" spec)))
     ;; Fix inaccuracies in the parsed ASTs we get from acorn.
     ;;
     ;; 1. For a property with no value (e.g., "p" in "{p, q}")
