@@ -163,11 +163,10 @@
 
 (deftest javascript-get-vars-in-scope ()
   (with-fixture fib-javascript
-    (is (set-equal (list "temp" "b" "a" "fibonacci" "num")
-                   (nest (mapcar {aget :name})
-                         (get-vars-in-scope *soft*)
-                         (stmt-with-text *soft* "temp = a;"))
-                   :test #'string=))))
+    (is (equal (list "temp" "b" "a" "num")
+               (nest (mapcar {aget :name})
+                     (get-vars-in-scope *soft*)
+                     (stmt-with-text *soft* "temp = a;"))))))
 
 (deftest javascript-get-unbound-vals ()
   (with-fixture fib-javascript
@@ -231,23 +230,18 @@
 (deftest array-destructuring-get-vars-in-scope-test ()
   (let ((soft (from-file (make-instance 'javascript)
                          (javascript-dir #P"parsing/array-destructuring.js"))))
-    (is (set-equal (list "d" "c" "b" "a" "arr")
-                   (nest (mapcar {aget :name})
-                         (get-vars-in-scope soft)
-                         (stmt-starting-with-text soft "console.log("))
-                   :test #'string=))))
+    (is (equal (list "d" "c" "b" "a" "arr")
+               (nest (mapcar {aget :name})
+                     (get-vars-in-scope soft)
+                     (stmt-starting-with-text soft "console.log("))))))
 
 (deftest object-destructuring-get-vars-in-scope-test ()
   (let ((soft (from-file (make-instance 'javascript)
                          (javascript-dir #P"parsing/object-destructuring.js"))))
-    ;; FIXME: Does the order matter for these in scope variables?  I'm
-    ;;        now consistently returning them reversed from how they
-    ;;        were returned previously.
-    (is (set-equal (list "q" "p" "o")
-                   (nest (mapcar {aget :name})
-                         (get-vars-in-scope soft)
-                         (stmt-starting-with-text soft "console.log("))
-                   :test #'string=))))
+    (is (equal (list "q" "p" "o")
+               (nest (mapcar {aget :name})
+                     (get-vars-in-scope soft)
+                     (stmt-starting-with-text soft "console.log("))))))
 
 (deftest ensure-do-not-duplicate-property-in-genome-string ()
   (let ((soft (from-file (make-instance 'javascript)
