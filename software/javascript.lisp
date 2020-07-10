@@ -138,8 +138,7 @@
    (mapcar
     (lambda (class)
       `(defclass ,(symbol-cat 'js class) (javascript-ast)
-         ((acorn-slot-name :initform ,class :allocation :class)
-          ,@(when field-specifiers
+         (,@(when field-specifiers
               `((child-slots
                  :initform (quote ,(mapcar «cons [{symbol-cat 'js} #'car] #'cdr»
                                            field-specifiers))

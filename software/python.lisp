@@ -177,8 +177,7 @@
      (mapcar
       (lambda (class)
         `(defclass ,(symbol-cat 'py class) (python-ast)
-           ((python-slot-name :initform ,class :allocation :class)
-            ,@(when field-specifiers
+           (,@(when field-specifiers
                 `((child-slots
                    :initform
                    (quote ,(mapcar (lambda (field-spec)
