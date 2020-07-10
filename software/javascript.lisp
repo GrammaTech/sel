@@ -66,7 +66,9 @@
   '(((:program) (:body . 0))
     ((:member-expression) (:object . 1) (:property . 1))
     ((:tagged-template-expression) (:tag . 1) (:quasi . 1))
-    ((:template-literal) (:quasis . 0) (:expressions . 0))
+     ;; See the comment about js-template-literal in the `convert'
+     ;; method from list to javascript-ast.
+    ((:template-literal) (:body . 0))
     ((:meta-property) (:meta . 1) (:property . 1))
     ((:property)
      ;; See the comment about js-property in the `convert' method from
@@ -266,6 +268,13 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
     ;;
     ;; 2. For import/export specifier the imported and local
     ;; children may reference the same text.
+    ;;
+    ;; 3. For template literals, the children are not in textual
+    ;; order from acorn (quasis may be intermingled with expressions).
+    ;; As we require children to be in textual order for exact
+    ;; reproduction with `source-text', we create an concatenate
+    ;; the child fields together and sort the children in textual
+    ;; order as the "body" of the template literal.
     (case type
       (js-property
        (when (= (aget :start (aget :key spec))
@@ -278,7 +287,14 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
            js-import-default-specifier
            js-import-namespace-specifier)
        (when (equal (aget :imported spec) (aget :local spec))
-         (setf spec (adrop '(:local) spec)))))
+         (setf spec (adrop '(:local) spec))))
+      (js-template-literal
+       (setf spec
+             (nest (append spec)
+                   (adrop '(:quasis :expressions))
+                   (list (cons :body (sort (append (aget :quasis spec)
+                                                   (aget :expressions spec))
+                                           #'< :key {aget :end})))))))
     (apply #'make-instance type
            (mappend
             (lambda (field)
