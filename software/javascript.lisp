@@ -130,7 +130,12 @@
      ;; remove-duplicates
      (:imported . 1) (:local . 1))
     ;; classes with no children.
-    ((:identifier :literal))))
+    ((:identifier
+      :this-expression
+      :template-element
+      :debugger-statement
+      :empty-statement
+      :literal))))
 
 (defun expand-js-class (spec)
   (nest
@@ -228,13 +233,13 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
             (nreverse ranges)))
         (w/skipped (tree from to)
           (assert (= from (start tree)))
-          (when (children tree)
+          (when-let ((children (remove nil (children tree))))
             (setf (slot-value tree 'skipped-before)
-                  (make-skipped from (start (first (children tree)))))
+                  (make-skipped from (start (first children))))
             (mapc (lambda (child range)
                     (destructuring-bind (from . to) range
                       (w/skipped child from to)))
-                  (remove nil (children tree))
+                  children
                   (ranges tree)))
           (setf (slot-value tree 'skipped-after)
                 (make-skipped (end tree) to))
@@ -245,6 +250,7 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
 (defmethod convert ((to-type (eql 'javascript-ast)) (spec null)
                     &key &allow-other-keys)
   nil)
+
 (defmethod convert ((to-type (eql 'javascript-ast)) (spec list)
                     &key &allow-other-keys)
   "Create a JAVASCRIPT AST from the SPEC (specification) list."
@@ -262,7 +268,8 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
     ;; value to the key so we will explicitly drop the value.
     (case type
       (js-property
-       (when (= (aget :start (aget :key spec)) (aget :start (aget :value spec)))
+       (when (= (aget :start (aget :key spec))
+                (aget :start (aget :value spec)))
          (setf spec (adrop '(:value) spec)))))
     (apply #'make-instance type
            (mappend
