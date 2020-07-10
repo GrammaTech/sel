@@ -701,7 +701,7 @@ what is expected because there are different forms that
 can have their variables retrieved in the exact same way,
 such as let and when-let.")
   (:method (obj car-of-form binding-form &key reference-ast)
-    (declare (ignorable car-of-form binding-form reference-ast))
+    (declare (ignorable obj car-of-form binding-form reference-ast))
     ;; If it hasn't dispatched on car-of-form before here,
     ;; it likely isn't a binding form.
     nil))
