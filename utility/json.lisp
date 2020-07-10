@@ -20,6 +20,7 @@ output from CL-JSON.  KEY-FN, if present, maps keyword strings to keywords."
                (cons
                 (mapcar-improper-list #'%convert jt))
                (base-string jt)
+               #-ccl
                (string
                 (handler-case (locally (declare (optimize safety))
                                 (coerce jt 'simple-base-string))
