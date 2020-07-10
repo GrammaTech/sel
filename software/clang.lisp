@@ -4212,6 +4212,12 @@ on various ast classes"))
       (setf (slot-value ast 'stored-hash)
             (ast-hash (cons (ast-class ast) (children ast))))))
 
+;; FIXME: When clang is converted to utilize functional trees,
+;; this method specialization will no longer be required.
+(defmethod equal? :around ((ast-a clang-ast) (ast-b clang-ast))
+  (and (eq (ast-class ast-a) (ast-class ast-b))
+       (call-next-method)))
+
 (defun ret-type-of-function-type (s)
   "Returns a string that is the return type of the function type
 given in the string S. Return nil if the return type cannot be
