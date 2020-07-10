@@ -94,9 +94,8 @@
     ((:export-named-declaration)
      (:declaration . 1) (:specifiers . 0) (:source . 1))
     ((:export-specifier)
-     ;; FIXME: The following will likely also need to become a special
-     ;; case in `convert' below.
-     ;; remove-duplicates
+     ;; See the comment about export-specifier in the `convert' method
+     ;; from list to javascript-ast.
      (:local . 1) (:exported . 1))
     ((:class-expression :class-declaration)
      (:id . 1) (:superclass . 1) (:body . 1))
@@ -125,9 +124,8 @@
     ((:conditional-expression :if-statement)
      (:test . 1) (:consequent . 1) (:alternate . 1))
     ((:import-specifier :import-default-specifier :import-namespace-specifier)
-     ;; FIXME: The following will likely also need to become a special
-     ;; case in `convert' below.
-     ;; remove-duplicates
+     ;; See the comment about import-specifier in the `convert' method
+     ;; from list to javascript-ast.
      (:imported . 1) (:local . 1))
     ;; classes with no children.
     ((:identifier
@@ -263,14 +261,27 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
     #+debug
     (case type
       (js-function-declaration (format t "SPEC:~S~%" spec)))
-    ;; Fix an in accuracy in the parsed ASTs we get from acorn.  For a
-    ;; property with no value (e.g., "p" in "{p, q}") it sets the
-    ;; value to the key so we will explicitly drop the value.
+    ;; Fix inaccuracies in the parsed ASTs we get from acorn.
+    ;;
+    ;; 1. For a property with no value (e.g., "p" in "{p, q}")
+    ;; it sets the value to the key so we will explicitly drop
+    ;; the value.
+    ;;
+    ;; 2. For import/export specifier the imported and local
+    ;; children may reference the same text.
     (case type
       (js-property
        (when (= (aget :start (aget :key spec))
                 (aget :start (aget :value spec)))
-         (setf spec (adrop '(:value) spec)))))
+         (setf spec (adrop '(:value) spec))))
+      (js-export-specifier
+       (when (equal (aget :exported spec) (aget :local spec))
+         (setf spec (adrop '(:local) spec))))
+      ((or js-import-specifier
+           js-import-default-specifier
+           js-import-namespace-specifier)
+       (when (equal (aget :imported spec) (aget :local spec))
+         (setf spec (adrop '(:local) spec)))))
     (apply #'make-instance type
            (mappend
             (lambda (field)
