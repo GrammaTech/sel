@@ -119,16 +119,6 @@ An applicative tree structure is used to hold the ASTs."))
   (with-string (s stream)
     (write-string (subseq (string-pointer obj) (start obj) (end obj)) s)))
 
-(defmethod (setf string-pointer) (new (obj functional-tree-ast))
-  (setf (slot-value obj 'string-pointer) new
-        (slot-value obj 'start) 0
-        (slot-value obj 'end) (length new)))
-
-(defmethod (setf limited-source-text) (new (obj functional-tree-ast)
-                                       &optional stream)
-  (declare (ignorable stream))
-  (setf (string-pointer obj) new))
-
 (defclass conflict-ast (functional-tree-ast)
   ((child-alist :initarg :child-alist :initform nil
                 :reader conflict-ast-child-alist

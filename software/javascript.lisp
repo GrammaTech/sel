@@ -140,6 +140,7 @@
               `((child-slots
                  :initform (quote ,(mapcar «cons [{symbol-cat 'js} #'car] #'cdr»
                                            field-specifiers))
+                 :reader child-slots
                  :allocation :class)))
           ,@(mapcar (lambda (field)
                       (destructuring-bind (field . arity) field
@@ -359,19 +360,26 @@ is not a compiled language.
 * VAR-REPLACEMENTS list of old-name, new-name pairs defining the rebinding
 * FUN-REPLACEMENTS list of old-function-info, new-function-info pairs defining
 the rebinding"
-  (mapcar (lambda (ast)
-            (when (and (typep ast 'js-identifier)
-                       (member (limited-source-text ast)
-                               (mapcar #'car (append var-replacements
-                                                     fun-replacements))
-                               :test #'string=))
-              ;; FIXME: I do not believe this is allowed by the design
-              ;; of functional trees.
-              (setf (limited-source-text ast)
-                    (second (find-if [{string= (limited-source-text ast)} #'car]
-                                     var-replacements))))
-            ast)
-          ast))
+  (if (typep ast 'js-identifier)
+      (copy ast :name (rebind-vars (ast-annotation ast :name)
+                                   var-replacements
+                                   fun-replacements)
+                :string-pointer (rebind-vars (limited-source-text ast)
+                                             var-replacements
+                                             fun-replacements)
+                :start 0 :end nil)
+      (apply #'copy ast
+             (mappend (lambda (child-slot)
+                        (destructuring-bind (name . arity) child-slot
+                          (list (make-keyword name)
+                                (if (= arity 0)
+                                    (mapcar {rebind-vars _ var-replacements
+                                                           fun-replacements}
+                                            (slot-value ast name))
+                                    (rebind-vars (slot-value ast name)
+                                                 var-replacements
+                                                 fun-replacements)))))
+                      (child-slots ast)))))
 
 (defmethod enclosing-scope ((obj javascript) (ast javascript-ast))
   "Return the enclosing scope of AST in OBJ.
