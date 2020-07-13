@@ -48,13 +48,13 @@
            :find-in-defining-form
            :find-local-function
            :enclosing-find-if
-           :*scopes-allows-symbol-macro-variables-p*
-           :*scopes-allows-top-level-variables-p*
+           :*bindings-allows-symbol-macro-variables-p*
+           :*bindings-allows-top-level-variables-p*
            :get-vars-from-binding-form
            :define-get-vars-from-binding-form
            :handle-as
            :collect-var-info
-           :define-binding-form-alias
+           :define-var-binding-form-alias
            :children-of-type))
 (in-package :software-evolution-library/software/lisp)
 (in-readtable :curry-compose-reader-macros)
@@ -676,13 +676,159 @@ possibly expressions) will be omitted according to the sign of the guard."
                            :remove-newly-empty t))
 
 
-;;; Scopes
-(defvar *scopes-allows-symbol-macro-variables-p* nil
+;;; Bindings
+(defvar *bindings-form-is-macro-p* nil
+  "A special variable that modifies the functionality of
+functions that get bindings such that the returned information
+is marked as a macro.")
+
+(defvar *bindings-allows-macros-p* nil
+  "A special variable that modifies the functionality
+of get-functions-from-binding-form. If set to a non-nil value,
+macros will be returned as if they were functions.")
+
+(defvar *bindings-allows-top-level-functions-p* t
+  "A special variable that modifies the functionality
+of get-functions-from-binding-form. If set to a non-nil value,
+top level function definitions will be included.")
+
+(defgeneric get-functions-from-binding-form
+    (obj car-of-form binding-form &key reference-ast)
+  (:documentation "Retrieves the functions defined by BINDING-FORM.
+CAR-OF-FORM can be used as an 'eql specializer to dispatch to a specific
+method for the form. REFERENCE-AST is a reference point for the method
+to filter out variables that aren't in scope of it. This is useful for
+forms like 'let* or for forms at the top-level which REFERENCE-AST may
+not be in the body of, such as 'defun.
+
+Methods for this generic shouldn't check if CAR-OF-FORM is
+what is expected as there are different forms that
+can have their variables retrieved in the exact same way,
+such as let and when-let.")
+  (:method (obj car-of-form binding-form &key reference-ast)
+    (declare (ignorable obj car-of-form binding-form reference-ast))
+    ;; If it hasn't dispatched on car-of-form before here,
+    ;; it likely isn't a binding form.
+    nil))
+
+(defmacro define-get-functions-from-binding-form
+    (binding-form-name (&key (software 'obj)
+                          (binding-form 'binding-form)
+                          (reference-ast 'reference-ast))
+     &body body)
+  "Defines a specialization of get-functions-from-binding-form that specializes
+on BINDING-FORM-NAME. The keyword arguments allow for explicit naming of the
+parameters of the method.
+
+A convenience local function, handle-as, is defined
+for the method body which allows for easy transferring to another
+specialization to handle the form. For exmaple, if a 'labels form has a
+reference ast that is inside it but after its definitions, it can
+transfer control to 'flet by calling handle-as: (handle-as 'flet).
+handle-as has a :reference-ast keyword which serves the same purpose
+as in get-vars-from-binding-form. It also has a :macro-p keyword
+which adds a cons to the returned list that shows that the symbol
+is a macro.
+
+A convenience local function, collect-function-info, is defined for the
+method body which collects info on a form in a format that can be
+returned."
+  (let ((car-of-form (gensym)))
+    `(defmethod get-functions-from-binding-form
+         ((,software lisp) (,car-of-form (eql ',binding-form-name))
+          (,binding-form lisp-ast) &key ,reference-ast)
+       (declare (ignorable ,car-of-form))
+       (labels ((handle-as (symbol
+                            &key (macro-p nil) (reference-ast ,reference-ast)
+                            &aux (*bindings-form-is-macro-p* macro-p))
+                  "Convenience function that allows for
+                   easy transfer to another method specialization
+                   to HANDLE the current form as if it were a SYMBOL
+                   form."
+                  (get-functions-from-binding-form
+                   ,software symbol ,binding-form :reference-ast ,reference-ast))
+                (collect-function-info (form)
+                  "Collects info about the function that is defined
+                   in FORM."
+                  `((:name . ,(or (compound-form-p form)
+                                  (expression form)))
+                    (:decl . ,form)
+                    (:namespace . function)
+                    (:macro . ,*bindings-form-is-macro-p*)
+                    (:scope . ,,binding-form)))
+                (collect-function-info* (form)
+                  "Collects info about the function that is defined
+                   in FORM. This is used for defun-style forms."
+                  `((:name . ,(expression (car (get-compound-form-args form))))
+                    (:decl . ,form)
+                    (:namespace . function)
+                    (:macro . ,*bindings-form-is-macro-p*)
+                    (:scope . ,,binding-form))))
+         (declare (ignorable (function handle-as)
+                             (function collect-function-info)
+                             (function collect-function-info*)))
+         ,@body))))
+
+(defmacro define-function-binding-form-alias (binding-form-alias binding-form)
+  "Creates a get-function-from-binding-form method that specializes the
+parameter car-of-form on BINDING-FORM-ALIAS. The method immediately calls
+the specialization for BINDING-FORM."
+  `(define-get-function-from-binding-form ,binding-form-alias ()
+     (handle-as ',binding-form)))
+
+(define-get-functions-from-binding-form flet
+    (:software obj :binding-form binding-form :reference-ast reference-ast)
+  (match binding-form
+    ((lisp-ast
+      (children
+       (list* (@@ 3 _) functions skipped-input _)))
+     (when (or (not reference-ast)
+               (and (later-than-p obj reference-ast skipped-input)
+                    (ancestor-of-p obj reference-ast binding-form)))
+       (mapcar #'collect-function-info
+               (children-of-type functions 'expression-result))))))
+
+(define-get-functions-from-binding-form labels
+    (:software obj :binding-form binding-form :reference-ast reference-ast)
+  (match binding-form
+    ((lisp-ast
+      (children
+       (list* (@@ 3 _) definitions _)))
+     (let* ((no-reference-p (not reference-ast))
+            (ancestor-of-definitions-p
+              (and (not no-reference-p)
+                   (ancestor-of-p obj reference-ast definitions))))
+       (cond
+         ((or no-reference-p
+              (and (not ancestor-of-definitions-p)
+                   (later-than-p obj reference-ast definitions)))
+          (handle-as 'flet))
+         (ancestor-of-definitions-p
+          (mapcar
+           #'collect-function-info
+           (remove-if
+            (lambda (ast)
+              (later-than-p obj ast reference-ast))
+            (children-of-type definitions 'expression-result)))))))))
+
+(define-get-functions-from-binding-form defun
+    (:binding-form binding-form)
+  (list (collect-function-info* binding-form)))
+
+(define-get-functions-from-binding-form defmacro ()
+  (when *bindings-allows-macros-p*
+    (handle-as 'defun :macro-p t)))
+
+(define-get-functions-from-binding-form macrolet ()
+  (when *bindings-allows-macros-p*
+    (handle-as 'flet :macro-p t)))
+
+(defvar *bindings-allows-symbol-macro-variables-p* nil
   "A special variable that modifies the functionality
 of get-vars-from-binding-form. If set to a non-nil value,
 symbol macros will be returned as if they were variables.")
 
-(defvar *scopes-allows-top-level-variables-p* t
+(defvar *bindings-allows-top-level-variables-p* t
   "A special variable that modifies the functionality
 of get-vars-from-binding-form. If set to a non-nil value,
 top level variable definitions will be included.")
@@ -691,13 +837,13 @@ top level variable definitions will be included.")
     (obj car-of-form binding-form &key reference-ast)
   (:documentation "Retrieves the variables defined by BINDING-FORM.
 CAR-OF-FORM can be used as an 'eql specializer to dispatch to a specific
-method form the form. REFERENCE-AST can be used as a reference point
-for the method to filter out variables that aren't in scope of it.
-This is useful for forms like 'let* or for forms at the top-level which
-REFERENCE-AST may not be in the body of, such as 'defun.
+method for the form. REFERENCE-AST is a reference point for the method
+to filter out variables that aren't in scope of it. This is useful for
+forms like 'let* or for forms at the top-level which REFERENCE-AST may
+not be in the body of, such as 'defun.
 
 Methods for this generic shouldn't check if CAR-OF-FORM is
-what is expected because there are different forms that
+what is expected as there are different forms that
 can have their variables retrieved in the exact same way,
 such as let and when-let.")
   (:method (obj car-of-form binding-form &key reference-ast)
@@ -721,7 +867,9 @@ specialization to handle the form. For exmaple, if a 'let* form has a
 reference ast that is inside it but after its definitions,it can
 transfer control to 'let by calling handle-as: (handle-as 'let).
 handle-as has a :reference-ast keyword which serves the same purpose
-as in get-vars-from-binding-form.
+as in get-vars-from-binding-form. It also has a :macro-p keyword
+which adds a cons to the returned list that shows that the symbol
+is a macro.
 
 A convenience local function, collect-var-info, is defined for the
 method body which collects info on a form in a format that can be
@@ -731,7 +879,9 @@ returned."
          ((,software lisp) (,car-of-form (eql ',binding-form-name))
           (,binding-form lisp-ast) &key ,reference-ast)
        (declare (ignorable ,car-of-form))
-       (labels ((handle-as (symbol &key (reference-ast ,reference-ast))
+       (labels ((handle-as (symbol
+                            &key (macro-p nil) (reference-ast ,reference-ast)
+                            &aux (*bindings-form-is-macro-p* macro-p))
                   "Convenience function that allows for
                    easy transfer to another method specialization
                    to HANDLE the current form as if it were a SYMBOL
@@ -744,11 +894,13 @@ returned."
                   `((:name . ,(or (compound-form-p form)
                                   (expression form)))
                     (:decl . ,form)
+                    (:namespace . variable)
+                    (:macro . ,*bindings-form-is-macro-p*)
                     (:scope . ,,binding-form))))
          (declare (ignorable (function handle-as) (function collect-var-info)))
          ,@body))))
 
-(defmacro define-binding-form-alias (binding-form-alias binding-form)
+(defmacro define-var-binding-form-alias (binding-form-alias binding-form)
   "Creates a get-vars-from-binding-form method that specializes the
 parameter car-of-form on BINDING-FORM-ALIAS. The method immediately calls
 the specialization for BINDING-FORM."
@@ -782,6 +934,8 @@ Uses REFERENCE-AST to determine what's in scope of the default value forms."
                              (compound-form-p form)
                              (expression form)))
                (:decl . ,form)
+               (:namespace . variable)
+               (:macro . ,*bindings-form-is-macro-p*)
                (:scope . ,binding-form)))
            (get-parameter-asts ()
              "Returns all asts in the children of lambda list
@@ -853,8 +1007,8 @@ Uses REFERENCE-AST to determine what's in scope of the default value forms."
                (later-than-p obj ast reference-ast))
              (children-of-type definitions 'expression-result))))))))))
 
-(define-binding-form-alias when-let let)
-(define-binding-form-alias when-let* let*)
+(define-var-binding-form-alias when-let let)
+(define-var-binding-form-alias when-let* let*)
 
 (define-get-vars-from-binding-form if-let
     (:software obj :binding-form binding-form :reference-ast reference-ast)
@@ -912,11 +1066,11 @@ Uses REFERENCE-AST to determine what's in scope of the default value forms."
            (list* (@@ 3 _) functions _)))
          (get-local-fun-params (in-local-function-p functions)))))))
 
-(define-binding-form-alias labels flet)
+(define-var-binding-form-alias labels flet)
 
 (define-get-vars-from-binding-form symbol-macrolet ()
-  (when *scopes-allows-symbol-macro-variables-p*
-    (handle-as 'let)))
+  (when *bindings-allows-symbol-macro-variables-p*
+    (handle-as 'let :macro-p t)))
 
 (define-get-vars-from-binding-form defvar (:binding-form binding-form)
   (match binding-form
@@ -925,11 +1079,11 @@ Uses REFERENCE-AST to determine what's in scope of the default value forms."
        (list* (@@ 3 _) var _)))
      (list (collect-var-info var)))))
 
-(define-binding-form-alias defparameter defvar)
+(define-var-binding-form-alias defparameter defvar)
 
 (define-get-vars-from-binding-form define-symbol-macro ()
-  (when *scopes-allows-symbol-macro-variables-p*
-    (handle-as 'defvar)))
+  (when *bindings-allows-symbol-macro-variables-p*
+    (handle-as 'defvar :macro-p t)))
 
 (defmethod scopes ((obj lisp) (ast lisp-ast)
                    &aux (genome (genome obj)))
@@ -962,7 +1116,7 @@ Uses REFERENCE-AST to determine what's in scope of the default value forms."
               of reference-ast."
              (mapcar [#'get-vars {lookup genome}]
                      (get-enclosing-scopes))))
-    (if *scopes-allows-top-level-variables-p*
+    (if *bindings-allows-top-level-variables-p*
       (cons (get-top-level-vars-in-obj) (get-local-vars-in-scope))
       (get-local-vars-in-scope))))
 
