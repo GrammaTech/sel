@@ -48,9 +48,13 @@
            :find-in-defining-form
            :find-local-function
            :enclosing-find-if
-           :*bindings-allows-symbol-macro-variables-p*
-           :*bindings-allows-top-level-variables-p*
+           :*bindings-allows-macros-p*
+           :*bindings-form-is-macro-p*
+           :*bindings-allows-symbol-macros-p*
+           :*bindings-allows-top-level-p*
+           :bindings
            :get-vars-from-binding-form
+           :get-functions-from-binding-form
            :define-get-vars-from-binding-form
            :handle-as
            :collect-var-info
@@ -677,20 +681,81 @@ possibly expressions) will be omitted according to the sign of the guard."
 
 
 ;;; Bindings
-(defvar *bindings-form-is-macro-p* nil
-  "A special variable that modifies the functionality of
-functions that get bindings such that the returned information
-is marked as a macro.")
-
 (defvar *bindings-allows-macros-p* nil
   "A special variable that modifies the functionality
 of get-functions-from-binding-form. If set to a non-nil value,
 macros will be returned as if they were functions.")
 
-(defvar *bindings-allows-top-level-functions-p* t
+(defvar *bindings-form-is-macro-p* nil
+  "A special variable that modifies the functionality of
+functions that get bindings such that the returned information
+is marked as a macro.")
+
+(defvar *bindings-allows-symbol-macros-p* nil
   "A special variable that modifies the functionality
-of get-functions-from-binding-form. If set to a non-nil value,
-top level function definitions will be included.")
+of get-vars-from-binding-form. If set to a non-nil value,
+symbol macros will be returned as if they were variables.")
+
+(defvar *bindings-allows-top-level-p* t
+  "A special variable that modifies the functionality
+of bindings. If set to a non-nil value,top level variable
+definitions will be included.")
+
+
+(defgeneric bindings (obj ast &key functions variables all)
+  (:documentation "Return bindings that are local to OBJ and
+in scope of AST. This method calls get-vars-from-binding-form
+and get-functions-from-binding-form. All of the special variables
+that modify the behavior of these methods can be utilized by
+this method.")
+  (:method ((obj lisp) (ast lisp-ast)
+            &key functions variables all
+            &aux (genome (genome obj)))
+    ;; TODO: there are some issues with quoted symbols.
+    ;; NOTE: this method is an approximation of what is in scope
+    ;;       and local to obj. If forms like defparameter or defvar
+    ;;       are not top-level, their variables will not be found.
+    ;;       The way top-level variables are collected may also
+    ;;       be slightly incorrect in some corner cases.
+    (labels ((get-enclosing-scopes ()
+               "Get the paths of all enclosing scopes."
+               (mapcar #'reverse
+                       (maplist #'identity
+                                (cdr (reverse (ast-path obj ast))))))
+             (get-vars (form)
+               "Get the variables bound by FORM."
+               (when (or all variables)
+                 (get-vars-from-binding-form
+                  obj (compound-form-p form) form
+                  :reference-ast ast)))
+             (get-functions (form)
+               "Get the functions bound by FORM."
+               (when (or all functions)
+                 (get-functions-from-binding-form
+                  obj (compound-form-p form) form
+                  :reference-ast ast)))
+             (get-bindings (form)
+               "Get the variables and functions bound by FORM."
+               (reduce (lambda (bindings binding)
+                         (cons binding bindings))
+                       (get-functions form)
+                       :initial-value (get-vars form)))
+             (get-top-level-bindings ()
+               "Get all the top-level variables that
+              are defined in obj."
+               (nest
+                (mappend #'get-bindings)
+                (remove-if {shares-path-of-p obj ast})
+                (children-of-type genome 'expression-result)))
+             (get-local-vars-in-scope ()
+               "Get the local variables that are in scope
+              of reference-ast."
+               (mapcar [#'get-bindings {lookup genome}]
+                       (get-enclosing-scopes))))
+      (if *bindings-allows-top-level-p*
+          (cons (get-top-level-bindings) (get-local-vars-in-scope))
+          (get-local-vars-in-scope)))))
+
 
 (defgeneric get-functions-from-binding-form
     (obj car-of-form binding-form &key reference-ast)
@@ -823,16 +888,6 @@ the specialization for BINDING-FORM."
   (when *bindings-allows-macros-p*
     (handle-as 'flet :macro-p t)))
 
-(defvar *bindings-allows-symbol-macro-variables-p* nil
-  "A special variable that modifies the functionality
-of get-vars-from-binding-form. If set to a non-nil value,
-symbol macros will be returned as if they were variables.")
-
-(defvar *bindings-allows-top-level-variables-p* t
-  "A special variable that modifies the functionality
-of get-vars-from-binding-form. If set to a non-nil value,
-top level variable definitions will be included.")
-
 (defgeneric get-vars-from-binding-form
     (obj car-of-form binding-form &key reference-ast)
   (:documentation "Retrieves the variables defined by BINDING-FORM.
@@ -942,10 +997,10 @@ Uses REFERENCE-AST to determine what's in scope of the default value forms."
               that aren't symbols starting with '&'."
              (remove-if [{member _ lambda-list-keywords} #'expression]
                         (children-of-type lambda-list 'expression-result))))
-     (let* ((no-reference-p (not reference-ast))
-            (ancestor-of-lambda-list-p
-              (and (not no-reference-p)
-                   (ancestor-of-p obj reference-ast lambda-list))))
+    (let* ((no-reference-p (not reference-ast))
+           (ancestor-of-lambda-list-p
+             (and (not no-reference-p)
+                  (ancestor-of-p obj reference-ast lambda-list))))
       (cond
         ((or no-reference-p
              (and (not ancestor-of-lambda-list-p)
@@ -1017,7 +1072,7 @@ Uses REFERENCE-AST to determine what's in scope of the default value forms."
       (children
        (list* (@@ 7 _) else-clause _)))
      (unless (and reference-ast (shares-path-of-p obj reference-ast else-clause))
-      (handle-as 'let)))))
+       (handle-as 'let)))))
 
 (define-get-vars-from-binding-form if-let*
     (:software obj :binding-form binding-form :reference-ast reference-ast)
@@ -1026,7 +1081,7 @@ Uses REFERENCE-AST to determine what's in scope of the default value forms."
       (children
        (list* (@@ 7 _) else-clause _)))
      (unless (and reference-ast (shares-path-of-p obj reference-ast else-clause))
-      (handle-as 'let*)))))
+       (handle-as 'let*)))))
 
 (define-get-vars-from-binding-form defun
     (:software obj :binding-form binding-form :reference-ast reference-ast)
@@ -1069,7 +1124,7 @@ Uses REFERENCE-AST to determine what's in scope of the default value forms."
 (define-var-binding-form-alias labels flet)
 
 (define-get-vars-from-binding-form symbol-macrolet ()
-  (when *bindings-allows-symbol-macro-variables-p*
+  (when *bindings-allows-symbol-macros-p*
     (handle-as 'let :macro-p t)))
 
 (define-get-vars-from-binding-form defvar (:binding-form binding-form)
@@ -1082,43 +1137,13 @@ Uses REFERENCE-AST to determine what's in scope of the default value forms."
 (define-var-binding-form-alias defparameter defvar)
 
 (define-get-vars-from-binding-form define-symbol-macro ()
-  (when *bindings-allows-symbol-macro-variables-p*
+  (when *bindings-allows-symbol-macros-p*
     (handle-as 'defvar :macro-p t)))
 
-(defmethod scopes ((obj lisp) (ast lisp-ast)
-                   &aux (genome (genome obj)))
-  ;; NOTE: this method is an approximation of what is in scope
-  ;;       and local to obj. If forms like defparameter or defvar
-  ;;       are not top-level, their variables will not be found.
-  ;;       The way top-level variables are collected may also
-  ;;       be slightly incorrect in some corner cases.
+(defmethod scopes ((obj lisp) (ast lisp-ast))
   ;; TODO: add removing variables with duplicate names
   ;;       at the very end.
-  (labels ((get-enclosing-scopes ()
-             "Get the paths of all enclosing scopes."
-             (mapcar #'reverse
-                     (maplist #'identity
-                              (cdr (reverse (ast-path obj ast))))))
-           (get-vars (form)
-             "Get the variables bound by FORM."
-             (get-vars-from-binding-form
-              obj (compound-form-p form) form
-              :reference-ast ast))
-           (get-top-level-vars-in-obj ()
-             "Get all the top-level variables that
-              are defined in obj."
-             (nest
-              (mappend #'get-vars)
-              (remove-if {shares-path-of-p obj ast})
-              (children-of-type genome 'expression-result)))
-           (get-local-vars-in-scope ()
-             "Get the local variables that are in scope
-              of reference-ast."
-             (mapcar [#'get-vars {lookup genome}]
-                     (get-enclosing-scopes))))
-    (if *bindings-allows-top-level-variables-p*
-      (cons (get-top-level-vars-in-obj) (get-local-vars-in-scope))
-      (get-local-vars-in-scope))))
+  (bindings obj ast :variables t))
 
 
 ;;; Utility

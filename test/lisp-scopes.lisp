@@ -166,7 +166,7 @@ and not if it isn't set."
     (let* ((binding-form (find-compound-form 'symbol-macrolet ast))
            (vars-without (get-vars-from-binding-form
                           obj 'symbol-macrolet binding-form))
-           (*bindings-allows-symbol-macro-variables-p* t)
+           (*bindings-allows-symbol-macros-p* t)
            (vars-with (get-vars-from-binding-form
                        obj 'symbol-macrolet binding-form)))
       (is-not-var-in-scope vars-without 'a)
@@ -179,7 +179,7 @@ and not if it isn't set."
     (let* ((binding-form (find-compound-form 'define-symbol-macro ast))
            (vars-without (get-vars-from-binding-form
                           obj 'define-symbol-macro binding-form))
-           (*bindings-allows-symbol-macro-variables-p* t)
+           (*bindings-allows-symbol-macros-p* t)
            (vars-with (get-vars-from-binding-form
                        obj 'define-symbol-macro binding-form)))
       (is-not-var-in-scope vars-without 'a)
@@ -198,7 +198,7 @@ and not if it isn't set."
 special variable is set."
   (with-software-file ("scopes-2" obj ast)
     (let* ((scopes-with (scopes obj (find-compound-form '+ ast)))
-           (*bindings-allows-top-level-variables-p* nil)
+           (*bindings-allows-top-level-p* nil)
            (scopes-without (scopes obj (find-compound-form '+ ast))))
       (is-scopes-contains-var-p scopes-with '*a*)
       (is-scopes-contains-var-p scopes-with '*b*)
