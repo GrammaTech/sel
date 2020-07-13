@@ -10,11 +10,6 @@
   (:export ;; ASTs
            :ast
            :functional-tree-ast
-           :skipped-before
-           :skipped-after
-           :string-pointer
-           :start
-           :end
            :to-alist
            :from-alist
            :child-asts
@@ -23,12 +18,12 @@
            :ast-annotations
            :ast-hash
            :ast-stored-hash
+           :annotations
            :stored-hash
            :conflict-ast
            :conflict-ast-child-alist
            :conflict-ast-default-children
            :combine-conflict-asts
-           :limited-source-text
            :source-text
            :rebind-vars
            ;; Parseable software object.
@@ -85,8 +80,6 @@
 
 
 ;;; AST data structure definitions.
-(defvar *string*)
-
 (defclass ast () ()
   (:documentation "Base class for all ASTs in SEL.  This class acts as a tag
 for objects to allow method dispatch on generic AST objects regardless of
@@ -96,27 +89,9 @@ whether they inherit from the functional trees library."))
   ((annotations :initarg :annotations :initform nil :reader ast-annotations
                 :documentation "A-list of annotations." :type list)
    (stored-hash :initarg :stored-hash :initform nil
-                :documentation "A cached hash." :type (or null hash-type))
-   (start :initarg :start :initform (when (and (boundp '*string*) *string*) 0)
-          :reader start :type (or null (integer 0 *)))
-   (end :initarg :end :initform (when (and (boundp '*string*) *string*)
-                                  (length *string*))
-        :reader end :type (or null (integer 0 *)))
-   (string-pointer :initarg :string-pointer
-                   :initform (when (and (boundp '*string*) *string*) *string*)
-                   :reader string-pointer :type (or null string))
-   (skipped-before
-    :initarg :skipped-before :initform nil
-    :reader skipped-before :type (or null string))
-   (skipped-after
-    :initarg :skipped-after :initform nil
-    :reader skipped-after :type (or null string)))
+                :documentation "A cached hash." :type (or null hash-type)))
   (:documentation "Base class for SEL functional tree ASTs.
 An applicative tree structure is used to hold the ASTs."))
-
-(defmethod limited-source-text ((obj functional-tree-ast) &optional stream)
-  (with-string (s stream)
-    (write-string (subseq (string-pointer obj) (start obj) (end obj)) s)))
 
 (defclass conflict-ast (functional-tree-ast)
   ((child-alist :initarg :child-alist :initform nil
@@ -409,10 +384,6 @@ modile +AST-HASH-BASE+"
 (defgeneric from-alist (symbol alist)
   (:documentation "Convert alist to struct representation."))
 
-(defgeneric limited-source-text (ast &optional stream)
-  (:documentation
-   "Return the source code corresponding to AST without any skipped input."))
-
 (defgeneric source-text (ast &optional stream)
   (:documentation "Return the source code corresponding to an AST,
 optionally writing to STREAM.")
@@ -440,14 +411,7 @@ optionally writing to STREAM.")
     ;;
     ;; More importantly using (apply #'concatenate ...) runs into
     ;; problems as the number of ASTs is very large.
-    (mapc {source-text _ stream} (children ast)))
-  (:method ((obj functional-tree-ast) &optional stream)
-    (write-string (source-text (skipped-before obj)) stream)
-    (if (remove nil (children obj))
-        (mapc [{write-string _ stream} #'source-text] (children obj))
-        (limited-source-text obj stream))
-    (write-string (source-text (skipped-after obj)) stream)))
-
+    (mapc {source-text _ stream} (children ast))))
 
 (defgeneric rebind-vars (ast var-replacements fun-replacements)
   (:documentation

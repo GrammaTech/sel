@@ -41,8 +41,6 @@
   (:export :javascript
            :javascript-mutation
            :javascript-ast
-           :start
-           :end
            :acorn))
 (in-package :software-evolution-library/software/javascript)
 (in-readtable :curry-compose-reader-macros)
@@ -52,7 +50,10 @@
 
 
 ;;; Javascript ast data structures
-(defclass javascript-ast (functional-tree-ast) ()
+(defclass javascript-ast (functional-tree-ast)
+  ((interleaved-text :initarg :interleaved-text :initform nil :type list
+                     :reader interleaved-text
+                     :documentation "Interleaved text between children."))
   (:documentation "Class of JavaScript ASTs."))
 
 (define-constant +js-children+
@@ -163,6 +164,14 @@
                 (mappend «append #'first [{mapcar #'car} #'cdr]»
                          +js-children+)))
 
+(defmethod source-text ((ast javascript-ast) &optional stream)
+  (write-string (car (interleaved-text ast)) stream)
+  (mapc (lambda (child text)
+          (source-text child stream)
+          (write-string text stream))
+        (remove nil (children ast))
+        (cdr (interleaved-text ast))))
+
 
 ;;; Javascript parsing
 (defgeneric acorn (obj)
@@ -213,34 +222,43 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
 
 (defmethod convert ((to-type (eql 'javascript-ast)) (string string)
                     &key &allow-other-keys)
-  (nest
-   (let ((sel/sw/parseable::*string* string)))
-   (labels
-       ((make-skipped (start end)
-          (if (< start end) (subseq string start end) ""))
-        (ranges (ast &aux ranges)
-          (let (last)
-            (mapc (lambda (child)
-                    (when last (push (cons (start last) (start child)) ranges))
-                    (setf last child))
-                  (remove nil (children ast)))
-            (push (cons (start last) (end ast)) ranges)
-            (nreverse ranges)))
-        (w/skipped (tree from to)
-          (assert (= from (start tree)))
-          (when-let ((children (remove nil (children tree))))
-            (setf (slot-value tree 'skipped-before)
-                  (make-skipped from (start (first children))))
-            (mapc (lambda (child range)
-                    (destructuring-bind (from . to) range
-                      (w/skipped child from to)))
-                  children
-                  (ranges tree)))
-          (setf (slot-value tree 'skipped-after)
-                (make-skipped (end tree) to))
-          tree)))
-   (w/skipped (convert to-type (acorn string))
-              0 (length sel/sw/parseable::*string*))))
+  (labels
+      ((safe-subseq (start end)
+         (if (< start end) (subseq string start end) ""))
+       (ranges (children from to &aux ranges)
+         (let (last)
+           (mapc (lambda (child)
+                   (if last
+                       (push (cons (ast-annotation last :end)
+                                   (ast-annotation child :start))
+                             ranges)
+                       (push (cons from (ast-annotation child :start))
+                             ranges))
+                   (setf last child))
+                 children)
+           (push (cons (ast-annotation last :end) to) ranges)
+           (nreverse ranges)))
+       (w/interleaved-text (tree from to)
+         (if-let* ((children (remove nil (children tree))))
+           (progn
+             (setf (slot-value tree 'interleaved-text)
+                   (mapcar (lambda (range)
+                             (destructuring-bind (from . to) range
+                               (safe-subseq from to)))
+                           (ranges children from to)))
+             (mapc (lambda (child)
+                     (w/interleaved-text child
+                                         (ast-annotation child :start)
+                                         (ast-annotation child :end)))
+                   children))
+           (setf (slot-value tree 'interleaved-text)
+                 (list (safe-subseq (ast-annotation tree :start)
+                                    (ast-annotation tree :end)))))
+         (setf (slot-value tree 'annotations)
+               (adrop '(:start :end) (slot-value tree 'annotations)))
+         tree))
+    (w/interleaved-text (convert to-type (acorn string))
+                        0 (length string))))
 
 (defmethod convert ((to-type (eql 'javascript-ast)) (spec null)
                     &key &allow-other-keys)
@@ -249,8 +267,6 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
 (defmethod convert ((to-type (eql 'javascript-ast)) (spec list)
                     &key &allow-other-keys)
   "Create a JAVASCRIPT AST from the SPEC (specification) list."
-  (assert (boundp 'sel/sw/parseable::*string*) (sel/sw/parseable::*string*)
-    "Can't create JS ASTs without `sel/sw/parseable::*string*'.")
   (let* ((raw-type (make-keyword (string-upcase (translate-camelcase-name
                                                  (aget :type spec)))))
          (type (symbol-cat 'js raw-type))
@@ -294,10 +310,6 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
            (mappend
             (lambda (field)
               (destructuring-bind (key . value) field
-                ;; Key here could be :START, :END, :NAME, :LEFT,
-                ;; :RIGHT which should be used unmodified or could be
-                ;; child slot names in which case we prefix them with
-                ;; js- to avoid symbol conflicts.
                 (list (if (find key child-types :key #'car)
                           (make-keyword (symbol-cat 'js key))
                           key)
@@ -323,25 +335,19 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
 ;;; Genome manipulations
 (defmethod prepend-text-to-genome
     ((js javascript) (text string) &aux (root (genome js)))
-  ;; FIXME: I do not believe this is allowed by the design
-  ;; of functional trees.
-  (setf (slot-value root 'skipped-before)
-        (let ((sel/sw/parseable::*string* (concatenate 'string
-                                     (source-text (skipped-before root))
-                                     text)))
-          (make-instance 'javascript-ast-skipped)))
-  (setf (slot-value js 'genome) root))
+  (setf (genome js)
+        (nest (copy root :interleaved-text)
+              (cons (concatenate 'string text (car (interleaved-text root)))
+                    (cdr (interleaved-text root))))))
 
 (defmethod append-text-to-genome
     ((js javascript) (text string) &aux (root (genome js)))
-  ;; FIXME: I do not believe this is allowed by the design
-  ;; of functional trees.
-  (setf (slot-value root 'skipped-after)
-        (let ((sel/sw/parseable::*string* (concatenate 'string
-                                     text
-                                     (source-text (skipped-before root)))))
-          (make-instance 'javascript-ast-skipped)))
-  (setf (slot-value js 'genome) root))
+  (setf (genome js)
+        (nest (copy root :interleaved-text)
+              (append (butlast (interleaved-text root)))
+              (list)
+              (concatenate 'string text)
+              (lastcar (interleaved-text root)))))
 
 
 ;;; Methods common to all software objects
@@ -366,10 +372,9 @@ the rebinding"
       (copy ast :name (rebind-vars (ast-annotation ast :name)
                                    var-replacements
                                    fun-replacements)
-                :string-pointer (rebind-vars (limited-source-text ast)
-                                             var-replacements
-                                             fun-replacements)
-                :start 0 :end nil)
+                :interleaved-text (mapcar {rebind-vars _ var-replacements
+                                                         fun-replacements}
+                                          (interleaved-text ast)))
       (apply #'copy ast
              (mappend (lambda (child-slot)
                         (destructuring-bind (name . arity) child-slot
@@ -456,7 +461,7 @@ AST ast to return the enclosing scope for"
              (car (remove-if-not {typep _ 'js-variable-declaration}
                                  (get-parent-asts obj identifier))))
            (ast-to-scope (obj scope ast)
-             `((:name . ,(limited-source-text ast))
+             `((:name . ,(source-text ast))
                (:decl . ,(or (get-parent-decl obj ast) ast))
                (:scope . ,scope))))
     (unless (null (ast-path obj ast))
@@ -492,7 +497,7 @@ AST ast to return the enclosing scope for"
                                                     'js-export-specifier
                                                     'js-export-default-declaration
                                                     'js-variable-declarator))))
-                        (list (cons :name (limited-source-text ast))))
+                        (list (cons :name (source-text ast))))
                       (mapcar {get-unbound-vals-helper obj ast}
                               (child-asts ast)))
                :test #'equal)))
@@ -509,11 +514,11 @@ AST ast to return the enclosing scope for"
            (when (typep ast 'js-call-expression)
              (cond ((typep callee 'js-identifier)
                     ;; Free function call
-                    (list (list (limited-source-text callee)
+                    (list (list (source-text callee)
                                 nil nil (length (cdr child-asts)))))
                    ((typep callee 'js-member-expression)
                     ;; Member function call
-                    (list (list (nest (limited-source-text)
+                    (list (list (nest (source-text)
                                       (second)
                                       (child-asts callee))
                                 nil nil (length (cdr child-asts)))))

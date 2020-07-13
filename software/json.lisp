@@ -37,9 +37,5 @@
 
 (defmethod convert ((to-type (eql 'json-ast)) (string string)
                     &key &allow-other-keys)
-  (nest (mapcar (lambda (node)
-                  (decf (slot-value node 'start) 2)
-                  (decf (slot-value node 'end) 2)
-                  node))
-        (js-right) (js-expression) (first) (js-body)
+  (nest (js-right) (js-expression) (first) (js-body)
         (convert 'javascript-ast (concatenate 'string "x=" string))))

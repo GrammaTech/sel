@@ -246,9 +246,9 @@
 (deftest ensure-do-not-duplicate-property-in-genome-string ()
   (let ((soft (from-file (make-instance 'javascript)
                          (javascript-dir #P"parsing/object-destructuring.js"))))
-    (nest (is) (string= "p") (limited-source-text) (@ soft)
+    (nest (is) (string= "p") (source-text) (@ soft)
           '(1 js-declarations 0 js-id js-properties 0))
-    (nest (is) (string= "p, ") (source-text) (@ soft)
+    (nest (is) (string= "p") (source-text) (@ soft)
           '(1 js-declarations 0 js-id js-properties 0))))
 
 (deftest for-in-loop-get-vars-in-scope-test ()
@@ -270,8 +270,8 @@
 (deftest function-identifier-ast-present ()
   (let ((soft (from-file (make-instance 'javascript)
                          (javascript-dir #P"parsing/function-declaration.js"))))
-    (is (stmt-with-text soft "foo("))
-    (is (typep (stmt-with-text soft "foo(") 'js-identifier))))
+    (is (stmt-with-text soft "foo"))
+    (is (typep (stmt-with-text soft "foo") 'js-identifier))))
 
 (defixture javascript-ast-w-conflict
   (:setup (nest (setf *soft*)
@@ -280,8 +280,8 @@
                       ;; The "b" in 'a = a + b'.
                       '(0 js-body 1 js-body 1 js-expression js-right js-right))
                 (flet ((js-identifier (name)
-                         (let ((sel/sw/parseable::*string* name))
-                           (make-instance 'js-identifier :name name)))))
+                         (make-instance 'js-identifier
+                          :name name :interleaved-text (list name)))))
                 ;; A new conflict AST.
                 (make-instance 'conflict-ast :child-alist)
                 `((:old . nil)
@@ -315,15 +315,17 @@
                                  :name)))
     ;; Set AST with (with ...).
     (with *soft* '(0 js-body 1 js-body 2 js-expression js-left)
-          (let ((sel/sw/parseable::*string* "RIGHT"))
-            (make-instance 'js-identifier :name "RIGHT")))
+          (make-instance 'js-identifier
+           :name "RIGHT"
+           :interleaved-text (list "RIGHT")))
     (is (string= "RIGHT"
                  (ast-annotation (@ *soft* '(0 js-body 1 js-body 2
                                              js-expression js-left))
                                  :name)))
     (with *soft* '(0 js-body 1 js-body 0 js-expression js-left)
-          (let ((sel/sw/parseable::*string* "LEFT"))
-            (make-instance 'js-identifier :name "LEFT")))
+          (make-instance 'js-identifier
+           :name "LEFT"
+           :interleaved-text (list "LEFT")))
     (is (typep (@ *soft* '(0 js-body 1 js-body 2 js-expression js-left))
                'js-identifier))))
 
@@ -336,7 +338,7 @@
 
     (is (equal (size *soft*) (count-if {ast-path *soft*} (genome *soft*))))
     (is (string= (source-text (@ *soft* '(0 js-body 1 js-body 1 js-expression)))
-                 "a = a + temp;"))))
+                 "a = a + temp"))))
 
 (deftest test-json-preserves-trailing-whitespace ()
   (let* ((ws (fmt "     ~%"))
