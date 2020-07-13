@@ -200,6 +200,19 @@ RECURSIVE is passed, recursive AST children will also be returned.")
         (cdr (reverse (reduce (flip #'cons) ast)))
         (remove-if-not {typep _ 'ast} (children ast)))))
 
+(defmethod initialize-instance :after ((ast functional-tree-ast)
+                                       &rest args &key)
+  "Wrapper around MAKE-INSTANCE to transform all keyword arguments
+which are not explicit slot initargs into annotations for functional
+tree ASTs."
+  (let ((initargs (nest (mappend #'slot-definition-initargs)
+                        (remove-if [{eql :class} #'slot-definition-allocation])
+                        (class-slots (class-of ast)))))
+    (iter (for (key . value) in (plist-alist args))
+          (unless (member key initargs)
+            (setf (slot-value ast 'annotations)
+                  (cons (cons key value) (slot-value ast 'annotations)))))))
+
 (defmethod copy :around ((ast functional-tree-ast) &rest keys)
   "Wrapper around COPY to transform all keyword arguments which are
 not explicit slot initargs into annotations for functional tree ASTs."

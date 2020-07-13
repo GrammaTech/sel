@@ -41,7 +41,6 @@
   (:export :javascript
            :javascript-mutation
            :javascript-ast
-           :name
            :start
            :end
            :acorn))
@@ -53,8 +52,7 @@
 
 
 ;;; Javascript ast data structures
-(defclass javascript-ast (functional-tree-ast)
-  ((name :initarg :name :initform nil :reader name :type (or null string)))
+(defclass javascript-ast (functional-tree-ast) ()
   (:documentation "Class of JavaScript ASTs."))
 
 (defclass javascript-ast-skipped (javascript-ast functional-tree-ast-skipped) ()

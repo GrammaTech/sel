@@ -301,19 +301,26 @@
     (is (typep (copy (genome *soft*)) 'javascript-ast)))
   (with-fixture javascript-ast-w-conflict
     ;; Access ASTs.
-    (is (string= "fibonacci" (name (@ *soft* '(js-body 0 js-id)))))
+    (is (string= "fibonacci"
+                 (ast-annotation (@ *soft* '(js-body 0 js-id)) :name)))
     (is (typep (@ *soft* '(0 js-body 1 js-body 0)) 'javascript-ast))
-    (is (nest (string= "temp") (name) (@ *soft*)
-              '(0 js-body 1 js-body 0 js-expression js-left)))
+    (is (string= "temp"
+                 (ast-annotation (@ *soft* '(0 js-body 1 js-body 0
+                                             js-expression js-left))
+                                 :name)))
     (is (typep (@ *soft* '(0 js-body 1 js-body 2)) 'javascript-ast))
-    (is (nest (string= "b") (name) (@ *soft*)
-              '(0 js-body 1 js-body 2 js-expression js-left)))
+    (is (string= "b"
+                 (ast-annotation (@ *soft* '(0 js-body 1 js-body 2
+                                             js-expression js-left))
+                                 :name)))
     ;; Set AST with (with ...).
     (with *soft* '(0 js-body 1 js-body 2 js-expression js-left)
           (let ((sel/sw/parseable::*string* "RIGHT"))
             (make-instance 'js-identifier :name "RIGHT")))
-    (is (string= "RIGHT" (nest (name) (@ *soft*)
-                               '(0 js-body 1 js-body 2 js-expression js-left))))
+    (is (string= "RIGHT"
+                 (ast-annotation (@ *soft* '(0 js-body 1 js-body 2
+                                             js-expression js-left))
+                                 :name)))
     (with *soft* '(0 js-body 1 js-body 0 js-expression js-left)
           (let ((sel/sw/parseable::*string* "LEFT"))
             (make-instance 'js-identifier :name "LEFT")))
