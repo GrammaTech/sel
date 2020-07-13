@@ -1,5 +1,5 @@
-(defpackage :software-evolution-library/test/lisp-scopes
-  (:nicknames :sel/test/lisp-scopes)
+(defpackage :software-evolution-library/test/lisp-bindings
+  (:nicknames :sel/test/lisp-bindings)
   (:use
    :gt/full
    :software-evolution-library/test/util
@@ -10,11 +10,11 @@
    :software-evolution-library/software/lisp)
   (:import-from :software-evolution-library/software/lisp
                 :get-vars-from-ordinary-lambda-list)
-  (:export :test-lisp-scopes))
-(in-package :software-evolution-library/test/lisp-scopes)
+  (:export :test-lisp-bindings))
+(in-package :software-evolution-library/test/lisp-bindings)
 (in-readtable :curry-compose-reader-macros)
 
-(defsuite test-lisp-scopes "Lisp scopes")
+(defsuite test-lisp-bindings "Lisp bindings")
 
 
 ;;; Utility

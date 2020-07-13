@@ -37,7 +37,7 @@
         :software-evolution-library/test/javascript-project
         :software-evolution-library/test/javascript
         :software-evolution-library/test/lisp
-        :software-evolution-library/test/lisp-scopes
+        :software-evolution-library/test/lisp-bindings
         :software-evolution-library/test/python
         :software-evolution-library/test/python-project
         :software-evolution-library/test/misc-mutations
