@@ -55,9 +55,6 @@
 (defclass javascript-ast (functional-tree-ast) ()
   (:documentation "Class of JavaScript ASTs."))
 
-(defclass javascript-ast-skipped (javascript-ast functional-tree-ast-skipped) ()
-  (:documentation "Skipped region of source code text."))
-
 (defvar js-children
   '(((:program) (:body . 0))
     ((:member-expression) (:object . 1) (:property . 1))
@@ -217,8 +214,7 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
    (let ((sel/sw/parseable::*string* string)))
    (labels
        ((make-skipped (start end)
-          (when (< start end)
-            (make-instance 'javascript-ast-skipped :start start :end end)))
+          (if (< start end) (subseq string start end) ""))
         (ranges (ast &aux ranges)
           (let (last)
             (mapc (lambda (child)

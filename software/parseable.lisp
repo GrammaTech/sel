@@ -9,7 +9,6 @@
         :software-evolution-library/utility/range)
   (:export ;; ASTs
            :ast
-           :functional-tree-ast-skipped
            :functional-tree-ast
            :skipped-before
            :skipped-after
@@ -94,9 +93,6 @@
 for objects to allow method dispatch on generic AST objects regardless of
 whether they inherit from the functional trees library."))
 
-(defclass functional-tree-ast-skipped (functional-tree-ast) ()
-  (:documentation "Skipped region of source code text."))
-
 (defclass functional-tree-ast (node ast)
   ((annotations :initarg :annotations :initform nil :reader ast-annotations
                 :documentation "A-list of annotations." :type list)
@@ -112,10 +108,10 @@ whether they inherit from the functional trees library."))
                    :reader string-pointer :type (or null string))
    (skipped-before
     :initarg :skipped-before :initform nil
-    :reader skipped-before :type (or null functional-tree-ast-skipped))
+    :reader skipped-before :type (or null string))
    (skipped-after
     :initarg :skipped-after :initform nil
-    :reader skipped-after :type (or null functional-tree-ast-skipped)))
+    :reader skipped-after :type (or null string)))
   (:documentation "Base class for SEL functional tree ASTs.
 An applicative tree structure is used to hold the ASTs."))
 
