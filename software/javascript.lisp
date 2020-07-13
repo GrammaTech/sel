@@ -54,9 +54,7 @@
 
 ;;; Javascript ast data structures
 (defclass javascript-ast (functional-tree-ast)
-  ((name :initarg :name :initform nil :reader name :type (or null string))
-   (left :initarg :left :initform nil :reader left :type (or null string))
-   (right :initarg :right :initform nil :reader right :type (or null string)))
+  ((name :initarg :name :initform nil :reader name :type (or null string)))
   (:documentation "Class of JavaScript ASTs."))
 
 (defclass javascript-ast-skipped (javascript-ast functional-tree-ast-skipped) ()
