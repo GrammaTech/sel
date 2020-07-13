@@ -25,8 +25,6 @@
         :software-evolution-library/components/formatting
         :software-evolution-library/components/searchable
         :software-evolution-library/components/fodder-database)
-  (:shadowing-import-from :software-evolution-library/utility/range
-                          :end)
   (:export :register-fixer
            :fix-compilation
            :*compilation-fixers*))

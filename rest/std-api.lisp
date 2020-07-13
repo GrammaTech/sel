@@ -187,7 +187,6 @@
    :software-evolution-library/software/clang
    :software-evolution-library/command-line)
   (:shadowing-import-from :clack :clackup :stop)
-  (:shadowing-import-from :snooze :start)
   (:export :session-software
            :session-populations
            :session-mutations

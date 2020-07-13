@@ -76,7 +76,6 @@
    :software-evolution-library/software/clang
    :software-evolution-library/utility/task)
   (:shadowing-import-from :clack :clackup :stop)
-  (:shadowing-import-from :snooze :start)
   (:import-from :software-evolution-library/rest/async-jobs
                 :lookup-session-job-status)
   (:export :define-endpoint-route))

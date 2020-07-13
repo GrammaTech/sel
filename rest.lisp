@@ -74,7 +74,6 @@
    :software-evolution-library/rest/define-command-endpoint
    :software-evolution-library/command-line)
   (:shadowing-import-from :clack :clackup :stop)
-  (:shadowing-import-from :snooze :start)
   (:export :lookup-session
            :session-property
            :start-server
