@@ -15,8 +15,8 @@
 ;;; methods for @code{parseable} software objects have been implemented,
 ;;; allowing for a rich variety of manipulations and tests.
 ;;;
-;;; Every AST in a @code{javascript} software object contains an AST class
-;;; field with the AST type (e.g. BlockStatement, ForStatement).  Additional
+;;; Every AST in a @code{javascript} software object is of a subclass
+;;; representing its AST type (e.g. BlockStatement, ForStatement).  Additional
 ;;; fields given by the @code{acorn} parser can be found in an association
 ;;; list on the AST's annotations field.  For more information on the ASTs,
 ;;; see @uref{https://media.readthedocs.org/pdf/esprima/4.0/esprima.pdf,
