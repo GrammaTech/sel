@@ -55,7 +55,7 @@
 (defclass javascript-ast (functional-tree-ast) ()
   (:documentation "Class of JavaScript ASTs."))
 
-(defvar js-children
+(define-constant +js-children+
   '(((:program) (:body . 0))
     ((:member-expression) (:object . 1) (:property . 1))
     ((:tagged-template-expression) (:tag . 1) (:quasi . 1))
@@ -128,7 +128,9 @@
       :template-element
       :debugger-statement
       :empty-statement
-      :literal))))
+      :literal)))
+  :test #'equalp
+  :documentation "Definition of JavaScript classes and child slots.")
 
 (defun expand-js-class (spec)
   (nest
@@ -156,10 +158,10 @@
           ,(format nil "Javascript AST node class for ~a acorn ASTs." class)))))
    ast-class-list))
 
-(eval `(progn ,@(mappend #'expand-js-class js-children)))
+(eval `(progn ,@(mappend #'expand-js-class +js-children+)))
 (export (mapcar {symbol-cat 'js}
                 (mappend «append #'first [{mapcar #'car} #'cdr]»
-                         js-children)))
+                         +js-children+)))
 
 
 ;;; Javascript parsing
@@ -252,7 +254,7 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
   (let* ((raw-type (make-keyword (string-upcase (translate-camelcase-name
                                                  (aget :type spec)))))
          (type (symbol-cat 'js raw-type))
-         (child-types (aget raw-type js-children :test #'member)))
+         (child-types (aget raw-type +js-children+ :test #'member)))
     ;; Fix inaccuracies in the parsed ASTs we get from acorn.
     ;;
     ;; 1. For a property with no value (e.g., "p" in "{p, q}")
