@@ -41,8 +41,7 @@
   (:import-from :functional-trees :path-later-p)
   (:export :python
            :python-mutation
-           :python-ast
-           :name))
+           :python-ast))
 (in-package :software-evolution-library/software/python)
 (in-readtable :curry-compose-reader-macros)
 
