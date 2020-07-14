@@ -20,7 +20,9 @@
 ;;; Utility
 (defun scope-contains-var-p (scope symbol)
   "Return the variable alist associated with symbol if it exists."
-  (find-if [{equal symbol} {aget :name}] scope))
+  (find-if «and [{equal symbol} {aget :name}]
+                [{equal 'variable} {aget :namespace}]»
+           scope))
 
 (defun is-var-in-scope (scope symbol)
   "Test if var is in scope, succeeding if it is."
@@ -44,6 +46,36 @@
 (defun is-not-scopes-contains-var-p (scopes symbol)
   "Test if var is in an enclosing scope, succeeding if it is."
   (is (not (scopes-contains-var-p scopes symbol))
+      "Scopes should not contain '~a'." symbol))
+
+(defun scope-contains-fun-p (scope symbol)
+  "Return the variable alist associated with symbol if it exists."
+  (find-if «and [{equal symbol} {aget :name}]
+                [{equal 'function} {aget :namespace}]»
+           scope))
+
+(defun is-fun-in-scope (scope symbol)
+  "Test if function is in scope, succeeding if it is."
+  (is (scope-contains-fun-p scope symbol)
+      "Functions should contain '~a'." symbol))
+
+(defun is-not-fun-in-scope (scope symbol)
+  "Test if function is in scope, succeeding if it isn't."
+  (is (not (scope-contains-fun-p scope symbol))
+      "Functions should not contain '~a'." symbol))
+
+(defun scopes-contains-fun-p (scopes symbol)
+  "Return the function alist associated with symbol if it exists."
+  (mappend {scope-contains-fun-p _ symbol} scopes))
+
+(defun is-scopes-contains-fun-p (scopes symbol)
+  "Test if function is in an enclosing scope, succeeding if it is."
+  (is (scopes-contains-fun-p scopes symbol)
+      "Scopes should contain '~a'." symbol))
+
+(defun is-not-scopes-contains-fun-p (scopes symbol)
+  "Test if function is in an enclosing scope, succeeding if it is."
+  (is (not (scopes-contains-fun-p scopes symbol))
       "Scopes should not contain '~a'." symbol))
 
 (defmacro with-software-file ((filename software-var genome-var)
@@ -204,3 +236,62 @@ special variable is set."
       (is-scopes-contains-var-p scopes-with '*b*)
       (is-not-scopes-contains-var-p scopes-without '*a*)
       (is-not-scopes-contains-var-p scopes-without '*b*))))
+
+(deftest lisp-get-functions-from-binding-form-flet-1 ()
+  "'flet local functions are returned."
+  (with-software-file ("flet-1" obj ast)
+    (let* ((funs (get-functions-from-binding-form
+                  obj 'flet (find-compound-form 'flet ast)
+                  :reference-ast (find-compound-form 'and ast))))
+      (is-fun-in-scope funs 'a)
+      (is-fun-in-scope funs 'b))))
+
+(deftest lisp-get-functions-from-binding-form-labels-1 ()
+  "'labels local functions only return the functions that
+are in scope of the current local definition."
+  (with-software-file ("labels-1" obj ast)
+    (let* ((binding-form (find-compound-form 'labels ast))
+           (f-funs (get-functions-from-binding-form
+                    obj 'labels binding-form
+                    :reference-ast (find-compound-form '- ast)))
+           (g-funs (get-functions-from-binding-form
+                    obj 'labels binding-form
+                    :reference-ast (find-compound-form '+ ast))))
+      (is-fun-in-scope g-funs 'f)
+      (is-fun-in-scope g-funs 'g)
+      (is-fun-in-scope f-funs 'f))))
+
+(deftest lisp-get-functions-from-binding-form-defun-1 ()
+  "'defun returns the function that is defined."
+  (with-software-file ("defun-1" obj ast)
+    (let* ((funs (get-functions-from-binding-form
+                  obj 'defun (find-compound-form 'defun ast))))
+      (is-fun-in-scope funs 'f))))
+
+(deftest lisp-get-functions-from-binding-form-defmacro-1 ()
+  "'defmacro returns the macro that is defined when the relevant
+special variable is set."
+  (with-software-file ("defmacro-1" obj ast)
+    (let* ((*bindings-allows-macros-p* t)
+           (funs (get-functions-from-binding-form
+                  obj 'defmacro (find-compound-form 'defmacro ast))))
+      (is-fun-in-scope funs 'm))))
+
+(deftest lisp-get-functions-from-binding-form-macrolet-1 ()
+  "'macrolet returns the local macros that are defined when the relevant
+special variable is set."
+  (with-software-file ("macrolet-1" obj ast)
+    (let* ((*bindings-allows-macros-p* t)
+           (funs (get-functions-from-binding-form
+                  obj 'macrolet (find-compound-form 'macrolet ast)
+                  :reference-ast (find-compound-form '* ast))))
+      (is-fun-in-scope funs 'm)
+      (is-fun-in-scope funs 'n))))
+
+(deftest lisp-bindings-1 ()
+  (with-software-file ("bindings-1" obj ast)
+    (let* ((scopes (bindings obj (find-compound-form '* ast) :all t)))
+      (is-scopes-contains-fun-p scopes 'f)
+      (is-scopes-contains-fun-p scopes 'g)
+      (is-scopes-contains-var-p scopes 'a)
+      (is-scopes-contains-var-p scopes 'b))))
