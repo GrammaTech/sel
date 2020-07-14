@@ -3609,6 +3609,55 @@ within a function body, return null."))
       ;; If error parsing simply return nil.
       (mutate (e) (declare (ignorable e)) nil))))
 
+(defmethod convert ((to-type (eql 'clang-ast)) (spec list)
+                    &key &allow-other-keys)
+  "Create a clang AST from the SPEC (specification) list.
+
+SPEC: List specification of an AST.  A SPEC should have the form
+
+  (ast-class <optional-keyword-args-to-`make-instance <AST-TYPE>'>
+             CHILDREN)
+
+where CHILDREN may themselves be specifications suitable for passing
+to `convert`"
+  (convert-list-to-ast-helper spec
+                              (lambda (class keys children)
+                                (apply #'make-instance 'clang-ast
+                                 :class class
+                                 :children children
+                                 keys))))
+
+(defun convert-list-to-ast-helper (spec fn)
+  "Helper function for converting a list SPECification of an AST to an
+AST using FN to create the AST.
+
+SPEC: List specification of an AST.  A SPEC should have the form
+
+  (ast-class <optional-keyword-args-to-`make-instance <AST-TYPE>'>
+             CHILDREN)
+
+where CHILDREN may themselves be specifications suitable for passing
+to `convert-list-to-ast-helper`
+
+FN: Function taking three arguments (class, keys, and children) and
+returning a newly created AST."
+  (destructuring-bind (class &rest options-and-children) spec
+    (multiple-value-bind (keys children)
+        (let ((previous nil))
+          (iter (for item in options-and-children)
+                (if (or (keywordp previous)
+                        (keywordp item))
+                    ;; Collect keyword arguments.
+                    (collect item into keys)
+                    ;; Process lists as new AST nodes.
+                    (if (listp item)
+                        (collect (convert-list-to-ast-helper item fn)
+                                 into children)
+                        (collect item into children)))
+                (setf previous item)
+                (finally (return (values keys children)))))
+      (funcall fn class keys children))))
+
 
 ;;; Structures and functions relating to genome locations.
 

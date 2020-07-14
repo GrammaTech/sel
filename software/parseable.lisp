@@ -31,7 +31,6 @@
            :limited-source-text
            :source-text
            :rebind-vars
-           :convert-list-to-ast-helper
            ;; Parseable software object.
            :parseable
            :asts
@@ -464,67 +463,6 @@ optionally writing to STREAM.")
                                     (car (second fun-replacement))))
                             fun-replacements))
             :initial-value ast)))
-
-(defmethod convert ((ast-type symbol) (spec list)
-                    &key &allow-other-keys)
-  "Create an AST of AST-TYPE from the SPEC (specification) list.
-
-SPEC: List specification of an AST.  A SPEC should have the form
-
-  (type-of <optional-keyword-args-to-`make-instance <AST-TYPE>'>
-           CHILDREN)
-
-where CHILDREN may themselves be specifications suitable for passing
-to `convert`"
-  (convert-list-to-ast-helper spec
-                              (lambda (class keys children)
-                                (apply #'make-instance ast-type
-                                 :class class
-                                 :children children
-                                 keys))))
-
-(defmethod convert ((ast-type symbol) (snippet string)
-                    &key &allow-other-keys
-                    &aux (sw-type (intern (nest (apply #'concatenate 'string)
-                                                (butlast)
-                                                (split-sequence #\-)
-                                                (symbol-name ast-type))
-                                          (symbol-package ast-type))))
-  "Parse SNIPPET into a free-floating AST of AST-TYPE."
-  (handler-case
-      (genome (from-string (make-instance sw-type) snippet))
-    (mutate (e) (declare (ignorable e)) nil)))
-
-(defun convert-list-to-ast-helper (spec fn)
-  "Helper function for converting a list SPECification of an AST to an
-AST using FN to create the AST.
-
-SPEC: List specification of an AST.  A SPEC should have the form
-
-  (type-of <optional-keyword-args-to-`make-instance <AST-TYPE>'>
-           CHILDREN)
-
-where CHILDREN may themselves be specifications suitable for passing
-to `convert-list-to-ast-helper`
-
-FN: Function taking three arguments (class, keys, and children) and
-returning a newly created AST."
-  (destructuring-bind (class &rest options-and-children) spec
-    (multiple-value-bind (keys children)
-        (let ((previous nil))
-          (iter (for item in options-and-children)
-                (if (or (keywordp previous)
-                        (keywordp item))
-                    ;; Collect keyword arguments.
-                    (collect item into keys)
-                    ;; Process lists as new AST nodes.
-                    (if (listp item)
-                        (collect (convert-list-to-ast-helper item fn)
-                                 into children)
-                        (collect item into children)))
-                (setf previous item)
-                (finally (return (values keys children)))))
-      (funcall fn class keys children))))
 
 
 ;;; parseable software objects
