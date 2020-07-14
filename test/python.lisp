@@ -417,7 +417,7 @@
             (#P"import.py" py-import)
             (#P"import-from.py" py-import-from)
             (#P"global.py" py-global)
-            (#P"non-local.py" py-non-local)
+            (#P"non-local.py" py-nonlocal)
             (#P"pass.py" py-pass)
             (#P"break.py" py-break)
             (#P"continue.py" py-continue)
