@@ -201,19 +201,6 @@
   (export (mapcar {symbol-cat 'py}
                   (mappend «cons #'car [{mapcar #'car} #'cdr]» +asdl+))))
 
-;;; Python ASTs sometimes don't have start and end populated.
-(defmethod start ((obj python-ast))
-  (or (slot-value obj 'start)
-      (start (first (children obj)))))
-
-(defmethod end ((obj python-ast))
-  (or (slot-value obj 'start)
-      (start (lastcar (children obj)))))
-
-(defmethod start ((obj py-module)) 0)
-(defmethod end ((obj py-module))
-  (length (slot-value obj 'string-pointer)))
-
 (define-constant +stmt-ast-classes+
     '('py-module 'py-function-def 'py-async-function-def 'py-class-def 'py-return
       'py-delete 'py-assign 'py-aug-assign 'py-ann-assign 'py-for 'py-async-for
