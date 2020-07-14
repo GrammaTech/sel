@@ -156,12 +156,7 @@
       (:arg . ((:annotation . ?)))
       (:keyword . ((:value . 1)))
       (:with-item . ((:context-expr . 1)
-                    (:optional-vars . ?)))
-      ;; Missing originally and added manually.
-      (:name . ((:ctx . 1)))
-      (:load)
-      (:constant)
-      (:store) (:global) (:non-local))
+                    (:optional-vars . ?))))
   :test #'equalp
   :documentation "Abstract Syntax Description Language for python.")
 
