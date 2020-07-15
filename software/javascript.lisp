@@ -320,7 +320,7 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
                             (1 (convert 'javascript-ast value))
                             (0 (mapcar {convert 'javascript-ast} value))))
                         value))))
-            (cdr spec)))))
+            (adrop '(:type) spec)))))
 
 (defmethod parse-asts ((obj javascript) &optional (source (genome-string obj)))
   (convert 'javascript-ast source))
