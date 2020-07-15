@@ -499,13 +499,13 @@ AST ast to return the enclosing scope for"
                                                     'js-variable-declarator))))
                         (list (cons :name (source-text ast))))
                       (mapcar {get-unbound-vals-helper obj ast}
-                              (child-asts ast)))
+                              (children ast)))
                :test #'equal)))
     (get-unbound-vals-helper obj (get-parent-ast obj ast) ast)))
 
 (defmethod get-unbound-funs ((obj javascript) (ast javascript-ast)
-                             &aux (child-asts (child-asts ast))
-                                  (callee (first child-asts)))
+                             &aux (children (children ast))
+                               (callee (first children)))
   "Return all functions used (but not defined) within AST.
 * OBJ javascript software object containing AST
 * AST ast to retrieve unbound functions within"
@@ -515,15 +515,15 @@ AST ast to return the enclosing scope for"
              (cond ((typep callee 'js-identifier)
                     ;; Free function call
                     (list (list (source-text callee)
-                                nil nil (length (cdr child-asts)))))
+                                nil nil (length (cdr children)))))
                    ((typep callee 'js-member-expression)
                     ;; Member function call
                     (list (list (nest (source-text)
                                       (second)
-                                      (child-asts callee))
-                                nil nil (length (cdr child-asts)))))
+                                      (children callee))
+                                nil nil (length (cdr children)))))
                    (t nil)))
-           (mapcar {get-unbound-funs obj} child-asts))
+           (mapcar {get-unbound-funs obj} children))
     :test #'equal))
 
 (defmethod get-parent-full-stmt ((obj javascript) (ast javascript-ast))

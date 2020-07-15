@@ -436,7 +436,7 @@ AST ast to return the scopes for"
                                 (get-lhs-names ast)))
                        (py-arguments
                         (mapcar {ast-annotations _ :id}
-                                (child-asts ast)))
+                                (children ast)))
                        ((or py-global py-nonlocal)
                         (ast-annotation ast :names)))))
            (remove-duplicate-names (scope)
@@ -460,7 +460,7 @@ AST ast to return the scopes for"
                              ; declaration/assignment found
                              (remove-if-not #'contains-scope-var-p)
                              ; collect ASTs prior to AST
-                             (iter (for c in (child-asts scope))
+                             (iter (for c in (children scope))
                                    (when (and (in-same-if-clause ast c)
                                               (path-later-p (ast-path obj ast)
                                                             (ast-path obj c)))
@@ -515,12 +515,12 @@ AST ast to return the scopes for"
                                           (call-name-p parents ast))))
                         (list (cons :name (source-text ast))))
                       (mapcar {get-unbound-vals-helper obj (cons ast parents)}
-                              (child-asts ast)))
+                              (children ast)))
                :test #'equal)))
     (get-unbound-vals-helper obj (get-parent-asts obj ast) ast)))
 
 (defmethod get-unbound-funs ((obj python) (ast python-ast)
-                             &aux (children (child-asts ast))
+                             &aux (children (children ast))
                                (callee (first children)))
   "Return all functions used (but not defined) within AST.  The returned
 value will be of the form (list FUNCTION-ATTRS) where FUNCTION-ATTRS is a
