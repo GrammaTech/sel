@@ -38,6 +38,7 @@
         :software-evolution-library/software/parseable
         :software-evolution-library/components/file
         :software-evolution-library/components/formatting)
+  (:import-from :cffi :translate-camelcase-name)
   (:import-from :functional-trees :path-later-p)
   (:export :python
            :python-mutation
@@ -49,14 +50,14 @@
   (:documentation "Python software representation."))
 
 
-;;; Python parsing
+;;; Javascript ast data structures
 (define-constant +python-children+
   '(((:module :interactive) (:body . 0))
     ((:expression) (:body . 1))
     ((:async-function-def :function-def) (:decorator-list . 0)
                                          (:args . 1)
-                                         (:body . 0)
-                                         (:returns . 1))
+                                         (:returns . 1)
+                                         (:body . 0))
     ((:class-def) (:decorator-list . 0)
                   (:bases . 0)
                   (:keywords . 0)
@@ -96,8 +97,6 @@
     ((:if-exp) (:body . 1)
                (:test . 1)
                (:orelse . 1))
-    ((:dict) (:keys . 0)
-             (:values . 0))
     ((:list-comp :set-comp :generator-exp) (:elt . 1)
                                            (:generators . 0))
     ((:dict-comp) (:key . 1)
@@ -112,7 +111,7 @@
              (:keywords . 0))
     ((:subscript) (:value . 1)
                   (:slice . 1))
-    ((:list :set :tuple) (:elts . 0))
+    ((:dict :list :set :tuple) (:elts . 0))
     ((:slice) (:lower . 1) (:upper . 1) (:step . 1))
     ((:ext-slice) (:dims . 0))
     ((:comprehension) (:target . 1)
@@ -120,13 +119,7 @@
                       (:ifs . 0))
     ((:except-handler) (:type . 1)
                        (:body . 0))
-    ((:arguments) (:posonlyargs . 0)
-                  (:args . 0)
-                  (:defaults . 0)
-                  (:vararg . 1)
-                  (:kwonlyargs . 0)
-                  (:kw-defaults . 0)
-                  (:kwarg . 1))
+    ((:arguments) (:elts . 0))
     ((:arg) (:annotation . 1))
     ((:keyword) (:value . 1))
     ((:withitem) (:context-expr . 1)
@@ -145,10 +138,11 @@
   :test #'equalp
   :documentation "Definition of Python classes and child slots.")
 
-
-;;; Python ast data structures
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defclass python-ast (functional-tree-ast) ()
+  (defclass python-ast (functional-tree-ast)
+    ((interleaved-text :initarg :interleaved-text :initform nil :type list
+                       :reader interleaved-text
+                       :documentation "Interleaved text between children."))
     (:documentation "Class of Python ASTs."))
 
   (defun expand-py-class (spec)
@@ -181,6 +175,15 @@
                   (mappend «append #'first [{mapcar #'car} #'cdr]»
                            +python-children+))))
 
+(defmethod source-text ((ast python-ast) &optional stream)
+  (when (interleaved-text ast)
+    (write-string (car (interleaved-text ast)) stream)
+    (mapc (lambda (child text)
+            (source-text child stream)
+            (write-string text stream))
+          (remove nil (children ast))
+          (cdr (interleaved-text ast)))))
+
 (define-constant +stmt-ast-types+
   '(py-module py-function-def py-async-function-def py-class-def py-return
     py-delete py-assign py-aug-assign py-ann-assign py-for py-async-for
@@ -203,6 +206,8 @@ given by python in the line, col attributes.")
   :documentation "AST types which may have children which are not
 in textual (sorted) order.")
 
+
+;;; Python parsing
 (defun python-astdump (source-text)
   "Invoke the python-astdump script to dump ASTs in SOURCE-TEXT in JSON format."
   (with-temporary-file-of (:pathname src) source-text
@@ -230,34 +235,112 @@ in textual (sorted) order.")
                                 :operation :parse))))))
 
 (defmethod convert ((to-type (eql 'python-ast)) (string string)
-                    &key &allow-other-keys)
+                    &key &allow-other-keys
+                    &aux (string-octets (string-to-octets string))
+                      (line-offsets (line-offsets string)))
   (labels
-      ((make-skipped (start end)
-         (when (< start end)
-           (make-instance 'python-ast-skipped :start start :end end)))
-       (ranges (ast &aux ranges)
-         (let (last)
-           (mapc (lambda (child)
-                   (when last (push (cons (start last) (start child)) ranges))
-                   (setf last child))
-                 (remove nil (children ast)))
-           (push (cons (start last) (end ast)) ranges)
-           (nreverse ranges)))
-       (w/skipped (tree from to)
-         (assert (= from (start tree)))
-         (when (children tree)
-           (setf (slot-value tree 'skipped-before)
-                 (make-skipped from (start (first (children tree)))))
-           (mapc (lambda (child range)
-                   (destructuring-bind (from . to) range
-                     (w/skipped child from to)))
-                 (remove nil (children tree))
-                 (ranges tree)))
-         (setf (slot-value tree 'skipped-after)
-               (make-skipped (end tree) to))
-         tree))
-   (w/skipped (convert to-type (python-astdump string))
-              0 (length string))))
+      ((safe-subseq (start end)
+         "Return STRING-OCTETS in the range [START, END) as a string
+         or an empty string if the offsets are invalid."
+         (if (< start end)
+             (octets-to-string (subseq string-octets start end))
+             ""))
+       (offset (line col)
+         "Return the offset into SOURCE-OCTETS for the given LINE and COL."
+         (+ col (aget :start (gethash line line-offsets))))
+       (start (ast)
+         "Return the start offset into SOURCE-OCTETS from the AST
+         representation."
+         (cond ((null ast) nil)
+               ((typep ast 'py-module)
+                0)
+               ((and (null (ast-annotation ast :lineno))
+                     (null (ast-annotation ast :col-offset)))
+                (start (car (remove nil (children ast)))))
+               ((member (type-of ast) +ast-types-with-larger-child-spans+)
+                (min (or (start (car (remove nil (children ast))))
+                         most-positive-fixnum)
+                     (offset (ast-annotation ast :lineno)
+                             (ast-annotation ast :col-offset))))
+               (t (offset (ast-annotation ast :lineno)
+                          (ast-annotation ast :col-offset)))))
+       (end (ast)
+         "Return the end offset into SOURCE-OCTETS from the AST
+         representation."
+         (cond ((null ast) nil)
+               ((typep ast 'py-module)
+                (length string-octets))
+               ((and (null (ast-annotation ast :lineno))
+                     (null (ast-annotation ast :col-offset)))
+                (end (lastcar (remove nil (children ast)))))
+               ((member (type-of ast) +ast-types-with-larger-child-spans+)
+                (max (or (end (lastcar (remove nil (children ast))))
+                         most-negative-fixnum)
+                     (offset (ast-annotation ast :end-lineno)
+                             (ast-annotation ast :end-col-offset))))
+               (t (offset (ast-annotation ast :end-lineno)
+                          (ast-annotation ast :end-col-offset)))))
+       (start-and-end-p (ast)
+         "Return T if AST contains both a start and end offset."
+         (and (start ast) (end ast)))
+       (remove-children-without-start-end-offsets (ast)
+         "Destructively remove children of AST which do not have
+         start and end offsets populated."
+         (mapc (lambda (slot)
+                 (destructuring-bind (name . arity) slot
+                   (let ((value (slot-value ast name)))
+                     (if (= 1 arity)
+                         (setf (slot-value ast name)
+                               (if (start-and-end-p value) value nil))
+                         (setf (slot-value ast name)
+                               (remove-if-not #'start-and-end-p value))))))
+               (child-slots ast)))
+       (sort-children (ast)
+         "Destructively sort the children of certain AST types to ensure
+         they are in textual order."
+         (when (member (type-of ast) +ast-types-with-unsorted-children+)
+           (setf (slot-value ast 'py-elts)
+                 (sort (slot-value ast 'py-elts) #'< :key #'start))))
+       (normalized-children (ast)
+         "Return the children of AST after destructively modifying AST
+         to remove children without start and end offsets and to sort
+         children textually."
+         (remove-children-without-start-end-offsets ast)
+         (sort-children ast)
+         (children ast))
+       (ranges (children from to)
+         "Return the offsets of the source text ranges between CHILDREN."
+         (iter (for child in children)
+               (for prev previous child)
+               (if prev
+                   (collect (cons (end prev) (start child))
+                            into ranges)
+                   (collect (cons from (start child))
+                            into ranges))
+               (finally (return (append ranges
+                                        (list (cons (end child) to)))))))
+       (w/interleaved-text (ast from to)
+         "Destructively modify AST to populate the INTERLEAVED-TEXT
+         field with the source text to be interleaved between the
+         children of AST."
+         (if-let* ((children (remove nil (normalized-children ast))))
+           (progn
+             (setf (slot-value ast 'interleaved-text)
+                   (mapcar (lambda (range)
+                             (destructuring-bind (from . to) range
+                               (safe-subseq from to)))
+                           (ranges children from to)))
+             (mapc (lambda (child)
+                     (w/interleaved-text child (start child) (end child)))
+                   children))
+           (setf (slot-value ast 'interleaved-text)
+                 (list (safe-subseq (start ast) (end ast)))))
+         (setf (slot-value ast 'annotations)
+               (adrop '(:lineno :col-offset :end-lineno :end-col-offset)
+                      (slot-value ast 'annotations)))
+         ast))
+   (w/interleaved-text (convert to-type (python-astdump string))
+                       0 (length string-octets))))
 
 (defmethod convert ((to-type (eql 'python-ast)) (spec null)
                     &key &allow-other-keys)
@@ -266,24 +349,77 @@ in textual (sorted) order.")
 (defmethod convert ((to-type (eql 'python-ast)) (spec list)
                     &key &allow-other-keys)
   "Create a PYTHON AST from the SPEC (specification) list."
-  (let* ((raw-type (make-keyword (string-upcase (aget :class spec))))
+  (let* ((raw-type (nest (make-keyword)
+                         (string-upcase)
+                         (translate-camelcase-name)
+                         (aget :class spec)))
          (type (symbol-cat 'py raw-type))
          (child-types (aget raw-type +python-children+ :test #'member)))
-    (apply #'make-instance type
-           (mappend
-            (lambda (field)
-              (destructuring-bind (key . value) field
-                (list (if (find key child-types :key #'car)
-                          (make-keyword (symbol-cat 'py key))
-                          key)
-                      (if-let ((spec (find key child-types :key #'car)))
-                        (destructuring-bind (key . arity) spec
-                          (declare (ignorable key))
-                          (ecase arity
-                            (1 (convert 'python-ast value))
-                            (0 (mapcar {convert 'python-ast} value))))
-                        value))))
-            (cdr spec)))))
+    (labels ((drop-class (spec)
+               "Drop the :class key/value pair from SPEC."
+               (adrop '(:class) spec))
+             (normalize-children (spec)
+               "For certain types of ASTs, the children, as reported by
+               the python-astdump script, are not in textual order.  For
+               these AST types, we append the children into a list
+               which may be sorted."
+               (case type
+                 (py-dict
+                   (cons (cons :elts
+                               (append (aget :keys spec)
+                                       (aget :values spec)))
+                         (adrop '(:keys :values) spec)))
+                 (py-arguments
+                   (cons (cons :elts
+                               (append (aget :posonlyargs spec)
+                                       (aget :args spec)
+                                       (aget :defaults spec)
+                                       (when-let ((vararg (aget :vararg spec)))
+                                         (list vararg))
+                                       (aget :kwonlyargs spec)
+                                       (aget :kw-defaults spec)
+                                       (when-let((kwargs (aget :kwargs spec)))
+                                         (list kwargs))))
+                         (adrop '(:posonlyargs :args :defaults :vararg
+                                  :kwonlyargs :kw-defaults :kwarg) spec)))
+                 (t spec)))
+             (normalize-annotations (spec)
+               "Represent :ctx, :op, and :ops fields as annotations instead
+               of AST children.  Additionally, drop nil annotations."
+               (iter (for (key . value) in spec)
+                     (cond ((eq key :ctx)
+                            (collect (cons key (nest (make-keyword)
+                                                     (string-upcase)
+                                                     (aget :class value)))))
+                           ((eq key :op)
+                            (collect (cons key (aget :class value))))
+                           ((eq key :ops)
+                            (collect (cons key (mapcar {aget :class} value))))
+                           ((not (null value))
+                            (collect (cons key value))))))
+             (normalize-spec (spec)
+               "Normalize the SPEC given from the python-astdump script,
+               removing the class name, appending the children of certain
+               AST types into a flat list, and representing :ctx, :op, and
+               :ops fields as annotations instead of AST children."
+               (nest (normalize-annotations)
+                     (normalize-children)
+                     (drop-class spec))))
+      (apply #'make-instance type
+             (mappend
+              (lambda (field)
+                (destructuring-bind (key . value) field
+                  (list (if (find key child-types :key #'car)
+                            (make-keyword (symbol-cat 'py key))
+                            key)
+                        (if-let ((spec (find key child-types :key #'car)))
+                          (destructuring-bind (key . arity) spec
+                            (declare (ignorable key))
+                            (ecase arity
+                              (1 (convert 'python-ast value))
+                              (0 (mapcar {convert 'python-ast} value))))
+                          value))))
+              (normalize-spec spec))))))
 
 (defmethod parse-asts ((obj python) &optional (source (genome-string obj)))
   (convert 'python-ast source))
@@ -332,7 +468,7 @@ is not a compiled language.
   (values bin 0 nil nil nil))
 
 (defmethod get-parent-full-stmt ((obj python) (ast python-ast))
-  (cond ((member (type-of ast) +stmt-ast-classes+) ast)
+  (cond ((member (type-of ast) +stmt-ast-types+) ast)
         (t (get-parent-full-stmt obj (get-parent-ast obj ast)))))
 
 (defmethod rebind-vars ((ast python-ast)
@@ -346,19 +482,21 @@ the rebinding"
       (copy ast :id (rebind-vars (ast-annotation ast :id)
                                  var-replacements
                                  fun-replacements)
-                :children (mapcar {rebind-vars _
-                                               var-replacements
-                                               fun-replacements}
-                                  (children ast)))
-      (let ((rebound-children
-             (mapcar (lambda (c)
-                       (cond ((stringp c) c)
-                             (t (rebind-vars c var-replacements
-                                             fun-replacements))))
-                     (children ast))))
-        (if (equalp rebound-children (children ast))
-            ast
-            (copy ast :children rebound-children)))))
+                :interleaved-text (mapcar {rebind-vars _ var-replacements
+                                                         fun-replacements}
+                                          (interleaved-text ast)))
+      (apply #'copy ast
+             (mappend (lambda (child-slot)
+                        (destructuring-bind (name . arity) child-slot
+                          (list (make-keyword name)
+                                (if (= arity 0)
+                                    (mapcar {rebind-vars _ var-replacements
+                                                           fun-replacements}
+                                            (slot-value ast name))
+                                    (rebind-vars (slot-value ast name)
+                                                 var-replacements
+                                                 fun-replacements)))))
+                      (child-slots ast)))))
 
 (defmethod enclosing-scope ((obj python) (ast python-ast))
   "Return the enclosing scope of AST in OBJ.
@@ -393,25 +531,12 @@ AST ast to return the enclosing scope for"
 Each variable is represented by an alist containing :NAME, :DECL, and :SCOPE.
 OBJ python software object
 AST ast to return the scopes for"
-  (labels ((else-clause-p (ast)
-             "Return T if AST represents the start of an else clause."
-             (nest (starts-with-subseq "else")
-                   (trim-whitespace)
-                   (source-text ast)))
-           (in-same-if-clause (ast1 ast2
-                               &aux (parent1 (get-parent-ast obj ast1))
-                                 (parent2 (get-parent-ast obj ast2)))
+  (labels ((in-same-if-clause (ast1 ast2 &aux (p (get-parent-ast obj ast1)))
              "Return T if AST1 and AST2 appear in the same if statement
              clause (the body or the else)."
-             (if (and parent1 parent2 (eq parent1 parent2)
-                      (typep parent1 'py-if))
-                 (let ((else-path (nest (remove-if #'null)
-                                        (append (ast-path obj parent1))
-                                        (list)
-                                        (position-if #'else-clause-p)
-                                        (children parent1))))
-                   (equal (path-later-p (ast-path obj ast1) else-path)
-                          (path-later-p (ast-path obj ast2) else-path)))
+             (if (and (typep p 'py-if) (eq p (get-parent-ast obj ast2)))
+                 (or (= 2 (length (intersection (list ast1 ast2) (py-body p))))
+                     (= 2 (length (intersection (list ast1 ast2) (py-orelse p)))))
                  t))
            (contains-scope-var-p (ast)
              "Return T if AST contains a variable declaration or assignment."
@@ -432,10 +557,10 @@ AST ast to return the scopes for"
                          (:scope . ,scope)))
                      (etypecase ast
                        ((or py-assign py-ann-assign)
-                        (mapcar {ast-annotations _ :id}
+                        (mapcar {ast-annotation _ :id}
                                 (get-lhs-names ast)))
                        (py-arguments
-                        (mapcar {ast-annotations _ :id}
+                        (mapcar {ast-annotation _ :arg}
                                 (children ast)))
                        ((or py-global py-nonlocal)
                         (ast-annotation ast :names)))))
@@ -460,7 +585,7 @@ AST ast to return the scopes for"
                              ; declaration/assignment found
                              (remove-if-not #'contains-scope-var-p)
                              ; collect ASTs prior to AST
-                             (iter (for c in (children scope))
+                             (iter (for c in (remove nil (children scope)))
                                    (when (and (in-same-if-clause ast c)
                                               (path-later-p (ast-path obj ast)
                                                             (ast-path obj c)))
