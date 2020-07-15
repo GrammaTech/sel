@@ -264,6 +264,8 @@
            :target-function-name
            :create-all-simple-cut-variants
            :create-target
+           :data-path
+           :data-asm
            :target-info
            :evaluate-asm
            :eval-meta-results
@@ -365,6 +367,22 @@
     :accessor io-file
     :initform nil
     :documentation "If this is specified, use this file (ignore io-dir).")
+   (data-path
+    :initarg :data-path
+    :accessor data-path
+    :initform nil
+    :documentation
+    "If specified, refers to asm file containing static data definitions")
+   (data-asm
+    :accessor data-asm
+    :initform nil
+    :documentation
+    "If present, contains the asm-heap corresponding to data-path")
+   (static-names
+    :accessor static-names
+    :initform nil
+    :documentation
+    "If present, contains property list mapping static names to addresses")
    (page-block-list
     :initarg :page-block-list
     :accessor page-block-list
@@ -1013,7 +1031,7 @@ the function or any local functions it directly or indirectly."
 
 (defun target-function-name (asm function-name)
   "Specify target function by name. The name can be a symbol or a string. If
-a symbol, the SYMBOL-NAME of the symbol is used."
+ a symbol, the SYMBOL-NAME of the symbol is used."
   (let* ((name
 	  (if (stringp function-name)
 	      function-name
@@ -1032,8 +1050,27 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 	   (merge-pathnames
 	    (pathname (io-dir asm))
 	    (make-pathname :name function-name))))
+      (when (data-path asm)
+        (setf (data-asm asm)
+              (from-file (make-instance 'asm-heap)
+                         (data-path asm)))
+        (setf (static-names asm)
+              (collect-static-names asm)))
       (setf (target-info asm) index-entry))))
 
+(defun collect-static-names (asm)
+  "If a data-asm heap is present, collect the label names and corresponding
+ addresses as an property list to use as a mapping table."
+  (let ((result '())
+        (genome (genome (data-asm asm))))
+    (dotimes (i (- (length genome) 1))
+      (let ((info (elt genome i)))
+        (if (asm-line-info-label info)  ; if it's a label, try to
+                                        ; get address from following line
+            (let ((addr (asm-line-info-address (elt genome (+ i 1)))))
+              (if addr
+                  (push (list (asm-line-info-label info) addr) result))))))
+    (nreverse result)))
 
 (defun find-main-line (asm-super)
   (find "$main:" (genome asm-super) :key 'asm-line-info-text :test 'equal))
@@ -1753,7 +1790,8 @@ jump_table:
         (setf (lines included) (include-lines asm-super))
         ;; ensure any rip-relative addresses are converted to absolute
         (dotimes (i (length (genome included)))
-          (convert-rip-relative-to-absolute included i))
+          (convert-rip-relative-to-absolute included i asm-super)
+          (convert-symbolic-address-to-absolute included i asm-super))
         (insert-new-lines
          asm-variants
          (lines included))
@@ -1763,6 +1801,13 @@ jump_table:
       (insert-new-lines
        asm-variants
        (add-leaf-jump-table asm-super '()))))
+
+(defun add-data-lines (asm-super asm-variants)
+  "If lines with static data if included."
+  (if (data-asm asm-super)
+        (insert-new-lines
+         asm-variants
+         (lines (data-asm asm-super)))))
 
 (defun get-function-lines-from-name (asm-super name)
   "Given a function name, return the lines of that function (if found)."
@@ -1787,7 +1832,8 @@ jump_table:
               (setf (lines included) lines)
               ;; ensure any rip-relative addresses are converted to absolute
               (dotimes (i (length (genome included)))
-                (convert-rip-relative-to-absolute included i))
+                (convert-rip-relative-to-absolute included i asm-super)
+                (convert-symbolic-address-to-absolute included i asm-super))
               (insert-new-lines
                asm-variants
                (lines included))))))))
@@ -1988,10 +2034,29 @@ jump_table:
         (for i from 0)
         (insert-new-lines
          asm-variants
-         (list
-          (format nil ".section .sel~D, \"wa\"" i)
-          (format nil "    .zero 0x~X" (page-record-size p))
-          ""))))
+         (if (intel-syntax-p asm-syntax)
+             (list
+              (format nil "section .sel~D, \"wa\"" i)
+              (format nil "    resb 0x~X" (page-record-size p))
+              "")
+             (list
+              (format nil ".section .sel~D, \"wa\"" i)
+              (format nil "    .zero 0x~X" (page-record-size p))
+              "")))))
+
+(defun set-text-section (asm asm-super)
+  "After unknown asm lines get appended, reset to .text segment defaults."
+  (insert-new-lines
+   asm
+   (if (intel-syntax-p (asm-syntax asm-super))
+       (list
+        "; ----------- Code & Data ------------"
+        "section .text exec nowrite  align=16"
+        "      align 16")
+       (list
+        "# ----------- Code & Data ------------"
+        ".section .text"
+        ".align 16"))))
 
 ;;;
 ;;; considers the variants have the same super-owner if its super-owner's
@@ -2011,9 +2076,12 @@ jump_table:
     (add-externs asm-variants asm-super)
 
     ;; add additionally specified functions or code lines
+    (add-data-lines asm-super asm-variants)
+    (set-text-section asm-variants asm-super)
 
     (add-included-lines asm-super asm-variants)
     (add-included-funcs asm-super asm-variants)
+    (set-text-section asm-variants asm-super)
 
     (add-init-regs asm-super asm-variants)
     (add-restore-regs asm-super asm-variants)
@@ -2023,7 +2091,8 @@ jump_table:
       (let ((v (create-target asm-super)))
         ;; ensure any rip-relative addresses are converted to absolute
         (dotimes (j (length (genome v)))
-          (convert-rip-relative-to-absolute v j))
+          (convert-rip-relative-to-absolute v j asm-super)
+          (convert-symbolic-address-to-absolute v j asm-super))
         (add-variant-func
          asm-variants
          (format nil "original_~D" i)
@@ -2035,7 +2104,8 @@ jump_table:
       (dolist (v (mutants asm-super))
         ;; ensure any rip-relative addresses are converted to absolute
         (dotimes (i (length (genome v)))
-          (convert-rip-relative-to-absolute v i))
+          (convert-rip-relative-to-absolute v i asm-super)
+          (convert-symbolic-address-to-absolute v i asm-super))
 
         (add-variant-func
 	 asm-variants
@@ -2258,7 +2328,7 @@ jump_table:
                 (shell
                  compiler-command
                  (compiler asm)
-                 (if (static-link asm) "" "-no-pie")
+                 (if (static-link asm) "-fno-PIE" "-no-pie")
                  #+linker-script  (linker-script asm)
                  #+linker-script linker-sections-path
                  (if (static-link asm) "--static" "")
@@ -2517,14 +2587,14 @@ instructions."
   ;; ensure any rip-relative addresses are converted to absolute
   (restore-original-addresses asm))
 
-(defparameter *rip-rel-pattern* "[0-9A-Fa-fxX]*\\(\\%rip\\)"
+(defparameter *rip-rel-pattern* "[0-9A-Za-z_\\.]*\\(\\%rip\\)"
   "Pattern matches rip-relative addresses in AT&T.
 This pattern is specific to AT&T syntax and will only find
 the pattern in AT&T syntax code. We don't yet support
 rip-relative addresses in Intel syntax. This pattern will fail
 to find a match in Intel assembler.")
 
-(defun convert-rip-relative-to-absolute (asm line-index)
+(defun convert-rip-relative-to-absolute (asm line-index asm-super)
   "Convert any rip-relative address to absolute.
 If the assembly operation contains a rip-relative address,
 replace it with an absolute address calculated as
@@ -2546,17 +2616,23 @@ instruction set does not support absolute addresses over 32-bits."
               (cl-ppcre:scan *rip-rel-pattern* text)
             (if (and start end)
                 (let* ((offset-str
-                        (string-downcase
-                         (subseq text start (position #\( text))))
+                        (subseq text start (position #\( text)))
                        (offset
-                        (parse-integer offset-str
-                                       :radix
-                                       (if (starts-with-subseq "0x" offset-str)
-                                           16
-                                           10)))
-                       (abs-address (and (numberp offset)
-                                         (numberp next-orig-addr)
-                                         (+ offset next-orig-addr)))
+                        (if (or
+                             (starts-with-subseq "0x" offset-str)
+                             (starts-with-subseq "0X" offset-str))
+                            (ignore-errors
+                              (parse-integer (subseq offset-str 2) :radix 16))
+                            (ignore-errors
+                              (parse-integer offset-str :radix 10))))
+                       (abs-address
+                        (if (numberp offset)
+                            (if (numberp next-orig-addr)
+                                (+ offset next-orig-addr))
+                            ;; if it isn't a number, lookup symbol address
+                            (second
+                             (find offset-str (static-names asm-super)
+                                   :test 'equal :key 'first))))
                        (new-line (and abs-address
                                       (cl-ppcre:regex-replace
                                        *rip-rel-pattern*
@@ -2572,12 +2648,50 @@ instruction set does not support absolute addresses over 32-bits."
                              (first (parse-asm-line
                                      new-line
                                      (asm-syntax asm)))))
-                        ;; properties not set correctly?
-                        (setf (getf (asm-line-info-properties new-line-info)
-                                    :orig)
-                              asm-line-info)
+                        ;; copy properties from original to new
+                        (setf (asm-line-info-properties new-line-info)
+                              (asm-line-info-properties asm-line-info))
+                        ;; stash original if not already stashed
+                        (unless (getf (asm-line-info-properties new-line-info)
+                                      :orig)
+                          (setf (getf (asm-line-info-properties new-line-info)
+                                      :orig)
+                                asm-line-info))
                         (setf (elt (genome asm)
                                    line-index) new-line-info))))))))))
+
+(defun convert-symbolic-address-to-absolute (asm line-index asm-super)
+  "Convert named addresses to their original absolute address."
+  ;; skip this if it isn't an op statement
+  (let* ((genome (genome asm))
+         (asm-line-info (elt genome line-index)))
+    (if (eq (asm-line-info-type asm-line-info) ':op)
+        (let* ((orig-text (asm-line-info-text asm-line-info))
+               (new-text orig-text))
+          (iter (for var in (static-names asm-super))
+                (multiple-value-bind (new-line updated-p)
+                    (cl-ppcre:regex-replace-all
+                     (first var)
+                     new-text
+                     (format nil "0x~X" (second var)))
+                  (if updated-p
+                      (setf new-text new-line))))
+          (unless (eq new-text orig-text)
+            (let ((new-line-info
+                   (first (parse-asm-line
+                           new-text
+                           (asm-syntax asm)))))
+              ;; copy properties from original to new
+              (setf (asm-line-info-properties new-line-info)
+                    (asm-line-info-properties asm-line-info))
+
+              (unless (getf (asm-line-info-properties new-line-info)
+                            :orig)
+                (setf (getf (asm-line-info-properties new-line-info)
+                            :orig)
+                      asm-line-info))
+              (setf (elt (genome asm)
+                         line-index) new-line-info)))))))
 
 ;;;
 ;;; If RIP-relative addressing was used, restore it.
