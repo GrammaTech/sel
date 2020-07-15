@@ -487,18 +487,15 @@ AST ast to return the scopes for"
                         (match parent
                                ;; free function
                                ((py-call
-                                 (children (list* (type string)
-                                                  (guard ast (eq ast name))
+                                 (children (list* (guard ast (eq ast name))
                                                   _)))
                                 t)
                                ;; method
                                ((py-call
                                  (children
-                                   (list* (type string)
-                                          (py-attribute
+                                   (list* (py-attribute
                                            (children
-                                             (list* (type string)
-                                                    (guard ast (eq ast name))
+                                             (list* (guard ast (eq ast name))
                                                     _))))))
                                 t)))
                       parents))
