@@ -167,7 +167,7 @@
 
 (deftest python-convert-source-snippet-works ()
   (let ((ast (convert 'python-ast "j = 0")))
-    (is (equal 9 (size ast)))
+    (is (equal 4 (size ast)))
     (is (equal "j = 0" (source-text ast)))
     (is (find-if {typep _ 'py-assign} ast))))
 
