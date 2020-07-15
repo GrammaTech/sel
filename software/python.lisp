@@ -130,7 +130,18 @@
     ((:arg) (:annotation . 1))
     ((:keyword) (:value . 1))
     ((:withitem) (:context-expr . 1)
-                 (:optional-vars . 1)))
+                 (:optional-vars . 1))
+    ((:import
+      :import-from
+      :global
+      :nonlocal
+      :pass
+      :break
+      :continue
+      :constant
+      :name
+      :named-expr
+      :joined-str)))
   :test #'equalp
   :documentation "Definition of Python classes and child slots.")
 
@@ -175,7 +186,7 @@
       'py-delete 'py-assign 'py-aug-assign 'py-ann-assign 'py-for 'py-async-for
       'py-while 'py-if 'py-with 'py-async-with 'py-raise 'py-try
       'py-except-handler 'py-assert 'py-import 'py-import-from 'py-global
-      'py-non-local 'py-expr 'py-pass 'py-break 'py-continue)
+      'py-nonlocal 'py-expr 'py-pass 'py-break 'py-continue)
   :test #'equal
   :documentation "Stmt AST subclasses for python.")
 
@@ -404,7 +415,7 @@ AST ast to return the scopes for"
                  t))
            (contains-scope-var-p (ast)
              "Return T if AST contains a variable declaration or assignment."
-             (member (type-of ast) (list 'py-arguments 'py-global 'py-non-local
+             (member (type-of ast) (list 'py-arguments 'py-global 'py-nonlocal
                                          'py-assign 'py-ann-assign)))
            (get-lhs-names (assignment)
              "Return all NAME ASTs on the left-hand-side of ASSIGNMENT."
@@ -426,7 +437,7 @@ AST ast to return the scopes for"
                        (py-arguments
                         (mapcar {ast-annotations _ :id}
                                 (child-asts ast)))
-                       ((or py-global py-non-local)
+                       ((or py-global py-nonlocal)
                         (ast-annotation ast :names)))))
            (remove-duplicate-names (scope)
              "Remove vars with duplicate names in SCOPE."
