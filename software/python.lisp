@@ -181,26 +181,26 @@
                   (mappend «append #'first [{mapcar #'car} #'cdr]»
                            +python-children+))))
 
-(define-constant +stmt-ast-classes+
-    '('py-module 'py-function-def 'py-async-function-def 'py-class-def 'py-return
-      'py-delete 'py-assign 'py-aug-assign 'py-ann-assign 'py-for 'py-async-for
-      'py-while 'py-if 'py-with 'py-async-with 'py-raise 'py-try
-      'py-except-handler 'py-assert 'py-import 'py-import-from 'py-global
-      'py-nonlocal 'py-expr 'py-pass 'py-break 'py-continue)
+(define-constant +stmt-ast-types+
+  '(py-module py-function-def py-async-function-def py-class-def py-return
+    py-delete py-assign py-aug-assign py-ann-assign py-for py-async-for
+    py-while py-if py-with py-async-with py-raise py-try
+    py-except-handler py-assert py-import py-import-from py-global
+    py-nonlocal py-expr py-pass py-break py-continue)
   :test #'equal
-  :documentation "Stmt AST subclasses for python.")
+  :documentation "Stmt AST types for python.")
 
-(define-constant +ast-classes-with-larger-child-spans+
-  '('py-arg 'py-generator-exp 'py-starred 'py-class-def 'py-async-function-def
-    'py-function-def)
+(define-constant +ast-types-with-larger-child-spans+
+  '(py-arg py-generator-exp py-starred py-class-def py-async-function-def
+    py-function-def)
   :test #'equal
-  :documentation "AST classes which may have child spans larger than span
+  :documentation "AST types which may have child spans larger than span
 given by python in the line, col attributes.")
 
-(define-constant +ast-classes-with-unsorted-children+
-  '('py-dict 'py-call 'py-async-function-def 'py-function-def 'py-arguments)
+(define-constant +ast-types-with-unsorted-children+
+  '(py-dict py-call py-async-function-def py-function-def py-arguments)
   :test #'equal
-  :documentation "AST classes which may have children which are not
+  :documentation "AST types which may have children which are not
 in textual (sorted) order.")
 
 (defun python-astdump (source-text)
