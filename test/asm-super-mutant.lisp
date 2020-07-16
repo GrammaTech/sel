@@ -101,7 +101,7 @@
    (setf *soft*
          (from-file
           (make-instance 'asm-super-mutant
-                         :data-path 
+                         :data-path
                          (asm-super-mutant-dir "data.s"
                                                "static_symbol_test_att"))
           (asm-super-mutant-dir "target.s" "static_symbol_test_att"))
@@ -116,7 +116,7 @@
    (setf *soft*
          (from-file
           (make-instance 'asm-super-mutant
-                         :data-path 
+                         :data-path
                          (asm-super-mutant-dir "data.s"
                                                "rip_relative_symbol_test_att"))
           (asm-super-mutant-dir "target.s" "rip_relative_symbol_test_att"))
@@ -183,7 +183,8 @@
     (let ((target (create-target *soft*)))
       ;; ensure any rip-relative addresses are converted to absolute
       (dotimes (i (length (genome target)))
-        (sel/sw/asm-super-mutant::convert-rip-relative-to-absolute target i))
+        (sel/sw/asm-super-mutant::convert-rip-relative-to-absolute target
+                                                                   i *soft*))
       (let ((info1 (elt (genome target) 3))
             (info2 (elt (genome target) 6)))
         (is (not (search "%rip" (asm-line-info-text info1) :test 'equalp)))
@@ -212,14 +213,44 @@
          target i *soft*))
       (let ((info1 (elt (genome target) 2))
             (info2 (elt (genome target) 12)))
-        (is (not (search "__TMC_END__" (asm-line-info-text info1) :test 'equalp)))
+        (is (not (search "__TMC_END__" (asm-line-info-text info1)
+                         :test 'equalp)))
         (is (search "0x601038" (asm-line-info-text info1) :test 'equalp))
-        (is (not (search "__TMC_END__" (asm-line-info-text info2) :test 'equalp)))
+        (is (not (search "__TMC_END__" (asm-line-info-text info2)
+                         :test 'equalp)))
         (is (search "0x601038" (asm-line-info-text info2) :test 'equalp)))
       ;; restore rip-relative addresses
       (restore-original-addresses target)
       (let ((info1 (elt (genome target) 2))
             (info2 (elt (genome target) 12)))
+        (is (search "__TMC_END__" (asm-line-info-text info1) :test 'equalp))
+        (is (not (search "0x601038" (asm-line-info-text info1) :test 'equalp)))
+        (is (search "__TMC_END__" (asm-line-info-text info2) :test 'equalp))
+        (is (not (search "0x601038" (asm-line-info-text info2)
+                         :test 'equalp)))))))
+
+(deftest asm-super-rip-relative-symbol-test ()
+  "Ensure static symbol to absolute conversion works.
+ Also make sure the addresses get restored
+ properly afterward."
+  (with-fixture rip-relative-symbol-test-att
+    (let ((target (create-target *soft*)))
+      ;; ensure any symbolic addresses are converted to absolute
+      (dotimes (i (length (genome target)))
+        (sel/sw/asm-super-mutant::convert-rip-relative-to-absolute
+         target i *soft*))
+      (let ((info1 (elt (genome target) 0))
+            (info2 (elt (genome target) 8)))
+        (is (not (search "__TMC_END__(%rip%)" (asm-line-info-text info1)
+                         :test 'equalp)))
+        (is (search "0x601038" (asm-line-info-text info1) :test 'equalp))
+        (is (not (search "__TMC_END__(%rip)" (asm-line-info-text info2)
+                         :test 'equalp)))
+        (is (search "0x601038" (asm-line-info-text info2) :test 'equalp)))
+      ;; restore rip-relative addresses
+      (restore-original-addresses target)
+      (let ((info1 (elt (genome target) 0))
+            (info2 (elt (genome target) 8)))
         (is (search "__TMC_END__" (asm-line-info-text info1) :test 'equalp))
         (is (not (search "0x601038" (asm-line-info-text info1) :test 'equalp)))
         (is (search "__TMC_END__" (asm-line-info-text info2) :test 'equalp))

@@ -1060,7 +1060,7 @@ the function or any local functions it directly or indirectly."
 
 (defun collect-static-names (asm)
   "If a data-asm heap is present, collect the label names and corresponding
- addresses as an property list to use as a mapping table."
+ addresses as a property list to use as a mapping table."
   (let ((result '())
         (genome (genome (data-asm asm))))
     (dotimes (i (- (length genome) 1))
@@ -1803,7 +1803,7 @@ jump_table:
        (add-leaf-jump-table asm-super '()))))
 
 (defun add-data-lines (asm-super asm-variants)
-  "If lines with static data if included."
+  "Add lines with static data if included."
   (if (data-asm asm-super)
         (insert-new-lines
          asm-variants
@@ -2034,7 +2034,7 @@ jump_table:
         (for i from 0)
         (insert-new-lines
          asm-variants
-         (if (intel-syntax-p asm-syntax)
+         (if (intel-syntax-p (asm-syntax asm-super))
              (list
               (format nil "section .sel~D, \"wa\"" i)
               (format nil "    resb 0x~X" (page-record-size p))
@@ -2649,16 +2649,14 @@ instruction set does not support absolute addresses over 32-bits."
                                      new-line
                                      (asm-syntax asm)))))
                         ;; copy properties from original to new
-                        (setf (asm-line-info-properties new-line-info)
-                              (asm-line-info-properties asm-line-info))
-                        ;; stash original if not already stashed
-                        (unless (getf (asm-line-info-properties new-line-info)
-                                      :orig)
-                          (setf (getf (asm-line-info-properties new-line-info)
-                                      :orig)
-                                asm-line-info))
-                        (setf (elt (genome asm)
-                                   line-index) new-line-info))))))))))
+                        (symbol-macrolet ((props (asm-line-info-properties
+                                                  new-line-info)))
+                          (setf props (asm-line-info-properties asm-line-info))
+                          ;; stash original if not already stashed
+                          (unless (getf props :orig)
+                            (setf (getf props :orig) asm-line-info))
+                          (setf (elt (genome asm)
+                                     line-index) new-line-info)))))))))))
 
 (defun convert-symbolic-address-to-absolute (asm line-index asm-super)
   "Convert named addresses to their original absolute address."
