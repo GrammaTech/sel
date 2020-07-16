@@ -27,6 +27,11 @@
                  :type (pathname-type filename)
                  :directory +software-dir+))
 
+(defun asm-super-mutant-dir (filename directory-name)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory (append +asm-test-dir+ (list directory-name))))
+
 (defixture asm-super-dead-stack-test
   (:setup
    (setf *soft* (from-file (make-instance 'asm-super-mutant)
@@ -91,6 +96,36 @@
 
   (:teardown (setf *soft* nil)))
 
+(defixture static-symbol-test-att
+  (:setup
+   (setf *soft*
+         (from-file
+          (make-instance 'asm-super-mutant
+                         :data-path 
+                         (asm-super-mutant-dir "data.s"
+                                               "static_symbol_test_att"))
+          (asm-super-mutant-dir "target.s" "static_symbol_test_att"))
+         (fitness-harness *soft*) (software-dir "asm-super-mutant-fitness.c"))
+   (setf (sel/sw/asm-super-mutant::io-file *soft*)
+         (asm-super-mutant-dir "testcases" "static_symbol_test_att"))
+   (target-function-name *soft* "debloat__deregister_tm_clones"))
+  (:teardown (setf *soft* nil)))
+
+(defixture rip-relative-symbol-test-att
+  (:setup
+   (setf *soft*
+         (from-file
+          (make-instance 'asm-super-mutant
+                         :data-path 
+                         (asm-super-mutant-dir "data.s"
+                                               "rip_relative_symbol_test_att"))
+          (asm-super-mutant-dir "target.s" "rip_relative_symbol_test_att"))
+         (fitness-harness *soft*) (software-dir "asm-super-mutant-fitness.c"))
+   (setf (sel/sw/asm-super-mutant::io-file *soft*)
+         (asm-super-mutant-dir "testcases" "rip_relative_symbol_test_att"))
+   (target-function-name *soft* "debloat____do_global_dtors_aux"))
+  (:teardown (setf *soft* nil)))
+
 (defixture asm-super-inline-test-att
   (:setup
    (setf *soft* (from-file (make-instance 'asm-super-mutant)
@@ -140,7 +175,7 @@
   (with-fixture asm-super-inline-test-att
     (asm-super-mutant-finds-improved-version)))
 
-(deftest asm-super-converts-rip-to-abolute-addresses ()
+(deftest asm-super-converts-rip-to-absolute-addresses ()
   "Ensure rip-relative conversion works.
  Also make sure the rip-relative addresses get restored
  properly afterward."
@@ -163,6 +198,32 @@
         (is (not (search "0x61A460" (asm-line-info-text info1) :test 'equalp)))
         (is (search "%rip" (asm-line-info-text info2) :test 'equalp))
         (is (not (search "0x61A460" (asm-line-info-text info2)
+                         :test 'equalp)))))))
+
+(deftest asm-super-static-symbol-test ()
+  "Ensure static symbol to absolute conversion works.
+ Also make sure the addresses get restored
+ properly afterward."
+  (with-fixture static-symbol-test-att
+    (let ((target (create-target *soft*)))
+      ;; ensure any symbolic addresses are converted to absolute
+      (dotimes (i (length (genome target)))
+        (sel/sw/asm-super-mutant::convert-symbolic-address-to-absolute
+         target i *soft*))
+      (let ((info1 (elt (genome target) 2))
+            (info2 (elt (genome target) 12)))
+        (is (not (search "__TMC_END__" (asm-line-info-text info1) :test 'equalp)))
+        (is (search "0x601038" (asm-line-info-text info1) :test 'equalp))
+        (is (not (search "__TMC_END__" (asm-line-info-text info2) :test 'equalp)))
+        (is (search "0x601038" (asm-line-info-text info2) :test 'equalp)))
+      ;; restore rip-relative addresses
+      (restore-original-addresses target)
+      (let ((info1 (elt (genome target) 2))
+            (info2 (elt (genome target) 12)))
+        (is (search "__TMC_END__" (asm-line-info-text info1) :test 'equalp))
+        (is (not (search "0x601038" (asm-line-info-text info1) :test 'equalp)))
+        (is (search "__TMC_END__" (asm-line-info-text info2) :test 'equalp))
+        (is (not (search "0x601038" (asm-line-info-text info2)
                          :test 'equalp)))))))
 
 (deftest asm-super-filters-out-dead-stack-specs ()
