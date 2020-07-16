@@ -198,7 +198,7 @@
 given by python in the line, col attributes.")
 
 (define-constant +ast-classes-with-unsorted-children+
-  '('py-dict 'ph-call 'py-async-function-def 'py-function-def 'py-arguments)
+  '('py-dict 'py-call 'py-async-function-def 'py-function-def 'py-arguments)
   :test #'equal
   :documentation "AST classes which may have children which are not
 in textual (sorted) order.")
