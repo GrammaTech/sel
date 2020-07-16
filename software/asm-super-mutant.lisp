@@ -2680,16 +2680,14 @@ instruction set does not support absolute addresses over 32-bits."
                            new-text
                            (asm-syntax asm)))))
               ;; copy properties from original to new
-              (setf (asm-line-info-properties new-line-info)
-                    (asm-line-info-properties asm-line-info))
+              (symbol-macrolet ((props (asm-line-info-properties
+                                        new-line-info)))
+                (setf props (asm-line-info-properties asm-line-info))
 
-              (unless (getf (asm-line-info-properties new-line-info)
-                            :orig)
-                (setf (getf (asm-line-info-properties new-line-info)
-                            :orig)
-                      asm-line-info))
-              (setf (elt (genome asm)
-                         line-index) new-line-info)))))))
+                (unless (getf props :orig)
+                  (setf (getf props :orig) asm-line-info))
+                (setf (elt (genome asm)
+                           line-index) new-line-info))))))))
 
 ;;;
 ;;; If RIP-relative addressing was used, restore it.
