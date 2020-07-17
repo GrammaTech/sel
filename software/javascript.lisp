@@ -33,6 +33,7 @@
         :software-evolution-library
         :software-evolution-library/utility/json
         :software-evolution-library/software/parseable
+        :software-evolution-library/software/javascript-or-python
         :software-evolution-library/components/file
         :software-evolution-library/components/formatting)
   (:import-from :jsown)
@@ -45,17 +46,11 @@
 (in-package :software-evolution-library/software/javascript)
 (in-readtable :curry-compose-reader-macros)
 
-(define-software javascript (parseable file-w-attributes) ()
+(define-software javascript (javascript-or-python file-w-attributes) ()
   (:documentation "Javascript software representation."))
 
 
 ;;; Javascript ast data structures
-(defclass javascript-ast (functional-tree-ast)
-  ((interleaved-text :initarg :interleaved-text :initform nil :type list
-                     :reader interleaved-text
-                     :documentation "Interleaved text between children."))
-  (:documentation "Class of JavaScript ASTs."))
-
 (define-constant +js-children+
   '(((:program) (:body . 0))
     ((:member-expression) (:object . 1) (:property . 1))
@@ -133,44 +128,18 @@
   :test #'equalp
   :documentation "Definition of JavaScript classes and child slots.")
 
-(defun expand-js-class (spec)
-  (nest
-   (destructuring-bind (ast-class-list . field-specifiers) spec)
-   (mapcar
-    (lambda (class)
-      `(defclass ,(symbol-cat 'js class) (javascript-ast)
-         (,@(when field-specifiers
-              `((child-slots
-                 :initform (quote ,(mapcar «cons [{symbol-cat 'js} #'car] #'cdr»
-                                           field-specifiers))
-                 :reader child-slots
-                 :allocation :class)))
-          ,@(mapcar (lambda (field)
-                      (destructuring-bind (field . arity) field
-                        (let ((js-field (symbol-cat 'js field)))
-                          (list* js-field :reader js-field
-                                          :initform nil
-                                          :initarg (make-keyword
-                                                    (symbol-cat 'js field))
-                                          (when (zerop arity)
-                                            (list :type 'list))))))
-                    field-specifiers))
-         (:documentation
-          ,(format nil "Javascript AST node class for ~a acorn ASTs." class)))))
-   ast-class-list))
+(defclass javascript-ast (javascript-or-python-ast) ()
+  (:documentation "Class of JavaScript ASTs."))
 
-(eval `(progn ,@(mappend #'expand-js-class +js-children+)))
+(eval `(progn ,@(mappend {expand-js-or-py-ast-classes 'javascript-ast 'js}
+                         +js-children+)))
 (export (mapcar {symbol-cat 'js}
                 (mappend «append #'first [{mapcar #'car} #'cdr]»
                          +js-children+)))
 
-(defmethod source-text ((ast javascript-ast) &optional stream)
-  (write-string (car (interleaved-text ast)) stream)
-  (mapc (lambda (child text)
-          (source-text child stream)
-          (write-string text stream))
-        (remove nil (children ast))
-        (cdr (interleaved-text ast))))
+(defmethod ast-type-to-rebind-p ((ast javascript-ast)) nil)
+(defmethod ast-type-to-rebind-p ((ast js-identifier)) t)
+(defmethod ast-annotation-to-rebind ((ast js-identifier)) :name)
 
 
 ;;; Javascript parsing
@@ -332,24 +301,6 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
    "Specialization of the mutation interface for JavaScript software objects."))
 
 
-;;; Genome manipulations
-(defmethod prepend-text-to-genome
-    ((js javascript) (text string) &aux (root (genome js)))
-  (setf (genome js)
-        (nest (copy root :interleaved-text)
-              (cons (concatenate 'string text (car (interleaved-text root)))
-                    (cdr (interleaved-text root))))))
-
-(defmethod append-text-to-genome
-    ((js javascript) (text string) &aux (root (genome js)))
-  (setf (genome js)
-        (nest (copy root :interleaved-text)
-              (append (butlast (interleaved-text root)))
-              (list)
-              (concatenate 'string text)
-              (lastcar (interleaved-text root)))))
-
-
 ;;; Methods common to all software objects
 (defmethod phenome ((obj javascript) &key (bin (temp-file-name)))
   "Create a phenotype of the javascript software OBJ.  In this case, override
@@ -360,33 +311,6 @@ is not a compiled language.
 * BIN location where the phenome will be created on the filesystem"
   (to-file obj bin)
   (values bin 0 nil nil nil))
-
-(defmethod rebind-vars ((ast javascript-ast)
-                        var-replacements fun-replacements)
-  "Replace variable and function references, returning a new AST.
-* AST node to rebind variables and function references for
-* VAR-REPLACEMENTS list of old-name, new-name pairs defining the rebinding
-* FUN-REPLACEMENTS list of old-function-info, new-function-info pairs defining
-the rebinding"
-  (if (typep ast 'js-identifier)
-      (copy ast :name (rebind-vars (ast-annotation ast :name)
-                                   var-replacements
-                                   fun-replacements)
-                :interleaved-text (mapcar {rebind-vars _ var-replacements
-                                                         fun-replacements}
-                                          (interleaved-text ast)))
-      (apply #'copy ast
-             (mappend (lambda (child-slot)
-                        (destructuring-bind (name . arity) child-slot
-                          (list (make-keyword name)
-                                (if (= arity 0)
-                                    (mapcar {rebind-vars _ var-replacements
-                                                           fun-replacements}
-                                            (slot-value ast name))
-                                    (rebind-vars (slot-value ast name)
-                                                 var-replacements
-                                                 fun-replacements)))))
-                      (child-slots ast)))))
 
 (defmethod enclosing-scope ((obj javascript) (ast javascript-ast))
   "Return the enclosing scope of AST in OBJ.

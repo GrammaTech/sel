@@ -36,6 +36,7 @@
         :software-evolution-library
         :software-evolution-library/utility/json
         :software-evolution-library/software/parseable
+        :software-evolution-library/software/javascript-or-python
         :software-evolution-library/components/file
         :software-evolution-library/components/formatting)
   (:import-from :cffi :translate-camelcase-name)
@@ -46,7 +47,7 @@
 (in-package :software-evolution-library/software/python)
 (in-readtable :curry-compose-reader-macros)
 
-(define-software python (parseable file-w-attributes) ()
+(define-software python (javascript-or-python file-w-attributes) ()
   (:documentation "Python software representation."))
 
 
@@ -139,50 +140,14 @@
   :documentation "Definition of Python classes and child slots.")
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defclass python-ast (functional-tree-ast)
-    ((interleaved-text :initarg :interleaved-text :initform nil :type list
-                       :reader interleaved-text
-                       :documentation "Interleaved text between children."))
+  (defclass python-ast (javascript-or-python-ast) ()
     (:documentation "Class of Python ASTs."))
 
-  (defun expand-py-class (spec)
-    (nest
-     (destructuring-bind (ast-class-list . field-specifiers) spec)
-     (mapcar
-      (lambda (class)
-        `(defclass ,(symbol-cat 'py class) (python-ast)
-           (,@(when field-specifiers
-                `((child-slots
-                   :initform (quote ,(mapcar «cons [{symbol-cat 'py} #'car] #'cdr»
-                                             field-specifiers))
-                   :allocation :class)))
-            ,@(mapcar (lambda (field)
-                        (destructuring-bind (field . arity) field
-                          (let ((py-field (symbol-cat 'py field)))
-                            (list* py-field :reader py-field
-                                            :initform nil
-                                            :initarg (make-keyword
-                                                      (symbol-cat 'py field))
-                                            (when (zerop arity)
-                                              (list :type 'list))))))
-                      field-specifiers))
-           (:documentation
-            ,(format nil "Python AST node class for ~a ASTs." class)))))
-     ast-class-list))
-
-  (eval `(progn ,@(mappend #'expand-py-class +python-children+)))
+  (eval `(progn ,@(mappend {expand-js-or-py-ast-classes 'python-ast 'py}
+                           +python-children+)))
   (export (mapcar {symbol-cat 'py}
                   (mappend «append #'first [{mapcar #'car} #'cdr]»
                            +python-children+))))
-
-(defmethod source-text ((ast python-ast) &optional stream)
-  (when (interleaved-text ast)
-    (write-string (car (interleaved-text ast)) stream)
-    (mapc (lambda (child text)
-            (source-text child stream)
-            (write-string text stream))
-          (remove nil (children ast))
-          (cdr (interleaved-text ast)))))
 
 (define-constant +stmt-ast-types+
   '(py-module py-function-def py-async-function-def py-class-def py-return
@@ -205,6 +170,10 @@ given by python in the line, col attributes.")
   :test #'equal
   :documentation "AST types which may have children which are not
 in textual (sorted) order.")
+
+(defmethod ast-type-to-rebind-p ((ast python-ast)) nil)
+(defmethod ast-type-to-rebind-p ((ast py-name)) t)
+(defmethod ast-annotation-to-rebind ((ast py-name)) :id)
 
 
 ;;; Python parsing
@@ -470,33 +439,6 @@ is not a compiled language.
 (defmethod get-parent-full-stmt ((obj python) (ast python-ast))
   (cond ((member (type-of ast) +stmt-ast-types+) ast)
         (t (get-parent-full-stmt obj (get-parent-ast obj ast)))))
-
-(defmethod rebind-vars ((ast python-ast)
-                        var-replacements fun-replacements)
-  "Replace variable and function references, returning a new AST.
-* AST node to rebind variables and function references for
-* VAR-REPLACEMENTS list of old-name, new-name pairs defining the rebinding
-* FUN-REPLACEMENTS list of old-function-info, new-function-info pairs defining
-the rebinding"
-  (if (typep ast 'py-name)
-      (copy ast :id (rebind-vars (ast-annotation ast :id)
-                                 var-replacements
-                                 fun-replacements)
-                :interleaved-text (mapcar {rebind-vars _ var-replacements
-                                                         fun-replacements}
-                                          (interleaved-text ast)))
-      (apply #'copy ast
-             (mappend (lambda (child-slot)
-                        (destructuring-bind (name . arity) child-slot
-                          (list (make-keyword name)
-                                (if (= arity 0)
-                                    (mapcar {rebind-vars _ var-replacements
-                                                           fun-replacements}
-                                            (slot-value ast name))
-                                    (rebind-vars (slot-value ast name)
-                                                 var-replacements
-                                                 fun-replacements)))))
-                      (child-slots ast)))))
 
 (defmethod enclosing-scope ((obj python) (ast python-ast))
   "Return the enclosing scope of AST in OBJ.
