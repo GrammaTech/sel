@@ -55,8 +55,11 @@
            :bindings
            :get-vars-from-binding-form
            :get-functions-from-binding-form
+           :define-function-binding-form-alias
            :define-get-vars-from-binding-form
            :handle-as
+           :collect-function-info
+           :collect-function-info*
            :collect-var-info
            :define-var-binding-form-alias
            :children-of-type))
@@ -838,7 +841,7 @@ returned."
   "Creates a get-function-from-binding-form method that specializes the
 parameter car-of-form on BINDING-FORM-ALIAS. The method immediately calls
 the specialization for BINDING-FORM."
-  `(define-get-function-from-binding-form ,binding-form-alias ()
+  `(define-get-functions-from-binding-form ,binding-form-alias ()
      (handle-as ',binding-form)))
 
 (define-get-functions-from-binding-form flet
@@ -879,6 +882,8 @@ the specialization for BINDING-FORM."
 (define-get-functions-from-binding-form defun
     (:binding-form binding-form)
   (list (collect-function-info* binding-form)))
+
+(define-function-binding-form-alias defmethod defun)
 
 (define-get-functions-from-binding-form defmacro ()
   (when *bindings-allows-macros-p*
