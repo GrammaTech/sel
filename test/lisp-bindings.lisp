@@ -78,8 +78,16 @@
   (is (not (scopes-contains-fun-p scopes symbol))
       "Scopes should not contain '~a'." symbol))
 
+(defun is-in-fun-body (ast function-body car-of-forms)
+  "Test if every symbol in CAR-OF-FORMS is the car of a form in FUNCTION-BODY."
+  (mapcar (lambda (car-of-form)
+            (is (find (find-compound-form car-of-form ast) function-body)
+                "'~a' form was not found in the function body."
+                car-of-form))
+          car-of-forms))
+
 (defmacro with-software-file ((filename software-var genome-var)
-                             &body body)
+                              &body body)
   " "
   `(let* ((,software-var (from-file
                           (make-instance 'lisp)
@@ -295,3 +303,51 @@ special variable is set."
       (is-scopes-contains-fun-p scopes 'g)
       (is-scopes-contains-var-p scopes 'a)
       (is-scopes-contains-var-p scopes 'b))))
+
+(deftest lisp-fun-body-defun-2 ()
+  "function-body returns all forms in the body in a list for 'defun."
+  (with-software-file ("defun-2" obj ast)
+    (is-in-fun-body
+     ast (fun-body 'defun (find-compound-form 'defun ast)) '(+ - / *))))
+
+(deftest lisp-fun-body-flet-2 ()
+  "function-body returns all forms in the body in a list for 'flet."
+  (with-software-file ("flet-2" obj ast)
+    (is-in-fun-body
+     ast (fun-body 'flet (find-compound-form 'f ast)) '(+ - / *))))
+
+(deftest lisp-fun-body-defmethod-1 ()
+  "fun-body returns the function body of 'defmethod."
+  (with-software-file ("defmethod-1" obj ast)
+    (is-in-fun-body
+     ast (fun-body 'defmethod (find-compound-form 'defmethod ast)) '(+ - / *))))
+
+(deftest lisp-fun-body-defmethod-2 ()
+  "fun-body returns the function body of 'defmethod when there's a specializer."
+  (with-software-file ("defmethod-2" obj ast)
+    (is-in-fun-body
+     ast (fun-body 'defmethod (find-compound-form 'defmethod ast)) '(+ - / *))))
+
+(deftest lisp-lambda-list-defun-1 ()
+  "lamba-list returns the lambda list of 'defun."
+  (with-software-file ("defun-1" obj ast)
+    (is (eq (find-compound-form 'a ast)
+            (lambda-list 'defun (find-compound-form 'defun ast))))))
+
+(deftest lisp-lambda-list-flet-3 ()
+  "lamba-list returns the lambda list of 'flet."
+  (with-software-file ("flet-3" obj ast)
+    (is (eq (find-compound-form 'a ast)
+            (lambda-list 'flet (find-compound-form 'f ast))))))
+
+(deftest lisp-lambda-list-defmethod-1 ()
+  "lamba-list returns the lambda list of 'defmethod."
+  (with-software-file ("defmethod-1" obj ast)
+    (is (eq (find-compound-form 'arg ast)
+            (lambda-list 'defmethod (find-compound-form 'defmethod ast))))))
+
+(deftest lisp-lambda-list-defmethod-2 ()
+  "lamba-list returns the lambda list of 'defmethod when there's a specializer."
+  (with-software-file ("defmethod-2" obj ast)
+    (is (eq (find-compound-form 'arg ast)
+            (lambda-list 'defmethod (find-compound-form 'defmethod ast))))))
