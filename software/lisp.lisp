@@ -13,6 +13,8 @@
   (:import-from :eclector.reader
                 :evaluate-expression
                 :interpret-symbol)
+  (:import-from :cl-ppcre
+                :scan)
   (:import-from :functional-trees :path-later-p)
   (:shadowing-import-from :eclector.readtable
                           :copy-readtable
@@ -62,7 +64,11 @@
            :collect-function-info*
            :collect-var-info
            :define-var-binding-form-alias
-           :children-of-type))
+           :children-of-type
+           :fun-body
+           :define-fun-body-alias
+           :lambda-list
+           :define-lambda-list-alias))
 (in-package :software-evolution-library/software/lisp)
 (in-readtable :curry-compose-reader-macros)
 
@@ -885,6 +891,8 @@ the specialization for BINDING-FORM."
 
 (define-function-binding-form-alias defmethod defun)
 
+;;; TODO: add support for defgeneric.
+
 (define-get-functions-from-binding-form defmacro ()
   (when *bindings-allows-macros-p*
     (handle-as 'defun :macro-p t)))
@@ -1151,6 +1159,139 @@ Uses REFERENCE-AST to determine what's in scope of the default value forms."
   (bindings obj ast :variables t))
 
 
+;;; Function body
+(defgeneric fun-body (car-of-form function-declaration)
+  (:documentation "Retrieve the function body of FUNCTION-DECLARATION as
+though it were defined in a CAR-OF-FORM form. The trailing parenthesis
+should be removed. *bindings-allows-macros-p* can be set to get the body
+from macros.")
+  (:method (car-of-form declaration)
+    (declare (ignorable car-of-form declaration))
+    nil))
+
+(defmacro define-fun-body-alias (car-of-form-alias car-of-form)
+  "Creates a fun-body method that specializes the
+parameter car-of-form on CAR-OF-FORM-ALIAS. The method immediately calls
+the specialization for CAR-OF-FORM."
+  `(defmethod fun-body
+       ((car-of-form (eql ',car-of-form-alias)) (function-declaration lisp-ast))
+     (fun-body ',car-of-form function-declaration)))
+
+(-> get-top-level-fun-body (lisp-ast) (or null list))
+(defun get-top-level-fun-body (ast)
+  "Return the body of the top-level function represented by AST. "
+  (match ast
+    ((lisp-ast
+      (children (list* (@@ 7 _) body-ast)))
+     ;; Remove the trailing paren.
+     (butlast body-ast))))
+
+(-> get-local-fun-body (lisp-ast) (or null list))
+(defun get-local-fun-body (ast)
+  "Return the body of the local function represented by AST. "
+  (match ast
+    ((lisp-ast
+      (children (list* (@@ 5 _) body-ast)))
+     ;; Remove the trailing paren.
+     (butlast body-ast))))
+
+(defmethod fun-body
+    ((car-of-form (eql 'defun)) (function-declaration lisp-ast))
+  (get-top-level-fun-body function-declaration))
+
+(defmethod fun-body
+    ((car-of-form (eql 'defmethod)) (function-declaration lisp-ast))
+  (match function-declaration
+    ((lisp-ast
+      (children
+       (or
+        (list* (@@ 5 _) (satisfies not-a-list-p) (@@ 3 _) body-ast)
+        (list* (@@ 7 _) body-ast))))
+     (butlast body-ast))))
+
+(defmethod fun-body
+    ((car-of-form (eql 'flet)) (function-declaration lisp-ast))
+  (get-local-fun-body function-declaration))
+
+(define-fun-body-alias labels flet)
+
+(defmethod fun-body
+    ((car-of-form (eql 'defmacro)) (function-declaration lisp-ast))
+  (when *bindings-allows-macros-p*
+    (fun-body 'defun function-declaration)))
+
+(defmethod fun-body
+    ((car-of-form (eql 'macrolet)) (function-declaration lisp-ast))
+  (when *bindings-allows-macros-p*
+    (fun-body 'flet function-declaration)))
+
+
+;;; Function lambda list
+(defgeneric lambda-list (car-of-form function-declaration)
+  (:documentation "Retrieve the lambda list of FUNCTION-DECLARATION as
+though it were defined in a CAR-OF-FORM form. *bindings-allows-macros-p*
+can be set to retrieve lambda lists from macros.")
+  (:method (car-of-form function-declaration)
+    (declare (ignorable car-of-form function-declaration))
+    nil))
+
+(defmacro define-lambda-list-alias (car-of-form-alias car-of-form)
+  "Creates a lambda-list method that specializes the
+parameter car-of-form on CAR-OF-FORM-ALIAS. The method immediately calls
+the specialization for CAR-OF-FORM."
+  `(defmethod lambda-list
+       ((car-of-form (eql ',car-of-form-alias)) (function-declaration lisp-ast))
+     (lambda-list ',car-of-form function-declaration)))
+
+(-> get-top-level-lambda-list (lisp-ast) (or null lisp-ast))
+(defun get-top-level-lambda-list (ast)
+  "Return the lambda list of the function represented by AST."
+  (match ast
+    ((lisp-ast
+      (children
+       (list* (@@ 5 _) lambda-list _)))
+     lambda-list)))
+
+(-> get-local-lambda-list (lisp-ast) (or null lisp-ast))
+(defun get-local-lambda-list (ast)
+  "Return the lambda list of the function represented by AST."
+  (match ast
+    ((lisp-ast
+      (children
+       (list* (@@ 3 _) lambda-list _)))
+     lambda-list)))
+
+(defmethod lambda-list
+    ((car-of-form (eql 'defun)) (function-declaration lisp-ast))
+  (get-top-level-lambda-list function-declaration))
+
+(defmethod lambda-list
+    ((car-of-form (eql 'defmethod)) (function-declaration lisp-ast))
+  (match function-declaration
+    ((lisp-ast
+      (children
+       (or
+        (list* (@@ 5 _) (satisfies not-a-list-p) _ lambda-list _)
+        (list* (@@ 5 _) lambda-list _))))
+     lambda-list)))
+
+(defmethod lambda-list
+    ((car-of-form (eql 'flet)) (function-declaration lisp-ast))
+  (get-local-lambda-list function-declaration))
+
+(define-lambda-list-alias labels flet)
+
+(defmethod lambda-list
+    ((car-of-form (eql 'defmacro)) (function-declaration lisp-ast))
+  (when *bindings-allows-macros-p*
+    (get-top-level-fun-body function-declaration)))
+
+(defmethod lambda-list
+    ((car-of-form (eql 'macrolet)) (function-declaration lisp-ast))
+  (when *bindings-allows-macros-p*
+    (get-local-fun-body function-declaration)))
+
+
 ;;; Utility
 (-> compound-form-p (lisp-ast &key (:name symbol)) t)
 (defun compound-form-p (ast &key name)
@@ -1170,6 +1311,22 @@ provided, return T if the car of the form is eq to NAME."
     ((lisp-ast
       (children (list* _ _ args)))
      (remove-if-not {typep _ 'expression-result} args))))
+
+(-> is-keyword-p (lisp-ast) t)
+(defun is-keyword-p (ast)
+  "Return T if AST represents a keyword."
+  (match ast
+    ((lisp-ast
+      (expression (type keyword)))
+     t)))
+
+(-> not-a-list-p (lisp-ast) t)
+(defun not-a-list-p (ast &aux (first-child (car (children ast))))
+  "Returns T if AST is probably not a list."
+  (or (not (typep first-child 'skipped-input-result))
+      (with-slots (string-pointer start end)
+          first-child
+        (not (scan "^\\s*\\(\\s*$" (subseq string-pointer start end))))))
 
 (-> quote-p (lisp-ast) (or null lisp-ast))
 (defun quote-p (ast)
