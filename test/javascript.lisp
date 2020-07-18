@@ -34,6 +34,14 @@
   (:teardown
    (setf *soft* nil)))
 
+(defixture multibyte-javascript
+  (:setup
+   (setf *soft*
+         (from-file (make-instance 'javascript)
+                    (javascript-dir #P"unicode/unicode.js"))))
+  (:teardown
+   (setf *soft* nil)))
+
 (defixture trivial-json
   (:setup
    (setf *soft*
@@ -53,6 +61,12 @@
   (with-fixture fib-javascript
     (is (= 41 (size *soft*)))
     (is (equal (file-to-string (javascript-dir #P"fib/fib.js"))
+               (genome-string *soft*)))))
+
+(deftest can-handle-multibyte-characters-javascript ()
+  (with-fixture multibyte-javascript
+    (is (= 6 (size *soft*)))
+    (is (equal (file-to-string (original-path *soft*))
                (genome-string *soft*)))))
 
 (deftest can-parse-a-json-software-object ()
