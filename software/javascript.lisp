@@ -236,8 +236,9 @@ raw list of ASTs in OBJ for use in `parse-asts`."
          (setf (slot-value tree 'annotations)
                (adrop '(:start :end) (slot-value tree 'annotations)))
          tree))
-    (w/interleaved-text (convert to-type (acorn string))
-                        0 (length string))))
+    (nest (fix-newlines)
+          (w/interleaved-text (convert to-type (acorn string))
+                              0 (length string)))))
 
 (defmethod convert ((to-type (eql 'javascript-ast)) (spec null)
                     &key &allow-other-keys)
@@ -303,6 +304,61 @@ raw list of ASTs in OBJ for use in `parse-asts`."
 
 (defmethod parse-asts ((obj javascript) &optional (source (genome-string obj)))
   (convert 'javascript-ast source))
+
+(defun fix-newlines (ast)
+  "Fix newlines in JavaScript ASTs by pushing newlines down into child
+statements.  This allows for mutation operations to insert and
+replace statements with newlines already present in the new
+ASTs, obviating the need for fixups to add missing newlines.
+This method is destructive and, therefore, can only be utilized
+during AST creation to respect functional trees invariants."
+  (mapcar #'move-newlines-down ast))
+
+(defun move-newlines-down (ast)
+  "Destructively modify AST, pushing newlines down into child ASTs for
+statement AST types."
+  (iter (for child in (children ast))
+        (for after-text in (cdr (interleaved-text ast)))
+        (for i upfrom 1)
+        (when-let ((pos (and (member (type-of child) +stmt-ast-types+)
+                             (position-after-leading-newline after-text))))
+          ;; Move the [0, pos) prefix of after-text containing the newline
+          ;; down into the child node.
+          (setf (slot-value child 'interleaved-text)
+                (append (butlast (interleaved-text child))
+                        (list (concatenate 'string
+                                           (lastcar (interleaved-text child))
+                                           (subseq after-text 0 pos)))))
+          (setf (nth i (slot-value ast 'interleaved-text))
+                (subseq after-text pos)))
+        (finally (return ast))))
+
+(defun position-after-leading-newline (str)
+  "Returns 1+ the position of the first newline in STR,
+assuming it can be reached only by skipping over whitespace
+or comments.  NIL if no such newline exists."
+  (let ((len (length str))
+        (pos 0))
+    (loop
+       (when (>= pos len) (return nil))
+       (let ((c (elt str pos)))
+         (case c
+           (#\Newline (return (1+ pos)))
+           ((#\Space #\Tab)
+            (incf pos))
+           ;; Skip over comments
+           (#\/
+            (incf pos)
+            (when (>= pos len) (return nil))
+            (let ((c (elt str pos)))
+              (unless (eql c #\/)
+                (return nil))
+              (return
+                (loop (incf pos)
+                   (when (>= pos len) (return nil))
+                   (when (eql (elt str pos) #\Newline)
+                     (return (1+ pos)))))))
+           (t (return nil)))))))
 
 
 ;;; Javascript mutation
