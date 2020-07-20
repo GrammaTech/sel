@@ -143,14 +143,12 @@
 
 
 ;;; Javascript parsing
-(defgeneric acorn (obj)
-  (:documentation "Invoke the acorn parser on the genome of OBJ returning a
-raw list of ASTs in OBJ for use in `parse-asts`."))
-
-(defmethod acorn ((string string))
+(defun acorn (source-text)
+  "Invoke the acorn parser on the genome of OBJ returning a
+raw list of ASTs in OBJ for use in `parse-asts`."
   (labels ((invoke-acorn (parsing-mode)
              "Invoke acorn with the given PARSING-MODE (:script or :module)."
-             (with-temporary-file-of (:pathname src-file) string
+             (with-temporary-file-of (:pathname src-file) source-text
                (multiple-value-bind (stdout stderr exit)
                    (shell "acorn --compact --allow-hash-bang ~a ~a"
                           (if (eq parsing-mode :module)
@@ -170,8 +168,6 @@ raw list of ASTs in OBJ for use in `parse-asts`."))
                             exit
                             stderr)
               :operation :parse))))))
-
-(defmethod acorn ((obj javascript)) (acorn (genome-string obj)))
 
 (defun convert-acorn-jsown-tree (jt)
   (convert-jsown-tree jt #'jsown-str-to-acorn-keyword))
