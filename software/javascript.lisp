@@ -36,7 +36,7 @@
         :software-evolution-library/software/javascript-or-python
         :software-evolution-library/components/file
         :software-evolution-library/components/formatting)
-  (:import-from :jsown)
+  (:import-from :jsown :parse)
   (:import-from :cffi :translate-camelcase-name)
   (:import-from :functional-trees :path-later-p)
   (:export :javascript
@@ -161,7 +161,7 @@ raw list of ASTs in OBJ for use in `parse-asts`."
     (multiple-value-bind (stdout stderr exit)
         (multiple-value-or (invoke-acorn :module) (invoke-acorn :script))
       (if (zerop exit)
-          (convert-acorn-jsown-tree (jsown:parse stdout))
+          (convert-acorn-jsown-tree (parse stdout))
           (error
             (make-instance 'mutate
               :text (format nil "acorn exit ~d~%stderr:~s"
