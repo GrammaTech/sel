@@ -204,18 +204,14 @@ raw list of ASTs in OBJ for use in `parse-asts`."
          (ast-annotation ast :start))
        (end (ast)
          (ast-annotation ast :end))
-       (ranges (children from to &aux ranges)
-         (let (last)
-           (mapc (lambda (child)
-                   (if last
-                       (push (cons (end last) (start child))
-                             ranges)
-                       (push (cons from (start child))
-                             ranges))
-                   (setf last child))
-                 children)
-           (push (cons (end last) to) ranges)
-           (nreverse ranges)))
+       (ranges (children from to)
+         (iter (for child in children)
+               (for prev previous child)
+               (if prev
+                   (collect (cons (end prev) (start child)) into ranges)
+                   (collect (cons from (start child)) into ranges))
+               (finally (return (append ranges
+                                        (list (cons (end child) to)))))))
        (w/interleaved-text (tree from to)
          (if-let* ((children (remove nil (children tree))))
            (progn
