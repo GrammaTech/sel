@@ -199,12 +199,17 @@ raw list of ASTs in OBJ for use in `parse-asts`."
                     &key &allow-other-keys)
   (labels
       ((safe-subseq (start end)
+         "Return STRING in the range [START, END) or an empty string if
+         the offsets are invalid."
          (if (< start end) (subseq string start end) ""))
        (start (ast)
+         "Return the start offset into STRING from the AST representation."
          (ast-annotation ast :start))
        (end (ast)
+         "Return the end offset into STRING from the AST representation."
          (ast-annotation ast :end))
        (ranges (children from to)
+         "Return the offsets of the source text ranges between CHILDREN."
          (iter (for child in children)
                (for prev previous child)
                (if prev
@@ -213,6 +218,9 @@ raw list of ASTs in OBJ for use in `parse-asts`."
                (finally (return (append ranges
                                         (list (cons (end child) to)))))))
        (w/interleaved-text (tree from to)
+         "Destructively modify TREE to populate the INTERLEAVED-TEXT
+         field with the source text to be interleaved between the
+         children of AST."
          (if-let* ((children (remove nil (children tree))))
            (progn
              (setf (slot-value tree 'interleaved-text)
