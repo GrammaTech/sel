@@ -217,6 +217,19 @@ in textual (sorted) order.")
        (offset (line col)
          "Return the offset into SOURCE-OCTETS for the given LINE and COL."
          (+ col (aget :start (gethash line line-offsets))))
+       (last-parsed-char-in-line-p (line col)
+         "Return T if LINE and COL represent the last parsed (non-whitespace,
+         non-comment) byte in a line of STRING-OCTETS."
+         (= (offset line col)
+            (aget :end-parsed (gethash line line-offsets))))
+       (normalized-offset (ast line col)
+         "Return the offset into STRING-OCTETS for the given LINE and COL
+         with corrections to include the trailing newline for stmt ASTs."
+         (if (and (member (type-of ast) +stmt-ast-types+)
+                  (last-parsed-char-in-line-p line col)
+                  (gethash (1+ line) line-offsets))
+             (offset (1+ line) 0)
+             (offset line col)))
        (start (ast)
          "Return the start offset into SOURCE-OCTETS from the AST
          representation."
@@ -229,10 +242,12 @@ in textual (sorted) order.")
                ((member (type-of ast) +ast-types-with-larger-child-spans+)
                 (min (or (start (car (remove nil (children ast))))
                          most-positive-fixnum)
-                     (offset (ast-annotation ast :lineno)
-                             (ast-annotation ast :col-offset))))
-               (t (offset (ast-annotation ast :lineno)
-                          (ast-annotation ast :col-offset)))))
+                     (normalized-offset ast
+                                       (ast-annotation ast :lineno)
+                                       (ast-annotation ast :col-offset))))
+               (t (normalized-offset ast
+                                     (ast-annotation ast :lineno)
+                                     (ast-annotation ast :col-offset)))))
        (end (ast)
          "Return the end offset into SOURCE-OCTETS from the AST
          representation."
@@ -245,10 +260,12 @@ in textual (sorted) order.")
                ((member (type-of ast) +ast-types-with-larger-child-spans+)
                 (max (or (end (lastcar (remove nil (children ast))))
                          most-negative-fixnum)
-                     (offset (ast-annotation ast :end-lineno)
-                             (ast-annotation ast :end-col-offset))))
-               (t (offset (ast-annotation ast :end-lineno)
-                          (ast-annotation ast :end-col-offset)))))
+                     (normalized-offset ast
+                                        (ast-annotation ast :end-lineno)
+                                        (ast-annotation ast :end-col-offset))))
+               (t (normalized-offset ast
+                                     (ast-annotation ast :end-lineno)
+                                     (ast-annotation ast :end-col-offset)))))
        (start-and-end-p (ast)
          "Return T if AST contains both a start and end offset."
          (and (start ast) (end ast)))

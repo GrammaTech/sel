@@ -145,12 +145,14 @@
 
 (deftest python-stmt-ast-has-newline ()
   (with-fixture fib-python
-    (is (stmt-with-text *soft* (concatenate 'string "return b"
-                                                    (list #\Newline)))))
+    (is (typep (stmt-with-text *soft* (concatenate 'string "return b"
+                                                           (list #\Newline)))
+               'py-return)))
   (with-fixture dos-python
-    (is (stmt-with-text *soft* (concatenate 'string "return b"
-                                                    (list #\Linefeed
-                                                          #\Newline))))))
+    (is (typep (stmt-with-text *soft* (concatenate 'string "return b"
+                                                           (list #\Linefeed
+                                                                 #\Newline)))
+               'py-return))))
 
 (deftest can-handle-type-comments-python ()
   (with-fixture type-comments-python
