@@ -137,6 +137,16 @@
                 (mappend «append #'first [{mapcar #'car} #'cdr]»
                          +js-children+)))
 
+(define-constant +stmt-ast-types+
+  '(js-do-while-statement js-for-statement js-labeled-statement
+    js-switch-statement js-try-statement js-with-statement
+    js-for-in-statement js-for-of-statement js-block-statement
+    js-break-statement js-continue-statement js-expression-statement
+    js-while-statement js-throw-statement js-return-statement
+    js-if-statement)
+  :test #'equal
+  :documentation "Stmt AST types for JavaScript.")
+
 (defmethod ast-type-to-rebind-p ((ast javascript-ast)) nil)
 (defmethod ast-type-to-rebind-p ((ast js-identifier)) t)
 (defmethod ast-annotation-to-rebind ((ast js-identifier)) :name)
@@ -448,23 +458,7 @@ AST ast to return the enclosing scope for"
 
 (defmethod get-parent-full-stmt ((obj javascript) (ast javascript-ast))
   (find-if (lambda (ast)
-             (member (type-of ast)
-                     (list 'js-do-while-statement
-                           'js-for-statement
-                           'js-labeled-statement
-                           'js-switch-statement
-                           'js-try-statement
-                           'js-with-statement
-                           'js-for-in-statement
-                           'js-for-of-statement
-                           'js-block-statement
-                           'js-break-statement
-                           'js-continue-statement
-                           'js-expression-statement
-                           'js-while-statement
-                           'js-throw-statement
-                           'js-return-statement
-                           'js-if-statement)))
+             (member (type-of ast) +stmt-ast-types+))
            (get-parent-asts obj ast)))
 
 
