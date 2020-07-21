@@ -42,6 +42,14 @@
   (:teardown
    (setf *soft* nil)))
 
+(defixture newlines-javascript
+  (:setup
+   (setf *soft*
+         (from-file (make-instance 'javascript)
+                    (javascript-dir #P"newlines/newlines.js"))))
+  (:teardown
+   (setf *soft* nil)))
+
 (defixture trivial-json
   (:setup
    (setf *soft*
@@ -340,6 +348,24 @@
   (is (equalp (sel/sw/javascript::position-after-leading-newline " / ")
               nil)
       "position-after-leading-newline slash not at EOL not a comment"))
+
+#+broken
+(deftest javascript-newline-included-in-ast-test ()
+  (with-fixture newlines-javascript
+    (mapc (lambda (text)
+            (is (stmt-with-text *soft* text :no-error t :trim nil)
+                "Failed to find ~S in ~S" text (original-path *soft*)))
+          (list (format nil "import \"module-name\"~%")
+                (format nil "export { f, g }~%")
+                (format nil "var a = 1, b = 0, temp;~%")
+                (format nil "temp = a + b // comment~%")
+                (format nil "console.log(\"Hello world!\"); /* comment 2 */~%")
+                (format nil "debugger;~%")
+                (format nil "await f()~%")
+                (format nil "temp = await f();~%")
+                (format nil "f()~%")
+                (format nil "return 0~%")
+                (format nil "yield 0~%")))))
 
 (defixture javascript-ast-w-conflict
   (:setup (nest (setf *soft*)
