@@ -137,8 +137,11 @@ the existing definitions in the hyperspec).  The hyperspec is a
 reference, good for lookup and bad for browsing.
 
 @item
-Check the @url{https://common-lisp.net/project/alexandria/,Alexandria}
-package for general utilities and the
+Check the
+@url{https://common-lisp.net/project/alexandria/draft/alexandria.html,Alexandria}
+and
+@url{https://github.com/ruricolist/serapeum/blob/master/REFERENCE.md,Serapeum}
+packages for general utilities and the
 @url{https://github.com/fare/asdf/tree/master/uiop,UIOP} package for
 filesystem and OS utilities.
 
@@ -152,11 +155,16 @@ Check the ``GT'' package (see @ref{Basic Utilities}).
 @appendixsec Packages
 
 Only use packages which are explicitly included in your current
-package.  E.g., calling @code{cl-ppcre:foo} just because @code{cl-ppcre} happens
-to be loaded in the lisp image every time you've run tests is @emph{not}
-acceptable.  Instead the @code{:use} option to @code{defpackage} should
-explicitly include the required package and if necessary @code{:shadow} and
-@code{:shadowing-import-from} should be used to limit the symbols imported.
+package. E.g., calling @code{cl-ppcre:foo} just because
+@code{cl-ppcre} happens to be loaded in the lisp image every time
+you've run tests is @emph{not} acceptable. Instead the @code{:use}
+option to @code{defpackage} should explicitly include the required
+package and if necessary @code{:shadow} and
+@code{:shadowing-import-from} should be used to limit the symbols
+imported. Alternately, when using package-inferred systems, the
+@code{:import-from} and @code{:local-nicknames} options to
+@code{defpackage} may be used to make dependencies explicit without
+using imports.
 
 
 @node Portability, Documentation, Packages, SEL Coding Standards
