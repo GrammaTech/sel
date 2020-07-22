@@ -92,17 +92,13 @@ same file as the match form its being used in."
              :initform nil
              :documentation "The list of children of the node,
 which may be more nodes, or other values.")
-   (child-slots :initform '(children) :allocation :class)
-   (data-slot :initform 'expression :allocation :class))
+   (child-slots :initform '(children) :allocation :class))
   (:documentation "Class of Common Lisp ASTs."))
 
 (defmethod equal? ((x lisp-ast) (y lisp-ast))
   (and (call-next-method)
        (equal? (expression x)
                (expression y))))
-
-(defmethod fset-default-node-accessor ((node-type (eql 'lisp-ast)))
-  'expression)
 
 (define-matchable-class result (lisp-ast)
   ((start :initarg :start :initform (when *string* 0)
