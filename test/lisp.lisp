@@ -54,7 +54,11 @@ round-trip through convert.")
   (is (equal? (convert 'lisp-ast "(+ (- 2 1) (+ 2 3))")
               (convert 'lisp-ast "(+ (- 2 1) (+ 2 3))")))
   (is (not (equal? (convert 'lisp-ast "(+ (- 2 1) (+ 2 3))")
-                   (convert 'lisp-ast "(- (+ 2 1) (- 2 3))")))))
+                   (convert 'lisp-ast "(- (+ 2 1) (- 2 3))"))))
+  (is (equal? (convert 'lisp-ast "#+(ccl) 1")
+              (convert 'lisp-ast "#+(ccl) 1")))
+  (is (not (equal? (convert 'lisp-ast "#+(ccl) 1")
+                   (convert 'lisp-ast "#-(ccl) 1")))))
 
 (deftest read-eval-preserved ()
   (let ((found?

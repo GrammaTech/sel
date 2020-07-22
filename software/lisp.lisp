@@ -97,6 +97,7 @@ which may be more nodes, or other values.")
 
 (defmethod equal? ((x lisp-ast) (y lisp-ast))
   (and (call-next-method)
+       (eql (class-of x) (class-of y))
        (equal? (expression x)
                (expression y))))
 
