@@ -98,8 +98,13 @@ which may be more nodes, or other values.")
 (defmethod equal? ((x lisp-ast) (y lisp-ast))
   (and (call-next-method)
        (eql (class-of x) (class-of y))
-       (equal? (expression x)
-               (expression y))))
+       ;; We already know that x and y have the same number of
+       ;; children, and that the children are `equal?`.
+       (if (children x) t
+           ;; Expressions aren't updated on mutations, and leaf nodes
+           ;; tend to be the only ones with accurate data.
+           (equal? (expression x)
+                   (expression y)))))
 
 (define-matchable-class result (lisp-ast)
   ((start :initarg :start :initform (when *string* 0)
