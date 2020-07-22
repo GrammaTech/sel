@@ -47,6 +47,15 @@ round-trip through convert.")
 
 
 ;;; Tests
+(deftest expression-equality ()
+  "Take the expression slot into account when comparing Lisp ASTs."
+  (is (equal? (convert 'lisp-ast "(- (+ 2 1) (- 2 3))")
+              (convert 'lisp-ast "(- (+ 2 1) (- 2 3))")))
+  (is (equal? (convert 'lisp-ast "(+ (- 2 1) (+ 2 3))")
+              (convert 'lisp-ast "(+ (- 2 1) (+ 2 3))")))
+  (is (not (equal? (convert 'lisp-ast "(+ (- 2 1) (+ 2 3))")
+                   (convert 'lisp-ast "(- (+ 2 1) (- 2 3))")))))
+
 (deftest read-eval-preserved ()
   (let ((found?
          (block found

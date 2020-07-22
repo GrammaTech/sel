@@ -96,6 +96,11 @@ which may be more nodes, or other values.")
    (data-slot :initform 'expression :allocation :class))
   (:documentation "Class of Common Lisp ASTs."))
 
+(defmethod equal? ((x lisp-ast) (y lisp-ast))
+  (and (call-next-method)
+       (equal? (expression x)
+               (expression y))))
+
 (defmethod fset-default-node-accessor ((node-type (eql 'lisp-ast)))
   'expression)
 
