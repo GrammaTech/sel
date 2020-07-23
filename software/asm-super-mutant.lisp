@@ -1765,22 +1765,23 @@ jump_table:
    (list (if (intel-syntax-p asm-super) "align 16" ".align 16")
          "jump_table_size:"
          (if (intel-syntax-p asm-super)
-                      (format nil "        dq ~A" (length function-index))
-                      (format nil "        .quad ~A" (length function-index)))
+             (format nil "        dq ~A" (length function-index))
+             (format nil "        .quad ~A" (length function-index)))
          (if (intel-syntax-p asm-super) "align 16" ".align 16")
          "jump_table:")
    (iter (for x in-vector function-index)
-         (collect (if (intel-syntax-p asm-super) "align 16" ".align 16"))
-         (collect (if (intel-syntax-p asm-super)
-                      (format nil "        dq 0x~X"
-                              (function-index-entry-start-address x))
-                      (format nil "        .quad 0x~X"
-                              (function-index-entry-start-address x))))
-         (collect (if (intel-syntax-p asm-super)
-                      (format nil "        dq ~A"
-                              (function-index-entry-name x))
-                      (format nil "        .quad ~A"
-                              (function-index-entry-name x)))))
+         (when (function-index-entry-start-address x)
+             (collect (if (intel-syntax-p asm-super) "align 16" ".align 16"))
+             (collect (if (intel-syntax-p asm-super)
+                          (format nil "        dq 0x~X"
+                                  (function-index-entry-start-address x))
+                          (format nil "        .quad 0x~X"
+                                  (function-index-entry-start-address x))))
+             (collect (if (intel-syntax-p asm-super)
+                          (format nil "        dq ~A"
+                                  (function-index-entry-name x))
+                          (format nil "        .quad ~A"
+                                  (function-index-entry-name x))))))
    (list "")))
 
 (defun add-included-lines (asm-super asm-variants)
