@@ -2669,9 +2669,9 @@ instruction set does not support absolute addresses over 32-bits."
           (iter (for var in (static-names asm-super))
                 (multiple-value-bind (new-line updated-p)
                     (cl-ppcre:regex-replace-all
-                     (first var)
+                     (format nil "([^a-zA-Z0-9_])~A([^a-zA-Z0-9_])" (first var))
                      new-text
-                     (format nil "0x~X" (second var)))
+                     (format nil "\\{1}0x~X\\{2}" (second var)))
                   (if updated-p
                       (setf new-text new-line))))
           (unless (eq new-text orig-text)
