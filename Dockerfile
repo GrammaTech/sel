@@ -57,4 +57,8 @@ RUN git clone https://github.com/ruricolist/serapeum /root/quicklisp/local-proje
               /root/quicklisp/local-projects/gt \
               /root/quicklisp/local-projects/system-index.txt
 
+# Install pre-release version of ASDF needed for CCL package-local nicknames
+RUN mkdir /root/common-lisp
+RUN curl https://gitlab.common-lisp.net/asdf/asdf/-/archive/3.3.4.3/asdf-3.3.4.3.tar.gz| tar xzC /root/common-lisp
+
 WORKDIR /root/quicklisp/local-projects
