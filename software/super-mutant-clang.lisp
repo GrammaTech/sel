@@ -166,7 +166,7 @@ true, create a complete function decl which contains the body."
                    (variants
                     (push variants inserts))))))
        (sort-mutation-ops (obj ops)
-         (sort ops #'path-later-p :key [{ast-path obj} {aget :stmt1} #'cdr]))
+         (sort ops {path-later-p obj} :key [{aget :stmt1} #'cdr]))
        (add-stdlib-include (obj)
          ;; Needed for getenv()
          (add-include obj "<stdlib.h>")))

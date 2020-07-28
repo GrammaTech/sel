@@ -399,8 +399,7 @@ AST ast to return the enclosing scope for"
   (:documentation "Return all child statements of SCOPE prior to AST.")
   (:method (obj (scope javascript-ast) (ast javascript-ast))
     (iter (for c in (remove nil (children scope)))
-          (while (path-later-p (ast-path obj ast)
-                               (ast-path obj c)))
+          (while (path-later-p obj ast c))
           (collect c))))
 
 (defgeneric identifiers (ast)

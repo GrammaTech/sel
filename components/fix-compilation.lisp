@@ -25,6 +25,7 @@
         :software-evolution-library/components/formatting
         :software-evolution-library/components/searchable
         :software-evolution-library/components/fodder-database)
+  (:import-from :functional-trees :path-later-p)
   (:export :register-fixer
            :fix-compilation
            :*compilation-fixers*))
@@ -285,8 +286,7 @@ associated element of `*compilation-fixers*'.
     ;;       compared with `>'.
     (nest (mapc [{apply-mutation obj} {list 'clang-cut} {cons :stmt1}])
           (sort (remove nil (hash-table-keys to-delete))
-                #'path-later-p
-                :key {ast-path obj}))))
+                {path-later-p obj}))))
 
 (register-fixer
  ": undefined reference to `(\\S+)'"

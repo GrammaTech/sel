@@ -7,6 +7,7 @@
         :software-evolution-library
         :software-evolution-library/components/file
         :software-evolution-library/utility/range)
+  (:import-from :functional-trees :path-later-p)
   (:export ;; ASTs
            :ast
            :functional-tree-ast
@@ -151,6 +152,12 @@ PRINT-OBJECT method on AST structures.")
     (ast-path root (finger ast)))
   (:method ((root functional-tree-ast) (finger finger))
     (path (functional-trees::transform-finger finger root))))
+
+(defmethod path-later-p ((obj parseable) path-a path-b)
+  (path-later-p (genome obj) path-a path-b))
+
+(defmethod path-later-p ((obj parseable) (a ast) (b ast))
+  (path-later-p obj (ast-path obj a) (ast-path obj b)))
 
 (defgeneric child-asts (ast &key recursive)
   (:documentation "Return the AST children of AST.  If the keyword
@@ -1064,8 +1071,8 @@ MUTATION to SOFTWARE.
                       ;; Sort operations latest-first so they
                       ;; won't step on each other.
                       (sort (recontextualize-mutation software mutation)
-                            #'path-later-p
-                            :key [{ast-path software} {aget :stmt1} #'cdr])))
+                            {path-later-p software}
+                            :key [{aget :stmt1} #'cdr])))
 
 (defmethod apply-mutation ((obj parseable) (op list))
   "Apply OPS to SOFTWARE, returning the resulting SOFTWARE.

@@ -1506,8 +1506,7 @@ If REFERENCING-AST is supplied, the returned ast must
 occur before it."
   (let ((targeter (if referencing-ast
                       (lambda (target)
-                        (and (path-later-p (ast-path obj referencing-ast)
-                                           (ast-path obj target))
+                        (and (path-later-p obj referencing-ast target)
                              (compound-form-p target :name name)))
                       {compound-form-p _ :name name})))
     (match defining-form
@@ -1572,8 +1571,7 @@ of SHARED-PATH-AST's path in OBJ."
   "Returns T if LATER-THAN occurs later than EARLIER-THAN
 in OBJ. Note that children of EARLIER-THAN are considered
 later than."
-  (path-later-p (ast-path obj later-than)
-                (ast-path obj earlier-than)))
+  (path-later-p obj later-than earlier-than))
 
 (-> car-of-enclosing-form-p (lisp lisp-ast) t)
 (defun car-of-enclosing-form-p (obj ast)

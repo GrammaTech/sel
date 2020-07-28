@@ -546,8 +546,7 @@ AST ast to return the scopes for"
                              ; collect ASTs prior to AST
                              (iter (for c in (remove nil (children scope)))
                                    (when (and (in-same-if-clause ast c)
-                                              (path-later-p (ast-path obj ast)
-                                                            (ast-path obj c)))
+                                              (path-later-p obj ast c))
                                      (collect c))))
                        (scopes-helper obj scope)))))
            (remove-vars-in-enclosing-scopes (scope enclosing-scopes)

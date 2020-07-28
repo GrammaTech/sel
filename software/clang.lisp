@@ -2021,8 +2021,8 @@ already in scope, it will keep that name.")
                           ;; Sort operations latest-first so they
                           ;; won't step on each other.
                           (sort (recontextualize-mutation software mutation)
-                                #'path-later-p
-                                :key [{ast-path software} {aget :stmt1} #'cdr]))
+                                {path-later-p software}
+                                :key [{aget :stmt1} #'cdr]))
     (skip-mutation ()
       :report "Skip mutation and return nil"
       (values nil 1))
@@ -2699,8 +2699,7 @@ included as the first successor."
                            (t (list ast)))))
                   ; get children in scope
                   (iter (for c in (child-asts scope))
-                        (while (path-later-p (ast-path software ast)
-                                             (ast-path software c)))
+                        (while (path-later-p software ast c))
                         (collect c)))
             (scopes software scope)))))
 
