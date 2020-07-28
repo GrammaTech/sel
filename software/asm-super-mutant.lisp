@@ -2268,105 +2268,107 @@ jump_table:
 
 (defmethod phenome ((asm asm-super-mutant)
 		    &key (bin (temp-file-name :type "out"))
-		      (src (temp-file-name :type "asm")))
+		      (src-path (temp-file-name :type "asm"))
+                      (keep-assembly-file nil))
   "Create ASM file, assemble it, and link to create binary BIN."
-  (let ((src (generate-file asm src (length (mutants asm)))))
-    (with-temporary-file (:pathname obj :type "o")
-      ;; Assemble.
-      (multiple-value-bind (stdout stderr errno)
-          (shell "~a ~a -o ~a ~a"
-		 (if (intel-syntax-p asm)
-		     "nasm"
-		     "as")
-		 (if (intel-syntax-p asm)
-		     "-f elf64"
-		     "")
-		 obj
-		 src)
-	(declare (ignorable stdout stderr))
-        (restart-case
-            (unless (zerop errno)
-              (error (make-condition 'phenome :text stderr :obj asm :loc src)))
-          (retry-project-build ()
-            :report "Retry `phenome' assemble on OBJ."
-            (phenome obj :bin bin))
-          (return-nil-for-bin ()
-            :report "Allow failure returning NIL for bin."
-            (setf bin nil)))
-        (when (zerop errno)
-          ;; Link.
-          #+linker-script
-          (unless (linker-script asm)
-            (setf (linker-script asm) (get-default-linker-script)))
-
-          (let (#+linker-script
-                (linker-sections-path (output-linker-sections asm))
-                compiler-command)
+  (with-temporary-file (:pathname src-path :keep keep-assembly-file)
+    (let ((src (generate-file asm src-path (length (mutants asm)))))
+      (with-temporary-file (:pathname obj :type "o")
+        ;; Assemble.
+        (multiple-value-bind (stdout stderr errno)
+            (shell "~a ~a -o ~a ~a"
+                   (if (intel-syntax-p asm)
+                       "nasm"
+                       "as")
+                   (if (intel-syntax-p asm)
+                       "-f elf64"
+                       "")
+                   obj
+                   src)
+          (declare (ignorable stdout stderr))
+          (restart-case
+              (unless (zerop errno)
+                (error (make-condition 'phenome :text stderr :obj asm :loc src)))
+            (retry-project-build ()
+              :report "Retry `phenome' assemble on OBJ."
+              (phenome obj :bin bin))
+            (return-nil-for-bin ()
+              :report "Allow failure returning NIL for bin."
+              (setf bin nil)))
+          (when (zerop errno)
+            ;; Link.
             #+linker-script
-            (setf compiler-command
-                  (concatenate 'string
-                               "~a ~a"
-                               " -Wl,--script=~a"
-                               " -Wl,--script=~a"
-                               " -O0 -fnon-call-exceptions -g"
-                               " -Wno-deprecated"
-                               " -Wl,--wrap=malloc"
-                               " -Wl,--wrap=realloc"
-                               " -Wl,--wrap=free"
-                               " ~a ~a ~a ~a ~a -lrt -o ~a ~a ~a ~a ~a"))
-            #-linker-script
-            (setf compiler-command
-                  (concatenate 'string
-                               "~a ~a"
-                               " -O0 -fnon-call-exceptions -g"
-                               " -Wno-deprecated"
-                               " -Wl,--wrap=malloc"
-                               " -Wl,--wrap=realloc"
-                               " -Wl,--wrap=free"
-                               " ~a ~a ~a ~a ~a -lrt -o ~a ~a ~a ~a ~a"))
+            (unless (linker-script asm)
+              (setf (linker-script asm) (get-default-linker-script)))
 
-            (multiple-value-bind (stdout stderr errno)
-                (shell
-                 compiler-command
-                 (compiler asm)
-                 (if (static-link asm) "-fno-PIE" "-no-pie")
-                 #+linker-script  (linker-script asm)
-                 #+linker-script linker-sections-path
-                 (if (static-link asm) "--static" "")
-                 (if (bss-segment asm)
-                     (format nil "-Wl,--section-start=.seldata=0x~x"
-                             (bss-segment asm))
-                     (if *seldata-segment-start*
-                         (format nil "-Wl,--section-start=.seldata=0x~x"
-                                 *seldata-segment-start*)
-                         ""))
-                 (if *bss-segment-start*
-                     (format nil "-Wl,-Tbss=0x~x" *bss-segment-start*)
-                     "")
-                 (if *data-segment-start*
-                     (format nil "-Wl,-Tdata=0x~x" *data-segment-start*)
-                     "")
-                 (if *text-segment-start*
-                     (format nil "-Wl,-Ttext-segment=0x~x" *text-segment-start*)
-                     "")
-                 bin
-                 (fitness-harness asm)
-                 obj
-                 *lib-papi*
-                 (or (libraries asm) ""))
-              (restart-case
-                  (unless (zerop errno)
-                    (error (make-condition 'phenome :text stderr
-                                           :obj asm :loc obj)))
-                (retry-project-build ()
-                  :report "Retry `phenome' link on OBJ."
-                  (phenome obj :bin bin))
-                (return-nil-for-bin ()
-                  :report "Allow failure returning NIL for bin."
-                  (setf bin nil)))
-              (setf (phenome-results asm)
-                    (list bin errno stderr stdout src))
-              (values bin errno stderr stdout src))))))))
+            (let (#+linker-script
+                  (linker-sections-path (output-linker-sections asm))
+                  compiler-command)
+              #+linker-script
+              (setf compiler-command
+                    (concatenate 'string
+                                 "~a ~a"
+                                 " -Wl,--script=~a"
+                                 " -Wl,--script=~a"
+                                 " -O0 -fnon-call-exceptions -g"
+                                 " -Wno-deprecated"
+                                 " -Wl,--wrap=malloc"
+                                 " -Wl,--wrap=realloc"
+                                 " -Wl,--wrap=free"
+                                 " ~a ~a ~a ~a ~a -lrt -o ~a ~a ~a ~a ~a"))
+              #-linker-script
+              (setf compiler-command
+                    (concatenate 'string
+                                 "~a ~a"
+                                 " -O0 -fnon-call-exceptions -g"
+                                 " -Wno-deprecated"
+                                 " -Wl,--wrap=malloc"
+                                 " -Wl,--wrap=realloc"
+                                 " -Wl,--wrap=free"
+                                 " ~a ~a ~a ~a ~a -lrt -o ~a ~a ~a ~a ~a"))
+
+              (multiple-value-bind (stdout stderr errno)
+                  (shell
+                   compiler-command
+                   (compiler asm)
+                   (if (static-link asm) "-fno-PIE" "-no-pie")
+                   #+linker-script  (linker-script asm)
+                   #+linker-script linker-sections-path
+                   (if (static-link asm) "--static" "")
+                   (if (bss-segment asm)
+                       (format nil "-Wl,--section-start=.seldata=0x~x"
+                               (bss-segment asm))
+                       (if *seldata-segment-start*
+                           (format nil "-Wl,--section-start=.seldata=0x~x"
+                                   *seldata-segment-start*)
+                           ""))
+                   (if *bss-segment-start*
+                       (format nil "-Wl,-Tbss=0x~x" *bss-segment-start*)
+                       "")
+                   (if *data-segment-start*
+                       (format nil "-Wl,-Tdata=0x~x" *data-segment-start*)
+                       "")
+                   (if *text-segment-start*
+                       (format nil "-Wl,-Ttext-segment=0x~x" *text-segment-start*)
+                       "")
+                   bin
+                   (fitness-harness asm)
+                   obj
+                   *lib-papi*
+                   (or (libraries asm) ""))
+                (restart-case
+                    (unless (zerop errno)
+                      (error (make-condition 'phenome :text stderr
+                                             :obj asm :loc obj)))
+                  (retry-project-build ()
+                    :report "Retry `phenome' link on OBJ."
+                    (phenome obj :bin bin))
+                  (return-nil-for-bin ()
+                    :report "Allow failure returning NIL for bin."
+                    (setf bin nil)))
+                (setf (phenome-results asm)
+                      (list bin errno stderr stdout src))
+                (values bin errno stderr stdout src)))))))))
 
 (defun record-meta-results (asm-super meta-results)
   (do* ((x meta-results (cddr x))
@@ -2381,6 +2383,8 @@ jump_table:
 (defmethod evaluate ((test symbol)(asm-super asm-super-mutant)
 		     &rest extra-keys
 		     &key
+                       (keep-fitness-executable nil)
+                       (keep-assembly-file nil)
 		       &allow-other-keys)
   "Create phenome (binary executable) and call it to generate fitness results.
 The variants need to already be created (stored in mutants slot) and the io-file
@@ -2391,9 +2395,10 @@ needs to have been loaded, along with the var-table by PARSE-SANITY-FILE."
 	 (*worst-fitness* (worst-numeric-fitness))
          (phenome-create-error nil)
          (phenome-execute-error nil))
-    (with-temporary-file (:pathname bin)
+    (with-temporary-file (:pathname bin :keep keep-fitness-executable)
       (multiple-value-bind (bin-path phenome-errno stderr stdout src)
-	  (phenome asm-super :bin bin)
+	  (phenome asm-super :bin bin
+                   :keep-assembly-file keep-assembly-file)
 	(declare (ignorable phenome-errno stderr stdout src))
         (let ((meta-results nil)
               (test-results nil))
