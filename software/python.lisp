@@ -293,7 +293,7 @@ in textual (sorted) order.")
          children textually."
          (remove-children-without-start-end-offsets ast)
          (sort-children ast)
-         (children ast))
+         (remove nil (children ast)))
        (ranges (children from to)
          "Return the offsets of the source text ranges between CHILDREN."
          (iter (for child in children)
@@ -305,22 +305,23 @@ in textual (sorted) order.")
                             into ranges))
                (finally (return (append ranges
                                         (list (cons (end child) to)))))))
-       (w/interleaved-text (ast from to)
+       (w/interleaved-text (ast from to
+                            &aux (children (normalized-children ast)))
          "Destructively modify AST to populate the INTERLEAVED-TEXT
          field with the source text to be interleaved between the
          children of AST."
-         (if-let* ((children (remove nil (normalized-children ast))))
-           (progn
+         (if children
+             (progn
+               (setf (slot-value ast 'interleaved-text)
+                     (mapcar (lambda (range)
+                               (destructuring-bind (from . to) range
+                                 (safe-subseq from to)))
+                             (ranges children from to)))
+               (mapc (lambda (child)
+                       (w/interleaved-text child (start child) (end child)))
+                     children))
              (setf (slot-value ast 'interleaved-text)
-                   (mapcar (lambda (range)
-                             (destructuring-bind (from . to) range
-                               (safe-subseq from to)))
-                           (ranges children from to)))
-             (mapc (lambda (child)
-                     (w/interleaved-text child (start child) (end child)))
-                   children))
-           (setf (slot-value ast 'interleaved-text)
-                 (list (safe-subseq (start ast) (end ast)))))
+                   (list (safe-subseq (start ast) (end ast)))))
          (setf (slot-value ast 'annotations)
                (adrop '(:lineno :col-offset :end-lineno :end-col-offset)
                       (slot-value ast 'annotations)))

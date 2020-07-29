@@ -219,25 +219,26 @@ raw list of ASTs in OBJ for use in `parse-asts`."
                    (collect (cons from (start child)) into ranges))
                (finally (return (append ranges
                                         (list (cons (end child) to)))))))
-       (w/interleaved-text (tree from to)
-         "Destructively modify TREE to populate the INTERLEAVED-TEXT
+       (w/interleaved-text (ast from to
+                            &aux (children (remove nil (children ast))))
+         "Destructively modify AST to populate the INTERLEAVED-TEXT
          field with the source text to be interleaved between the
          children of AST."
-         (if-let* ((children (remove nil (children tree))))
-           (progn
-             (setf (slot-value tree 'interleaved-text)
-                   (mapcar (lambda (range)
-                             (destructuring-bind (from . to) range
-                               (safe-subseq from to)))
-                           (ranges children from to)))
-             (mapc (lambda (child)
-                     (w/interleaved-text child (start child) (end child)))
-                   children))
-           (setf (slot-value tree 'interleaved-text)
-                 (list (safe-subseq (start tree) (end tree)))))
-         (setf (slot-value tree 'annotations)
-               (adrop '(:start :end) (slot-value tree 'annotations)))
-         tree))
+         (if children
+             (progn
+               (setf (slot-value ast 'interleaved-text)
+                     (mapcar (lambda (range)
+                               (destructuring-bind (from . to) range
+                                 (safe-subseq from to)))
+                             (ranges children from to)))
+               (mapc (lambda (child)
+                       (w/interleaved-text child (start child) (end child)))
+                     children))
+             (setf (slot-value ast 'interleaved-text)
+                   (list (safe-subseq (start ast) (end ast)))))
+         (setf (slot-value ast 'annotations)
+               (adrop '(:start :end) (slot-value ast 'annotations)))
+         ast))
     (nest (fix-newlines)
           (w/interleaved-text (convert to-type (acorn string))
                               0 (length string)))))
