@@ -269,9 +269,9 @@
   (let ((soft (from-file (make-instance 'javascript)
                          (javascript-dir #P"parsing/object-destructuring.js"))))
     (nest (is) (string= "p") (source-text) (@ soft)
-          '(1 js-declarations 0 js-id js-properties 0))
+          '((js-body . 1) (js-declarations . 0) js-id (js-properties . 0)))
     (nest (is) (string= "p") (source-text) (@ soft)
-          '(1 js-declarations 0 js-id js-properties 0))))
+          '((js-body . 1) (js-declarations . 0) js-id (js-properties . 0)))))
 
 (deftest for-in-loop-get-vars-in-scope-test ()
   (let ((soft (from-file (make-instance 'javascript)
@@ -372,7 +372,9 @@
                 (with (from-file (make-instance 'javascript)
                                  (javascript-dir #P"fib/fib.js"))
                       ;; The "b" in 'a = a + b'.
-                      '(0 js-body 1 js-body 1 js-expression js-right js-right))
+                      '((js-body . 0) js-body
+                        (js-body . 1) js-body
+                        (js-body . 1) js-expression js-right js-right))
                 (flet ((js-identifier (name)
                          (make-instance 'js-identifier
                           :name name :interleaved-text (list name)))))
@@ -396,32 +398,32 @@
   (with-fixture javascript-ast-w-conflict
     ;; Access ASTs.
     (is (string= "fibonacci"
-                 (ast-annotation (@ *soft* '(js-body 0 js-id)) :name)))
-    (is (typep (@ *soft* '(0 js-body 1 js-body 0)) 'javascript-ast))
-    (is (string= "temp"
-                 (ast-annotation (@ *soft* '(0 js-body 1 js-body 0
+                 (ast-annotation (@ *soft* '((js-body . 0) js-id)) :name)))
+    (is (string= "b"
+                 (ast-annotation (@ *soft* '((js-body . 0) js-body
+                                             (js-body . 1) js-body (js-body . 2)
                                              js-expression js-left))
                                  :name)))
-    (is (typep (@ *soft* '(0 js-body 1 js-body 2)) 'javascript-ast))
-    (is (string= "b"
-                 (ast-annotation (@ *soft* '(0 js-body 1 js-body 2
-                                             js-expression js-left))
+    (is (string= "temp"
+                 (ast-annotation (@ *soft* '((js-body . 0) js-body
+                                             (js-body . 1) js-body (js-body . 2)
+                                             js-expression js-right))
                                  :name)))
     ;; Set AST with (with ...).
-    (with *soft* '(0 js-body 1 js-body 2 js-expression js-left)
-          (make-instance 'js-identifier
-           :name "RIGHT"
-           :interleaved-text (list "RIGHT")))
-    (is (string= "RIGHT"
-                 (ast-annotation (@ *soft* '(0 js-body 1 js-body 2
-                                             js-expression js-left))
-                                 :name)))
-    (with *soft* '(0 js-body 1 js-body 0 js-expression js-left)
-          (make-instance 'js-identifier
-           :name "LEFT"
-           :interleaved-text (list "LEFT")))
-    (is (typep (@ *soft* '(0 js-body 1 js-body 2 js-expression js-left))
-               'js-identifier))))
+    (let ((path '((js-body . 0) js-body (js-body . 1) js-body (js-body . 2)
+                   js-expression js-left)))
+      (with *soft* path
+            (make-instance 'js-identifier
+             :name "RIGHT"
+             :interleaved-text (list "RIGHT")))
+      (is (typep (@ *soft* path) 'js-identifier))
+      (is (string= "RIGHT" (ast-annotation (@ *soft* path) :name)))
+      (with *soft* path
+            (make-instance 'js-identifier
+             :name "LEFT"
+             :interleaved-text (list "LEFT")))
+      (is (typep (@ *soft* path) 'js-identifier))
+      (is (string= "LEFT" (ast-annotation (@ *soft* path) :name))))))
 
 (deftest javascript-and-conflict-replace-ast ()
   (with-fixture javascript-ast-w-conflict
@@ -431,7 +433,9 @@
             (car (aget :my (conflict-ast-child-alist cnf)))))
 
     (is (equal (size *soft*) (count-if {ast-path *soft*} (genome *soft*))))
-    (is (string= (source-text (@ *soft* '(0 js-body 1 js-body 1 js-expression)))
+    (is (string= (source-text (@ *soft* '((js-body . 0) js-body
+                                          (js-body . 1) js-body
+                                          (js-body . 1) js-expression)))
                  "a = a + temp"))))
 
 (deftest test-json-preserves-trailing-whitespace ()
