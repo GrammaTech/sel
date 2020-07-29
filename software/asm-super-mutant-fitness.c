@@ -7,7 +7,7 @@
 #define __x86_64__ 1
 #define __USE_GNU 1
 
-#define USING_INIT 1 // if true, init pages prior to main()
+#define USING_INIT 0 // if true, init pages prior to main()
 
 #include <signal.h>
 #include <time.h>
