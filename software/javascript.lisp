@@ -201,7 +201,9 @@ raw list of ASTs in OBJ for use in `parse-asts`."
       ((safe-subseq (start end)
          "Return STRING in the range [START, END) or an empty string if
          the offsets are invalid."
-         (if (< start end) (subseq string start end) ""))
+         (if (< start end)
+             (subseq string start end)
+             ""))
        (start (ast)
          "Return the start offset into STRING from the AST representation."
          (ast-annotation ast :start))
