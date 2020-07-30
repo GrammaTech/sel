@@ -608,19 +608,14 @@ If no suitable points are found the returned points may be nil."))
   (setf (genome obj) string)
   obj)
 
-(defparameter *show-parse-asts-errors* nil
-  "When true, parse-asts reports the original source file on an error,
-if the original file is known.")
-
 (defmethod parse-asts :around ((sw parseable) &optional text)
   (declare (ignorable text))
   (handler-bind
       ((error (lambda (e)
                 (declare (ignore e))
-                (when *show-parse-asts-errors*
-                  (when-let ((ofile (original-path sw)))
-                    (format t "Failure in parse-asts: original-path = ~a~%"
-                            ofile))))))
+                (when-let ((ofile (original-path sw)))
+                  (warn "Failure in parse-asts: original-path = ~a~%"
+                        ofile)))))
     (call-next-method)))
 
 
