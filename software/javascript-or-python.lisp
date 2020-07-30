@@ -36,7 +36,7 @@ SUPERCLASS and PREFIX."
    (destructuring-bind (ast-class-list . field-specifiers) spec)
    (mapcar
     (lambda (class)
-      `(defclass ,(symbol-cat prefix class) (,superclass)
+      `(define-node-class ,(symbol-cat prefix class) (,superclass)
          (,@(when field-specifiers
               `((child-slots
                  :initform (quote ,(mapcar «cons [{symbol-cat prefix} #'car]

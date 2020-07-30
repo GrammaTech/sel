@@ -84,23 +84,13 @@
 
 (defvar *string* nil)
 
-(defmacro define-matchable-class (class-name super-classes slots &rest options)
-  "Define a new class that is wrapped in an eval-when form. This is to work
-around an issue in SBCL--https://bugs.launchpad.net/sbcl/+bug/310120--that
-prevents trivia:match from working correctly when classes are defined in the
-same file as the match form its being used in."
-  `(eval-when (:compile-toplevel :load-toplevel :execute)
-     (defclass ,class-name ,super-classes
-       ,slots
-       ,@options)))
-
-(define-matchable-class lisp-ast (functional-tree-ast)
+(define-node-class lisp-ast (functional-tree-ast)
   ((expression :initarg :expression :initform nil :reader expression)
    (children :type list
              :initarg :children
              :initform nil
-             :documentation "The list of children of the node,
-which may be more nodes, or other values.")
+             :documentation "The list of children of the node, which
+                             may be more nodes, or other values.")
    (child-slots :initform '(children) :allocation :class))
   (:documentation "Class of Common Lisp ASTs."))
 
@@ -113,6 +103,17 @@ which may be more nodes, or other values.")
            ;; tend to be the only ones with accurate data.
            (equal? (expression x)
                    (expression y)))))
+
+
+(defmacro define-matchable-class (class-name super-classes slots &rest options)
+  "Define a new class that is wrapped in an eval-when form. This is to work
+around an issue in SBCL--https://bugs.launchpad.net/sbcl/+bug/310120--that
+prevents trivia:match from working correctly when classes are defined in the
+same file as the match form its being used in."
+  `(eval-when (:compile-toplevel :load-toplevel :execute)
+     (defclass ,class-name ,super-classes
+       ,slots
+       ,@options)))
 
 (define-matchable-class result (lisp-ast)
   ((start :initarg :start :initform (when *string* 0)
