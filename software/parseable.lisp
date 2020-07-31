@@ -614,7 +614,7 @@ If no suitable points are found the returned points may be nil."))
       ((error (lambda (e)
                 (declare (ignore e))
                 (when-let ((ofile (original-path sw)))
-                  (warn "Failure in parse-asts: original-path = ~a~%"
+                  (warn "Failure in parse-asts: original-path = ~a"
                         ofile)))))
     (call-next-method)))
 
