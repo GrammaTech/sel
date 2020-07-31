@@ -43,6 +43,7 @@
            :remove-expression-features
            :remove-feature-support
            :compound-form-p
+           :compound-form-p*
            :get-compound-form-args
            :quote-p
            :quasiquote-p
@@ -831,20 +832,23 @@ returned."
                 (collect-function-info (form)
                   "Collects info about the function that is defined
                    in FORM."
-                  `((:name . ,(or (compound-form-p form)
-                                  (expression form)))
-                    (:decl . ,form)
-                    (:namespace . function)
-                    (:macro . ,*bindings-form-is-macro-p*)
-                    (:scope . ,,binding-form)))
+                  (let ((name-ast (or (compound-form-p* form) form)))
+                    `((:name . ,(expression name-ast))
+                      (:name-ast . ,name-ast)
+                      (:decl . ,form)
+                      (:namespace . function)
+                      (:macro . ,*bindings-form-is-macro-p*)
+                      (:scope . ,,binding-form))))
                 (collect-function-info* (form)
                   "Collects info about the function that is defined
                    in FORM. This is used for defun-style forms."
-                  `((:name . ,(expression (car (get-compound-form-args form))))
-                    (:decl . ,form)
-                    (:namespace . function)
-                    (:macro . ,*bindings-form-is-macro-p*)
-                    (:scope . ,,binding-form))))
+                  (let ((name-ast (car (get-compound-form-args form))))
+                    `((:name . ,(expression name-ast))
+                      (:name-ast . ,name-ast)
+                      (:decl . ,form)
+                      (:namespace . function)
+                      (:macro . ,*bindings-form-is-macro-p*)
+                      (:scope . ,,binding-form)))))
          (declare (ignorable (function handle-as)
                              (function collect-function-info)
                              (function collect-function-info*)))
@@ -957,21 +961,20 @@ returned."
        (labels ((handle-as (symbol
                             &key (macro-p nil) (reference-ast ,reference-ast)
                             &aux (*bindings-form-is-macro-p* macro-p))
-                  "Convenience function that allows for
-                   easy transfer to another method specialization
-                   to HANDLE the current form as if it were a SYMBOL
-                   form."
+                  "Convenience function that allows for easy transfer to another
+                   method specialization to HANDLE the current form as if it were
+                   a SYMBOL form."
                   (get-vars-from-binding-form ,software symbol ,binding-form
                                               :reference-ast ,reference-ast))
                 (collect-var-info (form)
-                  "Collects info about the variable that is defined
-                   in FORM."
-                  `((:name . ,(or (compound-form-p form)
-                                  (expression form)))
-                    (:decl . ,form)
-                    (:namespace . variable)
-                    (:macro . ,*bindings-form-is-macro-p*)
-                    (:scope . ,,binding-form))))
+                  "Collects info about the variable that is defined in FORM."
+                  (let ((name-ast (or (compound-form-p* form) form)))
+                    `((:name . ,(expression name-ast))
+                      (:name-ast . ,name-ast)
+                      (:decl . ,form)
+                      (:namespace . variable)
+                      (:macro . ,*bindings-form-is-macro-p*)
+                      (:scope . ,,binding-form)))))
          (declare (ignorable (function handle-as) (function collect-var-info)))
          ,@body))))
 
@@ -1000,18 +1003,20 @@ Uses REFERENCE-AST to determine what's in scope of the default value forms."
                     (children
                      (list* (@@ 3 _) name _)))
                    _)))
-                (expression name))))
+                name)))
            (collect-var-info* (form)
              "An extended version of collect-var-info
               that handles the case where a keyword argument
               has a variable name that differs from the keyword."
-             `((:name . ,(or (get-key-special-case form)
-                             (compound-form-p form)
-                             (expression form)))
-               (:decl . ,form)
-               (:namespace . variable)
-               (:macro . ,*bindings-form-is-macro-p*)
-               (:scope . ,binding-form)))
+             (let ((name-ast (or (get-key-special-case form)
+                                 (compound-form-p* form)
+                                 form)))
+               `((:name . ,(expression name-ast))
+                 (:name-ast . ,name-ast)
+                 (:decl . ,form)
+                 (:namespace . variable)
+                 (:macro . ,*bindings-form-is-macro-p*)
+                 (:scope . ,binding-form))))
            (get-parameter-asts ()
              "Returns all asts in the children of lambda list
               that aren't symbols starting with '&'."
@@ -1310,6 +1315,14 @@ provided, return T if the car of the form is eq to NAME."
      (cond
        (name (eq name form-name))
        ((symbolp form-name) form-name)))))
+
+(-> compound-form-p* (lisp-ast) t)
+(defun compound-form-p* (ast)
+  "If the AST is a compound form, return the AST in the car of the form."
+  (match ast
+    ((lisp-ast
+      (children (list* _ form-name-ast _)))
+     form-name-ast)))
 
 (-> get-compound-form-args (lisp-ast) list)
 (defun get-compound-form-args (ast)
