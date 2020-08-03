@@ -10,4 +10,4 @@ and evaluation methods are implemented on top of this interface
 supporting automation of common software engineering tasks through
 Search Based Software Engineering (SBSE) techniques.
 
-See the manual, available at http://GrammaTech.github.io/sel.
+See the manual, available at https://grammatech.github.io/sel/#Top.
