@@ -333,80 +333,60 @@ in textual (sorted) order.")
                     &key &allow-other-keys)
   nil)
 
+(defmethod convert :around ((to-type (eql 'python-ast)) (spec list)
+                            &rest args &key &allow-other-keys
+                            &aux (spec-class (nest (make-keyword)
+                                                   (string-upcase)
+                                                   (translate-camelcase-name)
+                                                   (aget :class spec))))
+  "Wrapper around convert to perform various fixups on the SPEC from python."
+  ;; (1) For certain types of ASTs, the children, as reported by
+  ;; the python-astdump script, are not in textual order.  For
+  ;; these AST types, we append the children into a list
+  ;; which may be sorted."
+  (case spec-class
+    (:dict
+      (setf spec
+            (cons (cons :elts
+                        (append (aget :keys spec)
+                                (aget :values spec)))
+                  (adrop '(:keys :values) spec))))
+    (:arguments
+      (setf spec
+            (cons (cons :elts
+                        (append (aget :posonlyargs spec)
+                                (aget :args spec)
+                                (aget :defaults spec)
+                                (when-let ((vararg (aget :vararg spec)))
+                                  (list vararg))
+                                (aget :kwonlyargs spec)
+                                (aget :kw-defaults spec)
+                                (when-let ((kwargs (aget :kwargs spec)))
+                                  (list kwargs))))
+                  (adrop '(:posonlyargs :args :defaults :vararg
+                           :kwonlyargs :kw-defaults :kwarg) spec)))))
+
+  ;; (2) Represent :ctx, :op, and :ops fields as annotations instead
+  ;; of AST children.  Additionally, drop nil annotations."
+  (setf spec
+        (iter (for (key . value) in spec)
+              (cond ((eq key :ctx)
+                     (collect (cons key (nest (make-keyword)
+                                              (string-upcase)
+                                              (aget :class value)))))
+                    ((eq key :op)
+                     (collect (cons key (aget :class value))))
+                    ((eq key :ops)
+                     (collect (cons key (mapcar {aget :class} value))))
+                    ((not (null value))
+                     (collect (cons key value))))))
+
+  (apply #'call-next-method to-type spec args))
+
 (defmethod convert ((to-type (eql 'python-ast)) (spec list)
                     &key &allow-other-keys)
   "Create a PYTHON AST from the SPEC (specification) list."
-  (let* ((raw-type (nest (make-keyword)
-                         (string-upcase)
-                         (translate-camelcase-name)
-                         (aget :class spec)))
-         (type (symbol-cat 'py raw-type))
-         (child-types (aget raw-type +python-children+ :test #'member)))
-    (labels ((drop-class (spec)
-               "Drop the :class key/value pair from SPEC."
-               (adrop '(:class) spec))
-             (normalize-children (spec)
-               "For certain types of ASTs, the children, as reported by
-               the python-astdump script, are not in textual order.  For
-               these AST types, we append the children into a list
-               which may be sorted."
-               (case type
-                 (py-dict
-                   (cons (cons :elts
-                               (append (aget :keys spec)
-                                       (aget :values spec)))
-                         (adrop '(:keys :values) spec)))
-                 (py-arguments
-                   (cons (cons :elts
-                               (append (aget :posonlyargs spec)
-                                       (aget :args spec)
-                                       (aget :defaults spec)
-                                       (when-let ((vararg (aget :vararg spec)))
-                                         (list vararg))
-                                       (aget :kwonlyargs spec)
-                                       (aget :kw-defaults spec)
-                                       (when-let((kwargs (aget :kwargs spec)))
-                                         (list kwargs))))
-                         (adrop '(:posonlyargs :args :defaults :vararg
-                                  :kwonlyargs :kw-defaults :kwarg) spec)))
-                 (t spec)))
-             (normalize-annotations (spec)
-               "Represent :ctx, :op, and :ops fields as annotations instead
-               of AST children.  Additionally, drop nil annotations."
-               (iter (for (key . value) in spec)
-                     (cond ((eq key :ctx)
-                            (collect (cons key (nest (make-keyword)
-                                                     (string-upcase)
-                                                     (aget :class value)))))
-                           ((eq key :op)
-                            (collect (cons key (aget :class value))))
-                           ((eq key :ops)
-                            (collect (cons key (mapcar {aget :class} value))))
-                           ((not (null value))
-                            (collect (cons key value))))))
-             (normalize-spec (spec)
-               "Normalize the SPEC given from the python-astdump script,
-               removing the class name, appending the children of certain
-               AST types into a flat list, and representing :ctx, :op, and
-               :ops fields as annotations instead of AST children."
-               (nest (normalize-annotations)
-                     (normalize-children)
-                     (drop-class spec))))
-      (apply #'make-instance type
-             (mappend
-              (lambda (field)
-                (destructuring-bind (key . value) field
-                  (list (if (find key child-types :key #'car)
-                            (make-keyword (symbol-cat 'py key))
-                            key)
-                        (if-let ((spec (find key child-types :key #'car)))
-                          (destructuring-bind (key . arity) spec
-                            (declare (ignorable key))
-                            (ecase arity
-                              (1 (convert 'python-ast value))
-                              (0 (mapcar {convert 'python-ast} value))))
-                          value))))
-              (normalize-spec spec))))))
+  (convert-js-or-python 'python-ast spec +python-children+))
 
 (defmethod parse-asts ((obj python) &optional (source (genome-string obj)))
   (convert 'python-ast source))

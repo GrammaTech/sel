@@ -247,63 +247,53 @@ raw list of ASTs in OBJ for use in `parse-asts`."
                     &key &allow-other-keys)
   nil)
 
+(defmethod convert :around ((to-type (eql 'javascript-ast)) (spec list)
+                            &rest args &key &allow-other-keys
+                            &aux (spec-type (nest (make-keyword)
+                                                  (string-upcase)
+                                                  (translate-camelcase-name)
+                                                  (aget :type spec))))
+  "Wrapper around convert to perform various fixups on the SPEC from acorn."
+  ;; 1. For a property with no value (e.g., "p" in "{p, q}")
+  ;; it sets the value to the key so we will explicitly drop
+  ;; the value.
+  ;;
+  ;; 2. For import/export specifier the imported and local
+  ;; children may reference the same text.
+  ;;
+  ;; 3. For template literals, the children are not in textual
+  ;; order from acorn (quasis may be intermingled with expressions).
+  ;; As we require children to be in textual order for exact
+  ;; reproduction with `source-text', we create an concatenate
+  ;; the child fields together and sort the children in textual
+  ;; order as the "body" of the template literal.
+  (case spec-type
+    (:property
+     (when (= (aget :start (aget :key spec))
+              (aget :start (aget :value spec)))
+       (setf spec (adrop '(:value) spec))))
+    (:export-specifier
+     (when (equal (aget :exported spec) (aget :local spec))
+       (setf spec (adrop '(:local) spec))))
+    ((or :import-specifier
+         :import-default-specifier
+         :import-namespace-specifier)
+     (when (equal (aget :imported spec) (aget :local spec))
+       (setf spec (adrop '(:local) spec))))
+    (:template-literal
+     (setf spec
+           (nest (append spec)
+                 (adrop '(:quasis :expressions))
+                 (list (cons :body (sort (append (aget :quasis spec)
+                                                 (aget :expressions spec))
+                                           #'< :key {aget :end})))))))
+
+  (apply #'call-next-method to-type spec args))
+
 (defmethod convert ((to-type (eql 'javascript-ast)) (spec list)
                     &key &allow-other-keys)
   "Create a JAVASCRIPT AST from the SPEC (specification) list."
-  (let* ((raw-type (make-keyword (string-upcase (translate-camelcase-name
-                                                 (aget :type spec)))))
-         (type (symbol-cat 'js raw-type))
-         (child-types (aget raw-type +js-children+ :test #'member)))
-    ;; Fix inaccuracies in the parsed ASTs we get from acorn.
-    ;;
-    ;; 1. For a property with no value (e.g., "p" in "{p, q}")
-    ;; it sets the value to the key so we will explicitly drop
-    ;; the value.
-    ;;
-    ;; 2. For import/export specifier the imported and local
-    ;; children may reference the same text.
-    ;;
-    ;; 3. For template literals, the children are not in textual
-    ;; order from acorn (quasis may be intermingled with expressions).
-    ;; As we require children to be in textual order for exact
-    ;; reproduction with `source-text', we create an concatenate
-    ;; the child fields together and sort the children in textual
-    ;; order as the "body" of the template literal.
-    (case type
-      (js-property
-       (when (= (aget :start (aget :key spec))
-                (aget :start (aget :value spec)))
-         (setf spec (adrop '(:value) spec))))
-      (js-export-specifier
-       (when (equal (aget :exported spec) (aget :local spec))
-         (setf spec (adrop '(:local) spec))))
-      ((or js-import-specifier
-           js-import-default-specifier
-           js-import-namespace-specifier)
-       (when (equal (aget :imported spec) (aget :local spec))
-         (setf spec (adrop '(:local) spec))))
-      (js-template-literal
-       (setf spec
-             (nest (append spec)
-                   (adrop '(:quasis :expressions))
-                   (list (cons :body (sort (append (aget :quasis spec)
-                                                   (aget :expressions spec))
-                                           #'< :key {aget :end})))))))
-    (apply #'make-instance type
-           (mappend
-            (lambda (field)
-              (destructuring-bind (key . value) field
-                (list (if (find key child-types :key #'car)
-                          (make-keyword (symbol-cat 'js key))
-                          key)
-                      (if-let ((spec (find key child-types :key #'car)))
-                        (destructuring-bind (key . arity) spec
-                          (declare (ignorable key))
-                          (ecase arity
-                            (1 (convert 'javascript-ast value))
-                            (0 (mapcar {convert 'javascript-ast} value))))
-                        value))))
-            (adrop '(:type) spec)))))
+  (convert-js-or-python 'javascript-ast spec +js-children+))
 
 (defmethod parse-asts ((obj javascript) &optional (source (genome-string obj)))
   (convert 'javascript-ast source))

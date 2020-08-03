@@ -9,10 +9,12 @@
   (:use :gt/full
         :software-evolution-library
         :software-evolution-library/software/parseable)
+  (:import-from :cffi :translate-camelcase-name)
   (:export :javascript-or-python
            :javascript-or-python-ast
            :interleaved-text
            :expand-js-or-py-ast-classes
+           :convert-js-or-python
            :ast-type-to-rebind-p
            :ast-annotation-to-rebind))
 (in-package :software-evolution-library/software/javascript-or-python)
@@ -56,6 +58,37 @@ SUPERCLASS and PREFIX."
          (:documentation
           ,(format nil "AST node class for ~a ASTs." class)))))
    ast-class-list))
+
+(defun convert-js-or-python (superclass spec children-definitions)
+  "Common function for converting an AST SPECification list from python or
+acorn into an AST.
+
+* SUPERCLASS superclass of the AST type to create (python|javascript-ast)
+* SPEC AST specification list from python or acorn
+* CHILDREN-DEFINITIONS list mapping AST types to their child slots"
+  (let* ((superclass-key (make-keyword superclass))
+         (prefix (if (eq superclass-key :python-ast) 'py 'js))
+         (type-field (if (eq superclass-key :python-ast) :class :type))
+         (type (nest (make-keyword)
+                     (string-upcase)
+                     (translate-camelcase-name)
+                     (aget type-field spec)))
+         (child-types (aget type children-definitions :test #'member)))
+    (apply #'make-instance (symbol-cat prefix type)
+           (mappend
+            (lambda (field)
+              (destructuring-bind (key . value) field
+                (list (if (find key child-types :key #'car)
+                          (make-keyword (symbol-cat prefix key))
+                          key)
+                      (if-let ((spec (find key child-types :key #'car)))
+                        (destructuring-bind (key . arity) spec
+                          (declare (ignorable key))
+                          (ecase arity
+                            (1 (convert superclass value))
+                            (0 (mapcar {convert superclass} value))))
+                        value))))
+            (adrop (list type-field) spec)))))
 
 (defmethod source-text ((ast javascript-or-python-ast) &optional stream)
   (when (interleaved-text ast)
