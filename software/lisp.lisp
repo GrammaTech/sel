@@ -69,7 +69,15 @@
            :fun-body
            :define-fun-body-alias
            :lambda-list
-           :define-lambda-list-alias))
+           :define-lambda-list-alias
+           :collect-symbols
+           :literalp
+           :collect-if
+           :scope-contains-function-p
+           :scope-contains-variable-p
+           :bindings-contains-function-p
+           :bindings-contains-variable-p
+           :car-of-enclosing-form-p))
 (in-package :software-evolution-library/software/lisp)
 (in-readtable :curry-compose-reader-macros)
 
@@ -1304,6 +1312,98 @@ the specialization for CAR-OF-FORM."
     (get-local-fun-body function-declaration)))
 
 
+;;; Symbols
+(defun map-symbol-information (obj leaf-ast hash-table)
+  "In HASH-TABLE, map LEAF-AST to information on what it might be."
+  ;; NOTE: there will be some false positives here, but
+  ;;       this probably won't be a problem for the
+  ;;       immediate use case.
+  ;;       This currently falls apart with quotes.
+  ;;       It will act incorrectly with special variables too.
+  ;;       Various reader macros, such as #' or {}, can cause problems.
+  (unless (children leaf-ast)
+    (let ((bindings (bindings obj leaf-ast :all t))
+          (symbol (expression leaf-ast)))
+      (setf
+       (gethash leaf-ast hash-table)
+       (if (car-of-enclosing-form-p obj leaf-ast)
+           ;; Function namespace
+           (cond-let binding
+             ;; Check for literal first to prevent following
+             ;;  functions from throwing an error.
+             ((literalp leaf-ast) '(:literal))
+             ((special-operator-p symbol) '(:special-form))
+             ((bindings-contains-function-p bindings symbol :allow-macros t)
+              ;; Back-patch if the ast has been set to something
+              ;;  as it's most likely incorrect.
+              (symbol-macrolet ((binding-type (gethash (aget :name-ast binding)
+                                                       hash-table)))
+                (when binding-type
+                  (setf binding-type '(:function-declaration))))
+              ;; Return the full binding for now.
+              (if (aget :macro binding)
+                  `(:macro ,binding)
+                  `(:function ,binding)))
+             ((macro-function symbol) '(:macro))
+             ((fboundp symbol) '(:function))
+             ;; default to symbol for now.
+             (t '(:symbol)))
+           ;; Variable namespace
+           (cond-let binding
+             ;; Check for literal first to prevent following
+             ;;  functions from throwing an error.
+             ((literalp leaf-ast) '(:literal))
+             ((bindings-contains-variable-p bindings symbol :allow-macros t)
+              ;; Back-patch if the ast has been set to something
+              ;;  as it's most likely incorrect.
+              (symbol-macrolet ((binding-type (gethash (aget :name-ast binding)
+                                                       hash-table)))
+                (when binding-type
+                  (setf binding-type '(:variable-declaration))))
+              ;; Return the full binding for now.
+              (if (aget :macro binding)
+                  `(:symbol-macro ,binding)
+                  `(:variable ,binding)))
+             ((not (eq symbol (macroexpand-1 symbol))) '(:symbol-macro))
+             ((boundp symbol) '(:variable))
+             ;; default to symbol for now.
+             (t '(:symbol))))))))
+
+(defun collect-symbols
+    (obj ast
+     &aux (table (make-hash-table))
+       (*bindings-allows-macros-p* t)
+       (*bindings-allows-symbol-macros-p* t))
+  "Collect the symbols in AST into a hash table.
+The hash table maps symbol asts to their possible usage.
+This can be in the form of any of the following:
+
+  (:special-form)
+  (:function-declaration)
+  (:macro)
+  (:macro binding-information)
+  (:function)
+  (:function binding-information)
+  (:variable-declaration)
+  (:symbol-macro)
+  (:symbol-macro binding-information)
+  (:variable)
+  (:variable binding-information)
+  (:literal)
+  (:symbol)
+
+binding-information will be in the same form as
+returned by #'bindings and will contain all information
+gathered for that specific symbol."
+  (mapc (lambda (leaf-ast)
+          (map-symbol-information obj leaf-ast table))
+        (collect-if (lambda (child)
+                      (and (typep child 'expression-result)
+                           (not (children child))))
+                    ast))
+  table)
+
+
 ;;; Utility
 (-> compound-form-p (lisp-ast &key (:name symbol)) t)
 (defun compound-form-p (ast &key name)
@@ -1331,6 +1431,14 @@ provided, return T if the car of the form is eq to NAME."
     ((lisp-ast
       (children (list* _ _ args)))
      (remove-if-not {typep _ 'expression-result} args))))
+
+(-> literalp (lisp-ast) boolean)
+(defun literalp (ast)
+  "Return T if AST likely represents a literal."
+  (typecase (expression ast)
+    (cons nil)
+    (symbol nil)
+    (t t)))
 
 (-> is-keyword-p (lisp-ast) t)
 (defun is-keyword-p (ast)
@@ -1468,6 +1576,55 @@ later than."
   (path-later-p (ast-path obj later-than)
                 (ast-path obj earlier-than)))
 
+(-> car-of-enclosing-form-p (lisp lisp-ast) t)
+(defun car-of-enclosing-form-p (obj ast)
+  "Return T if AST is the car of its enclosing form in OBJ."
+  (match (lookup (genome obj) (enclosing-scope obj ast))
+    ((lisp-ast
+      (children (list* _ car _)))
+     (eq car ast))))
+
+(-> scope-contains-function-p (list t) list)
+(defun scope-contains-function-p (scope symbol)
+  "Return the binding for SYMBOL in a list if it is in SCOPE."
+  (find-if «and [{equal symbol} {aget :name}]
+                [{equal 'function} {aget :namespace}]»
+           scope))
+
+(-> scope-contains-variable-p (list t) list)
+(defun scope-contains-variable-p (scope symbol)
+  "Return the binding for SYMBOL in a list if it is in SCOPE."
+  (find-if «and [{equal symbol} {aget :name}]
+                [{equal 'variable} {aget :namespace}]»
+           scope))
+
+(-> bindings-contains-function-p (list t &key (:allow-macros t)) list)
+(defun bindings-contains-function-p (bindings symbol &key allow-macros)
+  "Return the binding for SYMBOL if it is in BINDINGS."
+  (iter (for scope in (reverse bindings))
+        (when-let ((binding (scope-contains-function-p scope symbol)))
+          (unless (and (not allow-macros) (aget :macro binding))
+            (return binding)))))
+
+(-> bindings-contains-variable-p (list t &key (:allow-macros t)) list)
+(defun bindings-contains-variable-p (bindings symbol &key allow-macros)
+  "Return the binding for SYMBOL if it is in BINDINGS."
+  (iter (for scope in (reverse bindings))
+        (when-let ((binding (scope-contains-variable-p scope symbol)))
+          (unless (and (not allow-macros) (aget :macro binding))
+            (return binding)))))
+
+
+(-> collect-if (function lisp-ast) list)
+(defun collect-if (predicate tree)
+  "Traverse TREE collecting every node that satisfies PREDICATE."
+  ;; reverse it to maintain the order it was found in.
+  (reverse
+   (reduce (lambda (accum ast)
+             (if (funcall predicate ast)
+                 (cons ast accum)
+                 accum))
+           tree)))
 
 ;;; Example
 #+example
