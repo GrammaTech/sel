@@ -351,3 +351,43 @@ special variable is set."
   (with-software-file ("defmethod-2" obj ast)
     (is (eq (find-compound-form 'arg ast)
             (lambda-list 'defmethod (find-compound-form 'defmethod ast))))))
+
+(deftest lisp-collect-symbols-1 ()
+  "collect-symbols identifies variable declarations and their uses."
+  (with-software-file ("let-1" obj ast)
+    (labels ((is-in-symbol-map-as (ast mapping symbol-map)
+               (is (eq mapping (car (gethash ast symbol-map)))
+                   "~a does not map to ~a in ~a." ast mapping symbol-map))
+             (find-var-decl (name)
+               (find-if (lambda (ast)
+                          (and (car-of-enclosing-form-p obj ast)
+                               (eq name (expression ast))))
+                        ast))
+             (find-var-usage (name)
+               (find-if (lambda (ast)
+                          (and (not (car-of-enclosing-form-p obj ast))
+                               (eq name (expression ast))))
+                        ast)))
+      (let ((symbol-map (collect-symbols obj ast))
+            (var-decls (list (find-var-decl 'x)
+                             (find-var-decl 'y)
+                             (find-var-decl 'z)))
+            (var-usages (list (find-var-usage 'x)
+                              (find-var-usage 'y)
+                              (find-var-usage 'z))))
+        ;; Variable declarations are labeled correctly.
+        (mapcar (lambda (ast)
+                  (is-in-symbol-map-as ast :variable-declaration symbol-map))
+                var-decls)
+        ;; Variable usage is labeled correctly.
+        (mapcar (lambda (ast)
+                  (is-in-symbol-map-as ast :variable symbol-map))
+                var-usages)
+        ;; Symbol information in the symbol map contains reference
+        ;;  to the variable declaration.
+        (mapcar (lambda (usage decl)
+                  (is (eq decl (aget :name-ast (cadr
+                                                (gethash usage symbol-map))))
+                      "~a  does not contain the binding of ~a." usage decl))
+                var-usages
+                var-decls)))))
