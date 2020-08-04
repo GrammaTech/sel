@@ -49,8 +49,8 @@
            :scopes
            :get-vars-in-scope
            :parse-asts
+           :good-asts
            :bad-asts
-           ;; :good-stmts
            :good-mutation-targets
            :bad-mutation-targets
            ;; :mutation-targets
