@@ -5,7 +5,8 @@
         :cl-store
         :bordeaux-threads
         :software-evolution-library
-        :software-evolution-library/components/file)
+        :software-evolution-library/components/file
+        :software-evolution-library/utility/range)
   (:export ;; ASTs
            :ast
            :functional-tree-ast
@@ -49,6 +50,10 @@
            :scopes
            :get-vars-in-scope
            :parse-asts
+           :ast-source-ranges
+           :asts-containing-source-location
+           :asts-contained-in-source-range
+           :asts-intersecting-source-range
            :good-asts
            :bad-asts
            :good-mutation-targets
@@ -617,6 +622,67 @@ If no suitable points are found the returned points may be nil."))
                   (warn "Failure in parse-asts: original-path = ~a"
                         ofile)))))
     (call-next-method)))
+
+(defgeneric ast-source-ranges (software)
+  (:documentation "Return (AST . SOURCE-RANGE) for each AST in OBJ.")
+  (:method ((obj parseable))
+    (labels
+        ((source-location (line column)
+           (make-instance 'source-location :line line :column column))
+         (scan-ast (ast line column)
+           "Scan entire AST, updating line and column. Return the new values."
+           (let* ((begin (source-location line column))
+                  (ranges
+                   (if (stringp ast)
+                       ;; String literal
+                       (iter (for char in-string ast)
+                             (incf column)
+                             (when (eq char #\newline)
+                               (incf line)
+                               (setf column 1)))
+
+                       ;; Subtree
+                       (iter (for child in (children ast))
+                             (appending
+                              (multiple-value-bind
+                                    (ranges new-line new-column)
+                                  (scan-ast child line column)
+                                (setf line new-line
+                                      column new-column)
+                                ranges)
+                              into child-ranges)
+                             (finally
+                              (return
+                                (cons (cons ast
+                                            (make-instance 'source-range
+                                              :begin begin
+                                              :end (source-location
+                                                    line column)))
+                                      child-ranges)))))))
+
+             (values ranges line column))))
+      (cdr (scan-ast (genome obj) 1 1)))))
+
+(defgeneric asts-containing-source-location (software location)
+  (:documentation "Return a list of ASTs in SOFTWARE containing LOC.")
+  (:method ((obj parseable) (loc source-location))
+    (nest (mapcar #'car)
+          (remove-if-not [{contains _ loc} #'cdr])
+          (ast-source-ranges obj))))
+
+(defgeneric asts-contained-in-source-range (software range)
+  (:documentation "Return a list of ASTs in SOFTWARE contained in RANGE.")
+  (:method ((obj parseable) (range source-range))
+    (nest (mapcar #'car)
+          (remove-if-not [{contains range} #'cdr])
+          (ast-source-ranges obj))))
+
+(defgeneric asts-intersecting-source-range (software range)
+  (:documentation "Return a list of ASTs in OBJ intersecting RANGE.")
+  (:method ((obj parseable) (range source-range))
+    (nest (mapcar #'car)
+          (remove-if-not [{intersects range} #'cdr])
+          (ast-source-ranges obj))))
 
 
 ;;; Retrieving ASTs
