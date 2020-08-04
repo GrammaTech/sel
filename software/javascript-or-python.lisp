@@ -31,6 +31,17 @@
                      :documentation "Interleaved text between children."))
   (:documentation "Base class for python and JavaScript ASTs."))
 
+(defmethod initialize-instance :after ((ast javascript-or-python-ast)
+                                       &key &allow-other-keys)
+  "Wrapper around AST creation to populate the interleaved text field
+with empty strings between each child if the field is not populated."
+  (setf (slot-value ast 'interleaved-text)
+        (or (interleaved-text ast)
+            (nest (repeat-sequence '(""))
+                  (1+)(length)
+                  (remove nil)
+                  (children ast)))))
+
 (defun expand-js-or-py-ast-classes (superclass prefix spec)
   "Returns a list of AST node definitions derived from SPEC with the given
 SUPERCLASS and PREFIX."
@@ -90,14 +101,24 @@ acorn into an AST.
                         value))))
             (adrop (list type-field) spec)))))
 
+(defmethod source-text :before ((ast javascript-or-python-ast)
+                                &optional stream
+                                &aux (children (remove nil (children ast))))
+  (declare (ignorable stream))
+  (assert (= (1+ (length children)) (length (interleaved-text ast))) (ast)
+          "The AST to be printed has ~d children and ~d element(s) of ~
+          interleaved text.  The AST must have interleaved text between ~
+          each child, ~d element(s) total."
+          (length children) (length (interleaved-text ast))
+          (1+ (length children))))
+
 (defmethod source-text ((ast javascript-or-python-ast) &optional stream)
-  (when (interleaved-text ast)
-    (write-string (car (interleaved-text ast)) stream)
-    (mapc (lambda (child text)
-            (source-text child stream)
-            (write-string text stream))
-          (remove nil (children ast))
-          (cdr (interleaved-text ast)))))
+  (write-string (car (interleaved-text ast)) stream)
+  (mapc (lambda (child text)
+          (source-text child stream)
+          (write-string text stream))
+        (remove nil (children ast))
+        (cdr (interleaved-text ast))))
 
 (defgeneric ast-type-to-rebind-p (ast)
   (:documentation "Return T if AST is of a type where its variables/functions
