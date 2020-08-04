@@ -15,6 +15,7 @@
            :interleaved-text
            :expand-js-or-py-ast-classes
            :convert-js-or-python
+           :sorted-children
            :ast-type-to-rebind-p
            :ast-annotation-to-rebind))
 (in-package :software-evolution-library/software/javascript-or-python)
@@ -101,9 +102,26 @@ acorn into an AST.
                         value))))
             (adrop (list type-field) spec)))))
 
+(defgeneric sorted-children (ast)
+  (:documentation "Return the children of AST sorted in textual order.")
+  (:method :before ((ast javascript-or-python-ast)
+                    &aux (children (remove nil (children ast))))
+    (assert (or (null (ast-annotation ast :child-order))
+                (= (length children)
+                   (length (ast-annotation ast :child-order))))
+            (ast)
+            "The number of elements in the AST's :child-order annotation ~
+            defining the order of the children does not match the number ~
+            of children, ~d versus ~d."
+            (length (ast-annotation ast :child-order)) (length children)))
+  (:method ((ast javascript-or-python-ast))
+    (if (ast-annotation ast :child-order)
+        (mapcar {lookup ast} (ast-annotation ast :child-order))
+        (remove nil (children ast)))))
+
 (defmethod source-text :before ((ast javascript-or-python-ast)
                                 &optional stream
-                                &aux (children (remove nil (children ast))))
+                                &aux (children (sorted-children ast)))
   (declare (ignorable stream))
   (assert (= (1+ (length children)) (length (interleaved-text ast))) (ast)
           "The AST to be printed has ~d children and ~d element(s) of ~
@@ -117,7 +135,7 @@ acorn into an AST.
   (mapc (lambda (child text)
           (source-text child stream)
           (write-string text stream))
-        (remove nil (children ast))
+        (sorted-children ast)
         (cdr (interleaved-text ast))))
 
 (defgeneric ast-type-to-rebind-p (ast)

@@ -98,6 +98,8 @@
     ((:if-exp) (:body . 1)
                (:test . 1)
                (:orelse . 1))
+    ((:dict) (:keys . 0)
+             (:values . 0))
     ((:list-comp :set-comp :generator-exp) (:elt . 1)
                                            (:generators . 0))
     ((:dict-comp) (:key . 1)
@@ -112,7 +114,7 @@
              (:keywords . 0))
     ((:subscript) (:value . 1)
                   (:slice . 1))
-    ((:dict :list :set :tuple) (:elts . 0))
+    ((:list :set :tuple) (:elts . 0))
     ((:slice) (:lower . 1) (:upper . 1) (:step . 1))
     ((:ext-slice) (:dims . 0))
     ((:comprehension) (:target . 1)
@@ -120,7 +122,13 @@
                       (:ifs . 0))
     ((:except-handler) (:type . 1)
                        (:body . 0))
-    ((:arguments) (:elts . 0))
+    ((:arguments) (:posonlyargs . 0)
+                  (:args . 0)
+                  (:defaults . 0)
+                  (:vararg . 1)
+                  (:kwonlyargs . 0)
+                  (:kw-defaults . 0)
+                  (:kwarg . 1))
     ((:arg) (:annotation . 1))
     ((:keyword) (:value . 1))
     ((:withitem) (:context-expr . 1)
@@ -281,19 +289,27 @@ in textual (sorted) order.")
                          (setf (slot-value ast name)
                                (remove-if-not #'start-and-end-p value))))))
                (child-slots ast)))
-       (sort-children (ast)
-         "Destructively sort the children of certain AST types to ensure
-         they are in textual order."
+       (add-child-order-annotation (ast)
+         "Destructively modify AST, adding a :child-order annotation
+         defining the textual order of the children for those AST
+         types whose children are not in textual order by default."
          (when (member (type-of ast) +ast-types-with-unsorted-children+)
-           (setf (slot-value ast 'py-elts)
-                 (sort (slot-value ast 'py-elts) #'< :key #'start))))
+           (let* ((children (remove nil (children ast)))
+                  (sorted-children (sort children #'< :key #'start)))
+             (setf (slot-value ast 'annotations)
+                   (if (equal children sorted-children)
+                       (ast-annotations ast)
+                       (cons (cons :child-order
+                                   (mapcar {position _ ast} sorted-children))
+                             (ast-annotations ast)))))))
        (normalized-children (ast)
-         "Return the children of AST after destructively modifying AST
-         to remove children without start and end offsets and to sort
-         children textually."
+         "Return the sorted, non-nil children of AST after destructively
+         modifying AST to remove children without start and end offsets
+         and adding a :child-order annotation to those AST types whose
+         children are not in textual order by default."
          (remove-children-without-start-end-offsets ast)
-         (sort-children ast)
-         (remove nil (children ast)))
+         (add-child-order-annotation ast)
+         (sorted-children ast))
        (ranges (children from to)
          "Return the offsets of the source text ranges between CHILDREN."
          (iter (for child in children)
@@ -334,39 +350,9 @@ in textual (sorted) order.")
   nil)
 
 (defmethod convert :around ((to-type (eql 'python-ast)) (spec list)
-                            &rest args &key &allow-other-keys
-                            &aux (spec-class (nest (make-keyword)
-                                                   (string-upcase)
-                                                   (translate-camelcase-name)
-                                                   (aget :class spec))))
+                            &rest args &key &allow-other-keys)
   "Wrapper around convert to perform various fixups on the SPEC from python."
-  ;; (1) For certain types of ASTs, the children, as reported by
-  ;; the python-astdump script, are not in textual order.  For
-  ;; these AST types, we append the children into a list
-  ;; which may be sorted."
-  (case spec-class
-    (:dict
-      (setf spec
-            (cons (cons :elts
-                        (append (aget :keys spec)
-                                (aget :values spec)))
-                  (adrop '(:keys :values) spec))))
-    (:arguments
-      (setf spec
-            (cons (cons :elts
-                        (append (aget :posonlyargs spec)
-                                (aget :args spec)
-                                (aget :defaults spec)
-                                (when-let ((vararg (aget :vararg spec)))
-                                  (list vararg))
-                                (aget :kwonlyargs spec)
-                                (aget :kw-defaults spec)
-                                (when-let ((kwargs (aget :kwargs spec)))
-                                  (list kwargs))))
-                  (adrop '(:posonlyargs :args :defaults :vararg
-                           :kwonlyargs :kw-defaults :kwarg) spec)))))
-
-  ;; (2) Represent :ctx, :op, and :ops fields as annotations instead
+  ;; Represent :ctx, :op, and :ops fields as annotations instead
   ;; of AST children.  Additionally, drop nil annotations."
   (setf spec
         (iter (for (key . value) in spec)
@@ -501,7 +487,7 @@ AST ast to return the scopes for"
                                 (get-lhs-names ast)))
                        (py-arguments
                         (mapcar {ast-annotation _ :arg}
-                                (children ast)))
+                                (sorted-children ast)))
                        ((or py-global py-nonlocal)
                         (ast-annotation ast :names)))))
            (remove-duplicate-names (scope)

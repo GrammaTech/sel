@@ -55,9 +55,7 @@
   '(((:program) (:body . 0))
     ((:member-expression) (:object . 1) (:property . 1))
     ((:tagged-template-expression) (:tag . 1) (:quasi . 1))
-     ;; See the comment about js-template-literal in the `convert'
-     ;; method from list to javascript-ast.
-    ((:template-literal) (:body . 0))
+    ((:template-literal) (:quasis . 0) (:expressions . 0))
     ((:meta-property) (:meta . 1) (:property . 1))
     ((:property)
      ;; See the comment about js-property in the `convert' method from
@@ -210,6 +208,23 @@ raw list of ASTs in OBJ for use in `parse-asts`."
        (end (ast)
          "Return the end offset into STRING from the AST representation."
          (ast-annotation ast :end))
+       (add-child-order-annotation (ast)
+         "Destructively modify AST, adding a :child-order annotation
+         defining the textual order of the children for those AST
+         types whose children are not in textual order by default."
+         (when (typep ast 'js-template-literal)
+           (setf (slot-value ast 'annotations)
+                 (cons (cons :child-order
+                             (nest (mapcar {position _ ast})
+                                   (sort (remove nil (children ast)) #'<
+                                         :key #'end)))
+                       (ast-annotations ast)))))
+       (normalized-children (ast)
+         "Return the sorted, non-nil children of AST after destructively
+         modifying AST to add a :child-order annotation to those AST types
+         whose children are not in a textual order by default."
+         (add-child-order-annotation ast)
+         (sorted-children ast))
        (ranges (children from to)
          "Return the offsets of the source text ranges between CHILDREN."
          (iter (for child in children)
@@ -220,7 +235,7 @@ raw list of ASTs in OBJ for use in `parse-asts`."
                (finally (return (append ranges
                                         (list (cons (end child) to)))))))
        (w/interleaved-text (ast from to
-                            &aux (children (remove nil (children ast))))
+                            &aux (children (normalized-children ast)))
          "Destructively modify AST to populate the INTERLEAVED-TEXT
          field with the source text to be interleaved between the
          children of AST."
@@ -260,13 +275,6 @@ raw list of ASTs in OBJ for use in `parse-asts`."
   ;;
   ;; 2. For import/export specifier the imported and local
   ;; children may reference the same text.
-  ;;
-  ;; 3. For template literals, the children are not in textual
-  ;; order from acorn (quasis may be intermingled with expressions).
-  ;; As we require children to be in textual order for exact
-  ;; reproduction with `source-text', we create an concatenate
-  ;; the child fields together and sort the children in textual
-  ;; order as the "body" of the template literal.
   (case spec-type
     (:property
      (when (= (aget :start (aget :key spec))
@@ -279,14 +287,7 @@ raw list of ASTs in OBJ for use in `parse-asts`."
          :import-default-specifier
          :import-namespace-specifier)
      (when (equal (aget :imported spec) (aget :local spec))
-       (setf spec (adrop '(:local) spec))))
-    (:template-literal
-     (setf spec
-           (nest (append spec)
-                 (adrop '(:quasis :expressions))
-                 (list (cons :body (sort (append (aget :quasis spec)
-                                                 (aget :expressions spec))
-                                           #'< :key {aget :end})))))))
+       (setf spec (adrop '(:local) spec)))))
 
   (apply #'call-next-method to-type spec args))
 
