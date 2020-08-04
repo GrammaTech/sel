@@ -61,7 +61,8 @@ associated element of `*compilation-fixers*'.
         (lambda (e)
           (if (find-restart 'keep-partial-asts)
               (invoke-restart 'keep-partial-asts)
-              (error e)))))
+              (error e))))
+       (warning #'muffle-warning))
     ;; Tidy
     (clang-tidy obj)
     (loop :for attempt :below max-attempts :do
