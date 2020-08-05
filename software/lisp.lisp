@@ -77,7 +77,8 @@
            :scope-contains-variable-p
            :bindings-contains-function-p
            :bindings-contains-variable-p
-           :car-of-enclosing-form-p))
+           :car-of-enclosing-form-p
+           :map-arguments-to-parameters))
 (in-package :software-evolution-library/software/lisp)
 (in-readtable :curry-compose-reader-macros)
 
@@ -993,6 +994,78 @@ the specialization for BINDING-FORM."
   `(define-get-vars-from-binding-form ,binding-form-alias ()
      (handle-as ',binding-form)))
 
+(-> get-required-vars-from-lambda-list (lisp-ast) t)
+(defun get-required-vars-from-lambda-list (lambda-list)
+  "Return the required parameters of LAMBDA-LIST."
+  (iter
+    (for parameter in (children-of-type lambda-list 'expression-result))
+    (until (member (expression parameter) lambda-list-keywords))
+    (collect parameter)))
+
+(-> get-keyword-vars-from-lambda-list (lisp-ast) t)
+(defun get-keyword-vars-from-lambda-list (lambda-list)
+  "Return the keyword parameters and the position &key appears
+in LAMBDA-list as values."
+  (labels ((get-special-case (form)
+             "Gets the variable name of a keyword argument
+            when it has a keyword that varies from the
+            variable name."
+             (match form
+               ;; keyword special case
+               ((lisp-ast
+                 (children
+                  (list*
+                   _
+                   (lisp-ast
+                    (children
+                     (list* _ keyword _ name _)))
+                   _)))
+                (list name (expression keyword)))))
+           (get-var-name-and-keyword (ast)
+             "Get the variable name and the keyword associated with
+              it as a list."
+             (or (get-special-case ast)
+                 (let ((var-name (or (compound-form-p* ast)
+                                     ast)))
+                   (list var-name (make-keyword (expression var-name)))))))
+    (when-let* ((parameters (children-of-type lambda-list 'expression-result))
+                (keyword-position (position-if [{eq '&key} #'expression]
+                                               parameters)))
+      (values
+       (iter
+         (for parameter in (subseq parameters (1+ keyword-position)))
+         (until (member (expression parameter) lambda-list-keywords))
+         (collect (get-var-name-and-keyword parameter)))
+       keyword-position))))
+
+(-> get-optional-vars-from-lambda-list (lisp-ast) t)
+(defun get-optional-vars-from-lambda-list (lambda-list)
+  "Return the optional parameters and the position &optional appears
+in LAMBDA-list as values."
+  (flet ((get-var-name (ast)
+           (or (compound-form-p* ast)
+               ast)))
+    (when-let* ((parameters (children-of-type lambda-list 'expression-result))
+                (optional-position (position-if [{eq '&optional} #'expression]
+                                                parameters)))
+      (values
+       (iter
+         (for parameter in (subseq parameters (1+ optional-position)))
+         (until (member (expression parameter) lambda-list-keywords))
+         (collect (get-var-name parameter)))
+       optional-position))))
+
+(-> get-rest-from-lambda-list (lisp-ast) t)
+(defun get-rest-from-lambda-list (lambda-list)
+  "Return the rest parameters and the position &rest appears
+in LAMBDA-list as values."
+  (when-let* ((parameters (children-of-type lambda-list 'expression-result))
+              (rest-position (position-if [{eq '&rest} #'expression]
+                                              parameters)))
+    (values
+     (list (nth (1+ rest-position) parameters))
+     rest-position)))
+
 (defun get-vars-from-ordinary-lambda-list
     (obj binding-form lambda-list &key reference-ast)
   "Get the vars from LAMBDA-LIST treating it as an ordinary lambda list.
@@ -1312,7 +1385,7 @@ the specialization for CAR-OF-FORM."
     (get-local-fun-body function-declaration)))
 
 
-;;; Symbols
+;;; Symbol Mappings
 (defun map-symbol-information (obj leaf-ast hash-table)
   "In HASH-TABLE, map LEAF-AST to information on what it might be."
   ;; NOTE: there will be some false positives here, but
@@ -1403,6 +1476,73 @@ gathered for that specific symbol."
                     ast))
   table)
 
+(-> map-arguments-to-parameters (lisp lisp-ast) list)
+(defun map-arguments-to-parameters (obj funcall-ast)
+  "Map the arguments of FUNCALL-AST to its relevant function call in OBJ.
+The mapping will be from argument ast to parameter ast in an alist."
+  (when-let*
+      ((bindings (bindings obj funcall-ast :functions t))
+       (function-binding
+        (bindings-contains-function-p bindings (compound-form-p funcall-ast)))
+       (lambda-list-ast
+        (when-let ((function-name (aget :scope function-binding)))
+          (lambda-list (compound-form-p function-name)
+                       (aget :decl function-binding))))
+       (arg-list (get-compound-form-args funcall-ast)))
+    (flet ((get-required-mapping ()
+             "Return a mapping of required parameters to their
+              arguments in funcall-ast."
+             (cons
+              :required
+              (mapcar
+               (lambda (ast)
+                 (cons (pop arg-list) ast))
+               (get-required-vars-from-lambda-list lambda-list-ast))))
+           (get-optional-mapping
+               (&aux (optional-vars
+                      (get-optional-vars-from-lambda-list lambda-list-ast)))
+             "Return a mapping of optional parameters to their
+              arguments in funcall-ast."
+             (cons
+              :optional
+              (mapcar
+               (lambda (ast)
+                 (cons (pop arg-list) ast))
+               ;; TODO: is there a function to do this?
+               ;; Trim optional-vars if it is longer than arg-list.
+               (mapcar (lambda (parameter arg)
+                         (declare (ignorable arg))
+                         parameter)
+                       optional-vars arg-list))))
+           (get-rest-mapping ()
+             "Return a mapping of the rest parameter to the
+              arguments in funcall-ast that it applies to."
+             (cons
+              :rest
+              (when-let ((rest-var (get-rest-from-lambda-list lambda-list-ast)))
+                ;; Maintain the same form as the other mappings
+                ;; by calling #'list.
+                (list (cons (car rest-var) (copy-list arg-list))))))
+           (get-keyword-mapping (&aux (keyword (get-keyword-vars-from-lambda-list
+                                                lambda-list-ast)))
+             "Return a mapping of keyword parameters to their
+              arguments in funcall-ast."
+             (cons
+              :keyword
+              (iter
+                (while arg-list)
+                (for arg = (pop arg-list))
+                (for target-keyword = (is-keyword-p arg))
+                (for key-pair = (when target-keyword
+                                  (find-if {eq target-keyword}
+                                           keyword :key #'cadr)))
+                (when key-pair
+                  (collect (cons (pop arg-list) (car key-pair))))))))
+      (list (get-required-mapping)
+            (get-optional-mapping)
+            (get-rest-mapping)
+            (get-keyword-mapping)))))
+
 
 ;;; Utility
 (-> compound-form-p (lisp-ast &key (:name symbol)) t)
@@ -1442,11 +1582,11 @@ provided, return T if the car of the form is eq to NAME."
 
 (-> is-keyword-p (lisp-ast) t)
 (defun is-keyword-p (ast)
-  "Return T if AST represents a keyword."
+  "If AST represents a keyword, return the keyword."
   (match ast
     ((lisp-ast
       (expression (type keyword)))
-     t)))
+     (expression ast))))
 
 (-> not-a-list-p (lisp-ast) t)
 (defun not-a-list-p (ast &aux (first-child (car (children ast))))
