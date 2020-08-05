@@ -102,6 +102,130 @@ acorn into an AST.
                         value))))
             (adrop (list type-field) spec)))))
 
+(defmethod copy :around ((ast javascript-or-python-ast) &key &allow-other-keys)
+  "Wrapper around copy to perform various fixups to the interleaved-text field
+and child-order annotations of the copied AST in response to child AST
+insertions or removals.  These fixups exist to mimic the mimic behavior
+of JavaScript and python ASTs when child ASTs were stored in a flat list
+of children and not in named children slots."
+  (let* ((copy (call-next-method))
+         (old-children (remove nil (children ast)))
+         (new-children (remove nil (children copy)))
+         (old-children-length (length old-children))
+         (new-children-length (length new-children)))
+    (labels ((text-changed ()
+               "Return T if the interleaved-text field changed between
+               the old and new ASTs."
+               (not (equal (interleaved-text copy) (interleaved-text ast))))
+             (child-order-changed ()
+               "Return T if the :child-order field is populated and has
+               changed after the AST copy."
+               (let ((old-child-order (ast-annotation ast :child-order))
+                     (new-child-order (ast-annotation copy :child-order)))
+                 (and old-child-order new-child-order
+                      (not (equal old-child-order new-child-order)))))
+             (ast-additions ()
+               "Return a list of new AST children in COPY."
+               (set-difference new-children old-children :key #'serial-number))
+             (ast-removals ()
+               "Return a list of AST children removed in COPY."
+               (set-difference old-children new-children :key #'serial-number))
+             (ast-in-difference-p (ast difference)
+               "Return T if AST is a member of DIFFERENCE."
+               (member (serial-number ast) difference :key #'serial-number))
+             (fixup-child-order (difference)
+               "Return a new child order annotation after adjusting for AST
+               removals in DIFFERENCE."
+               (iter (for child in (sorted-children ast))
+                     (unless (ast-in-difference-p child difference)
+                       (collect (position child copy)))))
+             (ith-in-difference-p (i children difference)
+               "Return T if the Ith AST in CHILDREN is a member of DIFFERENCE."
+               (ast-in-difference-p (nth i children) difference))
+             (fixup-interleaved-text (difference)
+               "Return new interleaved text after adjusting for AST insertions
+               or removals in DIFFERENCE."
+               ;; This mimics the behavior of JS and python ASTs when child
+               ;; ASTs were stored in a flat list of children and not in
+               ;; named child slots.  For AST deletions, the interleaved text
+               ;; is concatenated into a single value; for AST insertions,
+               ;; an empty string is added.  There are issues with this
+               ;; approach which may be addressed in a different changeset;
+               ;; this simply preserves existing behavior.
+               ;;
+               ;; TODO: This is C-style code; refactor to use LISP idioms.
+               (let ((text (interleaved-text copy))
+                     (children (if (< new-children-length old-children-length)
+                                   (sorted-children ast)
+                                   (sorted-children copy)))
+                     (child-i 0)
+                     (text-i 0))
+                 (iter (while (< child-i (length children)))
+                       (if (ith-in-difference-p child-i children difference)
+                           (if (< new-children-length old-children-length)
+                               ;; cut operation, concatenate the text in the cut
+                               (collect
+                                 (iter (while (ith-in-difference-p child-i
+                                                                   children
+                                                                   difference))
+                                       (collect (nth text-i text) into rslt)
+                                       (incf text-i)
+                                       (unless (first-iteration-p)
+                                         (incf child-i))
+                                       (finally
+                                         (return (apply #'concatenate 'string
+                                                        (remove nil rslt))))))
+                               ;; insert operation, pad "" for the insertions
+                               (appending
+                                 (iter (while (ith-in-difference-p child-i
+                                                                   children
+                                                                   difference))
+                                       (when (first-iteration-p)
+                                         (collect (nth text-i text))
+                                         (incf text-i))
+                                       (incf child-i)
+                                       (collect ""))))
+                           (prog1
+                             (collect (nth text-i text))
+                             (incf child-i)
+                             (incf text-i)))))))
+
+      ;; Determine which ASTs were added or removed, if any.
+      (when-let ((difference (cond ((< old-children-length new-children-length)
+                                    (ast-additions))
+                                   ((> old-children-length new-children-length)
+                                    (ast-removals))
+                                   (t nil))))
+        ;; Assertions to force the client to provide more information when
+        ;; we cannot clearly ascertain intent within this method.
+        ;; This occurs when ASTs are both added and removed or when
+        ;; inserting into an AST with an explicitly defined child order.
+        (assert (or (text-changed) (not (and (ast-additions) (ast-removals))))
+                (ast)
+                "When creating an AST copy with both child AST additions and ~
+                removals, the interleaved-text field must also be explicity ~
+                set.")
+        (assert (or (null (ast-annotation copy :child-order))
+                    (and (child-order-changed) (not (ast-additions))))
+                (ast)
+                "When creating an AST copy with an explicit child order ~
+                annotation, child AST additions are not allowed without ~
+                explicitly setting the :child-order annotation.")
+
+        ;; Update the :child-order annotation and interleaved-text field to
+        ;; reflect the AST changes.
+        (setf (slot-value copy 'annotations)
+              (if (or (null (ast-annotation copy :child-order))
+                      (child-order-changed))
+                  (ast-annotations copy)
+                  (cons (cons :child-order (fixup-child-order difference))
+                        (adrop '(:child-order) (ast-annotations copy)))))
+        (setf (slot-value copy 'interleaved-text)
+              (if (text-changed)
+                  (interleaved-text copy)
+                  (fixup-interleaved-text difference)))))
+    copy))
+
 (defgeneric sorted-children (ast)
   (:documentation "Return the children of AST sorted in textual order.")
   (:method :before ((ast javascript-or-python-ast)
