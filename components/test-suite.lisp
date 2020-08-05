@@ -182,15 +182,7 @@ is still running, send a SIGKILL signal."
              (when stream
                (prog1
                    (read-stream-content-into-string stream)
-                 (close stream))))
-           (kill-process (process &key urgent)
-             (if (os-unix-p)
-                 ;; Kill the entire process group (process and its children).
-                 (shell "kill -~d -$(ps -o pgid= ~d | tr -d ' ')"
-                        (if urgent 9 15) (process-info-pid process))
-                 ;; If non-unix, utilize the standard terminate process
-                 ;; which should be acceptable in most cases.
-                 (terminate-process process :urgent urgent))))
+                 (close stream)))))
     ;; If still running and there are timeout and sleep intervals, sleep up to
     ;; timeout, checking if process is still running every sleep-interval seconds.
     (when (and *process-kill-timeout* (> *process-kill-timeout* 0)
