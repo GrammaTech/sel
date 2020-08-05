@@ -30,9 +30,11 @@
         :software-evolution-library/software/javascript
         :software-evolution-library/software/lisp
         :software-evolution-library/software/json
+        :software-evolution-library/software/python
         :software-evolution-library/software/simple
         :software-evolution-library/software/clang-project
         :software-evolution-library/software/javascript-project
+        :software-evolution-library/software/python-project
         :software-evolution-library/software/lisp-project
         ;; Components.
         :software-evolution-library/components/test-suite)
@@ -346,6 +348,7 @@ directories and if files based on their extensions."
                                       :test #'equalp)))
                            ;; List of extensions and associated sel/sw class.
                            `((("lisp") lisp)
+                             (("py") python)
                              (("js") javascript)
                              (("json") json)
                              (("c" "cpp" "cc" "cxx") clang))))
