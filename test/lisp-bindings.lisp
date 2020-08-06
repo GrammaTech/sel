@@ -102,6 +102,45 @@
 is the car of."
   (find-if {compound-form-p _ :name symbol} ast))
 
+(defun replace-asts-with-expressions (list)
+  "Return a new list that is the same as LIST but
+with all ASTs replaced with their expression slot."
+  (leaf-map (lambda (leaf-ast)
+              (if (typep leaf-ast 'expression-result)
+                  (expression leaf-ast)
+                  leaf-ast))
+            list))
+
+(defun is-args-mapped-to-parameters
+    (obj genome function-name &key required optional keyword rest)
+  "test that the first function call to FUNCTION-NAME in AST maps its
+arguments to parameters in the ways specified by REQUIRED, OPTIONAL,
+KEYWORD, AND REST."
+  (flet ((get-funcall ()
+           "Get a function call associated with function-name
+            is obj."
+           (find-if #'identity
+                    (maphash-return (lambda (key value)
+                                      (and (eq (expression key) function-name)
+                                           (eq (car value) :function)
+                                           (get-parent-ast obj key)))
+                                    (collect-symbols obj genome))))
+         (is-has-parameters (mapping expected-mapping parameter-type-name)
+           "Test that MAPPING is the same as EXPECTED-MAPPING."
+           (is (equalp mapping expected-mapping)
+               (concatenate
+                'string
+                "~a mapping does not match expected mapping:~%"
+                "~a | Expected ~a")
+               parameter-type-name mapping expected-mapping)))
+    (let ((mapping (replace-asts-with-expressions
+                    (map-arguments-to-parameters obj (get-funcall)))))
+      (is-has-parameters (aget :required mapping) required "Required")
+      (is-has-parameters (aget :optional mapping) optional "Optional")
+      (is-has-parameters (aget :rest mapping) rest "Rest")
+      (is-has-parameters (aget :keyword mapping) keyword "Keyword"))))
+
+
 
 ;;; Tests
 (deftest lisp-get-vars-from-binding-form-let-1 ()
@@ -391,3 +430,49 @@ special variable is set."
                       "~a  does not contain the binding of ~a." usage decl))
                 var-usages
                 var-decls)))))
+
+(deftest lisp-map-args-to-params-1 ()
+  "map-arguments-to-parameters maps the required parameters to its
+corresponding arguments for a function call."
+  (with-software-file ("funcall-1" obj ast)
+    (is-args-mapped-to-parameters obj ast 'f :required '((1 . a) (2 . b)))))
+
+(deftest lisp-map-args-to-params-2 ()
+  "map-arguments-to-parameters maps the optional parameters provided to their
+corresponding arguments for a function call and leaves out unused optional
+parameters."
+  (with-software-file ("funcall-2" obj ast)
+    (is-args-mapped-to-parameters obj ast 'f :optional '((1 . a) (2 . b)))))
+
+(deftest lisp-map-args-to-params-3 ()
+  "map-arguments-to-parameters maps the keyword parameters provided to their
+corresponding arguments for a function call and leaves out unused keyword
+parameters."
+  (with-software-file ("funcall-3" obj ast)
+    (is-args-mapped-to-parameters obj ast 'f
+                                  :keyword '((1 . b) (2 . c) (3 . e)))))
+
+(deftest lisp-map-args-to-params-4 ()
+  "map-arguments-to-parameters maps the rest parameter to its
+corresponding arguments for a function call."
+  (with-software-file ("funcall-4" obj ast)
+    (is-args-mapped-to-parameters obj ast 'f :rest '((rest 1 2 3 4 5)))))
+
+(deftest lisp-map-args-to-params-5 ()
+  "map-arguments-to-parameters maps the keyword parameters to both
+keywords and rest when both &key and &rest appear in a lambda list
+for a function."
+  (with-software-file ("funcall-5" obj ast)
+    (is-args-mapped-to-parameters obj ast 'f
+                                  :keyword '((1 . a) (2 . b) (3 . c))
+                                  :rest '((rest :a 1 :b 2 :c 3)))))
+
+(deftest lisp-map-args-to-params-6 ()
+  "map-arguments-to-parameters maps args correctly when all keywords
+appear in a lambda list."
+  (with-software-file ("funcall-6" obj ast)
+    (is-args-mapped-to-parameters obj ast 'f
+                                  :required '((1 . a))
+                                  :optional '((2 . b))
+                                  :keyword '((4 . c) (5 . d))
+                                  :rest '((rest 3 :z 4 :d 5)))))
