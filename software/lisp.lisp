@@ -1419,6 +1419,10 @@ the specialization for CAR-OF-FORM."
                   `(:function ,binding)))
              ((macro-function symbol) '(:macro))
              ((fboundp symbol) '(:function))
+             ;; At this point, the symbol isn't bound as a function or macro.
+             ;; Since the variable namespace makes a distinction between
+             ;; keyword and symbol, make the same distinction here.
+             ((keywordp symbol) '(:keyword))
              ;; default to symbol for now.
              (t '(:symbol)))
            ;; Variable namespace
@@ -1438,6 +1442,9 @@ the specialization for CAR-OF-FORM."
                   `(:symbol-macro ,binding)
                   `(:variable ,binding)))
              ((not (eq symbol (macroexpand-1 symbol))) '(:symbol-macro))
+             ;; Keywords are technically constant variables too, so
+             ;; check before the #'boundp clause.
+             ((keywordp symbol) '(:keyword))
              ((boundp symbol) '(:variable))
              ;; default to symbol for now.
              (t '(:symbol))))))))
@@ -1463,6 +1470,7 @@ This can be in the form of any of the following:
   (:variable)
   (:variable binding-information)
   (:literal)
+  (:keyword)
   (:symbol)
 
 binding-information will be in the same form as
