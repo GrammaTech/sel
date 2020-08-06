@@ -118,7 +118,7 @@ PRINT-OBJECT method on AST structures.")
       (call-next-method)
       (print-unreadable-object (obj stream :type t)
         (format stream "~a :TEXT ~s"
-                (ft::serial-number obj)
+                (serial-number obj)
                 (let* ((text (source-text obj))
                        (truncated
                         (if (> (length text) cutoff)
@@ -133,7 +133,7 @@ PRINT-OBJECT method on AST structures.")
       (call-next-method)
       (print-unreadable-object (obj stream :type t)
         (format stream "~a :CHILD-ALIST ~s"
-                (ft::serial-number obj)
+                (serial-number obj)
                 (conflict-ast-child-alist obj)))))
 
 (defgeneric ast-annotation (ast annotation)
