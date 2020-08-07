@@ -307,6 +307,15 @@ the rebinding"
               (cons (concatenate 'string text (car (interleaved-text root)))
                     (cdr (interleaved-text root))))))
 
+(defmethod append-text-to-genome-preamble ((obj non-homologous-parseable)
+                                           (text string)
+                                          &aux (root (genome obj)))
+  "Append non-AST TEXT to OBJ's genome preamble."
+  (setf (genome obj)
+        (nest (copy root :interleaved-text)
+              (cons (concatenate 'string (car (interleaved-text root)) text)
+                    (cdr (interleaved-text root))))))
+
 (defmethod append-text-to-genome ((obj non-homologous-parseable) (text string)
                                   &aux (root (genome obj)))
   "Prepend non-AST TEXT to OBJ's genome."
