@@ -71,21 +71,22 @@ SUPERCLASS and PREFIX."
           ,(format nil "AST node class for ~a ASTs." class)))))
    ast-class-list))
 
-(defun convert-helper (superclass spec children-definitions)
+(defun convert-helper (spec prefix superclass children-definitions)
   "Common function for converting an AST SPECification list into an AST.
 
-* SUPERCLASS superclass of the AST type to create
 * SPEC AST specification association list
+* PREFIX prefix for type name and slots
+* SUPERCLASS superclass of the AST type to create
 * CHILDREN-DEFINITIONS list mapping AST types to their child slots"
-  (let* ((superclass-key (make-keyword superclass))
-         (prefix (if (eq superclass-key :python-ast) 'py 'js))
-         (type-field (if (eq superclass-key :python-ast) :class :type))
-         (type (nest (make-keyword)
-                     (string-upcase)
-                     (translate-camelcase-name)
-                     (aget type-field spec)))
+  (let* ((type (if (stringp (aget :class spec))
+                   (nest (make-keyword)
+                         (string-upcase)
+                         (translate-camelcase-name)
+                         (aget :class spec))
+                   (aget :class spec)))
          (child-types (aget type children-definitions :test #'member)))
-    (apply #'make-instance (symbol-cat prefix type)
+    (apply #'make-instance (symbol-cat-in-package (symbol-package superclass)
+                                                  prefix type)
            (mappend
             (lambda (field)
               (destructuring-bind (key . value) field
@@ -99,7 +100,7 @@ SUPERCLASS and PREFIX."
                             (1 (convert superclass value))
                             (0 (mapcar {convert superclass} value))))
                         value))))
-            (adrop (list type-field) spec)))))
+            (adrop '(:class) spec)))))
 
 (defmethod copy :around ((ast non-homologous-ast) &key &allow-other-keys)
   "Wrapper around copy to perform various fixups to the interleaved-text field

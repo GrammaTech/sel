@@ -371,7 +371,12 @@ in textual (sorted) order.")
 (defmethod convert ((to-type (eql 'python-ast)) (spec list)
                     &key &allow-other-keys)
   "Create a PYTHON AST from the SPEC (specification) list."
-  (convert-helper 'python-ast spec +python-children+))
+  (convert-helper spec 'py 'python-ast +python-children+))
+
+(defmethod convert ((to-type (eql 'python-ast)) (spec python-ast)
+                    &key &allow-other-keys)
+  "Pass thru an existing PYTHON AST.  This is useful in manual AST creation."
+  spec)
 
 (defmethod parse-asts ((obj python) &optional (source (genome-string obj)))
   (convert 'python-ast source))

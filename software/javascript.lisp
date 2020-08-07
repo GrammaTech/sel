@@ -275,6 +275,8 @@ raw list of ASTs in OBJ for use in `parse-asts`."
   ;;
   ;; 2. For import/export specifier the imported and local
   ;; children may reference the same text.
+  ;;
+  ;; 3. Replace the :type key with :class for interoperability.
   (case spec-type
     (:property
      (when (= (aget :start (aget :key spec))
@@ -289,12 +291,20 @@ raw list of ASTs in OBJ for use in `parse-asts`."
      (when (equal (aget :imported spec) (aget :local spec))
        (setf spec (adrop '(:local) spec)))))
 
+  (when (aget :type spec)
+    (setf spec (cons (cons :class (aget :type spec)) (adrop '(:type) spec))))
+
   (apply #'call-next-method to-type spec args))
 
 (defmethod convert ((to-type (eql 'javascript-ast)) (spec list)
                     &key &allow-other-keys)
   "Create a JAVASCRIPT AST from the SPEC (specification) list."
-  (convert-helper 'javascript-ast spec +js-children+))
+  (convert-helper spec 'js 'javascript-ast +js-children+))
+
+(defmethod convert ((to-type (eql 'javascript-ast)) (spec javascript-ast)
+                    &key &allow-other-keys)
+  "Pass thru an existing JAVASCRIPT AST.  This useful in manual AST creation."
+  spec)
 
 (defmethod parse-asts ((obj javascript) &optional (source (genome-string obj)))
   (convert 'javascript-ast source))
