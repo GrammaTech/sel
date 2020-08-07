@@ -487,7 +487,7 @@ AST ast to return the enclosing scope for"
     (get-unbound-vals-helper obj (get-parent-ast obj ast) ast)))
 
 (defmethod get-unbound-funs ((obj javascript) (ast javascript-ast)
-                             &aux (children (children ast))
+                             &aux (children (remove nil (children ast)))
                                (callee (first children)))
   "Return all functions used (but not defined) within AST.
 * OBJ javascript software object containing AST

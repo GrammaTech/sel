@@ -557,7 +557,7 @@ AST ast to return the scopes for"
     (get-unbound-vals-helper obj (get-parent-ast obj ast) ast)))
 
 (defmethod get-unbound-funs ((obj python) (ast python-ast)
-                             &aux (children (children ast))
+                             &aux (children (remove nil (children ast)))
                                (callee (first children)))
   "Return all functions used (but not defined) within AST.  The returned
 value will be of the form (list FUNCTION-ATTRS) where FUNCTION-ATTRS is a
@@ -577,8 +577,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
                    (list (list (ast-annotation callee :attr)
                                nil nil (length (cdr children)))))
                   (t nil)))
-          (mapcar {get-unbound-funs obj}
-                  (child-asts ast)))
+          (mapcar {get-unbound-funs obj} children))
     :test #'equal))
 
 
