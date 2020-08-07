@@ -28,7 +28,7 @@
 ;;;
 ;;; @texi{javascript}
 (defpackage :software-evolution-library/software/javascript
-  (:nicknames :sel/software/javascript :sel/sw/javascript :sel/sw/js)
+  (:nicknames :sel/software/javascript :sel/sw/javascript)
   (:use :gt/full
         :software-evolution-library
         :software-evolution-library/utility/json
