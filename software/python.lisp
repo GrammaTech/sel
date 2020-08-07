@@ -147,15 +147,14 @@
   :test #'equalp
   :documentation "Definition of Python classes and child slots.")
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (defclass python-ast (non-homologous-ast) ()
-    (:documentation "Class of Python ASTs."))
+(defclass python-ast (non-homologous-ast) ()
+  (:documentation "Class of Python ASTs."))
 
-  (eval `(progn ,@(mappend {expand-ast-classes 'python-ast 'py}
-                           +python-children+)))
-  (export (mapcar {symbol-cat 'py}
-                  (mappend «append #'first [{mapcar #'car} #'cdr]»
-                           +python-children+))))
+(eval `(progn ,@(mappend {expand-ast-classes 'python-ast 'py}
+                         +python-children+)))
+(export (mapcar {symbol-cat 'py}
+                (mappend «append #'first [{mapcar #'car} #'cdr]»
+                         +python-children+)))
 
 (define-constant +stmt-ast-types+
   '(py-module py-function-def py-async-function-def py-class-def py-return
@@ -532,39 +531,30 @@ AST ast to return the scopes for"
   "Return all variables used (but not defined) within AST.
 * OBJ python software object containing AST
 * AST ast to retrieve unbound variables within"
-  (labels ((call-name-p (parents name)
-             (find-if (lambda (parent)
-                        (match parent
-                               ;; free function
-                               ((py-call
-                                 (children (list* (guard ast (eq ast name))
-                                                  _)))
-                                t)
-                               ;; method
-                               ((py-call
-                                 (children
-                                   (list* (py-attribute
-                                           (children
-                                             (list* (guard ast (eq ast name))
-                                                    _))))))
-                                t)))
-                      parents))
+  (labels ((call-name-p (parent name)
+             (when (typep parent 'py-call)
+               (let ((func (py-func parent)))
+                 (typecase func
+                   ;; free function
+                   (py-name (eq func name))
+                   ;; method call
+                   (py-attribute (eq (py-value func) name))))))
            (bound-name-p (parent)
              (member (type-of parent)
                      (list 'py-function-def
                            'py-async-function-def
                            'py-class-def)))
-           (get-unbound-vals-helper (obj parents ast)
+           (get-unbound-vals-helper (obj parent ast)
              (remove-duplicates
                (apply #'append
                       (when (and (typep ast 'py-name)
-                                 (not (or (bound-name-p (car parents))
-                                          (call-name-p parents ast))))
+                                 (not (or (bound-name-p parent)
+                                          (call-name-p parent ast))))
                         (list (cons :name (source-text ast))))
-                      (mapcar {get-unbound-vals-helper obj (cons ast parents)}
+                      (mapcar {get-unbound-vals-helper obj ast}
                               (children ast)))
                :test #'equal)))
-    (get-unbound-vals-helper obj (get-parent-asts obj ast) ast)))
+    (get-unbound-vals-helper obj (get-parent-ast obj ast) ast)))
 
 (defmethod get-unbound-funs ((obj python) (ast python-ast)
                              &aux (children (children ast))
