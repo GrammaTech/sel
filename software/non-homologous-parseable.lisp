@@ -1,38 +1,38 @@
-;;; javascript-or-python.lisp --- Classes, methods, and functions common
-;;; to both python and javascript.
+;;; non-homologous-parseable.lisp --- Classes, methods, and functions common
+;;; to parseable representations with non-homologous ASTs.
 ;;;
 ;;; This package was created after identifying and extracting portions of
-;;; commonality between the JavaScript and Python implementations.
-(defpackage :software-evolution-library/software/javascript-or-python
-  (:nicknames :sel/software/javascript-or-python
-              :sel/sw/javascript-or-python)
+;;; commonality between implementations with non-homologous ASTs.
+(defpackage :software-evolution-library/software/non-homologous-parseable
+  (:nicknames :sel/software/non-homologous-parseable
+              :sel/sw/non-homologous-parseable)
   (:use :gt/full
         :software-evolution-library
         :software-evolution-library/software/parseable)
   (:import-from :cffi :translate-camelcase-name)
-  (:export :javascript-or-python
-           :javascript-or-python-ast
+  (:export :non-homologous-parseable
+           :non-homologous-ast
            :interleaved-text
-           :expand-js-or-py-ast-classes
-           :convert-js-or-python
+           :expand-ast-classes
+           :convert-helper
            :sorted-children
            :ast-type-to-rebind-p
            :ast-annotation-to-rebind))
-(in-package :software-evolution-library/software/javascript-or-python)
+(in-package :software-evolution-library/software/non-homologous-parseable)
 (in-readtable :curry-compose-reader-macros)
 
-(define-software javascript-or-python (parseable) ()
-  (:documentation "JavaScript or Python software representation."))
+(define-software non-homologous-parseable (parseable) ()
+  (:documentation "Parseable software with non-homologous ASTs."))
 
 
-;;; JavaScript or Python ASTs
-(defclass javascript-or-python-ast (functional-tree-ast)
+;;; ASTs with named children slots.
+(defclass non-homologous-ast (functional-tree-ast)
   ((interleaved-text :initarg :interleaved-text :initform nil :type list
                      :reader interleaved-text
                      :documentation "Interleaved text between children."))
-  (:documentation "Base class for python and JavaScript ASTs."))
+  (:documentation "Base class for non-homologous ASTs."))
 
-(defmethod initialize-instance :after ((ast javascript-or-python-ast)
+(defmethod initialize-instance :after ((ast non-homologous-ast)
                                        &key &allow-other-keys)
   "Wrapper around AST creation to populate the interleaved text field
 with empty strings between each child if the field is not populated."
@@ -43,7 +43,7 @@ with empty strings between each child if the field is not populated."
                   (remove nil)
                   (children ast)))))
 
-(defun expand-js-or-py-ast-classes (superclass prefix spec)
+(defun expand-ast-classes (superclass prefix spec)
   "Returns a list of AST node definitions derived from SPEC with the given
 SUPERCLASS and PREFIX."
   (nest
@@ -71,12 +71,11 @@ SUPERCLASS and PREFIX."
           ,(format nil "AST node class for ~a ASTs." class)))))
    ast-class-list))
 
-(defun convert-js-or-python (superclass spec children-definitions)
-  "Common function for converting an AST SPECification list from python or
-acorn into an AST.
+(defun convert-helper (superclass spec children-definitions)
+  "Common function for converting an AST SPECification list into an AST.
 
-* SUPERCLASS superclass of the AST type to create (python|javascript-ast)
-* SPEC AST specification list from python or acorn
+* SUPERCLASS superclass of the AST type to create
+* SPEC AST specification association list
 * CHILDREN-DEFINITIONS list mapping AST types to their child slots"
   (let* ((superclass-key (make-keyword superclass))
          (prefix (if (eq superclass-key :python-ast) 'py 'js))
@@ -102,7 +101,7 @@ acorn into an AST.
                         value))))
             (adrop (list type-field) spec)))))
 
-(defmethod copy :around ((ast javascript-or-python-ast) &key &allow-other-keys)
+(defmethod copy :around ((ast non-homologous-ast) &key &allow-other-keys)
   "Wrapper around copy to perform various fixups to the interleaved-text field
 and child-order annotations of the copied AST in response to child AST
 insertions or removals.  These fixups exist to mimic the mimic behavior
@@ -228,7 +227,7 @@ of children and not in named children slots."
 
 (defgeneric sorted-children (ast)
   (:documentation "Return the children of AST sorted in textual order.")
-  (:method :before ((ast javascript-or-python-ast)
+  (:method :before ((ast non-homologous-ast)
                     &aux (children (remove nil (children ast))))
     (assert (or (null (ast-annotation ast :child-order))
                 (= (length children)
@@ -238,12 +237,12 @@ of children and not in named children slots."
             defining the order of the children does not match the number ~
             of children, ~d versus ~d."
             (length (ast-annotation ast :child-order)) (length children)))
-  (:method ((ast javascript-or-python-ast))
+  (:method ((ast non-homologous-ast))
     (if (ast-annotation ast :child-order)
         (mapcar {lookup ast} (ast-annotation ast :child-order))
         (remove nil (children ast)))))
 
-(defmethod source-text :before ((ast javascript-or-python-ast)
+(defmethod source-text :before ((ast non-homologous-ast)
                                 &optional stream
                                 &aux (children (sorted-children ast)))
   (declare (ignorable stream))
@@ -254,7 +253,7 @@ of children and not in named children slots."
           (length children) (length (interleaved-text ast))
           (1+ (length children))))
 
-(defmethod source-text ((ast javascript-or-python-ast) &optional stream)
+(defmethod source-text ((ast non-homologous-ast) &optional stream)
   (write-string (car (interleaved-text ast)) stream)
   (mapc (lambda (child text)
           (source-text child stream)
@@ -270,7 +269,7 @@ should be rebound."))
   (:documentation "Return the AST annotation field to be rebound as part of
 variable rebinding."))
 
-(defmethod rebind-vars ((ast javascript-or-python-ast)
+(defmethod rebind-vars ((ast non-homologous-ast)
                         var-replacements fun-replacements)
   "Replace variable and function references, returning a new AST.
 * AST node to rebind variables and function references for
@@ -299,8 +298,8 @@ the rebinding"
                       (child-slots ast)))))
 
 
-;;; JavaScript or Python parseable overrides
-(defmethod prepend-text-to-genome ((obj javascript-or-python) (text string)
+;;; Overrides for non-homologous parseable representations.
+(defmethod prepend-text-to-genome ((obj non-homologous-parseable) (text string)
                                    &aux (root (genome obj)))
   "Prepend non-AST TEXT to OBJ's genome."
   (setf (genome obj)
@@ -308,7 +307,7 @@ the rebinding"
               (cons (concatenate 'string text (car (interleaved-text root)))
                     (cdr (interleaved-text root))))))
 
-(defmethod append-text-to-genome ((obj javascript-or-python) (text string)
+(defmethod append-text-to-genome ((obj non-homologous-parseable) (text string)
                                   &aux (root (genome obj)))
   "Prepend non-AST TEXT to OBJ's genome."
   (setf (genome obj)

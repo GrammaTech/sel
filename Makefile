@@ -53,11 +53,11 @@ DOC_PACKAGES =								\
 	software-evolution-library/software/expression			\
 	software-evolution-library/software/forth			\
 	software-evolution-library/software/javascript			\
-	software-evolution-library/software/javascript-or-python	\
 	software-evolution-library/software/javascript-project		\
 	software-evolution-library/software/lisp			\
 	software-evolution-library/software/sexp			\
 	software-evolution-library/software/llvm			\
+	software-evolution-library/software/non-homologous-parseable	\
 	software-evolution-library/software/parseable			\
 	software-evolution-library/software/parseable-project		\
 	software-evolution-library/software/project			\

@@ -79,10 +79,10 @@ doc/sel-sw-forth-api.texi
 doc/sel-sw-java-api.texi
 doc/sel-sw-java-project-api.texi
 doc/sel-sw-javascript-api.texi
-doc/sel-sw-javascript-or-python-api.texi
 doc/sel-sw-javascript-project-api.texi
 doc/sel-sw-lisp-api.texi
 doc/sel-sw-llvm-api.texi
+doc/sel-sw-non-homologous-parseable-api.texi
 doc/sel-sw-parseable-api.texi
 doc/sel-sw-parseable-project-api.texi
 doc/sel-sw-project-api.texi

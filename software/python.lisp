@@ -36,7 +36,7 @@
         :software-evolution-library
         :software-evolution-library/utility/json
         :software-evolution-library/software/parseable
-        :software-evolution-library/software/javascript-or-python
+        :software-evolution-library/software/non-homologous-parseable
         :software-evolution-library/components/file
         :software-evolution-library/components/formatting)
   (:import-from :cffi :translate-camelcase-name)
@@ -47,7 +47,7 @@
 (in-package :software-evolution-library/software/python)
 (in-readtable :curry-compose-reader-macros)
 
-(define-software python (javascript-or-python file-w-attributes) ()
+(define-software python (non-homologous-parseable file-w-attributes) ()
   (:documentation "Python software representation."))
 
 
@@ -148,10 +148,10 @@
   :documentation "Definition of Python classes and child slots.")
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defclass python-ast (javascript-or-python-ast) ()
+  (defclass python-ast (non-homologous-ast) ()
     (:documentation "Class of Python ASTs."))
 
-  (eval `(progn ,@(mappend {expand-js-or-py-ast-classes 'python-ast 'py}
+  (eval `(progn ,@(mappend {expand-ast-classes 'python-ast 'py}
                            +python-children+)))
   (export (mapcar {symbol-cat 'py}
                   (mappend «append #'first [{mapcar #'car} #'cdr]»
@@ -372,7 +372,7 @@ in textual (sorted) order.")
 (defmethod convert ((to-type (eql 'python-ast)) (spec list)
                     &key &allow-other-keys)
   "Create a PYTHON AST from the SPEC (specification) list."
-  (convert-js-or-python 'python-ast spec +python-children+))
+  (convert-helper 'python-ast spec +python-children+))
 
 (defmethod parse-asts ((obj python) &optional (source (genome-string obj)))
   (convert 'python-ast source))

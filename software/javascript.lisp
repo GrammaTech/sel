@@ -33,7 +33,7 @@
         :software-evolution-library
         :software-evolution-library/utility/json
         :software-evolution-library/software/parseable
-        :software-evolution-library/software/javascript-or-python
+        :software-evolution-library/software/non-homologous-parseable
         :software-evolution-library/components/file
         :software-evolution-library/components/formatting)
   (:import-from :jsown :parse)
@@ -46,7 +46,7 @@
 (in-package :software-evolution-library/software/javascript)
 (in-readtable :curry-compose-reader-macros)
 
-(define-software javascript (javascript-or-python file-w-attributes) ()
+(define-software javascript (non-homologous-parseable file-w-attributes) ()
   (:documentation "Javascript software representation."))
 
 
@@ -126,10 +126,10 @@
   :test #'equalp
   :documentation "Definition of JavaScript classes and child slots.")
 
-(defclass javascript-ast (javascript-or-python-ast) ()
+(defclass javascript-ast (non-homologous-ast) ()
   (:documentation "Class of JavaScript ASTs."))
 
-(eval `(progn ,@(mappend {expand-js-or-py-ast-classes 'javascript-ast 'js}
+(eval `(progn ,@(mappend {expand-ast-classes 'javascript-ast 'js}
                          +js-children+)))
 (export (mapcar {symbol-cat 'js}
                 (mappend «append #'first [{mapcar #'car} #'cdr]»
@@ -294,7 +294,7 @@ raw list of ASTs in OBJ for use in `parse-asts`."
 (defmethod convert ((to-type (eql 'javascript-ast)) (spec list)
                     &key &allow-other-keys)
   "Create a JAVASCRIPT AST from the SPEC (specification) list."
-  (convert-js-or-python 'javascript-ast spec +js-children+))
+  (convert-helper 'javascript-ast spec +js-children+))
 
 (defmethod parse-asts ((obj javascript) &optional (source (genome-string obj)))
   (convert 'javascript-ast source))
