@@ -289,13 +289,14 @@ the rebinding"
              (mappend (lambda (child-slot)
                         (destructuring-bind (name . arity) child-slot
                           (list (make-keyword name)
-                                (if (= arity 0)
-                                    (mapcar {rebind-vars _ var-replacements
-                                                           fun-replacements}
-                                            (slot-value ast name))
-                                    (rebind-vars (slot-value ast name)
-                                                 var-replacements
-                                                 fun-replacements)))))
+                                (cond ((= arity 0)
+                                       (mapcar {rebind-vars _ var-replacements
+                                                              fun-replacements}
+                                               (slot-value ast name)))
+                                      ((slot-value ast name)
+                                       (rebind-vars (slot-value ast name)
+                                                    var-replacements
+                                                    fun-replacements))))))
                       (child-slots ast)))))
 
 
