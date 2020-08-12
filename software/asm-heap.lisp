@@ -894,7 +894,8 @@ those we assume a function name."
                           ;; get it from the first line that does have one.
                           (unless start-addr
                             (setf start-addr (asm-line-info-address info2)))
-                          (setf end-addr (asm-line-info-address info2))
+                          (if (asm-line-info-address info2)
+                              (setf end-addr (asm-line-info-address info2)))
 			  (if (member (asm-line-info-opcode info2)
                                       '("call" "callq") :test 'equalp)
 			      (setf leaf nil)) ;found a call, so not a leaf
@@ -904,7 +905,8 @@ those we assume a function name."
 				  (eq (asm-line-info-type info2)
 				      :decl)
 				  (member (first (asm-line-info-tokens info2))
-                                          '("align" ".align") :test 'equalp))
+                                          '("align" ".align" ".text")
+                                          :test 'equalp))
 				 (and (line-is-function-label info2)
                                         ; ignore duplicate function labels
 				      (not
@@ -915,7 +917,7 @@ those we assume a function name."
 			      :name name
 			      :start-line start-index
 			      :start-address start-addr
-			      :end-line i
+			      :end-line (if (= i (1- (length genome))) i (- i 1))
 			      :end-address end-addr
 			      :is-leaf leaf
 			      :declarations (gethash name table)) entries)
