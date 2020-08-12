@@ -50,7 +50,6 @@
            :quoted-p
            :find-in-defining-form
            :find-local-function
-           :enclosing-find-if
            :*bindings-allows-macros-p*
            :*bindings-form-is-macro-p*
            :*bindings-allows-symbol-macros-p*
@@ -1644,7 +1643,7 @@ provided, return T if the car of the form is eq to NAME."
   ;; TODO: This does not currently handle unquotes;
   ;;       it only checks if there is a quote or
   ;;       quasiquote somewhere above.
-  (enclosing-find-if «or #'quote-p #'quasiquote-p» obj ast))
+  (find-if-in-scope «or #'quote-p #'quasiquote-p» obj ast))
 
 (->  find-in-defining-form (lisp lisp-ast symbol
                                  &key (:referencing-ast lisp-ast))
@@ -1672,7 +1671,7 @@ occur before it."
                             &key (referencing-ast enclosed-form))
   "Return the ast of the local function named FUNCTION-NAME
 which is in scope of ENCLOSED-FORM."
-  (when-let ((defining-form (enclosing-find-if [«or {eq 'flet} {eq 'labels}»
+  (when-let ((defining-form (find-if-in-scope [«or {eq 'flet} {eq 'labels}»
                                                 #'compound-form-p]
                                                obj enclosed-form)))
     (if-let (local-function
@@ -1682,16 +1681,14 @@ which is in scope of ENCLOSED-FORM."
       (find-local-function obj defining-form function-name
                            :referencing-ast referencing-ast))))
 
-(-> enclosing-find-if (function lisp lisp-ast) (or null lisp-ast))
-(defun enclosing-find-if (predicate obj ast)
-  "Walk up OBJ's genome starting at the parent of AST.
-If a node if found that satiisfies PREDICATE, return
-that node. Otherwise, nil is returned."
+(defmethod find-if-in-scope (predicate (obj lisp) (ast lisp-ast)
+                              &key reference-ast)
+  (declare (ignorable reference-ast))
   (when-let* ((enclosing-form-path (enclosing-scope obj ast))
               (enclosing-ast (lookup (genome obj) enclosing-form-path)))
     (if (funcall predicate enclosing-ast)
         enclosing-ast
-        (enclosing-find-if predicate obj enclosing-ast))))
+        (find-if-in-scope predicate obj enclosing-ast))))
 
 (defmethod enclosing-scope ((obj lisp) (ast lisp-ast))
   ;; Returns nil if already at the top level.

@@ -47,6 +47,7 @@
            :get-unbound-vals
            :get-unbound-funs
            :enclosing-scope
+           :find-if-in-scope
            :scopes
            :get-vars-in-scope
            :parse-asts
@@ -465,6 +466,30 @@ Returns nil if no full statement parent is found."))
 
 (defgeneric enclosing-scope (software ast)
   (:documentation "Returns enclosing scope of AST."))
+
+(defgeneric find-if-in-scope (predicate obj ast &key reference-ast)
+  (:documentation "Walk up the genome in OBJ starting at AST, searching for
+an AST that satisfies PREDICATE that occurs before REFERENCE-AST.")
+  (:method (predicate (obj parseable) ast
+            &key (reference-ast ast)
+            &aux (parent (get-parent-ast obj ast)))
+    (labels ((get-reversed-children (parent-ast)
+               "Return a reversed list of PARENT-AST's immediate children."
+               (reverse
+                (remove-if-not (lambda (child)
+                                 (and (typep child 'ast)
+                                      (path-later-p obj reference-ast child)))
+                               (children parent-ast)))))
+      (cond-let result
+        ((not parent)
+         ;; If the parent is null, the genome is the last thing that
+         ;; needs to be checked before stopping recursion.
+         (find-if predicate (get-reversed-children (genome obj))))
+        ((find-if predicate (get-reversed-children parent))
+         result)
+        (t
+         (find-if-in-scope predicate obj parent
+                            :reference-ast reference-ast))))))
 
 (defgeneric scopes (software ast)
   (:documentation "Return lists of variables in each enclosing scope.
