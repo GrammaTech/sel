@@ -28,7 +28,7 @@
 ;;; contains some details.
 ;;;
 ;;; @texi{python}
-(defpackage :software-evolution-library/software/python
+(uiop:define-package :software-evolution-library/software/python
   (:nicknames :sel/software/python :sel/sw/python)
   (:use :gt/full
         :babel
