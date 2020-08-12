@@ -280,6 +280,7 @@
            :untraced-call-spec
            :input-specification-regs
            :input-specification-mem
+           :limit-call
            :reg-contents
            :reg-contents-name
            :reg-contents-value
@@ -429,7 +430,12 @@
    :initarg :linker-script
    :accessor linker-script
    :initform nil
-   :documentation "Create and cache the default linker script"))
+   :documentation "Create and cache the default linker script")
+  (limit-call
+   :initarg :limit-call
+   :accessor limit-call
+   :initform nil
+   :documentation "If specified, wrap executable with this call."))
 
   (:documentation
    "Combine SUPER-MUTANT capabilities with ASM-HEAP framework."))
@@ -2463,32 +2469,36 @@ needs to have been loaded, along with the var-table by PARSE-SANITY-FILE."
               (test-results nil))
           (unless (zerop phenome-errno)
             (setf phenome-create-error t))
-          (got-here "a")
 	  (if (zerop phenome-errno)
-	      ;; run the fitness program
-	      (multiple-value-bind (stdout stderr errno)
-                  (shell "limit.py -t ~d ~a" *timeout-seconds* bin-path)
-		(declare (ignorable stderr errno))
-                (got-here "b")
-		(if (/= errno 0)
-		    (setf phenome-execute-error t))
-                (let ((input-str (make-string-input-stream stdout)))
-                  (setf meta-results (read input-str nil :eof))
-                  (got-here "c")
-                  (if (eq meta-results :eof)
-                      (error "Fitness executable terminated unexpectedly"))
-                  (setf test-results (read input-str nil nil))
-                  (if (eq test-results :eof)
-                      (error "Fitness executable terminated unexpectedly"))
+              (let ((command
+                     (if (limit-call asm-super)
+                         (format nil "~a ~d ~a" (limit-call asm-super)
+                                 *timeout-seconds*
+                                 bin-path)
+                         (format nil "timeout ~d ~a"
+                                 *timeout-seconds*
+                                 bin-path))))
+                ;; run the fitness program
+                (multiple-value-bind (stdout stderr errno)
+                    (shell command)
+                  (declare (ignorable stderr errno))
+                  (if (/= errno 0)
+                      (setf phenome-execute-error t))
+                  (let ((input-str (make-string-input-stream stdout)))
+                    (setf meta-results (read input-str nil :eof))
+                    (if (eq meta-results :eof)
+                        (error "Fitness executable terminated unexpectedly"))
+                    (setf test-results (read input-str nil nil))
+                    (if (eq test-results :eof)
+                        (error "Fitness executable terminated unexpectedly"))
 
-                  (if test-results
-                      (dotimes (i (length test-results))
-                        (assert (> (elt test-results i) 0) (test-results)
-                                "The fitness cannot be zero"))))))
-          (got-here "d")
+                    (if test-results
+                        (dotimes (i (length test-results))
+                          (assert (> (elt test-results i) 0) (test-results)
+                                  "The fitness cannot be zero")))))))
+
           (when (null meta-results)
             (setf meta-results '()))
-          (got-here 1)
 
 	  (when (null test-results)
             ;; create array of *worst-fitness*
@@ -2502,19 +2512,18 @@ needs to have been loaded, along with the var-table by PARSE-SANITY-FILE."
                     (getf meta-results :exit-reason)))
           (if (and phenome-execute-error *break-on-fitness-failure*)
               (let ((errmsg
-                       (format
-                        t
-                        "No results--all variants marked as worst fitness.
+                     (format
+                      t
+                      "No results--all variants marked as worst fitness.
  bin: ~A, src: ~A, phenome-create-error: ~A, phenome-execute-error: ~A"
-                        bin-path
-                        src
-                        phenome-create-error
-                        phenome-execute-error)))
+                      bin-path
+                      src
+                      phenome-create-error
+                      phenome-execute-error)))
                 (assert nil ()  errmsg)))
 	  (let* ((num-tests (length (input-spec asm-super)))
 		 (num-variants (/ (length test-results) num-tests))
 		 (results '()))
-            (got-here 2)
 	    ;; any that came back +worst-c-fitness+ replace with *worst-fitness*
 	    (dotimes (i (length test-results))
 	      (let ((test-result (aref test-results i)))
@@ -2523,7 +2532,6 @@ needs to have been loaded, along with the var-table by PARSE-SANITY-FILE."
 		(if (= (elt test-results i) +worst-c-fitness+)
 		    (setf (elt test-results i) *worst-fitness*))))
 	    ;; set fitness vector for each mutant
-            (got-here 3)
 	    (dotimes (i num-variants)
 	      (let ((variant-results
 		     (subseq test-results
@@ -2538,7 +2546,6 @@ needs to have been loaded, along with the var-table by PARSE-SANITY-FILE."
 		      variant-results)
 		(push variant-results results)))
 	    (setf test-results (nreverse results)))
-          (got-here 4)
           (record-meta-results asm-super meta-results)
 	  (setf (fitness asm-super) test-results))))))
 
