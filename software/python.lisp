@@ -52,7 +52,7 @@
 
 
 ;;; Javascript ast data structures
-(define-constant +python-children+
+(defconst +python-children+
   '(((:module :interactive) (:body . 0))
     ((:expression) (:body . 1))
     ((:async-function-def :function-def) (:decorator-list . 0)
@@ -144,17 +144,19 @@
       :name
       :named-expr
       :joined-str)))
-  :test #'equalp
-  :documentation "Definition of Python classes and child slots.")
+  "Definition of Python classes and child slots.")
 
-(defclass python-ast (non-homologous-ast) ()
-  (:documentation "Class of Python ASTs."))
+(eval-always
+ (defclass python-ast (non-homologous-ast) ()
+   (:documentation "Class of Python ASTs.")))
 
-(eval `(progn ,@(mappend {expand-ast-classes 'python-ast 'py}
-                         +python-children+)))
-(export (mapcar {symbol-cat 'py}
-                (mappend «append #'first [{mapcar #'car} #'cdr]»
-                         +python-children+)))
+(progn
+  #.`(progn ,@(mappend {expand-ast-classes 'python-ast 'py}
+                       +python-children+)))
+(export-always
+ (mapcar {symbol-cat 'py}
+         (mappend «append #'first [{mapcar #'car} #'cdr]»
+                  +python-children+)))
 
 (define-constant +stmt-ast-types+
   '(py-module py-function-def py-async-function-def py-class-def py-return

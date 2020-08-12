@@ -51,7 +51,7 @@
 
 
 ;;; Javascript ast data structures
-(define-constant +js-children+
+(defconst +js-children+
   '(((:program) (:body . 0))
     ((:member-expression) (:object . 1) (:property . 1))
     ((:tagged-template-expression) (:tag . 1) (:quasi . 1))
@@ -123,17 +123,19 @@
       :debugger-statement
       :empty-statement
       :literal)))
-  :test #'equalp
-  :documentation "Definition of JavaScript classes and child slots.")
+  "Definition of JavaScript classes and child slots.")
 
-(defclass javascript-ast (non-homologous-ast) ()
-  (:documentation "Class of JavaScript ASTs."))
+(eval-always
+ (defclass javascript-ast (non-homologous-ast) ()
+   (:documentation "Class of JavaScript ASTs.")))
 
-(eval `(progn ,@(mappend {expand-ast-classes 'javascript-ast 'js}
-                         +js-children+)))
-(export (mapcar {symbol-cat 'js}
-                (mappend «append #'first [{mapcar #'car} #'cdr]»
-                         +js-children+)))
+(progn
+  #.`(progn ,@(mappend {expand-ast-classes 'javascript-ast 'js}
+                       +js-children+)))
+(export-always
+ (mapcar {symbol-cat 'js}
+         (mappend «append #'first [{mapcar #'car} #'cdr]»
+                  +js-children+)))
 
 (define-constant +stmt-ast-types+
   '(js-do-while-statement js-for-statement js-labeled-statement
