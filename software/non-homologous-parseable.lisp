@@ -15,7 +15,6 @@
            :interleaved-text
            :expand-ast-classes
            :convert-helper
-           :sorted-children
            :ast-type-to-rebind-p
            :ast-annotation-to-rebind))
 (in-package :software-evolution-library/software/non-homologous-parseable)
@@ -225,23 +224,6 @@ of children and not in named children slots."
                   (interleaved-text copy)
                   (fixup-interleaved-text difference)))))
     copy))
-
-(defgeneric sorted-children (ast)
-  (:documentation "Return the children of AST sorted in textual order.")
-  (:method :before ((ast non-homologous-ast)
-                    &aux (children (remove nil (children ast))))
-    (assert (or (null (ast-annotation ast :child-order))
-                (= (length children)
-                   (length (ast-annotation ast :child-order))))
-            (ast)
-            "The number of elements in the AST's :child-order annotation ~
-            defining the order of the children does not match the number ~
-            of children, ~d versus ~d."
-            (length (ast-annotation ast :child-order)) (length children)))
-  (:method ((ast non-homologous-ast))
-    (if (ast-annotation ast :child-order)
-        (mapcar {lookup ast} (ast-annotation ast :child-order))
-        (remove nil (children ast)))))
 
 (defmethod source-text :before ((ast non-homologous-ast)
                                 &optional stream

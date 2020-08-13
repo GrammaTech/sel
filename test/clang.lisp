@@ -276,6 +276,22 @@
       (is (equalp (genome-string (restore store-file))
                   (genome-string *hello-world*))))))
 
+(deftest clang-ast-source-ranges ()
+  (with-fixture hello-world-clang
+    (is (equalp (mapcar [#'range-to-list #'cdr]
+                        (ast-source-ranges *hello-world*))
+                '(((1 . 1)  (10 . 1))
+                  ((5 . 1)  (9 . 2))
+                  ((5 . 12) (9 . 2))
+                  ((6 . 2)  (6 . 28))
+                  ((6 . 2)  (6 . 8))
+                  ((6 . 2)  (6 . 8))
+                  ((6 . 9)  (6 . 26))
+                  ((6 . 9)  (6 . 26))
+                  ((6 . 9)  (6 . 26))
+                  ((8 . 2)  (8 . 11))
+                  ((8 . 9)  (8 . 10)))))))
+
 
 ;;; Misc. clang tests
 

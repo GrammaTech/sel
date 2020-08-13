@@ -14,6 +14,7 @@
            :to-alist
            :from-alist
            :child-asts
+           :sorted-children
            :ast-path
            :ast-annotation
            :ast-annotations
@@ -167,6 +168,23 @@ RECURSIVE is passed, recursive AST children will also be returned.")
     (if recursive
         (cdr (reverse (reduce (flip #'cons) ast)))
         (remove-if-not {typep _ 'ast} (children ast)))))
+
+(defgeneric sorted-children (ast)
+  (:documentation "Return the children of AST sorted in textual order.")
+  (:method :before ((ast ast)
+                    &aux (children (remove nil (children ast))))
+    (assert (or (null (ast-annotation ast :child-order))
+                (= (length children)
+                   (length (ast-annotation ast :child-order))))
+            (ast)
+            "The number of elements in the AST's :child-order annotation ~
+            defining the order of the children does not match the number ~
+            of children, ~d versus ~d."
+            (length (ast-annotation ast :child-order)) (length children)))
+  (:method ((ast ast))
+    (if (ast-annotation ast :child-order)
+        (mapcar {lookup ast} (ast-annotation ast :child-order))
+        (remove nil (children ast)))))
 
 (defmethod initialize-instance :after ((ast functional-tree-ast)
                                        &rest args &key)
@@ -648,45 +666,56 @@ If no suitable points are found the returned points may be nil."))
                         ofile)))))
     (call-next-method)))
 
-(defgeneric ast-source-ranges (software)
+(defgeneric ast-source-ranges (obj)
   (:documentation "Return (AST . SOURCE-RANGE) for each AST in OBJ.")
-  (:method ((obj parseable))
-    (labels
-        ((source-location (line column)
-           (make-instance 'source-location :line line :column column))
-         (scan-ast (ast line column)
-           "Scan entire AST, updating line and column. Return the new values."
-           (let* ((begin (source-location line column))
-                  (ranges
-                   (if (stringp ast)
-                       ;; String literal
-                       (iter (for char in-string ast)
-                             (incf column)
-                             (when (eq char #\newline)
-                               (incf line)
-                               (setf column 1)))
-
-                       ;; Subtree
-                       (iter (for child in (children ast))
-                             (appending
-                              (multiple-value-bind
-                                    (ranges new-line new-column)
-                                  (scan-ast child line column)
-                                (setf line new-line
-                                      column new-column)
-                                ranges)
-                              into child-ranges)
-                             (finally
-                              (return
-                                (cons (cons ast
-                                            (make-instance 'source-range
-                                              :begin begin
-                                              :end (source-location
-                                                    line column)))
+  (:method ((ast ast))
+    (labels ((source-location (line column)
+               "Thin wrapper for creating a source location."
+               (make-instance 'source-location :line line :column column))
+             (source-range (begin end)
+               "Thin wrapper for creating a source range."
+               (make-instance 'source-range :begin begin :end end))
+             (next-child (child children)
+               "Return the AST after CHILD in CHILDREN."
+               (when-let ((pos (position child children)))
+                 (nth (1+ pos) children)))
+             (ast-source-ranges* (ast line column)
+               "Return the source ranges of AST and AST's children, starting
+               at LINE and COLUMN."
+               (let* ((begin (source-location line column))
+                      (source-text (source-text ast))
+                      (child-asts (nest (remove-if-not {typep _ 'ast})
+                                        (sorted-children ast)))
+                      (child (car child-asts)))
+                 ;; TODO: This style is too imperative.
+                 (iter (for i below (length source-text))
+                       (if (and child (string^= (source-text child)
+                                                (subseq source-text i)))
+                           ;; Create the child source ranges when we find
+                           ;; a child in the source text.
+                           (let* ((ranges (ast-source-ranges* child line column))
+                                  (end (end (cdar ranges))))
+                              (setf line (line end)
+                                    column (column end)
+                                    i (1- (+ (length (source-text child)) i))
+                                    child (next-child child child-asts))
+                              (appending ranges into child-ranges))
+                           (progn
+                            ;; Continue iterating thru the source text,
+                            ;; updating line and column appropriately.
+                            (incf column)
+                            (when (eq (elt source-text i) #\newline)
+                              (incf line)
+                              (setf column 1))))
+                       (finally
+                        ;; Prepend this AST's source range to the child ranges.
+                        (return (cons (nest (cons ast)
+                                            (source-range begin)
+                                            (source-location line column))
                                       child-ranges)))))))
-
-             (values ranges line column))))
-      (cdr (scan-ast (genome obj) 1 1)))))
+      (ast-source-ranges* ast 1 1)))
+  (:method ((obj parseable))
+    (ast-source-ranges (genome obj))))
 
 (defgeneric asts-containing-source-location (software location)
   (:documentation "Return a list of ASTs in SOFTWARE containing LOC.")

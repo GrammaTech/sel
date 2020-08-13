@@ -154,6 +154,15 @@
                                                                  #\Newline)))
                'py-return))))
 
+(deftest python-ast-source-ranges ()
+  (with-fixture hello-world-python
+    (is (equalp (mapcar [#'range-to-list #'cdr] (ast-source-ranges *soft*))
+                '(((1 . 1) (2 . 1))
+                  ((1 . 1) (2 . 1))
+                  ((1 . 1) (1 . 22))
+                  ((1 . 1) (1 . 6))
+                  ((1 . 7) (1 . 21)))))))
+
 (deftest can-handle-type-comments-python ()
   (with-fixture type-comments-python
     (is (= 8 (size *soft*)))

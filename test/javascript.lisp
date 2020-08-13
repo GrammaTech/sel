@@ -295,6 +295,17 @@
     (is (stmt-with-text soft "foo"))
     (is (typep (stmt-with-text soft "foo") 'js-identifier))))
 
+(deftest javascript-ast-source-ranges ()
+  (with-fixture hello-world-javascript
+    (is (equalp (mapcar [#'range-to-list #'cdr] (ast-source-ranges *soft*))
+                '(((1 . 1) (2 . 1))
+                  ((1 . 1) (2 . 1))
+                  ((1 . 1) (1 . 27))
+                  ((1 . 1) (1 . 12))
+                  ((1 . 1) (1 . 8))
+                  ((1 . 9) (1 . 12))
+                  ((1 . 13) (1 . 26)))))))
+
 (deftest javascript.newline.post-processing.1 ()
   (is (equalp (sel/sw/javascript::position-after-leading-newline "") nil)
       "position-after-leading-newline on empty string"))

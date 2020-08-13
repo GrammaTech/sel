@@ -3,6 +3,7 @@
   (:use :gt/full
         :software-evolution-library
         :software-evolution-library/utility/debug
+        :software-evolution-library/utility/range
         :software-evolution-library/stefil-plus
         :software-evolution-library/software/parseable)
   (:export :test
@@ -22,6 +23,7 @@
            :stmt-starting-with-text
            :fully-every
            :different-asts
+           :range-to-list
            ;; Directory functions
            :gcd-dir
            :fib-dir
@@ -226,3 +228,9 @@ of the same length"
       (not (every (lambda (x y)
                     (string= (source-text x) (source-text y)))
                   this that))))
+
+(defun range-to-list (range)
+  "Convert a range object to a pair of (begin-line . begin-col)
+(end-line . end-col) conses."
+  (list (cons (line (begin range)) (column (begin range)))
+        (cons (line (end range)) (column (end range)))))
