@@ -454,3 +454,15 @@
          (genome (string+ "{\"x\": 1}" ws))
          (json (make-instance 'json :genome genome)))
     (is (string$= ws (genome-string json)))))
+
+;;; Test case for BI failure
+(deftest javascript-insert-test ()
+  (with-fixture fib-javascript
+    (let* ((s (genome *soft*)))
+      (is (not (eql (slot-value s 'ft::transform) s)))
+      (is (eql (length (slot-value s 'sel/sw/javascript::js-body)) 2)
+          "Body had two children before insert")
+      (let* ((stmt-ast (convert 'javascript-ast "j = 0"))
+             (new-soft (insert s '((js-body . 1)) stmt-ast)))
+        (let ((body (slot-value new-soft 'sel/sw/javascript::js-body)))
+          (is (= (length body) 3) "Body has three children after insert"))))))
