@@ -2443,8 +2443,6 @@ jump_table:
         (if (integerp (getf (eval-meta-results asm-super) key))
             (incf (getf (eval-meta-results asm-super) key) value)))))
 
-(defun got-here (i) (declare (ignore i)) nil)
-
 (defmethod evaluate ((test symbol)(asm-super asm-super-mutant)
 		     &rest extra-keys
 		     &key
@@ -2511,16 +2509,14 @@ needs to have been loaded, along with the var-table by PARSE-SANITY-FILE."
               (setf (getf (eval-meta-results asm-super) :exit-reason)
                     (getf meta-results :exit-reason)))
           (if (and phenome-execute-error *break-on-fitness-failure*)
-              (let ((errmsg
-                     (format
-                      t
+              ;; this is here to intentionally trigger an assertion
+              (assert nil ()
                       "No results--all variants marked as worst fitness.
  bin: ~A, src: ~A, phenome-create-error: ~A, phenome-execute-error: ~A"
                       bin-path
                       src
                       phenome-create-error
-                      phenome-execute-error)))
-                (assert nil ()  errmsg)))
+                      phenome-execute-error))
 	  (let* ((num-tests (length (input-spec asm-super)))
 		 (num-variants (/ (length test-results) num-tests))
 		 (results '()))
