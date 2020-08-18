@@ -1699,19 +1699,6 @@ which is in scope of ENCLOSED-FORM."
   "Returns a list of the children of AST that are of type TYPE."
   (remove-if-not {typep _ type} (children ast)))
 
-(-> shares-path-of-p (lisp lisp-ast lisp-ast) t)
-(defun shares-path-of-p (obj target-ast shared-path-ast)
-  "Returns T if TARGET-AST has the same path or a super-path
-of SHARED-PATH-AST's path in OBJ."
-  (starts-with-subseq (ast-path obj shared-path-ast)
-                      (ast-path obj target-ast)))
-
-(-> ancestor-of-p (lisp lisp-ast lisp-ast) t)
-(defun ancestor-of-p (obj target-ast ancestor)
-  "Returns T if ANCESTOR is an ancestor of TARGET-AST in OBJ."
-  (unless (eq target-ast ancestor)
-    (shares-path-of-p obj target-ast ancestor)))
-
 (-> later-than-p (lisp lisp-ast lisp-ast) t)
 (defun later-than-p (obj later-than earlier-than)
   "Returns T if LATER-THAN occurs later than EARLIER-THAN

@@ -60,6 +60,8 @@
            :bad-asts
            :good-mutation-targets
            :bad-mutation-targets
+           :shares-path-of-p
+           :ancestor-of-p
            ;; :mutation-targets
            :pick-general
            :recontextualize-mutation
@@ -565,6 +567,20 @@ to allow for successful mutation of SOFTWARE at PT."))
 (defgeneric select-crossover-points (a b)
   (:documentation "Select suitable crossover points in A and B.
 If no suitable points are found the returned points may be nil."))
+
+(defgeneric shares-path-of-p (obj target-ast shared-path-ast)
+  (:documentation "Returns T if TARGET-AST has the same path or a super-path
+of SHARED-PATH-AST's path in OBJ.")
+  (:method ((obj parseable) target-ast shared-path-ast)
+    (starts-with-subseq (ast-path obj shared-path-ast)
+                        (ast-path obj target-ast)
+                        :test #'equal)))
+
+(defgeneric ancestor-of-p (obj target-ast ancestor)
+  (:documentation "Returns T if ANCESTOR is an ancestor of TARGET-AST in OBJ.")
+  (:method ((obj parseable) target-ast ancestor)
+    (unless (eq target-ast ancestor)
+      (shares-path-of-p obj target-ast ancestor))))
 
 
 ;;; Core parseable methods
