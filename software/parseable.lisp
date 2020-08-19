@@ -28,6 +28,7 @@
            :combine-conflict-asts
            :source-text
            :rebind-vars
+           :collect-if
            ;; Parseable software object.
            :parseable
            :asts
@@ -455,6 +456,18 @@ optionally writing to STREAM.")
                                     (car (second fun-replacement))))
                             fun-replacements))
             :initial-value ast)))
+
+(defgeneric collect-if (predicate tree)
+  (:documentation
+   "Traverse TREE collecting every node that satisfies PREDICATE.")
+  (:method ((predicate function) (tree ast))
+    ;; reverse it to maintain the order it was found in.
+    (reverse
+     (reduce (lambda (accum ast)
+               (if (funcall predicate ast)
+                   (cons ast accum)
+                   accum))
+             tree))))
 
 
 ;;; parseable software objects

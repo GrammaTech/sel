@@ -71,7 +71,6 @@
            :define-lambda-list-alias
            :collect-symbols
            :literalp
-           :collect-if
            :scope-contains-function-p
            :scope-contains-variable-p
            :bindings-contains-function-p
@@ -1744,17 +1743,6 @@ later than."
           (unless (and (not allow-macros) (aget :macro binding))
             (return binding)))))
 
-
-(-> collect-if (function lisp-ast) list)
-(defun collect-if (predicate tree)
-  "Traverse TREE collecting every node that satisfies PREDICATE."
-  ;; reverse it to maintain the order it was found in.
-  (reverse
-   (reduce (lambda (accum ast)
-             (if (funcall predicate ast)
-                 (cons ast accum)
-                 accum))
-           tree)))
 
 ;;; Example
 #+example
