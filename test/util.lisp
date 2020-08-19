@@ -16,6 +16,7 @@
            :+lisp-scopes-dir+
            :+javascript-dir+
            :+python-dir+
+           :+python-utility-dir+
            ;; Other functions
            :acorn-available-p
            :python3.8-available-p
@@ -110,6 +111,12 @@
   :test #'equalp
   :documentation
   "Path to directory holding lisp code to test scopes.")
+
+(define-constant +python-utility-dir+
+    (append +etc-dir+ (list "python-utility"))
+  :test #'equalp
+  :documentation
+  "Path to directory holding python code to test utility functions.")
 
 (defun asm-test-dir (filename)
   (make-pathname :name (pathname-name filename)
