@@ -43,7 +43,8 @@
   (:import-from :functional-trees :path-later-p)
   (:export :python
            :python-mutation
-           :python-ast))
+           :python-ast
+           :collect-var-uses))
 (in-package :software-evolution-library/software/python)
 (in-readtable :curry-compose-reader-macros)
 
@@ -586,6 +587,100 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
                   (t nil)))
           (mapcar {get-unbound-funs obj} children))
     :test #'equal))
+
+(-> collect-var-uses (python python-ast) list)
+(defun collect-var-uses (obj ast)
+  "Collect uses of AST in OBJ."
+  ;;TODO: expand this to work inside classes.
+  ;;      This may require significat modifications to acount
+  ;;      for 'self' variables.
+  (labels ((same-name-p (ast name)
+             "Return T if AST represents an AST that contains the same
+              name as NAME."
+             (typecase ast
+               (py-arg (equal (ast-annotation ast :arg) name))
+               (py-name (equal (ast-annotation ast :id) name))
+               (py-global (find-if {equal name} (ast-annotation ast :names)))
+               (py-nonlocal
+                (find-if {equal name} (ast-annotation ast :names)))))
+           (find-name-in-scopes (name scopes)
+             "Search SCOPES for a variable named NAME."
+             (find-if
+              (lambda (scope)
+                (find-if
+                 (lambda (var-info)
+                   (equal name (aget :name var-info)))
+                 scope))
+              scopes))
+           (get-analysis-set (scope first-occurrence name binding-class)
+             "Collect all relevant asts with NAME in SCOPE that occur at
+              or before FIRST-OCCURRENCE. BINDING-CLASS determines whether
+              'global' or 'nonlocal' should be used to determine if NAME
+              is in-scope for assignments."
+             ;; Currently, py-name, py-arg, and either py-nonlocal or py-global
+             ;; are relevant.
+             (remove-if-not
+              (lambda (ast)
+                (or (and (same-name-p ast name)
+                         ;; TODO: this check will likely be superfluous
+                         ;;       if #'scopes is changed.
+                         (path-later-p obj ast first-occurrence))
+                    (eq ast first-occurrence)))
+              (collect-if
+               (lambda (ast)
+                 (member
+                  (type-of ast)
+                  `(py-name py-arg ,binding-class)))
+               scope)))
+           (find-var-uses (assorted-by-scope binding-class)
+             "Search assorted-by-scope for usages of variables
+              with the same name. BINDING-CLASS specifies whether
+              the variable is global or local and provides the
+              name of the class used for binding it to a scope."
+             (iter
+               (iter:with out-of-scope = nil)
+               (iter:with local-var-p = (eq binding-class 'py-nonlocal))
+               (for vars-in-scope in assorted-by-scope)
+               (for scope = (enclosing-scope obj (car vars-in-scope)))
+               ;; Prune any scope that occurs after the local binding
+               ;; has been squashed.
+               (when out-of-scope
+                 (if (shares-path-of-p obj scope out-of-scope)
+                     (next-iteration)
+                     (setf out-of-scope nil)))
+               (cond
+                 ((find-if {typep _ 'py-arg} vars-in-scope)
+                  ;; All nested scopes are out-of-scope.
+                  (and local-var-p (setf out-of-scope scope)))
+                 ((find-if {typep _ binding-class} vars-in-scope)
+                  (collect vars-in-scope))
+                 ((find-if [{typep _ 'py-assign} {get-parent-full-stmt obj}]
+                           vars-in-scope)
+                  ;; All nested scopes are out-of-scope.
+                  (and local-var-p (setf out-of-scope scope)))))))
+    ;; TODO: expand this to accept more than just ast's with an :id
+    ;;       annotation. This is currently just py-name. py-arg
+    ;;       should work as soon as the name can be retrieved.
+    (let* ((name (ast-annotation ast :id))
+           (var-info (find-name-in-scopes name (scopes obj ast)))
+           (scope (or (aget :scope var-info) (enclosing-scope obj ast)))
+           ;; The path will be nil when given the global scope.
+           (binding-class (if (ast-path obj scope)
+                              'py-nonlocal
+                              'py-global))
+           (assorted-by-scope
+             (assort (get-analysis-set scope (or (aget :decl var-info)
+                                                 (get-parent-full-stmt obj ast))
+                                       name binding-class)
+                     :key {enclosing-scope obj})))
+      ;; NOTE: the following comment will become relevant when the prior
+      ;;       TODO is addressed.
+      ;; Don't pass in the first scope of assorted-by-scope as the first
+      ;; one may include a py-arg which find-var-uses would misinterpret
+      ;; as squashing the binding's scope.
+      (flatten (cons (car assorted-by-scope)
+                     (find-var-uses (cdr assorted-by-scope)
+                                    binding-class))))))
 
 
 ;;; Implement the generic format-genome method for python objects.
