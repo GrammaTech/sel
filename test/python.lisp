@@ -15,6 +15,10 @@
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-python "Python representation." (python3.8-available-p))
 
+(define-constant +scopes-dir+ (append +python-dir+ (list "scopes"))
+  :test #'equalp
+  :documentation "Path to directory holding scopes files.")
+
 (defixture hello-world-python
   (:setup
    (setf *soft*
@@ -102,6 +106,36 @@
                     (python-dir #P"type-comments/type-comments.py"))))
   (:teardown
    (setf *soft* nil)))
+
+(defmacro with-scopes-file ((filename software-var genome-var)
+                              &body body)
+  `(let* ((,software-var (from-file
+                          (make-instance 'python)
+                          (make-pathname :name ,filename
+                                         :type "py"
+                                         :directory +scopes-dir+)))
+          (,genome-var (genome ,software-var)))
+     ,@body))
+
+(defmacro with-util-file ((filename software-var genome-var)
+                              &body body)
+  `(let* ((,software-var (from-file
+                          (make-instance 'python)
+                          (make-pathname :name ,filename
+                                         :type "py"
+                                         :directory +python-utility-dir+)))
+          (,genome-var (genome ,software-var)))
+     ,@body))
+
+
+(defun scope-contains-string-p (scope string)
+  "Return the variable alist associated with STRING if it exists in SCOPE."
+  (find-if [{equalp string} {aget :name}] scope))
+
+(defun scopes-contains-string-p (scopes string)
+  "Return the variable alist associated with STRING if it exists in SCOPES."
+  (mappend {scope-contains-string-p _ string} scopes))
+
 
 (deftest simply-able-to-load-a-python-software-object ()
   (with-fixture hello-world-python
@@ -240,82 +274,112 @@
                      (stmt-starting-with-text *soft*)
                      (format nil "if __name__ == '__main__':~%"))))))
 
+(deftest python-scopes-1 ()
+  "scopes gets the initial binding of a global statement."
+  (with-util-file ("nested-global" soft genome)
+    (let* ((scopes (scopes soft (find-if {typep _ 'py-return} genome)))
+           (global-alist (scopes-contains-string-p scopes "a"))
+           (expected-assign (find-if {typep _ 'py-assign} genome)))
+      (is (eq (aget :decl global-alist) expected-assign)
+          "~A did not contain the expected variable 'a' assignment, ~a."
+          global-alist expected-assign))))
+
+(deftest python-scopes-2 ()
+  "scopes gets the initial binding of a local statement."
+  (with-util-file ("local-shadow" soft genome)
+    (let* ((scopes (scopes soft (find-if {typep _ 'py-call} genome)))
+           (nonlocal-alist (scopes-contains-string-p scopes "a"))
+           (expected-assign (cadr (collect-if {typep _ 'py-assign} genome))))
+      (is (eq (aget :decl nonlocal-alist) expected-assign)
+          "~A did not contain the expected variable 'a' assignment, ~a."
+          nonlocal-alist expected-assign))))
+
+(deftest python-scopes-3 ()
+  "scopes gets the bindng from an except statement."
+  (with-util-file ("except-binding" soft genome)
+    (let* ((scopes (scopes soft (find-if {typep _ 'py-call} genome)))
+           (except-alist (scopes-contains-string-p scopes "a"))
+           (expected-binding (find-if {typep _ 'py-except-handler} genome)))
+      (is (eq (aget :decl except-alist) expected-binding)
+          "~A did not contain the expected variable 'a' assignment, ~a."
+          except-alist expected-binding))))
+
+(deftest python-scopes-4 ()
+  "scopes gets the bindng from a function definition."
+  (with-util-file ("global" soft genome)
+    (let* ((scopes (scopes soft (find-if {typep _ 'py-return} genome)))
+           (def-alist (scopes-contains-string-p scopes "test"))
+           (expected-def (find-if {typep _ 'py-function-def} genome)))
+      (is (eq (aget :decl def-alist) expected-def)
+          "~A did not contain the expected variable 'test' assignment, ~a."
+          def-alist expected-def))))
+
+(deftest python-scopes-5 ()
+  "scopes gets the bindng from an import."
+  (with-util-file ("import" soft genome)
+    (let* ((scopes (scopes soft (find-if {typep _ 'py-return} genome)))
+           (import-alist (scopes-contains-string-p scopes "a"))
+           (expected-import (find-if {typep _ 'py-import} genome)))
+      (is (eq (aget :decl import-alist) expected-import)
+          "~A did not contain the expected variable 'a' assignment, ~a."
+          import-alist expected-import))))
+
+(deftest python-scopes-6 ()
+  "scopes gets the bindng from function parameters."
+  (with-util-file ("parameter" soft genome)
+    (let* ((scopes (scopes soft (find-if {typep _ 'py-pass} genome)))
+           (parameter-alist (scopes-contains-string-p scopes "a"))
+           (expected-parameter (find-if {typep _ 'py-arg} genome)))
+      (is (eq (aget :decl parameter-alist) expected-parameter)
+          "~A did not contain the expected variable 'a' assignment, ~a."
+          parameter-alist expected-parameter))))
+
+(deftest python-scopes-7 ()
+  "scopes gets the bindngs local to a namespace."
+  (with-util-file ("local-2" soft genome)
+    (let* ((scopes (scopes soft (find-if {typep _ 'py-return} genome)))
+           (local-alist (scopes-contains-string-p scopes "a"))
+           (expected-local (find-if {typep _ 'py-assign} genome)))
+      (is (eq (aget :decl local-alist) expected-local)
+          "~A did not contain the expected variable 'a' assignment, ~a."
+          local-alist expected-local))))
+
+(deftest python-scopes-8 ()
+  "scopes gets the bindings from multiple assignment statement."
+  (with-scopes-file ("assign" soft genome)
+    (is (equal `((((:decl  . ,(nest (stmt-with-text soft)
+                                    (format nil "a, b = 0, 1~%")))
+                   (:name  . "a")
+                   (:scope . ,genome))
+                  ((:decl  . ,(nest (stmt-with-text soft)
+                                    (format nil "a, b = 0, 1~%")))
+                   (:name  . "b")
+                   (:scope . ,genome))))
+               (nest (scopes soft)
+                     (stmt-with-text soft)
+                     (format nil "b = 1~%"))))))
+
+(deftest python-scopes-9 ()
+  "scopes gets the bindings from annotated assignment statements."
+  (with-scopes-file ("ann-assign" soft genome)
+    (is (equal `((((:decl  . ,(nest (stmt-with-text soft)
+                                    (format nil "a:int = 3~%")))
+                   (:name  . "a")
+                   (:scope . ,genome))
+                  ((:decl  . ,(nest (stmt-with-text soft)
+                                    (format nil "b:int = 2~%")))
+                   (:name  . "b")
+                   (:scope . ,genome))))
+               (nest (scopes soft)
+                     (stmt-with-text soft)
+                     (format nil "b = 1~%"))))))
+
+#+nil
 (deftest python-scopes ()
   (labels ((scopes-test-dir (path)
              (merge-pathnames-as-file
               (make-pathname :directory (append +python-dir+ (list "scopes")))
               path)))
-    (let ((global (from-file (make-instance 'python)
-                             (scopes-test-dir #P"global.py"))))
-      (is (equal `((((:name  . "b")
-                     (:decl  . ,(nest (stmt-with-text global)
-                                      (format nil "global a, b~%")))
-                     (:scope . ,(genome global)))
-                    ((:name  . "a")
-                     (:decl  . ,(nest (stmt-with-text global)
-                                      (format nil "global a, b~%")))
-                     (:scope . ,(genome global)))))
-                 (nest (scopes global)
-                       (stmt-with-text global)
-                       (format nil "b = 1~%")))))
-
-    (let ((non-local (from-file (make-instance 'python)
-                                (scopes-test-dir #P"non-local.py"))))
-      (is (equal `((((:name  . "b")
-                     (:decl  . ,(nest (stmt-with-text non-local)
-                                      (format nil "nonlocal a, b~%")))
-                     (:scope . ,(genome non-local)))
-                    ((:name  . "a")
-                     (:decl  . ,(nest (stmt-with-text non-local)
-                                      (format nil "nonlocal a, b~%")))
-                     (:scope . ,(genome non-local)))))
-                 (nest (scopes non-local)
-                       (stmt-with-text non-local)
-                       (format nil "b = 1~%")))))
-    (let ((assign (from-file (make-instance 'python)
-                             (scopes-test-dir #P"assign.py"))))
-      (is (equal `((((:name  . "b")
-                     (:decl  . ,(nest (stmt-with-text assign)
-                                      (format nil "a, b = 0, 1~%")))
-                     (:scope . ,(genome assign)))
-                    ((:name  . "a")
-                     (:decl  . ,(nest (stmt-with-text assign)
-                                      (format nil "a, b = 0, 1~%")))
-                     (:scope . ,(genome assign)))))
-                 (nest (scopes assign)
-                       (stmt-with-text assign)
-                       (format nil "b = 1~%")))))
-
-    (let ((ann-assign (from-file (make-instance 'python)
-                                 (scopes-test-dir #P"ann-assign.py"))))
-      (is (equal `((((:name  . "b")
-                     (:decl  . ,(nest (stmt-with-text ann-assign)
-                                      (format nil "b:int = 2~%")))
-                     (:scope . ,(genome ann-assign)))
-                    ((:name  . "a")
-                     (:decl  . ,(nest (stmt-with-text ann-assign)
-                                      (format nil "a:int = 3~%")))
-                     (:scope . ,(genome ann-assign)))))
-                 (nest (scopes ann-assign)
-                       (stmt-with-text ann-assign)
-                       (format nil "b = 1~%")))))
-
-    (let ((function-def (from-file (make-instance 'python)
-                                   (scopes-test-dir #P"function-def.py"))))
-      (is (equal `((((:name  . "y")
-                     (:decl  . ,(nest (stmt-with-text function-def)
-                                      (format nil "y = 12~%")))
-                     (:scope . ,(stmt-starting-with-text function-def
-                                                         "def f(x):")))
-                    ((:name  . "x")
-                     (:decl  . ,(stmt-with-text function-def "x"))
-                     (:scope . ,(stmt-starting-with-text function-def
-                                                         "def f(x):"))))
-                    nil)
-                 (nest (scopes function-def)
-                       (stmt-with-text function-def)
-                       (format nil "return x~%")))))
-
     (let ((if-else (from-file (make-instance 'python)
                               (scopes-test-dir #P"if-else.py"))))
       (is (equal `((((:name  . "a")

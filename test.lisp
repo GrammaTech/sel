@@ -39,6 +39,7 @@
         :software-evolution-library/test/lisp
         :software-evolution-library/test/lisp-bindings
         :software-evolution-library/test/python
+        :software-evolution-library/test/python-utility
         :software-evolution-library/test/python-project
         :software-evolution-library/test/misc-mutations
         :software-evolution-library/test/mutation-analysis
