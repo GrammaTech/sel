@@ -52,7 +52,6 @@
            :find-if-in-scope
            :find-if-in-parents
            :scopes
-           :scopes*
            :get-vars-in-scope
            :parse-asts
            :ast-source-ranges
@@ -536,12 +535,6 @@ satisfies PREDICATE.")
   (:documentation "Return lists of variables in each enclosing scope.
 Each variable is represented by an alist containing :NAME, :DECL, :TYPE,
 and :SCOPE."))
-
-(defgeneric scopes* (software ast)
-  (:documentation "Return lists of variables in each enclosing scope.
-Each variable is represented by an alist containing :NAME, :DECL, :TYPE,
-and :SCOPE. Note that this includes all potential variables, such as
-functions, as opposed to just the variables that scopes returns."))
 
 (defgeneric get-vars-in-scope (software ast &optional keep-globals)
   (:documentation "Return all variables in enclosing scopes."))
