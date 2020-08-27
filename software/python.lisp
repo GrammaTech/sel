@@ -563,7 +563,9 @@ AST ast to return the scopes for"
              (mappend (lambda (ast)
                         (mapcar #'find-global-binding
                                 (ast-annotation ast :names)))
-                      (collect-if {typep _ 'py-global} enclosing-scope)))
+                      (remove-if-not
+                       {typep _ 'py-global}
+                       (get-asts-in-namespace obj enclosing-scope))))
            (get-nonlocal-bindings ()
              "Get the nonlocal bindings in scope."
              (mappend (lambda (ast)
@@ -571,7 +573,9 @@ AST ast to return the scopes for"
                          {find-nonlocal-binding
                           _ (enclosing-scope obj enclosing-scope)}
                          (ast-annotation ast :names)))
-                      (collect-if {typep _ 'py-nonlocal} enclosing-scope)))
+                      (remove-if-not
+                       {typep _ 'py-nonlocal}
+                       (get-asts-in-namespace obj enclosing-scope))))
            (get-function-bindings
                (scope &aux (enclosing-scope (enclosing-scope obj scope))
                         (function-bindings (find-function-bindings scope)))
@@ -734,11 +738,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
              ;; are relevant.
              (remove-if-not
               (lambda (ast)
-                (or (and (same-name-p ast name)
-                         ;; TODO: this check will likely be superfluous
-                         ;;       if #'scopes is changed.
-                         (path-later-p obj ast first-occurrence))
-                    (eq ast first-occurrence)))
+                (or (same-name-p ast name) (eq ast first-occurrence)))
               (collect-if
                (lambda (ast)
                  (member
