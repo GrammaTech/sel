@@ -444,20 +444,7 @@ AST ast to return the enclosing scope for"
                              (list 'py-function-def
                                    'py-async-function-def
                                    'py-class-def
-                                   'py-for
-                                   'py-async-for
-                                   'py-while
-                                   'py-with
-                                   'py-async-with
-                                   'py-try
-                                   'py-lambda
-                                   'py-except-handler))
-                     ;; Special case: For if statements, we do not
-                     ;; want to create a new scope for elif clauses.
-                     ;; The (or ...) below returns nil for elif clauses.
-                     (and (typep parent 'py-if)
-                          (or (not (typep ast 'py-if))
-                              (starts-with-subseq "if" (source-text ast))))))
+                                   'py-lambda))))
                (cdr (get-parent-asts obj ast)))
       (genome obj)))
 
