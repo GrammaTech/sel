@@ -718,7 +718,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
                 (find-if {equal name} (ast-annotation ast :names)))))
            (find-name-in-scopes (name scopes)
              "Search SCOPES for a variable named NAME."
-             (find-if
+             (mappend
               (lambda (scope)
                 (find-if
                  (lambda (var-info)
