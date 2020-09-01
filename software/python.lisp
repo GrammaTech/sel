@@ -186,6 +186,8 @@ in textual (sorted) order.")
 (defmethod ast-type-to-rebind-p ((ast python-ast)) nil)
 (defmethod ast-type-to-rebind-p ((ast py-name)) t)
 (defmethod ast-annotation-to-rebind ((ast py-name)) :id)
+(defmethod ast-type-to-rebind-p ((ast py-arg)) t)
+(defmethod ast-annotation-to-rebind ((ast py-arg)) :arg)
 
 
 ;;; Python parsing
