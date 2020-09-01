@@ -287,13 +287,13 @@ See also: https://clang.llvm.org/docs/FAQ.html#id2.")
    (includes
     :initarg :includes :accessor includes
     :initform nil :copier :direct
-    :type #+sbcl '(list string *) #-sbcl list
+    :type list ;; (list string *)
     :documentation "Names of headers included.")
    (types
     :initarg :types :reader types
     :initform (make-hash-table)
     :copier copy-hash-table
-    :type #+sbcl hash-table #-sbcl hash-table
+    :type hash-table
     :documentation "Hash table of types keyed by HASH id.")
    (macros
     :initarg :macros :accessor macros
@@ -303,7 +303,7 @@ See also: https://clang.llvm.org/docs/FAQ.html#id2.")
    (stmt-asts
     :initarg :stmt-asts :reader stmt-asts
     :initform nil :copier :direct
-    :type #+sbcl '(list (cons keyword *) *) #-sbcl list
+    :type list ;; (list (cons keyword *) *)
     :documentation
     "List of statement ASTs which exist within a function body.")
    ;; TODO: We should split non-statement ASTs into typedefs,
@@ -312,18 +312,18 @@ See also: https://clang.llvm.org/docs/FAQ.html#id2.")
    (non-stmt-asts
     :initarg :non-stmt-asts :reader non-stmt-asts
     :initform nil :copier :direct
-    :type #+sbcl '(list (cons keyword *) *) #-sbcl list
+    :type list ;;  (list (cons keyword *) *)
     :documentation
     "List of global AST which live outside of any function.")
    (functions
     :initarg :functions :reader functions
     :initform nil :copier :direct
-    :type #+sbcl '(list (cons keyword *) *) #-sbcl list
+    :type list ;; (list (cons keyword *) *)
     :documentation "Complete functions with bodies.")
    (prototypes
     :initarg :prototypes :reader prototypes
     :initform nil :copier :direct
-    :type #+sbcl '(list (cons keyword *) *) #-sbcl list
+    :type list ;; (list (cons keyword *) *)
     :documentation "Function prototypes.")
    (symbol-table
     :initarg :symbol-table :reader symbol-table
@@ -895,7 +895,7 @@ Other keys are allowed but are silently ignored.
 * CONDITION ast for the if statement conditional
 * THEN ast for the if statement then body
 * ELSE optional ast for the if statement else
-* REST optional additional arguments to `make-statement'
+* REST optional additional arguments to `make-statement'`
 "
   (apply #'make-statement :IfStmt :fullstmt
          (append `("if ("
