@@ -48,9 +48,8 @@ with empty strings between each child if the field is not populated."
 
 (defmethod ast-hash ((ast non-homologous-ast))
   (or (slot-value ast 'stored-hash)
-      (let ((h (call-next-method)))
-        (setf (slot-value ast 'stored-hash)
-              (ast-hash (cons (call-next-method) (interleaved-text ast)))))))
+      (setf (slot-value ast 'stored-hash)
+            (ast-hash (cons (call-next-method) (interleaved-text ast))))))
 
 (defun expand-ast-classes (superclass prefix spec)
   "Returns a list of AST node definitions derived from SPEC with the given
