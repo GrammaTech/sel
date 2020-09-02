@@ -42,6 +42,16 @@ with empty strings between each child if the field is not populated."
                   (remove nil)
                   (children ast)))))
 
+;; ast-hash should be done with method combination,
+;; so the interleaved text's contribution could be woven
+;; in as a separate method
+
+(defmethod ast-hash ((ast non-homologous-ast))
+  (or (slot-value ast 'stored-hash)
+      (let ((h (call-next-method)))
+        (setf (slot-value ast 'stored-hash)
+              (ast-hash (cons (call-next-method) (interleaved-text ast)))))))
+
 (defun expand-ast-classes (superclass prefix spec)
   "Returns a list of AST node definitions derived from SPEC with the given
 SUPERCLASS and PREFIX."
