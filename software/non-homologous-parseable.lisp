@@ -42,7 +42,7 @@ with empty strings between each child if the field is not populated."
                   (remove nil)
                   (children ast)))))
 
-;; ast-hash should be done with method combination,
+;; TODO: ast-hash should be done with method combination,
 ;; so the interleaved text's contribution could be woven
 ;; in as a separate method
 
