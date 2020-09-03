@@ -341,7 +341,7 @@ See also: https://clang.llvm.org/docs/FAQ.html#id2.")
    "C language (C, C++, C#, etc...) ASTs using Clang, C language frontend
    for LLVM.  See http://clang.llvm.org/.  This is for ASTs from Clang 9+."))
 
-(defclass clang-ast (ast)
+(defclass clang-ast (ast stored-hash)
   ((path
     :initarg :path :initform nil :type list)
    (children
@@ -362,8 +362,6 @@ See also: https://clang.llvm.org/docs/FAQ.html#id2.")
    (syn-ctx
     :initarg :syn-ctx :initform nil
     :accessor ast-syn-ctx :type (or null symbol))
-   (stored-hash
-    :initarg :stored-hash :initform nil :type (or null fixnum))
    (annotations
     :initarg :annotations :initform nil
     :accessor ast-annotations :type list)))
@@ -4256,9 +4254,7 @@ on various ast classes"))
 ;; FIXME: When clang is converted to utilize functional trees,
 ;; this method specialization will no longer be required.
 (defmethod ast-hash ((ast clang-ast))
-  (or (slot-value ast 'stored-hash)
-      (setf (slot-value ast 'stored-hash)
-            (ast-hash (cons (ast-class ast) (children ast))))))
+  (ast-hash (cons (ast-class ast) (children ast))))
 
 ;; FIXME: When clang is converted to utilize functional trees,
 ;; this method specialization will no longer be required.

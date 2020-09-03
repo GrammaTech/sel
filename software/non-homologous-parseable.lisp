@@ -25,10 +25,14 @@
 
 
 ;;; ASTs with named children slots.
-(defclass non-homologous-ast (functional-tree-ast)
+(defclass interleaved-text ()
   ((interleaved-text :initarg :interleaved-text :initform nil :type list
                      :reader interleaved-text
                      :documentation "Interleaved text between children."))
+  (:documentation "Mixin for interleaved-text slot"))
+
+(defclass non-homologous-ast (functional-tree-ast interleaved-text)
+  ()
   (:documentation "Base class for non-homologous ASTs."))
 
 (defmethod initialize-instance :after ((ast non-homologous-ast)
@@ -42,14 +46,8 @@ with empty strings between each child if the field is not populated."
                   (remove nil)
                   (children ast)))))
 
-;; TODO: ast-hash should be done with method combination,
-;; so the interleaved text's contribution could be woven
-;; in as a separate method
-
-(defmethod ast-hash ((ast non-homologous-ast))
-  (or (slot-value ast 'stored-hash)
-      (setf (slot-value ast 'stored-hash)
-            (ast-hash (cons (call-next-method) (interleaved-text ast))))))
+(defmethod ast-hash ((ast interleaved-text))
+  (ast-hash (interleaved-text ast)))
 
 (defun expand-ast-classes (superclass prefix spec)
   "Returns a list of AST node definitions derived from SPEC with the given

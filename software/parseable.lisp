@@ -92,11 +92,14 @@
 for objects to allow method dispatch on generic AST objects regardless of
 whether they inherit from the functional trees library."))
 
-(defclass functional-tree-ast (node ast)
-  ((annotations :initarg :annotations :initform nil :reader ast-annotations
-                :documentation "A-list of annotations." :type list)
-   (stored-hash :initarg :stored-hash :initform nil
+(defclass stored-hash ()
+  ((stored-hash :initarg :stored-hash :initform nil
                 :documentation "A cached hash." :type (or null hash-type)))
+  (:documentation "Mixin for stored-hash slot"))
+
+(defclass functional-tree-ast (node ast stored-hash)
+  ((annotations :initarg :annotations :initform nil :reader ast-annotations
+                :documentation "A-list of annotations." :type list))
   (:documentation "Base class for SEL functional tree ASTs.
 An applicative tree structure is used to hold the ASTs."))
 
@@ -261,7 +264,12 @@ not explicit slot initargs into annotations for functional tree ASTs."
                       (children ast-b))
              (every #'equal? (children ast-a) (children ast-b))))))
 
+(eval-when (:compile-toplevel :load-toplevel)
+  (define-method-combination ast-combine-hash-values
+    :identity-with-one-argument t))
+
 (defgeneric ast-hash (ast)
+  (:method-combination ast-combine-hash-values)
   (:documentation "A hash value for the AST, which is a nonnegative
 integer.  It should be the case that (equal? x y) implies
 (eql (ast-hash x) (ast-hash y)), and that if (not (equal? x y))
@@ -319,36 +327,44 @@ then the equality of the hashes is unlikely."))
 
   (defun ast-combine-hash-values (&rest args)
     "Given a list of hash values, combine them using a polynomial in P,
-modile +AST-HASH-BASE+"
+modile +AST-HASH-BASE+.  0 values in ARGS are skipped."
     (let ((result 0)
-          (hb +ast-hash-base+))
-      (declare (type hash-type result))
-      (iter (for i from 0 below (ash 1 30))
-            (for hv in args)
-            (let* ((im (logand i 31))
-                   (a (aref a-coeffs im))
-                   (b (aref b-coeffs im)))
-              ;; RESULT is squared to avoid linearity
-              ;; Without this, trees that have certain permutations
-              ;; of leaf values can be likely to hash to the same integer.
-              (setf result (mod (+ i b (* a hv) (* result result p)) hb))))
+          (hb +ast-hash-base+)
+          (i 0))
+      (declare (type hash-type result)
+               (type (integer 0 (#.(ash 1 30))) i))
+      (iter (for hv in args)
+            (unless (eql hv 0)
+              (locally
+                  (declare (type hash-type hv))
+                (let* ((im (logand i 31))
+                       (a (aref a-coeffs im))
+                       (b (aref b-coeffs im)))
+                  ;; RESULT is squared to avoid linearity
+                  ;; Without this, trees that have certain permutations
+                  ;; of leaf values can be likely to hash to the same integer.
+                  (setf result (mod (+ i b (* a hv) (* result result p)) hb)))
+                (incf i))))
       result))
 
   (defun ast-combine-simple-vector-hash-values (sv)
     (declare (type simple-vector sv))
     (let ((result 0)
           (hb +ast-hash-base+)
-          (len (length sv)))
+          (len (length sv))
+          (i 0))
       (declare (type hash-type result))
-      (iter (for i from 0 below len)
-            (for hv in-vector sv)
-            (let* ((im (logand i 31))
-                   (a (aref a-coeffs im))
-                   (b (aref b-coeffs im)))
-              ;; RESULT is squared to avoid linearity
-              ;; Without this, trees that have certain permutations of leaf
-              ;; values can be likely to hash to the same integer.
-              (setf result (mod (+ i b (* a hv) (* result result p)) hb))))
+      (iter (for hv in-vector sv)
+            (unless (eql hv 0)
+              (locally (declare (type hash-type hv))
+                (let* ((im (logand i 31))
+                       (a (aref a-coeffs im))
+                       (b (aref b-coeffs im)))
+                  ;; RESULT is squared to avoid linearity
+                  ;; Without this, trees that have certain permutations of leaf
+                  ;; values can be likely to hash to the same integer.
+                  (setf result (mod (+ i b (* a hv) (* result result p)) hb))))
+              (incf i)))
       result))
 
   (defmethod ast-hash ((x t)) 0)
@@ -399,12 +415,15 @@ modile +AST-HASH-BASE+"
   (defmethod ast-hash ((p package))
     (ast-hash (package-name p))))
 
+(defmethod ast-hash ((ast ast))
+  (ast-hash (cons (type-of ast) (children ast))))
+
 ;;; We cache this for ast nodes otherwise the time
 ;;; for computing ast-hash on a large tree can become very large
-(defmethod ast-hash ((ast ast))
+(defmethod ast-hash :around ((ast stored-hash))
   (or (slot-value ast 'stored-hash)
       (setf (slot-value ast 'stored-hash)
-            (ast-hash (cons (type-of ast) (children ast))))))
+            (call-next-method))))
 
 
 ;;; Generic functions on ASTs
