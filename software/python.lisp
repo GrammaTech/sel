@@ -705,6 +705,28 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
           (mapcar {get-unbound-funs obj} children))
     :test #'equal))
 
+;;; TODO: move into parseable?
+(-> find-if-in-scopes (function list) list)
+(defun find-if-in-scopes (predicate scopes)
+  (mapc
+   (lambda (scope)
+     (when-let ((return-value (find-if predicate scope)))
+       (return-from find-if-in-scopes return-value)))
+   scopes))
+
+(defmethod get-function-from-function-call ((obj python) (ast python-ast))
+  (match ast
+    ((py-call
+      (py-func
+       (py-name (ast-annotations (assoc :id name)))))
+     (when-let ((function-alist
+                 (find-if-in-scopes
+                  (lambda (scope)
+                    (and (equal name (aget :name scope))
+                         (typep (aget :decl scope) 'py-function-def)))
+                  (scopes obj ast))))
+       (aget :decl function-alist)))))
+
 
 ;;; Helper functions
 (-> collect-var-uses (python python-ast) list)

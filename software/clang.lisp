@@ -341,87 +341,90 @@ See also: https://clang.llvm.org/docs/FAQ.html#id2.")
    "C language (C, C++, C#, etc...) ASTs using Clang, C language frontend
    for LLVM.  See http://clang.llvm.org/.  This is for ASTs from Clang 9+."))
 
-(defclass clang-ast (ast stored-hash)
-  ((path
-    :initarg :path :initform nil :type list)
-   (children
-    :initarg :children :initform nil
-    :accessor children :type list)
-   (class
-    :initarg :class :initform nil
-    :accessor ast-class :type (or null symbol))
-   (type
-    :initarg :type :initform nil
-    :accessor ast-type :type (or null clang-type ct+))
-   (range
-    :initarg :range :initform nil
-    :accessor ast-range :type (or null clang-range))
-   (id
-    :initarg :id :initform nil
-    :accessor ast-id :type (or null integer))
-   (syn-ctx
-    :initarg :syn-ctx :initform nil
-    :accessor ast-syn-ctx :type (or null symbol))
-   (annotations
-    :initarg :annotations :initform nil
-    :accessor ast-annotations :type list)))
+(eval-always
+  (defclass clang-ast (ast stored-hash)
+    ((path
+      :initarg :path :initform nil :type list)
+     (children
+      :initarg :children :initform nil
+      :accessor children :type list)
+     (class
+      :initarg :class :initform nil
+      :accessor ast-class :type (or null symbol))
+     (type
+      :initarg :type :initform nil
+      :accessor ast-type :type (or null clang-type ct+))
+     (range
+      :initarg :range :initform nil
+      :accessor ast-range :type (or null clang-range))
+     (id
+      :initarg :id :initform nil
+      :accessor ast-id :type (or null integer))
+     (syn-ctx
+      :initarg :syn-ctx :initform nil
+      :accessor ast-syn-ctx :type (or null symbol))
+     (stored-hash
+      :initarg :stored-hash :initform nil :type (or null fixnum))
+     (annotations
+      :initarg :annotations :initform nil
+      :accessor ast-annotations :type list)))
 
-(defclass clang-type ()
-  ((qual :reader type-qual
-         :initform nil
-         :initarg :qual
-         :documentation "Translation of the qualType attribute
-of clang json type objects")
-   (desugared :reader type-desugared
-              :initform nil
-              :initarg :desugared
-              :documentation "Translation of the desugaredQualType
-attribute of clang json objects")
-   ;; Slots filled in by parsing the qual or desugred type
-   (modifiers :initarg :modifiers
-              :type integer
-              :reader type-modifiers)
-   (array :initarg :array
-          :type string
-          :reader type-array)
-   ;; Name is the underlying name sans the modifiers and array
-   (name :initarg :name
-         :type string
-         :reader type-name)
-   ;; Slots populated from the type declaration AST.
-   (i-file :reader type-i-file
-           :initarg :i-file
+  (defclass clang-type ()
+    ((qual :reader type-qual
            :initform nil
-           :type (or null string)
-           :documentation "Header file where the type is located.")
-   (reqs :reader type-reqs
-         :initarg :reqs
-         :initform nil
-         :type list ;; of clang-type objects
-         :documentation "List of types that are required to understand
-this type.")
-   ;; TODO: This field was carried forward from old clang types.
-   ;; Perhaps this should be an AST instead of a string.
-   (decl :reader type-decl
-         :initarg :decl
-         :initform ""
-         :type string
-         :documentation "Source text of the type declaration."))
-  (:documentation "Objects representing C/C++ types.  Canonicalized
-on QUAL and DESUGARED slots."))
+           :initarg :qual
+           :documentation "Translation of the qualType attribute
+  of clang json type objects")
+     (desugared :reader type-desugared
+                :initform nil
+                :initarg :desugared
+                :documentation "Translation of the desugaredQualType
+  attribute of clang json objects")
+     ;; Slots filled in by parsing the qual or desugred type
+     (modifiers :initarg :modifiers
+                :type integer
+                :reader type-modifiers)
+     (array :initarg :array
+            :type string
+            :reader type-array)
+     ;; Name is the underlying name sans the modifiers and array
+     (name :initarg :name
+           :type string
+           :reader type-name)
+     ;; Slots populated from the type declaration AST.
+     (i-file :reader type-i-file
+             :initarg :i-file
+             :initform nil
+             :type (or null string)
+             :documentation "Header file where the type is located.")
+     (reqs :reader type-reqs
+           :initarg :reqs
+           :initform nil
+           :type list ;; of clang-type objects
+           :documentation "List of types that are required to understand
+  this type.")
+     ;; TODO: This field was carried forward from old clang types.
+     ;; Perhaps this should be an AST instead of a string.
+     (decl :reader type-decl
+           :initarg :decl
+           :initform ""
+           :type string
+           :documentation "Source text of the type declaration."))
+    (:documentation "Objects representing C/C++ types.  Canonicalized
+  on QUAL and DESUGARED slots."))
 
-(defclass ct+ ()
-  ((type :initarg :type
-         :reader ct+-type
-         :type clang-type)
-   (storage-class :initarg :storage-class
-                  :reader type-storage-class
-                  :initform :none
-                  :type (member :none :auto :static :register
-                                :extern :__private_extern__)))
-  (:documentation "Wrapper object that is intended to behave like
-SEL/SW/CLANG:CLANG-TYPE.  This means it must have some information
-that is not strictly speaking about types at all (storage class)."))
+  (defclass ct+ ()
+    ((type :initarg :type
+           :reader ct+-type
+           :type clang-type)
+     (storage-class :initarg :storage-class
+                    :reader type-storage-class
+                    :initform :none
+                    :type (member :none :auto :static :register
+                                  :extern :__private_extern__)))
+    (:documentation "Wrapper object that is intended to behave like
+  SEL/SW/CLANG:CLANG-TYPE.  This means it must have some information
+  that is not strictly speaking about types at all (storage class).")))
 
 (defstruct (clang-macro (:conc-name :macro-))
   "Representation of a macro in software object including the header
@@ -2995,6 +2998,22 @@ variables to replace use of the variables declared in stmt ID."))
   (let ((the-block (enclosing-block clang stmt)))
     (if (>= 0 depth) the-block
         (nth-enclosing-block clang (1- depth) the-block))))
+
+(defmethod get-function-from-function-call ((obj clang) (callexpr clang-ast))
+  (match callexpr
+    ((clang-ast
+      (ast-class :callexpr)
+      (children
+       (list* (type string)
+              (clang-ast
+               (ast-class :implicitcastexpr)
+               (children
+                (list* (type string)
+                       declref
+                       _)))
+              _)))
+     (and (eq :declrefexpr (ast-class declref))
+          (ast-referenceddecl declref)))))
 
 
 ;;; Crossover functions

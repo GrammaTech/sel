@@ -525,6 +525,34 @@ AST ast to return the enclosing scope for"
              (member (type-of ast) +stmt-ast-types+))
            (get-parent-asts obj ast)))
 
+(defmethod get-function-from-function-call
+    ((obj javascript) (callexpr javascript-ast))
+  ;; NOTE: this currently only handles
+  ;;       named functions declared with 'function'.
+  (match callexpr
+    ((js-call-expression
+      (js-callee
+       (js-identifier (ast-annotations (assoc :name name)))))
+     (enclosing-find-function obj callexpr name))))
+
+
+;;; Helper Functions.
+(-> enclosing-find-function (javascript javascript-ast string)
+  (or null javascript-ast))
+(defun enclosing-find-function (obj start-ast function-name)
+  "Find the function with the name FUNCTION-NAME in OBJ that is in
+scope of START-AST."
+  ;; NOTE: this currently only handles
+  ;;       named functions declared with 'function'.
+  (flet ((target-function (ast)
+           (match ast
+             ((js-function-declaration
+               (js-id
+                (js-identifier
+                 (ast-annotations (assoc :name name)))))
+              (string= name function-name)))))
+    (find-if-in-scope #'target-function obj start-ast)))
+
 
 ;;; Implement the generic format-genome method for Javascript objects.
 (defmethod format-genome ((obj javascript) &key)

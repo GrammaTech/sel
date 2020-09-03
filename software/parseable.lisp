@@ -65,6 +65,7 @@
            :bad-mutation-targets
            :shares-path-of-p
            :ancestor-of-p
+           :get-function-from-function-call
            ;; :mutation-targets
            :pick-general
            :recontextualize-mutation
@@ -870,6 +871,10 @@ otherwise.
                                          (butlast (scopes obj ast))))
                      :from-end t
                      :key {aget :name}))
+
+(defgeneric get-function-from-function-call (obj funcall-ast)
+  (:documentation "Return the function ast associated with the
+FUNCALL-AST if it exists in OBJ."))
 
 
 ;;; Genome manipulations
