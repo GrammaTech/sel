@@ -66,6 +66,7 @@
            :shares-path-of-p
            :ancestor-of-p
            :get-function-from-function-call
+           :map-arguments-to-parameters
            ;; :mutation-targets
            :pick-general
            :recontextualize-mutation
@@ -875,6 +876,10 @@ otherwise.
 (defgeneric get-function-from-function-call (obj funcall-ast)
   (:documentation "Return the function ast associated with the
 FUNCALL-AST if it exists in OBJ."))
+
+(defgeneric map-arguments-to-parameters (obj funcall-ast)
+  (:documentation "Return an alist mapping parameters of a function
+in OBJ to its arguments in FUNCALL-AST."))
 
 
 ;;; Genome manipulations

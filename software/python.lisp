@@ -727,6 +727,107 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
                   (scopes obj ast))))
        (aget :decl function-alist)))))
 
+(defmethod map-arguments-to-parameters
+    ((obj python) (funcall python-ast)
+     &aux (function (get-function-from-function-call obj funcall)))
+  (unless function
+    ;; Exit early if the function isn't found to prevent errors.
+    (return-from map-arguments-to-parameters nil))
+  (let* ((fn-all-args (py-args function))
+         (fn-args (py-args fn-all-args))
+         (fn-defaults (py-defaults fn-all-args))
+         (fn-kwarg (py-kwarg fn-all-args))
+         (fn-vararg (py-vararg fn-all-args))
+         (fn-psonly+args (append (py-posonlyargs fn-all-args) fn-args))
+         (call-args (py-args funcall)))
+    (labels ((same-arg-p (arg1 arg2)
+               "Return T if ARG1 and ARG2 represent the same id."
+               (equalp (ast-annotation arg1 :arg)
+                       (ast-annotation arg2 :arg)))
+             (get-positional-args-with-defaults ()
+               "Return a list of the position parameters that have default
+                values."
+               (when-let ((position
+                           (position-if {find #\=}
+                                        (interleaved-text fn-all-args))))
+                 (drop (1- position) fn-psonly+args)))
+             (get-used-defaults (defaults offset)
+               "Return a list of positional arguments that have potentially
+                been used with the default value. Note that the parameter
+                could still be used as a keyword later in the call arguments."
+               (mapcar #'cons (drop offset defaults) (drop offset fn-defaults)))
+             (get-vararg ()
+               "Return a list that maps the vararg to a tuple of its values."
+               (when fn-vararg
+                 (list (cons fn-vararg
+                             (create-tuple
+                              (drop (length fn-psonly+args) call-args))))))
+             (get-positional-mappings ()
+               "Map all positional arguments and defaults to their respective
+                parameters."
+               (let ((provided (mapcar #'cons fn-psonly+args call-args))
+                     (defaults (get-positional-args-with-defaults)))
+                 (append provided
+                         (get-used-defaults
+                          defaults
+                          ;; number of defaults provided
+                          (- (length provided) (- (length fn-psonly+args)
+                                                  (length defaults))))
+                         (get-vararg))))
+             (create-kwarg-dict (keyword-args)
+               "Return an AST that represents the keyword-arg dictionary."
+               (create-dictionary
+                (mapcar (lambda (keyword)
+                          (format nil "\"~a\"" (ast-annotation keyword :arg)))
+                        keyword-args)
+                (mapcar #'py-value keyword-args)))
+             (map-call-keys (&aux keyword-args)
+               "Return an alist mapping provided keyword arguments to their
+                parameters."
+               (append
+                (iter
+                  (for key in (py-keywords funcall))
+                  ;; NOTE: there shouldn't be any nils here unless
+                  ;;       the function call is incorrect
+                  (cond-let result
+                    ((find-if {same-arg-p key}
+                              (append (py-kwonlyargs fn-all-args) fn-args))
+                     (collect (cons result (py-value key))))
+                    (fn-kwarg (push key keyword-args))))
+                (when fn-kwarg
+                  (list (cons fn-kwarg (create-kwarg-dict keyword-args))))))
+             (get-default-keys ()
+               "Return an alist mapping keywords with their default
+                parameters."
+               (let ((keyword-offset (+ (length fn-psonly+args)
+                                        (if fn-vararg 1 0)
+                                        (length fn-defaults))))
+                 (mapcon
+                  (lambda (children interleaved)
+                    (when (find #\= (car interleaved))
+                      (list (cons (car children) (cadr children)))))
+                  (drop keyword-offset (sorted-children fn-all-args))
+                  (drop (1+ keyword-offset) (interleaved-text fn-all-args)))))
+             (get-key-mappings ()
+               "Map all keyword arguments to their respective parameters."
+               (let ((mapped-keys (map-call-keys)))
+                 (append
+                  mapped-keys
+                  (mappend (lambda (key-with-default)
+                             (unless (aget (car key-with-default) mapped-keys)
+                               (list key-with-default)))
+                           (get-default-keys))))))
+      ;; Switch the mapping around to be argument->parameter
+      (mapcar
+       (lambda (mapping)
+         (cons (cdr mapping) (car mapping)))
+       ;; Positional defaults may exist in the list even when the positional
+       ;; was used as a keyword. Remove duplicates to fix this.
+       (remove-duplicates
+        (append (get-positional-mappings) (get-key-mappings))
+        :test (lambda (cons1 cons2)
+                (same-arg-p (car cons1) (car cons2))))))))
+
 
 ;;; Helper functions
 (-> collect-var-uses (python python-ast) list)
@@ -847,6 +948,43 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
     (sort (collect-asts ast)
           (lambda (ast1 ast2)
             (path-later-p obj ast2 ast1)))))
+
+(-> create-tuple (list) python-ast)
+(defun create-tuple (values &aux (length (length values)))
+  "Create a new tuple AST that contains values."
+  (convert 'python-ast
+           `((:class . :tuple)
+             (:interleaved-text
+              ,@(cond
+                  ((= 0 length) '("()"))
+                  ((= 1 length) '("(" ",)"))
+                  (t (append '("(")
+                             (repeat-sequence '(", ") (1- length))
+                             '(")")))))
+             (:py-elts . ,values)
+             (:annotations
+              (:ctx . :load)))))
+
+(-> create-dictionary (list list) (or python-ast null))
+(defun create-dictionary (keys values &aux (length (length keys)))
+  "Create a new dictionary AST that maps KEYS to VALUES."
+  (when (= length (length values))
+    (convert 'python-ast
+             `((:class . :dict)
+               (:interleaved-text
+                ,@(cond
+                    ((= 0 length) '("{}"))
+                    (t (append '("{" " : ")
+                               (repeat-sequence '(", " " : ") (1- length))
+                               '("}")))))
+               (:py-keys ,@keys)
+               (:py-values ,@values)
+               (:annotations
+                (:child-order
+                 ,@(iter
+                     (for i from 0 below length)
+                     (collect `((py-keys . ,i)))
+                     (collect `((py-values . ,i))))))))))
 
 
 ;;; Implement the generic format-genome method for python objects.

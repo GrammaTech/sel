@@ -75,8 +75,7 @@
            :scope-contains-variable-p
            :bindings-contains-function-p
            :bindings-contains-variable-p
-           :car-of-enclosing-form-p
-           :map-arguments-to-parameters))
+           :car-of-enclosing-form-p))
 (in-package :software-evolution-library/software/lisp)
 (in-readtable :curry-compose-reader-macros)
 
@@ -1482,8 +1481,7 @@ gathered for that specific symbol."
                     ast))
   table)
 
-(-> map-arguments-to-parameters (lisp lisp-ast) list)
-(defun map-arguments-to-parameters (obj funcall-ast)
+(defmethod map-arguments-to-parameters ((obj lisp) (funcall-ast lisp-ast))
   "Map the arguments of FUNCALL-AST to its relevant function call in OBJ.
 The mapping will be from argument ast to parameter ast in an alist."
   (when-let*
