@@ -152,6 +152,7 @@
 
 (deftest javascript-convert-source-snippet-works ()
   (let ((ast (convert 'javascript-ast "j = 0")))
+    (is (typep (ast-hash ast) '(integer 0)))
     (is (equal 5 (size ast)))
     (is (equal "j = 0" (source-text ast)))
     (is (find-if {typep _ 'js-expression-statement} ast))))
