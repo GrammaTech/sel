@@ -33,6 +33,27 @@
           (,genome-var (genome ,software-var)))
      ,@body))
 
+(defun is-maps-args-to-params (arguments-to-parameters strings-alist)
+  (labels ((convert-asts-to-strings ()
+             "Convert arguments-to-parameters into an alist of
+              strings."
+             (mapcar (lambda (mapping)
+                       (cons (source-text (car mapping))
+                             (source-text (cdr mapping))))
+                     arguments-to-parameters))
+           (is-equalp (mapping string-mapping
+                       &aux (parameter (cdr mapping))
+                         (expected-parameter
+                          (aget (car mapping) strings-alist
+                                :test #'equalp)))
+             "Test if CONS1 and CONS2 map to the same
+              parameter."
+             (is (equalp parameter expected-parameter)
+                 "\"~a\" did not match expected \"~a\" in \"~a\""
+                 parameter expected-parameter string-mapping)))
+    (let ((string-mapping (convert-asts-to-strings)))
+      (mapcar {is-equalp _ string-mapping} string-mapping))))
+
 
 ;;; Tests
 (deftest python-collect-var-uses-1 ()
@@ -108,3 +129,50 @@ a variable in a scope above it."
       (is (= 2 (length var-uses))
           "~A did not contain the expected number of uses"
           var-uses))))
+
+(deftest python-map-arguments-to-parameters-1 ()
+  "map-arguments-to-parameters handles positional parameters
+and positional parameters with defaults."
+  (with-software-file ("positional" soft genome)
+    (is-maps-args-to-params
+     (map-arguments-to-parameters
+      soft
+      (find-if {typep _ 'py-call} genome))
+     '(("1" . "a")
+       ("2" . "b")
+       ("3" . "c")))))
+
+(deftest python-map-arguments-to-parameters-2 ()
+  "map-arguments-to-parameters handles keyword parameters
+and keyword parameters with defaults."
+  (with-software-file ("keyword" soft genome)
+    (is-maps-args-to-params
+     (map-arguments-to-parameters
+      soft
+      (find-if {typep _ 'py-call} genome))
+     '(("1" . "key1")
+       ("2" . "key2")
+       ("3" . "key3")))))
+
+(deftest python-map-arguments-to-parameters-3 ()
+  "map-arguments-to-parameters handles var args."
+  (with-software-file ("variable-arg" soft genome)
+    (is-maps-args-to-params
+     (map-arguments-to-parameters
+      soft
+      (find-if {typep _ 'py-call} genome))
+     '(("1" . "a")
+       ("2" . "b")
+       ("(3, 4, 5)" . "args")))))
+
+(deftest python-map-arguments-to-parameters-4 ()
+  "map-arguments-to-parameters handles keyword args."
+  (with-software-file ("keyword-arg" soft genome)
+    (is-maps-args-to-params
+     (map-arguments-to-parameters
+      soft
+      (find-if {typep _ 'py-call} genome))
+     '(("1" . "a")
+       ("2" . "required")
+       ("3" . "b")
+       ("{\"d\" : 5, \"c\" : 4}" . "args")))))
