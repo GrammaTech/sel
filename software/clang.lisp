@@ -4253,7 +4253,7 @@ on various ast classes"))
 
 ;; FIXME: When clang is converted to utilize functional trees,
 ;; this method specialization will no longer be required.
-(defmethod ast-hash ((ast clang-ast))
+(defmethod ast-hash ast-combine-hash-values ((ast clang-ast))
   (ast-hash (cons (ast-class ast) (children ast))))
 
 ;; FIXME: When clang is converted to utilize functional trees,

@@ -58,6 +58,11 @@
   (with-fixture hello-world-clang
     (is (not (null *hello-world*)))))
 
+(deftest ast-hash-clang ()
+  (with-fixture hello-world-clang
+    (is (not (null (genome *hello-world*))))
+    (is (typep (ast-hash (genome *hello-world*)) '(integer 0)))))
+
 (deftest (genome-change-clears-clang-software-object-fields :long-running) ()
   (with-fixture hello-world-clang
     (is (not (null (stmt-asts *hello-world*))))

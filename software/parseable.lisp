@@ -20,6 +20,7 @@
            :ast-annotations
            :ast-hash
            :ast-stored-hash
+           :ast-combine-hash-values
            :annotations
            :stored-hash
            :conflict-ast
@@ -91,6 +92,14 @@
   (:documentation "Base class for all ASTs in SEL.  This class acts as a tag
 for objects to allow method dispatch on generic AST objects regardless of
 whether they inherit from the functional trees library."))
+
+;; All hash values are of typer HASH-TYPE.
+;; This was chosen to be large enough that collisions
+;; are unlikely.  However, a collision can be expected
+;; if hashing more than about (ash 1 28) (~ 256 million)
+;; ASTs.  The value was chosen so the base is a fixnum
+;; in both SBCL and CCL (64 bit).
+(deftype hash-type () '(integer 0 (#.(- (ash 1 56) 5))))
 
 (defclass stored-hash ()
   ((stored-hash :initarg :stored-hash :initform nil
@@ -278,14 +287,6 @@ then the equality of the hashes is unlikely."))
 (defconstant +ast-hash-base+ (- (ash 1 56) 5)
   "A prime that is close to a power of 2")
 
-;; All hash values are of typer HASH-TYPE.
-;; This was chosen to be large enough that collisions
-;; are unlikely.  However, a collision can be expected
-;; if hashing more than about (ash 1 28) (~ 256 million)
-;; ASTs.  The value was chosen so the base is a fixnum
-;; in both SBCL and CCL (64 bit).
-(deftype hash-type () '(integer 0 (#.(- (ash 1 56) 5))))
-
 ;;; FIXME: Add a comment describing how a-coeffs and b-coeffs were generated.
 (let ((a-coeffs
        (make-array '(32)
@@ -367,22 +368,22 @@ modile +AST-HASH-BASE+.  0 values in ARGS are skipped."
               (incf i)))
       result))
 
-  (defmethod ast-hash ((x t)) 0)
+  (defmethod ast-hash ast-combine-hash-values ((x t)) 0)
 
-  (defmethod ast-hash ((i integer))
+  (defmethod ast-hash ast-combine-hash-values ((i integer))
     (let ((c1 34188292748050745)
           (c2 38665981814718286))
       (mod (+ (* c1 i) c2) +ast-hash-base+)))
 
   ;; could have specialized methods on strings
   ;; to speed up that common case
-  (defmethod ast-hash ((s vector))
+  (defmethod ast-hash ast-combine-hash-values ((s vector))
     (ast-combine-hash-values
      38468922606716016
      (length s)
      (ast-combine-simple-vector-hash-values (map 'simple-vector #'ast-hash s))))
 
-  (defmethod ast-hash ((l cons))
+  (defmethod ast-hash ast-combine-hash-values ((l cons))
     ;; Assumes not a circular list
     (apply #'ast-combine-hash-values
            16335929882652762
@@ -391,20 +392,22 @@ modile +AST-HASH-BASE+.  0 values in ARGS are skipped."
                          (ast-hash (car l))
                          ;; add a constant to distinguish (X Y)
                          ;; from (X . Y)
-                         (+ 41019876016299766
-                            (ast-hash l))))
+                         (mod
+                          (+ 41019876016299766
+                             (ast-hash l))
+                          +ast-hash-base+)))
             (while (consp l))
             (pop l))))
 
-  (defmethod ast-hash ((n null))
+  (defmethod ast-hash ast-combine-hash-values ((n null))
     46757794301535766)
 
-  (defmethod ast-hash ((c character))
+  (defmethod ast-hash ast-combine-hash-values  ((c character))
     (let ((c1 3310905730158464)
           (c2 4019805890044232))
       (mod (+ (* c1 (char-int c)) c2) +ast-hash-base+)))
 
-  (defmethod ast-hash ((s symbol))
+  (defmethod ast-hash ast-combine-hash-values ((s symbol))
     (or (get s 'hash)
         (setf (get s 'hash)
               (ast-combine-hash-values
@@ -412,10 +415,10 @@ modile +AST-HASH-BASE+.  0 values in ARGS are skipped."
                (ast-hash (symbol-package s))
                (ast-hash (symbol-name s))))))
 
-  (defmethod ast-hash ((p package))
+  (defmethod ast-hash ast-combine-hash-values ((p package))
     (ast-hash (package-name p))))
 
-(defmethod ast-hash ((ast ast))
+(defmethod ast-hash ast-combine-hash-values ((ast ast))
   (ast-hash (cons (type-of ast) (children ast))))
 
 ;;; We cache this for ast nodes otherwise the time

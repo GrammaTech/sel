@@ -46,7 +46,7 @@ with empty strings between each child if the field is not populated."
                   (remove nil)
                   (children ast)))))
 
-(defmethod ast-hash ((ast interleaved-text))
+(defmethod ast-hash ast-combine-hash-values ((ast interleaved-text))
   (ast-hash (interleaved-text ast)))
 
 (defun expand-ast-classes (superclass prefix spec)

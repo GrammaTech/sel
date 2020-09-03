@@ -43,6 +43,7 @@
         :software-evolution-library/test/python-project
         :software-evolution-library/test/misc-mutations
         :software-evolution-library/test/mutation-analysis
+        :software-evolution-library/test/parseable
         :software-evolution-library/test/population
         :software-evolution-library/test/range-representation
         :software-evolution-library/test/rest
