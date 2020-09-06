@@ -147,7 +147,8 @@ of children and not in named children slots."
                        (collect (position child copy)))))
              (ith-in-difference-p (i children difference)
                "Return T if the Ith AST in CHILDREN is a member of DIFFERENCE."
-               (ast-in-difference-p (nth i children) difference))
+               (when-let ((ith-child (nth i children)))
+                 (ast-in-difference-p ith-child difference)))
              (fixup-interleaved-text (difference)
                "Return new interleaved text after adjusting for AST insertions
                or removals in DIFFERENCE."

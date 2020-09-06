@@ -235,6 +235,14 @@
                                     (list (list "a" "b"))
                                     nil))))))
 
+(deftest python-can-cut-last-child ()
+  (with-fixture fib-python
+    (nest (apply-mutation *soft*)
+          (make-instance 'parseable-cut :targets)
+          (list (cons :stmt1 (stmt-with-text *soft* "return b"))))
+    (is (null (stmt-with-text *soft* "return b" :no-error t))
+        "'return b' was not removed from the program.")))
+
 (deftest python-get-unbound-vals ()
   (with-fixture unbound-python
     (is (equal `((:name . "i") (:name . "j"))
