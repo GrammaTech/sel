@@ -76,7 +76,6 @@
     ((:variable-declaration) (:declarations . 0))
     ((:variable-declarator) (:id . 1) (:init . 1))
     ((:with-statement) (:object . 1) (:body . 1))
-    ((:program) (:body . 0))
     ((:import-declaration) (:specifiers . 0) (:source . 1))
     ((:export-all-declaration) (:source . 1))
     ((:export-default-declaration) (:declaration . 1))
