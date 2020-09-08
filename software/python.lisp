@@ -855,10 +855,9 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
                  scope))
               scopes))
            (get-analysis-set (scope first-occurrence name binding-class)
-             "Collect all relevant asts with NAME in SCOPE that occur at
-              or before FIRST-OCCURRENCE. BINDING-CLASS determines whether
-              'global' or 'nonlocal' should be used to determine if NAME
-              is in-scope for assignments."
+             "Collect all relevant asts with NAME in SCOPE. BINDING-CLASS
+              determines whether 'global' or 'nonlocal' should be used to
+              determine if NAME is in-scope for assignments."
              ;; Currently, py-name, py-arg, and either py-nonlocal or py-global
              ;; are relevant.
              (remove-if-not
@@ -907,10 +906,16 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
                               'py-nonlocal
                               'py-global))
            (assorted-by-scope
-             (assort (get-analysis-set scope (or (aget :decl var-info)
-                                                 (get-parent-full-stmt obj ast))
-                                       name binding-class)
-                     :key {enclosing-scope obj})))
+             ;; Make sure the top-most scope comes first.
+             (sort
+              (assort (get-analysis-set scope (or (aget :decl var-info)
+                                                  (get-parent-full-stmt obj ast))
+                                        name binding-class)
+                      :key {enclosing-scope obj})
+              #'(lambda (ast1 ast2)
+                  (< (length (ast-path obj ast1))
+                     (length (ast-path obj ast2))))
+              :key #'car)))
       ;; NOTE: the following comment will become relevant when the prior
       ;;       TODO is addressed.
       ;; Don't pass in the first scope of assorted-by-scope as the first
