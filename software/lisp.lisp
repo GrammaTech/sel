@@ -86,6 +86,7 @@
   ((expression :initarg :expression :initform nil :reader expression)
    (children :type list
              :initarg :children
+             :initarg children
              :initform nil
              :documentation "The list of children of the node, which
                              may be more nodes, or other values.")

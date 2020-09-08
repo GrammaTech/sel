@@ -70,6 +70,7 @@ SUPERCLASS and PREFIX."
                                           :initform nil
                                           :initarg (make-keyword
                                                     (symbol-cat prefix field))
+                                          :initarg py-field
                                           (when (zerop arity)
                                             (list :type 'list))))))
                     field-specifiers))
