@@ -63,12 +63,10 @@
                      soft
                      (find-if (lambda (ast)
                                 (and (typep ast 'py-name)
-                                     (string= "a"
-                                              (ast-annotation ast :id))))
+                                     (equalp "a" (ast-annotation ast :id))))
                               genome))))
       (is (= 4 (length var-uses))
-          "~A did not contain the expected number of uses"
-          var-uses))))
+          "~A did not contain the expected number of uses" var-uses))))
 
 (deftest python-collect-var-uses-2 ()
   "collect-var-uses collects global variable usages when a local binding
@@ -78,12 +76,10 @@ appears in a scope above the global usage."
                      soft
                      (find-if (lambda (ast)
                                 (and (typep ast 'py-name)
-                                     (string= "a"
-                                              (ast-annotation ast :id))))
+                                     (equalp "a" (ast-annotation ast :id))))
                               genome))))
       (is (= 3 (length var-uses))
-          "~A did not contain the expected number of uses"
-          var-uses))))
+          "~A did not contain the expected number of uses" var-uses))))
 
 (deftest python-collect-var-uses-3 ()
   "collect-var-uses collects nested local variable usages."
@@ -92,12 +88,10 @@ appears in a scope above the global usage."
                      soft
                      (find-if (lambda (ast)
                                 (and (typep ast 'py-name)
-                                     (string= "a"
-                                              (ast-annotation ast :id))))
+                                     (equalp "a" (ast-annotation ast :id))))
                               genome))))
       (is (= 4 (length var-uses))
-          "~A did not contain the expected number of uses"
-          var-uses))))
+          "~A did not contain the expected number of uses" var-uses))))
 
 (deftest python-collect-var-uses-4 ()
   "collect-var-uses collects local variable usages and ignores global
@@ -108,12 +102,10 @@ bindings when shadowed."
                      (cadr
                       (collect-if (lambda (ast)
                                     (and (typep ast 'py-name)
-                                         (string= "a"
-                                                  (ast-annotation ast :id))))
+                                         (equalp "a" (ast-annotation ast :id))))
                                   genome)))))
       (is (= 3 (length var-uses))
-          "~A did not contain the expected number of uses"
-          var-uses))))
+          "~A did not contain the expected number of uses" var-uses))))
 
 (deftest python-collect-var-uses-5 ()
   "collect-var-uses doesn't include parameters as uses when targeting
@@ -123,12 +115,26 @@ a variable in a scope above it."
                      soft
                      (find-if (lambda (ast)
                                 (and (typep ast 'py-name)
-                                     (string= "a"
-                                              (ast-annotation ast :id))))
+                                     (equalp "a" (ast-annotation ast :id))))
                               genome))))
       (is (= 2 (length var-uses))
-          "~A did not contain the expected number of uses"
-          var-uses))))
+          "~A did not contain the expected number of uses" var-uses))))
+
+(deftest python-collect-var-uses-6 ()
+  "collect-var-uses doesn't include parameters of functions defined
+in the same sub-tree as its namespace."
+  (with-software-file ("same-variable-name" soft genome)
+    (let ((var-uses (collect-var-uses
+                     soft
+                     (find-if (lambda (ast)
+                                (and (typep ast 'py-name)
+                                     (typep (get-parent-ast soft ast) 'py-assign)
+                                     (string= "a" (ast-annotation ast :id))))
+                              genome))))
+      (is (= 3 (length var-uses))
+          "~A did not contain the expected number of uses" var-uses)
+      (is (not (find-if {typep _ 'py-arg} var-uses))
+          "~A contained an unexpected py-arg" var-uses))))
 
 (deftest python-map-arguments-to-parameters-1 ()
   "map-arguments-to-parameters handles positional parameters
