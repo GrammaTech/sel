@@ -68,8 +68,7 @@ SUPERCLASS and PREFIX."
                         (let ((py-field (symbol-cat prefix field)))
                           (list* py-field :reader py-field
                                           :initform nil
-                                          :initarg (make-keyword
-                                                    (symbol-cat prefix field))
+                                          :initarg (make-keyword py-field)
                                           :initarg py-field
                                           (when (zerop arity)
                                             (list :type 'list))))))
