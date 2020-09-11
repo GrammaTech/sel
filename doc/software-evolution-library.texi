@@ -454,6 +454,7 @@ Software Object Mixins (see also @ref{api-software-object-mixins,Software Object
 * Lighter asm alternatives @code{light}/@code{range}/@code{diff}::
                                         Lighter weight alternatives to
                                         @code{simple} software.
+* Inherited Indentation @code{indentation}:: Maintain correct indentation across mutations.
 @end menu
 
 @node C/C++ with @code{clang}, Assembler with @code{asm}, Software Objects, Software Objects
@@ -515,6 +516,12 @@ Software Object Mixins (see also @ref{api-software-object-mixins,Software Object
 @subsubsection Difference genomes with @code{diff} Software Mixin
 
 @include include/diff.texi
+
+@node Inherited Indentation @code{indentation}
+
+@subsection Inherited Indentation
+
+@include include/indentation.texi
 
 @node Software Methods, Mutation Objects, Software Objects, Implementation
 
