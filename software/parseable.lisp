@@ -1348,42 +1348,35 @@ to allow for successful mutation of SOFTWARE at PT."
 ;;; the AST's parents. To simplify the implementation, all tabs are treated
 ;;; as spaces.
 ;;;
-;;; @subheading Mix-ins
+;;; @subsubheading Mix-ins
 ;;;
 ;;; The ability to reinsert tabs is provided through the software-indentation
 ;;; mix-in. The following slots are provided:
 ;;;
-;;; @multitable {} {}
+;;; * 'SPACES-PER-TAB
+;;;     A number that indicates how many spaces each tab is worth.
+;;;     The initial form is 4.
 ;;;
-;;; @item spaces-per-tab @tab
-;;; A number that indicates how many spaces each tab is worth. The initial form
-;;; is 4.
-;;;
-;;; @item indent-with-tabs-p @tab
-;;; A boolean value indicating whether tabs should be used over spaces. The
-;;; initial form is nil.
-;;;
-;;; @end multitable
+;;; * 'INDENT-WITH-TABS-P
+;;;     A boolean value indicating whether tabs should be used over spaces. The
+;;;     initial form is nil.
 ;;;
 ;;; The ast-indentation mix-in is used to add indentation information to an AST.
 ;;; It provided the following slots:
 ;;;
-;;; @multitable {} {}
+;;; * 'INDENT-CHILDREN
+;;;     A number that indicates how many spaces should be added after newlines
+;;;     the precede a child of the AST. The value 'T can be provided,
+;;;     and the slot's value will be populated lazily with its parent's value or
+;;;     a sane default based on the rest of the file. The initial form is 0.
 ;;;
-;;; @item indent-children @tab
-;;; A number that indicates how many spaces should be added after newlines
-;;; the precede a child of the AST. The value 'T can be provided,
-;;; and the slot's value will be populated lazily with its parent's value or a
-;;; sane default based on the rest of the file. The initial form is 0.
-;;;
-;;; @item indent-adjustment @tab
-;;; A number that indicates the difference in indentation provided by an AST's
-;;; parents and the spaces on its current line. This value is also added
-;;; to the indentation given to children. The value 'MATCH-PARENT
-;;; can be provided, and a value will instead be used that will match the
-;;; indentation of the current line with that of its parent. The initial form is
-;;; 0.
-;;; @end multitable
+;;; * 'INDENT-ADJUSTMENT
+;;;     A number that indicates the difference in indentation provided by an
+;;;     AST's parents and the spaces on its current line. This value is also
+;;;     added to the indentation given to children. The value 'MATCH-PARENT
+;;;     can be provided, and a value will instead be used that will match the
+;;;     indentation of the current line with that of its parent. The initial
+;;;     form is 0.
 ;;;
 ;;; @subsubheading Parsing
 ;;; When using the indentation mix-in for software, the parser for the
