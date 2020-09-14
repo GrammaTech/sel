@@ -73,6 +73,11 @@
 (defpackage :software-evolution-library/software/indentation
   (:nicknames :sel/software/indentation :sel/sw/indentation)
   (:use :gt/full
-        :software-evolution-library))
+        :software-evolution-library)
+  (:export :indent-nothing))
 (in-package :software-evolution-library/software/indentation)
 (in-readtable :curry-compose-reader-macros)
+
+(defvar indent-nothing nil
+  "Currently the documentation requires an exported symbol to export a
+  top comment.")
