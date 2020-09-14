@@ -52,7 +52,6 @@ DOC_PACKAGES =								\
 	software-evolution-library/software-evolution-library		\
 	software-evolution-library/software/expression			\
 	software-evolution-library/software/forth			\
-	software-evolution-library/software/indentation			\
 	software-evolution-library/software/javascript			\
 	software-evolution-library/software/javascript-project		\
 	software-evolution-library/software/lisp			\
