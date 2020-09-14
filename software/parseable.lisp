@@ -632,52 +632,58 @@ of SHARED-PATH-AST's path in OBJ.")
   (lookup (genome obj) key))
 
 ;;; FSet overrides for common-lisp sequence functions pass through to genome.
-(defun write-sequence-function-parseable-method (name)
-  (let ((lambda-list (generic-function-lambda-list (ensure-function name))))
-    `(defmethod ,name
-         ,(substitute '(collection parseable) 'collection lambda-list)
-       (,name ,@(subseq lambda-list 0 (1- (position '&key lambda-list)))
-              (genome collection)
-              ,@(mappend (lambda (key) (list (make-keyword key) key))
-                         (cdr (member '&key lambda-list)))))))
+(defmacro write-sequence-function-parseable-methods (&rest names)
+  `(progn
+     ,@(iter
+        (for name in names)
+        (collecting
+         (let ((lambda-list (generic-function-lambda-list (ensure-function name))))
+           `(defmethod ,name
+                ,(substitute '(collection parseable) 'collection lambda-list)
+              (,name ,@(subseq lambda-list 0 (1- (position '&key lambda-list)))
+                     (genome collection)
+                     ,@(mappend (lambda (key) (list (make-keyword key) key))
+                                (cdr (member '&key lambda-list))))))))))
 
 ;;; FSet tree manipulations pass through to genome.
-(defun write-tree-manipulation-function-parseable-method (name)
-  (let ((lambda-list (generic-function-lambda-list (ensure-function name))))
-    `(defmethod ,name ((obj parseable) ,@(cdr lambda-list))
-       (setf (genome obj)
-             (,name (genome obj)
-                    ,(second lambda-list)
-                    ,@(nest (mapcar (lambda (param) `(tree-copy ,param)))
-                            (remove '&optional)
-                            (cddr lambda-list))))
-       obj)))
+(defmacro write-tree-manipulation-function-parseable-methods (&rest names)
+  `(progn
+     ,@(iter
+        (for name in names)
+        (collecting
+         (let ((lambda-list (generic-function-lambda-list (ensure-function name))))
+           `(defmethod ,name ((obj parseable) ,@(cdr lambda-list))
+              (setf (genome obj)
+                    (,name (genome obj)
+                           ,(second lambda-list)
+                           ,@(nest (mapcar (lambda (param) `(tree-copy ,param)))
+                                   (remove '&optional)
+                                   (cddr lambda-list))))
+              obj))))))
 
-(eval `(progn
-         ,@(mapcar #'write-sequence-function-parseable-method
-                   '(reduce
-                     find-if
-                     find-if-not
-                     find
-                     count-if
-                     count-if-not
-                     count
-                     position-if
-                     position-if-not
-                     position
-                     remove-if
-                     remove-if-not
-                     remove
-                     substitute-if
-                     substitute-if-not
-                     substitute))))
+(write-sequence-function-parseable-methods
+ reduce
+ find-if
+ find-if-not
+ find
+ count-if
+ count-if-not
+ count
+ position-if
+ position-if-not
+ position
+ remove-if
+ remove-if-not
+ remove
+ substitute-if
+ substitute-if-not
+ substitute)
 
-(eval `(progn
-         ,@(mapcar #'write-tree-manipulation-function-parseable-method
-                   '(less
-                     with
-                     insert
-                     splice))))
+(write-tree-manipulation-function-parseable-methods
+ less
+ with
+ insert
+ splice)
 
 (defmethod size ((obj parseable))
   "Return the number of non-root ASTs in OBJ."
