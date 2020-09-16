@@ -27,6 +27,7 @@
            :conflict-ast-child-alist
            :conflict-ast-default-children
            :combine-conflict-asts
+           :combine-conflict-asts-in-list
            :source-text
            :rebind-vars
            :collect-if
@@ -263,6 +264,46 @@ not explicit slot initargs into annotations for functional tree ASTs."
        :child-alist al
        :default-children (append def1 def2)))))
 
+(defun combine-conflict-asts-in-list (child-list)
+  "Combine a list of conflict-asts and other things into the components
+of a single conflict-ast"
+  (assert (some (lambda (a) (typep a 'conflict-ast)) child-list))
+  (let ((keys nil))
+    ;; Collect the keys of all conflict nodes in CHILD-LIST
+    (iter (for c in child-list)
+          (when (typep c 'conflict-ast)
+            (iter (for a in (conflict-ast-child-alist c))
+                  (pushnew (car a) keys))))
+    (let ((alist (iter (for k in keys) (collecting (list k))))
+          (def nil))
+      ;; Now build the child alists for each complete version
+      (iter
+        (for c in child-list)
+        (typecase c
+          (conflict-ast
+           (let ((c-alist (conflict-ast-child-alist c))
+                 (c-def (conflict-ast-default-children c)))
+             (setf def (revappend c-def def))
+             (iter
+               (for p1 in alist)
+               (let ((p2 (assoc (car p1) c-alist)))
+                 (setf (cdr p1)
+                       (revappend (if p2 (cdr p2) c-def)
+                                  (cdr p1)))))))
+          (t
+           (push c def)
+           (iter
+             (for p in alist)
+             (push c (cdr p))))))
+      (setf def (reverse def))
+      (iter
+        (for p in alist)
+        (setf (cdr p) (reverse (cdr p))))
+      (make-instance 'conflict-ast
+                     :child-alist alist
+                     :default-children def))))
+
+
 
 ;;; AST equality and hashing
 (defmethod equal? ((ast-a ast) (ast-b ast))
@@ -354,7 +395,6 @@ modile +AST-HASH-BASE+.  0 values in ARGS are skipped."
     (declare (type simple-vector sv))
     (let ((result 0)
           (hb +ast-hash-base+)
-          (len (length sv))
           (i 0))
       (declare (type hash-type result))
       (iter (for hv in-vector sv)
