@@ -108,6 +108,18 @@ SUPERCLASS and PREFIX."
                         value))))
             (adrop '(:class) spec)))))
 
+(defmethod equal? ((ast-a non-homologous-ast) (ast-b non-homologous-ast))
+  (let ((hash1 (slot-value ast-a 'stored-hash))
+        (hash2 (slot-value ast-b 'stored-hash)))
+    (if (and hash1 hash2 (not (eql hash1 hash2)))
+        nil
+        (and (eq (type-of ast-a) (type-of ast-b))
+             (equal? (interleaved-text ast-a)
+                     (interleaved-text ast-b))
+             (length= (children ast-a)
+                      (children ast-b))
+             (every #'equal? (children ast-a) (children ast-b))))))
+
 (defmethod copy :around ((ast non-homologous-ast) &key &allow-other-keys)
   "Wrapper around copy to perform various fixups to the interleaved-text field
 and child-order annotations of the copied AST in response to child AST
