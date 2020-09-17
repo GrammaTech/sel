@@ -233,7 +233,8 @@ not explicit slot initargs into annotations for functional tree ASTs."
                       (t (collecting (cons key value) into annotations)))
                 (finally (return (append (when annotations
                                            (list :annotations annotations))
-                                         args)))))))
+                                         (list* :stored-hash nil
+                                                args))))))))
 
 (defgeneric combine-conflict-asts (ca1 ca2)
   (:documentation
@@ -263,6 +264,20 @@ not explicit slot initargs into annotations for functional tree ASTs."
       (make-instance 'conflict-ast
        :child-alist al
        :default-children (append def1 def2)))))
+
+(defgeneric combine-all-conflict-asts (parent child-list)
+  (:documentation "Replace PARENT with a conflict node obtained by
+combining the conflict nodes of CHILD-LIST, and whose elements are
+version of PARENT with those various combinations."))
+
+(defmethod combine-all-conflict-asts ((parent ast) (child-list list))
+  (multiple-value-bind (alist def)
+      (combine-conflict-asts-in-list child-list)
+    (make-instance
+     'conflict-ast
+     :child-alist (iter (for (k . children) in alist)
+                        (collecting (list k (copy parent :children children))))
+     :default-children (list (copy parent :children def)))))
 
 (defun combine-conflict-asts-in-list (child-list)
   "Combine a list of conflict-asts and other things into the components
@@ -299,10 +314,7 @@ of a single conflict-ast"
       (iter
         (for p in alist)
         (setf (cdr p) (reverse (cdr p))))
-      (make-instance 'conflict-ast
-                     :child-alist alist
-                     :default-children def))))
-
+      (values alist def))))
 
 
 ;;; AST equality and hashing

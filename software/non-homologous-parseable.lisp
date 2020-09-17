@@ -329,3 +329,12 @@ the rebinding"
               (list)
               (concatenate 'string text)
               (lastcar (interleaved-text root)))))
+
+(defmethod combine-all-conflict-asts ((parent non-homologous-ast) (child-list list))
+  (multiple-value-bind (alist def)
+      (combine-conflict-asts-in-list child-list)
+    (make-instance
+     'conflict-ast
+     :child-alist (iter (for (k . children) in alist)
+                        (collecting (list k (copy-with-standardized-children parent children))))
+     :default-children (list (copy-with-standardized-children parent def)))))
