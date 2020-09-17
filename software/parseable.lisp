@@ -80,7 +80,16 @@
            :index-of-ast
            :ast-at-index
            ;; Restarts
-           :expand-stmt-pool))
+           :expand-stmt-pool
+           ;; Indentation
+           :software-indentation
+           :indentation
+           :indent-adjustment
+           :indent-children
+           :get-default-indentation
+           :get-indentation-at
+           :*indent-with-tabs-p*
+           :*spaces-per-tab*))
 (in-package :software-evolution-library/software/parseable)
 (in-readtable :curry-compose-reader-macros)
 
@@ -669,13 +678,20 @@ of SHARED-PATH-AST's path in OBJ.")
   (:method ((obj parseable) target-ast shared-path-ast)
     (starts-with-subseq (ast-path obj shared-path-ast)
                         (ast-path obj target-ast)
+                        :test #'equal))
+  (:method ((root ast) target-ast shared-path-ast)
+    (starts-with-subseq (ast-path root shared-path-ast)
+                        (ast-path root target-ast)
                         :test #'equal)))
 
 (defgeneric ancestor-of-p (obj target-ast ancestor)
   (:documentation "Returns T if ANCESTOR is an ancestor of TARGET-AST in OBJ.")
   (:method ((obj parseable) target-ast ancestor)
     (unless (eq target-ast ancestor)
-      (shares-path-of-p obj target-ast ancestor))))
+      (shares-path-of-p obj target-ast ancestor)))
+  (:method ((root ast) target-ast ancestor)
+    (unless (eq target-ast ancestor)
+      (shares-path-of-p root target-ast ancestor))))
 
 
 ;;; Core parseable methods
@@ -1401,3 +1417,44 @@ to allow for successful mutation of SOFTWARE at PT."
 ;;; indentation is added that matches the current indentation of its parent.
 ;;;
 ;;; @texi{indentation}
+(defclass software-indentation ()
+  ((spaces-per-tab :accessor spaces-per-tab
+                   :initform 4)
+   (indent-with-tabs-p :accessor indent-with-tabs-p
+                       :initform nil)))
+
+(defclass indentation ()
+  ((indent-children :accessor indent-children
+                    :initform nil)
+   (indent-adjustment :accessor indent-adjustment
+                      :initform nil)))
+
+(defparameter *spaces-per-tab* 4
+  "The number of spaces per tab. This can be set to modify the
+behavior of #'source-text and #'convert")
+
+(defparameter *indent-with-tabs-p* nil
+  "A boolean value that . This can be set to modify the
+behavior of #'source-text and #'convert")
+
+(defgeneric get-default-indentation (ast parents)
+  (:documentation "Get a sane indent-children default for AST.")
+  (:method (ast parents)
+    (declare (ignorable ast parents))
+    *spaces-per-tab*))
+
+(defgeneric get-indentation-at (ast parents)
+  (:documentation "Get the indentation AST given PARENTS.")
+  (:method ((ast indentation) (parents list))
+    (reduce (lambda (total parent)
+              (+ total
+                 (or (indent-adjustment parent) 0)
+                 (or (indent-children parent) 0)))
+            parents
+            :initial-value (or (indent-adjustment ast) 0))))
+
+(defmethod copy :around ((ast indentation) &key &allow-other-keys)
+  (let ((copy (call-next-method)))
+    (setf (indent-children copy) (indent-children ast)
+          (indent-adjustment copy) (indent-children ast))
+    copy))
