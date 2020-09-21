@@ -255,7 +255,8 @@ raw list of ASTs in OBJ for use in `parse-asts`."
          (setf (slot-value ast 'annotations)
                (adrop '(:start :end) (slot-value ast 'annotations)))
          ast))
-    (nest (fix-newlines)
+    (nest (process-indentation)
+          (fix-newlines)
           (w/interleaved-text (convert to-type (acorn string))
                               0 (length string)))))
 
