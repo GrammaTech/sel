@@ -348,8 +348,9 @@ in textual (sorted) order.")
                (adrop '(:lineno :col-offset :end-lineno :end-col-offset)
                       (slot-value ast 'annotations)))
          ast))
-   (w/interleaved-text (convert to-type (python-astdump string))
-                       0 (length string-octets))))
+    (process-indentation
+     (w/interleaved-text (convert to-type (python-astdump string))
+                         0 (length string-octets)))))
 
 (defmethod convert ((to-type (eql 'python-ast)) (spec null)
                     &key &allow-other-keys)
