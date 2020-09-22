@@ -89,7 +89,8 @@
            :get-default-indentation
            :get-indentation-at
            :*indent-with-tabs-p*
-           :*spaces-per-tab*))
+           :*spaces-per-tab*
+           :not-indentable-p))
 (in-package :software-evolution-library/software/parseable)
 (in-readtable :curry-compose-reader-macros)
 
@@ -1458,3 +1459,8 @@ behavior of #'source-text and #'convert")
     (setf (indent-children copy) (indent-children ast)
           (indent-adjustment copy) (indent-children ast))
     copy))
+
+(defgeneric not-indentable-p (ast)
+  (:documentation "Return T if AST isn't indentable. This
+is useful for ASTs that may have newline literals.")
+  (:method (ast) nil))

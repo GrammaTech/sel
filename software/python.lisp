@@ -997,3 +997,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
 (defmethod format-genome ((obj python) &key)
   "Format the genome of OBJ using YAPF (Yet Another Python Formatter)."
   (yapf obj))
+
+
+;;; Indentation
+(defmethod not-indentable-p ((ast py-constant)) t)
