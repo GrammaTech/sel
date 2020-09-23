@@ -279,10 +279,13 @@ of children and not in named children slots."
              ;; Patch the indent-children slots of AST if
              ;; the value is T. The value T could be provided
              ;; from a #'convert invocation.
-             (when (eq t (indent-children ast))
-               (setf (indent-children ast)
-                     (get-default-indentation ast parent-list)))
-             (get-indentation-at ast parent-list))
+             (cond
+               ((typep ast 'indentation)
+                (when (eq t (indent-children ast))
+                  (setf (indent-children ast)
+                        (get-default-indentation ast parent-list)))
+                 (get-indentation-at ast parent-list))
+               (t (get-indentation-at (car parent-list) (cdr parent-list)))))
            (patch-inner-indentation (text ast parents
                                      &aux (indentation
                                            (get-indentation ast parents))
@@ -315,12 +318,12 @@ of children and not in named children slots."
                  (format nil "~a"
                          (if (ends-with-newline-p text) #\newline ""))))
                  (t text)))
-           (source-text* (ast &optional parents)
+           (source-text* (ast &optional parents &aux (stringp (stringp ast)))
              "Recursively retrieve the source  text of AST
               and write it to stream."
              ;; TODO: make this readable.
-             (let* ((interleaved-text (interleaved-text ast))
-                    (starting-text (car interleaved-text))
+             (let* ((interleaved-text (unless stringp (interleaved-text ast)))
+                    (starting-text (if stringp ast (car interleaved-text)))
                     (indentable-p (not (not-indentable-p ast))))
                (when (and (not (emptyp starting-text))
                           (eql #\newline (first starting-text)))
@@ -365,7 +368,7 @@ of children and not in named children slots."
                                indentation-ast ast))
                        (write-string (patch-inner-indentation text ast parents)
                                      stream))
-                     (sorted-children ast)
+                     (unless stringp (sorted-children ast))
                      (cdr interleaved-text)))))
     (source-text* ast)))
 
