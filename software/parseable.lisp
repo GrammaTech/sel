@@ -1455,9 +1455,20 @@ behavior of #'source-text and #'convert")
             :initial-value (or (indent-adjustment ast) 0))))
 
 (defmethod copy :around ((ast indentation) &key &allow-other-keys)
+  ;; TODO: these are also being copied to the annotations slot
+  ;;       in another specializer.
   (let ((copy (call-next-method)))
     (setf (indent-children copy) (indent-children ast)
-          (indent-adjustment copy) (indent-children ast))
+          (indent-adjustment copy) (indent-adjustment ast))
+    copy))
+
+(defmethod tree-copy :around ((ast indentation))
+  ;; TODO: this is for #'apply-mutation-ops. Not sure
+  ;;       if this is the correct way to fix this problem
+  ;;       though.
+  (let ((copy (call-next-method)))
+    (setf (indent-children copy) (indent-children ast)
+          (indent-adjustment copy) (indent-adjustment ast))
     copy))
 
 (defgeneric not-indentable-p (ast)
