@@ -1004,6 +1004,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
 
 (defmethod source-text ((ast python-ast) &optional stream
                         &aux (root ast) indent-p indentation-ast)
+  ;; TODO: add support for Windows-style CRLF instead of just newlines.
   (labels ((ends-with-newline-p (string)
              "Return T if STRING ends with a newline."
              (unless (emptyp string)
@@ -1085,11 +1086,15 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
                         indentablep
                         ;; Prevent indentation from being
                         ;; wasted on empty strings before it
-                        ;; reaches a child.
-                        (or (not ancestor-check)
-                            (not (emptyp text))
-                            (not (ancestor-of-p
-                                  root indentation-ast ast))))
+                        ;; reaches a child. This is checking if
+                        ;; it should not be skipped as opposed
+                        ;; to the logic in process-indentation
+                        ;; which is checking if it should be
+                        ;; skipped.
+                        (not (and ancestor-check
+                                  (emptyp text)
+                                  (ancestor-of-p
+                                   root indentation-ast ast))))
                (setf indent-p nil
                      indentation-ast nil)
                (write-string
@@ -1126,6 +1131,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
 
 (-> process-indentation (python-ast) python-ast)
 (defun process-indentation (root &aux indentation-carryover indentation-ast)
+  ;; TODO: add support for Windows-style CRLF instead of just newlines.
   (labels ((adjusted-spaces-from-tabs
                (subseq &aux (tab-count (count #\tab subseq)))
              "Return the number of spaces that are used for tabs minus

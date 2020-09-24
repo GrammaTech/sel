@@ -1435,8 +1435,8 @@ to allow for successful mutation of SOFTWARE at PT."
 behavior of #'source-text and #'convert")
 
 (defparameter *indent-with-tabs-p* nil
-  "A boolean value that . This can be set to modify the
-behavior of #'source-text and #'convert")
+  "A boolean value that indicates whether tabs should be used instead of spaces.
+This can be set to modify the behavior of #'source-text and #'convert")
 
 (defgeneric get-default-indentation (ast parents)
   (:documentation "Get a sane indent-children default for AST.")
@@ -1445,7 +1445,7 @@ behavior of #'source-text and #'convert")
     *spaces-per-tab*))
 
 (defgeneric get-indentation-at (ast parents)
-  (:documentation "Get the indentation AST given PARENTS.")
+  (:documentation "Get the indentation for AST given PARENTS.")
   (:method ((ast indentation) (parents list))
     (reduce (lambda (total parent)
               (+ total
