@@ -34,6 +34,7 @@
         :software-evolution-library/test/diff
         :software-evolution-library/test/elf
         :software-evolution-library/test/fix-compilation
+        :software-evolution-library/test/indentation
         :software-evolution-library/test/javascript-project
         :software-evolution-library/test/javascript
         :software-evolution-library/test/lisp
