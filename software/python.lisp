@@ -1000,7 +1000,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
 
 
 ;;; Indentation
-(defmethod not-indentable-p ((ast py-constant)) t)
+(defmethod indentablep ((ast py-constant)) nil)
 
 (defmethod source-text ((ast python-ast) &optional stream
                         &aux (root ast) indent-p indentation-ast)
@@ -1041,7 +1041,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
              ;; NOTE: this will likely indent comments incorrectly.
              ;;       This behavior is expected.
              (cond
-               ((not-indentable-p ast) text)
+               ((not (indentablep ast)) text)
                ((< 1 (length split-text))
                 ;; Add the newline back in if there was one at the end
                 ;; of the string since it gets removed by #'split.
@@ -1070,19 +1070,19 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
                         (eql #\newline (first text)))
                (setf indent-p nil
                      indentation-ast nil)))
-           (handle-trailing-newline (text ast indentable-p)
+           (handle-trailing-newline (text ast indentablep)
              "If the last character in TEXT is a newline, set the
               indentation variables."
              (when (and (ends-with-newline-p text)
-                          indentable-p)
+                          indentablep)
                  (setf indent-p t
                        indentation-ast ast)))
-           (handle-indentation (text ast indentable-p parents
+           (handle-indentation (text ast indentablep parents
                                 &key ancestor-check)
              "If indentation to be written to stream, handle
               writing it."
              (when (and indent-p
-                        indentable-p
+                        indentablep
                         ;; Prevent indentation from being
                         ;; wasted on empty strings before it
                         ;; reaches a child.
@@ -1095,14 +1095,14 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
                (write-string
                 (create-indentation (get-indentation ast parents))
                 stream)))
-           (handle-text (text ast indentable-p parents
+           (handle-text (text ast indentablep parents
                          &key ancestor-check)
              "Handle writing TEXT to stream, updating any indentation
               variables that need updated."
              (handle-leading-newline text)
-             (handle-indentation text ast indentable-p parents
+             (handle-indentation text ast indentablep parents
                                  :ancestor-check ancestor-check)
-             (handle-trailing-newline text ast indentable-p)
+             (handle-trailing-newline text ast indentablep)
              (write-string
               (patch-inner-indentation text ast parents)
               stream))
@@ -1112,13 +1112,13 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
              ;; TODO: the checking for whether there's a string could
              ;;       be resolved by reconstructing a list of children.
              (let* ((interleaved-text (unless stringp (interleaved-text ast)))
-                    (indentable-p (not (not-indentable-p ast))))
+                    (indentablep (indentablep ast)))
                (handle-text
                 (if stringp ast (car interleaved-text))
-                ast indentable-p parents)
+                ast indentablep parents)
                (mapc (lambda (child text)
                        (source-text* child (cons ast parents))
-                       (handle-text text ast indentable-p parents
+                       (handle-text text ast indentablep parents
                                     :ancestor-check t))
                      (unless stringp (sorted-children ast))
                      (cdr interleaved-text)))))
@@ -1235,7 +1235,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
              (mapl (lambda (child-list text-list &aux (child (car child-list)))
                      ;; this prevents patching literals that have
                      ;; multiple newlines.
-                     (unless (not-indentable-p child)
+                     (unless (not (indentablep child))
                        (process-indentation* child (cons ast parents)))
                      (setf (car text-list)
                            (patch-text (car text-list) ast parents)))
