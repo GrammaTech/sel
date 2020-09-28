@@ -73,6 +73,10 @@ result with RESULT-FILE."
   "Test that multiline strings can round-trip through a python object."
   (is-round-trip "multiline-string"))
 
+(deftest indentation-round-trip-python-3 ()
+  "Test that multiple newlines in a row are handled correctly."
+  (is-round-trip "multiple-newlines"))
+
 
 ;;; Mutation Tests
 (deftest moveable-indentation-python-1 ()
