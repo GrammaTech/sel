@@ -678,7 +678,7 @@ AST ast to return the scopes for"
                                           (call-name-p parent ast))))
                         (list (cons :name (source-text ast))))
                       (mapcar {get-unbound-vals-helper obj ast}
-                              (children ast)))
+                              (remove nil (children ast))))
                :test #'equal)))
     (get-unbound-vals-helper obj (get-parent-ast obj ast) ast)))
 
