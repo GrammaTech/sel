@@ -1148,7 +1148,12 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
            (ends-with-newline-p (string)
              "If STRING ends with a newline and optionally indentation,
               return the position of the newline."
-             (scan "\\n[ \\t]*$" string))
+             (iter
+               (for i from (1- (length string)) downto 0)
+               (for character = (aref string i))
+               (when (eql character #\newline)
+                 (return i))
+               (while (member character '(#\space #\tab)))))
            (update-indentation-slots
                (ast parents indentation text
                 &aux (parent (car parents))
