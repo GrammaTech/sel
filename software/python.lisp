@@ -1254,3 +1254,19 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
                    (cdr interleaved-text))))
     (process-indentation* root)
     root))
+
+(defmethod get-default-indentation ((ast python-ast) (parents list))
+  ;; Search for the first AST with a colon in the interleaved-text and
+  ;; uses its indent-children value. If none are found, call-next-method.
+  (labels ((indented-obj-p (ast &aux (indent-children (indent-children ast)))
+             "Return T if AST is an obj that should have indented children."
+             (and
+              indent-children
+              (not (eql t indent-children))
+              (member (type-of ast)
+                      ;; TODO: more classes need added here.
+                      '(py-class-def py-function-def py-if py-while py-for)))))
+    (if-let ((indented-obj (find-if #'indented-obj-p (or (lastcar parents)
+                                                         ast))))
+      (indent-children indented-obj)
+      (call-next-method))))
