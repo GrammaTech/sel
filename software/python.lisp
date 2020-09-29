@@ -46,7 +46,8 @@
            :python-ast
            :collect-var-uses
            :identical-name-p
-           :get-asts-in-namespace))
+           :get-asts-in-namespace
+           :find-if-in-scopes))
 (in-package :software-evolution-library/software/python)
 (in-readtable :curry-compose-reader-macros)
 
@@ -713,7 +714,8 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
    (lambda (scope)
      (when-let ((return-value (find-if predicate scope)))
        (return-from find-if-in-scopes return-value)))
-   scopes))
+   scopes)
+  nil)
 
 (defmethod get-function-from-function-call ((obj python) (ast python-ast))
   (match ast
