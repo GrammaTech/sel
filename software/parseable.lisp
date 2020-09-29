@@ -820,25 +820,28 @@ of SHARED-PATH-AST's path in OBJ.")
                       (source-text (source-text ast))
                       (child-asts (nest (remove-if-not {typep _ 'ast})
                                         (sorted-children ast)))
-                      (child (car child-asts)))
+                      (child (car child-asts))
+                      (child-text (and child (source-text child))))
                  ;; TODO: This style is too imperative.
                  (iter (for i below (length source-text))
-                       (if (and child (string^= (source-text child)
-                                                (subseq source-text i)))
+                       (if (and child (string^= child-text
+                                                source-text
+                                                :start2 i))
                            ;; Create the child source ranges when we find
                            ;; a child in the source text.
                            (let* ((ranges (ast-source-ranges* child line column))
                                   (end (end (cdar ranges))))
                               (setf line (line end)
                                     column (column end)
-                                    i (1- (+ (length (source-text child)) i))
-                                    child (next-child child child-asts))
+                                    i (1- (+ (length child-text) i))
+                                    child (next-child child child-asts)
+                                    child-text (and child (source-text child)))
                               (appending ranges into child-ranges))
                            (progn
                             ;; Continue iterating thru the source text,
                             ;; updating line and column appropriately.
                             (incf column)
-                            (when (eq (elt source-text i) #\newline)
+                            (when (eql (aref source-text i) #\newline)
                               (incf line)
                               (setf column 1))))
                        (finally
