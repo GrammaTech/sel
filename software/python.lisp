@@ -474,7 +474,7 @@ AST ast to return the scopes for"
                            (py-nonlocal
                             (when (and
                                    (find-if
-                                    {equalp name} (ast-annotation ast :names))
+                                    {equal name} (ast-annotation ast :names))
                                    (not
                                     (eq enclosing-scope
                                         (enclosing-scope obj enclosing-scope))))
@@ -483,14 +483,14 @@ AST ast to return the scopes for"
                            (py-assign
                             (find-if
                              (lambda (target)
-                               (equalp name (ast-annotation target :id)))
+                               (equal name (ast-annotation target :id)))
                              (py-targets ast)))
                            (py-ann-assign
-                            (equalp name (ast-annotation (py-target ast) :id)))
+                            (equal name (ast-annotation (py-target ast) :id)))
                            (py-arguments
                             (find-if
                              (lambda (arg)
-                               (equalp name (ast-annotation arg :arg)))
+                               (equal name (ast-annotation arg :arg)))
                              (py-args (py-args ast))))))
                        (remove nil (children enclosing-scope)))
               name enclosing-scope))
@@ -502,12 +502,12 @@ AST ast to return the scopes for"
                            (py-assign
                             (find-if
                              (lambda (target)
-                               (equalp name (ast-annotation target :id)))
+                               (equal name (ast-annotation target :id)))
                              (py-targets ast)))
                            (py-ann-assign
-                            (equalp name (ast-annotation (py-target ast) :id)))
+                            (equal name (ast-annotation (py-target ast) :id)))
                            (py-class-def
-                            (equalp name (ast-annotation ast :name)))))
+                            (equal name (ast-annotation ast :name)))))
                        (remove nil (children genome)))
               name genome))
            (find-function-bindings (scope)
@@ -745,7 +745,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
          (call-args (py-args funcall)))
     (labels ((same-arg-p (arg1 arg2)
                "Return T if ARG1 and ARG2 represent the same id."
-               (equalp (ast-annotation arg1 :arg)
+               (equal (ast-annotation arg1 :arg)
                        (ast-annotation arg2 :arg)))
              (get-positional-args-with-defaults ()
                "Return a list of the position parameters that have default
@@ -933,7 +933,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
   "Return T if the IDs of NAME1 and NAME2 are the same."
   (and (typep name1 'py-name)
        (typep name2 'py-name)
-       (equalp (ast-annotation name1 :id)
+       (equal (ast-annotation name1 :id)
                (ast-annotation name2 :id))))
 
 (-> get-asts-in-namespace (python python-ast) list)
