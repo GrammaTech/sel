@@ -45,6 +45,7 @@
            :python-mutation
            :python-ast
            :collect-var-uses
+           :collect-fun-uses
            :identical-name-p
            :get-asts-in-namespace
            :find-if-in-scopes))
@@ -831,6 +832,18 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
         :test (lambda (cons1 cons2)
                 (same-arg-p (car cons1) (car cons2))))))))
 
+(defmethod assign-to-var-p ((ast python-ast) (identifier python-ast))
+  ;; Return the py-name that matches in case the caller wants
+  ;; to check if it is the same as identifier.
+  (match ast
+    ((py-aug-assign (py-target py-name))
+     (and (identical-name-p py-name identifier) py-name))
+    ((py-assign
+      (py-targets (list* target _)))
+     ;; target will be a tuple for multiple
+     ;; assignments
+     (find-if {identical-name-p identifier} target))))
+
 
 ;;; Indentation
 (defmethod indentablep ((ast py-constant)) nil)
@@ -1201,13 +1214,76 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
                      (find-var-uses (cdr assorted-by-scope)
                                     binding-class))))))
 
+(-> collect-fun-uses (python python-ast) list)
+(defun collect-fun-uses (obj ast)
+  (labels ((same-name-p (ast name)
+             "Return T if AST represents an AST that contains the same
+              name as NAME."
+             (typecase ast
+               (py-arg (equal (ast-annotation ast :arg) name))
+               (py-name (equal (ast-annotation ast :id) name))
+               (py-function-def
+                (equal name (ast-annotation ast :name)))))
+           (get-analysis-set (scope name)
+             "Collect all relevant asts with NAME in SCOPE."
+             ;; Currently, py-name, py-arg, and either py-nonlocal or py-global
+             ;; are relevant.
+             (remove-if-not
+              (lambda (ast)
+                (same-name-p ast name))
+              (collect-if
+               (lambda (ast)
+                 (member
+                  (type-of ast)
+                  `(py-name py-function-def py-arg)))
+               scope)))
+           (get-shadowed-asts (analysis-set shadowing-ast)
+             "Get the ASTs in ANALYSIS-SET that are shadowed by SHADOWING-AST."
+             (intersection
+              analysis-set
+              (remove-if
+               (lambda (ast)
+                 (path-later-p obj shadowing-ast ast))
+               (get-asts-in-namespace obj (enclosing-scope obj shadowing-ast)))))
+           (shadowing-ast-p (ast)
+             "Return T if AST is an AST that shadows the function."
+             (etypecase ast
+               ((or py-arg py-function-def) t)
+               (py-name
+                ;; TODO: for loops and other binding forms can also
+                ;;       shadow, but support for identifying this still
+                ;;       needs to be done.
+                (assign-to-var-p (get-parent-ast obj ast) ast))))
+           (remove-shadowed-asts (analysis-set)
+             "Remove all ASTs that are shadowing the target function
+              from the analysis set."
+             ;; The initial definition is seen as a shadowing ast,
+             ;; so remove it from consideration and add it back
+             ;; after analysis.
+             (cons
+              (car analysis-set)
+              (iter
+                (iter:with shadowed-asts)
+                (for ast in (cdr analysis-set))
+                (when (shadowing-ast-p ast)
+                  (setf shadowed-asts
+                        (append shadowed-asts
+                                (get-shadowed-asts analysis-set ast))))
+                (unless (member ast shadowed-asts)
+                  (collect ast))))))
+    (remove-shadowed-asts
+     (get-analysis-set
+      (enclosing-scope obj ast)
+      (and (typep ast 'py-function-def)
+           (ast-annotation ast :name))))))
+
 (-> identical-name-p (python-ast python-ast) boolean)
 (defun identical-name-p (name1 name2)
   "Return T if the IDs of NAME1 and NAME2 are the same."
   (and (typep name1 'py-name)
        (typep name2 'py-name)
        (equal (ast-annotation name1 :id)
-               (ast-annotation name2 :id))))
+              (ast-annotation name2 :id))))
 
 (-> get-asts-in-namespace (python python-ast) list)
 (defun get-asts-in-namespace (obj ast)

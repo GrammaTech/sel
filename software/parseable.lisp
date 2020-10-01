@@ -68,6 +68,7 @@
            :ancestor-of-p
            :get-function-from-function-call
            :map-arguments-to-parameters
+           :assign-to-var-p
            ;; :mutation-targets
            :pick-general
            :recontextualize-mutation
@@ -958,6 +959,9 @@ FUNCALL-AST if it exists in OBJ."))
 (defgeneric map-arguments-to-parameters (obj funcall-ast)
   (:documentation "Return an alist mapping parameters of a function
 in OBJ to its arguments in FUNCALL-AST."))
+
+(defgeneric assign-to-var-p (ast var)
+  (:documentation "Return TRUE if AST represents an assignment to VAR."))
 
 
 ;;; Genome manipulations
