@@ -182,3 +182,12 @@ and keyword parameters with defaults."
        ("2" . "required")
        ("3" . "b")
        ("{\"d\" : 5, \"c\" : 4}" . "args")))))
+
+(deftest python-collect-fun-uses-1 ()
+  "collect-fun-uses doesn't collect uses of shadowed functions."
+  (with-software-file ("function-shadow" soft genome)
+    (let ((fun-uses (collect-fun-uses
+                     soft
+                     (find-if {typep _ 'py-function-def} genome))))
+      (is (= 5 (length fun-uses))
+          "~A did not contain the expected number of uses" fun-uses))))
