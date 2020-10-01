@@ -832,175 +832,6 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
                 (same-arg-p (car cons1) (car cons2))))))))
 
 
-;;; Helper functions
-(-> collect-var-uses (python python-ast) list)
-(defun collect-var-uses (obj ast)
-  "Collect uses of AST in OBJ."
-  ;;TODO: expand this to work inside classes.
-  ;;      This may require significat modifications to acount
-  ;;      for 'self' variables.
-  (labels ((same-name-p (ast name)
-             "Return T if AST represents an AST that contains the same
-              name as NAME."
-             (typecase ast
-               (py-arg (equal (ast-annotation ast :arg) name))
-               (py-name (equal (ast-annotation ast :id) name))
-               (py-global (find-if {equal name} (ast-annotation ast :names)))
-               (py-nonlocal
-                (find-if {equal name} (ast-annotation ast :names)))))
-           (find-name-in-scopes (name scopes)
-             "Search SCOPES for a variable named NAME."
-             (mappend
-              (lambda (scope)
-                (find-if
-                 (lambda (var-info)
-                   (equal name (aget :name var-info)))
-                 scope))
-              scopes))
-           (get-analysis-set (scope first-occurrence name binding-class)
-             "Collect all relevant asts with NAME in SCOPE. BINDING-CLASS
-              determines whether 'global' or 'nonlocal' should be used to
-              determine if NAME is in-scope for assignments."
-             ;; Currently, py-name, py-arg, and either py-nonlocal or py-global
-             ;; are relevant.
-             (remove-if-not
-              (lambda (ast)
-                (or (same-name-p ast name) (eq ast first-occurrence)))
-              (collect-if
-               (lambda (ast)
-                 (member
-                  (type-of ast)
-                  `(py-name py-arg ,binding-class)))
-               scope)))
-           (find-var-uses (assorted-by-scope binding-class)
-             "Search assorted-by-scope for usages of variables
-              with the same name. BINDING-CLASS specifies whether
-              the variable is global or local and provides the
-              name of the class used for binding it to a scope."
-             (iter
-               (iter:with out-of-scope = nil)
-               (iter:with local-var-p = (eq binding-class 'py-nonlocal))
-               (for vars-in-scope in assorted-by-scope)
-               (for scope = (enclosing-scope obj (car vars-in-scope)))
-               ;; Prune any scope that occurs after the local binding
-               ;; has been squashed.
-               (when out-of-scope
-                 (if (shares-path-of-p obj scope out-of-scope)
-                     (next-iteration)
-                     (setf out-of-scope nil)))
-               (cond
-                 ((find-if {typep _ 'py-arg} vars-in-scope)
-                  ;; All nested scopes are out-of-scope.
-                  (and local-var-p (setf out-of-scope scope)))
-                 ((find-if {typep _ binding-class} vars-in-scope)
-                  (collect vars-in-scope))
-                 ((find-if [{typep _ 'py-assign} {get-parent-full-stmt obj}]
-                           vars-in-scope)
-                  ;; All nested scopes are out-of-scope.
-                  (and local-var-p (setf out-of-scope scope)))))))
-    ;; TODO: expand this to accept more than just ast's with an :id
-    ;;       annotation. This is currently just py-name. py-arg
-    ;;       should work as soon as the name can be retrieved.
-    (let* ((name (ast-annotation ast :id))
-           (var-info (find-name-in-scopes name (scopes obj ast)))
-           (scope (or (aget :scope var-info) (enclosing-scope obj ast)))
-           ;; The path will be nil when given the global scope.
-           (binding-class (if (ast-path obj scope)
-                              'py-nonlocal
-                              'py-global))
-           (assorted-by-scope
-             ;; Make sure the top-most scope comes first.
-             (sort
-              (assort (get-analysis-set scope (or (aget :decl var-info)
-                                                  (get-parent-full-stmt obj ast))
-                                        name binding-class)
-                      :key {enclosing-scope obj})
-              #'(lambda (ast1 ast2)
-                  (< (length (ast-path obj ast1))
-                     (length (ast-path obj ast2))))
-              :key #'car)))
-      ;; NOTE: the following comment will become relevant when the prior
-      ;;       TODO is addressed.
-      ;; Don't pass in the first scope of assorted-by-scope as the first
-      ;; one may include a py-arg which find-var-uses would misinterpret
-      ;; as squashing the binding's scope.
-      (flatten (cons (car assorted-by-scope)
-                     (find-var-uses (cdr assorted-by-scope)
-                                    binding-class))))))
-
-(-> identical-name-p (python-ast python-ast) boolean)
-(defun identical-name-p (name1 name2)
-  "Return T if the IDs of NAME1 and NAME2 are the same."
-  (and (typep name1 'py-name)
-       (typep name2 'py-name)
-       (equal (ast-annotation name1 :id)
-               (ast-annotation name2 :id))))
-
-(-> get-asts-in-namespace (python python-ast) list)
-(defun get-asts-in-namespace (obj ast)
-  "Get all of the ASTs in AST which are considered to be in the same namespace."
-  ;; Note that with the first call to this function, AST should be the start of a
-  ;; namespace.
-  (labels ((new-namespace-p (ast)
-             "Return T if AST starts a new namespace."
-             ;; TODO: probably need to add some more types here.
-             (member (type-of ast)
-                     '(py-function-def py-async-function-def py-class-def)))
-           (collect-asts (ast)
-             (let ((children (remove nil (children ast))))
-               (append children
-                       (mappend (lambda (child)
-                                  (unless (new-namespace-p child)
-                                    (get-asts-in-namespace obj child)))
-                                children)))))
-    (sort (collect-asts ast)
-          (lambda (ast1 ast2)
-            (path-later-p obj ast2 ast1)))))
-
-(-> create-tuple (list) python-ast)
-(defun create-tuple (values &aux (length (length values)))
-  "Create a new tuple AST that contains values."
-  (convert 'python-ast
-           `((:class . :tuple)
-             (:interleaved-text
-              ,@(cond
-                  ((= 0 length) '("()"))
-                  ((= 1 length) '("(" ",)"))
-                  (t (append '("(")
-                             (repeat-sequence '(", ") (1- length))
-                             '(")")))))
-             (:py-elts . ,values)
-             (:annotations
-              (:ctx . :load)))))
-
-(-> create-dictionary (list list) (or python-ast null))
-(defun create-dictionary (keys values &aux (length (length keys)))
-  "Create a new dictionary AST that maps KEYS to VALUES."
-  (when (= length (length values))
-    (convert 'python-ast
-             `((:class . :dict)
-               (:interleaved-text
-                ,@(cond
-                    ((= 0 length) '("{}"))
-                    (t (append '("{" " : ")
-                               (repeat-sequence '(", " " : ") (1- length))
-                               '("}")))))
-               (:py-keys ,@keys)
-               (:py-values ,@values)
-               (:annotations
-                (:child-order
-                 ,@(iter
-                     (for i from 0 below length)
-                     (collect `((py-keys . ,i)))
-                     (collect `((py-values . ,i))))))))))
-
-
-;;; Implement the generic format-genome method for python objects.
-(defmethod format-genome ((obj python) &key)
-  "Format the genome of OBJ using YAPF (Yet Another Python Formatter)."
-  (yapf obj))
-
-
 ;;; Indentation
 (defmethod indentablep ((ast py-constant)) nil)
 
@@ -1272,3 +1103,172 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
                                                          ast))))
       (indent-children indented-obj)
       (call-next-method))))
+
+
+;;; Helper functions
+(-> collect-var-uses (python python-ast) list)
+(defun collect-var-uses (obj ast)
+  "Collect uses of AST in OBJ."
+  ;;TODO: expand this to work inside classes.
+  ;;      This may require significat modifications to acount
+  ;;      for 'self' variables.
+  (labels ((same-name-p (ast name)
+             "Return T if AST represents an AST that contains the same
+              name as NAME."
+             (typecase ast
+               (py-arg (equal (ast-annotation ast :arg) name))
+               (py-name (equal (ast-annotation ast :id) name))
+               (py-global (find-if {equal name} (ast-annotation ast :names)))
+               (py-nonlocal
+                (find-if {equal name} (ast-annotation ast :names)))))
+           (find-name-in-scopes (name scopes)
+             "Search SCOPES for a variable named NAME."
+             (mappend
+              (lambda (scope)
+                (find-if
+                 (lambda (var-info)
+                   (equal name (aget :name var-info)))
+                 scope))
+              scopes))
+           (get-analysis-set (scope first-occurrence name binding-class)
+             "Collect all relevant asts with NAME in SCOPE. BINDING-CLASS
+              determines whether 'global' or 'nonlocal' should be used to
+              determine if NAME is in-scope for assignments."
+             ;; Currently, py-name, py-arg, and either py-nonlocal or py-global
+             ;; are relevant.
+             (remove-if-not
+              (lambda (ast)
+                (or (same-name-p ast name) (eq ast first-occurrence)))
+              (collect-if
+               (lambda (ast)
+                 (member
+                  (type-of ast)
+                  `(py-name py-arg ,binding-class)))
+               scope)))
+           (find-var-uses (assorted-by-scope binding-class)
+             "Search assorted-by-scope for usages of variables
+              with the same name. BINDING-CLASS specifies whether
+              the variable is global or local and provides the
+              name of the class used for binding it to a scope."
+             (iter
+               (iter:with out-of-scope = nil)
+               (iter:with local-var-p = (eq binding-class 'py-nonlocal))
+               (for vars-in-scope in assorted-by-scope)
+               (for scope = (enclosing-scope obj (car vars-in-scope)))
+               ;; Prune any scope that occurs after the local binding
+               ;; has been squashed.
+               (when out-of-scope
+                 (if (shares-path-of-p obj scope out-of-scope)
+                     (next-iteration)
+                     (setf out-of-scope nil)))
+               (cond
+                 ((find-if {typep _ 'py-arg} vars-in-scope)
+                  ;; All nested scopes are out-of-scope.
+                  (and local-var-p (setf out-of-scope scope)))
+                 ((find-if {typep _ binding-class} vars-in-scope)
+                  (collect vars-in-scope))
+                 ((find-if [{typep _ 'py-assign} {get-parent-full-stmt obj}]
+                           vars-in-scope)
+                  ;; All nested scopes are out-of-scope.
+                  (and local-var-p (setf out-of-scope scope)))))))
+    ;; TODO: expand this to accept more than just ast's with an :id
+    ;;       annotation. This is currently just py-name. py-arg
+    ;;       should work as soon as the name can be retrieved.
+    (let* ((name (ast-annotation ast :id))
+           (var-info (find-name-in-scopes name (scopes obj ast)))
+           (scope (or (aget :scope var-info) (enclosing-scope obj ast)))
+           ;; The path will be nil when given the global scope.
+           (binding-class (if (ast-path obj scope)
+                              'py-nonlocal
+                              'py-global))
+           (assorted-by-scope
+             ;; Make sure the top-most scope comes first.
+             (sort
+              (assort (get-analysis-set scope (or (aget :decl var-info)
+                                                  (get-parent-full-stmt obj ast))
+                                        name binding-class)
+                      :key {enclosing-scope obj})
+              #'(lambda (ast1 ast2)
+                  (< (length (ast-path obj ast1))
+                     (length (ast-path obj ast2))))
+              :key #'car)))
+      ;; NOTE: the following comment will become relevant when the prior
+      ;;       TODO is addressed.
+      ;; Don't pass in the first scope of assorted-by-scope as the first
+      ;; one may include a py-arg which find-var-uses would misinterpret
+      ;; as squashing the binding's scope.
+      (flatten (cons (car assorted-by-scope)
+                     (find-var-uses (cdr assorted-by-scope)
+                                    binding-class))))))
+
+(-> identical-name-p (python-ast python-ast) boolean)
+(defun identical-name-p (name1 name2)
+  "Return T if the IDs of NAME1 and NAME2 are the same."
+  (and (typep name1 'py-name)
+       (typep name2 'py-name)
+       (equal (ast-annotation name1 :id)
+               (ast-annotation name2 :id))))
+
+(-> get-asts-in-namespace (python python-ast) list)
+(defun get-asts-in-namespace (obj ast)
+  "Get all of the ASTs in AST which are considered to be in the same namespace."
+  ;; Note that with the first call to this function, AST should be the start of a
+  ;; namespace.
+  (labels ((new-namespace-p (ast)
+             "Return T if AST starts a new namespace."
+             ;; TODO: probably need to add some more types here.
+             (member (type-of ast)
+                     '(py-function-def py-async-function-def py-class-def)))
+           (collect-asts (ast)
+             (let ((children (remove nil (children ast))))
+               (append children
+                       (mappend (lambda (child)
+                                  (unless (new-namespace-p child)
+                                    (get-asts-in-namespace obj child)))
+                                children)))))
+    (sort (collect-asts ast)
+          (lambda (ast1 ast2)
+            (path-later-p obj ast2 ast1)))))
+
+(-> create-tuple (list) python-ast)
+(defun create-tuple (values &aux (length (length values)))
+  "Create a new tuple AST that contains values."
+  (convert 'python-ast
+           `((:class . :tuple)
+             (:interleaved-text
+              ,@(cond
+                  ((= 0 length) '("()"))
+                  ((= 1 length) '("(" ",)"))
+                  (t (append '("(")
+                             (repeat-sequence '(", ") (1- length))
+                             '(")")))))
+             (:py-elts . ,values)
+             (:annotations
+              (:ctx . :load)))))
+
+(-> create-dictionary (list list) (or python-ast null))
+(defun create-dictionary (keys values &aux (length (length keys)))
+  "Create a new dictionary AST that maps KEYS to VALUES."
+  (when (= length (length values))
+    (convert 'python-ast
+             `((:class . :dict)
+               (:interleaved-text
+                ,@(cond
+                    ((= 0 length) '("{}"))
+                    (t (append '("{" " : ")
+                               (repeat-sequence '(", " " : ") (1- length))
+                               '("}")))))
+               (:py-keys ,@keys)
+               (:py-values ,@values)
+               (:annotations
+                (:child-order
+                 ,@(iter
+                     (for i from 0 below length)
+                     (collect `((py-keys . ,i)))
+                     (collect `((py-values . ,i))))))))))
+
+
+;;; Implement the generic format-genome method for python objects.
+(defmethod format-genome ((obj python) &key)
+  "Format the genome of OBJ using YAPF (Yet Another Python Formatter)."
+  (yapf obj))
