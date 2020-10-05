@@ -48,7 +48,8 @@
            :collect-fun-uses
            :identical-name-p
            :get-asts-in-namespace
-           :find-if-in-scopes))
+           :find-if-in-scopes
+           :in-class-def-p))
 (in-package :software-evolution-library/software/python)
 (in-readtable :curry-compose-reader-macros)
 
@@ -1276,6 +1277,163 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
       (enclosing-scope obj ast)
       (and (typep ast 'py-function-def)
            (ast-annotation ast :name))))))
+
+(defgeneric get-vars (obj ast)
+  (:documentation "Get the variables that are bound by AST."))
+
+(defun create-var-alist (obj definition name &key attributes scope)
+  "Create an alist with information about a variable."
+  `((:name . ,name)
+    (:definition . ,definition)
+    (:scope . ,(or scope (enclosing-scope obj definition)))
+    ,@(when attributes
+        (list (cons :attributes attributes)))))
+
+(defun get-vars-name-handler (obj ast &key scope)
+  "Handle AST as a py-name object."
+  (create-var-alist
+   obj ast (ast-annotation ast :id)
+   :scope scope
+   :attributes '(:variable)))
+
+(defun get-vars-name-or-tuple-handler (obj ast &key scope)
+  "Handle AST as a py-name or a py-tuple object."
+  (typecase ast
+    (py-tuple
+     (mapcar
+      (lambda (element)
+        (create-var-alist
+         obj element (ast-annotation element :id)
+         :scope scope
+         :attributes '(:variable)))
+      (py-elts ast)))
+    (py-name
+     (list
+      (get-vars-name-handler obj ast :scope scope)))))
+
+(defun get-vars-for-handler (obj ast)
+  "Handle AST as a py-for or py-async-for object."
+  (let ((target (py-target ast)))
+    (get-vars-name-or-tuple-handler obj target)))
+
+(defmethod get-vars ((obj python) (ast py-for))
+  (get-vars-for-handler obj ast))
+
+(defmethod get-vars ((obj python) (ast py-async-for))
+  (get-vars-for-handler obj ast))
+
+(defmethod get-vars ((obj python) (ast py-except-handler))
+  ;; NOTE: try except appears to unbind the variable in the namespace.
+  ;;       This may be because the exception has been freed by the time
+  ;;       it is out of the except handler.
+  ;;       This may require a special attribute for handling it.
+  (when-let ((name (ast-annotation ast :name)))
+    (list
+     (create-var-alist
+      obj ast name
+      :attributes '(:variable)))))
+
+(defun get-vars-comprehension-handler (obj ast)
+  ;; NOTE: this is tricky since there are essentially two ASTs
+  ;;       that the variable binding is available in. The chances
+  ;;       of this becoming an issue are probably slim.
+  ;;
+  ;;       x = [1, 2, 3, 4, 5]
+  ;;       x = [x for x in x]
+  (mapcar
+   (lambda (comprehension)
+     (create-var-alist
+      obj comprehension (ast-annotation (py-target comprehension) :id)
+      :scope ast
+      :attributes '(:variable)))
+   (py-generators ast)))
+
+(defmethod get-vars ((obj python) (ast py-list-comp))
+  (get-vars-comprehension-handler obj ast))
+
+(defmethod get-vars ((obj python) (ast py-set-comp))
+  (get-vars-comprehension-handler obj ast))
+
+(defmethod get-vars ((obj python) (ast py-dict-comp))
+  (get-vars-comprehension-handler obj ast))
+
+(defmethod get-vars ((obj python) (ast py-generator-exp))
+  (get-vars-comprehension-handler obj ast))
+
+(defun get-vars-import-handler (obj ast)
+  "Handle AST as a py-import or py-import-from object."
+  (mapcar
+   (lambda (name-alist)
+     (create-var-alist
+      obj ast (or (aget :asname name-alist)
+                  (aget :name name-alist))
+      :attributes '(:variable)))
+   (ast-annotation ast :names)))
+
+(defmethod get-vars ((obj python) (ast py-import))
+  (get-vars-import-handler obj ast))
+
+(defmethod get-vars ((obj python) (ast py-import-from))
+  (get-vars-import-handler obj ast))
+
+(defun get-vars-with-handler (obj ast)
+  "Handle AST as a py-with or py-async-with object."
+  (remove
+   nil
+   (mapcar
+    (lambda (item)
+      (when-let ((var (py-optional-vars item)))
+        (get-vars-name-handler obj var)))
+    (py-items ast))))
+
+(defmethod get-vars ((obj python) (ast py-with))
+  (get-vars-with-handler obj ast))
+
+(defmethod get-vars ((obj python) (ast py-async-with))
+  (get-vars-with-handler obj ast))
+
+(defmethod get-vars ((obj python) (ast py-assign))
+  (get-vars-name-or-tuple-handler obj (car (py-targets ast))))
+
+(defmethod get-vars ((obj python) (ast py-ann-assign))
+  (list
+   (get-vars-name-handler obj (py-target ast))))
+
+(defun get-vars-fun-handler (obj ast &key scope)
+  "Handle AST as a py-function-def or py-async-function-def object."
+  (append
+   (when-let ((name (ast-annotation ast :name)))
+     (list (create-var-alist obj ast name :attributes '(:function))))
+   (mapcar
+    (lambda (arg)
+      (create-var-alist
+       obj ast (ast-annotation arg :arg)
+       :scope scope
+       :attributes '(:variable)))
+    (when-let ((args (py-args ast)))
+      (py-args args)))))
+
+(defmethod get-vars ((obj python) (ast py-function-def))
+  (get-vars-fun-handler obj ast))
+
+(defmethod get-vars ((obj python) (ast py-async-function-def))
+  (get-vars-fun-handler obj ast))
+
+(defmethod get-vars ((obj python) (ast py-lambda))
+  (get-vars-fun-handler obj ast :scope ast))
+
+(defmethod get-vars ((obj python) (ast py-class-def))
+  (unless (in-class-def-p obj ast)
+    (list
+     (create-var-alist
+      obj ast (ast-annotation ast :name)
+      :attributes '(:variable)))))
+
+(-> in-class-def-p (python python-ast) (or null py-class-def))
+(defun in-class-def-p (obj ast)
+  "Return the class definition if AST is inside one."
+  (find-if-in-parents {typep _ 'py-class-def} obj ast))
+
 
 (-> identical-name-p (python-ast python-ast) boolean)
 (defun identical-name-p (name1 name2)
