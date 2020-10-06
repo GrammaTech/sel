@@ -46,6 +46,7 @@
            :roots
            :get-parent-ast
            :get-parent-asts
+           :get-parent-asts*
            :get-parent-full-stmt
            :get-ast-types
            :get-unbound-vals
@@ -569,7 +570,10 @@ optionally writing to STREAM.")
   (:documentation "Return the parent node of AST in OBJ"))
 
 (defgeneric get-parent-asts (obj ast)
-  (:documentation "Return the parent nodes of AST in OBJ"))
+  (:documentation "Return the parent nodes of AST in OBJ including AST."))
+
+(defgeneric get-parent-asts* (obj ast)
+  (:documentation "Return the parent nodes of AST in OBJ not including AST."))
 
 (defgeneric get-parent-full-stmt (software ast)
   (:documentation
@@ -930,7 +934,7 @@ otherwise.
     (@ obj path)))
 
 (defmethod get-parent-asts ((obj parseable) (ast ast))
-  "Return the parent nodes of AST in OBJ
+  "Return the parent nodes of AST in OBJ including AST.
 * OBJ software object containing AST and its parents
 * AST node to find the parents of
 "
@@ -938,6 +942,13 @@ otherwise.
        (mapcar {lookup obj})           ; Lookup each prefix.
        (maplist #'reverse) (reverse)   ; Prefixes of path.
        (ast-path obj ast)))
+
+(defmethod get-parent-asts* ((obj parseable) (ast ast))
+  "Return the parent nodes of AST in OBJ not including AST.
+* OBJ software object containing AST and its parents
+* AST node to find the parents of
+"
+  (cdr (get-parent-asts obj ast)))
 
 (defmethod get-vars-in-scope ((obj parseable) (ast ast)
                               &optional (keep-globals t))
