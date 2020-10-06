@@ -15,6 +15,7 @@
    :software-evolution-library/software/non-homologous-parseable
    :software-evolution-library/components/file
    :software-evolution-library/components/formatting)
+  (:import-from :software-evolution-library/software/python :get-vars)
   (:export :test-python-utility))
 (in-package :software-evolution-library/test/python-utility)
 (in-readtable :curry-compose-reader-macros)
@@ -53,6 +54,36 @@
                  parameter expected-parameter string-mapping)))
     (let ((string-mapping (convert-asts-to-strings)))
       (mapcar {is-equalp _ string-mapping} string-mapping))))
+
+(defun is-gets-vars (expected-vars result-vars)
+  "Test that EXPECTED-VARS matches RESULT-VARS."
+  (let ((result-var-names (mapcar {aget :name} result-vars)))
+    (is (= (length expected-vars)
+           (length result-var-names)))
+    (mapcar
+     (lambda (variable)
+       (is (member variable result-var-names
+                   :test #'equal)))
+     expected-vars)))
+
+(defun is-get-vars-scope (obj ast result-vars &key scope-fun)
+  "Test that the var alists in RESULT-VARS all occur in the expected scope."
+  (let ((scope (if scope-fun
+                   (find-if scope-fun ast)
+                   (enclosing-scope obj ast))))
+    (mapcar
+     (lambda (var-scope)
+       (is (eq scope var-scope)))
+     (mapcar {aget :scope} result-vars))))
+
+(defun is-get-vars-test (filename class-name expected-vars &key scope-fun)
+  "Test that get-vars returns the expected information."
+  (with-software-file (filename soft genome)
+    (let* ((target-ast (find-if {typep _ class-name} genome))
+           (result-vars (get-vars soft target-ast)))
+      (is-gets-vars expected-vars result-vars)
+      (is-get-vars-scope soft target-ast result-vars
+                         :scope-fun scope-fun))))
 
 
 ;;; Tests
@@ -191,3 +222,60 @@ and keyword parameters with defaults."
                      (find-if {typep _ 'py-function-def} genome))))
       (is (= 5 (length fun-uses))
           "~A did not contain the expected number of uses" fun-uses))))
+
+(deftest python-get-vars-ann-assign-1 ()
+  "get-vars gets variables from py-ann-assign."
+  (is-get-vars-test "ann-assign-1" 'py-ann-assign '("a")))
+
+(deftest python-get-vars-assign-1 ()
+  "get-vars gets variables from py-assign."
+  (is-get-vars-test "assign-1" 'py-assign '("a" "b" "c")))
+
+(deftest python-get-vars-class-def-1 ()
+  "get-vars gets variables from py-class-def."
+  (is-get-vars-test "class-def-1" 'py-class-def '("Test")))
+
+(deftest python-get-vars-except-handler-1 ()
+  "get-vars gets variables from py-except-handler."
+  (is-get-vars-test "except-handler-1" 'py-except-handler '("e")))
+
+;;; Async-for and for share the same code.
+(deftest python-get-vars-for-1 ()
+  "get-vars gets variables from py-for."
+  (is-get-vars-test "for-1" 'py-for '("i")))
+
+;;; Async fun and fun share the same code.
+(deftest python-get-vars-function-def-1 ()
+  "get-vars gets variables from py-function-def."
+  (is-get-vars-test "function-def-1" 'py-function-def '("test" "a" "b" "c")))
+
+;;; Both imports share the same code.
+(deftest python-get-vars-import-from-1 ()
+  "get-vars gets variables from py-import-from with an 'as'."
+  (is-get-vars-test "import-from-1" 'py-import-from '("z")))
+
+(deftest python-get-vars-import-from-2 ()
+  "get-vars gets variables from py-import-from without an 'as'."
+  (is-get-vars-test "import-from-2" 'py-import-from '("y")))
+
+(deftest python-get-vars-lambda-1 ()
+  "get-vars gets variables from py-lambda and has the correct scope."
+  (is-get-vars-test "lambda-1" 'py-lambda '("x")
+                    :scope-fun {typep _ 'py-lambda}))
+
+;;; Comps and generators share the same code.
+(deftest python-get-vars-list-comp-1 ()
+  "get-vars gets variables from py-list-comp with multiple generators and has
+the correct scope."
+  (is-get-vars-test "list-comp-1" 'py-list-comp '("x" "y")
+                    :scope-fun {typep _ 'py-list-comp}))
+
+(deftest python-get-vars-list-comp-2 ()
+  "get-vars gets variables from py-list-comp and has the correct scope."
+  (is-get-vars-test "list-comp-2" 'py-list-comp '("x")
+                    :scope-fun {typep _ 'py-list-comp}))
+
+;;; Async with and with share the same code.
+(deftest python-get-vars-with-1 ()
+  "get-vars gets variables from py-with."
+  (is-get-vars-test "with-1" 'py-with '("x")))
