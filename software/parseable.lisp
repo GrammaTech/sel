@@ -620,7 +620,7 @@ an AST that satisfies PREDICATE that occurs before REFERENCE-AST.")
   (:documentation "Search through the parents of AST for the first one that
 satisfies PREDICATE.")
   (:method (predicate (obj parseable) ast)
-    (find-if predicate (get-parent-asts obj ast))))
+    (find-if predicate (get-parent-asts* obj ast))))
 
 (defgeneric scopes (software ast)
   (:documentation "Return lists of variables in each enclosing scope.
