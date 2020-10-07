@@ -247,7 +247,21 @@ and keyword parameters with defaults."
 ;;; Async fun and fun share the same code.
 (deftest python-get-vars-function-def-1 ()
   "get-vars gets variables from py-function-def."
-  (is-get-vars-test "function-def-1" 'py-function-def '("test" "a" "b" "c")))
+  (with-software-file ("function-def-1" soft genome)
+    (let* ((target-ast (find-if {typep _ 'py-function-def} genome))
+           (result-vars (get-vars soft target-ast)))
+      (is-gets-vars '("test" "a" "b" "c") result-vars)
+      (is-get-vars-scope
+       soft target-ast (remove-if (lambda (alist)
+                                    (equalp '(:function)
+                                            (aget :attributes alist)))
+                                  result-vars)
+       :scope-fun {typep _ 'py-function-def})
+      (is-get-vars-scope
+       soft target-ast (remove-if-not (lambda (alist)
+                                        (equalp '(:function)
+                                                (aget :attributes alist)))
+                                      result-vars)))))
 
 ;;; Both imports share the same code.
 (deftest python-get-vars-import-from-1 ()

@@ -1400,7 +1400,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
   (list
    (get-vars-name-handler obj (py-target ast))))
 
-(defun get-vars-fun-handler (obj ast &key scope)
+(defun get-vars-fun-handler (obj ast)
   "Handle AST as a py-function-def or py-async-function-def object."
   (append
    (when-let ((name (ast-annotation ast :name)))
@@ -1409,7 +1409,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
     (lambda (arg)
       (create-var-alist
        obj ast (ast-annotation arg :arg)
-       :scope scope
+       :scope ast
        :attributes '(:variable)))
     (when-let ((args (py-args ast)))
       (py-args args)))))
@@ -1421,7 +1421,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
   (get-vars-fun-handler obj ast))
 
 (defmethod get-vars ((obj python) (ast py-lambda))
-  (get-vars-fun-handler obj ast :scope ast))
+  (get-vars-fun-handler obj ast))
 
 (defmethod get-vars ((obj python) (ast py-class-def))
   (unless (in-class-def-p obj ast)
