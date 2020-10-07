@@ -1279,7 +1279,8 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
            (ast-annotation ast :name))))))
 
 (defgeneric get-vars (obj ast)
-  (:documentation "Get the variables that are bound by AST."))
+  (:documentation "Get the variables that are bound by AST.")
+  (:method ((obj python) ast) nil))
 
 (defun create-var-alist (obj definition name &key attributes scope)
   "Create an alist with information about a variable."
