@@ -454,115 +454,107 @@ AST ast to return the enclosing scope for"
                (cdr (get-parent-asts obj ast)))
       (genome obj)))
 
-(defmethod scopes ((obj python) (ast python-ast)
-                   &aux (enclosing-scope (enclosing-scope obj ast)))
+(defmethod scopes ((obj python) (target-ast python-ast)
+                   &aux (enclosing-scope (enclosing-scope obj target-ast)))
   "Return lists of variables in each enclosing scope of AST.
 Each variable is represented by an alist containing :NAME, :DECL, and :SCOPE.
 OBJ python software object
 AST ast to return the scopes for"
-  ;; TODO: confirm that this, more or less, covers what's needed
-  ;;       with classes initially.
+  ;; NOTE: in the unlikely event this function becomes a bottleneck, it may
+  ;;       make sense to cache the get-vars calls.
   (labels ((build-alist (ast name scope)
              "Return an alist containing :name, :decl, and :scope for the
-             variable in AST."
+              variable in AST."
              `((:decl . ,ast)
                (:name . ,name)
                (:scope . ,scope)))
+           (build-alist* (get-vars-alist
+                          &aux (definition (aget :definition get-vars-alist)))
+             "Return an alist containing :name, :decl, and :scope for
+              GET-VARS-ALIST."
+             (build-alist
+              (if (typep definition 'py-arg)
+                  definition
+                  (get-parent-full-stmt obj (aget :definition get-vars-alist)))
+              (aget :name get-vars-alist)
+              (aget :scope get-vars-alist)))
+           (name-in-get-vars-p (obj ast name)
+             "Return the variable alist that corresponds to
+              NAME if it exists."
+             (find-if
+              (lambda (alist)
+                (equal name (aget :name alist)))
+              (get-vars obj ast)))
+           (find-get-vars-binding (obj ast enclosing-scope name)
+             "Find a variable bound in AST that is named NAME and in
+              ENCLOSING-SCOPE."
+             (find-if
+              (lambda (ast)
+                (eq (aget :scope (name-in-get-vars-p
+                                  obj ast name))
+                    enclosing-scope))
+              ast))
            (find-nonlocal-binding (name enclosing-scope)
              "Find the nonlocal binding for NAME in ENCLOSING-SCOPE."
              (build-alist
-              (find-if (lambda (ast)
-                         (typecase ast
-                           (py-nonlocal
-                            (when (and
-                                   (find-if
-                                    {equal name} (ast-annotation ast :names))
-                                   (not
-                                    (eq enclosing-scope
-                                        (enclosing-scope obj enclosing-scope))))
-                              (find-nonlocal-binding
-                               name (enclosing-scope obj enclosing-scope))))
-                           (py-assign
-                            (find-if
-                             (lambda (target)
-                               (equal name (ast-annotation target :id)))
-                             (py-targets ast)))
-                           (py-ann-assign
-                            (equal name (ast-annotation (py-target ast) :id)))
-                           (py-arguments
-                            (find-if
-                             (lambda (arg)
-                               (equal name (ast-annotation arg :arg)))
-                             (py-args (py-args ast))))))
-                       (remove nil (children enclosing-scope)))
+              (find-if
+               (lambda (ast)
+                 (if (typep ast 'py-nonlocal)
+                     (when (and
+                            (find-if {equal name} (ast-annotation ast :names))
+                            (not (eq enclosing-scope
+                                     (enclosing-scope obj enclosing-scope))))
+                       (find-nonlocal-binding
+                        name (enclosing-scope obj enclosing-scope)))
+                     (find-get-vars-binding obj ast enclosing-scope name)))
+               (remove nil (children enclosing-scope)))
               name enclosing-scope))
            (find-global-binding (name &aux (genome (genome obj)))
              "Find the global binding for NAME in ENCLOSING-SCOPE."
              (build-alist
               (find-if (lambda (ast)
-                         (typecase ast
-                           (py-assign
-                            (find-if
-                             (lambda (target)
-                               (equal name (ast-annotation target :id)))
-                             (py-targets ast)))
-                           (py-ann-assign
-                            (equal name (ast-annotation (py-target ast) :id)))
-                           (py-class-def
-                            (equal name (ast-annotation ast :name)))))
+                         (find-get-vars-binding obj ast genome name))
                        (remove nil (children genome)))
               name genome))
-           (find-function-bindings (scope)
-             "Find the function bindings that occur in scope."
+           (find-enclosing-bindings (scope)
+             "Find the enclosing bindings that occur in scope."
              (mapcar
-              (lambda (ast)
-                (build-alist ast (ast-annotation ast :name) scope))
+              {build-alist*}
               (remove-if-not
-               (lambda (ast)
-                 (member
-                  (type-of ast) '(py-function-def 'py-async-function-def)))
-               (remove nil (children scope)))))
-           (find-import-bindings (scope)
-             "Find the import bindings that occur in scope."
-             (mappend
-              (lambda (ast)
-                (mapcar
-                 (lambda (alist)
-                   (build-alist ast (or (aget :asname alist)
-                                        (aget :name alist))
-                                scope))
-                 (ast-annotation ast :names)))
-              (remove-if-not (lambda (child)
-                               (member (type-of child)
-                                       '(py-import py-import-from)))
-                             (remove nil (children scope)))))
+               (lambda (alist &aux (attributes (aget :attributes alist)))
+                 (cond
+                   ;; NOTE: imports behave differently than other bindings
+                   ;;       that are available from enclosing scopes.
+                   ((member :import attributes)
+                    (not (path-later-p obj (aget :definition alist) target-ast)))
+                   ((intersection '(:class :function) attributes) t)))
+               (mappend {get-vars obj} (remove nil (children scope))))))
            (find-local-bindings ()
              "Find local bindings in scope. Returns the py-name
               objects associated with the bindings."
              ;; NOTE: this doesn't correctly return bindings
              ;;       that occur based on control flow like with if-else
-             ;;       statements.
+             ;;       statements. This typically isn't something that can
+             ;;       be accounted for before runtime.
              (remove-duplicates
               (mappend
-               (lambda (assignment)
-                 (typecase assignment
-                   (py-assign
-                    (let ((target (car (py-targets assignment))))
-                      (typecase target
-                        (py-tuple (py-elts target))
-                        (py-name (list target)))))
-                   (py-ann-assign
-                    (list (py-target assignment)))))
-               ;;Remove bindings after.
-               (remove-if-not
-                {path-later-p obj ast}
-                ;; Only consider the assignments
-                (remove-if-not
-                 (lambda (ast)
-                   (member (type-of ast) '(py-assign py-ann-assign)))
-                 (get-asts-in-namespace obj enclosing-scope))))
-              :test (lambda (ast1 ast2)
-                      (identical-name-p ast1 ast2))
+               (lambda (ast)
+                 (remove-if-not
+                  (lambda (alist)
+                    ;; Check for child scopes allows for
+                    ;; namespace bindings in list comps and
+                    ;; such.
+                    (shares-path-of-p
+                     obj target-ast (aget :scope alist)))
+                  (get-vars obj ast)))
+               ;; Remove ASTs after.
+               (remove-if
+                (lambda (ast)
+                  (path-later-p obj ast target-ast))
+                (get-asts-in-namespace obj enclosing-scope)))
+              :test (lambda (alist1 alist2)
+                      (equal (aget :name alist1)
+                             (aget :name alist2)))
               :from-end t))
            (get-global-bindings ()
              "Get the global bindings in scope."
@@ -582,52 +574,22 @@ AST ast to return the scopes for"
                       (remove-if-not
                        {typep _ 'py-nonlocal}
                        (get-asts-in-namespace obj enclosing-scope))))
-           (get-function-bindings
+           (get-enclosing-bindings
                (scope &aux (enclosing-scope (enclosing-scope obj scope))
-                        (function-bindings (find-function-bindings scope)))
-             "Get the function bindings available in scope."
+                        (enclosing-bindings (find-enclosing-bindings scope)))
+             "Get the enclosing bindings available in scope."
              (if (eq scope enclosing-scope)
-                 function-bindings
-                 (append function-bindings
-                         (get-function-bindings enclosing-scope))))
-           (get-import-bindings
-               (scope &aux (enclosing-scope (enclosing-scope obj scope))
-                        (import-bindings (find-import-bindings scope)))
-             "Get the import bindings available in scope."
-             (if (eq scope enclosing-scope)
-                 import-bindings
-                 (append import-bindings
-                         (get-import-bindings enclosing-scope))))
-           (get-function-arguments ()
-             "Get the arguments to the current function."
-             (when-let ((args (and (typep enclosing-scope 'py-function-def)
-                                   (py-args enclosing-scope))))
-               (mapcar (lambda (ast)
-                         (build-alist
-                          ast (ast-annotation ast :arg) enclosing-scope))
-                       (py-args args))))
+                 enclosing-bindings
+                 (append enclosing-bindings
+                         (get-enclosing-bindings enclosing-scope))))
            (get-local-bindings ()
              "Get the local bindings available in scope."
              ;; Remove bindings after
              (remove-if-not
               (lambda (binding-alist)
-                (path-later-p obj ast (aget :decl binding-alist)))
+                (path-later-p obj target-ast (aget :decl binding-alist)))
               ;; build-alist
-              (mapcar
-               (lambda (name)
-                 (build-alist
-                  (get-parent-full-stmt obj name)
-                  (ast-annotation name :id) enclosing-scope))
-               (find-local-bindings))))
-           (get-except-binding ()
-             "Get the variable bound by an except clause.
-              Note that this is a special case."
-             (when-let* ((except-handler
-                          (find-if-in-parents
-                           {typep _ 'py-except-handler} obj ast))
-                         (name (ast-annotation except-handler :name)))
-               ;; Return as a list for the #'append.
-               (list (build-alist except-handler name enclosing-scope))))
+              (mapcar {build-alist*} (find-local-bindings))))
            (group-by-scope (bindings)
              "Group BINDINGS by scope."
              (assort bindings :key (lambda (alist) (aget :scope alist))))
@@ -645,12 +607,9 @@ AST ast to return the scopes for"
         #'null
         ;; NOTE: order of the append matters here for get-except-binding and
         ;;       get-local-bindings.
-        (append (get-except-binding)
-                (get-global-bindings)
+        (append (get-global-bindings)
                 (get-nonlocal-bindings)
-                (get-function-bindings enclosing-scope)
-                (get-import-bindings enclosing-scope)
-                (get-function-arguments)
+                (get-enclosing-bindings enclosing-scope)
                 (get-local-bindings)))
        :test (lambda (alist1 alist2)
                (equal (aget :name alist1) (aget :name alist2)))
@@ -1368,7 +1327,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
      (create-var-alist
       obj ast (or (aget :asname name-alist)
                   (aget :name name-alist))
-      :attributes '(:variable)))
+      :attributes '(:import)))
    (ast-annotation ast :names)))
 
 (defmethod get-vars ((obj python) (ast py-import))
@@ -1408,7 +1367,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
    (mapcar
     (lambda (arg)
       (create-var-alist
-       obj ast (ast-annotation arg :arg)
+       obj arg (ast-annotation arg :arg)
        :scope ast
        :attributes '(:variable)))
     (when-let ((args (py-args ast)))
@@ -1428,7 +1387,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
     (list
      (create-var-alist
       obj ast (ast-annotation ast :name)
-      :attributes '(:variable)))))
+      :attributes '(:class)))))
 
 (-> in-class-def-p (python python-ast) (or null py-class-def))
 (defun in-class-def-p (obj ast)
@@ -1454,16 +1413,17 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
              ;; TODO: probably need to add some more types here.
              (member (type-of ast)
                      '(py-function-def py-async-function-def py-class-def)))
-           (collect-asts (ast)
-             (let ((children (remove nil (children ast))))
+           (collect-asts (namespace)
+             "Collect the asts in NAMESPACE."
+             (let ((children (remove nil (children namespace))))
                (append children
                        (mappend (lambda (child)
                                   (unless (new-namespace-p child)
-                                    (get-asts-in-namespace obj child)))
+                                    (collect-asts child)))
                                 children)))))
-    (sort (collect-asts ast)
-          (lambda (ast1 ast2)
-            (path-later-p obj ast2 ast1)))))
+    (cons ast (sort (collect-asts ast)
+                    (lambda (ast1 ast2)
+                      (path-later-p obj ast2 ast1))))))
 
 (-> create-tuple (list) python-ast)
 (defun create-tuple (values &aux (length (length values)))

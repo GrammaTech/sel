@@ -308,16 +308,6 @@
           "~A did not contain the expected variable 'a' assignment, ~a."
           nonlocal-alist expected-assign))))
 
-(deftest python-scopes-3 ()
-  "scopes gets the bindng from an except statement."
-  (with-util-file ("except-binding" soft genome)
-    (let* ((scopes (scopes soft (find-if {typep _ 'py-call} genome)))
-           (except-alist (scopes-contains-string-p scopes "a"))
-           (expected-binding (find-if {typep _ 'py-except-handler} genome)))
-      (is (eq (aget :decl except-alist) expected-binding)
-          "~A did not contain the expected variable 'a' assignment, ~a."
-          except-alist expected-binding))))
-
 (deftest python-scopes-4 ()
   "scopes gets the bindng from a function definition."
   (with-util-file ("global" soft genome)
