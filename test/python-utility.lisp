@@ -15,7 +15,6 @@
    :software-evolution-library/software/non-homologous-parseable
    :software-evolution-library/components/file
    :software-evolution-library/components/formatting)
-  (:import-from :software-evolution-library/software/python :get-vars)
   (:export :test-python-utility))
 (in-package :software-evolution-library/test/python-utility)
 (in-readtable :curry-compose-reader-macros)

@@ -44,6 +44,7 @@
   (:export :python
            :python-mutation
            :python-ast
+           :get-vars
            :collect-var-uses
            :collect-fun-uses
            :identical-name-p
