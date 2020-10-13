@@ -1474,6 +1474,49 @@ to allow for successful mutation of SOFTWARE at PT."
   ast)
 
 
+;;; @subheading Structured text in ASTs
+;;;
+;;; (Rough notes from our preliminary meeting.)
+;;;
+;;; We will run an initial experiment on a selection (one or two) of
+;;; AST classes to try to replace the use of interleaved-text with
+;;; @it{structured text} -- meaning a class-specific collection of
+;;; named text slots (or maybe a single slot with a format string)
+;;; holding text which may be in certain specific places in the
+;;; printed AST.  (A common working example driving our discussion was
+;;; the text between the "if" of an if AST and the "(" starting the
+;;; conditional of the if.)
+;;;
+;;; The anticipated restructuring is as follows:
+;;;
+;;; * We add define a set of fixed text slots for the ASTs.
+;;;
+;;; * We define delimiters on the AST class (e.g., semicolons to
+;;;   separate statements in a block or commas to separate arguments
+;;;   to a function).
+;;;
+;;; * The text around the delimiters is pushed down into the before
+;;;   and after strings of the relevant AST children's interleaved
+;;;   text.
+;;;
+;;; * Comments (and possibly indentation strings) are optionally
+;;;   objects inside of these text slots.
+;;;
+;;; We want to ensure that the following use cases are easy:
+;;;
+;;; * Adding, removing, and moving ASTs without having to explicitly
+;;;   fixup delimiters.
+;;;
+;;; * Matching, accessing and constructing ASTs.
+;;;
+;;; * Exactly reproducing the original text of a modified source file
+;;;   (aside from the specifically modified portions).
+;;;
+;;; @texi{structured-text}
+(defvar a-place-holder-so-documentation-continues-to-build nil
+  "Turns out it is necessary to split the previous and subsequent comments.")
+
+
 ;;; The insertion and removal of ASTs in a software object often results
 ;;; in indentation that doesn't match the surrounding code. The indentation
 ;;; mix-in can be used to address these situations and help prevent
