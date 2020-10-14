@@ -5,7 +5,7 @@ RUN export DEBIAN_FRONTEND=noninteractive
 RUN ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime
 RUN apt-get -y --fix-missing update \
     && apt-get -y --fix-missing install autoconf build-essential \
-    texinfo graphviz python-is-python3 python3-pip git curl wget expect time \
+    texinfo graphviz python-is-python3 python3-pip git curl sshpass wget expect time \
     clang clang-format clang-tidy bear astyle \
     nodejs npm \
     sbcl emacs-nox elpa-paredit slime jq \
