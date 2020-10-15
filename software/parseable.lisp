@@ -874,7 +874,8 @@ of SHARED-PATH-AST's path in OBJ.")
                                             (source-range begin)
                                             (source-location line column))
                                       child-ranges)))))))
-      (ast-source-ranges* ast 1 1)))
+      (remove-if [(of-type 'text-node) #'car]
+                 (ast-source-ranges* ast 1 1))))
   (:method ((obj parseable))
     (ast-source-ranges (genome obj))))
 
