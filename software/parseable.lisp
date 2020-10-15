@@ -814,6 +814,14 @@ of SHARED-PATH-AST's path in OBJ.")
                         ofile)))))
     (call-next-method)))
 
+(defclass text-node (functional-tree-ast)
+  ((text :initarg :text
+         :reader text-node-text
+         :type string)))
+
+(defmethod source-text ((node text-node) &optional stream)
+  (write-string (text-node-text node) stream))
+
 (defgeneric ast-source-ranges (obj)
   (:documentation "Return (AST . SOURCE-RANGE) for each AST in OBJ.")
   (:method ((ast ast))
@@ -823,10 +831,6 @@ of SHARED-PATH-AST's path in OBJ.")
              (source-range (begin end)
                "Thin wrapper for creating a source range."
                (make-instance 'source-range :begin begin :end end))
-             (next-child (child children)
-               "Return the AST after CHILD in CHILDREN."
-               (when-let ((pos (position child children)))
-                 (nth (1+ pos) children)))
              (ast-source-ranges* (ast line column)
                "Return the source ranges of AST and AST's children, starting
                at LINE and COLUMN."
@@ -834,7 +838,13 @@ of SHARED-PATH-AST's path in OBJ.")
                       (source-text (source-text ast))
                       (child-asts (nest (remove-if-not {typep _ 'ast})
                                         (sorted-children ast)))
-                      (child (car child-asts))
+                      (interleaved-text (interleaved-text ast))
+                      (child-nodes
+                       (iter (for ast in child-asts)
+                             (when-let (text (pop interleaved-text))
+                               (collect (make 'text-node :text text)))
+                             (collect ast)))
+                      (child (car child-nodes))
                       (child-text (and child (source-text child))))
                  ;; TODO: This style is too imperative.
                  (iter (for i below (length source-text))
@@ -845,19 +855,19 @@ of SHARED-PATH-AST's path in OBJ.")
                            ;; a child in the source text.
                            (let* ((ranges (ast-source-ranges* child line column))
                                   (end (end (cdar ranges))))
-                              (setf line (line end)
-                                    column (column end)
-                                    i (1- (+ (length child-text) i))
-                                    child (next-child child child-asts)
-                                    child-text (and child (source-text child)))
-                              (appending ranges into child-ranges))
+                             (setf line (line end)
+                                   column (column end)
+                                   i (1- (+ (length child-text) i))
+                                   child (pop child-nodes)
+                                   child-text (and child (source-text child)))
+                             (appending ranges into child-ranges))
                            (progn
-                            ;; Continue iterating thru the source text,
-                            ;; updating line and column appropriately.
-                            (incf column)
-                            (when (eql (aref source-text i) #\newline)
-                              (incf line)
-                              (setf column 1))))
+                             ;; Continue iterating thru the source text,
+                             ;; updating line and column appropriately.
+                             (incf column)
+                             (when (eql (aref source-text i) #\newline)
+                               (incf line)
+                               (setf column 1))))
                        (finally
                         ;; Prepend this AST's source range to the child ranges.
                         (return (cons (nest (cons ast)
