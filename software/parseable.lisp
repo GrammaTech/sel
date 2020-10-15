@@ -44,6 +44,7 @@
            :parseable-nop
            ;; Generic functions.
            :roots
+           :interleaved-text
            :get-parent-ast
            :get-parent-asts
            :get-parent-asts*
@@ -563,6 +564,10 @@ optionally writing to STREAM.")
 ;;; parseable software objects
 (defgeneric roots (obj)
   (:documentation "Return all top-level ASTs in OBJ."))
+
+(defgeneric interleaved-text (obj)
+  (:documentation "Get the interleaved text for OBJ.")
+  (:method (obj) nil))
 
 (defgeneric asts (obj)
   (:documentation "Deprecated: Return a list of all non-root ASTs in OBJ."))
