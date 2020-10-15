@@ -45,14 +45,21 @@
              ((= line1 line2)
               (let ((line (nth (1- line1) lines)))
                 (subseq line (1- col1) (1- col2))))
+             ((and (= line2 (1+ line1))
+                   (= col2 1))
+              (let ((line (nth (1- line1) lines)))
+                (subseq line (1- col1))))
              (t
               (let* ((lines (drop (1- line1) lines))
-                     (lines (take (- line2 line1) lines))
-                     (first-line (subseq (first lines) (1- col1)))
                      ;; Subtlety: source-range addresses a node that ends
                      ;; in a newline as (n+1,1), but that extra line is
                      ;; not returned by serapeum:lines. So the "last"
                      ;; line may not exist.
+                     (lines (take (if (= col2 1)
+                                      (- line2 line1)
+                                      (1+ (- line2 line1)))
+                                  lines))
+                     (first-line (subseq (first lines) (1- col1)))
                      (last-line (nth (1- line2) lines))
                      (last-line-sliced
                       (and last-line
@@ -62,33 +69,30 @@
                   (values-list (rest (remove last-line lines)))
                   (if last-line last-line-sliced (values))))))))))
 
-(directory #p"etc/javascript/*/*.js")
+(defun expand-wildcard (wildcard)
+  (is (wild-pathname-p wildcard))
+  (let* ((path
+          (path-join (asdf:system-relative-pathname
+                      :software-evolution-library
+                      #p"test/etc/")
+                     wildcard))
+         (files (directory path)))
+    (is (not (emptyp files)))
+    files))
 
 (deftest test-js-source-ranges ()
   (declare (optimize debug))
-  (let* ((*default-pathname-defaults*
-          (asdf:system-relative-pathname
-           :software-evolution-library
-           #p"test/etc/"))
-         (js-files (directory #p"javascript/*/*.js")))
+  (let ((js-files (expand-wildcard #p"javascript/*/*.js")))
     (test-ast-source-ranges-for-files 'javascript js-files)))
 
 (deftest test-python-source-ranges ()
   (declare (optimize debug))
-  (let* ((*default-pathname-defaults*
-          (asdf:system-relative-pathname
-           :software-evolution-library
-           #p"test/etc/"))
-         (py-files (directory #p"python/*/*.py")))
+  (let ((py-files (expand-wildcard #p"python/*/*.py")))
     (test-ast-source-ranges-for-files 'python py-files)))
 
 (deftest test-lisp-source-ranges ()
   (declare (optimize debug))
-  (let* ((*default-pathname-defaults*
-          (asdf:system-relative-pathname
-           :software-evolution-library
-           #p"test/etc/"))
-         (lisp-files (directory #p"lisp*/*.lisp")))
+  (let ((lisp-files (expand-wildcard #p"lisp*/*.lisp")))
     (test-ast-source-ranges-for-files 'lisp lisp-files)))
 
 (defun test-ast-source-ranges-for-files (class files)
