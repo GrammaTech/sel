@@ -824,65 +824,55 @@ of SHARED-PATH-AST's path in OBJ.")
 
 (defgeneric ast-source-ranges (obj)
   (:documentation "Return (AST . SOURCE-RANGE) for each AST in OBJ.")
-  (:method ((ast ast))
+  (:method ((root ast))
     (labels ((source-location (line column)
                "Thin wrapper for creating a source location."
                (make-instance 'source-location :line line :column column))
              (source-range (begin end)
                "Thin wrapper for creating a source range."
                (make-instance 'source-range :begin begin :end end))
-             (ast-source-ranges* (ast line column)
-               "Return the source ranges of AST and AST's children, starting
-               at LINE and COLUMN."
-               (let* ((begin (source-location line column))
-                      (source-text (source-text ast))
-                      ;; NB Clang ASTs have strings as children.
+             (children-with-text-nodes (ast)
+               (let* (;; NB Clang ASTs have strings as children.
                       (child-nodes (sorted-children ast))
-                      (interleaved-text (interleaved-text ast))
-                      (child-nodes
-                       (append (iter (for node in child-nodes)
-                                     (when-let (text (pop interleaved-text))
-                                       (collect text))
-                                     (collect node))
-                               interleaved-text))
-                      (child-asts
-                       (iter (for node in child-nodes)
-                             (collect
-                              (if (stringp node)
-                                  (make '_text-node :text node)
-                                  node))))
-                      (child (car child-asts))
-                      (child-text (and child (source-text child))))
-                 ;; TODO: This style is too imperative.
-                 (iter (for i below (length source-text))
-                       (if (and child (string^= child-text
-                                                source-text
-                                                :start2 i))
-                           ;; Create the child source ranges when we find
-                           ;; a child in the source text.
-                           (let* ((ranges (ast-source-ranges* child line column))
-                                  (end (end (cdar ranges))))
-                             (setf line (line end)
-                                   column (column end)
-                                   i (1- (+ (length child-text) i))
-                                   child (pop child-asts)
-                                   child-text (and child (source-text child)))
-                             (appending ranges into child-ranges))
-                           (progn
-                             ;; Continue iterating thru the source text,
-                             ;; updating line and column appropriately.
-                             (incf column)
-                             (when (eql (aref source-text i) #\newline)
-                               (incf line)
-                               (setf column 1))))
-                       (finally
-                        ;; Prepend this AST's source range to the child ranges.
-                        (return (cons (nest (cons ast)
-                                            (source-range begin)
-                                            (source-location line column))
-                                      child-ranges)))))))
-      (remove-if [(of-type '_text-node) #'car]
-                 (ast-source-ranges* ast 1 1))))
+                      (interleaved-text (interleaved-text ast)))
+                 (append (iter (for node in child-nodes)
+                               (when-let (text (pop interleaved-text))
+                                 (collect text))
+                               (collect node))
+                         interleaved-text)))
+             (ast-source-positions (ast start)
+               (if (stringp ast)
+                   (list (list ast start (+ start (length ast))))
+                   (let ((text (source-text ast)))
+                     (unless (emptyp text)
+                       (let* ((children (children-with-text-nodes ast))
+                              (child-texts (mapcar #'source-text children)))
+                         (assert (= (length text)
+                                    (reduce #'+ child-texts :key #'length)))
+                         (cons (list ast start (+ start (length text)))
+                               (iter (for child in children)
+                                     (for text in child-texts)
+                                     (appending (ast-source-positions child start))
+                                     (incf start (length text)))))))))
+             (position-location (text offset)
+               (declare ((simple-array character (*)) text)
+                        (array-index offset)
+                        (optimize speed))
+               (let* ((lines (cl:count #\Newline text :end offset))
+                      (columns (- offset
+                                  (or (cl:position #\Newline text
+                                                   :end offset
+                                                   :from-end t)
+                                      0))))
+                 (source-location (1+ lines) (1+ columns)))))
+      (let ((text (coerce (source-text root)
+                          '(simple-array character (*)))))
+        (iter (for (ast start end) in (ast-source-positions root 0))
+              (unless (stringp ast)
+                (collect (cons ast
+                               (source-range
+                                (position-location text start)
+                                (position-location text end)))))))))
   (:method ((obj parseable))
     (ast-source-ranges (genome obj))))
 
