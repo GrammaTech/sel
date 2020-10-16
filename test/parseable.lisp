@@ -106,6 +106,7 @@
   (let* ((sw (from-file (make class) file))
          (ranges (ast-source-ranges sw))
          (text (source-text (genome sw))))
+    (is (not (emptyp ranges)))
     (iter (for (ast . range) in ranges)
           (is (equal (source-range-subseq text range)
                      (source-text ast))))))
