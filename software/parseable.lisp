@@ -814,13 +814,13 @@ of SHARED-PATH-AST's path in OBJ.")
                         ofile)))))
     (call-next-method)))
 
-(defclass text-node (functional-tree-ast)
+(defclass _text-node (functional-tree-ast)
   ((text :initarg :text
-         :reader text-node-text
+         :reader _text-node-text
          :type string)))
 
-(defmethod source-text ((node text-node) &optional stream)
-  (write-string (text-node-text node) stream))
+(defmethod source-text ((node _text-node) &optional stream)
+  (write-string (_text-node-text node) stream))
 
 (defgeneric ast-source-ranges (obj)
   (:documentation "Return (AST . SOURCE-RANGE) for each AST in OBJ.")
@@ -836,18 +836,22 @@ of SHARED-PATH-AST's path in OBJ.")
                at LINE and COLUMN."
                (let* ((begin (source-location line column))
                       (source-text (source-text ast))
-                      (child-asts (nest (remove-if-not {typep _ 'ast})
-                                        (sorted-children ast)))
-                      (interleaved-text
-                       (mapcar {make 'text-node :text}
-                               (interleaved-text ast)))
-                      (children
-                       (append (iter (for ast in child-asts)
+                      ;; NB Clang ASTs have strings as children.
+                      (child-nodes (sorted-children ast))
+                      (interleaved-text (interleaved-text ast))
+                      (child-nodes
+                       (append (iter (for node in child-nodes)
                                      (when-let (text (pop interleaved-text))
                                        (collect text))
-                                     (collect ast))
+                                     (collect node))
                                interleaved-text))
-                      (child (car children))
+                      (child-asts
+                       (iter (for node in child-nodes)
+                             (collect
+                              (if (stringp node)
+                                  (make '_text-node :text node)
+                                  node))))
+                      (child (car child-asts))
                       (child-text (and child (source-text child))))
                  ;; TODO: This style is too imperative.
                  (iter (for i below (length source-text))
@@ -861,7 +865,7 @@ of SHARED-PATH-AST's path in OBJ.")
                              (setf line (line end)
                                    column (column end)
                                    i (1- (+ (length child-text) i))
-                                   child (pop children)
+                                   child (pop child-asts)
                                    child-text (and child (source-text child)))
                              (appending ranges into child-ranges))
                            (progn
@@ -877,7 +881,7 @@ of SHARED-PATH-AST's path in OBJ.")
                                             (source-range begin)
                                             (source-location line column))
                                       child-ranges)))))))
-      (remove-if [(of-type 'text-node) #'car]
+      (remove-if [(of-type '_text-node) #'car]
                  (ast-source-ranges* ast 1 1))))
   (:method ((obj parseable))
     (ast-source-ranges (genome obj))))
