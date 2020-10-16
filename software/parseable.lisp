@@ -838,13 +838,16 @@ of SHARED-PATH-AST's path in OBJ.")
                       (source-text (source-text ast))
                       (child-asts (nest (remove-if-not {typep _ 'ast})
                                         (sorted-children ast)))
-                      (interleaved-text (interleaved-text ast))
-                      (child-nodes
-                       (iter (for ast in child-asts)
-                             (when-let (text (pop interleaved-text))
-                               (collect (make 'text-node :text text)))
-                             (collect ast)))
-                      (child (car child-nodes))
+                      (interleaved-text
+                       (mapcar {make 'text-node :text}
+                               (interleaved-text ast)))
+                      (children
+                       (append (iter (for ast in child-asts)
+                                     (when-let (text (pop interleaved-text))
+                                       (collect text))
+                                     (collect ast))
+                               interleaved-text))
+                      (child (car children))
                       (child-text (and child (source-text child))))
                  ;; TODO: This style is too imperative.
                  (iter (for i below (length source-text))
@@ -858,7 +861,7 @@ of SHARED-PATH-AST's path in OBJ.")
                              (setf line (line end)
                                    column (column end)
                                    i (1- (+ (length child-text) i))
-                                   child (pop child-nodes)
+                                   child (pop children)
                                    child-text (and child (source-text child)))
                              (appending ranges into child-ranges))
                            (progn
