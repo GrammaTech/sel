@@ -38,28 +38,30 @@
     ((source-range :begin (source-location :line line1 :column col1)
                    :end (source-location :line line2 :column col2))
      (assert (<= line1 line2))
+     ;; Subtlety: source-range addresses a node that ends
+     ;; in a newline as (n+1,1), but that extra line is
+     ;; not returned by serapeum:lines. So the "last"
+     ;; line may not exist.
+     (when (and (/= line1 line2)
+                (= 1 col2))
+       (setf line2 (1- line2)
+             col2 array-dimension-limit))
+     (assert (<= line1 line2))
      (let* ((lines (serapeum:lines text
                                    :count line2
                                    :keep-eols t)))
        (cond ((emptyp lines) "")
              ((= line1 line2)
               (let ((line (nth (1- line1) lines)))
-                (subseq line (1- col1) (1- col2))))
+                (slice line (1- col1) (1- col2))))
              ((and (= line2 (1+ line1))
                    (= col2 1))
               (let ((line (nth (1- line1) lines)))
-                (subseq line (1- col1))))
+                (slice line (1- col1))))
              (t
               (let* ((lines (drop (1- line1) lines))
-                     ;; Subtlety: source-range addresses a node that ends
-                     ;; in a newline as (n+1,1), but that extra line is
-                     ;; not returned by serapeum:lines. So the "last"
-                     ;; line may not exist.
-                     (lines (take (if (= col2 1)
-                                      (- line2 line1)
-                                      (1+ (- line2 line1)))
-                                  lines))
-                     (first-line (subseq (first lines) (1- col1)))
+                     (lines (take (1+ (- line2 line1)) lines))
+                     (first-line (slice (first lines) (1- col1)))
                      (last-line (nth (1- line2) lines))
                      (last-line-sliced
                       (and last-line
