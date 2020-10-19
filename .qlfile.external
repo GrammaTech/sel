@@ -1,2 +1,3 @@
 git gt https://github.com/GrammaTech/cl-utils.git
 git functional-trees https://github.com/GrammaTech/functional-trees.git
+git stefil+ https://github.com/GrammaTech/stefil-.git main
