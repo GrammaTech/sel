@@ -42,8 +42,10 @@
                    (or (equal "py" (pathname-type file))
                        (and (intersection '(:user-exec :group-exec :other-exec)
                                           (file-permissions file))
-                            (equal (list :text :x-python)
-                                   (file-mime-type file))))))))
+                            (member (file-mime-type file)
+                                    '((:text :x-python)
+                                      (:text :x-script.python))
+                                    :test #'set-equal)))))))
   result)
 
 (defmethod phenome ((obj python-project) &key (bin (temp-file-name)))
