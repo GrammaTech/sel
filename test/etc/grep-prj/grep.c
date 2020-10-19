@@ -69,12 +69,6 @@ extern int open(), read(), close();
 
 /* Provide missing ANSI features if necessary. */
 
-#ifndef HAVE_STRERROR
-extern int sys_nerr;
-
-#define strerror(E) ((E) < sys_nerr ? sys_errlist[(E)] : "bogus error number")
-#endif
-
 #ifndef HAVE_MEMCHR
 #ifdef __STDC__
 #define VOID void
