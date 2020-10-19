@@ -8,7 +8,7 @@
   (:use
    :gt/full
    :software-evolution-library/test/util
-   :software-evolution-library/stefil-plus
+   :stefil+
    :software-evolution-library
    :software-evolution-library/software/parseable
    :software-evolution-library/software/python

@@ -4,7 +4,7 @@
         :software-evolution-library
         :software-evolution-library/utility/debug
         :software-evolution-library/utility/range
-        :software-evolution-library/stefil-plus
+        :stefil+
         :software-evolution-library/software/parseable)
   (:export :test
            :+etc-dir+

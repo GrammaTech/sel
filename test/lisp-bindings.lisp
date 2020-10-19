@@ -3,7 +3,7 @@
   (:use
    :gt/full
    :software-evolution-library/test/util
-   :software-evolution-library/stefil-plus
+   :stefil+
    #+gt :testbot
    :software-evolution-library
    :software-evolution-library/software/parseable

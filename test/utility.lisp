@@ -6,7 +6,7 @@
    :cl-store
    #+gt :testbot
    :software-evolution-library/test/util
-   :software-evolution-library/stefil-plus
+   :stefil+
    :software-evolution-library/utility/json
    :software-evolution-library/utility/range
    :software-evolution-library)

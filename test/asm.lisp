@@ -5,7 +5,7 @@
    :gt/full
    #+gt :testbot
    :software-evolution-library/test/util
-   :software-evolution-library/stefil-plus
+   :stefil+
    :software-evolution-library
    :software-evolution-library/software/simple
    :software-evolution-library/software/asm

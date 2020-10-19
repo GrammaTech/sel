@@ -5,7 +5,7 @@
    :gt/full
    #+gt :testbot
    :software-evolution-library/test/util
-   :software-evolution-library/stefil-plus
+   :stefil+
    :software-evolution-library/utility/task
    :software-evolution-library)
   (:export :test-task-runner))

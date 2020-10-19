@@ -6,7 +6,7 @@
    #+gt :testbot
    :software-evolution-library/test/util
    :software-evolution-library/test/serapi
-   :software-evolution-library/stefil-plus
+   :stefil+
    :software-evolution-library
    :software-evolution-library/software/coq
    :software-evolution-library/components/serapi-io)

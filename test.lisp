@@ -5,7 +5,7 @@
         :named-readtables
         :curry-compose-reader-macros
         #+gt :testbot
-        :software-evolution-library/stefil-plus
+        :stefil+
         :software-evolution-library/test/adaptive-mutation
         :software-evolution-library/test/asm-super-mutant
         :software-evolution-library/test/asm
@@ -89,5 +89,5 @@
 (defun run-batch (&rest a)
   (declare (ignorable a))
   #+ccl (setf ccl::*interactive-streams-initialized* nil)
-  (setf sel/stefil+:*long-tests* t)
+  (setf stefil+:*long-tests* t)
   (batch-test #'test "SEL" +software-evolution-library-branch+))

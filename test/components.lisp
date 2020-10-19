@@ -5,7 +5,7 @@
    :gt/full
    #+gt :testbot
    :software-evolution-library/test/util
-   :software-evolution-library/stefil-plus
+   :stefil+
    :software-evolution-library/components/test-suite)
   (:export :test-components))
 (in-package :software-evolution-library/test/components)

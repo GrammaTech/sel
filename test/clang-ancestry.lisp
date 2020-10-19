@@ -6,7 +6,7 @@
    #+gt :testbot
    :software-evolution-library/test/util
    :software-evolution-library/test/util-clang
-   :software-evolution-library/stefil-plus
+   :stefil+
    :software-evolution-library
    :software-evolution-library/software/ancestral
    :software-evolution-library/software/clang)

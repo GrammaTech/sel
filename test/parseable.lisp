@@ -4,7 +4,7 @@
   (:use
    :gt/full
    :software-evolution-library/test/util
-   :software-evolution-library/stefil-plus
+   :stefil+
    :software-evolution-library
    :software-evolution-library/software/parseable)
   (:import-from :software-evolution-library/software/parseable
