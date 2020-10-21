@@ -2331,7 +2331,6 @@ jump_table:
 
 (defmethod phenome ((asm asm-super-mutant)
 		    &key (bin (temp-file-name :type "out"))
-		      (src-path (temp-file-name :type "asm"))
                       (keep-assembly-file nil))
   "Create ASM file, assemble it, and link to create binary BIN."
   (with-temporary-file (:pathname src-path :keep keep-assembly-file)
