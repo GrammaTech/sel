@@ -57,11 +57,18 @@ is attempted.")
 
   ;; TODO: makes more sense to pass in the grammar json and only read in the
   ;;       file once in the macro.
-  (defun slot-order (name grammar-filepath ast-superclass
-                     &aux dependencies fields)
+  (defun slot-order (name expected-fields grammar-rules ast-superclass
+                     &aux dependencies fields
+                       (visited-rules (make-hash-table :test #'equal))
+                       (expected-fields (mapcar #'car expected-fields)))
     "Return the slot order of the fields in the production specified
 by NAME. If NIL is returned, there are either no fields or the order
 of fields needs to be determined at parse-time."
+    ;; NOTE: some of the fields can live "down-stream" in different
+    ;;       rules than the one that is being passed in. To get around
+    ;;       having adding every field and eventually getting an inconsistent
+    ;;       graph when the actual rule isn't, pass in expected fields
+    ;;       to only consider the ones that are expected.
     (labels ((add-dependency (preceding-fields field)
                "Add a dependency for each on each item
               in PRECEDING-FIELDS for field."
@@ -109,16 +116,17 @@ of fields needs to be determined at parse-time."
                             &aux (name (aget :name rule)))
                "Handle RULE as a 'FIELD' rule and add a dependency from
               the field to PRECEDING-FIELDS if it exists."
-               (add-field name)
-               (add-dependency preceding-fields name)
-               (list name))
+               (when (member (make-keyword (convert-name name))
+                             expected-fields :test #'equal)
+                 (add-field name)
+                 (add-dependency preceding-fields name)
+                 (list name)))
              (handle-rule (rule &optional preceding-fields)
                "Handles dispatching RULE to its relevant rule handler."
                ;; NOTE: this will throw an error if the json schema for
                ;;       the grammar.json files has changed.
                (string-ecase (aget :type rule)
-                 (("ALIAS" "BLANK" "IMMEDIATE_TOKEN" "TOKEN" "PATTERN" "STRING"
-                           "SYMBOL"))
+                 (("ALIAS" "BLANK" "IMMEDIATE_TOKEN" "TOKEN" "PATTERN" "STRING"))
                  ("CHOICE" (handle-choice rule preceding-fields))
                  ("FIELD" (handle-field rule preceding-fields))
                  (("PREC" "PREC_DYNAMIC" "PREC_LEFT" "PREC_RIGHT")
@@ -126,18 +134,19 @@ of fields needs to be determined at parse-time."
                   (handle-rule (aget :content rule) preceding-fields))
                  (("REPEAT" "REPEAT1")
                   (handle-repeat rule preceding-fields))
-                 ("SEQ" (handle-seq rule preceding-fields))))
-             (get-rules (&aux (*json-identifier-name-to-lisp* #'convert-name))
-               "Get the rules associated with the grammar."
-               (aget
-                :rules
-                (decode-json-from-string
-                 (file-to-string grammar-filepath)))))
+                 ("SEQ" (handle-seq rule preceding-fields))
+                 ("SYMBOL"
+                  (mvlet* ((name (make-keyword (convert-name (aget :name rule))))
+                           (_ visited-p (ensure-gethash name visited-rules t)))
+                    (declare (ignorable _))
+                    (unless visited-p
+                      (handle-rule (aget name grammar-rules))))))))
       ;; NOTE: tree-sitter/cli/src/generate/grammar-schema.json
       ;;       The grammar schema contains information on the
       ;;       possible rule types.
       (let* ((name-keyword (make-keyword (convert-name name)))
-             (name-rule (aget name-keyword (get-rules))))
+             (name-rule (aget name-keyword grammar-rules)))
+        (ensure-gethash name-keyword visited-rules t)
         (cond
           ((not name-rule))
           ((inconsistent-production-p
@@ -209,7 +218,7 @@ of fields needs to be determined at parse-time."
                       `(,ast-superclass)))
                 ()
                 (:documentation ,(format nil "Generated for ~a." type))))
-           (create-type-class (type fields children)
+           (create-type-class (type fields children grammar-rules)
              "Create a new class for TYPE using FIELDS and CHILDREN for slots."
              (let ((child-slot-order
                      (when fields
@@ -218,7 +227,7 @@ of fields needs to be determined at parse-time."
                           (cons
                            (symbolicate slot-keyword)
                            (if (aget :multiple (aget slot-keyword fields)) 0 1)))
-                        (slot-order type grammar-file ast-superclass)))))
+                        (slot-order type fields grammar-rules ast-superclass)))))
                `(defclass ,(make-class-name type)
                     (,@(or
                         (mapcar #'make-class-name (get-supertypes-for-type type))
@@ -235,7 +244,7 @@ of fields needs to be determined at parse-time."
                   ;;       was generated for.
                   (:documentation ,(format nil "Generated for ~a." type)))))
            (create-node-class
-               (node-type &aux (type (aget :type node-type))
+               (grammar-rules node-type &aux (type (aget :type node-type))
                             (subtypes (aget :subtypes node-type)))
              "Create a class for  NODE-TYPE."
              ;; TODO: figure out how terminals should be handled--does it
@@ -248,13 +257,18 @@ of fields needs to be determined at parse-time."
                  (create-type-class
                   type
                   (aget :fields node-type)
-                  (assoc :children node-type)))))
+                  (assoc :children node-type)
+                  grammar-rules))))
     (let* ((*json-identifier-name-to-lisp* #'convert-name)
            (file-string (file-to-string node-types-file))
-           (node-types (decode-json-from-string file-string)))
+           (node-types (decode-json-from-string file-string))
+           (grammar-rules (aget
+                           :rules
+                           (decode-json-from-string
+                            (file-to-string grammar-file)))))
       `(progn
          (eval-always
-           ,@(mapcar #'create-node-class node-types)
+           ,@(mapcar {create-node-class grammar-rules} node-types)
 
            ;; NOTE: the following are to handle results returned from
            ;;       cl-tree-sitter.
