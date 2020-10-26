@@ -122,7 +122,8 @@ after B.")
   (declare (array-index pos)
            (optimize speed)
            (inline cl:count))
-  ;; We would like this to be fast.
+  ;; We would like this to be fast, so specialize it on different
+  ;; string subtypes.
   (with-string-dispatch () string
     ;; We pretend there is a newline at "position" -1.
     (let* ((lines (1+ (cl:count #\Newline string :end pos)))
@@ -135,6 +136,7 @@ after B.")
             :line lines
             :column columns))))
 
+;;; TODO Should this be a utility?
 (defun nth-position (n item seq
                      &rest args
                      &key (start 0)
@@ -153,7 +155,9 @@ If there are fewer than N+1 occurrences, return the difference as a second value
 
 (defun source-location->position (text location)
   "Translate LOCATION, a source location, into a position in TEXT.
-The position may actually point beyond TEXT if the source location has an extra newline (which can happen because `source-range` addresses a node that ends in a newline as (n+1,1)."
+Note the position may actually point beyond TEXT if the source
+location has an extra newline, which can happen because `source-range`
+addresses a node that ends in a newline as (n+1,1)."
   (mvlet* ((line (line location))
            (column (column location))
            ;; When translating from a source location to a position, we treat
@@ -168,11 +172,10 @@ The position may actually point beyond TEXT if the source location has an extra 
     ;; offset is "absorbed" by the newline.
     (+ line-start-pos column remaining)))
 
-(defun source-range-subseq (string range)
-  "Get the subsequence of STRING corresponding to RANGE, a
-source-range object."
+(defun source-range-subseq (string source-range)
+  "Get the subsequence of STRING corresponding to SOURCE-RANGE."
   ;; Use `slice' to avoid having to worry about the possible extra
   ;; newline.
   (slice string
-         (source-location->position string (begin range))
-         (source-location->position string (end range))))
+         (source-location->position string (begin source-range))
+         (source-location->position string (end source-range))))
