@@ -393,7 +393,7 @@ to be created based on what has been read in.")
        t))))
 
 (defun range-subseq (lines range1 range2)
-  ;; TODO: refactor this
+  "Return the subseq in LINES from RANGE1 to RANGE2."
   (let* ((range1-col (car range1))
          (range1-row (cadr range1))
          (range2-col (car range2))
@@ -402,9 +402,12 @@ to be created based on what has been read in.")
       ((= range1-row range2-row)
        (subseq (aref lines range1-row) range1-col range2-col))
       ((< range1-row range2-row)
-       (concatenate
-        'string
+       (string+
         (subseq (aref lines range1-row) range1-col)
+        (iter
+          (for i from (1+ range1-row) to (1- range2-row))
+          (reducing (aref lines i) by #'string+
+                    initial-value ""))
         (subseq (aref lines range2-row) 0 range2-col)))
       (t ""))))
 
@@ -435,8 +438,7 @@ to be created based on what has been read in.")
                                               = (reverse (lines string)))
                                    (iter:with last = (car reverse-lines))
                                    (for line in (cdr reverse-lines))
-                                   (collect (concatenate
-                                             'string line (format nil "~%"))
+                                   (collect (string+ line (format nil "~%"))
                                      into lines)
                                    (finally
                                     (return (reverse (cons last lines))))))))
