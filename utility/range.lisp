@@ -16,7 +16,8 @@
    :contains
    :intersects
    :source-location->position
-   :position->source-location))
+   :position->source-location
+   :source-range-subseq))
 (in-package :software-evolution-library/utility/range)
 
 
@@ -132,20 +133,63 @@ after B.")
             :line lines
             :column columns))))
 
+;;; TODO Maybe this should be a utility?
+(defun nth-position (n item seq
+                     &rest args
+                     &key (start 0)
+                     &allow-other-keys)
+  "Return the position of the Nth occurrence of ITEM in SEQ.
+If there are fewer than N+1 occurrences, return the difference as a second value."
+  (nlet rec ((n n)
+             (start start)
+             (last-pos nil))
+    (if (minusp n) (values last-pos 0)
+        (let ((next-pos (apply #'position item seq :start start args)))
+          (if (null next-pos) (values last-pos (1+ n))
+              (rec (1- n)
+                   (1+ next-pos)
+                   next-pos))))))
+
+(defun source-location->position (text location)
+  (mvlet* ((line (line location))
+           (column (column location))
+           ;; When translating from a source location to a position, we treat
+           ;; excess newlines as extending beyond the end of the string.
+           (line-start-pos remaining
+            (if (= line 1) (values -1 0)
+                (multiple-value-bind (pos rem)
+                    (nth-position (- line 2) #\Newline text)
+                  (if (null pos) (values -1 0)
+                      (values pos rem))))))
+    ;; Note that we don't have to adjust the column as the extra
+    ;; offset is "absorbed" by the newline.
+    (+ line-start-pos column remaining)))
+
+(defun source-range-subseq (text range)
+  (slice text
+         (source-location->position text (begin range))
+         (source-location->position text (end range))))
+
 ;;; TODO Make a test
-(flet ((loc (line col) (make 'source-location :line line :column col)))
-  (assert (equal? (loc 1 1)
+(defun test-source-location-position-conversion ()
+  (macrolet ((is (&rest args) `(assert ,@args)))
+    (flet ((loc (line col) (make 'source-location :line line :column col))
+           (pos= (s loc pos)
+             (is (equal? loc (position->source-location s pos)))
+             (is (equal? pos (source-location->position s loc)))
+             t))
+      (is (equal? (loc 1 1)
                   (position->source-location "" 0)))
-  (let ((s (fmt "~%")))
-    (assert (equal? (loc 1 1) (position->source-location s 0)))
-    (assert (equal? (loc 2 1) (position->source-location s 1))))
-  (let ((s (fmt "~%~%")))
-    (assert (equal? (loc 1 1) (position->source-location s 0)))
-    (assert (equal? (loc 2 1) (position->source-location s 1)))
-    (assert (equal? (loc 3 1) (position->source-location s 2))))
-  (let ((s (fmt "~%a~%b")))
-    (assert (equal? (loc 1 1) (position->source-location s 0)))
-    (assert (equal? (loc 2 1) (position->source-location s 1)))
-    (assert (equal? (loc 2 2) (position->source-location s 2)))
-    (assert (equal? (loc 3 1) (position->source-location s 3)))
-    (assert (equal? (loc 3 2) (position->source-location s 4)))))
+      (let ((s (fmt "~%")))
+        (is (pos= s (loc 1 1) 0))
+        (is (pos= s (loc 2 1) 1)))
+      (let ((s (fmt "~%~%")))
+        (is (pos= s (loc 1 1) 0))
+        (is (pos= s (loc 2 1) 1))
+        (is (pos= s (loc 3 1) 2)))
+      (let ((s (fmt "~%a~%b")))
+        (is (pos= s (loc 1 1) 0))
+        (is (pos= s (loc 2 1) 1))
+        (is (pos= s (loc 2 2) 2))
+        (is (pos= s (loc 3 1) 3))
+        (is (pos= s (loc 3 2) 4))))))
