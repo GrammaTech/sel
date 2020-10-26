@@ -10,7 +10,8 @@
    :software-evolution-library/software/parseable
    :software-evolution-library/software/python
    :software-evolution-library/software/javascript
-   :software-evolution-library/software/lisp)
+   :software-evolution-library/software/lisp
+   :software-evolution-library/software/clang)
   (:import-from :software-evolution-library/software/parseable
                 :hash-type)
   (:export :test-parseable))
@@ -43,30 +44,34 @@
     files))
 
 (deftest test-js-source-ranges ()
-  (declare (optimize debug))
   (let ((js-files (expand-wildcard #p"javascript/*/*.js")))
     (test-ast-source-ranges-for-files 'javascript js-files)))
 
 (deftest test-python-source-ranges ()
-  (declare (optimize debug))
   (let ((py-files (expand-wildcard #p"python/*/*.py")))
     (test-ast-source-ranges-for-files 'python py-files)))
 
 (deftest test-lisp-source-ranges ()
-  (declare (optimize debug))
   (let ((lisp-files (expand-wildcard #p"lisp*/*.lisp")))
     (test-ast-source-ranges-for-files 'lisp lisp-files)))
 
-(defun test-ast-source-ranges-for-files (class files)
-  (iter (for file in-vector (reshuffle files))
-        (test-single-ast-source-ranges class file)))
+(deftest test-clang-source-ranges ()
+  (let ((c-files (expand-wildcard #p"*/*.c")))
+    (test-ast-source-ranges-for-files 'clang c-files :limit 100)))
+
+(defun test-ast-source-ranges-for-files (class files
+                                         &key (limit 1000))
+  (iter (for file in-vector (take limit (reshuffle files)))
+        (ignore-errors                  ;Ignore unparseable files.
+         (test-single-ast-source-ranges class file))))
 
 (defun test-single-ast-source-ranges (class file)
   (declare (optimize debug))
-  (let* ((sw (from-file (make class) file))
-         (ranges (ast-source-ranges sw))
-         (text (source-text (genome sw))))
-    (is (not (emptyp ranges)))
-    (iter (for (ast . range) in ranges)
-          (is (equal (source-range-subseq text range)
-                     (source-text ast))))))
+  (ignore-some-conditions (mutate)
+    (let* ((sw (from-file (make class) file))
+           (ranges (ast-source-ranges sw))
+           (text (source-text (genome sw))))
+      (is (not (emptyp ranges)))
+      (iter (for (ast . range) in ranges)
+            (is (equal (source-range-subseq text range)
+                       (source-text ast)))))))
