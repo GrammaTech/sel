@@ -19,7 +19,6 @@
            :tree-sitter
            :define-tree-sitter-classes
            :create-convert-methods
-           :update-child-order
            :inconsistent-production-p))
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
@@ -55,8 +54,11 @@ is attempted.")
     (:method (language production-name)
       nil))
 
-  ;; TODO: makes more sense to pass in the grammar json and only read in the
-  ;;       file once in the macro.
+  ;; NOTE: while a :child-order annotation is currently being generated
+  ;;       for every ast converted from a string, having the slot order
+  ;;       is useful for converting from a list where the :child-order
+  ;;       annotation would need to be generated and slot order is likely
+  ;;       already correct except in a few rare cases.
   (defun slot-order (name expected-fields grammar-rules ast-superclass
                      &aux dependencies fields
                        (visited-rules (make-hash-table :test #'equal))
@@ -301,11 +303,6 @@ of fields needs to be determined at parse-time."
 
 
 ;;; tree-sitter parsing
-(defgeneric update-child-order (language ast)
-  (:documentation "Return a child ordering if AST requires an ordering
-to be created based on what has been read in.")
-  (:method (language (ast tree-sitter-ast)) nil))
-
 
 ;;; NOTE: this is specific for cl-tree-sitter.
 (defun convert-initializer
@@ -374,10 +371,23 @@ to be created based on what has been read in.")
                {eql 0}
                (or (ast-annotation instance :child-order)
                    (slot-value instance 'child-slots))
-               :key #'cdr))))
+               :key #'cdr)))
+           (set-child-order-annotation ()
+             (let* ((children (remove nil (children instance)))
+                    (sorted-children
+                      (sort children #'range<
+                            :key
+                            (lambda (child)
+                              (car
+                               (ast-annotation child :range-start))))))
+               (setf (slot-value instance 'annotations)
+                     (cons (cons :child-order
+                                 (mapcar {position _ instance}
+                                         sorted-children))
+                           (ast-annotations instance))))))
     (set-slot-values (merge-same-fields (get-converted-fields)))
-    (update-child-order (gethash superclass *superclass->language*) instance)
     (update-slots-based-on-arity)
+    (set-child-order-annotation)
     instance))
 
 (defun range< (range1 range2)

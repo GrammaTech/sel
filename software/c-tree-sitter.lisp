@@ -44,34 +44,3 @@
   :c
   c-tree-sitter-ast)
 
-(defmethod update-child-order ((language (eql :c)) (ast c-update-expression))
-  ;; TODO: we will get this before the ast-ranges are removed.
-  ;;       Check both fields. whichever happens first, that
-  ;;       slot should occur first.
-  ;; NOTE: cl-tree-sitter trims out the operator field? This
-  ;;       causes problems?
-  #+nil
-  (let* ((operator-range (ast-annotation :range-start (slot-value ast 'operator)))
-         (field-range (ast-annotation :range-start (slot-value ast 'argument)))
-         (operator-col (car operator-range))
-         (operator-row (cdr operator-range))
-         (field-col (car field-range))
-         (field-row (cdr field-range))
-         (operator-first-p
-           (cond
-             ((= operator-row field-row)
-              (< operator-col field-col))
-             ((< operator-row  field-row)
-              t))))
-    (push
-     (if operator-first-p
-         '(:child-order ((operator . 1)) ((argument . 1)))
-         '(:child-order ((argument . 1)) ((operator . 1))))
-     (slot-value ast 'annotations)))
-  ;; NOTE: the child order annotation indicates an index in a list.
-  ;;       Convert the slot into a list to accomodate this
-  (setf (slot-value ast 'argument)
-        (list (slot-value ast 'argument)))
-  (push
-   '(:child-order ((argument . 0)))
-   (slot-value ast 'annotations)))
