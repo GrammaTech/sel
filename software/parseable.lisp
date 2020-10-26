@@ -853,26 +853,15 @@ of SHARED-PATH-AST's path in OBJ.")
                                (iter (for child in children)
                                      (for text in child-texts)
                                      (appending (ast-source-positions child start))
-                                     (incf start (length text)))))))))
-             (position-location (text offset)
-               (declare ((simple-array character (*)) text)
-                        (array-index offset)
-                        (optimize speed))
-               (let* ((lines (cl:count #\Newline text :end offset))
-                      (columns (- offset
-                                  (or (cl:position #\Newline text
-                                                   :end offset
-                                                   :from-end t)
-                                      0))))
-                 (source-location (1+ lines) (1+ columns)))))
+                                     (incf start (length text))))))))))
       (let ((text (coerce (source-text root)
                           '(simple-array character (*)))))
         (iter (for (ast start end) in (ast-source-positions root 0))
               (unless (stringp ast)
                 (collect (cons ast
                                (source-range
-                                (position-location text start)
-                                (position-location text end)))))))))
+                                (position->source-location text start)
+                                (position->source-location text end)))))))))
   (:method ((obj parseable))
     (ast-source-ranges (genome obj))))
 

@@ -14,7 +14,9 @@
    :source->
    :source->=
    :contains
-   :intersects))
+   :intersects
+   :source-location->position
+   :position->source-location))
 (in-package :software-evolution-library/utility/range)
 
 
@@ -113,3 +115,37 @@ after B.")
   (:method ((a-range range) (b-range range))
     (and (< (begin a-range) (end b-range))
          (> (end a-range) (begin b-range)))))
+
+(defun position->source-location (text pos)
+  (declare (array-index pos)
+           (optimize speed)
+           (inline cl:count))
+  (with-string-dispatch () text
+    ;; We pretend there is a newline at "position" -1.
+    (let* ((lines (1+ (cl:count #\Newline text :end pos)))
+           (columns (- pos
+                       (or (cl:position #\Newline text
+                                        :end pos
+                                        :from-end t)
+                           -1))))
+      (make 'source-location
+            :line lines
+            :column columns))))
+
+;;; TODO Make a test
+(flet ((loc (line col) (make 'source-location :line line :column col)))
+  (assert (equal? (loc 1 1)
+                  (position->source-location "" 0)))
+  (let ((s (fmt "~%")))
+    (assert (equal? (loc 1 1) (position->source-location s 0)))
+    (assert (equal? (loc 2 1) (position->source-location s 1))))
+  (let ((s (fmt "~%~%")))
+    (assert (equal? (loc 1 1) (position->source-location s 0)))
+    (assert (equal? (loc 2 1) (position->source-location s 1)))
+    (assert (equal? (loc 3 1) (position->source-location s 2))))
+  (let ((s (fmt "~%a~%b")))
+    (assert (equal? (loc 1 1) (position->source-location s 0)))
+    (assert (equal? (loc 2 1) (position->source-location s 1)))
+    (assert (equal? (loc 2 2) (position->source-location s 2)))
+    (assert (equal? (loc 3 1) (position->source-location s 3)))
+    (assert (equal? (loc 3 2) (position->source-location s 4)))))
