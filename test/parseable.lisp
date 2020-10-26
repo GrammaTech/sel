@@ -47,9 +47,9 @@
   (let ((js-files (expand-wildcard #p"javascript/*/*.js")))
     (test-ast-source-ranges-for-files 'javascript js-files)))
 
-(deftest test-python-source-ranges ()
-  (let ((py-files (expand-wildcard #p"python/*/*.py")))
-    (test-ast-source-ranges-for-files 'python py-files)))
+;; (deftest test-python-source-ranges ()
+;;   (let ((py-files (expand-wildcard #p"python/*/*.py")))
+;;     (test-ast-source-ranges-for-files 'python py-files)))
 
 (deftest test-lisp-source-ranges ()
   (let ((lisp-files (expand-wildcard #p"lisp*/*.lisp")))
