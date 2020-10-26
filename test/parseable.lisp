@@ -57,7 +57,7 @@
 
 (deftest test-clang-source-ranges ()
   (let ((c-files (expand-wildcard #p"*/*.c")))
-    (test-ast-source-ranges-for-files 'clang c-files :limit 100)))
+    (test-ast-source-ranges-for-files 'clang c-files :limit 10)))
 
 (defun test-ast-source-ranges-for-files (class files
                                          &key (limit 1000))
