@@ -814,15 +814,6 @@ of SHARED-PATH-AST's path in OBJ.")
                         ofile)))))
     (call-next-method)))
 
-(defclass _text-node (functional-tree-ast)
-  ((text :initarg :text
-         :reader _text-node-text
-         :type string))
-  (:documentation "A synthetic node wrapping a literal string in the AST."))
-
-(defmethod source-text ((node _text-node) &optional stream)
-  (write-string (_text-node-text node) stream))
-
 (defgeneric ast-source-ranges (obj)
   (:documentation "Return (AST . SOURCE-RANGE) for each AST in OBJ.")
   (:method ((root ast))
