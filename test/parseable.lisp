@@ -33,6 +33,7 @@
             v h)))))
 
 (defun expand-wildcard (wildcard)
+  "Get test files matching WILDCARD relative to test/etc/."
   (is (wild-pathname-p wildcard))
   (let* ((path
           (path-join (asdf:system-relative-pathname
@@ -43,7 +44,7 @@
     (is (not (emptyp files)))
     files))
 
-(deftest test-js-source-ranges ()
+(deftest test-javascript-source-ranges ()
   (let ((js-files (expand-wildcard #p"javascript/*/*.js")))
     (test-ast-source-ranges-for-files 'javascript js-files)))
 
@@ -57,6 +58,9 @@
 
 (deftest test-clang-source-ranges ()
   (let ((c-files (expand-wildcard #p"*/*.c")))
+    ;; There are a lot of Clang source files and parsing them is slow
+    ;; so set a limit. Note the files actually tested are chosen at
+    ;; random from the set of all files.
     (test-ast-source-ranges-for-files 'clang c-files :limit 10)))
 
 (defun test-ast-source-ranges-for-files (class files
@@ -66,7 +70,8 @@
          (test-single-ast-source-ranges class file))))
 
 (defun test-single-ast-source-ranges (class file)
-  (declare (optimize debug))
+  "Test that AST source ranges round-trip.
+That is, test that the result of calling `source-text' on an AST is the same as calling `ast-source-ranges' on its containing software and extracting the specified range from the software's serialization."
   (ignore-some-conditions (mutate)
     (let* ((sw (from-file (make class) file))
            (ranges (ast-source-ranges sw))

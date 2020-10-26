@@ -117,15 +117,17 @@ after B.")
     (and (< (begin a-range) (end b-range))
          (> (end a-range) (begin b-range)))))
 
-(defun position->source-location (text pos)
+(defun position->source-location (string pos)
+  "Translate POS, a position in STRING, into a source location object."
   (declare (array-index pos)
            (optimize speed)
            (inline cl:count))
-  (with-string-dispatch () text
+  ;; We would like this to be fast.
+  (with-string-dispatch () string
     ;; We pretend there is a newline at "position" -1.
-    (let* ((lines (1+ (cl:count #\Newline text :end pos)))
+    (let* ((lines (1+ (cl:count #\Newline string :end pos)))
            (columns (- pos
-                       (or (cl:position #\Newline text
+                       (or (cl:position #\Newline string
                                         :end pos
                                         :from-end t)
                            -1))))
@@ -133,7 +135,6 @@ after B.")
             :line lines
             :column columns))))
 
-;;; TODO Maybe this should be a utility?
 (defun nth-position (n item seq
                      &rest args
                      &key (start 0)
@@ -151,6 +152,8 @@ If there are fewer than N+1 occurrences, return the difference as a second value
                    next-pos))))))
 
 (defun source-location->position (text location)
+  "Translate LOCATION, a source location, into a position in TEXT.
+The position may actually point beyond TEXT if the source location has an extra newline (which can happen because `source-range` addresses a node that ends in a newline as (n+1,1)."
   (mvlet* ((line (line location))
            (column (column location))
            ;; When translating from a source location to a position, we treat
@@ -165,10 +168,14 @@ If there are fewer than N+1 occurrences, return the difference as a second value
     ;; offset is "absorbed" by the newline.
     (+ line-start-pos column remaining)))
 
-(defun source-range-subseq (text range)
-  (slice text
-         (source-location->position text (begin range))
-         (source-location->position text (end range))))
+(defun source-range-subseq (string range)
+  "Get the subsequence of STRING corresponding to RANGE, a
+source-range object."
+  ;; Use `slice' to avoid having to worry about the possible extra
+  ;; newline.
+  (slice string
+         (source-location->position string (begin range))
+         (source-location->position string (end range))))
 
 ;;; TODO Make a test
 (defun test-source-location-position-conversion ()
