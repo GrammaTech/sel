@@ -175,19 +175,27 @@ of fields needs to be determined at parse-time."
 (defmacro define-tree-sitter-classes
     (() node-types-file grammar-file name-prefix ast-superclass
      &aux (subtype->supertypes (make-hash-table :test #'equal)))
-  ;; TODO: figure out what needs exported, where, and how to do it without
-  ;;       creating several symbol collisions.
   ;; TODO: possibly only turn _'s into -'s if the node is named and has fields
   ;;       or children. This will keep things--like __attribute__, __fastcall,
   ;;       __unaligned, etc.--in their intended, keyword format.
   (labels ((make-class-name (name-string)
-             "Create a class name based on NAME-STRING."
+             "Create a class name based on NAME-STRING and export it from
+              *package*."
              ;; NOTE: this has the potential of name clashes
              ;;       though it's probably unlikely.
-             (symbolicate
-              name-prefix
-              "-"
-              (convert-name name-string)))
+             (lret ((name (symbolicate
+                          name-prefix
+                          "-"
+                          (convert-name name-string))))
+               (export name *package*)))
+           (make-accessor-name (name-keyword)
+             "Create an accessor name based on NAME-KEYWORD and export it from
+              *package*."
+             (lret ((name (symbolicate
+                           name-prefix
+                           "-"
+                           name-keyword)))
+               (export name *package*)))
            (get-supertypes-for-type (type)
              "Retrieve the supertypes of TYPE."
              (gethash type subtype->supertypes))
@@ -198,11 +206,11 @@ of fields needs to be determined at parse-time."
               (lambda (subtype &aux (name (aget :type subtype)))
                 (push supertype (gethash name subtype->supertypes)))
               subtypes))
-           (create-slot (field &aux (name-key (car field)))
+           (create-slot (field &aux (name-keyword (car field)))
              "Create a slot based on FIELD."
-             `(,(symbolicate name-key)
-               ;; TODO: add accessor
-               :initarg ,name-key
+             `(,(symbolicate name-keyword)
+               :accessor ,(make-accessor-name name-keyword)
+               :initarg ,name-keyword
                :initform nil))
            (create-slots (fields children)
              "Create the slots for a new class based on FIELDS and CHILDREN.
@@ -212,6 +220,8 @@ of fields needs to be determined at parse-time."
              ;;       these classes.
              (if children
                  (cons
+                  ;; TODO: make sure this doesn't do something weird to the
+                  ;;       children slot.
                   (create-slot children)
                   (mapcar #'create-slot fields))
                  (mapcar #'create-slot fields)))
