@@ -4147,10 +4147,14 @@ on various ast classes"))
 (defmethod ast-expr-type ((obj clang-ast))
   (ast-type obj))
 
+;;; Legacy AST full statement check (deprecated).  Please use `is-stmt-p` instead.
+(defmethod ast-full-stmt ((obj clang-ast))
+  (is-stmt-p obj))
+
 ;; This field should be filled in by a pass
 ;; that marks AST nodes that are full statements
 ;; (and that might not otherwise be)
-(defmethod ast-full-stmt ((obj clang-ast))
+(defmethod is-stmt-p ((obj clang-ast))
   (ast-annotation obj :full-stmt))
 
 ;; This field should be filled in by a pass
