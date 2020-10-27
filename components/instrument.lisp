@@ -1,5 +1,5 @@
 ;;; instrument.lisp --- Generic interface for defining AST instrumentation.
-(defpackage :sel/component/instrument
+(defpackage :software-evolution-library/components/instrument
   (:use :gt/full
         :software-evolution-library
         :software-evolution-library/utility/task
@@ -10,7 +10,7 @@
            :instrumenter
            :var-instrument
            :instrumentation-files))
-(in-package :sel/component/instrument)
+(in-package :software-evolution-library/components/instrument)
 (in-readtable :curry-compose-reader-macros)
 
 
