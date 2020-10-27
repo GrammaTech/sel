@@ -48,6 +48,7 @@
            :get-parent-asts
            :get-parent-asts*
            :get-parent-full-stmt
+           :is-stmt-p
            :get-ast-types
            :get-unbound-vals
            :get-unbound-funs
@@ -579,6 +580,9 @@ optionally writing to STREAM.")
   (:documentation
    "Return the first ancestor of AST in SOFTWARE which is a full statement.
 Returns nil if no full statement parent is found."))
+
+(defgeneric is-stmt-p (ast)
+  (:documentation "Returns T if the AST is a full statement, NIL otherwise."))
 
 (defgeneric get-ast-types (software ast)
   (:documentation "Types directly referenced within AST."))

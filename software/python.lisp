@@ -440,6 +440,9 @@ is not a compiled language.
   (cond ((member (type-of ast) +stmt-ast-types+) ast)
         (t (get-parent-full-stmt obj (get-parent-ast obj ast)))))
 
+(defmethod is-stmt-p ((ast python-ast))
+  (member (type-of ast) +stmt-ast-types+))
+
 (defmethod enclosing-scope ((obj python) (ast python-ast))
   "Return the enclosing scope of AST in OBJ.
 OBJ python software object

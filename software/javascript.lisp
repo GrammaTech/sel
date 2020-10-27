@@ -525,6 +525,9 @@ AST ast to return the enclosing scope for"
              (member (type-of ast) +stmt-ast-types+))
            (get-parent-asts obj ast)))
 
+(defmethod is-stmt-p ((ast javascript-ast))
+  (member (type-of ast) +stmt-ast-types+))
+
 (defmethod get-function-from-function-call
     ((obj javascript) (callexpr javascript-ast))
   ;; NOTE: this currently only handles
