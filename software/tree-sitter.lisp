@@ -19,6 +19,7 @@
            :tree-sitter
            :define-tree-sitter-classes
            :create-convert-methods
+           :statement-ast-p
            :inconsistent-production-p))
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
@@ -67,8 +68,8 @@ is attempted.")
 by NAME. If NIL is returned, there are either no fields or the order
 of fields needs to be determined at parse-time."
     ;; NOTE: some of the fields can live "down-stream" in different
-    ;;       rules than the one that is being passed in. To get around
-    ;;       having adding every field and eventually getting an inconsistent
+    ;;       rules other than the one that is being passed in. To get around
+    ;;       having to add every field and eventually getting an inconsistent
     ;;       graph when the actual rule isn't, pass in expected fields
     ;;       to only consider the ones that are expected.
     (labels ((add-dependency (preceding-fields field)
@@ -108,6 +109,9 @@ of fields needs to be determined at parse-time."
                ;;       back to the front of the repeat. This will create
                ;;       an inconsistency if one exists. Also note that
                ;;       a dependency of a field on itself is ignored.
+               ;; TODO: the way symbols are checked for fields won't work
+               ;;       with this function. Maybe remove the fields added by
+               ;;       the function when it leaves?
                (iter
                  (repeat 2)
                  (for preceding
@@ -262,8 +266,8 @@ of fields needs to be determined at parse-time."
                   (assoc :children node-type)
                   grammar-rules))))
     (let* ((*json-identifier-name-to-lisp* #'convert-name)
-           (file-string (file-to-string node-types-file))
-           (node-types (decode-json-from-string file-string))
+           (node-types (decode-json-from-string
+                        (file-to-string node-types-file)))
            (grammar-rules (aget
                            :rules
                            (decode-json-from-string
@@ -303,6 +307,9 @@ of fields needs to be determined at parse-time."
 
 
 ;;; tree-sitter parsing
+(defgeneric statement-ast-p (language ast)
+  (:documentation "Return T if AST represents a statement in LANGUAGE.")
+  (:method (language ast) nil))
 
 ;;; NOTE: this is specific for cl-tree-sitter.
 (defun convert-initializer
@@ -421,6 +428,65 @@ of fields needs to be determined at parse-time."
         (subseq (aref lines range2-row) 0 range2-col)))
       (t ""))))
 
+;; NOTE: copied from javascript.lisp
+(defun position-after-leading-newline (str)
+  "Returns 1+ the position of the first newline in STR,
+assuming it can be reached only by skipping over whitespace
+or comments.  NIL if no such newline exists."
+  (let ((len (length str))
+        (pos 0))
+    (loop
+       (when (>= pos len) (return nil))
+       (let ((c (elt str pos)))
+         (case c
+           (#\Newline (return (1+ pos)))
+           ((#\Space #\Tab)
+            (incf pos))
+           ;; Skip over comments
+           ;; TODO: evaluate whether this is needed?
+           (#\/
+            (incf pos)
+            (when (>= pos len) (return nil))
+            (let ((c (elt str pos)))
+              (unless (eql c #\/)
+                (return nil))
+              (return
+                (loop (incf pos)
+                   (when (>= pos len) (return nil))
+                   (when (eql (elt str pos) #\Newline)
+                     (return (1+ pos)))))))
+           (t (return nil)))))))
+
+;; NOTE: copied from javascript.lisp
+(defun move-newlines-down (language ast)
+  "Destructively modify AST, pushing newlines down into child ASTs for
+statement AST types."
+  (iter (for child in (children ast))
+        (for after-text in (cdr (interleaved-text ast)))
+        (for i upfrom 1)
+        (when-let ((pos (and (statement-ast-p language child)
+                             (position-after-leading-newline after-text))))
+          ;; Move the [0, pos) prefix of after-text containing the newline
+          ;; down into the child node.
+          (setf (slot-value child 'interleaved-text)
+                (append (butlast (interleaved-text child))
+                        (list (concatenate 'string
+                                           (lastcar (interleaved-text child))
+                                           (subseq after-text 0 pos)))))
+          (setf (nth i (slot-value ast 'interleaved-text))
+                (subseq after-text pos)))
+        (finally (return ast))))
+
+;; NOTE: copied from javascript.lisp
+(defun fix-newlines (language ast)
+  "Fix newlines in ASTs by pushing newlines down into child
+statements.  This allows for mutation operations to insert and
+replace statements with newlines already present in the new
+ASTs, obviating the need for fixups to add missing newlines.
+This method is destructive and, therefore, can only be utilized
+during AST creation to respect functional trees invariants."
+  (mapcar {move-newlines-down language} ast))
+
 (defun get-language-from-superclass (superclass)
   "Get the tree-sitter  language associated with SUPERCLASS."
   (or (gethash superclass *superclass->language*)
@@ -503,7 +569,7 @@ of fields needs to be determined at parse-time."
     ;; TODO: need to actually fix-newlines. It's probably just a copy-paste
     ;;       javascript.lisp. It may require some extra work on a per-language
     ;;       basis.
-    (nest ;(fix-newlines)
+    (nest (fix-newlines (get-language-from-superclass superclass))
      (w/interleaved-text
       (convert to-type
                (parse-string (get-language-from-superclass superclass) string)

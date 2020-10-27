@@ -12,7 +12,8 @@
         :software-evolution-library/software/non-homologous-parseable
         :software-evolution-library/software/tree-sitter
         :software-evolution-library/components/file
-        :software-evolution-library/components/formatting))
+   :software-evolution-library/components/formatting)
+  (:export :java-tree-sitter-ast))
 (in-package :software-evolution-library/software/java-tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 
@@ -40,3 +41,8 @@
   "~/quicklisp/local-projects/sel/software/tree-sitter/java/grammar.json"
   :java
   java-tree-sitter-ast)
+
+(defmethod statement-ast-p ((language (eql :java)) (ast java-tree-sitter-ast))
+  ;; TODO: this definitely doesn't cover everything.
+  (or (typep ast 'java-statement)
+      (equal ";" (lastcar (interleaved-text ast)))))
