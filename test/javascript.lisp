@@ -242,6 +242,7 @@
             (#P"property.js" js-property)
             (#P"sequence-expression.js" js-sequence-expression)
             (#P"spread-element.js" js-spread-element)
+            (#p"super.js" js-super)
             (#P"switch.js" js-switch-statement)
             (#P"tagged-template-expression.js"
              js-tagged-template-expression)

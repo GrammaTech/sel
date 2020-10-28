@@ -67,6 +67,7 @@
     ((:do-while-statement) (:body . 1) (:test . 1))
     ((:while-statement) (:test . 1) (:body . 1))
     ((:expression-statement) (:expression . 1))
+    ((:super))
     ((:for-statement) (:init . 1) (:test . 1) (:update . 1) (:body . 1))
     ((:labeled-statement) (:label . 1) (:body . 1))
     ((:switch-statement) (:discriminant . 1) (:cases . 0))
