@@ -34,11 +34,19 @@
   (:teardown
    (setf *soft* nil)))
 
-(defixture multibyte-javascript
+(defixture multibyte-javascript-1
   (:setup
    (setf *soft*
          (from-file (make-instance 'javascript)
                     (javascript-dir #P"unicode/unicode.js"))))
+  (:teardown
+   (setf *soft* nil)))
+
+(defixture multibyte-javascript-2
+    (:setup
+     (setf *soft*
+           (from-file (make-instance 'javascript)
+                      (javascript-dir #P"unicode/unicode-offsets.js"))))
   (:teardown
    (setf *soft* nil)))
 
@@ -57,6 +65,9 @@
   (:teardown
    (setf *soft* nil)))
 
+(deftest test-js-string-length ()
+  (= 24 (js-string-length "̉mủt̉ả̉̉̉t̉ẻd̉W̉ỏ̉r̉̉d̉̉")))
+
 (deftest simply-able-to-load-a-javascript-software-object ()
   (with-fixture hello-world-javascript
     (is (not (null *soft*)))))
@@ -71,11 +82,18 @@
     (is (equal (file-to-string (javascript-dir #P"fib/fib.js"))
                (genome-string *soft*)))))
 
-(deftest can-handle-multibyte-characters-javascript ()
-  (with-fixture multibyte-javascript
+(deftest can-handle-multibyte-characters-javascript-1 ()
+  (with-fixture multibyte-javascript-1
     (is (= 6 (size *soft*)))
-    (is (equal (file-to-string (original-path *soft*))
-               (genome-string *soft*)))))
+    (is (equal* (file-to-string (original-path *soft*))
+                (genome-string *soft*)
+                (source-text (genome *soft*))))))
+
+(deftest can-handle-multibyte-characters-javascript-2 ()
+  (with-fixture multibyte-javascript-2
+    (is (equal* (file-to-string (original-path *soft*))
+                (genome-string *soft*)
+                (source-text (genome *soft*))))))
 
 (deftest can-parse-a-json-software-object ()
   (with-fixture trivial-json

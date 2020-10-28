@@ -30,6 +30,7 @@
 (uiop:define-package :software-evolution-library/software/javascript
   (:nicknames :sel/software/javascript :sel/sw/javascript)
   (:use :gt/full
+        :babel
         :software-evolution-library
         :software-evolution-library/utility/json
         :software-evolution-library/software/parseable
@@ -42,7 +43,8 @@
   (:export :javascript
            :javascript-mutation
            :javascript-ast
-           :acorn))
+           :acorn
+           :js-string-length))
 (in-package :software-evolution-library/software/javascript)
 (in-readtable :curry-compose-reader-macros)
 
@@ -153,6 +155,24 @@
 
 
 ;;; Javascript parsing
+
+(defun js-string-length (string &key (start 0) end)
+  "Compute the length of STRING according to the same rules as JavaScript's length property.
+
+That is, the number of pairs in a UTF-16 encoding of the string, sans
+BOM."
+  (etypecase string
+    #+sb-unicode (base-string (length string))
+    (string
+     (iter (for i from start below (or end (length string)))
+           (for char = (aref string i))
+           (for code = (char-code char))
+           (cond ((< code #x10000)
+                  (sum 1))
+                 ((< code #x10ffff)
+                  (sum 2))
+                 (t (error "Cannot be UTF-16: ~a" char)))))))
+
 (defun acorn (source-text)
   "Invoke the acorn parser on the genome of OBJ returning a
 raw list of ASTs in OBJ for use in `parse-asts`."
@@ -195,14 +215,56 @@ raw list of ASTs in OBJ for use in `parse-asts`."
                                        "type" "start" "end")
                            str))
 
+(defun translate-utf-16-offset (octets offset &key (from 0))
+  "Translate OFFSET, an offset in characters, into an index into a octet vector representing a UTF-16 encoded string."
+  (declare (optimize speed)
+           (octet-vector octets)
+           (array-index offset))
+  (flet ((surrogate? (code1 code2)
+           (<= #xD800
+               (logior (ash code1 16) code2)
+               #xDBFF)))
+    (declare (inline surrogate?))
+    (nlet rec ((i from)
+               (remaining offset))
+      (declare (array-index remaining))
+      (if (zerop remaining) i
+          (rec (if (surrogate?
+                    (aref octets i)
+                    (aref octets (1+ i)))
+                   (+ i 4)
+                   (+ i 2))
+               (1- remaining))))))
+
 (defmethod convert ((to-type (eql 'javascript-ast)) (string string)
-                    &key &allow-other-keys)
+                    &key &allow-other-keys
+                    &aux
+                      (fast-path?
+                       (= (js-string-length string)
+                          (length string)))
+                      (string-octets
+                       (if fast-path?
+                           (make-octet-vector 0)
+                           (string-to-octets string
+                                             :encoding :utf-16
+                                             :use-bom nil))))
   (labels
       ((safe-subseq (start end)
          "Return STRING in the range [START, END) or an empty string if
          the offsets are invalid."
          (if (< start end)
-             (subseq string start end)
+             (if fast-path?
+                 (subseq string start end)
+                 (let* ((start-offset
+                         (translate-utf-16-offset string-octets start))
+                        (end-offset (translate-utf-16-offset
+                                     string-octets
+                                     (- end start)
+                                     :from start-offset)))
+                   (octets-to-string string-octets
+                                     :start start-offset
+                                     :end end-offset
+                                     :encoding :utf-16le)))
              ""))
        (start (ast)
          "Return the start offset into STRING from the AST representation."
@@ -258,7 +320,10 @@ raw list of ASTs in OBJ for use in `parse-asts`."
          ast))
     (nest (fix-newlines)
           (w/interleaved-text (convert to-type (acorn string))
-                              0 (length string)))))
+                              0
+                              (if fast-path?
+                                  (length string)
+                                  (ash (length string-octets) -1))))))
 
 (defmethod convert ((to-type (eql 'javascript-ast)) (spec null)
                     &key &allow-other-keys)
