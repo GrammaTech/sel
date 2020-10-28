@@ -62,16 +62,10 @@ is attempted.")
   ;;       already correct except in a few rare cases.
   (defun slot-order (name expected-fields grammar-rules ast-superclass
                      &aux dependencies fields
-                       (visited-rules (make-hash-table :test #'equal))
                        (expected-fields (mapcar #'car expected-fields)))
     "Return the slot order of the fields in the production specified
 by NAME. If NIL is returned, there are either no fields or the order
 of fields needs to be determined at parse-time."
-    ;; NOTE: some of the fields can live "down-stream" in different
-    ;;       rules other than the one that is being passed in. To get around
-    ;;       having to add every field and eventually getting an inconsistent
-    ;;       graph when the actual rule isn't, pass in expected fields
-    ;;       to only consider the ones that are expected.
     (labels ((add-dependency (preceding-fields field)
                "Add a dependency for each on each item
               in PRECEDING-FIELDS for field."
@@ -87,37 +81,37 @@ of fields needs to be determined at parse-time."
                ;; NOTE: avoid adding the same field more than once.
                ;;       This can occur with 'CHOICE' rules.
                (setf fields (union fields (list name) :test #'equal)))
-             (handle-choice (rule &optional preceding-fields)
+             (handle-choice (rule &optional preceding-fields visited-rules)
                "Handle RULE as a 'CHOICE' rule."
                (remove-duplicates
                 (iter
                   (for member in (aget :members rule))
-                  (appending (handle-rule member preceding-fields)))
+                  (appending
+                   (handle-rule member preceding-fields visited-rules)))
                 :test #'equal))
-             (handle-seq (rule &optional preceding-fields)
+             (handle-seq (rule &optional preceding-fields visited-rules)
                "Handle RULE as a 'SEQ' rule."
                (iter
                  (for member in (aget :members rule))
                  (for preceding
                       initially preceding-fields
-                      then (or (handle-rule member preceding)
+                      then (or (handle-rule member preceding visited-rules)
                                preceding))
                  (finally (return preceding))))
-             (handle-repeat (rule &optional preceding-fields)
+             (handle-repeat (rule &optional preceding-fields visited-rules)
                "Handle RULE as a 'REPEAT' rule."
                ;; NOTE: perform twice to loop the ending field of the repeat
                ;;       back to the front of the repeat. This will create
                ;;       an inconsistency if one exists. Also note that
                ;;       a dependency of a field on itself is ignored.
-               ;; TODO: the way symbols are checked for fields won't work
-               ;;       with this function. Maybe remove the fields added by
-               ;;       the function when it leaves?
                (iter
                  (repeat 2)
                  (for preceding
                       initially preceding-fields
-                      then (or (handle-rule (aget :content rule) preceding)
-                               preceding))))
+                      then (or (handle-rule
+                                (aget :content rule) preceding visited-rules)
+                               preceding))
+                 (finally (return preceding))))
              (handle-field (rule &optional preceding-fields
                             &aux (name (aget :name rule)))
                "Handle RULE as a 'FIELD' rule and add a dependency from
@@ -127,45 +121,51 @@ of fields needs to be determined at parse-time."
                  (add-field name)
                  (add-dependency preceding-fields name)
                  (list name)))
-             (handle-rule (rule &optional preceding-fields)
+             (handle-rule (rule &optional preceding-fields visited-rules)
                "Handles dispatching RULE to its relevant rule handler."
                ;; NOTE: this will throw an error if the json schema for
                ;;       the grammar.json files has changed.
                (string-ecase (aget :type rule)
                  (("ALIAS" "BLANK" "IMMEDIATE_TOKEN" "TOKEN" "PATTERN" "STRING"))
-                 ("CHOICE" (handle-choice rule preceding-fields))
+                 ("CHOICE" (handle-choice rule preceding-fields visited-rules))
                  ("FIELD" (handle-field rule preceding-fields))
                  (("PREC" "PREC_DYNAMIC" "PREC_LEFT" "PREC_RIGHT")
                   ;; pass-through
-                  (handle-rule (aget :content rule) preceding-fields))
+                  (handle-rule
+                   (aget :content rule) preceding-fields visited-rules))
                  (("REPEAT" "REPEAT1")
-                  (handle-repeat rule preceding-fields))
-                 ("SEQ" (handle-seq rule preceding-fields))
+                  (handle-repeat rule preceding-fields visited-rules))
+                 ("SEQ" (handle-seq rule preceding-fields visited-rules))
                  ("SYMBOL"
-                  (mvlet* ((name (make-keyword (convert-name (aget :name rule))))
-                           (_ visited-p (ensure-gethash name visited-rules t)))
-                    (declare (ignorable _))
-                    (unless visited-p
-                      (handle-rule (aget name grammar-rules))))))))
+                  (let* ((name-string (aget :name rule))
+                         (name (make-keyword (convert-name name-string))))
+                    ;; NOTE: the rules starting with an #\_ are special
+                    ;;       and are the only ones that should be considered
+                    ;;       when search for fields that may be down the line
+                    ;;       in different rules.
+                    (when (and (eql #\_ (aref name-string 0))
+                               (not (member name visited-rules)))
+                      (handle-rule (aget name grammar-rules)
+                                   preceding-fields
+                                   (cons name visited-rules))))))))
       ;; NOTE: tree-sitter/cli/src/generate/grammar-schema.json
       ;;       The grammar schema contains information on the
       ;;       possible rule types.
       (let* ((name-keyword (make-keyword (convert-name name)))
              (name-rule (aget name-keyword grammar-rules)))
-        (ensure-gethash name-keyword visited-rules t)
         (cond
           ((not name-rule))
           ((inconsistent-production-p
             (gethash ast-superclass *superclass->language*)
             name-keyword)
-           (handle-rule name-rule)
+           (handle-rule name-rule nil (list name-keyword))
            ;; NOTE: the order doesn't matter as a :child-order
            ;;       annotation will be used instead of it.
            ;;       This is only provided for #'sorted-children
            ;;       to use.
            (mapcar #'make-keyword (mapcar #'convert-name fields)))
           (t
-           (handle-rule name-rule)
+           (handle-rule name-rule nil (list name-keyword))
            (mapcar
             #'make-keyword
             (mapcar
