@@ -89,6 +89,8 @@ The keys of the hash table are the individual keys of each entry."
               (setf (gethash key table) child-types))
         (finally (return table))))
 
+;; Make inline to save stack space.
+(declaim (inline convert-helper))
 (defun convert-helper (spec prefix superclass children-definitions)
   "Common function for converting an AST SPECification list into an AST.
 
@@ -106,20 +108,21 @@ The keys of the hash table are the individual keys of each entry."
          (child-types (gethash type children-definitions)))
     (apply #'make-instance (symbol-cat-in-package (symbol-package superclass)
                                                   prefix type)
-           (mappend
-            (lambda (field)
-              (destructuring-bind (key . value) field
-                (list (if (find key child-types :key #'car)
-                          (make-keyword (symbol-cat prefix key))
-                          key)
-                      (if-let ((spec (find key child-types :key #'car)))
-                        (destructuring-bind (key . arity) spec
-                          (declare (ignorable key))
-                          (ecase arity
-                            (1 (convert superclass value))
-                            (0 (mapcar {convert superclass} value))))
-                        value))))
-            (adrop '(:class) spec)))))
+           ;; Use iterate here since otherwise this may run out of
+           ;; stack space on very large examples.
+           (iter (for (key . value) in (adrop '(:class) spec))
+                 (nconcing
+                  (list (if (find key child-types :key #'car)
+                            (make-keyword (symbol-cat prefix key))
+                            key)
+                        (if-let ((spec (find key child-types :key #'car)))
+                                (destructuring-bind (key . arity) spec
+                                  (declare (ignorable key))
+                                  (ecase arity
+                                    (1 (convert superclass value))
+                                    (0 (iter (for item in value)
+                                             (collect (convert superclass item))))))
+                                value)))))))
 
 (defmethod equal? ((ast-a non-homologous-ast) (ast-b non-homologous-ast))
   (let ((hash1 (slot-value ast-a 'stored-hash))
