@@ -164,14 +164,13 @@ BOM."
   (etypecase string
     #+sb-unicode (base-string (length string))
     (string
-     (iter (for i from start below (or end (length string)))
-           (for char = (aref string i))
-           (for code = (char-code char))
-           (cond ((< code #x10000)
-                  (sum 1))
-                 ((< code #x10ffff)
-                  (sum 2))
-                 (t (error "Cannot be UTF-16: ~a" char)))))))
+     (reduce #'+ string
+             :key (lambda (char)
+                    (let ((code (char-code char)))
+                      (cond ((< code #x10000) 1)
+                            ((< code #x10ffff) 2)
+                            (t (error "Cannot be UTF-16: ~a"
+                                      char)))))))))
 
 (defun acorn (source-text)
   "Invoke the acorn parser on the genome of OBJ returning a
