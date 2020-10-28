@@ -34,7 +34,7 @@
   (:teardown
    (setf *soft* nil)))
 
-(defixture multibyte-javascript-1
+(defixture multibyte-javascript
   (:setup
    (setf *soft*
          (from-file (make-instance 'javascript)
@@ -42,7 +42,7 @@
   (:teardown
    (setf *soft* nil)))
 
-(defixture multibyte-javascript-2
+(defixture surrogate-javascript
     (:setup
      (setf *soft*
            (from-file (make-instance 'javascript)
@@ -82,15 +82,15 @@
     (is (equal (file-to-string (javascript-dir #P"fib/fib.js"))
                (genome-string *soft*)))))
 
-(deftest can-handle-multibyte-characters-javascript-1 ()
-  (with-fixture multibyte-javascript-1
+(deftest can-handle-multibyte-characters-javascript ()
+  (with-fixture multibyte-javascript
     (is (= 6 (size *soft*)))
     (is (equal* (file-to-string (original-path *soft*))
                 (genome-string *soft*)
                 (source-text (genome *soft*))))))
 
-(deftest can-handle-multibyte-characters-javascript-2 ()
-  (with-fixture multibyte-javascript-2
+(deftest can-handle-surrogate-characters-javascript-2 ()
+  (with-fixture surrogate-javascript
     (is (equal* (file-to-string (original-path *soft*))
                 (genome-string *soft*)
                 (source-text (genome *soft*))))))
