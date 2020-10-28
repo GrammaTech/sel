@@ -216,7 +216,8 @@ raw list of ASTs in OBJ for use in `parse-asts`."
                            str))
 
 (defun translate-utf-16-offset (octets offset &key (from 0))
-  "Translate OFFSET, an offset in characters, into an index into a octet vector representing a UTF-16 encoded string."
+  "Translate OFFSET, an offset in characters, into an index into a
+octet vector representing a UTF-16 encoded string."
   (declare (optimize speed)
            (octet-vector octets)
            (array-index offset))
