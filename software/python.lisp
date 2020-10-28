@@ -153,6 +153,13 @@
       :joined-str)))
   "Definition of Python classes and child slots.")
 
+(defconst +python-children-table+
+  (let ((table (make-hash-table)))
+    (iter (for (keys . children) in +python-children+)
+          (iter (for key in keys)
+                (setf (gethash key table) children)))
+    table))
+
 (eval-always
  (defclass python-ast (indentation non-homologous-ast) ()
    (:documentation "Class of Python ASTs.")))
@@ -383,7 +390,7 @@ in textual (sorted) order.")
 (defmethod convert ((to-type (eql 'python-ast)) (spec list)
                     &key &allow-other-keys)
   "Create a PYTHON AST from the SPEC (specification) list."
-  (convert-helper spec 'py 'python-ast +python-children+))
+  (convert-helper spec 'py 'python-ast +python-children-table+))
 
 (defmethod convert ((to-type (eql 'python-ast)) (spec python-ast)
                     &key &allow-other-keys)

@@ -14,6 +14,7 @@
            :non-homologous-ast
            :interleaved-text
            :expand-ast-classes
+           :children-definitions-table
            :convert-helper
            :ast-type-to-rebind-p
            :ast-annotation-to-rebind))
@@ -77,20 +78,32 @@ SUPERCLASS and PREFIX."
           ,(format nil "AST node class for ~a ASTs." class)))))
    ast-class-list))
 
+(defun children-definitions-table (children-definitions)
+  "Build a hash table CHILDREN-DEFINITIONS, an alist from a list of
+keys to a list of (child . arity).
+
+The keys of the hash table are the individual keys of each entry."
+  (iter (iter:with table = (make-hash-table))
+        (for (keys . child-types) in children-definitions)
+        (iter (for key in keys)
+              (setf (gethash key table) child-types))
+        (finally (return table))))
+
 (defun convert-helper (spec prefix superclass children-definitions)
   "Common function for converting an AST SPECification list into an AST.
 
 * SPEC AST specification association list
 * PREFIX prefix for type name and slots
 * SUPERCLASS superclass of the AST type to create
-* CHILDREN-DEFINITIONS list mapping AST types to their child slots"
+* CHILDREN-DEFINITIONS hash table mapping AST types to their child slots"
+  (declare (hash-table children-definitions))
   (let* ((type (if (stringp (aget :class spec))
                    (nest (make-keyword)
                          (string-upcase)
                          (translate-camelcase-name)
                          (aget :class spec))
                    (aget :class spec)))
-         (child-types (aget type children-definitions :test #'member)))
+         (child-types (gethash type children-definitions)))
     (apply #'make-instance (symbol-cat-in-package (symbol-package superclass)
                                                   prefix type)
            (mappend

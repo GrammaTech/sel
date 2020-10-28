@@ -127,6 +127,9 @@
       :literal)))
   "Definition of JavaScript classes and child slots.")
 
+(defconst +js-children-table+
+  (children-definitions-table +js-children+))
+
 (eval-always
  (defclass javascript-ast (non-homologous-ast) ()
    (:documentation "Class of JavaScript ASTs.")))
@@ -366,7 +369,8 @@ octet vector representing a UTF-16 encoded string."
 (defmethod convert ((to-type (eql 'javascript-ast)) (spec list)
                     &key &allow-other-keys)
   "Create a JAVASCRIPT AST from the SPEC (specification) list."
-  (convert-helper spec 'js 'javascript-ast +js-children+))
+  (declare (inline convert-helper))
+  (convert-helper spec 'js 'javascript-ast +js-children-table+))
 
 (defmethod convert ((to-type (eql 'javascript-ast)) (spec javascript-ast)
                     &key &allow-other-keys)
