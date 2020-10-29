@@ -220,8 +220,6 @@ of fields needs to be determined at parse-time."
              ;;       these classes.
              (if children
                  (cons
-                  ;; TODO: make sure this doesn't do something weird to the
-                  ;;       children slot.
                   (create-slot children)
                   (mapcar #'create-slot fields))
                  (mapcar #'create-slot fields)))
@@ -251,7 +249,6 @@ of fields needs to be determined at parse-time."
                   (,@(create-slots fields children)
                    (child-slots
                     :initform
-                    ;; TODO: push on children if it exists.
                     ',(if children
                           (append child-slot-order '((children . 0)))
                           child-slot-order)
@@ -324,23 +321,28 @@ of fields needs to be determined at parse-time."
 ;;; NOTE: this is specific for cl-tree-sitter.
 (defun convert-initializer
     (spec prefix superclass
-     &aux (instance (make-instance
-                     (symbol-cat-in-package (symbol-package superclass)
-                                            prefix
-                                            (let ((type (car spec)))
-                                              ;; The form can either be
-                                              ;; - :type
-                                              ;; - (:slot-name :type)
-                                              (if (listp type)
-                                                  (cadr type)
-                                                  type)))
-                     :annotations
-                     `((:range-start ,(caadr spec))
-                       (:range-end . ,(cdadr spec))))))
+     &aux (class (symbol-cat-in-package (symbol-package superclass)
+                                        prefix
+                                        (let ((type (car spec)))
+                                          ;; The form can either be
+                                          ;; - :type
+                                          ;; - (:slot-name :type)
+                                          (if (listp type)
+                                              (cadr type)
+                                              type))))
+       (instance (make-instance
+                  class
+                  :annotations
+                  `((:range-start ,(caadr spec))
+                    (:range-end . ,(cdadr spec)))))
+       (error-p (eql class (symbol-cat-in-package (symbol-package superclass)
+                                                  prefix 'error))))
   "Initialize an instance of SUPERCLASS with SPEC."
   (labels ((get-converted-fields ()
              "Get the value of each field after it's been converted
               into an AST."
+             ;; TODO: if the actual thing is an error, we want to
+             ;;       ignore setting any field slots.
              (iter
                (for field in (caddr spec))
                (for converted-field = (convert superclass field))
@@ -348,7 +350,7 @@ of fields needs to be determined at parse-time."
                ;; cl-tree-sitter appears to put the
                ;; slot name first unless the list goes
                ;; into the children slot.
-               (if (listp slot-info)
+               (if (and (listp slot-info) (not error-p))
                    (collect (list (car slot-info)
                                   converted-field)
                      into fields)
@@ -408,19 +410,17 @@ of fields needs to be determined at parse-time."
     instance))
 
 (defun range< (range1 range2)
-  ;; TODO: refactor this
-  (let* ((range1-col (car range1))
-         (range1-row (cadr range1))
-         (range2-col (car range2))
+  "Return T if RANGE1 occurs before RANGE2."
+  (let* ((range1-row (cadr range1))
          (range2-row (cadr range2)))
     (cond
       ((= range1-row range2-row)
-       (< range1-col range2-col))
+       (< (car range1) (car range2)))
       ((< range1-row range2-row)
        t))))
 
 (defun range-subseq (lines range1 range2)
-  "Return the subseq in LINES from RANGE1 to RANGE2."
+  "Return the subseq in LINE-OCTETS from RANGE1 to RANGE2."
   (let* ((range1-col (car range1))
          (range1-row (cadr range1))
          (range2-col (car range2))
@@ -513,21 +513,26 @@ during AST creation to respect functional trees invariants."
   (convert-initializer
    spec (get-language-from-superclass superclass) superclass))
 
+;;; TODO: instead of having `lines', maybe switch to using the
+;;;       string-to-octets method that Python is using.
 (defmethod convert ((to-type (eql 'tree-sitter-ast)) (string string)
                     &key superclass &allow-other-keys
-                    &aux (lines (apply
-                                 #'vector
-                                 ;; TODO: there's probably a split of some sort
-                                 ;;       that leaves the newlines in somewhere.
-                                 (iter
-                                   (iter:with reverse-lines
-                                              = (reverse (lines string)))
-                                   (iter:with last = (car reverse-lines))
-                                   (for line in (cdr reverse-lines))
-                                   (collect (string+ line (format nil "~%"))
-                                     into lines)
-                                   (finally
-                                    (return (reverse (cons last lines))))))))
+                    &aux (lines
+                          (apply
+                           #'vector
+                           ;; TODO: there's probably a split of some sort
+                           ;;       that leaves the newlines in somewhere.
+                           ;; TODO: if there's a newline at the end of the
+                           ;;       file, does this remove it?
+                           (iter
+                             (iter:with reverse-lines
+                                        = (reverse (lines string)))
+                             (iter:with last = (car reverse-lines))
+                             (for line in (cdr reverse-lines))
+                             (collect (string+ line (format nil "~%"))
+                               into lines)
+                             (finally
+                              (return (reverse (cons last lines))))))))
   (labels
       ((safe-subseq (start end)
          "Return STRING in the range [START, END) or an empty string if
