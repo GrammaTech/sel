@@ -116,13 +116,13 @@ The keys of the hash table are the individual keys of each entry."
                             (make-keyword (symbol-cat prefix key))
                             key)
                         (if-let ((spec (find key child-types :key #'car)))
-                                (destructuring-bind (key . arity) spec
-                                  (declare (ignorable key))
-                                  (ecase arity
-                                    (1 (convert superclass value))
-                                    (0 (iter (for item in value)
-                                             (collect (convert superclass item))))))
-                                value)))))))
+                          (destructuring-bind (key . arity) spec
+                            (declare (ignorable key))
+                            (ecase arity
+                              (1 (convert superclass value))
+                              (0 (iter (for item in value)
+                                       (collect (convert superclass item))))))
+                          value)))))))
 
 (defmethod equal? ((ast-a non-homologous-ast) (ast-b non-homologous-ast))
   (let ((hash1 (slot-value ast-a 'stored-hash))
