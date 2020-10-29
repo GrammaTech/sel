@@ -127,7 +127,7 @@
       :literal)))
   "Definition of JavaScript classes and child slots.")
 
-(defconst +js-children-table+
+(def +js-children-table+
   (children-definitions-table +js-children+))
 
 (eval-always

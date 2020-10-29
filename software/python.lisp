@@ -153,7 +153,7 @@
       :joined-str)))
   "Definition of Python classes and child slots.")
 
-(defconst +python-children-table+
+(def +python-children-table+
   (let ((table (make-hash-table)))
     (iter (for (keys . children) in +python-children+)
           (iter (for key in keys)
