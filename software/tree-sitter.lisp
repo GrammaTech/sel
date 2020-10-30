@@ -321,22 +321,21 @@ of fields needs to be determined at parse-time."
 ;;; NOTE: this is specific for cl-tree-sitter.
 (defun convert-initializer
     (spec prefix superclass
-     &aux (class (symbol-cat-in-package (symbol-package superclass)
-                                        prefix
-                                        (let ((type (car spec)))
-                                          ;; The form can either be
-                                          ;; - :type
-                                          ;; - (:slot-name :type)
-                                          (if (listp type)
-                                              (cadr type)
-                                              type))))
+     &aux (*package* (symbol-package superclass))
+       (class (symbolicate prefix '-
+                           (let ((type (car spec)))
+                             ;; The form can either be
+                             ;; - :type
+                             ;; - (:slot-name :type)
+                             (if (listp type)
+                                 (cadr type)
+                                 type))))
        (instance (make-instance
                   class
                   :annotations
                   `((:range-start ,(caadr spec))
                     (:range-end . ,(cdadr spec)))))
-       (error-p (eql class (symbol-cat-in-package (symbol-package superclass)
-                                                  prefix 'error))))
+       (error-p (eql class (symbolicate prefix '-error))))
   "Initialize an instance of SUPERCLASS with SPEC."
   (labels ((get-converted-fields ()
              "Get the value of each field after it's been converted
