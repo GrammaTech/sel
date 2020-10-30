@@ -5479,7 +5479,8 @@ using the clang front-end.
         ;; Special cases
         (when (or (starts-with-subseq "-fcxx-exceptions" f)
                   (starts-with-subseq "-fgnuc-version" f)
-                  (starts-with-subseq "-Wno-everything" f))
+                  (starts-with-subseq "-Wno-everything" f)
+                  (starts-with-subseq "-std" f))
           (appending (list f)))))
 
 (defun dump-preprocessor-macros (obj)
