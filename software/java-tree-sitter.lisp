@@ -43,6 +43,10 @@
   java-tree-sitter-ast)
 
 (defmethod statement-ast-p ((language (eql :java)) (ast java-tree-sitter-ast))
-  ;; TODO: this definitely doesn't cover everything.
+  ;; TODO: this probably doesn't cover everything.
   (or (typep ast 'java-statement)
       (equal ";" (lastcar (interleaved-text ast)))))
+
+(defmethod parse-asts ((obj java-tree-sitter)
+                       &optional (source (genome-string obj)))
+  (convert 'java-tree-sitter-ast source))

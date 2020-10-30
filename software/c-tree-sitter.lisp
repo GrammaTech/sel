@@ -12,7 +12,8 @@
         :software-evolution-library/software/tree-sitter
         :software-evolution-library/components/file
    :software-evolution-library/components/formatting)
-  (:export :c-tree-sitter-ast))
+  (:export :c-tree-sitter
+           :c-tree-sitter-ast))
 (in-package :software-evolution-library/software/c-tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 
@@ -49,3 +50,7 @@
   ;; TODO: this definitely doesn't cover everything.
   (or (typep ast '(or c--statement c-function-definition))
       (equal ";" (lastcar (interleaved-text ast)))))
+
+(defmethod parse-asts ((obj c-tree-sitter)
+                       &optional (source (genome-string obj)))
+  (convert 'c-tree-sitter-ast source))
