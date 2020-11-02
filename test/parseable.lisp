@@ -32,6 +32,10 @@
             "Value not hashed to a hash-type: ~a ==> ~a"
             v h)))))
 
+(deftest ast-hash-overflow-test ()
+  "Test that ast hash doesn't overflow on a long list."
+  (finishes (ast-hash (make-list (expt 2 18) :initial-element "foo"))))
+
 (defun expand-wildcard (wildcard)
   "Get test files matching WILDCARD relative to test/etc/."
   (is (wild-pathname-p wildcard))

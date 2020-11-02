@@ -390,14 +390,14 @@ then the equality of the hashes is unlikely."))
                      13913708511125320 47256219783059968)))
       (p 13211719))
 
-  (declare (type (or simple-array (vector hash-type 32)) a-coeffs b-coeffs))
+  (declare (type (simple-array hash-type (32)) a-coeffs b-coeffs))
 
   ;; functions, methods defined here can use a-coeffs, b-coeffs
   ;; at lower cost than special variables
 
-  (defun ast-combine-hash-values (&rest args)
+  (defun ast-combine-list-hash-values (args)
     "Given a list of hash values, combine them using a polynomial in P,
-modile +AST-HASH-BASE+.  0 values in ARGS are skipped."
+modulo +AST-HASH-BASE+.  0 values in ARGS are skipped."
     (let ((result 0)
           (hb +ast-hash-base+)
           (i 0))
@@ -417,12 +417,18 @@ modile +AST-HASH-BASE+.  0 values in ARGS are skipped."
                 (incf i))))
       result))
 
+  (defun ast-combine-hash-values (&rest args)
+    "Invoke `ast-combine-list-hash-values' on ARGS."
+    (declare (dynamic-extent args))
+    (ast-combine-list-hash-values args))
+
   (defun ast-combine-simple-vector-hash-values (sv)
     (declare (type simple-vector sv))
     (let ((result 0)
           (hb +ast-hash-base+)
           (i 0))
-      (declare (type hash-type result))
+      (declare (type hash-type result)
+               (array-index i))
       (iter (for hv in-vector sv)
             (unless (eql hv 0)
               (locally (declare (type hash-type hv))
@@ -453,8 +459,8 @@ modile +AST-HASH-BASE+.  0 values in ARGS are skipped."
 
   (defmethod ast-hash ast-combine-hash-values ((l cons))
     ;; Assumes not a circular list
-    (apply #'ast-combine-hash-values
-           16335929882652762
+    (ast-combine-list-hash-values
+     (cons 16335929882652762
            (iter
             (collect (if (consp l)
                          (ast-hash (car l))
@@ -465,7 +471,7 @@ modile +AST-HASH-BASE+.  0 values in ARGS are skipped."
                              (ast-hash l))
                           +ast-hash-base+)))
             (while (consp l))
-            (pop l))))
+            (pop l)))))
 
   (defmethod ast-hash ast-combine-hash-values ((n null))
     46757794301535766)
