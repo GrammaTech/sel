@@ -63,4 +63,18 @@ RUN git clone https://github.com/ruricolist/serapeum /root/quicklisp/local-proje
 RUN mkdir /root/common-lisp
 RUN curl https://gitlab.common-lisp.net/asdf/asdf/-/archive/3.3.4.3/asdf-3.3.4.3.tar.gz| tar xzC /root/common-lisp
 
+# Install tree-sitter
+WORKDIR /
+RUN git clone https://github.com/tree-sitter/tree-sitter
+WORKDIR /tree-sitter
+RUN PREFIX=/usr make all install
+WORKDIR /
+RUN git clone https://github.com/tree-sitter/tree-sitter-c
+WORKDIR /tree-sitter-c/src
+RUN clang -std=c99 -fPIC parser.c -c
+RUN clang -shared parser.o -o /usr/lib/tree-sitter-c.so
+RUN git clone https://github.com/death/cl-tree-sitter /root/quicklisp/local-projects/cl-tree-sitter
+# Remove this sed command when upstream is updated.
+RUN sed -i 's/(t (:default "tree-sitter")))/(t (:or (:default "tree-sitter") (:default "libtree-sitter"))))/' /root/quicklisp/local-projects/cl-tree-sitter/low-level.lisp
+
 WORKDIR /root/quicklisp/local-projects
