@@ -390,7 +390,9 @@ then the equality of the hashes is unlikely."))
                      13913708511125320 47256219783059968)))
       (p 13211719))
 
-  (declare (type (simple-array hash-type (32)) a-coeffs b-coeffs))
+  ;; See <https://github.com/Clozure/ccl/issues/229>.
+  #-ccl (declare (type (simple-array hash-type (32)) a-coeffs b-coeffs))
+  #+ccl (declare (type simple-array a-coeffs b-coeffs))
 
   ;; functions, methods defined here can use a-coeffs, b-coeffs
   ;; at lower cost than special variables
