@@ -69,12 +69,18 @@ RUN git clone https://github.com/tree-sitter/tree-sitter
 WORKDIR /tree-sitter
 RUN PREFIX=/usr make all install
 WORKDIR /
-RUN git clone https://github.com/tree-sitter/tree-sitter-c
-WORKDIR /tree-sitter-c/src
-RUN clang -std=c99 -fPIC parser.c -c
-RUN clang -shared parser.o -o /usr/lib/tree-sitter-c.so
+RUN for language in agda bash c c-sharp cpp css go html java javascript jsdoc json julia ocaml/ocaml ocaml/interface php python ql regex ruby rust scala typescript/tsx typescript/typescript;do \
+    [ -d tree-sitter-${language%/*} ] || git clone --depth=1 https://github.com/tree-sitter/tree-sitter-${language%/*};                                                                          \
+    cd /tree-sitter-${language}/src;                                                                                                                                                             \
+    clang -std=c99 -fPIC parser.c -c;                                                                                                                                                            \
+    clang -shared parser.o -o /usr/lib/tree-sitter-$(echo ${language}|sed 's|/|-|').so;                                                                                                          \
+    mkdir -p /usr/share/tree-sitter/${language}/;                                                                                                                                                \
+    cp grammar.json node-types.json /usr/share/tree-sitter/${language};                                                                                                                          \
+    cd -;                                                                                                                                                                                        \
+    done
 RUN git clone https://github.com/death/cl-tree-sitter /root/quicklisp/local-projects/cl-tree-sitter
 # Remove this sed command when upstream is updated.
 RUN sed -i 's/(t (:default "tree-sitter")))/(t (:or (:default "tree-sitter") (:default "libtree-sitter"))))/' /root/quicklisp/local-projects/cl-tree-sitter/low-level.lisp
 
 WORKDIR /root/quicklisp/local-projects
+
