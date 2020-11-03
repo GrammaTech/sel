@@ -26,13 +26,6 @@
 
 
 ;;; C tree-sitter classes
-(eval-always
-  ;; TODO: maybe figure out a way to roll this into the automatically
-  ;;       defined classes?
-  (defclass java-tree-sitter-ast (tree-sitter-ast)
-    ()
-    (:documentation "AST for Java from input via tree-sitter.")))
-
 ;;; TODO: work on ease-of-use macros for tree-sitter.
 (define-tree-sitter-classes ()
   ;; TODO: throw these in a variable that actually looks

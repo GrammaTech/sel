@@ -180,7 +180,7 @@ of fields needs to be determined at parse-time."
     ;;       __unaligned, etc.--in their intended, keyword format.
     (labels ((make-class-name (name-string)
                "Create a class name based on NAME-STRING and export it from
-              *package*."
+                *package*."
                ;; NOTE: this has the potential of name clashes
                ;;       though it's probably unlikely.
                (lret ((name (symbolicate
@@ -190,7 +190,7 @@ of fields needs to be determined at parse-time."
                  (export name *package*)))
              (make-accessor-name (name-keyword)
                "Create an accessor name based on NAME-KEYWORD and export it from
-              *package*."
+                *package*."
                (lret ((name (symbolicate
                              name-prefix
                              "-"
@@ -201,7 +201,7 @@ of fields needs to be determined at parse-time."
                (gethash type subtype->supertypes))
              (add-supertype-to-subtypes (supertype subtypes)
                "Add SUPERTYPE to the list of superclasses for
-              each type in SUBTYPES."
+                each type in SUBTYPES."
                (mapc
                 (lambda (subtype &aux (name (aget :type subtype)))
                   (push supertype (gethash name subtype->supertypes)))
@@ -214,8 +214,8 @@ of fields needs to be determined at parse-time."
                  :initform nil))
              (create-slots (fields children)
                "Create the slots for a new class based on FIELDS and CHILDREN.
-              Currently, types aren't supported, but there is enough information
-              to limit slots to certain types."
+                Currently, types aren't supported, but there is enough
+                information to limit slots to certain types."
                ;; TODO: there is a potential for name overlaps when generating
                ;;       these classes.
                (if children
@@ -281,6 +281,14 @@ of fields needs to be determined at parse-time."
                               (file-to-string grammar-file)))))
         `(progn
            (eval-always
+             ;; TODO: add a parameter for passing in extra super classes.
+             ;;       This could be useful for mix-ins.
+             (defclass ,(make-class-name "tree-sitter-ast") (tree-sitter-ast)
+               ()
+               (:documentation
+                ,(format nil "AST for ~A from input via tree-sitter."
+                         name-prefix)))
+
              ,@(mapcar {create-node-class grammar-rules} node-types)
 
              ;; NOTE: the following are to handle results returned from

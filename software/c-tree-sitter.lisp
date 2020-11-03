@@ -27,12 +27,6 @@
 
 ;;; C tree-sitter classes
 (eval-always
-  ;; TODO: maybe figure out a way to roll this into the automatically
-  ;;       defined classes?
-  (defclass c-tree-sitter-ast (tree-sitter-ast)
-    ()
-    (:documentation "AST for C from input via tree-sitter."))
-
   (defmethod inconsistent-production-p
       ((language (eql :c)) (production-name (eql :update-expression)))
     t))
