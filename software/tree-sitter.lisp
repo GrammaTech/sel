@@ -184,9 +184,9 @@ of fields needs to be determined at parse-time."
              ;; NOTE: this has the potential of name clashes
              ;;       though it's probably unlikely.
              (lret ((name (symbolicate
-                          name-prefix
-                          "-"
-                          (convert-name name-string))))
+                           name-prefix
+                           "-"
+                           (convert-name name-string))))
                (export name *package*)))
            (make-accessor-name (name-keyword)
              "Create an accessor name based on NAME-KEYWORD and export it from
@@ -340,8 +340,6 @@ of fields needs to be determined at parse-time."
   (labels ((get-converted-fields ()
              "Get the value of each field after it's been converted
               into an AST."
-             ;; TODO: if the actual thing is an error, we want to
-             ;;       ignore setting any field slots.
              (iter
                (for field in (caddr spec))
                (for converted-field = (convert superclass field))
@@ -527,8 +525,13 @@ during AST creation to respect functional trees invariants."
                              (iter:with reverse-lines
                                         = (reverse (lines string)))
                              (iter:with last = (car reverse-lines))
+                             (iter:with length = (length reverse-lines))
                              (for line in (cdr reverse-lines))
-                             (collect (string+ line (format nil "~%"))
+                             (for i upfrom 1)
+                             (collect
+                                 (if (= i length)
+                                     line
+                                     (string+ line (format nil "~%")))
                                into lines)
                              (finally
                               (return (reverse (cons last lines))))))))
