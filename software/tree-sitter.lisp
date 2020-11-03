@@ -48,19 +48,12 @@
   (defun convert-name (name-string)
     (camel-case-to-lisp (substitute #\- #\_  name-string)))
 
-  (defgeneric inconsistent-production-p (language production-name)
-    (:documentation "Return T if PRODUCTION-NAME in LANGUAGE has an
-inconsistent graph when a topological sort of its field dependencies
-is attempted.")
-    (:method (language production-name)
-      nil))
-
   ;; NOTE: while a :child-order annotation is currently being generated
   ;;       for every ast converted from a string, having the slot order
   ;;       is useful for converting from a list where the :child-order
   ;;       annotation would need to be generated and slot order is likely
   ;;       already correct except in a few rare cases.
-  (defun slot-order (name expected-fields grammar-rules ast-superclass
+  (defun slot-order (name expected-fields grammar-rules
                      &aux dependencies fields
                        (expected-fields (mapcar #'car expected-fields)))
     "Return the slot order of the fields in the production specified
@@ -153,28 +146,27 @@ of fields needs to be determined at parse-time."
       ;;       possible rule types.
       (let* ((name-keyword (make-keyword (convert-name name)))
              (name-rule (aget name-keyword grammar-rules)))
-        (cond
-          ((not name-rule))
-          ((inconsistent-production-p
-            (gethash ast-superclass *superclass->language*)
-            name-keyword)
-           (handle-rule name-rule nil (list name-keyword))
-           ;; NOTE: the order doesn't matter as a :child-order
-           ;;       annotation will be used instead of it.
-           ;;       This is only provided for #'sorted-children
-           ;;       to use.
-           (mapcar #'make-keyword (mapcar #'convert-name fields)))
-          (t
-           (handle-rule name-rule nil (list name-keyword))
+        (when name-rule
+          (handle-rule name-rule nil (list name-keyword))
+          (mapcar
+           #'make-keyword
            (mapcar
-            #'make-keyword
-            (mapcar
-             #'convert-name
-             (sort fields (toposort dependencies :test #'equal)))))))))
+            #'convert-name
+            (handler-case (sort fields (toposort dependencies :test #'equal))
+              (inconsistent-graph ()
+                ;; NOTE: the order doesn't matter as a :child-order
+                ;;       annotation will be used instead of it.
+                ;;       This is only provided for #'sorted-children
+                ;;       to use.
+                fields))))))))
 
   (defun create-tree-sitter-classes
-      (node-types-file grammar-file name-prefix ast-superclass
-       &aux (subtype->supertypes (make-hash-table :test #'equal)))
+      (node-types-file grammar-file name-prefix
+       &aux (subtype->supertypes (make-hash-table :test #'equal))
+         (ast-superclass (symbolicate
+                          name-prefix
+                          "-"
+                          (convert-name "tree-sitter-ast"))))
     ;; TODO: possibly only turn _'s into -'s if the node is named and has fields
     ;;       or children. This will keep things--like __attribute__, __fastcall,
     ;;       __unaligned, etc.--in their intended, keyword format.
@@ -240,11 +232,14 @@ of fields needs to be determined at parse-time."
                           (lambda (slot-keyword)
                             (cons
                              (symbolicate slot-keyword)
-                             (if (aget :multiple (aget slot-keyword fields)) 0 1)))
-                          (slot-order type fields grammar-rules ast-superclass)))))
+                             (if (aget :multiple (aget slot-keyword fields))
+                                 0
+                                 1)))
+                          (slot-order type fields grammar-rules )))))
                  `(defclass ,(make-class-name type)
                       (,@(or
-                          (mapcar #'make-class-name (get-supertypes-for-type type))
+                          (mapcar #'make-class-name
+                                  (get-supertypes-for-type type))
                           `(,ast-superclass)))
                     (,@(create-slots fields children)
                      (child-slots
@@ -257,8 +252,9 @@ of fields needs to be determined at parse-time."
                     ;;       was generated for.
                     (:documentation ,(format nil "Generated for ~a." type)))))
              (create-node-class
-                 (grammar-rules node-type &aux (type (aget :type node-type))
-                                            (subtypes (aget :subtypes node-type)))
+                 (grammar-rules node-type
+                  &aux (type (aget :type node-type))
+                    (subtypes (aget :subtypes node-type)))
                "Create a class for  NODE-TYPE."
                ;; TODO: figure out how terminals should be handled--does it
                ;;       make sense to have classes for everything, e.g.,
@@ -281,6 +277,14 @@ of fields needs to be determined at parse-time."
                               (file-to-string grammar-file)))))
         `(progn
            (eval-always
+             ;; TODO: add a parameter for passing in extra super classes.
+             ;;       This could be useful for mix-ins.
+             (define-software ,(make-class-name "tree-sitter") (tree-sitter)
+               ()
+               (:documentation
+                ,(format nil "~a tree-sitter software representation."
+                         name-prefix)))
+
              ;; TODO: add a parameter for passing in extra super classes.
              ;;       This could be useful for mix-ins.
              (defclass ,(make-class-name "tree-sitter-ast") (tree-sitter-ast)
@@ -318,12 +322,16 @@ of fields needs to be determined at parse-time."
 
            (defmethod convert ((to-type (eql ',ast-superclass)) (string string)
                                &key &allow-other-keys)
-             (convert 'tree-sitter-ast string :superclass to-type)))))))
+             (convert 'tree-sitter-ast string :superclass to-type))
+
+           (defmethod parse-asts ((obj ,(make-class-name "tree-sitter"))
+                                  &optional (source (genome-string obj)))
+             (convert ',(make-class-name "tree-sitter-ast") source)))))))
 
 (defmacro define-tree-sitter-classes
-    (() node-types-file grammar-file name-prefix ast-superclass)
+    (() node-types-file grammar-file name-prefix)
   (create-tree-sitter-classes
-   node-types-file grammar-file name-prefix ast-superclass))
+   node-types-file grammar-file name-prefix))
 
 
 ;;; tree-sitter parsing
@@ -607,3 +615,36 @@ during AST creation to respect functional trees invariants."
                :superclass superclass)
       '(0 0) (list (length (last-elt line-octets))
                    (1- (length line-octets)))))))
+
+
+;;; C tree-sitter parsing
+(register-tree-sitter-language "tree-sitter-c" :c 'c-tree-sitter-ast)
+
+(define-tree-sitter-classes ()
+  ;; TODO: throw these in a variable that actually looks
+  ;;       at the project path.
+  "~/quicklisp/local-projects/sel/software/tree-sitter/c/node-types.json"
+  "~/quicklisp/local-projects/sel/software/tree-sitter/c/grammar.json"
+  :c)
+
+(defmethod statement-ast-p ((language (eql :c)) (ast c-tree-sitter-ast))
+  ;; TODO: this definitely doesn't cover everything.
+  (or (typep ast '(or c--statement c-function-definition))
+      (equal ";" (lastcar (interleaved-text ast)))))
+
+
+;;; Java tree-sitter parsing
+;;; TODO: figure out a better way to do this.
+(register-tree-sitter-language "tree-sitter-java" :java 'java-tree-sitter-ast)
+
+(define-tree-sitter-classes ()
+  ;; TODO: throw these in a variable that actually looks
+  ;;       at the project path.
+  "~/quicklisp/local-projects/sel/software/tree-sitter/java/node-types.json"
+  "~/quicklisp/local-projects/sel/software/tree-sitter/java/grammar.json"
+  :java)
+
+(defmethod statement-ast-p ((language (eql :java)) (ast java-tree-sitter-ast))
+  ;; TODO: this probably doesn't cover everything.
+  (or (typep ast 'java-statement)
+      (equal ";" (lastcar (interleaved-text ast)))))
