@@ -416,7 +416,7 @@ of fields needs to be determined at parse-time."
       ((< range1-row range2-row)
        t))))
 
-(defun range-subseq (lines range1 range2)
+(defun range-subseq (line-octets range1 range2)
   "Return the subseq in LINE-OCTETS from RANGE1 to RANGE2."
   (let* ((range1-col (car range1))
          (range1-row (cadr range1))
@@ -424,15 +424,21 @@ of fields needs to be determined at parse-time."
          (range2-row (cadr range2)))
     (cond
       ((= range1-row range2-row)
-       (subseq (aref lines range1-row) range1-col range2-col))
+       (octets-to-string
+        (subseq (aref line-octets range1-row) range1-col range2-col)))
       ((< range1-row range2-row)
+       ;; TODO: figure out a single octets-to-string?
        (string+
-        (subseq (aref lines range1-row) range1-col)
+        (octets-to-string
+         (subseq (aref line-octets range1-row) range1-col))
         (iter
           (for i from (1+ range1-row) to (1- range2-row))
-          (reducing (aref lines i) by #'string+
+          (reducing (aref line-octets i)
+                    by (lambda (total octets)
+                         (string+ total (octets-to-string octets)))
                     initial-value ""))
-        (subseq (aref lines range2-row) 0 range2-col)))
+        (octets-to-string
+         (subseq (aref line-octets range2-row) 0 range2-col))))
       (t ""))))
 
 ;; NOTE: copied from javascript.lisp
@@ -514,13 +520,10 @@ during AST creation to respect functional trees invariants."
 ;;;       string-to-octets method that Python is using.
 (defmethod convert ((to-type (eql 'tree-sitter-ast)) (string string)
                     &key superclass &allow-other-keys
-                    &aux (lines
-                          (apply
-                           #'vector
-                           ;; TODO: there's probably a split of some sort
-                           ;;       that leaves the newlines in somewhere.
-                           ;; TODO: if there's a newline at the end of the
-                           ;;       file, does this remove it?
+                    &aux (line-octets
+                          (map
+                           'vector
+                           #'string-to-octets
                            (iter
                              (iter:with reverse-lines
                                         = (reverse (lines string)))
@@ -540,7 +543,7 @@ during AST creation to respect functional trees invariants."
          "Return STRING in the range [START, END) or an empty string if
          the offsets are invalid."
          (if (range< start end)
-             (range-subseq lines start end)
+             (range-subseq line-octets start end)
              ""))
        (start (ast)
          "Return the start offset into STRING from the AST representation."
@@ -591,5 +594,5 @@ during AST creation to respect functional trees invariants."
       (convert to-type
                (parse-string (get-language-from-superclass superclass) string)
                :superclass superclass)
-      '(0 0) (list (length (last-elt lines))
-                   (1- (length lines)))))))
+      '(0 0) (list (length (last-elt line-octets))
+                   (1- (length line-octets)))))))
