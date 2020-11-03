@@ -170,147 +170,152 @@ of fields needs to be determined at parse-time."
             #'make-keyword
             (mapcar
              #'convert-name
-             (sort fields (toposort dependencies :test #'equal))))))))))
+             (sort fields (toposort dependencies :test #'equal)))))))))
 
-(defmacro define-tree-sitter-classes
-    (() node-types-file grammar-file name-prefix ast-superclass
-     &aux (subtype->supertypes (make-hash-table :test #'equal)))
-  ;; TODO: possibly only turn _'s into -'s if the node is named and has fields
-  ;;       or children. This will keep things--like __attribute__, __fastcall,
-  ;;       __unaligned, etc.--in their intended, keyword format.
-  (labels ((make-class-name (name-string)
-             "Create a class name based on NAME-STRING and export it from
+  (defun create-tree-sitter-classes
+      (node-types-file grammar-file name-prefix ast-superclass
+       &aux (subtype->supertypes (make-hash-table :test #'equal)))
+    ;; TODO: possibly only turn _'s into -'s if the node is named and has fields
+    ;;       or children. This will keep things--like __attribute__, __fastcall,
+    ;;       __unaligned, etc.--in their intended, keyword format.
+    (labels ((make-class-name (name-string)
+               "Create a class name based on NAME-STRING and export it from
               *package*."
-             ;; NOTE: this has the potential of name clashes
-             ;;       though it's probably unlikely.
-             (lret ((name (symbolicate
-                           name-prefix
-                           "-"
-                           (convert-name name-string))))
-               (export name *package*)))
-           (make-accessor-name (name-keyword)
-             "Create an accessor name based on NAME-KEYWORD and export it from
+               ;; NOTE: this has the potential of name clashes
+               ;;       though it's probably unlikely.
+               (lret ((name (symbolicate
+                             name-prefix
+                             "-"
+                             (convert-name name-string))))
+                 (export name *package*)))
+             (make-accessor-name (name-keyword)
+               "Create an accessor name based on NAME-KEYWORD and export it from
               *package*."
-             (lret ((name (symbolicate
-                           name-prefix
-                           "-"
-                           name-keyword)))
-               (export name *package*)))
-           (get-supertypes-for-type (type)
-             "Retrieve the supertypes of TYPE."
-             (gethash type subtype->supertypes))
-           (add-supertype-to-subtypes (supertype subtypes)
-             "Add SUPERTYPE to the list of superclasses for
+               (lret ((name (symbolicate
+                             name-prefix
+                             "-"
+                             name-keyword)))
+                 (export name *package*)))
+             (get-supertypes-for-type (type)
+               "Retrieve the supertypes of TYPE."
+               (gethash type subtype->supertypes))
+             (add-supertype-to-subtypes (supertype subtypes)
+               "Add SUPERTYPE to the list of superclasses for
               each type in SUBTYPES."
-             (mapc
-              (lambda (subtype &aux (name (aget :type subtype)))
-                (push supertype (gethash name subtype->supertypes)))
-              subtypes))
-           (create-slot (field &aux (name-keyword (car field)))
-             "Create a slot based on FIELD."
-             `(,(symbolicate name-keyword)
-               :accessor ,(make-accessor-name name-keyword)
-               :initarg ,name-keyword
-               :initform nil))
-           (create-slots (fields children)
-             "Create the slots for a new class based on FIELDS and CHILDREN.
+               (mapc
+                (lambda (subtype &aux (name (aget :type subtype)))
+                  (push supertype (gethash name subtype->supertypes)))
+                subtypes))
+             (create-slot (field &aux (name-keyword (car field)))
+               "Create a slot based on FIELD."
+               `(,(symbolicate name-keyword)
+                 :accessor ,(make-accessor-name name-keyword)
+                 :initarg ,name-keyword
+                 :initform nil))
+             (create-slots (fields children)
+               "Create the slots for a new class based on FIELDS and CHILDREN.
               Currently, types aren't supported, but there is enough information
               to limit slots to certain types."
-             ;; TODO: there is a potential for name overlaps when generating
-             ;;       these classes.
-             (if children
-                 (cons
-                  (create-slot children)
-                  (mapcar #'create-slot fields))
-                 (mapcar #'create-slot fields)))
-           (create-supertype-class (type subtypes)
-             "Create a new class for subtypes to inherit from."
-             (add-supertype-to-subtypes type subtypes)
-             `(defclass ,(make-class-name type)
-                  (,@(or
-                      (mapcar #'make-class-name (get-supertypes-for-type type))
-                      `(,ast-superclass)))
-                ()
-                (:documentation ,(format nil "Generated for ~a." type))))
-           (create-type-class (type fields children grammar-rules)
-             "Create a new class for TYPE using FIELDS and CHILDREN for slots."
-             (let ((child-slot-order
-                     (when fields
-                       (mapcar
-                        (lambda (slot-keyword)
-                          (cons
-                           (symbolicate slot-keyword)
-                           (if (aget :multiple (aget slot-keyword fields)) 0 1)))
-                        (slot-order type fields grammar-rules ast-superclass)))))
+               ;; TODO: there is a potential for name overlaps when generating
+               ;;       these classes.
+               (if children
+                   (cons
+                    (create-slot children)
+                    (mapcar #'create-slot fields))
+                   (mapcar #'create-slot fields)))
+             (create-supertype-class (type subtypes)
+               "Create a new class for subtypes to inherit from."
+               (add-supertype-to-subtypes type subtypes)
                `(defclass ,(make-class-name type)
                     (,@(or
                         (mapcar #'make-class-name (get-supertypes-for-type type))
                         `(,ast-superclass)))
-                  (,@(create-slots fields children)
-                   (child-slots
-                    :initform
-                    ',(if children
-                          (append child-slot-order '((children . 0)))
-                          child-slot-order)
-                    :allocation :class))
-                  ;; NOTE: this is primarily for determing which rule this
-                  ;;       was generated for.
-                  (:documentation ,(format nil "Generated for ~a." type)))))
-           (create-node-class
-               (grammar-rules node-type &aux (type (aget :type node-type))
-                            (subtypes (aget :subtypes node-type)))
-             "Create a class for  NODE-TYPE."
-             ;; TODO: figure out how terminals should be handled--does it
-             ;;       make sense to have classes for everything, e.g.,
-             ;;       c-#endif and c-++?
-             (if subtypes
-                 (create-supertype-class
-                  type
-                  subtypes)
-                 (create-type-class
-                  type
-                  (aget :fields node-type)
-                  (assoc :children node-type)
-                  grammar-rules))))
-    (let* ((*json-identifier-name-to-lisp* #'convert-name)
-           (node-types (decode-json-from-string
-                        (file-to-string node-types-file)))
-           (grammar-rules (aget
-                           :rules
-                           (decode-json-from-string
-                            (file-to-string grammar-file)))))
-      `(progn
-         (eval-always
-           ,@(mapcar {create-node-class grammar-rules} node-types)
+                  ()
+                  (:documentation ,(format nil "Generated for ~a." type))))
+             (create-type-class (type fields children grammar-rules)
+               "Create a new class for TYPE using FIELDS and CHILDREN for slots."
+               (let ((child-slot-order
+                       (when fields
+                         (mapcar
+                          (lambda (slot-keyword)
+                            (cons
+                             (symbolicate slot-keyword)
+                             (if (aget :multiple (aget slot-keyword fields)) 0 1)))
+                          (slot-order type fields grammar-rules ast-superclass)))))
+                 `(defclass ,(make-class-name type)
+                      (,@(or
+                          (mapcar #'make-class-name (get-supertypes-for-type type))
+                          `(,ast-superclass)))
+                    (,@(create-slots fields children)
+                     (child-slots
+                      :initform
+                      ',(if children
+                            (append child-slot-order '((children . 0)))
+                            child-slot-order)
+                      :allocation :class))
+                    ;; NOTE: this is primarily for determing which rule this
+                    ;;       was generated for.
+                    (:documentation ,(format nil "Generated for ~a." type)))))
+             (create-node-class
+                 (grammar-rules node-type &aux (type (aget :type node-type))
+                                            (subtypes (aget :subtypes node-type)))
+               "Create a class for  NODE-TYPE."
+               ;; TODO: figure out how terminals should be handled--does it
+               ;;       make sense to have classes for everything, e.g.,
+               ;;       c-#endif and c-++?
+               (if subtypes
+                   (create-supertype-class
+                    type
+                    subtypes)
+                   (create-type-class
+                    type
+                    (aget :fields node-type)
+                    (assoc :children node-type)
+                    grammar-rules))))
+      (let* ((*json-identifier-name-to-lisp* #'convert-name)
+             (node-types (decode-json-from-string
+                          (file-to-string node-types-file)))
+             (grammar-rules (aget
+                             :rules
+                             (decode-json-from-string
+                              (file-to-string grammar-file)))))
+        `(progn
+           (eval-always
+             ,@(mapcar {create-node-class grammar-rules} node-types)
 
-           ;; NOTE: the following are to handle results returned from
-           ;;       cl-tree-sitter.
-           ;;
-           ;; TODO: this may need to be modified at the cl-tree-sitter level
-           ;;       to account for grammars that have an error and/or comment
-           ;;       production that could cause a name clash.
-           (defclass ,(make-class-name "comment") (,ast-superclass)
-             ()
-             (:documentation "Generated for parsed comments."))
+             ;; NOTE: the following are to handle results returned from
+             ;;       cl-tree-sitter.
+             ;;
+             ;; TODO: this may need to be modified at the cl-tree-sitter level
+             ;;       to account for grammars that have an error and/or comment
+             ;;       production that could cause a name clash.
+             (defclass ,(make-class-name "comment") (,ast-superclass)
+               ()
+               (:documentation "Generated for parsed comments."))
 
-           (defclass ,(make-class-name "error") (,ast-superclass)
-             ((children :initarg :children :initform nil)
-              (child-slots :initform '((children . 0))
-                           :allocation :class))
-             (:documentation "Generated for parsing errors.")))
+             (defclass ,(make-class-name "error") (,ast-superclass)
+               ((children :initarg :children :initform nil)
+                (child-slots :initform '((children . 0))
+                             :allocation :class))
+               (:documentation "Generated for parsing errors.")))
 
-         (defmethod convert
-             ((to-type (eql ',ast-superclass)) (spec ,ast-superclass)
-              &key &allow-other-keys)
-           spec)
+           (defmethod convert
+               ((to-type (eql ',ast-superclass)) (spec ,ast-superclass)
+                &key &allow-other-keys)
+             spec)
 
-         (defmethod convert ((to-type (eql ',ast-superclass)) (spec list)
-                             &key &allow-other-keys)
-           (convert 'tree-sitter-ast spec :superclass to-type))
+           (defmethod convert ((to-type (eql ',ast-superclass)) (spec list)
+                               &key &allow-other-keys)
+             (convert 'tree-sitter-ast spec :superclass to-type))
 
-         (defmethod convert ((to-type (eql ',ast-superclass)) (string string)
-                             &key &allow-other-keys)
-           (convert 'tree-sitter-ast string :superclass to-type))))))
+           (defmethod convert ((to-type (eql ',ast-superclass)) (string string)
+                               &key &allow-other-keys)
+             (convert 'tree-sitter-ast string :superclass to-type)))))))
+
+(defmacro define-tree-sitter-classes
+    (() node-types-file grammar-file name-prefix ast-superclass)
+  (create-tree-sitter-classes
+   node-types-file grammar-file name-prefix ast-superclass))
 
 
 ;;; tree-sitter parsing
@@ -586,10 +591,8 @@ during AST creation to respect functional trees invariants."
          (setf (slot-value ast 'annotations)
                (adrop '(:range-start :range-end) (slot-value ast 'annotations)))
          ast))
-    ;; TODO: need to actually fix-newlines. It's probably just a copy-paste
-    ;;       javascript.lisp. It may require some extra work on a per-language
-    ;;       basis.
-    (nest (fix-newlines (get-language-from-superclass superclass))
+    (nest
+     (fix-newlines (get-language-from-superclass superclass))
      (w/interleaved-text
       (convert to-type
                (parse-string (get-language-from-superclass superclass) string)
