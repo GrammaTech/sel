@@ -68,6 +68,16 @@
 (deftest test-js-string-length ()
   (= 24 (js-string-length "̉mủt̉ả̉̉̉t̉ẻd̉W̉ỏ̉r̉̉d̉̉")))
 
+(deftest test-lone-surrogate-error ()
+  "Test that a malformed surrogate pair in a string literal, where
+  what was intended to be a low surrogate is still within the range
+  for a valid \"lone surrogate\" (which is valid JavaScript but not
+  valid JSON), signals the right error."
+  (signals mutate
+           (genome
+            (from-string (make 'javascript)
+                         "\"\\ud800-\\udbff\""))))
+
 (deftest simply-able-to-load-a-javascript-software-object ()
   (with-fixture hello-world-javascript
     (is (not (null *soft*)))))

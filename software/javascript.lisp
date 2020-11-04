@@ -193,9 +193,16 @@ raw list of ASTs in OBJ for use in `parse-asts`."
     (multiple-value-bind (stdout stderr exit)
         (multiple-value-or (invoke-acorn :module) (invoke-acorn :script))
       (if (zerop exit)
-          (convert-acorn-jsown-tree (parse stdout))
+          (handler-case
+              (convert-acorn-jsown-tree (parse stdout))
+            (parse-error (e)
+              (error
+               (make-condition 'mutate
+                               :text (format nil "JSON parsing error: ~a"
+                                             e)
+                               :operation :parse))))
           (error
-            (make-instance 'mutate
+           (make-condition 'mutate
               :text (format nil "acorn exit ~d~%stderr:~s"
                             exit
                             stderr)
