@@ -169,6 +169,7 @@ of fields needs to be determined at parse-time."
       (node-types-file grammar-file name-prefix
        &key statements
        &aux (subtype->supertypes (make-hash-table :test #'equal))
+         (symbols-to-export (make-hash-table))
          (ast-superclass (symbolicate
                           name-prefix
                           "-"
@@ -177,23 +178,23 @@ of fields needs to be determined at parse-time."
     ;;       or children. This will keep things--like __attribute__, __fastcall,
     ;;       __unaligned, etc.--in their intended, keyword format.
     (labels ((make-class-name (name-string)
-               "Create a class name based on NAME-STRING and export it from
-                *package*."
+               "Create a class name based on NAME-STRING and add it to the
+                symbols that need exported."
                ;; NOTE: this has the potential of name clashes
                ;;       though it's probably unlikely.
                (lret ((name (symbolicate
                              name-prefix
                              "-"
                              (convert-name name-string))))
-                 (export name *package*)))
+                 (ensure-gethash name symbols-to-export t)))
              (make-accessor-name (name-keyword)
-               "Create an accessor name based on NAME-KEYWORD and export it from
-                *package*."
+               "Create an accessor name based on NAME-KEYWORD and add it to the
+                symbols that need exported."
                (lret ((name (symbolicate
                              name-prefix
                              "-"
                              name-keyword)))
-                 (export name *package*)))
+                 (ensure-gethash name symbols-to-export t)))
              (get-supertypes-for-type (type)
                "Retrieve the supertypes of TYPE."
                (gethash type subtype->supertypes))
@@ -321,7 +322,11 @@ of fields needs to be determined at parse-time."
                ((children :initarg :children :initform nil)
                 (child-slots :initform '((children . 0))
                              :allocation :class))
-               (:documentation "Generated for parsing errors.")))
+               (:documentation "Generated for parsing errors."))
+
+             (export ',(iter
+                         (for (symbol) in-hashtable symbols-to-export)
+                         (collect symbol))))
 
            (defmethod convert
                ((to-type (eql ',ast-superclass)) (spec ,ast-superclass)
