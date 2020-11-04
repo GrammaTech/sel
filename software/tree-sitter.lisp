@@ -334,8 +334,10 @@ of fields needs to be determined at parse-time."
              spec)
 
            (defmethod convert ((to-type (eql ',ast-superclass)) (spec list)
-                               &key &allow-other-keys)
-             (convert 'tree-sitter-ast spec :superclass to-type))
+                               &key string-pass-through &allow-other-keys)
+             (convert 'tree-sitter-ast spec
+                      :superclass to-type
+                      :string-pass-through string-pass-through))
 
            (defmethod convert ((to-type (eql ',ast-superclass)) (string string)
                                &key &allow-other-keys)
@@ -383,7 +385,8 @@ of fields needs to be determined at parse-time."
               into an AST."
              (iter
                (for field in (caddr spec))
-               (for converted-field = (convert superclass field))
+               (for converted-field = (convert superclass field
+                                               :string-pass-through t))
                (for slot-info = (car field))
                ;; cl-tree-sitter appears to put the
                ;; slot name first unless the list goes
@@ -497,7 +500,8 @@ or comments.  NIL if no such newline exists."
            ((#\Space #\Tab)
             (incf pos))
            ;; Skip over comments
-           ;; TODO: evaluate whether this is needed?
+           ;; TODO: modify this to account for tree-sitter
+           ;;       comments?
            (#\/
             (incf pos)
             (when (>= pos len) (return nil))
@@ -541,6 +545,43 @@ This method is destructive and, therefore, can only be utilized
 during AST creation to respect functional trees invariants."
   (mapcar #'move-newlines-down ast))
 
+(defun convert-spec (spec prefix superclass
+                     &aux (package (symbol-package superclass)))
+  "Convert SPEC into and ast of type SUPERCLASS.
+PREFIX is used to find the correct class name for
+subclasses of SUPERCLASS."
+  (lret ((instance
+          (make-instance
+           (symbol-cat-in-package
+            package
+            prefix
+            (let ((class (aget :class spec)))
+              (if (stringp class)
+                  (nest (make-keyword)
+                        (string-upcase)
+                        (translate-camelcase-name)
+                        class)
+                  class))))))
+    (iter
+      (iter:with child-types = (child-slots instance))
+      (iter:with annotations = nil)
+      (for (slot . value) in (adrop '(:class) spec))
+      (for key = (format-symbol package "~a" slot))
+      (if (slot-exists-p instance key)
+          (setf (slot-value instance key)
+                (if-let ((spec (find key child-types :key #'car)))
+                  (destructuring-bind (key . arity) spec
+                    (declare (ignorable key))
+                    (ecase arity
+                      (1 (convert superclass value))
+                      (0 (iter (for item in value)
+                           (collect (convert superclass item))))))
+                  value))
+          (push (cons slot value) annotations))
+      (finally
+       (with-slots ((annotations-slot annotations)) instance
+         (setf annotations-slot (append annotations annotations-slot)))))))
+
 (defun get-language-from-superclass (superclass)
   "Get the tree-sitter  language associated with SUPERCLASS."
   (or (gethash superclass *superclass->language*)
@@ -552,13 +593,15 @@ during AST creation to respect functional trees invariants."
   spec)
 
 (defmethod convert ((to-type (eql 'tree-sitter-ast)) (spec list)
-                    &key superclass &allow-other-keys)
+                    &key superclass string-pass-through &allow-other-keys)
   "Create a c-tree-sitter AST from the SPEC (specification) list."
-  (convert-initializer
-   spec (get-language-from-superclass superclass) superclass))
+  (if string-pass-through
+      (convert-initializer
+       spec (get-language-from-superclass superclass) superclass)
+      (convert-spec
+       spec (get-language-from-superclass superclass) superclass)))
 
-;;; TODO: instead of having `lines', maybe switch to using the
-;;;       string-to-octets method that Python is using.
+;;; TODO: change the child-order annotations to use keywords.
 (defmethod convert ((to-type (eql 'tree-sitter-ast)) (string string)
                     &key superclass &allow-other-keys
                     &aux (line-octets
@@ -619,7 +662,8 @@ during AST creation to respect functional trees invariants."
      (w/interleaved-text
       (convert to-type
                (parse-string (get-language-from-superclass superclass) string)
-               :superclass superclass)
+               :superclass superclass
+               :string-pass-through t)
       '(0 0) (list (length (last-elt line-octets))
                    (1- (length line-octets)))))))
 
