@@ -7,12 +7,14 @@ RUN apt-get -y --fix-missing update \
     && apt-get -y --fix-missing install autoconf build-essential \
     texinfo graphviz python-is-python3 python3-pip git curl sshpass wget expect time \
     clang clang-format clang-tidy bear astyle \
-    nodejs npm \
     sbcl emacs-nox elpa-paredit slime jq \
     pkg-config libboost-iostreams-dev libboost-system-dev libboost-serialization-dev
+# Install NPM
+RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -y nodejs
 RUN npm install --global acorn
 RUN npm install --global prettier
 RUN pip3 install yapf
+
 
 # # Install Clozure
 RUN mkdir /usr/share/ccl
