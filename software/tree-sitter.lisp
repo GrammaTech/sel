@@ -14,13 +14,9 @@
   (:import-from :cffi :translate-camelcase-name)
   (:import-from :cl-tree-sitter :register-language)
   (:shadowing-import-from :cl-tree-sitter :parse-string)
-  (:export :register-tree-sitter-language
-           :tree-sitter-ast
+  (:export :tree-sitter-ast
            :tree-sitter
-           :define-tree-sitter-classes
-           :create-convert-methods
-           :statement-ast-p
-           :inconsistent-production-p))
+           :statement))
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 
@@ -44,6 +40,13 @@
   (defclass tree-sitter-ast (non-homologous-ast)
     ()
     (:documentation "AST for input from tree-sitter."))
+
+  (defclass statement ()
+    ;; TODO: it might make sense to have a slot that indicates whether
+    ;;       this is in fact a statement if there's ever a class that
+    ;;       is ambiguous.
+    ()
+    (:documentation "Mix-in for ASTs classes that are statements."))
 
   (defun convert-name (name-string)
     (camel-case-to-lisp (substitute #\- #\_  name-string)))
@@ -162,6 +165,7 @@ of fields needs to be determined at parse-time."
 
   (defun create-tree-sitter-classes
       (node-types-file grammar-file name-prefix
+       &key statements
        &aux (subtype->supertypes (make-hash-table :test #'equal))
          (ast-superclass (symbolicate
                           name-prefix
@@ -215,16 +219,20 @@ of fields needs to be determined at parse-time."
                     (create-slot children)
                     (mapcar #'create-slot fields))
                    (mapcar #'create-slot fields)))
-             (create-supertype-class (type subtypes)
+             (create-supertype-class (type subtypes
+                                      &aux (class-name (make-class-name type)))
                "Create a new class for subtypes to inherit from."
                (add-supertype-to-subtypes type subtypes)
-               `(defclass ,(make-class-name type)
+               `(defclass ,class-name
                     (,@(or
                         (mapcar #'make-class-name (get-supertypes-for-type type))
-                        `(,ast-superclass)))
+                        `(,ast-superclass))
+                     ,@(when (member class-name statements)
+                         '(statement)))
                   ()
                   (:documentation ,(format nil "Generated for ~a." type))))
-             (create-type-class (type fields children grammar-rules)
+             (create-type-class (type fields children grammar-rules
+                                 &aux (class-name (make-class-name type)))
                "Create a new class for TYPE using FIELDS and CHILDREN for slots."
                (let ((child-slot-order
                        (when fields
@@ -236,11 +244,13 @@ of fields needs to be determined at parse-time."
                                  0
                                  1)))
                           (slot-order type fields grammar-rules )))))
-                 `(defclass ,(make-class-name type)
+                 `(defclass ,class-name
                       (,@(or
                           (mapcar #'make-class-name
                                   (get-supertypes-for-type type))
-                          `(,ast-superclass)))
+                          `(,ast-superclass))
+                       ,@(when (member class-name statements)
+                           '(statement)))
                     (,@(create-slots fields children)
                      (child-slots
                       :initform
@@ -329,17 +339,14 @@ of fields needs to be determined at parse-time."
              (convert ',(make-class-name "tree-sitter-ast") source)))))))
 
 (defmacro define-tree-sitter-classes
-    (() node-types-file grammar-file name-prefix)
+    ((node-types-file grammar-file name-prefix)
+     &body options)
   (create-tree-sitter-classes
-   node-types-file grammar-file name-prefix))
+   node-types-file grammar-file name-prefix
+   :statements (aget :statements options)))
 
 
 ;;; tree-sitter parsing
-(defgeneric statement-ast-p (language ast)
-  (:documentation "Return T if AST represents a statement in LANGUAGE.")
-  (:method (language ast) nil))
-
-;;; NOTE: this is specific for cl-tree-sitter.
 (defun convert-initializer
     (spec prefix superclass
      &aux (*package* (symbol-package superclass))
@@ -492,13 +499,13 @@ or comments.  NIL if no such newline exists."
            (t (return nil)))))))
 
 ;; NOTE: copied from javascript.lisp
-(defun move-newlines-down (language ast)
+(defun move-newlines-down (ast)
   "Destructively modify AST, pushing newlines down into child ASTs for
 statement AST types."
   (iter (for child in (children ast))
         (for after-text in (cdr (interleaved-text ast)))
         (for i upfrom 1)
-        (when-let ((pos (and (statement-ast-p language child)
+        (when-let ((pos (and (typep child 'statement)
                              (position-after-leading-newline after-text))))
           ;; Move the [0, pos) prefix of after-text containing the newline
           ;; down into the child node.
@@ -512,14 +519,14 @@ statement AST types."
         (finally (return ast))))
 
 ;; NOTE: copied from javascript.lisp
-(defun fix-newlines (language ast)
+(defun fix-newlines (ast)
   "Fix newlines in ASTs by pushing newlines down into child
 statements.  This allows for mutation operations to insert and
 replace statements with newlines already present in the new
 ASTs, obviating the need for fixups to add missing newlines.
 This method is destructive and, therefore, can only be utilized
 during AST creation to respect functional trees invariants."
-  (mapcar {move-newlines-down language} ast))
+  (mapcar #'move-newlines-down ast))
 
 (defun get-language-from-superclass (superclass)
   "Get the tree-sitter  language associated with SUPERCLASS."
@@ -608,7 +615,7 @@ during AST creation to respect functional trees invariants."
                (adrop '(:range-start :range-end) (slot-value ast 'annotations)))
          ast))
     (nest
-     (fix-newlines (get-language-from-superclass superclass))
+     (fix-newlines)
      (w/interleaved-text
       (convert to-type
                (parse-string (get-language-from-superclass superclass) string)
@@ -620,31 +627,21 @@ during AST creation to respect functional trees invariants."
 ;;; C tree-sitter parsing
 (register-tree-sitter-language "tree-sitter-c" :c 'c-tree-sitter-ast)
 
-(define-tree-sitter-classes ()
-  ;; TODO: throw these in a variable that actually looks
-  ;;       at the project path.
-  "~/quicklisp/local-projects/sel/software/tree-sitter/c/node-types.json"
-  "~/quicklisp/local-projects/sel/software/tree-sitter/c/grammar.json"
-  :c)
-
-(defmethod statement-ast-p ((language (eql :c)) (ast c-tree-sitter-ast))
-  ;; TODO: this definitely doesn't cover everything.
-  (or (typep ast '(or c--statement c-function-definition))
-      (equal ";" (lastcar (interleaved-text ast)))))
+(define-tree-sitter-classes
+    ("~/quicklisp/local-projects/sel/software/tree-sitter/c/node-types.json"
+     "~/quicklisp/local-projects/sel/software/tree-sitter/c/grammar.json"
+     :c)
+  ;; TODO: this doesn't cover everything.
+  (:statements c--statement c-function-definition))
 
 
 ;;; Java tree-sitter parsing
 ;;; TODO: figure out a better way to do this.
 (register-tree-sitter-language "tree-sitter-java" :java 'java-tree-sitter-ast)
 
-(define-tree-sitter-classes ()
-  ;; TODO: throw these in a variable that actually looks
-  ;;       at the project path.
-  "~/quicklisp/local-projects/sel/software/tree-sitter/java/node-types.json"
-  "~/quicklisp/local-projects/sel/software/tree-sitter/java/grammar.json"
-  :java)
-
-(defmethod statement-ast-p ((language (eql :java)) (ast java-tree-sitter-ast))
-  ;; TODO: this probably doesn't cover everything.
-  (or (typep ast 'java-statement)
-      (equal ";" (lastcar (interleaved-text ast)))))
+(define-tree-sitter-classes
+    ("~/quicklisp/local-projects/sel/software/tree-sitter/java/node-types.json"
+     "~/quicklisp/local-projects/sel/software/tree-sitter/java/grammar.json"
+     :java)
+  ;; TODO: this might not cover everything.
+  (:statements java-statement))
