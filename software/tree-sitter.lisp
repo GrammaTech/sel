@@ -565,20 +565,7 @@ during AST creation to respect functional trees invariants."
                           (map
                            'vector
                            #'string-to-octets
-                           (iter
-                             (iter:with reverse-lines
-                                        = (reverse (lines string)))
-                             (iter:with last = (car reverse-lines))
-                             (iter:with length = (length reverse-lines))
-                             (for line in (cdr reverse-lines))
-                             (for i upfrom 1)
-                             (collect
-                                 (if (= i length)
-                                     line
-                                     (string+ line (format nil "~%")))
-                               into lines)
-                             (finally
-                              (return (reverse (cons last lines))))))))
+                           (serapeum:lines string :keep-eols t))))
   (labels
       ((safe-subseq (start end)
          "Return STRING in the range [START, END) or an empty string if
