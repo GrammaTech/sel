@@ -1,4 +1,6 @@
 ;;;; tree-sitter.lisp --- software representations with a tree-sitter backend.
+;;; NOTE: the grammar.json and node-types.json for each language are currently
+;;;       expected to be in /usr/share/tree-sitter/$language/
 (uiop:define-package :software-evolution-library/software/tree-sitter
   (:nicknames :sel/software/tree-sitter :sel/sw/tree-sitter
               :sel/software/ts :sel/sw/ts)
@@ -339,11 +341,17 @@ of fields needs to be determined at parse-time."
              (convert ',(make-class-name "tree-sitter-ast") source)))))))
 
 (defmacro define-tree-sitter-classes
-    ((node-types-file grammar-file name-prefix)
+    ((name-prefix)
      &body options)
-  (create-tree-sitter-classes
-   node-types-file grammar-file name-prefix
-   :statements (aget :statements options)))
+  ;; TODO: add code to search different places.
+  (let ((grammar-file (format nil "/usr/share/tree-sitter/~(~a~)/grammar.json"
+                              name-prefix))
+        (node-types-file
+          (format nil "/usr/share/tree-sitter/~(~a~)/node-types.json"
+                  name-prefix)))
+    (create-tree-sitter-classes
+     node-types-file grammar-file name-prefix
+     :statements (aget :statements options))))
 
 
 ;;; tree-sitter parsing
@@ -627,10 +635,7 @@ during AST creation to respect functional trees invariants."
 ;;; C tree-sitter parsing
 (register-tree-sitter-language "tree-sitter-c" :c 'c-tree-sitter-ast)
 
-(define-tree-sitter-classes
-    ("~/quicklisp/local-projects/sel/software/tree-sitter/c/node-types.json"
-     "~/quicklisp/local-projects/sel/software/tree-sitter/c/grammar.json"
-     :c)
+(define-tree-sitter-classes (:c)
   ;; TODO: this doesn't cover everything.
   (:statements c--statement c-function-definition))
 
@@ -639,9 +644,6 @@ during AST creation to respect functional trees invariants."
 ;;; TODO: figure out a better way to do this.
 (register-tree-sitter-language "tree-sitter-java" :java 'java-tree-sitter-ast)
 
-(define-tree-sitter-classes
-    ("~/quicklisp/local-projects/sel/software/tree-sitter/java/node-types.json"
-     "~/quicklisp/local-projects/sel/software/tree-sitter/java/grammar.json"
-     :java)
+(define-tree-sitter-classes (:java)
   ;; TODO: this might not cover everything.
   (:statements java-statement))
