@@ -17,7 +17,8 @@
            :children-definitions-table
            :convert-helper
            :ast-type-to-rebind-p
-           :ast-annotation-to-rebind))
+           :ast-annotation-to-rebind
+           :check-interleaved-text))
 (in-package :software-evolution-library/software/non-homologous-parseable)
 (in-readtable :curry-compose-reader-macros)
 
@@ -263,16 +264,21 @@ of children and not in named children slots."
                   (fixup-interleaved-text difference)))))
     copy))
 
-(defmethod source-text :before ((ast non-homologous-ast)
-                                &optional stream
-                                &aux (children (sorted-children ast)))
-  (declare (ignorable stream))
-  (assert (= (1+ (length children)) (length (interleaved-text ast))) (ast)
-          "The AST to be printed has ~d children and ~d element(s) of ~
+(defgeneric check-interleaved-text (ast)
+  (:method ((ast interleaved-text))
+    (let ((children (sorted-children ast)))
+      (assert (= (1+ (length children)) (length (interleaved-text ast))) (ast)
+              "The AST to be printed has ~d children and ~d element(s) of ~
           interleaved text.  The AST must have interleaved text between ~
           each child, ~d element(s) total."
-          (length children) (length (interleaved-text ast))
-          (1+ (length children))))
+              (length children) (length (interleaved-text ast))
+              (1+ (length children)))))
+  (:method (ast) nil))
+
+(defmethod source-text :before ((ast non-homologous-ast)
+                                &optional stream)
+  (declare (ignorable stream))
+  (check-interleaved-text ast))
 
 (defmethod source-text ((ast non-homologous-ast) &optional stream)
   (write-string (car (interleaved-text ast)) stream)
