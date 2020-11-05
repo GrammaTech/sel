@@ -241,11 +241,13 @@ of children and not in named children slots."
                 removals, the interleaved-text field must also be explicity ~
                 set.")
         (assert (or (null (ast-annotation copy :child-order))
-                    (and (child-order-changed) (not (ast-additions))))
+                    (and (child-order-changed)
+                         (= new-children-length
+                            (length (ast-annotation copy :child-order)))))
                 (ast)
                 "When creating an AST copy with an explicit child order ~
                 annotation, child AST additions are not allowed without ~
-                explicitly setting the :child-order annotation.")
+                explicitly setting a matching :child-order annotation.")
 
         ;; Update the :child-order annotation and interleaved-text field to
         ;; reflect the AST changes.
