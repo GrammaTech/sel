@@ -9,6 +9,7 @@
         :cl-json
         :software-evolution-library
         :software-evolution-library/utility/json
+        :software-evolution-library/utility/range
         :software-evolution-library/software/parseable
         :software-evolution-library/software/non-homologous-parseable
         :software-evolution-library/components/file
@@ -435,7 +436,19 @@ of fields needs to be determined at parse-time."
            (set-child-order-annotation ()
              (let* ((children (remove nil (children instance)))
                     (sorted-children
-                      (sort children #'range<
+                      (sort children
+                            (lambda (start end
+                                     &aux (start-loc
+                                           (make-instance
+                                            'source-location
+                                            :line (cadr start)
+                                            :column (car start)))
+                                       (end-loc
+                                        (make-instance
+                                         'source-location
+                                         :line (cadr end)
+                                         :column (car end))))
+                              (source-< start-loc end-loc))
                             :key
                             (lambda (child)
                               (car
@@ -449,41 +462,6 @@ of fields needs to be determined at parse-time."
     (update-slots-based-on-arity)
     (set-child-order-annotation)
     instance))
-
-(defun range< (range1 range2)
-  "Return T if RANGE1 occurs before RANGE2."
-  (let* ((range1-row (cadr range1))
-         (range2-row (cadr range2)))
-    (cond
-      ((= range1-row range2-row)
-       (< (car range1) (car range2)))
-      ((< range1-row range2-row)
-       t))))
-
-(defun range-subseq (line-octets range1 range2)
-  "Return the subseq in LINE-OCTETS from RANGE1 to RANGE2."
-  (let* ((range1-col (car range1))
-         (range1-row (cadr range1))
-         (range2-col (car range2))
-         (range2-row (cadr range2)))
-    (cond
-      ((= range1-row range2-row)
-       (octets-to-string
-        (subseq (aref line-octets range1-row) range1-col range2-col)))
-      ((< range1-row range2-row)
-       ;; TODO: figure out a single octets-to-string?
-       (string+
-        (octets-to-string
-         (subseq (aref line-octets range1-row) range1-col))
-        (iter
-          (for i from (1+ range1-row) to (1- range2-row))
-          (reducing (aref line-octets i)
-                    by (lambda (total octets)
-                         (string+ total (octets-to-string octets)))
-                    initial-value ""))
-        (octets-to-string
-         (subseq (aref line-octets range2-row) 0 range2-col))))
-      (t ""))))
 
 ;; NOTE: copied from javascript.lisp
 (defun position-after-leading-newline (str)
@@ -610,11 +588,23 @@ subclasses of SUPERCLASS."
                            #'string-to-octets
                            (serapeum:lines string :keep-eols t))))
   (labels
-      ((safe-subseq (start end)
+      ((safe-subseq
+           (start end
+            &aux (start-loc
+                  (make-instance
+                   'source-location
+                   :line (cadr start) :column (car start)))
+              (end-loc
+               (make-instance
+                'source-location
+                :line (cadr end) :column (car end))))
          "Return STRING in the range [START, END) or an empty string if
          the offsets are invalid."
-         (if (range< start end)
-             (range-subseq line-octets start end)
+         (if (source-< start-loc end-loc)
+             (octets-to-string
+              (source-range-subseq
+               line-octets
+               (make-instance 'source-range :begin start-loc :end end-loc)))
              ""))
        (start (ast)
          "Return the start offset into STRING from the AST representation."

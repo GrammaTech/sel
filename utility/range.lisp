@@ -172,10 +172,35 @@ addresses a node that ends in a newline as (n+1,1)."
     ;; offset is "absorbed" by the newline.
     (+ line-start-pos column remaining)))
 
-(defun source-range-subseq (string source-range)
-  "Get the subsequence of STRING corresponding to SOURCE-RANGE."
-  ;; Use `slice' to avoid having to worry about the possible extra
-  ;; newline.
-  (slice string
-         (source-location->position string (begin source-range))
-         (source-location->position string (end source-range))))
+(defgeneric source-range-subseq (string source-range)
+  (:documentation
+   "Get the subsequence of STRING corresponding to SOURCE-RANGE.")
+  (:method ((string string) source-range)
+    ;; Use `slice' to avoid having to worry about the possible extra
+    ;; newline.
+    (slice string
+           (source-location->position string (begin source-range))
+           (source-location->position string (end source-range))))
+  (:method ((line-octets vector) source-range
+            &aux (start (begin source-range))
+              (end (end source-range)))
+    "Get the subsequence of LINE-OCTETS corresponding to SOURCE-RANGE."
+    (with-slots ((start-column column) (start-line line)) start
+      (with-slots ((end-column column) (end-line line)) end
+        (coerce
+         (cond
+           ((= start-line end-line)
+            (subseq (aref line-octets start-line) start-column end-column))
+           ((< start-line end-line)
+            (concatenate
+             'vector
+             (subseq (aref line-octets start-line) start-column)
+             (iter
+               (for i from (1+ start-line) to (1- end-line))
+               (reducing (aref line-octets i)
+                         by (lambda (total octets)
+                              (concatenate 'vector total octets))
+                         initial-value #()))
+             (subseq (aref line-octets end-line) 0 end-column)))
+           (t #()))
+         '(vector (unsigned-byte 8)))))))
