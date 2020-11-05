@@ -94,7 +94,8 @@
            :get-indentation-at
            :*indent-with-tabs-p*
            :*spaces-per-tab*
-           :indentablep))
+           :indentablep
+           :combine-all-conflict-asts))
 (in-package :software-evolution-library/software/parseable)
 (in-readtable :curry-compose-reader-macros)
 
