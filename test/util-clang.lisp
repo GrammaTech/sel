@@ -14,6 +14,8 @@
            :+gcd-dir+
            :+multi-file-dir+
            :+headers-dir+
+           :+unicode-dir+
+           :+variety-dir+
            ;; Variables referenced in tests
            :*headers*
            :*sqrt*

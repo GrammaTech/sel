@@ -20,6 +20,8 @@
            ;; Other functions
            :acorn-available-p
            :python3.8-available-p
+           :c-tree-sitter-available-p
+           :java-tree-sitter-available-p
            :stmt-with-text
            :stmt-starting-with-text
            :fully-every
@@ -158,6 +160,21 @@
        (register-groups-bind (major minor)
            ("Python ([0-9]+)\.([0-9]+)" (shell "python3 --version"))
          (and (>= (parse-integer major) 3) (>= (parse-integer minor) 8)))))
+
+(defun lib-available-p (name)
+  (not (equal (format nil "~%")
+              (shell "whereis ~a | awk '{print($2)}'" name))))
+
+(defun tree-sitter-available-p ()
+  (lib-available-p "libtree-sitter.so"))
+
+(defun c-tree-sitter-available-p ()
+  (and (tree-sitter-available-p)
+       (lib-available-p "tree-sitter-c.so")))
+
+(defun java-tree-sitter-available-p ()
+  (and (tree-sitter-available-p)
+       (lib-available-p "tree-sitter-java.so")))
 
 (defun stmt-with-text (obj text &key no-error (trim t))
   "Return the AST in OBJ holding TEXT.
