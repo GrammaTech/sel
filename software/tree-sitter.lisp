@@ -29,7 +29,11 @@
 
 ;;; Shared object set-up
 (eval-always
-  (defvar *superclass->language* (make-hash-table)))
+  (defvar *superclass->language* (make-hash-table)
+    "Maps an AST superclass to its tree-sitter language. When
+convert is called, the superclass can then be used to look up
+which language--and its relevant shared object--should be used
+to parse the string."))
 
 (defmacro register-tree-sitter-language (lib-name language ast-superclass)
   "Setup LANGUAGE to map to AST-SUPERCLASS and use LIB-NAME for parsing."
@@ -142,9 +146,13 @@ of fields needs to be determined at parse-time."
                     ;;       and are the only ones that should be considered
                     ;;       when search for fields that may be down the line
                     ;;       in different rules.
-                    (when (and (eql #\_ (aref name-string 0))
-                               (not (member name visited-rules)))
-                      (handle-rule (aget name grammar-rules)
+                    (when-let ((name (and (eql #\_ (aref name-string 0))
+                                          (not (member name visited-rules))
+                                          (aget name grammar-rules))))
+                      ;; TODO: figure out if anything needs to be done
+                      ;;       about external rules? Probably nothing
+                      ;;       needs done, but it warrants a quick look.
+                      (handle-rule name
                                    preceding-fields
                                    (cons name visited-rules))))))))
       ;; NOTE: tree-sitter/cli/src/generate/grammar-schema.json
