@@ -186,9 +186,10 @@ of fields needs to be determined at parse-time."
     ;; TODO: possibly only turn _'s into -'s if the node is named and has fields
     ;;       or children. This will keep things--like __attribute__, __fastcall,
     ;;       __unaligned, etc.--in their intended, keyword format.
-    (labels ((make-class-name (&optional name-string)
+    (labels ((make-class-name (&optional name-string replace-underscores-p)
                "Create a class name based on NAME-STRING and add it to the
-                symbols that need exported."
+                symbols that need exported. If replace-underscores-p is provided,
+                the underscores in NAME-STRING will be replaced with hyphens."
                ;; NOTE: this has the potential of name clashes
                ;;       though it's probably unlikely.
                (lret ((name
@@ -196,7 +197,9 @@ of fields needs to be determined at parse-time."
                            (symbolicate
                             name-prefix
                             "-"
-                            (convert-name name-string))
+                            (if replace-underscores-p
+                                (convert-name name-string)
+                                (format nil "~:@(~a~)" name-string)))
                            (symbolicate name-prefix))))
                  (ensure-gethash name symbols-to-export t)))
              (make-accessor-name (name-keyword)
@@ -235,7 +238,7 @@ of fields needs to be determined at parse-time."
                     (mapcar #'create-slot fields))
                    (mapcar #'create-slot fields)))
              (create-supertype-class (type subtypes
-                                      &aux (class-name (make-class-name type)))
+                                      &aux (class-name (make-class-name type t)))
                "Create a new class for subtypes to inherit from."
                (add-supertype-to-subtypes type subtypes)
                `(defclass ,class-name
@@ -246,8 +249,9 @@ of fields needs to be determined at parse-time."
                          '(statement)))
                   ()
                   (:documentation ,(format nil "Generated for ~a." type))))
-             (create-type-class (type fields children grammar-rules
-                                 &aux (class-name (make-class-name type)))
+             (create-type-class (type fields children grammar-rules named-p
+                                 &aux (class-name
+                                       (make-class-name type named-p)))
                "Create a new class for TYPE using FIELDS and CHILDREN for slots."
                (let ((child-slot-order
                        (when fields
@@ -258,10 +262,10 @@ of fields needs to be determined at parse-time."
                              (if (aget :multiple (aget slot-keyword fields))
                                  0
                                  1)))
-                          (slot-order type fields grammar-rules )))))
+                          (slot-order type fields grammar-rules)))))
                  `(defclass ,class-name
                       (,@(or
-                          (mapcar #'make-class-name
+                          (mapcar {make-class-name _ t}
                                   (get-supertypes-for-type type))
                           `(,ast-superclass))
                        ,@(when (member class-name statements)
@@ -292,7 +296,10 @@ of fields needs to be determined at parse-time."
                     type
                     (aget :fields node-type)
                     (assoc :children node-type)
-                    grammar-rules))))
+                    grammar-rules
+                    ;; NOTE: if the node isn't named it likely represents
+                    ;;       a terminal token.
+                    (aget :named node-type)))))
       (let* ((*json-identifier-name-to-lisp* #'convert-name)
              (node-types (decode-json-from-string
                           (file-to-string node-types-file)))

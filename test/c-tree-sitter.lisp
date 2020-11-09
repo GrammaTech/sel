@@ -26,7 +26,7 @@
 (defmacro with-software-file ((directory filename software-var genome-var)
                               &body body)
   `(let* ((,software-var (from-file
-                          (make-instance 'c-tree-sitter)
+                          (make-instance 'c)
                           (make-pathname :name ,filename
                                          :type "c"
                                          :directory ,directory)))
@@ -42,13 +42,13 @@
 
 (deftest c-tree-sitter-parses-with-errors ()
   "c-tree-sitter-ast parses ASTs even if there's errors."
-  (let ((ast (convert 'c-tree-sitter-ast "a = 1")))
+  (let ((ast (convert 'c-ast "a = 1")))
     (is (find-if {typep _ 'c-error} ast))
     (is (find-if {typep _ 'c-assignment-expression} ast))))
 
 (deftest c-tree-sitter-parses-from-list ()
   (let ((ast (convert
-              'c-tree-sitter-ast
+              'c-ast
               '((:class . :declaration)
                 (:declarator
                  ((:class . :init-declarator)
@@ -85,7 +85,7 @@
                                                 (list "parsing")))
               path))
            (parse-test (path &rest ast-types)
-             (let ((soft (from-file (make-instance 'c-tree-sitter)
+             (let ((soft (from-file (make-instance 'c)
                                     (parsing-test-dir path))))
                (is (not (zerop (size soft))))
                (is (equal (genome-string soft)
