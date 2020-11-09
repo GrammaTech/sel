@@ -485,20 +485,6 @@ or comments.  NIL if no such newline exists."
            (#\Newline (return (1+ pos)))
            ((#\Space #\Tab)
             (incf pos))
-           ;; Skip over comments
-           ;; TODO: modify this to account for tree-sitter
-           ;;       comments?
-           (#\/
-            (incf pos)
-            (when (>= pos len) (return nil))
-            (let ((c (elt str pos)))
-              (unless (eql c #\/)
-                (return nil))
-              (return
-                (loop (incf pos)
-                   (when (>= pos len) (return nil))
-                   (when (eql (elt str pos) #\Newline)
-                     (return (1+ pos)))))))
            (t (return nil)))))))
 
 ;; NOTE: copied from javascript.lisp
