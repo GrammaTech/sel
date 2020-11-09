@@ -199,7 +199,7 @@ of fields needs to be determined at parse-time."
                             "-"
                             (if replace-underscores-p
                                 (convert-name name-string)
-                                (format nil "~:@(~a~)" name-string)))
+                                (string-upcase name-string)))
                            (symbolicate name-prefix))))
                  (ensure-gethash name symbols-to-export t)))
              (make-accessor-name (name-keyword)
@@ -249,9 +249,8 @@ of fields needs to be determined at parse-time."
                          '(statement)))
                   ()
                   (:documentation ,(format nil "Generated for ~a." type))))
-             (create-type-class (type fields children grammar-rules named-p
-                                 &aux (class-name
-                                       (make-class-name type named-p)))
+             (create-type-class (type fields children grammar-rules
+                                 &aux (class-name (make-class-name type t)))
                "Create a new class for TYPE using FIELDS and CHILDREN for slots."
                (let ((child-slot-order
                        (when fields
@@ -280,26 +279,39 @@ of fields needs to be determined at parse-time."
                     ;; NOTE: this is primarily for determing which rule this
                     ;;       was generated for.
                     (:documentation ,(format nil "Generated for ~a." type)))))
+             (create-terminal-symbol-class (type)
+               "Create a new class that represents a terminal symbol.
+                In the case that there's a non-terminal with the same name,
+                append '-terminal' to the end of it."
+               `(defclass ,(if (gethash (symbolicate name-prefix "-"
+                                                     (string-upcase type))
+                                        symbols-to-export)
+                               (make-class-name
+                                (symbolicate type "-" 'terminal))
+                               (make-class-name type))
+                    ()
+                  ()
+                  (:documentation
+                   ,(format nil "Generated for terminal symbol '~a'" type))))
              (create-node-class
                  (grammar-rules node-type
                   &aux (type (aget :type node-type))
-                    (subtypes (aget :subtypes node-type)))
+                    (subtypes (aget :subtypes node-type))
+                    (named-p (aget :named node-type)))
                "Create a class for  NODE-TYPE."
                ;; TODO: figure out how terminals should be handled--does it
                ;;       make sense to have classes for everything, e.g.,
                ;;       c-#endif and c-++?
-               (if subtypes
-                   (create-supertype-class
-                    type
-                    subtypes)
-                   (create-type-class
-                    type
-                    (aget :fields node-type)
-                    (assoc :children node-type)
-                    grammar-rules
-                    ;; NOTE: if the node isn't named it likely represents
-                    ;;       a terminal token.
-                    (aget :named node-type)))))
+               (cond
+                 (subtypes (create-supertype-class type subtypes))
+                 (named-p
+                  (create-type-class
+                   type
+                   (aget :fields node-type)
+                   (assoc :children node-type)
+                   grammar-rules))
+                 ;; Terminal Symbol
+                 (t (create-terminal-symbol-class type)))))
       (let* ((*json-identifier-name-to-lisp* #'convert-name)
              (node-types (decode-json-from-string
                           (file-to-string node-types-file)))
