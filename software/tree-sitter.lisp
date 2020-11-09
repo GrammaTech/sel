@@ -182,19 +182,22 @@ of fields needs to be determined at parse-time."
          (ast-superclass (symbolicate
                           name-prefix
                           "-"
-                          (convert-name "tree-sitter-ast"))))
+                          (convert-name "ast"))))
     ;; TODO: possibly only turn _'s into -'s if the node is named and has fields
     ;;       or children. This will keep things--like __attribute__, __fastcall,
     ;;       __unaligned, etc.--in their intended, keyword format.
-    (labels ((make-class-name (name-string)
+    (labels ((make-class-name (&optional name-string)
                "Create a class name based on NAME-STRING and add it to the
                 symbols that need exported."
                ;; NOTE: this has the potential of name clashes
                ;;       though it's probably unlikely.
-               (lret ((name (symbolicate
-                             name-prefix
-                             "-"
-                             (convert-name name-string))))
+               (lret ((name
+                       (if name-string
+                           (symbolicate
+                            name-prefix
+                            "-"
+                            (convert-name name-string))
+                           (symbolicate name-prefix))))
                  (ensure-gethash name symbols-to-export t)))
              (make-accessor-name (name-keyword)
                "Create an accessor name based on NAME-KEYWORD and add it to the
@@ -301,7 +304,7 @@ of fields needs to be determined at parse-time."
            (eval-always
              ;; TODO: add a parameter for passing in extra super classes.
              ;;       This could be useful for mix-ins.
-             (define-software ,(make-class-name "tree-sitter") (tree-sitter)
+             (define-software ,(make-class-name) (tree-sitter)
                ()
                (:documentation
                 ,(format nil "~a tree-sitter software representation."
@@ -309,7 +312,7 @@ of fields needs to be determined at parse-time."
 
              ;; TODO: add a parameter for passing in extra super classes.
              ;;       This could be useful for mix-ins.
-             (defclass ,(make-class-name "tree-sitter-ast") (tree-sitter-ast)
+             (defclass ,(make-class-name "ast") (tree-sitter-ast)
                ()
                (:documentation
                 ,(format nil "AST for ~A from input via tree-sitter."
@@ -352,9 +355,9 @@ of fields needs to be determined at parse-time."
                                &key &allow-other-keys)
              (convert 'tree-sitter-ast string :superclass to-type))
 
-           (defmethod parse-asts ((obj ,(make-class-name "tree-sitter"))
+           (defmethod parse-asts ((obj ,(make-class-name))
                                   &optional (source (genome-string obj)))
-             (convert ',(make-class-name "tree-sitter-ast") source)))))))
+             (convert ',(make-class-name "ast") source)))))))
 
 (defmacro define-tree-sitter-classes
     ((name-prefix)
@@ -653,7 +656,7 @@ subclasses of SUPERCLASS."
 
 
 ;;; C tree-sitter parsing
-(register-tree-sitter-language "tree-sitter-c" :c 'c-tree-sitter-ast)
+(register-tree-sitter-language "tree-sitter-c" :c 'c-ast)
 
 (define-tree-sitter-classes (:c)
   ;; TODO: this doesn't cover everything.
@@ -662,7 +665,7 @@ subclasses of SUPERCLASS."
 
 ;;; Java tree-sitter parsing
 ;;; TODO: figure out a better way to do this.
-(register-tree-sitter-language "tree-sitter-java" :java 'java-tree-sitter-ast)
+(register-tree-sitter-language "tree-sitter-java" :java 'java-ast)
 
 (define-tree-sitter-classes (:java)
   ;; TODO: this might not cover everything.
