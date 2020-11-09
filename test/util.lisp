@@ -22,6 +22,8 @@
            :python3.8-available-p
            :c-tree-sitter-available-p
            :java-tree-sitter-available-p
+           :python-tree-sitter-available-p
+           :javascript-tree-sitter-available-p
            :stmt-with-text
            :stmt-starting-with-text
            :fully-every
@@ -175,6 +177,14 @@
 (defun java-tree-sitter-available-p ()
   (and (tree-sitter-available-p)
        (lib-available-p "tree-sitter-java.so")))
+
+(defun python-tree-sitter-available-p ()
+  (and (tree-sitter-available-p)
+       (lib-available-p "tree-sitter-python.so")))
+
+(defun javascript-tree-sitter-available-p ()
+  (and (tree-sitter-available-p)
+       (lib-available-p "tree-sitter-javascript.so")))
 
 (defun stmt-with-text (obj text &key no-error (trim t))
   "Return the AST in OBJ holding TEXT.
