@@ -689,3 +689,23 @@ subclasses of SUPERCLASS."
 (define-tree-sitter-classes (:java)
   ;; TODO: this might not cover everything.
   (:statements java-statement))
+
+
+;;; Javascript tree-sitter parsing
+;;; TODO: figure out a better way to do this.
+(register-tree-sitter-language
+ "tree-sitter-javascript" :javascript 'javascript-ast)
+
+(define-tree-sitter-classes (:javascript)
+  ;; TODO: this might not cover everything.
+  (:statements javascript--statement))
+
+
+;;; Python tree-sitter parsing
+;;; TODO: figure out a better way to do this.
+(register-tree-sitter-language
+ "tree-sitter-python" :python 'python-ast)
+
+(define-tree-sitter-classes (:python)
+  ;; TODO: this might not cover everything.
+  (:statements python--statement))
