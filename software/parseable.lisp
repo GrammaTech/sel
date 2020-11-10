@@ -776,6 +776,14 @@ of SHARED-PATH-AST's path in OBJ.")
  insert
  splice)
 
+(defmethod mapc (function (obj parseable) &rest more)
+  (declare (ignorable more))
+  (mapc function (genome obj)))
+
+(defmethod mapcar (function (obj parseable) &rest more)
+  (declare (ignorable more))
+  (setf (genome obj) (mapcar function (genome obj))))
+
 (defmethod size ((obj parseable))
   "Return the number of non-root ASTs in OBJ."
   (1- (count-if {typep _ 'ast} (genome obj))))
