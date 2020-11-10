@@ -23,22 +23,23 @@
   :test #'equalp
   :documentation "Path to directory holding C files for tree-sitter tests.")
 
-(defmacro with-software-file ((directory filename software-var genome-var)
-                              &body body)
-  `(let* ((,software-var (from-file
-                          (make-instance 'c)
-                          (make-pathname :name ,filename
-                                         :type "c"
-                                         :directory ,directory)))
-          (,genome-var (genome ,software-var)))
-     (declare (ignorable ,genome-var))
-     ,@body))
+(defixture unicode
+  (:setup
+   (setf *soft*
+         (from-file (make-instance 'c)
+                    (make-pathname :name "unicode"
+                                   :type "c"
+                                   :directory +unicode-dir+)))))
 
 
 ;;; Tests
 (deftest c-tree-sitter-can-parse-file ()
   (finishes
-    (with-software-file (+c-tree-sitter-dir+ "test" software genome))))
+    (from-file
+     (make-instance 'c)
+     (make-pathname :name "test"
+                    :type "c"
+                    :directory +c-tree-sitter-dir+))))
 
 (deftest c-tree-sitter-parses-with-errors ()
   "c-tree-sitter-ast parses ASTs even if there's errors."
@@ -71,11 +72,11 @@
 
 (deftest c-tree-sitter-handles-unicode ()
   "c-tree-sitter-ast successfully parses unicode."
-  (with-software-file (+unicode-dir+ "unicode" software genome)
-    (is (stmt-starting-with-text software "int x = 0"))
-    (is (stmt-starting-with-text software "\"2 bytes: Δ\""))
-    (is (stmt-starting-with-text software "int y = 1"))
-    (is (not (find-if {typep _ 'c-error} genome)))))
+  (with-fixture unicode
+    (is (stmt-starting-with-text *soft* "int x = 0"))
+    (is (stmt-starting-with-text *soft* "\"2 bytes: Δ\""))
+    (is (stmt-starting-with-text *soft* "int y = 1"))
+    (is (not (find-if {typep _ 'c-error} (genome *soft*))))))
 
 ;;; TODO: something similar to Python's parsing test.
 (deftest c-tree-sitter-parsing-test ()
