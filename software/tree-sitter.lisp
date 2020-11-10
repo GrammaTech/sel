@@ -226,17 +226,13 @@ of fields needs to be determined at parse-time."
                  :accessor ,(make-accessor-name name-keyword)
                  :initarg ,name-keyword
                  :initform nil))
-             (create-slots (fields children)
+             (create-slots (fields)
                "Create the slots for a new class based on FIELDS and CHILDREN.
                 Currently, types aren't supported, but there is enough
                 information to limit slots to certain types."
                ;; TODO: there is a potential for name overlaps when generating
                ;;       these classes.
-               (if children
-                   (cons
-                    (create-slot children)
-                    (mapcar #'create-slot fields))
-                   (mapcar #'create-slot fields)))
+               (mapcar #'create-slot fields))
              (create-supertype-class (type subtypes
                                       &aux (class-name (make-class-name type t)))
                "Create a new class for subtypes to inherit from."
@@ -269,7 +265,7 @@ of fields needs to be determined at parse-time."
                           `(,ast-superclass))
                        ,@(when (member class-name statements)
                            '(statement)))
-                    (,@(create-slots fields children)
+                    (,@(create-slots fields)
                      (child-slots
                       :initform
                       ',(if children
@@ -332,7 +328,10 @@ of fields needs to be determined at parse-time."
              ;; TODO: add a parameter for passing in extra super classes.
              ;;       This could be useful for mix-ins.
              (defclass ,(make-class-name "ast") (tree-sitter-ast)
-               ()
+               ;; NOTE: ensure there is always a children slot.
+               ;;       This is important for classes that don't have
+               ;;       it but can have comments mixed in.
+               (,(create-slot '(children)))
                (:documentation
                 ,(format nil "AST for ~A from input via tree-sitter."
                          name-prefix)))
@@ -464,6 +463,12 @@ of fields needs to be determined at parse-time."
                    (slot-value instance 'child-slots))
                :key #'cdr)))
            (set-child-order-annotation ()
+             "Set the child-order annotation of instance. This
+              is currently set on every AST as some ASTs store
+              things in the children slot instead of making a
+              slot for it."
+             ;; TODO: look into only adding the child-order
+             ;;       annotation if order differs from child-slots.
              (let* ((children (remove nil (children instance)))
                     (sorted-children
                       (sort children
