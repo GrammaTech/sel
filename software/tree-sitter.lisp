@@ -49,9 +49,6 @@ to parse the string."))
     (:documentation "AST for input from tree-sitter."))
 
   (defclass statement ()
-    ;; TODO: it might make sense to have a slot that indicates whether
-    ;;       this is in fact a statement if there's ever a class that
-    ;;       is ambiguous.
     ()
     (:documentation "Mix-in for ASTs classes that are statements."))
 
@@ -149,9 +146,6 @@ of fields needs to be determined at parse-time."
                     (when-let ((name (and (eql #\_ (aref name-string 0))
                                           (not (member name visited-rules))
                                           (aget name grammar-rules))))
-                      ;; TODO: figure out if anything needs to be done
-                      ;;       about external rules? Probably nothing
-                      ;;       needs done, but it warrants a quick look.
                       (handle-rule name
                                    preceding-fields
                                    (cons name visited-rules))))))))
@@ -176,30 +170,45 @@ of fields needs to be determined at parse-time."
 
   (defun create-tree-sitter-classes
       (node-types-file grammar-file name-prefix
-       &key statements
-       &aux (subtype->supertypes (make-hash-table :test #'equal))
+       &key superclass-to-classes
+       &aux (subtype->supertypes (make-hash-table))
          (symbols-to-export (make-hash-table))
          (ast-superclass (symbolicate
                           name-prefix
                           "-"
                           (convert-name "ast"))))
-    ;; TODO: possibly only turn _'s into -'s if the node is named and has fields
-    ;;       or children. This will keep things--like __attribute__, __fastcall,
-    ;;       __unaligned, etc.--in their intended, keyword format.
-    (labels ((make-class-name (&optional name-string replace-underscores-p)
+    (labels ((initialize-subtype->supertypes ()
+               "Initialize subtype->supertypes with the super types that
+                aren't parsed from the json files."
+               (mapc
+                (lambda
+                    (types-list &aux (supertype (symbolicate (car types-list))))
+                  (mapc
+                   (lambda (subtype)
+                     (push supertype (gethash subtype subtype->supertypes)))
+                   (cdr types-list)))
+                superclass-to-classes)
+               ;; Add super class into all of these to ensure it's present. When
+               ;; add-supertypes-to-subtypes is called, it will need to remove
+               ;; it.
+               (maphash-keys
+                (lambda (subtype)
+                  (push ast-superclass (gethash subtype subtype->supertypes)))
+                subtype->supertypes))
+             (make-class-name (&optional name-string keep-underscores-p)
                "Create a class name based on NAME-STRING and add it to the
                 symbols that need exported. If replace-underscores-p is provided,
                 the underscores in NAME-STRING will be replaced with hyphens."
-               ;; NOTE: this has the potential of name clashes
+               ;; NOTE: this has the potential for name clashes
                ;;       though it's probably unlikely.
                (lret ((name
                        (if name-string
                            (symbolicate
                             name-prefix
                             "-"
-                            (if replace-underscores-p
-                                (convert-name name-string)
-                                (string-upcase name-string)))
+                            (if keep-underscores-p
+                                (string-upcase name-string)
+                                (convert-name name-string)))
                            (symbolicate name-prefix))))
                  (ensure-gethash name symbols-to-export t)))
              (make-accessor-name (name-keyword)
@@ -212,13 +221,19 @@ of fields needs to be determined at parse-time."
                  (ensure-gethash name symbols-to-export t)))
              (get-supertypes-for-type (type)
                "Retrieve the supertypes of TYPE."
-               (gethash type subtype->supertypes))
+               (gethash (make-class-name type) subtype->supertypes))
              (add-supertype-to-subtypes (supertype subtypes)
                "Add SUPERTYPE to the list of superclasses for
                 each type in SUBTYPES."
                (mapc
                 (lambda (subtype &aux (name (aget :type subtype)))
-                  (push supertype (gethash name subtype->supertypes)))
+                  (symbol-macrolet ((subtype-hash (gethash (make-class-name name)
+                                                           subtype->supertypes)))
+                    (setf subtype-hash
+                          (cons (make-class-name supertype)
+                                ;; Remove ast-superclass to prevent
+                                ;; circular class dependency.
+                                (remove ast-superclass subtype-hash)))))
                 subtypes))
              (create-slot (field &aux (name-keyword (car field)))
                "Create a slot based on FIELD."
@@ -230,23 +245,20 @@ of fields needs to be determined at parse-time."
                "Create the slots for a new class based on FIELDS and CHILDREN.
                 Currently, types aren't supported, but there is enough
                 information to limit slots to certain types."
-               ;; TODO: there is a potential for name overlaps when generating
+               ;; NOTE: there is a potential for name overlaps when generating
                ;;       these classes.
                (mapcar #'create-slot fields))
              (create-supertype-class (type subtypes
-                                      &aux (class-name (make-class-name type t)))
+                                      &aux (class-name (make-class-name type)))
                "Create a new class for subtypes to inherit from."
                (add-supertype-to-subtypes type subtypes)
                `(defclass ,class-name
-                    (,@(or
-                        (mapcar #'make-class-name (get-supertypes-for-type type))
-                        `(,ast-superclass))
-                     ,@(when (member class-name statements)
-                         '(statement)))
+                    (,@(or (get-supertypes-for-type type)
+                           `(,ast-superclass)))
                   ()
                   (:documentation ,(format nil "Generated for ~a." type))))
              (create-type-class (type fields children grammar-rules
-                                 &aux (class-name (make-class-name type t)))
+                                 &aux (class-name (make-class-name type)))
                "Create a new class for TYPE using FIELDS and CHILDREN for slots."
                (let ((child-slot-order
                        (when fields
@@ -259,12 +271,8 @@ of fields needs to be determined at parse-time."
                                  1)))
                           (slot-order type fields grammar-rules)))))
                  `(defclass ,class-name
-                      (,@(or
-                          (mapcar {make-class-name _ t}
-                                  (get-supertypes-for-type type))
-                          `(,ast-superclass))
-                       ,@(when (member class-name statements)
-                           '(statement)))
+                      (,@(or (get-supertypes-for-type type)
+                             `(,ast-superclass)))
                     (,@(create-slots fields)
                      (child-slots
                       :initform
@@ -283,8 +291,8 @@ of fields needs to be determined at parse-time."
                                                      (string-upcase type))
                                         symbols-to-export)
                                (make-class-name
-                                (symbolicate type "-" 'terminal))
-                               (make-class-name type))
+                                (symbolicate type "-" 'terminal) t)
+                               (make-class-name type t))
                     ()
                   ()
                   (:documentation
@@ -295,9 +303,6 @@ of fields needs to be determined at parse-time."
                     (subtypes (aget :subtypes node-type))
                     (named-p (aget :named node-type)))
                "Create a class for  NODE-TYPE."
-               ;; TODO: figure out how terminals should be handled--does it
-               ;;       make sense to have classes for everything, e.g.,
-               ;;       c-#endif and c-++?
                (cond
                  (subtypes (create-supertype-class type subtypes))
                  (named-p
@@ -315,18 +320,21 @@ of fields needs to be determined at parse-time."
                              :rules
                              (decode-json-from-string
                               (file-to-string grammar-file)))))
+        (initialize-subtype->supertypes)
         `(progn
            (eval-always
-             ;; TODO: add a parameter for passing in extra super classes.
-             ;;       This could be useful for mix-ins.
+             ;; TODO IF EVER NEEDED:
+             ;;   add a parameter for passing in extra super classes.
+             ;;   This could be useful for mix-ins.
              (define-software ,(make-class-name) (tree-sitter)
                ()
                (:documentation
                 ,(format nil "~a tree-sitter software representation."
                          name-prefix)))
 
-             ;; TODO: add a parameter for passing in extra super classes.
-             ;;       This could be useful for mix-ins.
+             ;; TODO IF EVER NEEDED:
+             ;;   add a parameter for passing in extra super classes.
+             ;;   This could be useful for mix-ins.
              (defclass ,(make-class-name "ast") (tree-sitter-ast)
                ;; NOTE: ensure there is always a children slot.
                ;;       This is important for classes that don't have
@@ -340,10 +348,6 @@ of fields needs to be determined at parse-time."
 
              ;; NOTE: the following are to handle results returned from
              ;;       cl-tree-sitter.
-             ;;
-             ;; TODO: this may need to be modified at the cl-tree-sitter level
-             ;;       to account for grammars that have an error and/or comment
-             ;;       production that could cause a name clash.
              (defclass ,(make-class-name "comment") (,ast-superclass)
                ()
                (:documentation "Generated for parsed comments."))
@@ -379,8 +383,8 @@ of fields needs to be determined at parse-time."
 
 (defmacro define-tree-sitter-classes
     ((name-prefix)
-     &body options)
-  ;; TODO: add code to search different places.
+     &key superclass-to-classes)
+  ;; TODO IF EVER NEEDED: add code to search different places.
   (let ((grammar-file (format nil "/usr/share/tree-sitter/~(~a~)/grammar.json"
                               name-prefix))
         (node-types-file
@@ -388,7 +392,7 @@ of fields needs to be determined at parse-time."
                   name-prefix)))
     (create-tree-sitter-classes
      node-types-file grammar-file name-prefix
-     :statements (aget :statements options))))
+     :superclass-to-classes superclass-to-classes)))
 
 
 ;;; tree-sitter parsing
@@ -467,27 +471,24 @@ of fields needs to be determined at parse-time."
               is currently set on every AST as some ASTs store
               things in the children slot instead of making a
               slot for it."
-             ;; TODO: look into only adding the child-order
+             ;; TODO: at some point, look into only adding the child-order
              ;;       annotation if order differs from child-slots.
-             (let* ((children (remove nil (children instance)))
-                    (sorted-children
-                      (sort children
-                            (lambda (start end
-                                     &aux (start-loc
-                                           (make-instance
-                                            'source-location
-                                            :line (cadr start)
-                                            :column (car start)))
-                                       (end-loc
-                                        (make-instance
-                                         'source-location
-                                         :line (cadr end)
-                                         :column (car end))))
-                              (source-< start-loc end-loc))
-                            :key
-                            (lambda (child)
-                              (car
-                               (ast-annotation child :range-start))))))
+             (let ((sorted-children
+                     (sort (remove nil (children instance))
+                           (lambda (start end)
+                             (source-<
+                              (make-instance
+                               'source-location
+                               :line (cadr start)
+                               :column (car start))
+                              (make-instance
+                               'source-location
+                               :line (cadr end)
+                               :column (car end))))
+                           :key
+                           (lambda (child)
+                             (car
+                              (ast-annotation child :range-start))))))
                (setf (slot-value instance 'annotations)
                      (cons (cons :child-order
                                  (mapcar {position _ instance}
@@ -498,23 +499,19 @@ of fields needs to be determined at parse-time."
     (set-child-order-annotation)
     instance))
 
-;; NOTE: copied from javascript.lisp
-(defun position-after-leading-newline (str)
+(defun position-after-leading-newline (str &aux (pos 0))
   "Returns 1+ the position of the first newline in STR,
 assuming it can be reached only by skipping over whitespace
 or comments.  NIL if no such newline exists."
-  (let ((len (length str))
-        (pos 0))
-    (loop
-       (when (>= pos len) (return nil))
-       (let ((c (elt str pos)))
-         (case c
-           (#\Newline (return (1+ pos)))
-           ((#\Space #\Tab)
-            (incf pos))
-           (t (return nil)))))))
+  (loop
+    (when (>= pos (length str)) (return nil))
+    (let ((c (elt str pos)))
+      (case c
+        (#\Newline (return (1+ pos)))
+        ((#\Space #\Tab)
+         (incf pos))
+        (t (return nil))))))
 
-;; NOTE: copied from javascript.lisp
 (defun move-newlines-down (ast)
   "Destructively modify AST, pushing newlines down into child ASTs for
 statement AST types."
@@ -534,7 +531,6 @@ statement AST types."
                 (subseq after-text pos)))
         (finally (return ast))))
 
-;; NOTE: copied from javascript.lisp
 (defun fix-newlines (ast)
   "Fix newlines in ASTs by pushing newlines down into child
 statements.  This allows for mutation operations to insert and
@@ -680,37 +676,39 @@ subclasses of SUPERCLASS."
 
 
 ;;; C tree-sitter parsing
+;;; TODO: at some point, figure out a better way to do this.
 (register-tree-sitter-language "tree-sitter-c" :c 'c-ast)
 
 (define-tree-sitter-classes (:c)
   ;; TODO: this doesn't cover everything.
-  (:statements c--statement c-function-definition))
+  :superclass-to-classes
+  ((:statement c--statement c-function-definition)))
 
 
 ;;; Java tree-sitter parsing
-;;; TODO: figure out a better way to do this.
 (register-tree-sitter-language "tree-sitter-java" :java 'java-ast)
 
 (define-tree-sitter-classes (:java)
   ;; TODO: this might not cover everything.
-  (:statements java-statement))
+  :superclass-to-classes
+  ((:statement java-statement)))
 
 
 ;;; Javascript tree-sitter parsing
-;;; TODO: figure out a better way to do this.
 (register-tree-sitter-language
  "tree-sitter-javascript" :javascript 'javascript-ast)
 
 (define-tree-sitter-classes (:javascript)
   ;; TODO: this might not cover everything.
-  (:statements javascript--statement))
+  :superclass-to-classes
+  ((:statement javascript--statement)))
 
 
 ;;; Python tree-sitter parsing
-;;; TODO: figure out a better way to do this.
 (register-tree-sitter-language
  "tree-sitter-python" :python 'python-ast)
 
 (define-tree-sitter-classes (:python)
   ;; TODO: this might not cover everything.
-  (:statements python--statement))
+  :superclass-to-classes
+  ((:statement python--compound-statement python--simple-statement)))
