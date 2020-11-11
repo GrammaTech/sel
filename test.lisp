@@ -10,6 +10,7 @@
         :software-evolution-library/test/asm-super-mutant
         :software-evolution-library/test/asm
         :software-evolution-library/test/bear
+        :software-evolution-library/test/c-tree-sitter
         :software-evolution-library/test/clang-ancestry
         :software-evolution-library/test/clang-crossover
         :software-evolution-library/test/clang-expression
@@ -37,9 +38,11 @@
         :software-evolution-library/test/indentation
         :software-evolution-library/test/javascript-project
         :software-evolution-library/test/javascript
+        :software-evolution-library/test/javascript-tree-sitter
         :software-evolution-library/test/lisp
         :software-evolution-library/test/lisp-bindings
         :software-evolution-library/test/python
+        :software-evolution-library/test/python-tree-sitter
         :software-evolution-library/test/python-utility
         :software-evolution-library/test/python-project
         :software-evolution-library/test/misc-mutations
