@@ -13,12 +13,19 @@
    :software-evolution-library/software/lisp
    :software-evolution-library/software/clang)
   (:import-from :software-evolution-library/software/parseable
-                :hash-type)
+                :hash-type
+                :parseable)
   (:export :test-parseable))
 
 (in-package :software-evolution-library/test/parseable)
 
 (defsuite test-parseable "Tests of software/parseable")
+
+(deftest mapcar-test ()
+  "Test that mapcar on parseable returns parseable."
+  (is (typep (mapcar #'identity
+                     (make 'parseable :genome (make 'ast)))
+             'parseable)))
 
 (deftest ast-hash-tests ()
   ;; Test that ast-hash works

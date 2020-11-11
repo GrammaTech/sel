@@ -782,7 +782,7 @@ of SHARED-PATH-AST's path in OBJ.")
 
 (defmethod mapcar (function (obj parseable) &rest more)
   (declare (ignorable more))
-  (setf (genome obj) (mapcar function (genome obj))))
+  (copy obj :genome (mapcar function (genome obj))))
 
 (defmethod size ((obj parseable))
   "Return the number of non-root ASTs in OBJ."
