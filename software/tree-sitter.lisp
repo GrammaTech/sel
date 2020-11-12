@@ -515,21 +515,22 @@ or comments.  NIL if no such newline exists."
 (defun move-newlines-down (ast)
   "Destructively modify AST, pushing newlines down into child ASTs for
 statement AST types."
-  (iter (for child in (children ast))
-        (for after-text in (cdr (interleaved-text ast)))
-        (for i upfrom 1)
-        (when-let ((pos (and (typep child 'statement)
-                             (position-after-leading-newline after-text))))
-          ;; Move the [0, pos) prefix of after-text containing the newline
-          ;; down into the child node.
-          (setf (slot-value child 'interleaved-text)
-                (append (butlast (interleaved-text child))
-                        (list (concatenate 'string
-                                           (lastcar (interleaved-text child))
-                                           (subseq after-text 0 pos)))))
-          (setf (nth i (slot-value ast 'interleaved-text))
-                (subseq after-text pos)))
-        (finally (return ast))))
+  (iter
+    (for child in (sorted-children ast))
+    (for after-text in (cdr (interleaved-text ast)))
+    (for i upfrom 1)
+    (when-let ((pos (and (typep child 'statement)
+                         (position-after-leading-newline after-text))))
+      ;; Move the [0, pos) prefix of after-text containing the newline
+      ;; down into the child node.
+      (setf (slot-value child 'interleaved-text)
+            (append (butlast (interleaved-text child))
+                    (list (concatenate 'string
+                                       (lastcar (interleaved-text child))
+                                       (subseq after-text 0 pos)))))
+      (setf (nth i (slot-value ast 'interleaved-text))
+            (subseq after-text pos)))
+    (finally (return ast))))
 
 (defun fix-newlines (ast)
   "Fix newlines in ASTs by pushing newlines down into child
@@ -596,7 +597,6 @@ subclasses of SUPERCLASS."
       (convert-spec
        spec (get-language-from-superclass superclass) superclass)))
 
-;;; TODO: change the child-order annotations to use keywords.
 (defmethod convert ((to-type (eql 'tree-sitter-ast)) (string string)
                     &key superclass &allow-other-keys
                     &aux (line-octets
@@ -629,11 +629,6 @@ subclasses of SUPERCLASS."
        (end (ast)
          "Return the end offset into STRING from the AST representation."
          (car (ast-annotation ast :range-end)))
-       (normalized-children (ast)
-         "Return the sorted, non-nil children of AST after destructively
-         modifying AST to add a :child-order annotation to those AST types
-         whose children are not in a textual order by default."
-         (sorted-children ast))
        (ranges (children from to)
          "Return the offsets of the source text ranges between CHILDREN."
          (iter
@@ -645,7 +640,7 @@ subclasses of SUPERCLASS."
            (finally (return (append ranges
                                     (list (cons (end child) to)))))))
        (w/interleaved-text (ast from to
-                            &aux (children (normalized-children ast)))
+                            &aux (children (sorted-children ast)))
          "Destructively modify AST to populate the INTERLEAVED-TEXT
          field with the source text to be interleaved between the
          children of AST."
