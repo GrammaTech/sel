@@ -18,8 +18,7 @@
   (:import-from :cl-tree-sitter :register-language)
   (:shadowing-import-from :cl-tree-sitter :parse-string)
   (:export :tree-sitter-ast
-           :tree-sitter
-           :statement))
+           :tree-sitter))
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 
@@ -47,10 +46,6 @@ to parse the string."))
   (defclass tree-sitter-ast (non-homologous-ast)
     ()
     (:documentation "AST for input from tree-sitter."))
-
-  (defclass statement ()
-    ()
-    (:documentation "Mix-in for ASTs classes that are statements."))
 
   (defun convert-name (name-string)
     (camel-case-to-lisp (substitute #\- #\_  name-string)))
@@ -519,7 +514,7 @@ statement AST types."
     (for child in (sorted-children ast))
     (for after-text in (cdr (interleaved-text ast)))
     (for i upfrom 1)
-    (when-let ((pos (and (typep child 'statement)
+    (when-let ((pos (and (typep child 'parseable-statement)
                          (position-after-leading-newline after-text))))
       ;; Move the [0, pos) prefix of after-text containing the newline
       ;; down into the child node.
@@ -677,7 +672,7 @@ subclasses of SUPERCLASS."
 (define-tree-sitter-classes (:c)
   ;; TODO: this doesn't cover everything.
   :superclass-to-classes
-  ((:statement c--statement c-function-definition)))
+  ((:parseable-statement c--statement c-function-definition)))
 
 
 ;;; Java tree-sitter parsing
@@ -686,7 +681,7 @@ subclasses of SUPERCLASS."
 (define-tree-sitter-classes (:java)
   ;; TODO: this might not cover everything.
   :superclass-to-classes
-  ((:statement java-statement)))
+  ((:parseable-statement java-statement)))
 
 
 ;;; Javascript tree-sitter parsing
@@ -696,7 +691,7 @@ subclasses of SUPERCLASS."
 (define-tree-sitter-classes (:javascript)
   ;; TODO: this might not cover everything.
   :superclass-to-classes
-  ((:statement javascript--statement)))
+  ((:parseable-statement javascript--statement)))
 
 
 ;;; Python tree-sitter parsing
@@ -706,4 +701,4 @@ subclasses of SUPERCLASS."
 (define-tree-sitter-classes (:python)
   ;; TODO: this might not cover everything.
   :superclass-to-classes
-  ((:statement python--compound-statement python--simple-statement)))
+  ((:parseable-statement python--compound-statement python--simple-statement)))

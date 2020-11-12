@@ -79,7 +79,7 @@
     (is (not (find-if {typep _ 'c-error} (genome *soft*))))))
 
 ;;; TODO: something similar to Python's parsing test.
-(deftest c-tree-sitter-parsing-test ()
+(deftest (c-tree-sitter-parsing-test :long-running) ()
   (labels ((parsing-test-dir (path)
              (merge-pathnames-as-file
               (make-pathname :directory (append +c-tree-sitter-dir+
@@ -102,5 +102,5 @@
           ;; TODO: maybe add other super classes to (functions, expressions,
           ;;       etc.) for the list of injected super classes and test here?
           ;; TODO: add more files?
-          '((#P"function-definition.c" c-function-definition statement)
-            (#P"if-statement.c" c-if-statement statement)))))
+          '((#P"function-definition.c" c-function-definition parseable-statement)
+            (#P"if-statement.c" c-if-statement parseable-statement)))))

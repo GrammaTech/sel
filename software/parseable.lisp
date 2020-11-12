@@ -95,7 +95,11 @@
            :*indent-with-tabs-p*
            :*spaces-per-tab*
            :indentablep
-           :combine-all-conflict-asts))
+           :combine-all-conflict-asts
+           ;; Cross-language Mix-ins
+           :parseable-function
+           :parseable-expression
+           :parseable-statement))
 (in-package :software-evolution-library/software/parseable)
 (in-readtable :curry-compose-reader-macros)
 
@@ -1501,3 +1505,15 @@ This can be set to modify the behavior of #'source-text and #'convert")
   (:documentation "Return T if AST is indentable. This
 is useful for ASTs that may have newline literals.")
   (:method (ast) t))
+
+
+;;; Mix-ins for cross-language concepts
+(eval-always
+  (defclass parseable-statement () ()
+    (:documentation "Mix-in for ASTs classes that are statements."))
+
+  (defclass parseable-expression () ()
+    (:documentation "Mix-in for ASTs classes that are expressions."))
+
+  (defclass parseable-function () ()
+    (:documentation "Mix-in for ASTs classes that are functions.")))

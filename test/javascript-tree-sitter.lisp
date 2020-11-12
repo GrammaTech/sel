@@ -18,8 +18,7 @@
 
 
 ;;; Tests
-;;(deftest (javascript-tree-sitter-parsing-test :long-running) ()
-(deftest javascript-tree-sitter-parsing-test ()
+(deftest (javascript-tree-sitter-parsing-test :long-running) ()
   (labels ((parsing-test-dir (path)
              (merge-pathnames-as-file (nest (make-pathname :directory)
                                    (append +javascript-dir+)
