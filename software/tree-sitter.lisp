@@ -192,7 +192,7 @@ of fields needs to be determined at parse-time."
                 subtype->supertypes))
              (make-class-name (&optional name-string keep-underscores-p)
                "Create a class name based on NAME-STRING and add it to the
-                symbols that need exported. If replace-underscores-p is provided,
+                symbols that need exported. If keep-underscores-p is provided,
                 the underscores in NAME-STRING will be replaced with hyphens."
                ;; NOTE: this has the potential for name clashes
                ;;       though it's probably unlikely.

@@ -33,25 +33,23 @@
                      (is (find-if {typep _ ast-type} (genome soft)))))))
     (mapc {apply #'parse-test}
           '((#P"function-def.py" python-function-definition)
-            #+nil
-            (#P"async-function-def.py" python-async)
+            ;; NOTE: async is in interleaved text.
+            (#P"async-function-def.py" python-function-definition)
             (#P"class-def.py" python-class-definition)
             (#P"return.py" python-return-statement)
             (#P"delete.py" python-delete-statement)
             (#P"assign.py" python-assignment)
             (#P"aug-assign.py" python-augmented-assignment)
             ;; NOTE: stores annotation in the type slot.
-            #+nil
-            (#P"ann-assign.py" py-ann-assign)
+            (#P"ann-assign.py" python-type)
             (#P"for.py" python-for-statement)
-            #+nil
-            (#P"async-for.py" py-async-for)
+            ;; NOTE: async is in interleaved text.
+            (#P"async-for.py" python-for-statement)
             (#P"while.py" python-while-statement)
-            ;; Currently doesn't work with indentation.
-            ;;(#P"if.py" py-if)
+            (#P"if.py" python-if-statement)
             (#P"with.py" python-with-statement)
-            #+nil
-            (#P"async-with.py" py-async-with)
+            ;; NOTE: async is in interleaved text.
+            (#P"async-with.py" python-with-statement)
             (#P"raise.py" python-raise-statement)
             (#P"try.py" python-try-statement)
             (#P"assert.py" python-assert-statement)
@@ -76,11 +74,10 @@
             (#P"generator-exp.py" python-generator-expression)
             (#P"await.py" python-await)
             (#P"yield.py" python-yield)
-            #+nil
-            (#P"yield-from.py" py-yield-from)
+            ;; NOTE: from is in interleaved text.
+            (#P"yield-from.py" python-yield)
             (#P"compare.py" python-comparison-operator)
             (#P"call.py" python-call)
-            ;; TODO: confirm this is what's intended.
             (#P"joined-str.py" python-interpolation)
             (#P"attribute.py" python-attribute)
             (#P"starred.py" python-list-splat-pattern)

@@ -50,15 +50,12 @@
             (#P"labeled-statement.js" javascript-labeled-statement)
             (#P"loops.js"
              javascript-for-statement javascript-for-in-statement
-             ;; TODO: it doesn't appear to have this class; is this an issue?
-             #+nil js-for-of-statement
+             ;; NOTE: the 'of' in the for-of is in the interleaved-text
              javascript-while-statement javascript-do-statement)
             (#P"new-expression.js" javascript-new-expression)
             (#P"object-destructuring.js" javascript-object-pattern)
             (#P"object-expression.js" javascript-object)
-            ;; TODO: figure out what this is supposed to be looking for.
-            #+nil
-            (#P"property.js" javascript-property)
+            (#P"property.js" javascript-pair)
             (#P"sequence-expression.js" javascript-sequence-expression)
             (#P"spread-element.js" javascript-spread-element)
             (#p"super.js" javascript-super)
