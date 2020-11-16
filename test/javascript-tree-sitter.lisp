@@ -30,6 +30,7 @@
                (is (not (zerop (size soft))))
                (is (equal (genome-string soft)
                           (file-to-string (original-path soft))))
+               (is (not (find-if {typep _ 'javascript-error} (genome soft))))
                (iter (for ast-type in ast-types)
                      (is (find-if {typep _ ast-type} (genome soft)))))))
     (mapc {apply #'parse-test}
