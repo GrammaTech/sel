@@ -66,8 +66,6 @@ RUN curl https://gitlab.common-lisp.net/asdf/asdf/-/archive/3.3.4.3/asdf-3.3.4.3
 # Install tree-sitter
 WORKDIR /
 RUN git clone https://github.com/tree-sitter/tree-sitter
-# Remove these clones before merge; they are for reviewing purposes.
-# TODO: add in cl-tree-sitter repo.
 WORKDIR /tree-sitter
 RUN PREFIX=/usr make all install
 WORKDIR /
@@ -90,11 +88,9 @@ RUN for language in agda bash c c-sharp cpp css go html java javascript jsdoc js
         cp grammar.json node-types.json /usr/share/tree-sitter/${language};                                                                                                                      \
         cd -;                                                                                                                                                                                    \
     done
-# RUN git clone https://github.com/death/cl-tree-sitter /root/quicklisp/local-projects/cl-tree-sitter
-RUN git clone https://git.grammatech.com/nberch/cl-tree-sitter /root/quicklisp/local-projects/cl-tree-sitter
+RUN git clone https://github.com/death/cl-tree-sitter /root/quicklisp/local-projects/cl-tree-sitter
 # Remove this sed command when upstream is updated.
 RUN sed -i 's/(t (:default "tree-sitter")))/(t (:or (:default "tree-sitter") (:default "libtree-sitter"))))/' /root/quicklisp/local-projects/cl-tree-sitter/low-level.lisp
-RUN git clone https://github.com/death/cffi /root/quicklisp/local-projects/cffi
 
 
 WORKDIR /root/quicklisp/local-projects
