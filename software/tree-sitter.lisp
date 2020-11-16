@@ -683,12 +683,47 @@ subclasses of SUPERCLASS."
                    (1- (length line-octets)))))))
 
 
+;;; Agda tree-sitter parsing
+(register-tree-sitter-language ("tree-sitter-agda" :agda 'agda-ast)
+  (define-tree-sitter-classes (:agda)))
+
+
+;;; Bash tree-sitter parsing
+(register-tree-sitter-language ("tree-sitter-bash" :bash 'bash-ast)
+  (define-tree-sitter-classes (:bash)))
+
+
 ;;; C tree-sitter parsing
 (register-tree-sitter-language ("tree-sitter-c" :c 'c-ast)
   (define-tree-sitter-classes (:c)
     ;; TODO: at some point: this doesn't cover everything.
     :superclass-to-classes
     ((:parseable-statement c--statement c-function-definition))))
+
+
+;;; C# tree-sitter parsing
+(register-tree-sitter-language ("tree-sitter-c-sharp" :c-sharp 'c-sharp-ast)
+  (define-tree-sitter-classes (:c-sharp)))
+
+
+;;; Bash tree-sitter parsing
+(register-tree-sitter-language ("tree-sitter-cpp" :cpp 'cpp-ast)
+  (define-tree-sitter-classes (:cpp)))
+
+
+;;; css tree-sitter parsing
+(register-tree-sitter-language ("tree-sitter-css" :css 'css-ast)
+  (define-tree-sitter-classes (:css)))
+
+
+;;; Go tree-sitter parsing
+(register-tree-sitter-language ("tree-sitter-go" :go 'go-ast)
+  (define-tree-sitter-classes (:go)))
+
+
+;;; html tree-sitter parsing
+(register-tree-sitter-language ("tree-sitter-html" :html 'html-ast)
+  (define-tree-sitter-classes (:html)))
 
 
 ;;; Java tree-sitter parsing
@@ -708,6 +743,38 @@ subclasses of SUPERCLASS."
     ((:parseable-statement javascript--statement))))
 
 
+;;; jsdoc tree-sitter parsing
+(register-tree-sitter-language ("tree-sitter-jsdoc" :jsdoc 'jsdoc-ast)
+  (define-tree-sitter-classes (:jsdoc)))
+
+
+;;; json tree-sitter parsing
+(register-tree-sitter-language ("tree-sitter-json" :json 'json-ast)
+  (define-tree-sitter-classes (:json)))
+
+
+;;; Julia tree-sitter parsing
+(register-tree-sitter-language ("tree-sitter-julia" :julia 'julia-ast)
+  (define-tree-sitter-classes (:julia)))
+
+
+;;; Ocaml/Ocaml tree-sitter parsing
+(register-tree-sitter-language ("tree-sitter-ocaml/ocaml"
+                                :ocaml 'ocaml-ast)
+  (define-tree-sitter-classes (:ocaml)))
+
+
+;;; Ocaml/Interface tree-sitter parsing
+(register-tree-sitter-language ("tree-sitter-ocaml/interface"
+                                :ocaml/interface 'ocaml/interface-ast)
+  (define-tree-sitter-classes (:ocaml/interface)))
+
+
+;;; PHP tree-sitter parsing
+(register-tree-sitter-language ("tree-sitter-php" :php 'php-ast)
+  (define-tree-sitter-classes (:php)))
+
+
 ;;; Python tree-sitter parsing
 (register-tree-sitter-language
     ("tree-sitter-python" :python 'python-ast)
@@ -716,3 +783,40 @@ subclasses of SUPERCLASS."
     :superclass-to-classes
     ((:parseable-statement
       python--compound-statement python--simple-statement))))
+
+
+;;; Ql tree-sitter parsing
+(register-tree-sitter-language ("tree-sitter-ql" :ql 'ql-ast)
+  (define-tree-sitter-classes (:ql)))
+
+
+;;; Regex tree-sitter parsing
+(register-tree-sitter-language ("tree-sitter-regex" :regex 'regex-ast)
+  (define-tree-sitter-classes (:regex)))
+
+
+;;; Ruby tree-sitter parsing
+(register-tree-sitter-language ("tree-sitter-ruby" :ruby 'ruby-ast)
+  (define-tree-sitter-classes (:ruby)))
+
+
+;;; Rust tree-sitter parsing
+(register-tree-sitter-language ("tree-sitter-rust" :rust 'rust-ast)
+  (define-tree-sitter-classes (:rust)))
+
+
+;;; Scala tree-sitter parsing
+(register-tree-sitter-language ("tree-sitter-scala" :scala 'scala-ast)
+  (define-tree-sitter-classes (:scala)))
+
+
+;;; Typescript/Tsx tree-sitter parsing
+(register-tree-sitter-language
+    ("tree-sitter-typescript/tsx" :typescript/tsx 'typescript/tsx-ast)
+  (define-tree-sitter-classes (:typescript/tsx)))
+
+
+;;; Typescript tree-sitter parsing
+(register-tree-sitter-language
+    ("tree-sitter-typescript" :typescript 'typescript-ast)
+  (define-tree-sitter-classes (:typescript)))
