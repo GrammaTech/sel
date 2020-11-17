@@ -85,7 +85,7 @@ of fields needs to be determined at parse-time."
                "Add NAME to the list of used fields."
                ;; NOTE: avoid adding the same field more than once.
                ;;       This can occur with 'CHOICE' rules.
-               (setf fields (union fields (list name) :test #'equal)))
+               (pushnew name fields :test #'equal))
              (handle-choice (rule &optional preceding-fields visited-rules)
                "Handle RULE as a 'CHOICE' rule."
                (remove-duplicates
@@ -121,8 +121,7 @@ of fields needs to be determined at parse-time."
                             &aux (name (aget :name rule)))
                "Handle RULE as a 'FIELD' rule and add a dependency from
               the field to PRECEDING-FIELDS if it exists."
-               (when (member (make-keyword (convert-name name))
-                             expected-fields :test #'equal)
+               (when (member (make-keyword (convert-name name)) expected-fields)
                  (add-field name)
                  (add-dependency preceding-fields name)
                  (list name)))
@@ -146,7 +145,7 @@ of fields needs to be determined at parse-time."
                          (name (make-keyword (convert-name name-string))))
                     ;; NOTE: the rules starting with an #\_ are special
                     ;;       and are the only ones that should be considered
-                    ;;       when search for fields that may be down the line
+                    ;;       when searching for fields that may be down the line
                     ;;       in different rules.
                     (when-let ((name (and (eql #\_ (aref name-string 0))
                                           (not (member name visited-rules))
@@ -556,9 +555,8 @@ during AST creation to respect functional trees invariants."
 
 (defun convert-spec (spec prefix superclass
                      &aux (package (symbol-package superclass)))
-  "Convert SPEC into and ast of type SUPERCLASS.
-PREFIX is used to find the correct class name for
-subclasses of SUPERCLASS."
+  "Convert SPEC into an ast of type SUPERCLASS. PREFIX is used to find the
+correct class name for subclasses of SUPERCLASS."
   (lret ((instance
           (make-instance
            (symbol-cat-in-package
@@ -579,12 +577,11 @@ subclasses of SUPERCLASS."
       (if (slot-exists-p instance key)
           (setf (slot-value instance key)
                 (if-let ((spec (find key child-types :key #'car)))
-                  (destructuring-bind (key . arity) spec
-                    (declare (ignorable key))
-                    (ecase arity
-                      (1 (convert superclass value))
-                      (0 (iter (for item in value)
-                           (collect (convert superclass item))))))
+                  (ematch spec
+                    ;; (cons key arity)
+                    ((cons _ 1) (convert superclass value))
+                    ((cons _ 0) (iter (for item in value)
+                                  (collect (convert superclass item)))))
                   value))
           (push (cons slot value) annotations))
       (finally
@@ -647,11 +644,10 @@ subclasses of SUPERCLASS."
          (iter
            (for child in children)
            (for prev previous child)
-           (if prev
-               (collect (cons (end prev) (start child)) into ranges)
-               (collect (cons from (start child)) into ranges))
-           (finally (return (append ranges
-                                    (list (cons (end child) to)))))))
+           (collect (cons (if prev (end prev) from) (start child))
+             into ranges)
+           (finally
+            (return (append ranges (list (cons (end child) to)))))))
        (w/interleaved-text (ast from to
                             &aux (children (sorted-children ast)))
          "Destructively modify AST to populate the INTERLEAVED-TEXT
