@@ -3,3 +3,4 @@ git functional-trees https://git.grammatech.com/synthesis/functional-trees.git
 git testbot http://git.grammatech.com/synthesis/testbot.git
 git stefil+ https://github.com/GrammaTech/stefil-.git main
 git cffi https://github.com/death/cffi
+git cl-tree-sitter https://github.com/death/cl-tree-sitter
