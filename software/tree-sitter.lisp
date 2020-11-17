@@ -35,8 +35,9 @@ which language--and its relevant shared object--should be used
 to parse the string.")
 
   (defvar *tree-sitter-language-directory*
-    (or (getenv "SEL_TREE_SITTER_LANGUAGE_DIR")
-        "/usr/share/tree-sitter/")
+    (pathname-directory
+     (or (getenv "SEL_TREE_SITTER_LANGUAGE_DIR")
+         "/usr/share/tree-sitter/"))
     "A directory that holds directories of json files for each
 supported tree-sitter language."))
 
@@ -397,18 +398,12 @@ of fields needs to be determined at parse-time."
   ;; NOTE: body variable is here to help with formatting
   (declare (ignorable body))
   ;; TODO IF EVER NEEDED: add code to search different places.
-  (let ((grammar-file
-          (make-pathname
-           :directory
-           (list :absolute *tree-sitter-language-directory* language-directory)
-           :name "grammar"
-           :type "json"))
+  (let* ((directory (append *tree-sitter-language-directory*
+                            (list language-directory)))
+        (grammar-file
+          (make-pathname :directory directory :name "grammar" :type "json"))
         (node-types-file
-          (make-pathname
-           :directory
-           (list :absolute *tree-sitter-language-directory* language-directory)
-           :name "node-types"
-           :type "json")))
+          (make-pathname :directory directory :name "node-types" :type "json")))
     (handler-case (create-tree-sitter-classes
                    node-types-file grammar-file name-prefix
                    :superclass-to-classes superclass-to-classes)
