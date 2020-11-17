@@ -265,6 +265,10 @@ of children and not in named children slots."
     copy))
 
 (defgeneric check-interleaved-text (ast)
+  (:documentation "Assert that AST's interleaved text is valid.
+
+Interleaved text is valid when the number of interleaved strings is
+one greater than the number of children.")
   (:method ((ast interleaved-text))
     (let ((children (sorted-children ast)))
       (assert (= (1+ (length children)) (length (interleaved-text ast))) (ast)
