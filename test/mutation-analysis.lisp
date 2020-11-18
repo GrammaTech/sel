@@ -53,6 +53,7 @@
 (deftest (mutation-project-recorded-correctly :long-running) ()
   (with-fixture grep-project
     (let* ((variant (copy *project*))
+           (*mutation-stats* (make-hash-table :test 'equal))
            (op (cons "grep.c"
                      (make-instance 'clang-cut
                        :object variant
