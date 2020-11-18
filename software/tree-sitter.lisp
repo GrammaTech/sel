@@ -65,6 +65,16 @@ and only one of them is desired and used."
   (defun convert-name (name-string)
     (camel-case-to-lisp (substitute #\- #\_  name-string)))
 
+  (defun translate-to-slot-name (name prefix)
+    "Translate NAME into a slot name that is unlikely
+     to collide with inherited slot names by prepending
+     PREFIX. If NAME is 'children', the prefix is not
+     attached."
+    (cond
+      ((string= name :children)
+       (symbolicate name))
+      (t (symbolicate prefix '- name))))
+
   ;; NOTE: while a :child-order annotation is currently being generated
   ;;       for every ast converted from a string, having the slot order
   ;;       is useful for converting from a list where the :child-order
@@ -246,16 +256,16 @@ of fields needs to be determined at parse-time."
                 subtypes))
              (create-slot (field &aux (name-keyword (car field)))
                "Create a slot based on FIELD."
-               `(,(symbolicate name-keyword)
-                 :accessor ,(make-accessor-name name-keyword)
-                 :initarg ,name-keyword
-                 :initform nil))
+               (let ((name (make-accessor-name name-keyword)))
+                 `(,name :accessor ,name
+                         :initarg ,name-keyword
+                         :initform nil)))
              (create-slots (fields)
                "Create the slots for a new class based on FIELDS and CHILDREN.
                 Currently, types aren't supported, but there is enough
                 information to limit slots to certain types."
-               ;; NOTE: there is a potential for name overlaps when generating
-               ;;       these classes.
+               ;; NOTE: there is a small possibility for name overlaps when
+               ;;       generating these slots.
                (mapcar #'create-slot fields))
              (create-supertype-class (type subtypes
                                       &aux (class-name (make-class-name type)))
@@ -274,7 +284,7 @@ of fields needs to be determined at parse-time."
                          (mapcar
                           (lambda (slot-keyword)
                             (cons
-                             (symbolicate slot-keyword)
+                             (translate-to-slot-name slot-keyword name-prefix)
                              (if (aget :multiple (aget slot-keyword fields))
                                  0
                                  1)))
@@ -348,7 +358,9 @@ of fields needs to be determined at parse-time."
                ;; NOTE: ensure there is always a children slot.
                ;;       This is important for classes that don't have
                ;;       it but can have comments mixed in.
-               (,(create-slot '(children)))
+               ((children :accessor ,(make-accessor-name :children)
+                          :initarg :children
+                          :initform nil))
                (:documentation
                 ,(format nil "AST for ~A from input via tree-sitter."
                          name-prefix)))
@@ -466,7 +478,8 @@ of fields needs to be determined at parse-time."
              "Set the slots in instance to correspond to SLOT-VALUES."
              (mapc
               (lambda (list)
-                (setf (slot-value instance (symbolicate (car list)))
+                (setf (slot-value
+                       instance (translate-to-slot-name (car list) prefix))
                       (if (null (cddr list))
                           (cadr list)
                           (cdr list))))
@@ -475,7 +488,8 @@ of fields needs to be determined at parse-time."
              "Update any slot in instance that needs to be converted to a list
               to match its arity. This is primarily for #'sorted-children."
              (mapc
-              (lambda (slot-arity &aux (slot (symbolicate (car slot-arity))))
+              (lambda (slot-arity
+                       &aux (slot (car slot-arity)))
                 (symbol-macrolet ((slot-value (slot-value instance slot)))
                   (unless (listp slot-value)
                     (setf slot-value (list slot-value)))))
@@ -580,16 +594,20 @@ correct class name for subclasses of SUPERCLASS."
       (iter:with annotations = nil)
       (for (slot . value) in (adrop '(:class) spec))
       (for key = (format-symbol package "~a" slot))
-      (if (slot-exists-p instance key)
-          (setf (slot-value instance key)
-                (if-let ((spec (find key child-types :key #'car)))
-                  (ematch spec
-                    ;; (cons key arity)
-                    ((cons _ 1) (convert superclass value))
-                    ((cons _ 0) (iter (for item in value)
-                                  (collect (convert superclass item)))))
-                  value))
-          (push (cons slot value) annotations))
+      (for translated-key = (translate-to-slot-name key prefix))
+      (cond
+        ((slot-exists-p instance translated-key)
+         (setf (slot-value instance translated-key)
+               (if-let ((spec (find translated-key child-types :key #'car)))
+                 (ematch spec
+                   ;; (cons key arity)
+                   ((cons _ 1) (convert superclass value))
+                   ((cons _ 0) (iter (for item in value)
+                                 (collect (convert superclass item)))))
+                 value)))
+        ;; Account for slots in superclasses.
+        ((slot-exists-p instance key) (setf (slot-value instance key) value))
+        (t (push (cons slot value) annotations)))
       (finally
        (with-slots ((annotations-slot annotations)) instance
          (setf annotations-slot (append annotations annotations-slot)))))))
