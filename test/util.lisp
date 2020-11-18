@@ -5,7 +5,8 @@
         :software-evolution-library/utility/debug
         :software-evolution-library/utility/range
         :stefil+
-        :software-evolution-library/software/parseable)
+        :software-evolution-library/software/parseable
+        :software-evolution-library/software/tree-sitter)
   (:export :test
            :+etc-dir+
            :+gcd-dir+
@@ -163,28 +164,21 @@
            ("Python ([0-9]+)\.([0-9]+)" (shell "python3 --version"))
          (and (>= (parse-integer major) 3) (>= (parse-integer minor) 8)))))
 
-(defun lib-available-p (name)
-  (not (equal (format nil "~%")
-              (shell "whereis ~a | awk '{print($2)}'" name))))
-
-(defun tree-sitter-available-p ()
-  (lib-available-p "libtree-sitter.so"))
-
 (defun c-tree-sitter-available-p ()
-  (and (tree-sitter-available-p)
-       (lib-available-p "tree-sitter-c.so")))
+  (handler-case (progn (make-instance 'sel/sw/tree-sitter:c))
+                (error (e) (declare (ignorable e)) nil)))
 
 (defun java-tree-sitter-available-p ()
-  (and (tree-sitter-available-p)
-       (lib-available-p "tree-sitter-java.so")))
+  (handler-case (progn (make-instance 'sel/sw/tree-sitter:java))
+                (error (e) (declare (ignorable e)) nil)))
 
 (defun python-tree-sitter-available-p ()
-  (and (tree-sitter-available-p)
-       (lib-available-p "tree-sitter-python.so")))
+  (handler-case (progn (make-instance 'sel/sw/tree-sitter:python))
+                (error (e) (declare (ignorable e)) nil)))
 
 (defun javascript-tree-sitter-available-p ()
-  (and (tree-sitter-available-p)
-       (lib-available-p "tree-sitter-javascript.so")))
+  (handler-case (progn (make-instance 'sel/sw/tree-sitter:javascript))
+                (error (e) (declare (ignorable e)) nil)))
 
 (defun stmt-with-text (obj text &key no-error (trim t))
   "Return the AST in OBJ holding TEXT.
