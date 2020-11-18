@@ -61,7 +61,7 @@ searched to populate `*tree-sitter-language-files*'.")
     "Files defining tree sitter languages.")
 
   (defvar *tree-sitter-superclasses*
-    '((:c (:parseable-statement c-statement c-function-definition))
+    '((:c (:parseable-statement c--statement c-function-definition))
       (:java (:parseable-statement java-statement))
       (:javascript (:parseable-statement javascript--statement))
       (:python (:parseable-statement python--compound-statement python--simple-statement))))
