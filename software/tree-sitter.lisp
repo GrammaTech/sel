@@ -737,3 +737,32 @@ correct class name for subclasses of SUPERCLASS."
 
 (progn #.`(progn ,@(mappend {apply #'tree-sitter-ast-classes}
                             *tree-sitter-language-files*)))
+
+(defmacro when-class-defined ((software-class) &body body)
+  (when (handler-case (find-class software-class)
+          (error ()))
+    `(progn
+       ,@body)))
+
+(defun interpreted-phenome (obj bin)
+  "Create a phenotype of the interpreted software OBJ."
+  (to-file obj bin)
+  (values bin 0 nil nil nil))
+
+
+;;;; Python
+(when-class-defined (python)
+
+  
+  ;; Methods common to all software objects
+  (defmethod phenome ((obj python) &key (bin (temp-file-name)))
+    (interpreted-phenome obj bin)))
+
+
+;;;; Javascript
+(when-class-defined (python)
+
+  
+  ;; Methods common to all software objects
+  (defmethod phenome ((obj javascript) &key (bin (temp-file-name)))
+    (interpreted-phenome obj bin)))
