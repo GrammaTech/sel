@@ -34,12 +34,59 @@ convert is called, the superclass can then be used to look up
 which language--and its relevant shared object--should be used
 to parse the string.")
 
-  (defvar *tree-sitter-language-directory*
-    (pathname-directory
-     (or (getenv "SEL_TREE_SITTER_LANGUAGE_DIR")
-         "/usr/share/tree-sitter/"))
-    "A directory that holds directories of json files for each
-supported tree-sitter language."))
+  (defvar *tree-sitter-language-directories*
+    (or (when-let ((env (getenv "SEL_TREE_SITTER_LANGUAGE_DIR")))
+          (split-sequence #\, env))
+        '("/usr/share/tree-sitter/"))
+    "A list of directories that hold directories of json files
+defining supported tree-sitter languages.  These directories are
+searched to populate `*tree-sitter-language-files*'.")
+
+  (defun collect-tree-sitter-language-files
+      (&optional (directories *tree-sitter-language-directories*) &aux results)
+    "Collect tree-sitter language definition files."
+    (dolist (dir directories results)
+      (walk-directory
+       dir
+       (lambda (file)
+         (let* ((base (pathname-directory-pathname file))
+                (name (string-trim '(#\/) (pathname-relativize dir base))))
+           (push (list name
+                       (merge-pathnames "grammar.json" base)
+                       (merge-pathnames "node-types.json" base))
+                 results)))
+       :test [{string= "node-types"} #'namestring #'pathname-name])))
+
+  (defvar *tree-sitter-language-files* (collect-tree-sitter-language-files)
+    "Files defining tree sitter languages.")
+
+  (defvar *tree-sitter-superclasses*
+    '((:c (:parseable-statement c-statement c-function-definition))
+      (:java (:parseable-statement java-statement))
+      (:javascript (:parseable-statement javascript--statement))
+      (:python (:parseable-statement python--compound-statement python--simple-statement))))
+
+  (defun tree-sitter-ast-classes (name grammar-file node-types-file)
+    (nest
+     (flet ((alternate-class-name (name)
+              (string-case name
+                ("GO" "GOLANG")
+                (t name)))))
+     (let* ((path-name (replace-all name "/" "-"))
+            (class-name (alternate-class-name (string-upcase path-name)))
+            (class-keyword (make-keyword class-name))))
+     `((register-tree-sitter-language
+        ,(string-join (list "tree-sitter" path-name) #\-)
+        ,class-keyword
+        ',(intern (string-join (list class-name "AST") #\-)
+                  :software-evolution-library/software/tree-sitter))
+       ,(apply #'create-tree-sitter-classes
+               node-types-file
+               grammar-file
+               class-name
+               (when-let ((superclasses
+                           (aget class-keyword *tree-sitter-superclasses*)))
+                 (list :superclass-to-classes superclasses)))))))
 
 (defmacro register-tree-sitter-language (lib-name language ast-superclass)
   "Setup LANGUAGE to map to AST-SUPERCLASS and use LIB-NAME for parsing.
@@ -402,28 +449,6 @@ of fields needs to be determined at parse-time."
                                   &optional (source (genome-string obj)))
              (convert ',(make-class-name "ast") source)))))))
 
-(defmacro define-tree-sitter-classes
-    ((name-prefix &optional (language-directory name-prefix))
-     &body body
-     &key superclass-to-classes)
-  ;; NOTE: body variable is here to help with formatting
-  (declare (ignorable body))
-  ;; TODO IF EVER NEEDED: add code to search different places.
-  (let* ((directory (append *tree-sitter-language-directory*
-                            (cdr (pathname-directory
-                                  (format nil "/~(~a~)/" language-directory)))))
-        (grammar-file
-          (make-pathname :directory directory :name "grammar" :type "json"))
-        (node-types-file
-          (make-pathname :directory directory :name "node-types" :type "json")))
-    (handler-case (create-tree-sitter-classes
-                   node-types-file grammar-file name-prefix
-                   :superclass-to-classes superclass-to-classes)
-      (file-error ()
-        (warn
-         "Failed to find '~a' or '~a'.~%Symbols for '~a' will not be defined."
-         grammar-file node-types-file name-prefix)))))
-
 
 ;;; tree-sitter parsing
 (defun convert-initializer
@@ -703,137 +728,7 @@ correct class name for subclasses of SUPERCLASS."
                    (1- (length line-octets)))))))
 
 
-;;; Agda tree-sitter parsing
-(register-tree-sitter-language "tree-sitter-agda" :agda 'agda-ast)
-(define-tree-sitter-classes (:agda))
+;;;; Tree-sitter language definitions.
 
-
-;;; Bash tree-sitter parsing
-(register-tree-sitter-language "tree-sitter-bash" :bash 'bash-ast)
-(define-tree-sitter-classes (:bash))
-
-
-;;; C tree-sitter parsing
-(register-tree-sitter-language "tree-sitter-c" :c 'c-ast)
-(define-tree-sitter-classes (:c)
-  ;; TODO: at some point: this doesn't cover everything.
-  :superclass-to-classes
-  ((:parseable-statement c--statement c-function-definition)))
-
-
-;;; C# tree-sitter parsing
-(register-tree-sitter-language "tree-sitter-c-sharp" :c-sharp 'c-sharp-ast)
-(define-tree-sitter-classes (:c-sharp))
-
-
-;;; Bash tree-sitter parsing
-(register-tree-sitter-language "tree-sitter-cpp" :cpp 'cpp-ast)
-(define-tree-sitter-classes (:cpp))
-
-
-;;; css tree-sitter parsing
-(register-tree-sitter-language "tree-sitter-css" :css 'css-ast)
-(define-tree-sitter-classes (:css))
-
-
-;;; Go tree-sitter parsing
-(register-tree-sitter-language "tree-sitter-go" :golang 'golang-ast)
-(define-tree-sitter-classes (:golang "go"))
-
-
-;;; html tree-sitter parsing
-(register-tree-sitter-language "tree-sitter-html" :html 'html-ast)
-(define-tree-sitter-classes (:html))
-
-
-;;; Java tree-sitter parsing
-(register-tree-sitter-language "tree-sitter-java" :java 'java-ast)
-(define-tree-sitter-classes (:java)
-  ;; TODO: at some point: this might not cover everything.
-  :superclass-to-classes
-  ((:parseable-statement java-statement)))
-
-
-;;; Javascript tree-sitter parsing
-(register-tree-sitter-language
-    "tree-sitter-javascript" :javascript 'javascript-ast)
-(define-tree-sitter-classes (:javascript)
-  ;; TODO: at some point: this might not cover everything.
-  :superclass-to-classes
-  ((:parseable-statement javascript--statement)))
-
-
-;;; jsdoc tree-sitter parsing
-(register-tree-sitter-language "tree-sitter-jsdoc" :jsdoc 'jsdoc-ast)
-(define-tree-sitter-classes (:jsdoc))
-
-
-;;; json tree-sitter parsing
-(register-tree-sitter-language "tree-sitter-json" :json 'json-ast)
-(define-tree-sitter-classes (:json))
-
-
-;;; Julia tree-sitter parsing
-(register-tree-sitter-language "tree-sitter-julia" :julia 'julia-ast)
-(define-tree-sitter-classes (:julia))
-
-
-;;; Ocaml/Ocaml tree-sitter parsing
-(register-tree-sitter-language "tree-sitter-ocaml/ocaml" :ocaml 'ocaml-ast)
-(define-tree-sitter-classes (:ocaml "ocaml/ocaml"))
-
-
-;;; Ocaml/Interface tree-sitter parsing
-(register-tree-sitter-language
-    "tree-sitter-ocaml/interface" :ocaml/interface 'ocaml/interface-ast)
-(define-tree-sitter-classes (:ocaml/interface))
-
-
-;;; PHP tree-sitter parsing
-(register-tree-sitter-language "tree-sitter-php" :php 'php-ast)
-(define-tree-sitter-classes (:php))
-
-
-;;; Python tree-sitter parsing
-(register-tree-sitter-language "tree-sitter-python" :python 'python-ast)
-(define-tree-sitter-classes (:python)
-  ;; TODO: at some point: this might not cover everything.
-  :superclass-to-classes
-  ((:parseable-statement python--compound-statement python--simple-statement)))
-
-
-;;; Ql tree-sitter parsing
-(register-tree-sitter-language "tree-sitter-ql" :ql 'ql-ast)
-(define-tree-sitter-classes (:ql))
-
-
-;;; Regex tree-sitter parsing
-(register-tree-sitter-language "tree-sitter-regex" :regex 'regex-ast)
-(define-tree-sitter-classes (:regex))
-
-
-;;; Ruby tree-sitter parsing
-(register-tree-sitter-language "tree-sitter-ruby" :ruby 'ruby-ast)
-(define-tree-sitter-classes (:ruby))
-
-
-;;; Rust tree-sitter parsing
-(register-tree-sitter-language "tree-sitter-rust" :rust 'rust-ast)
-(define-tree-sitter-classes (:rust))
-
-
-;;; Scala tree-sitter parsing
-(register-tree-sitter-language "tree-sitter-scala" :scala 'scala-ast)
-(define-tree-sitter-classes (:scala))
-
-
-;;; Typescript/Tsx tree-sitter parsing
-(register-tree-sitter-language
-    "tree-sitter-typescript/tsx" :typescript/tsx 'typescript/tsx-ast)
-(define-tree-sitter-classes (:typescript/tsx))
-
-
-;;; Typescript tree-sitter parsing
-(register-tree-sitter-language
-    "tree-sitter-typescript/typescript" :typescript 'typescript-ast)
-(define-tree-sitter-classes (:typescript "typescript/typescript"))
+(progn #.`(progn ,@(mappend {apply #'tree-sitter-ast-classes}
+                            *tree-sitter-language-files*)))
