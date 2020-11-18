@@ -94,7 +94,8 @@
                (is (find-if
                     (lambda (ast)
                       (typep ast `(and ,@ast-types)))
-                    (genome soft))))))
+                    (genome soft))
+                   (format nil "Found ASTS of types (and ~{~a~^ ~})" ast-types)))))
     (mapc {apply #'parse-test}
           '((#P"abstract-array-declarator.c" c-abstract-array-declarator)
             (#P"abstract-pointer-declarator.c" c-abstract-pointer-declarator)
