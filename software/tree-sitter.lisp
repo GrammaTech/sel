@@ -403,15 +403,15 @@ of fields needs to be determined at parse-time."
              (convert ',(make-class-name "ast") source)))))))
 
 (defmacro define-tree-sitter-classes
-    ((name-prefix &optional (language-directory
-                             (format nil "~(~a~)" name-prefix)))
+    ((name-prefix &optional (language-directory name-prefix))
      &body body
      &key superclass-to-classes)
   ;; NOTE: body variable is here to help with formatting
   (declare (ignorable body))
   ;; TODO IF EVER NEEDED: add code to search different places.
   (let* ((directory (append *tree-sitter-language-directory*
-                            (list language-directory)))
+                            (cdr (pathname-directory
+                                  (format nil "/~(~a~)/" language-directory)))))
         (grammar-file
           (make-pathname :directory directory :name "grammar" :type "json"))
         (node-types-file
