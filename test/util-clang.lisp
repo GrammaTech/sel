@@ -432,7 +432,7 @@
                                             :name "grep"
                                             :type "c")))))))
           (make-pathname :directory +grep-prj-dir+))
-         *mutation-stats* nil))
+         *mutation-stats* (make-hash-table :test 'equal)))
   (:teardown (setf *project* nil
                    *mutation-stats* nil)))
 
