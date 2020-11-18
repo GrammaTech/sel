@@ -64,7 +64,7 @@
                  (:class . :primitive-type)
                  (:interleaved-text "int"))
                 (:interleaved-text "" " " ";")))))
-    (is (find-if {typep _'c-declaration} ast))
+    (is (find-if {typep _ 'c-declaration} ast))
     (is (find-if {typep _ 'c-init-declarator} ast))
     (is (find-if {typep _ 'c-identifier} ast))
     (is (find-if {typep _ 'c-number-literal} ast))
