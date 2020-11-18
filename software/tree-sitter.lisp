@@ -447,7 +447,12 @@ of fields needs to be determined at parse-time."
 
            (defmethod parse-asts ((obj ,(make-class-name))
                                   &optional (source (genome-string obj)))
-             (convert ',(make-class-name "ast") source)))))))
+             (convert ',(make-class-name "ast") source))
+
+           (define-mutation ,(make-class-name "mutation") (parseable-mutation) ()
+             (:documentation
+              ,(format nil "Mutation interface for ~a software objects."
+                       name-prefix))))))))
 
 
 ;;; tree-sitter parsing
