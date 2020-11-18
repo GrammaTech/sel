@@ -431,8 +431,10 @@
                              (make-pathname :directory +grep-prj-dir+
                                             :name "grep"
                                             :type "c")))))))
-          (make-pathname :directory +grep-prj-dir+))))
-  (:teardown (setf *project* nil)))
+          (make-pathname :directory +grep-prj-dir+))
+         *mutation-stats* nil))
+  (:teardown (setf *project* nil
+                   *mutation-stats* nil)))
 
 (defixture grep-bear-project
   (:setup
