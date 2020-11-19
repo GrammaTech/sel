@@ -115,6 +115,15 @@
 for objects to allow method dispatch on generic AST objects regardless of
 whether they inherit from the functional trees library."))
 
+(defclass parseable-statement () ()
+  (:documentation "Mix-in for ASTs classes that are statements."))
+
+(defclass parseable-expression () ()
+  (:documentation "Mix-in for ASTs classes that are expressions."))
+
+(defclass parseable-function () ()
+  (:documentation "Mix-in for ASTs classes that are functions."))
+
 ;; All hash values are of typer HASH-TYPE.
 ;; This was chosen to be large enough that collisions
 ;; are unlikely.  However, a collision can be expected
@@ -1507,14 +1516,3 @@ This can be set to modify the behavior of #'source-text and #'convert")
 is useful for ASTs that may have newline literals.")
   (:method (ast) t))
 
-
-;;; Mix-ins for cross-language concepts
-(eval-always
-  (defclass parseable-statement () ()
-    (:documentation "Mix-in for ASTs classes that are statements."))
-
-  (defclass parseable-expression () ()
-    (:documentation "Mix-in for ASTs classes that are expressions."))
-
-  (defclass parseable-function () ()
-    (:documentation "Mix-in for ASTs classes that are functions.")))

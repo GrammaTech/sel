@@ -456,6 +456,36 @@ of fields needs to be determined at parse-time."
 
 
 ;;; tree-sitter parsing
+(defun expected-slot-order-p (parsed-order expected-order)
+  "Compare ORDER with child-slots of instance to see if
+they should produce the same ordering."
+  (labels ((consolidate-key (cons &aux (car (car cons)))
+             "Access the key used for consolidating runs."
+             (etypecase car
+               (cons (car car))
+               (symbol car)
+               (integer 'children)))
+           (consolidate-runs (order)
+             "Consolidate all runs of the same slot into just one
+              instance of the symbol that represents that slot, and
+              flatten into a list of slots."
+             (mapcar #'consolidate-key
+                     (collapse-duplicates order :key #'consolidate-key)))
+           (duplicate-exists-p (order)
+             "Return T if a duplicate exists in ORDER."
+             (not (equal order (remove-duplicates order))))
+           (check-order (order expected-order)
+             "Return T if ORDER is equivalent to EXPECTED-ORDER."
+             (cond
+               ((null order) t)
+               ((null expected-order) nil)
+               ((eql (car order) (car expected-order))
+                (check-order (cdr order) (cdr expected-order)))
+               (t (check-order order (cdr expected-order))))))
+    (let ((order (consolidate-runs parsed-order)))
+      (unless (duplicate-exists-p order)
+        (check-order order (consolidate-runs expected-order))))))
+
 (defun convert-initializer
     (spec prefix superclass
      &aux (*package* (symbol-package superclass))
@@ -533,29 +563,28 @@ of fields needs to be determined at parse-time."
               is currently set on every AST as some ASTs store
               things in the children slot instead of making a
               slot for it."
-             ;; TODO: at some point, look into only adding the child-order
-             ;;       annotation if order differs from child-slots.
-             (let ((sorted-children
-                     (sort (remove nil (children instance))
-                           (lambda (start end)
-                             (source-<
-                              (make-instance
-                               'source-location
-                               :line (cadr start)
-                               :column (car start))
-                              (make-instance
-                               'source-location
-                               :line (cadr end)
-                               :column (car end))))
-                           :key
-                           (lambda (child)
-                             (car
-                              (ast-annotation child :range-start))))))
-               (setf (slot-value instance 'annotations)
-                     (cons (cons :child-order
-                                 (mapcar {position _ instance}
-                                         sorted-children))
-                           (ast-annotations instance))))))
+             (let* ((sorted-children
+                      (sort (remove nil (children instance))
+                            (lambda (start end)
+                              (source-<
+                               (make-instance
+                                'source-location
+                                :line (cadr start)
+                                :column (car start))
+                               (make-instance
+                                'source-location
+                                :line (cadr end)
+                                :column (car end))))
+                            :key
+                            (lambda (child)
+                              (car
+                               (ast-annotation child :range-start)))))
+                    (order (mapcar {position _ instance}
+                                   sorted-children)))
+               (unless (expected-slot-order-p order (child-slots instance))
+                 (setf (slot-value instance 'annotations)
+                       (cons (cons :child-order order)
+                             (ast-annotations instance)))))))
     (set-slot-values (merge-same-fields (get-converted-fields)))
     (update-slots-based-on-arity)
     (set-child-order-annotation)

@@ -141,11 +141,11 @@
 
 
 ;;; Tests
-(deftest simply-able-to-load-a-python-software-object ()
+(deftest python-simply-able-to-load-a-software-object ()
   (with-fixture hello-world-python
     (is (not (null *soft*)))))
 
-(deftest can-parse-a-python-software-object ()
+(deftest python-can-parse-a-software-object ()
   (with-fixture hello-world-python
     (is (= 5 (size *soft*)))
     (is (equal (file-to-string (original-path *soft*))
@@ -155,7 +155,82 @@
     (is (equal (file-to-string (original-path *soft*))
                (genome-string *soft*)))))
 
-(deftest (can-format-a-python-software-object :long-running) ()
+(deftest python-can-handle-empty-file ()
+  (with-fixture empty-python
+    (is (= 0 (size *soft*)))
+    (is (equal (file-to-string (original-path *soft*))
+               (genome-string *soft*)))))
+
+(deftest python-can-handle-multibyte-characters ()
+  (with-fixture multibyte-python1
+    (is (= 22 (size *soft*)))
+    (is (equal (file-to-string (original-path *soft*))
+               (genome-string *soft*))))
+  (with-fixture multibyte-python2
+    (is (= 13 (size *soft*)))
+    (is (equal (file-to-string (original-path *soft*))
+               (genome-string *soft*))))
+  (with-fixture multibyte-python3
+    (is (= 7 (size *soft*)))
+    (is (equal (file-to-string (original-path *soft*))
+               (genome-string *soft*)))))
+
+(deftest python-can-handle-dos-format ()
+  (with-fixture dos-python
+    (is (= 44 (size *soft*)))
+    (is (equal (file-to-string (original-path *soft*))
+               (genome-string *soft*)))))
+
+;;;(deftest python-stmt-ast-has-newline ()
+(deftest py-stmt-ast-has-newline ()
+  (with-fixture fib-python
+    (is (typep (stmt-with-text *soft* (concatenate 'string "return b"
+                                                           (list #\Newline)))
+               'python-return-statement)))
+  (with-fixture dos-python
+    (is (typep (stmt-with-text *soft* (concatenate 'string "return b"
+                                                           (list #\Linefeed
+                                                                 #\Newline)))
+               'python-return-statement))))
+
+;;;(deftest python-ast-source-ranges ()
+;;; TODO: figure out what's going on here.
+#+nil
+(deftest py-ast-source-ranges ()
+  (with-fixture hello-world-python
+    (is (equalp (mapcar [#'range-to-list #'cdr] (ast-source-ranges *soft*))
+                '(((1 . 1) (2 . 1))
+                  ((1 . 1) (2 . 1))
+                  ((1 . 1) (1 . 22))
+                  ((1 . 1) (1 . 6))
+                  ((1 . 7) (1 . 21)))))))
+
+;;; NOTE: this test probably isn't need since Python 3 has
+;;;       type annotations. tree-sitter doesn't support
+;;;       type comments.
+#+nil
+(deftest python-can-handle-type-comments ()
+  (with-fixture type-comments-python
+    (is (= 15 (size *soft*)))
+    (is (equal (file-to-string (original-path *soft*))
+               (genome-string *soft*)))
+    (is (nest (stmt-with-text *soft*)
+              (format nil "x = 12 # type: int~%")))
+    (is (equal "int"
+               ;; TODO: update for tree-sitter
+               (nest (aget :type-comment)
+                     (ast-annotations)
+                     (stmt-with-text *soft*)
+                     (format nil "x = 12 # type: int~%"))))))
+
+;;;(deftest python-convert-source-snippet-works ()
+(deftest py-convert-source-snippet-works ()
+  (let ((ast (convert 'python-ast "j = 0")))
+    (is (equal 7 (size ast)))
+    (is (equal "j = 0" (source-text ast)))
+    (is (find-if {typep _ 'python-assignment} ast))))
+
+(deftest (python-can-format-a-software-object :long-running) ()
   (with-fixture formatting-python
     (when (which "yapf")
       (is (not (string= (genome-string (copy *soft*))
@@ -164,12 +239,23 @@
                         (genome-string (format-genome (copy *soft*))))))
       (is (string= (genome-string (yapf (copy *soft*)))
                    (genome-string (format-genome (copy *soft*))))))))
+#+nil
+(deftest python-can-rebind-vars ()
+  (with-fixture rebind-python
+    (is (string= "b = 0"
+                 (nest (trim-whitespace)
+                       (source-text)
+                       (rebind-vars (stmt-starting-with-text *soft* "a = 0")
+                                    (list (list "a" "b"))
+                                    nil))))))
 
-(deftest can-handle-empty-file-python ()
-  (with-fixture empty-python
-    (is (= 0 (size *soft*)))
-    (is (equal (file-to-string (original-path *soft*))
-               (genome-string *soft*)))))
+(deftest python-can-cut-last-child ()
+  (with-fixture fib-python
+    (nest (apply-mutation *soft*)
+          (make-instance 'parseable-cut :targets)
+          (list (cons :stmt1 (stmt-with-text *soft* "return b"))))
+    (is (null (stmt-with-text *soft* "return b" :no-error t))
+        "'return b' was not removed from the program.")))
 
 (deftest (python-tree-sitter-parsing-test :long-running) ()
   (labels ((parsing-test-dir (path)
