@@ -600,7 +600,8 @@ optionally writing to STREAM.")
 Returns nil if no full statement parent is found."))
 
 (defgeneric is-stmt-p (ast)
-  (:documentation "Returns T if the AST is a full statement, NIL otherwise."))
+  (:documentation "Returns T if the AST is a full statement, NIL otherwise.")
+  (:method ((ast parseable-statement)) t))
 
 (defgeneric get-ast-types (software ast)
   (:documentation "Types directly referenced within AST."))

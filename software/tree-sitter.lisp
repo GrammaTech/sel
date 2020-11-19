@@ -729,8 +729,11 @@ correct class name for subclasses of SUPERCLASS."
                (parse-string (get-language-from-superclass superclass) string)
                :superclass superclass
                :string-pass-through t)
-      '(0 0) (list (length (last-elt line-octets))
-                   (1- (length line-octets)))))))
+      '(0 0)
+      (if (emptyp line-octets)
+          '(0 0)
+          (list (length (last-elt line-octets))
+                (1- (length line-octets))))))))
 
 
 ;;;; Tree-sitter language definitions.
@@ -749,14 +752,41 @@ correct class name for subclasses of SUPERCLASS."
   (to-file obj bin)
   (values bin 0 nil nil nil))
 
+(defmethod get-parent-full-stmt (obj (ast tree-sitter-ast))
+  (if (typep ast 'parseable-statement)
+      ast
+      (get-parent-full-stmt obj (get-parent-ast obj ast))))
+
 
 ;;;; Python
+;;; Move this to its own file?
 (when-class-defined (python)
 
   
   ;; Methods common to all software objects
   (defmethod phenome ((obj python) &key (bin (temp-file-name)))
-    (interpreted-phenome obj bin)))
+    (interpreted-phenome obj bin))
+
+  (defmethod enclosing-scope ((obj python) (ast python-ast))
+    "Return the enclosing scope of AST in OBJ.
+OBJ python software object
+AST ast to return the enclosing scope for"
+    (or (find-if (lambda (parent)
+                   ;; Normal case: AST is a member of a class
+                   ;; of ASTs defining a new scope.
+                   (typep parent '(or
+                                   python-function-definition
+                                   python-class-definition
+                                   python-lambda)))
+                 (cdr (get-parent-asts obj ast)))
+        (genome obj)))
+
+
+  
+  ;; Implement the generic format-genome method for python objects.
+  (defmethod format-genome ((obj python) &key)
+    "Format the genome of OBJ using YAPF (Yet Another Python Formatter)."
+    (yapf obj)))
 
 
 ;;;; Javascript
@@ -765,4 +795,20 @@ correct class name for subclasses of SUPERCLASS."
   
   ;; Methods common to all software objects
   (defmethod phenome ((obj javascript) &key (bin (temp-file-name)))
-    (interpreted-phenome obj bin)))
+    (interpreted-phenome obj bin))
+
+  (defmethod enclosing-scope ((obj javascript) (ast javascript-ast))
+    "Return the enclosing scope of AST in OBJ.
+OBJ javascript software object
+AST ast to return the enclosing scope for"
+    (or (find-if (lambda (ast)
+                   (typep ast
+                          '(or
+                            javascript-statement-block
+                            javascript-function
+                            javascript-program
+                            javascript-arrow-function
+                            javascript-for-statement
+                            javascript-for-in-statement)))
+                 (cdr (get-parent-asts obj ast)))
+        (genome obj))))

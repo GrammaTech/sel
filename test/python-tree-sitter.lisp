@@ -17,7 +17,160 @@
   (python-tree-sitter-available-p))
 
 
+;;; Utility
+(define-constant +scopes-dir+ (append +python-dir+ (list "scopes"))
+  :test #'equalp
+  :documentation "Path to directory holding scopes files.")
+
+(defixture hello-world-python
+  (:setup
+   (setf *soft*
+         (from-file (make-instance 'python)
+                    (python-dir #P"hello-world/hello-world.py"))))
+  (:teardown
+   (setf *soft* nil)))
+
+(defixture fib-python
+  (:setup
+   (setf *soft*
+         (from-file (make-instance 'python)
+                    (python-dir #P"fib/fib.py"))))
+  (:teardown
+   (setf *soft* nil)))
+
+(defixture empty-python
+  (:setup
+   (setf *soft*
+         (from-file (make-instance 'python)
+                    (python-dir #P"empty/empty.py"))))
+  (:teardown
+   (setf *soft* nil)))
+
+(defixture multibyte-python1
+  (:setup
+   (setf *soft*
+         (from-file (make-instance 'python)
+                    (python-dir #P"unicode/unicode1.py"))))
+  (:teardown
+   (setf *soft* nil)))
+
+(defixture multibyte-python2
+  (:setup
+   (setf *soft*
+         (from-file (make-instance 'python)
+                    (python-dir #P"unicode/unicode2.py"))))
+  (:teardown
+   (setf *soft* nil)))
+
+(defixture multibyte-python3
+  (:setup
+   (setf *soft*
+         (from-file (make-instance 'python)
+                    (python-dir #P"unicode/unicode3.py"))))
+  (:teardown
+   (setf *soft* nil)))
+
+(defixture dos-python
+  (:setup
+   (setf *soft*
+         (from-file (make-instance 'python)
+                    (python-dir #P"dos/fib.py"))))
+  (:teardown
+   (setf *soft* nil)))
+
+(defixture formatting-python
+  (:setup
+   (setf *soft*
+         (from-file (make-instance 'python)
+                    (python-dir #P"formatting/formatting.py"))))
+  (:teardown
+   (setf *soft* nil)))
+
+(defixture rebind-python
+  (:setup
+   (setf *soft*
+         (from-file (make-instance 'python)
+                    (python-dir #P"rebind-vars/rebind-vars.py"))))
+  (:teardown
+   (setf *soft* nil)))
+
+(defixture unbound-python
+  (:setup
+   (setf *soft*
+         (from-file (make-instance 'python)
+                    (python-dir #P"unbound-vals-and-funs/unbound.py"))))
+  (:teardown
+   (setf *soft* nil)))
+
+(defixture type-comments-python
+  (:setup
+   (setf *soft*
+         (from-file (make-instance 'python)
+                    (python-dir #P"type-comments/type-comments.py"))))
+  (:teardown
+   (setf *soft* nil)))
+
+(defmacro with-scopes-file ((filename software-var genome-var)
+                              &body body)
+  `(let* ((,software-var (from-file
+                          (make-instance 'python)
+                          (make-pathname :name ,filename
+                                         :type "py"
+                                         :directory +scopes-dir+)))
+          (,genome-var (genome ,software-var)))
+     ,@body))
+
+(defmacro with-util-file ((filename software-var genome-var)
+                              &body body)
+  `(let* ((,software-var (from-file
+                          (make-instance 'python)
+                          (make-pathname :name ,filename
+                                         :type "py"
+                                         :directory +python-utility-dir+)))
+          (,genome-var (genome ,software-var)))
+     ,@body))
+
+
+(defun scope-contains-string-p (scope string)
+  "Return the variable alist associated with STRING if it exists in SCOPE."
+  (find-if [{equalp string} {aget :name}] scope))
+
+(defun scopes-contains-string-p (scopes string)
+  "Return the variable alist associated with STRING if it exists in SCOPES."
+  (mappend {scope-contains-string-p _ string} scopes))
+
+
 ;;; Tests
+(deftest simply-able-to-load-a-python-software-object ()
+  (with-fixture hello-world-python
+    (is (not (null *soft*)))))
+
+(deftest can-parse-a-python-software-object ()
+  (with-fixture hello-world-python
+    (is (= 5 (size *soft*)))
+    (is (equal (file-to-string (original-path *soft*))
+               (genome-string *soft*))))
+  (with-fixture fib-python
+    (is (= 44 (size *soft*)))
+    (is (equal (file-to-string (original-path *soft*))
+               (genome-string *soft*)))))
+
+(deftest (can-format-a-python-software-object :long-running) ()
+  (with-fixture formatting-python
+    (when (which "yapf")
+      (is (not (string= (genome-string (copy *soft*))
+                        (genome-string (yapf (copy *soft*))))))
+      (is (not (string= (genome-string (copy *soft*))
+                        (genome-string (format-genome (copy *soft*))))))
+      (is (string= (genome-string (yapf (copy *soft*)))
+                   (genome-string (format-genome (copy *soft*))))))))
+
+(deftest can-handle-empty-file-python ()
+  (with-fixture empty-python
+    (is (= 0 (size *soft*)))
+    (is (equal (file-to-string (original-path *soft*))
+               (genome-string *soft*)))))
+
 (deftest (python-tree-sitter-parsing-test :long-running) ()
   (labels ((parsing-test-dir (path)
              (merge-pathnames-as-file
