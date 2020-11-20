@@ -1183,6 +1183,39 @@ in the same namespace."
                       (lambda (ast1 ast2)
                         (path-later-p obj ast2 ast1))))))
 
+  (defmethod get-unbound-vals ((obj python) (ast python-ast))
+    "Return all variables used (but not defined) within AST.
+* OBJ python software object containing AST
+* AST ast to retrieve unbound variables within"
+    (labels ((call-name-p (parent name)
+               "Return T if NAME is a function or method call."
+               (typecase parent
+                 (python-call
+                  (let ((func (python-function parent)))
+                    (typecase func
+                      ;; free function
+                      (python-identifier (eq func name))
+                      ;; method call
+                      (python-attribute (eq (python-attribute func) name)))))
+                 (python-attribute
+                  (call-name-p (get-parent-ast obj parent) name))))
+             (bound-name-p (parent)
+               (typep parent
+                      '(or
+                        python-function-definition
+                        python-class-definition)))
+             (get-unbound-vals-helper (obj parent ast)
+               (remove-duplicates
+                (apply #'append
+                       (when (and (typep ast 'python-identifier)
+                                  (not (or (bound-name-p parent)
+                                           (call-name-p parent ast))))
+                         (list (cons :name (source-text ast))))
+                       (mapcar {get-unbound-vals-helper obj ast}
+                               (remove nil (children ast))))
+                :test #'equal)))
+      (get-unbound-vals-helper obj (get-parent-ast obj ast) ast)))
+
   
   ;; Implement the generic format-genome method for python objects.
   (defmethod format-genome ((obj python) &key)

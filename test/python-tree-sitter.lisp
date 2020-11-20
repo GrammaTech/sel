@@ -286,7 +286,6 @@
     (is (null (stmt-with-text *soft* "return b" :no-error t))
         "'return b' was not removed from the program.")))
 
-#+nil
 (deftest python-get-unbound-vals ()
   (with-fixture unbound-python
     (is (equal `((:name . "i") (:name . "j"))
