@@ -159,7 +159,6 @@
        (is (eq scope var-scope)))
      (mapcar {aget :scope} result-vars))))
 
-
 (defun is-get-vars-test (filename class-name expected-vars &key scope-fun)
   "Test that get-vars returns the expected information."
   (with-util-file (filename soft genome)
@@ -287,6 +286,152 @@
     (is (null (stmt-with-text *soft* "return b" :no-error t))
         "'return b' was not removed from the program.")))
 
+#+nil
+(deftest python-get-unbound-vals ()
+  (with-fixture unbound-python
+    (is (equal `((:name . "i") (:name . "j"))
+               (nest (get-unbound-vals *soft*)
+                     (stmt-with-text *soft*)
+                     (format nil "f(i, j)~%"))))
+    (is (equal `((:name . "obj") (:name . "i") (:name . "j"))
+               (nest (get-unbound-vals *soft*)
+                     (stmt-with-text *soft*)
+                     (format nil "obj.function(i, j)~%"))))
+    (is (equal `((:name . "x") (:name . "y"))
+               (nest (get-unbound-vals *soft*)
+                     (stmt-with-text *soft*)
+                     (format nil "return x * y~%"))))
+    (is (equal `((:name . "__name__") (:name . "obj")
+                 (:name . "i") (:name . "j"))
+               (nest (get-unbound-vals *soft*)
+                     (stmt-starting-with-text *soft*)
+                     (format nil "if __name__ == '__main__':~%"))))))
+
+#+nil
+(deftest python-get-unbound-funs ()
+  (with-fixture unbound-python
+    (is (equal `(("f" nil nil 2))
+               (nest (get-unbound-funs *soft*)
+                     (stmt-with-text *soft*)
+                     (format nil "f(i, j)~%"))))
+    (is (equal `(("function" nil nil 2))
+               (nest (get-unbound-funs *soft*)
+                     (stmt-with-text *soft*)
+                     (format nil "obj.function(i, j)~%"))))
+    (is (equal `(("Obj" nil nil 0))
+               (nest (get-unbound-funs *soft*)
+                     (stmt-with-text *soft*)
+                     (format nil "obj = Obj()~%"))))
+    (is (equal `(("Obj" nil nil 0) ("function" nil nil 2) ("f" nil nil 2))
+               (nest (get-unbound-funs *soft*)
+                     (stmt-starting-with-text *soft*)
+                     (format nil "if __name__ == '__main__':~%"))))))
+
+(deftest python-scopes-1 ()
+  "scopes gets the initial binding of a global statement."
+  (with-util-file ("nested-global" soft genome)
+    (let* ((scopes (scopes soft (find-if {typep _ 'python-return-statement}
+                                         genome)))
+           (global-alist (scopes-contains-string-p scopes "a"))
+           (expected-assign (find-if {typep _ 'python-assignment} genome)))
+      (is (eq (aget :decl global-alist) expected-assign)
+          "~A did not contain the expected variable 'a' assignment, ~a."
+          global-alist expected-assign))))
+
+(deftest python-scopes-2 ()
+  "scopes gets the initial binding of a local statement."
+  (with-util-file ("local-shadow" soft genome)
+    (let* ((scopes (scopes soft (find-if {typep _ 'python-call} genome)))
+           (nonlocal-alist (scopes-contains-string-p scopes "a"))
+           (expected-assign (cadr (collect-if {typep _ 'python-assignment}
+                                              genome))))
+      (is (eq (aget :decl nonlocal-alist) expected-assign)
+          "~A did not contain the expected variable 'a' assignment, ~a."
+          nonlocal-alist expected-assign))))
+
+(deftest python-scopes-3 ()
+  "scopes gets the bindng from a function definition."
+  (with-util-file ("global" soft genome)
+    (let* ((scopes (scopes soft (find-if {typep _ 'python-return-statement}
+                                         genome)))
+           (def-alist (scopes-contains-string-p scopes "test"))
+           (expected-def (find-if {typep _ 'python-function-definition} genome)))
+      (is (eq (aget :decl def-alist) expected-def)
+          "~A did not contain the expected variable 'test' assignment, ~a."
+          def-alist expected-def))))
+
+(deftest python-scopes-4 ()
+  "scopes gets the bindng from an import."
+  (with-util-file ("import" soft genome)
+    (let* ((scopes (scopes soft (find-if {typep _ 'python-return-statement}
+                                         genome)))
+           (import-alist (scopes-contains-string-p scopes "a"))
+           (expected-import (find-if {typep _ 'python-import-statement}
+                                     genome)))
+      (is (eq (aget :decl import-alist) expected-import)
+          "~A did not contain the expected variable 'a' assignment, ~a."
+          import-alist expected-import))))
+
+(deftest python-scopes-5 ()
+  "scopes gets the bindng from function parameters."
+  (with-util-file ("parameter" soft genome)
+    (let* ((scopes (scopes soft (find-if {typep _ 'python-pass-statement}
+                                         genome)))
+           (parameter-alist (scopes-contains-string-p scopes "a"))
+           (expected-parameters (cadr (collect-if {typep _ 'python-parameters}
+                                                  genome))))
+      (is (eq (aget :decl parameter-alist) expected-parameters)
+          "~A did not contain the expected variable 'a' assignment, ~a."
+          parameter-alist expected-parameters))))
+
+(deftest python-scopes-6 ()
+  "scopes gets the bindngs local to a namespace."
+  (with-util-file ("local-2" soft genome)
+    (let* ((scopes (scopes soft (find-if {typep _ 'python-return-statement}
+                                         genome)))
+           (local-alist (scopes-contains-string-p scopes "a"))
+           (expected-local (find-if {typep _ 'python-assignment} genome)))
+      (is (eq (aget :decl local-alist) expected-local)
+          "~A did not contain the expected variable 'a' assignment, ~a."
+          local-alist expected-local))))
+
+(deftest python-scopes-7 ()
+  "scopes gets the bindings from multiple assignment statement."
+  (with-scopes-file ("assign" soft genome)
+    (is (equal `((((:decl  . ,(nest (car)
+                                    (python-children)
+                                    (stmt-with-text soft)
+                                    (format nil "a, b = 0, 1~%")))
+                   (:name  . "a")
+                   (:scope . ,genome))
+                  ((:decl  . ,(nest (car)
+                                    (python-children)
+                                    (stmt-with-text soft)
+                                    (format nil "a, b = 0, 1~%")))
+                   (:name  . "b")
+                   (:scope . ,genome))))
+               (nest (scopes soft)
+                     (stmt-with-text soft)
+                     (format nil "b = 1~%"))))))
+
+(deftest python-scopes-8 ()
+  "scopes gets the bindings from annotated assignment statements."
+  (with-scopes-file ("ann-assign" soft genome)
+    (is (equal `((((:decl  . ,(nest (car)
+                                    (python-children)
+                                    (stmt-with-text soft)
+                                    (format nil "a:int = 3~%")))
+                   (:name  . "a")
+                   (:scope . ,genome))
+                  ((:decl  . ,(nest (car)
+                                    (python-children)
+                                    (stmt-with-text soft)
+                                    (format nil "b:int = 2~%")))
+                   (:name  . "b")
+                   (:scope . ,genome))))
+               (nest (scopes soft)
+                     (stmt-with-text soft)
+                     (format nil "b = 1~%"))))))
 
 (deftest python-get-vars-assignment-1 ()
   "get-vars gets variables from python-assignment."

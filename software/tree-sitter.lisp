@@ -19,7 +19,9 @@
   (:shadowing-import-from :cl-tree-sitter :parse-string)
   (:export :tree-sitter-ast
            :tree-sitter
-           :get-vars))
+           :get-vars
+           :in-class-def-p
+           :get-asts-in-namespace))
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 
@@ -811,6 +813,191 @@ AST ast to return the enclosing scope for"
                  (cdr (get-parent-asts obj ast)))
         (genome obj)))
 
+  (defmethod scopes ((obj python) (target-ast python-ast)
+                     &aux (enclosing-scope (enclosing-scope obj target-ast)))
+    "Return lists of variables in each enclosing scope of AST.
+Each variable is represented by an alist containing :NAME, :DECL, and :SCOPE.
+OBJ python software object
+AST ast to return the scopes for"
+    ;; NOTE: in the unlikely event this function becomes a bottleneck, it may
+    ;;       make sense to cache the get-vars calls.
+    (labels ((build-alist (ast name scope)
+               "Return an alist containing :name, :decl, and :scope for the
+                variable in AST."
+               `((:decl . ,ast)
+                 (:name . ,name)
+                 (:scope . ,scope)))
+             (build-alist* (get-vars-alist
+                            &aux (definition (aget :definition get-vars-alist)))
+               "Return an alist containing :name, :decl, and :scope for
+                GET-VARS-ALIST."
+               (build-alist
+                (if (typep definition 'python-identifier)
+                    (get-parent-full-stmt obj definition)
+                    definition)
+                (aget :name get-vars-alist)
+                (aget :scope get-vars-alist)))
+             (name-in-get-vars-p (obj ast name)
+               "Return the variable alist that corresponds to
+                NAME if it exists."
+               (find-if
+                (lambda (alist)
+                  (equal name (aget :name alist)))
+                (get-vars obj ast)))
+             (find-get-vars-binding (obj ast enclosing-scope name)
+               "Find a variable bound in AST that is named NAME and in
+                ENCLOSING-SCOPE."
+               (find-if
+                (lambda (ast)
+                  (eq (aget :scope (name-in-get-vars-p
+                                    obj ast name))
+                      enclosing-scope))
+                ast))
+             (find-declaration (function ast)
+               "Find the declaration that is returned by FUNCTION
+                starting at AST."
+               (block find-declaration
+                 (find-if
+                  (lambda (ast)
+                    (when-let ((declaration (funcall function ast)))
+                      (return-from find-declaration declaration)))
+                  ast)))
+             (find-nonlocal-binding* (name enclosing-scope)
+               "Find the nonlocal binding for NAME in ENCLOSING-SCOPE."
+               (find-declaration
+                (lambda (ast)
+                  (if (typep ast 'python-nonlocal-statement)
+                      (when (and
+                             (find-if
+                              (lambda (identifier)
+                                (equal name (source-text identifier)))
+                              (remove-if-not {typep _ 'python-identifier}
+                                             (python-children ast)))
+                             (not (eq enclosing-scope
+                                      (enclosing-scope obj enclosing-scope))))
+                        (find-nonlocal-binding
+                         name (enclosing-scope obj enclosing-scope)))
+                      (find-get-vars-binding obj ast enclosing-scope name)))
+                (get-asts-in-namespace obj enclosing-scope)))
+             (find-nonlocal-binding (name enclosing-scope)
+               "Find and build the alist for the nonlocal binding for NAME
+                in ENCLOSING-SCOPE."
+               (build-alist
+                (find-nonlocal-binding* name enclosing-scope)
+                name enclosing-scope))
+             (find-global-binding
+                 (identifier &aux (genome (genome obj))
+                               (name (car (interleaved-text identifier))))
+               "Find the global binding for NAME in ENCLOSING-SCOPE."
+               (build-alist
+                (find-declaration
+                 (lambda (ast)
+                   (find-get-vars-binding obj ast genome name))
+                 (remove nil (children genome)))
+                name genome))
+             (find-enclosing-bindings (scope)
+               "Find the enclosing bindings that occur in scope."
+               (mapcar
+                {build-alist*}
+                (remove-if-not
+                 (lambda (alist &aux (attributes (aget :attributes alist)))
+                   (cond
+                     ;; NOTE: imports behave differently than other bindings
+                     ;;       that are available from enclosing scopes.
+                     ((member :import attributes)
+                      (not
+                       (path-later-p obj (aget :definition alist) target-ast)))
+                     ((intersection '(:class :function) attributes) t)))
+                 (mappend {get-vars obj} (remove nil (children scope))))))
+             (find-local-bindings ()
+               "Find local bindings in scope. Returns the py-name
+              objects associated with the bindings."
+               ;; NOTE: this doesn't correctly return bindings
+               ;;       that occur based on control flow like with if-else
+               ;;       statements. This typically isn't something that can
+               ;;       be accounted for before runtime.
+               (remove-duplicates
+                (mappend
+                 (lambda (ast)
+                   (remove-if-not
+                    (lambda (alist)
+                      ;; Check for child scopes allows for
+                      ;; namespace bindings in list comps and
+                      ;; such.
+                      (shares-path-of-p
+                       obj target-ast (aget :scope alist)))
+                    (get-vars obj ast)))
+                 ;; Remove ASTs after.
+                 (remove-if
+                  (lambda (ast)
+                    (path-later-p obj ast target-ast))
+                  (get-asts-in-namespace obj enclosing-scope)))
+                :test (lambda (alist1 alist2)
+                        (equal (aget :name alist1)
+                               (aget :name alist2)))
+                :from-end t))
+             (get-global-bindings ()
+               "Get the global bindings in scope."
+               (mappend (lambda (ast)
+                          (mapcar #'find-global-binding
+                                  (remove-if-not {typep _ 'python-identifier}
+                                                 (python-children ast))))
+                        (remove-if-not
+                         {typep _ 'python-global-statement}
+                         (get-asts-in-namespace obj enclosing-scope))))
+             (get-nonlocal-bindings ()
+               "Get the nonlocal bindings in scope."
+               (mappend (lambda (ast)
+                          (mapcar
+                           {find-nonlocal-binding
+                            _ (enclosing-scope obj enclosing-scope)}
+                           (mapcar
+                            #'source-text
+                            (remove-if-not {typep _ 'python-identifier}
+                                           (python-children ast)))))
+                        (remove-if-not
+                         {typep _ 'python-nonlocal-statement}
+                         (get-asts-in-namespace obj enclosing-scope))))
+             (get-enclosing-bindings
+                 (scope &aux (enclosing-scope (enclosing-scope obj scope))
+                          (enclosing-bindings (find-enclosing-bindings scope)))
+               "Get the enclosing bindings available in scope."
+               (if (eq scope enclosing-scope)
+                   enclosing-bindings
+                   (append enclosing-bindings
+                           (get-enclosing-bindings enclosing-scope))))
+             (get-local-bindings ()
+               "Get the local bindings available in scope."
+               ;; Remove bindings after
+               (remove-if-not
+                (lambda (binding-alist)
+                  (path-later-p obj target-ast (aget :decl binding-alist)))
+                ;; build-alist
+                (mapcar {build-alist*} (find-local-bindings))))
+             (group-by-scope (bindings)
+               "Group BINDINGS by scope."
+               (assort bindings :key (lambda (alist) (aget :scope alist))))
+             (sort-top->down (scopes)
+               "Sort SCOPES from the top-most to the bottom-most."
+               (sort scopes
+                     (lambda (ast1 ast2)
+                       (path-later-p obj ast2 ast1))
+                     :key (lambda (list)
+                            (aget :scope (car list))))))
+      (sort-top->down
+       (group-by-scope
+        (remove-duplicates
+         (remove-if
+          #'null
+          ;; NOTE: order of the append matters here for get-except-binding and
+          ;;       get-local-bindings.
+          (append (get-global-bindings)
+                  (get-nonlocal-bindings)
+                  (get-enclosing-bindings enclosing-scope)
+                  (get-local-bindings)))
+         :test (lambda (alist1 alist2)
+                 (equal (aget :name alist1) (aget :name alist2)))
+         :from-end t)))))
 
   
   ;; Helper functions
@@ -836,19 +1023,11 @@ AST ast to return the enclosing scope for"
   (defun get-vars-name-or-tuple-handler (obj ast &key scope)
     "Handle AST as a py-name or a py-tuple object."
     (typecase ast
-      (python-tuple
+      ((or python-tuple python-pattern-list)
        (mapcar
         (lambda (element)
           (create-var-alist
            obj element (source-text element)
-           :scope scope
-           :attributes '(:variable)))
-        (python-children ast)))
-      (python-pattern-list
-       (mapcar
-        (lambda (item)
-          (create-var-alist
-           obj item (source-text item)
            :scope scope
            :attributes '(:variable)))
         (python-children ast)))
@@ -857,9 +1036,7 @@ AST ast to return the enclosing scope for"
         (get-vars-name-handler obj ast :scope scope)))))
 
   (defmethod get-vars ((obj python) (ast python-for-statement))
-    (let ((lhs (python-left ast)))
-      ;; TODO: can't do this anymore?
-      (get-vars-name-or-tuple-handler obj lhs)))
+    (get-vars-name-or-tuple-handler obj (python-left ast)))
 
   ;; TODO: python-except-clause doesn't appear to have any slots.
   ;;       This may be an issue to open in tree-sitter-python.
@@ -933,21 +1110,31 @@ AST ast to return the enclosing scope for"
           (get-vars-name-handler obj var)))
       (python-children ast))))
 
-  (defmethod get-vars ((obj python) (ast python-assignment))
-    (get-vars-name-or-tuple-handler obj (python-left ast)))
+  (defmethod get-vars ((obj python) (ast python-assignment)
+                       &aux (lhs (python-left ast)))
+    (typecase lhs
+      (python-pattern-list
+       (mapcar
+        (lambda (item)
+          (create-var-alist
+           obj ast (source-text item)
+           :attributes '(:variable)))
+        (python-children lhs)))
+      (python-identifier
+       (list
+        (create-var-alist obj ast (source-text lhs) :attributes '(:variable))))))
 
   (defmethod get-vars ((obj python) (ast python-function-definition))
     (append
-     (when-let ((name (python-name ast)))
-       (list (create-var-alist obj ast (source-text name)
-                               :attributes '(:function))))
-     (mapcar
-      (lambda (parameter)
-        (create-var-alist
-         obj parameter (source-text parameter)
-         :scope ast
-         :attributes '(:variable)))
-      (when-let ((parameters (python-parameters ast)))
+     (list (create-var-alist obj ast (source-text (python-name ast))
+                             :attributes '(:function)))
+     (when-let ((parameters (python-parameters ast)))
+       (mapcar
+        (lambda (parameter)
+          (create-var-alist
+           obj parameters (source-text parameter)
+           :scope ast
+           :attributes '(:variable)))
         (python-children parameters)))))
 
   (defmethod get-vars ((obj python) (ast python-lambda))
@@ -967,11 +1154,34 @@ AST ast to return the enclosing scope for"
         obj ast (source-text (python-name ast))
         :attributes '(:class)))))
 
-  (-> in-class-def-p (python python-ast) (or null python-class-definition))
+  (-> in-class-def-p (python python-ast)
+    (values (or null python-class-definition) &optional))
   (defun in-class-def-p (obj ast)
     "Return the class definition if AST is inside one."
     (find-if-in-parents {typep _ 'python-class-definition} obj ast))
 
+  (-> get-asts-in-namespace (python python-ast) list)
+  (defun get-asts-in-namespace (obj ast)
+    "Get all of the ASTs in AST which are considered to be
+in the same namespace."
+    ;; Note that with the first call to this function, AST should be the start
+    ;; of a namespace.
+    (labels ((new-namespace-p (ast)
+               "Return T if AST starts a new namespace."
+               ;; TODO: probably need to add some more types here.
+               (typep
+                ast '(or python-function-definition python-class-definition)))
+             (collect-asts (namespace)
+               "Collect the asts in NAMESPACE."
+               (let ((children (remove nil (children namespace))))
+                 (append children
+                         (mappend (lambda (child)
+                                    (unless (new-namespace-p child)
+                                      (collect-asts child)))
+                                  children)))))
+      (cons ast (sort (collect-asts ast)
+                      (lambda (ast1 ast2)
+                        (path-later-p obj ast2 ast1))))))
 
   
   ;; Implement the generic format-genome method for python objects.
