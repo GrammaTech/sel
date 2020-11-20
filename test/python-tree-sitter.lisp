@@ -130,7 +130,6 @@
           (,genome-var (genome ,software-var)))
      ,@body))
 
-
 (defun scope-contains-string-p (scope string)
   "Return the variable alist associated with STRING if it exists in SCOPE."
   (find-if [{equalp string} {aget :name}] scope))
@@ -138,6 +137,37 @@
 (defun scopes-contains-string-p (scopes string)
   "Return the variable alist associated with STRING if it exists in SCOPES."
   (mappend {scope-contains-string-p _ string} scopes))
+
+(defun is-gets-vars (expected-vars result-vars)
+  "Test that EXPECTED-VARS matches RESULT-VARS."
+  (let ((result-var-names (mapcar {aget :name} result-vars)))
+    (is (= (length expected-vars)
+           (length result-var-names)))
+    (mapcar
+     (lambda (variable)
+       (is (member variable result-var-names
+                   :test #'equal)))
+     expected-vars)))
+
+(defun is-get-vars-scope (obj ast result-vars &key scope-fun)
+  "Test that the var alists in RESULT-VARS all occur in the expected scope."
+  (let ((scope (if scope-fun
+                   (find-if scope-fun ast)
+                   (enclosing-scope obj ast))))
+    (mapcar
+     (lambda (var-scope)
+       (is (eq scope var-scope)))
+     (mapcar {aget :scope} result-vars))))
+
+
+(defun is-get-vars-test (filename class-name expected-vars &key scope-fun)
+  "Test that get-vars returns the expected information."
+  (with-util-file (filename soft genome)
+    (let* ((target-ast (find-if {typep _ class-name} genome))
+           (result-vars (get-vars soft target-ast)))
+      (is-gets-vars expected-vars result-vars)
+      (is-get-vars-scope soft target-ast result-vars
+                         :scope-fun scope-fun))))
 
 
 ;;; Tests
@@ -256,6 +286,71 @@
           (list (cons :stmt1 (stmt-with-text *soft* "return b"))))
     (is (null (stmt-with-text *soft* "return b" :no-error t))
         "'return b' was not removed from the program.")))
+
+
+(deftest python-get-vars-assignment-1 ()
+  "get-vars gets variables from python-assignment."
+  (is-get-vars-test "assign-1" 'python-assignment '("a" "b" "c")))
+
+(deftest python-get-vars-class-definition-1 ()
+  "get-vars gets variables from python-class-definition."
+  (is-get-vars-test "class-def-1" 'python-class-definition '("Test")))
+
+(deftest python-get-vars-except-clause-1 ()
+  "get-vars gets variables from python-except-clause."
+  (is-get-vars-test "except-handler-1" 'python-except-clause '("e")))
+
+(deftest python-get-vars-for-statement-1 ()
+  "get-vars gets variables from python-for-statement."
+  (is-get-vars-test "for-1" 'python-for-statement '("i")))
+
+(deftest python-get-vars-function-definition-1 ()
+  "get-vars gets variables from python-function-definition."
+  (with-util-file ("function-def-1" soft genome)
+    (let* ((target-ast (find-if {typep _ 'python-function-definition} genome))
+           (result-vars (get-vars soft target-ast)))
+      (is-gets-vars '("test" "a" "b" "c") result-vars)
+      (is-get-vars-scope
+       soft target-ast (remove-if (lambda (alist)
+                                    (equalp '(:function)
+                                            (aget :attributes alist)))
+                                  result-vars)
+       :scope-fun {typep _ 'python-function-definition})
+      (is-get-vars-scope
+       soft target-ast (remove-if-not (lambda (alist)
+                                        (equalp '(:function)
+                                                (aget :attributes alist)))
+                                      result-vars)))))
+
+;;; Both imports share the same code.
+(deftest python-get-vars-import-from-statement-1 ()
+  "get-vars gets variables from py-import-from with an 'as'."
+  (is-get-vars-test "import-from-1" 'python-import-from-statement '("z")))
+
+(deftest python-get-vars-import-from-statement-2 ()
+  "get-vars gets variables from py-import-from without an 'as'."
+  (is-get-vars-test "import-from-2" 'python-import-from-statement '("y")))
+
+(deftest python-get-vars-lambda-function-1 ()
+  "get-vars gets variables from python-lambda and has the correct scope."
+  (is-get-vars-test "lambda-1" 'python-lambda '("x")
+                    :scope-fun {typep _ 'python-lambda}))
+
+;;; Comps and generators share the same code.
+(deftest python-get-vars-list-comprehension-1 ()
+  "get-vars gets variables from py-list-comp with multiple generators and has
+the correct scope."
+  (is-get-vars-test "list-comp-1" 'python-list-comprehension '("x" "y")
+                    :scope-fun {typep _ 'python-list-comprehension}))
+
+(deftest python-get-vars-list-comprehension-2 ()
+  "get-vars gets variables from py-list-comp and has the correct scope."
+  (is-get-vars-test "list-comp-2" 'python-list-comprehension '("x")
+                    :scope-fun {typep _ 'python-list-comprehension}))
+
+(deftest python-get-vars-with-statement-1 ()
+  "get-vars gets variables from python-with-statement."
+  (is-get-vars-test "with-1" 'python-with-statement '("x")))
 
 (deftest (python-tree-sitter-parsing-test :long-running) ()
   (labels ((parsing-test-dir (path)

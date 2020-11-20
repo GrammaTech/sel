@@ -18,7 +18,8 @@
   (:import-from :cl-tree-sitter :register-language)
   (:shadowing-import-from :cl-tree-sitter :parse-string)
   (:export :tree-sitter-ast
-           :tree-sitter))
+           :tree-sitter
+           :get-vars))
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 
@@ -809,6 +810,167 @@ AST ast to return the enclosing scope for"
                                    python-lambda)))
                  (cdr (get-parent-asts obj ast)))
         (genome obj)))
+
+
+  
+  ;; Helper functions
+  (defgeneric get-vars (obj ast)
+    (:documentation "Get the variables that are bound by AST.")
+    (:method ((obj python) ast) nil))
+
+  (defun create-var-alist (obj definition name &key attributes scope)
+    "Create an alist with information about a variable."
+    `((:name . ,name)
+      (:definition . ,definition)
+      (:scope . ,(or scope (enclosing-scope obj definition)))
+      ,@(when attributes
+          (list (cons :attributes attributes)))))
+
+  (defun get-vars-name-handler (obj ast &key scope)
+    "Handle AST as a py-name object."
+    (create-var-alist
+     obj ast (source-text ast)
+     :scope scope
+     :attributes '(:variable)))
+
+  (defun get-vars-name-or-tuple-handler (obj ast &key scope)
+    "Handle AST as a py-name or a py-tuple object."
+    (typecase ast
+      (python-tuple
+       (mapcar
+        (lambda (element)
+          (create-var-alist
+           obj element (source-text element)
+           :scope scope
+           :attributes '(:variable)))
+        (python-children ast)))
+      (python-pattern-list
+       (mapcar
+        (lambda (item)
+          (create-var-alist
+           obj item (source-text item)
+           :scope scope
+           :attributes '(:variable)))
+        (python-children ast)))
+      ((or python-identifier python-dotted-name)
+       (list
+        (get-vars-name-handler obj ast :scope scope)))))
+
+  (defmethod get-vars ((obj python) (ast python-for-statement))
+    (let ((lhs (python-left ast)))
+      ;; TODO: can't do this anymore?
+      (get-vars-name-or-tuple-handler obj lhs)))
+
+  ;; TODO: python-except-clause doesn't appear to have any slots.
+  ;;       This may be an issue to open in tree-sitter-python.
+  (defmethod get-vars ((obj python) (ast python-except-clause))
+    ;; NOTE: try except appears to unbind the variable in the namespace.
+    ;;       This may be because the exception has been freed by the time
+    ;;       it is out of the except handler.
+    ;;       This may require a special attribute for handling it.
+    (let ((name-ast (cadr (python-children ast))))
+      (when (typep name-ast 'python-identifier)
+        (list
+         (create-var-alist
+          obj ast (source-text name-ast)
+          :attributes '(:variable))))))
+
+  (defun get-vars-comprehension-handler (obj ast)
+    ;; NOTE: this is tricky since there are essentially two ASTs
+    ;;       that the variable binding is available in. The chances
+    ;;       of this becoming an issue are probably slim.
+    ;;
+    ;;       x = [1, 2, 3, 4, 5]
+    ;;       x = [x for x in x]
+    (mappend
+     (lambda (for-in-clause)
+       (mapcar
+        (lambda (name-or-tuple)
+          (get-vars-name-or-tuple-handler
+           obj name-or-tuple :scope ast))
+        (python-left for-in-clause)))
+     (python-children ast)))
+
+  (defmethod get-vars ((obj python) (ast python-list-comprehension))
+    (get-vars-comprehension-handler obj ast))
+
+  (defmethod get-vars ((obj python) (ast python-set-comprehension))
+    (get-vars-comprehension-handler obj ast))
+
+  (defmethod get-vars ((obj python) (ast python-dictionary-comprehension))
+    (get-vars-comprehension-handler obj ast))
+
+  (defmethod get-vars ((obj python) (ast python-generator-expression))
+    (get-vars-comprehension-handler obj ast))
+
+  (defun get-vars-import-handler (obj ast)
+    "Handle AST as a python-import-statement or python-import-from-statement."
+    (mapcar
+     (lambda (name)
+       (create-var-alist
+        obj ast
+        (typecase name
+          ;; TODO: at some point,figure out how we want to handle dotted names.
+          (python-dotted-name
+           (source-text name))
+          (python-aliased-import
+           (source-text (python-alias name))))
+        :attributes '(:import)))
+     (python-name ast)))
+
+  (defmethod get-vars ((obj python) (ast python-import-statement))
+    (get-vars-import-handler obj ast))
+
+  (defmethod get-vars ((obj python) (ast python-import-from-statement))
+    (get-vars-import-handler obj ast))
+
+  (defmethod get-vars ((obj python) (ast python-with-statement))
+    (remove
+     nil
+     (mapcar
+      (lambda (item)
+        (when-let ((var (python-alias item)))
+          (get-vars-name-handler obj var)))
+      (python-children ast))))
+
+  (defmethod get-vars ((obj python) (ast python-assignment))
+    (get-vars-name-or-tuple-handler obj (python-left ast)))
+
+  (defmethod get-vars ((obj python) (ast python-function-definition))
+    (append
+     (when-let ((name (python-name ast)))
+       (list (create-var-alist obj ast (source-text name)
+                               :attributes '(:function))))
+     (mapcar
+      (lambda (parameter)
+        (create-var-alist
+         obj parameter (source-text parameter)
+         :scope ast
+         :attributes '(:variable)))
+      (when-let ((parameters (python-parameters ast)))
+        (python-children parameters)))))
+
+  (defmethod get-vars ((obj python) (ast python-lambda))
+    (mapcar
+      (lambda (parameter)
+        (create-var-alist
+         obj parameter (source-text parameter)
+         :scope ast
+         :attributes '(:variable)))
+      (when-let ((parameters (python-parameters ast)))
+        (python-children parameters))))
+
+  (defmethod get-vars ((obj python) (ast python-class-definition))
+    (unless (in-class-def-p obj ast)
+      (list
+       (create-var-alist
+        obj ast (source-text (python-name ast))
+        :attributes '(:class)))))
+
+  (-> in-class-def-p (python python-ast) (or null python-class-definition))
+  (defun in-class-def-p (obj ast)
+    "Return the class definition if AST is inside one."
+    (find-if-in-parents {typep _ 'python-class-definition} obj ast))
 
 
   
