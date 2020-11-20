@@ -180,7 +180,7 @@
     (is (equal (file-to-string (original-path *soft*))
                (genome-string *soft*))))
   (with-fixture fib-python
-    (is (= 44 (size *soft*)))
+    (is (= 37 (size *soft*)))
     (is (equal (file-to-string (original-path *soft*))
                (genome-string *soft*)))))
 
@@ -192,21 +192,21 @@
 
 (deftest python-can-handle-multibyte-characters ()
   (with-fixture multibyte-python1
-    (is (= 22 (size *soft*)))
+    (is (= 16 (size *soft*)))
     (is (equal (file-to-string (original-path *soft*))
                (genome-string *soft*))))
   (with-fixture multibyte-python2
-    (is (= 13 (size *soft*)))
+    (is (= 11 (size *soft*)))
     (is (equal (file-to-string (original-path *soft*))
                (genome-string *soft*))))
   (with-fixture multibyte-python3
-    (is (= 7 (size *soft*)))
+    (is (= 5 (size *soft*)))
     (is (equal (file-to-string (original-path *soft*))
                (genome-string *soft*)))))
 
 (deftest python-can-handle-dos-format ()
   (with-fixture dos-python
-    (is (= 44 (size *soft*)))
+    (is (= 37 (size *soft*)))
     (is (equal (file-to-string (original-path *soft*))
                (genome-string *soft*)))))
 
@@ -255,7 +255,7 @@
 ;;;(deftest python-convert-source-snippet-works ()
 (deftest py-convert-source-snippet-works ()
   (let ((ast (convert 'python-ast "j = 0")))
-    (is (equal 7 (size ast)))
+    (is (equal 5 (size ast)))
     (is (equal "j = 0" (source-text ast)))
     (is (find-if {typep _ 'python-assignment} ast))))
 
