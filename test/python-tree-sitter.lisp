@@ -286,7 +286,7 @@
     (is (null (stmt-with-text *soft* "return b" :no-error t))
         "'return b' was not removed from the program.")))
 
-(deftest python-get-unbound-vals ()
+(deftest python-get-unbound-vals-works ()
   (with-fixture unbound-python
     (is (equal `((:name . "i") (:name . "j"))
                (nest (get-unbound-vals *soft*)
@@ -306,8 +306,7 @@
                      (stmt-starting-with-text *soft*)
                      (format nil "if __name__ == '__main__':~%"))))))
 
-#+nil
-(deftest python-get-unbound-funs ()
+(deftest python-get-unbound-funs-works ()
   (with-fixture unbound-python
     (is (equal `(("f" nil nil 2))
                (nest (get-unbound-funs *soft*)

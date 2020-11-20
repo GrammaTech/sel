@@ -1216,6 +1216,35 @@ in the same namespace."
                 :test #'equal)))
       (get-unbound-vals-helper obj (get-parent-ast obj ast) ast)))
 
+  (defmethod get-unbound-funs ((obj python) (ast python-ast)
+                               &aux (children (remove nil (children ast))))
+    "Return all functions used (but not defined) within AST.  The returned
+value will be of the form (list FUNCTION-ATTRS) where FUNCTION-ATTRS is a
+list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
+
+* OBJ python software object containing AST
+* AST ast to retrieve unbound functions within"
+    (remove-duplicates
+     (apply #'append
+            (when-let ((callee (and (typep ast 'python-call)
+                                    (python-function ast))))
+              (cond ((typep callee 'python-identifier)
+                     ;; Free function call
+                     (list (list (source-text callee)
+                                 nil nil
+                                 (length (python-children
+                                          (python-arguments ast))))))
+                    ((typep callee 'python-attribute)
+                     ;; Member Function call
+                     ;;
+                     (list (list (source-text (python-attribute callee))
+                                 nil nil
+                                 (length
+                                  (python-children (python-arguments ast))))))
+                    (t nil)))
+            (mapcar {get-unbound-funs obj} children))
+     :test #'equal))
+
   
   ;; Implement the generic format-genome method for python objects.
   (defmethod format-genome ((obj python) &key)
