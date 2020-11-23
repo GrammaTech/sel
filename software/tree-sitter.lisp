@@ -21,7 +21,8 @@
            :tree-sitter
            :get-vars
            :in-class-def-p
-           :get-asts-in-namespace))
+           :get-asts-in-namespace
+           :collect-var-uses))
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 
@@ -999,8 +1000,211 @@ AST ast to return the scopes for"
                  (equal (aget :name alist1) (aget :name alist2)))
          :from-end t)))))
 
+  (defmethod get-unbound-vals ((obj python) (ast python-ast))
+    "Return all variables used (but not defined) within AST.
+* OBJ python software object containing AST
+* AST ast to retrieve unbound variables within"
+    (labels ((call-name-p (parent name)
+               "Return T if NAME is a function or method call."
+               (typecase parent
+                 (python-call
+                  (let ((func (python-function parent)))
+                    (typecase func
+                      ;; free function
+                      (python-identifier (eq func name))
+                      ;; method call
+                      (python-attribute (eq (python-attribute func) name)))))
+                 (python-attribute
+                  (call-name-p (get-parent-ast obj parent) name))))
+             (bound-name-p (parent)
+               (typep parent
+                      '(or
+                        python-function-definition
+                        python-class-definition)))
+             (get-unbound-vals-helper (obj parent ast)
+               (remove-duplicates
+                (apply #'append
+                       (when (and (typep ast 'python-identifier)
+                                  (not (or (bound-name-p parent)
+                                           (call-name-p parent ast))))
+                         (list (cons :name (source-text ast))))
+                       (mapcar {get-unbound-vals-helper obj ast}
+                               (remove nil (children ast))))
+                :test #'equal)))
+      (get-unbound-vals-helper obj (get-parent-ast obj ast) ast)))
+
+  (defmethod get-unbound-funs ((obj python) (ast python-ast)
+                               &aux (children (remove nil (children ast))))
+    "Return all functions used (but not defined) within AST.  The returned
+value will be of the form (list FUNCTION-ATTRS) where FUNCTION-ATTRS is a
+list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
+
+* OBJ python software object containing AST
+* AST ast to retrieve unbound functions within"
+    (remove-duplicates
+     (apply #'append
+            (when-let ((callee (and (typep ast 'python-call)
+                                    (python-function ast))))
+              (cond ((typep callee 'python-identifier)
+                     ;; Free function call
+                     (list (list (source-text callee)
+                                 nil nil
+                                 (length (python-children
+                                          (python-arguments ast))))))
+                    ((typep callee 'python-attribute)
+                     ;; Member Function call
+                     ;;
+                     (list (list (source-text (python-attribute callee))
+                                 nil nil
+                                 (length
+                                  (python-children (python-arguments ast))))))
+                    (t nil)))
+            (mapcar {get-unbound-funs obj} children))
+     :test #'equal))
+
+  ;; TODO: move into parseable?
+  (-> find-if-in-scopes (function list) list)
+  (defun find-if-in-scopes (predicate scopes)
+    (mapc
+     (lambda (scope)
+       (when-let ((return-value (find-if predicate scope)))
+         (return-from find-if-in-scopes return-value)))
+     scopes)
+    nil)
+
+  (defmethod get-function-from-function-call ((obj python) (ast python-ast))
+    (match ast
+      ((python-call
+        (python-function identifier))
+       (when-let ((function-alist
+                   (find-if-in-scopes
+                    (lambda (scope)
+                      (and (equal (source-text identifier)
+                                  (aget :name scope))
+                           (typep (aget :decl scope)
+                                  'python-function-definition)))
+                    (scopes obj ast))))
+         (aget :decl function-alist)))))
+
+  ;; TODO: map arguments to parameters.
+
+  (defmethod assign-to-var-p ((ast python-ast) (identifier python-ast))
+    ;; Return the python-identifier that matches in case the caller wants
+    ;; to check if it is the same as identifier.
+    (match ast
+      ((python-augmented-assignment :python-left lhs)
+       (and (identical-name-p identifier lhs) lhs))
+      ((python-assignment
+        :python-left lhs)
+       (typecase lhs
+         (python-identifier (identical-name-p identifier lhs))
+         (python-pattern-list
+          (find-if {identical-name-p identifier} (python-children lhs)))))))
+
   
   ;; Helper functions
+  (-> collect-var-uses (python python-ast) (values list &optional))
+  (defun collect-var-uses (obj ast)
+    "Collect uses of AST in OBJ."
+    ;;TODO: at some point, expand this to work inside classes.
+    ;;      This may require significat modifications to acount
+    ;;      for 'self' variables.
+    (labels ((same-name-p (ast name)
+               "Return T if AST represents an AST that contains the same
+                name as NAME."
+               (typecase ast
+                 (python-identifier (equal (source-text ast) name))
+                 ((or python-global-statement
+                      python-nonlocal-statement)
+                  (find-if {same-name-p _ name} (python-children ast)))))
+             (find-name-in-scopes (name scopes)
+               "Search SCOPES for a variable named NAME."
+               (mappend
+                (lambda (scope)
+                  (find-if
+                   (lambda (var-info)
+                     (equal name (aget :name var-info)))
+                   scope))
+                scopes))
+             (get-analysis-set (scope first-occurrence name)
+               "Collect all relevant asts with NAME in SCOPE. BINDING-CLASS
+                determines whether 'global' or 'nonlocal' should be used to
+                determine if NAME is in-scope for assignments."
+               ;; Currently, python-identifier and either
+               ;; python-nonlocal-statement or python-global-statement are
+               ;; relevant.
+               (remove-if-not
+                (lambda (ast)
+                  (or (same-name-p ast name) (eq ast first-occurrence)))
+                (collect-if
+                 (lambda (ast)
+                   (typep ast 'python-identifier))
+                 scope)))
+             (find-var-uses (assorted-by-scope binding-class)
+               "Search assorted-by-scope for usages of variables
+                with the same name. BINDING-CLASS specifies whether
+                the variable is global or local and provides the
+                name of the class used for binding it to a scope."
+               (iter
+                 (iter:with out-of-scope = nil)
+                 (iter:with
+                  local-var-p = (eq binding-class 'python-nonlocal-statement))
+                 (for vars-in-scope in assorted-by-scope)
+                 (for scope = (enclosing-scope obj (car vars-in-scope)))
+                 ;; Prune any scope that occurs after the local binding
+                 ;; has been squashed.
+                 (when out-of-scope
+                   (if (shares-path-of-p obj scope out-of-scope)
+                       (next-iteration)
+                       (setf out-of-scope nil)))
+                 (cond
+                   ((find-if
+                     (lambda (ast)
+                       (find-if-in-parents {typep _ 'python-parameters} obj ast))
+                     vars-in-scope)
+                    ;; All nested scopes are out-of-scope.
+                    (and local-var-p (setf out-of-scope scope)))
+                   ((find-if
+                     (lambda (var)
+                       (find-if-in-parents {typep _ binding-class} obj var))
+                     vars-in-scope)
+                    (collect vars-in-scope))
+                   ((find-if
+                     (lambda (var)
+                       (find-if-in-parents
+                        (lambda (parent)
+                          (and (typep parent 'python-assignment)
+                               (assign-to-var-p parent var)))
+                        obj var))
+                     vars-in-scope)
+                    ;; All nested scopes are out-of-scope.
+                    (and local-var-p (setf out-of-scope scope)))))))
+      (let* ((name (and (typep ast 'python-identifier) (source-text ast)))
+             (var-info (find-name-in-scopes name (scopes obj ast)))
+             (scope (or (aget :scope var-info) (enclosing-scope obj ast)))
+             ;; The path will be nil when given the global scope.
+             (binding-class (if (ast-path obj scope)
+                                'python-nonlocal-statement
+                                'python-global-statement))
+             (assorted-by-scope
+               ;; Make sure the top-most scope comes first.
+               (sort
+                (assort
+                 (get-analysis-set scope (or (aget :decl var-info)
+                                             (get-parent-full-stmt obj ast))
+                                          name)
+                        :key {enclosing-scope obj})
+                (lambda (ast1 ast2)
+                  (< (length (ast-path obj (enclosing-scope obj ast1)))
+                     (length (ast-path obj (enclosing-scope obj ast2)))))
+                :key #'car)))
+        ;; Don't pass in the first scope of assorted-by-scope as the first
+        ;; one may include a parameter which find-var-uses would misinterpret
+        ;; as squashing the binding's scope.
+        (flatten (cons (car assorted-by-scope)
+                       (find-var-uses (cdr assorted-by-scope)
+                                      binding-class))))))
+
   (defgeneric get-vars (obj ast)
     (:documentation "Get the variables that are bound by AST.")
     (:method ((obj python) ast) nil))
@@ -1160,6 +1364,13 @@ AST ast to return the scopes for"
     "Return the class definition if AST is inside one."
     (find-if-in-parents {typep _ 'python-class-definition} obj ast))
 
+  (-> identical-name-p (python-ast python-ast) boolean)
+  (defun identical-name-p (name1 name2)
+    "Return T if the IDs of NAME1 and NAME2 are the same."
+    (and (typep name1 'python-identifier)
+         (typep name2 'python-identifier)
+         (equal (source-text name1) (source-text name2))))
+
   (-> get-asts-in-namespace (python python-ast) list)
   (defun get-asts-in-namespace (obj ast)
     "Get all of the ASTs in AST which are considered to be
@@ -1182,68 +1393,6 @@ in the same namespace."
       (cons ast (sort (collect-asts ast)
                       (lambda (ast1 ast2)
                         (path-later-p obj ast2 ast1))))))
-
-  (defmethod get-unbound-vals ((obj python) (ast python-ast))
-    "Return all variables used (but not defined) within AST.
-* OBJ python software object containing AST
-* AST ast to retrieve unbound variables within"
-    (labels ((call-name-p (parent name)
-               "Return T if NAME is a function or method call."
-               (typecase parent
-                 (python-call
-                  (let ((func (python-function parent)))
-                    (typecase func
-                      ;; free function
-                      (python-identifier (eq func name))
-                      ;; method call
-                      (python-attribute (eq (python-attribute func) name)))))
-                 (python-attribute
-                  (call-name-p (get-parent-ast obj parent) name))))
-             (bound-name-p (parent)
-               (typep parent
-                      '(or
-                        python-function-definition
-                        python-class-definition)))
-             (get-unbound-vals-helper (obj parent ast)
-               (remove-duplicates
-                (apply #'append
-                       (when (and (typep ast 'python-identifier)
-                                  (not (or (bound-name-p parent)
-                                           (call-name-p parent ast))))
-                         (list (cons :name (source-text ast))))
-                       (mapcar {get-unbound-vals-helper obj ast}
-                               (remove nil (children ast))))
-                :test #'equal)))
-      (get-unbound-vals-helper obj (get-parent-ast obj ast) ast)))
-
-  (defmethod get-unbound-funs ((obj python) (ast python-ast)
-                               &aux (children (remove nil (children ast))))
-    "Return all functions used (but not defined) within AST.  The returned
-value will be of the form (list FUNCTION-ATTRS) where FUNCTION-ATTRS is a
-list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
-
-* OBJ python software object containing AST
-* AST ast to retrieve unbound functions within"
-    (remove-duplicates
-     (apply #'append
-            (when-let ((callee (and (typep ast 'python-call)
-                                    (python-function ast))))
-              (cond ((typep callee 'python-identifier)
-                     ;; Free function call
-                     (list (list (source-text callee)
-                                 nil nil
-                                 (length (python-children
-                                          (python-arguments ast))))))
-                    ((typep callee 'python-attribute)
-                     ;; Member Function call
-                     ;;
-                     (list (list (source-text (python-attribute callee))
-                                 nil nil
-                                 (length
-                                  (python-children (python-arguments ast))))))
-                    (t nil)))
-            (mapcar {get-unbound-funs obj} children))
-     :test #'equal))
 
   
   ;; Implement the generic format-genome method for python objects.

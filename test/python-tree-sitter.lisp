@@ -495,6 +495,97 @@ the correct scope."
   "get-vars gets variables from python-with-statement."
   (is-get-vars-test "with-1" 'python-with-statement '("x")))
 
+;;;(deftest python-collect-var-uses-1 ()
+(deftest py-collect-var-uses-1 ()
+  "collect-var-uses collects global variable usages and ignores local bindings."
+  (with-util-file ("global" soft genome)
+    (let ((var-uses (collect-var-uses
+                     soft
+                     (find-if (lambda (ast)
+                                (and (typep ast 'python-identifier)
+                                     (equalp "a" (source-text ast))))
+                              genome))))
+      (is (= 4 (length var-uses))
+          "~A did not contain the expected number of uses" var-uses))))
+
+;;;(deftest python-collect-var-uses-2 ()
+(deftest py-collect-var-uses-2 ()
+  "collect-var-uses collects global variable usages when a local binding
+appears in a scope above the global usage."
+  (with-util-file ("nested-global" soft genome)
+    (let ((var-uses (collect-var-uses
+                     soft
+                     (find-if (lambda (ast)
+                                (and (typep ast 'python-identifier)
+                                     (equalp "a" (source-text ast))))
+                              genome))))
+      (is (= 3 (length var-uses))
+          "~A did not contain the expected number of uses" var-uses))))
+
+;;;(deftest python-collect-var-uses-3 ()
+(deftest py-collect-var-uses-3 ()
+  "collect-var-uses collects nested local variable usages."
+  (with-util-file ("local" soft genome)
+    (let ((var-uses (collect-var-uses
+                     soft
+                     (find-if (lambda (ast)
+                                (and (typep ast 'python-identifier)
+                                     (equalp "a" (source-text ast))))
+                              genome))))
+      (is (= 4 (length var-uses))
+          "~A did not contain the expected number of uses" var-uses))))
+
+;;;(deftest python-collect-var-uses-4 ()
+(deftest py-collect-var-uses-4 ()
+  "collect-var-uses collects local variable usages and ignores global
+bindings when shadowed."
+  (with-util-file ("local-shadow" soft genome)
+    (let ((var-uses (collect-var-uses
+                     soft
+                     (cadr
+                      (collect-if (lambda (ast)
+                                    (and (typep ast 'python-identifier)
+                                         (equalp "a" (source-text ast))))
+                                  genome)))))
+      (is (= 3 (length var-uses))
+          "~A did not contain the expected number of uses" var-uses))))
+
+;;;(deftest python-collect-var-uses-5 ()
+(deftest py-collect-var-uses-5 ()
+  "collect-var-uses doesn't include parameters as uses when targeting
+a variable in a scope above it."
+  (with-util-file ("parameter" soft genome)
+    (let ((var-uses (collect-var-uses
+                     soft
+                     (find-if (lambda (ast)
+                                (and (typep ast 'python-identifier)
+                                     (equalp "a" (source-text ast))))
+                              genome))))
+      (is (= 2 (length var-uses))
+          "~A did not contain the expected number of uses" var-uses))))
+
+;;;(deftest python-collect-var-uses-6 ()
+(deftest py-collect-var-uses-6 ()
+  "collect-var-uses doesn't include parameters of functions defined
+in the same sub-tree as its namespace."
+  (with-util-file ("same-variable-name" soft genome)
+    (let ((var-uses (collect-var-uses
+                     soft
+                     (find-if (lambda (ast)
+                                (and (typep ast 'python-identifier)
+                                     (typep (get-parent-ast soft ast)
+                                            'python-assignment)
+                                     (string= "a" (source-text ast))))
+                              genome))))
+      (is (= 3 (length var-uses))
+          "~A did not contain the expected number of uses" var-uses)
+      (is (not (find-if
+                (lambda (var-use)
+                  (find-if-in-parents {typep _ 'python-parameters} soft var-use))
+                var-uses))
+          "~A contained an unexpected parameter" var-uses))))
+
+
 (deftest (python-tree-sitter-parsing-test :long-running) ()
   (labels ((parsing-test-dir (path)
              (merge-pathnames-as-file
