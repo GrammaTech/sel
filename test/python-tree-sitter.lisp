@@ -585,6 +585,16 @@ in the same sub-tree as its namespace."
                 var-uses))
           "~A contained an unexpected parameter" var-uses))))
 
+;;;(deftest python-collect-fun-uses-1 ()
+(deftest py-collect-fun-uses-1 ()
+  "collect-fun-uses doesn't collect uses of shadowed functions."
+  (with-util-file ("function-shadow" soft genome)
+    (let ((fun-uses (collect-fun-uses
+                     soft
+                     (find-if {typep _ 'python-function-definition} genome))))
+      (is (= 5 (length fun-uses))
+          "~A did not contain the expected number of uses" fun-uses))))
+
 
 (deftest (python-tree-sitter-parsing-test :long-running) ()
   (labels ((parsing-test-dir (path)

@@ -22,7 +22,8 @@
            :get-vars
            :in-class-def-p
            :get-asts-in-namespace
-           :collect-var-uses))
+           :collect-var-uses
+           :collect-fun-uses))
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 
@@ -1192,8 +1193,8 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
                 (assort
                  (get-analysis-set scope (or (aget :decl var-info)
                                              (get-parent-full-stmt obj ast))
-                                          name)
-                        :key {enclosing-scope obj})
+                                   name)
+                 :key {enclosing-scope obj})
                 (lambda (ast1 ast2)
                   (< (length (ast-path obj (enclosing-scope obj ast1)))
                      (length (ast-path obj (enclosing-scope obj ast2)))))
@@ -1204,6 +1205,82 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
         (flatten (cons (car assorted-by-scope)
                        (find-var-uses (cdr assorted-by-scope)
                                       binding-class))))))
+
+  (-> collect-fun-uses (python python-ast) list)
+  (defun collect-fun-uses (obj ast)
+    (labels ((same-name-p (ast name)
+               "Return T if AST represents an AST that contains the same
+                name as NAME."
+               (equal (source-text ast) name))
+             (get-analysis-set (scope name)
+               "Collect all relevant asts with NAME in SCOPE."
+               ;; Currently, py-name, py-arg, and either py-nonlocal or py-global
+               ;; are relevant.
+               (mapcar
+                ;; Map the ASTs into parents that are easier
+                ;; to work with.
+                (lambda (ast)
+                  (cond-let result
+                    ((find-if-in-parents {typep _ 'python-parameters} obj ast)
+                     result)
+                    ((find-if-in-parents {typep _ 'python-function-definition}
+                                         obj ast)
+                     (if (eq (python-name result) ast)
+                         result
+                         ast))
+                    (t ast)))
+                (remove-if-not
+                 (lambda (ast)
+                   (same-name-p ast name))
+                 (collect-if
+                  (lambda (ast)
+                    (member
+                     (type-of ast)
+                     `(python-identifier python-function-definition)))
+                  scope))))
+             (get-shadowed-asts (analysis-set shadowing-ast)
+               "Get the ASTs in ANALYSIS-SET that are shadowed by SHADOWING-AST."
+               (intersection
+                analysis-set
+                (remove-if
+                 (lambda (ast)
+                   (path-later-p obj shadowing-ast ast))
+                 (get-asts-in-namespace
+                  obj (enclosing-scope obj shadowing-ast)))))
+             (shadowing-ast-p (ast)
+               "Return T if AST is an AST that shadows the function."
+               (etypecase ast
+                 ((or python-parameters python-function-definition) t)
+                 (python-identifier
+                  ;; TODO: at some point,for loops and other binding forms
+                  ;;       can also shadow, but support for identifying this
+                  ;;       still needs to be done.
+                  (find-if-in-parents
+                   (lambda (parent)
+                     (assign-to-var-p parent ast))
+                   obj ast))))
+             (remove-shadowed-asts (analysis-set)
+               "Remove all ASTs that are shadowing the target function
+                from the analysis set."
+               ;; The initial definition is seen as a shadowing ast,
+               ;; so remove it from consideration and add it back
+               ;; after analysis.
+               (cons
+                (car analysis-set)
+                (iter
+                  (iter:with shadowed-asts)
+                  (for ast in (cdr analysis-set))
+                  (when (shadowing-ast-p ast)
+                    (setf shadowed-asts
+                          (append shadowed-asts
+                                  (get-shadowed-asts analysis-set ast))))
+                  (unless (member ast shadowed-asts)
+                    (collect ast))))))
+      (when (typep ast 'python-function-definition)
+        (remove-shadowed-asts
+         (get-analysis-set
+          (enclosing-scope obj ast)
+          (source-text (python-name ast)))))))
 
   (defgeneric get-vars (obj ast)
     (:documentation "Get the variables that are bound by AST.")
