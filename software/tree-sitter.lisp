@@ -1096,7 +1096,129 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
                     (scopes obj ast))))
          (aget :decl function-alist)))))
 
-  ;; TODO: map arguments to parameters.
+  (defmethod map-arguments-to-parameters
+      ((obj python) (funcall python-ast)
+       &aux (function (get-function-from-function-call obj funcall)))
+    ;; This method assumes a well-formed function and function call.
+    (unless function
+      ;; Exit early if the function isn't found to prevent errors.
+      (return-from map-arguments-to-parameters nil))
+    (labels ((get-parameter-alist (parameters)
+               "Construct an alist of all the parameters."
+               (let ((positional-only
+                       ;; This is a hack around a lack of PEP 570 support
+                       ;; in tree-sitter-python.
+                       (position-if [{equal "/,"} {source-text}] parameters))
+                     (list-splat
+                       (position-if {typep _ 'python-list-splat-pattern}
+                                    parameters))
+                     (dictionary-splat
+                       (position-if {typep _ 'python-dictionary-splat-pattern}
+                                    parameters)))
+                 `((:positional ,@(when positional-only
+                                    (subseq parameters 0 positional-only)))
+                   (:regular ,@(subseq parameters
+                                       (or (and positional-only
+                                                (1+ positional-only))
+                                           0)
+                                       (or list-splat dictionary-splat)))
+                   (:list-splat ,(when-let ((list-splat-ast
+                                             (and list-splat
+                                                  (nth list-splat parameters))))
+                                   (unless (equal (source-text list-splat-ast)
+                                                  "*")
+                                     list-splat-ast)))
+                   (:keyword ,@(when list-splat
+                                 (apply #'subseq parameters
+                                        (1+ list-splat) dictionary-splat nil)
+                                 (subseq parameters (1+ list-splat))))
+                   (:dictionary-splat ,(when dictionary-splat
+                                         (nth dictionary-splat parameters))))))
+             (same-name-p (arg parameter)
+               "Return T if PARAMETER1 and PARAMETER2 represent the same id."
+               (equal (source-text arg) (source-text parameter)))
+             (get-identifier (ast)
+               "Get the relevant identifier for AST if one exists."
+               (typecase ast
+                 ((or python-default-parameter python-keyword-argument)
+                  (python-name ast))
+                 ((or python-list-splat-pattern python-dictionary-splat-pattern)
+                  (car (python-children ast)))
+                 (t ast)))
+             (get-default-parameters (parameters)
+               "Get a mapping of default parameters to their defaults."
+               ;; NOTE: collect all defaults and remove the duplicates later.
+               (mapcar
+                (lambda (default)
+                  (cons (python-value default)
+                        (python-name default)))
+                (remove-if-not {typep _ 'python-default-parameter}
+                               parameters)))
+             (get-positional-args-to-parameters (parameters-alist args-list)
+               "Get a mapping of positional arguments to their parameters."
+               (let ((positionals  (append (aget :positional parameters-alist)
+                                           (aget :regular parameters-alist)))
+                     (list-splat (car (aget :list-splat parameters-alist)))
+                     (positional-args
+                       (remove-if {typep _ 'python-keyword-argument} args-list)))
+                 (append (mapcar
+                          (lambda (arg parameter)
+                            (cons arg (get-identifier parameter)))
+                          positional-args positionals)
+                         (when list-splat
+                           (list
+                            (cons (create-tuple
+                                   (drop (length positionals) positional-args))
+                                  (get-identifier list-splat)))))))
+             (create-keyword-dictionary (keyword-args)
+               "Create the dictionary created for '**' style parameters."
+               (create-dictionary
+                (mapcar
+                 (lambda (arg)
+                   (convert
+                    'python-ast
+                    `((:class . :string)
+                      (:interleaved-text
+                       ,(format nil "\"~a\""
+                                (source-text
+                                 (python-name arg)))))))
+                 keyword-args)
+                (mapcar #'python-value keyword-args)))
+             (get-keyword-args-to-parameters (parameters-alist args-list)
+               "Get a mapping of keyword arguments to their parameters."
+               (iter
+                 (iter:with
+                  dict-splat = (car (aget :dictionary-splat parameters-alist)))
+                 (iter:with dict-splat-args)
+                 (for arg in (remove-if-not {typep _ 'python-keyword-argument}
+                                            args-list))
+                 (if-let ((parameter
+                           (find-if
+                            [{same-name-p (get-identifier arg)}
+                             #'get-identifier]
+                            ;; potential keywords
+                            (append (aget :regular parameters-alist)
+                                    (aget :keyword parameters-alist)))))
+                   (collect (cons (python-value arg) (get-identifier parameter))
+                     into mapping)
+                   (push arg dict-splat-args))
+                 (finally
+                  (return
+                    (if dict-splat
+                        (cons (cons (create-keyword-dictionary dict-splat-args)
+                                    (get-identifier dict-splat))
+                              mapping)
+                        mapping))))))
+      (let* ((parameters (python-children (python-parameters function)))
+             (parameters-alist (get-parameter-alist parameters))
+             (args-list (python-children (python-arguments funcall))))
+        (remove-duplicates
+         (append (get-default-parameters parameters)
+                 (get-positional-args-to-parameters
+                  parameters-alist args-list)
+                 (get-keyword-args-to-parameters
+                  parameters-alist args-list))
+         :test #'same-name-p :key #'cdr))))
 
   (defmethod assign-to-var-p ((ast python-ast) (identifier python-ast))
     ;; Return the python-identifier that matches in case the caller wants
@@ -1768,7 +1890,7 @@ in the same namespace."
                     (t (append '("(")
                                (repeat-sequence '(", ") (1- length))
                                '(")")))))
-               (:python-children . ,values))))
+               (:children . ,values))))
 
   (-> create-dictionary (list list) (values (or python-ast null) &optional))
   (defun create-dictionary (keys values &aux (length (length keys)))
@@ -1783,7 +1905,7 @@ Returns nil if the length of KEYS is not the same as VALUES'."
                       (t (append '("{")
                                  (repeat-sequence '(", ") (1- length))
                                  '("}")))))
-                 (:python-children
+                 (:children
                   ,@(mapcar
                      (lambda (key value)
                        (convert
