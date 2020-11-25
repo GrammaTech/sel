@@ -313,11 +313,11 @@ of fields needs to be determined at parse-time."
                                 ;; circular class dependency.
                                 (remove ast-superclass subtype-hash)))))
                 subtypes))
-             (create-slot (field &aux (name-keyword (car field)))
+             (create-slot (field)
                "Create a slot based on FIELD."
-               (let ((name (make-accessor-name name-keyword)))
+               (let ((name (make-accessor-name (car field))))
                  `(,name :accessor ,name
-                         :initarg ,name-keyword
+                         :initarg ,(make-keyword name)
                          :initform nil)))
              (create-slots (fields)
                "Create the slots for a new class based on FIELDS and CHILDREN.
