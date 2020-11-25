@@ -19,6 +19,7 @@
   (:shadowing-import-from :cl-tree-sitter :parse-string)
   (:export :tree-sitter-ast
            :tree-sitter
+           :ast-type-to-rebind-p
            :get-vars
            :in-class-def-p
            :get-asts-in-namespace
@@ -463,6 +464,7 @@ of fields needs to be determined at parse-time."
                                   &optional (source (genome-string obj)))
              (convert ',(make-class-name "ast") source))
 
+           ;; TODO: probably need to export this.
            (define-mutation ,(make-class-name "mutation") (parseable-mutation) ()
              (:documentation
               ,(format nil "Mutation interface for ~a software objects."
@@ -800,6 +802,36 @@ correct class name for subclasses of SUPERCLASS."
       ast
       (get-parent-full-stmt obj (get-parent-ast obj ast))))
 
+(defgeneric ast-type-to-rebind-p (ast)
+  (:documentation "Return T if AST is of a type where its variables/functions
+should be rebound.")
+  (:method (ast) nil))
+
+(defmethod rebind-vars ((ast tree-sitter-ast)
+                        var-replacements fun-replacements)
+  "Replace variable and function references, returning a new AST.
+* AST node to rebind variables and function references for
+* VAR-REPLACEMENTS list of old-name, new-name pairs defining the rebinding
+* FUN-REPLACEMENTS list of old-function-info, new-function-info pairs defining
+the rebinding"
+  (if (ast-type-to-rebind-p ast)
+      (copy ast :interleaved-text (mapcar {rebind-vars _ var-replacements
+                                                         fun-replacements}
+                                          (interleaved-text ast)))
+      (apply #'copy ast
+             (mappend (lambda (child-slot)
+                        (destructuring-bind (name . arity) child-slot
+                          (list (make-keyword name)
+                                (cond ((= arity 0)
+                                       (mapcar {rebind-vars _ var-replacements
+                                                              fun-replacements}
+                                               (slot-value ast name)))
+                                      ((slot-value ast name)
+                                       (rebind-vars (slot-value ast name)
+                                                    var-replacements
+                                                    fun-replacements))))))
+                      (child-slots ast)))))
+
 
 ;;;; Python
 ;;; Move this to its own file?
@@ -821,7 +853,7 @@ AST ast to return the enclosing scope for"
                                    python-function-definition
                                    python-class-definition
                                    python-lambda)))
-                 (cdr (get-parent-asts obj ast)))
+                 (get-parent-asts* obj ast))
         (genome obj)))
 
   (defmethod scopes ((obj python) (target-ast python-ast)
@@ -1924,7 +1956,10 @@ Returns nil if the length of KEYS is not the same as VALUES'."
 
 
 ;;;; Javascript
-(when-class-defined (python)
+(when-class-defined (javascript)
+
+  (defmethod ast-type-to-rebind-p ((ast javascript-ast)) nil)
+  (defmethod ast-type-to-rebind-p ((ast javascript-identifier)) t)
 
   
   ;; Methods common to all software objects
@@ -1939,10 +1974,169 @@ AST ast to return the enclosing scope for"
                    (typep ast
                           '(or
                             javascript-statement-block
-                            javascript-function
+                            javascript-function-declaration
                             javascript-program
                             javascript-arrow-function
                             javascript-for-statement
                             javascript-for-in-statement)))
-                 (cdr (get-parent-asts obj ast)))
-        (genome obj))))
+                 (get-parent-asts* obj ast))
+        (genome obj)))
+
+  (defgeneric statements-in-scope (obj scope ast)
+    (:documentation "Return all child statements of SCOPE prior to AST.")
+    (:method (obj (scope javascript-ast) (ast javascript-ast))
+      (iter (for c in (remove nil (children scope)))
+        (while (path-later-p obj ast c))
+        (collect c))))
+
+  (defgeneric identifiers (ast)
+    (:documentation "Return all js-identifier nodes in AST and its children.")
+    (:method ((ast javascript-ast))
+      (remove-if-not {typep _ '(or
+                                javascript-identifier
+                                javascript-property-identifier
+                                javascript-shorthand-property-identifier)}
+                     (cons ast (child-asts ast :recursive t)))))
+
+  (defgeneric inner-declarations (ast)
+    (:documentation
+     "Return a list of variable declarations affecting inner scopes.")
+    (:method ((ast javascript-ast)) nil)
+    (:method ((ast javascript-function-declaration))
+      (mappend #'identifiers (javascript-children (javascript-parameters ast))))
+    (:method ((ast javascript-arrow-function))
+      (if-let ((parameter (javascript-parameter ast)))
+          (identifiers parameter)
+          (mappend #'identifiers (javascript-children (javascript-parameters ast)))))
+    (:method ((ast javascript-for-in-statement))
+      (identifiers (javascript-left ast)))
+    (:method ((ast javascript-for-statement))
+      (identifiers (javascript-initializer ast))))
+
+  (defgeneric outer-declarations (ast)
+    (:documentation
+     "Return a list of variable declarations affecting outer scopes.")
+    (:method ((ast javascript-ast)) nil)
+    (:method ((ast javascript-variable-declaration))
+      (mappend #'outer-declarations (javascript-children ast)))
+    (:method ((ast javascript-object-pattern))
+      (mappend #'identifiers (javascript-children ast)))
+    (:method ((ast javascript-array-pattern))
+      (mappend #'identifiers (javascript-children ast)))
+    (:method ((ast javascript-rest-parameter))
+      (identifiers ast))
+    (:method ((ast javascript-variable-declarator))
+      (identifiers (javascript-name ast))))
+
+  (defmethod scopes ((obj javascript) (ast javascript-ast))
+    (labels ((get-parent-decl (obj identifier)
+               "For the given IDENTIFIER AST, return the parent declaration."
+               (car (remove-if-not {typep _ 'javascript-variable-declaration}
+                                   (get-parent-asts obj identifier))))
+             (ast-to-scope (obj scope ast)
+               `((:name . ,(source-text ast))
+                 (:decl . ,(or (get-parent-decl obj ast) ast))
+                 (:scope . ,scope))))
+      (unless (null (ast-path obj ast))
+        (let ((scope (enclosing-scope obj ast)))
+          (cons (reverse
+                 (mapcar {ast-to-scope obj scope}
+                         (append (inner-declarations scope)
+                                 (mappend #'outer-declarations
+                                          (statements-in-scope obj scope ast)))))
+                (scopes obj scope))))))
+
+  (defmethod get-unbound-vals ((obj javascript) (ast javascript-ast))
+    "Return all variables used (but not defined) within AST.
+* OBJ javascript software object containing AST
+* AST ast to retrieve unbound variables within"
+    (labels ((get-unbound-vals-helper (obj parent ast)
+               (remove-duplicates
+                (apply #'append
+                       (when (and (typep ast 'javascript-identifier)
+                                  (not
+                                   (typep parent
+                                          '(or
+                                            javascript-call-expression
+                                            javascript-member-expression
+                                            javascript-function-declaration
+                                            javascript-arrow-function
+                                            javascript-class-declaration
+                                            javascript-meta-property
+                                            javascript-break-statement
+                                            javascript-class-declaration
+                                            javascript-continue-statement
+                                            javascript-labeled-statement
+                                            javascript-import-specifier
+                                            javascript-export-statement
+                                            javascript-variable-declarator))))
+                         (list (cons :name (source-text ast))))
+                       (mapcar {get-unbound-vals-helper obj ast}
+                               (children ast)))
+                :test #'equal)))
+      (get-unbound-vals-helper obj (get-parent-ast obj ast) ast)))
+
+  (defmethod get-unbound-funs ((obj javascript) (ast javascript-ast)
+                               &aux (children (remove nil (children ast)))
+                                 (callee (first children)))
+    "Return all functions used (but not defined) within AST.
+* OBJ javascript software object containing AST
+* AST ast to retrieve unbound functions within"
+    (remove-duplicates
+     (apply #'append
+            (when (typep ast 'javascript-call-expression)
+              (cond ((typep callee 'javascript-identifier)
+                     ;; Free function call
+                     (list (list (source-text callee)
+                                 nil nil (length (cdr children)))))
+                    ((typep callee 'javascript-member-expression)
+                     ;; Member function call
+                     (list (list (nest (source-text)
+                                       (second)
+                                       (children callee))
+                                 nil nil (length (cdr children)))))
+                    (t nil)))
+            (mapcar {get-unbound-funs obj} children))
+     :test #'equal))
+
+  (defmethod get-parent-full-stmt ((obj javascript) (ast javascript-ast))
+    (find-if #'is-stmt-p (get-parent-asts obj ast)))
+
+  (defmethod is-stmt-p ((ast javascript-ast))
+    (typep ast 'parseable-statement))
+
+  (defmethod get-function-from-function-call
+      ((obj javascript) (callexpr javascript-ast))
+    ;; NOTE: this currently only handles
+    ;;       named functions declared with 'function'.
+    (match callexpr
+      ;; TODO: when needed, at support for member expression
+      ;;       function calls.
+      ((javascript-call-expression
+        :javascript-function
+        (javascript-identifier
+         :interleaved-text (list name)))
+       (enclosing-find-function obj callexpr name))))
+
+  
+;;; Helper Functions.
+  (-> enclosing-find-function (javascript javascript-ast string)
+    (values (or null javascript-ast) &optional))
+  (defun enclosing-find-function (obj start-ast function-name)
+    "Find the function with the name FUNCTION-NAME in OBJ that is in
+scope of START-AST."
+    ;; NOTE: this currently only handles
+    ;;       named functions declared with 'function'.
+    (flet ((target-function (ast)
+             (match ast
+               ((javascript-function-declaration
+                 :javascript-name
+                 (javascript-identifier
+                  :interleaved-text (list name)))
+                (equal name function-name)))))
+      (find-if-in-scope #'target-function obj start-ast)))
+
+  
+;;; Implement the generic format-genome method for Javascript objects.
+  (defmethod format-genome ((obj javascript) &key)
+    (prettier obj)))
