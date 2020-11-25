@@ -231,6 +231,16 @@
     (is (equal (file-to-string (original-path *soft*))
                (genome-string *soft*)))))
 
+(deftest python-can-copy-tree ()
+         (let* ((text "
+(a + b) / 2
+")
+                (new-source-text
+                 (source-text (tree-copy (convert 'python-ast text)))))
+           (is (not (emptyp new-source-text)))
+           (is (not (emptyp (trim-whitespace new-source-text))))
+           (is (search text) new-source-text)))
+
 ;;;(deftest python-stmt-ast-has-newline ()
 (deftest py-stmt-ast-has-newline ()
   (with-fixture fib-python
