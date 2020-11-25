@@ -27,14 +27,9 @@
         :software-evolution-library/software/compilable
         :software-evolution-library/software/clang
         :software-evolution-library/software/parseable
-        :software-evolution-library/software/javascript
         :software-evolution-library/software/lisp
-        :software-evolution-library/software/json
-        :software-evolution-library/software/python
         :software-evolution-library/software/simple
-        :software-evolution-library/software/clang-project
-        :software-evolution-library/software/javascript-project
-        :software-evolution-library/software/python-project
+        :software-evolution-library/software/tree-sitter
         :software-evolution-library/software/lisp-project
         ;; Components.
         :software-evolution-library/components/test-suite)
