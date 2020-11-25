@@ -115,13 +115,13 @@
 for objects to allow method dispatch on generic AST objects regardless of
 whether they inherit from the functional trees library."))
 
-(defclass parseable-statement () ()
+(defclass parseable-statement (ast) ()
   (:documentation "Mix-in for ASTs classes that are statements."))
 
-(defclass parseable-expression () ()
+(defclass parseable-expression (ast) ()
   (:documentation "Mix-in for ASTs classes that are expressions."))
 
-(defclass parseable-function () ()
+(defclass parseable-function (ast) ()
   (:documentation "Mix-in for ASTs classes that are functions."))
 
 ;; All hash values are of typer HASH-TYPE.
@@ -610,6 +610,7 @@ Returns nil if no full statement parent is found."))
 
 (defgeneric is-stmt-p (ast)
   (:documentation "Returns T if the AST is a full statement, NIL otherwise.")
+  (:method ((ast ast)) nil)
   (:method ((ast parseable-statement)) t))
 
 (defgeneric get-ast-types (software ast)
