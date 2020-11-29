@@ -20,9 +20,6 @@ Software Object Classes
    @item Language back end subclasses
      @itemize
      @item @ref{api-software-objects-asm,@code{asm}}
-       @itemize
-       @item @ref{api-software-objects-csurf-asm, @code{csurf-asm}}
-       @end itemize
      @item @ref{api-software-objects-cil, @code{cil}}
      @item @ref{api-software-objects-clang, @code{clang}}
        @itemize
@@ -104,9 +101,6 @@ Class @code{software}
   @item @ref{api-software-objects-simple, @code{simple}}
     @itemize
     @item @ref{api-software-objects-asm,@code{asm}}
-       @itemize
-       @item @ref{api-software-objects-csurf-asm, @code{csurf-asm}}
-       @end itemize
     @item @ref{api-software-objects-diff, @code{diff}}
     @item @ref{api-software-objects-elf, @code{elf}}
       @itemize
@@ -607,9 +601,6 @@ Class @code{simple}
 @item Subclasses
   @itemize
   @item @ref{api-software-objects-asm,@code{asm}}
-    @itemize
-    @item @ref{api-software-objects-csurf-asm, @code{csurf-asm}}
-    @end itemize
   @item @ref{api-software-objects-diff, @code{diff}}
   @item @ref{api-software-objects-elf, @code{elf}}
     @itemize
@@ -685,11 +676,6 @@ Class @code{asm}
 @itemize
 @item Class @refapiclass{asm}
 
-@item Subclass
-  @itemize
-  @item @ref{api-software-objects-csurf-asm, @code{csurf-asm}}
-  @end itemize
-
 @anchor{api-asm-mutations}
 @item Mutations (subclasses of @refapiclass{mutation})
   @itemize
@@ -718,29 +704,6 @@ Class @code{asm}
 @c defvar *asm-linker*
 @c defvar *asm-new-mutation-types*
 
-
-@c ----------------------------------------
-
-@anchor{api-software-objects-csurf-asm}
-@subsubsection Class @code{csurf-asm}
-
-[
-@ref{SEL API, API} |
-@ref{api-software-objects, Software Objects} |
-@ref{api-software-object-classes,Software Object Classes} |
-Class @code{csurf-asm}
-]
-
-@itemize
-@item Class @refapiclass{csurf-asm}
-@item Methods
-  @itemize
-  @item @refapimethod{phenome,phenome}
-  @end itemize
-@end itemize
-
-
-@c defvar *gt-home*
 
 @c ----------------------------------------
 

@@ -69,7 +69,6 @@ doc/sel-sw-clang-w-fodder-api.texi
 doc/sel-sw-coq-api.texi
 doc/sel-sw-coq-project-api.texi
 doc/sel-sw-compilable-api.texi
-doc/sel-sw-csurf-asm-api.texi
 doc/sel-sw-diff-api.texi
 doc/sel-sw-elf-api.texi
 doc/sel-sw-elf-cisc-api.texi

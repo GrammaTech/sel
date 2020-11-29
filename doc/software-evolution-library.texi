@@ -392,10 +392,6 @@ with an indicate of their relative maturity.
       @tab @refapiclass{asm}
       @tab mature
 
-@item linked ELF binaries @* (manipulated as assembler)
-      @tab @refapiclass{csurf-asm}
-      @tab mature
-
 @item linked ELF binaries
       @tab @*  @refapiclass{elf-cisc}
       @tab mature (not recommended)
@@ -434,8 +430,6 @@ the following subsections.
 Software Object Classes (see also @ref{api-software-object-classes,Software Object Classes} in the API)
 * C/C++ with @code{clang}::     C language source code ASTs
 * Assembler with @code{asm}::   Assembler represented as a vector
-* Executables with @code{csurf-asm}:: Executables manipulated as an
-                                      assembler vector
 * Coq with @code{coq}::               Coq language source code ASTs
 
 Software Object Mixins (see also @ref{api-software-object-mixins,Software Object Class ``Mixins''} in the API)
@@ -453,19 +447,13 @@ Software Object Mixins (see also @ref{api-software-object-mixins,Software Object
 
 @include include/clang.texi
 
-@node Assembler with @code{asm}, Executables with @code{csurf-asm}, C/C++ with @code{clang}, Software Objects
+@node Assembler with @code{asm}, Coq with @code{coq}, C/C++ with @code{clang}, Software Objects
 
 @subsection Assembler with @code{asm} Software Object
 
 @include include/asm.texi
 
-@node Executables with @code{csurf-asm}, Coq with @code{coq}, Assembler with @code{asm}, Software Objects
-
-@subsection Executables with @code{csurf-asm} Software Object
-
-@include include/csurf-asm.texi
-
-@node Coq with @code{coq}, Ancestor tracking with @code{ancestral}, Executables with @code{csurf-asm}, Software Objects
+@node Coq with @code{coq}, Ancestor tracking with @code{ancestral}, Assembler with @code{asm}, Software Objects
 
 @subsection Coq with @code{coq} and @code{SerAPI}
 

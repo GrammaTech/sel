@@ -45,7 +45,6 @@ appendix holds each individual package's API in turn.
 * sel-sw-coq::                  Software-Evolution-Library/Software coq.
 * sel-sw-coq-project::          Software-Evolution-Library/Software coq-project.
 * sel-sw-compilable::           Software-Evolution-Library/Software compilable.
-* sel-sw-csurf-asm::            Software-Evolution-Library/Software csurf-asm.
 * sel-sw-diff::                 Software-Evolution-Library/Software diff.
 * sel-sw-elf::                  Software-Evolution-Library/Software elf.
 * sel-sw-elf-cisc::             Software-Evolution-Library/Software elf-cisc.
@@ -135,15 +134,11 @@ appendix holds each individual package's API in turn.
 @section sel-sw-coq
 @include sel-sw-coq-api.texi
 
-@node sel-sw-coq-project, sel-sw-csurf-asm, sel-sw-coq, SEL Packages
+@node sel-sw-coq-project, sel-sw-diff, sel-sw-coq, SEL Packages
 @section sel-sw-coq-project
 @include sel-sw-coq-project-api.texi
 
-@node sel-sw-csurf-asm, sel-sw-diff, sel-sw-coq-project, SEL Packages
-@section sel-sw-csurf-asm
-@include sel-sw-csurf-asm-api.texi
-
-@node sel-sw-compilable, sel-sw-diff, sel-sw-csurf-asm, SEL Packages
+@node sel-sw-compilable, sel-sw-diff, sel-sw-coq-project, SEL Packages
 @section sel-sw-compilable
 @include sel-sw-compilable-api.texi
 

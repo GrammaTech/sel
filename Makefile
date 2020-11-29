@@ -45,7 +45,6 @@ DOC_PACKAGES =								\
 	software-evolution-library/software/compilable			\
 	software-evolution-library/software/coq				\
 	software-evolution-library/software/coq-project			\
-	software-evolution-library/software/csurf-asm			\
 	software-evolution-library/software/diff			\
 	software-evolution-library/software/elf				\
 	software-evolution-library/software/elf-cisc			\

@@ -28,8 +28,6 @@
         :software-evolution-library/test/conflict-ast
         :software-evolution-library/test/coq
         :software-evolution-library/test/cpp-scan
-        :software-evolution-library/test/csurf-asm-ancestry
-        :software-evolution-library/test/csurf-asm
         :software-evolution-library/test/database
         :software-evolution-library/test/declaration-type-databases
         :software-evolution-library/test/diff
