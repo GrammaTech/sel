@@ -60,11 +60,14 @@
 
 (defvar *dynamic-linker-path*
   ;; Find the dynamic linker by pulling it from an executable on the system.
-  #+unix (nest (find-if {search "ld-linux"} )
-               (mapcar #'trim-whitespace)
-               (mappend {split-sequence #\space})
-               (split-sequence #\Newline)
-               (shell "ldd ~a" (trim-whitespace (shell "which ls"))))
+  #+unix (if (zerop (nth-value 2 (shell "which ldd")))
+             (nest (find-if {search "ld-linux"} )
+                   (mapcar #'trim-whitespace)
+                   (mappend {split-sequence #\space})
+                   (split-sequence #\Newline)
+                   (shell "ldd ~a" (trim-whitespace (shell "which ls"))))
+             (warn "Unable to find dynamic linker, ~
+                    set `*dynamic-linker-path*' manually."))
   #-unix (error "No analog for dynamic linker when not on Linux.")
   "Path to the dynamic linker on this system.")
 
