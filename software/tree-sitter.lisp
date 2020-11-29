@@ -43,7 +43,8 @@ to parse the string.")
   (defvar *tree-sitter-language-directories*
     (or (when-let ((env (getenv "SEL_TREE_SITTER_LANGUAGE_DIR")))
           (split-sequence #\, env))
-        '("/usr/share/tree-sitter/"))
+        (remove-if-not #'probe-file '("/usr/share/tree-sitter/"))
+        (prog1 nil (warn "No tree-sitter language directory found.")))
     "A list of directories that hold directories of json files
 defining supported tree-sitter languages.  These directories are
 searched to populate `*tree-sitter-language-files*'.")
