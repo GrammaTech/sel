@@ -166,23 +166,23 @@
          (and (>= (parse-integer major) 3) (>= (parse-integer minor) 8)))))
 
 (defun c-tree-sitter-available-p ()
-  (handler-case (progn (make-instance 'sel/sw/tree-sitter:c))
+  (handler-case (progn (make-instance 'sel/sw/tree-sitter::c))
                 (error (e) (declare (ignorable e)) nil)))
 
 (defun java-tree-sitter-available-p ()
-  (handler-case (progn (make-instance 'sel/sw/tree-sitter:java))
+  (handler-case (progn (make-instance 'sel/sw/tree-sitter::java))
                 (error (e) (declare (ignorable e)) nil)))
 
 (defun python-tree-sitter-available-p ()
-  (handler-case (progn (make-instance 'sel/sw/tree-sitter:python))
+  (handler-case (progn (make-instance 'sel/sw/tree-sitter::python))
                 (error (e) (declare (ignorable e)) nil)))
 
 (defun javascript-tree-sitter-available-p ()
-  (handler-case (progn (make-instance 'sel/sw/tree-sitter:javascript))
+  (handler-case (progn (make-instance 'sel/sw/tree-sitter::javascript))
                 (error (e) (declare (ignorable e)) nil)))
 
 (defun json-tree-sitter-available-p ()
-  (handler-case (progn (make-instance 'sel/sw/tree-sitter:json))
+  (handler-case (progn (make-instance 'sel/sw/tree-sitter::json))
                 (error (e) (declare (ignorable e)) nil)))
 
 (defun stmt-with-text (obj text &key no-error (trim t))
