@@ -13,7 +13,7 @@
    :software-evolution-library/software/clang
    :software-evolution-library/software/project
    :software-evolution-library/software/clang-project
-   :software-evolution-library/software/json)
+   :software-evolution-library/software/tree-sitter)
   (:export :test-cl))
 (in-package :software-evolution-library/test/command-line)
 (in-readtable :curry-compose-reader-macros)
@@ -40,8 +40,8 @@
 ;;; in some directory other than the sel root directory.
 (deftest guess-language-test ()
   (is (eql 'clang (guess-language #P"this/foo.cpp")))
-  (is (eql 'json (guess-language #P"this/foo.json")))
-  (is (eql 'json (guess-language #P"this/foo.json" #P"this/bar.json")))
+  (is (equalp "json" (symbol-name (guess-language #P"this/foo.json"))))
+  (is (equalp "json" (symbol-name (guess-language #P"this/foo.json" #P"this/bar.json"))))
   (is (eql 'clang-project
            (guess-language (make-pathname :directory +grep-prj-dir+))))
   (is (eql 'simple (guess-language #P"this/Makefile")))
