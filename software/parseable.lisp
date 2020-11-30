@@ -1532,3 +1532,32 @@ This can be set to modify the behavior of #'source-text and #'convert")
 is useful for ASTs that may have newline literals.")
   (:method (ast) t))
 
+(define-condition node-location ()
+  ((ast :initarg :ast :reader node-location-ast)))
+
+(defmethod source-text :around ((ast indentation) &optional stream)
+  (declare (ignore stream))
+  (signal 'node-location :ast ast)
+  (multiple-value-prog1 (call-next-method)
+    (signal 'node-location :ast ast)))
+
+(defmethod ast-source-ranges ((ast indentation))
+  (flet ((source-range (begin end)
+           (make 'source-range :begin begin :end end)))
+    (let* ((string-stream (make-string-output-stream))
+           (positions
+            (serapeum:collecting
+             (handler-bind ((node-location
+                             (lambda (c)
+                               (collect
+                                (cons (node-location-ast c)
+                                      (file-position string-stream))))))
+               (source-text ast string-stream))))
+           (text (get-output-stream-string string-stream))
+           (assorted (assort positions :key #'car)))
+      (iter (for ((ast . start) (nil . end)) in assorted)
+            (collect
+             (cons ast
+                   (source-range
+                    (position->source-location text start)
+                    (position->source-location text end))))))))
