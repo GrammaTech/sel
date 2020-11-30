@@ -819,14 +819,26 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
 ;;; Indentation
 (defmethod indentablep ((ast py-constant)) nil)
 
+(defvar *parents* nil)
+(defvar *indent-p*)
+(defvar *indentation-ast*)
+
+(defmethod source-text :around ((ast python-ast) &optional stream)
+  (declare (ignore stream))
+  (if (boundp '*indent-p*)
+      (call-next-method)
+      (let ((*indent-p* nil)
+            (*indentation-ast* nil))
+        (call-next-method))))
+
 (defmethod source-text ((ast python-ast) &optional stream
-                        &aux (root ast) indent-p indentation-ast)
+                        &aux (root ast))
   ;; TODO: add support for Windows-style CRLF instead of just newlines.
   (labels ((ends-with-newline-p (string)
              "Return T if STRING ends with a newline."
              (unless (emptyp string)
                (eql #\newline (last-elt string))))
-           (create-indentation (indentation)
+           (make-indentation-string (indentation)
              "Create the string representation of INDENTATION.
               This handles converting spaces to tabs."
              (if *indent-with-tabs-p*
@@ -836,7 +848,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
                     (repeat-sequence "	" tabs)
                     (repeat-sequence " " spaces)))
                  (repeat-sequence " " indentation)))
-           (get-indentation (ast parent-list)
+           (indentation-length (ast parent-list)
              "Get the indentation at AST with its parents provided
               in PARENT-LIST."
              ;; Patch the indent-children slots of AST if
@@ -847,11 +859,11 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
                 (when (eq t (indent-children ast))
                   (setf (indent-children ast)
                         (get-default-indentation ast parent-list)))
-                 (get-indentation-at ast parent-list))
+                (get-indentation-at ast parent-list))
                (t (get-indentation-at (car parent-list) (cdr parent-list)))))
            (patch-inner-indentation (text ast parents
                                      &aux (indentation
-                                           (get-indentation ast parents))
+                                           (indentation-length ast parents))
                                        (split-text (split "\\n" text)))
              "Patch the newlines that occur inside interleaved text.
               This assumes that the indentation should be the same
@@ -861,45 +873,39 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
              (cond
                ((not (indentablep ast)) text)
                ((< 1 (length split-text))
-                ;; Add the newline back in if there was one at the end
-                ;; of the string since it gets removed by #'split.
-                (concatenate
-                 'string
-                 (reduce
-                  (lambda (total subseq)
-                    (concatenate
-                     'string
-                     total
-                     (format nil "~%~a~a"
-                             (create-indentation
-                              (if (emptyp subseq)
-                                  0
-                                  indentation))
-                             subseq)))
-                  (cdr split-text)
-                  :initial-value (car split-text))
-                 (format nil "~a"
-                         (if (ends-with-newline-p text) #\newline ""))))
-                 (t text)))
+                (with-output-to-string (s)
+                  (write-string (car split-text) s)
+                  (dolist (subseq (cdr split-text))
+                    (format s "~%~a~a"
+                            (make-indentation-string
+                             (if (emptyp subseq)
+                                 0
+                                 indentation))
+                            subseq))
+                  ;; Add the newline back in if there was one at the end
+                  ;; of the string since it gets removed by #'split.
+                  (format s "~a"
+                          (if (ends-with-newline-p text) #\newline ""))))
+               (t text)))
            (handle-leading-newline (text)
              "If the first character in TEXT is a newline, reset the
-              indentation variables."
+              indentation variables so no indentation is printed."
              (when (and (not (emptyp text))
                         (eql #\newline (first text)))
-               (setf indent-p nil
-                     indentation-ast nil)))
+               (setf *indent-p* nil
+                     *indentation-ast* nil)))
            (handle-trailing-newline (text ast indentablep)
              "If the last character in TEXT is a newline, set the
               indentation variables."
              (when (and (ends-with-newline-p text)
-                          indentablep)
-                 (setf indent-p t
-                       indentation-ast ast)))
+                        indentablep)
+               (setf *indent-p* t
+                     *indentation-ast* ast)))
            (handle-indentation (text ast indentablep parents
                                 &key ancestor-check)
              "If indentation to be written to stream, handle
               writing it."
-             (when (and indent-p
+             (when (and *indent-p*
                         indentablep
                         ;; Prevent indentation from being
                         ;; wasted on empty strings before it
@@ -911,40 +917,41 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
                         (not (and ancestor-check
                                   (emptyp text)
                                   (ancestor-of-p
-                                   root indentation-ast ast))))
-               (setf indent-p nil
-                     indentation-ast nil)
+                                   root *indentation-ast* ast))))
+               (setf *indent-p* nil
+                     *indentation-ast* nil)
                (write-string
-                (create-indentation (get-indentation ast parents))
+                (make-indentation-string (indentation-length ast parents))
                 stream)))
            (handle-text (text ast indentablep parents
-                         &key ancestor-check)
+                                     &key ancestor-check)
              "Handle writing TEXT to stream, updating any indentation
               variables that need updated."
+             ;; Suppress indentation if TEXT begins with a newline.
              (handle-leading-newline text)
              (handle-indentation text ast indentablep parents
                                  :ancestor-check ancestor-check)
+             ;; Set indentation flag  when TEXT ends with a newline.
              (handle-trailing-newline text ast indentablep)
              (write-string
               (patch-inner-indentation text ast parents)
-              stream))
-           (source-text* (ast &optional parents &aux (stringp (stringp ast)))
-             "Recursively retrieve the source  text of AST
-              and write it to stream."
-             ;; TODO: the checking for whether there's a string could
-             ;;       be resolved by reconstructing a list of children.
-             (let* ((interleaved-text (unless stringp (interleaved-text ast)))
-                    (indentablep (indentablep ast)))
-               (handle-text
-                (if stringp ast (car interleaved-text))
-                ast indentablep parents)
-               (mapc (lambda (child text)
-                       (source-text* child (cons ast parents))
-                       (handle-text text ast indentablep parents
-                                    :ancestor-check t))
-                     (unless stringp (sorted-children ast))
-                     (cdr interleaved-text)))))
-    (source-text* ast)))
+              stream)))
+    ;; TODO: the checking for whether there's a string could
+    ;;       be resolved by reconstructing a list of children.
+    (let* ((stringp (stringp ast))
+           (parents *parents*)
+           (interleaved-text (unless stringp (interleaved-text ast)))
+           (indentablep (indentablep ast)))
+      (handle-text
+       (if stringp ast (car interleaved-text))
+       ast indentablep parents)
+      (mapc (lambda (child text)
+              (let ((*parents* (cons ast parents)))
+                (source-text child stream))
+              (handle-text text ast indentablep parents
+                           :ancestor-check t))
+            (unless stringp (sorted-children ast))
+            (cdr interleaved-text)))))
 
 (-> process-indentation (python-ast) python-ast)
 (defun process-indentation (root &aux indentation-carryover indentation-ast)
@@ -976,7 +983,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
                 &aux (parent (car parents))
                   (total-indentation (+ indentation indentation-carryover))
                   (inherited-indentation
-                      (get-indentation-at ast parents)))
+                   (get-indentation-at ast parents)))
              "Patch either AST or PARENT to have INDENTATION for the
               relevant line or lines."
              (symbol-macrolet ((indent-children (indent-children parent))
