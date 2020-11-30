@@ -59,9 +59,11 @@
   (let ((js-files (expand-wildcard #p"javascript/*/*.js")))
     (test-ast-source-ranges-for-files 'javascript js-files)))
 
-;; (deftest test-python-source-ranges ()
-;;   (let ((py-files (expand-wildcard #p"python/*/*.py")))
-;;     (test-ast-source-ranges-for-files 'python py-files)))
+(deftest test-python-source-ranges ()
+  (let ((py-files (expand-wildcard #p"python/*/*.py")))
+    ;; We ignore whitespace here because
+    (test-ast-source-ranges-for-files 'python py-files
+                                      :ignore-indentation t)))
 
 (deftest test-lisp-source-ranges ()
   (let ((lisp-files (expand-wildcard #p"lisp*/*.lisp")))
@@ -75,12 +77,15 @@
     (test-ast-source-ranges-for-files 'clang c-files :limit 10)))
 
 (defun test-ast-source-ranges-for-files (class files
-                                         &key (limit 1000))
+                                         &key (limit 1000)
+                                           ignore-indentation)
   (iter (for file in-vector (take limit (reshuffle files)))
-        (ignore-errors                  ;Ignore unparseable files.
-         (test-single-ast-source-ranges class file))))
+        (ignore-errors                      ;Ignore unparseable files.
+         (test-single-ast-source-ranges
+          class file
+          :ignore-indentation ignore-indentation))))
 
-(defun test-single-ast-source-ranges (class file)
+(defun test-single-ast-source-ranges (class file &key ignore-indentation)
   "Test that AST source ranges round-trip.
 That is, test that the result of calling `source-text' on an AST is the same as calling `ast-source-ranges' on its containing software and extracting the specified range from the software's serialization."
   (ignore-some-conditions (mutate)
@@ -89,5 +94,11 @@ That is, test that the result of calling `source-text' on an AST is the same as 
            (text (source-text (genome sw))))
       (is (not (emptyp ranges)))
       (iter (for (ast . range) in ranges)
-            (is (equal (source-range-subseq text range)
-                       (source-text ast)))))))
+            (let ((reference-text (source-range-subseq text range))
+                  (output-text (source-text ast)))
+              (if ignore-indentation
+                  (let ((output-lines (lines output-text))
+                        (reference-lines (lines reference-text)))
+                    (is (length= output-lines reference-lines))
+                    (is (every #'string$= output-lines reference-lines)))
+                  (is (equal reference-text output-text))))))))
