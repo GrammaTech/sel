@@ -39,14 +39,15 @@
         :software-evolution-library/test/javascript-project
         :software-evolution-library/test/javascript
         :software-evolution-library/test/javascript-tree-sitter
+        :software-evolution-library/test/json
         :software-evolution-library/test/lisp
         :software-evolution-library/test/lisp-bindings
+        :software-evolution-library/test/misc-mutations
+        :software-evolution-library/test/mutation-analysis
         :software-evolution-library/test/python
         :software-evolution-library/test/python-tree-sitter
         :software-evolution-library/test/python-utility
         :software-evolution-library/test/python-project
-        :software-evolution-library/test/misc-mutations
-        :software-evolution-library/test/mutation-analysis
         :software-evolution-library/test/parseable
         :software-evolution-library/test/population
         :software-evolution-library/test/range-representation
@@ -56,6 +57,7 @@
         :software-evolution-library/test/sexp
         :software-evolution-library/test/style-features
         :software-evolution-library/test/task-runner
+        :software-evolution-library/test/tree-sitter
         :software-evolution-library/test/type-traces
         :software-evolution-library/test/utility)
   #+gt (:shadowing-import-from :testbot :batch-test)
