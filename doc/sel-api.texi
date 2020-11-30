@@ -52,14 +52,10 @@ appendix holds each individual package's API in turn.
 * sel-sw-elf-risc::             Software-Evolution-Library/Software elf-risc.
 * sel-sw-expression::           Software-Evolution-Library/Software expression.
 * sel-sw-forth::                Software-Evolution-Library/Software forth.
-* sel-sw-javascript::           Software-Evolution-Library/Software javascript.
-* sel-sw-javascript-project::   Software-Evolution-Library/Software javascript-project.
 * sel-sw-lisp::                 Software-Evolution-Library/Software lisp.
 * sel-sw-llvm::                 Software-Evolution-Library/Software llvm.
 * sel-sw-parseable::            Software-Evolution-Library/Software parseable.
 * sel-sw-project::              Software-Evolution-Library/Software project.
-* sel-sw-python::               Software-Evolution-Library/Software python.
-* sel-sw-python-project::       Software-Evolution-Library/Software python-project.
 * sel-sw-sexp::                 Software-Evolution-Library/Software sexp.
 * sel-sw-simple::               Software-Evolution-Library/Software simple.
 * sel-sw-source::               Software-Evolution-Library/Software source.
@@ -171,19 +167,11 @@ appendix holds each individual package's API in turn.
 @section sel-sw-expression
 @include sel-sw-expression-api.texi
 
-@node sel-sw-forth, sel-sw-javascript, sel-sw-expression, SEL Packages
+@node sel-sw-forth, sel-sw-lisp, sel-sw-expression, SEL Packages
 @section sel-sw-forth
 @include sel-sw-forth-api.texi
 
-@node sel-sw-javascript, sel-sw-javascript-project, sel-sw-forth, SEL Packages
-@section sel-sw-javascript
-@include sel-sw-javascript-api.texi
-
-@node sel-sw-javascript-project, sel-sw-lisp, sel-sw-javascript, SEL Packages
-@section sel-sw-javascript-project
-@include sel-sw-javascript-project-api.texi
-
-@node sel-sw-lisp, sel-sw-llvm, sel-sw-javascript-project, SEL Packages
+@node sel-sw-lisp, sel-sw-llvm, sel-sw-forth, SEL Packages
 @section sel-sw-lisp
 @include sel-sw-lisp-api.texi
 
@@ -195,17 +183,9 @@ appendix holds each individual package's API in turn.
 @section sel-sw-parseable
 @include sel-sw-parseable-api.texi
 
-@node sel-sw-project, sel-sw-python, sel-sw-parseable, SEL Packages
+@node sel-sw-project, sel-sw-sexp, sel-sw-parseable, SEL Packages
 @section sel-sw-project
 @include sel-sw-project-api.texi
-
-@node sel-sw-python, sel-sw-python-project, sel-sw-project, SEL Packages
-@section sel-sw-python
-@include sel-sw-python-api.texi
-
-@node sel-sw-python-project, sel-sw-sexp, sel-sw-python, SEL Packages
-@section sel-sw-python-project
-@include sel-sw-python-project-api.texi
 
 @node sel-sw-sexp, sel-sw-simple, sel-sw-project, SEL Packages
 @section sel-sw-sexp

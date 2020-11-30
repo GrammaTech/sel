@@ -400,10 +400,6 @@ with an indicate of their relative maturity.
       @tab @*  @refapiclass{elf-cisc}
       @tab mature (not recommended)
 
-@item JavaScript source
-      @tab @refapiclass{javascript}
-      @tab experimental
-
 @item LLVM IR
       @tab @refapiclass{llvm}
       @tab experimental
@@ -414,10 +410,6 @@ with an indicate of their relative maturity.
 
 @item LISP
       @tab @refapiclass{lisp}
-      @tab experimental
-
-@item Python source
-      @tab @refapiclass{python}
       @tab experimental
 
 @item Coq source
@@ -444,8 +436,6 @@ Software Object Classes (see also @ref{api-software-object-classes,Software Obje
 * Assembler with @code{asm}::   Assembler represented as a vector
 * Executables with @code{csurf-asm}:: Executables manipulated as an
                                       assembler vector
-* JavaScript with @code{javascript}:: JavaScript language source code ASTs
-* Python with @code{python}::         Python language source code ASTs
 * Coq with @code{coq}::               Coq language source code ASTs
 
 Software Object Mixins (see also @ref{api-software-object-mixins,Software Object Class ``Mixins''} in the API)
@@ -469,25 +459,13 @@ Software Object Mixins (see also @ref{api-software-object-mixins,Software Object
 
 @include include/asm.texi
 
-@node Executables with @code{csurf-asm}, JavaScript with @code{javascript}, Assembler with @code{asm}, Software Objects
+@node Executables with @code{csurf-asm}, Coq with @code{coq}, Assembler with @code{asm}, Software Objects
 
 @subsection Executables with @code{csurf-asm} Software Object
 
 @include include/csurf-asm.texi
 
-@node JavaScript with @code{javascript}, Coq with @code{coq}, Executables with @code{csurf-asm}, Software Objects
-
-@subsection JavaScript with @code{javascript}
-
-@include include/javascript.texi
-
-@node Python with @code{python}, Coq with @code{coq}, JavaScript with @code{javascript}, Software Objects
-
-@subsection Python with @code{python}
-
-@include include/python.texi
-
-@node Coq with @code{coq}, Ancestor tracking with @code{ancestral}, Python with @code{python}, Software Objects
+@node Coq with @code{coq}, Ancestor tracking with @code{ancestral}, Executables with @code{csurf-asm}, Software Objects
 
 @subsection Coq with @code{coq} and @code{SerAPI}
 

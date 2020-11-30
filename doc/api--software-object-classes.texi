@@ -98,8 +98,6 @@ Class @code{software}
         @itemize
         @item @ref{api-software-objects-clang-w-fodder, @code{clang-w-fodder}}
         @end itemize
-      @item @ref{api-software-objects-javascript, @code{javascript}}
-      @item @ref{api-software-objects-python, @code{python}}
       @end itemize
     @end itemize
 
@@ -264,8 +262,6 @@ Class @code{parseable}
 @item Subclass
   @itemize
   @item @ref{api-software-objects-clang, @code{clang}}
-  @item @ref{api-software-objects-javascript, @code{javascript}}
-  @item @ref{api-software-objects-python, @code{python}}
   @end itemize
 
 @item Generic Functions
@@ -497,62 +493,6 @@ Class @code{clang-w-fodder}
 
 @c ----------------------------------------
 
-@anchor{api-software-objects-javascript}
-@subsubsection Class @code{javascript}
-[
-@ref{SEL API, API} |
-@ref{api-software-objects, Software Objects} |
-@ref{api-software-object-classes,Software Object Classes} |
-Class @code{javascript}
-]
-
-@itemize
-
-@item Class @refapiclass{javascript}
-
-@item Methods
-  @itemize
-  @item @refapimethod{format-genome,format-genome}
-  @item @refapimethod{from-string,from-string}
-  @item @refapimethod{from-file,from-file}
-  @item @refapimethod{get-unbound-vals,get-unbound-vals}
-  @item @refapimethod{get-unbound-funs,get-unbound-funs}
-  @item @refapimethod{scopes,scopes}
-  @item @refapimethod{phenome,phenome}
-  @end itemize
-
-@end itemize
-
-@c ----------------------------------------
-
-@anchor{api-software-objects-python}
-@subsubsection Class @code{python}
-[
-@ref{SEL API, API} |
-@ref{api-software-objects, Software Objects} |
-@ref{api-software-object-classes,Software Object Classes} |
-Class @code{python}
-]
-
-@itemize
-
-@item Class @refapiclass{python}
-
-@item Methods
-  @itemize
-  @item @refapimethod{format-genome,format-genome}
-  @item @refapimethod{from-string,from-string}
-  @item @refapimethod{from-file,from-file}
-  @item @refapimethod{get-unbound-vals,get-unbound-vals}
-  @item @refapimethod{get-unbound-funs,get-unbound-funs}
-  @item @refapimethod{scopes,scopes}
-  @item @refapimethod{phenome,phenome}
-  @end itemize
-
-@end itemize
-
-@c ----------------------------------------
-
 @anchor{api-software-objects-llvm}
 @subsubsection Class @code{llvm}
 
@@ -646,27 +586,6 @@ Class @code{clang-project}
 @item Methods
   @itemize
   @item @refapimethod{from-file,from-file}
-  @end itemize
-@end itemize
-
-@c ----------------------------------------
-
-@anchor{api-software-objects-javascript-project}
-@subsubsection Class @code{javascript-project}
-
-[
-@ref{SEL API, API} |
-@ref{api-software-objects, Software Objects} |
-@ref{api-software-object-classes,Software Object Classes} |
-Class @code{clang-project}
-]
-
-@itemize
-@item Class @refapiclass{javascript-project}
-@item Methods
-  @itemize
-  @item @refapimethod{from-file,from-file}
-  @item @refapimethod{phenome,phenome}
   @end itemize
 @end itemize
 
