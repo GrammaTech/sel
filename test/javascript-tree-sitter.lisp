@@ -60,22 +60,6 @@
 
 
 ;;; Tests
-;;; TODO: ask about this.
-#+nil
-(deftest test-js-string-length ()
-  (= 24 (js-string-length "̉mủt̉ả̉̉̉t̉ẻd̉W̉ỏ̉r̉̉d̉̉")))
-
-#+nil
-(deftest test-lone-surrogate-error ()
-  "Test that a malformed surrogate pair in a string literal, where
-  what was intended to be a low surrogate is still within the range
-  for a valid \"lone surrogate\" (which is valid JavaScript but not
-  valid JSON), signals the right error."
-  (signals mutate
-           (genome
-            (from-string (make 'javascript)
-                         "\"\\ud800-\\udbff\""))))
-
 (deftest javascript-simply-able-to-load-a-software-object ()
   (with-fixture hello-world-javascript
     (is (not (null *soft*)))))
@@ -248,16 +232,6 @@
                      (get-vars-in-scope soft)
                      (stmt-starting-with-text soft "console.log("))))))
 
-;;; FIXME
-#+nil
-(deftest javascript-ensure-do-not-duplicate-property-in-genome-string ()
-  (let ((soft (from-file (make-instance 'javascript)
-                         (javascript-dir #P"parsing/object-destructuring.js"))))
-    (nest (is) (string= "p") (source-text) (@ soft)
-          '((js-body . 1) (js-declarations . 0) js-id (js-properties . 0)))
-    (nest (is) (string= "p") (source-text) (@ soft)
-          '((js-body . 1) (js-declarations . 0) js-id (js-properties . 0)))))
-
 (deftest javascript-for-in-loop-get-vars-in-scope-test ()
   (let ((soft (from-file (make-instance 'javascript)
                          (javascript-dir #P"parsing/loops.js"))))
@@ -281,10 +255,9 @@
     (is (typep (stmt-with-text soft "foo") 'javascript-identifier))))
 
 ;;;(deftest javascript-ast-source-ranges ()
-;;; FIXME
-#+nil
 (deftest js-ast-source-ranges ()
   (with-fixture hello-world-javascript
+    ;; TODO: confirm that this is correct.
     (is (equalp (mapcar [#'range-to-list #'cdr] (ast-source-ranges *soft*))
                 '(((1 . 1) (2 . 1))
                   ((1 . 1) (2 . 1))
@@ -292,82 +265,59 @@
                   ((1 . 1) (1 . 12))
                   ((1 . 1) (1 . 8))
                   ((1 . 9) (1 . 12))
+                  ((1 . 12) (1 . 27))
                   ((1 . 13) (1 . 26)))))))
 
-;;; FIXME: fix all of these js.newline.post-processing tests.
-;;;(deftest javascript.newline.post-processing.1 ()
-#+nil
-(deftest js.newline.post-processing.1 ()
-  (is (equalp (sel/sw/javascript::position-after-leading-newline "") nil)
+;;; TODO: all of these js.newline.post-processing tests
+;;;       should probably be moved into a tree-sitter
+;;;       test file.
+;;;       Can use an :import-from :sel/sw/tree-sitter for
+;;;       position-after-leading-newline.
+(deftest tree-sitter-newline-post-processing-1 ()
+  (is (eql (sel/sw/tree-sitter::position-after-leading-newline "") nil)
       "position-after-leading-newline on empty string"))
 
-;;;(deftest javascript.newline.post-processing.2 ()
-#+nil
-(deftest js.newline.post-processing.2 ()
-  (is (equalp (sel/sw/javascript::position-after-leading-newline "x") nil)
+(deftest tree-sitter-newline-post-processing-2 ()
+  (is (eql (sel/sw/tree-sitter::position-after-leading-newline "x") nil)
       "position-after-leading-newline on string with no whitespace or newline"))
 
-;;;(deftest javascript.newline.post-processing.3 ()
-#+nil
-(deftest js.newline.post-processing.3 ()
-  (is (equalp (sel/sw/javascript::position-after-leading-newline "   ") nil)
+(deftest tree-sitter-newline-post-processing-3 ()
+  (is (eql (sel/sw/ts::position-after-leading-newline "   ") nil)
       "position-after-leading-newline on string with whitespace only, no newline"))
 
-;;;(deftest javascript.newline.post-processing.4 ()
-#+nil
-(deftest js.newline.post-processing.4 ()
-  (is (equalp (sel/sw/javascript::position-after-leading-newline " x") nil)
+(deftest tree-sitter-newline-post-processing-4 ()
+  (is (eql (sel/sw/ts::position-after-leading-newline " x") nil)
       "position-after-leading-newline on string with whitespace, no newline"))
 
-;;;(deftest javascript.newline.post-processing.5 ()
-#+nil
-(deftest js.newline.post-processing.5 ()
-  (is (equalp (sel/sw/javascript::position-after-leading-newline (string #\Newline)) 1)
+(deftest tree-sitter-newline-post-processing-5 ()
+  (is (eql (sel/sw/ts::position-after-leading-newline (string #\Newline)) 1)
       "position-after-leading-newline on newline"))
 
-;;;(deftest javascript.newline.post-processing.6 ()
-#+nil
-(deftest js.newline.post-processing.6 ()
-  (is (equalp (sel/sw/javascript::position-after-leading-newline
+(deftest tree-sitter-newline-post-processing-6 ()
+  (is (eql (sel/sw/ts::position-after-leading-newline
                (concatenate 'string (string #\Newline) "x"))
               1)
       "position-after-leading-newline on newline + other stuff"))
 
-;;;(deftest javascript.newline.post-processing.7 ()
-#+nil
-(deftest js.newline.post-processing.7 ()
-  (is (equalp (sel/sw/javascript::position-after-leading-newline
+(deftest tree-sitter-newline-post-processing-7 ()
+  (is (eql (sel/sw/ts::position-after-leading-newline
                (concatenate 'string (string #\Newline) "// foo "))
               1)
       "position-after-leading-newline on newline, comment"))
 
-;;;(deftest javascript.newline.post-processing.8 ()
-#+nil
-(deftest js.newline.post-processing.8 ()
-  (is (equalp (sel/sw/javascript::position-after-leading-newline
-               (concatenate 'string  "// foo " (string #\Newline) "   "))
-              8)
-      "position-after-leading-newline on comment, newline "))
-
-;;;(deftest javascript.newline.post-processing.9 ()
-#+nil
-(deftest js.newline.post-processing.9 ()
-  (is (equalp (sel/sw/javascript::position-after-leading-newline
+(deftest tree-sitter-newline-post-processing-8 ()
+  (is (equalp (sel/sw/ts::position-after-leading-newline
                "  // foo ")
               nil)
       "position-after-leading-newline on comment"))
 
-;;;(deftest javascript.newline.post-processing.10 ()
-#+nil
-(deftest js.newline.post-processing.10 ()
-  (is (equalp (sel/sw/javascript::position-after-leading-newline "/")
+(deftest tree-sitter-newline-post-processing-9 ()
+  (is (equalp (sel/sw/ts::position-after-leading-newline "/")
               nil)
       "position-after-leading-newline slash at EOL not a comment"))
 
-;;;(deftest javascript.newline.post-processing.11 ()
-#+nil
-(deftest js.newline.post-processing.11 ()
-  (is (equalp (sel/sw/javascript::position-after-leading-newline " / ")
+(deftest tree-sitter-newline-post-processing-10 ()
+  (is (equalp (sel/sw/ts::position-after-leading-newline " / ")
               nil)
       "position-after-leading-newline slash not at EOL not a comment"))
 
@@ -389,29 +339,26 @@
                 (format nil "return 0~%")
                 (format nil "yield 0~%")))))
 
-;;; FIXME
-#+nil
 (defixture javascript-ast-w-conflict
-  (:setup (nest (setf *soft*)
-                (with (from-file (make-instance 'javascript)
-                                 (javascript-dir #P"fib/fib.js"))
-                      ;; The "b" in 'a = a + b'.
-                      '((js-body . 0) js-body
-                        (js-body . 1) js-body
-                        (js-body . 1) js-expression js-right js-right))
-                (flet ((js-identifier (name)
-                         (make-instance 'js-identifier
-                                        :name name :interleaved-text (list name)))))
-                ;; A new conflict AST.
-                (make-instance 'conflict-ast :child-alist)
-                `((:old . nil)
-                  (:my . (,(js-identifier "temp")))
-                  (:your . (,(js-identifier "a"))))))
+  (:setup
+   (setf *soft*
+         (with (from-file (make-instance 'javascript)
+                          (javascript-dir #P"fib/fib.js"))
+               ;; The "b" in 'a = a + b'.
+               '(0 javascript-body
+                 1 javascript-body
+                 1 0 javascript-right
+                 javascript-right)
+               (flet ((js-identifier (name)
+                        (make-instance 'javascript-identifier
+                                       :interleaved-text (list name))))
+                 (make-instance 'conflict-ast :child-alist
+                 `((:old . nil)
+                   (:my . (,(js-identifier "temp")))
+                   (:your . (,(js-identifier "a")))))))))
   (:teardown
    (setf *soft* nil)))
 
-;;; FIXME
-#+nil
 (deftest javascript-and-conflict-basic-parseable-ast-functionality ()
   (with-fixture javascript-ast-w-conflict
     ;; We actually have ASTs.
@@ -423,36 +370,31 @@
     (is (typep (copy (genome *soft*)) 'javascript-ast)))
   (with-fixture javascript-ast-w-conflict
     ;; Access ASTs.
-    (is (string= "fibonacci"
-                 (ast-annotation (@ *soft* '((js-body . 0) js-id)) :name)))
-    (is (string= "b"
-                 (ast-annotation (@ *soft* '((js-body . 0) js-body
-                                             (js-body . 1) js-body (js-body . 2)
-                                             js-expression js-left))
-                                 :name)))
+    (is (equalp "fibonacci"
+                (source-text (@ *soft* '(0 javascript-name)))))
+    (is (equalp "b"
+                (source-text (@ *soft* '(0 javascript-body
+                                         1 javascript-body
+                                         2 0 javascript-left)))))
     (is (string= "temp"
-                 (ast-annotation (@ *soft* '((js-body . 0) js-body
-                                             (js-body . 1) js-body (js-body . 2)
-                                             js-expression js-right))
-                                 :name)))
+                 (source-text (@ *soft* '(0 javascript-body
+                                          1 javascript-body
+                                          2 0 javascript-right)))))
     ;; Set AST with (with ...).
-    (let ((path '((js-body . 0) js-body (js-body . 1) js-body (js-body . 2)
-                   js-expression js-left)))
+    (let ((path '(0 javascript-body
+                  1 javascript-body
+                  2 0 javascript-left)))
       (with *soft* path
-            (make-instance 'js-identifier
-             :name "RIGHT"
-             :interleaved-text (list "RIGHT")))
-      (is (typep (@ *soft* path) 'js-identifier))
-      (is (string= "RIGHT" (ast-annotation (@ *soft* path) :name)))
+            (make-instance 'javascript-identifier
+                           :interleaved-text (list "RIGHT")))
+      (is (typep (@ *soft* path) 'javascript-identifier))
+      (is (equalp "RIGHT" (source-text (@ *soft* path))))
       (with *soft* path
-            (make-instance 'js-identifier
-             :name "LEFT"
-             :interleaved-text (list "LEFT")))
-      (is (typep (@ *soft* path) 'js-identifier))
-      (is (string= "LEFT" (ast-annotation (@ *soft* path) :name))))))
+            (make-instance 'javascript-identifier
+                           :interleaved-text (list "LEFT")))
+      (is (typep (@ *soft* path) 'javascript-identifier))
+      (is (equalp "LEFT" (source-text (@ *soft* path)))))))
 
-;;; FIXME
-#+nil
 (deftest javascript-and-conflict-replace-ast ()
   (with-fixture javascript-ast-w-conflict
     (let ((cnf (find-if {typep _ 'conflict-ast} *soft*)))
@@ -461,28 +403,24 @@
             (car (aget :my (conflict-ast-child-alist cnf)))))
 
     (is (equal (size *soft*) (count-if {ast-path *soft*} (genome *soft*))))
-    (is (string= (source-text (@ *soft* '((js-body . 0) js-body
-                                          (js-body . 1) js-body
-                                          (js-body . 1) js-expression)))
+    (is (string= (source-text (@ *soft* '(0 javascript-body
+                                          1 javascript-body
+                                          1 0 )))
                  "a = a + temp"))))
 
 ;;; Test case for BI failure
 ;;;(deftest javascript-insert-test ()
-;;; FIXME
-#+nil
 (deftest js-insert-test ()
   (with-fixture fib-javascript
-    (let* ((s (genome *soft*)))
-      (is (not (eql (slot-value s 'ft::transform) s)))
-      (is (eql (length (slot-value s 'sel/sw/javascript::js-body)) 2)
+    (let* ((genome (genome *soft*))
+           (stmt-ast (convert 'javascript-ast "j = 0"))
+           (new-genome (insert genome '((children . 1)) stmt-ast)))
+      (is (not (eql (slot-value genome 'ft::transform) genome)))
+      (is (eql (length (javascript-children genome)) 2)
           "Body had two children before insert")
-      (let* ((stmt-ast (convert 'javascript-ast "j = 0"))
-             (new-soft (insert s '((js-body . 1)) stmt-ast)))
-        (let ((body (slot-value new-soft 'sel/sw/javascript::js-body)))
-          (is (= (length body) 3) "Body has three children after insert"))))))
+      (is (= (length (javascript-children new-genome)) 3)
+          "Body has three children after insert"))))
 
-
-;;; Tests
 (deftest (javascript-tree-sitter-parsing-test :long-running) ()
   (labels ((parsing-test-dir (path)
              (merge-pathnames-as-file (nest (make-pathname :directory)
