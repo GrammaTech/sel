@@ -58,15 +58,8 @@
   (:teardown
    (setf *soft* nil)))
 
-;;; TODO: move this into a JSON test file?
-#+nil
-(defixture trivial-json
-  (:setup
-   (setf *soft*
-         (from-file (make-instance 'json) (javascript-dir #P"trivial.json"))))
-  (:teardown
-   (setf *soft* nil)))
-
+
+;;; Tests
 ;;; TODO: ask about this.
 #+nil
 (deftest test-js-string-length ()
@@ -109,14 +102,6 @@
     (is (equal* (file-to-string (original-path *soft*))
                 (genome-string *soft*)
                 (source-text (genome *soft*))))))
-
-;;; TODO: move this into a JSON test file?
-#+nil
-(deftest javascript-can-parse-a-json-software-object ()
-  (with-fixture trivial-json
-    (is (not (zerop (size *soft*))))
-    (break)
-    (is (typep (genome *soft*) 'javascript-object-expression))))
 
 (deftest javascript-cut-shortens-a-software-object ()
   (with-fixture fib-javascript
@@ -480,15 +465,6 @@
                                           (js-body . 1) js-body
                                           (js-body . 1) js-expression)))
                  "a = a + temp"))))
-
-;;; TODO: move this into a JSON test file?
-#+nil
-(deftest test-json-preserves-trailing-whitespace ()
-  (let* ((ws (fmt "     ~%"))
-         (genome (string+ "{\"x\": 1}" ws))
-         (json (make-instance 'json :genome genome)))
-    (is (string$= ws (genome-string json)))))
-
 
 ;;; Test case for BI failure
 ;;;(deftest javascript-insert-test ()
