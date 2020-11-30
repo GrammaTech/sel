@@ -87,6 +87,11 @@
                 (genome-string *soft*)
                 (source-text (genome *soft*))))))
 
+(deftest javascript-json-lone-surrogate-round-trip ()
+  (let* ((json "a = { \"test\" : \"\\ud800-\\udbff\"};")
+         (json-ast (convert 'javascript-ast json)))
+    (is (equalp json (source-text json-ast)))))
+
 (deftest javascript-cut-shortens-a-software-object ()
   (with-fixture fib-javascript
     (let* ((variant (copy *soft*))
