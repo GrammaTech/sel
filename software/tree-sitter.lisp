@@ -493,12 +493,7 @@ they should produce the same ordering."
              (not (equal order (remove-duplicates order))))
            (check-order (order expected-order)
              "Return T if ORDER is equivalent to EXPECTED-ORDER."
-             (cond
-               ((null order) t)
-               ((null expected-order) nil)
-               ((eql (car order) (car expected-order))
-                (check-order (cdr order) (cdr expected-order)))
-               (t (check-order order (cdr expected-order))))))
+             (equal order (sort order (ordering expected-order)))))
     (let ((order (consolidate-runs parsed-order)))
       (unless (duplicate-exists-p order)
         (check-order order (consolidate-runs expected-order))))))
@@ -788,8 +783,9 @@ correct class name for subclasses of SUPERCLASS."
                             *tree-sitter-language-files*)))
 
 (defmacro when-class-defined ((software-class) &body body)
-  (when (handler-case (find-class software-class)
-          (error ()))
+  "Checks if SOFTWARE-CLASS is defined at compile-time. If so,
+it expands into BODY. Otherwise, the expansion is nil."
+  (when (find-class software-class nil)
     `(progn
        ,@body)))
 
@@ -1161,8 +1157,8 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
                                                   "*")
                                      list-splat-ast)))
                    (:keyword ,@(when list-splat
-                                 (apply #'subseq parameters
-                                        (1+ list-splat) dictionary-splat nil)
+                                 (subseq
+                                  parameters (1+ list-splat) dictionary-splat)
                                  (subseq parameters (1+ list-splat))))
                    (:dictionary-splat ,(when dictionary-splat
                                          (nth dictionary-splat parameters))))))
@@ -1244,7 +1240,10 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
       (let* ((parameters (python-children (python-parameters function)))
              (parameters-alist (get-parameter-alist parameters))
              (args-list (python-children (python-arguments funcall))))
+        ;; NOTE: all default parameters are returned by get-default-parameters.
+        ;;       The defaults that are actually used need to be removed here.
         (remove-duplicates
+         ;; NOTE: append order matters.
          (append (get-default-parameters parameters)
                  (get-positional-args-to-parameters
                   parameters-alist args-list)
