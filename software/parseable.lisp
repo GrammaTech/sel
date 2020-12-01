@@ -903,6 +903,17 @@ of SHARED-PATH-AST's path in OBJ.")
           (remove-if-not [{intersects range} #'cdr])
           (ast-source-ranges obj))))
 
+(defmethod source-range (software ast)
+  "Collect the source-range for AST and convert from 1-indexed to 0-indexed."
+  (flet ((0-index (location)
+           (with-slots (line column) location
+             (make-instance 'source-location
+               :line (1- line) :column (1- column)))))
+    (with-slots (begin end) (aget ast (ast-source-ranges software))
+      (make-instance 'source-range
+        :begin (0-index begin)
+        :end (0-index end)))))
+
 
 ;;; Retrieving ASTs
 (defmethod roots ((obj parseable))
