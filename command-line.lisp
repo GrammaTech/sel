@@ -580,4 +580,7 @@ in SCRIPT.")
       (("max-evals") :type integer
        :documentation "maximum number of evaluations to run in evolution")
       (("max-time") :type integer
-       :documentation "maximum number of seconds to run evolution"))))
+       :documentation "maximum number of seconds to run evolution")))
+  (defparameter +tree-sitter-command-line-options+
+    '((("tree-sitter-language-dir") :type string
+       :documentation "the directory that contains tree-sitter json files"))))
