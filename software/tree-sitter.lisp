@@ -838,6 +838,8 @@ the rebinding"
 ;;; Move this to its own file?
 (when-class-defined (python)
 
+  (defmethod ast-type-to-rebind-p ((ast python-identifier)) t)
+
   
   ;; Methods common to all software objects
   (defmethod phenome ((obj python) &key (bin (temp-file-name)))
@@ -893,19 +895,17 @@ AST ast to return the scopes for"
                 ENCLOSING-SCOPE."
                (find-if
                 (lambda (ast)
-                  (eq (aget :scope (name-in-get-vars-p
-                                    obj ast name))
+                  (eq (aget :scope (name-in-get-vars-p obj ast name))
                       enclosing-scope))
                 ast))
              (find-declaration (function ast)
                "Find the declaration that is returned by FUNCTION
                 starting at AST."
-               (block find-declaration
-                 (find-if
-                  (lambda (ast)
-                    (when-let ((declaration (funcall function ast)))
-                      (return-from find-declaration declaration)))
-                  ast)))
+               (find-if
+                (lambda (ast)
+                  (when-let ((declaration (funcall function ast)))
+                    (return-from find-declaration declaration)))
+                ast))
              (find-nonlocal-binding* (name enclosing-scope)
                "Find the nonlocal binding for NAME in ENCLOSING-SCOPE."
                (find-declaration
@@ -917,8 +917,7 @@ AST ast to return the scopes for"
                                 (equal name (source-text identifier)))
                               (remove-if-not {typep _ 'python-identifier}
                                              (python-children ast)))
-                             (not (eq enclosing-scope
-                                      (enclosing-scope obj enclosing-scope))))
+                             (not (eq enclosing-scope (genome obj))))
                         (find-nonlocal-binding
                          name (enclosing-scope obj enclosing-scope)))
                       (find-get-vars-binding obj ast enclosing-scope name)))
@@ -942,7 +941,7 @@ AST ast to return the scopes for"
              (find-enclosing-bindings (scope)
                "Find the enclosing bindings that occur in scope."
                (mapcar
-                {build-alist*}
+                #'build-alist*
                 (remove-if-not
                  (lambda (alist &aux (attributes (aget :attributes alist)))
                    (cond
@@ -955,7 +954,7 @@ AST ast to return the scopes for"
                  (mappend {get-vars obj} (remove nil (children scope))))))
              (find-local-bindings ()
                "Find local bindings in scope. Returns the py-name
-              objects associated with the bindings."
+                objects associated with the bindings."
                ;; NOTE: this doesn't correctly return bindings
                ;;       that occur based on control flow like with if-else
                ;;       statements. This typically isn't something that can
@@ -1017,7 +1016,7 @@ AST ast to return the scopes for"
                 (lambda (binding-alist)
                   (path-later-p obj target-ast (aget :decl binding-alist)))
                 ;; build-alist
-                (mapcar {build-alist*} (find-local-bindings))))
+                (mapcar #'build-alist* (find-local-bindings))))
              (group-by-scope (bindings)
                "Group BINDINGS by scope."
                (assort bindings :key (lambda (alist) (aget :scope alist))))
@@ -1959,7 +1958,6 @@ Returns nil if the length of KEYS is not the same as VALUES'."
 ;;;; Javascript
 (when-class-defined (javascript)
 
-  (defmethod ast-type-to-rebind-p ((ast javascript-ast)) nil)
   (defmethod ast-type-to-rebind-p ((ast javascript-identifier)) t)
 
   
@@ -2103,15 +2101,12 @@ AST ast to return the enclosing scope for"
   (defmethod get-parent-full-stmt ((obj javascript) (ast javascript-ast))
     (find-if #'is-stmt-p (get-parent-asts obj ast)))
 
-  (defmethod is-stmt-p ((ast javascript-ast))
-    (typep ast 'parseable-statement))
-
   (defmethod get-function-from-function-call
       ((obj javascript) (callexpr javascript-ast))
     ;; NOTE: this currently only handles
     ;;       named functions declared with 'function'.
     (match callexpr
-      ;; TODO: when needed, at support for member expression
+      ;; TODO: when needed, add support for member expression
       ;;       function calls.
       ((javascript-call-expression
         :javascript-function

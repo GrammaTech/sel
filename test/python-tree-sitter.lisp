@@ -280,7 +280,7 @@
                         (genome-string (format-genome (copy *soft*))))))
       (is (string= (genome-string (yapf (copy *soft*)))
                    (genome-string (format-genome (copy *soft*))))))))
-#+nil
+
 (deftest python-can-rebind-vars ()
   (with-fixture rebind-python
     (is (string= "b = 0"
