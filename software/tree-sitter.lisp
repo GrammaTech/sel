@@ -442,6 +442,12 @@ of fields needs to be determined at parse-time."
                              :allocation :class))
                (:documentation "Generated for parsing errors."))
 
+             (define-mutation ,(make-class-name "mutation") (parseable-mutation)
+               ()
+               (:documentation
+                ,(format nil "Mutation interface for ~a software objects."
+                         name-prefix)))
+
              (export ',(iter
                          (for (symbol) in-hashtable symbols-to-export)
                          (collect symbol))))
@@ -463,13 +469,7 @@ of fields needs to be determined at parse-time."
 
            (defmethod parse-asts ((obj ,(make-class-name))
                                   &optional (source (genome-string obj)))
-             (convert ',(make-class-name "ast") source))
-
-           ;; TODO: probably need to export this.
-           (define-mutation ,(make-class-name "mutation") (parseable-mutation) ()
-             (:documentation
-              ,(format nil "Mutation interface for ~a software objects."
-                       name-prefix))))))))
+             (convert ',(make-class-name "ast") source)))))))
 
 
 ;;; tree-sitter parsing
