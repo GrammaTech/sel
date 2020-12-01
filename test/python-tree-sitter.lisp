@@ -254,8 +254,6 @@
                'python-return-statement))))
 
 ;;;(deftest python-ast-source-ranges ()
-;;; TODO: figure out what's going on here.
-#+nil
 (deftest py-ast-source-ranges ()
   (with-fixture hello-world-python
     (is (equalp (mapcar [#'range-to-list #'cdr] (ast-source-ranges *soft*))
@@ -263,25 +261,8 @@
                   ((1 . 1) (2 . 1))
                   ((1 . 1) (1 . 22))
                   ((1 . 1) (1 . 6))
+                  ((1 . 6) (1 . 22))
                   ((1 . 7) (1 . 21)))))))
-
-;;; NOTE: this test probably isn't need since Python 3 has
-;;;       type annotations. tree-sitter doesn't support
-;;;       type comments.
-#+nil
-(deftest python-can-handle-type-comments ()
-  (with-fixture type-comments-python
-    (is (= 15 (size *soft*)))
-    (is (equal (file-to-string (original-path *soft*))
-               (genome-string *soft*)))
-    (is (nest (stmt-with-text *soft*)
-              (format nil "x = 12 # type: int~%")))
-    (is (equal "int"
-               ;; TODO: update for tree-sitter
-               (nest (aget :type-comment)
-                     (ast-annotations)
-                     (stmt-with-text *soft*)
-                     (format nil "x = 12 # type: int~%"))))))
 
 ;;;(deftest python-convert-source-snippet-works ()
 (deftest py-convert-source-snippet-works ()
