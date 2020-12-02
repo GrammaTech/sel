@@ -100,7 +100,8 @@
            :parseable-function
            :parseable-expression
            :parseable-statement
-           :parseable-class))
+           :parseable-class
+           :parseable-lambda))
 (in-package :software-evolution-library/software/parseable)
 (in-readtable :curry-compose-reader-macros)
 
@@ -124,6 +125,9 @@ whether they inherit from the functional trees library."))
 
 (defclass parseable-function (ast) ()
   (:documentation "Mix-in for ASTs classes that are functions."))
+
+(defclass parseable-lambda (ast) ()
+  (:documentation "Mix-in for ASTs classes that are lambdas."))
 
 (defclass parseable-class (ast) ()
   (:documentation "Mix-in for ASTs classes that are classes."))

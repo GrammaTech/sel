@@ -291,8 +291,20 @@ searched to populate `*tree-sitter-language-files*'.")
   (defvar *tree-sitter-ast-superclasses*
     '((:c (:parseable-statement c--statement c-function-definition))
       (:java (:parseable-statement java-statement))
-      (:javascript (:parseable-statement javascript--statement))
-      (:python (:parseable-statement python--compound-statement python--simple-statement))))
+      (:javascript
+       (:parseable-class javascript-class-declaration)
+       (:parseable-expression javascript--expression)
+       (:parseable-function
+        javascript-function-declaration javascript-arrow-function)
+       (:parseable-statement javascript--statement))
+      (:python
+       (:parseable-class python-class-definition)
+       (:parseable-expression python-expression)
+       (:parseable-function
+        python-function-definition python-lambda)
+       (:parseable-lambda python-lambda)
+       (:parseable-statement
+        python--compound-statement python--simple-statement))))
 
   (defun tree-sitter-ast-classes (name grammar-file node-types-file)
     (nest
