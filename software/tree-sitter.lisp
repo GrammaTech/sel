@@ -840,7 +840,6 @@ the rebinding"
 
   (defmethod ast-type-to-rebind-p ((ast python-identifier)) t)
 
-  
   ;; Methods common to all software objects
   (defmethod phenome ((obj python) &key (bin (temp-file-name)))
     (interpreted-phenome obj bin))
@@ -1268,7 +1267,6 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
          (python-pattern-list
           (find-if {identical-name-p identifier} (python-children lhs)))))))
 
-  
   ;; Indentation
   (defmethod indentablep ((ast python-string)) nil)
 
@@ -1544,7 +1542,6 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
         (indent-children indented-obj)
         (call-next-method))))
 
-  
   ;; Helper functions
   (-> collect-var-uses (python python-ast) (values list &optional))
   (defun collect-var-uses (obj ast)
@@ -1951,7 +1948,6 @@ Returns nil if the length of KEYS is not the same as VALUES'."
                           (:python-value . ,value))))
                      keys values))))))
 
-  
   ;; Implement the generic format-genome method for python objects.
   (defmethod format-genome ((obj python) &key)
     "Format the genome of OBJ using YAPF (Yet Another Python Formatter)."
@@ -1963,7 +1959,6 @@ Returns nil if the length of KEYS is not the same as VALUES'."
 
   (defmethod ast-type-to-rebind-p ((ast javascript-identifier)) t)
 
-  
   ;; Methods common to all software objects
   (defmethod phenome ((obj javascript) &key (bin (temp-file-name)))
     (interpreted-phenome obj bin))
@@ -2117,7 +2112,6 @@ AST ast to return the enclosing scope for"
          :interleaved-text (list name)))
        (enclosing-find-function obj callexpr name))))
 
-  
 ;;; Helper Functions.
   (-> enclosing-find-function (javascript javascript-ast string)
     (values (or null javascript-ast) &optional))
@@ -2135,7 +2129,6 @@ scope of START-AST."
                 (equal name function-name)))))
       (find-if-in-scope #'target-function obj start-ast)))
 
-  
 ;;; Implement the generic format-genome method for Javascript objects.
   (defmethod format-genome ((obj javascript) &key)
     (prettier obj)))
