@@ -606,7 +606,7 @@ of fields needs to be determined at parse-time."
                                (make-class-name
                                 (symbolicate type "-" 'terminal) t)
                                (make-class-name type t))
-                    ()
+                    (,ast-superclass)
                   ()
                   (:documentation
                    ,(format nil "Generated for terminal symbol '~a'" type))))
