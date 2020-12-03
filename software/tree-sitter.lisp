@@ -239,7 +239,7 @@
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 
-(define-software tree-sitter (non-homologous-parseable) ()
+(define-software tree-sitter (software-indentation non-homologous-parseable) ()
   (:documentation "tree-sitter software representation."))
 
 
@@ -282,11 +282,9 @@ searched to populate `*tree-sitter-language-files*'.")
   (defvar *tree-sitter-language-files* (collect-tree-sitter-language-files)
     "Files defining tree sitter languages.")
 
-  (defvar *tree-sitter-software-superclasses*
-    '((:python software-indentation)))
+  (defvar *tree-sitter-software-superclasses* '())
 
-  (defvar *tree-sitter-base-ast-superclasses*
-    '((:python indentation)))
+  (defvar *tree-sitter-base-ast-superclasses* '())
 
   (defvar *tree-sitter-ast-superclasses*
     '((:c (:parseable-statement c--statement c-function-definition))
@@ -348,7 +346,7 @@ searched to populate `*tree-sitter-language-files*'.")
 
 ;;; Defining tree-sitter classes
 (eval-always
-  (defclass tree-sitter-ast (non-homologous-ast)
+  (defclass tree-sitter-ast (indentation non-homologous-ast)
     ()
     (:documentation "AST for input from tree-sitter."))
 
@@ -997,6 +995,7 @@ correct class name for subclasses of SUPERCLASS."
                (adrop '(:range-start :range-end) (slot-value ast 'annotations)))
          ast))
     (nest
+     (process-indentation)
      (fix-newlines)
      (w/interleaved-text
       (convert to-type
@@ -1026,6 +1025,260 @@ it expands into BODY. Otherwise, the expansion is nil."
   "Create a phenotype of the interpreted software OBJ."
   (to-file obj bin)
   (values bin 0 nil nil nil))
+
+(defmethod source-text ((ast tree-sitter-ast)
+                        &key stream parents
+                          ;; These are "boxed" values since they have
+                          ;; to be propagated between adjacent
+                          ;; siblings (not just down the stack).
+                          (indent-p (box nil))
+                          (indentation-ast (box nil))
+                        &aux (root ast))
+  (labels ((ends-with-newline-p (string)
+             "Return T if STRING ends with a newline."
+             (unless (emptyp string)
+               (eql #\newline (last-elt string))))
+           (make-indentation-string (indentation)
+             "Create the string representation of INDENTATION.
+            This handles converting spaces to tabs."
+             (if *indent-with-tabs-p*
+                 (mvlet ((tabs spaces (floor indentation *spaces-per-tab*)))
+                   (concatenate
+                    'string
+                    (repeat-sequence "	" tabs)
+                    (repeat-sequence " " spaces)))
+                 (repeat-sequence " " indentation)))
+           (indentation-length (ast parent-list)
+             "Get the indentation at AST with its parents provided
+            in PARENT-LIST."
+             ;; Patch the indent-children slots of AST if
+             ;; the value is T. The value T could be provided
+             ;; from a #'convert invocation.
+             (cond
+               ((typep ast 'indentation)
+                (when (eq t (indent-children ast))
+                  (setf (indent-children ast)
+                        (get-default-indentation ast parent-list)))
+                (get-indentation-at ast parent-list))
+               (t (get-indentation-at (car parent-list) (cdr parent-list)))))
+           (patch-inner-indentation (text ast parents
+                                     &aux (indentation
+                                           (indentation-length ast parents))
+                                       (split-text (split "\\r?\\n" text)))
+             "Patch the newlines that occur inside interleaved text.
+            This assumes that the indentation should be the same
+            as the parent."
+             ;; NOTE: this will likely indent comments incorrectly.
+             ;;       This behavior is expected.
+             (cond
+               ((not (indentablep ast)) text)
+               ((< 1 (length split-text))
+                (with-output-to-string (s)
+                  (write-string (car split-text) s)
+                  (dolist (subseq (cdr split-text))
+                    (format s "~%~a~a"
+                            (make-indentation-string
+                             (if (emptyp subseq)
+                                 0
+                                 indentation))
+                            subseq))
+                  ;; Add the newline back in if there was one at the end
+                  ;; of the string since it gets removed by #'split.
+                  (format s "~a"
+                          (if (ends-with-newline-p text) #\newline ""))))
+               (t text)))
+           (handle-leading-newline (text)
+             "If the first character in TEXT is a newline, reset the
+            indentation variables so no indentation is printed."
+             (when (scan "^\\r?\\n" text)
+               (setf (unbox indent-p) nil
+                     (unbox indentation-ast) nil)))
+           (handle-trailing-newline (text ast indentablep)
+             "If the last character in TEXT is a newline, set the
+            indentation variables."
+             (when (and (ends-with-newline-p text)
+                        indentablep)
+               (setf (unbox indent-p) t
+                     (unbox indentation-ast) ast)))
+           (handle-indentation (text ast indentablep parents
+                                &key ancestor-check)
+             "If indentation to be written to stream, handle
+            writing it."
+             (when (and (unbox indent-p)
+                        indentablep
+                        ;; Prevent indentation from being
+                        ;; wasted on empty strings before it
+                        ;; reaches a child. This is checking if
+                        ;; it should not be skipped as opposed
+                        ;; to the logic in process-indentation
+                        ;; which is checking if it should be
+                        ;; skipped.
+                        (not (and ancestor-check
+                                  (emptyp text)
+                                  (ancestor-of-p
+                                   root (unbox indentation-ast) ast))))
+               (setf (unbox indent-p) nil
+                     (unbox indentation-ast) nil)
+               (write-string
+                (make-indentation-string (indentation-length ast parents))
+                stream)))
+           (handle-text (text ast indentablep parents
+                         &key ancestor-check)
+             "Handle writing TEXT to stream, updating any indentation
+            variables that need updated."
+             ;; Suppress indentation if TEXT begins with a newline.
+             (handle-leading-newline text)
+             (handle-indentation text ast indentablep parents
+                                 :ancestor-check ancestor-check)
+             ;; Set indentation flag  when TEXT ends with a newline.
+             (handle-trailing-newline text ast indentablep)
+             (write-string
+              (patch-inner-indentation text ast parents)
+              stream)))
+    ;; TODO: the checking for whether there's a string could
+    ;;       be resolved by reconstructing a list of children.
+    (let* ((stringp (stringp ast))
+           (interleaved-text (unless stringp (interleaved-text ast)))
+           (indentablep (indentablep ast)))
+      (handle-text
+       (if stringp ast (car interleaved-text))
+       ast indentablep parents)
+      (mapc (lambda (child text)
+              (source-text child
+                           :stream stream
+                           :parents (cons ast parents)
+                           :indent-p indent-p
+                           :indentation-ast indentation-ast)
+              (handle-text text ast indentablep parents
+                           :ancestor-check t))
+            (unless stringp (sorted-children ast))
+            (cdr interleaved-text)))))
+
+(-> process-indentation (tree-sitter-ast) tree-sitter-ast)
+(defun process-indentation (root &aux indentation-carryover indentation-ast)
+  (labels ((adjusted-spaces-from-tabs
+               (subseq &aux (tab-count (count #\tab subseq)))
+             "Return the number of spaces that are used for tabs minus
+              the number of tabs."
+             (- (* tab-count *spaces-per-tab*)
+                tab-count))
+           (starts-with-indentation-p (string)
+             "If STRING starts with indentation, return
+              the first position without indentation."
+             (when indentation-carryover
+               (mvlet ((start end (scan "^[ \\t]*" string)))
+                 (declare (ignorable start))
+                 end)))
+           (ends-with-newline-p (string)
+             "If STRING ends with a newline and optionally indentation,
+              return the position of the newline."
+             (iter
+               (for i from (1- (length string)) downto 0)
+               (for character = (aref string i))
+               (when (eql character #\newline)
+                 (return i))
+               (while (member character '(#\space #\tab)))))
+           (update-indentation-slots
+               (ast parents indentation text
+                &aux (parent (car parents))
+                  (total-indentation (+ indentation indentation-carryover))
+                  (inherited-indentation
+                   (get-indentation-at ast parents)))
+             "Patch either AST or PARENT to have INDENTATION for the
+              relevant line or lines."
+             (symbol-macrolet ((indent-children (indent-children parent))
+                               (indent-adjustment (indent-adjustment ast)))
+               (cond
+                 ;; Avoid wasting the newline on empty text before
+                 ;; reaching a child.
+                 ((and (emptyp text) (ancestor-of-p root indentation-ast ast)))
+                 ((and parent (not indent-children))
+                  (setf indent-children (- total-indentation
+                                           inherited-indentation)
+                        indentation-carryover nil
+                        indentation-ast nil))
+                 (t (setf indent-adjustment (- total-indentation
+                                               inherited-indentation)
+                          indentation-carryover nil
+                          indentation-ast nil)))))
+           (patch-leading-indentation
+               (text ast parents
+                &aux (indentation (starts-with-indentation-p text))
+                  (not-empty-string-p (not (emptyp text))))
+             "Return TEXT with the leading indentation removed and
+              the relevant indentation slot updated."
+             (cond-let leading-indentation
+               ((and indentation
+                     (= indentation (length text))
+                     not-empty-string-p)
+                (setf indentation-carryover
+                      (+ indentation-carryover
+                         indentation
+                         (adjusted-spaces-from-tabs
+                          (subseq text 0 indentation))))
+                "")
+               ;; This prevents weird indentation caused by
+               ;; missing the indentation that occurs after the newline.
+               ((and not-empty-string-p
+                     (eql #\newline (first text)))
+                (setf indentation-carryover nil
+                      indentation-ast nil)
+                text)
+               ((or indentation
+                    ;; NOTE: check if text exists here so that
+                    ;;       the inherited indentation can be
+                    ;;       set to 0. This prevents back-propogation
+                    ;;       of indentation to previous siblings.
+                    (and indentation-carryover
+                         (scan "[^ \\t\\n]" text)))
+                (update-indentation-slots
+                 ast parents (+ leading-indentation
+                                (adjusted-spaces-from-tabs
+                                 (subseq text 0 leading-indentation)))
+                 text)
+                (subseq text leading-indentation))
+               (t text)))
+           (patch-trailing-indentation (text ast)
+             "Return TEXT with the trailing indentation removed and
+              indentation-carryover updated."
+             (cond-let trailing-indentation
+               ((ends-with-newline-p text)
+                (setf indentation-carryover
+                      (+ (- (length text) (1+ trailing-indentation))
+                         (adjusted-spaces-from-tabs
+                          (subseq text trailing-indentation)))
+                      indentation-ast ast)
+                (subseq text 0 (1+ trailing-indentation)))
+               (t text)))
+           (patch-internal-indentation (text)
+             "Return TEXT where all newlines proceeded by indentation
+              are replaced with a newline."
+             (cl-ppcre:regex-replace-all "\\n[ \\t]+" text (format nil "~%")))
+           (patch-text (text ast parents)
+             "Patch TEXT such that it useable for inherited indentation.
+              Updates AST and PARENTS slots if necessary."
+             (patch-internal-indentation
+              (patch-trailing-indentation
+               (patch-leading-indentation text ast parents)
+               ast)))
+           (process-indentation*
+               (ast &optional parents
+                &aux (interleaved-text (interleaved-text ast)))
+             "Process the text of AST such that its indentation
+              is in the indentation slots."
+             (setf (car interleaved-text)
+                   (patch-text (car interleaved-text) ast parents))
+             (mapl (lambda (child-list text-list &aux (child (car child-list)))
+                     ;; this prevents patching literals that have
+                     ;; multiple newlines.
+                     (unless (not (indentablep child))
+                       (process-indentation* child (cons ast parents)))
+                     (setf (car text-list)
+                           (patch-text (car text-list) ast parents)))
+                   (sorted-children ast)
+                   (cdr interleaved-text))))
+    (process-indentation* root)
+    root))
 
 (defmethod get-parent-full-stmt (obj (ast tree-sitter-ast))
   (if (typep ast 'parseable-statement)
@@ -1520,263 +1773,6 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
 
   ;; Indentation
   (defmethod indentablep ((ast python-string)) nil)
-
-  (defmethod source-text ((ast python-ast)
-                          &key stream parents
-                            ;; These are "boxed" values since they have
-                            ;; to be propagated between adjacent
-                            ;; siblings (not just down the stack).
-                            (indent-p (box nil))
-                            (indentation-ast (box nil))
-                          &aux (root ast))
-    ;; TODO: add support for Windows-style CRLF instead of just newlines.
-    (labels ((ends-with-newline-p (string)
-               "Return T if STRING ends with a newline."
-               (unless (emptyp string)
-                 (eql #\newline (last-elt string))))
-             (make-indentation-string (indentation)
-               "Create the string representation of INDENTATION.
-              This handles converting spaces to tabs."
-               (if *indent-with-tabs-p*
-                   (mvlet ((tabs spaces (floor indentation *spaces-per-tab*)))
-                     (concatenate
-                      'string
-                      (repeat-sequence "	" tabs)
-                      (repeat-sequence " " spaces)))
-                   (repeat-sequence " " indentation)))
-             (indentation-length (ast parent-list)
-               "Get the indentation at AST with its parents provided
-              in PARENT-LIST."
-               ;; Patch the indent-children slots of AST if
-               ;; the value is T. The value T could be provided
-               ;; from a #'convert invocation.
-               (cond
-                 ((typep ast 'indentation)
-                  (when (eq t (indent-children ast))
-                    (setf (indent-children ast)
-                          (get-default-indentation ast parent-list)))
-                  (get-indentation-at ast parent-list))
-                 (t (get-indentation-at (car parent-list) (cdr parent-list)))))
-             (patch-inner-indentation (text ast parents
-                                       &aux (indentation
-                                             (indentation-length ast parents))
-                                         (split-text (split "\\n" text)))
-               "Patch the newlines that occur inside interleaved text.
-              This assumes that the indentation should be the same
-              as the parent."
-               ;; NOTE: this will likely indent comments incorrectly.
-               ;;       This behavior is expected.
-               (cond
-                 ((not (indentablep ast)) text)
-                 ((< 1 (length split-text))
-                  (with-output-to-string (s)
-                    (write-string (car split-text) s)
-                    (dolist (subseq (cdr split-text))
-                      (format s "~%~a~a"
-                              (make-indentation-string
-                               (if (emptyp subseq)
-                                   0
-                                   indentation))
-                              subseq))
-                    ;; Add the newline back in if there was one at the end
-                    ;; of the string since it gets removed by #'split.
-                    (format s "~a"
-                            (if (ends-with-newline-p text) #\newline ""))))
-                 (t text)))
-             (handle-leading-newline (text)
-               "If the first character in TEXT is a newline, reset the
-              indentation variables so no indentation is printed."
-               (when (and (not (emptyp text))
-                          (eql #\newline (first text)))
-                 (setf (unbox indent-p) nil
-                       (unbox indentation-ast) nil)))
-             (handle-trailing-newline (text ast indentablep)
-               "If the last character in TEXT is a newline, set the
-              indentation variables."
-               (when (and (ends-with-newline-p text)
-                          indentablep)
-                 (setf (unbox indent-p) t
-                       (unbox indentation-ast) ast)))
-             (handle-indentation (text ast indentablep parents
-                                  &key ancestor-check)
-               "If indentation to be written to stream, handle
-              writing it."
-               (when (and (unbox indent-p)
-                          indentablep
-                          ;; Prevent indentation from being
-                          ;; wasted on empty strings before it
-                          ;; reaches a child. This is checking if
-                          ;; it should not be skipped as opposed
-                          ;; to the logic in process-indentation
-                          ;; which is checking if it should be
-                          ;; skipped.
-                          (not (and ancestor-check
-                                    (emptyp text)
-                                    (ancestor-of-p
-                                     root (unbox indentation-ast) ast))))
-                 (setf (unbox indent-p) nil
-                       (unbox indentation-ast) nil)
-                 (write-string
-                  (make-indentation-string (indentation-length ast parents))
-                  stream)))
-             (handle-text (text ast indentablep parents
-                           &key ancestor-check)
-               "Handle writing TEXT to stream, updating any indentation
-              variables that need updated."
-               ;; Suppress indentation if TEXT begins with a newline.
-               (handle-leading-newline text)
-               (handle-indentation text ast indentablep parents
-                                   :ancestor-check ancestor-check)
-               ;; Set indentation flag  when TEXT ends with a newline.
-               (handle-trailing-newline text ast indentablep)
-               (write-string
-                (patch-inner-indentation text ast parents)
-                stream)))
-      ;; TODO: the checking for whether there's a string could
-      ;;       be resolved by reconstructing a list of children.
-      (let* ((stringp (stringp ast))
-             (interleaved-text (unless stringp (interleaved-text ast)))
-             (indentablep (indentablep ast)))
-        (handle-text
-         (if stringp ast (car interleaved-text))
-         ast indentablep parents)
-        (mapc (lambda (child text)
-                (source-text child
-                             :stream stream
-                             :parents (cons ast parents)
-                             :indent-p indent-p
-                             :indentation-ast indentation-ast)
-                (handle-text text ast indentablep parents
-                             :ancestor-check t))
-              (unless stringp (sorted-children ast))
-              (cdr interleaved-text)))))
-
-  (-> process-indentation (python-ast) python-ast)
-  (defun process-indentation (root &aux indentation-carryover indentation-ast)
-    ;; TODO: add support for Windows-style CRLF instead of just newlines.
-    (labels ((adjusted-spaces-from-tabs
-                 (subseq &aux (tab-count (count #\tab subseq)))
-               "Return the number of spaces that are used for tabs minus
-                the number of tabs."
-               (- (* tab-count *spaces-per-tab*)
-                  tab-count))
-             (starts-with-indentation-p (string)
-               "If STRING starts with indentation, return
-                the first position without indentation."
-               (when indentation-carryover
-                 (mvlet ((start end (scan "^[ \\t]*" string)))
-                   (declare (ignorable start))
-                   end)))
-             (ends-with-newline-p (string)
-               "If STRING ends with a newline and optionally indentation,
-                return the position of the newline."
-               (iter
-                 (for i from (1- (length string)) downto 0)
-                 (for character = (aref string i))
-                 (when (eql character #\newline)
-                   (return i))
-                 (while (member character '(#\space #\tab)))))
-             (update-indentation-slots
-                 (ast parents indentation text
-                  &aux (parent (car parents))
-                    (total-indentation (+ indentation indentation-carryover))
-                    (inherited-indentation
-                     (get-indentation-at ast parents)))
-               "Patch either AST or PARENT to have INDENTATION for the
-                relevant line or lines."
-               (symbol-macrolet ((indent-children (indent-children parent))
-                                 (indent-adjustment (indent-adjustment ast)))
-                 (cond
-                   ;; Avoid wasting the newline on empty text before
-                   ;; reaching a child.
-                   ((and (emptyp text) (ancestor-of-p root indentation-ast ast)))
-                   ((and parent (not indent-children))
-                    (setf indent-children (- total-indentation
-                                             inherited-indentation)
-                          indentation-carryover nil
-                          indentation-ast nil))
-                   (t (setf indent-adjustment (- total-indentation
-                                                 inherited-indentation)
-                            indentation-carryover nil
-                            indentation-ast nil)))))
-             (patch-leading-indentation
-                 (text ast parents
-                  &aux (indentation (starts-with-indentation-p text))
-                    (not-empty-string-p (not (emptyp text))))
-               "Return TEXT with the leading indentation removed and
-                the relevant indentation slot updated."
-               (cond-let leading-indentation
-                 ((and indentation
-                       (= indentation (length text))
-                       not-empty-string-p)
-                  (setf indentation-carryover
-                        (+ indentation-carryover
-                           indentation
-                           (adjusted-spaces-from-tabs
-                            (subseq text 0 indentation))))
-                  "")
-                 ;; This prevents weird indentation caused by
-                 ;; missing the indentation that occurs after the newline.
-                 ((and not-empty-string-p
-                       (eql #\newline (first text)))
-                  (setf indentation-carryover nil
-                        indentation-ast nil)
-                  text)
-                 ((or indentation
-                      ;; NOTE: check if text exists here so that
-                      ;;       the inherited indentation can be
-                      ;;       set to 0. This prevents back-propogation
-                      ;;       of indentation to previous siblings.
-                      (and indentation-carryover
-                           (scan "[^ \\t\\n]" text)))
-                  (update-indentation-slots
-                   ast parents (+ leading-indentation
-                                  (adjusted-spaces-from-tabs
-                                   (subseq text 0 leading-indentation)))
-                   text)
-                  (subseq text leading-indentation))
-                 (t text)))
-             (patch-trailing-indentation (text ast)
-               "Return TEXT with the trailing indentation removed and
-                indentation-carryover updated."
-               (cond-let trailing-indentation
-                 ((ends-with-newline-p text)
-                  (setf indentation-carryover
-                        (+ (- (length text) (1+ trailing-indentation))
-                           (adjusted-spaces-from-tabs
-                            (subseq text trailing-indentation)))
-                        indentation-ast ast)
-                  (subseq text 0 (1+ trailing-indentation)))
-                 (t text)))
-             (patch-internal-indentation (text)
-               "Return TEXT where all newlines proceeded by indentation
-                are replaced with a newline."
-               (cl-ppcre:regex-replace-all "\\n[ \\t]+" text (format nil "~%")))
-             (patch-text (text ast parents)
-               "Patch TEXT such that it useable for inherited indentation.
-                Updates AST and PARENTS slots if necessary."
-               (patch-internal-indentation
-                (patch-trailing-indentation
-                 (patch-leading-indentation text ast parents)
-                 ast)))
-             (process-indentation*
-                 (ast &optional parents
-                  &aux (interleaved-text (interleaved-text ast)))
-               "Process the text of AST such that its indentation
-                is in the indentation slots."
-               (setf (car interleaved-text)
-                     (patch-text (car interleaved-text) ast parents))
-               (mapl (lambda (child-list text-list &aux (child (car child-list)))
-                       ;; this prevents patching literals that have
-                       ;; multiple newlines.
-                       (unless (not (indentablep child))
-                         (process-indentation* child (cons ast parents)))
-                       (setf (car text-list)
-                             (patch-text (car text-list) ast parents)))
-                     (sorted-children ast)
-                     (cdr interleaved-text))))
-      (process-indentation* root)
-      root))
 
   (defmethod get-default-indentation ((ast python-ast) (parents list))
     ;; Search for the first AST with a colon in the interleaved-text and
