@@ -567,7 +567,7 @@ of fields needs to be determined at parse-time."
                            `(,ast-superclass)))
                   ()
                   (:documentation ,(format nil "Generated for ~a." type))))
-             (create-type-class (type fields children grammar-rules
+             (create-type-class (type fields grammar-rules
                                  &aux (class-name (make-class-name type)))
                "Create a new class for TYPE using FIELDS and CHILDREN for slots."
                (let* ((child-slot-order
@@ -589,9 +589,7 @@ of fields needs to be determined at parse-time."
                     (,@(create-slots fields)
                      (child-slots
                       :initform
-                      ',(if children
-                            (append child-slot-order '((children . 0)))
-                            child-slot-order)
+                      ',(append child-slot-order '((children . 0)))
                       :allocation :class))
                     ;; NOTE: this is primarily for determing which rule this
                     ;;       was generated for.
@@ -622,7 +620,6 @@ of fields needs to be determined at parse-time."
                   (create-type-class
                    type
                    (aget :fields node-type)
-                   (assoc :children node-type)
                    grammar-rules))
                  ;; Terminal Symbol
                  (t (create-terminal-symbol-class type)))))
@@ -728,7 +725,8 @@ they should produce the same ordering."
              (not (equal order (remove-duplicates order))))
            (check-order (order expected-order)
              "Return T if ORDER is equivalent to EXPECTED-ORDER."
-             (equal order (sort order (ordering expected-order)))))
+             (unless (set-difference order expected-order)
+               (equal order (sort order (ordering expected-order))))))
     (let ((order (consolidate-runs parsed-order)))
       (unless (duplicate-exists-p order)
         (check-order order (consolidate-runs expected-order))))))
