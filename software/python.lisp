@@ -924,7 +924,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
                 (make-indentation-string (indentation-length ast parents))
                 stream)))
            (handle-text (text ast indentablep parents
-                                     &key ancestor-check)
+                         &key ancestor-check)
              "Handle writing TEXT to stream, updating any indentation
               variables that need updated."
              ;; Suppress indentation if TEXT begins with a newline.
