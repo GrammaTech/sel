@@ -9,7 +9,10 @@
    :software-evolution-library/software/parseable
    :software-evolution-library/software/tree-sitter
    :software-evolution-library/components/file
-   :software-evolution-library/components/formatting)
+   :software-evolution-library/components/formatting
+   :software-evolution-library/utility/range)
+  (:import-from :asdf/system
+                :system-relative-pathname)
   (:export :test-python-tree-sitter))
 (in-package :software-evolution-library/test/python-tree-sitter)
 (in-readtable :curry-compose-reader-macros)
@@ -664,6 +667,23 @@ and keyword parameters with defaults."
     ;; We ignore whitespace here because
     (test-ast-source-ranges-for-files 'python py-files
                                       :ignore-indentation t)))
+
+(deftest python-test-end-of-parameter-list ()
+  (with-util-file ("functions" sw ast)
+    (let ((nodes (iter (for node in-tree ast)
+                   (when (typep node 'parseable-function)
+                     (collect node)))))
+      (is (length= 3 nodes))
+      (destructuring-bind (f1 f2 f3) nodes
+        (is (equal "function1" (function-node-name f1)))
+        (is (equal? (make 'source-location :line 3 :column 16)
+                    (end-of-parameter-list sw f1)))
+        (is (equal "function2" (function-node-name f2)))
+        (is (equal? (make 'source-location :line 6 :column 20)
+                    (end-of-parameter-list sw f2)))
+        (is (equal "function3" (function-node-name f3)))
+        (is (equal? (make 'source-location :line 9 :column 22)
+                    (end-of-parameter-list sw f3)))))))
 
 (deftest (python-tree-sitter-parsing-test :long-running) ()
   (labels ((parsing-test-dir (path)

@@ -63,6 +63,7 @@
            :asts-containing-source-location
            :asts-contained-in-source-range
            :asts-intersecting-source-range
+           :end-of-parameter-list
            :good-asts
            :bad-asts
            :good-mutation-targets
@@ -101,7 +102,9 @@
            :parseable-expression
            :parseable-statement
            :parseable-class
-           :parseable-lambda))
+           :parseable-lambda
+           ;; Cross-language Generics
+           :function-node-name))
 (in-package :software-evolution-library/software/parseable)
 (in-readtable :curry-compose-reader-macros)
 
@@ -1019,6 +1022,23 @@ in OBJ to its arguments in FUNCALL-AST."))
 
 (defgeneric assign-to-var-p (ast var)
   (:documentation "Return TRUE if AST represents an assignment to VAR."))
+
+(defgeneric function-node-name (node)
+  (:documentation "Extract the name of the function from NODE.
+If NODE is not a function node, return nil.")
+  (:method (node)
+    (declare (ignore node))
+    nil)
+  ;; TODO: at some point, make sure this won't unnecessarily
+  ;;       dispatch on lambdas.
+  (:method ((node parseable-function))
+    (warn "FUNCTION-NODE-NAME undefined for ~a" (type-of node))
+    nil))
+
+(defgeneric end-of-parameter-list (software node)
+  (:documentation "Find the end position of the parameters of FUNCTION-NODE.")
+  (:method (software (node parseable-function))
+    (error "END-OF-PARAMETER-LIST undefined for ~a" (type-of node))))
 
 
 ;;; Genome manipulations

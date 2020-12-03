@@ -1498,6 +1498,28 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
          (python-pattern-list
           (find-if {identical-name-p identifier} (python-children lhs)))))))
 
+  (defmethod function-node-name ((node python-function-definition))
+    (match node
+      ((python-function-definition :python-name name)
+       (source-text name))))
+
+  (defmethod end-of-parameter-list
+      ((software python) (function-node parseable-function))
+    (ematch function-node
+      ((python-function-definition
+        :python-parameters (and parameters (type node)))
+       (ematch (node-end software parameters)
+         ((source-location :line line :column column)
+          (make 'source-location :line line :column column))))
+      ((python-lambda :python-parameters (and parameters (type node)))
+       (node-end software parameters))
+      ((python-lambda :python-parameters nil)
+       (ematch (node-start software function-node)
+         ((source-location :line line :column column)
+          (make 'source-location
+                :line line
+                :column (+ column #.(length "lambda"))))))))
+
   ;; Indentation
   (defmethod indentablep ((ast python-string)) nil)
 
@@ -2347,7 +2369,22 @@ AST ast to return the enclosing scope for"
          :interleaved-text (list name)))
        (enclosing-find-function obj callexpr name))))
 
-;;; Helper Functions.
+  (defmethod function-node-name ((node javascript-function-declaration))
+    (match node
+      ((javascript-function-declaration :javascript-name name)
+       (source-text name))))
+
+  (defmethod end-of-parameter-list
+      ((software javascript) (function-node parseable-function))
+    (ematch function-node
+      ((or (javascript-function-declaration :javascript-parameters params)
+           (javascript-arrow-function
+            :javascript-parameters (and params (type node))))
+       (node-end software params))
+      ((javascript-arrow-function :javascript-parameter (and param (type node)))
+       (node-end software param))))
+
+  ;;; Helper Functions.
   (-> enclosing-find-function (javascript javascript-ast string)
     (values (or null javascript-ast) &optional))
   (defun enclosing-find-function (obj start-ast function-name)
@@ -2367,3 +2404,22 @@ scope of START-AST."
 ;;; Implement the generic format-genome method for Javascript objects.
   (defmethod format-genome ((obj javascript) &key)
     (prettier obj)))
+
+
+;;;; Utility
+(defun node-start+end (software node)
+  "Return the start and end of NODE in SOFTWARE (if any) as source
+locations."
+  (let* ((ranges (ast-source-ranges software))
+         (range (assocdr node ranges)))
+    (and range
+         (values (begin range)
+                 (end range)))))
+
+(defun node-start (software node)
+  "Return the start of NODE in software, as a source location."
+  (values (node-start+end software node)))
+
+(defun node-end (software node)
+  "Return the end of NODE in software, as a source location."
+  (nth-value 1 (node-start+end software node)))
