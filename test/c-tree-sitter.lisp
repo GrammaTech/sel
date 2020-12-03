@@ -78,6 +78,13 @@
     (is (stmt-starting-with-text *soft* "int y = 1"))
     (is (not (find-if {typep _ 'c-error} (genome *soft*))))))
 
+(deftest test-c-source-ranges ()
+  ;; There are a lot of C source files and parsing them is slow
+  ;; so set a limit. Note the files actually tested are chosen at
+  ;; random from the set of all files.
+  (let ((c-files (expand-wildcard #p"*/*.c")))
+    (test-ast-source-ranges-for-files 'c c-files :limit 10)))
+
 (deftest (c-tree-sitter-parsing-test :long-running) ()
   (labels ((parsing-test-dir (path)
              (merge-pathnames-as-file

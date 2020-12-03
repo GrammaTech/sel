@@ -43,23 +43,11 @@
   "Test that ast hash doesn't overflow on a long list."
   (finishes (ast-hash (make-list (expt 2 18) :initial-element "foo"))))
 
-(defun expand-wildcard (wildcard)
-  "Get test files matching WILDCARD relative to test/etc/."
-  (is (wild-pathname-p wildcard))
-  (let* ((path
-          (path-join (asdf:system-relative-pathname
-                      :software-evolution-library
-                      #p"test/etc/")
-                     wildcard))
-         (files (directory path)))
-    (is (not (emptyp files)))
-    files))
-
-(deftest test-javascript-source-ranges ()
+(deftest (test-javascript-source-ranges :long-running t) ()
   (let ((js-files (expand-wildcard #p"javascript/*/*.js")))
     (test-ast-source-ranges-for-files 'javascript js-files)))
 
-(deftest test-python-source-ranges ()
+(deftest (test-python-source-ranges :long-running t) ()
   (let ((py-files (expand-wildcard #p"python/*/*.py")))
     ;; We ignore whitespace here because
     (test-ast-source-ranges-for-files 'python py-files
@@ -69,36 +57,9 @@
   (let ((lisp-files (expand-wildcard #p"lisp*/*.lisp")))
     (test-ast-source-ranges-for-files 'lisp lisp-files)))
 
-(deftest test-clang-source-ranges ()
+(deftest (test-clang-source-ranges :long-running t) ()
   (let ((c-files (expand-wildcard #p"*/*.c")))
     ;; There are a lot of Clang source files and parsing them is slow
     ;; so set a limit. Note the files actually tested are chosen at
     ;; random from the set of all files.
     (test-ast-source-ranges-for-files 'clang c-files :limit 10)))
-
-(defun test-ast-source-ranges-for-files (class files
-                                         &key (limit 1000)
-                                           ignore-indentation)
-  (iter (for file in-vector (take limit (reshuffle files)))
-        (ignore-errors                      ;Ignore unparseable files.
-         (test-single-ast-source-ranges
-          class file
-          :ignore-indentation ignore-indentation))))
-
-(defun test-single-ast-source-ranges (class file &key ignore-indentation)
-  "Test that AST source ranges round-trip.
-That is, test that the result of calling `source-text' on an AST is the same as calling `ast-source-ranges' on its containing software and extracting the specified range from the software's serialization."
-  (ignore-some-conditions (mutate)
-    (let* ((sw (from-file (make class) file))
-           (ranges (ast-source-ranges sw))
-           (text (source-text (genome sw))))
-      (is (not (emptyp ranges)))
-      (iter (for (ast . range) in ranges)
-            (let ((reference-text (source-range-subseq text range))
-                  (output-text (source-text ast)))
-              (if ignore-indentation
-                  (let ((output-lines (lines output-text))
-                        (reference-lines (lines reference-text)))
-                    (is (length= output-lines reference-lines))
-                    (is (every #'string$= output-lines reference-lines)))
-                  (is (equal reference-text output-text))))))))

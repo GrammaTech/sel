@@ -658,6 +658,13 @@ and keyword parameters with defaults."
        ("3" . "b")
        ("{\"d\" : 5, \"c\" : 4}" . "args")))))
 
+(deftest (test-python-source-ranges :long-running t) ()
+  (let ((py-files (remove "empty" (expand-wildcard #p"python/*/*.py")
+                          :test #'equal :key #'pathname-name)))
+    ;; We ignore whitespace here because
+    (test-ast-source-ranges-for-files 'python py-files
+                                      :ignore-indentation t)))
+
 (deftest (python-tree-sitter-parsing-test :long-running) ()
   (labels ((parsing-test-dir (path)
              (merge-pathnames-as-file

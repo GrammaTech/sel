@@ -50,7 +50,10 @@
            :soft
            :range
            :double-range
-           :gcd-elf))
+           :gcd-elf
+           :test-ast-source-ranges-for-files
+           :test-single-ast-source-ranges
+           :expand-wildcard))
 (in-package :software-evolution-library/test/util)
 (in-readtable :curry-compose-reader-macros)
 
@@ -267,3 +270,42 @@ of the same length"
 (end-line . end-col) conses."
   (list (cons (line (begin range)) (column (begin range)))
         (cons (line (end range)) (column (end range)))))
+
+(defun test-ast-source-ranges-for-files (class files
+                                         &key (limit 1000)
+                                           ignore-indentation)
+  (iter (for file in-vector (take limit (reshuffle files)))
+        (ignore-errors                      ;Ignore unparseable files.
+         (test-single-ast-source-ranges
+          class file
+          :ignore-indentation ignore-indentation))))
+
+(defun test-single-ast-source-ranges (class file &key ignore-indentation)
+  "Test that AST source ranges round-trip.
+That is, test that the result of calling `source-text' on an AST is the same as calling `ast-source-ranges' on its containing software and extracting the specified range from the software's serialization."
+  (ignore-some-conditions (mutate)
+    (let* ((sw (from-file (make class) file))
+           (ranges (ast-source-ranges sw))
+           (text (source-text (genome sw))))
+      (is (not (emptyp ranges)))
+      (iter (for (ast . range) in ranges)
+            (let ((reference-text (source-range-subseq text range))
+                  (output-text (source-text ast)))
+              (if ignore-indentation
+                  (let ((output-lines (lines output-text))
+                        (reference-lines (lines reference-text)))
+                    (is (length= output-lines reference-lines))
+                    (is (every #'string$= output-lines reference-lines)))
+                  (is (equal reference-text output-text))))))))
+
+(defun expand-wildcard (wildcard)
+  "Get test files matching WILDCARD relative to test/etc/."
+  (is (wild-pathname-p wildcard))
+  (let* ((path
+          (path-join (asdf:system-relative-pathname
+                      :software-evolution-library
+                      #p"test/etc/")
+                     wildcard))
+         (files (directory path)))
+    (is (not (emptyp files)))
+    files))
