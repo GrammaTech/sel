@@ -297,6 +297,11 @@ searched to populate `*tree-sitter-language-files*'.")
        (:parseable-statement javascript--statement))
       (:python
        (:parseable-class python-class-definition)
+       (:parseable-control-flow
+        python-for-statement python-if-statement python-while-statement
+        python-try-statement python-conditional-expression
+        python-list-comprehension python-set-comprehension
+        python-generator-expression python-dictionary-comprehension)
        (:parseable-expression python-expression)
        (:parseable-function
         python-function-definition python-lambda)
