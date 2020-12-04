@@ -89,9 +89,6 @@ RUN for language in agda bash c c-sharp cpp css go html java javascript jsdoc js
         cd -;                                                                                                                                                                                    \
     done
 RUN git clone https://github.com/death/cl-tree-sitter /root/quicklisp/local-projects/cl-tree-sitter
-# Remove this sed command when upstream is updated.
-RUN sed -i 's/(t (:default "tree-sitter")))/(t (:or (:default "tree-sitter") (:default "libtree-sitter"))))/' /root/quicklisp/local-projects/cl-tree-sitter/low-level.lisp
-
 
 WORKDIR /root/quicklisp/local-projects
 
