@@ -1270,19 +1270,13 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
   ;; Indentation
   (defmethod indentablep ((ast python-string)) nil)
 
-  (defvar *parents* nil)
-  (defvar *indent-p*)
-  (defvar *indentation-ast*)
-
-  (defmethod source-text :around ((ast python-ast) &key stream)
-    (declare (ignore stream))
-    (if (boundp '*indent-p*)
-        (call-next-method)
-        (let ((*indent-p* nil)
-              (*indentation-ast* nil))
-          (call-next-method))))
-
-  (defmethod source-text ((ast python-ast) &key stream
+  (defmethod source-text ((ast python-ast)
+                          &key stream parents
+                            ;; These are "boxed" values since they have
+                            ;; to be propagated between adjacent
+                            ;; siblings (not just down the stack).
+                            (indent-p (box nil))
+                            (indentation-ast (box nil))
                           &aux (root ast))
     ;; TODO: add support for Windows-style CRLF instead of just newlines.
     (labels ((ends-with-newline-p (string)
@@ -1343,20 +1337,20 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
               indentation variables so no indentation is printed."
                (when (and (not (emptyp text))
                           (eql #\newline (first text)))
-                 (setf *indent-p* nil
-                       *indentation-ast* nil)))
+                 (setf (unbox indent-p) nil
+                       (unbox indentation-ast) nil)))
              (handle-trailing-newline (text ast indentablep)
                "If the last character in TEXT is a newline, set the
               indentation variables."
                (when (and (ends-with-newline-p text)
                           indentablep)
-                 (setf *indent-p* t
-                       *indentation-ast* ast)))
+                 (setf (unbox indent-p) t
+                       (unbox indentation-ast) ast)))
              (handle-indentation (text ast indentablep parents
                                   &key ancestor-check)
                "If indentation to be written to stream, handle
               writing it."
-               (when (and *indent-p*
+               (when (and (unbox indent-p)
                           indentablep
                           ;; Prevent indentation from being
                           ;; wasted on empty strings before it
@@ -1368,9 +1362,9 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
                           (not (and ancestor-check
                                     (emptyp text)
                                     (ancestor-of-p
-                                     root *indentation-ast* ast))))
-                 (setf *indent-p* nil
-                       *indentation-ast* nil)
+                                     root (unbox indentation-ast) ast))))
+                 (setf (unbox indent-p) nil
+                       (unbox indentation-ast) nil)
                  (write-string
                   (make-indentation-string (indentation-length ast parents))
                   stream)))
@@ -1390,15 +1384,17 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
       ;; TODO: the checking for whether there's a string could
       ;;       be resolved by reconstructing a list of children.
       (let* ((stringp (stringp ast))
-             (parents *parents*)
              (interleaved-text (unless stringp (interleaved-text ast)))
              (indentablep (indentablep ast)))
         (handle-text
          (if stringp ast (car interleaved-text))
          ast indentablep parents)
         (mapc (lambda (child text)
-                (let ((*parents* (cons ast parents)))
-                  (source-text child :stream stream))
+                (source-text child
+                             :stream stream
+                             :parents (cons ast parents)
+                             :indent-p indent-p
+                             :indentation-ast indentation-ast)
                 (handle-text text ast indentablep parents
                              :ancestor-check t))
               (unless stringp (sorted-children ast))
