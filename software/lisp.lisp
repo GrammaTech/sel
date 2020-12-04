@@ -184,7 +184,7 @@ same file as the match form its being used in."
 (define-matchable-class reader-token (skipped-input-result)
   ())
 
-(defmethod source-text ((obj reader-token) &optional stream)
+(defmethod source-text ((obj reader-token) &key stream)
   (write-string (string-pointer obj) stream))
 
 (defmethod print-object ((obj reader-token) stream)
@@ -519,7 +519,7 @@ returned."))
 
 (defun write-stream-forms+ (forms stream)
   "Write the original source text of FORMS to STREAM."
-  (walk-skipped-forms  {source-text _ stream} forms))
+  (walk-skipped-forms  {source-text _ :stream stream} forms))
 
 (defun write-string-forms+ (forms)
   "Write the original source text of FORMS to a string."
@@ -538,9 +538,11 @@ returned."))
 (defmethod parse-asts ((lisp lisp) &optional (source (genome-string lisp)))
   (convert 'lisp-ast source))
 
-(defmethod source-text ((obj result) &optional stream)
+(defmethod source-text ((obj result) &rest args &key stream)
   (if (children obj)
-      (mapc {source-text _ stream} (children obj))
+      (mapc (lambda (child)
+              (apply #'source-text child args))
+            (children obj))
       (write-string (string-pointer obj) stream
                     :start (start obj) :end (end obj))))
 

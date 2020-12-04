@@ -530,26 +530,28 @@ modulo +AST-HASH-BASE+.  0 values in ARGS are skipped."
 (defgeneric from-alist (symbol alist)
   (:documentation "Convert alist to struct representation."))
 
-(defgeneric source-text (ast &optional stream)
+(defgeneric source-text (ast &key stream &allow-other-keys)
   (:documentation "Return the source code corresponding to an AST,
 optionally writing to STREAM.")
-  (:method :around ((ast t) &optional stream)
+  (:method :around ((ast t) &rest args &key stream)
     (let (*print-pretty*)
-      (with-string (s stream) (call-next-method ast s))))
-  (:method ((ast null) &optional stream)
+      (with-string (s stream)
+        (apply #'call-next-method ast :stream s args))))
+  (:method ((ast null) &key stream)
     (write-string "" stream))
-  (:method ((str string) &optional stream)
+  (:method ((str string) &key stream)
     (write-string str stream))
-  (:method ((c character) &optional stream)
-    (source-text (string c) stream))
-  (:method ((c conflict-ast) &optional stream)
+  (:method ((c character) &rest args &key)
+    (apply #'source-text (string c) args))
+  (:method ((c conflict-ast) &rest args &key stream)
     (format stream "<")
     (iter (for e on (conflict-ast-child-alist c))
           (format stream "~a: " (caar e))
-          (iter (for x in (cdar e)) (source-text x stream))
+          (iter (for x in (cdar e))
+                (apply #'source-text x :stream stream args))
           (when (cdr e) (format stream "|")))
     (format stream ">"))
-  (:method ((ast ast) &optional stream)
+  (:method ((ast ast) &rest args &key)
     ;; In performance comparison the combination of
     ;; `with-output-to-string' and `write-string' was faster than
     ;; alternatives using `format' (which was still pretty fast) and
@@ -557,7 +559,9 @@ optionally writing to STREAM.")
     ;;
     ;; More importantly using (apply #'concatenate ...) runs into
     ;; problems as the number of ASTs is very large.
-    (mapc {source-text _ stream} (children ast))))
+    (mapc (lambda (ast)
+            (apply #'source-text ast args))
+          (children ast))))
 
 (defgeneric rebind-vars (ast var-replacements fun-replacements)
   (:documentation
@@ -814,7 +818,7 @@ of SHARED-PATH-AST's path in OBJ.")
     (with-slots (genome) obj
       (if (stringp genome)
           (write-string genome s)
-          (source-text genome s)))))
+          (source-text genome :stream s)))))
 
 (defmethod (setf genome-string) ((new string) (obj parseable))
   ;; We will lazily parse the ASTs from the genome when it is next accessed.
@@ -1535,7 +1539,7 @@ is useful for ASTs that may have newline literals.")
 (define-condition node-location ()
   ((ast :initarg :ast :reader node-location-ast)))
 
-(defmethod source-text :around ((ast indentation) &optional stream)
+(defmethod source-text :around ((ast indentation) &key stream)
   (declare (ignore stream))
   (signal 'node-location :ast ast)
   (multiple-value-prog1 (call-next-method)
@@ -1552,7 +1556,7 @@ is useful for ASTs that may have newline literals.")
                                (collect
                                 (cons (node-location-ast c)
                                       (file-position string-stream))))))
-               (source-text ast string-stream))))
+               (source-text ast :stream string-stream))))
            (text (get-output-stream-string string-stream))
            (assorted (assort positions :key #'car)))
       (iter (for ((ast . start) (nil . end)) in assorted)

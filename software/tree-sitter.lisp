@@ -1274,7 +1274,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
   (defvar *indent-p*)
   (defvar *indentation-ast*)
 
-  (defmethod source-text :around ((ast python-ast) &optional stream)
+  (defmethod source-text :around ((ast python-ast) &key stream)
     (declare (ignore stream))
     (if (boundp '*indent-p*)
         (call-next-method)
@@ -1282,7 +1282,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
               (*indentation-ast* nil))
           (call-next-method))))
 
-  (defmethod source-text ((ast python-ast) &optional stream
+  (defmethod source-text ((ast python-ast) &key stream
                           &aux (root ast))
     ;; TODO: add support for Windows-style CRLF instead of just newlines.
     (labels ((ends-with-newline-p (string)
@@ -1398,7 +1398,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
          ast indentablep parents)
         (mapc (lambda (child text)
                 (let ((*parents* (cons ast parents)))
-                  (source-text child stream))
+                  (source-text child :stream stream))
                 (handle-text text ast indentablep parents
                              :ancestor-check t))
               (unless stringp (sorted-children ast))
