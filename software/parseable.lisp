@@ -103,6 +103,7 @@
            :parseable-statement
            :parseable-class
            :parseable-lambda
+           :parseable-control-flow
            ;; Cross-language Generics
            :function-node-name))
 (in-package :software-evolution-library/software/parseable)
@@ -121,19 +122,22 @@ for objects to allow method dispatch on generic AST objects regardless of
 whether they inherit from the functional trees library."))
 
 (defclass parseable-statement (ast) ()
-  (:documentation "Mix-in for ASTs classes that are statements."))
+  (:documentation "Mix-in for AST classes that are statements."))
 
 (defclass parseable-expression (ast) ()
-  (:documentation "Mix-in for ASTs classes that are expressions."))
+  (:documentation "Mix-in for AST classes that are expressions."))
 
 (defclass parseable-function (ast) ()
-  (:documentation "Mix-in for ASTs classes that are functions."))
+  (:documentation "Mix-in for AST classes that are functions."))
 
 (defclass parseable-lambda (ast) ()
-  (:documentation "Mix-in for ASTs classes that are lambdas."))
+  (:documentation "Mix-in for AST classes that are lambdas."))
 
 (defclass parseable-class (ast) ()
-  (:documentation "Mix-in for ASTs classes that are classes."))
+  (:documentation "Mix-in for AST classes that are classes."))
+
+(defclass parseable-control-flow (ast) ()
+  (:documentation "Mix-in for AST classes that have control flow."))
 
 ;; All hash values are of typer HASH-TYPE.
 ;; This was chosen to be large enough that collisions
