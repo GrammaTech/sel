@@ -30,6 +30,9 @@
         :software-evolution-library/software/lisp
         :software-evolution-library/software/simple
         :software-evolution-library/software/tree-sitter
+        :software-evolution-library/software/clang-project
+        :software-evolution-library/software/javascript-project
+        :software-evolution-library/software/python-project
         :software-evolution-library/software/lisp-project
         ;; Components.
         :software-evolution-library/components/test-suite)
@@ -311,8 +314,8 @@ with a language.")
   (:method ((language symbol))
     (if (ends-with-subseq "-PROJECT" (symbol-name language))
         language
-        ;; FIXME:  never use INTERN without an explicit package
-        (intern (concatenate 'string (symbol-name language) "-PROJECT")))))
+        (intern (concatenate 'string (symbol-name language) "-PROJECT")
+                (find-package :sel/command-line)))))
 
 (defun guess-language (&rest sources)
   "Guess the SEL software object class that best matches SOURCES.
