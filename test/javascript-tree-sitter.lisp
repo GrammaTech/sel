@@ -375,7 +375,8 @@
 
 (deftest (test-javascript-source-ranges :long-running t) ()
   (let ((js-files (expand-wildcard #p"javascript/*/*.js")))
-    (test-ast-source-ranges-for-files 'javascript js-files)))
+    (test-ast-source-ranges-for-files
+     'javascript js-files :ignore-indentation t)))
 
 (deftest (javascript-tree-sitter-parsing-test :long-running) ()
   (labels ((parsing-test-dir (path)

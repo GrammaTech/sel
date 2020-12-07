@@ -83,7 +83,8 @@
   ;; so set a limit. Note the files actually tested are chosen at
   ;; random from the set of all files.
   (let ((c-files (expand-wildcard #p"*/*.c")))
-    (test-ast-source-ranges-for-files 'c c-files :limit 10)))
+    (test-ast-source-ranges-for-files
+     'c c-files :limit 10 :ignore-indentation t)))
 
 (deftest (c-tree-sitter-parsing-test :long-running) ()
   (labels ((parsing-test-dir (path)
