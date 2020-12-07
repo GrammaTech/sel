@@ -15,7 +15,9 @@
         :software-evolution-library/components/file
         :software-evolution-library/components/formatting)
   (:import-from :cffi :translate-camelcase-name :load-foreign-library-error)
+  #+gt
   (:import-from :cl-tree-sitter :register-language)
+  #+gt
   (:shadowing-import-from :cl-tree-sitter :parse-string)
   (:export :tree-sitter-ast
            :tree-sitter
@@ -113,6 +115,7 @@ searched to populate `*tree-sitter-language-files*'.")
   `(eval-always
      (handler-case
          (progn
+           #+gt
            (register-language ,language ,lib-name)
            (setf (gethash ,ast-superclass *superclass->language*) ,language))
        (load-foreign-library-error ()
