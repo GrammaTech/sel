@@ -357,7 +357,7 @@ of fields needs to be determined at parse-time."
                                  0
                                  1)))
                           (slot-order type fields grammar-rules)))))
-                 `(defclass ,class-name
+                 `(define-node-class ,class-name
                       (,@(or (get-supertypes-for-type type)
                              `(,ast-superclass)))
                     (,@(create-slots fields)
@@ -443,7 +443,7 @@ of fields needs to be determined at parse-time."
                ()
                (:documentation "Generated for parsed comments."))
 
-             (defclass ,(make-class-name "error") (,ast-superclass)
+             (define-node-class ,(make-class-name "error") (,ast-superclass)
                ((children :initarg :children :initform nil)
                 (child-slots :initform '((children . 0))
                              :allocation :class))
