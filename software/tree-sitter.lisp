@@ -1792,7 +1792,8 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
           (get-vars-name-or-tuple-handler
            obj name-or-tuple :scope ast))
         (python-left for-in-clause)))
-     (python-children ast)))
+     (remove-if-not {typep _ 'python-for-in-clause}
+                    (python-children ast))))
 
   (defmethod get-vars ((obj python) (ast python-list-comprehension))
     (get-vars-comprehension-handler obj ast))
