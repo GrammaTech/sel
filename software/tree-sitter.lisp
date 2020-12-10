@@ -229,13 +229,15 @@
            :*tree-sitter-language-directories*
            :*tree-sitter-language-files*
            :ast-type-to-rebind-p
-           :get-vars
-           :in-class-def-p
-           :get-asts-in-namespace
            :collect-var-uses
            :collect-fun-uses
            :javascript
-           :python))
+           :python
+           ;; Python
+           :get-asts-in-namespace
+           :get-vars
+           :identical-name-p
+           :in-class-def-p))
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 
@@ -291,9 +293,18 @@ searched to populate `*tree-sitter-language-files*'.")
       (:java (:parseable-statement java-statement))
       (:javascript
        (:parseable-class javascript-class-declaration)
+       (:parseable-control-flow
+        javascript-do-statement javascript-for-statement
+        javascript-switch-statement javascript-try-statement
+        javascript-for-in-statement javascript-if-statement
+        javascript-while-statement)
        (:parseable-expression javascript--expression)
        (:parseable-function
-        javascript-function-declaration javascript-arrow-function)
+        javascript-function javascript-function-declaration
+        javascript-arrow-function)
+       (:parseable-loop
+        javascript-for-statement javascript-do-statement
+        javascript-while-statement)
        (:parseable-statement javascript--statement))
       (:python
        (:parseable-class python-class-definition)
@@ -306,6 +317,8 @@ searched to populate `*tree-sitter-language-files*'.")
        (:parseable-function
         python-function-definition python-lambda)
        (:parseable-lambda python-lambda)
+       (:parseable-loop
+        python-while-statement python-for-statement python-for-in-clause)
        (:parseable-statement
         python--compound-statement python--simple-statement))))
 
@@ -1750,7 +1763,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
       ((python-assignment
         :python-left lhs)
        (typecase lhs
-         (python-identifier (identical-name-p identifier lhs))
+         (python-identifier (identical-name-p identifier lhs) lhs)
          (python-pattern-list
           (find-if {identical-name-p identifier} (python-children lhs)))))))
 
