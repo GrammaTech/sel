@@ -26,7 +26,9 @@
            :in-class-def-p
            :get-asts-in-namespace
            :collect-var-uses
-           :collect-fun-uses))
+           :collect-fun-uses
+           :javascript
+           :python))
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 
