@@ -50,7 +50,7 @@ to parse the string.")
                         "/usr/local/share/tree-sitter/"
                         ,@(when-let (home (getenv "HOME"))
                             (list (string+ home "/.local/share/tree-sitter/")))))
-        (prog1 nil (warn "No tree-sitter language directory found.")))
+        (prog1 nil (format *error-output* "No tree-sitter language directory found.")))
     "A list of directories that hold directories of json files
 defining supported tree-sitter languages.  These directories are
 searched to populate `*tree-sitter-language-files*'.")
@@ -119,8 +119,8 @@ searched to populate `*tree-sitter-language-files*'.")
            (register-language ,language ,lib-name)
            (setf (gethash ,ast-superclass *superclass->language*) ,language))
        (load-foreign-library-error ()
-         (warn "Failed to load '~a'. Support for '~a' will not be available."
-               ,lib-name ,language)))))
+         (format *error-output* "Failed to load '~a'. Support for '~a' will not be available."
+                 ,lib-name ,language)))))
 
 
 ;;; Defining tree-sitter classes
