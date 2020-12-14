@@ -16,6 +16,7 @@
            :+multiple-artifact-dir+
            :+lisp-scopes-dir+
            :+javascript-dir+
+           :+java-dir+
            :+python-dir+
            :+python-utility-dir+
            ;; Other functions
@@ -36,6 +37,7 @@
            :fib-dir
            :asm-test-dir
            :javascript-dir
+           :java-dir
            :python-dir
            ;; Variables referenced in tests
            :*tfos*
@@ -101,6 +103,10 @@
   :test #'equalp
   :documentation "Path to directory holding Javascript test programs.")
 
+(define-constant +java-dir+ (append +etc-dir+ (list "java"))
+  :test #'equalp
+  :documentation "Path to directory holding Java test programs.")
+
 (define-constant +python-dir+ (append +etc-dir+ (list "python"))
   :test #'equalp
   :documentation "Path to directory holding python test programs.")
@@ -151,6 +157,10 @@
 
 (defun javascript-dir (path)
   (merge-pathnames-as-file (make-pathname :directory +javascript-dir+)
+                           path))
+
+(defun java-dir (path)
+  (merge-pathnames-as-file (make-pathname :directory +java-dir+)
                            path))
 
 (defun python-dir (path)
