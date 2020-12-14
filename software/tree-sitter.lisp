@@ -7,31 +7,130 @@
 ;;; tree-sitter (see @url{https://tree-sitter.github.io/tree-sitter/})
 ;;; libraries to parse source code into ASTs.
 ;;;
+;;; TREE-SITTER allows for many different languages to be represented
+;;; uniformly through libtree-sitter and the analysis of its corresponding
+;;; language modules. This cuts down on maintenance time across different
+;;; languages and enables immediate inclusion of any language that has a
+;;; language module for libtree-sitter.
+;;;
 ;;; Tree sitter has support for many source code languages.  See
 ;;; @url{https://tree-sitter.github.io/tree-sitter/#available-parsers,Available
-;;; Parsers} for full list.  SEL will define software object classes
-;;; for every tree-sitter parser library found on the user's sytem.
-;;; Specifically, SEL looks in the directories specified by
-;;; @refapivariable{sel/sw/ts:*tree-sitter-language-directories*} to find the
-;;; @code{grammar.json} and @code{node-types.json} files that define a
-;;; tree-sitter language.  By default these files are expected to be
-;;; in @code{/usr/share/tree-sitter/$language/}.  The
-;;; @refapivariable{sel/sw/ts:*tree-sitter-language-directories*} variable may
-;;; be customized to control where SEL searches for these files.  For
-;;; even more control over the tree-sitter files used the
-;;; @refapivariable{sel/sw/ts:*tree-sitter-language-files*} variable may be set
-;;; directly.  These files are then parsed to automatically define
-;;; associated common lisp classes for every type of AST node defined
-;;; by the parser.  Currently only the @refapiclass{sel/sw/ts:python} and
-;;; @refapiclass{sel/sw/ts:javascript} tree-sitter classes have the full
-;;; complement of more sophisticated @refapiclass{sel/sw/parseable:parseable} methods
-;;; (e.g., @refapigeneric{sel/sw/parseable:scopes}) defined.
+;;; Parsers} for full list.  The TREE-SITTER classes are generated at
+;;; compile time. This is done by analyzing the @file{node-types.json}
+;;; and @file{grammar.json} files that are located in tree-sitter
+;;; language modules.  The @env{SEL_TREE_SITTER_LANGUAGE_DIR}
+;;; environment variable can be set to modify where the JSON files are
+;;; expected. By default,
+;;; @file{/usr/share/tree-sitter/},@file{/usr/local/share/tree-sitter/},
+;;; and @file{$HOME/.local/share/tree-sitter/} are searched for
+;;; tree-sitter files. If a directory is found and has
+;;; @file{node-types.json} and @file{grammar.json} in it, the
+;;; directory's name is added to the list of languages to create
+;;; classes for. For example, a directory named
+;;; @file{/usr/share/tree-sitter/python/} that has the relevant JSON
+;;; files will result in class for python being generated.  On the
+;;; lisp side, SEL looks in the directories specified by
+;;; @refapivariable{sel/sw/ts:*tree-sitter-language-directories*} to
+;;; find the @code{grammar.json} and @code{node-types.json} files that
+;;; define a tree-sitter language.  By default these files are
+;;; expected to be in @code{/usr/share/tree-sitter/$language/}.  The
+;;; @refapivariable{sel/sw/ts:*tree-sitter-language-directories*}
+;;; variable may be customized to control where SEL searches for these
+;;; files.  For even more control over the tree-sitter files used the
+;;; @refapivariable{sel/sw/ts:*tree-sitter-language-files*} variable
+;;; may be set directly.  These files are then parsed to automatically
+;;; define associated common lisp classes for every type of AST node
+;;; defined by the parser.  Currently only the
+;;; @refapiclass{sel/sw/ts:python} and
+;;; @refapiclass{sel/sw/ts:javascript} tree-sitter classes have the
+;;; full complement of more sophisticated
+;;; @refapiclass{sel/sw/parseable:parseable} methods (e.g.,
+;;; @refapigeneric{sel/sw/parseable:scopes}) defined.
+;;;
+;;; TREE-SITTER support currently depends on cl-tree-sitter and the fork
+;;; of CFFI it depends on. It also depends on libtree-sitter and
+;;; tree-sitter language modules for every desired language.
+;;;
+;;; @subsubheading Setting up libtree-sitter
+;;; Clone the following repo: @url{https://github.com/tree-sitter/tree-sitter}.
+;;;
+;;; Run the following from its base directory:
+;;;
+;;;     # From tree-sitter/
+;;;     # sudo make all install can run to do both of the following.
+;;;     make
+;;;     # Move the shared object to a place where it can be found.
+;;;     sudo mv libtree-sitter.so /usr/lib/
+;;;
+;;; @subsubheading Per-language Modules
+;;;
+;;; Each language has its own module that can be used with tree-sitter. All of
+;;; the languages that are currently supported can be found here:
+;;; @url{https://github.com/tree-sitter}.
+;;;
+;;; For convience:
+;;; - @url{https://github.com/tree-sitter/tree-sitter-c}
+;;; - @url{https://github.com/tree-sitter/tree-sitter-java}
+;;; - @url{https://github.com/tree-sitter/tree-sitter-javascript}
+;;; - @url{https://github.com/tree-sitter/tree-sitter-json}
+;;; - @url{https://github.com/tree-sitter/tree-sitter-python}
+;;;
+;;; To set-up a language, the following script can be used from the base
+;;; directory of the language module's directory:
+;;;
+;;;     #!/bin/bash
+;;;     language=$1
+;;;
+;;;     [ $# -eq 0 ] && { echo "Usage: $0 language_name"; exit 1; }
+;;;
+;;;     cd src/
+;;;
+;;;     if test -f "scanner.cc"; then
+;;;         clang++ -fPIC scanner.cc -c -lstdc++
+;;;         clang -std=c99 -fPIC parser.c -c
+;;;         clang++ -shared scanner.o parser.o -o /usr/lib/tree-sitter-$(echo ${language}|sed 's|/|-|').so
+;;;     elif test -f "scanner.c"; then
+;;;         clang -std=c99 -fPIC scanner.c -c
+;;;         clang -std=c99 -fPIC parser.c -c
+;;;         clang -shared scanner.o parser.o -o /usr/lib/tree-sitter-$(echo ${language}|sed 's|/|-|').so
+;;;     else
+;;;         clang -std=c99 -fPIC parser.c -c
+;;;         clang -shared parser.o -o /usr/lib/tree-sitter-$(echo ${language}|sed 's|/|-|').so
+;;;     fi;
+;;;
+;;;     sudo mkdir -p /usr/share/tree-sitter/${language}/
+;;;     sudo cp grammar.json node-types.json /usr/share/tree-sitter/${language}
+;;;
+;;; If everything is desired, the following can be used:
+;;;
+;;;     #!/bin/bash
+;;;     for language in agda bash c c-sharp cpp css go html java javascript jsdoc json julia ocaml/ocaml ocaml/interface php python ql regex ruby rust scala typescript/tsx typescript/typescript;do
+;;;         [ -d tree-sitter-${language%/*} ] || git clone --depth=1 https://github.com/tree-sitter/tree-sitter-${language%/*}
+;;;         cd tree-sitter-${language}/src
+;;;         if test -f "scanner.cc"; then
+;;;             clang++ -fPIC scanner.cc -c -lstdc++
+;;;             clang -std=c99 -fPIC parser.c -c
+;;;             clang++ -shared scanner.o parser.o -o /usr/lib/tree-sitter-$(echo ${language}|sed 's|/|-|').so
+;;;         elif test -f "scanner.c"; then
+;;;             clang -std=c99 -fPIC scanner.c -c
+;;;             clang -std=c99 -fPIC parser.c -c
+;;;             clang -shared scanner.o parser.o -o /usr/lib/tree-sitter-$(echo ${language}|sed 's|/|-|').so
+;;;         else
+;;;             clang -std=c99 -fPIC parser.c -c
+;;;             clang -shared parser.o -o /usr/lib/tree-sitter-$(echo ${language}|sed 's|/|-|').so
+;;;         fi
+;;;         mkdir -p /usr/share/tree-sitter/${language}/
+;;;         cp grammar.json node-types.json /usr/share/tree-sitter/${language}
+;;;         cd -
+;;;     done
 ;;;
 ;;; On Arch Linux the
 ;;; @url{https://aur.archlinux.org/packages/tree-sitter-languages-git/,
 ;;; tree-sitter-languages-git} AUR package may be used to install
-;;; tree-sitter support for many languages.  On MacOS the following
-;;; shell script may be used to achieve similar results:
+;;; tree-sitter support for many languages.
+;;;
+;;; On MacOS the following shell script may be used to achieve similar
+;;; results:
 ;;;
 ;;;     #!/bin/bash
 ;;;
@@ -98,10 +197,16 @@
 ;;;     clone
 ;;;     package
 ;;;
+;;; @subsubheading cl-tree-sitter setup
+;;;
+;;; Clone the following repositories to the local-projects directory for quicklisp:
+;;; - @url{https://github.com/death/cl-tree-sitter}
+;;; - @url{https://github.com/death/cffi}
+;;;
 ;;; @texi{tree-sitter}
 (uiop:define-package :software-evolution-library/software/tree-sitter
-  (:nicknames :sel/software/tree-sitter :sel/sw/tree-sitter
-              :sel/software/ts :sel/sw/ts)
+    (:nicknames :sel/software/tree-sitter :sel/sw/tree-sitter
+                :sel/software/ts :sel/sw/ts)
   (:use :gt/full
         :babel
         :cl-json
