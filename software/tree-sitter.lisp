@@ -15,10 +15,12 @@
         :software-evolution-library/components/file
         :software-evolution-library/components/formatting)
   (:import-from :cffi :translate-camelcase-name :load-foreign-library-error)
-  #+gt
-  (:import-from :cl-tree-sitter :register-language)
-  #+gt
-  (:shadowing-import-from :cl-tree-sitter :parse-string)
+  #.(if (asdf:find-system :cl-tree-sitter nil)
+        '(:import-from :cl-tree-sitter :register-language)
+        (values))
+  #.(if (asdf:find-system :cl-tree-sitter nil)
+        '(:shadowing-import-from :cl-tree-sitter :parse-string)
+        (values))
   (:export :tree-sitter-ast
            :tree-sitter
            :ast-type-to-rebind-p
@@ -114,15 +116,17 @@ searched to populate `*tree-sitter-language-files*'.")
 
 (defmacro register-tree-sitter-language (lib-name language ast-superclass)
   "Setup LANGUAGE to map to AST-SUPERCLASS and use LIB-NAME for parsing."
-  `(eval-always
-     (handler-case
-         (progn
-           #+gt
-           (register-language ,language ,lib-name)
-           (setf (gethash ,ast-superclass *superclass->language*) ,language))
-       (load-foreign-library-error ()
-         (format *error-output* "Failed to load '~a'. Support for '~a' will not be available."
-                 ,lib-name ,language)))))
+  (let ((register-language #.(when (asdf:find-system :cl-tree-sitter nil) t)))
+    `(eval-always
+       (handler-case
+           (progn
+             (when ,register-language
+               (register-language ,language ,lib-name))
+             (setf (gethash ,ast-superclass *superclass->language*) ,language))
+         (load-foreign-library-error ()
+           (format *error-output*
+                   "Failed to load '~a'. Support for '~a' will not be available."
+                   ,lib-name ,language))))))
 
 
 ;;; Defining tree-sitter classes
