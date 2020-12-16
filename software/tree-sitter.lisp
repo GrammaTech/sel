@@ -302,6 +302,7 @@ searched to populate `*tree-sitter-language-files*'.")
        (:parseable-function
         javascript-function javascript-function-declaration
         javascript-arrow-function)
+       (:parseable-identifier javascript-identifier)
        (:parseable-loop
         javascript-for-statement javascript-do-statement
         javascript-while-statement)
@@ -316,6 +317,7 @@ searched to populate `*tree-sitter-language-files*'.")
        (:parseable-expression python-expression)
        (:parseable-function
         python-function-definition python-lambda)
+       (:parseable-identifier python-identifier)
        (:parseable-lambda python-lambda)
        (:parseable-loop
         python-while-statement python-for-statement python-for-in-clause)

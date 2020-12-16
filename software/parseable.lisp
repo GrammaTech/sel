@@ -102,7 +102,9 @@
            :parseable-control-flow
            :parseable-expression
            :parseable-function
+           :parseable-identifier
            :parseable-lambda
+           :parseable-literal
            :parseable-loop
            :parseable-statement
            ;; Cross-language Generics
@@ -134,8 +136,14 @@ whether they inherit from the functional trees library."))
 (defclass parseable-function (ast) ()
   (:documentation "Mix-in for AST classes that are functions."))
 
+(defclass parseable-identifier (ast) ()
+  (:documentation "Mix-in for AST classes that are identifiers."))
+
 (defclass parseable-lambda (ast) ()
   (:documentation "Mix-in for AST classes that are lambdas."))
+
+(defclass parseable-literal (ast) ()
+  (:documentation "Mix-in for AST classes that are literals."))
 
 (defclass parseable-loop (ast) ()
   (:documentation "Mix-in for AST classes that are loops."))
