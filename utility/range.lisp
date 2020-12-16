@@ -13,6 +13,7 @@
    :source-<=
    :source->
    :source->=
+   :source-=
    :contains
    :intersects
    :source-location->position
@@ -93,6 +94,15 @@ after B.")
     (or (> (line a) (line b))
         (and (= (line a) (line b))
              (>= (column a) (column b))))))
+
+(defgeneric source-= (a b)
+  (:documentation "Return true if source location A is equal to B.")
+  (:method ((a source-location) (b source-location))
+    (and (= (line a) (line b))
+         (= (column a) (column b))))
+  (:method ((a source-range) (b source-range))
+    (and (source-= (begin a) (begin b))
+         (source-= (end a) (end b)))))
 
 (defgeneric contains (range location)
   (:documentation "Return true if RANGE fully subsumes LOCATION.")
