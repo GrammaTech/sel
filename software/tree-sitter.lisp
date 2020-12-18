@@ -302,7 +302,9 @@ searched to populate `*tree-sitter-language-files*'.")
        (:parseable-function
         javascript-function javascript-function-declaration
         javascript-arrow-function)
-       (:parseable-identifier javascript-identifier)
+       (:parseable-identifier
+        javascript-identifier javascript-property-identifier)
+       (:parseable-literal javascript-number javascript-string)
        (:parseable-loop
         javascript-for-statement javascript-do-statement
         javascript-while-statement)
