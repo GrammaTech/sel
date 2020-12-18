@@ -1008,6 +1008,16 @@ otherwise.
        (maplist #'reverse) (reverse)   ; Prefixes of path.
        (ast-path obj ast)))
 
+(defmethod get-parent-asts ((root ast) (ast ast))
+  "Return the parent nodes of AST in OBJ including AST.
+* ROOT root ast of the software object containing AST and its parents
+* AST node to find the parents of.
+"
+ (nest (remove-if-not {typep _ 'ast})  ; Remove non-ASTs.
+       (mapcar {lookup root})           ; Lookup each prefix.
+       (maplist #'reverse) (reverse)   ; Prefixes of path.
+       (ast-path root ast)))
+
 (defmethod get-parent-asts* ((obj parseable) (ast ast))
   "Return the parent nodes of AST in OBJ not including AST.
 * OBJ software object containing AST and its parents
