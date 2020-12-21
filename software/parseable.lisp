@@ -1530,15 +1530,19 @@ to allow for successful mutation of SOFTWARE at PT."
 ;;; @texi{indentation}
 (defclass software-indentation ()
   ((spaces-per-tab :accessor spaces-per-tab
-                   :initform 4)
+                   :initform 4
+                   :initarg :spaces-per-tab)
    (indent-with-tabs-p :accessor indent-with-tabs-p
-                       :initform nil)))
+                       :initform nil
+                       :initarg :indent-with-tabs-p)))
 
 (defclass indentation ()
   ((indent-children :accessor indent-children
-                    :initform nil)
+                    :initform nil
+                    :initarg :indent-children)
    (indent-adjustment :accessor indent-adjustment
-                      :initform nil)))
+                      :initform nil
+                      :initarg :indent-adjustment)))
 
 (defparameter *spaces-per-tab* 4
   "The number of spaces per tab. This can be set to modify the
