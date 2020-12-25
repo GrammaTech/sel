@@ -1,6 +1,104 @@
 ;;;; tree-sitter.lisp --- software representations with a tree-sitter backend.
-;;; NOTE: the grammar.json and node-types.json for each language are currently
-;;;       expected to be in /usr/share/tree-sitter/$language/
+;;;
+;;; The @refapiclass{sel/sw/ts:tree-sitter} software object class is the primary
+;;; base class for representing software source code which has been
+;;; parsed into structured abstract syntax trees (ASTs) or more
+;;; accurately Concrete Syntax Trees (CSTs).  This class uses GitHub's
+;;; tree-sitter (see @url{https://tree-sitter.github.io/tree-sitter/})
+;;; libraries to parse source code into ASTs.
+;;;
+;;; Tree sitter has support for many source code languages.  See
+;;; @url{https://tree-sitter.github.io/tree-sitter/#available-parsers,Available
+;;; Parsers} for full list.  SEL will define software object classes
+;;; for every tree-sitter parser library found on the user's sytem.
+;;; Specifically, SEL looks in the directories specified by
+;;; @refapivariable{sel/sw/ts:*tree-sitter-language-directories*} to find the
+;;; @code{grammar.json} and @code{node-types.json} files that define a
+;;; tree-sitter language.  By default these files are expected to be
+;;; in @code{/usr/share/tree-sitter/$language/}.  The
+;;; @refapivariable{sel/sw/ts:*tree-sitter-language-directories*} variable may
+;;; be customized to control where SEL searches for these files.  For
+;;; even more control over the tree-sitter files used the
+;;; @refapivariable{sel/sw/ts:*tree-sitter-language-files*} variable may be set
+;;; directly.  These files are then parsed to automatically define
+;;; associated common lisp classes for every type of AST node defined
+;;; by the parser.  Currently only the @refapiclass{sel/sw/ts:python} and
+;;; @refapiclass{sel/sw/ts:javascript} tree-sitter classes have the full
+;;; complement of more sophisticated @refapiclass{sel/sw/parseable:parseable} methods
+;;; (e.g., @refapigeneric{sel/sw/parseable:scopes}) defined.
+;;;
+;;; On Arch Linux the
+;;; @url{https://aur.archlinux.org/packages/tree-sitter-languages-git/,
+;;; tree-sitter-languages-git} AUR package may be used to install
+;;; tree-sitter support for many languages.  On MacOS the following
+;;; shell script may be used to achieve similar results:
+;;;
+;;;     #!/bin/bash
+;;;
+;;;     declare -a LANGUAGES
+;;;     LANGUAGES=agda bash c c-sharp cpp css go html java javascript jsdoc json julia ocaml/ocaml ocaml/interface php python ql regex ruby rust scala typescript/tsx typescript/typescript
+;;;
+;;;     clone() {
+;;;       for language in ${LANGUAGES};do
+;;;         LANG="$(echo ${language}|sed 's|/|-|')"
+;;;         git clone https://github.com/tree-sitter/tree-sitter-${LANG} src/tree-sitter-${LANG}
+;;;       done
+;;;     }
+;;;
+;;;     package() {
+;;;       for language in ${LANGUAGES};do
+;;;         echo $language
+;;;         LANG="$(echo ${language}|sed 's|/|-|')"
+;;;         BASE="tree-sitter-${LANG}"
+;;;         cd src/tree-sitter-${language}/src
+;;;         if test -f "scanner.cc"; then
+;;;             c++ -fPIC scanner.cc -c -lstdc++
+;;;             cc -std=c99 -fPIC parser.c -c
+;;;             ar rcs ${BASE}.a scanner.o parser.o
+;;;             c++ -dynamiclib -Wl,-install_name,/usr/local/lib/${BASE}.0.dylib scanner.o parser.o -o ${BASE}.0.0.dylib
+;;;             ln -sf ${BASE}.0.0.dylib ${BASE}.dylib        
+;;;             ln -sf ${BASE}.0.0.dylib ${BASE}.0.dylib
+;;;             sudo install -d "/usr/local/lib/tree-sitter/$LANG"
+;;;             sudo install -m755 ${BASE}.a "/usr/local/lib/tree-sitter/${BASE}".a
+;;;             sudo install -m755 ${BASE}.0.0.dylib '/usr/local/lib'/${BASE}.0.0.dylib
+;;;             ln -sf ${BASE}.0.0.dylib '/usr/local/lib'/${BASE}.0.dylib
+;;;             ln -sf ${BASE}.0.0.dylib '/usr/local/lib'/${BASE}.dylib
+;;;         elif test -f "scanner.c"; then
+;;;             cc -std=c99 -fPIC scanner.c -c
+;;;             cc -std=c99 -fPIC parser.c -c
+;;;             ar rcs ${BASE}.a scanner.o parser.o
+;;;             c++ -dynamiclib -Wl,-install_name,/usr/local/lib/${BASE}.0.dylib scanner.o parser.o -o ${BASE}.0.0.dylib
+;;;             ln -sf ${BASE}.0.0.dylib ${BASE}.dylib        
+;;;             ln -sf ${BASE}.0.0.dylib ${BASE}.0.dylib
+;;;             sudo install -d "/usr/local/lib/tree-sitter/$LANG"
+;;;             sudo install -m755 ${BASE}.a "/usr/local/lib/tree-sitter/${BASE}".a
+;;;             sudo install -m755 ${BASE}.0.0.dylib '/usr/local/lib'/${BASE}.0.0.dylib
+;;;             ln -sf ${BASE}.0.0.dylib '/usr/local/lib'/${BASE}.0.dylib
+;;;             ln -sf ${BASE}.0.0.dylib '/usr/local/lib'/${BASE}.dylib
+;;;         else
+;;;             cc -std=c99 -fPIC parser.c -c
+;;;             ar rcs ${BASE}.a parser.o
+;;;             c++ -dynamiclib -Wl,-install_name,/usr/local/lib/${BASE}.0.dylib parser.o -o ${BASE}.0.0.dylib
+;;;             ln -sf ${BASE}.0.0.dylib ${BASE}.dylib        
+;;;             ln -sf ${BASE}.0.0.dylib ${BASE}.0.dylib
+;;;             sudo install -d "/usr/local/lib/tree-sitter/$LANG"
+;;;             sudo install -m755 ${BASE}.a "/usr/local/lib/tree-sitter/${BASE}".a
+;;;             sudo install -m755 ${BASE}.0.0.dylib '/usr/local/lib'/${BASE}.0.0.dylib
+;;;             ln -sf ${BASE}.0.0.dylib '/usr/local/lib'/${BASE}.0.dylib
+;;;             ln -sf ${BASE}.0.0.dylib '/usr/local/lib'/${BASE}.dylib
+;;;         fi
+;;;         sudo install -d /usr/local/share/tree-sitter/${language}/
+;;;         sudo install -m644 grammar.json node-types.json /usr/local/share/tree-sitter/${language}/
+;;;         cd - >/dev/null
+;;;       done
+;;;
+;;;     }
+;;;
+;;;     mkdir -p src/
+;;;     clone
+;;;     package
+;;;
+;;; @texi{tree-sitter}
 (uiop:define-package :software-evolution-library/software/tree-sitter
   (:nicknames :sel/software/tree-sitter :sel/sw/tree-sitter
               :sel/software/ts :sel/sw/ts)
@@ -23,6 +121,8 @@
         (values))
   (:export :tree-sitter-ast
            :tree-sitter
+           :*tree-sitter-language-directories*
+           :*tree-sitter-language-files*
            :ast-type-to-rebind-p
            :get-vars
            :in-class-def-p

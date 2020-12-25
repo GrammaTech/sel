@@ -265,7 +265,7 @@ better indentation behavior, in which case it might be acceptable (but
 I can't think of one now).
 
 
-@node Judicious use of indentation macros, ChangeLog, Map instead of iterate, SEL Coding Standards
+@node Judicious use of indentation macros, , Map instead of iterate, SEL Coding Standards
 @appendixsec Judicious use of Indentation macros
 
 Keeping code to within 80 columns can be difficult when deeply nested

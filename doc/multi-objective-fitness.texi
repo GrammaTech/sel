@@ -8,7 +8,7 @@ SEL provides two selection options for multi-objective optimization:
 @anchor{pareto-selection}
 @subsection Pareto Selection
 
-Function @refapifunction{pareto-selector} compares each candidate
+Function @refapifunction{sel/cp/multi-objective:pareto-selector} compares each candidate
 against a random comparison set, preferring candidates which dominate
 the comparison set. This will select for individuals along the Pareto
 front of the population.
@@ -26,7 +26,7 @@ the same number of objectives) across the entire population.
 @anchor{lexicase-selection}
 @subsection Lexicase Selection
 
-Function @refapifunction{lexicase-select-best} performs lexicase
+Function @refapifunction{sel/cp/lexicase:lexicase-select-best} performs lexicase
 selection: a form of multi-objective optimization which prioritizes
 objectives in a different order for each selection event.
 
@@ -35,32 +35,28 @@ Lexicase fitness scores are vectors of numeric values. The vectors must be the s
 
 @subsection API Support for Multi-Objective Fitness
 
-API support for multi-objective fitness is documented in section
-@ref{api-multi-objective, API | Multi-Objective Fitness}.
-
-
 @itemize
 
 @item
-Set variable @refapivariable{*fitness-predicate*} to specify how
+Set variable @refapivariable{sel:*fitness-predicate*} to specify how
 fitness values should be compared. Note that this applies across all
 objectives: it is not possible to maximize some objectives while
 minimizing others.
 
 @item
-Set variable @refapivariable{*tournament-selector*} to specify the
+Set variable @refapivariable{sel:*tournament-selector*} to specify the
 selector function to use for multi-objective optimization. There are
 currently two such functions:
   @itemize
-  @item @refapifunction{pareto-selector}
-  @item @refapifunction{lexicase-select-best}
+  @item @refapifunction{sel/cp/multi-objective:pareto-selector}
+  @item @refapifunction{sel/cp/lexicase:lexicase-select-best}
   @end itemize
 
 @item
-Set variable @refapivariable{*tournament-tie-breaker*} to specify how
+Set variable @refapivariable{sel:*tournament-tie-breaker*} to specify how
 the tournament should break ties in the case where the selector
 produces multiple winners. A useful tie-breaker for multi-objective
-optimization is @refapifunction{pick-least-crowded}, which promotes
+optimization is @refapifunction{sel/cp/multi-objective:pick-least-crowded}, which promotes
 diversity by selecting individuals that are farther from their
 neighbors in fitness space.
 

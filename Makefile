@@ -49,22 +49,22 @@ DOC_PACKAGES =								\
 	software-evolution-library/software/elf				\
 	software-evolution-library/software/elf-cisc			\
 	software-evolution-library/software/elf-risc			\
-	software-evolution-library/software-evolution-library		\
 	software-evolution-library/software/expression			\
 	software-evolution-library/software/forth			\
+	software-evolution-library/software/ir				\
 	software-evolution-library/software/lisp			\
-	software-evolution-library/software/sexp			\
 	software-evolution-library/software/llvm			\
 	software-evolution-library/software/non-homologous-parseable	\
 	software-evolution-library/software/parseable			\
 	software-evolution-library/software/parseable-project		\
 	software-evolution-library/software/project			\
+	software-evolution-library/software/sexp			\
 	software-evolution-library/software/simple			\
-	software-evolution-library/software/source			\
 	software-evolution-library/software/styleable			\
 	software-evolution-library/software/super-mutant		\
 	software-evolution-library/software/super-mutant-clang		\
 	software-evolution-library/software/super-mutant-project	\
+	software-evolution-library/software/tree-sitter			\
 	software-evolution-library/software/with-exe			\
 	software-evolution-library/utility/debug			\
 	software-evolution-library/utility/git				\

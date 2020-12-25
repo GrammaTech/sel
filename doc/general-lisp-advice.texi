@@ -103,7 +103,7 @@ We prefer @code{iter} over @code{loop}. See
 @end itemize
 
 
-@node General Lisp Debugging Advice, SEL Coding Standards, Additional Lisp Resources, General Lisp Advice
+@node General Lisp Debugging Advice, , Additional Lisp Resources, General Lisp Advice
 @appendixsec General Lisp Debugging Advice
 
 

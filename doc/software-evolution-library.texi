@@ -80,15 +80,14 @@ A copy of the license is included in the section entitled
 @end ifnottex
 
 
-Software Evolution Library (SEL) is a Common Lisp library for using
-evolutionary search to programmatically modify and evaluate software.
-It provides a common interface which abstracts over several kinds of
-software objects including parsed abstract syntax trees, intermediate
-languages, compiled assembler, or binaries.
+The SOFTWARE-EVOLUTION-LIBRARY enables the programmatic modification
+and evaluation of software.
 
-Methods for evolution, mutation, crossover, and fitness evaluation are
-implemented on top of this interface, supporting Search Based Software
-Engineering (SBSE) techniques.
+A common interface abstracts over multiple types of software objects
+including source code abstract syntax trees, compiled assembler code,
+and binary software objects.  Software transformation, analysis, and
+evaluation techniques are implemented on top of this interface
+supporting automation of common software engineering tasks.
 
 
 @menu
@@ -100,13 +99,13 @@ Engineering (SBSE) techniques.
 * Troubleshooting::             Solutions for build and test issues.
 
 Appendices
-* SEL API::                     Public functions, variables, and macros
+* Software Evolution Library Index:: Public functions, variables, and macros
 * ChangeLog::                   Chronological log of notable changes by version
 * General Lisp Advice::         Information for those new to Common Lisp
 * SEL Coding Standards::        Development guidelines for SEL
 * Contributing::                Process for contributing to SEL
 * Licensing::                   Licensing for SEL and for this documentation.
-* Index::                       Complete index.
+* Combined Index::              Complete combined index.
 
 @end menu
 
@@ -118,15 +117,15 @@ Appendices
 
 
 The Software Evolution library enables the programmatic modification
-and evaluation of extant software.  The software evolution library was
-developed as part of the genprog project on automated program repair.
+and evaluation of extant software.
 
 A common interface abstracts over multiple types of software objects
 (@pxref{Software Objects}) including abstract syntax trees parsed from
 source code, LLVM IR, compiled assembler, and linked ELF binaries.
 Mutation and evaluation methods (@pxref{Software Methods}) are
-implemented on top of this interface supporting Search Based Software
-Engineering (SBSE) techniques (@pxref{Search Functions}).
+implemented on top of this interface supporting automation of common
+software engineering tasks.  Support is included for Search Based
+Software Engineering (SBSE) techniques (@pxref{Search Functions}).
 
 
 @section SEL Applications
@@ -138,11 +137,18 @@ utilizing SEL.
 @itemize
 
 @item
+Multiple functions underlying an integrated software development assistant.
+(@url{https://grammatech.gitlab.io/Mnemosyne/docs/})
+
+@item
+Automatically resolving merge conflicts
+(@url{https://mergeresolver.github.io}).
+
+@item
 Optimizing real-world software
 (@url{https://github.com/eschulte/goa,github.com/eschulte/goa}).
 
 @item
-
 Patching vulnerabilities in closed source binaries
 (@url{http://eschulte.github.io/netgear-repair,eschulte.github.io/netgear-repair}).
 
@@ -152,12 +158,8 @@ specified by unit tests and developer hints
 (@url{http://cs.unm.edu/~eschulte/data/musynth-ssbse-2017.pdf,MuSynth}).
 
 @item
-Adapting  software for
-@url{https://www.darpa.mil/program/building-resource-adaptive-software-systems,DARPA's BRASS program}.
-
-@item
 Injecting bugs into software to create cyber-defense benchmarks
-(@url{https://www.grammatech.com/sponsored-research,BUG-INJECTOR}).
+(@url{https://arxiv.org/pdf/1901.02819.pdf}).
 
 @item
 Decompiling binaries to C source
@@ -173,7 +175,7 @@ Studying the @emph{mutational robustness} of software
 
 @section Many different kinds of software can be manipulated
 
-The SEL API defines software objects using the Common Lisp Object
+The Software Evolution Library Index defines software objects using the Common Lisp Object
 System (CLOS), to provide a uniform interface to many kinds of
 software artifact, shown in the table below.
 
@@ -183,16 +185,15 @@ information about creating new software objects.
 
 
 @multitable {compiled assembler  ASM  } {experimental}
-@item C and C++ source         @tab mature
-@item compiled assembler (ASM) @tab mature
-@item linked ELF binaries      @tab mature
-@item LLVM IR                  @tab experimental
-@item CIL                      @tab experimental
-@item LISP                     @tab experimental
-@item Forth                    @tab experimental
-@item JavaScript               @tab experimental
-@item Python                   @tab experimental
-@item Coq                      @tab experimental
+@item Source Code using Tree-Sitter @tab mature
+@item C/C++ using Clang             @tab mature
+@item Common LISP                   @tab mature
+@item compiled assembler (ASM)      @tab mature
+@item linked ELF binaries           @tab mature
+@item LLVM IR                       @tab experimental
+@item CIL                           @tab experimental
+@item Forth                         @tab experimental
+@item Coq                           @tab experimental
 @end multitable
 
 
@@ -208,7 +209,7 @@ Multiple search techniques including steady-state and generational
 evolution or Markov chain Monte Carlo (MCMC).
 
 @item
-New mutations tailored to each software object.
+Custom mutations tailored to each software object.
 
 @item
 One- and two-point crossover.
@@ -221,19 +222,19 @@ Use of "fodder databases" as a source of new statements or expressions
 that can be injected by mutations.
 
 @item
-Ancestry for candidate solutions.
+Ancestry tracking of evolved software objects.
 
 @item
-Adaptive mutations to dynamically update probabilities based on
+Adaptive mutations which dynamically update probabilities based on
 mutation success.
 
 @item
-Super-mutants to evaluate multiple mutations in a single genome.
+Super-mutants to more efficiently evaluate multiple mutations in a single genome.
 
 @end itemize
 
 
-@subheading Tailored features for C and C++ objects
+@subheading Tailored features for Clang C and C++ objects
 
 @itemize
 
@@ -255,28 +256,35 @@ First, @ref{Installation, install SEL and its dependencies}.
 
 Once SEL is installed, try out some of the @ref{Examples, example code}.
 
-If you are ready to try using SEL in your own code, consult the
-@ref{SEL API, API documentation}.
+For more detailed usage information consult the @ref{Software Evolution Library Index, API
+documentation}.
 
 
 @section Citing
 
-Please cite Eric Schulte's Ph.D. dissertation when you publish results
-that you have obtained with the SOFTWARE EVOLUTION library (see
-@cite{Neutral Networks of Real-World Programs and their Application to
-Automated Software Evolution} available at
-@url{https://cs.unm.edu/~eschulte/dissertation}).
+Please cite this manual when publishing results that you have obtained
+with the SOFTWARE EVOLUTION library.
+@example
+@@manual@{sel2018manual,
+  title        = @{Software Evolution Library@},
+  author       = @{Eric Schulte and Contributors@},
+  organization = @{GrammaTech@},
+  address      = @{eschulte@@grammatech.com@},
+  month        = 1,
+  year         = 2018,
+  note         = @{https://grammatech.github.io/sel/@}
+@}
+@end example
 
 
-
-@node Implementation, Software Objects, Introduction, Top
+@node Implementation, Components, Introduction, Top
 @chapter Implementation
 @cindex implementation
 
 The Software Evolution library is implemented in Common Lisp and is
 intended for use in Common Lisp programs.  @ref{fig:overview} provides
-an overview of the Software Evolution system, the specifics of which
-are given in remainder of this section.
+an overview of the Software Evolution object system, the specifics of
+which are given in remainder of this section.
 
 @menu
 * Software Objects::            Representation of software
@@ -289,8 +297,8 @@ are given in remainder of this section.
 
 @float Figure,fig:overview
 @example
-                                                      population functions
- global variables                                     --------------------
+                                                      search functions
+ global variables                                     ----------------
  ----------------        +------------------+         incorporate
  *population*            |   *population*   |         evict
  *max-population-size*   |------------------|         tournament
@@ -299,7 +307,7 @@ are given in remainder of this section.
  *cross-chance*          +------------------+         evolve
  *fitness-evals*                  |                   mcmc
  *running*                      +-+-+
-                                | | |                 software functions
+                                | | |                 software methods
                          +------------------+         --------------
  evolve arguments        | software object  |         genome
  ----------------        |------------------|         phenome
@@ -325,39 +333,30 @@ are given in remainder of this section.
  +----------+        |    | Executable |  | +--------------+   +--------------+     |
  +----------------+  |    |  Linkable  |  |                                         |
  |       CIL      |--+    |   Format   |  |    +------------+  +--------------+     |
- |----------------|       +------------+  +----|    asm     |  |  javascript  |-----+
+ |----------------|       +------------+  +----|    asm     |  | common-lisp  |-----+
  | C Intermediate |   +----------+   |         |------------|  +--------------+     |
  |    Language    |   | elf-risc |---+         |  assembly  |                       |
  +----------------+   +----------+   |         |    code    |  +--------------+     |
-                      +----------+   |         +------------+  |     lisp     |-----+
-                      | elf-cisc |---+               |         +--------------+     |
-                      +----------+                   |                              |
-                                          +------------------+ +--------------+     |
-                                          |     asm-range    | |    python    |-----+
-                                          |------------------| +--------------+
-                                          | memory efficient |
-                                          +------------------+
-
-
-                               mixin classes
-                             -----------------
+                      +----------+   |         +------------+  | tree-sitter  |-----+
+                      | elf-cisc |---+               |         +--------------+
+                      +----------+                   |                |
+                                        +------------------+   +----------------------+
+                                        |    asm-range     |   | agda bash c c-sharp  |
+                                        |------------------|   | cpp css go html java |
+                                        | memory efficient |   |   javascript jsdoc   |
+                                        +------------------+   | json julia ocaml php |
+                                                               | python ql regex ruby |
+                                                               |    rust scala        |
+                               mixin classes                   |     typescript       |
+                             -----------------                 +----------------------+
 
        +------------+ +-----------+ +-----------+ +------+ +------------+
        | Searchable | | Ancestral | | Styleable | | File | | Compilable |
        +------------+ +-----------+ +-----------+ +------+ +------------+
               |                                       |
-         +-----------------+                +-------------------+
-         | Fodder Database |                | File-w-attributes |
-         +-----------------+                +-------------------+
-           |            |
-      +----------+  +--------------------+
-      | Pliny DB |  | In Memory Database |
-      +----------+  +--------------------+
-                              |
-                         +---------+
-                         | JSON DB |
-                         +---------+
-
+         +----------------------+           +-------------------+
+         | Fodder Database, ... |           | File-w-attributes |
+         +----------------------+           +-------------------+
 @end example
 @caption{Software Evolution API.  Exported functions and variables are
 shown along with the software object class hierarchy.}
@@ -368,10 +367,10 @@ shown along with the software object class hierarchy.}
 @cindex software objects
 
 The Software Evolution Library represents software as @emph{software
-objects} which all inherit from the base @refapiclass{software} class.
+objects} which all inherit from the base @refapiclass{sel:software} class.
 Currently many subclasses of software are defined.  These classes may
 inherit from other software sub-classes, e.g. most tree-structured
-source code software objects inherit from the @refapiclass{parseable} class.
+source code software objects inherit from the @refapiclass{sel/sw/ts:tree-sitter} class.
 The inheritance tree of software objects is shown graphically in
 @ref{fig:overview}.
 
@@ -384,36 +383,40 @@ with an indicate of their relative maturity.
 
 @headitem  Software type @tab SEL Class @tab Maturity
 
-@item C and C++ source
-      @tab @refapiclass{clang}
+@item Source Code using Tree-Sitter
+      @tab @refapiclass{sel/sw/ts:tree-sitter}
+      @tab mature
+
+@item C and C++ source using Clang
+      @tab @refapiclass{sel/sw/clang:clang}
+      @tab mature
+
+@item Common Lisp
+      @tab @refapiclass{sel/sw/lisp:lisp}
       @tab mature
 
 @item compiled assembler (ASM)
-      @tab @refapiclass{asm}
+      @tab @refapiclass{sel/sw/asm:asm}
       @tab mature
 
 @item linked ELF binaries
-      @tab @*  @refapiclass{elf-cisc}
+      @tab @*  @refapiclass{sel/sw/elf-cisc:elf-cisc}
       @tab mature (not recommended)
 
 @item LLVM IR
-      @tab @refapiclass{llvm}
+      @tab @refapiclass{sel/sw/llvm:llvm}
       @tab experimental
 
 @item CIL
-      @tab @refapiclass{cil}
-      @tab experimental
-
-@item LISP
-      @tab @refapiclass{lisp}
-      @tab experimental
-
-@item Coq source
-      @tab @refapiclass{coq}
+      @tab @refapiclass{sel/sw/cil:cil}
       @tab experimental
 
 @item Forth
-      @tab @refapiclass{forth}
+      @tab @refapiclass{sel/sw/forth:forth}
+      @tab experimental
+
+@item Coq source
+      @tab @refapiclass{sel/sw/coq:coq}
       @tab experimental
 
 @end multitable
@@ -427,21 +430,29 @@ inheritance tree to provide additional functionality) are described in
 the following subsections.
 
 @menu
-Software Object Classes (see also @ref{api-software-object-classes,Software Object Classes} in the API)
-* C/C++ with @code{clang}::     C language source code ASTs
-* Assembler with @code{asm}::   Assembler represented as a vector
-* Coq with @code{coq}::               Coq language source code ASTs
+Software Object Classes
+* Source Code with @code{tree-sitter}:: Source code ASTs for @emph{many} languages
+* C/C++ with @code{clang}::             C language source code ASTs
+* Assembler with @code{asm}::           Assembler represented as a vector
+* Coq with @code{coq}::                 Coq language source code ASTs
 
-Software Object Mixins (see also @ref{api-software-object-mixins,Software Object Class ``Mixins''} in the API)
+Software Object Mixins
 * Ancestor tracking with @code{ancestral}:: Collect history of applied
                                         mutations and crossover events.
 * Lighter asm alternatives @code{light}/@code{range}/@code{diff}::
                                         Lighter weight alternatives to
                                         @code{simple} software.
 * Inherited Indentation @code{indentation}:: Maintain correct indentation across mutations.
+* Software Methods::                    Methods on software objects
 @end menu
 
-@node C/C++ with @code{clang}, Assembler with @code{asm}, Software Objects, Software Objects
+@node Source Code with @code{tree-sitter}, C/C++ with @code{clang}, Software Objects, Software Objects
+
+@subsection Source Code with @code{tree-sitter}
+
+@include include/tree-sitter.texi
+
+@node C/C++ with @code{clang}, Assembler with @code{asm}, Source Code with @code{tree-sitter}, Software Objects
 
 @subsection C/C++ with @code{clang} Software Object
 
@@ -467,7 +478,7 @@ Software Object Mixins (see also @ref{api-software-object-mixins,Software Object
 
 @include include/ancestral.texi
 
-@node Lighter asm alternatives @code{light}/@code{range}/@code{diff}, Software Methods, Ancestor tracking with @code{ancestral}, Software Objects
+@node Lighter asm alternatives @code{light}/@code{range}/@code{diff}, Inherited Indentation @code{indentation}, Ancestor tracking with @code{ancestral}, Software Objects
 
 @subsection Lighter asm alternatives @code{light}/@code{range}/@code{diff}
 
@@ -483,13 +494,13 @@ Software Object Mixins (see also @ref{api-software-object-mixins,Software Object
 
 @include include/diff.texi
 
-@node Inherited Indentation @code{indentation}
+@node Inherited Indentation @code{indentation}, , Lighter asm alternatives @code{light}/@code{range}/@code{diff}, Software Objects
 
 @subsection Inherited Indentation
 
 @include include/indentation.texi
 
-@node Software Methods, Mutation Objects, Software Objects, Implementation
+@node Software Methods, Mutation Objects, Software Objects, Software Objects
 
 @section Software Methods
 @cindex software methods
@@ -529,10 +540,10 @@ binary.
 
 New software objects should inherit from the most-relevant base
 class. For source code based software objects, this is the
-@refapiclass{parseable} class. To define a new software object type from an
-existing base class, use the @refapimacro{define-software} macro.  All
+@refapiclass{sel/sw/parseable:parseable} class. To define a new software object type from an
+existing base class, use the @refapimacro{sel:define-software} macro.  All
 software objects should ultimately inherit from the
-@refapiclass{software} class.
+@refapiclass{sel:software} class.
 
 @lisp
 (define-software new-software-type (base-software-type)
@@ -549,45 +560,45 @@ programs or in heuristic search.
 @itemize
 @item Recover @ref{Software Objects,genome and phenome}.
     @itemize
-    @item @refapigeneric{genome}
-    @item @refapigeneric{phenome}
+    @item @refapigeneric{sel:genome}
+    @item @refapigeneric{sel:phenome}
     @end itemize
 
 @item Get genome properties.
     @itemize
-    @item @refapigeneric{genome-string}
-    @item @refapigeneric{lines}
+    @item @refapigeneric{sel:genome-string}
+    @item @refapigeneric{sel:lines}
     @end itemize
 
-@item @refapigeneric{copy}
+@item @refapigeneric{sel:copy}
 
 @item Pick an index into the genome.
     @itemize
-    @item @refapigeneric{pick}
-    @item @refapigeneric{pick-good}
-    @item @refapigeneric{pick-bad}
-    @item @refapigeneric{pick-bad-good}
-    @item @refapigeneric{pick-bad-bad}
+    @item @refapigeneric{sel:pick}
+    @item @refapigeneric{sel:pick-good}
+    @item @refapigeneric{sel:pick-bad}
+    @item @refapigeneric{sel:pick-bad-good}
+    @item @refapigeneric{sel:pick-bad-bad}
     @end itemize
 
 @item Perform crossover on two software objects.
     @itemize
-    @item @refapigeneric{crossover}
-    @item @refapigeneric{one-point-crossover}
-    @item @refapigeneric{two-point-crossover}
+    @item @refapigeneric{sel:crossover}
+    @item @refapigeneric{sel:one-point-crossover}
+    @item @refapigeneric{sel:two-point-crossover}
     @end itemize
 
 
 @item Input/Output.
     @itemize
-    @item @refapigeneric{from-file}
-    @item @refapigeneric{from-string}
-    @item @refapigeneric{to-file}
+    @item @refapigeneric{sel:from-file}
+    @item @refapigeneric{sel:from-string}
+    @item @refapigeneric{sel:to-file}
     @end itemize
 
-@item @refapigeneric{mutate}
-@item @refapigeneric{evaluate}
-@item @refapigeneric{fitness-extra-data}
+@item @refapigeneric{sel:mutate}
+@item @refapigeneric{sel:evaluate}
+@item @refapigeneric{sel:fitness-extra-data}
 @end itemize
 
 
@@ -647,15 +658,15 @@ Write the genome of software object @code{SOFTWARE} to @code{FILE}.
 @c DOCFIXME need more intro
 
 SEL provides a variety of operations that apply @emph{mutations} to
-modify code. These mutations are represented as @refapiclass{mutation}
+modify code. These mutations are represented as @refapiclass{sel:mutation}
 objects.
 
 
 
-See section @ref{api-mutations,API | Mutations} for full API
+See the @ref{Software Evolution Library Index} for full API
 documentation. We provide a brief outline here.
 
-New @refapiclass{mutation} subclasses should derive from the
+New @refapiclass{sel:mutation} subclasses should derive from the
 most-relevant base class. To define a new mutation from an existing
 base class, use
 
@@ -667,12 +678,12 @@ base class, use
 The mutation may be initialized with two functions; a targeter and
 picker. The targeter is a function which, given a software object,
 returns a list of mutation targets; this function defaults to
-@refapigeneric{pick-bad}. The picker is a function which, given a software
+@refapigeneric{sel:pick-bad}. The picker is a function which, given a software
 object, returns a random mutation target; this function defaults to a
-random element returned by @refapigeneric{pick-bad}.
+random element returned by @refapigeneric{sel:pick-bad}.
 
 After creating a software object and a mutation, use the
-@refapigeneric{apply-mutation} method to create a new mutant.
+@refapigeneric{sel:apply-mutation} method to create a new mutant.
 
 
 
@@ -682,52 +693,52 @@ After creating a software object and a mutation, use the
 @cindex Global Variables
 
 The following global variables are exposed for configuration and
-interaction with heuristic search processes. This table contains summary information only, see the @ref{SEL API} section for full details.
+interaction with heuristic search processes. This table contains summary information only, see the @ref{Software Evolution Library Index} section for full details.
 
 @multitable {} {}
 
-@item @refapivariable{*population*} @tab
+@item @refapivariable{sel:*population*} @tab
 A list of the software objects currently known to the system.
 
-@item @refapivariable{*max-population-size*} @tab
+@item @refapivariable{sel:*max-population-size*} @tab
 Maximum allowable population size.
 
-@item @refapivariable{*generations*} @tab
+@item @refapivariable{sel:*generations*} @tab
 The running generation count.
 
-@item @refapivariable{*tournament-size*} @tab
+@item @refapivariable{sel:*tournament-size*} @tab
 Number of individuals to participate in tournament selection.
 
-@item @refapivariable{*tournament-eviction-size*} @tab
+@item @refapivariable{sel:*tournament-eviction-size*} @tab
 Number of individuals to participate in eviction tournaments.
 
-@item @refapivariable{*tournament-selector*} @tab
+@item @refapivariable{sel:*tournament-selector*} @tab
 Function used to select winners of a tournament.
 
-@item @refapivariable{*tournament-tie-breaker*} @tab
+@item @refapivariable{sel:*tournament-tie-breaker*} @tab
 Function used to break ties when a tournament has multiple
 winners.
 
-@item @refapivariable{*tie-breaker-predicate*} @tab
+@item @refapivariable{sel:*tie-breaker-predicate*} @tab
 Function to compare two tie breaker values to select which is
 preferred.
 
-@item @refapivariable{*fitness-predicate* } @tab
+@item @refapivariable{sel:*fitness-predicate*} @tab
 Function to compare two fitness values to select which is preferred.
 
 
-@item @refapivariable{*cross-chance*} @tab
+@item @refapivariable{sel:*cross-chance*} @tab
 Fraction of new individuals generated using crossover rather than
 mutation.
 
-@item @refapivariable{*mut-rate*} @tab
+@item @refapivariable{sel:*mut-rate*} @tab
 Chance to mutate a new individual.
 
-@item @refapivariable{*fitness-evals*} @tab
+@item @refapivariable{sel:*fitness-evals*} @tab
 Tracks the total number of fitness evaluations
 performed.
 
-@item @refapivariable{*running*} @tab
+@item @refapivariable{sel:*running*} @tab
 True when a search process is running, set to nil to
 stop a running search.
 
@@ -745,16 +756,16 @@ received much more testing and is recommended.
 
 @table @dfn
 
-@item @refapimacro{evolve}
-Evolve the existing @refapivariable{*population*} of
-@refapiclass{software} objects using a supplied test function to
+@item @refapimacro{sel:evolve}
+Evolve the existing @refapivariable{sel:*population*} of
+@refapiclass{sel:software} objects using a supplied test function to
 evaluate the fitness of software objects. A steady state evolutionary
 computation algorithm is used to evolve increasingly fit software
 objects in a process resembling natural selection.
 
-@item @refapimacro{mcmc}
+@item @refapimacro{sel:mcmc}
 Perform Markov chain Monte Carlo search from a supplied
-@refapiclass{software} object using a supplied test function
+@refapiclass{sel:software} object using a supplied test function
 to evaluate the fitness of software objects.  The fitness returned by
 the test function is optimized.
 
@@ -835,7 +846,7 @@ current and new fitness that returns acceptance.
 
 @include include/rest-sessions.texi
 
-@node Async Jobs, Components, REST Sessions, REST API
+@node Async Jobs, , REST Sessions, REST API
 
 @include include/rest-async-jobs.texi
 
@@ -863,6 +874,7 @@ infrastructure.
 * Style Features::              Extracting source code features
 * Clang C Tokenizer::           Tokenize software objects
 * Super-Mutants::               Evaluate multiple variants in a single genome
+* Utilities::                   Utilities
 @end menu
 
 @node Test Suites, Multi-objective Fitness, Components, Components
@@ -890,14 +902,13 @@ infrastructure.
 @cindex super-mutants
 @include include/super-mutant.texi
 
-@node Utilities, Basic Utilities, Components, Top
+@node Utilities, Basic Utilities, Super-Mutants, Components
 @chapter Utilities
 @cindex utilities
 
 The Software Evolution Library provides utilities packages, including
 the @code{GT} package (see @ref{Basic Utilities}) and the
-@code{SEL/VIEW} package (see @ref{SEL View Concept Index}).  This chapter
-documents these utilities.
+@code{SEL/VIEW}.  This chapter documents these utilities.
 
 @menu
 * Basic Utilities::             Basic Utilities covering a range of uses
@@ -920,7 +931,7 @@ is now also available in quicklisp, and need not be installed separately.
 @section Task
 @include include/task.texi
 
-@node Usage, Installation, Utilities, Top
+@node Usage, Installation, Task, Top
 @chapter Usage
 @cindex usage
 
@@ -932,34 +943,21 @@ is now also available in quicklisp, and need not be installed separately.
 
 
 
-@node Installation, Examples, Usage, Usage
+@node Installation, Windows Installation, Usage, Usage
 @section Installation
 
 TLDR; If you already have a Common Lisp development environment setup
 the Software Evolution Library (SEL) can be installed from QuickLisp
 by running @code{(ql:quickload :software-evolution-library)}, however
-some components and software types have additional dependencies.
+many components and software types have additional dependencies.
 
-Note: The following instructions assume you are on a Linux machine,
-for installation on Windows see @ref{Windows Installation}.
+Note: The following instructions assume you are running a Linux or
+macOS operating system, for installation Windows see @ref{Windows
+Installation}.
 
-SEL requires one of the following supported lisp distributions.
-(Relatively recent versions of these implementations are required
-because of the use of new features of ASDF/UIOP.)
-
-@float Table,tab:lisp-implementations
-@caption{Supported Common Lisp Implementations.}
-@multitable {} {} {}
-
-@headitem  Implementation @tab Minimum Version @tab URL
-
-@item Steel Bank Common Lisp (SBCL) @tab 1.4 @tab @url{https://www.cliki.net/SBCL}
-
-@item Clozure Common Lisp (CCL) @tab 1.12-dev @tab @url{https://www.cliki.net/CCL}
-
-@end multitable
-
-@end float
+SEL is currently only tested against @url{https://www.cliki.net/SBCL,
+Steel Bank Common Lisp (SBCL)} @url{https://www.cliki.net/CCL, Clozure
+Common Lisp (CCL)} and requires ASDF version 3.3.x or greater.
 
 The source code for SEL is available at
 @url{https://github.com/GrammaTech/sel}.  SEL and its Common Lisp
@@ -968,15 +966,20 @@ dependencies are installable through Quicklisp (see
 
 @float Table,tab:dependencies
 @caption{Additional dependencies for specific software objects.}
-@multitable {} {} {}
+@multitable {} {} {} {}
 
-@headitem  Software type @tab Dependency @tab URL
+External dependencies are required for some software object subclasses
+that require external parsers.  For all languages evaluation of
+software objects require that the language's compiler or interpreter
+is available.
 
-@item C/C++ @tab clang v10.0+ @tab @url{https://github.com/llvm/llvm-project}
+@headitem  Software type @tab Class @tab Dependency @tab URL
 
-@item JavaScript @tab acorn @tab @url{https://github.com/acornjs/acorn.git}
+@item Source Code for many languages @tab @refapiclass{sel/sw/ts:tree-sitter} @tab tree-sitter @tab @url{https://tree-sitter.github.io/tree-sitter/}
 
-@item Coq @tab SerAPI @tab @url{https://github.com/ejgallego/coq-serapi}
+@item Alternate C/CPP Source Code @tab @refapiclass{sel/sw/clang:clang} @tab clang v10.0+ @tab @url{https://github.com/llvm/llvm-project}
+
+@item Coq @tab @refapiclass{sel/sw/coq:coq} @tab SerAPI @tab @url{https://github.com/ejgallego/coq-serapi}
 
 @end multitable
 @end float
@@ -1085,7 +1088,7 @@ sudo mount -t drvfs Z: /mnt/z
 @end example
 @end enumerate
 
-@node Examples, Mutation, Installation, Usage
+@node Examples, Mutation, Windows Installation, Usage
 @section Examples
 
 The examples in this section illustrate various applications of the
@@ -1130,9 +1133,9 @@ $(CC) gcd.c -S -o gcd.s
 @cindex example mutation
 
 
-The @refapigeneric{mutate} method applies a random mutation to a
-@refapiclass{software} object and returns two values: the mutated
-object and a @refapiclass{mutation} object describing the mutation
+The @refapigeneric{sel:mutate} method applies a random mutation to a
+@refapiclass{sel:software} object and returns two values: the mutated
+object and a @refapiclass{sel:mutation} object describing the mutation
 that was applied.
 
 The following example applies a random mutation to @code{gcd.s}.
@@ -1140,13 +1143,13 @@ The following example applies a random mutation to @code{gcd.s}.
 
 @enumerate
 
-@item Uses @refapigeneric{from-file} to load @code{gcd.s} into a new @refapiclass{asm} software object, @code{orig}.
+@item Uses @refapigeneric{sel:from-file} to load @code{gcd.s} into a new @refapiclass{sel/sw/asm:asm} software object, @code{orig}.
 
-@item Applies @refapigeneric{mutate} to mutate a deep @refapigeneric{copy} of @code{orig}.
+@item Applies @refapigeneric{sel:mutate} to mutate a deep @refapigeneric{sel:copy} of @code{orig}.
 
-@item Writes the mutated object to disk with @refapigeneric{to-file}.
+@item Writes the mutated object to disk with @refapigeneric{sel:to-file}.
 
-@item Prints the @refapiclass{mutation} that was applied.
+@item Prints the @refapiclass{sel:mutation} that was applied.
 @end enumerate
 
 @verbatiminclude ./doc/examples/001-mutate.lisp
@@ -1164,13 +1167,13 @@ tmp/fileLfs6Mf.s".
 
 
 @itemize
-@item Class @refapiclass{asm}
+@item Class @refapiclass{sel/sw/asm:asm}
 @item Methods
   @itemize
-  @item @refapigeneric{copy}
-  @item @refapigeneric{from-file}
-  @item @refapigeneric{mutate}
-  @item @refapigeneric{to-file}
+  @item @refapigeneric{sel:copy}
+  @item @refapigeneric{sel:from-file}
+  @item @refapigeneric{sel:mutate}
+  @item @refapigeneric{sel:to-file}
   @end itemize
 @end itemize
 
@@ -1186,16 +1189,16 @@ We have provided a shell script @code{test.sh}, which contains several
 gcd test cases. Our fitness function will be the number of test cases
 for which a program produces the correct solution.
 
-Once a fitness value for a @refapiclass{software} object is
+Once a fitness value for a @refapiclass{sel:software} object is
 established, it can be recorded in the object's @code{fitness} field.
 
 
 The example code below has two main components:
 
 @itemize
-@item A @code{test} function that harnesses the @code{test.sh} script to evaluate the fitness of an individual @refapiclass{asm} object.
+@item A @code{test} function that harnesses the @code{test.sh} script to evaluate the fitness of an individual @refapiclass{sel/sw/asm:asm} object.
 
-@item A loop in which ten mutants of the   @refapiclass{asm} object corresponding to the original @code{gcd.s} program are generated, their fitness assessed, and the results printed.
+@item A loop in which ten mutants of the   @refapiclass{sel/sw/asm:asm} object corresponding to the original @code{gcd.s} program are generated, their fitness assessed, and the results printed.
 @end itemize
 
 @ignore
@@ -1249,13 +1252,13 @@ Executing this code will print output resembling the following.
 @subsubheading API components in this example
 
 @itemize
-@item Class @refapiclass{asm}
+@item Class @refapiclass{sel/sw/asm:asm}
 @item Methods
   @itemize
-  @item @refapigeneric{copy}
-  @item @refapigeneric{from-file}
-  @item @refapigeneric{mutate}
-  @item @refapigeneric{phenome}
+  @item @refapigeneric{sel:copy}
+  @item @refapigeneric{sel:from-file}
+  @item @refapigeneric{sel:mutate}
+  @item @refapigeneric{sel:phenome}
   @end itemize
 @end itemize
 
@@ -1284,12 +1287,12 @@ variants have equivalent behavior to the original.
 
 
 @itemize
-@item Class @refapiclass{asm}
+@item Class @refapiclass{sel/sw/asm:asm}
 @item Methods
   @itemize
-  @item @refapigeneric{copy}
-  @item @refapigeneric{from-file}
-  @item @refapigeneric{mutate}
+  @item @refapigeneric{sel:copy}
+  @item @refapigeneric{sel:from-file}
+  @item @refapigeneric{sel:mutate}
   @end itemize
 @end itemize
 
@@ -1308,11 +1311,11 @@ implementation: a mutant that passes every test case in the script.
 As before, we use the @code{test} function defined in the
 @ref{Evaluation} example to measure the fitness of each program
 variant. This time, @code{test} is used as the fitness test in
-applying @refapimacro{evolve} to a @refapivariable{*population*}
+applying @refapimacro{sel:evolve} to a @refapivariable{sel:*population*}
 initialized with 100 copies of the original program. Variable
-@refapivariable{*target-fitness-p*} is set up so that the search will
+@refapivariable{sel:*target-fitness-p*} is set up so that the search will
 terminate when a member of the population has a fitness value that
-indicates it is passing all of the tests; @refapimacro{evolve}'s
+indicates it is passing all of the tests; @refapimacro{sel:evolve}'s
 keyword argument @code{:max-evals} ensures that execution will always
 terminate after at most 100 fitness evaluations.
 
@@ -1347,18 +1350,18 @@ saved in the @code{*population*}.
 
 
 @itemize
-@item Class @refapiclass{asm}
-@item Macro @refapimacro{evolve}
+@item Class @refapiclass{sel/sw/asm:asm}
+@item Macro @refapimacro{sel:evolve}
 @item Methods
   @itemize
-  @item @refapigeneric{copy}
-  @item @refapigeneric{from-file}
+  @item @refapigeneric{sel:copy}
+  @item @refapigeneric{sel:from-file}
   @end itemize
 @item Variables
   @itemize
-  @item @refapivariable{*population*}
-  @item @refapivariable{*target-fitness-p*}
-  @item @refapivariable{*fitness-predicate*}
+  @item @refapivariable{sel:*population*}
+  @item @refapivariable{sel:*target-fitness-p*}
+  @item @refapivariable{sel:*fitness-predicate*}
   @end itemize
 @end itemize
 
@@ -1366,7 +1369,7 @@ saved in the @code{*population*}.
 @subsection Parallel Repair
 @cindex parallel repair
 
-Evolution may be parallelized by calling @refapimacro{evolve} in multiple
+Evolution may be parallelized by calling @refapimacro{sel:evolve} in multiple
 threads.
 
 For example a parallel version of the previous example would
@@ -1413,26 +1416,23 @@ with the following.
 @c @section Memoize Fitness
 @c @cindex memoize fitness
 
-
-
-@node Troubleshooting, SEL API, Usage, Top
+@node Troubleshooting, Software Evolution Library Index, Repair, Top
 @chapter Troubleshooting
 @cindex troubleshooting
 @include troubleshooting.texi
 
-@node SEL API, SEL Concepts, Troubleshooting, Top
-@appendix SEL API
-@include sel-api.texi
+@include include/sb-texinfo.texinfo
+@include software-evolution-library-index-sb-texinfo.texi
 
-@node ChangeLog, General Lisp Advice, SEL API, Top
+@node ChangeLog, General Lisp Advice, Software Evolution Library Index, Top
 @appendix ChangeLog
 @include changelog.texi
 
-@node General Lisp Advice, Getting Started with Lisp, ChangeLog, Top
+@node General Lisp Advice, SEL Coding Standards, ChangeLog, Top
 @appendix General Lisp Advice
 @include general-lisp-advice.texi
 
-@node SEL Coding Standards, Use the compiler(s), General Lisp Advice, Top
+@node SEL Coding Standards, Contributing, General Lisp Advice, Top
 @appendix SEL Coding Standards
 @include sel-coding-standards.texi
 
@@ -1456,12 +1456,12 @@ with the following.
 @include gpl.texi
 
 
-@node GNU Free Documentation License, Index, Copying, Licensing
+@node GNU Free Documentation License, Combined Index, Copying, Licensing
 @appendixsec GNU Free Documentation License
 @include doclicense.texi
 
-@node Index,  , Licensing, Top
-@unnumbered Index
+@node Combined Index,  , GNU Free Documentation License, Top
+@unnumbered Combined Index
 
 @c Combine all index (function variable type and concept) types into a
 @c single index.

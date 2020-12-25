@@ -7,9 +7,8 @@ tests are passing, and if their behavior has changed.
 
 @subsection API Support For Unit Tests
 
-API support for unit tests is documented in section
-@ref{api-test-suites, API | Test Suites}. We provide a brief overview
-here.
+API support for unit tests is also documented in section @ref{Software
+Evolution Library Index}. We provide a brief overview here.
 
 @itemize
 
@@ -27,12 +26,12 @@ here.
 
 @multitable {} {}
 
-@item @refapiclass{test-case}
+@item @refapiclass{sel/cp/test-suite:test-case}
       @tab a single test
 
-@item @refapiclass{test-suite}
+@item @refapiclass{sel/cp/test-suite:test-suite}
       @tab a suite of tests (as a collection of
-      @refapiclass{test-case} objects)
+      @refapiclass{sel/cp/test-suite:test-case} objects)
 
 @end multitable
 
@@ -41,8 +40,8 @@ here.
 @subheading @code{test-case} Methods
 
 @itemize
-@item @refapigeneric{evaluate}
-@item @refapigeneric{finish-test}
-@item @refapigeneric{run-test}
-@item @refapigeneric{start-test}
+@item @refapigeneric{sel:evaluate}
+@item @refapigeneric{sel/cp/test-suite:finish-test}
+@item @refapigeneric{sel/cp/test-suite:run-test}
+@item @refapigeneric{sel/cp/test-suite:start-test}
 @end itemize

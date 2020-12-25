@@ -4,127 +4,54 @@
 *.lx64fsl
 
 # Documentation cruft
+*-sb-texinfo.texi
 *.1.gz
 *.aux
 *.bak
 *.bbl
 *.blg
 *.bll
+*.docx
 *.fdb_latexmk
 *.fls
 *.glg
 *.glo
 *.gls
 *.glsdefs
-*.xdy
+*.html
+*.info
+*.info-*
 *.lof
 *.log
 *.lot
 *.md.tmp
 *.nav
 *.out
-*.pgf
 *.pdf
-*.docx
+*.pgf
 *.snm
-*.toc
-*.tmp
-*.vrb
 *.svg
+*.tmp
+*.toc
+*.vrb
+*.xdy
 
 # Generated documentation
 doc/software-evolution-library/
 doc/include/
-doc/sel-command-line-rest-api.texi
-doc/sel-cp-clang-tokens-api.texi
-doc/sel-cp-file-api.texi
-doc/sel-cp-fix-compilation-api.texi
-doc/sel-cp-fodder-database-api.texi
-doc/sel-cp-formatting-api.texi
-doc/sel-cp-in-memory-fodder-database-api.texi
-doc/sel-cp-json-fodder-database-api.texi
-doc/sel-cp-lexicase-api.texi
-doc/sel-cp-multi-objective-api.texi
-doc/sel-cp-pliny-fodder-database-api.texi
-doc/sel-cp-searchable-api.texi
-doc/sel-cp-serapi-io-api.texi
-doc/sel-cp-test-suite-api.texi
-doc/sel-rest-api.texi
-doc/sel-rest-async-jobs-api.texi
-doc/sel-rest-define-command-endpoint-api.texi
-doc/sel-rest-sessions-api.texi
-doc/sel-rest-std-api-api.texi
-doc/sel-rest-utility-api.texi
-doc/sel-sw-adaptive-mutation-api.texi
-doc/sel-sw-ancestral-api.texi
-doc/sel-sw-asm-api.texi
-doc/sel-sw-asm-heap-api.texi
-doc/sel-sw-asm-super-mutant-api.texi
-doc/sel-sw-ast-api.texi
-doc/sel-sw-cil-api.texi
-doc/sel-sw-clang-api.texi
-doc/sel-sw-clang-expression-api.texi
-doc/sel-sw-clang-project-api.texi
-doc/sel-sw-clang-w-fodder-api.texi
-doc/sel-sw-coq-api.texi
-doc/sel-sw-coq-project-api.texi
-doc/sel-sw-compilable-api.texi
-doc/sel-sw-diff-api.texi
-doc/sel-sw-elf-api.texi
-doc/sel-sw-elf-cisc-api.texi
-doc/sel-sw-elf-risc-api.texi
-doc/sel-sw-expression-api.texi
-doc/sel-sw-forth-api.texi
-doc/sel-sw-java-api.texi
-doc/sel-sw-java-project-api.texi
-doc/sel-sw-javascript-api.texi
-doc/sel-sw-javascript-project-api.texi
-doc/sel-sw-lisp-api.texi
-doc/sel-sw-llvm-api.texi
-doc/sel-sw-non-homologous-parseable-api.texi
-doc/sel-sw-parseable-api.texi
-doc/sel-sw-parseable-project-api.texi
-doc/sel-sw-project-api.texi
-doc/sel-sw-python-api.texi
-doc/sel-sw-python-project-api.texi
-doc/sel-sw-sexp-api.texi
-doc/sel-sw-simple-api.texi
-doc/sel-sw-source-api.texi
-doc/sel-sw-styleable-api.texi
-doc/sel-sw-super-mutant-api.texi
-doc/sel-sw-super-mutant-clang-api.texi
-doc/sel-sw-super-mutant-project-api.texi
-doc/sel-sw-with-exe-api.texi
-doc/sel-test-api.texi
-doc/sel-utility-api.texi
-doc/sel-view-api.texi
-doc/software-evolution-library-api.texi
-doc/sel-utility-debug-api.texi
-doc/sel-utility-git-api.texi
-doc/sel-utility-json-api.texi
-doc/sel-utility-process-api.texi
-doc/sel-utility-range-api.texi
-doc/sel-utility-task-api.texi
-doc/sel-utility-terminal-api.texi
 
 # Backup files
 *~
 *.swp
 
-# Binaries
-soft-ev
-lisp-runner
-
 # Core dumps, store files, experimental cruft
 scratch.lisp
 seed
 se-test
-tests.md
-tests.html
 
+# User-specific Makefile customization
 local.mk
 
+# Package system working files
 .qlfile
 system-index.txt
-
-wiki/

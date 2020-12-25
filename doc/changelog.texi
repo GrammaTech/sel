@@ -40,6 +40,17 @@ and version number.  Working notes may be accumulated in a special
 
 @itemize
 @item
+A new software object implementation for parseable source code has
+been added based on GitHub's tree sitter incremental parsing
+framework.  This replaced the previous JavaScript and Python software
+objects (based on acorn and the built-in Python language parser
+respectively), and adds new non-clang C/C++ software objects.
+
+@item
+The @code{source} software object has been renamed to @code{IR} to
+more accurately reflect the types of software it is used to represent.
+
+@item
 Projects no longer build in temporary directories by default.  Instead
 calls to @code{phenome} will now cause projects to re-build in their
 original directory (i.e., @code{project-dir}).  There are two ways to
