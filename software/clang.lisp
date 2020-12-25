@@ -16,6 +16,7 @@
         :software-evolution-library/components/formatting
         :software-evolution-library/components/searchable
         :software-evolution-library/components/fodder-database)
+  (:import-from :uiop/launch-program :escape-shell-token)
   (:import-from :anaphora :awhen :it)
   (:import-from :babel :string-size-in-octets)
   (:import-from :arrow-macros :some->>) ; FIXME: Remove.
@@ -4721,9 +4722,10 @@ valid hash.
                           -fcxx-exceptions ~
                           ~{~a~^ ~} ~a ~a")
           (filter "| sed -e \"s/  *//\" ; exit ${PIPESTATUS[0]}")
-          (flags (append (clang-frontend-flags (flags obj))
-                         (mappend {list "-isystem"}
-                                  *clang-default-includes*))))
+          (flags (nest (append (clang-frontend-flags (flags obj)))
+                       (mappend {list "-isystem"})
+                       (mapcar #'escape-shell-token)
+                       *clang-default-includes*)))
       (multiple-value-bind (stdout stderr exit)
           (let ((*trace-output* *standard-output*))
             (if (boundp '*clang-json-file*)
