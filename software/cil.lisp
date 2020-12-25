@@ -4,14 +4,14 @@
   (:use :gt/full
         :software-evolution-library
         :software-evolution-library/components/file
-        :software-evolution-library/software/source)
+        :software-evolution-library/software/ir)
   (:export :cil))
 (in-package :software-evolution-library/software/cil)
 (in-readtable :curry-compose-reader-macros)
 
 
 ;;; cil software objects
-(define-software cil (source) ()
+(define-software cil (ir) ()
   (:documentation "C abstract syntax trees using C Intermediate Language (CIL).
 See http://kerneis.github.io/cil/."))
 

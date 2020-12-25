@@ -1,45 +1,45 @@
-;;; source.lisp --- source software representation
-(defpackage :software-evolution-library/software/source
-  (:nicknames :sel/software/source :sel/sw/source)
+;;; ir.lisp --- ir software representation
+(defpackage :software-evolution-library/software/ir
+  (:nicknames :sel/software/ir :sel/sw/ir)
   (:use :gt/full
         :software-evolution-library
         :software-evolution-library/components/file)
-  (:export :source
+  (:export :ir
            :raw-size))
-(in-package :software-evolution-library/software/source)
+(in-package :software-evolution-library/software/ir)
 (in-readtable :curry-compose-reader-macros)
 
 
-;;; source software objects
-(define-software source (software file)
+;;; IR software objects
+(define-software ir (software file)
   ((genome   :initarg :genome   :accessor genome   :initform ""
              :copier :direct)
    (raw-size :initarg :size     :accessor raw-size :initform nil
              :copier :none))
-  (:documentation "Raw source code software representation."))
+  (:documentation "Raw IR code software representation."))
 
 ;;; NOTE: the following code assumes genome is a string
 ;;;  In the Clang json from end, offsets are in bytes, not
 ;;;  characters, so the offset computation code needs to be
 ;;;  made aware of how many bytes are in each character.
-;;;  This may depend on the external coding of the source file.
+;;;  This may depend on the external coding of the IR file.
 
-(defmethod genome-string ((obj source) &optional stream)
-  "Return the source code of OBJ, optionally writing to STREAM"
+(defmethod genome-string ((obj ir) &optional stream)
+  "Return the IR code of OBJ, optionally writing to STREAM"
   (let ((genome (or (genome obj) "")))
     (if stream (write-string genome stream) genome)))
 
-(defmethod from-file ((obj source) path)
+(defmethod from-file ((obj ir) path)
   "Initialize OBJ with the contents of PATH."
   (setf (genome obj) (file-to-string path))
   obj)
 
-(defmethod from-string ((obj source) string)
+(defmethod from-string ((obj ir) string)
   "Initialize OBJ with the contents of STRING."
   (setf (genome obj) string)
   obj)
 
-(defmethod size ((obj source))
+(defmethod size ((obj ir))
   "Return the size of OBJ"
   (or (raw-size obj)
       (setf (raw-size obj)
@@ -49,7 +49,7 @@
                     (parse-number (apply-mutation obj (list :ids)))))
                 0))))
 
-(defmethod mutate ((obj source))
+(defmethod mutate ((obj ir))
   "Apply a mutation to OBJ"
   (unless (> (size obj) 0)
     (error (make-condition 'mutate :text "No valid IDs" :obj obj)))
@@ -62,7 +62,7 @@
     (apply-mutation obj op)
     (values obj op)))
 
-(defmethod crossover ((a source) (b source))
+(defmethod crossover ((a ir) (b ir))
   "Crossover two software objects, A and B."
   (let ((a-point (random-elt (line-breaks (genome a))))
         (b-point (random-elt (line-breaks (genome b))))
@@ -73,22 +73,22 @@
                       (subseq (genome b) b-point))))
     (values new (list a-point b-point))))
 
-(defmethod lines ((obj source))
-  "Return a list of lines of source in OBJ"
+(defmethod lines ((obj ir))
+  "Return a list of lines of IR in OBJ"
   (split-sequence #\Newline (genome obj)))
 
-(defgeneric line-breaks (source)
-  (:documentation "Return a list with the index of line breaks in SOURCE.")
-  (:method ((source string))
-    (cons 0 (loop :for char :in (coerce source 'list) :as index
+(defgeneric line-breaks (ir)
+  (:documentation "Return a list with the index of line breaks in IR.")
+  (:method ((ir string))
+    (cons 0 (loop :for char :in (coerce ir 'list) :as index
                :from 0
                :when (equal char #\Newline) :collect index)))
-  (:method ((obj source))
+  (:method ((obj ir))
     (line-breaks (genome obj))))
 
-(defmethod (setf lines) (new (obj source))
-  "Set the lines of source in OBJ
-* NEW list of source code lines
+(defmethod (setf lines) (new (obj ir))
+  "Set the lines of IR in OBJ
+* NEW list of IR code lines
 * OBJ software object to modify
 "
   (setf (genome obj) (format nil "~{~a~^~%~}" new)))

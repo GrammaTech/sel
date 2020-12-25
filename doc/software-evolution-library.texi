@@ -309,13 +309,13 @@ are given in remainder of this section.
  period                  +------------------+         crossover
  period-func                       |
  filter                            |
-               +-------------------+-----------------------------------------+
-               |                   |                                         |
+              +--------------------+-----------------------------------------+
+              |                    |                                         |
      +-----------------+      +--------------+                      +------------------+
-     |     Source      |      |    simple    |                      |    parseable     |
+     |       IR        |      |    simple    |                      |    parseable     |
      +-----------------+      |--------------|                      +------------------+
-     | Textual source  |      | Basic Vector |                      |    Parsed AST    |
-     |  representation |      |   Genome     |-----+                |  representation  |
+     |  intermediate   |      | Basic Vector |                      |    Parsed AST    |
+     | representation  |      |   Genome     |-----+                |  representation  |
      +-----------------+      +--------------+     |                +------------------+
                      |        |           |        |                                |
  +----------+        |        |           | +--------------+   +--------------+     |

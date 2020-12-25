@@ -13,14 +13,14 @@
         :software-evolution-library
         :software-evolution-library/components/file
         :software-evolution-library/software/compilable
-        :software-evolution-library/software/source)
+        :software-evolution-library/software/ir)
   (:export :llvm))
 (in-package :software-evolution-library/software/llvm)
 (in-readtable :curry-compose-reader-macros)
 
 
 ;;; llvm software objects
-(define-software llvm (source compilable)
+(define-software llvm (ir compilable)
   ((linker   :initarg :linker   :accessor linker   :initform "gcc"))
   (:documentation
    "Low Level Virtual Machine (LLVM) intermediate representation (IR).
