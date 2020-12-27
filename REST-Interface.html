@@ -21,7 +21,7 @@ A copy of the license is included in the section entitled
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
 <link href="index.html" rel="start" title="Top">
-<link href="Index.html" rel="index" title="Index">
+<link href="Combined-Index.html" rel="index" title="Combined Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
 <link href="REST-API.html" rel="up" title="REST API">
 <link href="REST-Sessions.html" rel="next" title="REST Sessions">
@@ -51,7 +51,7 @@ ul.no-bullet {list-style: none}
 <body lang="en">
 <span id="REST-Interface"></span><div class="header">
 <p>
-Next: <a href="REST-Sessions.html" accesskey="n" rel="next">REST Sessions</a>, Previous: <a href="REST-Server.html" accesskey="p" rel="prev">REST Server</a>, Up: <a href="REST-API.html" accesskey="u" rel="up">REST API</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
+Next: <a href="REST-Sessions.html" accesskey="n" rel="next">REST Sessions</a>, Previous: <a href="REST-Server.html" accesskey="p" rel="prev">REST Server</a>, Up: <a href="REST-API.html" accesskey="u" rel="up">REST API</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
 
@@ -111,22 +111,6 @@ name these lists of software objects.
 <dd><p>Lists of Test Cases, which each include references to an
     executable file and some command-line argumants. These are
     used to evaluate Software objects.
-</p>
-
-</dd>
-<dt><em>Traces</em></dt>
-<dd><p>Models and manages the data collected from running test suites against
-    instrumented Software objects.
-</p>
-
-</dd>
-<dt><em>Instrumented Software</em></dt>
-<dd><p>Software objects which have been instrumented.
-</p>
-
-</dd>
-<dt><em>Traced Software</em></dt>
-<dd><p>Instrumented Software objects which have also been traced.
 </p>
 </dd>
 </dl>
@@ -273,38 +257,6 @@ See the client sessions file for endpoint usage to acquire one.
 </dd>
 </dl>
 
-<p>Instrumented:
-</p>
-
-<dl compact="compact">
-<dt><em><code>post</code></em></dt>
-<dd><p><code>&lt;service-base&gt;/instrumented?cid=&lt;cid&gt;&amp;sid=&lt;software-oid&gt;</code>
-    Creates an Instrumented Software object instance,
-    owned by the client
-</p>
-</dd>
-<dt><em><code>get</code></em></dt>
-<dd><p><code>&lt;service-base&gt;/instrumented?cid=&lt;cid&gt;&amp;sid=&lt;software-oid&gt;</code>
-    If sid is unspecified, retrieves the instrumented software
-    objects owned by the client. If sid is supplied,
-    returns the details of the specified instrumented software object.
-</p>
-</dd>
-</dl>
-
-<p>Traced Software:
-</p>
-
-<dl compact="compact">
-<dt><em><code>post</code></em></dt>
-<dd><p><code>&lt;service-base&gt;/tracesoft?cid=&lt;cid&gt;&amp;sid=&lt;software-oid&gt;&amp;tests-oid=&lt;tests oid&gt;</code>
-    Traces the specified software object, using the specified tests.
-    Returns the oid specified (does not create a new, distinct software
-    object).
-</p>
-</dd>
-</dl>
-
 <p>Write Software:
 </p>
 
@@ -346,7 +298,7 @@ See the client sessions file for endpoint usage to acquire one.
 <hr>
 <div class="header">
 <p>
-Next: <a href="REST-Sessions.html" accesskey="n" rel="next">REST Sessions</a>, Previous: <a href="REST-Server.html" accesskey="p" rel="prev">REST Server</a>, Up: <a href="REST-API.html" accesskey="u" rel="up">REST API</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
+Next: <a href="REST-Sessions.html" accesskey="n" rel="next">REST Sessions</a>, Previous: <a href="REST-Server.html" accesskey="p" rel="prev">REST Server</a>, Up: <a href="REST-API.html" accesskey="u" rel="up">REST API</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 
 

@@ -1,0 +1,362 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- This file documents the Software Evolution library
+
+Copyright (C) 2014-2018 Eric Schulte and GrammaTech
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
+A copy of the license is included in the section entitled
+"GNU Free Documentation License." -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/SERAPI-IO (Software Evolution Library)</title>
+
+<meta name="description" content="SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/SERAPI-IO (Software Evolution Library)">
+<meta name="keywords" content="SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/SERAPI-IO (Software Evolution Library)">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<link href="index.html" rel="start" title="Top">
+<link href="Combined-Index.html" rel="index" title="Combined Index">
+<link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
+<link href="Software-Evolution-Library-Index.html" rel="up" title="Software Evolution Library Index">
+<link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fTEST_002dSUITE.html" rel="next" title="SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/TEST-SUITE">
+<link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fSEARCHABLE.html" rel="prev" title="SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/SEARCHABLE">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fSERAPI_002dIO"></span><div class="header">
+<p>
+Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fTEST_002dSUITE.html" accesskey="n" rel="next">SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/TEST-SUITE</a>, Previous: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fSEARCHABLE.html" accesskey="p" rel="prev">SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/SEARCHABLE</a>, Up: <a href="Software-Evolution-Library-Index.html" accesskey="u" rel="up">Software Evolution Library Index</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fSERAPI_002dIO-1"></span><h3 class="section">A.15 SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/SERAPI-IO</h3>
+<span id="Condition-sel_002fcp_002fserapi_002dio_003aserapi_002derror"></span><dl>
+<dt id="index-serapi_002derror-_005bsel_002fcp_002fserapi_002dio_005d">Condition: <strong>serapi-error [sel/cp/serapi-io]</strong></dt>
+<dd><p>Class precedence list: <code>serapi-error, error, serious-condition, condition, slot-object, t</code>
+</p>
+<p>Condition raised if errors are detected in the SerAPI process.
+</p></dd></dl>
+<span id="Condition-sel_002fcp_002fserapi_002dio_003aserapi_002dtimeout_002derror"></span><dl>
+<dt id="index-serapi_002dtimeout_002derror-_005bsel_002fcp_002fserapi_002dio_005d">Condition: <strong>serapi-timeout-error [sel/cp/serapi-io]</strong></dt>
+<dd><p>Class precedence list: <code>serapi-timeout-error, error, serious-condition, condition, slot-object, t</code>
+</p>
+<p>Condition raised if timeout is exceeded.
+</p></dd></dl>
+<span id="Variable-sel_002fcp_002fserapi_002dio_003a_002aserapi_002dprocess_002a"></span><dl>
+<dt id="index-_002aserapi_002dprocess_002a-_005bsel_002fcp_002fserapi_002dio_005d">Variable: <strong>*serapi-process* [sel/cp/serapi-io]</strong></dt>
+<dd><p>Main SerAPI process. Ensure new threads each have their own copy or else.
+</p></dd></dl>
+<span id="Variable-sel_002fcp_002fserapi_002dio_003a_002aserapi_002dtimeout_002a"></span><dl>
+<dt id="index-_002aserapi_002dtimeout_002a-_005bsel_002fcp_002fserapi_002dio_005d">Variable: <strong>*serapi-timeout* [sel/cp/serapi-io]</strong></dt>
+<dd><p>Maximum amount of time to wait before determining that no data can be read.
+</p></dd></dl>
+<span id="Variable-sel_002fcp_002fserapi_002dio_003a_002asertop_002dargs_002a"></span><dl>
+<dt id="index-_002asertop_002dargs_002a-_005bsel_002fcp_002fserapi_002dio_005d">Variable: <strong>*sertop-args* [sel/cp/serapi-io]</strong></dt>
+<dd><p>Arguments to sertop program.
+</p></dd></dl>
+<span id="Variable-sel_002fcp_002fserapi_002dio_003a_002asertop_002dpath_002a"></span><dl>
+<dt id="index-_002asertop_002dpath_002a-_005bsel_002fcp_002fserapi_002dio_005d">Variable: <strong>*sertop-path* [sel/cp/serapi-io]</strong></dt>
+<dd><p>Path to sertop program.
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fserapi_002dio_003aadd_002dcoq_002dlib"></span><dl>
+<dt id="index-add_002dcoq_002dlib-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>add-coq-lib [sel/cp/serapi-io]</strong> <em>path &amp;key lib-name has-ml qtag</em></dt>
+<dd><p>Add directory <code>path</code> to the Coq and, optionally, <code>ml</code> load paths in SerAPI.
+Return the SerAPI response.
+* <code>lib-name</code> an optional prefix to use when importing from the directory. <code>e</code>.g.,
+for <code>lib-name</code> Foo, file PATH/Bar.vo could be imported with
+&quot;Require Import Foo.Bar.&quot;).
+* <code>has-ml</code> the string &quot;true&quot; or &quot;false&quot;, indicating whether <code>path</code> should or
+should not be added to the <code>ml</code> load path in addition to the Coq load path. For
+convenience, the default is &quot;true&quot;.
+* <code>qtag</code> optionally, a tag to use for the SerAPI command.
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fserapi_002dio_003aadd_002dcoq_002dstring"></span><dl>
+<dt id="index-add_002dcoq_002dstring-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>add-coq-string [sel/cp/serapi-io]</strong> <em>coq-string &amp;key qtag</em></dt>
+<dd><p>Submit <code>coq-string</code> as a new statement to add to the Coq document.
+Return a list of the AST-IDs created as a result. Optionally, provide a <code>qtag</code> for
+the submission.
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fserapi_002dio_003acancel_002dcoq_002dasts"></span><dl>
+<dt id="index-cancel_002dcoq_002dasts-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>cancel-coq-asts [sel/cp/serapi-io]</strong> <em>ast-ids &amp;key qtag</em></dt>
+<dd><p>Cancel the ASTs identified by <code>ast-ids</code> and return the response.
+Optionally, use <code>qtag</code> to tag the query. Canceling means that the ASTs will no
+longer be defined and other definitions added in the interim will also be
+removed.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fcp_002fserapi_002dio_003acheck_002dcoq_002dtype"></span><dl>
+<dt id="index-check_002dcoq_002dtype-_005bsel_002fcp_002fserapi_002dio_005d">Generic Function: <strong>check-coq-type [sel/cp/serapi-io]</strong> <em>coq-expr &amp;key qtag</em></dt>
+<dd><p>Look up and return the type of a Coq expression <code>coq-expr</code>.
+Optionally use <code>qtag</code> to tag the query.
+</p></dd></dl>
+<span id="Method-sel_002fcp_002fserapi_002dio_003acheck_002dcoq_002dtype-_0028coq_002dexpr-_0026key-_0028qtag-_0028gensym-q_0029_0029_0029"></span><dl>
+<dt id="index-check_002dcoq_002dtype-_005bsel_002fcp_002fserapi_002dio_005d-1">Method: <strong>check-coq-type [sel/cp/serapi-io]</strong> <em>coq-expr &amp;key (qtag (gensym q))</em></dt>
+<dd><p>Look up and return the type of a <code>coq-expr</code> using Coq&rsquo;s &lsquo;Check&rsquo;.
+<code>coq-expr</code> will be coerced to a string via the &lsquo;format&rsquo; ~a directive.
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fserapi_002dio_003acoq_002dassumption_002dast_002dp"></span><dl>
+<dt id="index-coq_002dassumption_002dast_002dp-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>coq-assumption-ast-p [sel/cp/serapi-io]</strong> <em>sexpr</em></dt>
+<dd><p>Return name of Parameter, Variable, etc. if <code>sexpr</code> is tagged VernacAssumption.
+Otherwise return <code>nil</code>.
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fserapi_002dio_003acoq_002ddefinition_002dast_002dp"></span><dl>
+<dt id="index-coq_002ddefinition_002dast_002dp-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>coq-definition-ast-p [sel/cp/serapi-io]</strong> <em>sexpr</em></dt>
+<dd><p>Return definition name if <code>sexpr</code> is tagged as a definition, <code>nil</code> otherwise.
+Definition tags include VernacDefinition, VernacInductive, VernacFixpoint,
+VernacCoFixpoint.
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fserapi_002dio_003acoq_002dfunction_002ddefinition_002dp"></span><dl>
+<dt id="index-coq_002dfunction_002ddefinition_002dp-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>coq-function-definition-p [sel/cp/serapi-io]</strong> <em>sexpr &amp;optional function-name</em></dt>
+<dd><p>Return <code>t</code> if <code>sexpr</code> is a Coq VernacDefinition expression.
+If <code>function-name</code> is specified, only return <code>t</code> if <code>sexpr</code> defines a function
+named <code>function-name</code>.
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fserapi_002dio_003acoq_002dimport_002dast_002dp"></span><dl>
+<dt id="index-coq_002dimport_002dast_002dp-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>coq-import-ast-p [sel/cp/serapi-io]</strong> <em>sexpr</em></dt>
+<dd><p>Return <code>t</code> if <code>sexpr</code> is tagged as VernacImport or VernacRequire, <code>nil</code> otherwise.
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fserapi_002dio_003acoq_002dmessage_002dcontents"></span><dl>
+<dt id="index-coq_002dmessage_002dcontents-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>coq-message-contents [sel/cp/serapi-io]</strong> <em>response</em></dt>
+<dd><p>For a SerAPI response, return the contents of any &lsquo;Message&rsquo; structures.
+This is useful for fetching results of Coq vernacular queries.
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fserapi_002dio_003acoq_002dmessage_002dlevels"></span><dl>
+<dt id="index-coq_002dmessage_002dlevels-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>coq-message-levels [sel/cp/serapi-io]</strong> <em>response</em></dt>
+<dd><p>For a SerAPI response, return the level of the first &lsquo;Message&rsquo; structure.
+This is useful for verifying success of a Coq vernacular query.
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fserapi_002dio_003acoq_002dmodule_002dast_002dp"></span><dl>
+<dt id="index-coq_002dmodule_002dast_002dp-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>coq-module-ast-p [sel/cp/serapi-io]</strong> <em>sexpr</em></dt>
+<dd><p>Return module name if <code>sexpr</code> is tagged as defining a module, <code>nil</code> otherwise.
+Module tags include VernacDefineModule, VernacDeclareModule,
+VernacDeclareModuleType.
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fserapi_002dio_003acoq_002dsection_002dast_002dp"></span><dl>
+<dt id="index-coq_002dsection_002dast_002dp-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>coq-section-ast-p [sel/cp/serapi-io]</strong> <em>sexpr</em></dt>
+<dd><p>Return section name if <code>sexpr</code> is tagged as VernacBeginSection, <code>nil</code> otherwise.
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fserapi_002dio_003ainsert_002dreset_002dpoint"></span><dl>
+<dt id="index-insert_002dreset_002dpoint-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>insert-reset-point [sel/cp/serapi-io]</strong></dt>
+<dd><p>Insert a reset point so &lsquo;*serapi-process*&rsquo; may be reset to its current state.
+Add Coq &lsquo;*dummy-stmt*&rsquo; to &lsquo;*serapi-process*&rsquo; and update &lsquo;reset-points&rsquo; with the
+AST <code>id</code>. See also &lsquo;reset-serapi-process&rsquo;.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fcp_002fserapi_002dio_003ais_002derror"></span><dl>
+<dt id="index-is_002derror-_005bsel_002fcp_002fserapi_002dio_005d">Generic Function: <strong>is-error [sel/cp/serapi-io]</strong> <em>output</em></dt>
+<dd><p>Check if <code>output</code> is an error response from SerAPI.
+</p></dd></dl>
+<span id="Method-sel_002fcp_002fserapi_002dio_003ais_002derror-_0028_0028sexpr-list_0029_0029"></span><dl>
+<dt id="index-is_002derror-_005bsel_002fcp_002fserapi_002dio_005d-1">Method: <strong>is-error [sel/cp/serapi-io]</strong> <em>(sexpr list)</em></dt>
+<dd><p>Return <code>t</code> if <code>sexpr</code> is an error message from either an improperly formed SerAPI
+command or an invalid Coq command, <code>nil</code> otherwise.
+</p></dd></dl>
+<span id="Method-sel_002fcp_002fserapi_002dio_003ais_002derror-_0028_0028str-string_0029_0029"></span><dl>
+<dt id="index-is_002derror-_005bsel_002fcp_002fserapi_002dio_005d-2">Method: <strong>is-error [sel/cp/serapi-io]</strong> <em>(str string)</em></dt>
+<dd><p>Check if <code>str</code> is an error message.
+Errors may result from either an improperly formed SerAPI command or an invalid
+Coq command.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fcp_002fserapi_002dio_003ais_002dterminating"></span><dl>
+<dt id="index-is_002dterminating-_005bsel_002fcp_002fserapi_002dio_005d">Generic Function: <strong>is-terminating [sel/cp/serapi-io]</strong> <em>output</em></dt>
+<dd><p>Check if <code>output</code> is indicates the end of a SerAPI response.
+</p></dd></dl>
+<span id="Method-sel_002fcp_002fserapi_002dio_003ais_002dterminating-_0028_0028sexpr-list_0029_0029"></span><dl>
+<dt id="index-is_002dterminating-_005bsel_002fcp_002fserapi_002dio_005d-1">Method: <strong>is-terminating [sel/cp/serapi-io]</strong> <em>(sexpr list)</em></dt>
+<dd><p>Return <code>t</code> if <code>sexpr</code> is the final message in a SerAPI response, <code>nil</code> otherwise.
+For successful responses, the list will be tagged as &quot;Completed&quot;, and
+for failed responses it will be tagged as an error.
+</p></dd></dl>
+<span id="Method-sel_002fcp_002fserapi_002dio_003ais_002dterminating-_0028_0028str-string_0029_0029"></span><dl>
+<dt id="index-is_002dterminating-_005bsel_002fcp_002fserapi_002dio_005d-2">Method: <strong>is-terminating [sel/cp/serapi-io]</strong> <em>(str string)</em></dt>
+<dd><p>Check if <code>str</code> is the final message in a SerAPI response.
+For successful responses, the string will contain the word &quot;Completed&quot;, and
+for failed responses it will be an error string.
+</p></dd></dl>
+<span id="Macro-sel_002fcp_002fserapi_002dio_003awith_002dserapi"></span><dl>
+<dt id="index-with_002dserapi-_005bsel_002fcp_002fserapi_002dio_005d">Macro: <strong>with-serapi [sel/cp/serapi-io]</strong> <em>(&amp;optional process) &amp;body body</em></dt>
+<dd><p>Macro to create a serapi process bound to <code>serapi</code>.
+Uses default path and arguments for sertop (&lsquo;*sertop-path*&rsquo; and
+&lsquo;*sertop-args*&rsquo;).
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fserapi_002dio_003ais_002dloc_002dinfo"></span><dl>
+<dt id="index-is_002dloc_002dinfo-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>is-loc-info [sel/cp/serapi-io]</strong> <em>sexpr</em></dt>
+<dd><p>Return <code>t</code> if <code>sexpr</code> is a list of Coq location info, <code>nil</code> otherwise.
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fserapi_002dio_003aload_002dcoq_002dfile"></span><dl>
+<dt id="index-load_002dcoq_002dfile-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>load-coq-file [sel/cp/serapi-io]</strong> <em>file-name &amp;key qtag</em></dt>
+<dd><p>Load Coq file <code>file-name</code>. Optionally, use <code>qtag</code> to tag the query.
+Return a list of IDs for the ASTs that were added.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fcp_002fserapi_002dio_003alookup_002dcoq_002dast"></span><dl>
+<dt id="index-lookup_002dcoq_002dast-_005bsel_002fcp_002fserapi_002dio_005d">Generic Function: <strong>lookup-coq-ast [sel/cp/serapi-io]</strong> <em>ast-id &amp;key qtag</em></dt>
+<dd><p>Look up and return the AST identified by <code>ast-id</code>.
+Optionally, use <code>qtag</code> to tag the query.
+</p></dd></dl>
+<span id="Method-sel_002fcp_002fserapi_002dio_003alookup_002dcoq_002dast-_0028_0028ast_002did-integer_0029-_0026key-_0028qtag-_0028gensym-q_0029_0029_0029"></span><dl>
+<dt id="index-lookup_002dcoq_002dast-_005bsel_002fcp_002fserapi_002dio_005d-1">Method: <strong>lookup-coq-ast [sel/cp/serapi-io]</strong> <em>(ast-id integer) &amp;key (qtag (gensym q))</em></dt>
+<dd><p>Look up and return the AST whose <code>id</code> is the integer <code>ast-id</code>.
+Optionally, use <code>qtag</code> to tag the query.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fcp_002fserapi_002dio_003alookup_002dcoq_002dpp"></span><dl>
+<dt id="index-lookup_002dcoq_002dpp-_005bsel_002fcp_002fserapi_002dio_005d">Generic Function: <strong>lookup-coq-pp [sel/cp/serapi-io]</strong> <em>ast-name &amp;key qtag</em></dt>
+<dd><p>Look up and return a Coq representation of <code>ast-name</code>.
+Optionally, tag the lookup query with <code>qtag</code>.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fcp_002fserapi_002dio_003alookup_002dcoq_002dstring"></span><dl>
+<dt id="index-lookup_002dcoq_002dstring-_005bsel_002fcp_002fserapi_002dio_005d">Generic Function: <strong>lookup-coq-string [sel/cp/serapi-io]</strong> <em>id &amp;key qtag input-format</em></dt>
+<dd><p>Look up the Coq string for <code>id</code>.
+If needed specify the <code>input-format</code> of the <code>id</code>. Optionally,  provide a <code>qtag</code> for
+the lookup query.
+</p>
+<p>The <code>id</code> may be either an integer AST <code>id</code> or one of the list representations,
+CoqPp, CoqAst, etc.
+</p></dd></dl>
+<span id="Method-sel_002fcp_002fserapi_002dio_003alookup_002dcoq_002dstring-_0028_0028raw_002dstring-string_0029-_0026key-qtag-input_002dformat_0029"></span><dl>
+<dt id="index-lookup_002dcoq_002dstring-_005bsel_002fcp_002fserapi_002dio_005d-1">Method: <strong>lookup-coq-string [sel/cp/serapi-io]</strong> <em>(raw-string string) &amp;key qtag input-format</em></dt>
+<dd><p><code>raw-string</code> is already a Coq string. Return it without doing a lookup.
+</p></dd></dl>
+<span id="Method-sel_002fcp_002fserapi_002dio_003alookup_002dcoq_002dstring-_0028_0028ast_002did-integer_0029-_0026key-_0028qtag-_0028gensym-q_0029_0029--input_002dformat_0029"></span><dl>
+<dt id="index-lookup_002dcoq_002dstring-_005bsel_002fcp_002fserapi_002dio_005d-2">Method: <strong>lookup-coq-string [sel/cp/serapi-io]</strong> <em>(ast-id integer) &amp;key (qtag (gensym q)) input-format</em></dt>
+<dd><p>Look up the Coq string for <code>id</code> in <code>process</code>.
+Optionally, provide a <code>qtag</code> for the lookup query. <code>input-format</code> is ignored.
+</p></dd></dl>
+<span id="Method-sel_002fcp_002fserapi_002dio_003alookup_002dcoq_002dstring-_0028_0028pp_002dstring-list_0029-_0026key-_0028qtag-_0028gensym-p_0029_0029--_0028input_002dformat-_0027coqast_0029_0029"></span><dl>
+<dt id="index-lookup_002dcoq_002dstring-_005bsel_002fcp_002fserapi_002dio_005d-3">Method: <strong>lookup-coq-string [sel/cp/serapi-io]</strong> <em>(pp-string list) &amp;key (qtag (gensym p)) (input-format (quote coqast))</em></dt>
+<dd><p>Look up the Coq string for <code>pp-string</code>.
+If <code>pp-string</code> is not a CoqAst expression, specify the <code>input-format</code>. See the
+coq_object type in the SerAPI file serapi/serapi_protocol.mli for a complete
+list. Optionally, provide a <code>qtag</code> for the lookup query.
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fserapi_002dio_003amake_002dcoq_002dapplication"></span><dl>
+<dt id="index-make_002dcoq_002dapplication-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>make-coq-application [sel/cp/serapi-io]</strong> <em>fun &amp;rest params</em></dt>
+<dd><p>Wrap Coq function <code>fun</code> and parameters <code>params</code> in a CApp tag.
+Assumes that <code>fun</code> and all <code>params</code> are appropriately wrapped (e.g., with
+&lsquo;make-coq-var-reference&rsquo; or similar).
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fserapi_002dio_003amake_002dcoq_002dcase_002dpattern"></span><dl>
+<dt id="index-make_002dcoq_002dcase_002dpattern-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>make-coq-case-pattern [sel/cp/serapi-io]</strong> <em>pattern-type &amp;rest pattern-args</em></dt>
+<dd><p>Create cases for a Coq match statement.
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fserapi_002dio_003amake_002dcoq_002ddefinition"></span><dl>
+<dt id="index-make_002dcoq_002ddefinition-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>make-coq-definition [sel/cp/serapi-io]</strong> <em>name params return-type body</em></dt>
+<dd><p>Create a Coq function definition.
+<code>name</code> <code>-</code> the name of the function.
+<code>params</code> <code>-</code> a list of pairs indicating the name and type of each input parameter to
+the function.
+<code>return-type</code> <code>-</code> the function&rsquo;s return type.
+<code>body</code> <code>-</code> the function body.
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fserapi_002dio_003amake_002dcoq_002dident"></span><dl>
+<dt id="index-make_002dcoq_002dident-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>make-coq-ident [sel/cp/serapi-io]</strong> <em>id</em></dt>
+<dd><p>Wrap <code>id</code> in Ident and Id tags.
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fserapi_002dio_003amake_002dcoq_002dif"></span><dl>
+<dt id="index-make_002dcoq_002dif-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>make-coq-if [sel/cp/serapi-io]</strong> <em>test then else</em></dt>
+<dd><p>Create a Coq If expression: if <code>test</code> then <code>then</code> else <code>else</code>.
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fserapi_002dio_003amake_002dcoq_002dinteger"></span><dl>
+<dt id="index-make_002dcoq_002dinteger-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>make-coq-integer [sel/cp/serapi-io]</strong> <em>x</em></dt>
+<dd><p>Wrap integer <code>x</code> in CPrim and Numeral tags.
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fserapi_002dio_003amake_002dcoq_002dlambda"></span><dl>
+<dt id="index-make_002dcoq_002dlambda-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>make-coq-lambda [sel/cp/serapi-io]</strong> <em>params body</em></dt>
+<dd><p>Create a Coq lambda expression from <code>params</code> and <code>body</code>.
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fserapi_002dio_003amake_002dcoq_002dlocal_002dbinder_002dexprs"></span><dl>
+<dt id="index-make_002dcoq_002dlocal_002dbinder_002dexprs-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>make-coq-local-binder-exprs [sel/cp/serapi-io]</strong> <em>type params &amp;optional param-types</em></dt>
+<dd><p>Create a list of local binder expressions.
+If present, <code>param-types</code> is the same length as <code>params</code> and indicates the type of
+each param. If absent, a CHole tag is used to indicate that the type is
+unspecified.
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fserapi_002dio_003amake_002dcoq_002dmatch"></span><dl>
+<dt id="index-make_002dcoq_002dmatch-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>make-coq-match [sel/cp/serapi-io]</strong> <em>style test &amp;rest branches</em></dt>
+<dd><p>Create a Coq match expression.
+<code>style</code> indicates the style of the match (e.g., <code>#</code>!&rsquo;RegularStyle).
+<code>test</code> is the expression being matched against.
+<code>branches</code> are the match cases and will generally be constructed with
+&lsquo;make-coq-case-pattern&rsquo;.
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fserapi_002dio_003amake_002dcoq_002dname"></span><dl>
+<dt id="index-make_002dcoq_002dname-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>make-coq-name [sel/cp/serapi-io]</strong> <em>id</em></dt>
+<dd><p>Wrap <code>id</code> in Name and Id tags.
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fserapi_002dio_003amake_002dcoq_002dvar_002dreference"></span><dl>
+<dt id="index-make_002dcoq_002dvar_002dreference-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>make-coq-var-reference [sel/cp/serapi-io]</strong> <em>id</em></dt>
+<dd><p>Wrap Coq variable <code>id</code> in CRef and either Ident or Qualid tags.
+Use Ident for unqualified names and Qualid for qualified names.
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fserapi_002dio_003amake_002dserapi"></span><dl>
+<dt id="index-make_002dserapi-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>make-serapi [sel/cp/serapi-io]</strong> <em>&amp;optional program args</em></dt>
+<dd><p>Start up SerAPI and return a <code>process</code> object to interact with.
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fserapi_002dio_003areset_002dserapi_002dprocess"></span><dl>
+<dt id="index-reset_002dserapi_002dprocess-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>reset-serapi-process [sel/cp/serapi-io]</strong></dt>
+<dd><p>Reset &lsquo;*serapi-process*&rsquo; to the last reset point in its &lsquo;reset-points&rsquo;.
+See also &lsquo;insert-reset-point&rsquo;.
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fserapi_002dio_003asanitize_002dprocess_002dstring"></span><dl>
+<dt id="index-sanitize_002dprocess_002dstring-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>sanitize-process-string [sel/cp/serapi-io]</strong> <em>string</em></dt>
+<dd><p>Ensure that special characters are properly escaped in <code>string</code>.
+Backslashes and quotation marks are escaped, and whitespace characters (\n,
+\t, \r, \b) are replaced with a single space.
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fserapi_002dio_003asearch_002dcoq_002dtype"></span><dl>
+<dt id="index-search_002dcoq_002dtype-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>search-coq-type [sel/cp/serapi-io]</strong> <em>coq-type &amp;key module qtag</em></dt>
+<dd><p>Return a list of tokenized types of values whose &quot;final&quot; type is <code>coq-type</code>.
+Results include functions parameterized by values of types other than <code>coq-type</code>
+as long as the final result returned by the function is of type <code>coq-type</code>.
+<code>e</code>.g., if <code>coq-type</code> is bool, functions of type nat-&gt;bool will be included.
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fserapi_002dio_003aserapi_002dprocess_002dalive_002dp"></span><dl>
+<dt id="index-serapi_002dprocess_002dalive_002dp-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>serapi-process-alive-p [sel/cp/serapi-io]</strong> <em>&amp;optional process</em></dt>
+<dd><p>Return <code>t</code> if the serapi <code>process</code> is running.
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fserapi_002dio_003aset_002dserapi_002dpaths"></span><dl>
+<dt id="index-set_002dserapi_002dpaths-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>set-serapi-paths [sel/cp/serapi-io]</strong></dt>
+<dd><p>Function to set &lsquo;*sertop-path*&rsquo; and &lsquo;*sertop-args*&rsquo; automatically.
+Uses <code>serapi</code> environment variable or &quot;which sertop.native&quot; to set
+&lsquo;*sertop-path*&rsquo;. Uses <code>coqlib</code> environment variable to add &quot;&ndash;coqlib&quot; flag
+to &lsquo;*sertop-args*&rsquo;.
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fserapi_002dio_003awrap_002dcoq_002dconstr_002dexpr"></span><dl>
+<dt id="index-wrap_002dcoq_002dconstr_002dexpr-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>wrap-coq-constr-expr [sel/cp/serapi-io]</strong> <em>expr</em></dt>
+<dd><p>Create a Coq ConstrExpr by wrapping <code>expr</code> with v and loc tags.
+Generally, this will be used by the &lsquo;make-coq-*&rsquo; functions and won&rsquo;t need to be
+invoked directly.
+</p></dd></dl>
+
+<hr>
+<div class="header">
+<p>
+Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fTEST_002dSUITE.html" accesskey="n" rel="next">SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/TEST-SUITE</a>, Previous: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fSEARCHABLE.html" accesskey="p" rel="prev">SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/SEARCHABLE</a>, Up: <a href="Software-Evolution-Library-Index.html" accesskey="u" rel="up">Software Evolution Library Index</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+
+
+
+</body>
+</html>

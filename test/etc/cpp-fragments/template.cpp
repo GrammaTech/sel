@@ -1,1 +1,0 @@
-template <bool> struct a;

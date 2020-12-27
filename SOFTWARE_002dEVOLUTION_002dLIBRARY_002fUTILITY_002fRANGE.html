@@ -1,0 +1,118 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- This file documents the Software Evolution library
+
+Copyright (C) 2014-2018 Eric Schulte and GrammaTech
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
+A copy of the license is included in the section entitled
+"GNU Free Documentation License." -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>SOFTWARE-EVOLUTION-LIBRARY/UTILITY/RANGE (Software Evolution Library)</title>
+
+<meta name="description" content="SOFTWARE-EVOLUTION-LIBRARY/UTILITY/RANGE (Software Evolution Library)">
+<meta name="keywords" content="SOFTWARE-EVOLUTION-LIBRARY/UTILITY/RANGE (Software Evolution Library)">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<link href="index.html" rel="start" title="Top">
+<link href="Combined-Index.html" rel="index" title="Combined Index">
+<link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
+<link href="Software-Evolution-Library-Index.html" rel="up" title="Software Evolution Library Index">
+<link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fUTILITY_002fTASK.html" rel="next" title="SOFTWARE-EVOLUTION-LIBRARY/UTILITY/TASK">
+<link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fUTILITY_002fJSON.html" rel="prev" title="SOFTWARE-EVOLUTION-LIBRARY/UTILITY/JSON">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fUTILITY_002fRANGE"></span><div class="header">
+<p>
+Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fUTILITY_002fTASK.html" accesskey="n" rel="next">SOFTWARE-EVOLUTION-LIBRARY/UTILITY/TASK</a>, Previous: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fUTILITY_002fJSON.html" accesskey="p" rel="prev">SOFTWARE-EVOLUTION-LIBRARY/UTILITY/JSON</a>, Up: <a href="Software-Evolution-Library-Index.html" accesskey="u" rel="up">Software Evolution Library Index</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fUTILITY_002fRANGE-1"></span><h3 class="section">A.60 SOFTWARE-EVOLUTION-LIBRARY/UTILITY/RANGE</h3>
+<span id="Generic_002dFunction-sel_002futility_002frange_003acontains"></span><dl>
+<dt id="index-contains-_005bsel_002futility_002frange_005d">Generic Function: <strong>contains [sel/utility/range]</strong> <em>range location</em></dt>
+<dd><p>Return true if <code>range</code> fully subsumes <code>location</code>.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002futility_002frange_003aintersects"></span><dl>
+<dt id="index-intersects-_005bsel_002futility_002frange_005d">Generic Function: <strong>intersects [sel/utility/range]</strong> <em>a-range b-range</em></dt>
+<dd><p>Return true if <code>a-range</code> and <code>b-range</code> intersect.
+</p></dd></dl>
+<span id="Function-sel_002futility_002frange_003aposition_002d_003esource_002dlocation"></span><dl>
+<dt id="index-position_002d_003esource_002dlocation-_005bsel_002futility_002frange_005d">Function: <strong>position-&gt;source-location [sel/utility/range]</strong> <em>string pos</em></dt>
+<dd><p>Translate <code>pos</code>, a position in <code>string</code>, into a source location object.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002futility_002frange_003arange"></span><dl>
+<dt id="index-range-_005bsel_002futility_002frange_005d">Generic Function: <strong>range [sel/utility/range]</strong> <em>map</em></dt>
+<dd><p>Returns the range of the map, that is, the set of all values to which keys
+are mapped by the map.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002futility_002frange_003asource_002d_003c"></span><dl>
+<dt id="index-source_002d_003c-_005bsel_002futility_002frange_005d">Generic Function: <strong>source-&lt; [sel/utility/range]</strong> <em>a b</em></dt>
+<dd><p>Return true if source location A comes strictly before <code>b</code>.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002futility_002frange_003asource_002d_003c_003d"></span><dl>
+<dt id="index-source_002d_003c_003d-_005bsel_002futility_002frange_005d">Generic Function: <strong>source-&lt;= [sel/utility/range]</strong> <em>a b</em></dt>
+<dd><p>Return true if source location A is equal to or comes
+before <code>b</code>.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002futility_002frange_003asource_002d_003e"></span><dl>
+<dt id="index-source_002d_003e-_005bsel_002futility_002frange_005d">Generic Function: <strong>source-&gt; [sel/utility/range]</strong> <em>a b</em></dt>
+<dd><p>Return true if source location A comes strictly after <code>b</code>.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002futility_002frange_003asource_002d_003e_003d"></span><dl>
+<dt id="index-source_002d_003e_003d-_005bsel_002futility_002frange_005d">Generic Function: <strong>source-&gt;= [sel/utility/range]</strong> <em>a b</em></dt>
+<dd><p>Return true if source location A is equal to or comes
+after <code>b</code>.
+</p></dd></dl>
+<span id="Function-sel_002futility_002frange_003asource_002dlocation_002d_003eposition"></span><dl>
+<dt id="index-source_002dlocation_002d_003eposition-_005bsel_002futility_002frange_005d">Function: <strong>source-location-&gt;position [sel/utility/range]</strong> <em>text location</em></dt>
+<dd><p>Translate <code>location</code>, a source location, into a position in <code>text</code>.
+Note the position may actually point beyond <code>text</code> if the source
+location has an extra newline, which can happen because &lsquo;source-range&lsquo;
+addresses a node that ends in a newline as (n+1,1).
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002futility_002frange_003asource_002drange_002dsubseq"></span><dl>
+<dt id="index-source_002drange_002dsubseq-_005bsel_002futility_002frange_005d">Generic Function: <strong>source-range-subseq [sel/utility/range]</strong> <em>string source-range</em></dt>
+<dd><p>Get the subsequence of <code>string</code> corresponding to <code>source-range</code>.
+</p></dd></dl>
+<span id="Method-sel_002futility_002frange_003asource_002drange_002dsubseq-_0028_0028line_002doctets-vector_0029-source_002drange-_0026aux--_0028start-_0028begin-source_002drange_0029_0029--_0028end-_0028end-source_002drange_0029_0029_0029"></span><dl>
+<dt id="index-source_002drange_002dsubseq-_005bsel_002futility_002frange_005d-1">Method: <strong>source-range-subseq [sel/utility/range]</strong> <em>(line-octets vector) source-range &amp;aux (start (begin source-range)) (end (end source-range))</em></dt>
+<dd><p>Get the subsequence of <code>line-octets</code> corresponding to <code>source-range</code>.
+</p></dd></dl>
+
+<hr>
+<div class="header">
+<p>
+Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fUTILITY_002fTASK.html" accesskey="n" rel="next">SOFTWARE-EVOLUTION-LIBRARY/UTILITY/TASK</a>, Previous: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fUTILITY_002fJSON.html" accesskey="p" rel="prev">SOFTWARE-EVOLUTION-LIBRARY/UTILITY/JSON</a>, Up: <a href="Software-Evolution-Library-Index.html" accesskey="u" rel="up">Software Evolution Library Index</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+
+
+
+</body>
+</html>

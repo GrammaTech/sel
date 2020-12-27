@@ -21,7 +21,7 @@ A copy of the license is included in the section entitled
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
 <link href="index.html" rel="start" title="Top">
-<link href="Index.html" rel="index" title="Index">
+<link href="Combined-Index.html" rel="index" title="Combined Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
 <link href="Components.html" rel="up" title="Components">
 <link href="Style-Features.html" rel="next" title="Style Features">
@@ -51,7 +51,7 @@ ul.no-bullet {list-style: none}
 <body lang="en">
 <span id="Multi_002dobjective-Fitness"></span><div class="header">
 <p>
-Next: <a href="Style-Features.html" accesskey="n" rel="next">Style Features</a>, Previous: <a href="Test-Suites.html" accesskey="p" rel="prev">Test Suites</a>, Up: <a href="Components.html" accesskey="u" rel="up">Components</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
+Next: <a href="Style-Features.html" accesskey="n" rel="next">Style Features</a>, Previous: <a href="Test-Suites.html" accesskey="p" rel="prev">Test Suites</a>, Up: <a href="Components.html" accesskey="u" rel="up">Components</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
 <span id="Multi_002dobjective-Fitness-1"></span><h3 class="section">3.2 Multi-objective Fitness</h3>
@@ -65,7 +65,7 @@ Next: <a href="Style-Features.html" accesskey="n" rel="next">Style Features</a>,
 </p>
 <span id="pareto_002dselection"></span><span id="Pareto-Selection"></span><h4 class="subsection">3.2.1 Pareto Selection</h4>
 
-<p>Function <a href="sel_002dcp_002dmulti_002dobjective.html#Function-pareto_002dselector"><code>pareto-selector</code></a> compares each candidate
+<p>Function <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fMULTI_002dOBJECTIVE.html#Function-sel_002fcp_002fmulti_002dobjective_003apareto_002dselector"><code>sel/cp/multi-objective:pareto-selector</code></a> compares each candidate
 against a random comparison set, preferring candidates which dominate
 the comparison set. This will select for individuals along the Pareto
 front of the population.
@@ -82,7 +82,7 @@ the same number of objectives) across the entire population.
 
 <span id="lexicase_002dselection"></span><span id="Lexicase-Selection"></span><h4 class="subsection">3.2.2 Lexicase Selection</h4>
 
-<p>Function <a href="sel_002dcp_002dlexicase.html#Function-lexicase_002dselect_002dbest"><code>lexicase-select-best</code></a> performs lexicase
+<p>Function <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fLEXICASE.html#Function-sel_002fcp_002flexicase_003alexicase_002dselect_002dbest"><code>sel/cp/lexicase:lexicase-select-best</code></a> performs lexicase
 selection: a form of multi-objective optimization which prioritizes
 objectives in a different order for each selection event.
 </p>
@@ -91,28 +91,24 @@ objectives in a different order for each selection event.
 
 <span id="API-Support-for-Multi_002dObjective-Fitness"></span><h4 class="subsection">3.2.3 API Support for Multi-Objective Fitness</h4>
 
-<p>API support for multi-objective fitness is documented in section
-<a href="SEL-Concept-Index.html#api_002dmulti_002dobjective">API | Multi-Objective Fitness</a>.
-</p>
-
 <ul>
-<li> Set variable <a href="software_002devolution_002dlibrary.html#Variable-_002afitness_002dpredicate_002a"><code>*fitness-predicate*</code></a> to specify how
+<li> Set variable <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002dEVOLUTION_002dLIBRARY.html#Variable-sel_003a_002afitness_002dpredicate_002a"><code>sel:*fitness-predicate*</code></a> to specify how
 fitness values should be compared. Note that this applies across all
 objectives: it is not possible to maximize some objectives while
 minimizing others.
 
-</li><li> Set variable <a href="software_002devolution_002dlibrary.html#Variable-_002atournament_002dselector_002a"><code>*tournament-selector*</code></a> to specify the
+</li><li> Set variable <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002dEVOLUTION_002dLIBRARY.html#Variable-sel_003a_002atournament_002dselector_002a"><code>sel:*tournament-selector*</code></a> to specify the
 selector function to use for multi-objective optimization. There are
 currently two such functions:
   <ul>
-<li> <a href="sel_002dcp_002dmulti_002dobjective.html#Function-pareto_002dselector"><code>pareto-selector</code></a>
-  </li><li> <a href="sel_002dcp_002dlexicase.html#Function-lexicase_002dselect_002dbest"><code>lexicase-select-best</code></a>
+<li> <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fMULTI_002dOBJECTIVE.html#Function-sel_002fcp_002fmulti_002dobjective_003apareto_002dselector"><code>sel/cp/multi-objective:pareto-selector</code></a>
+  </li><li> <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fLEXICASE.html#Function-sel_002fcp_002flexicase_003alexicase_002dselect_002dbest"><code>sel/cp/lexicase:lexicase-select-best</code></a>
   </li></ul>
 
-</li><li> Set variable <a href="software_002devolution_002dlibrary.html#Variable-_002atournament_002dtie_002dbreaker_002a"><code>*tournament-tie-breaker*</code></a> to specify how
+</li><li> Set variable <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002dEVOLUTION_002dLIBRARY.html#Variable-sel_003a_002atournament_002dtie_002dbreaker_002a"><code>sel:*tournament-tie-breaker*</code></a> to specify how
 the tournament should break ties in the case where the selector
 produces multiple winners. A useful tie-breaker for multi-objective
-optimization is <a href="sel_002dcp_002dmulti_002dobjective.html#Function-pick_002dleast_002dcrowded"><code>pick-least-crowded</code></a>, which promotes
+optimization is <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fMULTI_002dOBJECTIVE.html#Function-sel_002fcp_002fmulti_002dobjective_003apick_002dleast_002dcrowded"><code>sel/cp/multi-objective:pick-least-crowded</code></a>, which promotes
 diversity by selecting individuals that are farther from their
 neighbors in fitness space.
 
@@ -143,7 +139,7 @@ Pareto selection.
 <hr>
 <div class="header">
 <p>
-Next: <a href="Style-Features.html" accesskey="n" rel="next">Style Features</a>, Previous: <a href="Test-Suites.html" accesskey="p" rel="prev">Test Suites</a>, Up: <a href="Components.html" accesskey="u" rel="up">Components</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
+Next: <a href="Style-Features.html" accesskey="n" rel="next">Style Features</a>, Previous: <a href="Test-Suites.html" accesskey="p" rel="prev">Test Suites</a>, Up: <a href="Components.html" accesskey="u" rel="up">Components</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 
 

@@ -1,1 +1,0 @@
-template <typename> int a;

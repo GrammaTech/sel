@@ -1,0 +1,891 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- This file documents the Software Evolution library
+
+Copyright (C) 2014-2018 Eric Schulte and GrammaTech
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
+A copy of the license is included in the section entitled
+"GNU Free Documentation License." -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/PARSEABLE (Software Evolution Library)</title>
+
+<meta name="description" content="SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/PARSEABLE (Software Evolution Library)">
+<meta name="keywords" content="SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/PARSEABLE (Software Evolution Library)">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<link href="index.html" rel="start" title="Top">
+<link href="Combined-Index.html" rel="index" title="Combined Index">
+<link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
+<link href="Software-Evolution-Library-Index.html" rel="up" title="Software Evolution Library Index">
+<link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fPARSEABLE_002dPROJECT.html" rel="next" title="SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/PARSEABLE-PROJECT">
+<link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fNON_002dHOMOLOGOUS_002dPARSEABLE.html" rel="prev" title="SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/NON-HOMOLOGOUS-PARSEABLE">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fPARSEABLE"></span><div class="header">
+<p>
+Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fPARSEABLE_002dPROJECT.html" accesskey="n" rel="next">SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/PARSEABLE-PROJECT</a>, Previous: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fNON_002dHOMOLOGOUS_002dPARSEABLE.html" accesskey="p" rel="prev">SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/NON-HOMOLOGOUS-PARSEABLE</a>, Up: <a href="Software-Evolution-Library-Index.html" accesskey="u" rel="up">Software Evolution Library Index</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fPARSEABLE-1"></span><h3 class="section">A.46 SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/PARSEABLE</h3>
+<span id="Variable-sel_002fsw_002fparseable_003a_002aparseable_002dmutation_002dtypes_002a"></span><dl>
+<dt id="index-_002aparseable_002dmutation_002dtypes_002a-_005bsel_002fsw_002fparseable_005d">Variable: <strong>*parseable-mutation-types* [sel/sw/parseable]</strong></dt>
+<dd><p>Cumulative distribution of normalized probabilities of weighted mutations.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003aancestor_002dof_002dp"></span><dl>
+<dt id="index-ancestor_002dof_002dp-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>ancestor-of-p [sel/sw/parseable]</strong> <em>obj target-ast ancestor</em></dt>
+<dd><p>Returns <code>t</code> if <code>ancestor</code> is an ancestor of <code>target-ast</code> in <code>obj</code>.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003aappend_002dtext_002dto_002dgenome"></span><dl>
+<dt id="index-append_002dtext_002dto_002dgenome-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>append-text-to-genome [sel/sw/parseable]</strong> <em>software text</em></dt>
+<dd><p>Append non-AST <code>text</code> to <code>obj</code> genome.
+</p>
+<ul>
+<li> <code>obj</code> object to modify with text
+</li><li> <code>text</code> text to append to the genome
+</li></ul>
+</dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003aappend_002dtext_002dto_002dgenome-_0028_0028obj-non_002dhomologous_002dparseable_0029--_0028text-string_0029-_0026aux-_0028root-_0028genome-obj_0029_0029_0029"></span><dl>
+<dt id="index-append_002dtext_002dto_002dgenome-_005bsel_002fsw_002fparseable_005d-1">Method: <strong>append-text-to-genome [sel/sw/parseable]</strong> <em>(obj non-homologous-parseable) (text string) &amp;aux (root (genome obj))</em></dt>
+<dd><p>Prepend non-AST <code>text</code> to OBJ&rsquo;s genome.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003aappend_002dtext_002dto_002dgenome_002dpreamble"></span><dl>
+<dt id="index-append_002dtext_002dto_002dgenome_002dpreamble-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>append-text-to-genome-preamble [sel/sw/parseable]</strong> <em>software text</em></dt>
+<dd><p>Append non-AST <code>text</code> to OBJ&rsquo;s genome preamble.
+</p>
+<ul>
+<li> <code>obj</code> object to modify with text
+</li><li> <code>text</code> text to append to the genome preamble
+</li></ul>
+</dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003aappend_002dtext_002dto_002dgenome_002dpreamble-_0028_0028obj-non_002dhomologous_002dparseable_0029--_0028text-string_0029-_0026aux--_0028root-_0028genome-obj_0029_0029_0029"></span><dl>
+<dt id="index-append_002dtext_002dto_002dgenome_002dpreamble-_005bsel_002fsw_002fparseable_005d-1">Method: <strong>append-text-to-genome-preamble [sel/sw/parseable]</strong> <em>(obj non-homologous-parseable) (text string) &amp;aux (root (genome obj))</em></dt>
+<dd><p>Append non-AST <code>text</code> to OBJ&rsquo;s genome preamble.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003aassign_002dto_002dvar_002dp"></span><dl>
+<dt id="index-assign_002dto_002dvar_002dp-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>assign-to-var-p [sel/sw/parseable]</strong> <em>ast var</em></dt>
+<dd><p>Return <code>true</code> if AST represents an assignment to <code>var</code>.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fparseable_003aast"></span><dl>
+<dt id="index-ast-_005bsel_002fsw_002fparseable_005d">Class: <strong>ast [sel/sw/parseable]</strong></dt>
+<dd><p>Class precedence list: <code>ast, standard-object, slot-object, t</code>
+</p>
+<p>Base class for all ASTs in <code>sel</code>.  This class acts as a tag
+for objects to allow method dispatch on generic AST objects regardless of
+whether they inherit from the functional trees library.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003aast_002dannotation"></span><dl>
+<dt id="index-ast_002dannotation-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>ast-annotation [sel/sw/parseable]</strong> <em>ast annotation</em></dt>
+<dd><p>Return given AST <code>annotation</code>.
+</p></dd></dl>
+<span id="Generic_002dFunction-_0028setf-sel_002fsw_002fparseable_003aast_002dannotation_0029"></span><dl>
+<dt id="index-_0028setf-ast_002dannotation-_005bsel_002fsw_002fparseable_005d_0029">Generic Function: <strong>(setf ast-annotation [sel/sw/parseable])</strong> <em>v ast annotation</em></dt>
+<dd><p>Set the given AST <code>annotation</code> to <code>v</code>.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003aast_002dat_002dindex"></span><dl>
+<dt id="index-ast_002dat_002dindex-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>ast-at-index [sel/sw/parseable]</strong> <em>software index</em></dt>
+<dd><p>Deprecated: Return the AST in <code>obj</code> at <code>index</code>.
+If possible, only use when dealing with legacy code.
+</p>
+<ul>
+<li> <code>obj</code> object to retrieve ASTs for
+</li><li> <code>index</code> nth AST to retrieve
+</li></ul>
+</dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003aast_002dhash"></span><dl>
+<dt id="index-ast_002dhash-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>ast-hash [sel/sw/parseable]</strong> <em>ast</em></dt>
+<dd><p>A hash value for the AST, which is a nonnegative
+integer.  It should be the case that (equal? x y) implies
+(eql (ast-hash x) (ast-hash y)), and that if (not (equal? x y))
+then the equality of the hashes is unlikely.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003aast_002dsource_002dranges"></span><dl>
+<dt id="index-ast_002dsource_002dranges-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>ast-source-ranges [sel/sw/parseable]</strong> <em>obj</em></dt>
+<dd><p>Return <code>(ast . source-range) </code>for each AST in <code>obj</code>.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003aasts"></span><dl>
+<dt id="index-asts-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>asts [sel/sw/parseable]</strong> <em>obj</em></dt>
+<dd><p>Deprecated: Return a list of all non-root ASTs in <code>obj</code>.
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003aasts-_0028_0028obj-parseable_002dproject_0029_0029"></span><dl>
+<dt id="index-asts-_005bsel_002fsw_002fparseable_005d-1">Method: <strong>asts [sel/sw/parseable]</strong> <em>(obj parseable-project)</em></dt>
+<dd><p>Return a list of all ASTs in the project <code>obj</code>.
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003aasts-before-_0028_0028obj-clang_0029_0029"></span><dl>
+<dt id="index-before-asts-_005bsel_002fsw_002fparseable_005d">Method: <strong>before asts [sel/sw/parseable]</strong> <em>(obj clang)</em></dt>
+<dd><p>Ensure the &lsquo;asts&lsquo; field is set on <code>obj</code> prior to access.
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003aasts-_0028_0028clang-clang_0029_0029"></span><dl>
+<dt id="index-asts-_005bsel_002fsw_002fparseable_005d-2">Method: <strong>asts [sel/sw/parseable]</strong> <em>(clang clang)</em></dt>
+<dd><p>Deprecated: List of all ASTs.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003aasts_002dcontaining_002dsource_002dlocation"></span><dl>
+<dt id="index-asts_002dcontaining_002dsource_002dlocation-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>asts-containing-source-location [sel/sw/parseable]</strong> <em>software location</em></dt>
+<dd><p>Return a list of ASTs in <code>software</code> containing <code>loc</code>.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003aasts_002dintersecting_002dsource_002drange"></span><dl>
+<dt id="index-asts_002dintersecting_002dsource_002drange-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>asts-intersecting-source-range [sel/sw/parseable]</strong> <em>software range</em></dt>
+<dd><p>Return a list of ASTs in <code>obj</code> intersecting <code>range</code>.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003abad_002dasts"></span><dl>
+<dt id="index-bad_002dasts-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>bad-asts [sel/sw/parseable]</strong> <em>software</em></dt>
+<dd><p>Return a list of all bad asts in <code>software</code>.
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003abad_002dasts-_0028_0028obj-parseable_0029_0029"></span><dl>
+<dt id="index-bad_002dasts-_005bsel_002fsw_002fparseable_005d-1">Method: <strong>bad-asts [sel/sw/parseable]</strong> <em>(obj parseable)</em></dt>
+<dd><p>Return a list of all bad asts in <code>obj</code>
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003abad_002dmutation_002dtargets"></span><dl>
+<dt id="index-bad_002dmutation_002dtargets-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>bad-mutation-targets [sel/sw/parseable]</strong> <em>software &amp;key filter</em></dt>
+<dd><p>Return a list of all bad mutation targets in
+<code>software</code> matching <code>filter</code>.
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003abad_002dmutation_002dtargets-_0028_0028clang-clang_0029-_0026key-filter_0029"></span><dl>
+<dt id="index-bad_002dmutation_002dtargets-_005bsel_002fsw_002fparseable_005d-1">Method: <strong>bad-mutation-targets [sel/sw/parseable]</strong> <em>(clang clang) &amp;key filter</em></dt>
+<dd><p>Return a list of all bad statement ASTs in <code>clang</code> matching <code>filter</code>.
+</p><ul>
+<li> <code>clang</code> software object to query for bad statements
+</li><li> <code>filter</code> predicate taking an AST parameter to allow for filtering
+</li></ul>
+</dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003abad_002dmutation_002dtargets-_0028_0028obj-parseable_0029-_0026key-filter_0029"></span><dl>
+<dt id="index-bad_002dmutation_002dtargets-_005bsel_002fsw_002fparseable_005d-2">Method: <strong>bad-mutation-targets [sel/sw/parseable]</strong> <em>(obj parseable) &amp;key filter</em></dt>
+<dd><p>Return a list of all bad mutation targets in <code>obj</code> matching <code>filter</code>.
+</p><ul>
+<li> <code>obj</code> software object to query for bad mutation targets
+</li><li> <code>filter</code> predicate taking an AST parameter to allow for filtering
+</li></ul>
+</dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003achild_002dasts"></span><dl>
+<dt id="index-child_002dasts-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>child-asts [sel/sw/parseable]</strong> <em>ast &amp;key recursive</em></dt>
+<dd><p>Return the AST children of AST.  If the keyword
+<code>recursive</code> is passed, recursive AST children will also be returned.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003acombine_002dall_002dconflict_002dasts"></span><dl>
+<dt id="index-combine_002dall_002dconflict_002dasts-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>combine-all-conflict-asts [sel/sw/parseable]</strong> <em>parent child-list</em></dt>
+<dd><p>Replace <code>parent</code> with a conflict node obtained by
+combining the conflict nodes of <code>child-list</code>, and whose elements are
+version of <code>parent</code> with those various combinations.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003acombine_002dconflict_002dasts"></span><dl>
+<dt id="index-combine_002dconflict_002dasts-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>combine-conflict-asts [sel/sw/parseable]</strong> <em>ca1 ca2</em></dt>
+<dd><p>Merge conflict ast nodes CA1 and CA2, their alists and default values.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fparseable_003aconflict_002dast"></span><dl>
+<dt id="index-conflict_002dast-_005bsel_002fsw_002fparseable_005d">Class: <strong>conflict-ast [sel/sw/parseable]</strong></dt>
+<dd><p>Class precedence list: <code>conflict-ast, functional-tree-ast, node, identity-ordering-mixin, ast, stored-hash, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>child-alist</code> &mdash; initarg: <code><span class="nolinebreak">:child-alist</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/parseable:conflict-ast-child-alist</span><!-- /@w --></code>
+
+<p>Child-Alist of the AST.
+</p></li><li> <code>default-children</code> &mdash; initarg: <code><span class="nolinebreak">:default-children</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/parseable:conflict-ast-default-children</span><!-- /@w --></code>
+
+<p>Default-Children of the AST.
+</p></li></ul>
+
+<p>Node representing several possibilities for an AST.
+The mapping from a conflicted AST into a regular AST is as follows: for
+a given conflict key, and for each conflict node, get the list of children
+corresponding to that key (default if the key is not present), and splice
+that list of children in place of the conflict node in its parent&rsquo;s children
+list.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fparseable_003afunctional_002dtree_002dast"></span><dl>
+<dt id="index-functional_002dtree_002dast-_005bsel_002fsw_002fparseable_005d">Class: <strong>functional-tree-ast [sel/sw/parseable]</strong></dt>
+<dd><p>Class precedence list: <code>functional-tree-ast, node, identity-ordering-mixin, ast, stored-hash, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>annotations</code> &mdash; initarg: <code>:annotations<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/parseable:ast-annotations</span><!-- /@w --></code>
+
+<p>A-list of annotations.
+</p></li></ul>
+
+<p>Base class for <code>sel</code> functional tree ASTs.
+An applicative tree structure is used to hold the ASTs.
+</p></dd></dl>
+<span id="Variable-sel_002fsw_002fparseable_003a_002aindent_002dwith_002dtabs_002dp_002a"></span><dl>
+<dt id="index-_002aindent_002dwith_002dtabs_002dp_002a-_005bsel_002fsw_002fparseable_005d">Variable: <strong>*indent-with-tabs-p* [sel/sw/parseable]</strong></dt>
+<dd><p>A boolean value that indicates whether tabs should be used instead of spaces.
+This can be set to modify the behavior of #&rsquo;source-text and #&rsquo;convert
+</p></dd></dl>
+<span id="Function-sel_002fsw_002fparseable_003acombine_002dconflict_002dasts_002din_002dlist"></span><dl>
+<dt id="index-combine_002dconflict_002dasts_002din_002dlist-_005bsel_002fsw_002fparseable_005d">Function: <strong>combine-conflict-asts-in-list [sel/sw/parseable]</strong> <em>child-list</em></dt>
+<dd><p>Combine a list of conflict-asts and other things into the components
+of a single conflict-ast
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003aenclosing_002dscope"></span><dl>
+<dt id="index-enclosing_002dscope-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>enclosing-scope [sel/sw/parseable]</strong> <em>software ast</em></dt>
+<dd><p>Returns enclosing scope of AST.
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003aenclosing_002dscope-_0028_0028obj-javascript_0029-_0028ast-javascript_002dast_0029_0029"></span><dl>
+<dt id="index-enclosing_002dscope-_005bsel_002fsw_002fparseable_005d-1">Method: <strong>enclosing-scope [sel/sw/parseable]</strong> <em>(obj javascript) (ast javascript-ast)</em></dt>
+<dd><p>Return the enclosing scope of AST in <code>obj</code>.
+<code>obj</code> javascript software object
+AST ast to return the enclosing scope for
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003aenclosing_002dscope-_0028_0028obj-python_0029-_0028ast-python_002dast_0029_0029"></span><dl>
+<dt id="index-enclosing_002dscope-_005bsel_002fsw_002fparseable_005d-2">Method: <strong>enclosing-scope [sel/sw/parseable]</strong> <em>(obj python) (ast python-ast)</em></dt>
+<dd><p>Return the enclosing scope of AST in <code>obj</code>.
+<code>obj</code> python software object
+AST ast to return the enclosing scope for
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003aenclosing_002dscope-_0028_0028software-clang_0029-_0028ast-clang_002dast_0029_0029"></span><dl>
+<dt id="index-enclosing_002dscope-_005bsel_002fsw_002fparseable_005d-3">Method: <strong>enclosing-scope [sel/sw/parseable]</strong> <em>(software clang) (ast clang-ast)</em></dt>
+<dd><p><code>docfixme</code>
+</p><ul>
+<li> <code>software</code> <code>docfixme</code>
+</li><li> AST <code>docfixme</code>
+</li></ul>
+</dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003afind_002dif_002din_002dparents"></span><dl>
+<dt id="index-find_002dif_002din_002dparents-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>find-if-in-parents [sel/sw/parseable]</strong> <em>predicate obj ast</em></dt>
+<dd><p>Search through the parents of AST for the first one that
+satisfies <code>predicate</code>.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003afind_002dif_002din_002dscope"></span><dl>
+<dt id="index-find_002dif_002din_002dscope-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>find-if-in-scope [sel/sw/parseable]</strong> <em>predicate obj ast &amp;key reference-ast</em></dt>
+<dd><p>Walk up the genome in <code>obj</code> starting at AST, searching for
+an AST that satisfies <code>predicate</code> that occurs before <code>reference-ast</code>.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003afrom_002dalist"></span><dl>
+<dt id="index-from_002dalist-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>from-alist [sel/sw/parseable]</strong> <em>symbol alist</em></dt>
+<dd><p>Convert alist to struct representation.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003aget_002dast_002dtypes"></span><dl>
+<dt id="index-get_002dast_002dtypes-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>get-ast-types [sel/sw/parseable]</strong> <em>software ast</em></dt>
+<dd><p>Types directly referenced within AST.
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003aget_002dast_002dtypes-_0028_0028software-clang_0029-_0028ast-clang_002dast_0029_0029"></span><dl>
+<dt id="index-get_002dast_002dtypes-_005bsel_002fsw_002fparseable_005d-1">Method: <strong>get-ast-types [sel/sw/parseable]</strong> <em>(software clang) (ast clang-ast)</em></dt>
+<dd><p>Compute all the types mentioned in AST.  <code>ast-types</code> is
+the types used at a node; this function closes over all the nodes
+in the AST.  <code>software</code> is the software object to which AST belongs.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003aget_002ddefault_002dindentation"></span><dl>
+<dt id="index-get_002ddefault_002dindentation-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>get-default-indentation [sel/sw/parseable]</strong> <em>ast parents</em></dt>
+<dd><p>Get a sane indent-children default for AST.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003aget_002dfunction_002dfrom_002dfunction_002dcall"></span><dl>
+<dt id="index-get_002dfunction_002dfrom_002dfunction_002dcall-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>get-function-from-function-call [sel/sw/parseable]</strong> <em>obj funcall-ast</em></dt>
+<dd><p>Return the function ast associated with the
+<code>funcall-ast</code> if it exists in <code>obj</code>.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003aget_002dindentation_002dat"></span><dl>
+<dt id="index-get_002dindentation_002dat-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>get-indentation-at [sel/sw/parseable]</strong> <em>ast parents</em></dt>
+<dd><p>Get the indentation for AST given <code>parents</code>.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003aget_002dparent_002dast"></span><dl>
+<dt id="index-get_002dparent_002dast-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>get-parent-ast [sel/sw/parseable]</strong> <em>obj ast</em></dt>
+<dd><p>Return the parent node of AST in <code>obj</code>
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003aget_002dparent_002dast-_0028_0028obj-parseable_0029-_0028ast-ast_0029_0029"></span><dl>
+<dt id="index-get_002dparent_002dast-_005bsel_002fsw_002fparseable_005d-1">Method: <strong>get-parent-ast [sel/sw/parseable]</strong> <em>(obj parseable) (ast ast)</em></dt>
+<dd><p>Return the parent node of AST in <code>obj</code>
+</p><ul>
+<li> <code>obj</code> software object containing AST and its parent
+</li><li> AST node to find the parent of
+</li></ul>
+</dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003aget_002dparent_002dasts"></span><dl>
+<dt id="index-get_002dparent_002dasts-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>get-parent-asts [sel/sw/parseable]</strong> <em>obj ast</em></dt>
+<dd><p>Return the parent nodes of AST in <code>obj</code> including AST.
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003aget_002dparent_002dasts-_0028_0028obj-parseable_0029-_0028ast-ast_0029_0029"></span><dl>
+<dt id="index-get_002dparent_002dasts-_005bsel_002fsw_002fparseable_005d-1">Method: <strong>get-parent-asts [sel/sw/parseable]</strong> <em>(obj parseable) (ast ast)</em></dt>
+<dd><p>Return the parent nodes of AST in <code>obj</code> including AST.
+</p><ul>
+<li> <code>obj</code> software object containing AST and its parents
+</li><li> AST node to find the parents of
+</li></ul>
+</dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003aget_002dparent_002dasts_002a"></span><dl>
+<dt id="index-get_002dparent_002dasts_002a-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>get-parent-asts* [sel/sw/parseable]</strong> <em>obj ast</em></dt>
+<dd><p>Return the parent nodes of AST in <code>obj</code> not including AST.
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003aget_002dparent_002dasts_002a-_0028_0028obj-parseable_0029-_0028ast-ast_0029_0029"></span><dl>
+<dt id="index-get_002dparent_002dasts_002a-_005bsel_002fsw_002fparseable_005d-1">Method: <strong>get-parent-asts* [sel/sw/parseable]</strong> <em>(obj parseable) (ast ast)</em></dt>
+<dd><p>Return the parent nodes of AST in <code>obj</code> not including AST.
+</p><ul>
+<li> <code>obj</code> software object containing AST and its parents
+</li><li> AST node to find the parents of
+</li></ul>
+</dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003aget_002dparent_002dfull_002dstmt"></span><dl>
+<dt id="index-get_002dparent_002dfull_002dstmt-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>get-parent-full-stmt [sel/sw/parseable]</strong> <em>software ast</em></dt>
+<dd><p>Return the first ancestor of AST in <code>software</code> which is a full statement.
+Returns nil if no full statement parent is found.
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003aget_002dparent_002dfull_002dstmt-_0028_0028clang-clang_0029-_0028ast-clang_002dast_0029_0029"></span><dl>
+<dt id="index-get_002dparent_002dfull_002dstmt-_005bsel_002fsw_002fparseable_005d-1">Method: <strong>get-parent-full-stmt [sel/sw/parseable]</strong> <em>(clang clang) (ast clang-ast)</em></dt>
+<dd><p>Return the first ancestor of AST in <code>software</code> which is a full stmt.
+Returns nil if no full-stmt is found.
+</p><ul>
+<li> <code>clang</code> software object containing AST and its parents
+</li><li> AST to find the parent full statement of if not already a full statement
+</li></ul>
+</dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003aget_002dunbound_002dvals"></span><dl>
+<dt id="index-get_002dunbound_002dvals-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>get-unbound-vals [sel/sw/parseable]</strong> <em>software ast</em></dt>
+<dd><p>Variables used (but not defined) within the AST.
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003aget_002dunbound_002dvals-_0028_0028obj-javascript_0029-_0028ast-javascript_002dast_0029_0029"></span><dl>
+<dt id="index-get_002dunbound_002dvals-_005bsel_002fsw_002fparseable_005d-1">Method: <strong>get-unbound-vals [sel/sw/parseable]</strong> <em>(obj javascript) (ast javascript-ast)</em></dt>
+<dd><p>Return all variables used (but not defined) within AST.
+</p><ul>
+<li> <code>obj</code> javascript software object containing AST
+</li><li> AST ast to retrieve unbound variables within
+</li></ul>
+</dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003aget_002dunbound_002dvals-_0028_0028obj-python_0029-_0028ast-python_002dast_0029_0029"></span><dl>
+<dt id="index-get_002dunbound_002dvals-_005bsel_002fsw_002fparseable_005d-2">Method: <strong>get-unbound-vals [sel/sw/parseable]</strong> <em>(obj python) (ast python-ast)</em></dt>
+<dd><p>Return all variables used (but not defined) within AST.
+</p><ul>
+<li> <code>obj</code> python software object containing AST
+</li><li> AST ast to retrieve unbound variables within
+</li></ul>
+</dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003aget_002dunbound_002dvals-_0028_0028software-clang_0029-_0028ast-clang_002dast_0029_0029"></span><dl>
+<dt id="index-get_002dunbound_002dvals-_005bsel_002fsw_002fparseable_005d-3">Method: <strong>get-unbound-vals [sel/sw/parseable]</strong> <em>(software clang) (ast clang-ast)</em></dt>
+<dd><p><code>docfixme</code>
+</p><ul>
+<li> <code>software</code> <code>docfixme</code>
+</li><li> AST <code>docfixme</code>
+</li></ul>
+</dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003aget_002dvars_002din_002dscope"></span><dl>
+<dt id="index-get_002dvars_002din_002dscope-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>get-vars-in-scope [sel/sw/parseable]</strong> <em>software ast &amp;optional keep-globals</em></dt>
+<dd><p>Return all variables in enclosing scopes.
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003aget_002dvars_002din_002dscope-around-_0028_0028obj-clang_0029-_0028ast-clang_002dast_0029--_0026optional-_0028keep_002dglobals-t_0029_0029"></span><dl>
+<dt id="index-around-get_002dvars_002din_002dscope-_005bsel_002fsw_002fparseable_005d">Method: <strong>around get-vars-in-scope [sel/sw/parseable]</strong> <em>(obj clang) (ast clang-ast) &amp;optional (keep-globals t)</em></dt>
+<dd><p>Return all variables in enclosing scopes.
+</p><ul>
+<li> <code>obj</code> clang software object containing AST and its enclosing scopes
+</li><li> AST node to find variables in scope for
+</li></ul>
+</dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003aget_002dvars_002din_002dscope-_0028_0028obj-parseable_0029-_0028ast-ast_0029-_0026optional--_0028keep_002dglobals-t_0029_0029"></span><dl>
+<dt id="index-get_002dvars_002din_002dscope-_005bsel_002fsw_002fparseable_005d-1">Method: <strong>get-vars-in-scope [sel/sw/parseable]</strong> <em>(obj parseable) (ast ast) &amp;optional (keep-globals t)</em></dt>
+<dd><p>Return all variables in enclosing scopes.
+</p><ul>
+<li> <code>obj</code> software object containing AST and its enclosing scopes
+</li><li> AST node to find variables in scope for
+</li></ul>
+</dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003agood_002dasts"></span><dl>
+<dt id="index-good_002dasts-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>good-asts [sel/sw/parseable]</strong> <em>software</em></dt>
+<dd><p>Return a list of all good asts in <code>software</code>.
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003agood_002dasts-_0028_0028obj-parseable_0029_0029"></span><dl>
+<dt id="index-good_002dasts-_005bsel_002fsw_002fparseable_005d-1">Method: <strong>good-asts [sel/sw/parseable]</strong> <em>(obj parseable)</em></dt>
+<dd><p>Return a list of all good asts in <code>obj</code>
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003agood_002dmutation_002dtargets"></span><dl>
+<dt id="index-good_002dmutation_002dtargets-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>good-mutation-targets [sel/sw/parseable]</strong> <em>software &amp;key filter</em></dt>
+<dd><p>Return a list of all good mutation targets in
+<code>software</code> matching <code>filter</code>.
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003agood_002dmutation_002dtargets-_0028_0028clang-clang_0029-_0026key-filter_0029"></span><dl>
+<dt id="index-good_002dmutation_002dtargets-_005bsel_002fsw_002fparseable_005d-1">Method: <strong>good-mutation-targets [sel/sw/parseable]</strong> <em>(clang clang) &amp;key filter</em></dt>
+<dd><p>Return a list of all good statement ASTs in <code>clang</code> matching <code>filter</code>.
+</p><ul>
+<li> <code>clang</code> software object to query for good statements
+</li><li> <code>filter</code> predicate taking an AST parameter to allow for filtering
+</li></ul>
+</dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003agood_002dmutation_002dtargets-_0028_0028obj-parseable_0029-_0026key-filter_0029"></span><dl>
+<dt id="index-good_002dmutation_002dtargets-_005bsel_002fsw_002fparseable_005d-2">Method: <strong>good-mutation-targets [sel/sw/parseable]</strong> <em>(obj parseable) &amp;key filter</em></dt>
+<dd><p>Return a list of all good mutation targets in <code>obj</code> matching <code>filter</code>.
+</p><ul>
+<li> <code>obj</code> software object to query for good mutation targets
+</li><li> <code>filter</code> predicate taking an AST parameter to allow for filtering
+</li></ul>
+</dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003aindentablep"></span><dl>
+<dt id="index-indentablep-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>indentablep [sel/sw/parseable]</strong> <em>ast</em></dt>
+<dd><p>Return <code>t</code> if AST is indentable. This
+is useful for ASTs that may have newline literals.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003aindex_002dof_002dast"></span><dl>
+<dt id="index-index_002dof_002dast-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>index-of-ast [sel/sw/parseable]</strong> <em>software ast</em></dt>
+<dd><p>Deprecated: Return the index of AST in <code>obj</code>.
+If possible, only use when dealing with legacy code.
+</p>
+<ul>
+<li> <code>obj</code> object to query for the index of AST
+</li><li> AST node to find the index of
+</li></ul>
+</dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003ainterleaved_002dtext"></span><dl>
+<dt id="index-interleaved_002dtext-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>interleaved-text [sel/sw/parseable]</strong> <em>obj</em></dt>
+<dd><p>Get the interleaved text for <code>obj</code>.
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003ainterleaved_002dtext-_0028_0028interleaved_002dtext-interleaved_002dtext_0029_0029"></span><dl>
+<dt id="index-interleaved_002dtext-_005bsel_002fsw_002fparseable_005d-1">Method: <strong>interleaved-text [sel/sw/parseable]</strong> <em>(interleaved-text interleaved-text)</em></dt>
+<dd><p>Interleaved text between children.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fparseable_003ainterleaved_002dtext"></span><dl>
+<dt id="index-interleaved_002dtext-_005bsel_002fsw_002fparseable_005d-2">Class: <strong>interleaved-text [sel/sw/parseable]</strong></dt>
+<dd><p>Class precedence list: <code>interleaved-text, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>interleaved-text</code> &mdash; initarg: <code><span class="nolinebreak">:interleaved-text</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/parseable:interleaved-text</span><!-- /@w --></code>
+
+<p>Interleaved text between children.
+</p></li></ul>
+
+<p>Mixin for interleaved-text slot
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003amap_002darguments_002dto_002dparameters"></span><dl>
+<dt id="index-map_002darguments_002dto_002dparameters-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>map-arguments-to-parameters [sel/sw/parseable]</strong> <em>obj funcall-ast</em></dt>
+<dd><p>Return an alist mapping parameters of a function
+in <code>obj</code> to its arguments in <code>funcall-ast</code>.
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003amap_002darguments_002dto_002dparameters-_0028_0028obj-lisp_0029-_0028funcall_002dast-lisp_002dast_0029_0029"></span><dl>
+<dt id="index-map_002darguments_002dto_002dparameters-_005bsel_002fsw_002fparseable_005d-1">Method: <strong>map-arguments-to-parameters [sel/sw/parseable]</strong> <em>(obj lisp) (funcall-ast lisp-ast)</em></dt>
+<dd><p>Map the arguments of <code>funcall-ast</code> to its relevant function call in <code>obj</code>.
+The mapping will be from argument ast to parameter ast in an alist.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003aparent_002dast_002dp"></span><dl>
+<dt id="index-parent_002dast_002dp-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>parent-ast-p [sel/sw/parseable]</strong> <em>software possible-parent-ast ast</em></dt>
+<dd><p>Return true if <code>possible-parent-ast</code> is a parent of AST in <code>obj</code>, nil
+otherwise.
+</p><ul>
+<li> <code>obj</code> software object containing AST and its parents
+</li><li> <code>possible-parent-ast</code> node to find as a parent of AST
+</li><li> AST node to start parent search from
+</li></ul>
+</dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003aparse_002dasts"></span><dl>
+<dt id="index-parse_002dasts-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>parse-asts [sel/sw/parseable]</strong> <em>software &amp;optional source-text</em></dt>
+<dd><p>Parse genome of <code>software</code> into an AST representation.
+There are some requirements for the ASTs constructed by this method:
+</p><ul>
+<li> We require that *all* source text be stored as a raw string
+  somewhere in the AST tree.  Source text tucked inside of a
+  non-string <code>ast-node</code> will be ignored.
+</li><li> We also require that if two ASTs have the same class and the same
+  source text then they are equal.
+
+</li></ul>
+<p>Other methods in on parseable objects, specifically &lsquo;ast-can-recurse&rsquo;
+and &lsquo;equal?<code>'</code> depend on these invariants.
+</p>
+<p>Optional argument <code>source-text</code> holds the source code string to parse
+into ASTs.  If not supplied it is generally assumed to already be set
+in the software&rsquo;s genome.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fparseable_003aparseable"></span><dl>
+<dt id="index-parseable-_005bsel_002fsw_002fparseable_005d">Class: <strong>parseable [sel/sw/parseable]</strong></dt>
+<dd><p>Class precedence list: <code>parseable, software, oid-object, file, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>genome</code> &mdash; initarg: <code>:genome<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:genome</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software-evolution-library:genome)</span><!-- /@w --></code>
+
+<p>Lazily parsed AST representation of the code.
+</p></li></ul>
+
+<p>Parsed AST tree software representation.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fparseable_003aparseable_002dcut"></span><dl>
+<dt id="index-parseable_002dcut-_005bsel_002fsw_002fparseable_005d">Class: <strong>parseable-cut [sel/sw/parseable]</strong></dt>
+<dd><p>Class precedence list: <code>parseable-cut, parseable-mutation, mutation, oid-object, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p>Perform a cut operation on a parseable software object.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fparseable_003aparseable_002dexpression"></span><dl>
+<dt id="index-parseable_002dexpression-_005bsel_002fsw_002fparseable_005d">Class: <strong>parseable-expression [sel/sw/parseable]</strong></dt>
+<dd><p>Class precedence list: <code>parseable-expression, ast, standard-object, slot-object, t</code>
+</p>
+<p>Mix-in for ASTs classes that are expressions.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fparseable_003aparseable_002dfunction"></span><dl>
+<dt id="index-parseable_002dfunction-_005bsel_002fsw_002fparseable_005d">Class: <strong>parseable-function [sel/sw/parseable]</strong></dt>
+<dd><p>Class precedence list: <code>parseable-function, ast, standard-object, slot-object, t</code>
+</p>
+<p>Mix-in for ASTs classes that are functions.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fparseable_003aparseable_002dinsert"></span><dl>
+<dt id="index-parseable_002dinsert-_005bsel_002fsw_002fparseable_005d">Class: <strong>parseable-insert [sel/sw/parseable]</strong></dt>
+<dd><p>Class precedence list: <code>parseable-insert, parseable-mutation, mutation, oid-object, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p>Perform an insertion operation on a parseable software
+object.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fparseable_003aparseable_002dmove"></span><dl>
+<dt id="index-parseable_002dmove-_005bsel_002fsw_002fparseable_005d">Class: <strong>parseable-move [sel/sw/parseable]</strong></dt>
+<dd><p>Class precedence list: <code>parseable-move, parseable-mutation, mutation, oid-object, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p>Perform a move operation on a parseable software object.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fparseable_003aparseable_002dmutation"></span><dl>
+<dt id="index-parseable_002dmutation-_005bsel_002fsw_002fparseable_005d">Class: <strong>parseable-mutation [sel/sw/parseable]</strong></dt>
+<dd><p>Class precedence list: <code>parseable-mutation, mutation, oid-object, standard-object, slot-object, t</code>
+</p>
+<p>Specialization of the mutation interface for parseable
+software objects.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fparseable_003aparseable_002dnop"></span><dl>
+<dt id="index-parseable_002dnop-_005bsel_002fsw_002fparseable_005d">Class: <strong>parseable-nop [sel/sw/parseable]</strong></dt>
+<dd><p>Class precedence list: <code>parseable-nop, parseable-mutation, mutation, oid-object, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p>Perform a nop on a parseable software object.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fparseable_003aparseable_002dreplace"></span><dl>
+<dt id="index-parseable_002dreplace-_005bsel_002fsw_002fparseable_005d">Class: <strong>parseable-replace [sel/sw/parseable]</strong></dt>
+<dd><p>Class precedence list: <code>parseable-replace, parseable-mutation, mutation, oid-object, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p>Perform a replace operation on a parseable
+software object.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fparseable_003aparseable_002dstatement"></span><dl>
+<dt id="index-parseable_002dstatement-_005bsel_002fsw_002fparseable_005d">Class: <strong>parseable-statement [sel/sw/parseable]</strong></dt>
+<dd><p>Class precedence list: <code>parseable-statement, ast, standard-object, slot-object, t</code>
+</p>
+<p>Mix-in for ASTs classes that are statements.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fparseable_003aparseable_002dswap"></span><dl>
+<dt id="index-parseable_002dswap-_005bsel_002fsw_002fparseable_005d">Class: <strong>parseable-swap [sel/sw/parseable]</strong></dt>
+<dd><p>Class precedence list: <code>parseable-swap, parseable-mutation, mutation, oid-object, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p>Perform a swap operation on a parseable software object.
+</p></dd></dl>
+<span id="Variable-sel_002fsw_002fparseable_003a_002aspaces_002dper_002dtab_002a"></span><dl>
+<dt id="index-_002aspaces_002dper_002dtab_002a-_005bsel_002fsw_002fparseable_005d">Variable: <strong>*spaces-per-tab* [sel/sw/parseable]</strong></dt>
+<dd><p>The number of spaces per tab. This can be set to modify the
+behavior of #&rsquo;source-text and #&rsquo;convert
+</p></dd></dl>
+<span id="Function-sel_002fsw_002fparseable_003aast_002dcombine_002dhash_002dvalues"></span><dl>
+<dt id="index-ast_002dcombine_002dhash_002dvalues-_005bsel_002fsw_002fparseable_005d">Function: <strong>ast-combine-hash-values [sel/sw/parseable]</strong> <em>&amp;rest args</em></dt>
+<dd><p>Invoke &lsquo;ast-combine-list-hash-values&rsquo; on <code>args</code>.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003aast_002dpath"></span><dl>
+<dt id="index-ast_002dpath-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>ast-path [sel/sw/parseable]</strong> <em>obj ast</em></dt>
+<dd><p>Return the <code>path</code> to AST in <code>obj</code>.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003aasts_002dcontained_002din_002dsource_002drange"></span><dl>
+<dt id="index-asts_002dcontained_002din_002dsource_002drange-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>asts-contained-in-source-range [sel/sw/parseable]</strong> <em>software range</em></dt>
+<dd><p>Return a list of ASTs in <code>software</code> contained in <code>range</code>.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003acollect_002dif"></span><dl>
+<dt id="index-collect_002dif-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>collect-if [sel/sw/parseable]</strong> <em>predicate tree</em></dt>
+<dd><p>Traverse <code>tree</code> collecting every node that satisfies <code>predicate</code>.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003aget_002dunbound_002dfuns"></span><dl>
+<dt id="index-get_002dunbound_002dfuns-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>get-unbound-funs [sel/sw/parseable]</strong> <em>software ast</em></dt>
+<dd><p>Functions used (but not defined) within the AST.
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003aget_002dunbound_002dfuns-_0028_0028obj-javascript_0029-_0028ast-javascript_002dast_0029-_0026aux--_0028children-_0028remove-nil-_0028children-ast_0029_0029_0029--_0028callee-_0028first-children_0029_0029_0029"></span><dl>
+<dt id="index-get_002dunbound_002dfuns-_005bsel_002fsw_002fparseable_005d-1">Method: <strong>get-unbound-funs [sel/sw/parseable]</strong> <em>(obj javascript) (ast javascript-ast) &amp;aux (children (remove nil (children ast))) (callee (first children))</em></dt>
+<dd><p>Return all functions used (but not defined) within AST.
+</p><ul>
+<li> <code>obj</code> javascript software object containing AST
+</li><li> AST ast to retrieve unbound functions within
+</li></ul>
+</dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003aget_002dunbound_002dfuns-_0028_0028obj-python_0029-_0028ast-python_002dast_0029-_0026aux--_0028children-_0028remove-nil-_0028children-ast_0029_0029_0029_0029"></span><dl>
+<dt id="index-get_002dunbound_002dfuns-_005bsel_002fsw_002fparseable_005d-2">Method: <strong>get-unbound-funs [sel/sw/parseable]</strong> <em>(obj python) (ast python-ast) &amp;aux (children (remove nil (children ast)))</em></dt>
+<dd><p>Return all functions used (but not defined) within AST.  The returned
+value will be of the form (list FUNCTION-ATTRS) where <code>function-attrs</code> is a
+list of form <code>(function-name unused unused num-params)</code>.
+</p>
+<ul>
+<li> <code>obj</code> python software object containing AST
+</li><li> AST ast to retrieve unbound functions within
+</li></ul>
+</dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003aget_002dunbound_002dfuns-_0028_0028software-clang_0029-_0028ast-clang_002dast_0029_0029"></span><dl>
+<dt id="index-get_002dunbound_002dfuns-_005bsel_002fsw_002fparseable_005d-3">Method: <strong>get-unbound-funs [sel/sw/parseable]</strong> <em>(software clang) (ast clang-ast)</em></dt>
+<dd><p>Compute all the unbound funs in AST.   <code>ast-unbound-funs</code> is
+the unbound funs at a node; this function closes over all the nodes
+in the AST.  <code>software</code> is the software object to which AST belongs.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003ais_002dstmt_002dp"></span><dl>
+<dt id="index-is_002dstmt_002dp-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>is-stmt-p [sel/sw/parseable]</strong> <em>ast</em></dt>
+<dd><p>Returns <code>t</code> if the AST is a full statement, <code>nil</code> otherwise.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fparseable_003aparseable_002dclass"></span><dl>
+<dt id="index-parseable_002dclass-_005bsel_002fsw_002fparseable_005d">Class: <strong>parseable-class [sel/sw/parseable]</strong></dt>
+<dd><p>Class precedence list: <code>parseable-class, ast, standard-object, slot-object, t</code>
+</p>
+<p>Mix-in for ASTs classes that are classes.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002fparseable_003apick_002dgeneral"></span><dl>
+<dt id="index-pick_002dgeneral-_005bsel_002fsw_002fparseable_005d">Function: <strong>pick-general [sel/sw/parseable]</strong> <em>software first-pool &amp;key second-pool filter</em></dt>
+<dd><p>Pick ASTs from <code>first-pool</code> and optionally <code>second-pool</code>.
+<code>first-pool</code> and <code>second-pool</code> are methods on <code>software</code> which return a list
+of ASTs.  An optional filter function having the signature &rsquo;f ast
+&amp;optional first-pick&rsquo;, may be passed, returning true if the given AST
+should be included as a possible pick or false (nil) otherwise.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003aprepend_002dtext_002dto_002dgenome"></span><dl>
+<dt id="index-prepend_002dtext_002dto_002dgenome-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>prepend-text-to-genome [sel/sw/parseable]</strong> <em>software text</em></dt>
+<dd><p>Prepend non-AST <code>text</code> to <code>obj</code> genome.
+</p>
+<ul>
+<li> <code>obj</code> object to modify with text
+</li><li> <code>text</code> text to prepend to the genome
+</li></ul>
+</dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003aprepend_002dtext_002dto_002dgenome-_0028_0028obj-non_002dhomologous_002dparseable_0029--_0028text-string_0029-_0026aux-_0028root-_0028genome-obj_0029_0029_0029"></span><dl>
+<dt id="index-prepend_002dtext_002dto_002dgenome-_005bsel_002fsw_002fparseable_005d-1">Method: <strong>prepend-text-to-genome [sel/sw/parseable]</strong> <em>(obj non-homologous-parseable) (text string) &amp;aux (root (genome obj))</em></dt>
+<dd><p>Prepend non-AST <code>text</code> to OBJ&rsquo;s genome.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003arebind_002dvars"></span><dl>
+<dt id="index-rebind_002dvars-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>rebind-vars [sel/sw/parseable]</strong> <em>ast var-replacements fun-replacements</em></dt>
+<dd><p>Replace variable and function references, returning a new AST.
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003arebind_002dvars-_0028_0028ast-tree_002dsitter_002dast_0029-var_002dreplacements--fun_002dreplacements_0029"></span><dl>
+<dt id="index-rebind_002dvars-_005bsel_002fsw_002fparseable_005d-1">Method: <strong>rebind-vars [sel/sw/parseable]</strong> <em>(ast tree-sitter-ast) var-replacements fun-replacements</em></dt>
+<dd><p>Replace variable and function references, returning a new AST.
+</p><ul>
+<li> AST node to rebind variables and function references for
+</li><li> <code>var-replacements</code> list of old-name, new-name pairs defining the rebinding
+</li><li> <code>fun-replacements</code> list of old-function-info, new-function-info pairs defining
+</li></ul>
+<p>the rebinding
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003arebind_002dvars-_0028_0028ast-non_002dhomologous_002dast_0029-var_002dreplacements--fun_002dreplacements_0029"></span><dl>
+<dt id="index-rebind_002dvars-_005bsel_002fsw_002fparseable_005d-2">Method: <strong>rebind-vars [sel/sw/parseable]</strong> <em>(ast non-homologous-ast) var-replacements fun-replacements</em></dt>
+<dd><p>Replace variable and function references, returning a new AST.
+</p><ul>
+<li> AST node to rebind variables and function references for
+</li><li> <code>var-replacements</code> list of old-name, new-name pairs defining the rebinding
+</li><li> <code>fun-replacements</code> list of old-function-info, new-function-info pairs defining
+</li></ul>
+<p>the rebinding
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003arecontextualize"></span><dl>
+<dt id="index-recontextualize-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>recontextualize [sel/sw/parseable]</strong> <em>parseable ast pt</em></dt>
+<dd><p>Perform any modifications to AST (e.g. variable rebinding)
+to allow for successful mutation of <code>software</code> at <code>pt</code>.
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003arecontextualize-_0028_0028clang-clang_0029-_0028ast-clang_002dast_0029-_0028pt-clang_002dast_0029_0029"></span><dl>
+<dt id="index-recontextualize-_005bsel_002fsw_002fparseable_005d-1">Method: <strong>recontextualize [sel/sw/parseable]</strong> <em>(clang clang) (ast clang-ast) (pt clang-ast)</em></dt>
+<dd><p>Bind free variables and function in AST to concrete values
+required for successful mutation in <code>clang</code> at <code>pt</code>
+</p><ul>
+<li> <code>clang</code> object to be mutated
+</li><li> AST node to be mutated into <code>clang</code>
+</li><li> <code>pt</code> node where mutation is to occur
+</li></ul>
+</dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003arecontextualize-_0028_0028software-parseable_0029-ast-pt_0029"></span><dl>
+<dt id="index-recontextualize-_005bsel_002fsw_002fparseable_005d-2">Method: <strong>recontextualize [sel/sw/parseable]</strong> <em>(software parseable) ast pt</em></dt>
+<dd><p>Perform any modifications to AST (e.g. variable rebinding)
+to allow for successful mutation of <code>software</code> at <code>pt</code>.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003arecontextualize_002dmutation"></span><dl>
+<dt id="index-recontextualize_002dmutation-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>recontextualize-mutation [sel/sw/parseable]</strong> <em>parseable mutation</em></dt>
+<dd><p>Bind free variables and functions in the mutation to concrete
+values.  Additionally perform any updates to the software object required
+for successful mutation.
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003arecontextualize_002dmutation-around-_0028_0028obj-clang_002dw_002dfodder_0029-mutation_0029"></span><dl>
+<dt id="index-around-recontextualize_002dmutation-_005bsel_002fsw_002fparseable_005d">Method: <strong>around recontextualize-mutation [sel/sw/parseable]</strong> <em>(obj clang-w-fodder) mutation</em></dt>
+<dd><p>Wrapper around &lsquo;recontextualize-mutation&rsquo; to allow for parsing and rebinding
+of variables and functions in fodder snippets prior to fodder mutations.
+</p><ul>
+<li> <code>obj</code> clang software object to be modified
+</li><li> <code>mutation</code> operations to be performed
+</li></ul>
+</dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003arecontextualize_002dmutation-_0028_0028software-parseable_0029-_0028ops-list_0029_0029"></span><dl>
+<dt id="index-recontextualize_002dmutation-_005bsel_002fsw_002fparseable_005d-1">Method: <strong>recontextualize-mutation [sel/sw/parseable]</strong> <em>(software parseable) (ops list)</em></dt>
+<dd><p>Bind free variables and functions in the mutation to concrete
+values.  Additionally perform any updates to the software object required
+for successful mutation (e.g. adding includes/types/macros), returning
+the mutation operations to be performed as an association list.
+</p><ul>
+<li> <code>obj</code> object to be mutated
+</li><li> <code>mut</code> mutation to be applied
+</li></ul>
+</dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003arecontextualize_002dmutation-_0028_0028software-parseable_0029--_0028mutation-mutation_0029_0029"></span><dl>
+<dt id="index-recontextualize_002dmutation-_005bsel_002fsw_002fparseable_005d-2">Method: <strong>recontextualize-mutation [sel/sw/parseable]</strong> <em>(software parseable) (mutation mutation)</em></dt>
+<dd><p>Bind free variables and functions in the mutation to concrete
+values.  Additionally perform any updates to the software object required
+for successful mutation (e.g. adding includes/types/macros), returning
+the mutation operations to be performed as an association list.
+</p><ul>
+<li> <code>obj</code> object to be mutated
+</li><li> <code>mut</code> mutation to be applied
+</li></ul>
+</dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003aroots"></span><dl>
+<dt id="index-roots-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>roots [sel/sw/parseable]</strong> <em>obj</em></dt>
+<dd><p>Return all top-level ASTs in <code>obj</code>.
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003aroots-_0028_0028obj-parseable_0029_0029"></span><dl>
+<dt id="index-roots-_005bsel_002fsw_002fparseable_005d-1">Method: <strong>roots [sel/sw/parseable]</strong> <em>(obj parseable)</em></dt>
+<dd><p>Return all top-level ASTs in <code>obj</code>.
+* <code>obj</code> software object to search for roots
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003ascopes"></span><dl>
+<dt id="index-scopes-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>scopes [sel/sw/parseable]</strong> <em>software ast</em></dt>
+<dd><p>Return lists of variables in each enclosing scope.
+Each variable is represented by an alist containing <code>:name</code>, <code>:decl</code>, <code>:type</code>,
+and <code>:scope</code>.
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003ascopes-_0028_0028obj-python_0029-_0028target_002dast-python_002dast_0029-_0026aux--_0028enclosing_002dscope-_0028enclosing_002dscope-obj-target_002dast_0029_0029_0029"></span><dl>
+<dt id="index-scopes-_005bsel_002fsw_002fparseable_005d-1">Method: <strong>scopes [sel/sw/parseable]</strong> <em>(obj python) (target-ast python-ast) &amp;aux (enclosing-scope (enclosing-scope obj target-ast))</em></dt>
+<dd><p>Return lists of variables in each enclosing scope of AST.
+Each variable is represented by an alist containing <code>:name</code>, <code>:decl</code>, and <code>:scope</code>.
+<code>obj</code> python software object
+AST ast to return the scopes for
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003ascopes-_0028_0028software-clang_0029-_0028ast-clang_002dast_0029_0029"></span><dl>
+<dt id="index-scopes-_005bsel_002fsw_002fparseable_005d-2">Method: <strong>scopes [sel/sw/parseable]</strong> <em>(software clang) (ast clang-ast)</em></dt>
+<dd><p><code>docfixme</code>
+</p><ul>
+<li> <code>software</code> <code>docfixme</code>
+</li><li> AST <code>docfixme</code>
+</li></ul>
+</dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003aselect_002dcrossover_002dpoints"></span><dl>
+<dt id="index-select_002dcrossover_002dpoints-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>select-crossover-points [sel/sw/parseable]</strong> <em>a b</em></dt>
+<dd><p>Select suitable crossover points in A and <code>b</code>.
+If no suitable points are found the returned points may be nil.
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fparseable_003aselect_002dcrossover_002dpoints-_0028_0028a-clang_0029-_0028b-clang_0029_0029"></span><dl>
+<dt id="index-select_002dcrossover_002dpoints-_005bsel_002fsw_002fparseable_005d-1">Method: <strong>select-crossover-points [sel/sw/parseable]</strong> <em>(a clang) (b clang)</em></dt>
+<dd><p><code>docfixme</code>
+</p><ul>
+<li> A <code>docfixme</code>
+</li><li> <code>b</code> <code>docfixme</code>
+</li></ul>
+</dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003ashares_002dpath_002dof_002dp"></span><dl>
+<dt id="index-shares_002dpath_002dof_002dp-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>shares-path-of-p [sel/sw/parseable]</strong> <em>obj target-ast shared-path-ast</em></dt>
+<dd><p>Returns <code>t</code> if <code>target-ast</code> has the same path or a super-path
+of SHARED-PATH-AST&rsquo;s path in <code>obj</code>.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003asorted_002dchildren"></span><dl>
+<dt id="index-sorted_002dchildren-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>sorted-children [sel/sw/parseable]</strong> <em>ast</em></dt>
+<dd><p>Return the children of AST sorted in textual order.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003asource_002dtext"></span><dl>
+<dt id="index-source_002dtext-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>source-text [sel/sw/parseable]</strong> <em>ast &amp;key stream parents indent-p indentation-ast &amp;allow-other-keys</em></dt>
+<dd><p>Return the source code corresponding to an AST,
+optionally writing to <code>stream</code>.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fparseable_003astored_002dhash"></span><dl>
+<dt id="index-stored_002dhash-_005bsel_002fsw_002fparseable_005d">Class: <strong>stored-hash [sel/sw/parseable]</strong></dt>
+<dd><p>Class precedence list: <code>stored-hash, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>stored-hash</code> &mdash; initarg: <code><span class="nolinebreak">:stored-hash</span><!-- /@w --></code>
+
+<p>A cached hash.
+</p></li></ul>
+
+<p>Mixin for stored-hash slot
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fparseable_003ato_002dalist"></span><dl>
+<dt id="index-to_002dalist-_005bsel_002fsw_002fparseable_005d">Generic Function: <strong>to-alist [sel/sw/parseable]</strong> <em>struct</em></dt>
+<dd><p>Convert struct to alist representation.
+</p></dd></dl>
+
+<hr>
+<div class="header">
+<p>
+Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fPARSEABLE_002dPROJECT.html" accesskey="n" rel="next">SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/PARSEABLE-PROJECT</a>, Previous: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fNON_002dHOMOLOGOUS_002dPARSEABLE.html" accesskey="p" rel="prev">SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/NON-HOMOLOGOUS-PARSEABLE</a>, Up: <a href="Software-Evolution-Library-Index.html" accesskey="u" rel="up">Software Evolution Library Index</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+
+
+
+</body>
+</html>

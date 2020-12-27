@@ -1,2 +1,0 @@
-int * volatile x;
-

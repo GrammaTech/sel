@@ -1,0 +1,100 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- This file documents the Software Evolution library
+
+Copyright (C) 2014-2018 Eric Schulte and GrammaTech
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
+A copy of the license is included in the section entitled
+"GNU Free Documentation License." -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>SOFTWARE-EVOLUTION-LIBRARY/UTILITY/GIT (Software Evolution Library)</title>
+
+<meta name="description" content="SOFTWARE-EVOLUTION-LIBRARY/UTILITY/GIT (Software Evolution Library)">
+<meta name="keywords" content="SOFTWARE-EVOLUTION-LIBRARY/UTILITY/GIT (Software Evolution Library)">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<link href="index.html" rel="start" title="Top">
+<link href="Combined-Index.html" rel="index" title="Combined Index">
+<link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
+<link href="Software-Evolution-Library-Index.html" rel="up" title="Software Evolution Library Index">
+<link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fUTILITY_002fJSON.html" rel="next" title="SOFTWARE-EVOLUTION-LIBRARY/UTILITY/JSON">
+<link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fUTILITY_002fDEBUG.html" rel="prev" title="SOFTWARE-EVOLUTION-LIBRARY/UTILITY/DEBUG">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fUTILITY_002fGIT"></span><div class="header">
+<p>
+Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fUTILITY_002fJSON.html" accesskey="n" rel="next">SOFTWARE-EVOLUTION-LIBRARY/UTILITY/JSON</a>, Previous: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fUTILITY_002fDEBUG.html" accesskey="p" rel="prev">SOFTWARE-EVOLUTION-LIBRARY/UTILITY/DEBUG</a>, Up: <a href="Software-Evolution-Library-Index.html" accesskey="u" rel="up">Software Evolution Library Index</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fUTILITY_002fGIT-1"></span><h3 class="section">A.58 SOFTWARE-EVOLUTION-LIBRARY/UTILITY/GIT</h3>
+<span id="Generic_002dFunction-sel_002futility_002fgit_003acurrent_002dgit_002dbranch"></span><dl>
+<dt id="index-current_002dgit_002dbranch-_005bsel_002futility_002fgit_005d">Generic Function: <strong>current-git-branch [sel/utility/git]</strong> <em>repository</em></dt>
+<dd><p>Return the current git branch by directly reading git data on disk.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002futility_002fgit_003acurrent_002dgit_002dcommit"></span><dl>
+<dt id="index-current_002dgit_002dcommit-_005bsel_002futility_002fgit_005d">Generic Function: <strong>current-git-commit [sel/utility/git]</strong> <em>repository</em></dt>
+<dd><p>Return the current git commit by directly reading git data on disk.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002futility_002fgit_003acurrent_002dgit_002dstatus"></span><dl>
+<dt id="index-current_002dgit_002dstatus-_005bsel_002futility_002fgit_005d">Generic Function: <strong>current-git-status [sel/utility/git]</strong> <em>directory</em></dt>
+<dd><p>Return the git status of <code>directory</code> as a list of lists of (status file).
+Return nil if there are no modified, untracked, or deleted files.
+</p></dd></dl>
+<span id="Class-sel_002futility_002fgit_003agit"></span><dl>
+<dt id="index-git-_005bsel_002futility_002fgit_005d">Class: <strong>git [sel/utility/git]</strong></dt>
+<dd><p>Class precedence list: <code>git, standard-object, slot-object, t</code>
+</p>
+<p>An object to represent a git repository.
+</p></dd></dl>
+<span id="Function-sel_002futility_002fgit_003agit_002durl_002dp"></span><dl>
+<dt id="index-git_002durl_002dp-_005bsel_002futility_002fgit_005d">Function: <strong>git-url-p [sel/utility/git]</strong> <em>url</em></dt>
+<dd><p>Return nil if <code>url</code> does not look like a <code>url</code> to a git valid remote.
+</p></dd></dl>
+<span id="Function-sel_002futility_002fgit_003amake_002dgit"></span><dl>
+<dt id="index-make_002dgit-_005bsel_002futility_002fgit_005d">Function: <strong>make-git [sel/utility/git]</strong> <em>local-directory &amp;key remote ssh-key clone-args</em></dt>
+<dd><p>Make a git object in <code>local-directory</code>.
+If <code>remote</code> is specified clone from <code>remote</code> into <code>local-directory</code>.  If
+<code>local-directory</code> exists it should be part of or under a git repository.
+If <code>local-directory</code> does not exist it will be created and a fresh git
+repository will be initialized therein.  A username and password may
+be specified as part of the <code>remote</code> <code>url</code>.  <code>e</code>.g. as
+&rsquo;https://USERNAME:PASSWORD@github.com/path/to/repo.git&rsquo;.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002futility_002fgit_003arun"></span><dl>
+<dt id="index-run-_005bsel_002futility_002fgit_005d">Generic Function: <strong>run [sel/utility/git]</strong> <em>git command &amp;rest arguments</em></dt>
+<dd><p>Run the git command <code>command</code> in the git repository <code>git</code>.
+</p></dd></dl>
+
+
+
+
+</body>
+</html>

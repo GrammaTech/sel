@@ -21,7 +21,7 @@ A copy of the license is included in the section entitled
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
 <link href="index.html" rel="start" title="Top">
-<link href="Index.html" rel="index" title="Index">
+<link href="Combined-Index.html" rel="index" title="Combined Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
 <link href="Super_002dMutants.html" rel="up" title="Super-Mutants">
 <link href="Utilities.html" rel="next" title="Utilities">
@@ -51,14 +51,14 @@ ul.no-bullet {list-style: none}
 <body lang="en">
 <span id="ASM-Super_002dMutants"></span><div class="header">
 <p>
-Next: <a href="Utilities.html" accesskey="n" rel="next">Utilities</a>, Previous: <a href="Clang-Super_002dMutants.html" accesskey="p" rel="prev">Clang Super-Mutants</a>, Up: <a href="Super_002dMutants.html" accesskey="u" rel="up">Super-Mutants</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
+Previous: <a href="Clang-Super_002dMutants.html" accesskey="p" rel="prev">Clang Super-Mutants</a>, Up: <a href="Super_002dMutants.html" accesskey="u" rel="up">Super-Mutants</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<span id="ASM-Super-Mutants"></span><h4 class="subsection">3.8.2 ASM Super Mutants</h4>
+<span id="ASM-Super-Mutants"></span><h4 class="subsection">3.5.2 ASM Super Mutants</h4>
 <span id="index-asm_002dsuper_002dmutants"></span>
 
 
-<span id="asm_002dsuper_002dmutant-Overview"></span><h4 class="subsubsection">3.8.2.1 <code>asm-super-mutant</code> Overview</h4>
+<span id="asm_002dsuper_002dmutant-Overview"></span><h4 class="subsubsection">3.5.2.1 <code>asm-super-mutant</code> Overview</h4>
 
 <p><code>asm-super-mutant</code> software objects are designed to provide the
 benefits of <code>super-mutant</code> to assembly programs.  Its primary
@@ -86,7 +86,7 @@ the overall program (returned by CREATE-TARGET).
 of <code>mutants</code>, each one being an instance of the <code>asm-heap</code> software
 object.  Each <code>mutant</code> is a variant of the target function.
 </p>
-<span id="Fitness-Evaluation"></span><h4 class="subsubsection">3.8.2.2 Fitness Evaluation</h4>
+<span id="Fitness-Evaluation"></span><h4 class="subsubsection">3.5.2.2 Fitness Evaluation</h4>
 
 <p>To perform fitness evaluation, the <code>asm-supermutant</code> performs the
 following steps:
@@ -136,7 +136,7 @@ following steps:
   can be obtained with the <code>fitness</code> method.
 
 </li></ul>
-<span id="Tool-Dependencies"></span><h4 class="subsubsection">3.8.2.3 Tool Dependencies</h4>
+<span id="Tool-Dependencies"></span><h4 class="subsubsection">3.5.2.3 Tool Dependencies</h4>
 
 <p>The <code>asm-super-mutant</code> currently depends upon:
 </p><ul>
@@ -155,7 +155,7 @@ variants, uses Intel-format assembly code (Nasm-compatible).
 In the near future we are planning to switch to <code>at&amp;t</code> assembler syntax
 and to replace Nasm with a more efficient assembler.
 </p>
-<span id="i_002do_002dfile_002dformat"></span><span id="I_002fO-File-Format"></span><h4 class="subsubsection">3.8.2.4 I/O File Format</h4>
+<span id="i_002do_002dfile_002dformat"></span><span id="I_002fO-File-Format"></span><h4 class="subsubsection">3.5.2.4 I/O File Format</h4>
 
 <p>The file is <code>ascii</code>.  In internal tests it s generated using the <code>ibm</code>
 <code>pin</code> tool to observe the execution of a binary program on a test
@@ -219,7 +219,7 @@ the byte at 0x7fbbc1fcf769 has value 0x7c, and so forth
 are live (indicated with &quot;v&quot;) while 0x7fbbc1fcf768 is not
 (indicated with &quot;.&quot;).
 </p>
-<span id="Components-2"></span><h4 class="subsubsection">3.8.2.5 Components</h4>
+<span id="Components-2"></span><h4 class="subsubsection">3.5.2.5 Components</h4>
 
 <p><code>asm-super-mutant</code> software object consists of:
 </p>
@@ -252,7 +252,7 @@ struct for both).
   method.
 
 </li></ul>
-<span id="Current-Limitations"></span><h4 class="subsubsection">3.8.2.6 Current Limitations</h4>
+<span id="Current-Limitations"></span><h4 class="subsubsection">3.5.2.6 Current Limitations</h4>
 
 <ul>
 <li> Functions which use floating point data as input or outputs will
@@ -270,7 +270,7 @@ struct for both).
   resulting in all variants to come back as +worst-c-fitness+.
 
 </li></ul>
-<span id="Installing-PAPI-on-Ubuntu"></span><h4 class="subsubsection">3.8.2.7 Installing PAPI on Ubuntu</h4>
+<span id="Installing-PAPI-on-Ubuntu"></span><h4 class="subsubsection">3.5.2.7 Installing PAPI on Ubuntu</h4>
 <p>Fitness evaluation requires the PAPI component and the Linux Perf
 functionality. Building the fitness evaluation program (on the fly
 during fitness evaluation) requires a C program to compile and link
@@ -326,7 +326,7 @@ locations:
 <hr>
 <div class="header">
 <p>
-Next: <a href="Utilities.html" accesskey="n" rel="next">Utilities</a>, Previous: <a href="Clang-Super_002dMutants.html" accesskey="p" rel="prev">Clang Super-Mutants</a>, Up: <a href="Super_002dMutants.html" accesskey="u" rel="up">Super-Mutants</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
+Previous: <a href="Clang-Super_002dMutants.html" accesskey="p" rel="prev">Clang Super-Mutants</a>, Up: <a href="Super_002dMutants.html" accesskey="u" rel="up">Super-Mutants</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 
 

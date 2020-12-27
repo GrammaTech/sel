@@ -1,0 +1,136 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- This file documents the Software Evolution library
+
+Copyright (C) 2014-2018 Eric Schulte and GrammaTech
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
+A copy of the license is included in the section entitled
+"GNU Free Documentation License." -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Inherited Indentation indentation (Software Evolution Library)</title>
+
+<meta name="description" content="Inherited Indentation indentation (Software Evolution Library)">
+<meta name="keywords" content="Inherited Indentation indentation (Software Evolution Library)">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<link href="index.html" rel="start" title="Top">
+<link href="Combined-Index.html" rel="index" title="Combined Index">
+<link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
+<link href="Software-Objects.html" rel="up" title="Software Objects">
+<link href="Software-Methods.html" rel="next" title="Software Methods">
+<link href="Lighter-asm-alternatives-light_002frange_002fdiff.html" rel="prev" title="Lighter asm alternatives light/range/diff">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<span id="Inherited-Indentation-indentation"></span><div class="header">
+<p>
+Previous: <a href="Lighter-asm-alternatives-light_002frange_002fdiff.html" accesskey="p" rel="prev">Lighter asm alternatives <code>light</code>/<code>range</code>/<code>diff</code></a>, Up: <a href="Software-Objects.html" accesskey="u" rel="up">Software Objects</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+
+<span id="Inherited-Indentation"></span><h4 class="subsection">2.1.12 Inherited Indentation</h4>
+
+<p>The insertion and removal of ASTs in a software object often results
+in indentation that doesn&rsquo;t match the surrounding code. The indentation
+mix-in can be used to address these situations and help prevent
+undesirable indentation by maintaining the expected indentation when an AST
+is inserted into a new position. This is accomplished by storing the current
+line&rsquo;s indentation, and the amount of indentation that should be propagated
+to children and the difference between the indentation provided by all of
+the AST&rsquo;s parents. To simplify the implementation, all tabs are treated
+as spaces.
+</p>
+<span id="Mix_002dins"></span><h4 class="subsubheading">Mix-ins</h4>
+
+<p>The ability to reinsert tabs is provided through the software-indentation
+mix-in. The following slots are provided:
+</p>
+<ul>
+<li> <code>'spaces-per-tab</code>
+    A number that indicates how many spaces each tab is worth.
+    The initial form is 4.
+
+</li><li> <code>'indent-with-tabs-p</code>
+    A boolean value indicating whether tabs should be used over spaces. The
+    initial form is nil.
+
+</li></ul>
+<p>The ast-indentation mix-in is used to add indentation information to an AST.
+It provided the following slots:
+</p>
+<ul>
+<li> <code>'indent-children</code>
+    A number that indicates how many spaces should be added after newlines
+    the precede a child of the AST. The value <code>'t</code> can be provided,
+    and the slot&rsquo;s value will be populated lazily with its parent&rsquo;s value or
+    a sane default based on the rest of the file. The initial form is 0.
+
+</li><li> <code>'indent-adjustment</code>
+    A number that indicates the difference in indentation provided by an
+    AST&rsquo;s parents and the spaces on its current line. This value is also
+    added to the indentation given to children. The value <code>'match-parent</code>
+    can be provided, and a value will instead be used that will match the
+    indentation of the current line with that of its parent. The initial
+    form is 0.
+
+</li></ul>
+<span id="Parsing"></span><h4 class="subsubheading">Parsing</h4>
+<p>When using the indentation mix-in for software, the parser for the
+language needs to be modified to not insert whitespace after newlines,
+instead opting for storing this information in the indentation slots of an
+AST. This is accomplished by tracking the indentation that each AST provides
+to its children. When a newline is reached for a child, the current
+indentation provided by all of its parents is compared to the indentation
+provided for the child. If the indentation is different, the difference is
+used to to set either the parent&rsquo;s indent-children slot when it hasn&rsquo;t been
+changed from the default value or the indent-adjustment slot of the
+child otherwise.
+</p>
+<span id="Converting-to-Text"></span><h4 class="subsubheading">Converting to Text</h4>
+<p>The source-text method also needs to be modified when using the indentation
+mix-in. While converting an AST to text, the interleaved text needs to be
+examined for newlines. When a newline is found in a string and nothing
+follows it, the next AST reached determines the amount of indentation
+needed. This will be the indentation provided by the indentation slots of
+all of its parents plus the indentation provided by its indent-adjustment
+slot. If a newline is found in a string and other text follows it,
+indentation is added that matches the current indentation of its parent.
+</p>
+
+<hr>
+<div class="header">
+<p>
+Previous: <a href="Lighter-asm-alternatives-light_002frange_002fdiff.html" accesskey="p" rel="prev">Lighter asm alternatives <code>light</code>/<code>range</code>/<code>diff</code></a>, Up: <a href="Software-Objects.html" accesskey="u" rel="up">Software Objects</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+
+
+
+</body>
+</html>

@@ -1,0 +1,81 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- This file documents the Software Evolution library
+
+Copyright (C) 2014-2018 Eric Schulte and GrammaTech
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
+A copy of the license is included in the section entitled
+"GNU Free Documentation License." -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>SOFTWARE-EVOLUTION-LIBRARY/UTILITY/DEBUG (Software Evolution Library)</title>
+
+<meta name="description" content="SOFTWARE-EVOLUTION-LIBRARY/UTILITY/DEBUG (Software Evolution Library)">
+<meta name="keywords" content="SOFTWARE-EVOLUTION-LIBRARY/UTILITY/DEBUG (Software Evolution Library)">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<link href="index.html" rel="start" title="Top">
+<link href="Combined-Index.html" rel="index" title="Combined Index">
+<link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
+<link href="Software-Evolution-Library-Index.html" rel="up" title="Software Evolution Library Index">
+<link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fUTILITY_002fGIT.html" rel="next" title="SOFTWARE-EVOLUTION-LIBRARY/UTILITY/GIT">
+<link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fWITH_002dEXE.html" rel="prev" title="SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/WITH-EXE">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fUTILITY_002fDEBUG"></span><div class="header">
+<p>
+Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fUTILITY_002fGIT.html" accesskey="n" rel="next">SOFTWARE-EVOLUTION-LIBRARY/UTILITY/GIT</a>, Previous: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fWITH_002dEXE.html" accesskey="p" rel="prev">SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/WITH-EXE</a>, Up: <a href="Software-Evolution-Library-Index.html" accesskey="u" rel="up">Software Evolution Library Index</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fUTILITY_002fDEBUG-1"></span><h3 class="section">A.57 SOFTWARE-EVOLUTION-LIBRARY/UTILITY/DEBUG</h3>
+<span id="Variable-sel_002futility_002fdebug_003a_002acompile_002dw_002ftracing_002a"></span><dl>
+<dt id="index-_002acompile_002dw_002ftracing_002a-_005bsel_002futility_002fdebug_005d">Variable: <strong>*compile-w/tracing* [sel/utility/debug]</strong></dt>
+<dd><p>Controls compilation of tracing information with the &lsquo;traced&rsquo; macro.
+</p></dd></dl>
+<span id="Variable-sel_002futility_002fdebug_003a_002anote_002dlevel_002a"></span><dl>
+<dt id="index-_002anote_002dlevel_002a-_005bsel_002futility_002fdebug_005d">Variable: <strong>*note-level* [sel/utility/debug]</strong></dt>
+<dd><p>Enables execution notes.
+</p></dd></dl>
+<span id="Variable-sel_002futility_002fdebug_003a_002anote_002dout_002a"></span><dl>
+<dt id="index-_002anote_002dout_002a-_005bsel_002futility_002fdebug_005d">Variable: <strong>*note-out* [sel/utility/debug]</strong></dt>
+<dd><p>Targets of notation.
+</p></dd></dl>
+<span id="Macro-sel_002futility_002fdebug_003atraced"></span><dl>
+<dt id="index-traced-_005bsel_002futility_002fdebug_005d">Macro: <strong>traced [sel/utility/debug]</strong> <em>(fn &amp;rest args)</em></dt>
+<dd><p>Trace wrapped function call when &lsquo;*compile-w/tracing*&rsquo; is non-nil.
+This is useful for &lsquo;flet&rsquo; and &lsquo;labels&rsquo; functions which can&rsquo;t be traced
+with &lsquo;cl-user:trace&rsquo;.
+</p></dd></dl>
+
+
+
+
+</body>
+</html>

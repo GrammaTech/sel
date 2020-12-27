@@ -21,7 +21,7 @@ A copy of the license is included in the section entitled
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
 <link href="index.html" rel="start" title="Top">
-<link href="Index.html" rel="index" title="Index">
+<link href="Combined-Index.html" rel="index" title="Combined Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
 <link href="Super_002dMutants.html" rel="up" title="Super-Mutants">
 <link href="ASM-Super_002dMutants.html" rel="next" title="ASM Super-Mutants">
@@ -51,10 +51,10 @@ ul.no-bullet {list-style: none}
 <body lang="en">
 <span id="Clang-Super_002dMutants"></span><div class="header">
 <p>
-Next: <a href="ASM-Super_002dMutants.html" accesskey="n" rel="next">ASM Super-Mutants</a>, Previous: <a href="Super_002dMutants.html" accesskey="p" rel="prev">Super-Mutants</a>, Up: <a href="Super_002dMutants.html" accesskey="u" rel="up">Super-Mutants</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
+Next: <a href="ASM-Super_002dMutants.html" accesskey="n" rel="next">ASM Super-Mutants</a>, Previous: <a href="Super_002dMutants.html" accesskey="p" rel="prev">Super-Mutants</a>, Up: <a href="Super_002dMutants.html" accesskey="u" rel="up">Super-Mutants</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<span id="Clang-Super_002dMutants-1"></span><h4 class="subsection">3.8.1 Clang Super-Mutants</h4>
+<span id="Clang-Super_002dMutants-1"></span><h4 class="subsection">3.5.1 Clang Super-Mutants</h4>
 <span id="index-clang_002dsuper_002dmutants"></span>
 
 <p>Super mutants composed of <code>clang</code> and <code>clang-project</code> software objects
@@ -64,7 +64,7 @@ objects, and wrapping the bodies of those functions in <code>switch</code>
 statements switching on the value of an environment variable which
 controls which mutant is exercised in any given execution.
 </p>
-<span id="Interactions-Between-Mutants"></span><h4 class="subsubsection">3.8.1.1 Interactions Between Mutants</h4>
+<span id="Interactions-Between-Mutants"></span><h4 class="subsubsection">3.5.1.1 Interactions Between Mutants</h4>
 
 <p>When combining multiple genomes, there is some risk of
 interactions between the individual mutants. These primarily
@@ -82,7 +82,7 @@ should also compile, and its runtime behavior should be
 functionally indistinguishable from that of the individual
 mutants.
 </p>
-<span id="Performance-Considerations"></span><h4 class="subsubsection">3.8.1.2 Performance Considerations</h4>
+<span id="Performance-Considerations"></span><h4 class="subsubsection">3.5.1.2 Performance Considerations</h4>
 
 <p>The super-mutant genome will introduce a <code>getenv</code> call and a <code>switch</code>
 statement. If these are placed in a performance-critical function,
@@ -103,7 +103,7 @@ can lead to wasted mutations.
 <hr>
 <div class="header">
 <p>
-Next: <a href="ASM-Super_002dMutants.html" accesskey="n" rel="next">ASM Super-Mutants</a>, Previous: <a href="Super_002dMutants.html" accesskey="p" rel="prev">Super-Mutants</a>, Up: <a href="Super_002dMutants.html" accesskey="u" rel="up">Super-Mutants</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
+Next: <a href="ASM-Super_002dMutants.html" accesskey="n" rel="next">ASM Super-Mutants</a>, Previous: <a href="Super_002dMutants.html" accesskey="p" rel="prev">Super-Mutants</a>, Up: <a href="Super_002dMutants.html" accesskey="u" rel="up">Super-Mutants</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 
 

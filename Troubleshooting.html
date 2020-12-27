@@ -21,10 +21,10 @@ A copy of the license is included in the section entitled
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
 <link href="index.html" rel="start" title="Top">
-<link href="Index.html" rel="index" title="Index">
+<link href="Combined-Index.html" rel="index" title="Combined Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
 <link href="index.html" rel="up" title="Top">
-<link href="SEL-API.html" rel="next" title="SEL API">
+<link href="Software-Evolution-Library-Index.html" rel="next" title="Software Evolution Library Index">
 <link href="Repair.html" rel="prev" title="Repair">
 <style type="text/css">
 <!--
@@ -51,7 +51,7 @@ ul.no-bullet {list-style: none}
 <body lang="en">
 <span id="Troubleshooting"></span><div class="header">
 <p>
-Next: <a href="SEL-API.html" accesskey="n" rel="next">SEL API</a>, Previous: <a href="Usage.html" accesskey="p" rel="prev">Usage</a>, Up: <a href="index.html" accesskey="u" rel="up">Top</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
+Next: <a href="Software-Evolution-Library-Index.html" accesskey="n" rel="next">Software Evolution Library Index</a>, Previous: <a href="Repair.html" accesskey="p" rel="prev">Repair</a>, Up: <a href="index.html" accesskey="u" rel="up">Top</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
 <span id="Troubleshooting-1"></span><h2 class="chapter">6 Troubleshooting</h2>
@@ -67,24 +67,9 @@ Next: <a href="SEL-API.html" accesskey="n" rel="next">SEL API</a>, Previous: <a 
 <span id="troubleshooting_002dbuild"></span><span id="Troubleshooting-Build-Issues"></span><h3 class="section">6.1 Troubleshooting Build Issues</h3>
 
 <ul>
-<li> <a href="#troubleshoot_002dinstrumented_002dcompilation_002dlong">           It takes a long time to compile an instrumented project</a>
-</li><li> <a href="#troubleshoot_002dcurry_002dcompose_002dreader_002dmacros">           <code>CURRY-COMPOSE-READER-MACROS  LCURLY-BRACE-READER</code> is undefined</a>
+<li> <a href="#troubleshoot_002dcurry_002dcompose_002dreader_002dmacros">           <code>CURRY-COMPOSE-READER-MACROS  LCURLY-BRACE-READER</code> is undefined</a>
 </li><li> <a href="#troubleshoot_002ddelete_002dcache_002dfiles">Deleting cache files</a>
 </li></ul>
-
-
-<span id="troubleshoot_002dinstrumented_002dcompilation_002dlong"></span><span id="It-takes-a-long-time-to-compile-an-instrumented-project"></span><h4 class="subheading">It takes a long time to compile an instrumented project</h4>
-
-<p>Instrumentation may add thousands of lines of code to your project, leading
-to a dramatic increase in compilation time.
-</p>
-<p>The following will often speed up compilation.
-</p>
-<ul>
-<li> Use clang as your compiler.
-</li><li> Compile without optimizations enabled (<code>-O0</code>).
-</li></ul>
-
 
 <span id="troubleshoot_002dcurry_002dcompose_002dreader_002dmacros"></span><span id="CURRY_002dCOMPOSE_002dREADER_002dMACROS_003a_003aLCURLY_002dBRACE_002dREADER-is-undefined"></span><h4 class="subheading"><code>CURRY-COMPOSE-READER-MACROS::LCURLY-BRACE-READER</code> is undefined</h4>
 
@@ -121,7 +106,6 @@ it may be necessary to delete the cache.
 <ul>
 <li> <a href="#troubleshoot_002dunit_002dtest_002dresults">           Did all unit tests pass?</a>
 </li><li> <a href="#troubleshoot_002dlarge_002dnumber_002dtest_002dfailures">           There are many test failures</a>
-</li><li> <a href="#troubleshoot_002dcross_002dcompile">           Unit tests aren&rsquo;t running on my 64-bit machine</a>
 </li></ul>
 
 <span id="troubleshoot_002dunit_002dtest_002dresults"></span><span id="Did-all-unit-tests-pass_003f"></span><h4 class="subheading">Did all unit tests pass?</h4>
@@ -144,41 +128,26 @@ is missing.  To debug, try the following.
 
 </li><li> Execute
 <div class="example">
-<pre class="example">clang -m32 -g -O0 test/etc/hello-world/hello_world.c
+<pre class="example">clang -g -O0 test/etc/hello-world/hello_world.c
 </pre></div>
 
 </li></ol>
 
 <p>If the above fails, the unit test failure is due to an external
-tool failing.  To debug the issue:
+tool failing.  Ensure clang and the compiler toolchain is
+properly installed on your system.
 </p>
-<ol>
-<li> If you are testing on a 64-bit system, ensure it can compile 32-bit
-binaries. If necessary, follow the instructions in
-<a href="#troubleshoot_002dcross_002dcompile">Unit tests aren&rsquo;t running on my 64-bit
-machine</a> to enable cross-compilation.
-
-</li><li> If problems persist, consult the documentation for the external tools
-to debug the issue.
-
-</li></ol>
 
 
-<span id="troubleshoot_002dcross_002dcompile"></span><span id="Unit-tests-aren_0027t-running-on-my-64_002dbit-machine"></span><h4 class="subheading">Unit tests aren&rsquo;t running on my 64-bit machine</h4>
 
-<p>SEL builds 32-bit binaries for most unit tests.
-</p>
-<p>If you are running tests on a 64-bit machine, you must enable
-cross-compilation by executing
-</p>
-<div class="example">
-<pre class="example">sudo apt-get install gcc-multilib g++-multilib
-</pre></div>
+
+
+
 
 <hr>
 <div class="header">
 <p>
-Next: <a href="SEL-API.html" accesskey="n" rel="next">SEL API</a>, Previous: <a href="Usage.html" accesskey="p" rel="prev">Usage</a>, Up: <a href="index.html" accesskey="u" rel="up">Top</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
+Next: <a href="Software-Evolution-Library-Index.html" accesskey="n" rel="next">Software Evolution Library Index</a>, Previous: <a href="Repair.html" accesskey="p" rel="prev">Repair</a>, Up: <a href="index.html" accesskey="u" rel="up">Top</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 
 

@@ -21,7 +21,7 @@ A copy of the license is included in the section entitled
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
 <link href="index.html" rel="start" title="Top">
-<link href="Index.html" rel="index" title="Index">
+<link href="Combined-Index.html" rel="index" title="Combined Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
 <link href="Components.html" rel="up" title="Components">
 <link href="Clang-C-Tokenizer.html" rel="next" title="Clang C Tokenizer">
@@ -51,7 +51,7 @@ ul.no-bullet {list-style: none}
 <body lang="en">
 <span id="Style-Features"></span><div class="header">
 <p>
-Next: <a href="Clang-C-Tokenizer.html" accesskey="n" rel="next">Clang C Tokenizer</a>, Previous: <a href="Multi_002dobjective-Fitness.html" accesskey="p" rel="prev">Multi-objective Fitness</a>, Up: <a href="Components.html" accesskey="u" rel="up">Components</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
+Next: <a href="Clang-C-Tokenizer.html" accesskey="n" rel="next">Clang C Tokenizer</a>, Previous: <a href="Multi_002dobjective-Fitness.html" accesskey="p" rel="prev">Multi-objective Fitness</a>, Up: <a href="Components.html" accesskey="u" rel="up">Components</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
 <span id="Style-Features-1"></span><h3 class="section">3.3 Style Features</h3>
@@ -72,15 +72,14 @@ features of the surrounding source code.
 <span id="API-Support-for-Style-Features"></span><h4 class="subsection">3.3.1 API Support for Style Features</h4>
 
 <p>API support for style features is documented in the entries for classes
-<a href="SEL-Concept-Index.html#api_002dstyle_002dfeatures_002dclass_002dstyle_002dfeature"><code>style-feature</code></a>,
-<a href="SEL-Concept-Index.html#api_002dstyle_002dfeatures_002dclass_002dstyleable"><code>styleable</code></a>, and
-<a href="SEL-Concept-Index.html#api_002dstyle_002dfeatures_002dclass_002dstyle_002dproject"><code>style-project</code></a>. We provide a brief
+<a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fSTYLEABLE.html#Class-sel_002fsw_002fstyleable_003astyle_002dfeature"><code>sel/sw/styleable:style-feature</code></a>,
+<a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fSTYLEABLE.html#Class-sel_002fsw_002fstyleable_003astyleable"><code>sel/sw/styleable:styleable</code></a>, and
+<a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fSTYLEABLE.html#Class-sel_002fsw_002fstyleable_003astyle_002dproject"><code>sel/sw/styleable:style-project</code></a>. We provide a brief
 overview here.
 </p>
-
-<p>To extract the set of <a href="SEL-Concept-Index.html#api_002dstyle_002dfeatures_002dvectors">feature vectors</a>
-from a <a href="software_002devolution_002dlibrary.html#Class-software"><code>software</code></a> object use
-<a href="sel_002dsw_002dstyleable.html#Generic_002dFunction-extract_002dfeatures"><code>extract-features</code></a>,
+<p>To extract the set of feature vectors
+from a <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002dEVOLUTION_002dLIBRARY.html#Class-sel_003asoftware"><code>software</code></a> object use
+<a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fSTYLEABLE.html#Generic_002dFunction-sel_002fsw_002fstyleable_003aextract_002dfeatures"><code>extract-features</code></a>,
 providing a software object and a list of feature extractor functions.
 </p>
 <p>Each feature extractor function is expected to operate on a clang
@@ -92,21 +91,20 @@ is the result of concatenating all of these vectors in order.
 software objects, i.e., features derived from properties of a clang
 AST. The available feature extractors are:
 </p><ul>
-<li> <a href="SEL-Concept-Index.html#api_002dclang_002dfeature_002dextractors">Included in the API documentation</a>.
-</li><li> Listed in parameter <a href="sel_002dsw_002dstyleable.html#Variable-_002afeature_002dextractors_002a"><code>*feature-extractors*</code></a>.
+<li> Listed in parameter <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fSTYLEABLE.html#Variable-sel_002fsw_002fstyleable_003a_002afeature_002dextractors_002a"><code>*feature-extractors*</code></a>.
 </li><li> Summarized in the following table.
 
 
 <table>
-<tr><td><a href="sel_002dsw_002dstyleable.html#Generic_002dFunction-ast_002dnode_002dtype_002dtf_002dextractor">      <code>ast-node-type-tf-extractor</code></a></td><td>number of nodes of each different ast-class (e.g., IfStmt
+<tr><td><a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fSTYLEABLE.html#Generic_002dFunction-sel_002fsw_002fstyleable_003aast_002dnode_002dtype_002dtf_002dextractor">      <code>ast-node-type-tf-extractor</code></a></td><td>number of nodes of each different ast-class (e.g., IfStmt
 or DeclStmt) in the AST.</td></tr>
-<tr><td><a href="sel_002dsw_002dstyleable.html#Generic_002dFunction-max_002ddepth_002dast_002dextractor">      <code>max-depth-ast-extractor</code></a></td><td>maximum depth of any node in the AST.</td></tr>
-<tr><td><a href="sel_002dsw_002dstyleable.html#Generic_002dFunction-avg_002ddepth_002dast_002dextractor">           <code>avg-depth-ast-extractor</code></a></td><td>the average depth of nodes in the AST.</td></tr>
-<tr><td><a href="sel_002dsw_002dstyleable.html#Generic_002dFunction-ast_002dfull_002dstmt_002dbi_002dgrams_002dextractor">              <code>ast-full-stmt-bi-grams-extractor</code></a></td><td>the number of occurrences of each ast-class bi-gram for
+<tr><td><a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fSTYLEABLE.html#Generic_002dFunction-sel_002fsw_002fstyleable_003amax_002ddepth_002dast_002dextractor">      <code>max-depth-ast-extractor</code></a></td><td>maximum depth of any node in the AST.</td></tr>
+<tr><td><a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fSTYLEABLE.html#Generic_002dFunction-sel_002fsw_002fstyleable_003aavg_002ddepth_002dast_002dextractor">           <code>avg-depth-ast-extractor</code></a></td><td>the average depth of nodes in the AST.</td></tr>
+<tr><td><a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fSTYLEABLE.html#Generic_002dFunction-sel_002fsw_002fstyleable_003aast_002dfull_002dstmt_002dbi_002dgrams_002dextractor">              <code>ast-full-stmt-bi-grams-extractor</code></a></td><td>the number of occurrences of each ast-class bi-gram for
            full statements in the AST.</td></tr>
-<tr><td><a href="sel_002dsw_002dstyleable.html#Generic_002dFunction-ast_002dbi_002dgrams_002dextractor">           <code>ast-bi-grams-extractor</code></a></td><td>the number of occurrences of each ast-class bi-gram in the
+<tr><td><a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fSTYLEABLE.html#Generic_002dFunction-sel_002fsw_002fstyleable_003aast_002dbi_002dgrams_002dextractor">           <code>ast-bi-grams-extractor</code></a></td><td>the number of occurrences of each ast-class bi-gram in the
            AST.</td></tr>
-<tr><td><a href="sel_002dsw_002dstyleable.html#Generic_002dFunction-ast_002dkeyword_002dtf_002dextractor">              <code>ast-keyword-tf-extractor</code></a></td><td>for each C keyword, the number of occurrences of that
+<tr><td><a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fSTYLEABLE.html#Generic_002dFunction-sel_002fsw_002fstyleable_003aast_002dkeyword_002dtf_002dextractor">              <code>ast-keyword-tf-extractor</code></a></td><td>for each C keyword, the number of occurrences of that
            keyword in the AST.</td></tr>
 </table>
 
@@ -117,7 +115,7 @@ or DeclStmt) in the AST.</td></tr>
 <hr>
 <div class="header">
 <p>
-Next: <a href="Clang-C-Tokenizer.html" accesskey="n" rel="next">Clang C Tokenizer</a>, Previous: <a href="Multi_002dobjective-Fitness.html" accesskey="p" rel="prev">Multi-objective Fitness</a>, Up: <a href="Components.html" accesskey="u" rel="up">Components</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
+Next: <a href="Clang-C-Tokenizer.html" accesskey="n" rel="next">Clang C Tokenizer</a>, Previous: <a href="Multi_002dobjective-Fitness.html" accesskey="p" rel="prev">Multi-objective Fitness</a>, Up: <a href="Components.html" accesskey="u" rel="up">Components</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 
 

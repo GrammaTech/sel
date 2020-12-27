@@ -21,11 +21,11 @@ A copy of the license is included in the section entitled
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
 <link href="index.html" rel="start" title="Top">
-<link href="Index.html" rel="index" title="Index">
+<link href="Combined-Index.html" rel="index" title="Combined Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
 <link href="index.html" rel="up" title="Top">
 <link href="General-Lisp-Advice.html" rel="next" title="General Lisp Advice">
-<link href="sel_002dcp_002dtraceable.html" rel="prev" title="sel-cp-traceable">
+<link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fVIEW.html" rel="prev" title="SOFTWARE-EVOLUTION-LIBRARY/VIEW">
 <style type="text/css">
 <!--
 a.summary-letter {text-decoration: none}
@@ -51,10 +51,10 @@ ul.no-bullet {list-style: none}
 <body lang="en">
 <span id="ChangeLog"></span><div class="header">
 <p>
-Next: <a href="General-Lisp-Advice.html" accesskey="n" rel="next">General Lisp Advice</a>, Previous: <a href="SEL-API.html" accesskey="p" rel="prev">SEL API</a>, Up: <a href="index.html" accesskey="u" rel="up">Top</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
+Next: <a href="General-Lisp-Advice.html" accesskey="n" rel="next">General Lisp Advice</a>, Previous: <a href="Software-Evolution-Library-Index.html" accesskey="p" rel="prev">Software Evolution Library Index</a>, Up: <a href="index.html" accesskey="u" rel="up">Top</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<span id="ChangeLog-1"></span><h2 class="appendix">Appendix D ChangeLog</h2>
+<span id="ChangeLog-1"></span><h2 class="appendix">Appendix B ChangeLog</h2>
 
 <p>SEL will use <a href="https://semver.org/">semantic versioning</a> to
 determine increments to version numbers.  This ChangeLog will be
@@ -66,12 +66,21 @@ most recent at the top.  Every entry will be named and indexed by date
 and version number.  Working notes may be accumulated in a special
 &ldquo;Unreleased&rdquo; section at the top of the ChangeLog.
 </p>
-<span id="g_t2019_002d03_002d20-v0_002e1_002e3-_002d_002d-Unreleased"></span><h3 class="appendixsec">D.1 2019-03-20 v0.1.3 &ndash; Unreleased</h3>
+<span id="g_t2019_002d03_002d20-v0_002e1_002e3-_002d_002d-Unreleased"></span><h3 class="appendixsec">B.1 2019-03-20 v0.1.3 &ndash; Unreleased</h3>
 <span id="index-changelog_002d2019_002d03_002d20"></span>
 <span id="index-v0_002e1_002e3"></span>
 
 <ul>
-<li> Projects no longer build in temporary directories by default.  Instead
+<li> A new software object implementation for parseable source code has
+been added based on GitHub&rsquo;s tree sitter incremental parsing
+framework.  This replaced the previous JavaScript and Python software
+objects (based on acorn and the built-in Python language parser
+respectively), and adds new non-clang C/C++ software objects.
+
+</li><li> The <code>source</code> software object has been renamed to <code>IR</code> to
+more accurately reflect the types of software it is used to represent.
+
+</li><li> Projects no longer build in temporary directories by default.  Instead
 calls to <code>phenome</code> will now cause projects to re-build in their
 original directory (i.e., <code>project-dir</code>).  There are two ways to
 control this new behavior (and optionally revert to the old behavior).
@@ -83,7 +92,7 @@ customized for any class that is subtypep of project.
 
 </li></ul>
 
-<span id="g_t2018_002d12_002d18-v0_002e1_002e2-_002d_002d-Unreleased"></span><h3 class="appendixsec">D.2 2018-12-18 v0.1.2 &ndash; Unreleased</h3>
+<span id="g_t2018_002d12_002d18-v0_002e1_002e2-_002d_002d-Unreleased"></span><h3 class="appendixsec">B.2 2018-12-18 v0.1.2 &ndash; Unreleased</h3>
 <span id="index-changelog_002d2018_002d12_002d18"></span>
 <span id="index-v0_002e1_002e2"></span>
 
@@ -116,7 +125,7 @@ software projects:
 </li></ul>
 
 
-<span id="g_t2018_002d11_002d30-v0_002e1_002e1-_002d_002d-Unreleased"></span><h3 class="appendixsec">D.3 2018-11-30 v0.1.1 &ndash; Unreleased</h3>
+<span id="g_t2018_002d11_002d30-v0_002e1_002e1-_002d_002d-Unreleased"></span><h3 class="appendixsec">B.3 2018-11-30 v0.1.1 &ndash; Unreleased</h3>
 <span id="index-changelog_002d2018_002d11_002d30"></span>
 <span id="index-v0_002e1_002e1"></span>
 
@@ -130,7 +139,7 @@ Any calls to <code>make-instance</code> with projects must now utilize
 </p>
 </li></ul>
 
-<span id="g_t2018_002d11_002d06-v0_002e1_002e0-_002d_002d-Use-package_002dinferred_002dsystem"></span><h3 class="appendixsec">D.4 2018-11-06 v0.1.0 &ndash; Use package-inferred-system</h3>
+<span id="g_t2018_002d11_002d06-v0_002e1_002e0-_002d_002d-Use-package_002dinferred_002dsystem"></span><h3 class="appendixsec">B.4 2018-11-06 v0.1.0 &ndash; Use package-inferred-system</h3>
 <span id="index-changelog_002d2018_002d11_002d06"></span>
 <span id="index-v0_002e0_002e3"></span>
 
@@ -189,7 +198,7 @@ likely useful for anyone using the clang software object.
 and deprecates the USER_QUICK_LISP environment variable which was
 redundant with the QUICK_LISP environment variable.
 </p>
-<span id="g_t2018_002d10_002d17-v0_002e0_002e2-_002d_002d-Unreleased"></span><h3 class="appendixsec">D.5 2018-10-17 v0.0.2 &ndash; Unreleased</h3>
+<span id="g_t2018_002d10_002d17-v0_002e0_002e2-_002d_002d-Unreleased"></span><h3 class="appendixsec">B.5 2018-10-17 v0.0.2 &ndash; Unreleased</h3>
 <span id="index-changelog_002d2018_002d10_002d17"></span>
 <span id="index-v0_002e0_002e2"></span>
 
@@ -202,7 +211,7 @@ redundant with the QUICK_LISP environment variable.
 </p>
 </li></ul>
 
-<span id="g_t2018_002d08_002d21-v0_002e0_002e1-_002d_002d-Unreleased"></span><h3 class="appendixsec">D.6 2018-08-21 v0.0.1 &ndash; Unreleased</h3>
+<span id="g_t2018_002d08_002d21-v0_002e0_002e1-_002d_002d-Unreleased"></span><h3 class="appendixsec">B.6 2018-08-21 v0.0.1 &ndash; Unreleased</h3>
 <span id="index-changelog_002d2018_002d08_002d21"></span>
 <span id="index-v0_002e0_002e1"></span>
 
@@ -230,7 +239,7 @@ project.
 </p>
 </li></ul>
 
-<span id="g_t2018_002d07_002d25-v0_002e0_002e0-_002d_002d-Initial-Release-to-Quicklisp"></span><h3 class="appendixsec">D.7 2018-07-25 v0.0.0 &ndash; Initial Release to Quicklisp</h3>
+<span id="g_t2018_002d07_002d25-v0_002e0_002e0-_002d_002d-Initial-Release-to-Quicklisp"></span><h3 class="appendixsec">B.7 2018-07-25 v0.0.0 &ndash; Initial Release to Quicklisp</h3>
 <span id="index-changelog_002d2018_002d07_002d25"></span>
 <span id="index-v0_002e0_002e0"></span>
 
@@ -241,7 +250,7 @@ initially appearing in the 2018-07 Quicklisp release.
 <hr>
 <div class="header">
 <p>
-Next: <a href="General-Lisp-Advice.html" accesskey="n" rel="next">General Lisp Advice</a>, Previous: <a href="SEL-API.html" accesskey="p" rel="prev">SEL API</a>, Up: <a href="index.html" accesskey="u" rel="up">Top</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
+Next: <a href="General-Lisp-Advice.html" accesskey="n" rel="next">General Lisp Advice</a>, Previous: <a href="Software-Evolution-Library-Index.html" accesskey="p" rel="prev">Software Evolution Library Index</a>, Up: <a href="index.html" accesskey="u" rel="up">Top</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 
 

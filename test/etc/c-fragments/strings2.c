@@ -1,2 +1,0 @@
-char *c = "\nabcde\
-fgh";

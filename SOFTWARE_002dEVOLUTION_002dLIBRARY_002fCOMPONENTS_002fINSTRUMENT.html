@@ -1,0 +1,128 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- This file documents the Software Evolution library
+
+Copyright (C) 2014-2018 Eric Schulte and GrammaTech
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
+A copy of the license is included in the section entitled
+"GNU Free Documentation License." -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/INSTRUMENT (Software Evolution Library)</title>
+
+<meta name="description" content="SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/INSTRUMENT (Software Evolution Library)">
+<meta name="keywords" content="SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/INSTRUMENT (Software Evolution Library)">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<link href="index.html" rel="start" title="Top">
+<link href="Combined-Index.html" rel="index" title="Combined Index">
+<link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
+<link href="Software-Evolution-Library-Index.html" rel="up" title="Software Evolution Library Index">
+<link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fJSON_002dFODDER_002dDATABASE.html" rel="next" title="SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/JSON-FODDER-DATABASE">
+<link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fIN_002dMEMORY_002dFODDER_002dDATABASE.html" rel="prev" title="SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/IN-MEMORY-FODDER-DATABASE">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fINSTRUMENT"></span><div class="header">
+<p>
+Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fJSON_002dFODDER_002dDATABASE.html" accesskey="n" rel="next">SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/JSON-FODDER-DATABASE</a>, Previous: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fIN_002dMEMORY_002dFODDER_002dDATABASE.html" accesskey="p" rel="prev">SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/IN-MEMORY-FODDER-DATABASE</a>, Up: <a href="Software-Evolution-Library-Index.html" accesskey="u" rel="up">Software Evolution Library Index</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fINSTRUMENT-1"></span><h3 class="section">A.9 SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/INSTRUMENT</h3>
+<span id="Generic_002dFunction-software_002devolution_002dlibrary_002fcomponents_002finstrument_003ainstrument"></span><dl>
+<dt id="index-instrument-_005bsoftware_002devolution_002dlibrary_002fcomponents_002finstrument_005d">Generic Function: <strong>instrument [software-evolution-library/components/instrument]</strong> <em>obj &amp;key points functions functions-after trace-file trace-env instrument-exit filter num-threads &amp;allow-other-keys</em></dt>
+<dd><p>Instrument <code>obj</code> to print AST index before each full statement.
+</p>
+<p>The indices printed here are the position of the ast in (asts obj).
+</p>
+<p>Keyword arguments are as follows:
+  <code>points</code> <code>---------------</code> alist of additional values to print at specific points
+  <code>functions</code> <code>------------</code> functions to calculate instrumentation at each point
+  <code>functions-after</code> <code>------</code> functions to calculate instrumentation after each point
+  <code>trace-file</code> <code>-----------</code> file for trace output
+  <code>trace-env</code> <code>------------</code> trace output to file specified by <code>env</code> variable
+  <code>instrument-exit</code> <code>------</code> print counter of function body before exit
+  <code>filter</code> <code>---------------</code> function to select a subset of ASTs for instrumentation
+  <code>num-threads</code> <code>----------</code> number of threads to use for instrumentation
+</p></dd></dl>
+<span id="Generic_002dFunction-software_002devolution_002dlibrary_002fcomponents_002finstrument_003ainstrumentation_002dfiles"></span><dl>
+<dt id="index-instrumentation_002dfiles-_005bsoftware_002devolution_002dlibrary_002fcomponents_002finstrument_005d">Generic Function: <strong>instrumentation-files [software-evolution-library/components/instrument]</strong> <em>project</em></dt>
+<dd><p>Return files in <code>project</code> in the order which they would be instrumented
+</p></dd></dl>
+<span id="Method-software_002devolution_002dlibrary_002fcomponents_002finstrument_003ainstrumentation_002dfiles-_0028_0028project--project_0029_0029"></span><dl>
+<dt id="index-instrumentation_002dfiles-_005bsoftware_002devolution_002dlibrary_002fcomponents_002finstrument_005d-1">Method: <strong>instrumentation-files [software-evolution-library/components/instrument]</strong> <em>(project project)</em></dt>
+<dd><p>Return files in <code>project</code> in the order which they would be instrumented.
+</p></dd></dl>
+<span id="Generic_002dFunction-software_002devolution_002dlibrary_002fcomponents_002finstrument_003ainstrumented_002dp"></span><dl>
+<dt id="index-instrumented_002dp-_005bsoftware_002devolution_002dlibrary_002fcomponents_002finstrument_005d">Generic Function: <strong>instrumented-p [software-evolution-library/components/instrument]</strong> <em>obj</em></dt>
+<dd><p>Return true if <code>obj</code> is instrumented
+</p></dd></dl>
+<span id="Method-software_002devolution_002dlibrary_002fcomponents_002finstrument_003ainstrumented_002dp-_0028_0028project--project_0029_0029"></span><dl>
+<dt id="index-instrumented_002dp-_005bsoftware_002devolution_002dlibrary_002fcomponents_002finstrument_005d-1">Method: <strong>instrumented-p [software-evolution-library/components/instrument]</strong> <em>(project project)</em></dt>
+<dd><p>Return true if <code>project</code> is instrumented.
+</p></dd></dl>
+<span id="Class-software_002devolution_002dlibrary_002fcomponents_002finstrument_003ainstrumenter"></span><dl>
+<dt id="index-instrumenter-_005bsoftware_002devolution_002dlibrary_002fcomponents_002finstrument_005d">Class: <strong>instrumenter [software-evolution-library/components/instrument]</strong></dt>
+<dd><p>Class precedence list: <code>instrumenter, standard-object, slot-object, t</code>
+</p>
+<p>Base class for objects which handle instrumentation.
+Stores instrumentation state and provides methods for instrumentation
+operations.
+</p></dd></dl>
+<span id="Generic_002dFunction-software_002devolution_002dlibrary_002fcomponents_002finstrument_003auninstrument"></span><dl>
+<dt id="index-uninstrument-_005bsoftware_002devolution_002dlibrary_002fcomponents_002finstrument_005d">Generic Function: <strong>uninstrument [software-evolution-library/components/instrument]</strong> <em>obj &amp;key num-threads</em></dt>
+<dd><p>Remove instrumentation from <code>obj</code>
+</p>
+<p>Keyword arguments are as follows:
+  <code>num-threads</code> <code>----------</code> number of threads to use for uninstrumenting
+</p></dd></dl>
+<span id="Method-software_002devolution_002dlibrary_002fcomponents_002finstrument_003auninstrument-_0028_0028project--project_0029--_0026key--_0028num_002dthreads-1_0029_0029"></span><dl>
+<dt id="index-uninstrument-_005bsoftware_002devolution_002dlibrary_002fcomponents_002finstrument_005d-1">Method: <strong>uninstrument [software-evolution-library/components/instrument]</strong> <em>(project project) &amp;key (num-threads 1)</em></dt>
+<dd><p>Remove instrumentation from <code>project</code>.
+</p></dd></dl>
+<span id="Generic_002dFunction-software_002devolution_002dlibrary_002fcomponents_002finstrument_003avar_002dinstrument"></span><dl>
+<dt id="index-var_002dinstrument-_005bsoftware_002devolution_002dlibrary_002fcomponents_002finstrument_005d">Generic Function: <strong>var-instrument [software-evolution-library/components/instrument]</strong> <em>key instrumenter ast &amp;key print-strings</em></dt>
+<dd><p>Generate ASTs for variable instrumentation.
+</p><ul>
+<li> <code>key</code> a function used to pull the variable list out of AST
+</li><li> <code>instrumenter</code> current instrumentation state
+</li><li> AST the AST to instrument
+</li></ul>
+</dd></dl>
+
+<hr>
+<div class="header">
+<p>
+Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fJSON_002dFODDER_002dDATABASE.html" accesskey="n" rel="next">SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/JSON-FODDER-DATABASE</a>, Previous: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fIN_002dMEMORY_002dFODDER_002dDATABASE.html" accesskey="p" rel="prev">SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/IN-MEMORY-FODDER-DATABASE</a>, Up: <a href="Software-Evolution-Library-Index.html" accesskey="u" rel="up">Software Evolution Library Index</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+
+
+
+</body>
+</html>

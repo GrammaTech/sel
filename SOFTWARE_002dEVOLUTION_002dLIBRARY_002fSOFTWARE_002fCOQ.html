@@ -1,0 +1,197 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- This file documents the Software Evolution library
+
+Copyright (C) 2014-2018 Eric Schulte and GrammaTech
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
+A copy of the license is included in the section entitled
+"GNU Free Documentation License." -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/COQ (Software Evolution Library)</title>
+
+<meta name="description" content="SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/COQ (Software Evolution Library)">
+<meta name="keywords" content="SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/COQ (Software Evolution Library)">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<link href="index.html" rel="start" title="Top">
+<link href="Combined-Index.html" rel="index" title="Combined Index">
+<link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
+<link href="Software-Evolution-Library-Index.html" rel="up" title="Software Evolution Library Index">
+<link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fCOQ_002dPROJECT.html" rel="next" title="SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/COQ-PROJECT">
+<link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fCOMPILABLE.html" rel="prev" title="SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/COMPILABLE">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fCOQ"></span><div class="header">
+<p>
+Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fCOQ_002dPROJECT.html" accesskey="n" rel="next">SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/COQ-PROJECT</a>, Previous: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fCOMPILABLE.html" accesskey="p" rel="prev">SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/COMPILABLE</a>, Up: <a href="Software-Evolution-Library-Index.html" accesskey="u" rel="up">Software Evolution Library Index</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fCOQ-1"></span><h3 class="section">A.34 SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/COQ</h3>
+<span id="Class-sel_002fsw_002fcoq_003acoq"></span><dl>
+<dt id="index-coq-_005bsel_002fsw_002fcoq_005d">Class: <strong>coq [sel/sw/coq]</strong></dt>
+<dd><p>Class precedence list: <code>coq, sexp, simple, software, oid-object, file-w-attributes, file, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>project-file</code> &mdash; initarg: <code><span class="nolinebreak">:project-file</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/coq:project-file</span><!-- /@w --></code>
+
+<p>Path to _CoqProject file, if it exists.
+</p></li><li> <code>file-source</code> &mdash; initarg: <code><span class="nolinebreak">:file-source</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/coq:file-source</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/coq:file-source)</span><!-- /@w --></code>
+
+<p>Name of source file.
+</p></li><li> <code>imports</code> &mdash; initarg: <code>:imports<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/coq:imports</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/coq:imports)</span><!-- /@w --></code>
+
+<p>ASTs for imports, not part of genome.
+</p></li><li> <code>coq-modules</code> &mdash; initarg: <code>:modules<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/coq:coq-modules</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/coq:coq-modules)</span><!-- /@w --></code>
+
+<p>List of Modules defined by this object.
+</p></li><li> <code>coq-sections</code> &mdash; initarg: <code>:sections<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/coq:coq-sections</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/coq:coq-sections)</span><!-- /@w --></code>
+
+<p>List of Sections defined by this object.
+</p></li><li> <code>coq-assumptions</code> &mdash; initarg: <code>:assumptions<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/coq:coq-assumptions</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/coq:coq-assumptions)</span><!-- /@w --></code>
+
+<p>List of Parameters, Variables, etc. defined by this object.
+</p></li><li> <code>coq-definitions</code> &mdash; initarg: <code>:definitions<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/coq:coq-definitions</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/coq:coq-definitions)</span><!-- /@w --></code>
+
+<p>List of values defined in this object.
+Includes Definition, Inductive, Fixpoint, etc.
+</p></li></ul>
+
+<p>Coq software object.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fcoq_003acoq_002dtype_002dchecks"></span><dl>
+<dt id="index-coq_002dtype_002dchecks-_005bsel_002fsw_002fcoq_005d">Generic Function: <strong>coq-type-checks [sel/sw/coq]</strong> <em>coq</em></dt>
+<dd><p>Return the fraction of ASTs in <code>coq</code> software object that typecheck.
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fcoq_003acoq_002dtype_002dchecks-_0028_0028obj-coq_0029_0029"></span><dl>
+<dt id="index-coq_002dtype_002dchecks-_005bsel_002fsw_002fcoq_005d-1">Method: <strong>coq-type-checks [sel/sw/coq]</strong> <em>(obj coq)</em></dt>
+<dd><p>Return the fraction of ASTs in Coq software <code>obj</code> that typecheck.
+Return <code>nil</code> if source strings cannot be looked up.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fcoq_003atype_002dsafe_002dswap"></span><dl>
+<dt id="index-type_002dsafe_002dswap-_005bsel_002fsw_002fcoq_005d">Class: <strong>type-safe-swap [sel/sw/coq]</strong></dt>
+<dd><p>Class precedence list: <code>type-safe-swap, sexp-swap, mutation, oid-object, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p>Swap two Coq ASTs tagged with the same type.
+</p></dd></dl>
+<span id="Variable-sel_002fsw_002fcoq_003a_002acoq_002dmutation_002dtypes_002a"></span><dl>
+<dt id="index-_002acoq_002dmutation_002dtypes_002a-_005bsel_002fsw_002fcoq_005d">Variable: <strong>*coq-mutation-types* [sel/sw/coq]</strong></dt>
+<dd><p>Cumulative distribution fo normalized probabilities of weighted mutations.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002fcoq_003afind_002dnearest_002dtype"></span><dl>
+<dt id="index-find_002dnearest_002dtype-_005bsel_002fsw_002fcoq_005d">Function: <strong>find-nearest-type [sel/sw/coq]</strong> <em>coq index</em></dt>
+<dd><p>For object <code>coq</code>, find the nearest tag for the subtree at <code>index</code> in the genome.
+Search by checking the first element of subtrees, moving forward from <code>index</code> if
+needed. If the end of the genome is reached, search backward instead.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002fcoq_003aload_002dcoq_002dobject"></span><dl>
+<dt id="index-load_002dcoq_002dobject-_005bsel_002fsw_002fcoq_005d">Function: <strong>load-coq-object [sel/sw/coq]</strong> <em>coq &amp;key include-imports num-asts</em></dt>
+<dd><p>Load the first <code>num-asts</code> ASTs of the <code>coq</code> genome.
+If <code>num-asts</code> is <code>nil</code>, load all ASTs. <code>include-imports</code> (default T) specifies that
+imports should be loaded first.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fcoq_003alookup_002dsource_002dstrings"></span><dl>
+<dt id="index-lookup_002dsource_002dstrings-_005bsel_002fsw_002fcoq_005d">Generic Function: <strong>lookup-source-strings [sel/sw/coq]</strong> <em>software &amp;key include-imports</em></dt>
+<dd><p>Return a list of source strings for the ASTs in <code>software</code>.
+Set <code>include-imports</code> to <code>t</code> to include import statements in the result.
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fcoq_003alookup_002dsource_002dstrings-_0028_0028obj-coq_0029-_0026key-include_002dimports_0029"></span><dl>
+<dt id="index-lookup_002dsource_002dstrings-_005bsel_002fsw_002fcoq_005d-1">Method: <strong>lookup-source-strings [sel/sw/coq]</strong> <em>(obj coq) &amp;key include-imports</em></dt>
+<dd><p>Return a list of source strings for the ASTs in <code>coq</code>.
+Set <code>include-imports</code> to <code>t</code> to include import statements in the result.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002fcoq_003apick_002dsubtree_002dmatching_002dtype"></span><dl>
+<dt id="index-pick_002dsubtree_002dmatching_002dtype-_005bsel_002fsw_002fcoq_005d">Function: <strong>pick-subtree-matching-type [sel/sw/coq]</strong> <em>coq type ignore-index</em></dt>
+<dd><p>For object <code>coq</code>, randomly select the index of a subtree tagged as <code>type</code>.
+Ensure that the selected index is not equal to <code>ignore-index</code>.
+</p><ul>
+<li> <code>coq</code> <code>-</code> a Coq software object.
+</li><li> <code>type</code> <code>-</code> a symbol indicating the type tag to be matched.
+</li><li> <code>ignore-index</code> <code>-</code> the index of a subtree tagged as <code>type</code> which is not to be
+</li></ul>
+<p>selected.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fcoq_003areset_002dand_002dload_002dimports"></span><dl>
+<dt id="index-reset_002dand_002dload_002dimports-_005bsel_002fsw_002fcoq_005d">Generic Function: <strong>reset-and-load-imports [sel/sw/coq]</strong> <em>coq &amp;key imports</em></dt>
+<dd><p>Reset the SerAPI process and load <code>imports</code> for <code>coq</code> software object.
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fcoq_003areset_002dand_002dload_002dimports-_0028_0028project-coq_002dproject_0029-_0026key-imports_0029"></span><dl>
+<dt id="index-reset_002dand_002dload_002dimports-_005bsel_002fsw_002fcoq_005d-1">Method: <strong>reset-and-load-imports [sel/sw/coq]</strong> <em>(project coq-project) &amp;key imports</em></dt>
+<dd><p>Reset the SerAPI process and load <code>imports</code> for each Coq object in <code>project</code>.
+If <code>imports</code> is <code>nil</code>, it defaults to the list of &lsquo;imports&rsquo; for each Coq object in
+<code>project</code>.
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fcoq_003areset_002dand_002dload_002dimports-_0028_0028obj-coq_0029-_0026key-_0028imports-_0028imports-obj_0029_0029_0029"></span><dl>
+<dt id="index-reset_002dand_002dload_002dimports-_005bsel_002fsw_002fcoq_005d-2">Method: <strong>reset-and-load-imports [sel/sw/coq]</strong> <em>(obj coq) &amp;key (imports (imports obj))</em></dt>
+<dd><p>Reset the SerAPI process and load <code>imports</code> for <code>coq</code> software object.
+<code>imports</code> defaults to the list of &lsquo;imports&rsquo; in <code>coq</code>.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002fcoq_003asynthesize_002dtyped_002dcoq_002dexpression"></span><dl>
+<dt id="index-synthesize_002dtyped_002dcoq_002dexpression-_005bsel_002fsw_002fcoq_005d">Function: <strong>synthesize-typed-coq-expression [sel/sw/coq]</strong> <em>type scopes depth</em></dt>
+<dd><p>Synthesize an expression of type <code>type</code> using in-scope values <code>scopes</code>.
+Return a list of strings representing Coq expressions of type <code>type</code>.
+<code>type</code> is a string denoting a Coq type (e.g., &quot;nat <code>-&gt;</code> bool&quot;).
+<code>scopes</code> is a list of variables with tokenized types (e.g., as generated by
+&lsquo;search-coq-type&rsquo;).
+<code>depth</code> is a number limiting the search depth. Functions will be applied to no
+more than <code>depth</code> parameters.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002fcoq_003atag_002dloc_002dinfo"></span><dl>
+<dt id="index-tag_002dloc_002dinfo-_005bsel_002fsw_002fcoq_005d">Function: <strong>tag-loc-info [sel/sw/coq]</strong> <em>sexpr</em></dt>
+<dd><p>Return <code>sexpr</code> with Coq location info replaced by &lsquo;(:loc NIL)&rsquo;.
+See also &lsquo;is-loc-info&rsquo; and &lsquo;untag-loc-info&rsquo;.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002fcoq_003auntag_002dloc_002dinfo"></span><dl>
+<dt id="index-untag_002dloc_002dinfo-_005bsel_002fsw_002fcoq_005d">Function: <strong>untag-loc-info [sel/sw/coq]</strong> <em>sexpr</em></dt>
+<dd><p>Return <code>sexpr</code> with occurrences of &lsquo;(:loc NIL)&rsquo; replaced by <code>nil</code>.
+See also &lsquo;tag-loc-info&rsquo;.
+</p></dd></dl>
+
+<hr>
+<div class="header">
+<p>
+Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fCOQ_002dPROJECT.html" accesskey="n" rel="next">SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/COQ-PROJECT</a>, Previous: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fCOMPILABLE.html" accesskey="p" rel="prev">SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/COMPILABLE</a>, Up: <a href="Software-Evolution-Library-Index.html" accesskey="u" rel="up">Software Evolution Library Index</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+
+
+
+</body>
+</html>

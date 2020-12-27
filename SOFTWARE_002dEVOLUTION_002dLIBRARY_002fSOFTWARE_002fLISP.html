@@ -1,0 +1,373 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- This file documents the Software Evolution library
+
+Copyright (C) 2014-2018 Eric Schulte and GrammaTech
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
+A copy of the license is included in the section entitled
+"GNU Free Documentation License." -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/LISP (Software Evolution Library)</title>
+
+<meta name="description" content="SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/LISP (Software Evolution Library)">
+<meta name="keywords" content="SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/LISP (Software Evolution Library)">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<link href="index.html" rel="start" title="Top">
+<link href="Combined-Index.html" rel="index" title="Combined Index">
+<link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
+<link href="Software-Evolution-Library-Index.html" rel="up" title="Software Evolution Library Index">
+<link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fLLVM.html" rel="next" title="SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/LLVM">
+<link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fIR.html" rel="prev" title="SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/IR">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fLISP"></span><div class="header">
+<p>
+Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fLLVM.html" accesskey="n" rel="next">SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/LLVM</a>, Previous: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fIR.html" accesskey="p" rel="prev">SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/IR</a>, Up: <a href="Software-Evolution-Library-Index.html" accesskey="u" rel="up">Software Evolution Library Index</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fLISP-1"></span><h3 class="section">A.43 SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/LISP</h3>
+<span id="Variable-sel_002fsw_002flisp_003a_002abindings_002dallows_002dmacros_002dp_002a"></span><dl>
+<dt id="index-_002abindings_002dallows_002dmacros_002dp_002a-_005bsel_002fsw_002flisp_005d">Variable: <strong>*bindings-allows-macros-p* [sel/sw/lisp]</strong></dt>
+<dd><p>A special variable that modifies the functionality
+of get-functions-from-binding-form. If set to a non-nil value,
+macros will be returned as if they were functions.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002flisp_003abindings"></span><dl>
+<dt id="index-bindings-_005bsel_002fsw_002flisp_005d">Generic Function: <strong>bindings [sel/sw/lisp]</strong> <em>obj ast &amp;key functions variables all</em></dt>
+<dd><p>Return bindings that are local to <code>obj</code> and
+in scope of AST. This method calls get-vars-from-binding-form
+and get-functions-from-binding-form. All of the special variables
+that modify the behavior of these methods can be utilized by
+this method.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002flisp_003alisp"></span><dl>
+<dt id="index-lisp-_005bsel_002fsw_002flisp_005d">Class: <strong>lisp [sel/sw/lisp]</strong></dt>
+<dd><p>Class precedence list: <code>lisp, parseable, software, oid-object, file, standard-object, slot-object, t</code>
+</p>
+<p>Common Lisp source represented naturally as lists of code.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002flisp_003alisp_002dast"></span><dl>
+<dt id="index-lisp_002dast-_005bsel_002fsw_002flisp_005d">Class: <strong>lisp-ast [sel/sw/lisp]</strong></dt>
+<dd><p>Class precedence list: <code>lisp-ast, functional-tree-ast, node, identity-ordering-mixin, ast, stored-hash, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>children</code> &mdash; initargs: <code><span class="nolinebreak">functional-trees:children</span><!-- /@w --></code>, <code>:children<!-- /@w --></code>
+
+<p>The list of children of the node, which
+                             may be more nodes, or other values.
+</p></li></ul>
+
+<p>Class of Common Lisp ASTs.
+</p></dd></dl>
+<span id="Variable-sel_002fsw_002flisp_003a_002abindings_002dallows_002dsymbol_002dmacros_002dp_002a"></span><dl>
+<dt id="index-_002abindings_002dallows_002dsymbol_002dmacros_002dp_002a-_005bsel_002fsw_002flisp_005d">Variable: <strong>*bindings-allows-symbol-macros-p* [sel/sw/lisp]</strong></dt>
+<dd><p>A special variable that modifies the functionality
+of get-vars-from-binding-form. If set to a non-nil value,
+symbol macros will be returned as if they were variables.
+</p></dd></dl>
+<span id="Variable-sel_002fsw_002flisp_003a_002abindings_002dallows_002dtop_002dlevel_002dp_002a"></span><dl>
+<dt id="index-_002abindings_002dallows_002dtop_002dlevel_002dp_002a-_005bsel_002fsw_002flisp_005d">Variable: <strong>*bindings-allows-top-level-p* [sel/sw/lisp]</strong></dt>
+<dd><p>A special variable that modifies the functionality
+of bindings. If set to a non-nil value,top level variable
+definitions will be included.
+</p></dd></dl>
+<span id="Variable-sel_002fsw_002flisp_003a_002abindings_002dform_002dis_002dmacro_002dp_002a"></span><dl>
+<dt id="index-_002abindings_002dform_002dis_002dmacro_002dp_002a-_005bsel_002fsw_002flisp_005d">Variable: <strong>*bindings-form-is-macro-p* [sel/sw/lisp]</strong></dt>
+<dd><p>A special variable that modifies the functionality of
+functions that get bindings such that the returned information
+is marked as a macro.
+</p></dd></dl>
+<span id="Macro-sel_002fsw_002flisp_003adefine_002dfun_002dbody_002dalias"></span><dl>
+<dt id="index-define_002dfun_002dbody_002dalias-_005bsel_002fsw_002flisp_005d">Macro: <strong>define-fun-body-alias [sel/sw/lisp]</strong> <em>car-of-form-alias car-of-form</em></dt>
+<dd><p>Creates a fun-body method that specializes the
+parameter car-of-form on <code>car-of-form-alias</code>. The method immediately calls
+the specialization for <code>car-of-form</code>.
+</p></dd></dl>
+<span id="Macro-sel_002fsw_002flisp_003adefine_002dfunction_002dbinding_002dform_002dalias"></span><dl>
+<dt id="index-define_002dfunction_002dbinding_002dform_002dalias-_005bsel_002fsw_002flisp_005d">Macro: <strong>define-function-binding-form-alias [sel/sw/lisp]</strong> <em>binding-form-alias binding-form</em></dt>
+<dd><p>Creates a get-function-from-binding-form method that specializes the
+parameter car-of-form on <code>binding-form-alias</code>. The method immediately calls
+the specialization for <code>binding-form</code>.
+</p></dd></dl>
+<span id="Macro-sel_002fsw_002flisp_003adefine_002dget_002dvars_002dfrom_002dbinding_002dform"></span><dl>
+<dt id="index-define_002dget_002dvars_002dfrom_002dbinding_002dform-_005bsel_002fsw_002flisp_005d">Macro: <strong>define-get-vars-from-binding-form [sel/sw/lisp]</strong> <em>binding-form-name (&amp;key software binding-form reference-ast) &amp;body body</em></dt>
+<dd><p>Defines a specialization of get-vars-from-binding-form that specializes
+on <code>binding-form-name</code>. The keyword arguments allow for explicit naming of the
+parameters of the method.
+</p>
+<p>A convenience local function, handle-as, is defined
+for the method body which allows for easy transferring to another
+specialization to handle the form. For exmaple, if a &rsquo;let* form has a
+reference ast that is inside it but after its definitions,it can
+transfer control to &rsquo;let by calling handle-as: (handle-as &rsquo;let).
+handle-as has a :reference-ast keyword which serves the same purpose
+as in get-vars-from-binding-form. It also has a :macro-p keyword
+which adds a cons to the returned list that shows that the symbol
+is a macro.
+</p>
+<p>A convenience local function, collect-var-info, is defined for the
+method body which collects info on a form in a format that can be
+returned.
+</p></dd></dl>
+<span id="Macro-sel_002fsw_002flisp_003adefine_002dlambda_002dlist_002dalias"></span><dl>
+<dt id="index-define_002dlambda_002dlist_002dalias-_005bsel_002fsw_002flisp_005d">Macro: <strong>define-lambda-list-alias [sel/sw/lisp]</strong> <em>car-of-form-alias car-of-form</em></dt>
+<dd><p>Creates a lambda-list method that specializes the
+parameter car-of-form on <code>car-of-form-alias</code>. The method immediately calls
+the specialization for <code>car-of-form</code>.
+</p></dd></dl>
+<span id="Macro-sel_002fsw_002flisp_003adefine_002dvar_002dbinding_002dform_002dalias"></span><dl>
+<dt id="index-define_002dvar_002dbinding_002dform_002dalias-_005bsel_002fsw_002flisp_005d">Macro: <strong>define-var-binding-form-alias [sel/sw/lisp]</strong> <em>binding-form-alias binding-form</em></dt>
+<dd><p>Creates a get-vars-from-binding-form method that specializes the
+parameter car-of-form on <code>binding-form-alias</code>. The method immediately calls
+the specialization for <code>binding-form</code>.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002flisp_003abindings_002dcontains_002dfunction_002dp"></span><dl>
+<dt id="index-bindings_002dcontains_002dfunction_002dp-_005bsel_002fsw_002flisp_005d">Function: <strong>bindings-contains-function-p [sel/sw/lisp]</strong> <em>bindings symbol &amp;key allow-macros</em></dt>
+<dd><p>Return the binding for <code>symbol</code> if it is in <code>bindings</code>.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002flisp_003abindings_002dcontains_002dvariable_002dp"></span><dl>
+<dt id="index-bindings_002dcontains_002dvariable_002dp-_005bsel_002fsw_002flisp_005d">Function: <strong>bindings-contains-variable-p [sel/sw/lisp]</strong> <em>bindings symbol &amp;key allow-macros</em></dt>
+<dd><p>Return the binding for <code>symbol</code> if it is in <code>bindings</code>.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002flisp_003acar_002dof_002denclosing_002dform_002dp"></span><dl>
+<dt id="index-car_002dof_002denclosing_002dform_002dp-_005bsel_002fsw_002flisp_005d">Function: <strong>car-of-enclosing-form-p [sel/sw/lisp]</strong> <em>obj ast</em></dt>
+<dd><p>Return <code>t</code> if AST is the car of its enclosing form in <code>obj</code>.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002flisp_003achildren_002dof_002dtype"></span><dl>
+<dt id="index-children_002dof_002dtype-_005bsel_002fsw_002flisp_005d">Function: <strong>children-of-type [sel/sw/lisp]</strong> <em>ast type</em></dt>
+<dd><p>Returns a list of the children of AST that are of type <code>type</code>.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002flisp_003acollect_002dsymbols"></span><dl>
+<dt id="index-collect_002dsymbols-_005bsel_002fsw_002flisp_005d">Function: <strong>collect-symbols [sel/sw/lisp]</strong> <em>obj ast</em></dt>
+<dd><p>Collect the symbols in AST into a hash table.
+The hash table maps symbol asts to their possible usage.
+This can be in the form of any of the following:
+</p>
+<div class="lisp">
+<pre class="lisp">  (:special-form)
+  (:function-declaration)
+  (:macro)
+  (:macro binding-information)
+  (:function)
+  (:function binding-information)
+  (:variable-declaration)
+  (:symbol-macro)
+  (:symbol-macro binding-information)
+  (:variable)
+  (:variable binding-information)
+  (:literal)
+  (:keyword)
+  (:symbol)
+</pre></div>
+
+<p>binding-information will be in the same form as
+returned by #&rsquo;bindings and will contain all information
+gathered for that specific symbol.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002flisp_003acompound_002dform_002dp"></span><dl>
+<dt id="index-compound_002dform_002dp-_005bsel_002fsw_002flisp_005d">Function: <strong>compound-form-p [sel/sw/lisp]</strong> <em>ast &amp;key name</em></dt>
+<dd><p>If the AST is a compound form, return the car of the form. If <code>name</code> is
+provided, return <code>t</code> if the car of the form is eq to <code>name</code>.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002flisp_003acompound_002dform_002dp_002a"></span><dl>
+<dt id="index-compound_002dform_002dp_002a-_005bsel_002fsw_002flisp_005d">Function: <strong>compound-form-p* [sel/sw/lisp]</strong> <em>ast</em></dt>
+<dd><p>If the AST is a compound form, return the AST in the car of the form.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002flisp_003afeaturep_002dwith"></span><dl>
+<dt id="index-featurep_002dwith-_005bsel_002fsw_002flisp_005d">Function: <strong>featurep-with [sel/sw/lisp]</strong> <em>feature-expression *features*</em></dt>
+<dd><p>Test <code>feature-expression</code> against the features in <code>*features*</code>.
+</p>
+<p>The global value of &lsquo;*features*&lsquo; is ignored.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002flisp_003afind_002din_002ddefining_002dform"></span><dl>
+<dt id="index-find_002din_002ddefining_002dform-_005bsel_002fsw_002flisp_005d">Function: <strong>find-in-defining-form [sel/sw/lisp]</strong> <em>obj defining-form name &amp;key referencing-ast</em></dt>
+<dd><p>Returns the ast in <code>defining-form</code> that defines <code>name</code>.
+If <code>referencing-ast</code> is supplied, the returned ast must
+occur before it.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002flisp_003afind_002dlocal_002dfunction"></span><dl>
+<dt id="index-find_002dlocal_002dfunction-_005bsel_002fsw_002flisp_005d">Function: <strong>find-local-function [sel/sw/lisp]</strong> <em>obj enclosed-form function-name &amp;key referencing-ast</em></dt>
+<dd><p>Return the ast of the local function named <code>function-name</code>
+which is in scope of <code>enclosed-form</code>.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002flisp_003afun_002dbody"></span><dl>
+<dt id="index-fun_002dbody-_005bsel_002fsw_002flisp_005d">Generic Function: <strong>fun-body [sel/sw/lisp]</strong> <em>car-of-form function-declaration</em></dt>
+<dd><p>Retrieve the function body of <code>function-declaration</code> as
+though it were defined in a <code>car-of-form</code> form. The trailing parenthesis
+should be removed. *bindings-allows-macros-p* can be set to get the body
+from macros.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002flisp_003aget_002dcompound_002dform_002dargs"></span><dl>
+<dt id="index-get_002dcompound_002dform_002dargs-_005bsel_002fsw_002flisp_005d">Function: <strong>get-compound-form-args [sel/sw/lisp]</strong> <em>ast</em></dt>
+<dd><p>Return the args to the compound form represented by AST.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002flisp_003aget_002dfunctions_002dfrom_002dbinding_002dform"></span><dl>
+<dt id="index-get_002dfunctions_002dfrom_002dbinding_002dform-_005bsel_002fsw_002flisp_005d">Generic Function: <strong>get-functions-from-binding-form [sel/sw/lisp]</strong> <em>obj car-of-form binding-form &amp;key reference-ast</em></dt>
+<dd><p>Retrieves the functions defined by <code>binding-form</code>.
+<code>car-of-form</code> can be used as an &rsquo;eql specializer to dispatch to a specific
+method for the form. <code>reference-ast</code> is a reference point for the method
+to filter out variables that aren&rsquo;t in scope of it. This is useful for
+forms like &rsquo;let* or for forms at the top-level which <code>reference-ast</code> may
+not be in the body of, such as &rsquo;defun.
+</p>
+<p>Methods for this generic shouldn&rsquo;t check if <code>car-of-form</code> is
+what is expected as there are different forms that
+can have their variables retrieved in the exact same way,
+such as let and when-let.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002flisp_003aget_002dvars_002dfrom_002dbinding_002dform"></span><dl>
+<dt id="index-get_002dvars_002dfrom_002dbinding_002dform-_005bsel_002fsw_002flisp_005d">Generic Function: <strong>get-vars-from-binding-form [sel/sw/lisp]</strong> <em>obj car-of-form binding-form &amp;key reference-ast</em></dt>
+<dd><p>Retrieves the variables defined by <code>binding-form</code>.
+<code>car-of-form</code> can be used as an &rsquo;eql specializer to dispatch to a specific
+method for the form. <code>reference-ast</code> is a reference point for the method
+to filter out variables that aren&rsquo;t in scope of it. This is useful for
+forms like &rsquo;let* or for forms at the top-level which <code>reference-ast</code> may
+not be in the body of, such as &rsquo;defun.
+</p>
+<p>Methods for this generic shouldn&rsquo;t check if <code>car-of-form</code> is
+what is expected as there are different forms that
+can have their variables retrieved in the exact same way,
+such as let and when-let.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002flisp_003alambda_002dlist"></span><dl>
+<dt id="index-lambda_002dlist-_005bsel_002fsw_002flisp_005d">Generic Function: <strong>lambda-list [sel/sw/lisp]</strong> <em>car-of-form function-declaration</em></dt>
+<dd><p>Retrieve the lambda list of <code>function-declaration</code> as
+though it were defined in a <code>car-of-form</code> form. *bindings-allows-macros-p*
+can be set to retrieve lambda lists from macros.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002flisp_003aliteralp"></span><dl>
+<dt id="index-literalp-_005bsel_002fsw_002flisp_005d">Function: <strong>literalp [sel/sw/lisp]</strong> <em>ast</em></dt>
+<dd><p>Return <code>t</code> if AST likely represents a literal.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002flisp_003amap_002dfeature_002dexpressions"></span><dl>
+<dt id="index-map_002dfeature_002dexpressions-_005bsel_002fsw_002flisp_005d">Function: <strong>map-feature-expressions [sel/sw/lisp]</strong> <em>fn ast &amp;key remove-empty remove-newly-empty</em></dt>
+<dd><p>Build a new ast by calling <code>fun</code>, a function, on each feature
+expression in AST, substituting the old feature expression with the
+return value of <code>fn</code>.
+</p>
+<p><code>remove-empty</code> and <code>remove-not-empty</code> have the same meaning as for
+&lsquo;map-reader-conditionals&rsquo;.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002flisp_003amap_002dreader_002dconditionals"></span><dl>
+<dt id="index-map_002dreader_002dconditionals-_005bsel_002fsw_002flisp_005d">Function: <strong>map-reader-conditionals [sel/sw/lisp]</strong> <em>fn ast &amp;key remove-empty remove-newly-empty</em></dt>
+<dd><p>Build a new ast by calling <code>fn</code>, an function, on each reader
+conditional in AST (as if by &lsquo;transform-reader-conditional&rsquo;) and
+substituting the old reader conditional with the new one.
+</p>
+<p>If <code>:remove-empty</code> is true, remove any reader conditionals where the
+feature expression is empty. If the sign is <code>+</code>, the entire reader
+conditional is removed. If the sign is <code>-</code>, then only the guarded
+expression is retained.
+</p>
+<p>If <code>:remove-newly-empty</code> is true, reader conditionals are removed if the
+new feature expression is empty, but reader conditionals that were
+already empty are retained.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002flisp_003aquasiquote_002dp"></span><dl>
+<dt id="index-quasiquote_002dp-_005bsel_002fsw_002flisp_005d">Function: <strong>quasiquote-p [sel/sw/lisp]</strong> <em>ast</em></dt>
+<dd><p>Return the quoted form if AST represents a quasiquote ast.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002flisp_003aquote_002dp"></span><dl>
+<dt id="index-quote_002dp-_005bsel_002fsw_002flisp_005d">Function: <strong>quote-p [sel/sw/lisp]</strong> <em>ast</em></dt>
+<dd><p>Return the quoted form if AST represents a quote ast.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002flisp_003aquoted_002dp"></span><dl>
+<dt id="index-quoted_002dp-_005bsel_002fsw_002flisp_005d">Function: <strong>quoted-p [sel/sw/lisp]</strong> <em>obj ast</em></dt>
+<dd><p>Return the quoted form if the AST is quoted.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002flisp_003aremove_002dexpression_002dfeatures"></span><dl>
+<dt id="index-remove_002dexpression_002dfeatures-_005bsel_002fsw_002flisp_005d">Function: <strong>remove-expression-features [sel/sw/lisp]</strong> <em>feature-expression features</em></dt>
+<dd><p>Remove <code>features</code> from <code>feature-expression</code>.
+If there are no features left, &lsquo;nil&rsquo; is returned.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002flisp_003aremove_002dfeature_002dsupport"></span><dl>
+<dt id="index-remove_002dfeature_002dsupport-_005bsel_002fsw_002flisp_005d">Function: <strong>remove-feature-support [sel/sw/lisp]</strong> <em>ast features</em></dt>
+<dd><p>Remove support for <code>features</code> from AST.
+Each feature in <code>features</code> will be removed from all feature expressions,
+and if any of the resulting expressions are empty their guards (and
+possibly expressions) will be omitted according to the sign of the guard.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002flisp_003ascope_002dcontains_002dfunction_002dp"></span><dl>
+<dt id="index-scope_002dcontains_002dfunction_002dp-_005bsel_002fsw_002flisp_005d">Function: <strong>scope-contains-function-p [sel/sw/lisp]</strong> <em>scope symbol</em></dt>
+<dd><p>Return the binding for <code>symbol</code> in a list if it is in <code>scope</code>.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002flisp_003ascope_002dcontains_002dvariable_002dp"></span><dl>
+<dt id="index-scope_002dcontains_002dvariable_002dp-_005bsel_002fsw_002flisp_005d">Function: <strong>scope-contains-variable-p [sel/sw/lisp]</strong> <em>scope symbol</em></dt>
+<dd><p>Return the binding for <code>symbol</code> in a list if it is in <code>scope</code>.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002flisp_003atransform_002dfeature_002dexpression"></span><dl>
+<dt id="index-transform_002dfeature_002dexpression-_005bsel_002fsw_002flisp_005d">Function: <strong>transform-feature-expression [sel/sw/lisp]</strong> <em>feature-expression fn</em></dt>
+<dd><p>Call <code>fn</code>, a function, on each feature in <code>feature-expression</code>.
+Substitute the return value of <code>fn</code> for the existing feature.
+</p>
+<p>If <code>fn</code> returns nil, the feature is removed.
+</p>
+<p><code>fn</code> may return any feature expression, not just a symbol.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002flisp_003atransform_002dreader_002dconditional"></span><dl>
+<dt id="index-transform_002dreader_002dconditional-_005bsel_002fsw_002flisp_005d">Generic Function: <strong>transform-reader-conditional [sel/sw/lisp]</strong> <em>reader-conditional fn</em></dt>
+<dd><p>Build a new reader condition by calling <code>fn</code> on <code>reader-conditional</code>.
+</p>
+<p><code>fn</code> is called with three arguments: the sign, as a character <code>(+ or -)</code>;
+the feature expresion (as a list); and the guarded expression.
+</p>
+<p><code>fn</code> should return three values <code>-</code> a new sign, a new test, and a new
+expression <code>-</code> which are used to build a new reader conditional.
+</p>
+<p>If the sign, the test, and the expression are unchanged,
+<code>reader-conditional</code> is returned unchanged and a second value of t is
+returned.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002flisp_003awalk_002dfeature_002dexpressions"></span><dl>
+<dt id="index-walk_002dfeature_002dexpressions-_005bsel_002fsw_002flisp_005d">Function: <strong>walk-feature-expressions [sel/sw/lisp]</strong> <em>fn ast</em></dt>
+<dd><p>Call <code>fn</code>, a function, on each feature expression in AST.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002flisp_003awalk_002dreader_002dconditionals"></span><dl>
+<dt id="index-walk_002dreader_002dconditionals-_005bsel_002fsw_002flisp_005d">Function: <strong>walk-reader-conditionals [sel/sw/lisp]</strong> <em>fn ast</em></dt>
+<dd><p>Call <code>fn</code>, a function, on each reader conditional in AST.
+</p>
+<p><code>fn</code> is called with three arguments: the sign of the reader conditional
+<code>(+ or -)</code>, the feature expression (as a list), and the guarded
+expression.
+</p></dd></dl>
+
+<hr>
+<div class="header">
+<p>
+Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fLLVM.html" accesskey="n" rel="next">SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/LLVM</a>, Previous: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fIR.html" accesskey="p" rel="prev">SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/IR</a>, Up: <a href="Software-Evolution-Library-Index.html" accesskey="u" rel="up">Software Evolution Library Index</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+
+
+
+</body>
+</html>

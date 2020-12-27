@@ -1,1 +1,0 @@
-a() { sizeof(int); }

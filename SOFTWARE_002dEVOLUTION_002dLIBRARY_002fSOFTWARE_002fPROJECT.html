@@ -1,0 +1,161 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- This file documents the Software Evolution library
+
+Copyright (C) 2014-2018 Eric Schulte and GrammaTech
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
+A copy of the license is included in the section entitled
+"GNU Free Documentation License." -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/PROJECT (Software Evolution Library)</title>
+
+<meta name="description" content="SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/PROJECT (Software Evolution Library)">
+<meta name="keywords" content="SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/PROJECT (Software Evolution Library)">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<link href="index.html" rel="start" title="Top">
+<link href="Combined-Index.html" rel="index" title="Combined Index">
+<link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
+<link href="Software-Evolution-Library-Index.html" rel="up" title="Software Evolution Library Index">
+<link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fSEXP.html" rel="next" title="SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/SEXP">
+<link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fPARSEABLE_002dPROJECT.html" rel="prev" title="SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/PARSEABLE-PROJECT">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fPROJECT"></span><div class="header">
+<p>
+Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fSEXP.html" accesskey="n" rel="next">SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/SEXP</a>, Previous: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fPARSEABLE_002dPROJECT.html" accesskey="p" rel="prev">SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/PARSEABLE-PROJECT</a>, Up: <a href="Software-Evolution-Library-Index.html" accesskey="u" rel="up">Software Evolution Library Index</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fPROJECT-1"></span><h3 class="section">A.48 SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/PROJECT</h3>
+<span id="Variable-sel_002fsw_002fproject_003a_002abuild_002ddir_002a"></span><dl>
+<dt id="index-_002abuild_002ddir_002a-_005bsel_002fsw_002fproject_005d">Variable: <strong>*build-dir* [sel/sw/project]</strong></dt>
+<dd><p>Directory in which to build projects with &lsquo;phenome&rsquo;.
+When non-nil &lsquo;phenome&rsquo; builds projects in this directory instead of
+the &lsquo;project-dir&rsquo; field of the software object.  Calling &lsquo;phenome&rsquo; on
+software objects sharing the same project-dir in multiple threads will
+lead to conflicts.  This may be avoided by giving each thread its own
+build directory.  To do this set <code>*build-dir*</code> to a different location
+in each thread and then initialize <code>*build-dir*</code> in each thread by
+calling &lsquo;{to-file _ *BUILD_DIR*}&rsquo; against a base software
+object (e.g., the original program).
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fproject_003acollect_002devolve_002dfiles"></span><dl>
+<dt id="index-collect_002devolve_002dfiles-_005bsel_002fsw_002fproject_005d">Generic Function: <strong>collect-evolve-files [sel/sw/project]</strong> <em>project</em></dt>
+<dd><p>Create the evolve files for <code>project</code>.
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fproject_003acollect_002devolve_002dfiles-before-_0028_0028obj-clang_002dproject_0029_0029"></span><dl>
+<dt id="index-before-collect_002devolve_002dfiles-_005bsel_002fsw_002fproject_005d">Method: <strong>before collect-evolve-files [sel/sw/project]</strong> <em>(obj clang-project)</em></dt>
+<dd><p>Ensure <code>clang-project</code> has a compilation-database populated.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fproject_003acollect_002dother_002dfiles"></span><dl>
+<dt id="index-collect_002dother_002dfiles-_005bsel_002fsw_002fproject_005d">Generic Function: <strong>collect-other-files [sel/sw/project]</strong> <em>project</em></dt>
+<dd><p>Find parseable files in <code>project</code> that were not included in &lsquo;evolve-files&rsquo;.
+Assumes &lsquo;evolve-files&rsquo; has been initialized.  Only applies to
+non-symlink text files that don&rsquo;t end in &quot;~&quot; and are not ignored by
+&lsquo;ignore-other-paths&rsquo;, or &lsquo;only-other-paths&rsquo;.
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fproject_003acollect_002dother_002dfiles-around-_0028_0028project-javascript_002dproject_0029_0029"></span><dl>
+<dt id="index-around-collect_002dother_002dfiles-_005bsel_002fsw_002fproject_005d">Method: <strong>around collect-other-files [sel/sw/project]</strong> <em>(project javascript-project)</em></dt>
+<dd><p>Wrapper to represent JSON files as JSON software objects instead of
+simple text software objects.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fproject_003aignored_002devolve_002dpath_002dp"></span><dl>
+<dt id="index-ignored_002devolve_002dpath_002dp-_005bsel_002fsw_002fproject_005d">Generic Function: <strong>ignored-evolve-path-p [sel/sw/project]</strong> <em>software path</em></dt>
+<dd><p>Check if <code>path</code> is an ignored evolve path in <code>software</code>.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fproject_003aignored_002dother_002dpath_002dp"></span><dl>
+<dt id="index-ignored_002dother_002dpath_002dp-_005bsel_002fsw_002fproject_005d">Generic Function: <strong>ignored-other-path-p [sel/sw/project]</strong> <em>software path</em></dt>
+<dd><p>Check if <code>path</code> is an ignored other path in <code>software</code>.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fproject_003apick_002dfile"></span><dl>
+<dt id="index-pick_002dfile-_005bsel_002fsw_002fproject_005d">Generic Function: <strong>pick-file [sel/sw/project]</strong> <em>obj</em></dt>
+<dd><p>Randomly pick one evolve file. Return its index in
+the alist.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fproject_003aproject"></span><dl>
+<dt id="index-project-_005bsel_002fsw_002fproject_005d">Class: <strong>project [sel/sw/project]</strong></dt>
+<dd><p>Class precedence list: <code>project, software, oid-object, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>build-command</code> &mdash; initarg: <code><span class="nolinebreak">:build-command</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/project:build-command</span><!-- /@w --></code>
+
+<p>Shell command to build the project.
+</p></li><li> <code>artifacts</code> &mdash; initarg: <code>:artifacts<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/project:artifacts</span><!-- /@w --></code>
+
+<p>Artifacts (e.g., executables) of the project build.
+</p></li><li> <code>evolve-files</code> &mdash; initarg: <code><span class="nolinebreak">:evolve-files</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/project:evolve-files</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/project:evolve-files)</span><!-- /@w --></code>
+
+<p>Files within the project to mutate.
+This holds a list of cons cells of the form (path . software-object-for-path).
+</p></li><li> <code>other-files</code> &mdash; initarg: <code><span class="nolinebreak">:other-files</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/project:other-files</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/project:other-files)</span><!-- /@w --></code>
+
+<p>Source files which may be used but not evolved.
+This holds a list of cons cells of the form (path . software-object-for-path).
+</p></li><li> <code>ignore-paths</code> &mdash; initarg: <code><span class="nolinebreak">:ignore-paths</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/project:ignore-paths</span><!-- /@w --></code>
+
+<p>List of paths to ignore when collecting evolve-files.
+Paths may contain wildcards.
+</p></li><li> <code>only-paths</code> &mdash; initarg: <code><span class="nolinebreak">:only-paths</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/project:only-paths</span><!-- /@w --></code>
+
+<p>List of paths to only consider when collecting evolve-files.
+Paths may contain wildcards.
+</p></li><li> <code>ignore-other-paths</code> &mdash; initarg: <code><span class="nolinebreak">:ignore-other-paths</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/project:ignore-other-paths</span><!-- /@w --></code>
+
+<p>List of paths to ignore when collecting other-files.
+Paths may contain wildcards.
+</p></li><li> <code>only-other-paths</code> &mdash; initarg: <code><span class="nolinebreak">:only-other-paths</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/project:only-other-paths</span><!-- /@w --></code>
+
+<p>List of paths to only consider when collecting other-files.
+Paths may contain wildcards.
+</p></li><li> <code>component-class</code> &mdash; initarg: <code><span class="nolinebreak">:component-class</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/project:component-class</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/project:component-class)</span><!-- /@w --></code>
+
+<p>Software object class to utilize in component objects.
+</p></li><li> <code>project-dir</code> &mdash; initarg: <code><span class="nolinebreak">:project-dir</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/project:project-dir</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/project:project-dir)</span><!-- /@w --></code>
+
+<p>Source directory containing the project.
+</p></li></ul>
+
+<p>A project is composed of multiple component software objects.
+<code>e</code>.g., a multi-file C software project may include multiple clang
+software objects in it&rsquo;s &lsquo;evolve-files&rsquo;.
+</p></dd></dl>
+
+<hr>
+<div class="header">
+<p>
+Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fSEXP.html" accesskey="n" rel="next">SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/SEXP</a>, Previous: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fPARSEABLE_002dPROJECT.html" accesskey="p" rel="prev">SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/PARSEABLE-PROJECT</a>, Up: <a href="Software-Evolution-Library-Index.html" accesskey="u" rel="up">Software Evolution Library Index</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+
+
+
+</body>
+</html>

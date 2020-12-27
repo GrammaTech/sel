@@ -21,7 +21,7 @@ A copy of the license is included in the section entitled
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
 <link href="index.html" rel="start" title="Top">
-<link href="Index.html" rel="index" title="Index">
+<link href="Combined-Index.html" rel="index" title="Combined Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
 <link href="Examples.html" rel="up" title="Examples">
 <link href="Evaluation.html" rel="next" title="Evaluation">
@@ -51,29 +51,29 @@ ul.no-bullet {list-style: none}
 <body lang="en">
 <span id="Mutation"></span><div class="header">
 <p>
-Next: <a href="Evaluation.html" accesskey="n" rel="next">Evaluation</a>, Previous: <a href="Examples.html" accesskey="p" rel="prev">Examples</a>, Up: <a href="Examples.html" accesskey="u" rel="up">Examples</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
+Next: <a href="Evaluation.html" accesskey="n" rel="next">Evaluation</a>, Previous: <a href="Examples.html" accesskey="p" rel="prev">Examples</a>, Up: <a href="Examples.html" accesskey="u" rel="up">Examples</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
 <span id="Mutation-1"></span><h4 class="subsection">5.2.1 Mutation</h4>
 <span id="index-example-mutation"></span>
 
 
-<p>The <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-mutate"><code>mutate</code></a> method applies a random mutation to a
-<a href="software_002devolution_002dlibrary.html#Class-software"><code>software</code></a> object and returns two values: the mutated
-object and a <a href="software_002devolution_002dlibrary.html#Class-mutation"><code>mutation</code></a> object describing the mutation
+<p>The <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002dEVOLUTION_002dLIBRARY.html#Generic_002dFunction-sel_003amutate"><code>sel:mutate</code></a> method applies a random mutation to a
+<a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002dEVOLUTION_002dLIBRARY.html#Class-sel_003asoftware"><code>sel:software</code></a> object and returns two values: the mutated
+object and a <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002dEVOLUTION_002dLIBRARY.html#Class-sel_003amutation"><code>sel:mutation</code></a> object describing the mutation
 that was applied.
 </p>
 <p>The following example applies a random mutation to <code>gcd.s</code>.
 </p>
 
 <ol>
-<li> Uses <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-from_002dfile"><code>from-file</code></a> to load <code>gcd.s</code> into a new <a href="sel_002dsw_002dasm.html#Class-asm"><code>asm</code></a> software object, <code>orig</code>.
+<li> Uses <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002dEVOLUTION_002dLIBRARY.html#Generic_002dFunction-sel_003afrom_002dfile"><code>sel:from-file</code></a> to load <code>gcd.s</code> into a new <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fASM.html#Class-sel_002fsw_002fasm_003aasm"><code>sel/sw/asm:asm</code></a> software object, <code>orig</code>.
 
-</li><li> Applies <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-mutate"><code>mutate</code></a> to mutate a deep <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-copy"><code>copy</code></a> of <code>orig</code>.
+</li><li> Applies <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002dEVOLUTION_002dLIBRARY.html#Generic_002dFunction-sel_003amutate"><code>sel:mutate</code></a> to mutate a deep <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002dEVOLUTION_002dLIBRARY.html#Generic_002dFunction-sel_003acopy"><code>sel:copy</code></a> of <code>orig</code>.
 
-</li><li> Writes the mutated object to disk with <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-to_002dfile"><code>to-file</code></a>.
+</li><li> Writes the mutated object to disk with <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002dEVOLUTION_002dLIBRARY.html#Generic_002dFunction-sel_003ato_002dfile"><code>sel:to-file</code></a>.
 
-</li><li> Prints the <a href="software_002devolution_002dlibrary.html#Class-mutation"><code>mutation</code></a> that was applied.
+</li><li> Prints the <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002dEVOLUTION_002dLIBRARY.html#Class-sel_003amutation"><code>sel:mutation</code></a> that was applied.
 </li></ol>
 
 <pre class="verbatim">(defpackage :example
@@ -113,13 +113,13 @@ tmp/fileLfs6Mf.s&quot;.
 
 
 <ul>
-<li> Class <a href="sel_002dsw_002dasm.html#Class-asm"><code>asm</code></a>
+<li> Class <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fASM.html#Class-sel_002fsw_002fasm_003aasm"><code>sel/sw/asm:asm</code></a>
 </li><li> Methods
   <ul>
-<li> <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-copy"><code>copy</code></a>
-  </li><li> <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-from_002dfile"><code>from-file</code></a>
-  </li><li> <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-mutate"><code>mutate</code></a>
-  </li><li> <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-to_002dfile"><code>to-file</code></a>
+<li> <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002dEVOLUTION_002dLIBRARY.html#Generic_002dFunction-sel_003acopy"><code>sel:copy</code></a>
+  </li><li> <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002dEVOLUTION_002dLIBRARY.html#Generic_002dFunction-sel_003afrom_002dfile"><code>sel:from-file</code></a>
+  </li><li> <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002dEVOLUTION_002dLIBRARY.html#Generic_002dFunction-sel_003amutate"><code>sel:mutate</code></a>
+  </li><li> <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002dEVOLUTION_002dLIBRARY.html#Generic_002dFunction-sel_003ato_002dfile"><code>sel:to-file</code></a>
   </li></ul>
 </li></ul>
 

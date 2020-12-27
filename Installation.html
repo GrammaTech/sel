@@ -21,7 +21,7 @@ A copy of the license is included in the section entitled
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
 <link href="index.html" rel="start" title="Top">
-<link href="Index.html" rel="index" title="Index">
+<link href="Combined-Index.html" rel="index" title="Combined Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
 <link href="Usage.html" rel="up" title="Usage">
 <link href="Windows-Installation.html" rel="next" title="Windows Installation">
@@ -51,7 +51,7 @@ ul.no-bullet {list-style: none}
 <body lang="en">
 <span id="Installation"></span><div class="header">
 <p>
-Next: <a href="Examples.html" accesskey="n" rel="next">Examples</a>, Previous: <a href="Usage.html" accesskey="p" rel="prev">Usage</a>, Up: <a href="Usage.html" accesskey="u" rel="up">Usage</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
+Next: <a href="Windows-Installation.html" accesskey="n" rel="next">Windows Installation</a>, Previous: <a href="Usage.html" accesskey="p" rel="prev">Usage</a>, Up: <a href="Usage.html" accesskey="u" rel="up">Usage</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
 <span id="Installation-1"></span><h3 class="section">5.1 Installation</h3>
@@ -59,43 +59,32 @@ Next: <a href="Examples.html" accesskey="n" rel="next">Examples</a>, Previous: <
 <p>TLDR; If you already have a Common Lisp development environment setup
 the Software Evolution Library (SEL) can be installed from QuickLisp
 by running <code>(ql:quickload :software-evolution-library)</code>, however
-some components and software types have additional dependencies.
+many components and software types have additional dependencies.
 </p>
-<p>Note: The following instructions assume you are on a Linux machine,
-for installation on Windows see <a href="Windows-Installation.html">Windows Installation</a>.
+<p>Note: The following instructions assume you are running a Linux or
+macOS operating system, for installation Windows see <a href="Windows-Installation.html">Windows Installation</a>.
 </p>
-<p>SEL requires one of the following supported lisp distributions.
-(Relatively recent versions of these implementations are required
-because of the use of new features of ASDF/UIOP.)
+<p>SEL is currently only tested against <a href="https://www.cliki.net/SBCL">Steel Bank Common Lisp (SBCL)</a> <a href="https://www.cliki.net/CCL">Clozure
+Common Lisp (CCL)</a> and requires ASDF version 3.3.x or greater.
 </p>
-<div class="float"><span id="tab_003alisp_002dimplementations"></span>
-
-<table>
-<thead><tr><th>Implementation</th><th>Minimum Version</th><th>URL</th></tr></thead>
-<tr><td>Steel Bank Common Lisp (SBCL)</td><td>1.4</td><td><a href="https://www.cliki.net/SBCL">https://www.cliki.net/SBCL</a></td></tr>
-<tr><td>Clozure Common Lisp (CCL)</td><td>1.12-dev</td><td><a href="https://www.cliki.net/CCL">https://www.cliki.net/CCL</a></td></tr>
-</table>
-
-<div class="float-caption"><p><strong>Table 5.1: </strong>Supported Common Lisp Implementations.</p></div></div>
 <p>The source code for SEL is available at
 <a href="https://github.com/GrammaTech/sel">https://github.com/GrammaTech/sel</a>.  SEL and its Common Lisp
 dependencies are installable through Quicklisp (see
-<a href="http://www.quicklisp.org/">http://www.quicklisp.org/</a>).  Some components of SEL (related to
-software execution tracing) also require the <code>trace-db</code> package
-(available from <a href="https://github.com/GrammaTech/trace-db">https://github.com/GrammaTech/trace-db</a>) which is
-not installable through QuickLisp.  If needed, it should be downloaded
-into your Quicklisp <code>local-projects/</code> folder.  Depending on the
-type of software object used the following may also be required:
+<a href="http://www.quicklisp.org/">http://www.quicklisp.org/</a>).
 </p>
 <div class="float"><span id="tab_003adependencies"></span>
 
 <table>
-<thead><tr><th>Software type</th><th>Dependency</th><th>URL</th></tr></thead>
-<tr><td>C/C++</td><td>clang v10.0+</td><td><a href="https://github.com/llvm/llvm-project">https://github.com/llvm/llvm-project</a></td></tr>
-<tr><td>JavaScript</td><td>acorn</td><td><a href="https://github.com/acornjs/acorn.git">https://github.com/acornjs/acorn.git</a></td></tr>
-<tr><td>Coq</td><td>SerAPI</td><td><a href="https://github.com/ejgallego/coq-serapi">https://github.com/ejgallego/coq-serapi</a></td></tr>
+<tr><td>External dependencies are required for some software object subclasses
+that require external parsers.  For all languages evaluation of
+software objects require that the language&rsquo;s compiler or interpreter
+is available.</td></tr>
+<thead><tr><th>Software type</th><th>Class</th><th>Dependency</th><th>URL</th></tr></thead>
+<tr><td>Source Code for many languages</td><td><a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fTREE_002dSITTER.html#Class-sel_002fsw_002fts_003atree_002dsitter"><code>sel/sw/ts:tree-sitter</code></a></td><td>tree-sitter</td><td><a href="https://tree-sitter.github.io/tree-sitter/">https://tree-sitter.github.io/tree-sitter/</a></td></tr>
+<tr><td>Alternate C/CPP Source Code</td><td><a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fCLANG.html#Class-sel_002fsw_002fclang_003aclang"><code>sel/sw/clang:clang</code></a></td><td>clang v10.0+</td><td><a href="https://github.com/llvm/llvm-project">https://github.com/llvm/llvm-project</a></td></tr>
+<tr><td>Coq</td><td><a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fCOQ.html#Class-sel_002fsw_002fcoq_003acoq"><code>sel/sw/coq:coq</code></a></td><td>SerAPI</td><td><a href="https://github.com/ejgallego/coq-serapi">https://github.com/ejgallego/coq-serapi</a></td></tr>
 </table>
-<div class="float-caption"><p><strong>Table 5.2: </strong>Additional dependencies for specific software objects.</p></div></div>
+<div class="float-caption"><p><strong>Table 5.1: </strong>Additional dependencies for specific software objects.</p></div></div>
 <table class="menu" border="0" cellspacing="0">
 <tr><td align="left" valign="top">&bull; <a href="Windows-Installation.html" accesskey="1">Windows Installation</a></td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Installing SEL on Windows
 </td></tr>

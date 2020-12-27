@@ -1,0 +1,276 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- This file documents the Software Evolution library
+
+Copyright (C) 2014-2018 Eric Schulte and GrammaTech
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
+A copy of the license is included in the section entitled
+"GNU Free Documentation License." -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/EXPRESSION (Software Evolution Library)</title>
+
+<meta name="description" content="SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/EXPRESSION (Software Evolution Library)">
+<meta name="keywords" content="SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/EXPRESSION (Software Evolution Library)">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<link href="index.html" rel="start" title="Top">
+<link href="Combined-Index.html" rel="index" title="Combined Index">
+<link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
+<link href="Software-Evolution-Library-Index.html" rel="up" title="Software Evolution Library Index">
+<link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fFORTH.html" rel="next" title="SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/FORTH">
+<link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fELF_002dRISC.html" rel="prev" title="SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/ELF-RISC">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fEXPRESSION"></span><div class="header">
+<p>
+Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fFORTH.html" accesskey="n" rel="next">SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/FORTH</a>, Previous: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fELF_002dRISC.html" accesskey="p" rel="prev">SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/ELF-RISC</a>, Up: <a href="Software-Evolution-Library-Index.html" accesskey="u" rel="up">Software Evolution Library Index</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fEXPRESSION-1"></span><h3 class="section">A.40 SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/EXPRESSION</h3>
+<span id="Condition-sel_002fsw_002fexpression_003aeval_002derror"></span><dl>
+<dt id="index-eval_002derror-_005bsel_002fsw_002fexpression_005d">Condition: <strong>eval-error [sel/sw/expression]</strong></dt>
+<dd><p>Class precedence list: <code>eval-error, error, serious-condition, condition, slot-object, t</code>
+</p>
+<p><code>docfixme</code>
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fexpression_003aadd_002dsubtract"></span><dl>
+<dt id="index-add_002dsubtract-_005bsel_002fsw_002fexpression_005d">Class: <strong>add-subtract [sel/sw/expression]</strong></dt>
+<dd><p>Class precedence list: <code>add-subtract, mutation, oid-object, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p><code>docfixme</code>
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fexpression_003aadd_002dsubtract_002dscope"></span><dl>
+<dt id="index-add_002dsubtract_002dscope-_005bsel_002fsw_002fexpression_005d">Class: <strong>add-subtract-scope [sel/sw/expression]</strong></dt>
+<dd><p>Class precedence list: <code>add-subtract-scope, mutation, oid-object, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p><code>docfixme</code>
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fexpression_003aadd_002dsubtract_002dtree"></span><dl>
+<dt id="index-add_002dsubtract_002dtree-_005bsel_002fsw_002fexpression_005d">Class: <strong>add-subtract-tree [sel/sw/expression]</strong></dt>
+<dd><p>Class precedence list: <code>add-subtract-tree, mutation, oid-object, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p><code>docfixme</code>
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fexpression_003achange_002dconstant"></span><dl>
+<dt id="index-change_002dconstant-_005bsel_002fsw_002fexpression_005d">Class: <strong>change-constant [sel/sw/expression]</strong></dt>
+<dd><p>Class precedence list: <code>change-constant, mutation, oid-object, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p><code>docfixme</code>
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fexpression_003achange_002doperator"></span><dl>
+<dt id="index-change_002doperator-_005bsel_002fsw_002fexpression_005d">Class: <strong>change-operator [sel/sw/expression]</strong></dt>
+<dd><p>Class precedence list: <code>change-operator, mutation, oid-object, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p><code>docfixme</code>
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fexpression_003ademote_002dbinop_002dleft"></span><dl>
+<dt id="index-demote_002dbinop_002dleft-_005bsel_002fsw_002fexpression_005d">Class: <strong>demote-binop-left [sel/sw/expression]</strong></dt>
+<dd><p>Class precedence list: <code>demote-binop-left, mutation, oid-object, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p><code>docfixme</code>
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fexpression_003ademote_002dbinop_002dright"></span><dl>
+<dt id="index-demote_002dbinop_002dright-_005bsel_002fsw_002fexpression_005d">Class: <strong>demote-binop-right [sel/sw/expression]</strong></dt>
+<dd><p>Class precedence list: <code>demote-binop-right, mutation, oid-object, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p><code>docfixme</code>
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fexpression_003aevaluate_002dexpression"></span><dl>
+<dt id="index-evaluate_002dexpression-_005bsel_002fsw_002fexpression_005d">Generic Function: <strong>evaluate-expression [sel/sw/expression]</strong> <em>object environment &amp;optional expression</em></dt>
+<dd><p>Evaluate OBJECT&rsquo;s expression in <code>environment</code>.
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fexpression_003aevaluate_002dexpression-_0028_0028obj-clang_002dexpression_0029-free_002dvars--_0026optional-expression_0029"></span><dl>
+<dt id="index-evaluate_002dexpression-_005bsel_002fsw_002fexpression_005d-1">Method: <strong>evaluate-expression [sel/sw/expression]</strong> <em>(obj clang-expression) free-vars &amp;optional expression</em></dt>
+<dd><p>Evaluate expression over <code>free-vars</code>, returning result and max interior value.
+</p><ul>
+<li> <code>obj</code> a <code>clang-expression</code> object
+</li><li> <code>free-vars</code> an alist mapping variable names to values
+</li><li> <code>expression</code> an expression tree
+</li></ul>
+</dd></dl>
+<span id="Class-sel_002fsw_002fexpression_003aexpression"></span><dl>
+<dt id="index-expression-_005bsel_002fsw_002fexpression_005d">Class: <strong>expression [sel/sw/expression]</strong></dt>
+<dd><p>Class precedence list: <code>expression, sexp, simple, software, oid-object, file-w-attributes, file, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>scope</code> &mdash; initarg: <code>:scope<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/expression:scope</span><!-- /@w --></code>
+
+<p>List of in-scope variable names.
+</p></li></ul>
+
+<p><code>docfixme</code>
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fexpression_003amult_002ddivide"></span><dl>
+<dt id="index-mult_002ddivide-_005bsel_002fsw_002fexpression_005d">Class: <strong>mult-divide [sel/sw/expression]</strong></dt>
+<dd><p>Class precedence list: <code>mult-divide, mutation, oid-object, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p><code>docfixme</code>
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fexpression_003arandom_002dsubtree"></span><dl>
+<dt id="index-random_002dsubtree-_005bsel_002fsw_002fexpression_005d">Class: <strong>random-subtree [sel/sw/expression]</strong></dt>
+<dd><p>Class precedence list: <code>random-subtree, mutation, oid-object, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p><code>docfixme</code>
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fexpression_003asubtract_002dadd"></span><dl>
+<dt id="index-subtract_002dadd-_005bsel_002fsw_002fexpression_005d">Class: <strong>subtract-add [sel/sw/expression]</strong></dt>
+<dd><p>Class precedence list: <code>subtract-add, mutation, oid-object, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p><code>docfixme</code>
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fexpression_003asubtract_002dadd_002dtree"></span><dl>
+<dt id="index-subtract_002dadd_002dtree-_005bsel_002fsw_002fexpression_005d">Class: <strong>subtract-add-tree [sel/sw/expression]</strong></dt>
+<dd><p>Class precedence list: <code>subtract-add-tree, mutation, oid-object, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p><code>docfixme</code>
+</p></dd></dl>
+
+<hr>
+<div class="header">
+<p>
+Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fFORTH.html" accesskey="n" rel="next">SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/FORTH</a>, Previous: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fELF_002dRISC.html" accesskey="p" rel="prev">SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/ELF-RISC</a>, Up: <a href="Software-Evolution-Library-Index.html" accesskey="u" rel="up">Software Evolution Library Index</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+
+
+
+</body>
+</html>

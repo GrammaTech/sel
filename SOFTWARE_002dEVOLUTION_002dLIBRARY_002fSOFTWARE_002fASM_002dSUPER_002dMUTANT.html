@@ -1,0 +1,233 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- This file documents the Software Evolution library
+
+Copyright (C) 2014-2018 Eric Schulte and GrammaTech
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
+A copy of the license is included in the section entitled
+"GNU Free Documentation License." -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/ASM-SUPER-MUTANT (Software Evolution Library)</title>
+
+<meta name="description" content="SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/ASM-SUPER-MUTANT (Software Evolution Library)">
+<meta name="keywords" content="SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/ASM-SUPER-MUTANT (Software Evolution Library)">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<link href="index.html" rel="start" title="Top">
+<link href="Combined-Index.html" rel="index" title="Combined Index">
+<link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
+<link href="Software-Evolution-Library-Index.html" rel="up" title="Software Evolution Library Index">
+<link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fCIL.html" rel="next" title="SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/CIL">
+<link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fASM_002dHEAP.html" rel="prev" title="SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/ASM-HEAP">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fASM_002dSUPER_002dMUTANT"></span><div class="header">
+<p>
+Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fCIL.html" accesskey="n" rel="next">SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/CIL</a>, Previous: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fASM_002dHEAP.html" accesskey="p" rel="prev">SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/ASM-HEAP</a>, Up: <a href="Software-Evolution-Library-Index.html" accesskey="u" rel="up">Software Evolution Library Index</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fASM_002dSUPER_002dMUTANT-1"></span><h3 class="section">A.27 SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/ASM-SUPER-MUTANT</h3>
+<span id="Class-sel_002fsw_002fasm_002dsuper_002dmutant_003aasm_002dsuper_002dmutant"></span><dl>
+<dt id="index-asm_002dsuper_002dmutant-_005bsel_002fsw_002fasm_002dsuper_002dmutant_005d">Class: <strong>asm-super-mutant [sel/sw/asm-super-mutant]</strong></dt>
+<dd><p>Class precedence list: <code>asm-super-mutant, asm-heap, asm, simple, super-mutant, software, oid-object, file-w-attributes, file, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>input-spec</code> &mdash; initarg: <code><span class="nolinebreak">:input-spec</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant:input-spec</span><!-- /@w --></code>
+
+<p>Vector of <code>input-specification</code> structs, one for each test case.
+</p></li><li> <code>output-spec</code> &mdash; initarg: <code><span class="nolinebreak">:output-spec</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant:output-spec</span><!-- /@w --></code>
+
+<p>Vector of <code>input-specification</code> structs, one for each test case.
+</p></li><li> <code>untraced-call-spec</code> &mdash; initarg: <code><span class="nolinebreak">:untraced-call-spec</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant:untraced-call-spec</span><!-- /@w --></code>
+
+<p>Vector of <code>untraced-call-specification</code> structs, one for each test case.
+</p></li><li> <code>var-table</code> &mdash; initarg: <code><span class="nolinebreak">:var-table</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant:var-table</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant:var-table)</span><!-- /@w --></code>
+
+<p>Vector of var-rec (data/address records)
+</p></li><li> <code>bss-segment</code> &mdash; initarg: <code><span class="nolinebreak">:bss-segment</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant::bss-segment</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant::bss-segment)</span><!-- /@w --></code>
+
+<p>Address of bss segment in original executable
+</p></li><li> <code>target-name</code> &mdash; initarg: <code><span class="nolinebreak">:target-name</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant::target-name</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant::target-name)</span><!-- /@w --></code>
+
+<p>Name of target function
+</p></li><li> <code>target-start-index</code> &mdash; initarg: <code><span class="nolinebreak">:target-start-index</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant::target-start-index</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant::target-start-index)</span><!-- /@w --></code>
+
+<p>Integer index represents the first line of target code.
+</p></li><li> <code>target-end-index</code> &mdash; initarg: <code><span class="nolinebreak">:target-end-index</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant::target-end-index</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant::target-end-index)</span><!-- /@w --></code>
+
+<p>Integer index represents the last line of target code.
+</p></li><li> <code>target-info</code> &mdash; initarg: <code><span class="nolinebreak">:target-info</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant:target-info</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant:target-info)</span><!-- /@w --></code>
+
+<p>Function index entry of the target function
+</p></li><li> <code>target-lines</code> &mdash; initarg: <code><span class="nolinebreak">:target-lines</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant::target-lines</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant::target-lines)</span><!-- /@w --></code>
+
+<p>Cache the lines of the target code, as they are used often.
+</p></li><li> <code>compiler</code> &mdash; initarg: <code>:compiler<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant:compiler</span><!-- /@w --></code>
+
+<p>C compiler to use for building fitness harness.
+</p></li><li> <code>static-link</code> &mdash; initarg: <code><span class="nolinebreak">:static-link</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant:static-link</span><!-- /@w --></code>
+
+<p>If true, attempt static link.
+</p></li><li> <code>io-dir</code> &mdash; initarg: <code><span class="nolinebreak">:io-dir</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant::io-dir</span><!-- /@w --></code>
+
+<p>Directory containing I/O files, named for the functions.
+</p></li><li> <code>io-file</code> &mdash; initarg: <code><span class="nolinebreak">:io-file</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant::io-file</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant::io-file)</span><!-- /@w --></code>
+
+<p>If this is specified, use this file (ignore io-dir).
+</p></li><li> <code>data-path</code> &mdash; initarg: <code><span class="nolinebreak">:data-path</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant:data-path</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant:data-path)</span><!-- /@w --></code>
+
+<p>If specified, refers to asm file containing static data definitions
+</p></li><li> <code>data-asm</code> &mdash; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant:data-asm</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant:data-asm)</span><!-- /@w --></code>
+
+<p>If present, contains the asm-heap corresponding to data-path
+</p></li><li> <code>static-names</code> &mdash; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant::static-names</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant::static-names)</span><!-- /@w --></code>
+
+<p>If present, contains property list mapping static names to addresses
+</p></li><li> <code>page-block-list</code> &mdash; initarg: <code><span class="nolinebreak">:page-block-list</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant::page-block-list</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant::page-block-list)</span><!-- /@w --></code>
+
+<p>Derived from io-file data, memory blocks which need to be
+ allocated by the fitness executables
+</p></li><li> <code>fitness-harness</code> &mdash; initarg: <code><span class="nolinebreak">:fitness-harness</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant:fitness-harness</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant:fitness-harness)</span><!-- /@w --></code>
+
+<p>Pathname to the fitness harness file <code>(c program source)</code>
+</p></li><li> <code>include-lines</code> &mdash; initarg: <code><span class="nolinebreak">:include-lines</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant::include-lines</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant::include-lines)</span><!-- /@w --></code>
+
+<p>Optional list of lines of assembler source to include in fitness file.
+</p></li><li> <code>include-funcs</code> &mdash; initarg: <code><span class="nolinebreak">:include-funcs</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant::include-funcs</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant::include-funcs)</span><!-- /@w --></code>
+
+<p>Optional list of names of functions to include in fitness file.
+</p></li><li> <code>libraries</code> &mdash; initarg: <code>:libraries<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant::libraries</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant::libraries)</span><!-- /@w --></code>
+
+<p>Optional list of names of functions to include in fitness file.
+</p></li><li> <code>max-asm-function-size</code> &mdash; initarg: <code><span class="nolinebreak">:max-asm-function-size</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant::max-asm-function-size</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant::max-asm-function-size)</span><!-- /@w --></code>
+
+<p>Maximum number of lines in a function for optimization.
+</p></li><li> <code>eval-meta-results</code> &mdash; initarg: <code><span class="nolinebreak">:eval-meta-results</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant:eval-meta-results</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant:eval-meta-results)</span><!-- /@w --></code>
+
+<p>After evaluation, may contain meta-information about results.
+</p></li><li> <code>linker-script</code> &mdash; initarg: <code><span class="nolinebreak">:linker-script</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant::linker-script</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant::linker-script)</span><!-- /@w --></code>
+
+<p>Create and cache the default linker script
+</p></li><li> <code>limit-call</code> &mdash; initarg: <code><span class="nolinebreak">:limit-call</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/asm-super-mutant:limit-call</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/asm-super-mutant:limit-call)</span><!-- /@w --></code>
+
+<p>If specified, wrap executable with this call.
+</p></li></ul>
+
+<p>Combine <code>super-mutant</code> capabilities with <code>asm-heap</code> framework.
+</p></dd></dl>
+<span id="Variable-sel_002fsw_002fasm_002dsuper_002dmutant_003a_002abss_002dsegment_002dstart_002a"></span><dl>
+<dt id="index-_002abss_002dsegment_002dstart_002a-_005bsel_002fsw_002fasm_002dsuper_002dmutant_005d">Variable: <strong>*bss-segment-start* [sel/sw/asm-super-mutant]</strong></dt>
+<dd><p>If non-nil, address of .bss segment
+</p></dd></dl>
+<span id="Variable-sel_002fsw_002fasm_002dsuper_002dmutant_003a_002acallee_002dsaved_002dinit_002dvalue_002a"></span><dl>
+<dt id="index-_002acallee_002dsaved_002dinit_002dvalue_002a-_005bsel_002fsw_002fasm_002dsuper_002dmutant_005d">Variable: <strong>*callee-saved-init-value* [sel/sw/asm-super-mutant]</strong></dt>
+<dd><p>Arbitrary value to initialize callee-save registers which are
+ not otherwise initialized by the io spec.
+</p></dd></dl>
+<span id="Variable-sel_002fsw_002fasm_002dsuper_002dmutant_003a_002adata_002dsegment_002dstart_002a"></span><dl>
+<dt id="index-_002adata_002dsegment_002dstart_002a-_005bsel_002fsw_002fasm_002dsuper_002dmutant_005d">Variable: <strong>*data-segment-start* [sel/sw/asm-super-mutant]</strong></dt>
+<dd><p>If non-nil, address of .data segment
+</p></dd></dl>
+<span id="Variable-sel_002fsw_002fasm_002dsuper_002dmutant_003a_002ainline_002dincluded_002dlines_002a"></span><dl>
+<dt id="index-_002ainline_002dincluded_002dlines_002a-_005bsel_002fsw_002fasm_002dsuper_002dmutant_005d">Variable: <strong>*inline-included-lines* [sel/sw/asm-super-mutant]</strong></dt>
+<dd><p>Inline the additional lines of assembler.
+ Inline them with the function being modified, so each variation
+ contains these lines.
+</p></dd></dl>
+<span id="Variable-sel_002fsw_002fasm_002dsuper_002dmutant_003a_002akeep_002dassembly_002dfiles_002a"></span><dl>
+<dt id="index-_002akeep_002dassembly_002dfiles_002a-_005bsel_002fsw_002fasm_002dsuper_002dmutant_005d">Variable: <strong>*keep-assembly-files* [sel/sw/asm-super-mutant]</strong></dt>
+<dd><p>If true, evaluate will keep generated assembly files.
+</p></dd></dl>
+<span id="Variable-sel_002fsw_002fasm_002dsuper_002dmutant_003a_002akeep_002dfitness_002dexecutables_002a"></span><dl>
+<dt id="index-_002akeep_002dfitness_002dexecutables_002a-_005bsel_002fsw_002fasm_002dsuper_002dmutant_005d">Variable: <strong>*keep-fitness-executables* [sel/sw/asm-super-mutant]</strong></dt>
+<dd><p>If true, evaluate will keep generated fitness executables.
+</p></dd></dl>
+<span id="Variable-sel_002fsw_002fasm_002dsuper_002dmutant_003a_002alib_002dpapi_002a"></span><dl>
+<dt id="index-_002alib_002dpapi_002a-_005bsel_002fsw_002fasm_002dsuper_002dmutant_005d">Variable: <strong>*lib-papi* [sel/sw/asm-super-mutant]</strong></dt>
+<dd><p>Path to papi library.  See http://icl.cs.utk.edu/papi/.
+</p></dd></dl>
+<span id="Variable-sel_002fsw_002fasm_002dsuper_002dmutant_003a_002aoptimize_002dincluded_002dlines_002a"></span><dl>
+<dt id="index-_002aoptimize_002dincluded_002dlines_002a-_005bsel_002fsw_002fasm_002dsuper_002dmutant_005d">Variable: <strong>*optimize-included-lines* [sel/sw/asm-super-mutant]</strong></dt>
+<dd><p>This option is no longer supported
+</p></dd></dl>
+<span id="Variable-sel_002fsw_002fasm_002dsuper_002dmutant_003a_002aseldata_002dsegment_002dstart_002a"></span><dl>
+<dt id="index-_002aseldata_002dsegment_002dstart_002a-_005bsel_002fsw_002fasm_002dsuper_002dmutant_005d">Variable: <strong>*seldata-segment-start* [sel/sw/asm-super-mutant]</strong></dt>
+<dd><p>If non-nil, address of .seldata segment
+</p></dd></dl>
+<span id="Variable-sel_002fsw_002fasm_002dsuper_002dmutant_003a_002atext_002dsegment_002dstart_002a"></span><dl>
+<dt id="index-_002atext_002dsegment_002dstart_002a-_005bsel_002fsw_002fasm_002dsuper_002dmutant_005d">Variable: <strong>*text-segment-start* [sel/sw/asm-super-mutant]</strong></dt>
+<dd><p>If non-nil, base address
+</p></dd></dl>
+<span id="Variable-sel_002fsw_002fasm_002dsuper_002dmutant_003a_002atimeout_002dseconds_002a"></span><dl>
+<dt id="index-_002atimeout_002dseconds_002a-_005bsel_002fsw_002fasm_002dsuper_002dmutant_005d">Variable: <strong>*timeout-seconds* [sel/sw/asm-super-mutant]</strong></dt>
+<dd><p>Number of seconds before the fitness process is timed out.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002fasm_002dsuper_002dmutant_003acreate_002dtarget"></span><dl>
+<dt id="index-create_002dtarget-_005bsel_002fsw_002fasm_002dsuper_002dmutant_005d">Function: <strong>create-target [sel/sw/asm-super-mutant]</strong> <em>asm-super</em></dt>
+<dd><p>Returns an <code>asm-heap</code> software object which contains only the target lines.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002fasm_002dsuper_002dmutant_003aload_002dio_002dfile"></span><dl>
+<dt id="index-load_002dio_002dfile-_005bsel_002fsw_002fasm_002dsuper_002dmutant_005d">Function: <strong>load-io-file [sel/sw/asm-super-mutant]</strong> <em>super-asm filename</em></dt>
+<dd><p>Load the file containing input and output state information
+</p></dd></dl>
+<span id="Function-sel_002fsw_002fasm_002dsuper_002dmutant_003aparse_002dsanity_002dfile"></span><dl>
+<dt id="index-parse_002dsanity_002dfile-_005bsel_002fsw_002fasm_002dsuper_002dmutant_005d">Function: <strong>parse-sanity-file [sel/sw/asm-super-mutant]</strong> <em>filename</em></dt>
+<dd><p>Parses the &rsquo;sanity&rsquo; file which is output by the <code>gtx</code> disassembler.
+It contains all the data variables and addresses (some of which are
+not included in the disassembly file). Returns a vector of var-rec.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002fasm_002dsuper_002dmutant_003arestore_002doriginal_002daddresses"></span><dl>
+<dt id="index-restore_002doriginal_002daddresses-_005bsel_002fsw_002fasm_002dsuper_002dmutant_005d">Function: <strong>restore-original-addresses [sel/sw/asm-super-mutant]</strong> <em>asm</em></dt>
+<dd><p>If any rip-relative addresses have been converted to
+absolute, for evaluation, restore them to the original
+instructions.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002fasm_002dsuper_002dmutant_003atarget_002dfunction"></span><dl>
+<dt id="index-target_002dfunction-_005bsel_002fsw_002fasm_002dsuper_002dmutant_005d">Function: <strong>target-function [sel/sw/asm-super-mutant]</strong> <em>asm-super start-addr end-addr</em></dt>
+<dd><p>Define the target function by specifying start address and end address
+</p></dd></dl>
+<span id="Function-sel_002fsw_002fasm_002dsuper_002dmutant_003atarget_002dfunction_002dname"></span><dl>
+<dt id="index-target_002dfunction_002dname-_005bsel_002fsw_002fasm_002dsuper_002dmutant_005d">Function: <strong>target-function-name [sel/sw/asm-super-mutant]</strong> <em>asm function-name</em></dt>
+<dd><p>Specify target function by name. The name can be a symbol or a string. If
+ a symbol, the <code>symbol-name</code> of the symbol is used.
+</p></dd></dl>
+
+<hr>
+<div class="header">
+<p>
+Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fCIL.html" accesskey="n" rel="next">SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/CIL</a>, Previous: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fASM_002dHEAP.html" accesskey="p" rel="prev">SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/ASM-HEAP</a>, Up: <a href="Software-Evolution-Library-Index.html" accesskey="u" rel="up">Software Evolution Library Index</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+
+
+
+</body>
+</html>

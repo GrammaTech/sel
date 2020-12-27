@@ -21,7 +21,7 @@ A copy of the license is included in the section entitled
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
 <link href="index.html" rel="start" title="Top">
-<link href="Index.html" rel="index" title="Index">
+<link href="Combined-Index.html" rel="index" title="Combined Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
 <link href="Components.html" rel="up" title="Components">
 <link href="Multi_002dobjective-Fitness.html" rel="next" title="Multi-objective Fitness">
@@ -51,25 +51,21 @@ ul.no-bullet {list-style: none}
 <body lang="en">
 <span id="Test-Suites"></span><div class="header">
 <p>
-Next: <a href="Multi_002dobjective-Fitness.html" accesskey="n" rel="next">Multi-objective Fitness</a>, Previous: <a href="Components.html" accesskey="p" rel="prev">Components</a>, Up: <a href="Components.html" accesskey="u" rel="up">Components</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
+Next: <a href="Multi_002dobjective-Fitness.html" accesskey="n" rel="next">Multi-objective Fitness</a>, Previous: <a href="Components.html" accesskey="p" rel="prev">Components</a>, Up: <a href="Components.html" accesskey="u" rel="up">Components</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
 <span id="Test-Suites-1"></span><h3 class="section">3.1 Test Suites</h3>
 <span id="index-test_002dsuite"></span>
 
 <p>SEL incorporates representations for runnable unit tests. This allows
-individual components (such as <a href="Condition-Synthesis.html">Condition Synthesis</a> and
-<a href="Tracing.html">Tracing</a>) and evolution projects to
-determine whether unit tests are passing, and if their behavior has
-changed.
+individual components and evolution projects to determine whether unit
+tests are passing, and if their behavior has changed.
 </p>
 
 
 <span id="API-Support-For-Unit-Tests"></span><h4 class="subsection">3.1.1 API Support For Unit Tests</h4>
 
-<p>API support for unit tests is documented in section
-<a href="SEL-Concept-Index.html#api_002dtest_002dsuites">API | Test Suites</a>. We provide a brief overview
-here.
+<p>API support for unit tests is also documented in section <a href="Software-Evolution-Library-Index.html">Software Evolution Library Index</a>. We provide a brief overview here.
 </p>
 <ul>
 <li> <a href="#doc_002dtest_002dclasses">           <code>test-case</code> and <code>test-suite</code> classes</a>
@@ -82,19 +78,19 @@ here.
 
 
 <table>
-<tr><td><a href="sel_002dcp_002dtest_002dsuite.html#Class-test_002dcase"><code>test-case</code></a></td><td>a single test</td></tr>
-<tr><td><a href="sel_002dcp_002dtest_002dsuite.html#Class-test_002dsuite"><code>test-suite</code></a></td><td>a suite of tests (as a collection of
-      <a href="sel_002dcp_002dtest_002dsuite.html#Class-test_002dcase"><code>test-case</code></a> objects)</td></tr>
+<tr><td><a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fTEST_002dSUITE.html#Class-sel_002fcp_002ftest_002dsuite_003atest_002dcase"><code>sel/cp/test-suite:test-case</code></a></td><td>a single test</td></tr>
+<tr><td><a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fTEST_002dSUITE.html#Class-sel_002fcp_002ftest_002dsuite_003atest_002dsuite"><code>sel/cp/test-suite:test-suite</code></a></td><td>a suite of tests (as a collection of
+      <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fTEST_002dSUITE.html#Class-sel_002fcp_002ftest_002dsuite_003atest_002dcase"><code>sel/cp/test-suite:test-case</code></a> objects)</td></tr>
 </table>
 
 
 <span id="doc_002dtest_002dcase_002dmethods"></span><span id="test_002dcase-Methods"></span><h4 class="subheading"><code>test-case</code> Methods</h4>
 
 <ul>
-<li> <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-evaluate"><code>evaluate</code></a>
-</li><li> <a href="sel_002dcp_002dtest_002dsuite.html#Generic_002dFunction-finish_002dtest"><code>finish-test</code></a>
-</li><li> <a href="sel_002dcp_002dtest_002dsuite.html#Generic_002dFunction-run_002dtest"><code>run-test</code></a>
-</li><li> <a href="sel_002dcp_002dtest_002dsuite.html#Generic_002dFunction-start_002dtest"><code>start-test</code></a>
+<li> <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002dEVOLUTION_002dLIBRARY.html#Generic_002dFunction-sel_003aevaluate"><code>sel:evaluate</code></a>
+</li><li> <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fTEST_002dSUITE.html#Generic_002dFunction-sel_002fcp_002ftest_002dsuite_003afinish_002dtest"><code>sel/cp/test-suite:finish-test</code></a>
+</li><li> <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fTEST_002dSUITE.html#Generic_002dFunction-sel_002fcp_002ftest_002dsuite_003arun_002dtest"><code>sel/cp/test-suite:run-test</code></a>
+</li><li> <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fTEST_002dSUITE.html#Generic_002dFunction-sel_002fcp_002ftest_002dsuite_003astart_002dtest"><code>sel/cp/test-suite:start-test</code></a>
 </li></ul>
 
 

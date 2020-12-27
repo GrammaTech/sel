@@ -1,0 +1,75 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- This file documents the Software Evolution library
+
+Copyright (C) 2014-2018 Eric Schulte and GrammaTech
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
+A copy of the license is included in the section entitled
+"GNU Free Documentation License." -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/FIX-COMPILATION (Software Evolution Library)</title>
+
+<meta name="description" content="SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/FIX-COMPILATION (Software Evolution Library)">
+<meta name="keywords" content="SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/FIX-COMPILATION (Software Evolution Library)">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<link href="index.html" rel="start" title="Top">
+<link href="Combined-Index.html" rel="index" title="Combined Index">
+<link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
+<link href="Software-Evolution-Library-Index.html" rel="up" title="Software Evolution Library Index">
+<link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fFODDER_002dDATABASE.html" rel="next" title="SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/FODDER-DATABASE">
+<link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fFILE.html" rel="prev" title="SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/FILE">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fFIX_002dCOMPILATION"></span><div class="header">
+<p>
+Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fFODDER_002dDATABASE.html" accesskey="n" rel="next">SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/FODDER-DATABASE</a>, Previous: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fFILE.html" accesskey="p" rel="prev">SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/FILE</a>, Up: <a href="Software-Evolution-Library-Index.html" accesskey="u" rel="up">Software Evolution Library Index</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fFIX_002dCOMPILATION-1"></span><h3 class="section">A.5 SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/FIX-COMPILATION</h3>
+<span id="Variable-sel_002fcp_002ffix_002dcompilation_003a_002acompilation_002dfixers_002a"></span><dl>
+<dt id="index-_002acompilation_002dfixers_002a-_005bsel_002fcp_002ffix_002dcompilation_005d">Variable: <strong>*compilation-fixers* [sel/cp/fix-compilation]</strong></dt>
+<dd><p>Alist of compiler warning regular expressions, and associated function.
+The function is called over the match data returned by the regular
+expression match.  Each fixer function may modify its argument, and
+should return non-nil on success or nil if additional fixers should be
+applied.
+</p></dd></dl>
+<span id="Function-sel_002fcp_002ffix_002dcompilation_003aregister_002dfixer"></span><dl>
+<dt id="index-register_002dfixer-_005bsel_002fcp_002ffix_002dcompilation_005d">Function: <strong>register-fixer [sel/cp/fix-compilation]</strong> <em>regex function</em></dt>
+<dd><p>Add <code>function</code> to &lsquo;*compilation-fixers*&rsquo; to be called when <code>regex</code> matches.
+</p></dd></dl>
+
+
+
+
+</body>
+</html>

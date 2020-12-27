@@ -1,0 +1,98 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- This file documents the Software Evolution library
+
+Copyright (C) 2014-2018 Eric Schulte and GrammaTech
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
+A copy of the license is included in the section entitled
+"GNU Free Documentation License." -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/MULTI-OBJECTIVE (Software Evolution Library)</title>
+
+<meta name="description" content="SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/MULTI-OBJECTIVE (Software Evolution Library)">
+<meta name="keywords" content="SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/MULTI-OBJECTIVE (Software Evolution Library)">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<link href="index.html" rel="start" title="Top">
+<link href="Combined-Index.html" rel="index" title="Combined Index">
+<link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
+<link href="Software-Evolution-Library-Index.html" rel="up" title="Software Evolution Library Index">
+<link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fPLINY_002dFODDER_002dDATABASE.html" rel="next" title="SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/PLINY-FODDER-DATABASE">
+<link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fLEXICASE.html" rel="prev" title="SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/LEXICASE">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fMULTI_002dOBJECTIVE"></span><div class="header">
+<p>
+Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fPLINY_002dFODDER_002dDATABASE.html" accesskey="n" rel="next">SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/PLINY-FODDER-DATABASE</a>, Previous: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fLEXICASE.html" accesskey="p" rel="prev">SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/LEXICASE</a>, Up: <a href="Software-Evolution-Library-Index.html" accesskey="u" rel="up">Software Evolution Library Index</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fMULTI_002dOBJECTIVE-1"></span><h3 class="section">A.12 SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/MULTI-OBJECTIVE</h3>
+<span id="Variable-sel_002fcp_002fmulti_002dobjective_003a_002apareto_002dcomparison_002dset_002dsize_002a"></span><dl>
+<dt id="index-_002apareto_002dcomparison_002dset_002dsize_002a-_005bsel_002fcp_002fmulti_002dobjective_005d">Variable: <strong>*pareto-comparison-set-size* [sel/cp/multi-objective]</strong></dt>
+<dd><p>Size of comparison set for Pareto tournaments.
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fmulti_002dobjective_003acrowding_002ddistance"></span><dl>
+<dt id="index-crowding_002ddistance-_005bsel_002fcp_002fmulti_002dobjective_005d">Function: <strong>crowding-distance [sel/cp/multi-objective]</strong> <em>software</em></dt>
+<dd><p>Compute crowding distance for <code>software</code> by comparing with whole population.
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fmulti_002dobjective_003adominates_002dall"></span><dl>
+<dt id="index-dominates_002dall-_005bsel_002fcp_002fmulti_002dobjective_005d">Function: <strong>dominates-all [sel/cp/multi-objective]</strong> <em>predicates comparison-set candidate</em></dt>
+<dd><p>Does <code>candidate</code> dominate all of <code>comparison-set</code>?
+</p>
+<p><code>predicates</code> is a list of functions, of equal length to the fitness
+values, which are used to compare each element of the fitness values.
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fmulti_002dobjective_003amulti_002dobjective_002dscalar"></span><dl>
+<dt id="index-multi_002dobjective_002dscalar-_005bsel_002fcp_002fmulti_002dobjective_005d">Function: <strong>multi-objective-scalar [sel/cp/multi-objective]</strong> <em>fitness</em></dt>
+<dd><p><code>docfixme</code>
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fmulti_002dobjective_003apareto_002dselector"></span><dl>
+<dt id="index-pareto_002dselector-_005bsel_002fcp_002fmulti_002dobjective_005d">Function: <strong>pareto-selector [sel/cp/multi-objective]</strong> <em>candidates &amp;key predicate comparison-set</em></dt>
+<dd><p>Return members of <code>candidates</code> which dominate a random <code>comparison-set</code>.
+</p>
+<p>Set &lsquo;*tournament-selector*&rsquo; to &lsquo;pareto-selector&rsquo; to use Pareto selection in
+tournaments.
+</p></dd></dl>
+<span id="Function-sel_002fcp_002fmulti_002dobjective_003apick_002dleast_002dcrowded"></span><dl>
+<dt id="index-pick_002dleast_002dcrowded-_005bsel_002fcp_002fmulti_002dobjective_005d">Function: <strong>pick-least-crowded [sel/cp/multi-objective]</strong> <em>candidates &amp;key predicate</em></dt>
+<dd><p>Pick candidate with the greatest crowding distance.
+</p>
+<p>Crowding distance is a fitness sharing metric adapted from <code>nsga-ii</code>. For each
+fitness component, it sums the distance between an individual and its nearest
+neighbors. Individuals with the greater crowding distance are in sparse areas of
+the fitness landscape and should be preferred.
+</p></dd></dl>
+
+
+
+
+</body>
+</html>

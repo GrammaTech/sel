@@ -1,0 +1,188 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- This file documents the Software Evolution library
+
+Copyright (C) 2014-2018 Eric Schulte and GrammaTech
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
+A copy of the license is included in the section entitled
+"GNU Free Documentation License." -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/TEST-SUITE (Software Evolution Library)</title>
+
+<meta name="description" content="SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/TEST-SUITE (Software Evolution Library)">
+<meta name="keywords" content="SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/TEST-SUITE (Software Evolution Library)">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<link href="index.html" rel="start" title="Top">
+<link href="Combined-Index.html" rel="index" title="Combined Index">
+<link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
+<link href="Software-Evolution-Library-Index.html" rel="up" title="Software Evolution Library Index">
+<link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fREST.html" rel="next" title="SOFTWARE-EVOLUTION-LIBRARY/REST">
+<link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fSERAPI_002dIO.html" rel="prev" title="SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/SERAPI-IO">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fTEST_002dSUITE"></span><div class="header">
+<p>
+Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fREST.html" accesskey="n" rel="next">SOFTWARE-EVOLUTION-LIBRARY/REST</a>, Previous: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fSERAPI_002dIO.html" accesskey="p" rel="prev">SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/SERAPI-IO</a>, Up: <a href="Software-Evolution-Library-Index.html" accesskey="u" rel="up">Software Evolution Library Index</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fTEST_002dSUITE-1"></span><h3 class="section">A.16 SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/TEST-SUITE</h3>
+<span id="Variable-sel_002fcp_002ftest_002dsuite_003a_002aprocess_002dkill_002dtimeout_002a"></span><dl>
+<dt id="index-_002aprocess_002dkill_002dtimeout_002a-_005bsel_002fcp_002ftest_002dsuite_005d">Variable: <strong>*process-kill-timeout* [sel/cp/test-suite]</strong></dt>
+<dd><p>Optional timeout (in seconds) before killing a process
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fcp_002ftest_002dsuite_003afinish_002dtest"></span><dl>
+<dt id="index-finish_002dtest-_005bsel_002fcp_002ftest_002dsuite_005d">Generic Function: <strong>finish-test [sel/cp/test-suite]</strong> <em>test-process</em></dt>
+<dd><p>Ensure that <code>test-process</code> either runs to completion or is killed.
+Return the standard output, error output, and process exit code as strings.
+</p>
+<p>* <code>test-process</code> the &lsquo;process&rsquo; associated with the test case.
+</p></dd></dl>
+<span id="Method-sel_002fcp_002ftest_002dsuite_003afinish_002dtest-_0028test_002dprocess_0029"></span><dl>
+<dt id="index-finish_002dtest-_005bsel_002fcp_002ftest_002dsuite_005d-1">Method: <strong>finish-test [sel/cp/test-suite]</strong> <em>test-process</em></dt>
+<dd><p>Ensure that <code>test-process</code> either runs to completion or is killed.
+Return the standard output, error output, and process exit code as strings.
+</p>
+<p>* <code>test-process</code> the &lsquo;process-info&rsquo; object returned by &lsquo;launch-program&rsquo;
+associated with the test case.
+</p>
+<p>See also &lsquo;*process-sleep-interval*&rsquo; and &lsquo;*process-kill-timeout*&rsquo;. If
+<code>test-process</code> is still running when &lsquo;finish-test&rsquo; is called, and if
+&lsquo;*process-kill-timeout*&rsquo; is bound to a non-nil value greater than 0,
+alternate between sleeping for &lsquo;*process-sleep-interval*&rsquo; seconds and
+checking again until either &lsquo;*process-kill-timeout*&rsquo; seconds have
+elapsed or the process completes. After the timeout, send a <code>sigterm</code>
+signal if <code>test-process</code> is still running, sleep for
+&lsquo;*process-sleep-interval*&rsquo; seconds once more and then if the process
+is still running, send a <code>sigkill</code> signal.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fcp_002ftest_002dsuite_003arun_002dtest"></span><dl>
+<dt id="index-run_002dtest-_005bsel_002fcp_002ftest_002dsuite_005d">Generic Function: <strong>run-test [sel/cp/test-suite]</strong> <em>phenome test-case &amp;rest extra-keys &amp;key &amp;allow-other-keys</em></dt>
+<dd><p>Run <code>test-case</code> on <code>phenome</code> and return the results.
+Return the standard output, error output, and process exit code as strings.
+</p></dd></dl>
+<span id="Method-sel_002fcp_002ftest_002dsuite_003arun_002dtest-_0028phenome-_0028test_002dcase-test_002dcase_0029-_0026rest-extra_002dkeys-_0026key--_0026allow_002dother_002dkeys_0029"></span><dl>
+<dt id="index-run_002dtest-_005bsel_002fcp_002ftest_002dsuite_005d-1">Method: <strong>run-test [sel/cp/test-suite]</strong> <em>phenome (test-case test-case) &amp;rest extra-keys &amp;key &amp;allow-other-keys</em></dt>
+<dd><p>Run <code>test-case</code> on <code>phenome</code> and return the results.
+Return three values: output printed to standard out, error output, and exit
+status. Th default behavior is simply to run &lsquo;start-test&rsquo; and &lsquo;finish-test&rsquo;.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fcp_002ftest_002dsuite_003astart_002dtest"></span><dl>
+<dt id="index-start_002dtest-_005bsel_002fcp_002ftest_002dsuite_005d">Generic Function: <strong>start-test [sel/cp/test-suite]</strong> <em>phenome test-case &amp;rest extra-keys &amp;key &amp;allow-other-keys</em></dt>
+<dd><p>Start an external process to run <code>test-case</code> on <code>phenome</code>.
+Return the &lsquo;process&rsquo;.
+</p>
+<ul>
+<li> <code>phenome</code> the phenome of the &lsquo;software&rsquo; object under test.
+</li><li> <code>test-case</code> the &lsquo;test-case&rsquo; to run.
+</li><li> <code>extra-keys</code> additional keyword arguments.
+</li></ul>
+</dd></dl>
+<span id="Method-sel_002fcp_002ftest_002dsuite_003astart_002dtest-_0028phenome-_0028test_002dcase-test_002dcase_0029-_0026rest-extra_002dkeys--_0026key-_0026allow_002dother_002dkeys_0029"></span><dl>
+<dt id="index-start_002dtest-_005bsel_002fcp_002ftest_002dsuite_005d-1">Method: <strong>start-test [sel/cp/test-suite]</strong> <em>phenome (test-case test-case) &amp;rest extra-keys &amp;key &amp;allow-other-keys</em></dt>
+<dd><p>Start an external process to run <code>test-case</code> on <code>phenome</code>.
+Return the &lsquo;process&rsquo;. This is a wrapper around &lsquo;uiop:launch-program&rsquo;, and any
+<code>extra-keys</code> will be passed through to that method.
+</p>
+<ul>
+<li> <code>phenome</code> the phenome of the &lsquo;software&rsquo; object under test.
+</li><li> <code>test-case</code> the &lsquo;test-case&rsquo; to run.
+</li><li> <code>extra-keys</code> additional keyword arguments to pass to &lsquo;uiop:launch-program&rsquo;.
+
+</li></ul>
+<p>Some <code>extra-keys</code> that may be useful are:
+</p><ul>
+<li> :output and :error-output <code>-</code> to specify how output and error streams are
+  handled. By default, these are captured so they can be returned as strings.
+
+</li><li> :wait <code>-</code> whether to wait for the process to complete before continuing.
+  The default is to wait; however, some components may elect not to wait
+  and instead to stream results through a named pipe.
+
+</li><li> :env <code>-</code> to set environment variables
+</li></ul>
+</dd></dl>
+<span id="Class-sel_002fcp_002ftest_002dsuite_003atest_002dcase"></span><dl>
+<dt id="index-test_002dcase-_005bsel_002fcp_002ftest_002dsuite_005d">Class: <strong>test-case [sel/cp/test-suite]</strong></dt>
+<dd><p>Class precedence list: <code>test-case, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>program-name</code> &mdash; initarg: <code><span class="nolinebreak">:program-name</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/components/test-suite:program-name</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/components/test-suite:program-name)</span><!-- /@w --></code>
+
+<p>The executable that runs the test case.
+Contains either a string containing the name of an executable file or
+special symbol :bin, which will be dynamically replaced by the name of
+the compiled phenome for the software object under test.
+</p></li><li> <code>program-args</code> &mdash; initarg: <code><span class="nolinebreak">:program-args</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/components/test-suite:program-args</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/components/test-suite:program-args)</span><!-- /@w --></code>
+
+<p>A list of arguments which will be passed to the executable
+<code>program-name</code>.
+Each argument must be either a string or symbol :bin, which will be
+replaced by the name of the compiled phenome.
+</p></li><li> <code>fitness</code> &mdash; initarg: <code>:fitness<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:fitness</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software-evolution-library:fitness)</span><!-- /@w --></code>
+
+<p>May be used to store the fitness result from a prior run of the test case.
+This field is not updated automatically since some components may need
+to perform comparisons between new and old values (e.g., condition
+synthesis).
+</p></li></ul>
+
+<p>Test case object.
+</p></dd></dl>
+<span id="Class-sel_002fcp_002ftest_002dsuite_003atest_002dsuite"></span><dl>
+<dt id="index-test_002dsuite-_005bsel_002fcp_002ftest_002dsuite_005d">Class: <strong>test-suite [sel/cp/test-suite]</strong></dt>
+<dd><p>Class precedence list: <code>test-suite, oid-object, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>test-cases</code> &mdash; initarg: <code><span class="nolinebreak">:test-cases</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/components/test-suite:test-cases</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/components/test-suite:test-cases)</span><!-- /@w --></code>
+
+<p>List of &lsquo;test-case&rsquo; objects that make up the test suite.
+</p></li></ul>
+
+<p>A suite of unit tests.
+</p></dd></dl>
+<span id="Variable-sel_002fcp_002ftest_002dsuite_003a_002aprocess_002dsleep_002dinterval_002a"></span><dl>
+<dt id="index-_002aprocess_002dsleep_002dinterval_002a-_005bsel_002fcp_002ftest_002dsuite_005d">Variable: <strong>*process-sleep-interval* [sel/cp/test-suite]</strong></dt>
+<dd><p>Frequency (in seconds) at which to check if a process has completed.
+</p></dd></dl>
+
+<hr>
+<div class="header">
+<p>
+Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fREST.html" accesskey="n" rel="next">SOFTWARE-EVOLUTION-LIBRARY/REST</a>, Previous: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fSERAPI_002dIO.html" accesskey="p" rel="prev">SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/SERAPI-IO</a>, Up: <a href="Software-Evolution-Library-Index.html" accesskey="u" rel="up">Software Evolution Library Index</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+
+
+
+</body>
+</html>

@@ -21,7 +21,7 @@ A copy of the license is included in the section entitled
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
 <link href="index.html" rel="start" title="Top">
-<link href="Index.html" rel="index" title="Index">
+<link href="Combined-Index.html" rel="index" title="Combined Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
 <link href="index.html" rel="up" title="Top">
 <link href="Software-Objects.html" rel="next" title="Software Objects">
@@ -51,7 +51,7 @@ ul.no-bullet {list-style: none}
 <body lang="en">
 <span id="Implementation"></span><div class="header">
 <p>
-Next: <a href="Software-Objects.html" accesskey="n" rel="next">Software Objects</a>, Previous: <a href="Introduction.html" accesskey="p" rel="prev">Introduction</a>, Up: <a href="index.html" accesskey="u" rel="up">Top</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
+Next: <a href="Components.html" accesskey="n" rel="next">Components</a>, Previous: <a href="Introduction.html" accesskey="p" rel="prev">Introduction</a>, Up: <a href="index.html" accesskey="u" rel="up">Top</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
 <span id="Implementation-1"></span><h2 class="chapter">2 Implementation</h2>
@@ -59,8 +59,8 @@ Next: <a href="Software-Objects.html" accesskey="n" rel="next">Software Objects<
 
 <p>The Software Evolution library is implemented in Common Lisp and is
 intended for use in Common Lisp programs.  <a href="#fig_003aoverview">Figure 2.1</a> provides
-an overview of the Software Evolution system, the specifics of which
-are given in remainder of this section.
+an overview of the Software Evolution object system, the specifics of
+which are given in remainder of this section.
 </p>
 <table class="menu" border="0" cellspacing="0">
 <tr><td align="left" valign="top">&bull; <a href="Software-Objects.html" accesskey="1">Software Objects</a></td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Representation of software
@@ -79,8 +79,8 @@ are given in remainder of this section.
 
 <div class="float"><span id="fig_003aoverview"></span>
 <div class="example">
-<pre class="example">                                                      population functions
- global variables                                     --------------------
+<pre class="example">                                                      search functions
+ global variables                                     ----------------
  ----------------        +------------------+         incorporate
  *population*            |   *population*   |         evict
  *max-population-size*   |------------------|         tournament
@@ -89,7 +89,7 @@ are given in remainder of this section.
  *cross-chance*          +------------------+         evolve
  *fitness-evals*                  |                   mcmc
  *running*                      +-+-+
-                                | | |                 software functions
+                                | | |                 software methods
                          +------------------+         --------------
  evolve arguments        | software object  |         genome
  ----------------        |------------------|         phenome
@@ -98,53 +98,56 @@ are given in remainder of this section.
  target                  | ...              |         mutate
  period                  +------------------+         crossover
  period-func                       |
- filter                            |             +--------------+
-               +-------------------+-------------|    simple    |
-               |                                 |--------------|
-     +-----------------+   +-------------+       | Basic Vector |
-     |     Source      |   |    lisp     |-------|   Genome     |-----+
-     +-----------------+   |-------------|       +--------------+     |
-     | Textual source  |   | lisp source |           |       |        |
-     |  representation |   +-------------+           |       | +--------------+
-     +-----------------+          |          +------------+  | |    forth     |
-               |               +-----+       |    ELF     |  | |--------------|
-               |               | Coq |       |------------|  | | forth source |
-               |               +-----+       | Executable |  | +--------------+
-       +---------+------------+              |  Linkable  |  |
-       |         |            |              |   Format   |  |    +------------+
-+-------------+  |   +----------------+      +------------+  +----|    asm     |
-|     Java    |  |   |       CIL      |  +----------+   |         |------------|
-|-------------|  |   |----------------|  | elf-risc |---+         |  assembly  |
-| Java source |  |   | C Intermediate |  +----------+   |         |    code    |
-+-------------+  |   |    Language    |  +----------+   |         +------------+
-                 |   +----------------+  | elf-cisc |---+               |
-                 |                       +----------+                   |
-        +--------+------------+                             +------------------+
-        |                     |                             |     asm-range    |
-  +----------+          +-------------+                     |------------------|
-  |   LLVM   |          |  Parseable  |                     | memory efficient |
-  |----------|          +-------------+                     +------------------+
-  | LLVM IR  |   +------| Parsed ASTs |
-  +----------+   |      +-------------+
-                 |            |       +------------+ +-----------+ +-----------+
-      +-----------------+ +-------+   | Searchable | | Ancestral | | Traceable |
-      |   JavaScript    | | Clang |   +------------+ +-----------+ +-----------+
-      +-----------------+ |-------|          |
-      |  JavaScript AST | | C AST |     +-----------------+   +-----------+
-      +-----------------+ +-------+     | Fodder Database |   | Styleable |
-                                        +-----------------+   +-----------+
-              +--------------+            |            |
-              | super-mutant |       +----------+  +--------------------+
-              +--------------+       | Pliny DB |  | In Memory Database |
-                     |               +----------+  +--------------------+
-            +------------------+                             |
-            | asm-super-mutant |                        +---------+
-            +------------------+                        | JSON DB |
-                                                        +---------+
+ filter                            |
+              +--------------------+-----------------------------------------+
+              |                    |                                         |
+     +-----------------+      +--------------+                      +------------------+
+     |       IR        |      |    simple    |                      |    parseable     |
+     +-----------------+      |--------------|                      +------------------+
+     |  intermediate   |      | Basic Vector |                      |    Parsed AST    |
+     | representation  |      |   Genome     |-----+                |  representation  |
+     +-----------------+      +--------------+     |                +------------------+
+                     |        |           |        |                                |
+ +----------+        |        |           | +--------------+   +--------------+     |
+ |   LLVM   |--------+    +------------+  | |    forth     |   |    clang     |-----+
+ |----------|        |    |    ELF     |  | |--------------|   +--------------|     |
+ | LLVM IR  |        |    |------------|  | | forth source |   | C/C++ source |     |
+ +----------+        |    | Executable |  | +--------------+   +--------------+     |
+ +----------------+  |    |  Linkable  |  |                                         |
+ |       CIL      |--+    |   Format   |  |    +------------+  +--------------+     |
+ |----------------|       +------------+  +----|    asm     |  | common-lisp  |-----+
+ | C Intermediate |   +----------+   |         |------------|  +--------------+     |
+ |    Language    |   | elf-risc |---+         |  assembly  |                       |
+ +----------------+   +----------+   |         |    code    |  +--------------+     |
+                      +----------+   |         +------------+  | tree-sitter  |-----+
+                      | elf-cisc |---+               |         +--------------+
+                      +----------+                   |                |
+                                        +------------------+   +----------------------+
+                                        |    asm-range     |   | agda bash c c-sharp  |
+                                        |------------------|   | cpp css go html java |
+                                        | memory efficient |   |   javascript jsdoc   |
+                                        +------------------+   | json julia ocaml php |
+                                                               | python ql regex ruby |
+                                                               |    rust scala        |
+                               mixin classes                   |     typescript       |
+                             -----------------                 +----------------------+
+
+       +------------+ +-----------+ +-----------+ +------+ +------------+
+       | Searchable | | Ancestral | | Styleable | | File | | Compilable |
+       +------------+ +-----------+ +-----------+ +------+ +------------+
+              |                                       |
+         +----------------------+           +-------------------+
+         | Fodder Database, ... |           | File-w-attributes |
+         +----------------------+           +-------------------+
 </pre></div>
 
 <div class="float-caption"><p><strong>Figure 2.1: </strong>Software Evolution API.  Exported functions and variables are
 shown along with the software object class hierarchy.</p></div></div>
+<hr>
+<div class="header">
+<p>
+Next: <a href="Components.html" accesskey="n" rel="next">Components</a>, Previous: <a href="Introduction.html" accesskey="p" rel="prev">Introduction</a>, Up: <a href="index.html" accesskey="u" rel="up">Top</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
 
 
 

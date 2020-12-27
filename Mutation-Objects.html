@@ -21,7 +21,7 @@ A copy of the license is included in the section entitled
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
 <link href="index.html" rel="start" title="Top">
-<link href="Index.html" rel="index" title="Index">
+<link href="Combined-Index.html" rel="index" title="Combined Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
 <link href="Implementation.html" rel="up" title="Implementation">
 <link href="Global-Variables.html" rel="next" title="Global Variables">
@@ -51,7 +51,7 @@ ul.no-bullet {list-style: none}
 <body lang="en">
 <span id="Mutation-Objects"></span><div class="header">
 <p>
-Next: <a href="Global-Variables.html" accesskey="n" rel="next">Global Variables</a>, Previous: <a href="Software-Methods.html" accesskey="p" rel="prev">Software Methods</a>, Up: <a href="Implementation.html" accesskey="u" rel="up">Implementation</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
+Next: <a href="Global-Variables.html" accesskey="n" rel="next">Global Variables</a>, Previous: <a href="Software-Methods.html" accesskey="p" rel="prev">Software Methods</a>, Up: <a href="Implementation.html" accesskey="u" rel="up">Implementation</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
 <span id="Mutation-Objects-1"></span><h3 class="section">2.3 Mutation Objects</h3>
@@ -59,15 +59,15 @@ Next: <a href="Global-Variables.html" accesskey="n" rel="next">Global Variables<
 
 
 <p>SEL provides a variety of operations that apply <em>mutations</em> to
-modify code. These mutations are represented as <a href="software_002devolution_002dlibrary.html#Class-mutation"><code>mutation</code></a>
+modify code. These mutations are represented as <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002dEVOLUTION_002dLIBRARY.html#Class-sel_003amutation"><code>sel:mutation</code></a>
 objects.
 </p>
 
 
-<p>See section <a href="SEL-Concept-Index.html#api_002dmutations">API | Mutations</a> for full API
+<p>See the <a href="Software-Evolution-Library-Index.html">Software Evolution Library Index</a> for full API
 documentation. We provide a brief outline here.
 </p>
-<p>New <a href="software_002devolution_002dlibrary.html#Class-mutation"><code>mutation</code></a> subclasses should derive from the
+<p>New <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002dEVOLUTION_002dLIBRARY.html#Class-sel_003amutation"><code>sel:mutation</code></a> subclasses should derive from the
 most-relevant base class. To define a new mutation from an existing
 base class, use
 </p>
@@ -79,12 +79,12 @@ base class, use
 <p>The mutation may be initialized with two functions; a targeter and
 picker. The targeter is a function which, given a software object,
 returns a list of mutation targets; this function defaults to
-<a href="software_002devolution_002dlibrary.html#Generic_002dFunction-pick_002dbad"><code>pick-bad</code></a>. The picker is a function which, given a software
+<a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002dEVOLUTION_002dLIBRARY.html#Generic_002dFunction-sel_003apick_002dbad"><code>sel:pick-bad</code></a>. The picker is a function which, given a software
 object, returns a random mutation target; this function defaults to a
-random element returned by <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-pick_002dbad"><code>pick-bad</code></a>.
+random element returned by <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002dEVOLUTION_002dLIBRARY.html#Generic_002dFunction-sel_003apick_002dbad"><code>sel:pick-bad</code></a>.
 </p>
 <p>After creating a software object and a mutation, use the
-<a href="software_002devolution_002dlibrary.html#Generic_002dFunction-apply_002dmutation"><code>apply-mutation</code></a> method to create a new mutant.
+<a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002dEVOLUTION_002dLIBRARY.html#Generic_002dFunction-sel_003aapply_002dmutation"><code>sel:apply-mutation</code></a> method to create a new mutant.
 </p>
 
 

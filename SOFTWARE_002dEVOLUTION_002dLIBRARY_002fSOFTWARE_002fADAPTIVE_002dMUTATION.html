@@ -1,0 +1,120 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- This file documents the Software Evolution library
+
+Copyright (C) 2014-2018 Eric Schulte and GrammaTech
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
+A copy of the license is included in the section entitled
+"GNU Free Documentation License." -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/ADAPTIVE-MUTATION (Software Evolution Library)</title>
+
+<meta name="description" content="SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/ADAPTIVE-MUTATION (Software Evolution Library)">
+<meta name="keywords" content="SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/ADAPTIVE-MUTATION (Software Evolution Library)">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<link href="index.html" rel="start" title="Top">
+<link href="Combined-Index.html" rel="index" title="Combined Index">
+<link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
+<link href="Software-Evolution-Library-Index.html" rel="up" title="Software Evolution Library Index">
+<link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fANCESTRAL.html" rel="next" title="SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/ANCESTRAL">
+<link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fREST_002fUTILITY.html" rel="prev" title="SOFTWARE-EVOLUTION-LIBRARY/REST/UTILITY">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fADAPTIVE_002dMUTATION"></span><div class="header">
+<p>
+Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fANCESTRAL.html" accesskey="n" rel="next">SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/ANCESTRAL</a>, Previous: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fREST_002fUTILITY.html" accesskey="p" rel="prev">SOFTWARE-EVOLUTION-LIBRARY/REST/UTILITY</a>, Up: <a href="Software-Evolution-Library-Index.html" accesskey="u" rel="up">Software Evolution Library Index</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fADAPTIVE_002dMUTATION-1"></span><h3 class="section">A.23 SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/ADAPTIVE-MUTATION</h3>
+<span id="Class-sel_002fsw_002fadaptive_002dmutation_003aadaptive_002dmutation"></span><dl>
+<dt id="index-adaptive_002dmutation-_005bsel_002fsw_002fadaptive_002dmutation_005d">Class: <strong>adaptive-mutation [sel/sw/adaptive-mutation]</strong></dt>
+<dd><p>Class precedence list: <code>adaptive-mutation, software, oid-object, standard-object, slot-object, t</code>
+</p>
+<p><code>docfixme</code>
+</p></dd></dl>
+<span id="Variable-sel_002fsw_002fadaptive_002dmutation_003a_002abetter_002dbias_002a"></span><dl>
+<dt id="index-_002abetter_002dbias_002a-_005bsel_002fsw_002fadaptive_002dmutation_005d">Variable: <strong>*better-bias* [sel/sw/adaptive-mutation]</strong></dt>
+<dd><p><code>docfixme</code>
+</p></dd></dl>
+<span id="Variable-sel_002fsw_002fadaptive_002dmutation_003a_002abias_002dtoward_002ddynamic_002dmutation_002a"></span><dl>
+<dt id="index-_002abias_002dtoward_002ddynamic_002dmutation_002a-_005bsel_002fsw_002fadaptive_002dmutation_005d">Variable: <strong>*bias-toward-dynamic-mutation* [sel/sw/adaptive-mutation]</strong></dt>
+<dd><p>Degree to which dynamic weights are emphasized over default weights.
+</p></dd></dl>
+<span id="Variable-sel_002fsw_002fadaptive_002dmutation_003a_002adead_002dbias_002a"></span><dl>
+<dt id="index-_002adead_002dbias_002a-_005bsel_002fsw_002fadaptive_002dmutation_005d">Variable: <strong>*dead-bias* [sel/sw/adaptive-mutation]</strong></dt>
+<dd><p><code>docfixme</code>
+</p></dd></dl>
+<span id="Variable-sel_002fsw_002fadaptive_002dmutation_003a_002amutation_002dresults_002dqueue_002a"></span><dl>
+<dt id="index-_002amutation_002dresults_002dqueue_002a-_005bsel_002fsw_002fadaptive_002dmutation_005d">Variable: <strong>*mutation-results-queue* [sel/sw/adaptive-mutation]</strong></dt>
+<dd><p>Queue containing pairs <code>(mutation-type . mutation-result) </code>for
+the last *max-mutation-results-queue-length* mutations
+</p></dd></dl>
+<span id="Variable-sel_002fsw_002fadaptive_002dmutation_003a_002asame_002dbias_002a"></span><dl>
+<dt id="index-_002asame_002dbias_002a-_005bsel_002fsw_002fadaptive_002dmutation_005d">Variable: <strong>*same-bias* [sel/sw/adaptive-mutation]</strong></dt>
+<dd><p><code>docfixme</code>
+</p></dd></dl>
+<span id="Variable-sel_002fsw_002fadaptive_002dmutation_003a_002aworse_002dbias_002a"></span><dl>
+<dt id="index-_002aworse_002dbias_002a-_005bsel_002fsw_002fadaptive_002dmutation_005d">Variable: <strong>*worse-bias* [sel/sw/adaptive-mutation]</strong></dt>
+<dd><p><code>docfixme</code>
+</p></dd></dl>
+<span id="Constant-sel_002fsw_002fadaptive_002dmutation_003a_002binitial_002dmutation_002dresults_002dqueue_002b"></span><dl>
+<dt id="index-_002binitial_002dmutation_002dresults_002dqueue_002b-_005bsel_002fsw_002fadaptive_002dmutation_005d">Constant: <strong>+initial-mutation-results-queue+ [sel/sw/adaptive-mutation]</strong></dt>
+<dd><p>Initial value of the *mutation-results-queue*
+</p></dd></dl>
+<span id="Function-sel_002fsw_002fadaptive_002dmutation_003aadaptive_002danalyze_002dmutation"></span><dl>
+<dt id="index-adaptive_002danalyze_002dmutation-_005bsel_002fsw_002fadaptive_002dmutation_005d">Function: <strong>adaptive-analyze-mutation [sel/sw/adaptive-mutation]</strong> <em>obj mutation-info test</em></dt>
+<dd><p>Adaptively update mutation probabilities based on the result of the mutation
+</p></dd></dl>
+<span id="Function-sel_002fsw_002fadaptive_002dmutation_003aqueue_002dmutation"></span><dl>
+<dt id="index-queue_002dmutation-_005bsel_002fsw_002fadaptive_002dmutation_005d">Function: <strong>queue-mutation [sel/sw/adaptive-mutation]</strong> <em>type classification</em></dt>
+<dd><p><code>docfixme</code>
+</p>
+<ul>
+<li> <code>type</code> <code>docfixme</code>
+</li><li> <code>classification</code> <code>docfixme</code>
+</li></ul>
+</dd></dl>
+<span id="Function-sel_002fsw_002fadaptive_002dmutation_003aupdate_002dmutation_002dtypes"></span><dl>
+<dt id="index-update_002dmutation_002dtypes-_005bsel_002fsw_002fadaptive_002dmutation_005d">Function: <strong>update-mutation-types [sel/sw/adaptive-mutation]</strong> <em>mutation-types</em></dt>
+<dd><p><code>docfixme</code>
+</p>
+<ul>
+<li> <code>mutation-types</code> <code>docfixme</code>
+</li><li> <code>by-type</code> <code>docfixme</code>
+</li></ul>
+</dd></dl>
+
+
+
+
+</body>
+</html>

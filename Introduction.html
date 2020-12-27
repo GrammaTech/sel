@@ -21,7 +21,7 @@ A copy of the license is included in the section entitled
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
 <link href="index.html" rel="start" title="Top">
-<link href="Index.html" rel="index" title="Index">
+<link href="Combined-Index.html" rel="index" title="Combined Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
 <link href="index.html" rel="up" title="Top">
 <link href="Implementation.html" rel="next" title="Implementation">
@@ -51,7 +51,7 @@ ul.no-bullet {list-style: none}
 <body lang="en">
 <span id="Introduction"></span><div class="header">
 <p>
-Next: <a href="Implementation.html" accesskey="n" rel="next">Implementation</a>, Previous: <a href="index.html" accesskey="p" rel="prev">Top</a>, Up: <a href="index.html" accesskey="u" rel="up">Top</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
+Next: <a href="Implementation.html" accesskey="n" rel="next">Implementation</a>, Previous: <a href="index.html" accesskey="p" rel="prev">Top</a>, Up: <a href="index.html" accesskey="u" rel="up">Top</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
 <span id="Introduction-1"></span><h2 class="chapter">1 Introduction</h2>
@@ -59,15 +59,15 @@ Next: <a href="Implementation.html" accesskey="n" rel="next">Implementation</a>,
 
 
 <p>The Software Evolution library enables the programmatic modification
-and evaluation of extant software.  The software evolution library was
-developed as part of the genprog project on automated program repair.
+and evaluation of extant software.
 </p>
 <p>A common interface abstracts over multiple types of software objects
 (see <a href="Software-Objects.html">Software Objects</a>) including abstract syntax trees parsed from
 source code, LLVM IR, compiled assembler, and linked ELF binaries.
 Mutation and evaluation methods (see <a href="Software-Methods.html">Software Methods</a>) are
-implemented on top of this interface supporting Search Based Software
-Engineering (SBSE) techniques (see <a href="Search-Functions.html">Search Functions</a>).
+implemented on top of this interface supporting automation of common
+software engineering tasks.  Support is included for Search Based
+Software Engineering (SBSE) techniques (see <a href="Search-Functions.html">Search Functions</a>).
 </p>
 
 <span id="SEL-Applications"></span><h3 class="section">1.1 SEL Applications</h3>
@@ -77,22 +77,24 @@ understanding. The following are some current and past projects
 utilizing SEL.
 </p>
 <ul>
-<li> Optimizing real-world software
+<li> Multiple functions underlying an integrated software development assistant.
+(<a href="https://grammatech.gitlab.io/Mnemosyne/docs/">https://grammatech.gitlab.io/Mnemosyne/docs/</a>)
+
+</li><li> Automatically resolving merge conflicts
+(<a href="https://mergeresolver.github.io">https://mergeresolver.github.io</a>).
+
+</li><li> Optimizing real-world software
 (<a href="https://github.com/eschulte/goa">github.com/eschulte/goa</a>).
 
-</li><li> 
-Patching vulnerabilities in closed source binaries
+</li><li> Patching vulnerabilities in closed source binaries
 (<a href="http://eschulte.github.io/netgear-repair">eschulte.github.io/netgear-repair</a>).
 
 </li><li> Filling &quot;holes&quot; in incomplete programs whose behavior is partially
 specified by unit tests and developer hints
 (<a href="http://cs.unm.edu/~eschulte/data/musynth-ssbse-2017.pdf">MuSynth</a>).
 
-</li><li> Adapting  software for
-<a href="https://www.darpa.mil/program/building-resource-adaptive-software-systems">DARPA&rsquo;s BRASS program</a>.
-
 </li><li> Injecting bugs into software to create cyber-defense benchmarks
-(<a href="https://www.grammatech.com/sponsored-research">BUG-INJECTOR</a>).
+(<a href="https://arxiv.org/pdf/1901.02819.pdf">https://arxiv.org/pdf/1901.02819.pdf</a>).
 
 </li><li> Decompiling binaries to C source
 (<a href="http://cs.unm.edu/~eschulte/data/bed.pdf">      BED (Byte Equivalent Decompilation)</a>).
@@ -105,7 +107,7 @@ specified by unit tests and developer hints
 
 <span id="Many-different-kinds-of-software-can-be-manipulated"></span><h3 class="section">1.2 Many different kinds of software can be manipulated</h3>
 
-<p>The SEL API defines software objects using the Common Lisp Object
+<p>The Software Evolution Library Index defines software objects using the Common Lisp Object
 System (CLOS), to provide a uniform interface to many kinds of
 software artifact, shown in the table below.
 </p>
@@ -115,15 +117,14 @@ information about creating new software objects.
 </p>
 
 <table>
-<tr><td>C and C++ source</td><td>mature</td></tr>
+<tr><td>Source Code using Tree-Sitter</td><td>mature</td></tr>
+<tr><td>C/C++ using Clang</td><td>mature</td></tr>
+<tr><td>Common LISP</td><td>mature</td></tr>
 <tr><td>compiled assembler (ASM)</td><td>mature</td></tr>
 <tr><td>linked ELF binaries</td><td>mature</td></tr>
 <tr><td>LLVM IR</td><td>experimental</td></tr>
 <tr><td>CIL</td><td>experimental</td></tr>
-<tr><td>LISP</td><td>experimental</td></tr>
 <tr><td>Forth</td><td>experimental</td></tr>
-<tr><td>Java</td><td>experimental</td></tr>
-<tr><td>JavaScript</td><td>experimental</td></tr>
 <tr><td>Coq</td><td>experimental</td></tr>
 </table>
 
@@ -137,42 +138,32 @@ evolutionary search and automated software manipulation.
 <li> Multiple search techniques including steady-state and generational
 evolution or Markov chain Monte Carlo (MCMC).
 
-</li><li> New mutations tailored to each software object.
+</li><li> Custom mutations tailored to each software object.
 
 </li><li> One- and two-point crossover.
 
 </li><li> Lexicase or multi-objective fitness evaluations.
 
-</li><li> Instrumentation of software objects and dynamic trace collection.
-
 </li><li> Use of &quot;fodder databases&quot; as a source of new statements or expressions
 that can be injected by mutations.
 
-</li><li> Ancestry for candidate solutions.
+</li><li> Ancestry tracking of evolved software objects.
 
-</li><li> Adaptive mutations to dynamically update probabilities based on
+</li><li> Adaptive mutations which dynamically update probabilities based on
 mutation success.
 
-</li><li> Super-mutants to evaluate multiple mutations in a single genome.
+</li><li> Super-mutants to more efficiently evaluate multiple mutations in a single genome.
 
 </li></ul>
 
 
-<span id="Tailored-feautures-for-for-C-and-C_002b_002b-objects"></span><h4 class="subheading">Tailored feautures for for C and C++ objects</h4>
+<span id="Tailored-features-for-Clang-C-and-C_002b_002b-objects"></span><h4 class="subheading">Tailored features for Clang C and C++ objects</h4>
 
 <ul>
 <li> Automatic repair for some compilation errors and warnings.
 
 </li><li> Special mutations for renaming variables, changing loops, and
 otherwise manipulating statements.
-
-</li><li> Spectrum-based fault localization, which instruments source code and
-runs (passing and failing) unit tests to attempt to locate errors.
-
-</li><li> Condition synthesis, a repair technique
-<a href="http://groups.csail.mit.edu/pac/patchgen/papers/spr-fse15.pdf">described by Long and Rinard</a>
-which tries to synthesize conditional statements that will correct
-source code so that it passes failing unit tests.
 
 </li></ul>
 
@@ -185,24 +176,31 @@ source code so that it passes failing unit tests.
 </p>
 <p>Once SEL is installed, try out some of the <a href="Examples.html">example code</a>.
 </p>
-<p>If you are ready to try using SEL in your own code, consult the
-<a href="SEL-API.html">API documentation</a>.
+<p>For more detailed usage information consult the <a href="Software-Evolution-Library-Index.html">API
+documentation</a>.
 </p>
 
 <span id="Citing"></span><h3 class="section">1.5 Citing</h3>
 
-<p>Please cite Eric Schulte&rsquo;s Ph.D. dissertation when you publish results
-that you have obtained with the SOFTWARE EVOLUTION library (see
-<cite>Neutral Networks of Real-World Programs and their Application to
-Automated Software Evolution</cite> available at
-<a href="https://cs.unm.edu/~eschulte/dissertation">https://cs.unm.edu/~eschulte/dissertation</a>).
-</p>
+<p>Please cite this manual when publishing results that you have obtained
+with the SOFTWARE EVOLUTION library.
+</p><div class="example">
+<pre class="example">@manual{sel2018manual,
+  title        = {Software Evolution Library},
+  author       = {Eric Schulte and Contributors},
+  organization = {GrammaTech},
+  address      = {eschulte@grammatech.com},
+  month        = 1,
+  year         = 2018,
+  note         = {https://grammatech.github.io/sel/}
+}
+</pre></div>
 
 
 <hr>
 <div class="header">
 <p>
-Next: <a href="Implementation.html" accesskey="n" rel="next">Implementation</a>, Previous: <a href="index.html" accesskey="p" rel="prev">Top</a>, Up: <a href="index.html" accesskey="u" rel="up">Top</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html" title="Index" rel="index">Index</a>]</p>
+Next: <a href="Implementation.html" accesskey="n" rel="next">Implementation</a>, Previous: <a href="index.html" accesskey="p" rel="prev">Top</a>, Up: <a href="index.html" accesskey="u" rel="up">Top</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 
 

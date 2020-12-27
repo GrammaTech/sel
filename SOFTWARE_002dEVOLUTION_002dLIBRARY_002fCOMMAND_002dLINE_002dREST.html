@@ -1,0 +1,141 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- This file documents the Software Evolution library
+
+Copyright (C) 2014-2018 Eric Schulte and GrammaTech
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
+A copy of the license is included in the section entitled
+"GNU Free Documentation License." -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>SOFTWARE-EVOLUTION-LIBRARY/COMMAND-LINE-REST (Software Evolution Library)</title>
+
+<meta name="description" content="SOFTWARE-EVOLUTION-LIBRARY/COMMAND-LINE-REST (Software Evolution Library)">
+<meta name="keywords" content="SOFTWARE-EVOLUTION-LIBRARY/COMMAND-LINE-REST (Software Evolution Library)">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<link href="index.html" rel="start" title="Top">
+<link href="Combined-Index.html" rel="index" title="Combined Index">
+<link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
+<link href="Software-Evolution-Library-Index.html" rel="up" title="Software Evolution Library Index">
+<link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fCLANG_002dTOKENS.html" rel="next" title="SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/CLANG-TOKENS">
+<link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002dEVOLUTION_002dLIBRARY.html" rel="prev" title="SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE-EVOLUTION-LIBRARY">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMMAND_002dLINE_002dREST"></span><div class="header">
+<p>
+Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fCLANG_002dTOKENS.html" accesskey="n" rel="next">SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/CLANG-TOKENS</a>, Previous: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002dEVOLUTION_002dLIBRARY.html" accesskey="p" rel="prev">SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE-EVOLUTION-LIBRARY</a>, Up: <a href="Software-Evolution-Library-Index.html" accesskey="u" rel="up">Software Evolution Library Index</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMMAND_002dLINE_002dREST-1"></span><h3 class="section">A.2 SOFTWARE-EVOLUTION-LIBRARY/COMMAND-LINE-REST</h3>
+<span id="Variable-sel_002fcommand_002dline_002drest_003a_002aaddress_002a"></span><dl>
+<dt id="index-_002aaddress_002a-_005bsel_002fcommand_002dline_002drest_005d">Variable: <strong>*address* [sel/command-line-rest]</strong></dt>
+<dd><p>Address on which to bind the clack server.
+</p></dd></dl>
+<span id="Variable-sel_002fcommand_002dline_002drest_003a_002aport_002a"></span><dl>
+<dt id="index-_002aport_002a-_005bsel_002fcommand_002dline_002drest_005d">Variable: <strong>*port* [sel/command-line-rest]</strong></dt>
+<dd><p>Port on which to run the clack server.
+</p></dd></dl>
+<span id="Macro-sel_002fcommand_002dline_002drest_003adefine_002dcommand_002dasync_002drest"></span><dl>
+<dt id="index-define_002dcommand_002dasync_002drest-_005bsel_002fcommand_002dline_002drest_005d">Macro: <strong>define-command-async-rest [sel/command-line-rest]</strong> <em>(name &amp;key environment status) args pre-help post-help &amp;body body</em></dt>
+<dd><p>Define a function, executable, and a REST server function and executable.
+</p>
+<p>Invokes &lsquo;define-command&rsquo; on <code>name</code> <code>args</code> <code>pre-help</code> <code>post-help</code> and <code>body</code> to
+define the <code>name</code> function and the <code>run-name</code> command-line executable
+entry point.  See the definition of &lsquo;define-command&rsquo; for more
+information on these arguments.
+</p>
+<p>Use the above arguments and the additional <code>environment</code> and <code>status</code>
+keywords to define an asynchronous REST entry point which runs the
+function <code>name</code> asynchronously returning a job <code>id</code> and another entry
+point which may be used to retrieve the status of the async job.  A
+new <code>run-serve-name</code> command-line executable entry point is defined.
+</p>
+<p><code>environment</code>
+<code>:</code>   List of variables which should be let-bound around the execution
+    of the REST end-point.
+</p>
+<p><code>status</code>
+<code>:</code>   A function which will be invoked in the dynamic environment of the
+    running job to return the status of the job or, when finished, to
+    return the result.
+</p></dd></dl>
+<span id="Macro-sel_002fcommand_002dline_002drest_003adefroute"></span><dl>
+<dt id="index-defroute-_005bsel_002fcommand_002dline_002drest_005d">Macro: <strong>defroute [sel/command-line-rest]</strong> <em>name &amp;body args</em></dt>
+<dd><p>Define <code>name</code> as a specific route on a generic REST resource.
+<code>args</code> are just as in <code>cl:defmethod</code> with the exception that its
+specialized-lambda-list portion accepts some simplifications.
+</p></dd></dl>
+<span id="Function-sel_002fcommand_002dline_002drest_003adecode_002djson_002dfrom_002dstring"></span><dl>
+<dt id="index-decode_002djson_002dfrom_002dstring-_005bsel_002fcommand_002dline_002drest_005d">Function: <strong>decode-json-from-string [sel/command-line-rest]</strong> <em>json-string</em></dt>
+<dd><p>Read a JSON Value from <code>json-string</code> and return the corresponding
+Lisp value.
+</p></dd></dl>
+<span id="Function-sel_002fcommand_002dline_002drest_003aencode_002djson_002dto_002dstring"></span><dl>
+<dt id="index-encode_002djson_002dto_002dstring-_005bsel_002fcommand_002dline_002drest_005d">Function: <strong>encode-json-to-string [sel/command-line-rest]</strong> <em>object</em></dt>
+<dd><p>Return the JSON representation of <code>object</code> as a string.
+</p></dd></dl>
+<span id="Function-sel_002fcommand_002dline_002drest_003ahttp_002dcondition"></span><dl>
+<dt id="index-http_002dcondition-_005bsel_002fcommand_002dline_002drest_005d">Function: <strong>http-condition [sel/command-line-rest]</strong> <em>status-code &amp;optional format-control &amp;rest format-args</em></dt>
+<dd><p>Signal an HTTP condition with <code>status-code</code> with with <code>cl:error</code>.
+</p></dd></dl>
+<span id="Function-sel_002fcommand_002dline_002drest_003amake_002dclack_002dapp"></span><dl>
+<dt id="index-make_002dclack_002dapp-_005bsel_002fcommand_002dline_002drest_005d">Function: <strong>make-clack-app [sel/command-line-rest]</strong> <em>&amp;optional bindings</em></dt>
+<dd><p>Make a basic Clack app that calls <code>handle-request</code>.
+</p>
+<p>Pass this to <code>clack:clackup</code>.
+</p>
+<p>Dynamically binds <code>*clack-request-env*</code> around every call to
+<code>handle-request</code> so you can access the backend-specific from routes
+and/or <code>explain-condition</code>. Also binds <code>*backend*</code> to <code>:clack</code>.
+</p>
+<p><code>bindings</code> is an alist of <code>(symbol . value) </code>which is are also
+dynamically-bound around <code>handle-request</code>. You can use it to pass values
+of special variables that affect Snooze, like <code>*home-resource*</code>,
+<code>*resources-function*</code>, <code>*resource-name-function*</code>, or
+<code>*uri-content-types-function*</code>.
+</p></dd></dl>
+<span id="Function-sel_002fcommand_002dline_002drest_003apayload_002das_002dstring"></span><dl>
+<dt id="index-payload_002das_002dstring-_005bsel_002fcommand_002dline_002drest_005d">Function: <strong>payload-as-string [sel/command-line-rest]</strong> <em>&amp;optional backend</em></dt>
+<dd><p>Return the current HTTP request&rsquo;s payload as a string.
+</p>
+<p><code>backend</code> defaults to <code>*backend*</code>
+</p></dd></dl>
+
+<hr>
+<div class="header">
+<p>
+Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fCLANG_002dTOKENS.html" accesskey="n" rel="next">SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/CLANG-TOKENS</a>, Previous: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002dEVOLUTION_002dLIBRARY.html" accesskey="p" rel="prev">SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE-EVOLUTION-LIBRARY</a>, Up: <a href="Software-Evolution-Library-Index.html" accesskey="u" rel="up">Software Evolution Library Index</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+
+
+
+</body>
+</html>
