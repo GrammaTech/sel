@@ -17,7 +17,7 @@ check-format:
 build-manual:
   stage: test
   script:
-    - make real-clean doc
+    - make doc
   except:
     - schedules
 
