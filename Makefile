@@ -7,8 +7,9 @@ endif
 
 PACKAGE_NAME = software-evolution-library
 PACKAGE_NICKNAME = sel
-# NOTE: Regenerate the following list with the following shell command:
-#     grep -r "in-package :software-evolution-library"|grep -v ".git"|sed 's/^.*package ://;s/)$//'|sort|uniq
+API_TITLE = "Software Evolution Library Index"
+API_NEXT = "ChangeLog"
+API_PREV = "Troubleshooting"
 DOC_PACKAGES =								\
 	software-evolution-library					\
 	software-evolution-library/command-line-rest			\
