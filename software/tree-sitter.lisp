@@ -234,6 +234,7 @@
            :javascript
            :python
            ;; Python
+           :find-if-in-scopes
            :get-asts-in-namespace
            :get-vars
            :identical-name-p
@@ -382,8 +383,8 @@ searched to populate `*tree-sitter-language-files*'.")
      attached."
     (cond
       ((string= name :children)
-       (symbolicate name))
-      (t (symbolicate prefix '- name))))
+       (format-symbol 'sel/sw/ts "~a" name))
+      (t (format-symbol 'sel/sw/ts "~a-~a" prefix name))))
 
   ;; NOTE: while a :child-order annotation is currently being generated
   ;;       for every ast converted from a string, having the slot order
@@ -2217,8 +2218,8 @@ Returns nil if the length of KEYS is not the same as VALUES'."
                         'python-ast
                         `((:class . :pair)
                           (:interleaved-text "" " : " "")
-                          (:python-key . ,key)
-                          (:python-value . ,value))))
+                          (:key . ,key)
+                          (:value . ,value))))
                      keys values))))))
 
   ;; Implement the generic format-genome method for python objects.
