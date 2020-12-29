@@ -532,8 +532,8 @@ of fields needs to be determined at parse-time."
              ;; TODO IF EVER NEEDED:
              ;;   add a parameter for passing in extra super classes.
              ;;   This could be useful for mix-ins.
-             (define-node-class ,(make-class-name "ast") (tree-sitter-ast
-                                                 ,@base-class-superclasses)
+             (define-node-class ,(make-class-name "ast")
+                 (tree-sitter-ast ,@base-class-superclasses)
                ;; NOTE: ensure there is always a children slot.
                ;;       This is important for classes that don't have
                ;;       it but can have comments mixed in.
