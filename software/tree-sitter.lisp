@@ -453,7 +453,7 @@ of fields needs to be determined at parse-time."
              (create-type-class (type fields children grammar-rules
                                  &aux (class-name (make-class-name type)))
                "Create a new class for TYPE using FIELDS and CHILDREN for slots."
-               (let ((child-slot-order
+               (let* ((child-slot-order
                        (when fields
                          (mapcar
                           (lambda (slot-keyword)
@@ -462,8 +462,11 @@ of fields needs to be determined at parse-time."
                              (if (aget :multiple (aget slot-keyword fields))
                                  0
                                  1)))
-                          (slot-order type fields grammar-rules)))))
-                 `(define-node-class ,class-name
+                          (slot-order type fields grammar-rules))))
+                      (definer
+                       (if fields 'define-node-class 'defclass)))
+                 `(,definer
+                   ,class-name
                       (,@(or (get-supertypes-for-type type)
                              `(,ast-superclass)))
                     (,@(create-slots fields)
@@ -529,14 +532,16 @@ of fields needs to be determined at parse-time."
              ;; TODO IF EVER NEEDED:
              ;;   add a parameter for passing in extra super classes.
              ;;   This could be useful for mix-ins.
-             (defclass ,(make-class-name "ast") (tree-sitter-ast
+             (define-node-class ,(make-class-name "ast") (tree-sitter-ast
                                                  ,@base-class-superclasses)
                ;; NOTE: ensure there is always a children slot.
                ;;       This is important for classes that don't have
                ;;       it but can have comments mixed in.
                ((children :accessor ,(make-accessor-name :children)
                           :initarg :children
-                          :initform nil))
+                          :initform nil)
+                (child-slots :allocation :class
+                             :initform '((children . 0))))
                (:documentation
                 ,(format nil "AST for ~A from input via tree-sitter."
                          name-prefix)))
@@ -549,7 +554,7 @@ of fields needs to be determined at parse-time."
                ()
                (:documentation "Generated for parsed comments."))
 
-             (define-node-class ,(make-class-name "error") (,ast-superclass)
+             (defclass ,(make-class-name "error") (,ast-superclass)
                ((children :initarg :children :initform nil)
                 (child-slots :initform '((children . 0))
                              :allocation :class))
