@@ -204,7 +204,7 @@
     (is (equal (file-to-string (original-path *soft*))
                (genome-string *soft*))))
   (with-fixture fib-python
-    (is (= 37 (size *soft*)))
+    (is (= 38 (size *soft*)))
     (is (equal (file-to-string (original-path *soft*))
                (genome-string *soft*)))))
 
@@ -230,7 +230,7 @@
 
 (deftest python-can-handle-dos-format ()
   (with-fixture dos-python
-    (is (= 37 (size *soft*)))
+    (is (= 38 (size *soft*)))
     (is (equal (file-to-string (original-path *soft*))
                (genome-string *soft*)))))
 

@@ -495,8 +495,13 @@ searched to populate `*tree-sitter-language-files*'.")
   (defclass call-ast (ast) ()
     (:documentation "Mix-in for AST classes that are calls."))
 
+  (defclass terminal-symbol ()
+    ()
+    (:documentation "Mix-in for terminal symbols. Note that this won't fully
+cover every terminal symbol, only the ones that aren't named."))
+
   (defun convert-name (name-string)
-    (camel-case-to-lisp (substitute #\- #\_  name-string)))
+    (simplified-camel-case-to-lisp (substitute #\- #\_  (string name-string))))
 
   (defun translate-to-slot-name (name prefix)
     "Translate NAME into a slot name that is unlikely
@@ -648,10 +653,9 @@ of fields needs to be determined at parse-time."
                 (lambda (subtype)
                   (push ast-superclass (gethash subtype subtype->supertypes)))
                 subtype->supertypes))
-             (make-class-name (&optional name-string keep-underscores-p)
+             (make-class-name (&optional name-string)
                "Create a class name based on NAME-STRING and add it to the
-                symbols that need exported. If keep-underscores-p is provided,
-                the underscores in NAME-STRING will be replaced with hyphens."
+                symbols that need exported."
                ;; NOTE: this has the potential for name clashes
                ;;       though it's probably unlikely.
                (lret ((name
@@ -659,9 +663,7 @@ of fields needs to be determined at parse-time."
                            (symbolicate
                             name-prefix
                             "-"
-                            (if keep-underscores-p
-                                (string-upcase name-string)
-                                (convert-name name-string)))
+                            (convert-name name-string))
                            (symbolicate name-prefix))))
                  (ensure-gethash name symbols-to-export t)))
              (make-accessor-name (name-keyword)
@@ -741,13 +743,16 @@ of fields needs to be determined at parse-time."
                "Create a new class that represents a terminal symbol.
                 In the case that there's a non-terminal with the same name,
                 append '-terminal' to the end of it."
-               `(defclass ,(if (gethash (symbolicate name-prefix "-"
-                                                     (string-upcase type))
+               `(defclass ,(if (gethash
+                                (format-symbol 'sel/sw/ts "~a-~a"
+                                               name-prefix
+                                               (string-upcase type))
                                         symbols-to-export)
                                (make-class-name
-                                (symbolicate type "-" 'terminal) t)
-                               (make-class-name type t))
-                    (,ast-superclass)
+                                (format-symbol 'sel/sw/ts "~a-~a"
+                                               (string-upcase type) 'terminal))
+                               (make-class-name type))
+                    (,ast-superclass terminal-symbol)
                   ()
                   (:documentation
                    ,(format nil "Generated for terminal symbol '~a'" type))))
@@ -890,14 +895,39 @@ they should produce the same ordering."
                     (:range-end . ,(cdadr spec)))))
        (error-p (eql class (symbolicate prefix '-error))))
   "Initialize an instance of SUPERCLASS with SPEC."
-  (labels ((get-converted-fields ()
+  (labels ((find-terminal-symbol-class (class-name)
+             ;; Check for a '-terminal first in case there's a name overlap.
+             (let ((terminal-with
+                     (format-symbol
+                      'sel/sw/ts "~a-~a-TERMINAL" prefix class-name))
+                   (terminal-without
+                     (format-symbol
+                      'sel/sw/ts "~a-~a" prefix class-name)))
+               (cond
+                 ((find-class terminal-with nil) terminal-with)
+                 ((find-class terminal-without nil) terminal-without))))
+           (terminal-symbol-class-p (class-name)
+             "Return true if CLASS inherits from the terminal symbol
+              mix-in."
+             (when-let ((class (find-terminal-symbol-class class-name)))
+               (subtypep class 'terminal-symbol)))
+           (skip-terminal-field-p (field-spec slot-info)
+             "Return T if FIELD-SPEC represents a terminal symbol that shouldn't
+              appear in the resulting AST."
+             (cond
+               ;; Has an associated slot or has children
+               ((or (listp slot-info) (caddr field-spec)) nil)
+               (t (terminal-symbol-class-p slot-info))))
+           (get-converted-fields ()
              "Get the value of each field after it's been converted
               into an AST."
              (iter
                (for field in (caddr spec))
+               (for slot-info = (car field))
+               (when (skip-terminal-field-p field slot-info)
+                 (next-iteration))
                (for converted-field = (convert superclass field
                                                :string-pass-through t))
-               (for slot-info = (car field))
                ;; cl-tree-sitter appears to put the
                ;; slot name first unless the list goes
                ;; into the children slot.
@@ -1144,7 +1174,8 @@ correct class name for subclasses of SUPERCLASS."
      (fix-newlines)
      (w/interleaved-text
       (convert to-type
-               (parse-string (get-language-from-superclass superclass) string)
+               (parse-string (get-language-from-superclass superclass) string
+                             :produce-cst t)
                :superclass superclass
                :string-pass-through t)
       '(0 0)

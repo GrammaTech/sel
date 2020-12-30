@@ -27,4 +27,4 @@
 (deftest (can-parse-a-python-project :long-running) ()
   (with-fixture fib-project-python
     (is (equal 3 (length (evolve-files *soft*))))
-    (is (= 44 (size *soft*)))))
+    (is (= 45 (size *soft*)))))
