@@ -189,9 +189,11 @@ variable for instance, it will be included.
 </li></ul>
 <p>For example, the line,
 </p>
+<table class="cartouche" border="1"><tr><td>
 <div class="example">
 <pre class="example">    %rax    00 00 00 00 00 00 01 00
 </pre></div>
+</td></tr></table>
 
 <p>indicates that register rax should contain the value 256.
 </p>
@@ -209,9 +211,11 @@ be ignored.
 </p>
 <p>For example, the line,
 </p>
+<table class="cartouche" border="1"><tr><td>
 <div class="example">
 <pre class="example">    00007fbb c1fcf768   v v v v v v v .   2f 04 9c d8 3b 95 7c 00
 </pre></div>
+</td></tr></table>
 
 <p>indicates that the byte at address 0x7fbbc1fcf768 has value 0x00,
 the byte at 0x7fbbc1fcf769 has value 0x7c, and so forth
@@ -282,9 +286,11 @@ to PAPI. This also requires a .h file to compile.
 </p>
 <p>To install perf:
 </p>
+<table class="cartouche" border="1"><tr><td>
 <div class="example">
 <pre class="example">    sudo apt-get install linux-tools-common linux-tools-generic linux-tools-`uname -r`
 </pre></div>
+</td></tr></table>
 
 <p>Perf requires system permission to run. In linux, the value in
 /proc/sys/kernel/perf_event_paranoid should be set to 1

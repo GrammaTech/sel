@@ -102,15 +102,18 @@ higher on the stack and therefore have priority over other tasks.
 </p>
 <span id="Example-use"></span><h4 class="subsection">4.3.2 Example use</h4>
 
+<table class="cartouche" border="1"><tr><td>
 <div class="example">
 <pre class="example">    (setf *runner* (run-task (make-instance 'single-cut-all :object *orig*)
                              10))
      ;; When (task-runner-worker-count *runner*) = 0,
      ;; it means all threads are finished.
 </pre></div>
+</td></tr></table>
 
 <span id="Complex-Example-use"></span><h4 class="subsection">4.3.3 Complex Example use</h4>
 
+<table class="cartouche" border="1"><tr><td>
 <div class="example">
 <pre class="example">    (defmacro task-map (num-threads function sequence)
       &quot;Run FUNCTION over SEQUENCE using a `simple-job' `task-job'.&quot;
@@ -138,6 +141,7 @@ higher on the stack and therefore have priority over other tasks.
                  (make-instance ',task-map :object ,sequence)
                  ,num-threads))))))
 </pre></div>
+</td></tr></table>
 
 <p>The above example uses the tasks API to implement a simple
 parallel map spread across a configurable number of workers.  When

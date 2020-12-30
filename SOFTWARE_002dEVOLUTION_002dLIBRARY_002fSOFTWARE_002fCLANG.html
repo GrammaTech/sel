@@ -1075,6 +1075,7 @@ valid hash.
 <dd><p>Wrap AST in <code>software</code> in a compound statement.
 Known issue with ifdefs <code>--</code> consider this snippet:
 </p>
+<table class="cartouche" border="1"><tr><td>
 <div class="example">
 <pre class="example">    if (x) {
       var=1;
@@ -1084,9 +1085,11 @@ Known issue with ifdefs <code>--</code> consider this snippet:
     #endif
     }
 </pre></div>
+</td></tr></table>
 
 <p>it will transform this into:
 </p>
+<table class="cartouche" border="1"><tr><td>
 <div class="example">
 <pre class="example">    if (x) {
       var=1;
@@ -1098,6 +1101,7 @@ Known issue with ifdefs <code>--</code> consider this snippet:
         }  // spurious -- now won't compile.
     }
 </pre></div>
+</td></tr></table>
 </dd></dl>
 <span id="Method-sel_002fsw_002fclang_003awrap_002dast-_0028_0028obj-clang_0029-_0028ast-clang_002dast_0029_0029"></span><dl>
 <dt id="index-wrap_002dast-_005bsel_002fsw_002fclang_005d-1">Method: <strong>wrap-ast [sel/sw/clang]</strong> <em>(obj clang) (ast clang-ast)</em></dt>

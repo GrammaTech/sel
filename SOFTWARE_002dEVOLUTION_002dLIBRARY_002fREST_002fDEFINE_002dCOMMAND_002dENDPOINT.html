@@ -82,24 +82,30 @@ to start asynchronous jobs remotely, mirroring the command definitions from
 <p>For example, the following invocation of &lsquo;define-endpoint-route&lsquo; will set up an
 endpoint that adds five to numbers:
 </p>
+<table class="cartouche" border="1"><tr><td>
 <div class="example">
 <pre class="example">    (define-endpoint-route addfive (lambda (value) (+ value 5)) ((value integer)))
 </pre></div>
+</td></tr></table>
 
 <p>An appropriate REST invocation for this endpoint might look like:
 </p>
+<table class="cartouche" border="1"><tr><td>
 <div class="example">
 <pre class="example">    curl -X POST -H &quot;Accept: application/json&quot; 
                  -H &quot;Content-Type: application/json&quot; 
                  http://127.0.0.1:9003/addfive?cid='client-1001' 
                  -d '{&quot;value&quot; : 5}'
 </pre></div>
+</td></tr></table>
 
 <p>In addition, you can directly name endpoint functions, e.g.<code>:</code>
 </p>
+<table class="cartouche" border="1"><tr><td>
 <div class="example">
 <pre class="example">    (define-endpoint-route fact #'alexandria::factorial ((value integer)))
 </pre></div>
+</td></tr></table>
 
 <p>In this case, the function must be in scope wherever this macro is envoed.
 </p></dd></dl>

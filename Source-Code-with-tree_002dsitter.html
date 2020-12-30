@@ -65,31 +65,145 @@ accurately Concrete Syntax Trees (CSTs).  This class uses GitHub&rsquo;s
 tree-sitter (see <a href="https://tree-sitter.github.io/tree-sitter/">https://tree-sitter.github.io/tree-sitter/</a>)
 libraries to parse source code into ASTs.
 </p>
+<p><code>tree-sitter</code> allows for many different languages to be represented
+uniformly through libtree-sitter and the analysis of its corresponding
+language modules. This cuts down on maintenance time across different
+languages and enables immediate inclusion of any language that has a
+language module for libtree-sitter.
+</p>
 <p>Tree sitter has support for many source code languages.  See
 <a href="https://tree-sitter.github.io/tree-sitter/#available-parsers">Available
-Parsers</a> for full list.  <code>sel</code> will define software object classes
-for every tree-sitter parser library found on the user&rsquo;s sytem.
-Specifically, <code>sel</code> looks in the directories specified by
-<a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fTREE_002dSITTER.html#Variable-sel_002fsw_002fts_003a_002atree_002dsitter_002dlanguage_002ddirectories_002a"><code>sel/sw/ts:*tree-sitter-language-directories*</code></a> to find the
-<code>grammar.json</code> and <code>node-types.json</code> files that define a
-tree-sitter language.  By default these files are expected to be
-in <code>/usr/share/tree-sitter/$language/</code>.  The
-<a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fTREE_002dSITTER.html#Variable-sel_002fsw_002fts_003a_002atree_002dsitter_002dlanguage_002ddirectories_002a"><code>sel/sw/ts:*tree-sitter-language-directories*</code></a> variable may
-be customized to control where <code>sel</code> searches for these files.  For
-even more control over the tree-sitter files used the
-<a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fTREE_002dSITTER.html#Variable-sel_002fsw_002fts_003a_002atree_002dsitter_002dlanguage_002dfiles_002a"><code>sel/sw/ts:*tree-sitter-language-files*</code></a> variable may be set
-directly.  These files are then parsed to automatically define
-associated common lisp classes for every type of AST node defined
-by the parser.  Currently only the <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fTREE_002dSITTER.html#Class-sel_002fsw_002fts_003apython"><code>sel/sw/ts:python</code></a> and
-<a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fTREE_002dSITTER.html#Class-sel_002fsw_002fts_003ajavascript"><code>sel/sw/ts:javascript</code></a> tree-sitter classes have the full
-complement of more sophisticated <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fPARSEABLE.html#Class-sel_002fsw_002fparseable_003aparseable"><code>sel/sw/parseable:parseable</code></a> methods
-(e.g., <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fPARSEABLE.html#Generic_002dFunction-sel_002fsw_002fparseable_003ascopes"><code>sel/sw/parseable:scopes</code></a>) defined.
+Parsers</a> for full list.  The <code>tree-sitter</code> classes are generated at
+compile time. This is done by analyzing the <samp>node-types.json</samp>
+and <samp>grammar.json</samp> files that are located in tree-sitter
+language modules.  The <code>SEL_TREE_SITTER_LANGUAGE_DIR</code>
+environment variable can be set to modify where the JSON files are
+expected. By default,
+<samp>/usr/share/tree-sitter/</samp>,<samp>/usr/local/share/tree-sitter/</samp>,
+and <samp>$HOME/.local/share/tree-sitter/</samp> are searched for
+tree-sitter files. If a directory is found and has
+<samp>node-types.json</samp> and <samp>grammar.json</samp> in it, the
+directory&rsquo;s name is added to the list of languages to create
+classes for. For example, a directory named
+<samp>/usr/share/tree-sitter/python/</samp> that has the relevant JSON
+files will result in class for python being generated.  On the
+lisp side, <code>sel</code> looks in the directories specified by
+<a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fTREE_002dSITTER.html#Variable-sel_002fsw_002fts_003a_002atree_002dsitter_002dlanguage_002ddirectories_002a"><code>sel/sw/ts:*tree-sitter-language-directories*</code></a> to
+find the <code>grammar.json</code> and <code>node-types.json</code> files that
+define a tree-sitter language.  By default these files are
+expected to be in <code>/usr/share/tree-sitter/$language/</code>.  The
+<a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fTREE_002dSITTER.html#Variable-sel_002fsw_002fts_003a_002atree_002dsitter_002dlanguage_002ddirectories_002a"><code>sel/sw/ts:*tree-sitter-language-directories*</code></a>
+variable may be customized to control where <code>sel</code> searches for these
+files.  For even more control over the tree-sitter files used the
+<a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fTREE_002dSITTER.html#Variable-sel_002fsw_002fts_003a_002atree_002dsitter_002dlanguage_002dfiles_002a"><code>sel/sw/ts:*tree-sitter-language-files*</code></a> variable
+may be set directly.  These files are then parsed to automatically
+define associated common lisp classes for every type of AST node
+defined by the parser.  Currently only the
+<a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fTREE_002dSITTER.html#Class-sel_002fsw_002fts_003apython"><code>sel/sw/ts:python</code></a> and
+<a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fTREE_002dSITTER.html#Class-sel_002fsw_002fts_003ajavascript"><code>sel/sw/ts:javascript</code></a> tree-sitter classes have the
+full complement of more sophisticated
+<a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fPARSEABLE.html#Class-sel_002fsw_002fparseable_003aparseable"><code>sel/sw/parseable:parseable</code></a> methods (e.g.,
+<a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fPARSEABLE.html#Generic_002dFunction-sel_002fsw_002fparseable_003ascopes"><code>sel/sw/parseable:scopes</code></a>) defined.
 </p>
+<p><code>tree-sitter</code> support currently depends on cl-tree-sitter and the fork
+of <code>cffi</code> it depends on. It also depends on libtree-sitter and
+tree-sitter language modules for every desired language.
+</p>
+<span id="Setting-up-libtree_002dsitter"></span><h4 class="subsubheading">Setting up libtree-sitter</h4>
+<p>Clone the following repo: <a href="https://github.com/tree-sitter/tree-sitter">https://github.com/tree-sitter/tree-sitter</a>.
+</p>
+<p>Run the following from its base directory:
+</p>
+<table class="cartouche" border="1"><tr><td>
+<div class="example">
+<pre class="example">    # From tree-sitter/
+    # sudo make all install can run to do both of the following.
+    make
+    # Move the shared object to a place where it can be found.
+    sudo mv libtree-sitter.so /usr/lib/
+</pre></div>
+</td></tr></table>
+
+<span id="Per_002dlanguage-Modules"></span><h4 class="subsubheading">Per-language Modules</h4>
+
+<p>Each language has its own module that can be used with tree-sitter. All of
+the languages that are currently supported can be found here:
+<a href="https://github.com/tree-sitter">https://github.com/tree-sitter</a>.
+</p>
+<p>For convience:
+</p><ul>
+<li> <a href="https://github.com/tree-sitter/tree-sitter-c">https://github.com/tree-sitter/tree-sitter-c</a>
+</li><li> <a href="https://github.com/tree-sitter/tree-sitter-java">https://github.com/tree-sitter/tree-sitter-java</a>
+</li><li> <a href="https://github.com/tree-sitter/tree-sitter-javascript">https://github.com/tree-sitter/tree-sitter-javascript</a>
+</li><li> <a href="https://github.com/tree-sitter/tree-sitter-json">https://github.com/tree-sitter/tree-sitter-json</a>
+</li><li> <a href="https://github.com/tree-sitter/tree-sitter-python">https://github.com/tree-sitter/tree-sitter-python</a>
+
+</li></ul>
+<p>To set-up a language, the following script can be used from the base
+directory of the language module&rsquo;s directory:
+</p>
+<table class="cartouche" border="1"><tr><td>
+<div class="example">
+<pre class="example">    #!/bin/bash
+    language=$1
+
+    [ $# -eq 0 ] &amp;&amp; { echo &quot;Usage: $0 language_name&quot;; exit 1; }
+
+    cd src/
+
+    if test -f &quot;scanner.cc&quot;; then
+        clang++ -fPIC scanner.cc -c -lstdc++
+        clang -std=c99 -fPIC parser.c -c
+        clang++ -shared scanner.o parser.o -o /usr/lib/tree-sitter-$(echo ${language}|sed 's|/|-|').so
+    elif test -f &quot;scanner.c&quot;; then
+        clang -std=c99 -fPIC scanner.c -c
+        clang -std=c99 -fPIC parser.c -c
+        clang -shared scanner.o parser.o -o /usr/lib/tree-sitter-$(echo ${language}|sed 's|/|-|').so
+    else
+        clang -std=c99 -fPIC parser.c -c
+        clang -shared parser.o -o /usr/lib/tree-sitter-$(echo ${language}|sed 's|/|-|').so
+    fi
+
+    sudo mkdir -p /usr/share/tree-sitter/${language}/
+    sudo cp grammar.json node-types.json /usr/share/tree-sitter/${language}
+</pre></div>
+</td></tr></table>
+
+<p>If everything is desired, the following can be used:
+</p>
+<table class="cartouche" border="1"><tr><td>
+<div class="example">
+<pre class="example">    #!/bin/bash
+    for language in agda bash c c-sharp cpp css go html java javascript jsdoc json julia ocaml/ocaml ocaml/interface php python ql regex ruby rust scala typescript/tsx typescript/typescript;do
+        [ -d tree-sitter-${language%/*} ] || git clone --depth=1 https://github.com/tree-sitter/tree-sitter-${language%/*}
+        cd tree-sitter-${language}/src
+        if test -f &quot;scanner.cc&quot;; then
+            clang++ -fPIC scanner.cc -c -lstdc++
+            clang -std=c99 -fPIC parser.c -c
+            clang++ -shared scanner.o parser.o -o /usr/lib/tree-sitter-$(echo ${language}|sed 's|/|-|').so
+        elif test -f &quot;scanner.c&quot;; then
+            clang -std=c99 -fPIC scanner.c -c
+            clang -std=c99 -fPIC parser.c -c
+            clang -shared scanner.o parser.o -o /usr/lib/tree-sitter-$(echo ${language}|sed 's|/|-|').so
+        else
+            clang -std=c99 -fPIC parser.c -c
+            clang -shared parser.o -o /usr/lib/tree-sitter-$(echo ${language}|sed 's|/|-|').so
+        fi
+        mkdir -p /usr/share/tree-sitter/${language}/
+        cp grammar.json node-types.json /usr/share/tree-sitter/${language}
+        cd -
+    done
+</pre></div>
+</td></tr></table>
+
 <p>On Arch Linux the
 <a href="https://aur.archlinux.org/packages/tree-sitter-languages-git/">tree-sitter-languages-git</a> <code>aur</code> package may be used to install
-tree-sitter support for many languages.  On MacOS the following
-shell script may be used to achieve similar results:
+tree-sitter support for many languages.
 </p>
+<p>On MacOS the following shell script may be used to achieve similar
+results:
+</p>
+<table class="cartouche" border="1"><tr><td>
 <div class="example">
 <pre class="example">    #!/bin/bash
 
@@ -156,7 +270,16 @@ shell script may be used to achieve similar results:
     clone
     package
 </pre></div>
+</td></tr></table>
 
+<span id="cl_002dtree_002dsitter-setup"></span><h4 class="subsubheading">cl-tree-sitter setup</h4>
+
+<p>Clone the following repositories to the local-projects directory for quicklisp:
+</p><ul>
+<li> <a href="https://github.com/death/cl-tree-sitter">https://github.com/death/cl-tree-sitter</a>
+</li><li> <a href="https://github.com/death/cffi">https://github.com/death/cffi</a>
+
+</li></ul>
 
 <hr>
 <div class="header">

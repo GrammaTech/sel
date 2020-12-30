@@ -117,11 +117,13 @@ syntax trees (ASTs) and is described in-depth in its own section.
 </li></ul>
 <p>The recommended way to create a Coq software object is using &lsquo;from-file&rsquo;:
 </p>
+<table class="cartouche" border="1"><tr><td>
 <div class="example">
 <pre class="example">    (with-serapi ()
       (from-file (make-instance 'coq :project-file &quot;/path/to/_CoqProject&quot;)
                  &quot;/path/to/Foo.v&quot;))
 </pre></div>
+</td></tr></table>
 
 <p>If you don&rsquo;t have a _CoqProject file, you may omit the &lsquo;:project-file&rsquo;
 keyword.
