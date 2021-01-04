@@ -1752,12 +1752,12 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
         ;;       The defaults that are actually used need to be removed here.
         (remove-duplicates
          ;; NOTE: append order matters.
-         (append (get-default-parameters parameters)
-                 (get-positional-args-to-parameters
+         (append (get-positional-args-to-parameters
                   parameters-alist args-list)
                  (get-keyword-args-to-parameters
-                  parameters-alist args-list))
-         :test #'same-name-p :key #'cdr))))
+                  parameters-alist args-list)
+                 (get-default-parameters parameters))
+         :test #'same-name-p :key #'cdr :from-end t))))
 
   (defmethod assign-to-var-p ((ast python-ast) (identifier python-ast))
     ;; Return the python-identifier that matches in case the caller wants
