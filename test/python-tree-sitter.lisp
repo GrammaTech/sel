@@ -671,7 +671,7 @@ and keyword parameters with defaults."
 (deftest python-test-end-of-parameter-list ()
   (with-util-file ("functions" sw ast)
     (let ((nodes (iter (for node in-tree ast)
-                   (when (typep node 'parseable-function)
+                   (when (typep node 'function-ast)
                      (collect node)))))
       (is (length= 3 nodes))
       (destructuring-bind (f1 f2 f3) nodes

@@ -239,7 +239,20 @@
            :identical-name-p
            :in-class-def-p
            ;; Interleaved text
-           :interleaved-text))
+           :interleaved-text
+           ;; Cross-language Mix-ins
+           :class-ast
+           :control-flow-ast
+           :expression-ast
+           :function-ast
+           :identifier-ast
+           :lambda-ast
+           :literal-ast
+           :loop-ast
+           :statement-ast
+           ;; Cross-language Generics
+           :end-of-parameter-list
+           :function-node-name))
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 
@@ -291,42 +304,41 @@ searched to populate `*tree-sitter-language-files*'.")
   (defvar *tree-sitter-base-ast-superclasses* '())
 
   (defvar *tree-sitter-ast-superclasses*
-    '((:c (:parseable-statement c--statement c-function-definition))
-      (:java (:parseable-statement java-statement))
+    '((:c (:statement-ast c--statement c-function-definition))
+      (:java (:statement-ast java-statement))
       (:javascript
-       (:parseable-class javascript-class-declaration)
-       (:parseable-control-flow
+       (:class-ast javascript-class-declaration)
+       (:control-flow-ast
         javascript-do-statement javascript-for-statement
         javascript-switch-statement javascript-try-statement
         javascript-for-in-statement javascript-if-statement
         javascript-while-statement)
-       (:parseable-expression javascript--expression)
-       (:parseable-function
+       (:expression-ast javascript--expression)
+       (:function-ast
         javascript-function javascript-function-declaration
         javascript-arrow-function)
-       (:parseable-identifier
+       (:identifier-ast
         javascript-identifier javascript-property-identifier)
-       (:parseable-literal javascript-number javascript-string)
-       (:parseable-loop
+       (:literal-ast javascript-number javascript-string)
+       (:loop-ast
         javascript-for-statement javascript-do-statement
         javascript-while-statement)
-       (:parseable-statement javascript--statement))
+       (:statement-ast javascript--statement))
       (:python
-       (:parseable-class python-class-definition)
-       (:parseable-control-flow
+       (:class-ast python-class-definition)
+       (:control-flow-ast
         python-for-statement python-if-statement python-while-statement
         python-try-statement python-conditional-expression
         python-list-comprehension python-set-comprehension
         python-generator-expression python-dictionary-comprehension)
-       (:parseable-expression python-expression)
-       (:parseable-function
+       (:expression-ast python-expression)
+       (:function-ast
         python-function-definition python-lambda)
-       (:parseable-identifier python-identifier)
-       (:parseable-lambda python-lambda)
-       (:parseable-loop
+       (:identifier-ast python-identifier)
+       (:lambda-ast python-lambda)
+       (:loop-ast
         python-while-statement python-for-statement python-for-in-clause)
-       (:parseable-statement
-        python--compound-statement python--simple-statement))))
+       (:statement-ast python--compound-statement python--simple-statement))))
 
   (defun tree-sitter-ast-classes (name grammar-file node-types-file)
     (nest
@@ -379,6 +391,33 @@ searched to populate `*tree-sitter-language-files*'.")
   (defclass tree-sitter-ast (indentation functional-tree-ast interleaved-text)
     ()
     (:documentation "AST for input from tree-sitter."))
+
+  (defclass class-ast (ast) ()
+    (:documentation "Mix-in for AST classes that are classes."))
+
+  (defclass control-flow-ast (ast) ()
+    (:documentation "Mix-in for AST classes that have control flow."))
+
+  (defclass expression-ast (ast) ()
+    (:documentation "Mix-in for AST classes that are expressions."))
+
+  (defclass function-ast (ast) ()
+    (:documentation "Mix-in for AST classes that are functions."))
+
+  (defclass identifier-ast (ast) ()
+    (:documentation "Mix-in for AST classes that are identifiers."))
+
+  (defclass lambda-ast (ast) ()
+    (:documentation "Mix-in for AST classes that are lambdas."))
+
+  (defclass literal-ast (ast) ()
+    (:documentation "Mix-in for AST classes that are literals."))
+
+  (defclass loop-ast (ast) ()
+    (:documentation "Mix-in for AST classes that are loops."))
+
+  (defclass statement-ast (ast) ()
+    (:documentation "Mix-in for AST classes that are statements."))
 
   (defun convert-name (name-string)
     (camel-case-to-lisp (substitute #\- #\_  name-string)))
@@ -661,9 +700,6 @@ of fields needs to be determined at parse-time."
         (initialize-subtype->supertypes)
         `(progn
            (eval-always
-             ;; TODO IF EVER NEEDED:
-             ;;   add a parameter for passing in extra super classes.
-             ;;   This could be useful for mix-ins.
              (define-software ,(make-class-name) (tree-sitter
                                                   ,@software-superclasses)
                ()
@@ -671,9 +707,6 @@ of fields needs to be determined at parse-time."
                 ,(format nil "~a tree-sitter software representation."
                          name-prefix)))
 
-             ;; TODO IF EVER NEEDED:
-             ;;   add a parameter for passing in extra super classes.
-             ;;   This could be useful for mix-ins.
              (define-node-class ,(make-class-name "ast")
                  (tree-sitter-ast ,@base-class-superclasses)
                ;; NOTE: ensure there is always a children slot.
@@ -883,7 +916,7 @@ statement AST types."
     (for child in (sorted-children ast))
     (for after-text in (cdr (interleaved-text ast)))
     (for i upfrom 1)
-    (when-let ((pos (and (typep child 'parseable-statement)
+    (when-let ((pos (and (typep child 'statement-ast)
                          (position-after-leading-newline after-text))))
       ;; Move the [0, pos) prefix of after-text containing the newline
       ;; down into the child node.
@@ -1313,7 +1346,7 @@ it expands into BODY. Otherwise, the expansion is nil."
     root))
 
 (defmethod get-parent-full-stmt (obj (ast tree-sitter-ast))
-  (if (typep ast 'parseable-statement)
+  (if (typep ast 'statement-ast)
       ast
       (get-parent-full-stmt obj (get-parent-ast obj ast))))
 
@@ -1787,7 +1820,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
        (source-text name))))
 
   (defmethod end-of-parameter-list
-      ((software python) (function-node parseable-function))
+      ((software python) (function-node function-ast))
     (ematch function-node
       ((python-function-definition
         :python-parameters (and parameters (type node)))
@@ -2401,7 +2434,7 @@ AST ast to return the enclosing scope for"
        (source-text name))))
 
   (defmethod end-of-parameter-list
-      ((software javascript) (function-node parseable-function))
+      ((software javascript) (function-node function-ast))
     (ematch function-node
       ((or (javascript-function-declaration :javascript-parameters params)
            (javascript-arrow-function
@@ -2634,6 +2667,26 @@ slots."
               (list)
               (concatenate 'string text)
               (lastcar (interleaved-text root)))))
+
+
+;;;; Cross-language generics and methods
+(defgeneric end-of-parameter-list (software node)
+  (:documentation "Find the end position of the parameters of FUNCTION-NODE.")
+  (:method (software (node function-ast))
+    (error "END-OF-PARAMETER-LIST undefined for ~a" (type-of node))))
+
+(defgeneric function-node-name (node)
+  (:documentation "Extract the name of the function from NODE.
+If NODE is not a function node, return nil.")
+  (:method (node)
+    (declare (ignore node))
+    nil)
+  (:method ((node function-ast) &aux (type (type-of node)))
+    (unless (subtypep type 'lambda-ast)
+      (warn "FUNCTION-NODE-NAME undefined for ~a" type))
+    nil))
+
+(defmethod is-stmt-p ((ast statement-ast)) t)
 
 
 ;;;; Utility

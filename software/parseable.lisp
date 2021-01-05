@@ -63,7 +63,6 @@
            :asts-containing-source-location
            :asts-contained-in-source-range
            :asts-intersecting-source-range
-           :end-of-parameter-list
            :good-asts
            :bad-asts
            :good-mutation-targets
@@ -96,19 +95,7 @@
            :*indent-with-tabs-p*
            :*spaces-per-tab*
            :indentablep
-           :combine-all-conflict-asts
-           ;; Cross-language Mix-ins
-           :parseable-class
-           :parseable-control-flow
-           :parseable-expression
-           :parseable-function
-           :parseable-identifier
-           :parseable-lambda
-           :parseable-literal
-           :parseable-loop
-           :parseable-statement
-           ;; Cross-language Generics
-           :function-node-name))
+           :combine-all-conflict-asts))
 (in-package :software-evolution-library/software/parseable)
 (in-readtable :curry-compose-reader-macros)
 
@@ -123,33 +110,6 @@
   (:documentation "Base class for all ASTs in SEL.  This class acts as a tag
 for objects to allow method dispatch on generic AST objects regardless of
 whether they inherit from the functional trees library."))
-
-(defclass parseable-class (ast) ()
-  (:documentation "Mix-in for AST classes that are classes."))
-
-(defclass parseable-control-flow (ast) ()
-  (:documentation "Mix-in for AST classes that have control flow."))
-
-(defclass parseable-expression (ast) ()
-  (:documentation "Mix-in for AST classes that are expressions."))
-
-(defclass parseable-function (ast) ()
-  (:documentation "Mix-in for AST classes that are functions."))
-
-(defclass parseable-identifier (ast) ()
-  (:documentation "Mix-in for AST classes that are identifiers."))
-
-(defclass parseable-lambda (ast) ()
-  (:documentation "Mix-in for AST classes that are lambdas."))
-
-(defclass parseable-literal (ast) ()
-  (:documentation "Mix-in for AST classes that are literals."))
-
-(defclass parseable-loop (ast) ()
-  (:documentation "Mix-in for AST classes that are loops."))
-
-(defclass parseable-statement (ast) ()
-  (:documentation "Mix-in for AST classes that are statements."))
 
 ;; All hash values are of typer HASH-TYPE.
 ;; This was chosen to be large enough that collisions
@@ -641,8 +601,7 @@ Returns nil if no full statement parent is found."))
 
 (defgeneric is-stmt-p (ast)
   (:documentation "Returns T if the AST is a full statement, NIL otherwise.")
-  (:method ((ast ast)) nil)
-  (:method ((ast parseable-statement)) t))
+  (:method ((ast ast)) nil))
 
 (defgeneric get-ast-types (software ast)
   (:documentation "Types directly referenced within AST."))
@@ -1048,23 +1007,6 @@ in OBJ to its arguments in FUNCALL-AST."))
 
 (defgeneric assign-to-var-p (ast var)
   (:documentation "Return TRUE if AST represents an assignment to VAR."))
-
-(defgeneric function-node-name (node)
-  (:documentation "Extract the name of the function from NODE.
-If NODE is not a function node, return nil.")
-  (:method (node)
-    (declare (ignore node))
-    nil)
-  ;; TODO: at some point, make sure this won't unnecessarily
-  ;;       dispatch on lambdas.
-  (:method ((node parseable-function))
-    (warn "FUNCTION-NODE-NAME undefined for ~a" (type-of node))
-    nil))
-
-(defgeneric end-of-parameter-list (software node)
-  (:documentation "Find the end position of the parameters of FUNCTION-NODE.")
-  (:method (software (node parseable-function))
-    (error "END-OF-PARAMETER-LIST undefined for ~a" (type-of node))))
 
 
 ;;; Genome manipulations
