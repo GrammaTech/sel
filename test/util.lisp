@@ -21,7 +21,6 @@
            :+python-utility-dir+
            ;; Other functions
            :acorn-available-p
-           :python3.8-available-p
            :c-tree-sitter-available-p
            :java-tree-sitter-available-p
            :python-tree-sitter-available-p
@@ -171,12 +170,6 @@
 ;;;; Helper functions.
 (defun acorn-available-p ()
   (which "acorn"))
-
-(defun python3.8-available-p ()
-  (and (which "python3")
-       (register-groups-bind (major minor)
-           ("Python ([0-9]+)\.([0-9]+)" (shell "python3 --version"))
-         (and (>= (parse-integer major) 3) (>= (parse-integer minor) 8)))))
 
 (defun c-tree-sitter-available-p ()
   (handler-case (progn (make-instance 'sel/sw/tree-sitter::c))

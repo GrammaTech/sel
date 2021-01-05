@@ -10,15 +10,13 @@
    :stefil+
    :software-evolution-library
    :software-evolution-library/software/parseable
-   :software-evolution-library/software/python
+   :software-evolution-library/software/tree-sitter
    :software-evolution-library/components/file
    :software-evolution-library/components/formatting)
   (:export :test-indentation))
 (in-package :software-evolution-library/test/indentation)
 (in-readtable :curry-compose-reader-macros)
-(defsuite test-indentation "Indentation." (python3.8-available-p))
-
-;;; TODO: make this indentation-python instead?
+(defsuite test-indentation "Indentation." (python-tree-sitter-available-p))
 
 
 ;;; Utility
@@ -82,6 +80,6 @@ result with RESULT-FILE."
 (deftest moveable-indentation-python-1 ()
   (with-software-file ("nested-functions" soft genome)
     (is-moveable soft
-                 (find-if {typep _ 'py-pass} genome)
-                 (list (find-if {typep _ 'py-function-def} genome))
+                 (find-if {typep _ 'python-pass-statement} genome)
+                 (list (find-if {typep _ 'python-function-definition} genome))
                  "nested-functions-mut")))

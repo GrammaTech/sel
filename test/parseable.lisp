@@ -8,10 +8,9 @@
    :software-evolution-library
    :software-evolution-library/utility/range
    :software-evolution-library/software/parseable
-   :software-evolution-library/software/python
-   :software-evolution-library/software/javascript
    :software-evolution-library/software/lisp
-   :software-evolution-library/software/clang)
+   :software-evolution-library/software/clang
+   :software-evolution-library/software/tree-sitter)
   (:import-from :software-evolution-library/software/parseable
                 :hash-type
                 :parseable)
@@ -45,7 +44,8 @@
 
 (deftest (test-javascript-source-ranges :long-running t) ()
   (let ((js-files (expand-wildcard #p"javascript/*/*.js")))
-    (test-ast-source-ranges-for-files 'javascript js-files)))
+    (test-ast-source-ranges-for-files 'javascript js-files
+                                      :ignore-indentation t)))
 
 (deftest (test-python-source-ranges :long-running t) ()
   (let ((py-files (expand-wildcard #p"python/*/*.py")))

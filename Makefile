@@ -55,7 +55,6 @@ DOC_PACKAGES =								\
 	software-evolution-library/software/ir				\
 	software-evolution-library/software/lisp			\
 	software-evolution-library/software/llvm			\
-	software-evolution-library/software/non-homologous-parseable	\
 	software-evolution-library/software/parseable			\
 	software-evolution-library/software/parseable-project		\
 	software-evolution-library/software/project			\

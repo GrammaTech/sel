@@ -36,16 +36,13 @@
         :software-evolution-library/test/indentation
         :software-evolution-library/test/java-project
         :software-evolution-library/test/javascript-project
-        :software-evolution-library/test/javascript
         :software-evolution-library/test/javascript-tree-sitter
         :software-evolution-library/test/json
         :software-evolution-library/test/lisp
         :software-evolution-library/test/lisp-bindings
         :software-evolution-library/test/misc-mutations
         :software-evolution-library/test/mutation-analysis
-        :software-evolution-library/test/python
         :software-evolution-library/test/python-tree-sitter
-        :software-evolution-library/test/python-utility
         :software-evolution-library/test/python-project
         :software-evolution-library/test/parseable
         :software-evolution-library/test/population

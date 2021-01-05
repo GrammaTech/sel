@@ -8,9 +8,9 @@
    :stefil+
    :software-evolution-library
    :software-evolution-library/software/parseable
-   :software-evolution-library/software/javascript
    :software-evolution-library/software/project
    :software-evolution-library/software/javascript-project
+   :software-evolution-library/software/tree-sitter
    :software-evolution-library/components/test-suite)
   (:export :test-javascript-project))
 (in-package :software-evolution-library/test/javascript-project)
