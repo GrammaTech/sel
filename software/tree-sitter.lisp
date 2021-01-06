@@ -240,6 +240,7 @@
            :in-class-def-p
            ;; Interleaved text
            :interleaved-text
+           :check-interleaved-text
            ;; Cross-language Mix-ins
            :class-ast
            :control-flow-ast
