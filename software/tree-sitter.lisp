@@ -2481,17 +2481,18 @@ with empty strings between each child if the field is not populated."
 (defmethod ast-hash ast-combine-hash-values ((ast interleaved-text))
   (ast-hash (interleaved-text ast)))
 
-(defmethod equal? ((ast-a interleaved-text) (ast-b interleaved-text))
-  (let ((hash1 (slot-value ast-a 'stored-hash))
-        (hash2 (slot-value ast-b 'stored-hash)))
-    (if (and hash1 hash2 (not (eql hash1 hash2)))
-        nil
-        (and (eq (type-of ast-a) (type-of ast-b))
-             (equal? (interleaved-text ast-a)
-                     (interleaved-text ast-b))
-             (length= (children ast-a)
-                      (children ast-b))
-             (every #'equal? (children ast-a) (children ast-b))))))
+(defmethod equal? :around ((ast-a interleaved-text) (ast-b interleaved-text))
+  (when (call-next-method)
+    (let ((hash1 (slot-value ast-a 'stored-hash))
+          (hash2 (slot-value ast-b 'stored-hash)))
+      (if (and hash1 hash2 (not (eql hash1 hash2)))
+          nil
+          (and (eq (type-of ast-a) (type-of ast-b))
+               (equal? (interleaved-text ast-a)
+                       (interleaved-text ast-b))
+               (length= (children ast-a)
+                        (children ast-b))
+               (every #'equal? (children ast-a) (children ast-b)))))))
 
 (defgeneric check-interleaved-text (ast)
   (:documentation "Assert that AST's interleaved text is valid.
