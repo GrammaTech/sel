@@ -315,7 +315,7 @@ searched to populate `*tree-sitter-language-files*'.")
   (defparameter *tree-sitter-ast-superclasses*
     '((:c
        (:comment-ast c-comment)
-       (:statement-ast c--statement)
+       (:statement-ast c--statement c-function-definition)
        (:expression-ast c-expression-statement c-call-expression c-update-expression
         c-assignment-expression c-binary-expression c-parenthesized-expression c-cast-expression
         c-field-expression c-pointer-expression c-unary-expression)
@@ -1402,7 +1402,8 @@ it expands into BODY. Otherwise, the expansion is nil."
 (defgeneric ast-type-to-rebind-p (ast)
   (:documentation "Return T if AST is of a type where its variables/functions
 should be rebound.")
-  (:method (ast) nil))
+  (:method (ast) nil)
+  (:method ((ast identifier-ast)) t))
 
 (defmethod rebind-vars ((ast tree-sitter-ast)
                         var-replacements fun-replacements)
@@ -1429,12 +1430,68 @@ the rebinding"
                                                     fun-replacements))))))
                       (child-slots ast)))))
 
+(defmethod enclosing-scope ((obj tree-sitter) (ast ast))
+  "Return the enclosing scope of AST in OBJ.
+- OBJ tree-sitter software object
+- AST ast to return the enclosing scope for"
+  (or (find-if (lambda (ast)
+                 (typep ast
+                        '(or function-ast loop-ast compound-ast)))
+               (get-parent-asts* obj ast))
+      (genome obj)))
+
+(defgeneric statements-in-scope (obj scope ast)
+  (:documentation "Return all child statements of SCOPE prior to AST.")
+  (:method (obj (scope ast) (ast ast))
+    (iter (for c in (remove nil (children scope)))
+          (while (path-later-p obj ast c))
+          (collect c))))
+
+(defgeneric identifiers (ast)
+  (:documentation "Return all identifier nodes in AST and its children.")
+  (:method ((ast ast))
+    (remove-if-not {typep _ 'identifier-ast} (convert 'list ast))))
+
+(defgeneric parameters (ast)
+  (:documentation "Return the parameters of AST.")
+  (:method ((ast javascript-function-declaration))
+    (javascript-children (javascript-parameters ast)))
+  (:method ((ast c-function-definition))
+    (children (c-parameters (c-declarator ast)))))
+
+(defgeneric inner-declarations (ast)
+  (:documentation "Return a list of variable declarations affecting inner scopes.")
+  (:method ((ast ast)) nil)
+  (:method ((ast function-ast))
+    (mappend #'identifiers (parameters ast))))
+
+(defgeneric outer-declarations (ast)
+  (:documentation
+   "Return a list of variable declarations affecting outer scopes.")
+  (:method ((ast ast)) nil))
+
+(defmethod scopes ((obj tree-sitter) (ast ast))
+  (labels ((get-parent-decl (obj identifier)
+             "For the given IDENTIFIER AST, return the parent declaration."
+             (car (remove-if-not {typep _ 'variable-declaration-ast}
+                                 (get-parent-asts obj identifier))))
+           (ast-to-scope (obj scope ast)
+             `((:name . ,(source-text ast))
+               (:decl . ,(or (get-parent-decl obj ast) ast))
+               (:scope . ,scope))))
+    (unless (null (ast-path obj ast))
+      (let ((scope (enclosing-scope obj ast)))
+        (cons (reverse
+               (mapcar {ast-to-scope obj scope}
+                       (append (inner-declarations scope)
+                               (mappend #'outer-declarations
+                                        (statements-in-scope obj scope ast)))))
+              (scopes obj scope))))))
+
 
 ;;;; Python
 ;;; Move this to its own file?
 (when-class-defined (python)
-
-  (defmethod ast-type-to-rebind-p ((ast python-identifier)) t)
 
   ;; Methods common to all software objects
   (defmethod phenome ((obj python) &key (bin (temp-file-name)))
@@ -2322,8 +2379,6 @@ Returns nil if the length of KEYS is not the same as VALUES'."
 ;;;; Javascript
 (when-class-defined (javascript)
 
-  (defmethod ast-type-to-rebind-p ((ast javascript-identifier)) t)
-
   ;; Methods common to all software objects
   (defmethod phenome ((obj javascript) &key (bin (temp-file-name)))
     (interpreted-phenome obj bin))
@@ -2344,69 +2399,31 @@ AST ast to return the enclosing scope for"
                  (get-parent-asts* obj ast))
         (genome obj)))
 
-  (defgeneric statements-in-scope (obj scope ast)
-    (:documentation "Return all child statements of SCOPE prior to AST.")
-    (:method (obj (scope javascript-ast) (ast javascript-ast))
-      (iter (for c in (remove nil (children scope)))
-        (while (path-later-p obj ast c))
-        (collect c))))
+  (defmethod inner-declarations ((ast javascript-arrow-function))
+    (if-let ((parameter (javascript-parameter ast)))
+      (identifiers parameter)
+      (mappend #'identifiers (javascript-children (javascript-parameters ast)))))
 
-  (defgeneric identifiers (ast)
-    (:documentation "Return all js-identifier nodes in AST and its children.")
-    (:method ((ast javascript-ast))
-      (remove-if-not {typep _ '(or
-                                javascript-identifier
-                                javascript-property-identifier
-                                javascript-shorthand-property-identifier)}
-                     (cons ast (child-asts ast :recursive t)))))
+  (defmethod inner-declarations ((ast javascript-for-in-statement))
+    (identifiers (javascript-left ast)))
 
-  (defgeneric inner-declarations (ast)
-    (:documentation
-     "Return a list of variable declarations affecting inner scopes.")
-    (:method ((ast javascript-ast)) nil)
-    (:method ((ast javascript-function-declaration))
-      (mappend #'identifiers (javascript-children (javascript-parameters ast))))
-    (:method ((ast javascript-arrow-function))
-      (if-let ((parameter (javascript-parameter ast)))
-          (identifiers parameter)
-          (mappend #'identifiers (javascript-children (javascript-parameters ast)))))
-    (:method ((ast javascript-for-in-statement))
-      (identifiers (javascript-left ast)))
-    (:method ((ast javascript-for-statement))
-      (identifiers (javascript-initializer ast))))
+  (defmethod inner-declarations ((ast javascript-for-statement))
+    (identifiers (javascript-initializer ast)))
 
-  (defgeneric outer-declarations (ast)
-    (:documentation
-     "Return a list of variable declarations affecting outer scopes.")
-    (:method ((ast javascript-ast)) nil)
-    (:method ((ast javascript-variable-declaration))
-      (mappend #'outer-declarations (javascript-children ast)))
-    (:method ((ast javascript-object-pattern))
-      (mappend #'identifiers (javascript-children ast)))
-    (:method ((ast javascript-array-pattern))
-      (mappend #'identifiers (javascript-children ast)))
-    (:method ((ast javascript-rest-parameter))
-      (identifiers ast))
-    (:method ((ast javascript-variable-declarator))
-      (identifiers (javascript-name ast))))
+  (defmethod outer-declarations ((ast javascript-object-pattern))
+    (mappend #'identifiers (javascript-children ast)))
 
-  (defmethod scopes ((obj javascript) (ast javascript-ast))
-    (labels ((get-parent-decl (obj identifier)
-               "For the given IDENTIFIER AST, return the parent declaration."
-               (car (remove-if-not {typep _ 'javascript-variable-declaration}
-                                   (get-parent-asts obj identifier))))
-             (ast-to-scope (obj scope ast)
-               `((:name . ,(source-text ast))
-                 (:decl . ,(or (get-parent-decl obj ast) ast))
-                 (:scope . ,scope))))
-      (unless (null (ast-path obj ast))
-        (let ((scope (enclosing-scope obj ast)))
-          (cons (reverse
-                 (mapcar {ast-to-scope obj scope}
-                         (append (inner-declarations scope)
-                                 (mappend #'outer-declarations
-                                          (statements-in-scope obj scope ast)))))
-                (scopes obj scope))))))
+  (defmethod outer-declarations ((ast javascript-variable-declaration))
+    (mappend #'outer-declarations (javascript-children ast)))
+
+  (defmethod outer-declarations ((ast javascript-array-pattern))
+    (mappend #'identifiers (javascript-children ast)))
+
+  (defmethod outer-declarations ((ast javascript-rest-parameter))
+    (identifiers ast))
+
+  (defmethod outer-declarations ((ast javascript-variable-declarator))
+    (identifiers (javascript-name ast)))
 
   (defmethod get-unbound-vals ((obj javascript) (ast javascript-ast))
     "Return all variables used (but not defined) within AST.
@@ -2494,7 +2511,7 @@ AST ast to return the enclosing scope for"
       ((javascript-arrow-function :javascript-parameter (and param (type node)))
        (node-end software param))))
 
-  ;;; Helper Functions.
+  ;; Helper Functions.
   (-> enclosing-find-function (javascript javascript-ast string)
     (values (or null javascript-ast) &optional))
   (defun enclosing-find-function (obj start-ast function-name)
@@ -2511,9 +2528,131 @@ scope of START-AST."
                 (equal name function-name)))))
       (find-if-in-scope #'target-function obj start-ast)))
 
-;;; Implement the generic format-genome method for Javascript objects.
+  ;; Implement the generic format-genome method for Javascript objects.
   (defmethod format-genome ((obj javascript) &key)
     (prettier obj)))
+
+
+;;;; C
+(when-class-defined (c)
+
+  (defmethod inner-declarations ((ast c-function-declarator))
+    (remove-if-not {typep _ 'c-parameter-declaration} (convert 'list (c-parameters ast))))
+
+  (defmethod inner-declarations ((ast c-for-statement))
+    (c-left (c-initializer c-for-statement)))
+
+  (defmethod outer-declarations ((ast c-declaration))
+    (mapcar #'c-declarator (c-declarator ast)))
+
+  #+nil
+  (progn
+    (defmethod get-unbound-vals ((obj c) (ast c-ast))
+      "Return all variables used (but not defined) within AST.
+* OBJ c software object containing AST
+* AST ast to retrieve unbound variables within"
+      (labels ((get-unbound-vals-helper (obj parent ast)
+                 (remove-duplicates
+                  (apply #'append
+                         (when (and (typep ast 'c-identifier)
+                                    (not
+                                     (typep parent
+                                            '(or
+                                              c-call-expression
+                                              c-member-expression
+                                              c-function-declaration
+                                              c-arrow-function
+                                              c-class-declaration
+                                              c-meta-property
+                                              c-break-statement
+                                              c-class-declaration
+                                              c-continue-statement
+                                              c-labeled-statement
+                                              c-import-specifier
+                                              c-export-statement
+                                              c-variable-declarator))))
+                           (list (cons :name (source-text ast))))
+                         (mapcar {get-unbound-vals-helper obj ast}
+                                 (children ast)))
+                  :test #'equal)))
+        (get-unbound-vals-helper obj (get-parent-ast obj ast) ast)))
+
+    (defmethod get-unbound-funs ((obj c) (ast c-ast)
+                                 &aux (children (remove nil (children ast)))
+                                   (callee (first children)))
+      "Return all functions used (but not defined) within AST.
+* OBJ c software object containing AST
+* AST ast to retrieve unbound functions within"
+      (remove-duplicates
+       (apply #'append
+              (when (typep ast 'c-call-expression)
+                (cond ((typep callee 'c-identifier)
+                       ;; Free function call
+                       (list (list (source-text callee)
+                                   nil nil (length (cdr children)))))
+                      ((typep callee 'c-member-expression)
+                       ;; Member function call
+                       (list (list (nest (source-text)
+                                         (second)
+                                         (children callee))
+                                   nil nil (length (cdr children)))))
+                      (t nil)))
+              (mapcar {get-unbound-funs obj} children))
+       :test #'equal))
+
+    (defmethod get-parent-full-stmt ((obj c) (ast c-ast))
+      (find-if #'is-stmt-p (get-parent-asts obj ast)))
+
+    (defmethod get-function-from-function-call
+        ((obj c) (callexpr c-ast))
+      ;; NOTE: this currently only handles
+      ;;       named functions declared with 'function'.
+      (match callexpr
+        ;; TODO: when needed, add support for member expression
+        ;;       function calls.
+        ((c-call-expression
+          :c-function
+          (c-identifier
+           :interleaved-text (list name)))
+         (enclosing-find-function obj callexpr name))))
+
+    (defmethod function-node-name ((node c-function-declaration))
+      (match node
+        ((c-function-declaration :c-name name)
+         (source-text name))
+        ((c-function :c-name name)
+         (source-text name))))
+
+    (defmethod end-of-parameter-list
+        ((software c) (function-node function-ast))
+      (ematch function-node
+        ((or (c-function-declaration :c-parameters params)
+             (c-arrow-function
+              :c-parameters (and params (type node))))
+         (node-end software params))
+        ((c-arrow-function :c-parameter (and param (type node)))
+         (node-end software param))))
+
+;;; Helper Functions.
+    (-> enclosing-find-function (c c-ast string)
+        (values (or null c-ast) &optional))
+    (defun enclosing-find-function (obj start-ast function-name)
+      "Find the function with the name FUNCTION-NAME in OBJ that is in
+scope of START-AST."
+      ;; NOTE: this currently only handles
+      ;;       named functions declared with 'function'.
+      (flet ((target-function (ast)
+               (match ast
+                 ((c-function-declaration
+                   :c-name
+                   (c-identifier
+                    :interleaved-text (list name)))
+                  (equal name function-name)))))
+        (find-if-in-scope #'target-function obj start-ast))))
+
+  ;; Implement the generic format-genome method for C objects.
+  (defmethod format-genome ((obj c) &key)
+    (clang-format obj)))
 
 
 ;;;; Interleaved text
