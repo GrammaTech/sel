@@ -17,7 +17,6 @@
         :software-evolution-library/components/searchable
         :software-evolution-library/components/fodder-database)
   (:import-from :uiop/launch-program :escape-shell-token)
-  (:import-from :anaphora :awhen :it)
   (:import-from :babel :string-size-in-octets)
   (:import-from :arrow-macros :some->>) ; FIXME: Remove.
   (:import-from :jsown)
