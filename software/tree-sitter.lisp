@@ -402,6 +402,10 @@ searched to populate `*tree-sitter-language-files*'.")
   (defclass expression-ast (ast) ()
     (:documentation "Mix-in for AST classes that are expressions."))
 
+  (defclass parse-error-ast (ast) ()
+    (:documentation
+     "Mix-in for AST classes that represent tree-sitter parsing errors."))
+
   (defclass function-ast (ast) ()
     (:documentation "Mix-in for AST classes that are functions."))
 
@@ -730,7 +734,8 @@ of fields needs to be determined at parse-time."
                ()
                (:documentation "Generated for parsed comments."))
 
-             (defclass ,(make-class-name "error") (,ast-superclass)
+             (defclass ,(make-class-name "error")
+                 (,ast-superclass parse-error-ast)
                ((children :initarg :children :initform nil)
                 (child-slots :initform '((children . 0))
                              :allocation :class))
@@ -2432,6 +2437,8 @@ AST ast to return the enclosing scope for"
   (defmethod function-node-name ((node javascript-function-declaration))
     (match node
       ((javascript-function-declaration :javascript-name name)
+       (source-text name))
+      ((javascript-function :javascript-name name)
        (source-text name))))
 
   (defmethod end-of-parameter-list
