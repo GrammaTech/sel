@@ -31,6 +31,14 @@
                                    :type "c"
                                    :directory +unicode-dir+)))))
 
+(defixture w/while
+  (:setup
+   (nest
+    (setf *soft*)
+    (from-file (make-instance 'c))
+    (asdf:system-relative-pathname :software-evolution-library)
+    "test/etc/c-fragments/short.c")))
+
 
 ;;; Tests
 (deftest comment-inheritance-works-as-expected ()
@@ -88,6 +96,10 @@
   (let ((c-files (expand-wildcard #p"*/*.c")))
     (test-ast-source-ranges-for-files
      'c c-files :limit 10 :ignore-indentation t)))
+
+(deftest tree-sitter-shows-source-text-for-a-while ()
+  (with-fixture w/while
+    (is (stringp (source-text (find-if {typep _ 'c-while-statement} *soft*))))))
 
 (defun parsing-test-dir (path)
   (merge-pathnames-as-file
