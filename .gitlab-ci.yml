@@ -24,7 +24,7 @@ build-manual:
 .test-template: &test
   stage: test
   script:
-    - LISP=$LISP GT=yes make long-unit-check bin-check
+    - LISP=$LISP GT=yes make real-check
   except:
     - schedules
 
