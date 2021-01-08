@@ -89,6 +89,8 @@ RUN for language in agda bash c c-sharp cpp css go html java javascript jsdoc js
         cd -;                                                                                                                                                                                    \
     done
 RUN git clone https://github.com/death/cl-tree-sitter /root/quicklisp/local-projects/cl-tree-sitter
+# Work around bug in cl-unicode in quicklisp.
+RUN git clone https://github.com/edicl/cl-unicode.git /root/quicklisp/local-projects/cl-unicode
 
 WORKDIR /root/quicklisp/local-projects
 
