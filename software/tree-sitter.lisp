@@ -214,6 +214,7 @@
         :software-evolution-library/utility/json
         :software-evolution-library/utility/range
         :software-evolution-library/software/parseable
+        :software-evolution-library/software/compilable
         :software-evolution-library/components/file
         :software-evolution-library/components/formatting)
   (:import-from :cffi :translate-camelcase-name :load-foreign-library-error)
@@ -242,16 +243,21 @@
            :interleaved-text
            :check-interleaved-text
            ;; Cross-language Mix-ins
-           :class-ast
-           :control-flow-ast
-           :expression-ast
-           :function-ast
            :parse-error-ast
+           :comment-ast
+           :statement-ast
+           :expression-ast
+           :compound-ast
+           :control-flow-ast
+           :if-ast
+           :loop-ast
+           :class-ast
+           :function-ast
+           :variable-declaration-ast
            :identifier-ast
            :lambda-ast
            :literal-ast
-           :loop-ast
-           :statement-ast
+           :call-ast
            ;; Cross-language Generics
            :end-of-parameter-list
            :function-node-name))
@@ -301,38 +307,58 @@ searched to populate `*tree-sitter-language-files*'.")
   (defvar *tree-sitter-language-files* (collect-tree-sitter-language-files)
     "Files defining tree sitter languages.")
 
-  (defvar *tree-sitter-software-superclasses* '())
+  (defvar *tree-sitter-software-superclasses*
+    '((:c compilable)))
 
   (defvar *tree-sitter-base-ast-superclasses* '())
 
-  (defvar *tree-sitter-ast-superclasses*
-    '((:c (:statement-ast c--statement c-function-definition))
+  (defparameter *tree-sitter-ast-superclasses*
+    '((:c
+       (:comment-ast c-comment)
+       (:statement-ast c--statement)
+       (:expression-ast c-expression-statement c-call-expression c-update-expression
+        c-assignment-expression c-binary-expression c-parenthesized-expression c-cast-expression
+        c-field-expression c-pointer-expression c-unary-expression)
+       (:compound-ast c-compound-statement)
+       (:control-flow-ast c-switch-statement c-case-statement)
+       (:if-ast c-if-statement)
+       (:loop-ast c-while-statement c-for-statement)
+       (:parse-error-ast c-error)
+       (:variable-declaration-ast c-assignment-expression)
+       (:function-ast c-function-definition)
+       (:identifier-ast c-identifier)
+       (:literal-ast c-number-literal c-string-literal)
+       (:call-ast c-call-expression))
       (:java (:statement-ast java-statement))
       (:javascript
+       (:comment-ast javascript-comment)
        (:class-ast javascript-class-declaration)
        (:control-flow-ast
-        javascript-do-statement javascript-for-statement
-        javascript-switch-statement javascript-try-statement
-        javascript-for-in-statement javascript-if-statement
-        javascript-while-statement)
+        javascript-switch-statement javascript-try-statement)
+       (:if-ast javascript-if-statement)
        (:expression-ast javascript--expression)
+       (:compound-ast javascript-statement-block)
        (:function-ast
         javascript-function javascript-function-declaration
         javascript-arrow-function)
+       (:variable-declaration-ast javascript-variable-declaration-ast)
        (:identifier-ast
-        javascript-identifier javascript-property-identifier)
+        javascript-identifier javascript-property-identifier
+        javascript-shorthand-property-identifier)
        (:literal-ast javascript-number javascript-string)
        (:loop-ast
         javascript-for-statement javascript-do-statement
         javascript-while-statement)
-       (:statement-ast javascript--statement))
+       (:statement-ast javascript--statement)
+       (:call-ast javascript-call-expression))
       (:python
+       (:comment-ast python-comment)
        (:class-ast python-class-definition)
        (:control-flow-ast
-        python-for-statement python-if-statement python-while-statement
         python-try-statement python-conditional-expression
         python-list-comprehension python-set-comprehension
         python-generator-expression python-dictionary-comprehension)
+       (:if-ast python-if-statement)
        (:expression-ast python-expression)
        (:function-ast
         python-function-definition python-lambda)
@@ -340,7 +366,8 @@ searched to populate `*tree-sitter-language-files*'.")
        (:lambda-ast python-lambda)
        (:loop-ast
         python-while-statement python-for-statement python-for-in-clause)
-       (:statement-ast python--compound-statement python--simple-statement))))
+       (:statement-ast python--compound-statement python--simple-statement)
+       (:call-ast python-call))))
 
   (defun tree-sitter-ast-classes (name grammar-file node-types-file)
     (nest
@@ -394,14 +421,29 @@ searched to populate `*tree-sitter-language-files*'.")
     ()
     (:documentation "AST for input from tree-sitter."))
 
-  (defclass class-ast (ast) ()
-    (:documentation "Mix-in for AST classes that are classes."))
+  (defclass comment-ast (ast) ()
+    (:documentation "Mix-in for AST classes that are comments."))
+
+  (defclass statement-ast (ast) ()
+    (:documentation "Mix-in for AST classes that are statements."))
+
+  (defclass expression-ast (ast) ()
+    (:documentation "Mix-in for AST classes that are expressions."))
+
+  (defclass compound-ast (ast) ()
+    (:documentation "Mix-in for AST classes that are compounds."))
 
   (defclass control-flow-ast (ast) ()
     (:documentation "Mix-in for AST classes that have control flow."))
 
-  (defclass expression-ast (ast) ()
-    (:documentation "Mix-in for AST classes that are expressions."))
+  (defclass if-ast (control-flow-ast) ()
+    (:documentation "Mix-in for AST classes that are ifs."))
+
+  (defclass loop-ast (control-flow-ast) ()
+    (:documentation "Mix-in for AST classes that are loops."))
+
+  (defclass class-ast (ast) ()
+    (:documentation "Mix-in for AST classes that are classes."))
 
   (defclass parse-error-ast (ast) ()
     (:documentation
@@ -409,6 +451,9 @@ searched to populate `*tree-sitter-language-files*'.")
 
   (defclass function-ast (ast) ()
     (:documentation "Mix-in for AST classes that are functions."))
+
+  (defclass variable-declaration-ast (ast) ()
+    (:documentation "Mix-in for AST classes that are variable declarations."))
 
   (defclass identifier-ast (ast) ()
     (:documentation "Mix-in for AST classes that are identifiers."))
@@ -419,11 +464,8 @@ searched to populate `*tree-sitter-language-files*'.")
   (defclass literal-ast (ast) ()
     (:documentation "Mix-in for AST classes that are literals."))
 
-  (defclass loop-ast (ast) ()
-    (:documentation "Mix-in for AST classes that are loops."))
-
-  (defclass statement-ast (ast) ()
-    (:documentation "Mix-in for AST classes that are statements."))
+  (defclass call-ast (ast) ()
+    (:documentation "Mix-in for AST classes that are calls."))
 
   (defun convert-name (name-string)
     (camel-case-to-lisp (substitute #\- #\_  name-string)))
