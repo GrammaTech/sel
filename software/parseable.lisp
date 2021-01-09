@@ -728,6 +728,9 @@ of SHARED-PATH-AST's path in OBJ.")
   ;; Enables the use of the `@' macro directly against parseable objects.
   (lookup (genome obj) key))
 
+(defmethod convert (type (obj parseable) &key &allow-other-keys)
+  (convert type (genome obj)))
+
 ;;; FSet overrides for common-lisp sequence functions pass through to genome.
 (defmacro write-sequence-function-parseable-methods (&rest names)
   `(progn
