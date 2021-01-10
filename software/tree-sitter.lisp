@@ -260,7 +260,8 @@
            :call-ast
            ;; Cross-language Generics
            :end-of-parameter-list
-           :function-node-name))
+           :function-node-name
+           :type-in))
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 
@@ -2876,6 +2877,16 @@ If NODE is not a function node, return nil.")
     (unless (subtypep type 'lambda-ast)
       (warn "FUNCTION-NODE-NAME undefined for ~a" type))
     nil))
+
+(defgeneric type-in (software ast)
+  (:documentation "Return the type of AST in SOFTWARE.")
+  (:method ((c c) (ast c-ast) &aux (pointers 0))
+    (when-let ((decl (find-if «or {typep _ 'c-declaration}
+                                  {typep _ 'c-parameter-declaration}»
+                              (get-parent-asts c ast))))
+      (if (typep (c-declarator decl) 'c-pointer-declarator)
+          :pointer
+          (make-keyword (string-upcase (source-text (c-type decl))))))))
 
 (defmethod is-stmt-p ((ast statement-ast)) t)
 
