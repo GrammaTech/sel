@@ -1457,11 +1457,7 @@ the rebinding"
     (remove-if-not {typep _ 'identifier-ast} (convert 'list ast))))
 
 (defgeneric parameters (ast)
-  (:documentation "Return the parameters of AST.")
-  (:method ((ast javascript-function-declaration))
-    (javascript-children (javascript-parameters ast)))
-  (:method ((ast c-function-definition))
-    (children (c-parameters (c-declarator ast)))))
+  (:documentation "Return the parameters of AST."))
 
 (defgeneric inner-declarations (ast)
   (:documentation "Return a list of variable declarations affecting inner scopes.")
@@ -2387,6 +2383,9 @@ Returns nil if the length of KEYS is not the same as VALUES'."
   (defmethod phenome ((obj javascript) &key (bin (temp-file-name)))
     (interpreted-phenome obj bin))
 
+  (defmethod parameters ((ast javascript-function-declaration))
+    (javascript-children (javascript-parameters ast)))
+
   (defmethod enclosing-scope ((obj javascript) (ast javascript-ast))
     "Return the enclosing scope of AST in OBJ.
 OBJ javascript software object
@@ -2539,6 +2538,9 @@ scope of START-AST."
 
 ;;;; C
 (when-class-defined (c)
+
+  (defmethod parameters ((ast c-function-definition))
+    (children (c-parameters (c-declarator ast))))
 
   (defmethod inner-declarations ((ast c-function-declarator))
     (remove-if-not {typep _ 'c-parameter-declaration} (convert 'list (c-parameters ast))))
