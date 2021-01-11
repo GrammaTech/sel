@@ -1454,7 +1454,7 @@ the rebinding"
 (defgeneric identifiers (ast)
   (:documentation "Return all identifier nodes in AST and its children.")
   (:method ((ast ast))
-    (remove-if-not {typep _ 'identifier-ast} (convert 'list ast))))
+    (collect-if {typep _ 'identifier-ast} ast)))
 
 (defgeneric parameters (ast)
   (:documentation "Return the parameters of AST."))
