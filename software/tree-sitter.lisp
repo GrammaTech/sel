@@ -1471,7 +1471,7 @@ the rebinding"
    "Return a list of variable declarations affecting outer scopes.")
   (:method ((ast ast)) nil))
 
-(defclass normal-scope (tree-sitter) ()
+(defclass normal-scope () ()
   (:documentation "Tree-sitter mixin for languages with \"normal\" scoping."))
 
 (defmethod scopes ((obj normal-scope) (ast ast))
