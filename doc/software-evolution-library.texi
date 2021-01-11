@@ -1276,7 +1276,7 @@ see @cite{Software Mutational Robustness} available at @url{http://arxiv.org/abs
 
 
 The following example constructs a collection of neutral mutants of
-@code{gcd.s}, using the @code{test} function defined in the
+@code{gcd.c}, using the @code{test} function defined in the
 @ref{Evaluation} example to determine whether or not candidate
 variants have equivalent behavior to the original.
 

@@ -1,23 +1,27 @@
 (defpackage :example
   (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/software/asm))
+        :software-evolution-library/software/compilable
+        :software-evolution-library/software/parseable
+        :software-evolution-library/software/tree-sitter))
 (in-package :example)
 
 ;;;; Create a list of 10 neutral variants
 
 ;;; Load ASM software object from file
-(defvar *orig* (from-file (make-instance 'asm) "test/etc/gcd/gcd.s"))
+(defvar *orig* (from-file (make-instance 'c :compiler "cc")
+                          (asdf:system-relative-pathname :software-evolution-library
+                                                         "test/etc/gcd/gcd.c")))
 
 ;;; Create an empty list of variants
 (defvar variants nil "List to hold accumulated neutral variants.")
 
 ;;; Run the GCD unit tests on ASM. Return the number of passing tests.
-(defun test (asm)
+(defun test (c)
   (ignore-errors
     (with-temporary-file (:pathname bin)
       ;; Build executable
-      (phenome asm :bin bin)
+      (phenome c :bin bin)
       (count-if #'identity
                 (loop :for i :below 12 :collect
                    (multiple-value-bind (stdout stderr errno)
@@ -31,17 +35,22 @@
 (setf (fitness *orig*) (test *orig*))
 
 ;; Create a variant by applying a random mutation to a copy of `*orig*'
-(do ((variant (handler-bind
-                  ;; Handle errors that might occur during mutation
-                  ((no-mutation-targets
-                    (lambda (e)
-                      (declare (ignorable e))
-                      (invoke-restart 'try-another-mutation))))
-                (mutate (copy *orig*)))))
-    ((>= (length variants) 10) variants)
-  ;; Test the fitness of the variant
-  (setf (fitness variant) (test variant))
-  ;; When the fitness of the variant matches that of `*orig*', add it
-  ;; to the list of neutral variants
-  (when (= (fitness variant) (fitness *orig*))
-    (push variant variants)))
+(let ((num-variants 4))
+  (do ((variant (handler-bind
+                    ;; Handle errors that might occur during mutation
+                    ((no-mutation-targets
+                      (lambda (e)
+                        (declare (ignorable e))
+                        (invoke-restart 'try-another-mutation))))
+                  (mutate (copy *orig*)))))
+      ((>= (length variants) num-variants) variants)
+    ;; Test the fitness of the variant
+    (format t "Variant with fitness ~d and genome:~%~a~%"
+            (setf (fitness variant) (test variant))
+            (genome-string variant))
+    ;; When the fitness of the variant matches that of `*orig*', add it
+    ;; to the list of neutral variants
+    (when (>= (fitness variant) (fitness *orig*))
+      (push variant variants)
+      (format t "~&Collected ~d of ~d neutral variants~%"
+              (length variants) num-variants))))
