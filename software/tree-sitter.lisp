@@ -316,6 +316,9 @@ searched to populate `*tree-sitter-language-files*'.")
     '((:c compilable normal-scope)
       (:javascript normal-scope)))
 
+  (defvar *tree-sitter-direct-slots*
+    '((:c (compiler :initarg :compiler :initform "cc" :accessor compiler))))
+
   (defvar *tree-sitter-base-ast-superclasses* '())
 
   (defparameter *tree-sitter-ast-superclasses*
@@ -407,7 +410,9 @@ searched to populate `*tree-sitter-language-files*'.")
          :base-class-superclasses
          (aget class-keyword *tree-sitter-base-ast-superclasses*)
          :software-superclasses
-         (aget class-keyword *tree-sitter-software-superclasses*))))))
+         (aget class-keyword *tree-sitter-software-superclasses*)
+         :software-direct-slots
+         (aget class-keyword *tree-sitter-direct-slots*))))))
 
 (defmacro register-tree-sitter-language (lib-name language ast-superclass)
   "Setup LANGUAGE to map to AST-SUPERCLASS and use LIB-NAME for parsing."
@@ -619,7 +624,7 @@ of fields needs to be determined at parse-time."
   (defun create-tree-sitter-classes
       (node-types-file grammar-file name-prefix
        &key superclass-to-classes base-class-superclasses
-         software-superclasses
+         software-superclasses software-direct-slots
        &aux (subtype->supertypes (make-hash-table))
          (symbols-to-export (make-hash-table))
          (ast-superclass (symbolicate
@@ -774,7 +779,7 @@ of fields needs to be determined at parse-time."
            (eval-always
              (define-software ,(make-class-name) (tree-sitter
                                                   ,@software-superclasses)
-               ()
+               (,@software-direct-slots)
                (:documentation
                 ,(format nil "~a tree-sitter software representation."
                          name-prefix)))
