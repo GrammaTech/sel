@@ -258,6 +258,9 @@
            :lambda-ast
            :literal-ast
            :call-ast
+           :boolean-ast
+           :boolean-true-ast
+           :boolean-false-ast
            ;; Cross-language Generics
            :end-of-parameter-list
            :function-node-name
@@ -330,7 +333,12 @@ searched to populate `*tree-sitter-language-files*'.")
        (:function-ast c-function-definition)
        (:identifier-ast c-identifier)
        (:literal-ast c-number-literal c-string-literal)
-       (:call-ast c-call-expression))
+       (:call-ast c-call-expression)
+       (:boolean-true-ast c-true)
+       (:boolean-false-ast c-false))
+      (:cpp
+       (:boolean-true-ast cpp-true)
+       (:boolean-false-ast cpp-false))
       (:java (:statement-ast java-statement))
       (:javascript
        (:comment-ast javascript-comment)
@@ -340,6 +348,8 @@ searched to populate `*tree-sitter-language-files*'.")
        (:if-ast javascript-if-statement)
        (:expression-ast javascript--expression)
        (:compound-ast javascript-statement-block)
+       (:boolean-true-ast javascript-true)
+       (:boolean-false-ast javascript-false)
        (:function-ast
         javascript-function javascript-function-declaration
         javascript-arrow-function)
@@ -364,6 +374,8 @@ searched to populate `*tree-sitter-language-files*'.")
        (:expression-ast python-expression)
        (:function-ast
         python-function-definition python-lambda)
+       (:boolean-true-ast python-true)
+       (:boolean-false-ast python-false)
        (:identifier-ast python-identifier)
        (:lambda-ast python-lambda)
        (:loop-ast
@@ -446,6 +458,15 @@ searched to populate `*tree-sitter-language-files*'.")
 
   (defclass class-ast (ast) ()
     (:documentation "Mix-in for AST classes that are classes."))
+
+  (defclass boolean-ast (ast) ()
+    (:documentation "Mix-in for AST classes that are booleans."))
+
+  (defclass boolean-true-ast (boolean-ast) ()
+    (:documentation "Mix-in for AST classes that are true booleans."))
+
+  (defclass boolean-false-ast (boolean-ast) ()
+    (:documentation "Mix-in for AST classes that are false booleans."))
 
   (defclass parse-error-ast (ast) ()
     (:documentation
