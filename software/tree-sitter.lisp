@@ -2555,6 +2555,14 @@ scope of START-AST."
   (defmethod outer-declarations ((ast c-declaration))
     (mapcar #'c-declarator (c-declarator ast)))
 
+  (defmethod type-in ((c c) (ast c-assignment-expression) &aux (pointers 0))
+    (when-let ((decl (find-if «or {typep _ 'c-declaration}
+                                  {typep _ 'c-parameter-declaration}»
+                              (get-parent-asts c ast))))
+      (if (typep (c-declarator decl) 'c-pointer-declarator)
+          :pointer
+          (make-keyword (string-upcase (source-text (c-type decl)))))))
+
   #+nil
   (progn
     (defmethod get-unbound-vals ((obj c) (ast c-ast))
@@ -2888,14 +2896,7 @@ If NODE is not a function node, return nil.")
     nil))
 
 (defgeneric type-in (software ast)
-  (:documentation "Return the type of AST in SOFTWARE.")
-  (:method ((c c) (ast c-ast) &aux (pointers 0))
-    (when-let ((decl (find-if «or {typep _ 'c-declaration}
-                                  {typep _ 'c-parameter-declaration}»
-                              (get-parent-asts c ast))))
-      (if (typep (c-declarator decl) 'c-pointer-declarator)
-          :pointer
-          (make-keyword (string-upcase (source-text (c-type decl))))))))
+  (:documentation "Return the type of AST in SOFTWARE."))
 
 (defmethod is-stmt-p ((ast statement-ast)) t)
 
