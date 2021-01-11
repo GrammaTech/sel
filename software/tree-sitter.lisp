@@ -264,7 +264,8 @@
            ;; Cross-language Generics
            :end-of-parameter-list
            :function-node-name
-           :type-in))
+           :type-in
+           :find-enclosing))
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 
@@ -1512,6 +1513,11 @@ the rebinding"
                                (mappend #'outer-declarations
                                         (statements-in-scope obj scope ast)))))
               (scopes obj scope))))))
+
+(defgeneric find-enclosing (type software ast)
+  (:documentation "Return the enclosing TYPE of AST in SOFTWARE.")
+  (:method ((type symbol) (software tree-sitter) (ast ast))
+    (find-if {typep _ type} (get-parent-asts software ast))))
 
 
 ;;;; Python
