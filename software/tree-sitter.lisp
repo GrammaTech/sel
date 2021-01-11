@@ -309,7 +309,8 @@ searched to populate `*tree-sitter-language-files*'.")
     "Files defining tree sitter languages.")
 
   (defvar *tree-sitter-software-superclasses*
-    '((:c compilable)))
+    '((:c compilable normal-scope)
+      (:javascript normal-scope)))
 
   (defvar *tree-sitter-base-ast-superclasses* '())
 
@@ -1470,7 +1471,10 @@ the rebinding"
    "Return a list of variable declarations affecting outer scopes.")
   (:method ((ast ast)) nil))
 
-(defmethod scopes ((obj tree-sitter) (ast ast))
+(defclass normal-scope (tree-sitter) ()
+  (:documentation "Tree-sitter mixin for languages with \"normal\" scoping."))
+
+(defmethod scopes ((obj normal-scope) (ast ast))
   (labels ((get-parent-decl (obj identifier)
              "For the given IDENTIFIER AST, return the parent declaration."
              (car (remove-if-not {typep _ 'variable-declaration-ast}
