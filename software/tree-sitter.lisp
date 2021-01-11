@@ -1448,7 +1448,7 @@ the rebinding"
 (defgeneric statements-in-scope (obj scope ast)
   (:documentation "Return all child statements of SCOPE prior to AST.")
   (:method (obj (scope ast) (ast ast))
-    (iter (for c in (remove nil (c-children scope)))
+    (iter (for c in (remove nil (children scope)))
           (while (path-later-p obj ast c))
           (collect c))))
 
