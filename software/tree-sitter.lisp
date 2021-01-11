@@ -246,6 +246,7 @@
            :control-flow-ast
            :expression-ast
            :function-ast
+           :parse-error-ast
            :identifier-ast
            :lambda-ast
            :literal-ast
