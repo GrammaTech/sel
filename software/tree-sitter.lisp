@@ -762,6 +762,9 @@ of fields needs to be determined at parse-time."
                ;;       This is important for classes that don't have
                ;;       it but can have comments mixed in.
                ((children :accessor ,(make-accessor-name :children)
+                          :documentation
+                          "Returns all language-specific children.
+Unlike the `children` methods which collects all children of an AST from any slot."
                           :initarg :children
                           :initform nil)
                 (child-slots :allocation :class
@@ -1444,7 +1447,7 @@ the rebinding"
 (defgeneric statements-in-scope (obj scope ast)
   (:documentation "Return all child statements of SCOPE prior to AST.")
   (:method (obj (scope ast) (ast ast))
-    (iter (for c in (remove nil (children scope)))
+    (iter (for c in (remove nil (c-children scope)))
           (while (path-later-p obj ast c))
           (collect c))))
 
