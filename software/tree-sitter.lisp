@@ -312,14 +312,14 @@ searched to populate `*tree-sitter-language-files*'.")
   (defvar *tree-sitter-language-files* (collect-tree-sitter-language-files)
     "Files defining tree sitter languages.")
 
-  (defvar *tree-sitter-software-superclasses*
+  (defparameter *tree-sitter-software-superclasses*
     '((:c compilable normal-scope)
       (:javascript normal-scope)))
 
-  (defvar *tree-sitter-direct-slots*
+  (defparameter *tree-sitter-direct-slots*
     '((:c (compiler :initarg :compiler :initform "cc" :accessor compiler))))
 
-  (defvar *tree-sitter-base-ast-superclasses* '())
+  (defparameter *tree-sitter-base-ast-superclasses* '())
 
   (defparameter *tree-sitter-ast-superclasses*
     '((:c
