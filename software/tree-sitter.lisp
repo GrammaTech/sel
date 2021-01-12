@@ -266,6 +266,7 @@
            :function-node-name
            :type-in
            :find-enclosing
+           :find-preceeding
            :comments-for))
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
@@ -1522,19 +1523,24 @@ the rebinding"
   (:method ((type symbol) (software tree-sitter) (ast ast))
     (find-if {typep _ type} (get-parent-asts software ast))))
 
-(defgeneric comments-for (software ast)
-  (:documentation "Return the comments for AST in SOFTWARE.")
-  (:method ((software tree-sitter) (ast tree-sitter-ast))
-    ;; In this case walk up to the enclosing function,
-    (let* ((path (path (finger (find-enclosing 'function-ast software ast))))
+(defgeneric find-preceeding (type software ast)
+  (:documentation "Return the instance(s) of TYPE preceeding AST in SOFTWARE.")
+  (:method ((type symbol) (software tree-sitter) (ast tree-sitter-ast))
+    (let* ((path (path (finger ast)))
            (final-offset (lastcar path)))
-      ;; and then collect all preceeding comments.
       (when (integerp final-offset)
         (nreverse
          (loop :for i :downfrom (1- final-offset) :downto 0
             :for ast := (@ software (append (butlast path) (list i)))
-            :while (typep ast 'comment-ast)
+            :while (typep ast type)
             :collect ast))))))
+
+(defgeneric comments-for (software ast)
+  (:documentation "Return the comments for AST in SOFTWARE.")
+  (:method ((software tree-sitter) (ast tree-sitter-ast))
+    (or (find-preceeding 'comment-ast software ast)
+        ;; In this case walk up to the enclosing function,
+        (find-preceeding 'comment-ast software (find-enclosing 'function-ast software ast)))))
 
 
 ;;;; Python

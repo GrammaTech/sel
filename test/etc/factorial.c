@@ -12,6 +12,7 @@ int main(int argc, char **argv){
     f *= i--;
   }
 
+  /* Print the result. */
   printf("%ld\n", f);
 
   return 0;
