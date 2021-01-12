@@ -1520,7 +1520,7 @@ the rebinding"
               (scopes obj scope))))))
 
 (defgeneric find-enclosing (type software ast)
-  (:documentation "Return the enclosing TYPE of AST in SOFTWARE.")
+  (:documentation "Return the nearest enclosing AST of TYPE in SOFTWARE.")
   (:method ((type symbol) (software tree-sitter) (ast ast))
     (find-if {typep _ type} (get-parent-asts software ast))))
 
