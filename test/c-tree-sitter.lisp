@@ -190,5 +190,6 @@
   (:teardown (setf *soft* nil)))
 
 (deftest test-comments-for ()
-  (is (= 3 (length (comments-for *soft* (find-if {typep _ 'c-while-statement} *soft*)))))
-  (is (= 1 (length (comments-for *soft* (stmt-starting-with-text *soft* "printf"))))))
+  (with-fixture factorial.c
+    (is (= 3 (length (comments-for *soft* (find-if {typep _ 'c-while-statement} *soft*)))))
+    (is (= 1 (length (comments-for *soft* (stmt-starting-with-text *soft* "printf")))))))
