@@ -1331,15 +1331,34 @@ it expands into BODY. Otherwise, the expansion is nil."
                    (get-indentation-at ast parents)))
              "Patch either AST or PARENT to have INDENTATION for the
               relevant line or lines."
-             (symbol-macrolet ((indent-children (indent-children parent))
-                               (indent-adjustment (indent-adjustment ast)))
+             (symbol-macrolet ((indent-children-parent (indent-children parent))
+                               (indent-adjustment (indent-adjustment ast))
+                               (indent-children-current (indent-children ast)))
                (cond
                  ;; Avoid wasting the newline on empty text before
                  ;; reaching a child.
                  ((and (emptyp text) (ancestor-of-p root indentation-ast ast)))
-                 ((and parent (not indent-children))
-                  (setf indent-children (- total-indentation
-                                           inherited-indentation)
+                 ;; Don't indent if the current AST already has an
+                 ;; indentation slot assigned as this will result in
+                 ;; back-propogation of indentation.
+                 (indent-children-current
+                  ;; In this case, we need to reset the indentation if
+                  ;; any non-indentation is in this string since the reset
+                  ;; will not happen anywhere after this.
+                  ;;
+                  ;; NOTE: because of this, certain forms, such as compound
+                  ;;       statements which represent pairs of curly braces, will
+                  ;;       not be reproduced exactly if they don't line up
+                  ;;       with each other when on their own lines. There is no
+                  ;;       way around this besides having ASTs that represent the
+                  ;;       individual tokens or adding another list to keep track
+                  ;;       of indentation at the interleaved-text level.
+                  (when (scan "[^ \\t\\n]" text)
+                    (setf indentation-carryover nil
+                          indentation-ast nil)))
+                 ((and parent (not indent-children-parent))
+                  (setf indent-children-parent (- total-indentation
+                                                  inherited-indentation)
                         indentation-carryover nil
                         indentation-ast nil))
                  (t (setf indent-adjustment (- total-indentation
@@ -1375,6 +1394,7 @@ it expands into BODY. Otherwise, the expansion is nil."
                     ;;       set to 0. This prevents back-propogation
                     ;;       of indentation to previous siblings.
                     (and indentation-carryover
+                         ;; TODO: add carriage return here?
                          (scan "[^ \\t\\n]" text)))
                 (update-indentation-slots
                  ast parents (+ leading-indentation
@@ -1398,7 +1418,7 @@ it expands into BODY. Otherwise, the expansion is nil."
            (patch-internal-indentation (text)
              "Return TEXT where all newlines proceeded by indentation
               are replaced with a newline."
-             (cl-ppcre:regex-replace-all "\\n[ \\t]+" text (format nil "~%")))
+             (cl-ppcre:regex-replace-all "\\n[ \\t]+" text #.(format nil "~%")))
            (patch-text (text ast parents)
              "Patch TEXT such that it useable for inherited indentation.
               Updates AST and PARENTS slots if necessary."

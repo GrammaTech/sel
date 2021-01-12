@@ -831,6 +831,8 @@ of SHARED-PATH-AST's path in OBJ.")
 
 (defmethod parse-asts :around ((sw parseable) &optional text)
   (declare (ignorable text))
+  ;; TODO: remove this if it is not needed as it appears to
+  ;;       have been used as a work-around for a clang issue.
   (handler-bind
       ((error (lambda (e)
                 (declare (ignore e))
