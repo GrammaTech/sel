@@ -33,6 +33,9 @@
 
 
 ;;; Tests
+(deftest comment-inheritance-works-as-expected ()
+  (is (subtypep 'c-comment 'comment-ast)))
+
 (deftest c-tree-sitter-can-parse-file ()
   (finishes
     (from-file

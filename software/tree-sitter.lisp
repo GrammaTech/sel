@@ -323,7 +323,6 @@ searched to populate `*tree-sitter-language-files*'.")
 
   (defparameter *tree-sitter-ast-superclasses*
     '((:c
-       (:comment-ast c-comment)
        (:statement-ast c--statement c-function-definition)
        (:expression-ast c-expression-statement c-call-expression c-update-expression
         c-assignment-expression c-binary-expression c-parenthesized-expression c-cast-expression
@@ -345,7 +344,6 @@ searched to populate `*tree-sitter-language-files*'.")
        (:boolean-false-ast cpp-false))
       (:java (:statement-ast java-statement))
       (:javascript
-       (:comment-ast javascript-comment)
        (:class-ast javascript-class-declaration)
        (:control-flow-ast
         javascript-switch-statement javascript-try-statement)
@@ -368,7 +366,6 @@ searched to populate `*tree-sitter-language-files*'.")
        (:statement-ast javascript--statement)
        (:call-ast javascript-call-expression))
       (:python
-       (:comment-ast python-comment)
        (:class-ast python-class-definition)
        (:control-flow-ast
         python-try-statement python-conditional-expression
@@ -805,7 +802,7 @@ Unlike the `children` methods which collects all children of an AST from any slo
 
              ;; NOTE: the following are to handle results returned from
              ;;       cl-tree-sitter.
-             (defclass ,(make-class-name "comment") (,ast-superclass)
+             (defclass ,(make-class-name "comment") (,ast-superclass comment-ast)
                ()
                (:documentation "Generated for parsed comments."))
 
