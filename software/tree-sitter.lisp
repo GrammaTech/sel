@@ -257,10 +257,16 @@
            :identifier-ast
            :lambda-ast
            :literal-ast
+           :number-ast
+           :float-ast
+           :integer-ast
+           :string-ast
            :call-ast
            :boolean-ast
            :boolean-true-ast
            :boolean-false-ast
+           :unary-ast
+           :binary-ast
            ;; Cross-language Generics
            :end-of-parameter-list
            :function-node-name
@@ -337,13 +343,18 @@ searched to populate `*tree-sitter-language-files*'.")
        (:variable-declaration-ast c-assignment-expression)
        (:function-ast c-function-definition)
        (:identifier-ast c-identifier)
-       (:literal-ast c-number-literal c-string-literal)
+       (:string-ast c-string-literal)
+       (:number-ast c-number-literal)
        (:call-ast c-call-expression)
        (:boolean-true-ast c-true)
-       (:boolean-false-ast c-false))
+       (:boolean-false-ast c-false)
+       (:unary-ast c-unary-expression)
+       (:binary-ast c-binary-expression))
       (:cpp
        (:boolean-true-ast cpp-true)
-       (:boolean-false-ast cpp-false))
+       (:boolean-false-ast cpp-false)
+       (:unary-ast cpp-unary-expression)
+       (:binary-ast cpp-binary-expression))
       (:java (:statement-ast java-statement))
       (:javascript
        (:class-ast javascript-class-declaration)
@@ -361,12 +372,15 @@ searched to populate `*tree-sitter-language-files*'.")
        (:identifier-ast
         javascript-identifier javascript-property-identifier
         javascript-shorthand-property-identifier)
-       (:literal-ast javascript-number javascript-string)
+       (:float-ast javascript-number)
+       (:string-ast javascript-string)
        (:loop-ast
         javascript-for-statement javascript-do-statement
         javascript-while-statement)
        (:statement-ast javascript--statement)
-       (:call-ast javascript-call-expression))
+       (:call-ast javascript-call-expression)
+       (:unary-ast javascript-unary-expression)
+       (:binary-ast javascript-binary-expression))
       (:python
        (:class-ast python-class-definition)
        (:control-flow-ast
@@ -381,10 +395,15 @@ searched to populate `*tree-sitter-language-files*'.")
        (:boolean-false-ast python-false)
        (:identifier-ast python-identifier)
        (:lambda-ast python-lambda)
+       (:integer-ast python-integer)
+       (:float-ast python-float)
+       (:string-ast python-string)
        (:loop-ast
         python-while-statement python-for-statement python-for-in-clause)
        (:statement-ast python--compound-statement python--simple-statement)
-       (:call-ast python-call))))
+       (:call-ast python-call)
+       (:unary-ast python-unary-operator)
+       (:binary-ast python-binary-operator))))
 
   (defun tree-sitter-ast-classes (name grammar-file node-types-file)
     (nest
@@ -464,15 +483,6 @@ searched to populate `*tree-sitter-language-files*'.")
   (defclass class-ast (ast) ()
     (:documentation "Mix-in for AST classes that are classes."))
 
-  (defclass boolean-ast (ast) ()
-    (:documentation "Mix-in for AST classes that are booleans."))
-
-  (defclass boolean-true-ast (boolean-ast) ()
-    (:documentation "Mix-in for AST classes that are true booleans."))
-
-  (defclass boolean-false-ast (boolean-ast) ()
-    (:documentation "Mix-in for AST classes that are false booleans."))
-
   (defclass parse-error-ast (ast) ()
     (:documentation
      "Mix-in for AST classes that represent tree-sitter parsing errors."))
@@ -492,8 +502,36 @@ searched to populate `*tree-sitter-language-files*'.")
   (defclass literal-ast (ast) ()
     (:documentation "Mix-in for AST classes that are literals."))
 
+  (defclass boolean-ast (literal-ast) ()
+    (:documentation "Mix-in for AST classes that are booleans."))
+
+  (defclass boolean-true-ast (boolean-ast) ()
+    (:documentation "Mix-in for AST classes that are true booleans."))
+
+  (defclass boolean-false-ast (boolean-ast) ()
+    (:documentation "Mix-in for AST classes that are false booleans."))
+
+  (defclass string-ast (literal-ast) ()
+    (:documentation "Mix-in for AST classes that are literal strings."))
+
+  (defclass number-ast (literal-ast) ()
+    (:documentation "Mix-in for AST classes that are literal numbers."))
+
+  (defclass integer-ast (number-ast) ()
+
+    (:documentation "Mix-in for AST classes that are literal integers."))
+
+  (defclass float-ast (number-ast) ()
+    (:documentation "Mix-in for AST classes that are literal floats."))
+
   (defclass call-ast (ast) ()
     (:documentation "Mix-in for AST classes that are calls."))
+
+  (defclass unary-ast (ast) ()
+    (:documentation "Mix-in for AST classes that are unary operators."))
+
+  (defclass binary-ast (ast) ()
+    (:documentation "Mix-in for AST classes that are binary operators."))
 
   (defclass terminal-symbol ()
     ()
