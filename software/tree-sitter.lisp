@@ -518,7 +518,6 @@ searched to populate `*tree-sitter-language-files*'.")
     (:documentation "Mix-in for AST classes that are literal numbers."))
 
   (defclass integer-ast (number-ast) ()
-
     (:documentation "Mix-in for AST classes that are literal integers."))
 
   (defclass float-ast (number-ast) ()
