@@ -2651,12 +2651,12 @@ scope of START-AST."
     (remove-if-not {typep _ 'c-parameter-declaration} (convert 'list (c-parameters ast))))
 
   (defmethod inner-declarations ((ast c-for-statement))
-    (c-left (c-initializer c-for-statement)))
+    (c-left (c-initializer ast)))
 
   (defmethod outer-declarations ((ast c-declaration))
     (mapcar #'c-declarator (c-declarator ast)))
 
-  (defmethod type-in ((c c) (ast c-ast) &aux (pointers 0))
+  (defmethod type-in ((c c) (ast c-ast))
     (when-let ((decl (find-if «or {typep _ 'c-declaration}
                                   {typep _ 'c-parameter-declaration}»
                               (get-parent-asts c ast))))
