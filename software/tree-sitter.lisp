@@ -265,7 +265,8 @@
            :end-of-parameter-list
            :function-node-name
            :type-in
-           :find-enclosing))
+           :find-enclosing
+           :comments-for))
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 
@@ -1520,6 +1521,20 @@ the rebinding"
   (:documentation "Return the nearest enclosing AST of TYPE in SOFTWARE.")
   (:method ((type symbol) (software tree-sitter) (ast ast))
     (find-if {typep _ type} (get-parent-asts software ast))))
+
+(defgeneric comments-for (software ast)
+  (:documentation "Return the comments for AST in SOFTWARE.")
+  (:method ((software tree-sitter) (ast tree-sitter-ast))
+    ;; In this case walk up to the enclosing function,
+    (let* ((path (path (finger (find-enclosing 'function-ast software ast))))
+           (final-offset (lastcar path)))
+      ;; and then collect all preceeding comments.
+      (when (integerp final-offset)
+        (nreverse
+         (loop :for i :downfrom (1- final-offset) :downto 0
+            :for ast := (@ software (append (butlast path) (list i)))
+            :while (typep ast 'comment-ast)
+            :collect ast))))))
 
 
 ;;;; Python

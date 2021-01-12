@@ -181,3 +181,13 @@
           (#P"union-specifier.c" c-union-specifier)
           (#P"update-expression.c" c-update-expression)
           (#P"continue-statement.c" c-while-statement statement-ast))))
+
+(defixture factorial.c
+  (:setup (setf *soft* (from-file (make-instance 'c)
+                                  (asdf:system-relative-pathname
+                                   :software-evolution-library
+                                   "test/etc/factorial.c"))))
+  (:teardown (setf *soft* nil)))
+
+(deftest test-comments-for ()
+  (is (= 3 (length (comments-for *soft* (find-if {typep _ 'c-while-statement} *soft*))))))
