@@ -267,6 +267,7 @@
            :boolean-false-ast
            :unary-ast
            :binary-ast
+           :terminal-symbol
            ;; Cross-language Generics
            :end-of-parameter-list
            :function-node-name
