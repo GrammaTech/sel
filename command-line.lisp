@@ -30,6 +30,7 @@
         :software-evolution-library/software/lisp
         :software-evolution-library/software/simple
         :software-evolution-library/software/tree-sitter
+        :software-evolution-library/software/c-project
         :software-evolution-library/software/clang-project
         :software-evolution-library/software/javascript-project
         :software-evolution-library/software/python-project
@@ -81,6 +82,7 @@
            :+clang-command-line-options+
            :+project-command-line-options+
            :+clang-project-command-line-options+
+           :+c-project-command-line-options+
            :+evolutionary-command-line-options+
            ;; Projects including git urls.
            :git-clang-project
@@ -312,10 +314,54 @@ inspecting the value of `*lisp-interaction*'."
   (:documentation "The name of the project class associated
 with a language.")
   (:method ((language symbol))
-    (if (ends-with-subseq "-PROJECT" (symbol-name language))
-        language
-        (intern (concatenate 'string (symbol-name language) "-PROJECT")
-                (find-package :sel/command-line)))))
+    ;; both cpp and c objects use c-project
+    (if (equal (symbol-name language) "CPP")
+        (setf language
+              (intern "C-PROJECT" (find-package :sel/command-line)))
+        (if (ends-with-subseq "-PROJECT" (symbol-name language))
+            language
+            (intern (concatenate 'string (symbol-name language) "-PROJECT")
+                    (find-package :sel/command-line))))))
+
+(defun first-external-symbol-in-package (name-list package-list)
+  "Look for name (string) as an external symbol in each of the packages
+ in package-list (list of package-designators).
+ i.e. look for first name in first package, 2nd name in second package,
+ etc.
+ Return the first symbol found, or NIL if none found."
+  (iter (for name in name-list)
+        (for package in package-list)
+        (let* ((p (find-package package))
+               (sym (and p (find-external-symbol name p))))
+          (if sym (return sym)))))
+
+(defun find-c ()
+  "Return the preferred C software object.
+ If tree-sitter C class is loaded, return 'sel/sw/tree-sitter:c.
+ If CLANG class is loaded, return 'sel/sw/clang/clang.
+ Else error."
+  (let ((sym (first-external-symbol-in-package
+              '("C" "CLANG")
+              '(:sel/sw/tree-sitter :sel/sw/clang))))
+    (or sym (error "No available representation for C ASTs."))))
+
+(defun find-cpp ()
+  "Return the preferred C++ software object.
+ If tree-sitter CPP class is loaded, return 'sel/sw/tree-sitter:cpp.
+ If CLANG class is loaded, return 'sel/sw/clang/clang.
+ Else error."
+  (let ((sym (first-external-symbol-in-package
+              '("CPP" "CLANG")
+              '(:sel/sw/tree-sitter :sel/sw/clang))))
+    (or sym (error "No available representation for C++ ASTs."))))
+
+(defun find-python ()
+  "Return the preferred Python software object.
+ Else error."
+  (let ((sym (first-external-symbol-in-package
+              '("PYTHON" "PYTHON")
+              '(:sel/sw/python :sel/sw/tree-sitter))))
+    (or sym (error "No available representation for Python ASTs."))))
 
 (defun guess-language (&rest sources)
   "Guess the SEL software object class that best matches SOURCES.
@@ -346,10 +392,11 @@ directories and if files based on their extensions."
                                       :test #'equalp)))
                            ;; List of extensions and associated sel/sw class.
                            `((("lisp") lisp)
-                             (("py") python)
+                             (("py") ,(find-python))
                              (("js") javascript)
                              (("json") json)
-                             (("c" "cpp" "cc" "cxx") clang))))
+                             (("c" "cc") ,(find-c))
+                             (("cpp" "cxx" "cp") ,(find-cpp)))))
                         sources)))
            (cond
              (project-p
@@ -560,13 +607,17 @@ in SCRIPT.")
   (defparameter +project-command-line-options+
     '((("build-command" #\b) :type string :initial-value "make"
        :documentation "shell command to build project directory")))
-  (defparameter +clang-project-command-line-options+
+  (defparameter +compiled-project-command-line-options+
     '((("artifacts" #\a) :type string
        :action #'handle-comma-delimited-argument
        :documentation "build products")
       (("compilation-database" #\D) :type string
        :action #'read-compilation-database
-       :documentation "path to clang compilation database")))
+       :documentation "path to compilation database")))
+  (defparameter +clang-project-command-line-options+
+    +compiled-project-command-line-options+)
+  (defparameter +c-project-command-line-options+
+    +compiled-project-command-line-options+)
   (defparameter +evolutionary-command-line-options+
     '((("pop-size") :type integer :initial-value #.(expt 2 8)
        :action #'handle-pop-size-argument

@@ -11,6 +11,7 @@
         :software-evolution-library/test/asm
         :software-evolution-library/test/bear
         :software-evolution-library/test/c-tree-sitter
+        :software-evolution-library/test/c-project
         :software-evolution-library/test/clang-ancestry
         :software-evolution-library/test/clang-crossover
         :software-evolution-library/test/clang-expression

@@ -13,6 +13,7 @@
    :software-evolution-library/software/clang
    :software-evolution-library/software/project
    :software-evolution-library/software/clang-project
+   :software-evolution-library/software/c-project
    :software-evolution-library/software/tree-sitter)
   (:export :test-cl))
 (in-package :software-evolution-library/test/command-line)
@@ -39,10 +40,10 @@
 ;;; FIXME: this does not work if (sel/test:test) is run while
 ;;; in some directory other than the sel root directory.
 (deftest guess-language-test ()
-  (is (eql 'clang (guess-language #P"this/foo.cpp")))
+  (is (eql (sel/command-line::find-cpp) (guess-language #P"this/foo.cpp")))
   (is (equalp "json" (symbol-name (guess-language #P"this/foo.json"))))
   (is (equalp "json" (symbol-name (guess-language #P"this/foo.json" #P"this/bar.json"))))
-  (is (eql 'clang-project
+  (is (eql (sel/command-line::language-to-project (sel/command-line::find-c))
            (guess-language (make-pathname :directory +grep-prj-dir+))))
   (is (eql 'simple (guess-language #P"this/Makefile")))
   (is (null (guess-language #P"foo.js" #P"bar.lisp"))))
@@ -66,5 +67,6 @@
              (make-pathname :directory +grep-prj-dir+)
              :build-command "make")))
     (is sw)
-    (is (eql 'clang-project (type-of sw)))
+    (is (eql (sel/command-line::language-to-project (sel/command-line::find-c))
+             (type-of sw)))
     (is (equal "make" (build-command sw)))))

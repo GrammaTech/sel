@@ -155,7 +155,7 @@
 ;;;             cc -std=c99 -fPIC parser.c -c
 ;;;             ar rcs ${BASE}.a scanner.o parser.o
 ;;;             c++ -dynamiclib -Wl,-install_name,/usr/local/lib/${BASE}.0.dylib scanner.o parser.o -o ${BASE}.0.0.dylib
-;;;             ln -sf ${BASE}.0.0.dylib ${BASE}.dylib        
+;;;             ln -sf ${BASE}.0.0.dylib ${BASE}.dylib
 ;;;             ln -sf ${BASE}.0.0.dylib ${BASE}.0.dylib
 ;;;             sudo install -d "/usr/local/lib/tree-sitter/$LANG"
 ;;;             sudo install -m755 ${BASE}.a "/usr/local/lib/tree-sitter/${BASE}".a
@@ -167,7 +167,7 @@
 ;;;             cc -std=c99 -fPIC parser.c -c
 ;;;             ar rcs ${BASE}.a scanner.o parser.o
 ;;;             c++ -dynamiclib -Wl,-install_name,/usr/local/lib/${BASE}.0.dylib scanner.o parser.o -o ${BASE}.0.0.dylib
-;;;             ln -sf ${BASE}.0.0.dylib ${BASE}.dylib        
+;;;             ln -sf ${BASE}.0.0.dylib ${BASE}.dylib
 ;;;             ln -sf ${BASE}.0.0.dylib ${BASE}.0.dylib
 ;;;             sudo install -d "/usr/local/lib/tree-sitter/$LANG"
 ;;;             sudo install -m755 ${BASE}.a "/usr/local/lib/tree-sitter/${BASE}".a
@@ -178,7 +178,7 @@
 ;;;             cc -std=c99 -fPIC parser.c -c
 ;;;             ar rcs ${BASE}.a parser.o
 ;;;             c++ -dynamiclib -Wl,-install_name,/usr/local/lib/${BASE}.0.dylib parser.o -o ${BASE}.0.0.dylib
-;;;             ln -sf ${BASE}.0.0.dylib ${BASE}.dylib        
+;;;             ln -sf ${BASE}.0.0.dylib ${BASE}.dylib
 ;;;             ln -sf ${BASE}.0.0.dylib ${BASE}.0.dylib
 ;;;             sudo install -d "/usr/local/lib/tree-sitter/$LANG"
 ;;;             sudo install -m755 ${BASE}.a "/usr/local/lib/tree-sitter/${BASE}".a
@@ -324,12 +324,17 @@ searched to populate `*tree-sitter-language-files*'.")
   (defvar *tree-sitter-language-files* (collect-tree-sitter-language-files)
     "Files defining tree sitter languages.")
 
+
+  (define-software c/cpp ()
+    ()
+    (:documentation "Mix-in class for tree-sitter c and cpp classes"))
+
   (defparameter *tree-sitter-software-superclasses*
-    '((:c compilable normal-scope)
+    '((:c compilable normal-scope c/cpp)
+      (:cpp compilable normal-scope c/cpp)
       (:javascript normal-scope)))
 
-  (defparameter *tree-sitter-direct-slots*
-    '((:c (compiler :initarg :compiler :initform "cc" :accessor compiler))))
+  (defparameter *tree-sitter-direct-slots* '())
 
   (defparameter *tree-sitter-base-ast-superclasses* '())
 
