@@ -1255,13 +1255,16 @@ it expands into BODY. Otherwise, the expansion is nil."
            (make-indentation-string (indentation)
              "Create the string representation of INDENTATION.
             This handles converting spaces to tabs."
-             (if *indent-with-tabs-p*
-                 (mvlet ((tabs spaces (floor indentation *spaces-per-tab*)))
-                   (concatenate
-                    'string
-                    (repeat-sequence "	" tabs)
-                    (repeat-sequence " " spaces)))
-                 (repeat-sequence " " indentation)))
+             ;; Protect from negative numbers.
+             (let ((protected-indentation (if (< indentation 0) 0 indentation)))
+               (if *indent-with-tabs-p*
+                   (mvlet ((tabs spaces (floor protected-indentation
+                                               *spaces-per-tab*)))
+                     (concatenate
+                      'string
+                      (repeat-sequence "	" tabs)
+                      (repeat-sequence " " spaces)))
+                   (repeat-sequence " " protected-indentation))))
            (indentation-length (ast parent-list)
              "Get the indentation at AST with its parents provided
             in PARENT-LIST."
