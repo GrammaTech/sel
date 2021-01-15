@@ -731,44 +731,52 @@ of SHARED-PATH-AST's path in OBJ.")
 (defmethod convert (type (obj parseable) &key &allow-other-keys)
   (convert type (genome obj)))
 
+(eval-always
+  (defun sequence-passthrough-for (name)
+    "Return a defmethod form to define a passthrough method for NAME.
+When NAME is called on a software object it will then be invoked on
+the `genome' of the software object."
+    (let ((lambda-list (generic-function-lambda-list (ensure-function name))))
+      `(defmethod ,name
+           ,(substitute '(collection parseable) 'collection
+                        (append (take-until {eql '&key} lambda-list)
+                                (list '&key)
+                                (mapcar (lambda (key)
+                                          (list key nil
+                                                (symbol-cat-in-package 'fset key 'p)))
+                                        (cdr (member '&key lambda-list)))))
+         (apply ',name ,@(subseq lambda-list 0 (1- (position '&key lambda-list)))
+                (genome collection)
+                (append
+                 ,@(mapcar (lambda (key)
+                             `(when ,(symbol-cat-in-package 'fset key 'p)
+                                ,(list (make-keyword key) key)))
+                           (cdr (member '&key lambda-list)))))))))
+
 ;;; FSet overrides for common-lisp sequence functions pass through to genome.
 (defmacro write-sequence-function-parseable-methods (&rest names)
-  `(progn
-     ,@(iter
-         (for name in names)
-         (collecting
-           (let ((lambda-list (generic-function-lambda-list (ensure-function name))))
-             `(defmethod ,name
-                  ,(substitute '(collection parseable) 'collection
-                               (append (take-until {eql '&key} lambda-list)
-                                       (list '&key)
-                                       (mapcar (lambda (key)
-                                                 (list key nil
-                                                       (symbol-cat-in-package 'fset key 'p)))
-                                               (cdr (member '&key lambda-list)))))
-                (apply ',name ,@(subseq lambda-list 0 (1- (position '&key lambda-list)))
-                       (genome collection)
-                       (append
-                        ,@(mapcar (lambda (key)
-                                    `(when ,(symbol-cat-in-package 'fset key 'p)
-                                       ,(list (make-keyword key) key)))
-                                  (cdr (member '&key lambda-list)))))))))))
+  "Write sequence passthrough methods for NAMES using `sequence-passthrough-for'."
+  `(progn ,@(mapcar #'sequence-passthrough-for names)))
 
 ;;; FSet tree manipulations pass through to genome.
+(eval-always
+  (defun tree-manipulation-passthrough-for (name)
+    "Return a defmethod form to define a passthrough method for NAME.
+When NAME is called on a software object it will then be invoked on
+the `genome' of the software object."
+    (let ((lambda-list (generic-function-lambda-list (ensure-function name))))
+      `(defmethod ,name ((obj parseable) ,@(cdr lambda-list))
+         (setf (genome obj)
+               (,name (genome obj)
+                      ,(second lambda-list)
+                      ,@(nest (mapcar (lambda (param) `(tree-copy ,param)))
+                              (remove '&optional)
+                              (cddr lambda-list))))
+         obj))))
+
 (defmacro write-tree-manipulation-function-parseable-methods (&rest names)
-  `(progn
-     ,@(iter
-        (for name in names)
-        (collecting
-         (let ((lambda-list (generic-function-lambda-list (ensure-function name))))
-           `(defmethod ,name ((obj parseable) ,@(cdr lambda-list))
-              (setf (genome obj)
-                    (,name (genome obj)
-                           ,(second lambda-list)
-                           ,@(nest (mapcar (lambda (param) `(tree-copy ,param)))
-                                   (remove '&optional)
-                                   (cddr lambda-list))))
-              obj))))))
+  "Write tree-manipulation passthrough methods for NAMES using `tree-manipulation-passthrough-for'."
+  `(progn ,@(mapcar #'tree-manipulation-passthrough-for names)))
 
 (write-sequence-function-parseable-methods
  reduce
