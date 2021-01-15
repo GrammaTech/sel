@@ -735,15 +735,24 @@ of SHARED-PATH-AST's path in OBJ.")
 (defmacro write-sequence-function-parseable-methods (&rest names)
   `(progn
      ,@(iter
-        (for name in names)
-        (collecting
-         (let ((lambda-list (generic-function-lambda-list (ensure-function name))))
-           `(defmethod ,name
-                ,(substitute '(collection parseable) 'collection lambda-list)
-              (,name ,@(subseq lambda-list 0 (1- (position '&key lambda-list)))
-                     (genome collection)
-                     ,@(mappend (lambda (key) (list (make-keyword key) key))
-                                (cdr (member '&key lambda-list))))))))))
+         (for name in names)
+         (collecting
+           (let ((lambda-list (generic-function-lambda-list (ensure-function name))))
+             `(defmethod ,name
+                  ,(substitute '(collection parseable) 'collection
+                               (append (take-until {eql '&key} lambda-list)
+                                       (list '&key)
+                                       (mapcar (lambda (key)
+                                                 (list key nil
+                                                       (symbol-cat-in-package 'fset key 'p)))
+                                               (cdr (member '&key lambda-list)))))
+                (apply ',name ,@(subseq lambda-list 0 (1- (position '&key lambda-list)))
+                       (genome collection)
+                       (append
+                        ,@(mapcar (lambda (key)
+                                    `(when ,(symbol-cat-in-package 'fset key 'p)
+                                       ,(list (make-keyword key) key)))
+                                  (cdr (member '&key lambda-list)))))))))))
 
 ;;; FSet tree manipulations pass through to genome.
 (defmacro write-tree-manipulation-function-parseable-methods (&rest names)
