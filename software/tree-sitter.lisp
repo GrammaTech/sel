@@ -1618,21 +1618,17 @@ the rebinding"
 (defgeneric find-preceding (type software ast)
   (:documentation "Return the instance(s) of TYPE preceding AST in SOFTWARE.")
   (:method ((type symbol) (software tree-sitter) (ast tree-sitter-ast))
-    (let* ((path (path (finger ast)))
-           (final-offset (lastcar path)))
-      (when (integerp final-offset)
-        (nreverse
-         (loop :for i :downfrom (1- final-offset) :downto 0
-            :for ast := (@ software (append (butlast path) (list i)))
-            :while (typep ast type)
-            :collect ast))))))
+    (when-let ((parent (get-parent-ast software ast)))
+      (cl:find-if {typep _ type} (children parent)))))
 
 (defgeneric comments-for (software ast)
   (:documentation "Return the comments for AST in SOFTWARE.")
   (:method ((software tree-sitter) (ast tree-sitter-ast))
     (or (find-preceding 'comment-ast software ast)
-        ;; In this case walk up to the enclosing function,
-        (find-preceding 'comment-ast software (find-enclosing 'function-ast software ast)))))
+        ;; In this case walk up to the enclosing function, if there is
+        ;; one.
+        (when-let (fn (find-enclosing 'function-ast software ast))
+          (find-preceding 'comment-ast software fn)))))
 
 
 ;;;; Python
