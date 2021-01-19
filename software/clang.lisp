@@ -2570,7 +2570,7 @@ it will transform this into:
 
 (defmethod full-stmt-predecessors ((clang clang) (ast clang-ast)
                                    &optional acc blocks)
-  "All full statements and blocks preceeding AST.
+  "All full statements and blocks preceding AST.
 
 Predecessors are listed starting from the beginning of the containing
 function, and grouped by nesting level. The last statement of each
