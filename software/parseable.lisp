@@ -976,8 +976,12 @@ otherwise.
 * OBJ software object containing AST and its parent
 * AST node to find the parent of
 "
-  (when-let ((path (butlast (ast-path obj ast))))
-    (@ obj path)))
+  (let ((path (ast-path obj ast)))
+    (cond ((null path) nil)
+          ((single path)
+           ;; The parent is the top-level AST.
+           (@ obj nil))
+          (t (@ obj (butlast path))))))
 
 (defmethod get-parent-asts ((obj parseable) (ast ast))
   "Return the parent nodes of AST in OBJ including AST.
