@@ -685,6 +685,18 @@ and keyword parameters with defaults."
         (is (equal? (make 'source-location :line 9 :column 22)
                     (end-of-parameter-list sw f3)))))))
 
+(deftest python-test-comments-for ()
+  (with-util-file ("preceding-comment" sw ast)
+    (let (nodes)
+      (iter (for node in-tree ast)
+            (when (typep node 'python-binary-operator)
+              (unless (some {ancestor-of-p sw node} nodes)
+                (push node nodes))))
+      (setf nodes (nreverse nodes))
+      (is (= (length nodes) 2))
+      (is (equal? (comments-for sw (first nodes))
+                  (comments-for sw (second nodes)))))))
+
 (deftest (python-tree-sitter-parsing-test :long-running) ()
   (labels ((parsing-test-dir (path)
              (merge-pathnames-as-file
