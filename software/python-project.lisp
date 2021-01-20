@@ -23,20 +23,9 @@
 (define-software python-project (parseable-project) ()
   (:documentation "Project specialization for python software objects."))
 
-;;; TODO Remove this once Resolve works with tree-sitter.
-(defun find-python ()
-  (let ((package
-         (some #'find-package
-               '(:software-evolution-library/software/python
-                 :software-evolution-library/software/tree-sitter))))
-    (or (and package
-             (find-external-symbol (string 'python) package))
-        (error "No available representation for Python ASTs."))))
-
 (defmethod initialize-instance :after ((project python-project) &key)
   (setf (slot-value project 'component-class)
-        (or (component-class project)
-            (find-python))))
+        (or (component-class project) 'python)))
 
 (defmethod collect-evolve-files ((project python-project) &aux result)
   (walk-directory

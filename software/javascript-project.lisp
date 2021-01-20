@@ -28,16 +28,6 @@
 (define-software javascript-project (parseable-project) ()
   (:documentation "Project specialization for javascript software objects."))
 
-;;; TODO Remove these once Resolve works with tree-sitter.
-(defun find-javascript ()
-  (let ((package
-         (some #'find-package
-               '(:software-evolution-library/software/javascript
-                 :software-evolution-library/software/tree-sitter))))
-    (or (and package
-             (find-external-symbol (string 'javascript) package))
-        (error "No available representation for Javascript ASTs."))))
-
 (defun find-json ()
   (let ((package
          (some #'find-package
@@ -50,8 +40,7 @@
 (defmethod initialize-instance :after ((javascript-project javascript-project)
                                        &key)
   (setf (slot-value javascript-project 'component-class)
-        (or (component-class javascript-project)
-            (find-javascript))
+        (or (component-class javascript-project) 'javascript)
         (slot-value javascript-project 'ignore-other-paths)
         (adjoin "node_modules/**/*" (ignore-other-paths javascript-project)
                 :test #'equal)
