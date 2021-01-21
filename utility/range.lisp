@@ -211,6 +211,9 @@ addresses a node that ends in a newline as (n+1,1)."
                          by (lambda (total octets)
                               (concatenate 'vector total octets))
                          initial-value #()))
-             (subseq (aref line-octets end-line) 0 end-column)))
+             ;; NOTE: tree-sitter will add +1 past the number of lines in a
+             ;;       file when a newline is considered a token for a rule.
+             (unless (= end-column 0)
+               (subseq (aref line-octets end-line) 0 end-column))))
            (t #()))
          '(vector (unsigned-byte 8)))))))

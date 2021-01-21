@@ -101,6 +101,14 @@
   (with-fixture w/while
     (is (stringp (source-text (find-if {typep _ 'c-while-statement} *soft*))))))
 
+(deftest tree-sitter-parses-when-newlines-are-tokens ()
+  ;; A regression test for ensuring the non-inclusive upper bound
+  ;; returned by tree-sitter still works when newlines are treated
+  ;; as tokens (produced when cl-tree-sitter:parse-string is passed
+  ;; :produce-cst t ).
+  (convert 'c-ast "#define a 10
+"))
+
 (defun parsing-test-dir (path)
   (merge-pathnames-as-file
    (make-pathname :directory (append +c-tree-sitter-dir+
