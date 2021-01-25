@@ -2801,6 +2801,9 @@ scope of START-AST."
 
   ;; TODO: Convert other methods implemented for JavaScript but not C.
 
+  (defmethod function-node-name ((node c-function-definition))
+    (source-text (@ node '(:c-declarator :c-declarator))))
+
   ;; Implement the generic format-genome method for C objects.
   (defmethod format-genome ((obj c) &key)
     (clang-format obj)))
