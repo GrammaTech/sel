@@ -2697,12 +2697,18 @@ scope of START-AST."
 
 ;;;; C
 (when-class-defined (c)
-
+  
   (defmethod function-name ((ast c-function-definition))
     (source-text (c-declarator (c-declarator ast))))
 
   (defmethod function-parameters ((ast c-function-definition))
     (children (c-parameters (c-declarator ast))))
+
+  (defmethod initialize-instance :after ((c c)
+                                         &key &allow-other-keys)
+             "If no compiler was specified, default to cc."
+             (unless (compiler c)
+               (setf (compiler c) "cc")))
 
   (defgeneric pointers (c-declarator)
     (:documentation "Return the number of pointers around C-DECLARATOR.")
@@ -2742,6 +2748,17 @@ scope of START-AST."
   ;; Implement the generic format-genome method for C objects.
   (defmethod format-genome ((obj c) &key)
     (clang-format obj)))
+
+
+;;;; CPP
+(when-class-defined (cpp)
+
+  (defmethod initialize-instance :after ((cpp cpp)
+                                         &key &allow-other-keys)
+             "If no compiler was specified, default to cc."
+             (unless (compiler cpp)
+               (setf (compiler cpp) "cc"))))
+
 
 
 ;;;; Interleaved text
