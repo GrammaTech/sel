@@ -1619,7 +1619,7 @@ the rebinding"
   (:documentation "Return the instance(s) of TYPE preceding AST in SOFTWARE.")
   (:method ((type symbol) (software tree-sitter) (ast tree-sitter-ast))
     (when-let ((parent (get-parent-ast software ast)))
-      (iter (for child in (children parent))
+      (iter (for child in (sorted-children parent))
             (until (eql child ast))
             (when (typep child type)
               (collect child))))))
