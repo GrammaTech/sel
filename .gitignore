@@ -55,3 +55,6 @@ local.mk
 # Package system working files
 .qlfile
 system-index.txt
+
+# Ignore the wiki
+wiki/
