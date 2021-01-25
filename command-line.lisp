@@ -331,14 +331,14 @@ with a language.")
  Return the first symbol found, or NIL if none found."
   (iter (for name in name-list)
         (for package in package-list)
-        (let* ((p (find-package package))
-               (sym (and p (find-external-symbol name p))))
-          (if sym (return sym)))))
+        (when-let* ((p (find-package package))
+                    (sym (find-external-symbol name p)))
+          (return sym))))
 
 (defun find-c ()
   "Return the preferred C software object.
  If tree-sitter C class is loaded, return 'sel/sw/tree-sitter:c.
- If CLANG class is loaded, return 'sel/sw/clang/clang.
+ If CLANG class is loaded, return 'sel/sw/clang:clang.
  Else error."
   (let ((sym (first-external-symbol-in-package
               '("C" "CLANG")
@@ -354,14 +354,6 @@ with a language.")
               '("CPP" "CLANG")
               '(:sel/sw/tree-sitter :sel/sw/clang))))
     (or sym (error "No available representation for C++ ASTs."))))
-
-(defun find-python ()
-  "Return the preferred Python software object.
- Else error."
-  (let ((sym (first-external-symbol-in-package
-              '("PYTHON" "PYTHON")
-              '(:sel/sw/python :sel/sw/tree-sitter))))
-    (or sym (error "No available representation for Python ASTs."))))
 
 (defun guess-language (&rest sources)
   "Guess the SEL software object class that best matches SOURCES.
@@ -392,7 +384,7 @@ directories and if files based on their extensions."
                                       :test #'equalp)))
                            ;; List of extensions and associated sel/sw class.
                            `((("lisp") lisp)
-                             (("py") ,(find-python))
+                             (("py") python)
                              (("js") javascript)
                              (("json") json)
                              (("c" "cc") ,(find-c))
