@@ -750,7 +750,7 @@ the `genome' of the software object."
                 (append
                  ,@(mapcar (lambda (key)
                              `(when ,(symbol-cat-in-package 'fset key 'p)
-                                ,(list (make-keyword key) key)))
+                                (list ,(make-keyword key) ,key)))
                            (cdr (member '&key lambda-list)))))))))
 
 ;;; FSet overrides for common-lisp sequence functions pass through to genome.
