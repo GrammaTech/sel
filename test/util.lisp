@@ -11,6 +11,7 @@
            :+etc-dir+
            :+gcd-dir+
            :+grep-prj-dir+
+           :+cpp-sample-dir+
            :+multi-file-dir+
            :+asm-test-dir+
            :+multiple-artifact-dir+
@@ -84,6 +85,10 @@
 (define-constant +grep-prj-dir+ (append +etc-dir+ (list "grep-prj"))
   :test #'equalp
   :documentation "Path to directory holding the grep project.")
+
+(define-constant +cpp-sample-dir+ (append +etc-dir+ (list "cpp-sample"))
+  :test #'equalp
+  :documentation "Path to directory holding the c++ sample project.")
 
 (define-constant +multi-file-dir+ (append +etc-dir+ (list "multi-file"))
   :test #'equalp

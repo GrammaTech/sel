@@ -1,7 +1,7 @@
-;;; c-project.lisp --- C projects.
+;;; cpp-project.lisp --- C++ Projects
 ;;;
-(defpackage :software-evolution-library/software/c-project
-  (:nicknames :sel/software/c-project :sel/sw/c-project)
+(defpackage :software-evolution-library/software/cpp-project
+  (:nicknames :sel/software/cpp-project :sel/sw/cpp-project)
   (:use :gt/full
         :cl-json
         :software-evolution-library
@@ -11,25 +11,25 @@
         :software-evolution-library/software/parseable-project
         :software-evolution-library/software/compilable
         :software-evolution-library/software/tree-sitter)
-  (:export :c-project))
-(in-package :software-evolution-library/software/c-project)
+  (:export :cpp-project))
+(in-package :software-evolution-library/software/cpp-project)
 (in-readtable :curry-compose-reader-macros)
 
-(defparameter *c-extensions*
-  '("c" "h")
+(defparameter *cpp-extensions*
+  '("h" "cpp" "cp" "cc")
   "List of extensions we will consider for evolving.")
 
-(define-software c-project (parseable-project compilable)
+(define-software cpp-project (parseable-project compilable)
   ()
-  (:documentation "Project specialization for c software objects."))
+  (:documentation "Project specialization for c++ software objects."))
 
-(defmethod initialize-instance :after ((project c-project) &key)
+(defmethod initialize-instance :after ((project cpp-project) &key)
   (unless (component-class project)
-    (setf (component-class project) 'c))
+    (setf (component-class project) 'cpp))
   (unless (compiler project)
-    (setf (compiler project) "cc")))
+    (setf (compiler project) "c++")))
 
-(defmethod collect-evolve-files ((project c-project) &aux result)
+(defmethod collect-evolve-files ((project cpp-project) &aux result)
   (with-current-directory ((project-dir project))
     (walk-directory
      (project-dir project)
@@ -43,9 +43,10 @@
      :test (lambda (file)
              ;; Heuristics for identifying files in the project:
              ;; 1) The file is not in an ignored directory.
-             ;; 2) The file has an extension specified in *c-extensions*.
+             ;; 2) The file has an extension from the list *cpp-extensions*.
              (let ((rel-path (pathname-relativize (project-dir project) file)))
                (and (not (ignored-evolve-path-p project rel-path))
-                    (member (pathname-type file) *c-extensions*
-                            :test 'equal)))))
-    result))
+                    (member (pathname-type file) *cpp-extensions*
+                            :test 'equal))))))
+  result)
+

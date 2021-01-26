@@ -13,7 +13,8 @@
    :software-evolution-library/software/parseable
    :software-evolution-library/software/project
    :software-evolution-library/software/c-project)
-  #-windows (:shadowing-import-from :osicat :file-permissions :pathname-as-directory)
+  #-windows (:shadowing-import-from :osicat
+                                    :file-permissions :pathname-as-directory)
   (:export :test-c-project))
 (in-package :software-evolution-library/test/c-project)
 (in-readtable :curry-compose-reader-macros)
@@ -36,7 +37,7 @@
    (setf (lines *s1*) (list "s1-genome"))
    (setf *s2* (make-instance 'simple))
    (setf (lines *s2*) (list "s2-genome"))
-   (setf *project* (make-instance 'project
+   (setf *project* (make-instance 'c-project
                      :evolve-files `(("s1" . ,*s1*)
                                      ("s2" . ,*s2*)))))
   (:teardown (setf *project* nil)))
@@ -60,23 +61,8 @@
           (make-instance 'c-project
             :build-command "make grep"
             :artifacts '("grep")
-            :compilation-database
-            (list
-             (list
-              (cons :file
-                    (namestring
-                     (make-pathname :directory +grep-prj-dir+
-                                    :name "grep"
-                                    :type "c")))
-              (cons :directory
-                    (directory-namestring
-                     (make-pathname :directory +grep-prj-dir+)))
-              (cons :command
-                    (format nil "cc -c -o grep ~a"
-                            (namestring
-                             (make-pathname :directory +grep-prj-dir+
-                                            :name "grep"
-                                            :type "c")))))))
+            :compiler "gcc"
+            :flags "-v")
           (make-pathname :directory +grep-prj-dir+))
          *mutation-stats* (make-hash-table :test 'equal)))
   (:teardown (setf *project* nil
@@ -90,7 +76,7 @@
     (signals error (to-file *project* nil))))
 
 (deftest (simple-to-from-file-without-project-dir-works :long-running) ()
-  (with-fixture project
+  (with-fixture c-project
     (setf (project-dir *project*) nil)
     (with-temporary-directory (:pathname dir)
       (progn
@@ -148,7 +134,7 @@
   (is (sel/sw/project::ignored-path-p
        "./src/foo" :only-paths '("etc/*"))))
 
-(deftest (project-copy-preserves-permissions :long-running) ()
+(deftest project-copy-preserves-permissions ()
   ;; Ensure `to-file' preserves permissions on executable files.
   (nest
    (with-fixture grep-project)
@@ -162,7 +148,7 @@
                                  :type "sh"
                                  :directory (append dir (list "support")))))))))
 
-(deftest (project-copy-maintains-relative-paths :long-running) ()
+(deftest project-copy-maintains-relative-paths ()
   (with-fixture multiple-artifacts-project
     (with-temporary-file (:pathname dir-path)
       ;; Check if project still runs once it is built and copied over.
@@ -179,29 +165,26 @@
                                        (namestring bin))))
             "copied multiple-artifacts failed to run")))))
 
-(deftest (c-project-test :long-running) ()
+(deftest c-project-test ()
   (with-fixture grep-project
     (is (equal "make grep" (build-command *project*)))
     (is (equalp '("grep") (artifacts *project*)))
-    (is (equal 1 (length (evolve-files *project*))))
-    (is (equal "grep.c" (car (first (evolve-files *project*)))))
-    (is (equal "cc" (compiler (cdr (first (evolve-files *project*))))))
+    (is (equal 14 (length (evolve-files *project*))))
+    (is (member "grep.c" (evolve-files *project*) :test 'equal :key 'car))
+    (is (equal "gcc"
+               (compiler (cdar (member "grep.c" (evolve-files *project*)
+                                       :test 'equal :key 'car)))))
+    (is (equal "-v"
+               (flags (cdar (member "grep.c" (evolve-files *project*)
+                                       :test 'equal :key 'car)))))
     ;; Don't include binaries in `other-files'.
     (is (not (member "support/inputs/grepBinary"
                      (mapcar #'car (other-files *project*)) :test #'equalp)))
     (is (equal (namestring (make-pathname :directory +grep-prj-dir+))
-               (namestring (project-dir *project*))))))
+               (namestring (project-dir *project*))))
+    (is (equal (compiler *project*) "gcc"))
+    (is (equal (flags *project*) "-v"))))
 
-(deftest c-project-compilation-database-flags-test ()
-  (is (equal (list "-DDIR='\"/tmp\"'" "-DIN" "\"-D_U_=a\"")
-             (sel/sw/c-project::compilation-db-entry-flags
-              `((:command .
-                          "cc -DDIR=\\\"/tmp\\\" -DIN \"-D_U_=a\"")))))
-  (is (equal (list "-DDIR1='\"/tmp1\"'" "-DDIR2='\"/tmp2\"'")
-             (sel/sw/c-project::compilation-db-entry-flags
-              `((:command .
-                          "cc -DDIR1=\\\"/tmp1\\\" -DDIR2=\\\"/tmp2\\\"")))))
-  (is (equal (list "-DDIR='\"\"'")
-             (sel/sw/c-project::compilation-db-entry-flags
-              `((:command .
-                          "cc -DDIR=\\\"\\\""))))))
+(deftest c-project-can-build ()
+  (with-fixture grep-project
+    (is (phenome *project*))))
