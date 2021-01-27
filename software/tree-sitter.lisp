@@ -271,6 +271,7 @@
            ;; Cross-language Generics
            :end-of-parameter-list
            :function-name
+           :function-parameters
            :type-in
            :find-enclosing
            :find-preceding
@@ -1575,14 +1576,14 @@ the rebinding"
   (:method ((ast ast))
     (collect-if {typep _ 'identifier-ast} ast)))
 
-(defgeneric parameters (ast)
+(defgeneric function-parameters (ast)
   (:documentation "Return the parameters of AST."))
 
 (defgeneric inner-declarations (ast)
   (:documentation "Return a list of variable declarations affecting inner scopes.")
   (:method ((ast ast)) nil)
   (:method ((ast function-ast))
-    (mappend #'identifiers (parameters ast))))
+    (mappend #'identifiers (function-parameters ast))))
 
 (defgeneric outer-declarations (ast)
   (:documentation
@@ -2528,7 +2529,7 @@ Returns nil if the length of KEYS is not the same as VALUES'."
   (defmethod phenome ((obj javascript) &key (bin (temp-file-name)))
     (interpreted-phenome obj bin))
 
-  (defmethod parameters ((ast javascript-function-declaration))
+  (defmethod function-parameters ((ast javascript-function-declaration))
     (javascript-children (javascript-parameters ast)))
 
   (defmethod enclosing-scope ((obj javascript) (ast javascript-ast))
@@ -2687,7 +2688,7 @@ scope of START-AST."
   (defmethod function-name ((ast c-function-definition))
     (source-text (c-declarator (c-declarator ast))))
 
-  (defmethod parameters ((ast c-function-definition))
+  (defmethod function-parameters ((ast c-function-definition))
     (children (c-parameters (c-declarator ast))))
 
   (defmethod inner-declarations ((ast c-function-declarator))
