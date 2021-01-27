@@ -675,13 +675,13 @@ and keyword parameters with defaults."
                      (collect node)))))
       (is (length= 3 nodes))
       (destructuring-bind (f1 f2 f3) nodes
-        (is (equal "function1" (function-node-name f1)))
+        (is (equal "function1" (function-name f1)))
         (is (equal? (make 'source-location :line 3 :column 16)
                     (end-of-parameter-list sw f1)))
-        (is (equal "function2" (function-node-name f2)))
+        (is (equal "function2" (function-name f2)))
         (is (equal? (make 'source-location :line 6 :column 20)
                     (end-of-parameter-list sw f2)))
-        (is (equal "function3" (function-node-name f3)))
+        (is (equal "function3" (function-name f3)))
         (is (equal? (make 'source-location :line 9 :column 22)
                     (end-of-parameter-list sw f3)))))))
 

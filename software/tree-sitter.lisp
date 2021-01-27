@@ -270,7 +270,7 @@
            :terminal-symbol
            ;; Cross-language Generics
            :end-of-parameter-list
-           :function-node-name
+           :function-name
            :type-in
            :find-enclosing
            :find-preceding
@@ -2065,7 +2065,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
          (python-pattern-list
           (find-if {identical-name-p identifier} (python-children lhs)))))))
 
-  (defmethod function-node-name ((node python-function-definition))
+  (defmethod function-name ((node python-function-definition))
     (match node
       ((python-function-definition :python-name name)
        (source-text name))))
@@ -2642,7 +2642,7 @@ AST ast to return the enclosing scope for"
          :interleaved-text (list name)))
        (enclosing-find-function obj callexpr name))))
 
-  (defmethod function-node-name ((node javascript-function-declaration))
+  (defmethod function-name ((node javascript-function-declaration))
     (match node
       ((javascript-function-declaration :javascript-name name)
        (source-text name))
@@ -2922,7 +2922,7 @@ slots."
   (:method (software (node function-ast))
     (error "END-OF-PARAMETER-LIST undefined for ~a" (type-of node))))
 
-(defgeneric function-node-name (node)
+(defgeneric function-name (node)
   (:documentation "Extract the name of the function from NODE.
 If NODE is not a function node, return nil.")
   (:method (node)
@@ -2930,7 +2930,7 @@ If NODE is not a function node, return nil.")
     nil)
   (:method ((node function-ast) &aux (type (type-of node)))
     (unless (subtypep type 'lambda-ast)
-      (warn "FUNCTION-NODE-NAME undefined for ~a" type))
+      (warn "FUNCTION-NAME undefined for ~a" type))
     nil))
 
 (defgeneric type-in (software ast)
