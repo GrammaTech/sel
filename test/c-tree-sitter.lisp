@@ -41,6 +41,10 @@
 
 
 ;;; Tests
+(deftest function-name-on-c-tree-sitter ()
+  (with-fixture w/while
+    (string= "main" (function-name (find-if {typep _ 'function-ast} *soft*)))))
+
 (deftest comment-inheritance-works-as-expected ()
   (is (subtypep 'c-comment 'comment-ast)))
 

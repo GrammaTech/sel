@@ -2684,6 +2684,9 @@ scope of START-AST."
 ;;;; C
 (when-class-defined (c)
 
+  (defmethod function-name ((ast c-function-definition))
+    (source-text (c-declarator (c-declarator ast))))
+
   (defmethod parameters ((ast c-function-definition))
     (children (c-parameters (c-declarator ast))))
 
