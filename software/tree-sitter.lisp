@@ -273,6 +273,7 @@
            :function-name
            :function-parameters
            :parameter-type
+           :parameter-name
            :type-in
            :find-enclosing
            :find-preceding
@@ -1583,6 +1584,9 @@ the rebinding"
 (defgeneric parameter-type (parameter-ast)
   (:documentation "Return a representation of the TYPE of PARAMETER-AST."))
 
+(defgeneric parameter-name (parameter-ast)
+  (:documentation "Return the name of PARAMETER-AST."))
+
 (defgeneric inner-declarations (ast)
   (:documentation "Return a list of variable declarations affecting inner scopes.")
   (:method ((ast ast)) nil)
@@ -2706,6 +2710,10 @@ scope of START-AST."
     (list* (source-text (c-type ast))
            (pointers ast)
            (mapcar #'source-text (drop 2 (children ast)))))
+
+  (defmethod parameter-name ((ast c-parameter-declaration)) (parameter-name (c-declarator ast)))
+  (defmethod parameter-name ((ast c-pointer-declarator)) (parameter-name (c-declarator ast)))
+  (defmethod parameter-name ((ast c-identifier)) (source-text ast))
 
   (defmethod inner-declarations ((ast c-function-declarator))
     (remove-if-not {typep _ 'c-parameter-declaration} (convert 'list (c-parameters ast))))

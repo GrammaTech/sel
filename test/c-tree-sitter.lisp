@@ -55,6 +55,16 @@
                        (@ (convert 'c-ast "void foo(int baz){}") 0))))
               '("int" 0))))
 
+(deftest parameter-name-on-c-tree-sitter ()
+  (is (string= (parameter-name
+               (first (function-parameters
+                       (@ (convert 'c-ast "void bar(const char ***it){}") 0))))
+               "it"))
+  (is (equalp (parameter-name
+               (first (function-parameters
+                       (@ (convert 'c-ast "void foo(int baz){}") 0))))
+              "baz")))
+
 (deftest comment-inheritance-works-as-expected ()
   (is (subtypep 'c-comment 'comment-ast)))
 
