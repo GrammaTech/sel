@@ -45,6 +45,16 @@
   (with-fixture w/while
     (string= "main" (function-name (find-if {typep _ 'function-ast} *soft*)))))
 
+(deftest parameter-type-on-c-tree-sitter ()
+  (is (equalp (parameter-type
+               (first (function-parameters
+                       (@ (convert 'c-ast "void bar(const char ***it){}") 0))))
+              '("char" 3 "const")))
+  (is (equalp (parameter-type
+               (first (function-parameters
+                       (@ (convert 'c-ast "void foo(int baz){}") 0))))
+              '("int" 0))))
+
 (deftest comment-inheritance-works-as-expected ()
   (is (subtypep 'c-comment 'comment-ast)))
 
