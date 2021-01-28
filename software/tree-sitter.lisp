@@ -2757,8 +2757,7 @@ scope of START-AST."
                                          &key &allow-other-keys)
              "If no compiler was specified, default to cc."
              (unless (compiler cpp)
-               (setf (compiler cpp) "cc"))))
-
+               (setf (compiler cpp) "c++"))))
 
 
 ;;;; Interleaved text
