@@ -42,7 +42,7 @@ RUN curl https://raw.githubusercontent.com/eschulte/lisp-format/master/lisp-form
     > /usr/bin/lisp-format
 RUN chmod +x /usr/bin/lisp-format
 RUN echo "(add-to-list 'load-path \"/usr/share/emacs/site-lisp/\")" > /root/.lisp-formatrc
-RUN curl https://llvm.org/svn/llvm-project/cfe/trunk/tools/clang-format/git-clang-format \
+RUN curl https://raw.githubusercontent.com/llvm-mirror/clang/master/tools/clang-format/git-clang-format \
     |sed "s/clang-format/lisp-format/g;s/clangFormat/lispFormat/;" \
     |sed "s/default_extensions =.*\$/default_extensions = ','.join(['lisp','cl','asd','scm','el'])/;" \
     |sed "/# From clang\/lib\/Frontend\/FrontendOptions.cpp, all lower case/,/])/d" \
