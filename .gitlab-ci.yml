@@ -51,6 +51,9 @@ dependents:
   except:
     - schedules
 
+# Use kaniko to build docker image.
+#  https://docs.gitlab.com/ee/ci/docker/using_kaniko.html
+#  https://github.com/GoogleContainerTools/kaniko
 scheduled-build:
   stage: build
   inherit:
@@ -60,7 +63,8 @@ scheduled-build:
     entrypoint: [""]
   tags: ["kubernetes", "cluster"]
   script:
-    - echo $DOCKER_AUTHS > /kaniko/.docker/config.json
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
     - >-
       /kaniko/executor
       --context=$CI_PROJECT_DIR/
