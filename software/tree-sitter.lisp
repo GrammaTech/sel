@@ -2710,6 +2710,8 @@ scope of START-AST."
              (unless (compiler c)
                (setf (compiler c) "cc")))
 
+  (defmethod ext :around ((obj c)) (or (call-next-method) "c"))
+
   (defgeneric pointers (c-declarator)
     (:documentation "Return the number of pointers around C-DECLARATOR.")
     (:method ((ast c-parameter-declaration)) (pointers (c-declarator ast)))
@@ -2757,7 +2759,9 @@ scope of START-AST."
                                          &key &allow-other-keys)
              "If no compiler was specified, default to cc."
              (unless (compiler cpp)
-               (setf (compiler cpp) "c++"))))
+               (setf (compiler cpp) "c++")))
+
+  (defmethod ext :around ((obj cpp)) (or (call-next-method) "cpp")))
 
 
 ;;;; Interleaved text
