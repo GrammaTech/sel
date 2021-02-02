@@ -117,7 +117,13 @@
   ;; There are a lot of C source files and parsing them is slow
   ;; so set a limit. Note the files actually tested are chosen at
   ;; random from the set of all files.
-  (let ((c-files (expand-wildcard #p"*/*.c")))
+  (let* ((c-files (expand-wildcard #p"*/*.c"))
+         ;; FIXME: There is a performance issue in `ast-source-ranges'
+         ;;        (at least on CCL maybe SBCL as well) so we remove
+         ;;        the largest C source files.
+         (large-c-files '("obstack" "search" "getopt" "kwset" "grep" "dfa" "regex"))
+         (c-files (remove-if [{member _ large-c-files :test #'string=} #'pathname-name]
+                             c-files)))
     (test-ast-source-ranges-for-files
      'c c-files :limit 10 :ignore-indentation t)))
 
