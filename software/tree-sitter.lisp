@@ -2405,10 +2405,13 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
   (defmethod get-vars ((obj python) (ast python-with-statement))
     (remove
      nil
-     (mapcar
-      (lambda (item)
-        (when-let ((var (python-alias item)))
-          (get-vars-name-handler obj var)))
+     (mappend
+      (lambda (clause)
+        (mapcar
+         (lambda (item)
+           (when-let ((var (python-alias item)))
+             (get-vars-name-handler obj var)))
+         (python-children clause)))
       (python-children ast))))
 
   (defmethod get-vars ((obj python) (ast python-assignment)
