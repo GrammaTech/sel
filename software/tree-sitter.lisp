@@ -272,6 +272,8 @@
            :end-of-parameter-list
            :function-name
            :function-parameters
+           :declaration-lhs
+           :declaration-rhs
            :parameter-type
            :parameter-name
            :type-in
@@ -412,7 +414,8 @@ searched to populate `*tree-sitter-language-files*'.")
        (:statement-ast python--compound-statement python--simple-statement)
        (:call-ast python-call)
        (:unary-ast python-unary-operator)
-       (:binary-ast python-binary-operator))))
+       (:binary-ast python-binary-operator)
+       (:variable-declaration-ast python-assignment))))
 
   (defun tree-sitter-ast-classes (name grammar-file node-types-file)
     (nest
@@ -1603,6 +1606,14 @@ the rebinding"
    "Return a list of variable declarations affecting outer scopes.")
   (:method ((ast ast)) nil))
 
+(defgeneric declaration-lhs (declaration-ast)
+  (:documentation
+   "Return the left-hand side of a variable declaration."))
+
+(defgeneric declaration-rhs (declaration-ast)
+  (:documentation
+   "Return the right-hand side of a variable declaration."))
+
 (defclass normal-scope () ()
   (:documentation "Tree-sitter mixin for languages with \"normal\" scoping."))
 
@@ -2100,6 +2111,12 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
           (make 'source-location
                 :line line
                 :column (+ column #.(length "lambda"))))))))
+
+  (defmethod declaration-lhs ((decl python-assignment))
+    (python-left decl))
+
+  (defmethod declaration-rhs ((decl python-assignment))
+    (python-right decl))
 
   ;; Indentation
   (defmethod indentablep ((ast python-string)) nil)
@@ -2676,6 +2693,12 @@ AST ast to return the enclosing scope for"
       ((javascript-arrow-function :javascript-parameter (and param (type node)))
        (node-end software param))))
 
+  (defmethod declaration-lhs ((decl javascript-variable-declarator))
+    (javascript-name decl))
+
+  (defmethod declaration-rhs ((decl javascript-variable-declarator))
+    (javascript-value decl))
+
   ;; Helper Functions.
   (-> enclosing-find-function (javascript javascript-ast string)
     (values (or null javascript-ast) &optional))
@@ -2707,11 +2730,17 @@ scope of START-AST."
   (defmethod function-parameters ((ast c-function-definition))
     (children (c-parameters (c-declarator ast))))
 
+  (defmethod declaration-lhs ((ast c-assignment-expression))
+    (c-left ast))
+
+  (defmethod declaration-rhs ((ast c-assignment-expression))
+    (c-right ast))
+
   (defmethod initialize-instance :after ((c c)
                                          &key &allow-other-keys)
-             "If no compiler was specified, default to cc."
-             (unless (compiler c)
-               (setf (compiler c) "cc")))
+    "If no compiler was specified, default to cc."
+    (unless (compiler c)
+      (setf (compiler c) "cc")))
 
   (defmethod ext :around ((obj c)) (or (call-next-method) "c"))
 
