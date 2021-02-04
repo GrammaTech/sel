@@ -967,6 +967,10 @@ they should produce the same ordering."
                ;; Has an associated slot or has children
                ((or (listp slot-info) (caddr field-spec)) nil)
                (t (terminal-symbol-class-p slot-info))))
+           (get-child-order ()
+             "Get the child order of instance."
+             (or (ast-annotation instance :child-order)
+                 (slot-value instance 'child-slots)))
            (get-converted-fields ()
              "Get the value of each field after it's been converted
               into an AST."
@@ -990,6 +994,25 @@ they should produce the same ordering."
                   (if children
                       (push `(:children ,children) fields)
                       fields)))))
+           (move-excess-fields (field-list)
+             "tree-sitter can return multiple ASTs for a field that
+              is specified as a single AST. This is likely an error
+              in the parser but should be handled regardless."
+             (let (used-fields
+                   (relevant-fields
+                     (mapcar #'car (remove-if-not {= 1} (get-child-order)
+                                                  :key #'cdr))))
+               (mapcar
+                (lambda (field-pair &aux (field (car field-pair))
+                                      (slot-name (translate-to-slot-name field prefix)))
+                  (cond
+                    ((member slot-name used-fields)
+                     (cons :children (cdr field-pair)))
+                    ((member slot-name relevant-fields)
+                     (push slot-name used-fields)
+                     field-pair)
+                    (t field-pair)))
+                field-list)))
            (merge-same-fields (field-list)
              "Merge all fields that belong to the same slot.
               This is used for setting slots with an arity of 0."
@@ -1018,11 +1041,7 @@ they should produce the same ordering."
                 (symbol-macrolet ((slot-value (slot-value instance slot)))
                   (unless (listp slot-value)
                     (setf slot-value (list slot-value)))))
-              (remove-if-not
-               {eql 0}
-               (or (ast-annotation instance :child-order)
-                   (slot-value instance 'child-slots))
-               :key #'cdr)))
+              (remove-if-not {eql 0} (get-child-order) :key #'cdr)))
            (set-child-order-annotation ()
              "Set the child-order annotation of instance. This
               is currently set on every AST as some ASTs store
@@ -1050,7 +1069,8 @@ they should produce the same ordering."
                  (setf (slot-value instance 'annotations)
                        (cons (cons :child-order order)
                              (ast-annotations instance)))))))
-    (set-slot-values (merge-same-fields (get-converted-fields)))
+    (set-slot-values
+     (merge-same-fields (move-excess-fields (get-converted-fields))))
     (update-slots-based-on-arity)
     (set-child-order-annotation)
     instance))
