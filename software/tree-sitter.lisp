@@ -998,6 +998,8 @@ they should produce the same ordering."
              "tree-sitter can return multiple ASTs for a field that
               is specified as a single AST. This is likely an error
               in the parser but should be handled regardless."
+             ;; NOTE: excess fields are moved from their field into
+             ;;       the children slot.
              (let (used-fields
                    (relevant-fields
                      (mapcar #'car (remove-if-not {= 1} (get-child-order)
