@@ -49,16 +49,6 @@ RUN curl https://raw.githubusercontent.com/llvm-mirror/clang/master/tools/clang-
     > /usr/bin/git-lisp-format
 RUN chmod +x /usr/bin/git-lisp-format
 
-# Pre-download and compile a number of dependency packages.
-RUN git clone https://github.com/ruricolist/serapeum /root/quicklisp/local-projects/serapeum \
-    && git clone https://github.com/GrammaTech/cl-utils.git /root/quicklisp/local-projects/gt \
-    && git clone https://github.com/GrammaTech/functional-trees.git /root/quicklisp/local-projects/functional-trees \
-    && sbcl --eval "(mapcar #'ql:quickload '(:gt/full :swank :clack :elf :eclector))" \
-    && ccl --eval "(mapcar #'ql:quickload '(:gt/full :swank :clack :elf :eclector))" \
-    && rm -rf /root/quicklisp/local-projects/functional-trees \
-              /root/quicklisp/local-projects/gt \
-              /root/quicklisp/local-projects/system-index.txt
-
 # Install pre-release version of ASDF needed for CCL package-local nicknames
 RUN mkdir /root/common-lisp
 RUN curl https://gitlab.common-lisp.net/asdf/asdf/-/archive/3.3.4.3/asdf-3.3.4.3.tar.gz| tar xzC /root/common-lisp
@@ -91,6 +81,10 @@ RUN for language in agda bash c c-sharp cpp css go html java javascript jsdoc js
 RUN git clone https://github.com/death/cl-tree-sitter /root/quicklisp/local-projects/cl-tree-sitter
 # Work around bug in cl-unicode in quicklisp.
 RUN git clone https://github.com/edicl/cl-unicode.git /root/quicklisp/local-projects/cl-unicode
+
+# Pre-download and compile a number of dependency packages.
+COPY . /root/quicklisp/local-projects/sel
+RUN make -C /root/quicklisp/local-projects/sel dependencies
 
 WORKDIR /root/quicklisp/local-projects
 
