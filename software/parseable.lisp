@@ -804,7 +804,8 @@ the `genome' of the software object."
 
 (defmethod mapc (function (obj parseable) &rest more)
   (declare (ignorable more))
-  (mapc function (genome obj)))
+  (mapc function (genome obj))
+  obj)
 
 (defmethod mapcar (function (obj parseable) &rest more)
   (declare (ignorable more))
