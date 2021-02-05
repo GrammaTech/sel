@@ -419,3 +419,28 @@ making a directory."
                       (ensure-directory-pathname build-dir)}
                      #'first]
                     (evolve-files obj)))))
+
+(defmethod lookup ((obj project) (key list))
+  ;; Enables the use of the `@' macro directly against projects.
+  (let ((next (lookup obj (car key))))
+    (if (cdr key)
+        (lookup next (cdr key))
+        next)))
+
+(defmethod lookup ((obj project) (key number))
+  ;; Enables the use of the `@' macro directly against projects.
+  (cdr (nth key (evolve-files obj))))
+
+(defmethod lookup ((obj project) (key string))
+  ;; Enables the use of the `@' macro directly against projects.
+  (cdr (assoc key (evolve-files obj) :test #'string=)))
+
+(defmethod mapc (function (obj project) &rest more)
+  (declare (ignorable more))
+  (mapc (op (mapc function (cdr _1))) (evolve-files obj))
+  obj)
+
+(defmethod mapcar (function (obj project) &rest more)
+  (declare (ignorable more))
+  (copy obj :evolve-files (mapcar (op (cons (car _1) (mapcar function (cdr _1))))
+                                  (evolve-files obj))))
