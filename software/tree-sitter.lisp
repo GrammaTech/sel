@@ -2854,9 +2854,10 @@ one greater than the number of children.")
   (:method ((ast interleaved-text))
     (let ((children (sorted-children ast)))
       (assert (= (1+ (length children)) (length (interleaved-text ast))) (ast)
-              "The AST to be printed has ~d children and ~d element(s) of ~
+              "The ~a to be printed has ~d children and ~d element(s) of ~
           interleaved text.  The AST must have interleaved text between ~
           each child, ~d element(s) total."
+              (type-of ast)
               (length children) (length (interleaved-text ast))
               (1+ (length children)))))
   (:method (ast) nil))
