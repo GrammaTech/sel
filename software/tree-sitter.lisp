@@ -267,6 +267,8 @@
            :boolean-false-ast
            :unary-ast
            :binary-ast
+           :return-ast
+           :goto-ast
            :terminal-symbol
            ;; Cross-language Generics
            :end-of-parameter-list
@@ -276,6 +278,9 @@
            :declaration-rhs
            :parameter-type
            :parameter-name
+           :call-name
+           :variable-name
+           :no-fallthrough
            :type-in
            :find-enclosing
            :find-preceding
@@ -360,13 +365,19 @@ searched to populate `*tree-sitter-language-files*'.")
        (:boolean-true-ast c-true)
        (:boolean-false-ast c-false)
        (:unary-ast c-unary-expression)
-       (:binary-ast c-binary-expression))
+       (:binary-ast c-binary-expression)
+       (:return-ast c-return-statement)
+       (:goto-ast c-goto-statement))
       (:cpp
        (:boolean-true-ast cpp-true)
        (:boolean-false-ast cpp-false)
        (:unary-ast cpp-unary-expression)
-       (:binary-ast cpp-binary-expression))
-      (:java (:statement-ast java-statement))
+       (:binary-ast cpp-binary-expression)
+       (:return-ast cpp-return-statement)
+       (:goto-ast cpp-goto-statement))
+      (:java
+       (:statement-ast java-statement)
+       (:return-ast java-return-statement))
       (:javascript
        (:class-ast javascript-class-declaration)
        (:control-flow-ast
@@ -391,7 +402,8 @@ searched to populate `*tree-sitter-language-files*'.")
        (:statement-ast javascript--statement)
        (:call-ast javascript-call-expression)
        (:unary-ast javascript-unary-expression)
-       (:binary-ast javascript-binary-expression))
+       (:binary-ast javascript-binary-expression)
+       (:return-ast javascript-return-statement))
       (:python
        (:class-ast python-class-definition)
        (:control-flow-ast
@@ -415,6 +427,7 @@ searched to populate `*tree-sitter-language-files*'.")
        (:call-ast python-call)
        (:unary-ast python-unary-operator)
        (:binary-ast python-binary-operator)
+       (:return-ast python-return-statement)
        (:variable-declaration-ast python-assignment))))
 
   (defun tree-sitter-ast-classes (name grammar-file node-types-file)
@@ -543,6 +556,12 @@ searched to populate `*tree-sitter-language-files*'.")
 
   (defclass binary-ast (ast) ()
     (:documentation "Mix-in for AST classes that are binary operators."))
+
+  (defclass return-ast (ast) ()
+    (:documentation "Mix-in for AST classes that are return statements."))
+
+  (defclass goto-ast (ast) ()
+    (:documentation "Mix-in for AST classes that are goto statements."))
 
   (defclass terminal-symbol ()
     ()
@@ -1616,6 +1635,24 @@ the rebinding"
 
 (defgeneric parameter-name (parameter-ast)
   (:documentation "Return the name of PARAMETER-AST."))
+
+(defgeneric call-name (call-ast)
+  (:documentation "Return the name of CALL-AST."))
+
+(defgeneric variable-name (variable-ast)
+  (:documentation "Return the name of VARIABLE-AST."))
+
+(defvar no-return-function-names '("exit" "abort"))
+
+(defgeneric no-fallthrough (ast)
+  (:documentation "Return t if AST will never fall through.")
+  (:method ((otherwise t)) nil)
+  (:method ((ast call-ast))
+    (member (call-name ast) no-return-function-names :test #'string=))
+  (:method ((ast return-ast)) t)
+  (:method ((ast goto-ast)) t)
+  (:method ((ast compound-ast))
+    (no-fallthrough (lastcar (children ast)))))
 
 (defgeneric inner-declarations (ast)
   (:documentation "Return a list of variable declarations affecting inner scopes.")
@@ -2781,6 +2818,11 @@ scope of START-AST."
   (defmethod parameter-name ((ast c-parameter-declaration)) (parameter-name (c-declarator ast)))
   (defmethod parameter-name ((ast c-pointer-declarator)) (parameter-name (c-declarator ast)))
   (defmethod parameter-name ((ast c-identifier)) (source-text ast))
+
+  (defmethod call-name ((ast c-call-expression)) (call-name (c-function ast)))
+  (defmethod call-name ((ast c-identifier)) (source-text ast))
+
+  (defmethod variable-name ((ast c-identifier)) (source-text ast))
 
   (defmethod inner-declarations ((ast c-function-declarator))
     (remove-if-not {typep _ 'c-parameter-declaration} (convert 'list (c-parameters ast))))
