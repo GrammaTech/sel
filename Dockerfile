@@ -51,7 +51,7 @@ RUN chmod +x /usr/bin/git-lisp-format
 
 # Install pre-release version of ASDF needed for CCL package-local nicknames
 RUN mkdir /root/common-lisp
-RUN curl https://gitlab.common-lisp.net/asdf/asdf/-/archive/3.3.4.3/asdf-3.3.4.3.tar.gz| tar xzC /root/common-lisp
+RUN curl https://gitlab.common-lisp.net/asdf/asdf/-/archive/3.3.4.8/asdf-3.3.4.8.tar.gz| tar xzC /root/common-lisp
 
 # Install tree-sitter
 WORKDIR /
