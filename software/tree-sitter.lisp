@@ -2819,8 +2819,7 @@ scope of START-AST."
   (defmethod parameter-name ((ast c-pointer-declarator)) (parameter-name (c-declarator ast)))
   (defmethod parameter-name ((ast c-identifier)) (source-text ast))
 
-  (defmethod call-name ((ast c-call-expression)) (call-name (c-function ast)))
-  (defmethod call-name ((ast c-identifier)) (source-text ast))
+  (defmethod call-name ((ast c-call-expression)) (source-text (call-name (c-function ast))))
 
   (defmethod variable-name ((ast c-identifier)) (source-text ast))
 
