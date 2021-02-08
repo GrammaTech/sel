@@ -33,6 +33,16 @@ techniques."
   :depends-on (fare-quasiquote-extras)
   :components ((:file "components/serapi-io")))
 
+(defsystem "software-evolution-library/terminal"
+  :author "Eric Schulte and GrammaTech"
+  :licence "GPL V3"
+  :description "Primitives for inspecting and working with a terminal."
+  :depends-on (:gt :cffi :cl-interpol)
+  :defsystem-depends-on (:cffi-grovel)
+  :components ((:file "terminal-package")
+               (:cffi-grovel-file "terminal-grovel")
+               (:file "terminal-impl")))
+
 
 ;;;; Tests and binaries.
 

@@ -27,10 +27,10 @@
   (:use
    :gt/full
    :diff
-   :terminal
+   :cl-interpol
    :software-evolution-library
-   :software-evolution-library/utility/debug
-   :terminal)
+   :software-evolution-library/terminal
+   :software-evolution-library/utility/debug)
   (:shadow :diff)
   (:shadowing-import-from :arrow-macros :-<>> :-<> :<>) ; FIXME: Remove.
   (:export :*view-stream*
@@ -67,6 +67,8 @@
            :view-controller-start))
 (in-package :software-evolution-library/view)
 (in-readtable :curry-compose-reader-macros)
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (enable-interpol-syntax))
 
 (defvar *view-length*
   (handler-case (nth-value 2 (term-size))
@@ -111,6 +113,8 @@ For example a description of the evolution target.")
   (if (> (length line) (- *view-length* less))
       (subseq line 0 (- *view-length* less))
       line))
+
+(define-constant +golden-ratio+ 21/34)
 
 
 ;;; View functions.
