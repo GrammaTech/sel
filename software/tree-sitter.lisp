@@ -2823,6 +2823,9 @@ scope of START-AST."
 
   (defmethod variable-name ((ast c-identifier)) (source-text ast))
 
+  (defmethod no-fallthrough ((ast c-continue-statement)) t)
+  (defmethod no-fallthrough ((ast c-break-statement)) t)
+
   (defmethod inner-declarations ((ast c-function-declarator))
     (remove-if-not {typep _ 'c-parameter-declaration} (convert 'list (c-parameters ast))))
 
@@ -2858,6 +2861,9 @@ scope of START-AST."
              "If no compiler was specified, default to cc."
              (unless (compiler cpp)
                (setf (compiler cpp) "c++")))
+
+  (defmethod no-fallthrough ((ast cpp-continue-statement)) t)
+  (defmethod no-fallthrough ((ast cpp-break-statement)) t)
 
   (defmethod ext :around ((obj cpp)) (or (call-next-method) "cpp")))
 
