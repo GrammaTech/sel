@@ -621,8 +621,11 @@ new feature expression is empty, but reader conditionals that were
 already empty are retained."
   (assert (if remove-empty remove-newly-empty t))
   (nest
+   (flet ((mapcar-abort (function tree)
+            (do-tree (node tree :rebuild t)
+              (funcall function node)))))
    (fbind (fn))
-   (mapcar
+   (mapcar-abort
     (lambda (node)
       (if (typep node 'reader-conditional)
           (block replace
