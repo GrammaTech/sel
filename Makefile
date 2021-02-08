@@ -71,7 +71,6 @@ DOC_PACKAGES =								\
 	software-evolution-library/utility/json				\
 	software-evolution-library/utility/range			\
 	software-evolution-library/utility/task				\
-	software-evolution-library/utility/terminal			\
 	software-evolution-library/view
 
 DOC_DEPS = doc/software-evolution-library/GrammaTech-CLA-SEL.pdf
