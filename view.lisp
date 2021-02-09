@@ -66,9 +66,9 @@
            :view-start
            :view-controller-start))
 (in-package :software-evolution-library/view)
-(in-readtable :curry-compose-reader-macros)
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (enable-interpol-syntax))
+  (defreadtable view-readtable (:merge :curry-compose-reader-macros :interpol-syntax)))
+(in-readtable view-readtable)
 
 (defvar *view-length*
   (handler-case (nth-value 2 (term-size))
