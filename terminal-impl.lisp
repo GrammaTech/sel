@@ -1,5 +1,5 @@
 (in-package :software-evolution-library/terminal)
-(enable-interpol-syntax)
+(in-readtable :interpol-syntax)
 
 (defun make-terminal-raw ()
   "Place the terminal into 'raw' mode, no echo or delete.
