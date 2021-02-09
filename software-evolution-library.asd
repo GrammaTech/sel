@@ -39,6 +39,7 @@ techniques."
   :description "Primitives for inspecting and working with a terminal."
   :depends-on (:gt :cffi :cl-interpol)
   :defsystem-depends-on (:cffi-grovel)
+  :serial t
   :components ((:file "terminal-package")
                (:cffi-grovel-file "terminal-grovel")
                (:file "terminal-impl")))
