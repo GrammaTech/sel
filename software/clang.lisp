@@ -1861,9 +1861,9 @@ and `name-symbol-table`, returning OBJ.
   "Return the number of non-root ASTs in OBJ."
   (length (asts obj)))
 
-(defmethod lines ((obj clang))
+(defmethod lines ((obj clang) &rest args &key)
   "Return a list of lines of source in OBJ"
-  (split-sequence #\Newline (genome-string obj)))
+  (apply #'lines (genome-string obj) args))
 
 (defmethod (setf lines) (new (obj clang))
   "Set the genome of OBJ from a list of lines of source"

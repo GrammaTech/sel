@@ -73,9 +73,9 @@
                       (subseq (genome b) b-point))))
     (values new (list a-point b-point))))
 
-(defmethod lines ((obj ir))
+(defmethod lines ((obj ir) &rest args &key)
   "Return a list of lines of IR in OBJ"
-  (split-sequence #\Newline (genome obj)))
+  (apply #'lines (genome obj) args))
 
 (defgeneric line-breaks (ir)
   (:documentation "Return a list with the index of line breaks in IR.")

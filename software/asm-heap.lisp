@@ -416,7 +416,7 @@ the index and return it."
 			 :adjustable t :initial-contents heap)))
     new))
 
-(defmethod lines ((asm asm-heap))
+(defmethod lines ((asm asm-heap) &key)
   "Return the list of text lines of the genome."
   (map 'list 'asm-line-info-text (genome asm)))
 

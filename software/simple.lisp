@@ -46,7 +46,7 @@
       (if (listp sequence)
           (copy-list sequence))))
 
-(defmethod lines ((simple simple))
+(defmethod lines ((simple simple) &key)
   (remove nil (map 'list {aget :code} (genome simple))))
 
 (defmethod (setf lines) (new (simple simple))
@@ -328,7 +328,7 @@ value is passed to TEST."
   ()
   (:documentation "DOCFIXME"))
 
-(defmethod lines ((light light))
+(defmethod lines ((light light) &key)
   "DOCFIXME"
   (genome light))
 
@@ -386,7 +386,7 @@ and use this to initialize the RANGE object."))
   "DOCFIXME"
   (reduce #'+ (mapcar #'range-size (genome range))))
 
-(defmethod lines ((range sw-range))
+(defmethod lines ((range sw-range) &key)
   "DOCFIXME"
   (mappend (lambda (pair)
              (destructuring-bind (start . end) pair

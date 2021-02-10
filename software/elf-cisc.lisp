@@ -278,7 +278,7 @@
          (push (list i key val) applied))))
   (reverse applied))
 
-(defmethod lines ((elf elf-cisc))
+(defmethod lines ((elf elf-cisc) &key)
   "DOCFIXME"
   (map 'list {aget :code} (genome elf)))
 

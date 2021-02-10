@@ -77,7 +77,7 @@
   (setf (genome elf) (risc-genome-from-elf (base elf)))
   elf)
 
-(defmethod lines ((elf elf-risc))
+(defmethod lines ((elf elf-risc) &key)
   "DOCFIXME"
   (mappend {aget :code} (coerce (genome elf) 'list)))
 
