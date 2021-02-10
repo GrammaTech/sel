@@ -444,3 +444,6 @@ making a directory."
   (declare (ignorable more))
   (copy obj :evolve-files (mapcar (op (cons (car _1) (mapcar function (cdr _1))))
                                   (evolve-files obj))))
+
+(defmethod convert ((to-type (eql 'list)) (project project) &key &allow-other-keys)
+  (mappend [{convert 'list} #'cdr] (evolve-files project)))
