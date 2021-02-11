@@ -369,6 +369,7 @@ searched to populate `*tree-sitter-language-files*'.")
        (:return-ast c-return-statement)
        (:goto-ast c-goto-statement))
       (:cpp
+       (:string-ast cpp-string-literal)
        (:boolean-true-ast cpp-true)
        (:boolean-false-ast cpp-false)
        (:function-ast cpp-function-definition)
