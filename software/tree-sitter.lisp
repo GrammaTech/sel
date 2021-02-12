@@ -1698,12 +1698,14 @@ the rebinding"
 
 (defgeneric find-enclosing (type software ast)
   (:documentation "Return the nearest enclosing AST of TYPE in SOFTWARE.")
-  (:method ((type symbol) (software tree-sitter) (ast ast))
+  (:method ((type t) (software tree-sitter) (ast ast))
+    ;; (assert (typep type '(or symbol (cons symbol t) class)))
     (find-if {typep _ type} (get-parent-asts software ast))))
 
 (defgeneric find-preceding (type software ast)
   (:documentation "Return the instance(s) of TYPE preceding AST in SOFTWARE.")
-  (:method ((type symbol) (software tree-sitter) (ast tree-sitter-ast))
+  (:method ((type t) (software tree-sitter) (ast tree-sitter-ast))
+    ;; (assert (typep type '(or symbol (cons symbol t) class)))
     (when-let ((parent (get-parent-ast software ast)))
       (iter (for child in (sorted-children parent))
             (until (eql child ast))
