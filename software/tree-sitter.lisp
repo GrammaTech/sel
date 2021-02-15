@@ -217,6 +217,7 @@
         :software-evolution-library/software/compilable
         :software-evolution-library/components/file
         :software-evolution-library/components/formatting)
+  (:import-from :uiop)
   (:import-from :cffi :translate-camelcase-name :load-foreign-library-error)
   #.(if (asdf:find-system :cl-tree-sitter nil)
         '(:import-from :cl-tree-sitter :register-language)

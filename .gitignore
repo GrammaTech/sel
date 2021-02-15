@@ -2,6 +2,8 @@
 *.fas
 *.fasl
 *.lx64fsl
+*.o
+*.a
 
 # Documentation cruft
 *-sb-texinfo.texi

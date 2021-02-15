@@ -5,7 +5,6 @@
         :metabang-bind
         :software-evolution-library
         :software-evolution-library/components/file)
-  (:import-from :asdf-encodings :detect-file-encoding)
   (:export :simple
            :light
            :sw-range
@@ -60,7 +59,7 @@
 
 (defmethod from-file ((simple simple) path)
   (setf (genome simple)
-        (with-open-file (in path :external-format (detect-file-encoding path))
+        (with-open-file (in path :external-format (reasonable-external-format path))
           (loop :for line := (read-line in nil) :while line
              :collect (list (cons :code line)))))
   simple)
