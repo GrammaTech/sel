@@ -45,6 +45,7 @@
            ;; Generic functions.
            :roots
            :interleaved-text
+           :find-deepest
            :get-parent-ast
            :get-parent-asts
            :get-parent-asts*
@@ -814,6 +815,16 @@ the `genome' of the software object."
 (defmethod size ((obj parseable))
   "Return the number of non-root ASTs in OBJ."
   (1- (count-if {typep _ 'ast} (genome obj))))
+
+(defgeneric find-deepest (function AST)
+  (:documentation "Find the deepest node in AST satisfying FUNCTION.")
+  (:method (function (ast ast) &aux (deepest 0) result)
+    (do-tree (node ast :index rpath :value result)
+      (when (and (funcall function node)
+                 (> (length rpath) deepest))
+        (setf result node
+              deepest (length rpath)))
+      nil)))
 
 (defmethod genome-string ((obj parseable) &optional stream)
   "Return the source code of OBJ, optionally writing to STREAM"
