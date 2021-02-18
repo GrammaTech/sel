@@ -249,8 +249,10 @@
            :statement-ast
            :expression-ast
            :compound-ast
+           :conditional-ast
            :control-flow-ast
            :if-ast
+           :while-ast
            :loop-ast
            :class-ast
            :function-ast
@@ -359,6 +361,7 @@ searched to populate `*tree-sitter-language-files*'.")
        (:compound-ast c-compound-statement)
        (:control-flow-ast c-switch-statement c-case-statement)
        (:if-ast c-if-statement)
+       (:while-ast c-while-statement)
        (:loop-ast c-while-statement c-for-statement)
        (:parse-error-ast c-error)
        (:variable-declaration-ast c-assignment-expression)
@@ -390,6 +393,7 @@ searched to populate `*tree-sitter-language-files*'.")
        (:control-flow-ast
         javascript-switch-statement javascript-try-statement)
        (:if-ast javascript-if-statement)
+       (:while-ast javascript-while-statement)
        (:expression-ast javascript--expression)
        (:compound-ast javascript-statement-block)
        (:boolean-true-ast javascript-true)
@@ -418,6 +422,7 @@ searched to populate `*tree-sitter-language-files*'.")
         python-list-comprehension python-set-comprehension
         python-generator-expression python-dictionary-comprehension)
        (:if-ast python-if-statement)
+       (:while-ast python-while-statement)
        (:expression-ast python-expression)
        (:function-ast
         python-function-definition python-lambda)
@@ -503,11 +508,17 @@ searched to populate `*tree-sitter-language-files*'.")
   (defclass compound-ast (ast) ()
     (:documentation "Mix-in for AST classes that are compounds."))
 
+  (defclass conditional-ast (ast) ()
+    (:documentation "Mix-in for AST classes that have a conditional."))
+
   (defclass control-flow-ast (ast) ()
     (:documentation "Mix-in for AST classes that have control flow."))
 
-  (defclass if-ast (control-flow-ast) ()
+  (defclass if-ast (control-flow-ast conditional-ast) ()
     (:documentation "Mix-in for AST classes that are ifs."))
+
+  (defclass while-ast (control-flow-ast conditional-ast) ()
+    (:documentation "Mix-in for AST classes that are whiles."))
 
   (defclass loop-ast (control-flow-ast) ()
     (:documentation "Mix-in for AST classes that are loops."))
