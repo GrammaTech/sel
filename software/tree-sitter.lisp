@@ -2187,6 +2187,15 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
       ((python-function-definition :python-name name)
        (source-text name))))
 
+  (defmethod function-parameters ((ast python-call))
+    (children (python-arguments ast)))
+
+  (defmethod function-parameters ((ast python-function-definition))
+    (function-parameters (second (children ast))))
+
+  (defmethod function-parameters ((ast python-parameters))
+    (children ast))
+
   (defmethod end-of-parameter-list
       ((software python) (function-node function-ast))
     (ematch function-node
