@@ -2920,7 +2920,10 @@ scope of START-AST."
   (defmethod ext :around ((obj cpp)) (or (call-next-method) "cpp"))
 
   (defmethod function-name ((node cpp-function-definition))
-    (source-text (@ node '(:cpp-declarator :cpp-declarator)))))
+    (source-text (@ node '(:cpp-declarator :cpp-declarator))))
+
+  (defmethod function-arguments ((node cpp-call-expression))
+    (children (cpp-arguments node))))
 
 
 ;;;; Interleaved text
