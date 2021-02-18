@@ -280,6 +280,7 @@
            :lhs
            :rhs
            :operator
+           :control-flow-condition
            :parameter-type
            :parameter-name
            :call-name
@@ -1704,6 +1705,9 @@ the rebinding"
 (defgeneric operator (ast)
   (:documentation "Return the operator from an AST."))
 
+(defgeneric control-flow-dondition (control-flow-ast)
+  (:documentation "Return the condition from a CONTROL-FLOW-AST."))
+
 (defclass normal-scope () ()
   (:documentation "Tree-sitter mixin for languages with \"normal\" scoping."))
 
@@ -2229,6 +2233,9 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
     (make-keyword (string-trim whitespace (first (interleaved-text (python-operator ast))))))
   (defmethod operator ((ast python-comparison-operator))
     (make-keyword (string-trim whitespace (second (interleaved-text ast)))))
+
+  (defmethod control-flow-condition ((ast python-if-statement)) (car (children ast)))
+  (defmethod control-flow-condition ((ast python-while-statement)) (car (children ast)))
 
   ;; Indentation
   (defmethod indentablep ((ast python-string)) nil)
