@@ -274,13 +274,14 @@
            :goto-ast
            :terminal-symbol
            ;; Cross-language Generics
-           :end-of-parameter-list
-           :function-name
-           :function-parameters
            :lhs
            :rhs
            :operator
            :control-flow-condition
+           :end-of-parameter-list
+           :function-name
+           :function-arguments
+           :function-parameters
            :parameter-type
            :parameter-name
            :call-name
@@ -1657,6 +1658,9 @@ the rebinding"
   (:method ((ast ast))
     (collect-if {typep _ 'identifier-ast} ast)))
 
+(defgeneric function-arguments (ast)
+  (:documentation "Return the arguments of AST."))
+
 (defgeneric function-parameters (ast)
   (:documentation "Return the parameters of AST."))
 
@@ -2190,7 +2194,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
       ((python-function-definition :python-name name)
        (source-text name))))
 
-  (defmethod function-parameters ((ast python-call))
+  (defmethod function-arguments ((ast python-call))
     (children (python-arguments ast)))
 
   (defmethod function-parameters ((ast python-function-definition))
