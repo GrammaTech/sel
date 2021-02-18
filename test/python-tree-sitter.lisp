@@ -244,6 +244,13 @@
     (is (not (emptyp (trim-whitespace new-source-text))))
     (is (search text new-source-text))))
 
+(deftest python-lhs-rhs-and-operator-tests ()
+  (match (deepest-ast 'python-ast "x <= y")
+    ((ast :lhs lhs :operator operator :rhs rhs)
+     (is (string= "x" (source-text lhs)))
+     (is (eq :<= operator))
+     (is (string= "y" (source-text rhs))))))
+
 ;;;(deftest python-stmt-ast-has-newline ()
 (deftest py-stmt-ast-has-newline ()
   (with-fixture fib-python

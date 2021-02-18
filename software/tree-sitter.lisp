@@ -277,6 +277,9 @@
            :function-parameters
            :declaration-lhs
            :declaration-rhs
+           :lhs
+           :rhs
+           :operator
            :parameter-type
            :parameter-name
            :call-name
@@ -1676,6 +1679,17 @@ the rebinding"
   (:documentation
    "Return the right-hand side of a variable declaration."))
 
+(defgeneric lhs (ast)
+  (:documentation "Return the left-hand side of an AST.")
+  (:method ((ast variable-declaration-ast)) (declaration-lhs ast)))
+
+(defgeneric rhs (ast)
+  (:documentation "Return the right-hand side of an AST.")
+  (:method ((ast variable-declaration-ast)) (declaration-rhs ast)))
+
+(defgeneric operator (ast)
+  (:documentation "Return the operator from an AST."))
+
 (defclass normal-scope () ()
   (:documentation "Tree-sitter mixin for languages with \"normal\" scoping."))
 
@@ -2181,6 +2195,17 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
 
   (defmethod declaration-rhs ((decl python-assignment))
     (python-right decl))
+
+  (defmethod lhs ((ast python-binary-operator)) (python-left ast))
+  (defmethod lhs ((ast python-comparison-operator)) (first (children ast)))
+
+  (defmethod rhs ((ast python-binary-operator)) (python-right ast))
+  (defmethod rhs ((ast python-comparison-operator)) (second (children ast)))
+
+  (defmethod operator ((ast python-binary-operator))
+    (make-keyword (string-trim whitespace (first (interleaved-text (python-operator ast))))))
+  (defmethod operator ((ast python-comparison-operator))
+    (make-keyword (string-trim whitespace (second (interleaved-text ast)))))
 
   ;; Indentation
   (defmethod indentablep ((ast python-string)) nil)
