@@ -1716,7 +1716,7 @@ the rebinding"
 (defgeneric operator (ast)
   (:documentation "Return the operator from an AST."))
 
-(defgeneric control-flow-dondition (control-flow-ast)
+(defgeneric control-flow-condition (control-flow-ast)
   (:documentation "Return the condition from a CONTROL-FLOW-AST."))
 
 (defclass normal-scope () ()
