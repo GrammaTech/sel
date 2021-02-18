@@ -264,6 +264,7 @@
            :float-ast
            :integer-ast
            :string-ast
+           :char-ast
            :call-ast
            :boolean-ast
            :boolean-true-ast
@@ -552,6 +553,9 @@ searched to populate `*tree-sitter-language-files*'.")
 
   (defclass boolean-false-ast (boolean-ast) ()
     (:documentation "Mix-in for AST classes that are false booleans."))
+
+  (defclass char-ast (literal-ast) ()
+    (:documentation "Mix-in for AST classes that are literal chars."))
 
   (defclass string-ast (literal-ast) ()
     (:documentation "Mix-in for AST classes that are literal strings."))
