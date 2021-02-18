@@ -277,8 +277,6 @@
            :end-of-parameter-list
            :function-name
            :function-parameters
-           :declaration-lhs
-           :declaration-rhs
            :lhs
            :rhs
            :operator
@@ -1697,21 +1695,11 @@ the rebinding"
    "Return a list of variable declarations affecting outer scopes.")
   (:method ((ast ast)) nil))
 
-(defgeneric declaration-lhs (declaration-ast)
-  (:documentation
-   "Return the left-hand side of a variable declaration."))
-
-(defgeneric declaration-rhs (declaration-ast)
-  (:documentation
-   "Return the right-hand side of a variable declaration."))
-
 (defgeneric lhs (ast)
-  (:documentation "Return the left-hand side of an AST.")
-  (:method ((ast variable-declaration-ast)) (declaration-lhs ast)))
+  (:documentation "Return the left-hand side of an AST."))
 
 (defgeneric rhs (ast)
-  (:documentation "Return the right-hand side of an AST.")
-  (:method ((ast variable-declaration-ast)) (declaration-rhs ast)))
+  (:documentation "Return the right-hand side of an AST."))
 
 (defgeneric operator (ast)
   (:documentation "Return the operator from an AST."))
@@ -2228,17 +2216,13 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
                 :line line
                 :column (+ column #.(length "lambda"))))))))
 
-  (defmethod declaration-lhs ((decl python-assignment))
-    (python-left decl))
-
-  (defmethod declaration-rhs ((decl python-assignment))
-    (python-right decl))
-
   (defmethod lhs ((ast python-binary-operator)) (python-left ast))
   (defmethod lhs ((ast python-comparison-operator)) (first (children ast)))
+  (defmethod lhs ((decl python-assignment)) (python-left decl))
 
   (defmethod rhs ((ast python-binary-operator)) (python-right ast))
   (defmethod rhs ((ast python-comparison-operator)) (second (children ast)))
+  (defmethod rhs ((decl python-assignment)) (python-right decl))
 
   (defmethod operator ((ast python-binary-operator))
     (make-keyword (string-trim whitespace (first (interleaved-text (python-operator ast))))))
@@ -2823,11 +2807,9 @@ AST ast to return the enclosing scope for"
       ((javascript-arrow-function :javascript-parameter (and param (type node)))
        (node-end software param))))
 
-  (defmethod declaration-lhs ((decl javascript-variable-declarator))
-    (javascript-name decl))
+  (defmethod lhs ((decl javascript-variable-declarator)) (javascript-name decl))
 
-  (defmethod declaration-rhs ((decl javascript-variable-declarator))
-    (javascript-value decl))
+  (defmethod rhs ((decl javascript-variable-declarator)) (javascript-value decl))
 
   ;; Helper Functions.
   (-> enclosing-find-function (javascript javascript-ast string)
@@ -2860,11 +2842,9 @@ scope of START-AST."
   (defmethod function-parameters ((ast c-function-definition))
     (children (c-parameters (c-declarator ast))))
 
-  (defmethod declaration-lhs ((ast c-assignment-expression))
-    (c-left ast))
+  (defmethod lhs ((ast c-assignment-expression)) (c-left ast))
 
-  (defmethod declaration-rhs ((ast c-assignment-expression))
-    (c-right ast))
+  (defmethod rhs ((ast c-assignment-expression)) (c-right ast))
 
   (defmethod initialize-instance :after ((c c)
                                          &key &allow-other-keys)
