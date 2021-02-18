@@ -29,7 +29,6 @@
            :json-tree-sitter-available-p
            :stmt-with-text
            :stmt-starting-with-text
-           :deepest-ast
            :fully-every
            :different-asts
            :range-to-list
@@ -218,19 +217,6 @@ AST holding STMT is found."
   (find-if (lambda (ast)
              (and ast (equal 0 (search text (source-text ast)))))
            (asts obj)))
-
-(defun find-deepest (function ast &aux (deepest 0) result)
-  "Find the deepest node in AST satisfying FUNCTION."
-  (do-tree (node ast :index rpath :value result)
-    (when (and (funcall function node)
-               (> (length rpath) deepest))
-      (setf result node
-            deepest (length rpath)))
-    nil))
-
-(defun deepest-ast (type text)
-  "Return the deepest full AST of TEXT converted to TYPE."
-  (find-deepest [{string= text} #'source-text] (convert type text)))
 
 
 ;;; Software.

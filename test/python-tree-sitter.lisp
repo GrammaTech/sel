@@ -245,7 +245,7 @@
     (is (search text new-source-text))))
 
 (deftest python-lhs-rhs-and-operator-tests ()
-  (match (deepest-ast 'python-ast "x <= y")
+  (match (convert 'python-ast "x <= y" :deepest t)
     ((ast :lhs lhs :operator operator :rhs rhs)
      (is (string= "x" (source-text lhs)))
      (is (eq :<= operator))

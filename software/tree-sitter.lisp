@@ -916,8 +916,8 @@ Unlike the `children` methods which collects all children of an AST from any slo
                       :string-pass-through string-pass-through))
 
            (defmethod convert ((to-type (eql ',ast-superclass)) (string string)
-                               &key &allow-other-keys)
-             (convert 'tree-sitter-ast string :superclass to-type))
+                               &rest args &key &allow-other-keys)
+             (apply #'convert 'tree-sitter-ast string :superclass to-type args))
 
            (defmethod parse-asts ((obj ,(make-class-name))
                                   &optional (source (genome-string obj)))
@@ -1279,6 +1279,20 @@ correct class name for subclasses of SUPERCLASS."
           '(0 0)
           (list (length (last-elt line-octets))
                 (1- (length line-octets))))))))
+
+(defmethod convert :around ((to-type (eql 'tree-sitter-ast)) (string string)
+                            &key deepest &allow-other-keys)
+  (labels ((find-deepest (function ast &aux (deepest 0) result)
+             ;; Find the deepest node in AST satisfying FUNCTION.
+             (do-tree (node ast :index rpath :value result)
+               (when (and (funcall function node)
+                          (> (length rpath) deepest))
+                 (setf result node
+                       deepest (length rpath)))
+               nil)))
+    (if deepest
+        (find-deepest [{string= string} #'source-text] (call-next-method))
+        (call-next-method))))
 
 
 ;;;; Tree-sitter language definitions.
