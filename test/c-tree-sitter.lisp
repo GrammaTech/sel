@@ -252,3 +252,24 @@ tree that has the incorrect number of values for single-value slot."
   (is (convert 'c-ast "void f() {​​​​​​​
   foo_t a = {​​​​​​​.x.y = {​​​​​​​0}​​​​​​​ }​​​​​​​;
 }​​​​​​​")))
+
+(deftest test-scopes ()
+  (let* ((c (sel:from-string (make 'c) (fmt "~
+int main () {
+  int x = 1;
+  int z;
+  y();
+}")))
+         (scopes (software-evolution-library/software/parseable:scopes
+                  c
+                  (find-if (of-type 'call-ast) c)))
+         (bindings (apply #'append scopes))
+         (x-binding (find "x" bindings
+                          :test #'equal
+                          :key {assocdr :name}))
+         (z-binding (find "z" bindings
+                          :test #'equal
+                          :key {assocdr :name})))
+    (is x-binding)
+    (is z-binding)
+    (is (equal "1" (source-text (rhs (assocdr :decl x-binding)))))))

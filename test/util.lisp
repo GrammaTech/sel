@@ -23,6 +23,7 @@
            ;; Other functions
            :acorn-available-p
            :c-tree-sitter-available-p
+           :cpp-tree-sitter-available-p
            :java-tree-sitter-available-p
            :python-tree-sitter-available-p
            :javascript-tree-sitter-available-p
@@ -179,6 +180,10 @@
 (defun c-tree-sitter-available-p ()
   (handler-case (progn (make-instance 'sel/sw/tree-sitter::c))
                 (error (e) (declare (ignorable e)) nil)))
+
+(defun cpp-tree-sitter-available-p ()
+  (handler-case (progn (make-instance 'sel/sw/tree-sitter::pp))
+    (error (e) (declare (ignorable e)) nil)))
 
 (defun java-tree-sitter-available-p ()
   (handler-case (progn (make-instance 'sel/sw/tree-sitter::java))

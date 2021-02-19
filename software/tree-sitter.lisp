@@ -366,7 +366,7 @@ searched to populate `*tree-sitter-language-files*'.")
        (:while-ast c-while-statement)
        (:loop-ast c-while-statement c-for-statement)
        (:parse-error-ast c-error)
-       (:variable-declaration-ast c-assignment-expression)
+       (:variable-declaration-ast c-assignment-expression c-init-declarator)
        (:function-ast c-function-definition)
        (:identifier-ast c-identifier)
        (:string-ast c-string-literal)
@@ -380,10 +380,13 @@ searched to populate `*tree-sitter-language-files*'.")
        (:goto-ast c-goto-statement))
       (:cpp
        (:parenthesized-expression-ast cpp-parenthesized-expression)
+       (:compound-ast cpp-compound-statement)
        (:string-ast cpp-string-literal cpp-raw-string-literal)
        (:char-ast cpp-char-literal)
+       (:call-ast cpp-call-expression)
        (:boolean-true-ast cpp-true)
        (:boolean-false-ast cpp-false)
+       (:variable-declaration-ast cpp-assignment-expression cpp-init-declarator)
        (:function-ast cpp-function-definition)
        (:unary-ast cpp-unary-expression)
        (:binary-ast cpp-binary-expression)
@@ -2857,6 +2860,12 @@ scope of START-AST."
 
   (defmethod rhs ((ast c-assignment-expression)) (c-right ast))
 
+  (defmethod rhs ((ast c-init-declarator))
+    (c-value ast))
+
+  (defmethod lhs ((ast c-init-declarator))
+    (c-declarator ast))
+
   (defmethod initialize-instance :after ((c c)
                                          &key &allow-other-keys)
     "If no compiler was specified, default to cc."
@@ -2895,7 +2904,11 @@ scope of START-AST."
     (c-left (c-initializer ast)))
 
   (defmethod outer-declarations ((ast c-declaration))
-    (mapcar #'c-declarator (c-declarator ast)))
+    ;; Special handling for uninitialized variables.
+    (iter (for d in (c-declarator ast))
+          (collect (if (typep d 'c-identifier)
+                       d
+                       (c-declarator d)))))
 
   (defmethod type-in ((c c) (ast c-ast))
     (when-let ((decl (find-if «or {typep _ 'c-declaration}
@@ -2920,9 +2933,19 @@ scope of START-AST."
 
   (defmethod initialize-instance :after ((cpp cpp)
                                          &key &allow-other-keys)
-             "If no compiler was specified, default to cc."
-             (unless (compiler cpp)
-               (setf (compiler cpp) "c++")))
+    "If no compiler was specified, default to cc."
+    (unless (compiler cpp)
+      (setf (compiler cpp) "c++")))
+
+  (defmethod lhs ((ast cpp-assignment-expression)) (cpp-left ast))
+
+  (defmethod rhs ((ast cpp-assignment-expression)) (cpp-right ast))
+
+  (defmethod rhs ((ast cpp-init-declarator))
+    (cpp-value ast))
+
+  (defmethod lhs ((ast cpp-init-declarator))
+    (cpp-declarator ast))
 
   (defmethod no-fallthrough ((ast cpp-continue-statement)) t)
   (defmethod no-fallthrough ((ast cpp-break-statement)) t)
@@ -2933,7 +2956,21 @@ scope of START-AST."
     (source-text (@ node '(:cpp-declarator :cpp-declarator))))
 
   (defmethod call-arguments ((node cpp-call-expression))
-    (children (cpp-arguments node))))
+    (children (cpp-arguments node)))
+
+  (defmethod function-parameters ((ast cpp-function-definition))
+    (children (cpp-parameters (cpp-declarator ast))))
+
+  (defmethod inner-declarations ((ast cpp-function-declarator))
+    (remove-if-not {typep _ 'cpp-parameter-declaration}
+                   (convert 'list (cpp-parameters ast))))
+
+  (defmethod outer-declarations ((ast cpp-declaration))
+    ;; Special handling for uninitialized variables.
+    (iter (for d in (cpp-declarator ast))
+          (collect (if (typep d 'cpp-identifier)
+                       d
+                       (cpp-declarator d))))))
 
 
 ;;;; Interleaved text
