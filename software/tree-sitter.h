@@ -1,3 +1,5 @@
 #include <ecl/ecl.h>
 
-extern void init(cl_object);
+extern void start();
+extern void stop();
+extern cl_object convert(char *source);
