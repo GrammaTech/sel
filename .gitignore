@@ -4,6 +4,9 @@
 *.lx64fsl
 *.o
 *.a
+*.dll
+*.dylib
+*.so
 
 # Documentation cruft
 *-sb-texinfo.texi
