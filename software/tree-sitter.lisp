@@ -281,7 +281,7 @@
            :control-flow-condition
            :end-of-parameter-list
            :function-name
-           :function-arguments
+           :call-arguments
            :function-parameters
            :parameter-type
            :parameter-name
@@ -1656,7 +1656,7 @@ the rebinding"
   (:method ((ast ast))
     (collect-if {typep _ 'identifier-ast} ast)))
 
-(defgeneric function-arguments (ast)
+(defgeneric call-arguments (ast)
   (:documentation "Return the arguments of AST."))
 
 (defgeneric function-parameters (ast)
@@ -2192,7 +2192,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
       ((python-function-definition :python-name name)
        (source-text name))))
 
-  (defmethod function-arguments ((ast python-call))
+  (defmethod call-arguments ((ast python-call))
     (children (python-arguments ast)))
 
   (defmethod function-parameters ((ast python-function-definition))
@@ -2923,7 +2923,7 @@ scope of START-AST."
   (defmethod function-name ((node cpp-function-definition))
     (source-text (@ node '(:cpp-declarator :cpp-declarator))))
 
-  (defmethod function-arguments ((node cpp-call-expression))
+  (defmethod call-arguments ((node cpp-call-expression))
     (children (cpp-arguments node))))
 
 
