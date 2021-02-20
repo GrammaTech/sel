@@ -62,3 +62,7 @@ cl_object convert(language language, char *source){
     return ecl_make_keyword("ERROR");
   } ECL_CATCH_ALL_END;
 }
+
+wchar_t* type(cl_object cl_object){
+  return cl_funcall(2, c_string_to_object("type-of"), cl_object)->string.self;
+}
