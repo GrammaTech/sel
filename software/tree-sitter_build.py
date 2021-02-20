@@ -9,8 +9,14 @@ this_dir = os.path.dirname(os.path.abspath(__file__))
 ffibuilder.cdef("""
 extern void start();
 extern void stop();
-extern void* convert(char *source);
 extern void* eval(char *source);
+typedef enum {
+  JAVASCRIPT,
+  PYTHON,
+  C,
+  CPP
+} language;
+extern void* convert(language, char *source);
 """)
 
 if platform.system() == "Darwin":
