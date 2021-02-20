@@ -106,3 +106,11 @@ test/etc/gcd/gcd: test/etc/gcd/gcd.c
 
 test/etc/gcd/gcd.s: test/etc/gcd/gcd.c
 	$(CC) $< -S -masm=intel -o $@
+
+# Build an .so for a python library.
+%.dylib %.so: %.lisp
+	ecl --eval '(require :asdf)' \
+	--eval '(asdf/source-registry:clear-source-registry)' \
+	--eval '(asdf:load-system :software-evolution-library/software/tree-sitter)' \
+	--eval '(asdf:make-build :software-evolution-library/software/tree-sitter :prologue-code (quote (progn (require :asdf) (require :cffi-grovel))) :type :shared-library :move-here #P"$(dir $@)" :monolithic t :init-name "init")' \
+	--eval '(quit)'
