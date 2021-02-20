@@ -1,4 +1,5 @@
 # Compiled files
+_tree-sitter_cffi.c
 *.fas
 *.fasl
 *.lx64fsl
