@@ -10,6 +10,7 @@ ffibuilder.cdef("""
 extern void start();
 extern void stop();
 extern void* convert(char *source);
+extern void* eval(char *source);
 """)
 
 if platform.system() == "Darwin":

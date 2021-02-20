@@ -120,7 +120,7 @@ test/etc/gcd/gcd.s: test/etc/gcd/gcd.c
 # 2. Copy only those packages needed for SEL into that location
 # 3. Be careful not to copy a new ASDF into that location
 #
-%.dylib %.so %.dll: %.lisp
+%--all-systems.dylib %--all-systems.so %--all-systems.dll: %.lisp
 	ecl --eval '(require :asdf)' \
 	--eval '(asdf/source-registry:clear-source-registry)' \
 	--eval '(asdf:load-system :software-evolution-library/software/tree-sitter)' \
@@ -140,5 +140,5 @@ else
 	endif
 endif
 
-python-tree-sitter: software/tree-sitter_build.py software/tree-sitter.$(EXT)
+python-tree-sitter: software/tree-sitter_build.py software/tree-sitter--all-systems.$(EXT)
 	python software/tree-sitter_build.py
