@@ -1,0 +1,41 @@
+SEL exports a Python library which exposes functionality for parsing,
+traversing, and inspecting source code from multiple languages.
+Specifically, this library exposes SEL's tree-sitter based asts (see
+@ref{Source Code with @code{tree-sitter}}) and the generic functions
+define upon those ASTs.
+
+
+@section Building the SEL Python Library
+
+The build requires embeddable common lisp (ECL)
+(@url{https://gitlab.com/embeddable-common-lisp/ecl}) to compile the
+common lisp implementation into a C shared library and Python's CFFI
+(@url{https://cffi.readthedocs.io}) to call into that C library from
+Python.  With these prerequesites installed the following might be
+sufficient to build the library:
+@example
+make python-tree-sitter
+@end example
+
+
+@section Running the SEL Python Library
+
+Once built the library may be run as follows:
+@example
+sel$ python
+Python 3.9.1 (default, Feb  3 2021, 07:38:02) 
+[Clang 12.0.0 (clang-1200.0.32.29)] on darwin
+Type "help", "copyright", "credits" or "license" for more information.
+>>> from _tree_sitter_cffi import ffi, lib
+>>> lib.start()
+;;; Loading #P"/usr/local/lib/ecl-21.2.1/asdf.fas"
+;;; Warning: No definition for IOV-MAX
+;;; Warning: No definition for CFLAG-VSWTC
+;;; Warning: No definition for TTY-IUCLC
+;;; Warning: No definition for TTY-OLCUC
+;;; Warning: Class NORMAL-SCOPE has been forward referenced.
+>>> lib.eval("(format t \"Package:~S~%\" *package*)".encode('ascii'))
+Package:#<"SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/TREE-SITTER" package>
+<cdata 'void *' 0x1>
+>>> 
+@end example

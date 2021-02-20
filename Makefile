@@ -9,7 +9,7 @@ PACKAGE_NAME = software-evolution-library
 PACKAGE_NICKNAME = sel
 API_TITLE = "Software Evolution Library Index"
 API_NEXT = "ChangeLog"
-API_PREV = "Troubleshooting"
+API_PREV = "Python Library"
 DOC_PACKAGES =								\
 	software-evolution-library					\
 	software-evolution-library/command-line-rest			\
