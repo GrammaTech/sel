@@ -1,5 +1,4 @@
 # Compiled files
-_tree-sitter_cffi.c
 *.fas
 *.fasl
 *.lx64fsl
@@ -65,3 +64,6 @@ system-index.txt
 
 # Ignore the wiki
 wiki/
+
+# ECL library and Python package build cruft
+_tree_sitter_cffi.c
