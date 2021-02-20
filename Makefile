@@ -108,6 +108,18 @@ test/etc/gcd/gcd.s: test/etc/gcd/gcd.c
 	$(CC) $< -S -masm=intel -o $@
 
 # Build an .so for a python library.
+#
+# NOTE: If this fails, especially if the error looks like something is
+# not defined or it could be related to ASDF or UIOP then the problem
+# is almost certainly due to ECL loading a newer version of ASDF than
+# that shipped with ECL *or* one of the packages in your ASDF system
+# registry using features that require a newer ASDF/UIOP than that
+# shipped with ECL.  The solution is to:
+# 1. Configure ECL/ASDF to look for packages in a new location
+#    https://common-lisp.net/project/asdf/asdf/Configuring-ASDF-to-find-your-systems.html
+# 2. Copy only those packages needed for SEL into that location
+# 3. Be careful not to copy a new ASDF into that location
+#
 %.dylib %.so: %.lisp
 	ecl --eval '(require :asdf)' \
 	--eval '(asdf/source-registry:clear-source-registry)' \
