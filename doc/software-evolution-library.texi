@@ -97,6 +97,7 @@ supporting automation of common software engineering tasks.
 * Utilities::                   Utilities provided by SEL.
 * Usage::                       Using SEL, including examples.
 * Troubleshooting::             Solutions for build and test issues.
+* Python Library::              A Python interface to SEL.
 
 Appendices
 * Software Evolution Library Index:: Public functions, variables, and macros
@@ -1416,10 +1417,15 @@ with the following.
 @c @section Memoize Fitness
 @c @cindex memoize fitness
 
-@node Troubleshooting, Software Evolution Library Index, Repair, Top
+@node Troubleshooting, Python Library, Repair, Top
 @chapter Troubleshooting
 @cindex troubleshooting
 @include troubleshooting.texi
+
+@node Python Library, Software Evolution Library Index, Troubleshooting, Top
+@chapter Python Library
+@cindex python-library
+@include python-library.texi
 
 @include include/sb-texinfo.texinfo
 @include software-evolution-library-index-sb-texinfo.texi
