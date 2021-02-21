@@ -955,7 +955,19 @@ the `genome' of the software object."
   (:method ((obj parseable) (loc source-location))
     (nest (mapcar #'car)
           (remove-if-not [{contains _ loc} #'cdr])
-          (ast-source-ranges obj))))
+          (ast-source-ranges obj)))
+  (:method ((ast ast) (loc source-location))
+    (nest (mapcar #'car)
+          (remove-if-not [{contains _ loc} #'cdr])
+          (ast-source-ranges ast)))
+  (:method ((obj parseable) (location integer))
+    (asts-containing-source-location
+     obj
+     (position->source-location (genome-string ast) location)))
+  (:method ((ast ast) (location integer))
+    (asts-containing-source-location
+     ast
+     (position->source-location (source-text ast) location))))
 
 (defgeneric asts-contained-in-source-range (software range)
   (:documentation "Return a list of ASTs in SOFTWARE contained in RANGE.")
