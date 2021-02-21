@@ -61,4 +61,8 @@ RUN echo '(:tree "/root/quicklisp/local-projects/")' > /root/.config/common-lisp
 RUN echo '(:tree "/root/quicklisp/dists/quicklisp/software/")' >> /root/.config/common-lisp/source-registry.conf.d/quicklisp.conf
 RUN ecl --eval '(asdf:load-system :software-evolution-library/software/tree-sitter)' --eval '(quit)'
 
-RUN apt-get -y install python python-pip
+RUN export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
+RUN apt-get -y install python3 python3-pip
+RUN ln -s $(which python3) /usr/bin/python
+RUN ln -s $(which pip3) /usr/bin/pip
+RUN pip3 install cffi
