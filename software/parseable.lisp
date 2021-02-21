@@ -587,13 +587,27 @@ optionally writing to STREAM.")
   (:documentation "Deprecated: Return a list of all non-root ASTs in OBJ."))
 
 (defgeneric get-parent-ast (obj ast)
-  (:documentation "Return the parent node of AST in OBJ"))
+  (:documentation "Return the parent node of AST in OBJ")
+  (:method (obj (ast ast))
+    (let ((path (ast-path obj ast)))
+      (cond ((null path) nil)
+            ((single path)
+             ;; The parent is the top-level AST.
+             (@ obj nil))
+            (t (@ obj (butlast path)))))))
 
 (defgeneric get-parent-asts (obj ast)
-  (:documentation "Return the parent nodes of AST in OBJ including AST."))
+  (:documentation "Return the parent nodes of AST in OBJ including AST.")
+  (:method (obj (ast ast))
+    (nest (remove-if-not {typep _ 'ast})  ; Remove non-ASTs.
+          (mapcar {lookup obj})           ; Lookup each prefix.
+          (maplist #'reverse) (reverse)   ; Prefixes of path.
+          (ast-path obj ast))))
 
 (defgeneric get-parent-asts* (obj ast)
-  (:documentation "Return the parent nodes of AST in OBJ not including AST."))
+  (:documentation "Return the parent nodes of AST in OBJ not including AST.")
+  (:method (obj (ast ast))
+    (cdr (get-parent-asts obj ast))))
 
 (defgeneric get-parent-full-stmt (software ast)
   (:documentation
@@ -984,45 +998,6 @@ otherwise.
   (:method ((obj parseable) (possible-parent-ast ast) (ast ast))
     (member possible-parent-ast (get-parent-asts obj ast)
             :test #'equalp)))
-
-(defmethod get-parent-ast ((obj parseable) (ast ast))
-  "Return the parent node of AST in OBJ
-* OBJ software object containing AST and its parent
-* AST node to find the parent of
-"
-  (let ((path (ast-path obj ast)))
-    (cond ((null path) nil)
-          ((single path)
-           ;; The parent is the top-level AST.
-           (@ obj nil))
-          (t (@ obj (butlast path))))))
-
-(defmethod get-parent-asts ((obj parseable) (ast ast))
-  "Return the parent nodes of AST in OBJ including AST.
-* OBJ software object containing AST and its parents
-* AST node to find the parents of
-"
-  (nest (remove-if-not {typep _ 'ast})  ; Remove non-ASTs.
-        (mapcar {lookup obj})           ; Lookup each prefix.
-        (maplist #'reverse) (reverse)   ; Prefixes of path.
-        (ast-path obj ast)))
-
-(defmethod get-parent-asts ((root ast) (ast ast))
-  "Return the parent nodes of AST in OBJ including AST.
-* ROOT root ast of the software object containing AST and its parents
-* AST node to find the parents of.
-"
-  (nest (remove-if-not {typep _ 'ast})  ; Remove non-ASTs.
-        (mapcar {lookup root})           ; Lookup each prefix.
-        (maplist #'reverse) (reverse)   ; Prefixes of path.
-        (ast-path root ast)))
-
-(defmethod get-parent-asts* ((obj parseable) (ast ast))
-  "Return the parent nodes of AST in OBJ not including AST.
-* OBJ software object containing AST and its parents
-* AST node to find the parents of
-"
-  (cdr (get-parent-asts obj ast)))
 
 (defmethod get-vars-in-scope ((obj parseable) (ast ast)
                               &optional (keep-globals t))
