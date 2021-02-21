@@ -29,6 +29,9 @@ usage.
     This is used in callarg prediction to get the AST under the cursor
     when a prediction code action is invoked.
 
+    > This could just as easily take a single position offset into the string.
+    > NOTE that the line will be 1-indexed.
+
 - `parent`(node: Node) -> Node:
     Return the parent AST of a given node.
 

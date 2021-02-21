@@ -66,3 +66,20 @@ cl_object convert(language language, char *source){
 wchar_t* type(cl_object cl_object){
   return cl_funcall(2, c_string_to_object("type-of"), cl_object)->string.self;
 }
+
+/* // Alternate implementation taking a single position offset into the text string.
+ * cl_object ast_at_point(cl_object ast, int position){
+ *   return cl_car(cl_last(1, cl_funcall(3, c_string_to_object("asts-containing-source-location"),
+ *                                       ast,
+ *                                       position)));
+ * }
+*/
+
+cl_object ast_at_point(cl_object ast, int line, int column){
+  return cl_car(cl_last(1, cl_funcall(3, c_string_to_object("asts-containing-source-location"),
+                                      ast,
+                                      cl_funcall(6, c_string_to_object("make-instance"),
+                                                 ecl_make_symbol("SOURCE-LOCATION", package),
+                                                 ecl_make_keyword("LINE"), line,
+                                                 ecl_make_keyword("COLUMN"), column))));
+}

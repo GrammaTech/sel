@@ -18,6 +18,7 @@ typedef enum {
 } language;
 extern void* convert(language, char *source);
 extern wchar_t* type(void* cl_object);
+extern void* ast_at_point(void* ast, int line, int column);
 """)
 
 if platform.system() == "Darwin":
