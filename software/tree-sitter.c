@@ -54,6 +54,7 @@ cl_object language_symbol(language language){
   case PYTHON: return ecl_make_symbol("PYTHON-AST", package);
   case C: return ecl_make_symbol("C-AST", package);
   case CPP: return ecl_make_symbol("CPP-AST", package);
+  case UNKNOWN_LANGUAGE: return ecl_make_symbol("ERROR", package);
   }
 }
 
@@ -100,4 +101,53 @@ cl_object ast_at_point(cl_object ast, int line, int column){
 
 wchar_t* source_text(cl_object ast){
   return(cl_funcall(2, c_string_to_object("source-text"), ast))->string.self;
+}
+
+cl_object children(cl_object ast){
+  return(cl_funcall(2, c_string_to_object("children"), ast));
+}
+
+cl_object car(cl_object list){
+  return ecl_car(list);
+}
+
+cl_object cdr(cl_object list){
+  return ecl_cdr(list);
+}
+
+bool null(cl_object object){
+  return ecl_eql(object, ECL_NIL);
+}
+
+bool eql(cl_object left, cl_object right){
+  return ecl_eql(left, right);
+}
+
+language ast_language(cl_object ast){
+  if(! null(cl_funcall(3, c_string_to_object("subtypep"),
+                       cl_funcall(2, c_string_to_object("type-of"), ast),
+                       ecl_make_symbol("PYTHON-AST", package))))
+    return PYTHON;
+  else if(! null(cl_funcall(3, c_string_to_object("subtypep"),
+                       cl_funcall(2, c_string_to_object("type-of"), ast),
+                       ecl_make_symbol("JAVASCRIPT-AST", package))))
+    return JAVASCRIPT;
+  else if(! null(cl_funcall(3, c_string_to_object("subtypep"),
+                       cl_funcall(2, c_string_to_object("type-of"), ast),
+                       ecl_make_symbol("C-AST", package))))
+    return C;
+  else if(! null(cl_funcall(3, c_string_to_object("subtypep"),
+                       cl_funcall(2, c_string_to_object("type-of"), ast),
+                       ecl_make_symbol("CPP-AST", package))))
+    return CPP;
+  else
+    return UNKNOWN_LANGUAGE;
+}
+
+cl_object child_slots(cl_object ast){
+  return cl_funcall(2, c_string_to_object("child-slots"), ast);
+}
+
+cl_object slot(cl_object ast, const char* slot_name){
+  return ecl_slot_value(ast, slot_name);
 }

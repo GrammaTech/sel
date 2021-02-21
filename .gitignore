@@ -66,4 +66,5 @@ system-index.txt
 wiki/
 
 # ECL library and Python package build cruft
+__pycache__/
 _tree_sitter_cffi.c
