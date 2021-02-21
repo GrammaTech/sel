@@ -9,7 +9,8 @@ this_dir = os.path.dirname(os.path.abspath(__file__))
 ffibuilder.cdef("""
 extern void start();
 extern void stop();
-extern void* eval(char *source);
+extern void show(void* cl_object);
+extern void* eval(char* source);
 typedef enum {
   JAVASCRIPT,
   PYTHON,
