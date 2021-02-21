@@ -1,5 +1,6 @@
 #include <ecl/ecl.h>
 
+extern size_t get_last_string_length();
 extern void start();
 extern void stop();
 extern cl_object eval(char* source);

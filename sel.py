@@ -29,6 +29,9 @@ def ecl_mapcar(fn, ecl_list):
         ecl_list = lib.cdr(ecl_list)
     return result.reverse()
 
+def to_string(cdata) -> str:
+    return ffi.string(cdata, lib.get_last_string_length())
+
 class AST:
     def __init__(self, language:int = unknown_language, source:str="", handle=None) -> None:
         if handle == None:
@@ -41,10 +44,13 @@ class AST:
         return AST.new(lib.ast_at_point(self, line, column));
 
     def type(self):
-        return ffi.string(lib.type(self.handle))
+        return to_string(lib.type(self.handle))
 
     def children(self):
         ecl_mapcar(lambda child: AST.new(handle=child), lib.children(self.handle))
 
     def child_slots(self) -> [str]:
-        ecl_mapcar(lambda slot: lib.to_string(slot), lib.child_slots(self.handle))
+        ecl_mapcar(lambda slot: string(slot), lib.child_slots(self.handle))
+
+    def source_text(self) -> str:
+        return to_string(lib.source_text(self.handle))
