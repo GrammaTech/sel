@@ -47,8 +47,11 @@ class AST:
     def ast_at_point(self, line:int, column:int):
         return AST(lib.ast_at_point(self, line, column));
 
-    def type(self):
-        return to_string(lib.type(self.handle))
+    def get_type(self):
+        return to_string(lib.get_type(self.handle))
+
+    def get_class(self):
+        return to_string(lib.get_class(self.handle))
 
     def children(self):
         return ecl_mapcar(lambda child: AST(handle=child), lib.children(self.handle))
