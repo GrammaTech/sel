@@ -102,10 +102,13 @@ cl_object convert(language language, char* source){
   } ECL_CATCH_ALL_END;
 }
 
-wchar_t* type(cl_object cl_object){
-  return get_string(cl_funcall(2, c_string_to_object("symbol-name"),
-                               cl_funcall(2, c_string_to_object("type-of"),
-                                          cl_object)));
+wchar_t* get_type(cl_object cl_object){
+  return get_string(cl_symbol_name(cl_type_of(cl_object)));
+}
+
+wchar_t* get_class(cl_object cl_object){
+  return get_string(cl_symbol_name(cl_funcall(2, c_string_to_object("class-name"),
+                                              (cl_class_of(cl_object)))));
 }
 
 /* // Alternate implementation taking a single position offset into the text string.
