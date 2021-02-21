@@ -16,7 +16,14 @@ void stop(){
   cl_shutdown();
 }
 
-cl_object eval(char *source){
+void show(cl_object cl_object){
+  cl_funcall(4, c_string_to_object("format"),
+             c_string_to_object("t"),
+             c_string_to_object("\"~&~S~%\""),
+             cl_object);
+}
+
+cl_object eval(char* source){
   cl_env_ptr env = ecl_process_env();
   ECL_CATCH_ALL_BEGIN(env) {
     /*
@@ -85,5 +92,5 @@ cl_object ast_at_point(cl_object ast, int line, int column){
 }
 
 wchar_t* source_text(cl_object ast){
-  return(cl_funcall(2, c_string_to_object("source-text"), ast));
+  return(cl_funcall(2, c_string_to_object("source-text"), ast))->string.self;
 }
