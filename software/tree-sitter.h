@@ -12,3 +12,4 @@ typedef enum {
 extern cl_object convert(language language, char *source);
 extern wchar_t* type(cl_object cl_object);
 extern cl_object ast_at_point(cl_object ast, int line, int column);
+extern wchar_t* source_text(cl_object ast);

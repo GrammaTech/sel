@@ -38,8 +38,14 @@ usage.
     This is used in callarg prediction to find the enclosing function
     callsite around the cursor when a prediction code action is invoked.
 
+    > This one will need a pointer to the root of the tree in which to
+    > try to find the parent.
+
 - `enclosing_function`(node: Node) -> Node:
     Return the enclosing function of a node.
+
+    > This one will also need a pointer to the root of the tree in
+    > which to try to find the parent.
 
 - `children`(node: Node) -> List[Node]:
     Return the children of the node.
@@ -54,12 +60,26 @@ usage.
     a "leading" field on the node.  We should be able to reconstruct the
     full text of the AST from the simplified form.  See also [1].
 
+    > This one will also need a pointer to the root of the tree in
+    > which to try to find the parent.
+    >
+    > It (currently) needs the parent to get the interleaved text, but
+    > I think this will change after the structured text refactoring
+    > at which point ASTs will own their own prefixes.
+
 - `suffix`(node: Node) -> Text:
     Return the non-code text trailing the AST.
 
     For the leaf nodes of simplified ASTs, we store trailing non-code text as
     a "trailing" field on the node.  We should be able to reconstruct the
     full text of the AST from the simplified form.  See also [1]
+
+    > This one will also need a pointer to the root of the tree in
+    > which to try to find the parent.
+    >
+    > It (currently) needs the parent to get the interleaved text, but
+    > I think this will change after the structured text refactoring
+    > at which point ASTs will own their own suffixes.
 
 - `source-text`(node: Node) -> Text:
     Return the source text for the given AST.

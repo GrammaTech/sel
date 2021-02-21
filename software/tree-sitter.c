@@ -83,3 +83,7 @@ cl_object ast_at_point(cl_object ast, int line, int column){
                                                  ecl_make_keyword("LINE"), line,
                                                  ecl_make_keyword("COLUMN"), column))));
 }
+
+wchar_t* source_text(cl_object ast){
+  return(cl_funcall(2, c_string_to_object("source-text"), ast));
+}
