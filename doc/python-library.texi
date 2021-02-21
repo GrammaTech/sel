@@ -20,6 +20,14 @@ make python-tree-sitter
 
 @section Running the SEL Python Library
 
+Note.  If you see a error that looks similar to @code{ImportError:
+dlopen(...sel/_tree_sitter_cffi.cpython-39-darwin.so, 2): Library not
+loaded:
+~/.cache/common-lisp/ecl...software/tree-sitter--all-systems.dylib}
+then you may need to manually copy the shared library compiled by ECL
+from your @code{sel/source} directory into the location mentioned in
+the error.
+
 Once built the library may be run as follows:
 @example
 sel$ python
