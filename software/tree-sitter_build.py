@@ -10,6 +10,7 @@ ffibuilder.cdef("""
 extern void start();
 extern void stop();
 extern void show(void* cl_object);
+extern wchar_t* to_string(void* cl_object);
 extern void* eval(char* source);
 typedef enum {
   JAVASCRIPT,
