@@ -30,6 +30,7 @@ extern bool null(void* cl_object);
 extern bool eql(void* left, void* right);
 extern language ast_language(void* ast);
 extern void* child_slots(void* ast);
+extern size_t get_last_string_length();
 """)
 
 if platform.system() == "Darwin":

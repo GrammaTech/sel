@@ -4,6 +4,17 @@ extern void init(cl_object);
 
 char *package = "SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/TREE-SITTER";
 
+size_t last_string_length;
+
+wchar_t* get_string(cl_object cl_object){
+  last_string_length = cl_object->string.dim;
+  return cl_object->string.self;
+}
+
+size_t get_last_string_length(){
+  return last_string_length;
+}
+
 void start(){
   int argc = 0;
   char** argv = (char*[]){""};
@@ -24,10 +35,10 @@ void show(cl_object cl_object){
 }
 
 wchar_t* to_string(cl_object cl_object){
-  return cl_funcall(4, c_string_to_object("format"),
-                    c_string_to_object("nil"),
-                    c_string_to_object("\"~&~S\""),
-                    cl_object)->string.self;
+  return get_string(cl_funcall(4, c_string_to_object("format"),
+                               c_string_to_object("nil"),
+                               c_string_to_object("\"~&~S\""),
+                               cl_object));
 }
 
 cl_object eval(char* source){
@@ -79,7 +90,7 @@ cl_object convert(language language, char *source){
 }
 
 wchar_t* type(cl_object cl_object){
-  return cl_funcall(2, c_string_to_object("type-of"), cl_object)->string.self;
+  return get_string(cl_funcall(2, c_string_to_object("type-of"), cl_object));
 }
 
 /* // Alternate implementation taking a single position offset into the text string.
@@ -100,7 +111,7 @@ cl_object ast_at_point(cl_object ast, int line, int column){
 }
 
 wchar_t* source_text(cl_object ast){
-  return(cl_funcall(2, c_string_to_object("source-text"), ast))->string.self;
+  return get_string(cl_funcall(2, c_string_to_object("source-text"), ast));
 }
 
 cl_object children(cl_object ast){
