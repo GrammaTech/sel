@@ -1,4 +1,7 @@
 #include <ecl/ecl.h>
+#include <locale.h>
+#include <stdio.h>
+#include <string.h>
 #include "tree-sitter.h"
 extern void init(cl_object);
 
@@ -8,6 +11,9 @@ size_t last_string_length;
 
 wchar_t* get_string(cl_object cl_object){
   last_string_length = cl_object->string.dim;
+  #ifdef DEBUG
+  fprintf(stderr, "; Returning string: '%ls'\n", cl_object->string.self);
+  #endif
   return cl_object->string.self;
 }
 
@@ -19,6 +25,7 @@ void start(){
   int argc = 0;
   char** argv = (char*[]){""};
 
+  setlocale(LC_ALL, "");
   cl_boot(argc, argv);
   ecl_init_module(NULL, init);
 }
@@ -30,7 +37,7 @@ void stop(){
 void show(cl_object cl_object){
   cl_funcall(4, c_string_to_object("format"),
              c_string_to_object("t"),
-             c_string_to_object("\"~&~S~%\""),
+             c_string_to_object("\"~&; ~S~%\""),
              cl_object);
 }
 
@@ -39,6 +46,10 @@ wchar_t* to_string(cl_object cl_object){
                                c_string_to_object("nil"),
                                c_string_to_object("\"~&~S\""),
                                cl_object));
+}
+
+short to_short(cl_object cl_object){
+  return ecl_to_short(cl_object);
 }
 
 cl_object eval(char* source){
@@ -67,9 +78,10 @@ cl_object language_symbol(language language){
   case CPP: return ecl_make_symbol("CPP-AST", package);
   case UNKNOWN_LANGUAGE: return ecl_make_symbol("ERROR", package);
   }
+  return ecl_make_symbol("ERROR", package);  
 }
 
-cl_object convert(language language, char *source){
+cl_object convert(language language, char* source){
   cl_env_ptr env = ecl_process_env();
   ECL_CATCH_ALL_BEGIN(env) {
     /*
@@ -79,7 +91,8 @@ cl_object convert(language language, char *source){
      */
   return cl_funcall(3, c_string_to_object("convert"),
                     language_symbol(language),
-                    ecl_cstring_to_base_string_or_nil(source));
+                    /* ecl_cstring_to_base_string_or_nil(source)); */
+                    ecl_make_constant_base_string(source, strlen(source)));
   } ECL_CATCH_ALL_IF_CAUGHT {
     /*
      * If the exception, lisp condition or other control transfer
@@ -90,7 +103,9 @@ cl_object convert(language language, char *source){
 }
 
 wchar_t* type(cl_object cl_object){
-  return get_string(cl_funcall(2, c_string_to_object("type-of"), cl_object));
+  return get_string(cl_funcall(2, c_string_to_object("symbol-name"),
+                               cl_funcall(2, c_string_to_object("type-of"),
+                                          cl_object)));
 }
 
 /* // Alternate implementation taking a single position offset into the text string.
@@ -161,4 +176,9 @@ cl_object child_slots(cl_object ast){
 
 cl_object slot(cl_object ast, const char* slot_name){
   return ecl_slot_value(ast, slot_name);
+}
+
+/* General methods */
+wchar_t* function_name(cl_object ast){
+  return get_string(cl_funcall(2, c_string_to_object("function-name"), ast));
 }
