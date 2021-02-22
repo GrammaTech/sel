@@ -50,6 +50,7 @@ doc/include/
 scratch.lisp
 seed
 se-test
+test/etc/cpp-sample/sample
 
 # User-specific Makefile customization
 local.mk
