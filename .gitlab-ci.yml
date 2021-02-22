@@ -2,7 +2,7 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
 
 default:
-  image: $DOCKER_REGISTRY/$CI_PROJECT_PATH
+  image: $DOCKER_REGISTRY/$CI_PROJECT_PATH:with-ecl
   tags: ["kubernetes", "cluster"]
   before_script:
     - cp -r $(pwd)/ /root/quicklisp/local-projects/
@@ -39,6 +39,18 @@ test-ccl:
   variables:
     LISP: 'ccl'
   <<: *test
+
+test-ecl:
+  stage: test
+  script:
+    - >-
+      ecl
+      --eval "(require 'asdf)"
+      --eval "(asdf:load-system :software-evolution-library/test/tree-sitter)"
+      --eval "(asdf:load-system :software-evolution-library/test/python-tree-sitter)"
+      --eval "(uiop:quit (if (and (progn (software-evolution-library/test/tree-sitter:test) stefil+:*success*) (progn (software-evolution-library/test/python-tree-sitter:test) stefil+:*success*)) 0 1))"
+  except:
+    - schedules
 
 dependent-genpatcher:
   stage: deploy
