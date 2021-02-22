@@ -1,3 +1,6 @@
 G = https://grammatech.github.io
+E = https://common-lisp.net/project/ecl/static/
 software-evolution-library	mono	${G}/sel/index.html
 software-evolution-library	node	${G}/sel/
+ecl	mono	${E}/manual/index.html
+ecl	node	${E}/manual/
