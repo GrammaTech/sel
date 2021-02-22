@@ -185,3 +185,11 @@ cl_object slot(cl_object ast, const char* slot_name){
 wchar_t* function_name(cl_object ast){
   return get_string(cl_funcall(2, c_string_to_object("function-name"), ast));
 }
+
+cl_object function_parameters(cl_object ast){
+  return cl_funcall(2, c_string_to_object("function-parameters"), ast);
+}
+
+cl_object function_body(cl_object ast){
+  return cl_funcall(2, c_string_to_object("function-body"), ast);
+}

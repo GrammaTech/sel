@@ -33,6 +33,9 @@ extern bool eql(void* left, void* right);
 extern language ast_language(void* ast);
 extern void* child_slots(void* ast);
 extern size_t get_last_string_length();
+extern wchar_t* function_name(cl_object ast);
+extern cl_object function_parameters(cl_object ast);
+extern cl_object function_body(cl_object ast);
 """)
 
 if platform.system() == "Darwin":
