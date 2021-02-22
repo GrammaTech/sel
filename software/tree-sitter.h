@@ -27,3 +27,6 @@ extern bool eql(cl_object left, cl_object right);
 extern language ast_language(cl_object ast);
 extern cl_object child_slots(cl_object ast);
 extern cl_object slot(cl_object ast, const char* slot_name);
+extern wchar_t* function_name(cl_object ast);
+extern cl_object function_parameters(cl_object ast);
+extern cl_object function_body(cl_object ast);

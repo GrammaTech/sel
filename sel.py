@@ -63,3 +63,13 @@ class AST:
 
     def source_text(self) -> str:
         return to_string(lib.source_text(self.handle))
+
+    # AST slot accessors
+    def function_name(self) -> str:
+        return to_string(lib.function_name(self.handle))
+
+    def function_parameters(self):
+        return ecl_mapcar(lambda param: AST(handle=param), lib.function_parameters(self.handle))
+
+    def function_body(self):
+        return AST(handle=lib.function_body(self.handle))
