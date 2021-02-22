@@ -1107,7 +1107,7 @@ they should produce the same ordering."
                             (lambda (child)
                               (car
                                (ast-annotation child :range-start)))))
-                    (order (mapcar {position _ instance}
+                    (order (mapcar {child-position _ instance}
                                    sorted-children)))
                (unless (expected-slot-order-p order (child-slots instance))
                  (setf (slot-value instance 'annotations)
