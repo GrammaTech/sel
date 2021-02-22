@@ -287,6 +287,7 @@
            :function-parameters
            :parameter-type
            :parameter-name
+           :function-body
            :call-name
            :variable-name
            :no-fallthrough
@@ -1867,6 +1868,9 @@ the rebinding"
 (defgeneric parameter-name (parameter-ast)
   (:documentation "Return the name of PARAMETER-AST."))
 
+(defgeneric function-body (ast)
+  (:documentation "Return the body of AST."))
+
 (defgeneric call-name (call-ast)
   (:documentation "Return the name of CALL-AST."))
 
@@ -2434,6 +2438,8 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
                 :line line
                 :column (+ column #.(length "lambda"))))))))
 
+  (defmethod function-body ((ast python-function-definition)) (python-body ast))
+
   (defmethod lhs ((ast python-binary-operator)) (python-left ast))
   (defmethod lhs ((ast python-comparison-operator)) (first (children ast)))
   (defmethod lhs ((decl python-assignment)) (python-left decl))
@@ -2897,6 +2903,8 @@ Returns nil if the length of KEYS is not the same as VALUES'."
   (defmethod function-parameters ((ast javascript-function-declaration))
     (javascript-children (javascript-parameters ast)))
 
+  (defmethod function-body ((ast javascript-function-declaration)) (javascript-body ast))
+
   (defmethod enclosing-scope ((obj javascript) (ast javascript-ast))
     "Return the enclosing scope of AST in OBJ.
 OBJ javascript software object
@@ -3065,6 +3073,8 @@ scope of START-AST."
    (defmethod call-arguments ((node c/cpp-call-expression))
      (children (c/cpp-arguments node)))
 
+  (defmethod function-body ((ast c-function-definition)) (c-body ast))
+
    (defmethod no-fallthrough ((ast c/cpp-continue-statement)) t)
    (defmethod no-fallthrough ((ast c/cpp-break-statement)) t)
 
@@ -3172,7 +3182,9 @@ scope of START-AST."
     (unless (compiler cpp)
       (setf (compiler cpp) "c++")))
 
-  (defmethod ext :around ((obj cpp)) (or (call-next-method) "cpp")))
+  (defmethod ext :around ((obj cpp)) (or (call-next-method) "cpp"))
+
+  (defmethod function-body ((ast cpp-function-definition)) (cpp-body ast)))
 
 
 ;;;; Interleaved text
