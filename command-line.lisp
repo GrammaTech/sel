@@ -179,7 +179,7 @@
 (defun handle-cross-chance-argument (cross-chance)
   ;; Command-line argument handling ensures CROSS-CHANCE is an int.
   (setf *cross-chance* (parse-number cross-chance))
-  (assert (and (> *cross-chance* 0) (<= *cross-chance* 1)) (*cross-chance*)
+  (assert (and (>= *cross-chance* 0) (<= *cross-chance* 1)) (*cross-chance*)
           "Crossover chance must be between 0 and 1"))
 
 (defun handle-mut-rate-argument (mut-rate)
