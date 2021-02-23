@@ -186,6 +186,8 @@ Type "help", "copyright", "credits" or "license" for more information.
 'x + 88'
 >>> it.children()[0].children()[0].child_slots()
 [('CHILDREN', 0), ('PYTHON-RIGHT', 1), ('PYTHON-OPERATOR', 1), ('PYTHON-LEFT', 1)]
+>>> list(map(lambda x:x.source_text(), it.children()[0].children()[0].children()))
+['88', '+', 'x']
 @end example
 
 @node Troubleshooting the SEL Python Library, , Running the SEL Python Library, Python Library

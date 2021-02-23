@@ -1,0 +1,55 @@
+.git/
+Dockerfile
+
+# Compiled files
+*.fas
+*.fasl
+*.lx64fsl
+*.o
+*.a
+*.dll
+*.dylib
+*.so
+
+# Documentation cruft
+*-sb-texinfo.texi
+*.1.gz
+*.aux
+*.bak
+*.bbl
+*.blg
+*.bll
+*.docx
+*.fdb_latexmk
+*.fls
+*.glg
+*.glo
+*.gls
+*.glsdefs
+*.html
+*.info
+*.info-*
+*.lof
+*.log
+*.lot
+*.md.tmp
+*.nav
+*.out
+*.pdf
+*.pgf
+*.snm
+*.svg
+*.tmp
+*.toc
+*.vrb
+*.xdy
+
+# Backup files
+*~
+*.swp
+
+# Ignore the wiki
+wiki/
+
+# Python package build cruft
+__pycache__/
