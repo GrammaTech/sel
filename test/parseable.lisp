@@ -9,11 +9,11 @@
    :software-evolution-library/utility/range
    :software-evolution-library/software/parseable
    :software-evolution-library/software/lisp
-   :software-evolution-library/software/clang
    :software-evolution-library/software/tree-sitter)
   (:import-from :software-evolution-library/software/parseable
                 :hash-type
                 :parseable)
+  (:import-from :software-evolution-library/software/clang :clang)
   (:export :test-parseable))
 
 (in-package :software-evolution-library/test/parseable)

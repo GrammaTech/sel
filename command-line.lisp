@@ -25,7 +25,6 @@
         :software-evolution-library/software/project
         :software-evolution-library/software/git-project
         :software-evolution-library/software/compilable
-        :software-evolution-library/software/clang
         :software-evolution-library/software/parseable
         :software-evolution-library/software/lisp
         :software-evolution-library/software/simple
@@ -39,6 +38,7 @@
         ;; Components.
         :software-evolution-library/components/test-suite)
   (:import-from :swank :create-server)
+  (:import-from :software-evolution-library/software/clang :clang)
   (:import-from :cl-json :decode-json-from-source)
   (:shadowing-import-from :asdf-encodings
                           :detect-file-encoding
