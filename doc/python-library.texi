@@ -202,29 +202,4 @@ then you may need to manually copy the shared library compiled by ECL
 from your @code{sel/source} directory into the location mentioned in
 the error.
 
-@item
-Currently, parsing of ASTs will fail with a message like the following:
-@example
->>> it = sel.AST(sel.python, "x + 88")
-
-Condition of type: SIMPLE-TYPE-ERROR
-In function AREF, the index into the object
- #(#(120 32 43 32 56 56)).
-takes a value 1 out of the range (INTEGER 0 0).
-No restarts available.
-
-Top level in: #<process TOP-LEVEL 0x10ee3ff80>.
-@end example
-It looks as though instead of an array of bytes of UTF8 characters ECL
-is receiving an array with a single element which is itself an array
-of bytes.  I have no idea why this is happeneing.  I actually noticed
-it once when running ECL directly through slime, so I don't think it
-has anything to do with the Python or FFI interfaces.
-@example
-$ make python-tree-sitter
-...
-$ python
->>> import sel
->>> ...
-@end example
 @end enumerate
