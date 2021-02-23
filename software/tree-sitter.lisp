@@ -353,6 +353,26 @@ searched to populate `*tree-sitter-language-files*'.")
 
   (defparameter *tree-sitter-base-ast-superclasses* '())
 
+  (defparameter *tree-sitter-field-extras*
+    '((:c
+       (c-init-declarator
+        (c-declarator :initarg :lhs :reader lhs)
+        (c-value :initarg :rhs :reader rhs))
+       (c-assignment-expression
+        (c-left :initarg :lhs :reader lhs)
+        (c-right :initarg :rhs :reader rhs))
+       (c-call-expression
+        (c-arguments :reader call-arguments)))
+      (:cpp
+       (cpp-init-declarator
+        (cpp-declarator :initarg :lhs :reader lhs)
+        (cpp-value :initarg :rhs :reader rhs))
+       (cpp-assignment-expression
+        (cpp-left :initarg :lhs :reader lhs)
+        (cpp-right :initarg :rhs :reader rhs))
+       (cpp-call-expression
+        (cpp-arguments :reader call-arguments)))))
+
   (defparameter *tree-sitter-ast-superclasses*
     '((:c
        (:statement-ast c--statement c-function-definition)
@@ -366,7 +386,7 @@ searched to populate `*tree-sitter-language-files*'.")
        (:while-ast c-while-statement)
        (:loop-ast c-while-statement c-for-statement)
        (:parse-error-ast c-error)
-       (:variable-declaration-ast c-assignment-expression c-init-declarator)
+       (:variable-declaration-ast c-init-declarator c-assignment-expression)
        (:function-ast c-function-definition)
        (:identifier-ast c-identifier)
        (:string-ast c-string-literal)
@@ -377,7 +397,16 @@ searched to populate `*tree-sitter-language-files*'.")
        (:unary-ast c-unary-expression)
        (:binary-ast c-binary-expression)
        (:return-ast c-return-statement)
-       (:goto-ast c-goto-statement))
+       (:goto-ast c-goto-statement)
+       (:c/cpp-break-statement c-break-statement)
+       (:c/cpp-call-expression c-call-expression)
+       (:c/cpp-continue-statement c-continue-statement)
+       (:c/cpp-declaration c-declaration)
+       (:c/cpp-declarator c-declarator)
+       (:c/cpp-function-declarator c-function-declarator)
+       (:c/cpp-function-definition c-function-definition)
+       (:c/cpp-identifier c-identifier)
+       (:c/cpp-parameter-declaration c-parameter-declaration))
       (:cpp
        (:parenthesized-expression-ast cpp-parenthesized-expression)
        (:compound-ast cpp-compound-statement)
@@ -392,7 +421,16 @@ searched to populate `*tree-sitter-language-files*'.")
        (:binary-ast cpp-binary-expression)
        (:number-ast cpp-number-literal)
        (:return-ast cpp-return-statement)
-       (:goto-ast cpp-goto-statement))
+       (:goto-ast cpp-goto-statement)
+       (:c/cpp-break-statement cpp-break-statement)
+       (:c/cpp-call-expression cpp-call-expression)
+       (:c/cpp-continue-statement cpp-continue-statement)
+       (:c/cpp-declaration cpp-declaration)
+       (:c/cpp-declarator cpp-declarator)
+       (:c/cpp-function-declarator cpp-function-declarator)
+       (:c/cpp-function-definition cpp-function-definition)
+       (:c/cpp-identifier cpp-identifier)
+       (:c/cpp-parameter-declaration cpp-parameter-declaration))
       (:java
        (:statement-ast java-statement)
        (:return-ast java-return-statement))
@@ -452,6 +490,15 @@ searched to populate `*tree-sitter-language-files*'.")
        (:return-ast python-return-statement)
        (:variable-declaration-ast python-assignment))))
 
+  (defparameter *tree-sitter-ast-extra-prefixes*
+    '((:c c/cpp)
+      (:cpp c/cpp)
+      (:typescript-typescript typescript ecma)
+      (:typescript-tsx typescript ecma)
+      (:javascript ecma))
+    "For every extra prefix, every slot will get an extra reader and
+    an extra initarg with that prefix.")
+
   (defun tree-sitter-ast-classes (name grammar-file node-types-file)
     (nest
      (flet ((alternate-class-name (name)
@@ -477,7 +524,9 @@ searched to populate `*tree-sitter-language-files*'.")
          :software-superclasses
          (aget class-keyword *tree-sitter-software-superclasses*)
          :software-direct-slots
-         (aget class-keyword *tree-sitter-direct-slots*))))))
+         (aget class-keyword *tree-sitter-direct-slots*)
+         :software-field-extras
+         (aget class-keyword *tree-sitter-field-extras*))))))
 
 (defmacro register-tree-sitter-language (lib-name language ast-superclass)
   "Setup LANGUAGE to map to AST-SUPERCLASS and use LIB-NAME for parsing."
@@ -732,8 +781,10 @@ of fields needs to be determined at parse-time."
       (node-types-file grammar-file name-prefix
        &key superclass-to-classes base-class-superclasses
          software-superclasses software-direct-slots
+         software-field-extras
        &aux (subtype->supertypes (make-hash-table))
          (symbols-to-export (make-hash-table))
+         (class->field-extras (make-hash-table))
          (ast-superclass (symbolicate
                           name-prefix
                           "-"
@@ -755,7 +806,14 @@ of fields needs to be determined at parse-time."
                (maphash-keys
                 (lambda (subtype)
                   (push ast-superclass (gethash subtype subtype->supertypes)))
-                subtype->supertypes))
+                subtype->supertypes)
+               ;; Return for easier debugging.
+               subtype->supertypes)
+             (initialize-class->field-extras ()
+               (iter (for (class . fields) in software-field-extras)
+                     (setf (gethash class class->field-extras) fields))
+               ;; Return for easier debugging.
+               class->field-extras)
              (make-class-name (&optional name-string)
                "Create a class name based on NAME-STRING and add it to the
                 symbols that need exported."
@@ -769,14 +827,23 @@ of fields needs to be determined at parse-time."
                             (convert-name name-string))
                            (symbolicate name-prefix))))
                  (ensure-gethash name symbols-to-export t)))
-             (make-accessor-name (name-keyword)
-               "Create an accessor name based on NAME-KEYWORD and add it to the
-                symbols that need exported."
+             (make-accessor-name (prefix name-keyword)
+               "Create an accessor name based on NAME-KEYWORD and
+                PREFIX and add it to the symbols that need exported."
                (lret ((name (symbolicate
-                             name-prefix
+                             prefix
                              "-"
                              name-keyword)))
                  (ensure-gethash name symbols-to-export t)))
+             (make-accessor-names (name-keyword)
+               "Create accessor names based on NAME-PREFIX and
+                `*tree-sitter-ast-extra-prefixes*` and add them to the
+                symbols that need exporting."
+               (cons (make-accessor-name name-prefix name-keyword)
+                     (mapcar (op (make-accessor-name _ name-keyword))
+                             (aget name-prefix
+                                   *tree-sitter-ast-extra-prefixes*
+                                   :test #'string=))))
              (get-supertypes-for-type (type)
                "Retrieve the supertypes of TYPE."
                (gethash (make-class-name type) subtype->supertypes))
@@ -793,19 +860,27 @@ of fields needs to be determined at parse-time."
                                 ;; circular class dependency.
                                 (remove ast-superclass subtype-hash)))))
                 subtypes))
-             (create-slot (field)
-               "Create a slot based on FIELD."
-               (let ((name (make-accessor-name (car field))))
-                 `(,name :accessor ,name
-                         :initarg ,(make-keyword name)
-                         :initform nil)))
-             (create-slots (fields)
-               "Create the slots for a new class based on FIELDS and CHILDREN.
-                Currently, types aren't supported, but there is enough
-                information to limit slots to certain types."
+             (create-slot (type field)
+               "Create a slot for TYPE based on FIELD."
+               (let ((names (make-accessor-names (car field))))
+                 `(,(first names)
+                   ,@(mappend (op `(:accessor ,_)) names)
+                   ;; Prefixed initargs.
+                   ,@(mappend (op `(:initarg ,(make-keyword _))) names)
+                   :initform nil
+                   ,@(lookup-slot type (first names)))))
+             (lookup-slot (type field-name)
+               (declare (symbol type field-name))
+               (aget field-name (gethash type class->field-extras)))
+             (create-slots (type fields)
+               "Create the slots for a new class of TYPE based on
+                FIELDS and CHILDREN. Currently, slot types aren't
+                supported, but there is enough information to limit
+                slots to certain types."
+               (declare (symbol type) (list fields))
                ;; NOTE: there is a small possibility for name overlaps when
                ;;       generating these slots.
-               (mapcar #'create-slot fields))
+               (mapcar {create-slot type} fields))
              (create-supertype-class (type subtypes
                                       &aux (class-name (make-class-name type)))
                "Create a new class for subtypes to inherit from."
@@ -832,16 +907,16 @@ of fields needs to be determined at parse-time."
                        (if fields 'define-node-class 'defclass)))
                  `(,definer
                    ,class-name
-                      (,@(or (get-supertypes-for-type type)
-                             `(,ast-superclass)))
-                    (,@(create-slots fields)
-                     (child-slots
-                      :initform
-                      ',(append child-slot-order '((children . 0)))
-                      :allocation :class))
-                    ;; NOTE: this is primarily for determing which rule this
-                    ;;       was generated for.
-                    (:documentation ,(format nil "Generated for ~a." type)))))
+                   (,@(or (get-supertypes-for-type type)
+                          `(,ast-superclass)))
+                   (,@(create-slots class-name fields)
+                    (child-slots
+                     :initform
+                     ',(append child-slot-order '((children . 0)))
+                     :allocation :class))
+                   ;; NOTE: this is primarily for determing which rule this
+                   ;;       was generated for.
+                   (:documentation ,(format nil "Generated for ~a." type)))))
              (create-terminal-symbol-class (type)
                "Create a new class that represents a terminal symbol.
                 In the case that there's a non-terminal with the same name,
@@ -850,7 +925,7 @@ of fields needs to be determined at parse-time."
                                 (format-symbol 'sel/sw/ts "~a-~a"
                                                name-prefix
                                                (string-upcase type))
-                                        symbols-to-export)
+                                symbols-to-export)
                                (make-class-name
                                 (format-symbol 'sel/sw/ts "~a-~a"
                                                (string-upcase type) 'terminal))
@@ -882,6 +957,7 @@ of fields needs to be determined at parse-time."
                              (decode-json-from-string
                               (file-to-string grammar-file)))))
         (initialize-subtype->supertypes)
+        (initialize-class->field-extras)
         `(progn
            (eval-always
              (define-software ,(make-class-name) (tree-sitter
@@ -892,11 +968,13 @@ of fields needs to be determined at parse-time."
                          name-prefix)))
 
              (define-node-class ,(make-class-name "ast")
-                 (tree-sitter-ast ,@base-class-superclasses)
+                 (tree-sitter-ast ,@(mapcar [#'car #'ensure-list]
+                                            base-class-superclasses))
                ;; NOTE: ensure there is always a children slot.
                ;;       This is important for classes that don't have
                ;;       it but can have comments mixed in.
-               ((children :accessor ,(make-accessor-name :children)
+               ((children ,@(mappend (op `(:accessor ,_))
+                                     (make-accessor-names :children))
                           :documentation
                           "Returns all language-specific children.
 Unlike the `children` methods which collects all children of an AST from any slot."
@@ -951,6 +1029,23 @@ Unlike the `children` methods which collects all children of an AST from any slo
            (defmethod parse-asts ((obj ,(make-class-name))
                                   &optional (source (genome-string obj)))
              (convert ',(make-class-name "ast") source)))))))
+
+(defmacro define-all-mixin-classes ()
+  "Ensure that all mixin classes are defined."
+  (let ((classes
+         (nest (mapcar (op (intern (string _) :sel/sw/ts)))
+               (remove-duplicates)
+               (mapcar #'car)
+               (mappend #'cdr)
+               *tree-sitter-ast-superclasses*)))
+    `(progn
+       ,@(iter (for class in classes)
+               (collect `(unless (find-class ',class nil)
+                           (defclass ,class (ast)
+                             ())))))))
+
+(eval-always
+ (define-all-mixin-classes))
 
 
 ;;; tree-sitter parsing
@@ -2846,25 +2941,38 @@ scope of START-AST."
   (defmethod format-genome ((obj javascript) &key)
     (prettier obj)))
 
+;;; C/C++
+
+(nest
+ (when-class-defined (c))
+ (when-class-defined (cpp)
+
+   (defmethod function-name ((ast c/cpp-function-definition))
+     (source-text (c/cpp-declarator (c/cpp-declarator ast))))
+
+   (defmethod function-parameters ((ast c/cpp-function-definition))
+     (children (c/cpp-parameters (c/cpp-declarator ast))))
+
+   (defmethod call-arguments ((node c/cpp-call-expression))
+     (children (c/cpp-arguments node)))
+
+   (defmethod no-fallthrough ((ast c/cpp-continue-statement)) t)
+   (defmethod no-fallthrough ((ast c/cpp-break-statement)) t)
+
+   (defmethod inner-declarations ((ast c/cpp-function-declarator))
+     (remove-if-not {typep _ 'c/cpp-parameter-declaration}
+                    (convert 'list (c/cpp-parameters ast))))
+
+   (defmethod outer-declarations ((ast c/cpp-declaration))
+     ;; Special handling for uninitialized variables.
+     (iter (for d in (c/cpp-declarator ast))
+           (collect (if (typep d 'c/cpp-identifier)
+                        d
+                        (c/cpp-declarator d)))))))
+
 
 ;;;; C
 (when-class-defined (c)
-
-  (defmethod function-name ((ast c-function-definition))
-    (source-text (c-declarator (c-declarator ast))))
-
-  (defmethod function-parameters ((ast c-function-definition))
-    (children (c-parameters (c-declarator ast))))
-
-  (defmethod lhs ((ast c-assignment-expression)) (c-left ast))
-
-  (defmethod rhs ((ast c-assignment-expression)) (c-right ast))
-
-  (defmethod rhs ((ast c-init-declarator))
-    (c-value ast))
-
-  (defmethod lhs ((ast c-init-declarator))
-    (c-declarator ast))
 
   (defmethod initialize-instance :after ((c c)
                                          &key &allow-other-keys)
@@ -2897,18 +3005,8 @@ scope of START-AST."
   (defmethod no-fallthrough ((ast c-continue-statement)) t)
   (defmethod no-fallthrough ((ast c-break-statement)) t)
 
-  (defmethod inner-declarations ((ast c-function-declarator))
-    (remove-if-not {typep _ 'c-parameter-declaration} (convert 'list (c-parameters ast))))
-
   (defmethod inner-declarations ((ast c-for-statement))
     (c-left (c-initializer ast)))
-
-  (defmethod outer-declarations ((ast c-declaration))
-    ;; Special handling for uninitialized variables.
-    (iter (for d in (c-declarator ast))
-          (collect (if (typep d 'c-identifier)
-                       d
-                       (c-declarator d)))))
 
   (defmethod type-in ((c c) (ast c-ast))
     (when-let ((decl (find-if «or {typep _ 'c-declaration}
@@ -2919,9 +3017,6 @@ scope of START-AST."
           (make-keyword (string-upcase (source-text (c-type decl)))))))
 
   ;; TODO: Convert other methods implemented for JavaScript but not C.
-
-  (defmethod function-name ((node c-function-definition))
-    (source-text (@ node '(:c-declarator :c-declarator))))
 
   ;; Implement the generic format-genome method for C objects.
   (defmethod format-genome ((obj c) &key)
@@ -2937,40 +3032,7 @@ scope of START-AST."
     (unless (compiler cpp)
       (setf (compiler cpp) "c++")))
 
-  (defmethod lhs ((ast cpp-assignment-expression)) (cpp-left ast))
-
-  (defmethod rhs ((ast cpp-assignment-expression)) (cpp-right ast))
-
-  (defmethod rhs ((ast cpp-init-declarator))
-    (cpp-value ast))
-
-  (defmethod lhs ((ast cpp-init-declarator))
-    (cpp-declarator ast))
-
-  (defmethod no-fallthrough ((ast cpp-continue-statement)) t)
-  (defmethod no-fallthrough ((ast cpp-break-statement)) t)
-
-  (defmethod ext :around ((obj cpp)) (or (call-next-method) "cpp"))
-
-  (defmethod function-name ((node cpp-function-definition))
-    (source-text (@ node '(:cpp-declarator :cpp-declarator))))
-
-  (defmethod call-arguments ((node cpp-call-expression))
-    (children (cpp-arguments node)))
-
-  (defmethod function-parameters ((ast cpp-function-definition))
-    (children (cpp-parameters (cpp-declarator ast))))
-
-  (defmethod inner-declarations ((ast cpp-function-declarator))
-    (remove-if-not {typep _ 'cpp-parameter-declaration}
-                   (convert 'list (cpp-parameters ast))))
-
-  (defmethod outer-declarations ((ast cpp-declaration))
-    ;; Special handling for uninitialized variables.
-    (iter (for d in (cpp-declarator ast))
-          (collect (if (typep d 'cpp-identifier)
-                       d
-                       (cpp-declarator d))))))
+  (defmethod ext :around ((obj cpp)) (or (call-next-method) "cpp")))
 
 
 ;;;; Interleaved text
