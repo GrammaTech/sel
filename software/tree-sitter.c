@@ -102,13 +102,15 @@ cl_object convert(language language, char* source){
   } ECL_CATCH_ALL_END;
 }
 
-wchar_t* get_type(cl_object cl_object){
-  return get_string(cl_symbol_name(cl_type_of(cl_object)));
+cl_object get_type(cl_object cl_object){
+  return cl_type_of(cl_object);
 }
 
-wchar_t* get_class(cl_object cl_object){
-  return get_string(cl_symbol_name(cl_funcall(2, c_string_to_object("class-name"),
-                                              (cl_class_of(cl_object)))));
+cl_object get_class(cl_object cl_object){
+  return cl_funcall(2, c_string_to_object("class-name"), (cl_class_of(cl_object)));
+}
+
+wchar_t* symbo_name(cl_object cl_object){
 }
 
 /* // Alternate implementation taking a single position offset into the text string.
@@ -180,6 +182,8 @@ cl_object child_slots(cl_object ast){
 cl_object slot(cl_object ast, const char* slot_name){
   return ecl_slot_value(ast, slot_name);
 }
+
+bool typep(cl_object ast, )
 
 /* General methods */
 wchar_t* function_name(cl_object ast){
