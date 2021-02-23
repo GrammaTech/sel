@@ -110,7 +110,8 @@ cl_object get_class(cl_object cl_object){
   return cl_funcall(2, c_string_to_object("class-name"), (cl_class_of(cl_object)));
 }
 
-wchar_t* symbo_name(cl_object cl_object){
+wchar_t* symbol_name(cl_object cl_object){
+  return to_string(cl_funcall(2, c_string_to_object("symbol-name"), cl_object));
 }
 
 /* // Alternate implementation taking a single position offset into the text string.
@@ -154,25 +155,46 @@ bool eql(cl_object left, cl_object right){
   return ecl_eql(left, right);
 }
 
+#define type_check(NAME) if(! null(cl_funcall(3, c_string_to_object("subtypep"), \
+                       cl_funcall(2, c_string_to_object("type-of"), ast), \
+                       ecl_make_symbol( #NAME "-AST", package)))) \
+    return NAME
+
 language ast_language(cl_object ast){
-  if(! null(cl_funcall(3, c_string_to_object("subtypep"),
-                       cl_funcall(2, c_string_to_object("type-of"), ast),
-                       ecl_make_symbol("PYTHON-AST", package))))
-    return PYTHON;
-  else if(! null(cl_funcall(3, c_string_to_object("subtypep"),
-                       cl_funcall(2, c_string_to_object("type-of"), ast),
-                       ecl_make_symbol("JAVASCRIPT-AST", package))))
-    return JAVASCRIPT;
-  else if(! null(cl_funcall(3, c_string_to_object("subtypep"),
-                       cl_funcall(2, c_string_to_object("type-of"), ast),
-                       ecl_make_symbol("C-AST", package))))
-    return C;
-  else if(! null(cl_funcall(3, c_string_to_object("subtypep"),
-                       cl_funcall(2, c_string_to_object("type-of"), ast),
-                       ecl_make_symbol("CPP-AST", package))))
-    return CPP;
-  else
-    return UNKNOWN_LANGUAGE;
+  type_check(PYTHON);
+  else type_check(JAVASCRIPT);
+  else type_check(C);
+  else type_check(CPP);
+  else return UNKNOWN_LANGUAGE;
+}
+
+type ast_type(cl_object ast){
+  type_check(PARSE_ERROR);
+  else type_check(CHAR);
+  else type_check(NUMBER);
+  else type_check(GOTO);
+  else type_check(COMPOUND);
+  else type_check(CLASS);
+  else type_check(CONTROL_FLOW);
+  else type_check(IF);
+  else type_check(WHILE);
+  else type_check(EXPRESSION);
+  else type_check(FUNCTION);
+  else type_check(BOOLEAN_TRUE);
+  else type_check(BOOLEAN_FALSE);
+  else type_check(IDENTIFIER);
+  else type_check(LAMBDA);
+  else type_check(INTEGER);
+  else type_check(FLOAT);
+  else type_check(STRING);
+  else type_check(LOOP);
+  else type_check(STATEMENT);
+  else type_check(CALL);
+  else type_check(UNARY);
+  else type_check(BINARY);
+  else type_check(RETURN);
+  else type_check(VARIABLE_DECLARATION);
+  else return UNKNOWN_TYPE;
 }
 
 cl_object child_slots(cl_object ast){
@@ -183,7 +205,9 @@ cl_object slot(cl_object ast, const char* slot_name){
   return ecl_slot_value(ast, slot_name);
 }
 
-bool typep(cl_object ast, )
+bool subtypep(cl_object ast, char* type_name){
+  return ! ecl_eql(ECL_NIL, cl_subtypep(2, ast, ecl_make_symbol(type_name, package)));
+}
 
 /* General methods */
 wchar_t* function_name(cl_object ast){
