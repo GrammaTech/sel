@@ -20,6 +20,34 @@ typedef enum {
   C,
   CPP
 } language;
+typedef enum {
+  UNKNOWN_TYPE,
+  PARSE_ERROR,
+  CHAR,
+  NUMBER,
+  GOTO,
+  COMPOUND,
+  CLASS,
+  CONTROL_FLOW,
+  IF,
+  WHILE,
+  EXPRESSION,
+  FUNCTION,
+  BOOLEAN_TRUE,
+  BOOLEAN_FALSE,
+  IDENTIFIER,
+  LAMBDA,
+  INTEGER,
+  FLOAT,
+  STRING,
+  LOOP,
+  STATEMENT,
+  CALL,
+  UNARY,
+  BINARY,
+  RETURN,
+  VARIABLE_DECLARATION,
+} type;
 extern void* convert(language language, char* source);
 extern void* get_type(void* cl_object);
 extern void* get_class(void* cl_object);
@@ -32,11 +60,14 @@ extern void* cdr(void* list);
 extern bool null(void* cl_object);
 extern bool eql(void* left, void* right);
 extern language ast_language(void* ast);
+extern type ast_type(void* ast);
 extern void* child_slots(void* ast);
+extern void* slot(void* ast, const char* slot_name);
+extern bool subtypep(void* ast, char* type_name);
 extern size_t get_last_string_length();
-extern wchar_t* function_name(cl_object ast);
-extern cl_object function_parameters(cl_object ast);
-extern cl_object function_body(cl_object ast);
+extern wchar_t* function_name(void* ast);
+extern void* function_parameters(void* ast);
+extern void* function_body(void* ast);
 """)
 
 if platform.system() == "Darwin":

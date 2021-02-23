@@ -11,6 +11,34 @@ typedef enum {
   C,
   CPP
 } language;
+typedef enum {
+  UNKNOWN_TYPE,
+  PARSE_ERROR,
+  CHAR,
+  NUMBER,
+  GOTO,
+  COMPOUND,
+  CLASS,
+  CONTROL_FLOW,
+  IF,
+  WHILE,
+  EXPRESSION,
+  FUNCTION,
+  BOOLEAN_TRUE,
+  BOOLEAN_FALSE,
+  IDENTIFIER,
+  LAMBDA,
+  INTEGER,
+  FLOAT,
+  STRING,
+  LOOP,
+  STATEMENT,
+  CALL,
+  UNARY,
+  BINARY,
+  RETURN,
+  VARIABLE_DECLARATION,
+} type;
 extern cl_object convert(language language, char* source);
 extern void show(cl_object cl_object);
 extern short to_short(cl_object cl_object);
@@ -26,8 +54,11 @@ extern cl_object cdr(cl_object list);
 extern bool null(cl_object cl_object);
 extern bool eql(cl_object left, cl_object right);
 extern language ast_language(cl_object ast);
+extern type ast_type(cl_object ast);
+extern type ast_type(cl_object ast);
 extern cl_object child_slots(cl_object ast);
 extern cl_object slot(cl_object ast, const char* slot_name);
+extern bool subtypep(cl_object ast, char* type_name);
 extern wchar_t* function_name(cl_object ast);
 extern cl_object function_parameters(cl_object ast);
 extern cl_object function_body(cl_object ast);
