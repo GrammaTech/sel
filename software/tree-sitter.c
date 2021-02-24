@@ -7,6 +7,8 @@ extern void init(cl_object);
 
 char *package = "SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/TREE-SITTER";
 
+
+/* Utility and debug functions. */
 size_t last_string_length;
 
 wchar_t* get_string(cl_object cl_object){
@@ -21,26 +23,6 @@ size_t get_last_string_length(){
   return last_string_length;
 }
 
-void start(){
-  int argc = 0;
-  char** argv = (char*[]){""};
-
-  setlocale(LC_ALL, "");
-  cl_boot(argc, argv);
-  ecl_init_module(NULL, init);
-}
-
-void stop(){
-  cl_shutdown();
-}
-
-void show(cl_object cl_object){
-  cl_funcall(4, c_string_to_object("format"),
-             c_string_to_object("t"),
-             c_string_to_object("\"~&; ~S~%\""),
-             cl_object);
-}
-
 wchar_t* to_string(cl_object cl_object){
   return get_string(cl_funcall(4, c_string_to_object("format"),
                                c_string_to_object("nil"),
@@ -50,6 +32,13 @@ wchar_t* to_string(cl_object cl_object){
 
 short to_short(cl_object cl_object){
   return ecl_to_short(cl_object);
+}
+
+void show(cl_object cl_object){
+  cl_funcall(4, c_string_to_object("format"),
+             c_string_to_object("t"),
+             c_string_to_object("\"~&; ~S~%\""),
+             cl_object);
 }
 
 cl_object eval(char* source){
@@ -79,6 +68,37 @@ cl_object language_symbol(language language){
   case UNKNOWN_LANGUAGE: return ecl_make_symbol("ERROR", package);
   }
   return ecl_make_symbol("ERROR", package);  
+}
+
+cl_object car(cl_object list){
+  return ecl_car(list);
+}
+
+cl_object cdr(cl_object list){
+  return ecl_cdr(list);
+}
+
+bool null(cl_object object){
+  return ecl_eql(object, ECL_NIL);
+}
+
+bool eql(cl_object left, cl_object right){
+  return ecl_eql(left, right);
+}
+
+
+/* API functions */
+void start(){
+  int argc = 0;
+  char** argv = (char*[]){""};
+
+  setlocale(LC_ALL, "");
+  cl_boot(argc, argv);
+  ecl_init_module(NULL, init);
+}
+
+void stop(){
+  cl_shutdown();
 }
 
 cl_object convert(language language, char* source){
@@ -139,20 +159,16 @@ cl_object children(cl_object ast){
   return(cl_funcall(2, c_string_to_object("children"), ast));
 }
 
-cl_object car(cl_object list){
-  return ecl_car(list);
+cl_object child_slots(cl_object ast){
+  return cl_funcall(2, c_string_to_object("child-slots"), ast);
 }
 
-cl_object cdr(cl_object list){
-  return ecl_cdr(list);
+cl_object slot(cl_object ast, const char* slot_name){
+  return ecl_slot_value(ast, slot_name);
 }
 
-bool null(cl_object object){
-  return ecl_eql(object, ECL_NIL);
-}
-
-bool eql(cl_object left, cl_object right){
-  return ecl_eql(left, right);
+cl_object parent(cl_object root, cl_object ast){
+  return cl_funcall(4, c_string_to_object("get-parent-ast"), root, ast);
 }
 
 #define type_check(NAME) if(! null(cl_funcall(3, c_string_to_object("subtypep"), \
@@ -195,14 +211,6 @@ type ast_type(cl_object ast){
   else type_check(RETURN);
   else type_check(VARIABLE_DECLARATION);
   else return UNKNOWN_TYPE;
-}
-
-cl_object child_slots(cl_object ast){
-  return cl_funcall(2, c_string_to_object("child-slots"), ast);
-}
-
-cl_object slot(cl_object ast, const char* slot_name){
-  return ecl_slot_value(ast, slot_name);
 }
 
 bool subtypep(cl_object ast, char* type_name){

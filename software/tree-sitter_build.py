@@ -7,12 +7,6 @@ this_dir = os.path.dirname(os.path.abspath(__file__))
 # cdef() expects a single string declaring the C types, functions and
 # globals needed to use the shared object. It must be in valid C syntax.
 ffibuilder.cdef("""
-extern void start();
-extern void stop();
-extern void show(void* cl_object);
-extern short to_short(void* cl_object);
-extern wchar_t* to_string(void* cl_object);
-extern void* eval(char* source);
 typedef enum {
   UNKNOWN_LANGUAGE,
   JAVASCRIPT,
@@ -48,6 +42,18 @@ typedef enum {
   RETURN,
   VARIABLE_DECLARATION,
 } type;
+extern size_t get_last_string_length();
+extern wchar_t* to_string(void* cl_object);
+extern short to_short(void* cl_object);
+extern void show(void* cl_object);
+extern void* eval(char* source);
+extern void* car(void* list);
+extern void* cdr(void* list);
+extern bool null(void* cl_object);
+extern bool eql(void* left, void* right);
+/* API Functions */
+extern void start();
+extern void stop();
 extern void* convert(language language, char* source);
 extern void* get_type(void* cl_object);
 extern void* get_class(void* cl_object);
@@ -55,16 +61,12 @@ extern wchar_t* symbol_name(void* cl_object);
 extern void* ast_at_point(void* ast, int line, int column);
 extern wchar_t* source_text(void* ast);
 extern void* children(void* ast);
-extern void* car(void* list);
-extern void* cdr(void* list);
-extern bool null(void* cl_object);
-extern bool eql(void* left, void* right);
+extern void* parent(void* root, void* ast);
 extern language ast_language(void* ast);
 extern type ast_type(void* ast);
 extern void* child_slots(void* ast);
 extern void* slot(void* ast, const char* slot_name);
 extern bool subtypep(void* ast, char* type_name);
-extern size_t get_last_string_length();
 extern wchar_t* function_name(void* ast);
 extern void* function_parameters(void* ast);
 extern void* function_body(void* ast);
