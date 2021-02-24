@@ -248,6 +248,7 @@
            :comment-ast
            :statement-ast
            :expression-ast
+           :parenthesized-expression-ast
            :compound-ast
            :conditional-ast
            :control-flow-ast
