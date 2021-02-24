@@ -358,6 +358,7 @@ searched to populate `*tree-sitter-language-files*'.")
        (:expression-ast c-expression-statement c-call-expression c-update-expression
         c-assignment-expression c-binary-expression c-parenthesized-expression c-cast-expression
         c-field-expression c-pointer-expression c-unary-expression)
+       (:parenthesized-expression-ast c-parenthesized-expression)
        (:compound-ast c-compound-statement)
        (:control-flow-ast c-switch-statement c-case-statement)
        (:if-ast c-if-statement)
@@ -377,6 +378,7 @@ searched to populate `*tree-sitter-language-files*'.")
        (:return-ast c-return-statement)
        (:goto-ast c-goto-statement))
       (:cpp
+       (:parenthesized-expression-ast cpp-parenthesized-expression)
        (:string-ast cpp-string-literal cpp-raw-string-literal)
        (:char-ast cpp-char-literal)
        (:boolean-true-ast cpp-true)
@@ -397,6 +399,7 @@ searched to populate `*tree-sitter-language-files*'.")
        (:if-ast javascript-if-statement)
        (:while-ast javascript-while-statement)
        (:expression-ast javascript--expression)
+       (:parenthesized-expression-ast javascript-parenthesized-expression)
        (:compound-ast javascript-statement-block)
        (:boolean-true-ast javascript-true)
        (:boolean-false-ast javascript-false)
@@ -426,6 +429,7 @@ searched to populate `*tree-sitter-language-files*'.")
        (:if-ast python-if-statement)
        (:while-ast python-while-statement)
        (:expression-ast python-expression)
+       (:parenthesized-expression-ast python-parenthesized-expression)
        (:function-ast
         python-function-definition python-lambda)
        (:boolean-true-ast python-true)
@@ -506,6 +510,10 @@ searched to populate `*tree-sitter-language-files*'.")
 
   (defclass expression-ast (ast) ()
     (:documentation "Mix-in for AST classes that are expressions."))
+
+  (defclass parenthesized-expression-ast (ast) ()
+    (:documentation "Mix-in for AST classes that are parenthesized
+    expressions."))
 
   (defclass compound-ast (ast) ()
     (:documentation "Mix-in for AST classes that are compounds."))
@@ -2837,7 +2845,7 @@ scope of START-AST."
 
 ;;;; C
 (when-class-defined (c)
-  
+
   (defmethod function-name ((ast c-function-definition))
     (source-text (c-declarator (c-declarator ast))))
 
