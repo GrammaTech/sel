@@ -375,6 +375,7 @@ searched to populate `*tree-sitter-language-files*'.")
 
   (defparameter *tree-sitter-ast-superclasses*
     '((:c
+       (:comment-ast c-comment)
        (:statement-ast c--statement c-function-definition)
        (:expression-ast c-expression-statement c-call-expression c-update-expression
         c-assignment-expression c-binary-expression c-parenthesized-expression c-cast-expression
@@ -408,6 +409,7 @@ searched to populate `*tree-sitter-language-files*'.")
        (:c/cpp-identifier c-identifier)
        (:c/cpp-parameter-declaration c-parameter-declaration))
       (:cpp
+       (:comment-ast cpp-comment)
        (:parenthesized-expression-ast cpp-parenthesized-expression)
        (:compound-ast cpp-compound-statement)
        (:string-ast cpp-string-literal cpp-raw-string-literal)
@@ -435,6 +437,7 @@ searched to populate `*tree-sitter-language-files*'.")
        (:statement-ast java-statement)
        (:return-ast java-return-statement))
       (:javascript
+       (:comment-ast javascript-comment)
        (:class-ast javascript-class-declaration)
        (:control-flow-ast
         javascript-switch-statement javascript-try-statement)
@@ -463,6 +466,7 @@ searched to populate `*tree-sitter-language-files*'.")
        (:binary-ast javascript-binary-expression)
        (:return-ast javascript-return-statement))
       (:python
+       (:comment-ast python-comment)
        (:class-ast python-class-definition)
        (:control-flow-ast
         python-try-statement python-conditional-expression
