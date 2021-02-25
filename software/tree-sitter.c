@@ -221,7 +221,7 @@ bool subtypep(cl_object ast, char* type_name){
 cl_object function_asts(cl_object ast){
   return cl_funcall(3, c_string_to_object("remove-if-not"),
                     c_string_to_object("{typep _ 'function-ast}"),
-                    ast)
+                    ast);
 }
 
 wchar_t* function_name(cl_object ast){
@@ -239,7 +239,7 @@ cl_object function_body(cl_object ast){
 cl_object call_asts(cl_object ast){
   return cl_funcall(3, c_string_to_object("remove-if-not"),
                     c_string_to_object("{typep _ 'call-ast}"),
-                    ast)
+                    ast);
 }
 
 cl_object call_arguments(cl_object ast){
