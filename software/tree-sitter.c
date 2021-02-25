@@ -192,14 +192,12 @@ language ast_language(cl_object ast){
 type ast_type(cl_object ast){
   type_check(PARSE_ERROR);
   else type_check(CHAR);
-  else type_check(NUMBER);
   else type_check(GOTO);
   else type_check(COMPOUND);
   else type_check(CLASS);
-  else type_check(CONTROL_FLOW);
   else type_check(IF);
   else type_check(WHILE);
-  else type_check(EXPRESSION);
+  else type_check(CONTROL_FLOW);
   else type_check(FUNCTION);
   else type_check(BOOLEAN_TRUE);
   else type_check(BOOLEAN_FALSE);
@@ -207,14 +205,16 @@ type ast_type(cl_object ast){
   else type_check(LAMBDA);
   else type_check(INTEGER);
   else type_check(FLOAT);
+  else type_check(NUMBER);
   else type_check(STRING);
   else type_check(LOOP);
-  else type_check(STATEMENT);
   else type_check(CALL);
   else type_check(UNARY);
   else type_check(BINARY);
   else type_check(RETURN);
   else type_check(VARIABLE_DECLARATION);
+  else type_check(STATEMENT);
+  else type_check(EXPRESSION);
   else return UNKNOWN_TYPE;
 }
 
