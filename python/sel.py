@@ -49,11 +49,11 @@ Language must be an sel language enum value."""
     def ast_at_point(self, line:int, column:int):
         return AST(lib.ast_at_point(self, line, column));
 
-    def get_type(self):
-        return to_string(lib.get_type(self.handle))
+    def ast_language(self):
+        return lib.ast_type(self.handle);
 
-    def get_class(self):
-        return to_string(lib.get_class(self.handle))
+    def ast_type(self):
+        return lib.ast_type(self.handle);
 
     def source_text(self) -> str:
         return to_string(lib.source_text(self.handle))
@@ -69,12 +69,37 @@ Language must be an sel language enum value."""
     def parent(self, root):
         return lib.parent(root.handle, self.handle);
 
+    def function_asts(self):
+        return ecl_mapcar(lambda fn: AST(handle=fn), lib.function_asts(self.handle))
+
+    def call_asts(self):
+        return ecl_mapcar(lambda fn: AST(handle=fn), lib.call_asts(self.handle))
+
     # AST slot accessors
+    def ensure_type(self, desired_type:int):
+        if not lib.ast_type(self.handle) == desired_type:
+            raise TypeError("AST is not of required type")
+
     def function_name(self) -> str:
+        self.ensure_type(sel.FUNCTION)
         return to_string(lib.function_name(self.handle))
 
     def function_parameters(self):
+        self.ensure_type(sel.FUNCTION)
         return ecl_mapcar(lambda param: AST(handle=param), lib.function_parameters(self.handle))
 
     def function_body(self):
+        self.ensure_type(sel.FUNCTION)
         return AST(handle=lib.function_body(self.handle))
+
+    def call_arguments(self):
+        self.ensure_type(sel.CALL)
+        return AST(handle=lib.call_arguments(self.handle))
+
+    def call_module(self):
+        self.ensure_type(sel.CALL)
+        return AST(handle=lib.call_module(self.handle))
+
+    def call_function(self):
+        self.ensure_type(sel.CALL)
+        return AST(handle=lib.call_function(self.handle))

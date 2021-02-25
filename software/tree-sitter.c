@@ -218,6 +218,12 @@ bool subtypep(cl_object ast, char* type_name){
 }
 
 /* General methods */
+cl_object function_asts(cl_object ast){
+  return cl_funcall(3, c_string_to_object("remove-if-not"),
+                    c_string_to_object("{typep _ 'function-ast}"),
+                    ast)
+}
+
 wchar_t* function_name(cl_object ast){
   return get_string(cl_funcall(2, c_string_to_object("function-name"), ast));
 }
@@ -228,4 +234,22 @@ cl_object function_parameters(cl_object ast){
 
 cl_object function_body(cl_object ast){
   return cl_funcall(2, c_string_to_object("function-body"), ast);
+}
+
+cl_object call_asts(cl_object ast){
+  return cl_funcall(3, c_string_to_object("remove-if-not"),
+                    c_string_to_object("{typep _ 'call-ast}"),
+                    ast)
+}
+
+cl_object call_arguments(cl_object ast){
+  return cl_funcall(2, c_string_to_object("call-arguments"), ast);
+}
+
+cl_object call_module(cl_object ast){
+  return cl_funcall(2, c_string_to_object("call-module"), ast);
+}
+
+cl_object call_function(cl_object ast){
+  return cl_funcall(2, c_string_to_object("call-function"), ast);
 }

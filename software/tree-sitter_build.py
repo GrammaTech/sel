@@ -67,9 +67,14 @@ extern type ast_type(void* ast);
 extern void* child_slots(void* ast);
 extern void* slot(void* ast, const char* slot_name);
 extern bool subtypep(void* ast, char* type_name);
+extern void* function_asts(void* ast);
 extern wchar_t* function_name(void* ast);
 extern void* function_parameters(void* ast);
 extern void* function_body(void* ast);
+extern void* call_asts(void* ast);
+extern void* call_arguments(void* ast);
+extern void* call_module(void* ast);
+extern void* call_function(void* ast);
 """)
 
 if platform.system() == "Darwin":
