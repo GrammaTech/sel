@@ -141,4 +141,4 @@ else
 endif
 
 python-tree-sitter: software/tree-sitter_build.py software/tree-sitter--all-systems.$(EXT)
-	python software/tree-sitter_build.py
+	python3 software/tree-sitter_build.py
