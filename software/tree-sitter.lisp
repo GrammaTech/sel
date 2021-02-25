@@ -353,7 +353,7 @@ searched to populate `*tree-sitter-language-files*'.")
 
   (defparameter *tree-sitter-base-ast-superclasses* '())
 
-  (defparameter *tree-sitter-field-extras*
+  (defparameter *tree-sitter-slot-extras*
     '((:c
        (c-init-declarator
         (c-declarator :initarg :lhs :reader lhs)
@@ -541,8 +541,8 @@ searched to populate `*tree-sitter-language-files*'.")
          (aget class-keyword *tree-sitter-software-superclasses*)
          :software-direct-slots
          (aget class-keyword *tree-sitter-direct-slots*)
-         :software-field-extras
-         (aget class-keyword *tree-sitter-field-extras*))))))
+         :software-slot-extras
+         (aget class-keyword *tree-sitter-slot-extras*))))))
 
 (-> ast-mixin-subclasses ((or symbol class) (or symbol class)) list)
 (defun ast-mixin-subclasses (class language)
@@ -804,10 +804,10 @@ of fields needs to be determined at parse-time."
       (node-types-file grammar-file name-prefix
        &key superclass-to-classes base-class-superclasses
          software-superclasses software-direct-slots
-         software-field-extras
+         software-slot-extras
        &aux (subtype->supertypes (make-hash-table))
          (symbols-to-export (make-hash-table))
-         (class->field-extras (make-hash-table))
+         (class->slot-extras (make-hash-table))
          (ast-superclass (symbolicate
                           name-prefix
                           "-"
@@ -832,11 +832,11 @@ of fields needs to be determined at parse-time."
                 subtype->supertypes)
                ;; Return for easier debugging.
                subtype->supertypes)
-             (initialize-class->field-extras ()
-               (iter (for (class . fields) in software-field-extras)
-                     (setf (gethash class class->field-extras) fields))
+             (initialize-class->slot-extras ()
+               (iter (for (class . fields) in software-slot-extras)
+                     (setf (gethash class class->slot-extras) fields))
                ;; Return for easier debugging.
-               class->field-extras)
+               class->slot-extras)
              (make-class-name (&optional name-string)
                "Create a class name based on NAME-STRING and add it to the
                 symbols that need exported."
@@ -894,7 +894,7 @@ of fields needs to be determined at parse-time."
                    ,@(lookup-slot type (first names)))))
              (lookup-slot (type field-name)
                (declare (symbol type field-name))
-               (aget field-name (gethash type class->field-extras)))
+               (aget field-name (gethash type class->slot-extras)))
              (create-slots (type fields)
                "Create the slots for a new class of TYPE based on
                 FIELDS and CHILDREN. Currently, slot types aren't
@@ -980,7 +980,7 @@ of fields needs to be determined at parse-time."
                              (decode-json-from-string
                               (file-to-string grammar-file)))))
         (initialize-subtype->supertypes)
-        (initialize-class->field-extras)
+        (initialize-class->slot-extras)
         `(progn
            (eval-always
              (define-software ,(make-class-name) (tree-sitter
