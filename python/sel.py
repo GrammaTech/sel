@@ -90,7 +90,7 @@ The type is a member of the TYPE enumeration."""
         arity = self.child_slot_arity(slot)
         if arity == None:
             return None
-        else if arity == 0:
+        elif arity == 0:
             return lib.slot(self.handle, slot.encode('ascii'))
         else:
             return ecl_mapcar(lambda child: AST(handle=child), lib.slot(self.handle, slot.encode('ascii')))
