@@ -20,32 +20,32 @@ class TestDriver(unittest.TestCase):
     # AST creation
     # AST source text
     def test_ast_creation_from_source(self):
-        self.assertTrue(self.source == self.ast.source_text())
+        self.assertEqual(self.source, self.ast.source_text())
 
 
     # AST at point
     # def test_ast_at_point(self):
-    #     self.assertTrue("88" == self.ast.ast_at_point(1, 5).source_text())
+    #     self.assertEqual("88", self.ast.ast_at_point(1, 5).source_text())
 
 
     # AST children
     def test_children(self):
-        self.assertTrue(3 == len(self.binop.children()))
+        self.assertEqual(3, len(self.binop.children()))
 
 
     # AST children-slots
     def test_child_slots(self):
         child_slots = self.binop.child_slots()
-        self.assertTrue(3 == len(child_slots))
+        self.assertEqual(3, len(child_slots))
         self.assertTrue("PYTHON-OPERATOR" in (list(map(lambda x: x[0], child_slots))))
 
 
     def test_child_slot_arity(self):
-        self.assertTrue(1 == self.binop.child_slot_arity("PYTHON-RIGHT"))
+        self.assertEqual(1, self.binop.child_slot_arity("PYTHON-RIGHT"))
 
 
     def test_child_slot_accessor(self):
-        self.assertTrue("88" == self.binop.child_slot("PYTHON-RIGHT").source_text())
+        self.assertEqual("88", self.binop.child_slot("PYTHON-RIGHT").source_text())
 
 
     # AST prefix
@@ -55,12 +55,12 @@ class TestDriver(unittest.TestCase):
 
     # AST type (ast_type)
     def test_ast_type(self):
-        self.assertTrue(sel.lib.INTEGER == self.binop.child_slot("PYTHON-RIGHT").ast_type())
+        self.assertEqual(sel.lib.INTEGER, self.binop.child_slot("PYTHON-RIGHT").ast_type())
 
 
     # AST language (ast_language)
     def test_ast_language(self):
-        self.assertTrue(sel.lib.PYTHON == self.ast.ast_language())
+        self.assertEqual(sel.lib.PYTHON, self.ast.ast_language())
 
 
     # AST accessors
