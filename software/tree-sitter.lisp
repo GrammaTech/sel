@@ -1030,22 +1030,34 @@ Unlike the `children` methods which collects all children of an AST from any slo
                                   &optional (source (genome-string obj)))
              (convert ',(make-class-name "ast") source)))))))
 
-(defmacro define-all-mixin-classes ()
-  "Ensure that all mixin classes are defined."
+(defmacro define-and-export-all-mixin-classes ()
+  "Ensure that all mixin classes are defined and exported."
   (let ((classes
-         (nest (mapcar (op (intern (string _) :sel/sw/ts)))
-               (remove-duplicates)
+         (nest (remove-duplicates)
                (mapcar #'car)
                (mappend #'cdr)
                *tree-sitter-ast-superclasses*)))
     `(progn
        ,@(iter (for class in classes)
-               (collect `(unless (find-class ',class nil)
-                           (defclass ,class (ast)
-                             ())))))))
+               (let ((class (intern (string class) :sel/sw/ts))
+                     (description
+                      (nest
+                       (string-downcase)
+                       (substitute #\Space #\-)
+                       (if (string$= '-ast class)
+                           (drop -4 (string class)))
+                       (string class))))
+                 (collect `(progn
+                             (export ',class :sel/sw/ts)
+                             (unless (find-class ',class nil)
+                               (defclass ,class (ast)
+                                 ()
+                                 (:documentation
+                                  ,(fmt "Mix-in for ~a AST classes."
+                                        description)))))))))))
 
 (eval-always
- (define-all-mixin-classes))
+ (define-and-export-all-mixin-classes))
 
 
 ;;; tree-sitter parsing
