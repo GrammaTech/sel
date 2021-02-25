@@ -2,7 +2,7 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
 
 default:
-  image: $DOCKER_REGISTRY/$CI_PROJECT_PATH:with-ecl
+  image: $DOCKER_REGISTRY/$CI_PROJECT_PATH/with-ecl
   tags: ["kubernetes", "cluster"]
   before_script:
     - cp -r $(pwd)/ /root/quicklisp/local-projects/
