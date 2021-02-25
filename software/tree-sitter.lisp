@@ -297,8 +297,9 @@
            :comments-for
            :definition-name
            :declarator-name
-           :enclosing-definition))
-
+           :enclosing-definition
+           :imports
+           :provided-by))
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 
@@ -2001,12 +2002,63 @@ Return NIL on the empty list.")
   (:documentation "Find the enclosing definition AST in which AST resides,
 or NIL if none."))
 
+(defgeneric imports (ast)
+  (:documentation "Return a list of the imports of AST.
+The car of every element in the list is the package imported from and
+the cdr is either the imported symbol or nil if the whole package is
+imported."))
+
+(defgeneric provided-by (software ast)
+  (:documentation
+   "Return the library, package, or system in SOFTWARE providing AST."))
+
 
 ;;;; Python
 ;;; Move this to its own file?
 (when-class-defined (python)
 
   ;; Methods common to all software objects
+  (defmethod imports ((software python))
+    (imports (genome software)))
+
+  (defmethod imports ((ast python-ast)) nil)
+
+  (defmethod imports ((ast python-module))
+    (mappend #'imports (children ast)))
+
+  (defmethod imports ((ast python-import-statement))
+    (mapcar [#'list #'source-text] (python-name ast)))
+
+  (defmethod imports ((ast python-import-from-statement))
+    (mapcar [{cons (source-text (python-module-name ast))} #'source-text]
+            (python-name ast)))
+
+  (defmethod provided-by ((software python) ast)
+    (provided-by (genome software) ast))
+
+  (defmethod provided-by ((root python-ast) (ast python-identifier))
+    (car (find-if [{equalp (source-text ast)} #'cdr] (imports root))))
+
+  (defmethod provided-by ((root python-ast) (ast python-attribute))
+    (labels ((top-attribute (root ast)
+               (let ((parent (get-parent-ast root ast)))
+                 (if (and parent (typep parent 'python-attribute))
+                     (top-attribute root parent)
+                     ast)))
+             (collect (ast)
+               (etypecase ast
+                 (python-attribute (list (collect (python-attribute ast))
+                                         (collect (python-object ast))))
+                 (python-identifier (source-text ast))))
+             (chain (ast) (reverse (flatten (collect (top-attribute root ast))))))
+      (car (chain ast))))
+
+  (defmethod provided-by (root (ast python-expression-statement))
+    (provided-by root (first (children ast))))
+
+  (defmethod provided-by ((root python-ast) (ast python-call))
+    (provided-by root (python-function ast)))
+
   (defmethod phenome ((obj python) &key (bin (temp-file-name)))
     (interpreted-phenome obj bin))
 
@@ -2434,9 +2486,10 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
           (find-if {identical-name-p identifier} (python-children lhs)))))))
 
   (defmethod function-name ((node python-function-definition))
-    (match node
-      ((python-function-definition :python-name name)
-       (source-text name))))
+    (source-text (python-name node)))
+
+  (defmethod function-name ((node python-attribute))
+    (source-text (python-attribute node)))
 
   (defmethod call-arguments ((ast python-call))
     (children (python-arguments ast)))

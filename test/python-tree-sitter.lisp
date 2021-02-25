@@ -704,6 +704,28 @@ and keyword parameters with defaults."
       (is (equal? (comments-for sw (first nodes))
                   (comments-for sw (second nodes)))))))
 
+(defixture python-import
+  (:setup
+   (setf *soft*
+         (from-file (make-instance 'python)
+                    (python-dir #P"import-example/import-example.py"))))
+  (:teardown
+   (setf *soft* nil)))
+
+(deftest python-imports ()
+  (with-fixture python-import
+    (is (equalp '(("os")) (imports (@ *soft* '(0)))))
+    (is (equalp '(("sys" . "byteorder")) (imports (@ *soft* '(1)))))
+    (is (equalp '(("os")("sys" . "byteorder")) (imports *soft*)))))
+
+(deftest python-provided-by ()
+  (with-fixture python-import
+    ;; Explicitly imported at the top and called without a namespace chain.
+    (is (string= "sys" (provided-by *soft* (@ *soft* '(3)))))
+    ;; Called with a namespace chain.
+    (is (string= "os" (provided-by *soft* (@ *soft* '(2 0)))))
+    (is (string= "os" (provided-by *soft* (@ *soft* '(2 0 python-function)))))))
+
 (deftest (python-tree-sitter-parsing-test :long-running) ()
   (labels ((parsing-test-dir (path)
              (merge-pathnames-as-file
