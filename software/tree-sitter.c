@@ -55,7 +55,7 @@ cl_object eval(char* source){
      * If the exception, lisp condition or other control transfer
      * is caught, this code is executed.
      */
-    return ecl_make_keyword("ERROR");
+    return ECL_NIL;
   } ECL_CATCH_ALL_END;
 }
 
@@ -65,9 +65,9 @@ cl_object language_symbol(language language){
   case PYTHON: return ecl_make_symbol("PYTHON-AST", package);
   case C: return ecl_make_symbol("C-AST", package);
   case CPP: return ecl_make_symbol("CPP-AST", package);
-  case UNKNOWN_LANGUAGE: return ecl_make_symbol("ERROR", package);
+  case UNKNOWN_LANGUAGE: return ecl_make_symbol("UNKNOWN_LANGUAGE", package);
   }
-  return ecl_make_symbol("ERROR", package);  
+  return ECL_NIL;
 }
 
 cl_object car(cl_object list){
@@ -118,7 +118,7 @@ cl_object convert(language language, char* source){
      * If the exception, lisp condition or other control transfer
      * is caught, this code is executed.
      */
-    return ecl_make_keyword("ERROR");
+    return ECL_NIL;
   } ECL_CATCH_ALL_END;
 }
 
@@ -143,12 +143,17 @@ wchar_t* symbol_name(cl_object cl_object){
 */
 
 cl_object ast_at_point(cl_object ast, int line, int column){
-  return cl_car(cl_last(1, cl_funcall(3, c_string_to_object("asts-containing-source-location"),
-                                      ast,
-                                      cl_funcall(6, c_string_to_object("make-instance"),
-                                                 ecl_make_symbol("SOURCE-LOCATION", package),
-                                                 ecl_make_keyword("LINE"), line,
-                                                 ecl_make_keyword("COLUMN"), column))));
+  cl_env_ptr env = ecl_process_env();
+  ECL_CATCH_ALL_BEGIN(env) {
+    return cl_car(cl_last(1, cl_funcall(3, c_string_to_object("asts-containing-source-location"),
+                                        ast,
+                                        cl_funcall(6, c_string_to_object("make-instance"),
+                                                   ecl_make_symbol("SOURCE-LOCATION", package),
+                                                   ecl_make_keyword("LINE"), line,
+                                                   ecl_make_keyword("COLUMN"), column))));
+  } ECL_CATCH_ALL_IF_CAUGHT {
+    return ECL_NIL;
+  } ECL_CATCH_ALL_END;
 }
 
 wchar_t* source_text(cl_object ast){
