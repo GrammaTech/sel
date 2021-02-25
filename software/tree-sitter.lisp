@@ -490,6 +490,18 @@ searched to populate `*tree-sitter-language-files*'.")
        (:return-ast python-return-statement)
        (:variable-declaration-ast python-assignment))))
 
+  (defparameter *tree-sitter-ast-superclass-table*
+    (nest
+     (lret ((table (make-hash-table))))
+     (iter (for (lang . alist) in *tree-sitter-ast-superclasses*))
+     (let ((lang (intern (string lang) :sel/sw/ts)))
+       (setf (href table lang) (make-hash-table)))
+     (iter (for (mixin . subclasses) in alist))
+     (let ((mixin (find-symbol (string mixin) :sel/sw/ts))))
+     (dolist (subclass subclasses))
+     (push subclass (href table lang mixin)))
+    "Build a nested hash table from language and mixin to a list of classes that inherit from that mixin.")
+
   (defparameter *tree-sitter-ast-extra-prefixes*
     '((:c c/cpp)
       (:cpp c/cpp)
@@ -527,6 +539,13 @@ searched to populate `*tree-sitter-language-files*'.")
          (aget class-keyword *tree-sitter-direct-slots*)
          :software-field-extras
          (aget class-keyword *tree-sitter-field-extras*))))))
+
+(-> ast-mixin-subclasses ((or symbol class) (or symbol class)) list)
+(defun ast-mixin-subclasses (class language)
+  "Return a list of AST classes for LANGUAGE that inherit from CLASS."
+  (let ((table *tree-sitter-ast-superclass-table*))
+    (when-let (language-table (gethash (class-name-safe language) table))
+      (gethash (class-name-safe class) language-table))))
 
 (defmacro register-tree-sitter-language (lib-name language ast-superclass)
   "Setup LANGUAGE to map to AST-SUPERCLASS and use LIB-NAME for parsing."
