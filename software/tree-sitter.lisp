@@ -344,10 +344,20 @@ searched to populate `*tree-sitter-language-files*'.")
     ()
     (:documentation "Mix-in class for tree-sitter c and cpp classes"))
 
+  (define-software ecma ()
+    ()
+    (:documentation "Mix-in class for tree-sitter ECMAScript variants."))
+
+  (define-software typescript (ecma)
+    ()
+    (:documentation "Mix-in class for tree-sitter TypeScript variants."))
+
   (defparameter *tree-sitter-software-superclasses*
     '((:c compilable normal-scope c/cpp)
       (:cpp compilable normal-scope c/cpp)
-      (:javascript normal-scope)))
+      (:javascript normal-scope ecma)
+      (:typescript-typescript typescript)
+      (:typescript-tsx typescript)))
 
   (defparameter *tree-sitter-direct-slots* '())
 
