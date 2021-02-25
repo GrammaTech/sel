@@ -59,9 +59,14 @@ extern cl_object slot(cl_object ast, const char* slot_name);
 extern cl_object parent(cl_object root, cl_object ast);
 extern language ast_language(cl_object ast);
 extern type ast_type(cl_object ast);
-extern type ast_type(cl_object ast);
 extern bool subtypep(cl_object ast, char* type_name);
 /* AST Accessors */
+extern cl_object function_asts(cl_object ast);
 extern wchar_t* function_name(cl_object ast);
 extern cl_object function_parameters(cl_object ast);
 extern cl_object function_body(cl_object ast);
+extern cl_object call_asts(cl_object ast);
+extern cl_object function_asts(cl_object ast);
+extern cl_object call_arguments(cl_object ast);
+extern cl_object call_module(cl_object ast);
+extern cl_object call_function(cl_object ast);

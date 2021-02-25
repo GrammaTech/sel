@@ -26,9 +26,8 @@ class TestDriver(unittest.TestCase):
     # AST prefix
     # AST suffix
     # AST hash
-    # AST type
-    # AST class
-    # AST language
+    # AST type (ast_type)
+    # AST language (ast_language)
 
     # AST accessors
     # function name
