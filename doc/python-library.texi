@@ -20,7 +20,7 @@ Lisp developer.  From the perspective of a Python developer the use of
 lisp should not be noticable.
 
 The system setup described below may be skipped by simply using the
-@code{Dockerfile.python} included in the base of the SEL repository.
+@code{Dockerfile} included in the base of the SEL repository.
 
 SEL's @code{SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/TREE-SITTER}
 (@code{sel/sw/ts}) system is exposed as a Python package.  This is a
