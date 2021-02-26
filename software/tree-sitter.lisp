@@ -359,9 +359,13 @@ searched to populate `*tree-sitter-language-files*'.")
       (:typescript-typescript typescript)
       (:typescript-tsx typescript)))
 
-  (defparameter *tree-sitter-software-direct-slots* '())
+  (defparameter *tree-sitter-software-direct-slots* '()
+    "Alist of direct slots for software classes, such as `python' or
+    `c'.")
 
-  (defparameter *tree-sitter-base-ast-superclasses* '())
+  (defparameter *tree-sitter-base-ast-superclasses* '()
+    "Aslist of superclasses for the base class of a language (e.g.
+    `python-ast').")
 
   (defparameter *tree-sitter-ast-extra-slot-options*
     '((:c
@@ -381,7 +385,8 @@ searched to populate `*tree-sitter-language-files*'.")
         (cpp-left :initarg :lhs :reader lhs)
         (cpp-right :initarg :rhs :reader rhs))
        (cpp-call-expression
-        (cpp-arguments :reader call-arguments)))))
+        (cpp-arguments :reader call-arguments))))
+    "Alist from languages to classes with extra slot options.")
 
   (defparameter *tree-sitter-ast-superclasses*
     '((:c
@@ -502,6 +507,9 @@ searched to populate `*tree-sitter-language-files*'.")
        (:unary-ast python-unary-operator)
        (:binary-ast python-binary-operator)
        (:return-ast python-return-statement)
+       (:variable-declaration-ast python-assignment)))
+    "Alist from languages to alists of superclasses and tree-sitter
+    AST classes that should inherit from them.")
 
   (defparameter *tree-sitter-ast-superclass-table*
     (lret ((table (make-hash-table)))
@@ -515,8 +523,8 @@ searched to populate `*tree-sitter-language-files*'.")
           (let ((mixin (find-symbol (string mixin) :sel/sw/ts)))
             (dolist (subclass subclasses)
               (push subclass (gethash mixin lang-table))))))))
-    "Build a nested hash table from language and mixin to a list of
-    classes that inherit from that mixin.")
+    "Nested hash table from language and mixin to a list of classes
+    that inherit from that mixin.")
 
   (defparameter *tree-sitter-ast-extra-prefixes*
     '((:c c/cpp)
@@ -524,8 +532,9 @@ searched to populate `*tree-sitter-language-files*'.")
       (:typescript-typescript typescript ecma)
       (:typescript-tsx typescript ecma)
       (:javascript ecma))
-    "For every extra prefix, every slot will get an extra reader and
-    an extra initarg with that prefix.")
+    "Alist of languages and extra prefixes.
+For every extra prefix, every slot will get an extra reader and an
+extra initarg with that prefix.")
 
   (defun tree-sitter-ast-classes (name grammar-file node-types-file)
     (nest
@@ -824,6 +833,25 @@ of fields needs to be determined at parse-time."
                           name-prefix
                           "-"
                           (convert-name "ast"))))
+    "Create the classes for a tree-sitter language.
+
+Creates one class for a software object (named NAME-PREFIX) and many
+classes for ASTs, using NAME-PREFIX as their prefix.
+
+AST-SUPERCLASSES is an alist of superclasses and the names of the AST
+classes that should inherit from them.
+
+BASE-AST-SUPERCLASSES is a list of superclasses for the base
+class (`X-ast') of the language's ASTs.
+
+SOFTWARE-SUPERCLASSES is a list of superclass names for the software
+object.
+
+SOFTWARE-DIRECT-SLOTS is a list of slots to be added to the created
+sofware class.
+
+AST-EXTRA-SLOT-OPTIONS is an alist from classes to extra options for
+their slots."
     (labels ((initialize-subtype->supertypes ()
                "Initialize subtype->supertypes with the super types that
                 aren't parsed from the json files."
