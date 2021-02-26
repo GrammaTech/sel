@@ -904,8 +904,8 @@ of fields needs to be determined at parse-time."
                    ;; Prefixed initargs.
                    ,@(mappend (op `(:initarg ,(make-keyword _))) names)
                    :initform nil
-                   ,@(lookup-slot type (first names)))))
-             (lookup-slot (type field-name)
+                   ,@(lookup-extra-slot-options type (first names)))))
+             (lookup-extra-slot-options (type field-name)
                (declare (symbol type field-name))
                (aget field-name (gethash type class->slot-extras)))
              (create-slots (type fields)
