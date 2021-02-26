@@ -721,10 +721,11 @@ and keyword parameters with defaults."
 (deftest python-provided-by ()
   (with-fixture python-import
     ;; Explicitly imported at the top and called without a namespace chain.
-    (is (string= "sys" (provided-by *soft* (@ *soft* '(3)))))
+    (is (string= "sys" (provided-by *soft* (stmt-starting-with-text *soft* "byteorder()"))))
     ;; Called with a namespace chain.
-    (is (string= "os" (provided-by *soft* (@ *soft* '(2 0)))))
-    (is (string= "os" (provided-by *soft* (@ *soft* '(2 0 python-function)))))))
+    (is (string= "os" (provided-by *soft* (stmt-starting-with-text *soft* "os.path.exists"))))
+    (is (string= "os" (provided-by *soft* (@ (stmt-starting-with-text *soft* "os.path.exists")
+                                             '(0 python-function)))))))
 
 (deftest (python-tree-sitter-parsing-test :long-running) ()
   (labels ((parsing-test-dir (path)
