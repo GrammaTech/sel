@@ -508,8 +508,13 @@ searched to populate `*tree-sitter-language-files*'.")
        (:binary-ast python-binary-operator)
        (:return-ast python-return-statement)
        (:variable-declaration-ast python-assignment)))
-    "Alist from languages to alists of superclasses and tree-sitter
-    AST classes that should inherit from them.")
+    "Specifies which classes should inherit from which mixins.
+An alist from languages to alists of mixins and tree-sitter AST
+classes that should inherit from them.
+
+Note that mixins used here will be automatically exported later, and
+those that do not have separate class definitions will be given stub
+definitions.")
 
   (defparameter *tree-sitter-ast-superclass-table*
     (lret ((table (make-hash-table)))
