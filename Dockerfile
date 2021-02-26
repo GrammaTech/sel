@@ -31,11 +31,13 @@ export CCL_DEFAULT_DIRECTORY=/usr/share/ccl\n\
 exec ${CCL_DEFAULT_DIRECTORY}/lx86cl64 "$@"\n\
 ' > /usr/bin/ccl
 RUN chmod a+x /usr/bin/ccl
-# Newer ASDF for CCL to support package-local nicknames
-RUN curl https://gitlab.common-lisp.net/asdf/asdf/-/archive/3.3.4.8/asdf-3.3.4.8.tar.gz| tar xzC /usr/share/ccl
-RUN make -C /usr/share/ccl/asdf-3.3.4.8/
+
+# Newer ASDF for CCL and SBCL to support package-local nicknames
+RUN curl https://gitlab.common-lisp.net/asdf/asdf/-/archive/3.3.4.8/asdf-3.3.4.8.tar.gz| tar xzC /usr/share
+RUN make -C /usr/share/asdf-3.3.4.8/
 # https://common-lisp.net/project/asdf/asdf.html#Loading-ASDF-from-source
-RUN echo '(load "/usr/share/ccl/asdf-3.3.4.8/build/asdf.lisp")' >> /root/.ccl-init.lisp
+RUN echo '(load "/usr/share/asdf-3.3.4.8/build/asdf.lisp")' >> /root/.sbclrc
+RUN echo '(load "/usr/share/asdf-3.3.4.8/build/asdf.lisp")' >> /root/.ccl-init.lisp
 
 # Build ECL
 RUN git clone https://gitlab.com/embeddable-common-lisp/ecl.git /ecl
