@@ -505,16 +505,19 @@ searched to populate `*tree-sitter-language-files*'.")
        (:variable-declaration-ast python-assignment))))
 
   (defparameter *tree-sitter-ast-superclass-table*
-    (nest
-     (lret ((table (make-hash-table))))
-     (iter (for (lang . alist) in *tree-sitter-ast-superclasses*))
-     (let ((lang (intern (string lang) :sel/sw/ts)))
-       (setf (href table lang) (make-hash-table)))
-     (iter (for (mixin . subclasses) in alist))
-     (let ((mixin (find-symbol (string mixin) :sel/sw/ts))))
-     (dolist (subclass subclasses))
-     (push subclass (href table lang mixin)))
-    "Build a nested hash table from language and mixin to a list of classes that inherit from that mixin.")
+    (lret ((table (make-hash-table)))
+      (iter
+       (for (lang . alist) in *tree-sitter-ast-superclasses*)
+       (let ((lang (intern (string lang) :sel/sw/ts))
+             (lang-table (make-hash-table)))
+         (setf (gethash lang table) lang-table)
+         (iter
+          (for (mixin . subclasses) in alist)
+          (let ((mixin (find-symbol (string mixin) :sel/sw/ts)))
+            (dolist (subclass subclasses)
+              (push subclass (gethash mixin lang-table))))))))
+    "Build a nested hash table from language and mixin to a list of
+    classes that inherit from that mixin.")
 
   (defparameter *tree-sitter-ast-extra-prefixes*
     '((:c c/cpp)
