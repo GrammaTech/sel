@@ -40,18 +40,35 @@ test-ccl:
     LISP: 'ccl'
   <<: *test
 
-dependents:
+dependent-genpatcher:
   stage: deploy
-  script:
-    - "curl -X POST -F token=86d8095830c9823728e4204584dc16 -F ref=$CI_BUILD_REF_NAME https://git.grammatech.com/api/v4/projects/943/trigger/pipeline"  # genpatcher
-    - "curl -X POST -F token=5ad3804083cbeb694cea4c126029e8 -F ref=$CI_BUILD_REF_NAME https://git.grammatech.com/api/v4/projects/1271/trigger/pipeline" # refactoring-mutations
-    - "curl -X POST -F token=943ae481fed1a7ea21d7439bf3a8f3 -F ref=$CI_BUILD_REF_NAME https://git.grammatech.com/api/v4/projects/881/trigger/pipeline"  # resolve
-    - "curl -X POST -F token=c83ba713bf7f104805a160a169f586 -F ref=$CI_BUILD_REF_NAME https://git.grammatech.com/api/v4/projects/787/trigger/pipeline"  # ssr
-    - "curl -X POST -F token=13c57efe9eec48ff860d8e6e0172b2 -F ref=$CI_BUILD_REF_NAME https://git.grammatech.com/api/v4/projects/246/trigger/pipeline"  # trace-db
-  only:
-    - master
-  except:
-    - schedules
+  only: [master]
+  except: [schedules]
+  trigger: synthesis/genpatcher
+
+dependent-refactoring-mutations:
+  stage: deploy
+  only: [master]
+  except: [schedules]
+  trigger: synthesis/refactoring-mutations
+
+dependent-resolve:
+  stage: deploy
+  only: [master]
+  except: [schedules]
+  trigger: synthesis/resolve
+
+dependent-ssr:
+  stage: deploy
+  only: [master]
+  except: [schedules]
+  trigger: synthesis/ssr
+
+dependent-trace-db:
+  stage: deploy
+  only: [master]
+  except: [schedules]
+  trigger: synthesis/trace-db
 
 # Use kaniko to build docker image.
 #  https://docs.gitlab.com/ee/ci/docker/using_kaniko.html
