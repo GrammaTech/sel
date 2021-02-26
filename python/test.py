@@ -6,6 +6,8 @@ class TestDriver(unittest.TestCase):
     source = "x + 88"
     ast = None
     binop = None
+    this_source = None
+    this_ast = None
 
     def tearDown(self):
         return
@@ -14,6 +16,8 @@ class TestDriver(unittest.TestCase):
     def setUp(self):
         self.ast = sel.AST(sel.lib.PYTHON, "x + 88")
         self.binop = self.ast.children()[0].children()[0]
+        self.this_source = ast.AST(file.open(os.path.dirname(__file__)).read())
+        self.this_ast = sel.AST(sel.lib.PYTHON, full_source)
         return
 
 
@@ -67,6 +71,10 @@ class TestDriver(unittest.TestCase):
 
     # AST accessors
     # function name
+    def test_function_names_and_function_asts(self):
+        self.assertTrue("test_function_names_and_function_asts" in
+                        list(map(function_name, this_ast.function_asts())))
+
     # function parameters
     # function body
     # call-function
