@@ -6,6 +6,8 @@ default:
   tags: ["kubernetes", "cluster"]
   before_script:
     - cp -r $(pwd)/ /root/quicklisp/local-projects/
+    - cd /root/quicklisp/local-projects/$CI_PROJECT_NAME
+    - GT=yes make dependencies
 
 check-format:
   stage: .pre
