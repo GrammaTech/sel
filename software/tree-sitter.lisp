@@ -246,6 +246,7 @@
            ;; Cross-language Mix-ins
            :parse-error-ast
            :comment-ast
+           :definition-ast
            :statement-ast
            :expression-ast
            :parenthesized-expression-ast
@@ -292,7 +293,11 @@
            :type-in
            :find-enclosing
            :find-preceding
-           :comments-for))
+           :comments-for
+           :definition-name
+           :declarator-name
+           :enclosing-definition))
+
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 
@@ -391,6 +396,9 @@ searched to populate `*tree-sitter-language-files*'.")
   (defparameter *tree-sitter-ast-superclasses*
     '((:c
        (:comment-ast c-comment)
+       (:definition-ast c-type-definition c-struct-specifier c-union-specifier
+        c-field-declaration c-enum-specifier c-preproc-def
+        c-preproc-function-def)
        (:statement-ast c--statement c-function-definition)
        (:expression-ast c-expression-statement c-call-expression c-update-expression
         c-assignment-expression c-binary-expression c-parenthesized-expression c-cast-expression
@@ -603,6 +611,10 @@ extra initarg with that prefix.")
   (defclass tree-sitter-ast (indentation functional-tree-ast interleaved-text)
     ()
     (:documentation "AST for input from tree-sitter."))
+
+  (defclass definition-ast (ast) ()
+    (:documentation "AST for something that associates a name with a thing.
+The name string is obtained by by DEFINITION-NAME"))
 
   (defclass comment-ast (ast) ()
     (:documentation "Mix-in for AST classes that are comments."))
@@ -1942,6 +1954,23 @@ the rebinding"
         (when-let (fn (find-enclosing 'function-ast software ast))
           (find-preceding 'comment-ast software fn)))))
 
+(defgeneric definition-name (ast)
+  (:documentation "Return a string that is the name of the things
+defined by a definition.  Return NIL if AST is not a definition.")
+  (:method ((ast t)) nil))
+
+(defgeneric declarator-name (ast)
+  (:documentation "Returns a string that is the name of a things
+declared in a declarator, or in the first element of a list of declarators.
+Return NIL on the empty list.")
+  (:method ((ast null)) nil)
+  (:method ((ast list))
+    (declarator-name (car ast))))
+
+(defgeneric enclosing-definition (sw ast)
+  (:documentation "Find the enclosing definition AST in which AST resides,
+or NIL if none."))
+
 
 ;;;; Python
 ;;; Move this to its own file?
@@ -3096,6 +3125,37 @@ scope of START-AST."
           :pointer
           (make-keyword (string-upcase (source-text (c-type decl)))))))
 
+  (defmethod enclosing-definition ((sw c) (ast t))
+    (find-enclosing '(or definition-ast c-primitive-type)
+                    sw ast))
+
+  (defmethod definition-name ((ast t)) nil)
+  (defmethod definition-name ((ast c-function-definition))
+    (declarator-name (c-declarator ast)))
+  (defmethod definition-name ((ast c-struct-specifier))
+    (source-text (c-name ast)))
+  (defmethod definition-name ((ast c-union-specifier))
+    (source-text (c-name ast)))
+  (defmethod definition-name ((ast c-type-definition))
+    (declarator-name (c-declarator ast)))
+  (defmethod definition-name ((ast c-preproc-def))
+    (source-text (c-name ast)))
+  (defmethod definition-name ((ast c-preproc-function-def))
+    (source-text (c-name ast)))
+
+  (defmethod declarator-name ((ast c-identifier))
+    (source-text ast))
+  (defmethod declarator-name ((ast c-type-identifier))
+    (source-text ast))
+  (defmethod declarator-name ((ast c-parenthesized-declarator))
+    (source-text (car (children ast))))
+  (defmethod declarator-name ((ast c-pointer-declarator))
+    (declarator-name (c-declarator ast)))
+  (defmethod declarator-name ((ast c-array-declarator))
+    (declarator-name (c-declarator ast)))
+  (defmethod declarator-name ((ast c-function-declarator))
+    (declarator-name (c-declarator ast)))
+
   ;; TODO: Convert other methods implemented for JavaScript but not C.
 
   ;; Implement the generic format-genome method for C objects.
@@ -3330,9 +3390,7 @@ slots."
 (defgeneric function-name (node)
   (:documentation "Extract the name of the function from NODE.
 If NODE is not a function node, return nil.")
-  (:method (node)
-    (declare (ignore node))
-    nil)
+  (:method ((node t)) nil)
   (:method ((node function-ast) &aux (type (type-of node)))
     (unless (subtypep type 'lambda-ast)
       (warn "FUNCTION-NAME undefined for ~a" type))
