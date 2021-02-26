@@ -359,11 +359,11 @@ searched to populate `*tree-sitter-language-files*'.")
       (:typescript-typescript typescript)
       (:typescript-tsx typescript)))
 
-  (defparameter *tree-sitter-direct-slots* '())
+  (defparameter *tree-sitter-software-direct-slots* '())
 
   (defparameter *tree-sitter-base-ast-superclasses* '())
 
-  (defparameter *tree-sitter-slot-extras*
+  (defparameter *tree-sitter-ast-extra-slot-options*
     '((:c
        (c-init-declarator
         (c-declarator :initarg :lhs :reader lhs)
@@ -502,7 +502,6 @@ searched to populate `*tree-sitter-language-files*'.")
        (:unary-ast python-unary-operator)
        (:binary-ast python-binary-operator)
        (:return-ast python-return-statement)
-       (:variable-declaration-ast python-assignment))))
 
   (defparameter *tree-sitter-ast-superclass-table*
     (lret ((table (make-hash-table)))
@@ -546,16 +545,16 @@ searched to populate `*tree-sitter-language-files*'.")
          node-types-file
          grammar-file
          class-name
-         :superclass-to-classes
+         :ast-superclasses
          (aget class-keyword *tree-sitter-ast-superclasses*)
-         :base-class-superclasses
+         :base-ast-superclasses
          (aget class-keyword *tree-sitter-base-ast-superclasses*)
          :software-superclasses
          (aget class-keyword *tree-sitter-software-superclasses*)
          :software-direct-slots
-         (aget class-keyword *tree-sitter-direct-slots*)
-         :software-slot-extras
-         (aget class-keyword *tree-sitter-slot-extras*))))))
+         (aget class-keyword *tree-sitter-software-direct-slots*)
+         :ast-extra-slot-options
+         (aget class-keyword *tree-sitter-ast-extra-slot-options*))))))
 
 (-> ast-mixin-subclasses ((or symbol class) (or symbol class)) list)
 (defun ast-mixin-subclasses (class language)
@@ -815,12 +814,12 @@ of fields needs to be determined at parse-time."
 
   (defun create-tree-sitter-classes
       (node-types-file grammar-file name-prefix
-       &key superclass-to-classes base-class-superclasses
+       &key ast-superclasses base-ast-superclasses
          software-superclasses software-direct-slots
-         software-slot-extras
+         ast-extra-slot-options
        &aux (subtype->supertypes (make-hash-table))
          (symbols-to-export (make-hash-table))
-         (class->slot-extras (make-hash-table))
+         (class->extra-slot-options (make-hash-table))
          (ast-superclass (symbolicate
                           name-prefix
                           "-"
@@ -835,7 +834,7 @@ of fields needs to be determined at parse-time."
                    (lambda (subtype)
                      (push supertype (gethash subtype subtype->supertypes)))
                    (cdr types-list)))
-                superclass-to-classes)
+                ast-superclasses)
                ;; Add super class into all of these to ensure it's present. When
                ;; add-supertypes-to-subtypes is called, it will need to remove
                ;; it.
@@ -845,11 +844,11 @@ of fields needs to be determined at parse-time."
                 subtype->supertypes)
                ;; Return for easier debugging.
                subtype->supertypes)
-             (initialize-class->slot-extras ()
-               (iter (for (class . fields) in software-slot-extras)
-                     (setf (gethash class class->slot-extras) fields))
+             (initialize-class->extra-slot-options ()
+               (iter (for (class . fields) in ast-extra-slot-options)
+                     (setf (gethash class class->extra-slot-options) fields))
                ;; Return for easier debugging.
-               class->slot-extras)
+               class->extra-slot-options)
              (make-class-name (&optional name-string)
                "Create a class name based on NAME-STRING and add it to the
                 symbols that need exported."
@@ -907,7 +906,7 @@ of fields needs to be determined at parse-time."
                    ,@(lookup-extra-slot-options type (first names)))))
              (lookup-extra-slot-options (type field-name)
                (declare (symbol type field-name))
-               (aget field-name (gethash type class->slot-extras)))
+               (aget field-name (gethash type class->extra-slot-options)))
              (create-slots (type fields)
                "Create the slots for a new class of TYPE based on
                 FIELDS and CHILDREN. Currently, slot types aren't
@@ -993,7 +992,7 @@ of fields needs to be determined at parse-time."
                              (decode-json-from-string
                               (file-to-string grammar-file)))))
         (initialize-subtype->supertypes)
-        (initialize-class->slot-extras)
+        (initialize-class->extra-slot-options)
         `(progn
            (eval-always
              (define-software ,(make-class-name) (tree-sitter
@@ -1005,7 +1004,7 @@ of fields needs to be determined at parse-time."
 
              (define-node-class ,(make-class-name "ast")
                  (tree-sitter-ast ,@(mapcar [#'car #'ensure-list]
-                                            base-class-superclasses))
+                                            base-ast-superclasses))
                ;; NOTE: ensure there is always a children slot.
                ;;       This is important for classes that don't have
                ;;       it but can have comments mixed in.
