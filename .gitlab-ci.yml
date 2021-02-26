@@ -42,26 +42,31 @@ test-ccl:
 
 dependent-genpatcher:
   stage: deploy
+  only: [master]
   except: [schedules]
   trigger: synthesis/genpatcher
 
 dependent-refactoring-mutations:
   stage: deploy
+  only: [master]
   except: [schedules]
   trigger: synthesis/refactoring-mutations
 
 dependent-resolve:
   stage: deploy
+  only: [master]
   except: [schedules]
   trigger: synthesis/resolve
 
 dependent-ssr:
   stage: deploy
+  only: [master]
   except: [schedules]
   trigger: synthesis/ssr
 
 dependent-trace-db:
   stage: deploy
+  only: [master]
   except: [schedules]
   trigger: synthesis/trace-db
 
