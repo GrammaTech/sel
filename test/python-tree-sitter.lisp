@@ -516,6 +516,7 @@ the correct scope."
   (is-get-vars-test "list-comp-2" 'python-list-comprehension '("x")
                     :scope-fun {typep _ 'python-list-comprehension}))
 
+#-ecl ;; Failing under ECL.  See issue #107.
 (deftest python-get-vars-with-statement-1 ()
   "get-vars gets variables from python-with-statement."
   (is-get-vars-test "with-1" 'python-with-statement '("x")))
