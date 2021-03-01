@@ -230,6 +230,7 @@
            :*tree-sitter-language-directories*
            :*tree-sitter-language-files*
            :ast-type-to-rebind-p
+           :ast-mixin-subclasses
            :collect-var-uses
            :collect-fun-uses
            :javascript
