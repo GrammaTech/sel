@@ -916,13 +916,14 @@ their slots."
                 symbols that need exported."
                ;; NOTE: this has the potential for name clashes
                ;;       though it's probably unlikely.
-               (lret ((name
-                       (if name-string
-                           (symbolicate
-                            name-prefix
-                            "-"
-                            (convert-name name-string))
-                           (symbolicate name-prefix))))
+               (lret* ((*package* (find-package :sel/sw/ts))
+                       (name
+                        (if name-string
+                            (symbolicate
+                             name-prefix
+                             "-"
+                             (convert-name name-string))
+                            (symbolicate name-prefix))))
                  (ensure-gethash name symbols-to-export t)))
              (make-accessor-name (prefix name-keyword)
                "Create an accessor name based on NAME-KEYWORD and
