@@ -288,7 +288,7 @@ of the same length"
                                          &key (limit 1000)
                                            ignore-indentation)
   (iter (for file in-vector (take limit (reshuffle files)))
-        (ignore-errors                      ;Ignore unparseable files.
+        (ignore-some-conditions (simple-error)      ;Ignore unparseable files.
          (test-single-ast-source-ranges
           class file
           :ignore-indentation ignore-indentation))))
@@ -299,17 +299,23 @@ That is, test that the result of calling `source-text' on an AST is the same as 
   (ignore-some-conditions (mutate)
     (let* ((sw (from-file (make class) file))
            (ranges (ast-source-ranges sw))
-           (text (source-text (genome sw))))
+           (text (source-text (genome sw)))
+           (newline-offsets (precompute-newline-offsets text)))
       (is (not (emptyp ranges)))
       (iter (for (ast . range) in ranges)
-            (let ((reference-text (source-range-subseq text range))
+            (let ((reference-text1 (source-range-subseq text range))
+                  (reference-text2 (source-range-subseq text range
+                                                        newline-offsets))
                   (output-text (source-text ast)))
+              ;; Also test that source-range-subseq works properly
+              ;; with newline offsets.
+              (is (equal reference-text1 reference-text2))
               (if ignore-indentation
                   (let ((output-lines (lines output-text))
-                        (reference-lines (lines reference-text)))
+                        (reference-lines (lines reference-text1)))
                     (is (length= output-lines reference-lines))
                     (is (every #'string$= output-lines reference-lines)))
-                  (is (equal reference-text output-text))))))))
+                  (is (equal reference-text1 output-text))))))))
 
 (defun expand-wildcard (wildcard)
   "Get test files matching WILDCARD relative to test/etc/."

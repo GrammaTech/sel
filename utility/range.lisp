@@ -17,6 +17,7 @@
    :contains
    :intersects
    :source-location->position
+   :precompute-newline-offsets
    :position->source-location
    :source-range-subseq))
 (in-package :software-evolution-library/utility/range)
@@ -127,21 +128,44 @@ after B.")
     (and (< (begin a-range) (end b-range))
          (> (end a-range) (begin b-range)))))
 
-(defun position->source-location (string pos)
-  "Translate POS, a position in STRING, into a source location object."
+(defun precompute-newline-offsets (string)
+  "Precompute a cache of newline offsets in STRING.
+Can be used by `position->source-location' and
+`source-location->position'."
+  (lret ((v
+          (make-array 10
+                      :fill-pointer 0
+                      :adjustable t
+                      :element-type 'array-index)))
+    (with-string-dispatch () string
+      (iter (for i below (length string))
+            (when (eql #\Newline (vref string i))
+              (vector-push-extend i v))))))
+
+(defun position->source-location (string pos &optional newlines)
+  "Translate POS, a position in STRING, into a source location object.
+If NEWLINES is provided, it should be the value returned for STRING by
+`precompute-newline-offsets'."
   (declare (array-index pos)
            (optimize speed)
            (inline cl:count))
   ;; We would like this to be fast, so specialize it on different
   ;; string subtypes.
   (with-string-dispatch () string
-    ;; We pretend there is a newline at "position" -1.
-    (let* ((lines (1+ (cl:count #\Newline string :end pos)))
+    ;; Source locations are 1-based so we pretend there is a newline
+    ;; at "position" -1.
+    (let* ((lines
+            (1+ (if newlines
+                    (bisect-left newlines pos #'<)
+                    (cl:count #\Newline string
+                              :start 0
+                              :end pos))))
            (columns (- pos
                        (or (cl:position #\Newline string
                                         :end pos
                                         :from-end t)
                            -1))))
+      (declare (array-index lines))
       (make 'source-location
             :line lines
             :column columns))))
@@ -152,7 +176,8 @@ after B.")
                      &key (start 0)
                      &allow-other-keys)
   "Return the position of the Nth occurrence of ITEM in SEQ.
-If there are fewer than N+1 occurrences, return the difference as a second value."
+If there are fewer than N+1 occurrences, return the difference as a
+second value."
   (nlet rec ((n n)
              (start start)
              (last-pos nil))
@@ -163,38 +188,51 @@ If there are fewer than N+1 occurrences, return the difference as a second value
                    (1+ next-pos)
                    next-pos))))))
 
-(defun source-location->position (text location)
+(defun source-location->position (text location &optional newlines)
   "Translate LOCATION, a source location, into a position in TEXT.
 Note the position may actually point beyond TEXT if the source
 location has an extra newline, which can happen because `source-range`
-addresses a node that ends in a newline as (n+1,1)."
-  (mvlet* ((line (line location))
+addresses a node that ends in a newline as (n+1,1).
+
+If NEWLINES is provided it should be the value returned for TEXT by
+`precompute-newline-offsets'."
+  (mvlet* ((line (assure (integer 1 *) (line location)))
            (column (column location))
            ;; When translating from a source location to a position, we treat
            ;; excess newlines as extending beyond the end of the string.
            (line-start-pos remaining
-            (if (= line 1) (values -1 0)
-                (multiple-value-bind (pos rem)
-                    (nth-position (- line 2) #\Newline text)
-                  (if (null pos) (values -1 0)
-                      (values pos rem))))))
+            (cond ((= line 1) (values -1 0))
+                  (newlines
+                   (if (> line (length newlines))
+                       (values (last-elt newlines)
+                               (- line (length newlines) 1))
+                       (values (aref newlines (- line 2))
+                               0)))
+                  (t
+                   (multiple-value-bind (pos rem)
+                       (nth-position (- line 2) #\Newline text)
+                     (if (null pos) (values -1 0)
+                         (values pos rem)))))))
     ;; Note that we don't have to adjust the column as the extra
     ;; offset is "absorbed" by the newline.
     (+ line-start-pos column remaining)))
 
-(defgeneric source-range-subseq (string source-range)
+(defgeneric source-range-subseq (string source-range &optional newlines)
   (:documentation
-   "Get the subsequence of STRING corresponding to SOURCE-RANGE.")
-  (:method ((string string) source-range)
+   "Get the subsequence of STRING corresponding to SOURCE-RANGE.
+If NEWLINES is provided it should be the value returned for STRING by
+`precompute-newline-offsets'.")
+  (:method ((string string) source-range &optional newlines)
     ;; Use `slice' to avoid having to worry about the possible extra
     ;; newline.
     (slice string
-           (source-location->position string (begin source-range))
-           (source-location->position string (end source-range))))
-  (:method ((line-octets vector) source-range
+           (source-location->position string (begin source-range) newlines)
+           (source-location->position string (end source-range) newlines)))
+  (:method ((line-octets vector) source-range &optional newlines
             &aux (start (begin source-range))
               (end (end source-range)))
     "Get the subsequence of LINE-OCTETS corresponding to SOURCE-RANGE."
+    (declare (ignore newlines))
     (with-slots ((start-column column) (start-line line)) start
       (with-slots ((end-column column) (end-line line)) end
         (coerce

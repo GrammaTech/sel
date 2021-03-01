@@ -896,13 +896,15 @@ the `genome' of the software object."
                                      (for text = (source-text child))
                                      (appending (ast-source-positions child start))
                                      (incf start (length text))))))))))
-      (let ((text (source-text root)))
+      (let* ((text (source-text root))
+             (newline-offsets (precompute-newline-offsets text)))
         (iter (for (ast start end) in (ast-source-positions root 0))
               (unless (stringp ast)
-                (collect (cons ast
-                               (source-range
-                                (position->source-location text start)
-                                (position->source-location text end)))))))))
+                (let ((range
+                       (source-range
+                        (position->source-location text start newline-offsets)
+                        (position->source-location text end newline-offsets))))
+                  (collect (cons ast range))))))))
   (:method ((obj parseable))
     (ast-source-ranges (genome obj))))
 
@@ -1603,10 +1605,20 @@ is useful for ASTs that may have newline literals.")
                                       (file-position string-stream))))))
                (source-text ast :stream string-stream))))
            (text (get-output-stream-string string-stream))
-           (assorted (assort positions :key #'car)))
-      (iter (for ((ast . start) (nil . end)) in assorted)
-            (collect
-             (cons ast
-                   (source-range
-                    (position->source-location text start)
-                    (position->source-location text end))))))))
+           (map (iter (iter:with map = (empty-map))
+                      (for (ast . bounds) in positions)
+                      (withf map ast (cons bounds (lookup map ast)))
+                      (finally (return map))))
+           (newline-offsets (precompute-newline-offsets text)))
+      (iter (for (ast . nil) in positions)
+            (for bounds = (lookup map ast))
+            (when bounds
+              (lessf map ast)
+              (destructuring-bind (end start) bounds
+                (collect
+                 (cons ast
+                       (source-range
+                        (position->source-location text start
+                                                   newline-offsets)
+                        (position->source-location text end
+                                                   newline-offsets))))))))))
