@@ -393,7 +393,21 @@ searched to populate `*tree-sitter-language-files*'.")
         (cpp-left :initarg :lhs :reader lhs)
         (cpp-right :initarg :rhs :reader rhs))
        (cpp-call-expression
-        (cpp-arguments :reader call-arguments))))
+        (cpp-arguments :reader call-arguments)))
+      (:python
+       (python-assignment
+        (python-left :initarg :lhs :reader lhs)
+        (python-right :initarg :rhs :reader rhs))
+       (python-binary-operator
+        (python-left :initarg :lhs :reader lhs)
+        (python-right :initarg :rhs :reader rhs)
+        (python-operator :initarg :operator :reader operator))
+       (python-boolean-operator
+        (python-left :initarg :lhs :reader lhs)
+        (python-right :initarg :rhs :reader rhs)
+        (python-operator :initarg :operator :reader operator))
+       (python-unary-operator
+        (python-operator :initarg :operator :reader operator))))
     "Alist from languages to classes with extra slot options.")
 
   (defparameter *tree-sitter-ast-superclasses*
@@ -521,8 +535,8 @@ searched to populate `*tree-sitter-language-files*'.")
         python-while-statement python-for-statement python-for-in-clause)
        (:statement-ast python--compound-statement python--simple-statement)
        (:call-ast python-call)
-       (:unary-ast python-unary-operator)
-       (:binary-ast python-binary-operator)
+       (:unary-ast python-unary-operator python-not-operator)
+       (:binary-ast python-binary-operator python-boolean-operator)
        (:return-ast python-return-statement)
        (:variable-declaration-ast python-assignment))
       (:typescript-tsx
@@ -596,9 +610,10 @@ extra initarg with that prefix.")
 (-> ast-mixin-subclasses ((or symbol class) (or symbol class)) list)
 (defun ast-mixin-subclasses (class language)
   "Return a list of AST classes for LANGUAGE that inherit from CLASS."
+  (declare ((and symbol (not keyword)) class language))
   (let ((table *tree-sitter-ast-superclass-table*))
-    (when-let (language-table (gethash (class-name-safe language) table))
-      (gethash (class-name-safe class) language-table))))
+    (when-let (language-table (gethash language table))
+      (gethash class language-table))))
 
 (defmacro register-tree-sitter-language (lib-name language ast-superclass)
   "Setup LANGUAGE to map to AST-SUPERCLASS and use LIB-NAME for parsing."
@@ -1935,7 +1950,10 @@ the rebinding"
   (:documentation "Return the right-hand side of an AST."))
 
 (defgeneric operator (ast)
-  (:documentation "Return the operator from an AST."))
+  (:method-combination standard/context)
+  (:method :context ((ast t))
+    (make-keyword (trim-whitespace (source-text (call-next-method)))))
+  (:documentation "Return the operator from an AST as a keyword."))
 
 (defgeneric control-flow-condition (control-flow-ast)
   (:documentation "Return the condition from a CONTROL-FLOW-AST."))
@@ -2521,18 +2539,23 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
 
   (defmethod function-body ((ast python-function-definition)) (python-body ast))
 
-  (defmethod lhs ((ast python-binary-operator)) (python-left ast))
-  (defmethod lhs ((ast python-comparison-operator)) (first (children ast)))
-  (defmethod lhs ((decl python-assignment)) (python-left decl))
-
-  (defmethod rhs ((ast python-binary-operator)) (python-right ast))
-  (defmethod rhs ((ast python-comparison-operator)) (second (children ast)))
-  (defmethod rhs ((decl python-assignment)) (python-right decl))
-
-  (defmethod operator ((ast python-binary-operator))
-    (make-keyword (string-trim whitespace (first (interleaved-text (python-operator ast))))))
+  ;; NB There is no single "operator" for a chained comparison.
+  (defmethod lhs ((ast python-comparison-operator))
+    (if (length= 2 (children ast))
+        (first (children ast))
+        (call-next-method)))
+  (defmethod rhs ((ast python-comparison-operator))
+    (if (length= 2 (children ast))
+        (second (children ast))
+        (call-next-method)))
   (defmethod operator ((ast python-comparison-operator))
-    (make-keyword (string-trim whitespace (second (interleaved-text ast)))))
+    (if (length= 2 (children ast))
+        (call-next-method)
+        (make-keyword
+         (second (interleaved-text ast)))))
+
+  (defmethod operator ((ast python-not))
+    (first (interleaved-text ast)))
 
   (defmethod control-flow-condition ((ast python-if-statement)) (car (children ast)))
   (defmethod control-flow-condition ((ast python-while-statement)) (car (children ast)))
