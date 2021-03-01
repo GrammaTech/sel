@@ -714,17 +714,21 @@ and keyword parameters with defaults."
 
 (deftest python-imports ()
   (with-fixture python-import
+    ;; Import returns: (full-name nickname named-imports)
     (is (equalp '(("os")) (imports (@ *soft* '(0)))))
-    (is (equalp '(("sys" . "byteorder")) (imports (@ *soft* '(1)))))
-    (is (equalp '(("os")("sys" . "byteorder")) (imports *soft*)))))
+    (is (equalp '(("sys" nil "byteorder")) (imports (@ *soft* '(1)))))
+    (is (equalp '(("heapq" "h")) (imports (@ *soft* '(2)))))
+    (is (equalp '(("foo")) (imports (@ *soft* '(3)))))
+    (is (equalp '(("os") ("heapq" "h") ("sys" nil "byteorder") ("foo"))
+                (imports *soft*)))))
 
 (deftest python-provided-by ()
   (with-fixture python-import
     ;; Explicitly imported at the top and called without a namespace chain.
     (is (string= "sys" (provided-by *soft* (stmt-starting-with-text *soft* "byteorder()"))))
     ;; Called with a namespace chain.
-    (is (string= "os" (provided-by *soft* (stmt-starting-with-text *soft* "os.path.exists"))))
-    (is (string= "os" (provided-by *soft* (@ (stmt-starting-with-text *soft* "os.path.exists")
+    (is (string= "os.path" (provided-by *soft* (stmt-starting-with-text *soft* "os.path.exists"))))
+    (is (string= "os.path" (provided-by *soft* (@ (stmt-starting-with-text *soft* "os.path.exists")
                                              '(0 python-function)))))))
 
 (deftest (python-tree-sitter-parsing-test :long-running) ()
