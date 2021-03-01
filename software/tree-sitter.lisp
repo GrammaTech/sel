@@ -423,6 +423,8 @@ searched to populate `*tree-sitter-language-files*'.")
        (:binary-ast c-binary-expression)
        (:return-ast c-return-statement)
        (:goto-ast c-goto-statement)
+       (:c/cpp-comment c-comment)
+       (:c/cpp-error c-error)
        (:c/cpp-break-statement c-break-statement)
        (:c/cpp-call-expression c-call-expression)
        (:c/cpp-continue-statement c-continue-statement)
@@ -448,6 +450,8 @@ searched to populate `*tree-sitter-language-files*'.")
        (:number-ast cpp-number-literal)
        (:return-ast cpp-return-statement)
        (:goto-ast cpp-goto-statement)
+       (:c/cpp-comment cpp-comment)
+       (:c/cpp-error cpp-error)
        (:c/cpp-break-statement cpp-break-statement)
        (:c/cpp-call-expression cpp-call-expression)
        (:c/cpp-continue-statement cpp-continue-statement)
@@ -462,6 +466,8 @@ searched to populate `*tree-sitter-language-files*'.")
        (:return-ast java-return-statement))
       (:javascript
        (:comment-ast javascript-comment)
+       (:ecma-comment javascript-comment)
+       (:ecma-error javascript-error)
        (:class-ast javascript-class-declaration)
        (:control-flow-ast
         javascript-switch-statement javascript-try-statement)
@@ -516,7 +522,13 @@ searched to populate `*tree-sitter-language-files*'.")
        (:unary-ast python-unary-operator)
        (:binary-ast python-binary-operator)
        (:return-ast python-return-statement)
-       (:variable-declaration-ast python-assignment)))
+       (:variable-declaration-ast python-assignment))
+      (:typescript-tsx
+       (:ecma-comment typescript-tsx-comment)
+       (:ecma-error typescript-tsx-error))
+      (:typescript-typescript
+       (:ecma-comment typescript-typescript-comment)
+       (:ecma-error typescript-typescript-error)))
     "Specifies which classes should inherit from which mixins.
 An alist from languages to alists of mixins and tree-sitter AST
 classes that should inherit from them.
@@ -618,7 +630,9 @@ extra initarg with that prefix.")
 The name string is obtained by by DEFINITION-NAME"))
 
   (defclass comment-ast (ast) ()
-    (:documentation "Mix-in for AST classes that are comments."))
+    (:documentation "Mix-in for AST classes that are comments.
+
+Superclass of every generated LANGUAGE-comment class."))
 
   (defclass statement-ast (ast) ()
     (:documentation "Mix-in for AST classes that are statements."))
@@ -653,7 +667,9 @@ The name string is obtained by by DEFINITION-NAME"))
 
   (defclass parse-error-ast (ast) ()
     (:documentation
-     "Mix-in for AST classes that represent tree-sitter parsing errors."))
+     "Mix-in for AST classes that represent tree-sitter parsing errors.
+
+Superclass of every generated LANGUAGE-error class."))
 
   (defclass function-ast (ast) ()
     (:documentation "Mix-in for AST classes that are functions."))
@@ -1071,12 +1087,21 @@ Unlike the `children` methods which collects all children of an AST from any slo
 
              ;; NOTE: the following are to handle results returned from
              ;;       cl-tree-sitter.
-             (defclass ,(make-class-name "comment") (,ast-superclass comment-ast)
+             (defclass ,(make-class-name "comment")
+                 ,(remove-duplicates
+                   `(,ast-superclass
+                     ,@(get-supertypes-for-type "comment")
+                     comment-ast)
+                   :from-end t)
                ()
                (:documentation "Generated for parsed comments."))
 
              (defclass ,(make-class-name "error")
-                 (,ast-superclass parse-error-ast)
+                 ,(remove-duplicates
+                   `(,ast-superclass
+                     ,@(get-supertypes-for-type "error")
+                     parse-error-ast)
+                   :from-end t)
                ((children :initarg :children :initform nil)
                 (child-slots :initform '((children . 0))
                              :allocation :class))
