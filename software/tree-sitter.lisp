@@ -2044,7 +2044,7 @@ Every element in the list has the following form:
     (provided-by (genome software) ast))
 
   (defmethod provided-by ((root python-ast) (ast python-identifier))
-    (car (find-if [{equalp (source-text ast)} #'cdr] (imports root))))
+    (car (find-if [{equalp (source-text ast)} #'third] (imports root))))
 
   (defmethod provided-by ((root python-ast) (ast python-attribute))
     (labels ((top-attribute (root ast)
@@ -2054,8 +2054,8 @@ Every element in the list has the following form:
                      ast)))
              (collect (ast)
                (etypecase ast
-                 (python-attribute (list (collect (python-attribute ast))
-                                         (collect (python-object ast))))
+                 (python-attribute (list (source-text (python-attribute ast))
+                                         (source-text (python-object ast))))
                  (python-identifier (source-text ast))))
              (chain (ast) (reverse (flatten (collect (top-attribute root ast))))))
       (car (chain ast))))
