@@ -1605,20 +1605,13 @@ is useful for ASTs that may have newline literals.")
                                       (file-position string-stream))))))
                (source-text ast :stream string-stream))))
            (text (get-output-stream-string string-stream))
-           (map (iter (iter:with map = (empty-map))
-                      (for (ast . bounds) in positions)
-                      (withf map ast (cons bounds (lookup map ast)))
-                      (finally (return map))))
+           (assorted (assort positions :key [#'serial-number #'car] :hash t))
            (newline-offsets (precompute-newline-offsets text)))
-      (iter (for (ast . nil) in positions)
-            (for bounds = (lookup map ast))
-            (when bounds
-              (lessf map ast)
-              (destructuring-bind (end start) bounds
-                (collect
-                 (cons ast
-                       (source-range
-                        (position->source-location text start
-                                                   newline-offsets)
-                        (position->source-location text end
-                                                   newline-offsets))))))))))
+      (iter (for ((ast . start) (nil . end)) in assorted)
+            (collect
+             (cons ast
+                   (source-range
+                    (position->source-location text start
+                                               newline-offsets)
+                    (position->source-location text end
+                                               newline-offsets))))))))
