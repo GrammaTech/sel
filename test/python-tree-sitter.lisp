@@ -714,12 +714,12 @@ and keyword parameters with defaults."
 
 (deftest python-imports ()
   (with-fixture python-import
-    ;; Import returns: (full-name nickname named-imports)
+    ;; Import returns: (full-name alias/nickname named-imports)
     (is (equalp '(("os")) (imports (@ *soft* '(0)))))
     (is (equalp '(("sys" nil "byteorder")) (imports (@ *soft* '(1)))))
     (is (equalp '(("heapq" "h")) (imports (@ *soft* '(2)))))
     (is (equalp '(("foo")) (imports (@ *soft* '(3)))))
-    (is (equalp '(("os") ("heapq" "h") ("sys" nil "byteorder") ("foo"))
+    (is (equalp '(("os") ("sys" nil "byteorder") ("heapq" "h") ("foo"))
                 (imports *soft*)))))
 
 (deftest python-provided-by ()

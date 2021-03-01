@@ -2004,9 +2004,8 @@ or NIL if none."))
 
 (defgeneric imports (ast)
   (:documentation "Return a list of the imports of AST.
-The car of every element in the list is the package imported from and
-the cdr is either the imported symbol or nil if the whole package is
-imported."))
+Every element in the list has the following form:
+    (full-name alias/nickname . named-imports)"))
 
 (defgeneric provided-by (software ast)
   (:documentation
@@ -2027,11 +2026,19 @@ imported."))
     (mappend #'imports (children ast)))
 
   (defmethod imports ((ast python-import-statement))
-    (mapcar [#'list #'source-text] (python-name ast)))
+    (mapcar #'imports (python-name ast)))
+
+  (defmethod imports ((ast python-dotted-name))
+    (list (source-text ast)))
+
+  (defmethod imports ((ast python-aliased-import))
+    (list (source-text (python-name ast)) (source-text (python-alias ast))))
 
   (defmethod imports ((ast python-import-from-statement))
-    (mapcar [{cons (source-text (python-module-name ast))} #'source-text]
-            (python-name ast)))
+    (if (python-name ast)
+        (mapcar [{list (source-text (python-module-name ast)) nil} #'source-text]
+                (python-name ast))
+        (list (list (source-text (python-module-name ast))))))
 
   (defmethod provided-by ((software python) ast)
     (provided-by (genome software) ast))
