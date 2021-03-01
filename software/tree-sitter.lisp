@@ -2051,14 +2051,8 @@ Every element in the list has the following form:
                (let ((parent (get-parent-ast root ast)))
                  (if (and parent (typep parent 'python-attribute))
                      (top-attribute root parent)
-                     ast)))
-             (collect (ast)
-               (etypecase ast
-                 (python-attribute (list (source-text (python-attribute ast))
-                                         (source-text (python-object ast))))
-                 (python-identifier (source-text ast))))
-             (chain (ast) (reverse (flatten (collect (top-attribute root ast))))))
-      (car (chain ast))))
+                     ast))))
+      (source-text (python-object (top-attribute root ast)))))
 
   (defmethod provided-by (root (ast python-expression-statement))
     (provided-by root (first (children ast))))
