@@ -46,7 +46,9 @@ test-ecl:
     - >-
       ecl
       --eval "(require 'asdf)"
+      --eval "(ql:quickload :software-evolution-library/test/tree-sitter)"
       --eval "(asdf:load-system :software-evolution-library/test/tree-sitter)"
+      --eval "(ql:quickload :software-evolution-library/test/python/tree-sitter)"
       --eval "(asdf:load-system :software-evolution-library/test/python-tree-sitter)"
       --eval "(uiop:quit (if (and (progn (software-evolution-library/test/tree-sitter:test) stefil+:*success*) (progn (software-evolution-library/test/python-tree-sitter:test) stefil+:*success*)) 0 1))"
   except:
