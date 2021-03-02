@@ -1,4 +1,4 @@
-.PHONY: doc api
+.PHONY: doc api python-build python-check
 
 # Set personal or machine-local flags in a file named local.mk
 ifneq ("$(wildcard local.mk)","")
@@ -140,5 +140,10 @@ else
 	endif
 endif
 
-python-tree-sitter: software/tree-sitter_build.py software/tree-sitter--all-systems.$(EXT)
-	python3 software/tree-sitter_build.py
+python/_tree_sitter_cffi.o: software/tree-sitter_build.py software/tree-sitter--all-systems.$(EXT)
+	cd python; python3 ../software/tree-sitter_build.py
+
+python-build: python/_tree_sitter_cffi.o
+
+python-check: python/_tree_sitter_cffi.o
+	python3 python/test.py
