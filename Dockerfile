@@ -103,6 +103,10 @@ RUN mkdir -p /root/.config/common-lisp/source-registry.conf.d/
 RUN echo '(:tree "/root/quicklisp/local-projects/")' > /root/.config/common-lisp/source-registry.conf.d/quicklisp.conf
 RUN echo '(:tree "/root/quicklisp/dists/quicklisp/software/")' >> /root/.config/common-lisp/source-registry.conf.d/quicklisp.conf
 RUN ecl --eval '(ql:quickload :software-evolution-library/software/tree-sitter)' --eval '(quit)'
+RUN ecl --eval '(ql:quickload :software-evolution-library/test/tree-sitter)' --eval '(quit)'
+RUN ecl --eval '(ql:quickload :software-evolution-library/test/python-tree-sitter)' --eval '(quit)'
 RUN ecl --eval '(asdf:load-system :software-evolution-library/software/tree-sitter)' --eval '(quit)'
+RUN ecl --eval '(asdf:load-system :software-evolution-library/test/tree-sitter)' --eval '(quit)'
+RUN ecl --eval '(asdf:load-system :software-evolution-library/test/python-tree-sitter)' --eval '(quit)'
 
 WORKDIR /root/quicklisp/local-projects/
