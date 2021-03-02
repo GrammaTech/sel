@@ -719,7 +719,8 @@ and keyword parameters with defaults."
     (is (equalp '(("sys" nil "byteorder")) (imports (@ *soft* '(1)))))
     (is (equalp '(("heapq" "h")) (imports (@ *soft* '(2)))))
     (is (equalp '(("foo")) (imports (@ *soft* '(3)))))
-    (is (equalp '(("os") ("sys" nil "byteorder") ("heapq" "h") ("foo"))
+    (is (equalp '(("bar")("baz") ("qux")) (imports (@ *soft* '(4)))))
+    (is (equalp '(("os") ("sys" nil "byteorder") ("heapq" "h") ("foo") ("bar") ("baz") ("qux"))
                 (imports *soft*)))))
 
 (deftest python-provided-by ()
