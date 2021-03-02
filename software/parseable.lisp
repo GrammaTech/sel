@@ -716,6 +716,22 @@ to allow for successful mutation of SOFTWARE at PT."))
   (:documentation "Select suitable crossover points in A and B.
 If no suitable points are found the returned points may be nil."))
 
+(defmethod crossover ((a parseable) (b parseable))
+  "Perform single-point crossover between two parseable software
+ objects, and returning a new software object as the result. If
+ an error occurs, returns NIL."
+    (let ((nodes nil))
+      (do-tree (n (genome a)) (push n nodes) nil) ; do-tree body must return nil
+      (when-let* ((pt-a (elt nodes (random (length nodes))))
+                  (path-a (ast-path (genome a) pt-a))
+                  (pt-b (ignore-errors (@ (genome b) path-a)))
+                  (copy-a (copy a)))
+        (when (and pt-b (not (eql pt-a pt-b)))
+          (setf (genome copy-a) (subst pt-b pt-a (genome copy-a) :test 'eql))
+          (return-from crossover
+            (values copy-a pt-a pt-b))))
+      (values a nil nil)))  ; it didn't complete, just return original
+
 (defgeneric shares-path-of-p (obj target-ast shared-path-ast)
   (:documentation "Returns T if TARGET-AST has the same path or a super-path
 of SHARED-PATH-AST's path in OBJ.")

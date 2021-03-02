@@ -279,9 +279,10 @@ input is not positive."
   (let ((class (nest
                 (second)
                 (find-if [{find-if {equalp (string-upcase language)}} #'car])
-                '((("JAVASCRIPT") javascript)
+                `((("JAVASCRIPT") javascript)
                   (("JSON") json)
-                  (("C" "CPP" "C++" "C-PLUS-PLUS" "C PLUS PLUS") clang)
+                  (("C") ,(find-c))
+                  (("CPP" "C++" "C-PLUS-PLUS" "C PLUS PLUS") ,(find-cpp))
                   (("LISP" "CL" "COMMON LISP") lisp)
                   (("TEXT") simple)))))
     (cond
