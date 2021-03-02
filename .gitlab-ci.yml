@@ -52,6 +52,11 @@ test-ecl:
   except:
     - schedules
 
+test-python-library:
+  stage: test
+  script:
+    - make python-check
+
 dependent-genpatcher:
   stage: deploy
   only: [master]
