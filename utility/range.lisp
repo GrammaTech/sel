@@ -233,25 +233,26 @@ If NEWLINES is provided it should be the value returned for STRING by
               (end (end source-range)))
     "Get the subsequence of LINE-OCTETS corresponding to SOURCE-RANGE."
     (declare (ignore newlines))
-    (with-slots ((start-column column) (start-line line)) start
-      (with-slots ((end-column column) (end-line line)) end
-        (coerce
-         (cond
-           ((= start-line end-line)
-            (subseq (aref line-octets start-line) start-column end-column))
-           ((< start-line end-line)
-            (concatenate
-             'vector
-             (subseq (aref line-octets start-line) start-column)
-             (iter
-               (for i from (1+ start-line) to (1- end-line))
-               (reducing (aref line-octets i)
-                         by (lambda (total octets)
-                              (concatenate 'vector total octets))
-                         initial-value #()))
-             ;; NOTE: tree-sitter will add +1 past the number of lines in a
-             ;;       file when a newline is considered a token for a rule.
-             (unless (= end-column 0)
-               (subseq (aref line-octets end-line) 0 end-column))))
-           (t #()))
-         '(vector (unsigned-byte 8)))))))
+    (let ((max-line (1- (length line-octets))))
+      (with-slots ((start-column column) (start-line line)) start
+        (with-slots ((end-column column) (end-line line)) end
+          (coerce
+           (cond
+             ((= start-line end-line)
+              (subseq (aref line-octets (clamp start-line 0 max-line)) start-column end-column))
+             ((< start-line end-line)
+              (concatenate
+               'vector
+               (subseq (aref line-octets (clamp start-line 0 max-line)) start-column)
+               (iter
+                 (for i from (clamp (1+ start-line) 0 max-line) to (clamp (1- end-line) 0 max-line))
+                 (reducing (aref line-octets i)
+                           by (lambda (total octets)
+                                (concatenate 'vector total octets))
+                           initial-value #()))
+               ;; NOTE: tree-sitter will add +1 past the number of lines in a
+               ;;       file when a newline is considered a token for a rule.
+               (unless (= end-column 0)
+                 (subseq (aref line-octets (clamp end-line 0 max-line)) 0 end-column))))
+             (t #()))
+           '(vector (unsigned-byte 8))))))))
