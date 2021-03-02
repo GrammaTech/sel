@@ -2550,9 +2550,8 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
         (call-next-method)))
   (defmethod operator ((ast python-comparison-operator))
     (if (length= 2 (children ast))
-        (call-next-method)
-        (make-keyword
-         (second (interleaved-text ast)))))
+        (second (interleaved-text ast))
+        (call-next-method)))
 
   (defmethod operator ((ast python-not))
     (first (interleaved-text ast)))
