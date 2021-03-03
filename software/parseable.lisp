@@ -717,8 +717,7 @@ to allow for successful mutation of SOFTWARE at PT."))
  represented as a path which refers to a node in both software objects.
  If no suitable point is found the returned point may be nil.")
   (:method ((a parseable) (b parseable))
-    (let ((nodes nil))
-      (do-tree (n (genome a)) (push n nodes) nil) ; do-tree body must return nil
+    (let ((nodes (convert 'list a)))
       (when-let* ((pt-a (elt nodes (random (length nodes))))
                   (path-a (ast-path (genome a) pt-a))
                   (pt-b (ignore-errors (@ (genome b) path-a))))
@@ -730,18 +729,17 @@ to allow for successful mutation of SOFTWARE at PT."))
  objects, and returning a new software object as the result. If
  an error occurs, returns NIL.
  Algorithm:
- A random node of the tree 'a' is chosen, it's path calculated,
+ A random node of the tree 'a' is chosen, its path calculated,
  and if there is a node at the corresponding path in 'b', then that
  node will replace the corresponding node in the genome of 'a'.
  In order to update the genome of 'a' the genome is copied and the resulting
  modified genome is stored in 'a'."
   (when-let* ((point-path (select-crossover-points a b))
-              (copy-a (copy a))
-              (pt-a (@ (genome copy-a) point-path))
-              (pt-b (@ (genome b) point-path)))
-          (setf (genome copy-a) (ft:subst pt-b pt-a (genome copy-a) :test 'eql))
+              (pt-a (@ (genome a) point-path))
+              (pt-b (@ (genome b) point-path))
+              (new-a (with a pt-a pt-b)))
           (return-from crossover
-            (values copy-a pt-a pt-b)))
+            (values new-a pt-a pt-b)))
   (values a nil nil))  ; it didn't complete, just return original
 
 (defgeneric shares-path-of-p (obj target-ast shared-path-ast)
