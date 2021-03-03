@@ -63,3 +63,32 @@
     ;; so set a limit. Note the files actually tested are chosen at
     ;; random from the set of all files.
     (test-ast-source-ranges-for-files 'clang c-files :limit 10)))
+
+(define-software test-parseable (parseable) ()
+  (:documentation "For testing purposes only."))
+
+(defparameter *preselected-crossover-point* nil "For testing.")
+(defmethod select-crossover-points ((a test-parseable) (b test-parseable))
+  "For test purposes, choose pre-selected crossover point."
+  *preselected-crossover-point*)
+  
+(deftest crossover-test ()
+  (when-let* ((soft1 (sel/command-line:create-software
+                      (merge-pathnames "parseable/variety2.c"
+                                       (make-pathname :directory +etc-dir+))))
+              (soft2 (create-software
+                      (merge-pathnames "parseable/variety.c"
+                                  (make-pathname :directory +etc-dir+))))
+              (switch-statement
+               (find 'c-switch-statement (genome soft1)
+                     :key (lambda (x) (class-name (class-of x)))))
+              (crossover-pt (ast-path (genome soft1) switch-statement))
+              (*preselected-crossover-point* crossover-pt)
+              (new-a (crossover soft1 soft2))
+              (pos (search "case 2:" (source-text (genome new-a)))))
+    (is (integerp pos))))
+
+                      
+           
+    
+    

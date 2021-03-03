@@ -713,24 +713,36 @@ for successful mutation."))
 to allow for successful mutation of SOFTWARE at PT."))
 
 (defgeneric select-crossover-points (a b)
-  (:documentation "Select suitable crossover points in A and B.
-If no suitable points are found the returned points may be nil."))
-
-(defmethod crossover ((a parseable) (b parseable))
-  "Perform single-point crossover between two parseable software
- objects, and returning a new software object as the result. If
- an error occurs, returns NIL."
+  (:documentation "Select suitable crossover point in A and B. The point is
+ represented as a path which refers to a node in both software objects.
+ If no suitable point is found the returned point may be nil.")
+  (:method ((a parseable) (b parseable))
     (let ((nodes nil))
       (do-tree (n (genome a)) (push n nodes) nil) ; do-tree body must return nil
       (when-let* ((pt-a (elt nodes (random (length nodes))))
                   (path-a (ast-path (genome a) pt-a))
-                  (pt-b (ignore-errors (@ (genome b) path-a)))
-                  (copy-a (copy a)))
-        (when (and pt-b (not (eql pt-a pt-b)))
-          (setf (genome copy-a) (subst pt-b pt-a (genome copy-a) :test 'eql))
+                  (pt-b (ignore-errors (@ (genome b) path-a))))
+        (return-from select-crossover-points path-a))
+      nil))) ; did not find suitable point
+
+(defmethod crossover ((a parseable) (b parseable))
+  "Perform single-point crossover between two parseable software
+ objects, and returning a new software object as the result. If
+ an error occurs, returns NIL.
+ Algorithm:
+ A random node of the tree 'a' is chosen, it's path calculated,
+ and if there is a node at the corresponding path in 'b', then that
+ node will replace the corresponding node in the genome of 'a'.
+ In order to update the genome of 'a' the genome is copied and the resulting
+ modified genome is stored in 'a'."
+  (when-let* ((point-path (select-crossover-points a b))
+              (copy-a (copy a))
+              (pt-a (@ (genome copy-a) point-path))
+              (pt-b (@ (genome b) point-path)))
+          (setf (genome copy-a) (ft:subst pt-b pt-a (genome copy-a) :test 'eql))
           (return-from crossover
-            (values copy-a pt-a pt-b))))
-      (values a nil nil)))  ; it didn't complete, just return original
+            (values copy-a pt-a pt-b)))
+  (values a nil nil))  ; it didn't complete, just return original
 
 (defgeneric shares-path-of-p (obj target-ast shared-path-ast)
   (:documentation "Returns T if TARGET-AST has the same path or a super-path
