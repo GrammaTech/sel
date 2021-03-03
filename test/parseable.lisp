@@ -64,8 +64,11 @@
     ;; random from the set of all files.
     (test-ast-source-ranges-for-files 'clang c-files :limit 10)))
 
-(define-software test-parseable (parseable) ()
-  (:documentation "For testing purposes only."))
+(define-software test-tree-sitter () ()
+                 (:documentation "Mixin for test classes."))
+
+(define-software test-parseable (c test-tree-sitter) ()
+                 (:documentation "For testing purposes only."))
 
 (defparameter *preselected-crossover-point* nil "For testing.")
 (defmethod select-crossover-points ((a test-parseable) (b test-parseable))
@@ -73,10 +76,10 @@
   *preselected-crossover-point*)
   
 (deftest crossover-test ()
-  (when-let* ((soft1 (sel/command-line:create-software
+  (when-let* ((soft1 (from-file (make-instance 'test-parseable)
                       (merge-pathnames "parseable/variety2.c"
                                        (make-pathname :directory +etc-dir+))))
-              (soft2 (create-software
+              (soft2 (from-file (make-instance 'test-parseable)
                       (merge-pathnames "parseable/variety.c"
                                   (make-pathname :directory +etc-dir+))))
               (switch-statement
