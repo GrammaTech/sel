@@ -688,6 +688,18 @@ Note that mixins used here will be automatically exported later, and
 those that do not have separate class definitions will be given stub
 definitions.")
 
+  ;; TODO: find a better name for this.
+  (defvar *choice-expansion-subclasses*
+    '((:c
+       ;; TODO: this should be moved over to using the pruned-rule before
+       ;;       merging into master.
+       ;; TODO: at some point, subclasses should be exported automatically.
+       (c-update-expression
+        (c-update-expression-prefix
+         (:seq (:field c-operator c--- c-++) (:field c-argument c--expression)))
+        (c-update-expression-postfix
+         (:seq (:field c-argument c--expression) (:field c-operator c--- c-++)))))))
+
   (defparameter *tree-sitter-ast-superclass-table*
     (lret ((table (make-hash-table)))
       (iter
@@ -780,7 +792,39 @@ extra initarg with that prefix.")
                        :documentation "Interleaved text between children."))
     (:documentation "Mixin for interleaved-text slot"))
 
-  (defclass tree-sitter-ast (indentation functional-tree-ast interleaved-text)
+  ;; TODO: let over a basic string for empty strings?
+  (defclass structured-text ()
+    ((structured-before-text
+      :accessor before-text
+      :initarg :before-text
+      :initform ""
+      :documentation "The text before the first token of an AST.")
+     ;; TODO: find a better name. This could potentially need to
+     ;;       be a list if there's more than one variable part which
+     ;;       may end up being the case with some literals.
+     ;; NOTE: the primary usage of this slot is for AST text, like
+     ;;       identifiers, which doesn't belong in the before or after slot.
+     (structured-variable-text
+      :accessor variable-text
+      :initarg :variable-text
+      :initform nil
+      :documentation "The text that can vary between ASTs of the same class.
+This should be stored as a list of interleaved text. This should ideally only be
+used for leaf nodes.")
+     (structured-after-text
+      :accessor after-text
+      :initarg :after-text
+      :initform ""
+      :documentation "The text after the last token of an AST."))
+    (:documentation "Mix-in for structured text ASTs."))
+
+  (defclass tree-sitter-ast (#-structured-text
+                             ;; TODO: re-enable this once it's implemented.
+                             indentation
+                             functional-tree-ast
+                             #-structured-text
+                             interleaved-text
+                             #+structured-text structured-text)
     ()
     (:documentation "AST for input from tree-sitter."))
 
@@ -1014,6 +1058,962 @@ of fields needs to be determined at parse-time."
                 ;;       to use.
                 fields))))))))
 
+  ;; STRUCTURED TEXT
+  ;;
+  ;; structured-text uses the JSON files provided by tree-sitter to generate
+  ;; methods that reconstruct what the source code might look like for an AST.
+  ;;
+  ;; The methods primarily operate on a "transformed" JSON rule and its
+  ;; equivalent "pruned" rule. The transformed JSON rule is an alist
+  ;; representation which has removed any precedence rules and inlined every
+  ;; rule starting with an underscore. The pruned rule transforms the transformed
+  ;; JSON rule by turning it into a list instead of an alist, and replaces any
+  ;; subtree that does not have a slot usage with a nil.
+  ;;
+  ;; The structured-text class has 3 slots--before-text stores text that comes
+  ;; before the node, after-text stores text that comes after the node, and
+  ;; variable-text stores any text that can vary between different instances
+  ;; of a class. The variable-text slots will also contain the text for any
+  ;; class that doesn't have any slot usages. This allows for classes, such as
+  ;; primitive_type in C, that don't store anything but have variable text to
+  ;; still produce something meaningful.
+  ;;
+  ;; There are two main generated methods: output-transformation and parse-order.
+  ;; output-transformation accepts an AST and returns a list of strings and its
+  ;; children. This format has been chosen so that indentation can be reinserted
+  ;; later. parse-order returns a list of an AST's children in-order. It also
+  ;; contains "bookmarks" that indicate which "CHOICE" branch was taken or
+  ;; how many times a "REPEAT" should be taken.
+  ;;
+  ;; There are two parsers: children-parser and match-parsed-children.
+  ;; children-parser is a hack and should probably be replaced by something
+  ;; generated from a parser generator. It is the back-bone of parse-order
+  ;; and is what actually assembles its return value. match-parsed-children
+  ;; matches a rule against a parse tree returned by cl-tree-sitter:parse-string.
+  ;;
+  ;; There are some glaring issues at the moment:
+  ;;  - choice expansion takes way too long, so it might make sense to find
+  ;;    another way to do this or generate them at run-time while still limiting
+  ;;    which choices are expanded so that it doesn't expand indefinitely.
+  ;;    By not expanding choice branches with identical reproductions--i.e.,
+  ;;    slot usages come from the same slot and order but may differ in type--
+  ;;    there could be a meaningful reduction in the number of choice
+  ;;    expansion subclasses.
+  ;;
+  ;;  - method dispatch for output-transformation takes forever. When several
+  ;;    languages have their methods generated, it is unlikely to return.
+  ;;    This could potentially be alleviated by storing the function with
+  ;;    class allocation instead. If there's only one language used, it
+  ;;    performs reasonably.
+  ;;
+  ;;
+  ;; NOTE: these are some notes on the functions that may or may not be
+  ;;       up-to-date
+  ;;
+  ;; transform-json transforms a json-rule by removing any precedent rules and
+  ;; inlining any rule that starts with an underscore.
+  ;;
+  ;; prune-rule-tree transforms a json list representation into an easier to
+  ;; work with list and prunes any subtree that doesn't include something that
+  ;; will go into a slot--these are either field or child rules
+  ;;
+  ;; collapse-rule-tree further transforms the rule tree by collapsing duplicate
+  ;; rules on each other, such as a sequence nested inside a sequence, and removes
+  ;; any nils from the rule tree. Ideally, none of the code generation should use
+  ;; this representation and prefer the pruned representation instead. Since the
+  ;; collapsed representation was used early on, some code needs refactored to
+  ;; account for this.
+  ;;
+  ;; structured-rule-p checks whether a rule is "structured" which I've deemed as
+  ;; a fancy way of saying that it's unlikely to be problematic reproducing the
+  ;; source text of the class associated with this rule. This should be useful at
+  ;; compile time so that we know immediately which problems are likely to be
+  ;; problematic. Note that it won't find problems with information that should be
+  ;; stored in its own class but is currently treated as interleaved text by
+  ;; tree-sitter.
+  ;;
+  ;; expand-choice-branches expands all choice subtrees outside of repeats into
+  ;; their own rules without the choice rule. This allows for what I'm referring to
+  ;; as "choice expansion" subclassing which allows for different slot orderings to
+  ;; be implicit based on the AST subclass. There are currently some major
+  ;; performance issues with this function on some languages.
+  ;;
+  ;; generate-variable-text-method determines if an AST class is largely variable
+  ;; text, such as identifiers or literals, and generates a predicate method that
+  ;; indicates whether the node should be read in specially--the variable text is
+  ;; stored when read in.
+  ;;
+  ;; children-parser is largely a hack at the moment. It takes a collapsed rule
+  ;; tree that has converted its strings to relevant class and slot names and an
+  ;; AST. It then traverses the rule and pulls the children from the relevant slot
+  ;; as they are encountered in the rule. This function does not back track right
+  ;; now, and based on a cursory look at the rules, I haven't seen an instance
+  ;; where it would be needed, so I'm putting that off until it becomes a problem.
+  ;;
+  ;; get-json-subtree-string takes a subtree that doesn't contain any slot uses
+  ;; and generates a string representation of it. This is used for reproducing
+  ;; the interleaved text. It prioritizes "BLANK" rules with "CHOICE" branches
+  ;; and doesn't take any "REPEAT" rules.
+  (defun transform-json-rule (rule grammar)
+    "Expand inline rules base on GRAMMAR and :repeat1's in RULE."
+    ;; TODO: it would make sense to do a "CHOICE" collapse here.
+    ;;       What this would do is check a "CHOICE" and for each branch
+    ;;       that had identical children and field orderings excepting their
+    ;;       types, it would collapse them on each other by adding the type
+    ;;       to one of the branches. Note that this could potential cause
+    ;;       some ordering issues if types needed to be strictly followed
+    ;;       for some of these, so maybe it isn't a good idea?
+    (labels ((map-json (map-fun tree)
+               "Maps MAP-FUN over TREE as if it were a list representation of JSON
+                and returns the result."
+               (map-tree (lambda (subtree)
+                           (cond
+                             ;; first four clauses filter out anything that can't
+                             ;; be used as an alist. This is assumed based on the
+                             ;; structure of the json read in. NOTE that we may get
+                             ;; a non-alist still, but it should prevent any errors
+                             ;; that may occur from using something like #'aget.
+                             ((atom subtree) subtree)
+                             ((atom (cdr subtree)) subtree)
+                             ((eql (car subtree) :members) subtree)
+                             ((eql (car subtree) :content) subtree)
+                             ((funcall map-fun subtree))))
+                         tree :traversal :postorder))
+             (expand-repeat1s (tree)
+               "Expand all :REPEAT1 rules in an equivalent :SEQ and :REPEAT."
+               (map-json (lambda (alist)
+                           (if-let ((content (and (equal (aget :type alist)
+                                                         "REPEAT1")
+                                                  (aget :content alist))))
+                             `((:type . "SEQ")
+                               (:members
+                                ,content
+                                ((:type . "REPEAT")
+                                 (:content ,@content))))
+                             alist))
+                         tree))
+             (expand-inline-rules (tree)
+               "Expand all inline rules."
+               ;; TODO: there can be nested inline rules?
+               (map-json
+                (lambda (alist)
+                  (let ((name-string (aget :name alist)))
+                    ;; NOTE: it appears that all "SYMBOL"s that start with
+                    ;;       an underscore are inlined.
+                    (if-let ((name
+                              (and (equal (aget :type alist)
+                                          "SYMBOL")
+                                   (eql #\_ (aref name-string 0))
+                                   (aget (make-keyword
+                                          (convert-name name-string))
+                                         (aget :rules grammar)))))
+                      (transform-json-rule name grammar)
+                      alist)))
+                tree))
+             (remove-prec-rules (tree)
+               "Removes all precedent rules from TREE, replacing them with
+                their content."
+               (map-json (lambda (alist)
+                           (if (member (aget :type alist)
+                                       '("PREC" "PREC_DYNAMIC"
+                                         "PREC_LEFT" "PREC_RIGHT")
+                                       :test #'equal)
+                               (aget :content alist)
+                               alist))
+                         tree)))
+      (expand-repeat1s (remove-prec-rules (expand-inline-rules rule)))))
+
+  (defun prune-rule-tree (transformed-json-rule)
+    (labels ((gather-field-types (content)
+               "Return a list of symbols that CONTENT could be for a field."
+               (string-case (aget :type content)
+                 ("STRING"
+                  (list (aget :value content)))
+                 ("SYMBOL"
+                  (list (aget :name content)))
+                 ("ALIAS"
+                  (when (aget :named content)
+                    (list (aget :value content))))
+                 ("CHOICE"
+                  (mappend #'gather-field-types (aget :members content)))))
+             (handle-seq (rule)
+               "Handle RULE as a 'SEQ', 'REPEAT', 'REPEAT1', or 'CHOICE' rule."
+               (cons
+                (make-keyword (aget :type rule))
+                (if-let ((members (aget :members rule)))
+                  ;; seq and choice
+                  (iter
+                    (for member in members)
+                    (collect (handle-rule member)))
+                  ;; repeat and repeat1
+                  (list (handle-rule (aget :content rule))))))
+             (handle-field (rule)
+               "Handle RULE as a 'FIELD' rule."
+               `(:field
+                 ,(aget :name rule)
+                 ,@(gather-field-types (aget :content rule))))
+             (handle-symbol (rule)
+               "Handle RULE as a 'SYMBOL' rule. This checks if
+                it is part of the AST's children."
+               (list :child (aget :name rule)))
+             (handle-alias (rule)
+               ;; NOTE: this assumes that all named aliases go into
+               ;;       the children slot.
+               (when (aget :named rule)
+                 (list :child (aget :value rule))))
+             (handle-rule (rule)
+               "Handles dispatching RULE to its relevant rule handler."
+               ;; NOTE: this will throw an error if the json schema for
+               ;;       the grammar.json files has changed.
+               (string-ecase (aget :type rule)
+                 ("ALIAS" (handle-alias rule))
+                 (("BLANK" "IMMEDIATE_TOKEN" "TOKEN" "PATTERN" "STRING"))
+                 (("CHOICE" "SEQ" "REPEAT" "REPEAT1")
+                  (handle-seq rule))
+                 ("FIELD" (handle-field rule))
+                 (("PREC" "PREC_DYNAMIC" "PREC_LEFT" "PREC_RIGHT")
+                  ;; pass-through
+                  (handle-rule (aget :content rule)))
+                 ("SYMBOL"
+                  ;; NOTE: this assumes that all 'SYMBOL's that are seen
+                  ;;       going into the children slot. Also NOTE that
+                  ;;       the inline rules should be inlined before entering
+                  ;;       this function.
+                  (handle-symbol rule)))))
+      (handle-rule transformed-json-rule)))
+
+  ;; TODO: update doc string
+  (defun collapse-rule-tree (rule-tree)
+    "Return a new version of TREE that removes empty subtrees,
+expands :REPEAT1 rules, and collapses contiguous, nested
+:SEQ rules."
+    ;; NOTE: the collapsed representation makes analysis much easier
+    ;;       especially when dealing with nested choices.
+    (labels ((collapse-on (tree value)
+               "Collapse subtrees of TREE that start with VALUE."
+               (cond
+                 ((atom tree) tree)
+                 ((eql (car tree) value)
+                  (iter
+                    (for child in tree)
+                    (let ((result (collapse-on child value)))
+                      (cond
+                        ((atom result) (collect result))
+                        ((eql (car result) value)
+                         (mapcar (lambda (child) (collect child)) (cdr result)))
+                        (t (collect result))))))
+                 (t (mapcar {collapse-on _ value} tree))))
+             (collapse-sequences (tree)
+               "Collapse nested sequences into a single sequence."
+               (collapse-on tree :seq))
+             (collapse-choices (tree)
+               "Collapse nested choices into a single choice."
+               (collapse-on tree :choice))
+             (expand-repeat1 (tree)
+               "Expand all :REPEAT1 rules in an equivalent :SEQ and :REPEAT."
+               ;; TODO: remove this once expand-rule-json/transform-json-rule
+               ;;       is in use.
+               (map-tree (lambda (child)
+                           (cond
+                             ((atom child) child)
+                             ((eql (car child) :repeat1)
+                              `(:seq ,@(cdr child) (:repeat ,@(cdr child))))
+                             (t child)))
+                         tree))
+             (prune-empty-subtrees (tree)
+               "Remove subtrees without :field's or :child's."
+               (prune-if (lambda (node)
+                           (or (null node)
+                               (and (listp node)
+                                    (= (length node) 1))))
+                         tree)))
+      (collapse-sequences
+       (collapse-choices
+        (expand-repeat1
+         (prune-empty-subtrees rule-tree))))))
+
+  (defun collect-rule-tree (predicate tree &aux accumulator)
+    "Collect every subtree in TREE that satisfies PREDICATE."
+    (walk-tree
+     (lambda (subtree)
+       (when (and (listp subtree)
+                  (funcall predicate subtree))
+         (push subtree accumulator)))
+     tree)
+    accumulator)
+
+  (defun collect-rule-slots (tree)
+    "Collect all slots used in TREE."
+    (collect-rule-tree
+     (lambda (subtree)
+       (member (car subtree) '(:field :child)))
+     tree))
+
+  ;; TODO: run this at before code gen to print out problematic rules.
+  (defun structured-rule-p (rule)
+    ;; NOTE: this will only operate on fields and children.
+    ;;       There may be potential for interleaved text to have their own issues,
+    ;;       but if they don't have their own field then it's an issue with the
+    ;;       parser.
+
+    ;; TODO: At some point, maybe consider variations on the strings
+    ;;       (non-slot fields) too, but it might not be reasonable (or it's
+    ;;       difficult with repeats) to do this?
+    (labels ((collect-repeats (tree)
+               "Collect all repeat subtrees in TREE."
+               (collect-rule-tree
+                (lambda (subtree)
+                  ;; NOTE: :repeat1's should be expanded at this point.
+                  (eql (car subtree) :repeat))
+                tree))
+             (collect-choices (tree)
+               "Collect all choice subtrees in TREE."
+               (collect-rule-tree
+                (lambda (subtree)
+                  (eql (car subtree) :choice))
+                tree))
+             (collect-branch-slots (choice)
+               "Collect the slots in each branch of CHOICE."
+               (iter
+                 (for branch in (cdr choice))
+                 (when-let ((slots (collect-rule-slots branch)))
+                   (collect slots))))
+             (incompatible-choice-p (branch-slots-1 branch-slots-2)
+               "Compare BRANCH-SLOTS-1 to BRANCH-SLOTS-2 and return T
+                if they are 'incompatible'."
+               ;; NOTE: :child pairs will contain a type string in the
+               ;;        #'cadr position that doesn't matter since it
+               ;;        will go into the same slot, so the :child types
+               ;;        are stripped here before comparison.
+               ;; TODO: it may be the case that a :choice with an empty
+               ;;       branch is problematic too or we can assume the
+               ;;       empty branch isn't interesting when reproducing the
+               ;;       text.
+               (let* ((slots-1 (mapcar (lambda (slot-pair)
+                                         (if (eql (car slot-pair) :child)
+                                             :child
+                                             (cadr slot-pair)))
+                                       branch-slots-1))
+                      (slots-2 (mapcar (lambda (slot-pair)
+                                         (if (eql (car slot-pair) :child)
+                                             :child
+                                             (cadr slot-pair)))
+                                       branch-slots-2))
+                      (comparison-func {equal (car slots-1)}))
+                 (not
+                  (if (every comparison-func slots-1)
+                      ;; NOTE: all the same. This covers the case where
+                      ;;       there's just one slot usage.
+                      (every comparison-func slots-2)
+                      ;; NOTE: this maintains the same order otherwise.
+                      (equal slots-1 slots-2)))))
+             (incompatible-choice-in-repeat-p ()
+               "Return T if there is an incompatible choice in a repeat."
+               ;; NOTE: this should only consider a choice in a repeat problematic
+               ;;       if the choice has two separate slots in two separate
+               ;;       branches or there are multiple slots in a different order.
+               ;;       This causes an issue trying to reproduce the ordering.
+               (iter
+                 (for choice in (mappend #'collect-choices (collect-repeats rule)))
+                 (for slots-in-branches = (collect-branch-slots choice))
+                 ;; NOTE: compare all branches to the first branch. If one
+                 ;;       matches the first, then it should be the same as
+                 ;;       comparing to the first again.
+                 (thereis (some {incompatible-choice-p (car slots-in-branches)}
+                                slots-in-branches))))
+             (use-after-repeat-p (tree &key in-repeat? repeat-alist)
+               "Return non-NIL if TREE contains a problematic usage of a slot after
+                a repeat on that slot."
+               ;; NOTE: it isn't strictly the case that a use after repeat will
+               ;;       be problematic; it can be handled by counting the number of
+               ;;       uses after the repeat that are needed for a specific type.
+               ;;       It is problematic any time a slot occurs in two separate
+               ;;       repeats.
+               (when (listp tree)
+                 (case (car tree)
+                   (:seq
+                    (iter
+                      (for subtree in tree)
+                      (for (values subtree-repeat-alist use-after?)
+                           first (values repeat-alist)
+                           then (use-after-repeat-p
+                                 subtree :in-repeat? in-repeat?
+                                 :repeat-alist subtree-repeat-alist))
+                      (when use-after?
+                        (leave (values nil use-after?)))
+                      (finally
+                       (return (values subtree-repeat-alist)))))
+                   (:repeat
+                    (iter
+                      (for subtree in tree)
+                      (for (values subtree-repeat-alist use-after?)
+                           first (values repeat-alist)
+                           then (use-after-repeat-p
+                                 subtree :in-repeat? tree
+                                 :repeat-alist subtree-repeat-alist))
+                      (when use-after?
+                        (leave (values nil use-after?)))
+                      (finally
+                       (return (values subtree-repeat-alist)))))
+                   (:choice
+                    (iter
+                      (for subtree in tree)
+                      (for (values subtree-repeat-alist use-after?)
+                           = (use-after-repeat-p
+                              subtree :in-repeat? in-repeat?
+                              :repeat-alist repeat-alist))
+                      (if use-after?
+                          (leave (values nil use-after?))
+                          (collect subtree-repeat-alist into choice-alists))
+                      (finally
+                       ;; NOTE: if we're in a repeat, there could be a use after
+                       ;;       a repeat in separate choice branches, but the check
+                       ;;       for this would have already been done in
+                       ;;       incompatible-choice-in-repeat-p, so don't make the
+                       ;;       same check again.
+                       (return
+                         (remove-duplicates
+                          (reduce #'append choice-alists)
+                          :key #'car)))))
+                   (:field
+                    (let ((types (cddr tree)))
+                      (cond-let result
+                        ((some (lambda (type)
+                                 (aget type repeat-alist :test #'equal))
+                               types)
+                         (values nil result))
+                        (in-repeat?
+                         (append (mapcar {cons _ in-repeat?} types)
+                                 repeat-alist))
+                        (t repeat-alist))))
+                   (:child
+                    (let ((slot (cadr tree)))
+                      (cond
+                        ((aget slot repeat-alist :test #'equal)
+                         (values nil slot))
+                        (in-repeat?
+                         (cons (cons slot in-repeat?)
+                               repeat-alist))
+                        (t repeat-alist))))))))
+      (not (or (incompatible-choice-in-repeat-p)
+               (nth-value 1 (use-after-repeat-p rule))))))
+
+  (defun expand-choice-branches (pruned-rule transformed-json)
+    "Expand the choice branches the PRUNED-RULE for NODE-TYPE has
+outside of repeats."
+    (labels ((get-path (tree path)
+               "Get the subtree in TREE at PATH."
+               ;; This will blowup if a bad path is given to it.
+               (if (listp path)
+                   (reduce (lambda (tree position) (nth position tree)) path
+                           :initial-value tree)
+                   tree))
+             (get-json-path (json-tree path)
+               "Get the subtree in JSON-TREE at path."
+               (if (listp path)
+                   (reduce (lambda (json-tree position)
+                             (nth (1- position) (or (aget :members json-tree)
+                                                    (aget :content json-tree))))
+                           path
+                           :initial-value json-tree)
+                   json-tree))
+             (get-leaf-choice (tree &optional (path nil))
+               "Gets the first 'CHOICE' in TREE that doesn't have any nested
+               'CHOICE's within it."
+               (cond
+                 ((not (listp tree)) nil)
+                 ;; exclude choices in repeats from consideration.
+                 ((eql (car tree) :repeat) nil)
+                 (t
+                  (iter
+                    (for child in tree)
+                    (for i upfrom 0)
+                    (collect (get-leaf-choice child (cons i path))
+                      into nested-choices)
+                    (finally (return (or (find-if-not #'null nested-choices)
+                                         (and (eql (car tree) :choice)
+                                              (reverse path)))))))))
+             (expand-choice (tree path)
+               "Expands the 'CHOICE' at PATH in TREE into several different trees."
+               (let ((choice (get-path tree path)))
+                 (cond
+                   ;; TODO: remove this before committing?
+                   ((not (eql (car choice) :choice))
+                    (error "bad-choice-tree"))
+                   (path
+                    (iter
+                      (for branch in (cdr choice))
+                      (for new-tree = (copy-tree tree))
+                      (setf (nth (lastcar path) (get-path new-tree (butlast path)))
+                            branch)
+                      (collect new-tree)))
+                   (t (cdr choice)))))
+             (expand-json-choice (json-tree path)
+               "Expands the 'CHOICE' at PATH in JSON-TREE into several different
+                trees."
+               (let ((choice (get-json-path json-tree path)))
+                 (cond
+                   ;; TODO: remove this before committing?
+                   ((not (equal (aget :type choice) "CHOICE"))
+                    (error "bad-json-choice-tree"))
+                   (path
+                    (iter
+                      (for branch in (aget :members choice))
+                      (for new-tree = (copy-tree json-tree))
+                      (let ((target-tree (get-json-path new-tree (butlast path))))
+                        (setf (nth (1- (lastcar path))
+                                   (or (aget :members target-tree)
+                                       (aget :content target-tree)))
+                              branch))
+                      (collect new-tree)))
+                   (t (aget :members choice)))))
+             (remove-duplicate-rules (pruned-branches json-branches)
+               "Remove the duplicates from PRUNED-BRANCHES while also
+                removing the 'same' item from JSON-BRANCHES. The two
+                modified lists are returned as values."
+               (let ((removed-duplicates
+                       (remove-duplicates
+                        (mapcar #'cons pruned-branches json-branches)
+                        :key #'car :test #'equal :from-end t)))
+                 (values
+                  (mapcar #'car removed-duplicates)
+                  (mapcar #'cdr removed-duplicates))))
+             (expand-choices (tree json-tree)
+               "Expand all nested choices into their own branches."
+               (if (eql (car tree) :choice)
+                   (values (expand-choice tree nil)
+                           (expand-json-choice json-tree nil))
+                   (iter
+                     (for expansion-stack initially (list tree)
+                          then (mappend (lambda (expansion)
+                                          (expand-choice expansion choice-path))
+                                        expansion-stack))
+                     (for json-expansion-stack initially (list json-tree)
+                          then (mappend
+                                (lambda (expansion)
+                                  (expand-json-choice expansion choice-path))
+                                json-expansion-stack))
+                     (for choice-path = (get-leaf-choice (car expansion-stack)))
+                     (while choice-path)
+                     (finally
+                      (return (remove-duplicate-rules
+                               expansion-stack json-expansion-stack)))))))
+      (expand-choices pruned-rule transformed-json)))
+
+  (defun variable-text-ast-p (json-rule)
+    "Return T if JSON-RULE and TYPE represent an AST that contains variable text."
+    (labels ((walk-json (predicate tree)
+               "Maps MAP-FUN over TREE as if it were a list representation of JSON
+                and returns the result."
+               (walk-tree (lambda (subtree)
+                            (cond
+                              ;; first four clauses filter out anything that can't
+                              ;; be used as an alist. This is assumed based on the
+                              ;; structure of the json read in. NOTE that we may get
+                              ;; a non-alist still, but it should prevent any errors
+                              ;; that may occur from using something like #'aget.
+                              ((atom subtree))
+                              ((atom (cdr subtree)))
+                              ((eql (car subtree) :members))
+                              ((eql (car subtree) :content))
+                              ((funcall predicate subtree))))
+                          tree :tag 'prune)))
+      (walk-json
+       (lambda (subtree)
+         (when-let (type (aget :type subtree))
+           (string-case type
+             (("PATTERN" "TOKEN" "IMMEDIATE_TOKEN")
+              ;; PATTERN indicates that there
+              ;; is variable text.
+              ;; TOKEN and IMMEDIATE_TOKEN don't
+              ;; necessarily indicate variable text,
+              ;; but they generally have a CHOICE that
+              ;; selects from some default values, and
+              ;; since this isn't stored in a slot, it's
+              ;; generally a good idea to store it since
+              ;; things break otherwise. An example of this
+              ;; can be seen with language-provided types in
+              ;; C.
+              (return-from variable-text-ast-p t))
+             ("ALIAS"
+              ;; Aliases can have patterns in them,
+              ;; but they are recast to something else,
+              ;; so they do not need to be stored.
+              (throw 'prune nil)))))
+       json-rule)))
+
+  (defun generate-variable-text-method (transformed-json-rule class-name)
+    "Generate an input transformation method for RULE if one is needed.
+CLASS-NAME is used as the specialization for the generated method."
+    (when (variable-text-ast-p transformed-json-rule)
+      ;; TODO: NOTE: create a generic and default for this somewhere.
+      `(defmethod variable-text-node-p ((instance ,class-name)) t)))
+
+  (defun generate-children-method (collapsed-rule pruned-rule class-name)
+    ;; NOTE: passing the class name to handle the choice expansion subclassing
+    ;;       outside of this method.
+    ;; TODO: maybe grab the slots from the collapsed-rule here? If
+    ;;       possible make the collapsed-rule an argument.
+    ;; TODO: it may make sense to use the pruned rule here instead of the
+    ;;       collapsed since the input transformation stuff will ideally
+    ;;       be using the pruned rule too.
+    ;; TODO: It may also make sense to start storing these rules on the
+    ;;       class itself in general?
+    (let  ((slots
+             (remove-duplicates
+              (mapcar
+               (lambda (cons)
+                 (if (eql :field (car cons))
+                     (cadr cons)
+                     'children))
+               (collect-rule-slots collapsed-rule)))))
+      (if slots
+          `(progn
+             (defmethod parse-order ((ast ,class-name))
+               (children-parser
+                ast ',pruned-rule ',slots))
+             (defmethod children ((ast ,class-name))
+               (remove-if #'listp (children-parser ast ',pruned-rule ',slots))))
+          `(progn
+             (defmethod parse-order ((ast ,class-name)) nil)
+             (defmethod children ((ast ,class-name)) nil)))))
+
+  (defun get-json-subtree-string (json-subtree)
+    "Get the string representation of JSON-SUBTREE. This assumes that there aren't
+any slot usages in JSON-SUBTREE."
+    ;; TODO: test this function.
+    ;; NOTE: assume that token, immediate_token, and pattern automatically
+    ;;       mean that a node has variable text. Thus, if any subtree has one of
+    ;;       these rules, the AST itself should be printed specially using the
+    ;;       variable-text slot.
+    (labels ((handle-alias (rule)
+               ;; NOTE: only consider unnamed nodes unless it becomes problematic
+               ;;       to not be considering the named ones.
+               (if (aget :named rule)
+                   ;; TODO: remove this before committing?
+                   ;;
+                   ;; If we reach here, we may have a problem with
+                   ;; pruning rules?
+                   (error "unhandled named alias")
+                   (aget :value rule)))
+             (handle-blank ()
+               "")
+             (handle-choice (rule &aux (branches (aget :members rule)))
+               ;; Prefer blank branches
+               (if (find-if
+                    (lambda (branch)
+                      (eql :blank (aget :type branch)))
+                    branches)
+                   ""
+                   ;; Take the first branch if no blanks are available.
+                   (rule-handler (car branches))))
+             (handle-repeat ()
+               "")
+             (handle-seq (rule)
+               (mapcar #'rule-handler (aget :members rule)))
+             (handle-string (rule)
+               (aget :value rule))
+             (rule-handler (rule)
+               "Handles dispatching RULE to its relevant rule handler."
+               ;; NOTE: this will throw an error if an unexpected rule is
+               ;;       encountered.
+               (string-ecase (aget :type rule)
+                 ("ALIAS" (handle-alias rule))
+                 ("BLANK" (handle-blank))
+                 ("CHOICE" (handle-choice rule))
+                 ("REPEAT" (handle-repeat))
+                 ("SEQ" (handle-seq rule))
+                 ("STRING" (handle-string rule))
+                 ;; TODO: determine if SYMBOL needs to be handled.
+                 ;;       It's unlikely that it does.
+                 #+nil
+                 ("SYMBOL" ))))
+      (apply #'string+ (flatten (rule-handler json-subtree)))))
+
+  (defun generate-output-transformation
+      (pruned-rule transformed-json-rule class-name)
+    ;; TODO: there's a whole lot of noise in the subclassing.
+    ;;       Maybe there's a way to leverage some of the structured-rule-p
+    ;;       logic to prevent subclassing when the output-transformation is
+    ;;       identical.
+    (labels ((generate-choice (json-rule pruned-rule)
+               "Generate a quoted form which handles choices."
+               ;; NOTE: coming in, the in-order children stack should have a
+               ;;       list as its top item. This will be of the form
+               ;;       (:choice branch-number). The correct branch can be chosen
+               ;;       based on branch number.
+               `(ecase (cadr (pop parse-stack))
+                  ,@(iter
+                      (for branch in (aget :members json-rule))
+                      (for pruned-branch in (cdr pruned-rule))
+                      (for i upfrom 0)
+                      (collect
+                          (list
+                           i (generate-rule-handler branch pruned-branch))))))
+             (generate-field ()
+               "Generate a quoted form which handles fields."
+               `(pop parse-stack))
+             (generate-repeat (json-rule pruned-rule)
+               "Generate a quoted form which handles repeats."
+               `(iter
+                  (ecase (car (pop parse-stack))
+                    ((:repeat :continue)
+                     (collect ,(generate-rule-handler (aget :content json-rule)
+                                                      (cadr pruned-rule))))
+                    (:end-repeat (finish)))))
+             (generate-seq (json-rule pruned-rule)
+               "Generate a quoted form which handles sequences."
+               `(list
+                 ,@(mapcar #'generate-rule-handler
+                           (aget :members json-rule) (cdr pruned-rule))))
+             (generate-symbol ()
+               "Generate a quoted form which handles symbols."
+               `(pop parse-stack))
+             (generate-rule-handler (json-rule pruned-rule)
+               "Handles dispatching JSON-RULE to its relevant rule handler."
+               (if pruned-rule
+                   ;; NOTE: this will throw an error if the json schema for
+                   ;;       the grammar.json files has changed or the form of
+                   ;;       the json-rule or pruned-rule change.
+                   ;;       This can also throw an error if pruning trees is
+                   ;;       incorrectly done.
+                   (string-ecase (aget :type json-rule)
+                     ("ALIAS" (generate-symbol))
+                     ("CHOICE" (generate-choice json-rule pruned-rule))
+                     ("REPEAT" (generate-repeat json-rule pruned-rule))
+                     ("FIELD" (generate-field))
+                     ("SEQ" (generate-seq json-rule pruned-rule))
+                     ("SYMBOL" (generate-symbol)))
+                   (get-json-subtree-string json-rule)))
+             (generate-ast-list (json-rule pruned-rule)
+               "Generate the form that creates a list of ASTs and strings."
+               (if (variable-text-ast-p json-rule)
+                   '(variable-text-output-transformation ast)
+                   (generate-rule-handler json-rule pruned-rule)))
+             (generate-body (transformed-json-rule pruned-rule)
+               "Generate the body of the output transformation method."
+               `(list
+                 (before-text ast)
+                 ;; Expand all rules here.
+                 ,(generate-ast-list transformed-json-rule pruned-rule)
+                 (after-text ast)))
+             (generate-method (transformed-json-rule pruned-rule)
+               "Generate the output transformation method."
+               `(defmethod output-transformation
+                    ((ast ,class-name) &aux (parse-stack (parse-order ast)))
+                  (declare (ignorable parse-stack))
+                  (flatten ,(generate-body transformed-json-rule pruned-rule)))))
+      (generate-method transformed-json-rule pruned-rule)))
+
+  (defun convert-to-lisp-type (prefix type-string)
+    ;; TODO: this function is also used above. Refactor after rebasing with
+    ;;       master.
+    (format-symbol 'sel/sw/ts "~a-~a" prefix (convert-name type-string)))
+;;; TODO: name this something more descriptive?
+
+  (defun generate-input/output-handling
+      (pruned-rule json-rule super-class
+       language-prefix child-types
+       &aux (subclasses
+             (aget super-class
+                   (aget language-prefix *choice-expansion-subclasses*))))
+    "Generate a method for a type of AST that returns a choice expansion
+subclass based on the order of the children were read in."
+    ;; TODO: at some point, it probably makes sense to use the pruned rules over
+    ;;       the collapsed rules for the key due to potential collisions.
+    ;;       This will require being able to parse the full json rule and
+    ;;       relating it back to the cl-tree-sitter return value.
+
+    ;; TODO: language-prefix should be a keyword.
+
+    ;; TODO: child-types needs to be actual lisp types.
+    ;;       collapsed-rule needs to have its strings also converted to lisp
+    ;;       types.
+    ;;       It's likely that we'll have the collapsed rules coming in since
+    ;;       we need them in more than one place.
+    (labels ((get-subclass-name (collapsed-rule)
+               "Get the subclass name for COLLAPSED-RULE. If one isn't in
+                subclasses, generate a new name."
+               ;;NOTE: the types should not be strings but lisp types.
+               (or
+                (car (find-if (lambda (pair)
+                                (equal collapsed-rule (cadr pair)))
+                              subclasses))
+                (format-symbol :sel/sw/ts "~a" (string-gensym super-class))))
+             (convert-to-lisp-types (rule)
+               "Converts all strings in RULE to lisp types."
+               (map-tree
+                (lambda (node)
+                  (if (typep node 'string)
+                      (convert-to-lisp-type language-prefix node)
+                      node))
+                rule))
+             (generate-subclass (subclass-pair)
+               "Generate a defclass form for SUBCLASS-PAIR."
+               `(defclass ,(car subclass-pair) (,super-class)
+                  ((rule :initform ',(cadr subclass-pair)
+                         :reader rule
+                         :allocation :class))))
+             (generate-subclasses (subclass-pairs)
+               "Generate a defclass forms for SUBCLASS-PAIRS."
+               (mapcar #'generate-subclass subclass-pairs))
+             (generate-children-methods (subclass-pairs)
+               "Generate the methods for handling children for
+                every subclass pair in SUBCLASS-PAIRS."
+               (mapcar
+                (op (generate-children-method (cadr _) (caddr _1) (car _1)))
+                subclass-pairs))
+             (generate-input-subclass-dispatch (subclass-pairs)
+               "Generate a method to return the name of the subclass
+                to be used by the parse-tree returned by tree-sitter."
+               `(defmethod get-choice-expansion-subclass
+                    ((class (eql ',super-class)) parse-tree
+                     &aux (child-types ',child-types))
+                  (econd
+                   ,@(mapcar
+                      (lambda (subclass-pair)
+                        `((match-parsed-children
+                           ,language-prefix
+                           ',(cadr subclass-pair) child-types parse-tree)
+                          ',(car subclass-pair)))
+                      subclass-pairs))))
+             (generate-variable-text-methods (json-expansions subclass-pairs)
+               "Generate the variable text methods for the rules in
+                JSON-EXPANSION."
+               (mapcar
+                (op (generate-variable-text-method _ (car _)))
+                json-expansions subclass-pairs))
+             (generate-output-transformations
+                 (pruned-expansions json-expansions subclass-pairs)
+               "Generate the output transformations for each subclass."
+               (mapcar (lambda (pruned-rule json-rule class-name)
+                         (generate-output-transformation
+                          pruned-rule json-rule class-name))
+                       pruned-expansions json-expansions
+                       (mapcar #'car subclass-pairs))))
+      ;; TODO: refactor this and children-parser as it accepts a
+      ;;       pruned rule and wasn't before.
+      (mvlet* ((pruned-rule-expansions
+                json-expansions
+                (expand-choice-branches pruned-rule json-rule))
+               (expansions? (not (= 1 (length pruned-rule-expansions))))
+               (collapsed-rule-expansions
+                (mapcar [#'convert-to-lisp-types #'collapse-rule-tree]
+                        pruned-rule-expansions))
+               (subclass-pairs
+                (if expansions?
+                    (mapcar (lambda (collapsed-rule pruned-rule)
+                              (list (get-subclass-name collapsed-rule)
+                                    collapsed-rule
+                                    pruned-rule))
+                            collapsed-rule-expansions
+                            (mapcar #'convert-to-lisp-types pruned-rule-expansions))
+                    `((,super-class
+                       ,(car collapsed-rule-expansions)
+                       ,(convert-to-lisp-types (car pruned-rule-expansions)))))))
+        `(progn
+           ;; TODO: method dispatch is completely unreasonable for
+           ;;       this stuff once every method is created.
+           ;;       It probably makes sense to store the function on the
+           ;;       object with class allocation instead?
+           ,@(and expansions? (generate-subclasses subclass-pairs))
+           ,(and expansions? (generate-input-subclass-dispatch subclass-pairs))
+           ,@(generate-children-methods subclass-pairs)
+           ,@(generate-variable-text-methods json-expansions subclass-pairs)
+           ,@(generate-output-transformations
+              pruned-rule-expansions json-expansions subclass-pairs)))))
+
+  (defun generate-structured-text-methods
+      (grammar types language-prefix symbols-to-export)
+    ;; NOTE: it might make sense to integrate the loop into
+    ;;       the class generation above at some point.
+
+    ;; TODO: NOTE: figure out how to handle the superclasses instead of
+    ;;             treating them as terminal nodes.
+    ;;
+    ;;             There's a top-level "superclasses" form in the grammar.
+    ;;             can probably ignore based on that.
+
+    ;; NOTE: things we know at this point:
+    ;;        - If a choice occurs in a repeat, all branches share the same slots.
+    ;;        - Choices outside of repeats will be expanded if any of the branches
+    ;;          contain different slots or ordering of slots.
+    (labels ((generate-code (transformed-json type-json)
+               "Generate the code for TRANSFORMED-JSON that is of the type
+                specified by TYPE-JSON."
+               (generate-input/output-handling
+                (prune-rule-tree transformed-json)
+                transformed-json
+                (convert-to-lisp-type language-prefix (aget :type type-json))
+                ;; NOTE: this should be a keyword.
+                language-prefix
+                (mapcar [{convert-to-lisp-type language-prefix}
+                         {aget :type}]
+                        (aget :types (aget :children type-json)))))
+             (generate-terminal-code (type-string class-name)
+               "Generate the code for a terminal symbol."
+               `(progn
+                  (defmethod output-transformation ((ast ,class-name))
+                    (list (before-text ast) ,type-string (after-text ast)))
+                  ,(generate-children-method nil nil class-name)))
+             (get-transformed-json-table ()
+               "Get a hash table containing transformed JSON rules."
+               (alist-hash-table
+                (mapcar (lambda (rule)
+                          (list (car rule)
+                                (transform-json-rule (cdr rule) grammar)))
+                        (aget :rules grammar))))
+             (get-superclasses-set ()
+               "Get a hash set containing the names of superclasses for the
+                language."
+               (alist-hash-table
+                (mapcar {cons _ t} (aget :supertypes grammar))
+                :test #'equal)))
+      `(progn
+         ,@(iter
+             (iter:with super-classes-set = (get-superclasses-set))
+             (iter:with rule-table = (get-transformed-json-table))
+             (iter:with type-set = (make-hash-table :test #'equal))
+             (for type in types)
+             (for type-string = (aget :type type))
+             (for converted-type = (convert-name type-string))
+             (for lisp-type = (convert-to-lisp-type
+                               language-prefix converted-type))
+             (for terminal-lisp-type = (format-symbol 'sel/sw/ts "~a-~a"
+                                                      lisp-type 'terminal))
+             (cond-let result
+               ;; skip superclass interfaces.
+               ;; TODO: at some point, the interfaces will always be at the top,
+               ;;       so they can be counted out and skipped instead of this.
+               ((gethash type-string super-classes-set))
+               ((gethash converted-type type-set)
+                ;; If the name is already in the type set, that means a rule
+                ;; has the same name as a language keyword. As an example,
+                ;; Python has a 'lambda' rule but also has a 'lambda' keyword
+                ;; as part of the language.
+                (collect (generate-terminal-code type-string terminal-lisp-type)))
+               ((gethash (make-keyword converted-type) rule-table)
+                ;; Only add to the type-set here since there won't be a
+                ;; name-clash for terminal symbols.
+                (setf (gethash converted-type type-set) t)
+                (collect (generate-code (car result) type)))
+               (t
+                ;; If a type doesn't have a rule, it is considered
+                ;; a terminal symbol.
+                ;; TODO: there's one case where a class doesn't exist without
+                ;;       '-terminal but is exported with it. Need to pass in
+                ;;
+                (collect (generate-terminal-code
+                          type-string
+                          (if (gethash terminal-lisp-type symbols-to-export)
+                              terminal-lisp-type
+                              lisp-type))))))
+         ;; TODO: make these generics and add other ones that are needed here.
+         (defmethod variable-text-node-p (ast) nil)
+         (defmethod get-choice-expansion-subclass (class spec)
+           (declare (ignorable spec))
+           class))))
+
   (defun create-tree-sitter-classes
       (node-types-file grammar-file name-prefix
        &key ast-superclasses base-ast-superclasses
@@ -1209,10 +2209,8 @@ their slots."
       (let* ((*json-identifier-name-to-lisp* #'convert-name)
              (node-types (decode-json-from-string
                           (file-to-string node-types-file)))
-             (grammar-rules (aget
-                             :rules
-                             (decode-json-from-string
-                              (file-to-string grammar-file)))))
+             (grammar (decode-json-from-string (file-to-string grammar-file)))
+             (grammar-rules (aget :rules grammar)))
         (initialize-subtype->supertypes)
         (initialize-class->extra-slot-options)
         `(progn
@@ -1283,10 +2281,13 @@ Unlike the `children` methods which collects all children of an AST from any slo
              spec)
 
            (defmethod convert ((to-type (eql ',ast-superclass)) (spec list)
-                               &key string-pass-through &allow-other-keys)
+                               &key string-pass-through
+                                 variable-text-parent-p
+                               &allow-other-keys)
              (convert 'tree-sitter-ast spec
                       :superclass to-type
-                      :string-pass-through string-pass-through))
+                      :string-pass-through string-pass-through
+                      :variable-text-parent-p variable-text-parent-p))
 
            (defmethod convert ((to-type (eql ',ast-superclass)) (string string)
                                &rest args &key &allow-other-keys)
@@ -1294,7 +2295,11 @@ Unlike the `children` methods which collects all children of an AST from any slo
 
            (defmethod parse-asts ((obj ,(make-class-name))
                                   &optional (source (genome-string obj)))
-             (convert ',(make-class-name "ast") source)))))))
+             (convert ',(make-class-name "ast") source))
+
+           #+structured-text
+           ,(generate-structured-text-methods
+             grammar node-types name-prefix symbols-to-export))))))
 
 (defmacro define-and-export-all-mixin-classes ()
   "Ensure that all mixin classes are defined and exported."
@@ -3781,3 +4786,629 @@ If NODE is not a function node, return nil.")
   (:documentation "Return the type of AST in SOFTWARE."))
 
 (defmethod is-stmt-p ((ast statement-ast)) t)
+
+
+;;;; Structured text
+;;; TODO: remove this; it's for debugging.
+(defmacro labels+ ((&rest forms) &body body)
+  `(progn
+     ,@(iter
+         (for form in forms)
+         (collect `(declaim (notinline ,(car form))))
+         (collect (cons 'defun form)))
+     ,@body))
+
+#+nil
+(setf transformed-json
+      (mapcar (lambda (rule)
+                (cons (car rule) (transform-json-rule (cdr rule) grammar)))
+              rules))
+#+nil
+(let ((*json-identifier-name-to-lisp* #'convert-name))
+  (setf rules
+        (aget :rules
+              (setf grammar (decode-json-from-string (file-to-string "~/Programs/tree-sitter-c/src/grammar.json"))))))
+#+nil
+(setf types (decode-json-from-string (file-to-string "~/Programs/tree-sitter-c/src/node-types.json")))
+
+#+nil
+(setf collapsed (collapse-rule-trees transformed))
+
+#+nil
+(mapcar (lambda (rule)
+          ;; This will print out which rules are problematic.
+          (format t "~a with ~a~%" (car rule) (cadr rule))
+          (list (car rule) (structured-rule-p (cadr rule))))
+        collapsed)
+
+#+nil
+(defmacro defthings () (generate-structured-text-methods grammar types :c))
+
+(defun children-parser (ast full-rule slots &aux (child-stack-key '#.(gensym)))
+  "Return the children of AST in order based on FULL-RULE. SLOTS specifies
+which slots are expected to be used."
+  ;; TODO: NOTE: this currently breaks on comments and errors in the children
+  ;;             slot.
+
+  ;; TODO: assume that the full-rule has converted the names for the slots.
+
+  ;; TODO: quit copying hash tables and use indices into them or find a
+  ;;       different way altogether if this method performs poorly since
+  ;;       it's very hacky right now. It may be best to do the following note.
+
+  ;; NOTE: this does not back track; not sure if this will be a problem,
+  ;;       but there aren't any rules that obviously require it--this may
+  ;;       be the case if a rule is a subtype of another.
+  ;; NOTE: esrap or smug may be useful if needed in the future.
+  (labels ((populate-slot->stack ()
+             "Create a hash table that maps a slot name to its
+              corresponding stack."
+             (alist-hash-table
+              (mapcar
+               (lambda (slot &aux (value (slot-value ast slot)))
+                 (cons slot (ensure-cons value)))
+               slots)))
+           (push-child-stack (value slot->stack)
+             "Push VALUE onto the child stack in SLOT->STACK."
+             (push value (gethash child-stack-key slot->stack)))
+           (trim-slot-stack (slot slot->stack)
+             "Removes one item from SLOT's stack in SLOT->STACK and returns
+              a copy of SLOT->STACK with this change."
+             (let ((copy (copy-hash-table slot->stack)))
+               (symbol-macrolet ((slot-hash (gethash slot copy)))
+                 (push-child-stack (car slot-hash) copy)
+                 (setf slot-hash (cdr slot-hash))
+                 copy)))
+           (handle-child (rule slot->stack)
+             (when (typep (car (gethash 'children slot->stack))
+                          (cons 'or (cdr rule)))
+               (trim-slot-stack 'children slot->stack)))
+           (handle-field (rule slot->stack &aux (slot (cadr rule)))
+             (when (typep (car (gethash slot slot->stack))
+                          (cons 'or (cddr rule)))
+               (trim-slot-stack slot slot->stack)))
+           (handle-choice (rule slot->stack)
+             ;; NOTE: since this doesn't back track it won't work on certain
+             ;;       rules. Currently, I'm not aware of any rules that
+             ;;       need back tracking, so I'm ignoring this for now.
+
+             ;; NOTE: this marks which branch was taken by adding a
+             ;;       list of (:choice branch-num) into the children list.
+             (iter
+               (for branch in (cdr rule))
+               (for i upfrom 0)
+               (for copy = (copy-hash-table slot->stack))
+               (push-child-stack `(:choice ,i) copy)
+               (thereis (rule-handler branch copy))))
+           (handle-repeat (rule slot->stack
+                           &optional continuation?
+                           &aux (copy (copy-hash-table slot->stack)))
+             ;; NOTE: since this doesn't back track it won't work on certain
+             ;;       rules. Currently, I'm not aware of any rules that
+             ;;       need back tracking, so I'm ignoring this for now.
+
+             ;; NOTE: this marks the beginning of a repeat with (:repeat),
+             ;;       every subsequent iteration of that repeat with a
+             ;;       (:continue), and then end of the repeat with (:end-repeat)
+             (push-child-stack
+              (if continuation? '(:continue) '(:repeat))
+              copy)
+             (let ((repeat-slot->stack (rule-handler (cadr rule) copy)))
+               (cond
+                 ((and repeat-slot->stack
+                       ;; Prevent infinite recursion on a nested, empty repeat.
+                       (not (eq copy repeat-slot->stack)))
+                  (handle-repeat rule repeat-slot->stack t))
+                 (t
+                  ;; NOTE: this should only triggered once when the
+                  ;;       repeat can't procede.
+                  (push-child-stack '(:end-repeat) slot->stack)
+                  slot->stack))))
+           (handle-seq (rule slot->stack)
+             (iter
+               (for subrule in (cdr rule))
+               (for sub-slot->stack first (rule-handler subrule slot->stack)
+                    then (rule-handler subrule sub-slot->stack))
+               (always sub-slot->stack)))
+           (rule-handler (rule slot->stack)
+             "Handles dispatching RULE to its relevant rule handler."
+             (if rule
+                 (ecase (car rule)
+                   (:CHOICE (handle-choice rule slot->stack))
+                   (:REPEAT (handle-repeat rule slot->stack))
+                   (:FIELD (handle-field rule slot->stack))
+                   (:CHILD (handle-child rule slot->stack))
+                   (:SEQ (handle-seq rule slot->stack)))
+                 slot->stack)))
+    ;; TODO: need to ensure that the returned hash table doesn't still have
+    ;;       ASTs stored in it. If it does, figure out a way to add them in
+    ;;       some how?
+    (if-let ((result (rule-handler full-rule (populate-slot->stack))))
+      (reverse (gethash child-stack-key result))
+      ;; One failure, just return everything in whatever order.
+      ;; TODO: this will break output-transformation, so either
+      ;;       find a better way to handle this in output-transformation or
+      ;;       modify this somehow.
+      (mapcar {slot-value ast} slots))))
+
+(defun variable-text-output-transformation (ast)
+  "Gives the variable text output transformation for AST. This
+representation is interleaved text though it's unlikely to
+be more than one string outside of string literals."
+  ;; TODO: test this
+  (iter
+    (iter:with interleaved-text = (variable-text ast))
+    (iter:with children = (children ast))
+    (while (and interleaved-text children))
+    (collect (pop interleaved-text) into result at beginning)
+    (collect (pop children) into result at beginning)
+    (finally
+     (return
+       (reverse
+        (cond
+          (interleaved-text (append interleaved-text result))
+          (children (append children result))
+          (t result)))))))
+
+;;; NOTE: the collapsed rule needs to have it's strings turned to types.
+(defun match-parsed-children
+    (language-prefix collapsed-rule child-types parse-tree)
+  "Match a cl-tree-sitter PARSE-TREE as a COLLAPSED-RULE in LANGUGE-PREFIX.
+CHILD-TYPES is a list of lisp types that the children slot can contain."
+  ;; TODO: at some point, it will be worth using the pruned rule + json here
+  ;;       since there's a chance of a collapsed rule collision here.
+  ;;       This will require more code to handle all of the rule types,
+  ;;       though this shouldn't be problematic.
+  (labels ((get-children ()
+             "Get the children slots and their types from parse-tree."
+             (iter
+               (for child in (caddr parse-tree))
+               (for slot-pair = (car child))
+               (collect
+                   (cond
+                     ((listp slot-pair)
+                      (list
+                       (convert-to-lisp-type language-prefix (car slot-pair))
+                       (convert-to-lisp-type language-prefix (cadr slot-pair))))
+                     ((let ((type (convert-to-lisp-type
+                                   language-prefix slot-pair)))
+                        (find-if (lambda (item)
+                                   (equal item type))
+                                 child-types)))))))
+           (handle-child (rule child-stack)
+             (when (member (pop child-stack) (cdr rule))
+               (values child-stack t)))
+           (handle-field (rule child-stack)
+             (let ((child (pop child-stack)))
+               (when (and (eql (cadr rule) (car child))
+                          (member (cdr child) (cddr rule)))
+                 (values child-stack t))))
+           (handle-choice (rule child-stack)
+             ;; NOTE: since this doesn't back track it won't work on certain
+             ;;       rules. Currently, I'm not aware of any rules that
+             ;;       need back tracking, so I'm ignoring this for now.
+             (iter
+               (for branch in (cdr rule))
+               (for (values stack matched?) = (rule-handler branch child-stack))
+               (when matched?
+                 (return (values stack t)))))
+           (handle-repeat (rule child-stack)
+             ;; NOTE: since this doesn't back track it won't work on certain
+             ;;       rules. Currently, I'm not aware of any rules that
+             ;;       need back tracking, so I'm ignoring this for now.
+             (mvlet ((repeat-stack
+                      matched?
+                      (rule-handler (cadr rule) child-stack)))
+               (if (and matched? repeat-stack)
+                   (handle-repeat rule repeat-stack)
+                   (values child-stack t))))
+           (handle-seq (rule child-stack)
+             (iter
+               (for subrule in (cdr rule))
+               (for (values stack matched?)
+                    first (rule-handler subrule child-stack)
+                    then (rule-handler subrule stack))
+               (always matched?)
+               (finally (return (values stack t)))))
+           (rule-handler (rule child-stack)
+             "Handles dispatching RULE to its relevant rule handler."
+             (ecase (car rule)
+               (:CHOICE (handle-choice rule child-stack))
+               (:REPEAT (handle-repeat rule child-stack))
+               (:FIELD (handle-field rule child-stack))
+               (:CHILD (handle-child rule child-stack))
+               (:SEQ (handle-seq rule child-stack)))))
+    (nth-value 1 (rule-handler collapsed-rule (get-children)))))
+
+;;; TODO: add *correcting rules* use a hash table that has a "fixup" function
+;;;       to fixup things? Need the function to run on the tree-sitter parse
+;;;       tree.
+
+;;; TODO: use interleaved text on nodes that have variable text but also have
+;;;       children. This doesn't happen often and string literals appear to be
+;;;       the only instance of this happening that has been found.
+
+;;; TODO: Like Roger mentioned, maybe keep a list of where comments go before or
+;;;       after ASTs; just throw it out when the AST is mutated since there's no
+;;;       reason to maintain it. Languages like Python should have a slot for
+;;;       comments that are interesting. This same approach could possibly be
+;;;       taken for errors? Errors can't be thrown out though, and it will
+;;;       essentially be interleaved text at that point.
+
+#+structured-text
+(defun convert-initializer
+    (spec prefix superclass string &key variable-text-parent-p
+     &aux (*package* (symbol-package superclass))
+       (class (symbolicate prefix '-
+                           (let ((type (car spec)))
+                             ;; The form can either be
+                             ;; - :type
+                             ;; - (:slot-name :type)
+                             (if (listp type)
+                                 (cadr type)
+                                 type))))
+       (instance (make-instance
+                  (get-choice-expansion-subclass class spec)
+                  :annotations
+                  (when variable-text-parent-p
+                    `((:range-start ,(caadr spec))
+                      (:range-end . ,(cdadr spec))))))
+       (error-p (eql class (symbolicate prefix '-error)))
+       (line-octets (map
+                     'vector
+                     #'string-to-octets
+                     (serapeum:lines string :keep-eols t)))
+       (variable-text-p (variable-text-node-p instance)))
+  "Initialize an instance of SUPERCLASS with SPEC."
+  (labels ((safe-subseq
+               (start end
+                &aux (start-loc
+                      (make-instance
+                       'source-location
+                       :line (cadr start) :column (car start)))
+                  (end-loc
+                   (make-instance
+                    'source-location
+                    :line (cadr end) :column (car end))))
+             "Return STRING in the range [START, END) or an empty string if
+              the offsets are invalid."
+             (if (and
+                  start
+                  end
+                  (source-< start-loc end-loc))
+                 (octets-to-string
+                  (source-range-subseq
+                   line-octets
+                   (make-instance 'source-range :begin start-loc :end end-loc)))
+                 ""))
+           (start (ast)
+             "Return the start offset into STRING from the AST representation."
+             (car (ast-annotation ast :range-start)))
+           (end (ast)
+             "Return the end offset into STRING from the AST representation."
+             (car (ast-annotation ast :range-end)))
+           ;; NOTE: this may be useful for variable-text ASTs.
+           (ranges (children from to)
+             "Return the offsets of the source text ranges between CHILDREN.
+              And drop their annotations."
+             ;; TODO: at some point, refactor this.
+             ;;       It's a bit of a hack to reuse existing code.
+
+             ;; TODO: this isn't working correctly for string literals.
+             (iter
+               (for child in children)
+               (for previous-child previous child)
+               (collect (cons (if previous-child (end previous-child) from) (start child))
+                 into ranges)
+               (when previous-child
+                 (setf (slot-value previous-child 'annotations)
+                       (adrop '(:range-start :range-end)
+                              (slot-value previous-child 'annotations))))
+               (finally
+                (return
+                  (prog1
+                      (append ranges (list (cons (end child) to)))
+                    (setf (slot-value child 'annotations)
+                          (adrop '(:range-start :range-end)
+                                 (slot-value child 'annotations))))))))
+           (find-terminal-symbol-class (class-name)
+             ;; Check for a '-terminal first in case there's a name overlap.
+             (let ((terminal-with
+                     (format-symbol
+                      'sel/sw/ts "~a-~a-TERMINAL" prefix class-name))
+                   (terminal-without
+                     (format-symbol
+                      'sel/sw/ts "~a-~a" prefix class-name)))
+               (cond
+                 ((find-class terminal-with nil) terminal-with)
+                 ((find-class terminal-without nil) terminal-without))))
+           (terminal-symbol-class-p (class-name)
+             "Return true if CLASS inherits from the terminal symbol
+              mix-in."
+             (when-let ((class (find-terminal-symbol-class class-name)))
+               (subtypep class 'terminal-symbol)))
+           ;; TODO: refactor as this function is used under a different
+           ;;       name below.
+           (skip-terminal-field-p (field-spec slot-info)
+             "Return T if FIELD-SPEC represents a terminal symbol that shouldn't
+              appear in the resulting AST."
+             (cond
+               ;; Has an associated slot or has children
+               ((or (listp slot-info) (caddr field-spec)) nil)
+               (t (terminal-symbol-class-p slot-info))))
+           (get-converted-fields ()
+             "Get the value of each field after it's been converted
+              into an AST."
+             (iter
+               (for field in (caddr spec))
+               (for slot-info = (car field))
+               (when (skip-terminal-field-p field slot-info)
+                 (next-iteration))
+               (for converted-field =
+                    (convert superclass field
+                             :string-pass-through string
+                             :variable-text-parent-p variable-text-p))
+               ;; cl-tree-sitter appears to put the
+               ;; slot name first unless the list goes
+               ;; into the children slot.
+               (if (and (listp slot-info) (not error-p))
+                   (collect (list (car slot-info)
+                                  converted-field)
+                     into fields)
+                   (collect converted-field into children))
+               (finally
+                (return
+                  (if children
+                      (push `(:children ,children) fields)
+                      fields)))))
+           (merge-same-fields (field-list)
+             "Merge all fields that belong to the same slot.
+              This is used for setting slots with an arity of 0."
+             (mapcar
+              (lambda (grouping)
+                (apply #'append
+                       (list (caar grouping))
+                       (mapcar #'cdr grouping)))
+              (assort field-list :key #'car)))
+           (set-slot-values (slot-values)
+             "Set the slots in instance to correspond to SLOT-VALUES."
+             (mapc
+              (lambda (list)
+                (setf (slot-value
+                       instance (translate-to-slot-name (car list) prefix))
+                      (if (null (cddr list))
+                          (cadr list)
+                          (cdr list))))
+              slot-values))
+           (set-surrounding-text ()
+             "Set the before and after slots of instance."
+             (unless variable-text-parent-p
+               (let* ((before (car (cadddr spec)))
+                      (after (cadr (cadddr spec)))
+                      (start (car (cadr spec)))
+                      (end (cadr (cadr spec)))
+                      (before-text (safe-subseq before start))
+                      (after-text (safe-subseq end after)))
+                 (unless (emptyp before-text)
+                   (setf (before-text instance) before-text))
+                 (unless (emptyp after-text)
+                   (setf (after-text instance) after-text)))))
+           ;; TODO: this may be useful for variable text as a reference.
+           ;; TODO: maybe reformat it to use the spec instead of annotations?
+           (set-variable-text (&aux (from (car (cadr spec)))
+                                 (to (cadr (cadr spec))))
+             "Set the variable-text slot in instance if it needs set."
+             (when variable-text-p
+               (setf (variable-text instance)
+                     (if-let ((children (children instance)))
+                       (mapcar (lambda (range)
+                                 (destructuring-bind (from . to) range
+                                   (safe-subseq from to)))
+                               (ranges children from to))
+                       ;; Else set it to everything in the range.
+                       (list (safe-subseq from to)))))))
+    (set-slot-values
+     (merge-same-fields (get-converted-fields)))
+    (set-surrounding-text)
+    (set-variable-text)
+    instance))
+
+#+structured-text
+(defun convert-spec (spec prefix superclass
+                     &aux (package (symbol-package superclass)))
+  "Convert SPEC into an ast of type SUPERCLASS. PREFIX is used to find the
+correct class name for subclasses of SUPERCLASS."
+  (lret ((instance
+          (make-instance
+           (symbol-cat-in-package
+            package
+            prefix
+            (let ((class (aget :class spec)))
+              (if (stringp class)
+                  (nest (make-keyword)
+                        (string-upcase)
+                        (translate-camelcase-name)
+                        class)
+                  class))))))
+    (iter
+      (iter:with child-types = (child-slots instance))
+      (iter:with annotations = nil)
+      (for (slot . value) in (adrop '(:class) spec))
+      (for key = (format-symbol package "~a" slot))
+      (for translated-key = (translate-to-slot-name key prefix))
+      (cond
+        ((slot-exists-p instance translated-key)
+         ;; TODO: look into a better way to do this for structured text?
+         (setf (slot-value instance translated-key)
+               (if-let ((spec (find translated-key child-types :key #'car)))
+                 (ematch spec
+                   ;; (cons key arity)
+                   ((cons _ 1) (convert superclass value))
+                   ((cons _ 0) (iter (for item in value)
+                                 (collect (convert superclass item)))))
+                 value)))
+        ;; Account for slots in superclasses.
+        ((slot-exists-p instance key) (setf (slot-value instance key) value))
+        (t (push (cons slot value) annotations)))
+      (finally
+       (with-slots ((annotations-slot annotations)) instance
+         (setf annotations-slot (append annotations annotations-slot)))))))
+
+#+structured-text
+(defmethod convert ((to-type (eql 'tree-sitter-ast)) (spec tree-sitter-ast)
+                     &key &allow-other-keys)
+  "Pass thru an existing tree-sitter AST. This useful in manual AST creation."
+  spec)
+
+#+structured-text
+(defmethod convert ((to-type (eql 'tree-sitter-ast)) (spec list)
+                     &key superclass string-pass-through variable-text-parent-p
+                     &allow-other-keys)
+  "Create a TO-TYPE AST from the SPEC (specification) list."
+  (if string-pass-through
+      (convert-initializer
+       spec (get-language-from-superclass superclass) superclass
+       string-pass-through :variable-text-parent-p variable-text-parent-p)
+      (convert-spec
+       spec (get-language-from-superclass superclass) superclass)))
+
+;;; TODO: when reading in, only consider the before and after text between an
+;;;       unnamed and named node or a named and named node.
+
+;;; TODO: we need to handle variable text. It's wholly possible that,
+;;;       coming in, the fields are correctly populated by #'convert.
+;;;       By first checking if the AST is a variable-text node, we can
+;;;       generate a different method.
+;;;       Yes, we want to populate the variable-text slot when #'convert
+;;;       runs.
+
+
+;;; TODO: we're going to run into an issue with figuring out how much white
+;;;       space is between unnamed nodes. Some of it could be assumed, but
+;;;       there are cases--IMMEDIATE_TOKENS--where white spaces can not precede
+;;;       the token. This will likely require support in output-transformation.
+;;;       Paul D. brought up this potential problem at some point.
+;;;       Finding two unnamed nodes in a row probably isn't common across
+;;;       AST types.
+#+structured-text
+(defmethod convert ((to-type (eql 'tree-sitter-ast)) (string string)
+                     &key superclass &allow-other-keys
+                     &aux (prefix (get-language-from-superclass superclass)))
+  (labels
+      ((start (ast)
+         "Return the start offset into STRING from the AST representation."
+         (car (cadr ast)))
+       (end (ast)
+         "Return the end offset into STRING from the AST representation."
+         (cadr (cadr ast)))
+       (find-terminal-symbol-class (class-name)
+         ;; Check for a '-terminal first in case there's a name overlap.
+         ;; TODO: copied from above function
+         (let ((terminal-with
+                 (format-symbol
+                  'sel/sw/ts "~a-~a-TERMINAL" prefix class-name))
+               (terminal-without
+                 (format-symbol
+                  'sel/sw/ts "~a-~a" prefix class-name)))
+           (cond
+             ((find-class terminal-with nil) terminal-with)
+             ((find-class terminal-without nil) terminal-without))))
+       (terminal-symbol-class-p (class-name)
+         "Return true if CLASS inherits from the terminal symbol
+              mix-in."
+         ;; TODO: copied from above function
+         (when-let ((class (find-terminal-symbol-class class-name)))
+           (subtypep class 'terminal-symbol)))
+       (terminal-symbol-p (field-spec &aux (slot-info (car field-spec)))
+         "Return T if FIELD-SPEC represents a terminal symbol that shouldn't
+              appear in the resulting AST."
+         ;; TODO: copied from above function
+         (cond
+           ;; Has an associated slot or has children
+           ((or (listp slot-info) (caddr field-spec)) nil)
+           (t (terminal-symbol-class-p slot-info))))
+       (annotate-surrounding-text (subtree-spec &key parent-from parent-to)
+         "Annotate SUBTREE-SPEC by adding a fourth item to each subtree which
+          contains a potential starting position for before text and another
+          for after text."
+         (iter
+           (iter:with from)
+           ;; NOTE: we shouldn't need to store the 'to' as it will
+           ;;       be recursively called immediately with it.
+           (for child in (caddr subtree-spec))
+           (for previous-child previous child)
+           (for terminal-child-p = (terminal-symbol-p child))
+           (for terminal-previous-child-p =
+                (when previous-child
+                  (terminal-symbol-p previous-child)))
+           (cond
+             ((not (or previous-child terminal-child-p))
+              ;; Set to the start of the current node passed in as an argument.
+              (setf from (start subtree-spec)))
+             ((and (not previous-child) terminal-child-p))
+             ;; NOTE: (not previous-child) should be covered by the
+             ;;       previous two conditions.
+             ((and (not terminal-previous-child-p) terminal-child-p)
+              ;; Send the before text to the after of the previous child.
+              (collect
+                  (annotate-surrounding-text
+                   previous-child :parent-from from :parent-to (start child))
+                into annotated-children at beginning)
+              (setf from nil))
+             ((and (not terminal-previous-child-p) (not terminal-child-p))
+              (collect
+                  (annotate-surrounding-text previous-child :parent-from from)
+                into annotated-children at beginning)
+              ;; Prefer storing text in the before-text slot.
+              (setf from (end previous-child)))
+             ((and terminal-previous-child-p (not terminal-child-p))
+              (collect previous-child into annotated-children at beginning)
+              ;; Store the text in the before-text of child.
+              (setf from (end previous-child)))
+             ((and terminal-previous-child-p terminal-child-p)
+              ;; Text is lost in this case. This might not happen
+              ;; very often.
+              (collect previous-child into annotated-children at beginning)
+              (setf from nil)))
+           (finally
+            ;; Patch the final child if needed and then
+            ;; reassemble the subtree spec with updated information.
+            (return
+              (list
+               (car subtree-spec)
+               (cadr subtree-spec)
+               (reverse
+                (append
+                 (when (and child (not terminal-child-p))
+                   (list
+                    (annotate-surrounding-text
+                     child :parent-from from :parent-to (end subtree-spec))))
+                 annotated-children))
+               ;; If either is nil, it means that there isn't text for that slot.
+               (list parent-from parent-to)))))))
+    ;; TODO: add back in indentation
+    #+nil
+    (process-indentation)
+    ;; TODO: NOTE: this likely needs to stay to keep indentation working.
+    #+nil
+    (fix-newlines)
+    ;; TODO: maybe pass the string into the convert in the
+    ;;       string-pass-through argument.
+    (convert
+     to-type
+     (annotate-surrounding-text
+      (parse-string (get-language-from-superclass superclass)
+                    string :produce-cst t))
+     :superclass superclass
+     :string-pass-through string)))
+
+;;; TODO: add in indentation. This is an initial implementation.
+#+structured-text
+(defmethod source-text ((ast tree-sitter-ast) &key stream)
+  (mapc (lambda (output)
+          (if (stringp output)
+              (write-string
+               output
+               stream)
+              (source-text output)))
+        (output-transformation ast)))
