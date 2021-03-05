@@ -1508,6 +1508,20 @@ outside of repeats."
                    (reduce (lambda (tree position) (nth position tree)) path
                            :initial-value tree)
                    tree))
+             (replace-at (list index value)
+               "Replace the value at INDEX in list, copying as little as possible."
+               (let ((tail (nthcdr index list)))
+                 (if (eql value (first tail))
+                     list
+                     (nconc (ldiff list tail)
+                            (list value)
+                            (rest tail)))))
+             (replace-at-path (tree path value)
+               (if (endp path) value
+                   (replace-at tree (first path)
+                               (replace-at-path (nth (first path) tree)
+                                                (rest path)
+                                                value))))
              (get-json-path (json-tree path)
                "Get the subtree in JSON-TREE at path."
                (if (listp path)
@@ -1517,6 +1531,23 @@ outside of repeats."
                            path
                            :initial-value json-tree)
                    json-tree))
+             (replace-at-json-path (json-tree path value)
+               (if (endp path) value
+                   (let* ((entry
+                           (or (assoc :members json-tree)
+                               (assoc :content json-tree)))
+                          (new-cdr
+                           (replace-at (cdr entry)
+                                       (1- (car path))
+                                       (replace-at-json-path
+                                        (nth (1- (car path))
+                                             (cdr entry))
+                                        (cdr path)
+                                        value)))
+                          (new-entry
+                           (reuse-cons (car entry) new-cdr entry)))
+                     (if (eql entry new-entry) json-tree
+                         (substitute new-entry entry json-tree :count 1)))))
              (get-leaf-choice (tree &optional (path nil))
                "Gets the first 'CHOICE' in TREE that doesn't have any nested
                'CHOICE's within it."
@@ -1536,45 +1567,27 @@ outside of repeats."
              (expand-choice (tree path)
                "Expands the 'CHOICE' at PATH in TREE into several different trees."
                (let ((choice (get-path tree path)))
-                 (cond
-                   ;; TODO: remove this before committing?
-                   ((not (eql (car choice) :choice))
-                    (error "bad-choice-tree"))
-                   (path
-                    (iter
-                      (for branch in (cdr choice))
-                      (for new-tree = (copy-tree tree))
-                      (setf (nth (lastcar path) (get-path new-tree (butlast path)))
-                            branch)
-                      (collect new-tree)))
-                   (t (cdr choice)))))
+                 (assert (eql (car choice) :choice))
+                 (if path
+                     (mapcar (op (replace-at-path tree path _))
+                             (cdr choice))
+                     (cdr choice))))
              (expand-json-choice (json-tree path)
                "Expands the 'CHOICE' at PATH in JSON-TREE into several different
                 trees."
                (let ((choice (get-json-path json-tree path)))
-                 (cond
-                   ;; TODO: remove this before committing?
-                   ((not (equal (aget :type choice) "CHOICE"))
-                    (error "bad-json-choice-tree"))
-                   (path
-                    (iter
-                      (for branch in (aget :members choice))
-                      (for new-tree = (copy-tree json-tree))
-                      (let ((target-tree (get-json-path new-tree (butlast path))))
-                        (setf (nth (1- (lastcar path))
-                                   (or (aget :members target-tree)
-                                       (aget :content target-tree)))
-                              branch))
-                      (collect new-tree)))
-                   (t (aget :members choice)))))
+                 (assert (equal (aget :type choice) "CHOICE"))
+                 (if path
+                     (mapcar (op (replace-at-json-path json-tree path _))
+                             (aget :members choice))
+                     (aget :members choice))))
              (remove-duplicate-rules (pruned-branches json-branches)
                "Remove the duplicates from PRUNED-BRANCHES while also
                 removing the 'same' item from JSON-BRANCHES. The two
                 modified lists are returned as values."
                (let ((removed-duplicates
-                       (remove-duplicates
-                        (mapcar #'cons pruned-branches json-branches)
-                        :key #'car :test #'equal :from-end t)))
+                      (filter-map (distinct :key #'car :test #'equal)
+                                  (mapcar #'cons pruned-branches json-branches))))
                  (values
                   (mapcar #'car removed-duplicates)
                   (mapcar #'cdr removed-duplicates))))
