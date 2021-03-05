@@ -32,6 +32,11 @@ exec ${CCL_DEFAULT_DIRECTORY}/lx86cl64 "$@"\n\
 ' > /usr/bin/ccl
 RUN chmod a+x /usr/bin/ccl
 
+# Newer SBCL than available in the debian image
+RUN git clone --branch=sbcl-2.1.2 https://github.com/sbcl/sbcl.git /usr/share/sbcl
+RUN cd /usr/share/sbcl && sh make.sh
+RUN cd /usr/share/sbcl && sh isntall.sh
+
 # Newer ASDF for CCL and SBCL to support package-local nicknames
 RUN curl https://gitlab.common-lisp.net/asdf/asdf/-/archive/3.3.4.8/asdf-3.3.4.8.tar.gz| tar xzC /usr/share
 RUN make -C /usr/share/asdf-3.3.4.8/
