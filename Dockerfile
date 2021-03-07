@@ -1,16 +1,16 @@
-FROM quay.io/pypa/manylinux_2_24_x86_64
+FROM ubuntu:20.04
 
 # Install required system packages
 RUN export DEBIAN_FRONTEND=noninteractive
 RUN ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime
 RUN apt-get -y --fix-missing update \
     && apt-get -y --fix-missing install autoconf build-essential \
-    texinfo graphviz python3 python3-pip python3-setuptools python3-venv \
-    libffi-dev software-properties-common git curl sshpass wget expect time \
+    texinfo graphviz python-is-python3 python3-pip git curl sshpass wget expect time \
+    libffi-dev software-properties-common \
     clang clang-format clang-tidy bear astyle \
     sbcl emacs-nox elpa-paredit slime jq \
     pkg-config libboost-iostreams-dev libboost-system-dev libboost-serialization-dev
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.5 1
+# Install NPM
 RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -y nodejs
 RUN npm install --global acorn
 RUN npm install --global prettier
@@ -32,10 +32,10 @@ exec ${CCL_DEFAULT_DIRECTORY}/lx86cl64 "$@"\n\
 ' > /usr/bin/ccl
 RUN chmod a+x /usr/bin/ccl
 
-# Newer SBCL than available in the debian image
-RUN git clone --branch=sbcl-2.1.2 https://github.com/sbcl/sbcl.git /usr/share/sbcl
-RUN cd /usr/share/sbcl && sh make.sh
-RUN cd /usr/share/sbcl && sh isntall.sh
+# # Newer SBCL than available in the debian image
+# RUN git clone --branch=sbcl-2.1.2 https://github.com/sbcl/sbcl.git /usr/share/sbcl
+# RUN cd /usr/share/sbcl && sh make.sh
+# RUN cd /usr/share/sbcl && sh isntall.sh
 
 # Newer ASDF for CCL and SBCL to support package-local nicknames
 RUN curl https://gitlab.common-lisp.net/asdf/asdf/-/archive/3.3.4.8/asdf-3.3.4.8.tar.gz| tar xzC /usr/share
@@ -100,6 +100,9 @@ RUN for language in agda bash c c-sharp cpp css go html java javascript jsdoc js
         cp grammar.json node-types.json /usr/share/tree-sitter/${language};                                                                                                                      \
         cd -;                                                                                                                                                                                    \
     done
+RUN git clone https://github.com/death/cl-tree-sitter /root/quicklisp/local-projects/cl-tree-sitter
+# Work around bug in cl-unicode in quicklisp.
+RUN git clone https://github.com/edicl/cl-unicode.git /root/quicklisp/local-projects/cl-unicode
 
 # Pre-download and compile a number of dependency packages.
 COPY . /root/quicklisp/local-projects/sel
@@ -107,11 +110,11 @@ RUN make -C /root/quicklisp/local-projects/sel dependencies
 RUN mkdir -p /root/.config/common-lisp/source-registry.conf.d/
 RUN echo '(:tree "/root/quicklisp/local-projects/")' > /root/.config/common-lisp/source-registry.conf.d/quicklisp.conf
 RUN echo '(:tree "/root/quicklisp/dists/quicklisp/software/")' >> /root/.config/common-lisp/source-registry.conf.d/quicklisp.conf
-RUN ecl --eval '(ql:quickload :software-evolution-library/software/tree-sitter)' --eval '(quit)'
-RUN ecl --eval '(ql:quickload :software-evolution-library/test/tree-sitter)' --eval '(quit)'
-RUN ecl --eval '(ql:quickload :software-evolution-library/test/python-tree-sitter)' --eval '(quit)'
-RUN ecl --eval '(asdf:load-system :software-evolution-library/software/tree-sitter)' --eval '(quit)'
-RUN ecl --eval '(asdf:load-system :software-evolution-library/test/tree-sitter)' --eval '(quit)'
-RUN ecl --eval '(asdf:load-system :software-evolution-library/test/python-tree-sitter)' --eval '(quit)'
+# RUN ecl --eval '(ql:quickload :software-evolution-library/software/tree-sitter)' --eval '(quit)'
+# RUN ecl --eval '(ql:quickload :software-evolution-library/test/tree-sitter)' --eval '(quit)'
+# RUN ecl --eval '(ql:quickload :software-evolution-library/test/python-tree-sitter)' --eval '(quit)'
+# RUN ecl --eval '(asdf:load-system :software-evolution-library/software/tree-sitter)' --eval '(quit)'
+# RUN ecl --eval '(asdf:load-system :software-evolution-library/test/tree-sitter)' --eval '(quit)'
+# RUN ecl --eval '(asdf:load-system :software-evolution-library/test/python-tree-sitter)' --eval '(quit)'
 
-WORKDIR /root/quicklisp/local-projects/
+WORKDIR /root/quicklisp/local-projects
