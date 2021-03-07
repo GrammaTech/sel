@@ -263,15 +263,15 @@
 (deftest js-ast-source-ranges ()
   (with-fixture hello-world-javascript
     ;; TODO: confirm that this is correct.
-    (is (equalp (mapcar [#'range-to-list #'cdr] (ast-source-ranges *soft*))
-                '(((1 . 1) (2 . 1))
-                  ((1 . 1) (2 . 1))
-                  ((1 . 1) (1 . 27))
-                  ((1 . 1) (1 . 12))
-                  ((1 . 1) (1 . 8))
-                  ((1 . 9) (1 . 12))
-                  ((1 . 12) (1 . 27))
-                  ((1 . 13) (1 . 26)))))))
+    (is (set-equal (mapcar [#'range-to-list #'cdr] (ast-source-ranges *soft*))
+                   '(((1 . 1) (2 . 1))
+                     ((1 . 1) (1 . 27))
+                     ((1 . 1) (1 . 12))
+                     ((1 . 1) (1 . 8))
+                     ((1 . 9) (1 . 12))
+                     ((1 . 12) (1 . 27))
+                     ((1 . 13) (1 . 26)))
+                   :test #'equalp))))
 
 #+broken
 (deftest javascript-newline-included-in-ast-test ()

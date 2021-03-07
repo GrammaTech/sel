@@ -500,7 +500,8 @@ searched to populate `*tree-sitter-language-files*'.")
        (:variable-declaration-ast javascript-variable-declaration-ast)
        (:identifier-ast
         javascript-identifier javascript-property-identifier
-        javascript-shorthand-property-identifier)
+        javascript-shorthand-property-identifier
+        javascript-shorthand-property-identifier-pattern)
        (:float-ast javascript-number)
        (:string-ast javascript-string)
        (:loop-ast
@@ -3044,7 +3045,7 @@ AST ast to return the enclosing scope for"
   (defmethod outer-declarations ((ast javascript-array-pattern))
     (mappend #'identifiers (javascript-children ast)))
 
-  (defmethod outer-declarations ((ast javascript-rest-parameter))
+  (defmethod outer-declarations ((ast javascript-rest-pattern))
     (identifiers ast))
 
   (defmethod outer-declarations ((ast javascript-variable-declarator))
