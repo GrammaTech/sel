@@ -1,4 +1,3 @@
-import os
 import unittest
 import sel
 
@@ -6,24 +5,28 @@ class TestDriver(unittest.TestCase):
     source = "x + 88"
     ast = None
     binop = None
+    this_file = None
     this_source = None
     this_ast = None
 
     def tearDown(self):
+        self.this_file.close()
         return
 
 
     def setUp(self):
-        self.ast = sel.AST(sel.lib.PYTHON, "x + 88")
+        self.ast = sel.AST(sel.lib.PYTHON, self.source)
         self.binop = self.ast.children()[0].children()[0]
-        self.this_source = ast.AST(file.open(os.path.dirname(__file__)).read())
-        self.this_ast = sel.AST(sel.lib.PYTHON, full_source)
+        self.this_file = open(__file__)
+        self.this_source = self.this_file.read()
+        self.this_ast = sel.AST(sel.lib.PYTHON, self.this_source)
         return
 
 
     # AST creation
     # AST source text
     def test_ast_creation_from_source(self):
+        self.assertEqual(self.source, self.ast.source_text())
         self.assertEqual(self.source, self.ast.source_text())
 
 
