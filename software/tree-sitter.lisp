@@ -1672,14 +1672,14 @@ CLASS-NAME is used as the specialization for the generated method."
     ;;       be using the pruned rule too.
     ;; TODO: It may also make sense to start storing these rules on the
     ;;       class itself in general?
-    (let  ((slots
-             (remove-duplicates
-              (mapcar
-               (lambda (cons)
-                 (if (eql :field (car cons))
-                     (cadr cons)
-                     'children))
-               (collect-rule-slots collapsed-rule)))))
+    (let ((slots
+            (remove-duplicates
+             (mapcar
+              (lambda (cons)
+                (if (eql :field (car cons))
+                    (cadr cons)
+                    'children))
+              (collect-rule-slots collapsed-rule)))))
       (if slots
           `(progn
              (defmethod parse-order ((ast ,class-name))
@@ -4812,20 +4812,25 @@ If NODE is not a function node, return nil.")
      ,@body))
 
 #+nil
-(setf transformed-json
-      (mapcar (lambda (rule)
-                (cons (car rule) (transform-json-rule (cdr rule) grammar)))
-              rules))
-#+nil
 (let ((*json-identifier-name-to-lisp* #'convert-name))
   (setf rules
         (aget :rules
               (setf grammar (decode-json-from-string (file-to-string "~/Programs/tree-sitter-c/src/grammar.json"))))))
+
+#+nil
+(setf transformed-json
+      (mapcar (lambda (rule)
+                (cons (car rule) (transform-json-rule (cdr rule) grammar)))
+              rules))
+
 #+nil
 (setf types (decode-json-from-string (file-to-string "~/Programs/tree-sitter-c/src/node-types.json")))
 
 #+nil
-(setf collapsed (collapse-rule-trees transformed))
+(setf pruned (mapcar (op (list (car _) (prune-rule-tree (cdr _1))))  transformed-json))
+
+#+nil
+(setf collapsed (mapcar (op (list (car _) (collapse-rule-tree (cdr _1))))  pruned))
 
 #+nil
 (mapcar (lambda (rule)
@@ -4835,7 +4840,7 @@ If NODE is not a function node, return nil.")
         collapsed)
 
 #+nil
-(defmacro defthings () (generate-structured-text-methods grammar types :c))
+(defmacro defthings () (generate-structured-text-methods grammar types :c (make-hash-table)))
 
 (defun children-parser (ast full-rule slots &aux (child-stack-key '#.(gensym)))
   "Return the children of AST in order based on FULL-RULE. SLOTS specifies
@@ -4977,24 +4982,26 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
              (iter
                (for child in (caddr parse-tree))
                (for slot-pair = (car child))
-               (collect
-                   (cond
-                     ((listp slot-pair)
+               (cond
+                 ((listp slot-pair)
+                  (collect
                       (list
                        (convert-to-lisp-type language-prefix (car slot-pair))
-                       (convert-to-lisp-type language-prefix (cadr slot-pair))))
-                     ((let ((type (convert-to-lisp-type
-                                   language-prefix slot-pair)))
-                        (find-if (lambda (item)
-                                   (equal item type))
-                                 child-types)))))))
+                       (convert-to-lisp-type language-prefix (cadr slot-pair)))))
+                 ((member (convert-to-lisp-type language-prefix slot-pair)
+                          child-types
+                          :test #'subtypep)
+                  ;; TODO: note returning the correct thing here.
+                  (collect (convert-to-lisp-type language-prefix slot-pair))))))
            (handle-child (rule child-stack)
-             (when (member (pop child-stack) (cdr rule))
+             (when (member (pop child-stack) (cdr rule)
+                           :test #'subtypep)
                (values child-stack t)))
            (handle-field (rule child-stack)
              (let ((child (pop child-stack)))
                (when (and (eql (cadr rule) (car child))
-                          (member (cdr child) (cddr rule)))
+                          (member (cadr child) (cddr rule)
+                                  :test #'subtypep))
                  (values child-stack t))))
            (handle-choice (rule child-stack)
              ;; NOTE: since this doesn't back track it won't work on certain
@@ -5417,11 +5424,11 @@ correct class name for subclasses of SUPERCLASS."
 
 ;;; TODO: add in indentation. This is an initial implementation.
 #+structured-text
-(defmethod source-text ((ast tree-sitter-ast) &key stream)
+(defmethod source-text ((ast structured-text) &key stream)
   (mapc (lambda (output)
           (if (stringp output)
               (write-string
                output
                stream)
-              (source-text output)))
+              (source-text output :stream stream)))
         (output-transformation ast)))
