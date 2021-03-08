@@ -58,6 +58,7 @@ test-python-library:
   stage: test
   script:
     - LD_LIBRARY_PATH=/usr/local/lib/ make python-check
+  allow_failure: true
 
 dependent-genpatcher:
   stage: deploy
