@@ -48,16 +48,16 @@ test-ecl:
       --eval "(require 'asdf)"
       --eval "(ql:quickload :software-evolution-library/test/tree-sitter)"
       --eval "(asdf:load-system :software-evolution-library/test/tree-sitter)"
-      --eval "(ql:quickload :software-evolution-library/test/python/tree-sitter)"
+      --eval "(ql:quickload :software-evolution-library/test/python-tree-sitter)"
       --eval "(asdf:load-system :software-evolution-library/test/python-tree-sitter)"
-      --eval "(uiop:quit (if (and (progn (software-evolution-library/test/tree-sitter:test) stefil+:*success*) (progn (software-evolution-library/test/python-tree-sitter:test) stefil+:*success*)) 0 1))"
+      --eval "(uiop:quit (if (and (progn (software-evolution-library/test/tree-sitter:test-tree-sitter) stefil+:*success*) (progn (software-evolution-library/test/python-tree-sitter:test-python-tree-sitter) stefil+:*success*)) 0 1))"
   except:
     - schedules
 
 test-python-library:
   stage: test
   script:
-    - make python-check
+    - LD_LIBRARY_PATH=/usr/local/lib/ make python-check
 
 dependent-genpatcher:
   stage: deploy
