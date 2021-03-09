@@ -821,10 +821,10 @@ used for leaf nodes.")
   (defclass tree-sitter-ast (#-structured-text
                              ;; TODO: re-enable this once it's implemented.
                              indentation
+                             #+structured-text structured-text
                              functional-tree-ast
                              #-structured-text
-                             interleaved-text
-                             #+structured-text structured-text)
+                             interleaved-text)
     ()
     (:documentation "AST for input from tree-sitter."))
 
@@ -2728,7 +2728,7 @@ it expands into BODY. Otherwise, the expansion is nil."
   (to-file obj bin)
   (values bin 0 nil nil nil))
 
-(defmethod source-text ((ast tree-sitter-ast)
+(defmethod source-text ((ast interleaved-text)
                         &key stream parents
                           ;; These are "boxed" values since they have
                           ;; to be propagated between adjacent
@@ -5434,10 +5434,4 @@ correct class name for subclasses of SUPERCLASS."
 ;;; TODO: add in indentation. This is an initial implementation.
 #+structured-text
 (defmethod source-text ((ast structured-text) &key stream)
-  (mapc (lambda (output)
-          (if (stringp output)
-              (write-string
-               output
-               stream)
-              (source-text output :stream stream)))
-        (output-transformation ast)))
+  (mapc {source-text _ :stream stream} (output-transformation ast)))
