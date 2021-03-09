@@ -2083,6 +2083,31 @@ Every element in the list has the following form:
   (defmethod phenome ((obj python) &key (bin (temp-file-name)))
     (interpreted-phenome obj bin))
 
+  (defmethod type-in ((obj python) (ast python-identifier))
+    (nest
+     (let ((name (source-text ast))
+           (scopes (reverse (apply #'append (scopes obj ast)))))
+       (when-let* ((binding (find name scopes
+                                  :test #'equal
+                                  :key {aget :name}))
+                   (decl (aget :decl binding))
+                   (parameter
+                    (find-if
+                     (lambda (parent)
+                       (and (typep parent
+                                   '(or python-typed-parameter
+                                     python-typed-default-parameter))
+                            (find-if
+                             (lambda (child)
+                               (and (typep child 'python-identifier)
+                                    (equal name (source-text ast))))
+                             parent)))
+                     decl)))
+         (make-keyword
+          (string-upcase
+           (source-text
+            (python-type parameter))))))))
+
   (defmethod enclosing-scope ((obj python) (ast python-ast))
     "Return the enclosing scope of AST in OBJ.
 OBJ python software object

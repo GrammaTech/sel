@@ -751,7 +751,8 @@ and keyword parameters with defaults."
     (is (consp
          (find "name"
                (apply #'append scopes)
-               :test #'equal :key {aget :name})))))
+               :test #'equal :key {aget :name})))
+    (is (eql :str (type-in software id)))))
 
 (deftest (python-tree-sitter-parsing-test :long-running) ()
   (labels ((parsing-test-dir (path)
