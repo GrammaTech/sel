@@ -2895,7 +2895,16 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
        (mapcar
         (lambda (parameter)
           (create-var-alist
-           obj parameters (source-text parameter)
+           ;; NB parameters, not parameter. Returning the whole
+           ;; parameter list is a trade-off to help us tell what type
+           ;; of form the definition comes from \(since a bare
+           ;; `python-identifier' instance could come from anywhere).
+           obj parameters
+           (source-text
+            ;; Avoid printing the type as part of the name.
+            (or (find-if (of-type 'identifier-ast)
+                         (children parameter))
+                parameter))
            :scope ast
            :attributes '(:variable)))
         (python-children parameters)))))

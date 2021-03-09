@@ -730,7 +730,28 @@ and keyword parameters with defaults."
     ;; Called with a namespace chain.
     (is (string= "os.path" (provided-by *soft* (stmt-starting-with-text *soft* "os.path.exists"))))
     (is (string= "os.path" (provided-by *soft* (@ (stmt-starting-with-text *soft* "os.path.exists")
-                                             '(0 python-function)))))))
+                                                  '(0 python-function)))))))
+
+(deftest test-python-types-parameter-name ()
+  (let* ((string "def greeting(name: str) -> str:
+    return 'Hello ' + name")
+         (software (from-string (make 'python) string))
+         (id (@ (genome software)
+                '(0 python-body 0 0 python-right)))
+         (scopes (scopes software id)))
+    (is (typep id 'python-identifier))
+    (is (consp
+         (find "greeting"
+               (apply #'append scopes)
+               :test #'equal :key {aget :name})))
+    (is (null
+         (find "name: str"
+               (apply #'append scopes)
+               :test #'equal :key {aget :name})))
+    (is (consp
+         (find "name"
+               (apply #'append scopes)
+               :test #'equal :key {aget :name})))))
 
 (deftest (python-tree-sitter-parsing-test :long-running) ()
   (labels ((parsing-test-dir (path)
