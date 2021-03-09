@@ -1200,10 +1200,14 @@ of fields needs to be determined at parse-time."
                   (let ((name-string (aget :name alist)))
                     ;; NOTE: it appears that all "SYMBOL"s that start with
                     ;;       an underscore are inlined.
+                    ;;       DON'T inline the supertype rules.
                     (if-let ((name
                               (and (equal (aget :type alist)
                                           "SYMBOL")
                                    (eql #\_ (aref name-string 0))
+                                   (not (member name-string
+                                                (aget :supertypes grammar)
+                                                :test #'equal))
                                    (aget (make-keyword
                                           (convert-name name-string))
                                          (aget :rules grammar)))))
@@ -4838,6 +4842,11 @@ If NODE is not a function node, return nil.")
           (format t "~a with ~a~%" (car rule) (cadr rule))
           (list (car rule) (structured-rule-p (cadr rule))))
         collapsed)
+
+#+nil
+(setf expansions (mapcar (lambda (json)
+                           (expand-choice-branches (aget (car json) pruned) (cdr json)))
+                         transformed-json))
 
 #+nil
 (defmacro defthings () (generate-structured-text-methods grammar types :c (make-hash-table)))
