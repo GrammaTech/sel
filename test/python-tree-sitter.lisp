@@ -398,8 +398,11 @@
     (let* ((scopes (scopes soft (find-if {typep _ 'python-pass-statement}
                                          genome)))
            (parameter-alist (scopes-contains-string-p scopes "a"))
-           (expected-parameters (cadr (collect-if {typep _ 'python-parameters}
-                                                  genome))))
+           (expected-parameters
+            (lastcar
+             (collect-if (op (and (typep _1 'python-identifier)
+                                  (equal (source-text _1) "a")))
+                         genome))))
       (is (eq (aget :decl parameter-alist) expected-parameters)
           "~A did not contain the expected variable 'a' assignment, ~a."
           parameter-alist expected-parameters))))

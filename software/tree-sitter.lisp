@@ -2083,30 +2083,31 @@ Every element in the list has the following form:
   (defmethod phenome ((obj python) &key (bin (temp-file-name)))
     (interpreted-phenome obj bin))
 
+  (defmethod type-in ((obj python) (ast python-ast))
+    nil)
+
   (defmethod type-in ((obj python) (ast python-identifier))
-    (nest
-     (let ((name (source-text ast))
-           (scopes (reverse (apply #'append (scopes obj ast)))))
-       (when-let* ((binding (find name scopes
-                                  :test #'equal
-                                  :key {aget :name}))
-                   (decl (aget :decl binding))
-                   (parameter
+    (let ((name (source-text ast))
+          (scopes (reverse (apply #'append (scopes obj ast)))))
+      (when-let* ((binding (find name scopes
+                                 :test #'equal
+                                 :key {aget :name}))
+                  (decl (aget :decl binding)))
+        (make-keyword
+         (string-upcase
+          (source-text
+           (or
+            ;; Extract just the name of the variable from a parameter.
+            (some
+             (lambda (parent)
+               (and (typep parent 'python-parameter)
                     (find-if
-                     (lambda (parent)
-                       (and (typep parent
-                                   '(or python-typed-parameter
-                                     python-typed-default-parameter))
-                            (find-if
-                             (lambda (child)
-                               (and (typep child 'python-identifier)
-                                    (equal name (source-text ast))))
-                             parent)))
-                     decl)))
-         (make-keyword
-          (string-upcase
-           (source-text
-            (python-type parameter))))))))
+                     (lambda (child)
+                       (and (typep child 'python-identifier)
+                            (equal name (source-text ast))))
+                     parent)))
+             decl)
+            decl)))))))
 
   (defmethod enclosing-scope ((obj python) (ast python-ast))
     "Return the enclosing scope of AST in OBJ.
@@ -2141,9 +2142,7 @@ AST ast to return the scopes for"
                "Return an alist containing :name, :decl, and :scope for
                 GET-VARS-ALIST."
                (build-alist
-                (if (typep definition 'python-identifier)
-                    (get-parent-full-stmt obj definition)
-                    definition)
+                definition
                 (aget :name get-vars-alist)
                 (aget :scope get-vars-alist)))
              (name-in-get-vars-p (obj ast name)
@@ -2920,11 +2919,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
        (mapcar
         (lambda (parameter)
           (create-var-alist
-           ;; NB parameters, not parameter. Returning the whole
-           ;; parameter list is a trade-off to help us tell what type
-           ;; of form the definition comes from \(since a bare
-           ;; `python-identifier' instance could come from anywhere).
-           obj parameters
+           obj parameter
            (source-text
             ;; Avoid printing the type as part of the name.
             (or (find-if (of-type 'identifier-ast)
