@@ -278,6 +278,7 @@
            :goto-ast
            :terminal-symbol
            ;; Cross-language Generics
+           :body
            :lhs
            :rhs
            :operator
@@ -384,7 +385,9 @@ searched to populate `*tree-sitter-language-files*'.")
         (c-left :initarg :lhs :reader lhs)
         (c-right :initarg :rhs :reader rhs))
        (c-call-expression
-        (c-arguments :reader call-arguments)))
+        (c-arguments :reader call-arguments))
+       (c-while-statement
+        (c-body :reader body)))
       (:cpp
        (cpp-init-declarator
         (cpp-declarator :initarg :lhs :reader lhs)
@@ -406,8 +409,12 @@ searched to populate `*tree-sitter-language-files*'.")
         (python-left :initarg :lhs :reader lhs)
         (python-right :initarg :rhs :reader rhs)
         (python-operator :initarg :operator :reader operator))
+       (python-function-definition
+        (python-body :reader body))
        (python-unary-operator
-        (python-operator :initarg :operator :reader operator))))
+        (python-operator :initarg :operator :reader operator))
+       (python-while-statement
+        (python-body :reader body))))
     "Alist from languages to classes with extra slot options.")
 
   (defparameter *tree-sitter-ast-superclasses*
