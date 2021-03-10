@@ -1156,29 +1156,46 @@ of fields needs to be determined at parse-time."
   ;; and doesn't take any "REPEAT" rules.
   (defun transform-json-rule (rule grammar)
     "Expand inline rules base on GRAMMAR and :repeat1's in RULE."
-    ;; TODO: it would make sense to do a "CHOICE" collapse here.
-    ;;       What this would do is check a "CHOICE" and for each branch
-    ;;       that had identical children and field orderings excepting their
-    ;;       types, it would collapse them on each other by adding the type
-    ;;       to one of the branches. Note that this could potential cause
-    ;;       some ordering issues if types needed to be strictly followed
-    ;;       for some of these, so maybe it isn't a good idea?
     (labels ((map-json (map-fun tree)
                "Maps MAP-FUN over TREE as if it were a list representation of JSON
                 and returns the result."
                (map-tree (lambda (subtree)
                            (cond
-                             ;; first four clauses filter out anything that can't
+                             ;; first five clauses filter out anything that can't
                              ;; be used as an alist. This is assumed based on the
                              ;; structure of the json read in. NOTE that we may get
                              ;; a non-alist still, but it should prevent any errors
                              ;; that may occur from using something like #'aget.
+                             ;;
+                             ;; The next one filters out cases that happen due
+                             ;; to modifications from this function.
                              ((atom subtree) subtree)
                              ((atom (cdr subtree)) subtree)
+                             ((not (listp (car subtree))) subtree)
                              ((eql (car subtree) :members) subtree)
                              ((eql (car subtree) :content) subtree)
                              ((funcall map-fun subtree))))
                          tree :traversal :postorder))
+             ;; TODO: this is copied from below. Create a top-level function for
+             ;;       it.
+             (walk-json (function tree)
+               "Maps MAP-FUN over TREE as if it were a list representation of JSON
+                and returns the result."
+               (walk-tree
+                (lambda (subtree)
+                  (cond
+                    ;; first five clauses filter out anything that can't
+                    ;; be used as an alist. This is assumed based on the
+                    ;; structure of the json read in. NOTE that we may get
+                    ;; a non-alist still, but it should prevent any errors
+                    ;; that may occur from using something like #'aget.
+                    ((atom subtree))
+                    ((atom (cdr subtree)))
+                    ((not (listp (car subtree))))
+                    ((eql (car subtree) :members))
+                    ((eql (car subtree) :content))
+                    ((funcall function subtree))))
+                tree :tag 'prune :traversal :postorder))
              (expand-repeat1s (tree)
                "Expand all :REPEAT1 rules in an equivalent :SEQ and :REPEAT."
                (map-json (lambda (alist)
@@ -1224,7 +1241,124 @@ of fields needs to be determined at parse-time."
                                        :test #'equal)
                                (aget :content alist)
                                alist))
-                         tree)))
+                         tree))
+             (branch-comparison-form (subtree)
+               "Map SUBTREE to a 'branch comparison form'. This
+                removes any types from 'SYMBOL' and 'FIELD' alists such that
+                the types won't be considered for equality when an #'equal
+                comparison is made. Named 'ALIAS' subtrees are also replaced
+                with a 'SYMBOL' alist as they behave the same."
+               ;; NOTE: it is unlikely that this will become a bottleneck, but
+               ;;       a custom walk-tree in unison function could be written
+               ;;       instead of remapping the subtree here.
+               (map-json (lambda (alist)
+                           (cond
+                             ((equal (aget :type alist) "SYMBOL")
+                              (adrop '(:name) alist))
+                             ((equal (aget :type alist) "FIELD")
+                              (adrop '(:content) alist))
+                             ((and (equal (aget :type alist) "ALIAS")
+                                   (aget :name alist))
+                              `((:type . "SYMBOL")))
+                             (t alist)))
+                         subtree))
+             (branch-similar-p (branch1 branch2)
+               "Compare BRANCH1 with BRANCH2 and return T if they have
+                identical branch comparison forms."
+               (equal (branch-comparison-form branch1)
+                      (branch-comparison-form branch2)))
+             (collect-branch-types (branch &aux type-stack)
+               "Collect the relevant type information from BRANCH
+                that can be merged into a single branch."
+               (walk-json
+                (lambda (alist)
+                  (cond
+                    ((equal (aget :type alist) "SYMBOL")
+                     (push (aget :name alist) type-stack))
+                    ((equal (aget :type alist) "FIELD")
+                     ;; NOTE: this should be expanded into a
+                     ;;       choice inside the field content.
+                     (push (aget :content alist) type-stack))
+                    ((and (equal (aget :type alist) "ALIAS")
+                          (aget :named alist))
+                     (push (aget :value alist) type-stack))
+                    (t alist)))
+                branch)
+               (reverse type-stack))
+             (merge-choice-branch (similar-branches)
+               "Merge SIMILAR-BRANCHES into one branch by
+                adding multiple types onto "
+               (if (< 1 (length similar-branches))
+                   (let ((types-stack
+                           ;; NOTE: creating a stack of types that can
+                           ;;       be used to markup the initial branch
+                           ;;       while it mapped.
+                           (apply
+                            {mapcar #'list}
+                            (mapcar #'collect-branch-types
+                                    (cdr similar-branches)))))
+                     (map-json
+                      (lambda (alist)
+                        (cond
+                          ((equal (aget :type alist) "SYMBOL")
+                           (areplace
+                            :name
+                            (cons (aget :name alist) (pop types-stack))
+                            alist))
+                          ((equal (aget :type alist) "FIELD")
+                           ;; NOTE: this should be expanded into a
+                           ;;       choice inside the field content.
+                           (areplace
+                            :content
+                            `((:type . "CHOICE")
+                              (:members
+                               ,(aget :content alist)
+                               ,@(pop types-stack)))
+                            alist))
+                          ((and (equal (aget :type alist) "ALIAS")
+                                (aget :named alist))
+                           (areplace
+                            :value
+                            (cons (aget :value alist) (pop types-stack))
+                            alist))
+                          (t alist)))
+                      (car similar-branches)))
+                   ;; Just return the only branch.
+                   (car similar-branches)))
+             (merge-choice-branches (subtree)
+               "Return SUBTREE with its choice branches merged."
+               (areplace
+                :members
+                (mapcar #'merge-choice-branch
+                        (assort (aget :members subtree)
+                                :test #'branch-similar-p))
+                subtree))
+             (merge-similar-choice-branches (tree)
+               ;; TODO: it would make sense to do a "CHOICE" merge here.
+               ;;       What this would do is check a "CHOICE" and for each
+               ;;       branch that had identical children and field orderings
+               ;;       excepting their types, it would merge them on each
+               ;;       other by adding the type to one of the branches. Note
+               ;;       that this could potential cause some ordering issues if
+               ;;       types needed to be strictly followed for some of these,
+               ;;       so maybe it isn't a good idea or in practice this
+               ;;       wouldn't really matter since everything should be more or
+               ;;       less well-formed coming in from the parser?
+
+               ;; TODO: we'll want a custom tree-equal. It needs to compare
+               ;;       everything except the actual types.
+               ;;       NOTE: we can turn the actual content into a list?
+               ;;       or add another thing? We'll need to modify several
+               ;;       functions to account for this.
+               (map-json
+                (lambda (alist)
+                  (if (equal "CHOICE" (aget :type alist))
+                      (merge-choice-branches alist)
+                      alist))
+                tree)))
+      (merge-similar-choice-branches
+       (expand-repeat1s (remove-prec-rules (expand-inline-rules rule))))
+      #+nil
       (expand-repeat1s (remove-prec-rules (expand-inline-rules rule)))))
 
   (defun prune-rule-tree (transformed-json-rule)
@@ -1255,16 +1389,16 @@ of fields needs to be determined at parse-time."
                "Handle RULE as a 'FIELD' rule."
                `(:field
                  ,(aget :name rule)
-                 ,@(gather-field-types (aget :content rule))))
+                 ,@(flatten (gather-field-types (aget :content rule)))))
              (handle-symbol (rule)
                "Handle RULE as a 'SYMBOL' rule. This checks if
                 it is part of the AST's children."
-               (list :child (aget :name rule)))
+               `(:child ,@(ensure-cons (aget :name rule))))
              (handle-alias (rule)
                ;; NOTE: this assumes that all named aliases go into
                ;;       the children slot.
                (when (aget :named rule)
-                 (list :child (aget :value rule))))
+                 `(:child ,@(ensure-cons (aget :value rule)))))
              (handle-rule (rule)
                "Handles dispatching RULE to its relevant rule handler."
                ;; NOTE: this will throw an error if the json schema for
@@ -1479,8 +1613,11 @@ expands :REPEAT1 rules, and collapses contiguous, nested
                          (remove-duplicates
                           (reduce #'append choice-alists)
                           :key #'car)))))
-                   (:field
-                    (let ((types (cddr tree)))
+                   ((:field :child)
+                    (let ((types
+                            (if (eql (car tree) :field)
+                                (cddr tree)
+                                (cdr tree))))
                       (cond-let result
                         ((some (lambda (type)
                                  (aget type repeat-alist :test #'equal))
@@ -1489,15 +1626,6 @@ expands :REPEAT1 rules, and collapses contiguous, nested
                         (in-repeat?
                          (append (mapcar {cons _ in-repeat?} types)
                                  repeat-alist))
-                        (t repeat-alist))))
-                   (:child
-                    (let ((slot (cadr tree)))
-                      (cond
-                        ((aget slot repeat-alist :test #'equal)
-                         (values nil slot))
-                        (in-repeat?
-                         (cons (cons slot in-repeat?)
-                               repeat-alist))
                         (t repeat-alist))))))))
       (not (or (incompatible-choice-in-repeat-p)
                (nth-value 1 (use-after-repeat-p rule))))))
@@ -1624,13 +1752,14 @@ outside of repeats."
                 and returns the result."
                (walk-tree (lambda (subtree)
                             (cond
-                              ;; first four clauses filter out anything that can't
+                              ;; first five clauses filter out anything that can't
                               ;; be used as an alist. This is assumed based on the
                               ;; structure of the json read in. NOTE that we may get
                               ;; a non-alist still, but it should prevent any errors
                               ;; that may occur from using something like #'aget.
                               ((atom subtree))
                               ((atom (cdr subtree)))
+                              ((not (listp (car subtree))))
                               ((eql (car subtree) :members))
                               ((eql (car subtree) :content))
                               ((funcall predicate subtree))))
@@ -4834,7 +4963,7 @@ If NODE is not a function node, return nil.")
 (setf pruned (mapcar (op (list (car _) (prune-rule-tree (cdr _1))))  transformed-json))
 
 #+nil
-(setf collapsed (mapcar (op (list (car _) (collapse-rule-tree (cdr _1))))  pruned))
+(setf collapsed (mapcar (op (list (car _) (collapse-rule-tree (cadr _1))))  pruned))
 
 #+nil
 (mapcar (lambda (rule)
