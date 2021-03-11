@@ -7,12 +7,14 @@ extern void init(cl_object);
 
 char *package = "SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/TREE-SITTER";
 
+#define DEBUG 1
+
 
 /* Utility and debug functions. */
 size_t last_string_length;
 
 wchar_t* get_string(cl_object cl_object){
-  last_string_length = cl_object->string.dim;
+  last_string_length = (cl_object->string.dim / 4);
   #ifdef DEBUG
   fprintf(stderr, "; Returning string: '%ls'\n", cl_object->string.self);
   #endif
@@ -111,8 +113,9 @@ cl_object convert(language language, char* source){
      */
   return cl_funcall(3, c_string_to_object("convert"),
                     language_symbol(language),
-                    /* ecl_cstring_to_base_string_or_nil(source)); */
-                    ecl_make_constant_base_string(source, strlen(source)));
+                    ecl_cstring_to_base_string_or_nil(source));
+                    /* ecl_make_constant_base_string(source, strlen(source))); */
+                    /* ecl_make_simple_base_string(source, strlen(source))); */
   } ECL_CATCH_ALL_IF_CAUGHT {
     /*
      * If the exception, lisp condition or other control transfer
