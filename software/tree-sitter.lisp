@@ -1795,7 +1795,28 @@ CLASS-NAME is used as the specialization for the generated method."
       ;; TODO: NOTE: create a generic and default for this somewhere.
       `(defmethod variable-text-node-p ((instance ,class-name)) t)))
 
-  (defun generate-children-method (collapsed-rule pruned-rule class-name)
+
+  (defun add-slot-to-class-definition
+      (class-name class-name->class-definition slot-spec)
+    "Destructively add SLOT-SPEC to CLASS-NAME's definition in
+CLASS-NAME->CLASS-DEFINITION."
+    (let ((class-definition (gethash class-name class-name->class-definition)))
+      (symbol-macrolet ((slots (cadddr class-definition)))
+        (unless (aget (car slot-spec) slots)
+          (setf slots (cons slot-spec slots))))))
+
+  (defmethod parse-order ((ast structured-text))
+    (if-let ((rule (and (slot-exists-p ast 'pruned-rule) (pruned-rule ast)))
+             (slots (and (slot-exists-p ast 'slot-usage) (slot-usage ast))))
+      (children-parser ast rule slots)
+      (call-next-method)))
+
+  (defmethod children ((ast structured-text))
+    (remove-if #'listp (parse-order ast)))
+
+  (defun generate-children-method
+      (collapsed-rule pruned-rule class-name class-name->class-definition)
+    ;; TODO: rename this method now that it doesn't generate any methods.
     ;; NOTE: passing the class name to handle the choice expansion subclassing
     ;;       outside of this method.
     ;; TODO: maybe grab the slots from the collapsed-rule here? If
@@ -1813,16 +1834,21 @@ CLASS-NAME is used as the specialization for the generated method."
                     (cadr cons)
                     'children))
               (collect-rule-slots collapsed-rule)))))
-      (if slots
-          `(progn
-             (defmethod parse-order ((ast ,class-name))
-               (children-parser
-                ast ',pruned-rule ',slots))
-             (defmethod children ((ast ,class-name))
-               (remove-if #'listp (children-parser ast ',pruned-rule ',slots))))
-          `(progn
-             (defmethod parse-order ((ast ,class-name)) nil)
-             (defmethod children ((ast ,class-name)) nil)))))
+      (when slots
+        (mapc {add-slot-to-class-definition
+               class-name class-name->class-definition}
+              `((pruned-rule
+                 :accessor pruned-rule
+                 :initform ',pruned-rule
+                 :allocation :class
+                 :documentation
+                 "A rule used to order the children of this class.")
+                (slot-usage
+                 :accessor slot-usage
+                 :initform ',slots
+                 :allocation :class
+                 :documentation
+                 "A set of slots that are used in the pruned-rule."))))))
 
   (defun get-json-subtree-string (json-subtree)
     "Get the string representation of JSON-SUBTREE. This assumes that there aren't
@@ -1876,8 +1902,16 @@ any slot usages in JSON-SUBTREE."
                  ("SYMBOL" ))))
       (apply #'string+ (flatten (rule-handler json-subtree)))))
 
+  (defmethod output-transformation ((ast structured-text))
+    (flatten
+     (list
+      (before-text ast)
+      ;; Expand all rules here.
+      (variable-text-output-transformation ast)
+      (after-text ast))))
+
   (defun generate-output-transformation
-      (pruned-rule transformed-json-rule class-name)
+      (pruned-rule transformed-json-rule class-name class-name->class-definition)
     ;; TODO: there's a whole lot of noise in the subclassing.
     ;;       Maybe there's a way to leverage some of the structured-rule-p
     ;;       logic to prevent subclassing when the output-transformation is
@@ -1945,10 +1979,24 @@ any slot usages in JSON-SUBTREE."
                  (after-text ast)))
              (generate-method (transformed-json-rule pruned-rule)
                "Generate the output transformation method."
-               `(defmethod output-transformation
-                    ((ast ,class-name) &aux (parse-stack (parse-order ast)))
-                  (declare (ignorable parse-stack))
-                  (flatten ,(generate-body transformed-json-rule pruned-rule)))))
+               (cond
+                 ((variable-text-ast-p transformed-json-rule))
+                 ((every #'null (cdr pruned-rule))
+                  ;; This is the case where we have a string representation for
+                  ;; the full thing.
+                  (add-slot-to-class-definition
+                   class-name class-name->class-definition
+                   `(structured-variable-text
+                     :accessor variable-text
+                     :initarg :variable-text
+                     :allocation :class
+                     :initform
+                     ',(list (get-json-subtree-string transformed-json-rule))))
+                  nil)
+                 (t `(defmethod output-transformation
+                       ((ast ,class-name) &aux (parse-stack (parse-order ast)))
+                     (declare (ignorable parse-stack))
+                     (flatten ,(generate-body transformed-json-rule pruned-rule)))))))
       (generate-method transformed-json-rule pruned-rule)))
 
   (defun convert-to-lisp-type (prefix type-string)
@@ -1958,8 +2006,8 @@ any slot usages in JSON-SUBTREE."
 ;;; TODO: name this something more descriptive?
 
   (defun generate-input/output-handling
-      (pruned-rule json-rule super-class
-       language-prefix child-types
+      (pruned-rule json-rule super-class language-prefix child-types
+       class-name->class-definition
        &aux (subclasses
              (aget super-class
                    (aget language-prefix *choice-expansion-subclasses*))))
@@ -1994,20 +2042,30 @@ subclass based on the order of the children were read in."
                       (convert-to-lisp-type language-prefix node)
                       node))
                 rule))
-             (generate-subclass (subclass-pair)
+             (generate-subclass
+                 (subclass-pair &aux (class-name (car subclass-pair)))
                "Generate a defclass form for SUBCLASS-PAIR."
-               `(defclass ,(car subclass-pair) (,super-class)
-                  ((rule :initform ',(cadr subclass-pair)
-                         :reader rule
-                         :allocation :class))))
+               ;; TODO: add this to the class-definition table.
+               ;; TODO: should also consider adding support for mixins
+               ;;       and additional slot options.
+               (setf (gethash class-name class-name->class-definition)
+                     `(defclass ,class-name (,super-class)
+                        ((rule :initform ',(cadr subclass-pair)
+                               :reader rule
+                               :allocation :class)))))
              (generate-subclasses (subclass-pairs)
                "Generate a defclass forms for SUBCLASS-PAIRS."
-               (mapcar #'generate-subclass subclass-pairs))
+               ;; TODO: rename this function since it doesn't generate anything
+               ;;       internal to this function anymmore.
+               (map nil #'generate-subclass subclass-pairs))
              (generate-children-methods (subclass-pairs)
                "Generate the methods for handling children for
                 every subclass pair in SUBCLASS-PAIRS."
-               (mapcar
-                (op (generate-children-method (cadr _) (caddr _1) (car _1)))
+               ;; TODO: rename this function since it doesn't generate anything
+               ;;       anymore.
+               (mapc
+                (op (generate-children-method
+                     (cadr _) (caddr _1) (car _1) class-name->class-definition))
                 subclass-pairs))
              (generate-input-subclass-dispatch (subclass-pairs)
                "Generate a method to return the name of the subclass
@@ -2034,7 +2092,8 @@ subclass based on the order of the children were read in."
                "Generate the output transformations for each subclass."
                (mapcar (lambda (pruned-rule json-rule class-name)
                          (generate-output-transformation
-                          pruned-rule json-rule class-name))
+                          pruned-rule json-rule class-name
+                          class-name->class-definition))
                        pruned-expansions json-expansions
                        (mapcar #'car subclass-pairs))))
       ;; TODO: refactor this and children-parser as it accepts a
@@ -2057,20 +2116,16 @@ subclass based on the order of the children were read in."
                     `((,super-class
                        ,(car collapsed-rule-expansions)
                        ,(convert-to-lisp-types (car pruned-rule-expansions)))))))
+        (when expansions? (generate-subclasses subclass-pairs))
+        (generate-children-methods subclass-pairs)
         `(progn
-           ;; TODO: method dispatch is completely unreasonable for
-           ;;       this stuff once every method is created.
-           ;;       It probably makes sense to store the function on the
-           ;;       object with class allocation instead?
-           ,@(and expansions? (generate-subclasses subclass-pairs))
            ,(and expansions? (generate-input-subclass-dispatch subclass-pairs))
-           ,@(generate-children-methods subclass-pairs)
            ,@(generate-variable-text-methods json-expansions subclass-pairs)
            ,@(generate-output-transformations
               pruned-rule-expansions json-expansions subclass-pairs)))))
 
   (defun generate-structured-text-methods
-      (grammar types language-prefix symbols-to-export)
+      (grammar types language-prefix class-name->class-definition)
     ;; NOTE: it might make sense to integrate the loop into
     ;;       the class generation above at some point.
 
@@ -2095,13 +2150,19 @@ subclass based on the order of the children were read in."
                 language-prefix
                 (mapcar [{convert-to-lisp-type language-prefix}
                          {aget :type}]
-                        (aget :types (aget :children type-json)))))
+                        (aget :types (aget :children type-json)))
+                class-name->class-definition))
              (generate-terminal-code (type-string class-name)
                "Generate the code for a terminal symbol."
-               `(progn
-                  (defmethod output-transformation ((ast ,class-name))
-                    (list (before-text ast) ,type-string (after-text ast)))
-                  ,(generate-children-method nil nil class-name)))
+               ;; TODO: rename this function
+               ;; destructively modify the class definition.
+               (add-slot-to-class-definition
+                class-name class-name->class-definition
+                `(structured-variable-text
+                  :accessor variable-text
+                  :initarg :variable-text
+                  :allocation :class
+                  :initform ',(list type-string))))
              (get-transformed-json-table ()
                "Get a hash table containing transformed JSON rules."
                (alist-hash-table
@@ -2137,7 +2198,7 @@ subclass based on the order of the children were read in."
                 ;; has the same name as a language keyword. As an example,
                 ;; Python has a 'lambda' rule but also has a 'lambda' keyword
                 ;; as part of the language.
-                (collect (generate-terminal-code type-string terminal-lisp-type)))
+                (generate-terminal-code type-string terminal-lisp-type))
                ((gethash (make-keyword converted-type) rule-table)
                 ;; Only add to the type-set here since there won't be a
                 ;; name-clash for terminal symbols.
@@ -2149,12 +2210,20 @@ subclass based on the order of the children were read in."
                 ;; TODO: there's one case where a class doesn't exist without
                 ;;       '-terminal but is exported with it. Need to pass in
                 ;;
-                (collect (generate-terminal-code
-                          type-string
-                          (if (gethash terminal-lisp-type symbols-to-export)
-                              terminal-lisp-type
-                              lisp-type))))))
+                (generate-terminal-code
+                 type-string
+                 (if (gethash terminal-lisp-type
+                              class-name->class-definition)
+                     terminal-lisp-type
+                     lisp-type)))))
          ;; TODO: make these generics and add other ones that are needed here.
+
+         (defgeneric parse-order (ast)
+           (:documentation "Return a list of children intermixed with keywords
+that specify which CHOICE branches are taken and how many times a REPEAT rule
+repeats.")
+           (:method (ast) nil))
+
          (defmethod variable-text-node-p (ast) nil)
          (defmethod get-choice-expansion-subclass (class spec)
            (declare (ignorable spec))
@@ -2171,7 +2240,8 @@ subclass based on the order of the children were read in."
          (ast-superclass (symbolicate
                           name-prefix
                           "-"
-                          (convert-name "ast"))))
+                          (convert-name "ast")))
+         (class-name->class-definition (make-hash-table)))
     "Create the classes for a tree-sitter language.
 
 Creates one class for a software object (named NAME-PREFIX) and many
@@ -2343,23 +2413,43 @@ their slots."
                     (subtypes (aget :subtypes node-type))
                     (named-p (aget :named node-type)))
                "Create a class for  NODE-TYPE."
-               (cond
-                 (subtypes (create-supertype-class type subtypes))
-                 (named-p
-                  (create-type-class
-                   type
-                   (aget :fields node-type)
-                   grammar-rules))
-                 ;; Terminal Symbol
-                 (t (create-terminal-symbol-class type)))))
+               (let ((class-definition
+                       (cond
+                         (subtypes (create-supertype-class type subtypes))
+                         (named-p
+                          (create-type-class
+                           type
+                           (aget :fields node-type)
+                           grammar-rules))
+                         ;; Terminal Symbol
+                         (t (create-terminal-symbol-class type)))))
+                 (setf (gethash (cadr class-definition)
+                                class-name->class-definition)
+                       class-definition))))
+      (initialize-subtype->supertypes)
+      (initialize-class->extra-slot-options)
       (let* ((*json-identifier-name-to-lisp* #'convert-name)
              (node-types (decode-json-from-string
                           (file-to-string node-types-file)))
              (grammar (decode-json-from-string (file-to-string grammar-file)))
-             (grammar-rules (aget :rules grammar)))
-        (initialize-subtype->supertypes)
-        (initialize-class->extra-slot-options)
+             (grammar-rules (aget :rules grammar))
+             (tree-sitter-classes
+               (map nil {create-node-class grammar-rules} node-types))
+             #+structured-text
+             (structured-text-code
+               (generate-structured-text-methods
+                grammar node-types name-prefix class-name->class-definition)))
+        ;; TODO: figure out a better way to do this.
+        (declare (ignorable tree-sitter-classes))
         `(progn
+           ;; TODO: store every form that defines a class into the
+           ;;       class definitions table and pass it to the structured text
+           ;;       generation function so it can have a say in what classes
+           ;;       look like. To help with this, there needs to be an easy way
+           ;;       to reinsert these classes, so create a list without the progn
+           ;;       and eval always and push the classes to the front of it after
+           ;;       structured-text has modified them. At which point, the progn
+           ;;       and eval-always can be added back before returning.
            (eval-always
              (define-software ,(make-class-name) (tree-sitter
                                                   ,@software-superclasses)
@@ -2387,7 +2477,9 @@ Unlike the `children` methods which collects all children of an AST from any slo
                 ,(format nil "AST for ~A from input via tree-sitter."
                          name-prefix)))
 
-             ,@(mapcar {create-node-class grammar-rules} node-types)
+             ,@(iter (for (nil definition) in-hashtable
+                          class-name->class-definition)
+                 (collect definition))
 
              ;; NOTE: the following are to handle results returned from
              ;;       cl-tree-sitter.
@@ -2444,8 +2536,7 @@ Unlike the `children` methods which collects all children of an AST from any slo
              (convert ',(make-class-name "ast") source))
 
            #+structured-text
-           ,(generate-structured-text-methods
-             grammar node-types name-prefix symbols-to-export))))))
+           ,structured-text-code)))))
 
 (defmacro define-and-export-all-mixin-classes ()
   "Ensure that all mixin classes are defined and exported."
