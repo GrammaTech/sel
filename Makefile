@@ -89,7 +89,7 @@ TEST_ARTIFACTS = \
 
 # FIXME: move test binaries into test/bin or bin/test/
 # Extend cl.mk to have a separate build target for test binaries
-BINS = rest-server dump-store
+BINS = rest-server dump-store tree-sitter-interface
 BIN_TEST_DIR = test/bin
 BIN_TESTS =			\
 	example-001-mutate
@@ -107,43 +107,5 @@ test/etc/gcd/gcd: test/etc/gcd/gcd.c
 test/etc/gcd/gcd.s: test/etc/gcd/gcd.c
 	$(CC) $< -S -masm=intel -o $@
 
-# Build an .so for a python library.
-#
-# NOTE: If this fails, especially if the error looks like something is
-# not defined or it could be related to ASDF or UIOP then the problem
-# is almost certainly due to ECL loading a newer version of ASDF than
-# that shipped with ECL *or* one of the packages in your ASDF system
-# registry using features that require a newer ASDF/UIOP than that
-# shipped with ECL.  The solution is to:
-# 1. Configure ECL/ASDF to look for packages in a new location
-#    https://common-lisp.net/project/asdf/asdf/Configuring-ASDF-to-find-your-systems.html
-# 2. Copy only those packages needed for SEL into that location
-# 3. Be careful not to copy a new ASDF into that location
-#
-%--all-systems.dylib %--all-systems.so %--all-systems.dll: %.lisp
-	ecl --eval '(require :asdf)' \
-	--eval '(asdf/source-registry:clear-source-registry)' \
-	--eval '(asdf:load-system :software-evolution-library/software/tree-sitter)' \
-	--eval '(asdf:make-build :software-evolution-library/software/tree-sitter :prologue-code (quote (progn (require :asdf) (require :cffi-grovel))) :type :shared-library :move-here #P"$(dir $@)" :monolithic t :init-name "init")' \
-	--eval '(quit)'
-
-EXT=none
-ifeq ($(OS),Windows_NT)
-	EXT=dll
-else
-	UNAME_S := $(shell uname -s)
-	ifeq ($(UNAME_S),Linux)
-		EXT=so
-	endif
-	ifeq ($(UNAME_S),Darwin)
-		EXT=dylib
-	endif
-endif
-
-python/_tree_sitter_cffi.o: software/tree-sitter_build.py software/tree-sitter--all-systems.$(EXT)
-	cd python; python3 ../software/tree-sitter_build.py
-
-python-build: python/_tree_sitter_cffi.o
-
-python-check: python/_tree_sitter_cffi.o
+python-check: bin/tree-sitter-interface
 	python3 python/test.py

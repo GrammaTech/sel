@@ -15,11 +15,11 @@ class TestDriver(unittest.TestCase):
 
 
     def setUp(self):
-        self.ast = sel.AST(sel.lib.PYTHON, self.source)
+        self.ast = sel.AST("python", self.source)
         self.binop = self.ast.children()[0].children()[0]
-        # self.this_file = open(__file__)
-        # self.this_source = self.this_file.read()
-        # self.this_ast = sel.AST(sel.lib.PYTHON, self.this_source)
+        self.this_file = open(__file__)
+        self.this_source = self.this_file.read()
+        self.this_ast = sel.AST(sel.lib.PYTHON, self.this_source)
         return
 
 
