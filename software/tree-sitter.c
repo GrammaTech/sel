@@ -42,21 +42,7 @@ void show(cl_object cl_object){
 }
 
 cl_object eval(char* source){
-  cl_env_ptr env = ecl_process_env();
-  ECL_CATCH_ALL_BEGIN(env) {
-    /*
-     * Code that is protected. Uncaught lisp conditions, THROW,
-     * signals such as SIGSEGV and SIGBUS may cause jump to
-     * this region.
-     */
-    return cl_eval(c_string_to_object(source));
-  } ECL_CATCH_ALL_IF_CAUGHT {
-    /*
-     * If the exception, lisp condition or other control transfer
-     * is caught, this code is executed.
-     */
-    return ECL_NIL;
-  } ECL_CATCH_ALL_END;
+  return cl_eval(c_string_to_object(source));
 }
 
 cl_object language_symbol(language language){
@@ -102,25 +88,11 @@ void stop(){
 }
 
 cl_object convert(language language, char* source){
-  cl_env_ptr env = ecl_process_env();
-  ECL_CATCH_ALL_BEGIN(env) {
-    /*
-     * Code that is protected. Uncaught lisp conditions, THROW,
-     * signals such as SIGSEGV and SIGBUS may cause jump to
-     * this region.
-     */
   return cl_funcall(3, c_string_to_object("convert"),
                     language_symbol(language),
                     ecl_cstring_to_base_string_or_nil(source));
                     /* ecl_make_constant_base_string(source, strlen(source))); */
                     /* ecl_make_simple_base_string(source, strlen(source))); */
-  } ECL_CATCH_ALL_IF_CAUGHT {
-    /*
-     * If the exception, lisp condition or other control transfer
-     * is caught, this code is executed.
-     */
-    return ECL_NIL;
-  } ECL_CATCH_ALL_END;
 }
 
 cl_object get_type(cl_object cl_object){
@@ -144,17 +116,12 @@ char* symbol_name(cl_object cl_object){
 */
 
 cl_object ast_at_point(cl_object ast, int line, int column){
-  cl_env_ptr env = ecl_process_env();
-  ECL_CATCH_ALL_BEGIN(env) {
-    return cl_car(cl_last(1, cl_funcall(3, c_string_to_object("asts-containing-source-location"),
-                                        ast,
-                                        cl_funcall(6, c_string_to_object("make-instance"),
-                                                   ecl_make_symbol("SOURCE-LOCATION", package),
-                                                   ecl_make_keyword("LINE"), line,
-                                                   ecl_make_keyword("COLUMN"), column))));
-  } ECL_CATCH_ALL_IF_CAUGHT {
-    return ECL_NIL;
-  } ECL_CATCH_ALL_END;
+  return cl_car(cl_last(1, cl_funcall(3, c_string_to_object("asts-containing-source-location"),
+                                      ast,
+                                      cl_funcall(6, c_string_to_object("make-instance"),
+                                                 ecl_make_symbol("SOURCE-LOCATION", package),
+                                                 ecl_make_keyword("LINE"), line,
+                                                 ecl_make_keyword("COLUMN"), column))));
 }
 
 char* source_text(cl_object ast){
