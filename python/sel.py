@@ -27,10 +27,6 @@ def ecl_mapcar(fn, ecl_list):
     return results
 
 
-def to_string(cdata) -> str:
-    return ffi.string(cdata, lib.get_last_string_length())
-
-
 class AST:
     def __init__(self,
                  language:int = lib.UNKNOWN_LANGUAGE,
@@ -68,7 +64,7 @@ The type is a member of the TYPE enumeration."""
 
     def source_text(self) -> str:
         """Return a string of the AST's source text."""
-        return to_string(lib.source_text(self.handle))
+        return ffi.string(lib.source_text(self.handle))
 
 
     def children(self):
@@ -78,7 +74,7 @@ The type is a member of the TYPE enumeration."""
 
     def child_slots(self) -> [str]:
         """Return a list of the AST's child slots."""
-        return ecl_mapcar(lambda slot: (to_string(lib.to_string(lib.car(slot))),
+        return ecl_mapcar(lambda slot: (ffi.string(lib.ffi.string(lib.car(slot))),
                                         lib.to_short(lib.cdr(slot))),
                           lib.child_slots(self.handle))
 
@@ -127,7 +123,7 @@ The type is a member of the TYPE enumeration."""
     def function_name(self) -> str:
         """Return AST's name.  AST must be of type function."""
         self.ensure_type(sel.FUNCTION)
-        return to_string(lib.function_name(self.handle))
+        return ffi.string(lib.function_name(self.handle))
 
 
     def function_parameters(self):

@@ -42,8 +42,7 @@ typedef enum {
   RETURN,
   VARIABLE_DECLARATION,
 } type;
-extern size_t get_last_string_length();
-extern wchar_t* to_string(void* cl_object);
+extern char* to_string(void* cl_object);
 extern short to_short(void* cl_object);
 extern void show(void* cl_object);
 extern void* eval(char* source);
@@ -57,9 +56,9 @@ extern void stop();
 extern void* convert(language language, char* source);
 extern void* get_type(void* cl_object);
 extern void* get_class(void* cl_object);
-extern wchar_t* symbol_name(void* cl_object);
+extern char* symbol_name(void* cl_object);
 extern void* ast_at_point(void* ast, int line, int column);
-extern wchar_t* source_text(void* ast);
+extern char* source_text(void* ast);
 extern void* children(void* ast);
 extern void* parent(void* root, void* ast);
 extern language ast_language(void* ast);
@@ -68,7 +67,7 @@ extern void* child_slots(void* ast);
 extern void* slot(void* ast, const char* slot_name);
 extern bool subtypep(void* ast, char* type_name);
 extern void* function_asts(void* ast);
-extern wchar_t* function_name(void* ast);
+extern char* function_name(void* ast);
 extern void* function_parameters(void* ast);
 extern void* function_body(void* ast);
 extern void* call_asts(void* ast);
