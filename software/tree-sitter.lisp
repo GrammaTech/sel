@@ -2095,10 +2095,11 @@ Every element in the list has the following form:
 
   (defmethod type-in ((obj python) (ast python-identifier))
     (let ((name (source-text ast))
-          (scopes (reverse (apply #'append (scopes obj ast)))))
-      (when-let* ((binding (find name scopes
-                                 :test #'equal
-                                 :key {aget :name}))
+          (scopes (scopes obj ast)))
+      (when-let* ((binding
+                   (find-if-in-scopes
+                    (op (equal (aget :name _) name))
+                    scopes))
                   (decl (aget :decl binding)))
         (make-keyword
          (string-upcase

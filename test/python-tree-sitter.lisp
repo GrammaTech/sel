@@ -736,27 +736,21 @@ and keyword parameters with defaults."
                                                   '(0 python-function)))))))
 
 (deftest test-python-types-parameter-name ()
-  (let* ((string "def greeting(name: str) -> str:
+  (flet ((of-name (name)
+           (lambda (binding)
+             (equal name (aget :name binding)))))
+    (let* ((string "def greeting(name: str) -> str:
     return 'Hello ' + name")
-         (software (from-string (make 'python) string))
-         (name-param-id
-          (@ (genome software)
-             '(0 python-body 0 0 python-right)))
-         (scopes (scopes software name-param-id)))
-    (is (typep name-param-id 'python-identifier))
-    (is (consp
-         (find "greeting"
-               (apply #'append scopes)
-               :test #'equal :key {aget :name})))
-    (is (null
-         (find "name: str"
-               (apply #'append scopes)
-               :test #'equal :key {aget :name})))
-    (is (consp
-         (find "name"
-               (apply #'append scopes)
-               :test #'equal :key {aget :name})))
-    (is (eql :str (type-in software name-param-id)))))
+           (software (from-string (make 'python) string))
+           (name-param-id
+            (@ (genome software)
+               '(0 python-body 0 0 python-right)))
+           (scopes (scopes software name-param-id)))
+      (is (typep name-param-id 'python-identifier))
+      (is (consp (find-if-in-scopes (of-name "greeting") scopes)))
+      (is (null (find-if-in-scopes (of-name "name: str") scopes)))
+      (is (consp (find-if-in-scopes (of-name "name") scopes)))
+      (is (eql :str (type-in software name-param-id))))))
 
 (deftest (python-tree-sitter-parsing-test :long-running) ()
   (labels ((parsing-test-dir (path)
