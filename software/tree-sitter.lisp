@@ -291,6 +291,7 @@
            :parameter-name
            :function-body
            :call-name
+           :call-function
            :variable-name
            :no-fallthrough
            :type-in
@@ -385,6 +386,7 @@ searched to populate `*tree-sitter-language-files*'.")
         (c-left :initarg :lhs :reader lhs)
         (c-right :initarg :rhs :reader rhs))
        (c-call-expression
+        (c-function :reader call-function)
         (c-arguments :reader call-arguments))
        (c-while-statement
         (c-body :reader body)))
@@ -396,8 +398,12 @@ searched to populate `*tree-sitter-language-files*'.")
         (cpp-left :initarg :lhs :reader lhs)
         (cpp-right :initarg :rhs :reader rhs))
        (cpp-call-expression
+        (cpp-function :reader call-function)
         (cpp-arguments :reader call-arguments)))
       (:python
+       (python-call
+        (python-function :reader call-function)
+        (python-arguments :reader call-arguments))
        (python-assignment
         (python-left :initarg :lhs :reader lhs)
         (python-right :initarg :rhs :reader rhs))
@@ -1923,7 +1929,8 @@ the rebinding"
   (:documentation "Return the body of AST."))
 
 (defgeneric call-name (call-ast)
-  (:documentation "Return the name of CALL-AST."))
+  (:documentation "Return the name of CALL-AST.")
+  (:method ((call-ast call-ast)) (source-text (call-function call-ast))))
 
 (defgeneric variable-name (variable-ast)
   (:documentation "Return the name of VARIABLE-AST."))
@@ -2085,7 +2092,7 @@ Every element in the list has the following form:
     (provided-by root (first (children ast))))
 
   (defmethod provided-by ((root python-ast) (ast python-call))
-    (provided-by root (python-function ast)))
+    (provided-by root (call-function ast)))
 
   (defmethod phenome ((obj python) &key (bin (temp-file-name)))
     (interpreted-phenome obj bin))
@@ -2320,7 +2327,7 @@ AST ast to return the scopes for"
                "Return T if NAME is a function or method call."
                (typecase parent
                  (python-call
-                  (let ((func (python-function parent)))
+                  (let ((func (call-function parent)))
                     (typecase func
                       ;; free function
                       (python-identifier (eq func name))
@@ -2356,20 +2363,20 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
     (remove-duplicates
      (apply #'append
             (when-let ((callee (and (typep ast 'python-call)
-                                    (python-function ast))))
+                                    (call-function ast))))
               (cond ((typep callee 'python-identifier)
                      ;; Free function call
                      (list (list (source-text callee)
                                  nil nil
                                  (length (python-children
-                                          (python-arguments ast))))))
+                                          (call-arguments ast))))))
                     ((typep callee 'python-attribute)
                      ;; Member Function call
                      ;;
                      (list (list (source-text (python-attribute callee))
                                  nil nil
                                  (length
-                                  (python-children (python-arguments ast))))))
+                                  (python-children (call-arguments ast))))))
                     (t nil)))
             (mapcar {get-unbound-funs obj} children))
      :test #'equal))
@@ -2514,7 +2521,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
                         mapping))))))
       (let* ((parameters (python-children (python-parameters function)))
              (parameters-alist (get-parameter-alist parameters))
-             (args-list (python-children (python-arguments funcall))))
+             (args-list (python-children (call-arguments funcall))))
         ;; NOTE: all default parameters are returned by get-default-parameters.
         ;;       The defaults that are actually used need to be removed here.
         (remove-duplicates
@@ -2544,9 +2551,6 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
 
   (defmethod function-name ((node python-attribute))
     (source-text (python-attribute node)))
-
-  (defmethod call-arguments ((ast python-call))
-    (children (python-arguments ast)))
 
   (defmethod function-parameters ((ast python-function-definition))
     (function-parameters (second (children ast))))
@@ -3258,8 +3262,6 @@ scope of START-AST."
   (defmethod parameter-name ((ast c-parameter-declaration)) (parameter-name (c-declarator ast)))
   (defmethod parameter-name ((ast c-pointer-declarator)) (parameter-name (c-declarator ast)))
   (defmethod parameter-name ((ast c-identifier)) (source-text ast))
-
-  (defmethod call-name ((ast c-call-expression)) (source-text (call-name (c-function ast))))
 
   (defmethod variable-name ((ast c-identifier)) (source-text ast))
 
