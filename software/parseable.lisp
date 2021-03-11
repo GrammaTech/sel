@@ -663,7 +663,9 @@ satisfies PREDICATE.")
 (defgeneric scopes (software ast)
   (:documentation "Return lists of variables in each enclosing scope.
 Each variable is represented by an alist containing :NAME, :DECL, :TYPE,
-and :SCOPE."))
+and :SCOPE.
+
+Scopes are returned innermost-first."))
 
 (defgeneric get-vars-in-scope (software ast &optional keep-globals)
   (:documentation "Return all variables in enclosing scopes."))
