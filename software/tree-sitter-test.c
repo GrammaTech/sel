@@ -30,17 +30,22 @@ int main(int argc, char** argv){
 
 int main(int argc, char** argv){
   start();
+  eval("(trace convert)");
+  eval("(defmethod check-interleaved-text ((ast python-ast)) nil)");
+  eval("(trace parse-string)");
 
-  char* source = "x + 88";
   cl_object convert = c_string_to_object("convert");
+  show(convert);
   cl_object symbol = ecl_make_symbol("PYTHON-AST",
                                      "SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/TREE-SITTER");
-  cl_object str = ecl_cstring_to_base_string_or_nil(source);
-  cl_object ast = cl_funcall(3, convert, symbol, str);
-  show(convert);
   show(symbol);
+  char* source = "x + 88";
+  cl_object str = ecl_cstring_to_base_string_or_nil(source);
   show(str);
+  cl_object ast = cl_funcall(3, convert, symbol, str);
   show(ast);
+  printf("SOURCE-TEXT:\"%ls\"\n", source_text(ast));
+  printf("\n\n\n\n");
 
   return 0;
 }
