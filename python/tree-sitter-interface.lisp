@@ -1,10 +1,12 @@
 (defpackage :software-evolution-library/python/tree-sitter-interface
+  (:nicknames :sel/py/ts-int)
   (:use :gt/full
         :cl-base64
         :software-evolution-library
         :software-evolution-library/command-line
         :software-evolution-library/software/parseable
-        :software-evolution-library/software/tree-sitter)
+        :software-evolution-library/software/tree-sitter
+        :stefil+)
   (:export :run-tree-sitter-interface))
 (in-package :software-evolution-library/python/tree-sitter-interface)
 (in-readtable :curry-compose-reader-macros)
@@ -141,3 +143,15 @@
 
 (-> int/callsite-module (ast ast) string)
 (defun int/callsite-module (root ast) (provided-by root ast))
+
+
+;;;; Test
+(defroot test)
+(defsuite test "Tree sitter interface tests")
+
+(deftest create-an-ast ()
+  (let ((result (handle-interface (format nil "AST ~a ~a"
+                                          (encode-interface "PYTHON")
+                                          (encode-interface "x + 88")))))
+    (is (stringp result))
+    (is (zerop (search "AST" result)))))
