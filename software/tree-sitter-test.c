@@ -30,9 +30,9 @@ int main(int argc, char** argv){
 
 int main(int argc, char** argv){
   start();
-  eval("(trace convert)");
-  eval("(defmethod check-interleaved-text ((ast python-ast)) nil)");
-  eval("(trace parse-string)");
+  /* eval("(trace convert)"); */
+  /* eval("(defmethod check-interleaved-text ((ast python-ast)) nil)"); */
+  /* eval("(trace parse-string)"); */
 
   cl_object convert = c_string_to_object("convert");
   show(convert);
@@ -44,8 +44,7 @@ int main(int argc, char** argv){
   show(str);
   cl_object ast = cl_funcall(3, convert, symbol, str);
   show(ast);
-  printf("SOURCE-TEXT:\"%ls\"\n", source_text(ast));
-  printf("\n\n\n\n");
+  printf("SOURCE-TEXT:\"%s\"\n", source_text(ast));
 
   return 0;
 }

@@ -7,11 +7,8 @@ extern void init(cl_object);
 
 char *package = "SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/TREE-SITTER";
 
-#define DEBUG 1
-
 
 /* Utility and debug functions. */
-size_t last_string_length;
 
 /*
  * 5:59:00 jackdaniel eschulte: ecl_base_string_pointer_safe takes a
@@ -22,19 +19,11 @@ size_t last_string_length;
  *                    base string, ecl_null_terminated_base_string will
  *                    try to coerce it
  */
-wchar_t* get_string(cl_object cl_object){
-  last_string_length = (cl_object->string.dim / 4);
-  #ifdef DEBUG
-  fprintf(stderr, "; Returning string: '%ls'\n", cl_object->string.self);
-  #endif
-  return cl_object->string.self;
+char* get_string(cl_object cl_object){
+  return ecl_base_string_pointer_safe(ecl_null_terminated_base_string(cl_object));
 }
 
-size_t get_last_string_length(){
-  return last_string_length;
-}
-
-wchar_t* to_string(cl_object cl_object){
+char* to_string(cl_object cl_object){
   return get_string(cl_funcall(4, c_string_to_object("format"),
                                c_string_to_object("nil"),
                                c_string_to_object("\"~&~S\""),
@@ -142,7 +131,7 @@ cl_object get_class(cl_object cl_object){
   return cl_funcall(2, c_string_to_object("class-name"), (cl_class_of(cl_object)));
 }
 
-wchar_t* symbol_name(cl_object cl_object){
+char* symbol_name(cl_object cl_object){
   return to_string(cl_funcall(2, c_string_to_object("symbol-name"), cl_object));
 }
 
@@ -168,7 +157,7 @@ cl_object ast_at_point(cl_object ast, int line, int column){
   } ECL_CATCH_ALL_END;
 }
 
-wchar_t* source_text(cl_object ast){
+char* source_text(cl_object ast){
   return get_string(cl_funcall(2, c_string_to_object("source-text"), ast));
 }
 
@@ -241,7 +230,7 @@ cl_object function_asts(cl_object ast){
                     ast);
 }
 
-wchar_t* function_name(cl_object ast){
+char* function_name(cl_object ast){
   return get_string(cl_funcall(2, c_string_to_object("function-name"), ast));
 }
 
