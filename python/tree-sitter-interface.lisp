@@ -114,9 +114,7 @@
 (defun int/call-arguments (ast) (call-arguments ast))
 
 (-> int/call-function (ast) ast)
-(defun int/call-function (ast)
-  ;; (call-function ast) ; TODO: implement.
-  ast)
+(defun int/call-function (ast) (call-function ast))
 
 (-> int/ast-parent (ast ast) ast)
 (defun int/ast-parent (root ast) (get-parent-ast root ast))
