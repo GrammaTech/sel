@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "tree-sitter.h"
+#include <time.h>
 extern void init(cl_object);
 
 char *package = "SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/TREE-SITTER";
@@ -74,13 +75,35 @@ bool eql(cl_object left, cl_object right){
 
 
 /* API functions */
+#ifdef DEBUG
+void put_time(){
+  time_t timer;
+  char buffer[26];
+  struct tm* tm_info;
+
+  timer = time(NULL);
+  tm_info = localtime(&timer);
+
+  strftime(buffer, 26, "%Y-%m-%d %H:%M:%S", tm_info);
+  puts(buffer);
+}
+#endif
+
 void start(){
   int argc = 0;
   char** argv = (char*[]){""};
-
   setlocale(LC_ALL, "");
+
+#ifdef DEBUG
+  put_time();
+  cl_boot(argc, argv);
+  put_time();
+  ecl_init_module(NULL, init);
+  put_time();
+#else
   cl_boot(argc, argv);
   ecl_init_module(NULL, init);
+#endif
 }
 
 void stop(){
