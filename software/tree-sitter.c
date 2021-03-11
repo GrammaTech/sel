@@ -13,6 +13,15 @@ char *package = "SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/TREE-SITTER";
 /* Utility and debug functions. */
 size_t last_string_length;
 
+/*
+ * 5:59:00 jackdaniel eschulte: ecl_base_string_pointer_safe takes a
+ *                    common lisp object and if it is a base string, it
+ *                    returns it
+ *
+ * 5:59:36 jackdaniel moreover, if the string is not guaranteed to be a
+ *                    base string, ecl_null_terminated_base_string will
+ *                    try to coerce it
+ */
 wchar_t* get_string(cl_object cl_object){
   last_string_length = (cl_object->string.dim / 4);
   #ifdef DEBUG
