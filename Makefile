@@ -81,7 +81,8 @@ doc/software-evolution-library/GrammaTech-CLA-SEL.pdf: doc/GrammaTech-CLA-SEL.pd
 LISP_DEPS =				\
 	$(wildcard *.lisp) 		\
 	$(wildcard components/*.lisp)	\
-	$(wildcard software/*.lisp)
+	$(wildcard software/*.lisp)	\
+	$(wildcard python/*.lisp)
 
 TEST_ARTIFACTS = \
 	test/etc/gcd/gcd \
