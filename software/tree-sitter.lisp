@@ -2377,6 +2377,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
   ;; TODO: move into parseable?
   (-> find-if-in-scopes (function list) list)
   (defun find-if-in-scopes (predicate scopes)
+    "Return the first binding in SCOPES that satisfies PREDICATE."
     (mapc
      (lambda (scope)
        (when-let ((return-value (find-if predicate scope)))
