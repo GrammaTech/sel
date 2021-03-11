@@ -1544,8 +1544,10 @@ correct class name for subclasses of SUPERCLASS."
      (fix-newlines)
      (w/interleaved-text
       (convert to-type
-               (parse-string (get-language-from-superclass superclass) string
-                             :produce-cst t)
+               (fix-parse-string
+                (parse-string (get-language-from-superclass superclass) string
+                              :produce-cst t)
+                string)
                :superclass superclass
                :string-pass-through t)
       '(0 0)
@@ -1553,6 +1555,21 @@ correct class name for subclasses of SUPERCLASS."
           '(0 0)
           (list (length (last-elt line-octets))
                 (1- (length line-octets))))))))
+
+(defun fix-parse-string (spec string &aux (lines (serapeum:lines string :keep-eols t)))
+  "Ensure that columns and rows are not mixed up in SPEC.
+This can happen sometimes when using ECL.  Maybe a bug in the ECL FFI?"
+  (labels ((swap-cols-rows (spec)
+             (destructuring-bind (class locs . rest) spec
+               (list* class (mapcar #'reverse locs)
+                      (mapcar {mapcar #'swap-cols-rows} rest)))))
+    (let ((cols (length (lastcar lines)))
+          (rows (1- (length lines))))
+      (when (= cols rows) (warn "Can't fix any bad specifications with equal cols and rows."))
+      (destructuring-bind (class locs . rest) spec
+        (if (equalp (second locs) (list cols rows))
+            spec
+            (swap-cols-rows spec))))))
 
 (defmethod convert :around ((to-type (eql 'tree-sitter-ast)) (string string)
                             &key deepest &allow-other-keys)
