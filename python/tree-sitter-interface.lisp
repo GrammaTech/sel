@@ -17,8 +17,12 @@
 (declaim (inline safe-intern))
 (defun safe-intern (string) (intern (string-upcase string) *package*))
 
+;; (-> encode-interface ((or ast integer string list)) string)
 (defgeneric encode-interface (it)
-  (:documentation "Encode IT for passing through the interface.")
+  (:documentation "Encode IT for passing through the text interface.
+The resulting string will start with three characters giving the type,
+followed by a colon followed by a payload.  The payload will contain
+no spaces, quotes or newlines.")
   (:method ((it ast) &aux (hash (ast-hash it)))
     (setf (gethash hash external-asts) it)
     (format nil "~d" hash))
@@ -27,6 +31,7 @@
   (:method ((it list)) (string-join (mapcar #'encode-interface it) #\Comma)))
 
 (defmethod encode-interface :around (it)
+  ;; The first three characters of every encoded string gives it's type.
   (concatenate 'string
                (etypecase it
                  (ast "AST")
@@ -38,8 +43,9 @@
 
 (-> decode-interface (string) (or ast number string list))
 (defun decode-interface (string)
-  (let ((key (subseq string 0 3))
-        (payload (subseq string 4)))
+  "Decode an interface STRING back to a common lisp object."
+  (let ((key (subseq string 0 3))    ; The first three characters are the type,
+        (payload (subseq string 4))) ; then a colon, then the payload.
     (string-case key
       ("STR" (base64-string-to-string payload))
       ("AST" (gethash (parse-integer payload) external-asts))
@@ -48,7 +54,10 @@
 
 (-> handle-interface (string) string)
 (defun handle-interface (line)
-  "Handle a line of input from the INTERFACE."
+  "Handle a line of input from the INTERFACE.
+The line should start with a function name from the API followed by a
+space followed by a space-delimited series of string-encoded
+arguments."
   (destructuring-bind (function-str . argument-strs) (split-sequence #\Space line)
     (encode-interface
      (apply (safe-intern (concatenate 'string "INT/" function-str))
@@ -68,7 +77,6 @@
 
 
 ;;;; API:
-
 (-> int/ast (string string) ast)
 (defun int/ast (language source-text)
   (convert (safe-intern (concatenate 'string (string-upcase language) "-AST"))
@@ -148,6 +156,19 @@
 ;;;; Test
 (defroot test)
 (defsuite test "Tree sitter interface tests")
+
+(deftest encode-decode-int ()
+  (dotimes (n 10)
+    (let ((it (random 10)))
+      (is (= it (decode-interface (encode-interface it)))))))
+
+(deftest encode-decode-string ()
+  (let ((it "Tree sitter interface tests"))
+    (is (string= it (decode-interface (encode-interface it))))))
+
+(deftest encode-decode-list ()
+  (let ((it (list 10 "Tree sitter interface tests" 0)))
+    (is (equalp it (decode-interface (encode-interface it))))))
 
 (deftest create-an-ast ()
   (let ((result (handle-interface (format nil "AST ~a ~a"
