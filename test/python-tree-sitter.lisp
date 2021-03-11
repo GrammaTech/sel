@@ -739,10 +739,11 @@ and keyword parameters with defaults."
   (let* ((string "def greeting(name: str) -> str:
     return 'Hello ' + name")
          (software (from-string (make 'python) string))
-         (id (@ (genome software)
-                '(0 python-body 0 0 python-right)))
-         (scopes (scopes software id)))
-    (is (typep id 'python-identifier))
+         (name-param-id
+          (@ (genome software)
+             '(0 python-body 0 0 python-right)))
+         (scopes (scopes software name-param-id)))
+    (is (typep name-param-id 'python-identifier))
     (is (consp
          (find "greeting"
                (apply #'append scopes)
@@ -755,7 +756,7 @@ and keyword parameters with defaults."
          (find "name"
                (apply #'append scopes)
                :test #'equal :key {aget :name})))
-    (is (eql :str (type-in software id)))))
+    (is (eql :str (type-in software name-param-id)))))
 
 (deftest (python-tree-sitter-parsing-test :long-running) ()
   (labels ((parsing-test-dir (path)
