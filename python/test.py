@@ -17,9 +17,9 @@ class TestDriver(unittest.TestCase):
     def setUp(self):
         self.ast = sel.AST(sel.lib.PYTHON, self.source)
         self.binop = self.ast.children()[0].children()[0]
-        self.this_file = open(__file__)
-        self.this_source = self.this_file.read()
-        self.this_ast = sel.AST(sel.lib.PYTHON, self.this_source)
+        # self.this_file = open(__file__)
+        # self.this_source = self.this_file.read()
+        # self.this_ast = sel.AST(sel.lib.PYTHON, self.this_source)
         return
 
 
@@ -74,9 +74,9 @@ class TestDriver(unittest.TestCase):
 
     # AST accessors
     # function name
-    def test_function_names_and_function_asts(self):
-        self.assertTrue("test_function_names_and_function_asts" in
-                        list(map(function_name, this_ast.function_asts())))
+    # def test_function_names_and_function_asts(self):
+    #     self.assertTrue("test_function_names_and_function_asts" in
+    #                     list(map(function_name, this_ast.function_asts())))
 
     # function parameters
     # function body
