@@ -752,6 +752,9 @@ and keyword parameters with defaults."
       (is (consp (find-if-in-scopes (of-name "name") scopes)))
       (is (eql :str (type-in software name-param-id))))))
 
+(deftest test-python-call-name ()
+  (is (string= (call-name (convert 'python-ast "foo(1, 2, 3)" :deepest t)) "foo")))
+
 (deftest (python-tree-sitter-parsing-test :long-running) ()
   (labels ((parsing-test-dir (path)
              (merge-pathnames-as-file
