@@ -815,7 +815,13 @@ used for leaf nodes.")
       :accessor after-text
       :initarg :after-text
       :initform ""
-      :documentation "The text after the last token of an AST."))
+      :documentation "The text after the last token of an AST.")
+     (structured-comments
+      :accessor comments
+      :initarg :comments
+      :initform nil
+      :documentation "A list that contains pairs of comment ASTs and
+where the should be inserted in regards to another AST in current subtree."))
     (:documentation "Mix-in for structured text ASTs."))
 
   (defclass tree-sitter-ast (#-structured-text
@@ -5208,29 +5214,37 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
   ;;       though this shouldn't be problematic.
   (labels ((get-children ()
              "Get the children slots and their types from parse-tree."
-             (iter
-               (for child in (caddr parse-tree))
-               (for slot-pair = (car child))
-               (cond
-                 ((listp slot-pair)
-                  (collect
-                      (list
-                       (convert-to-lisp-type language-prefix (car slot-pair))
-                       (convert-to-lisp-type language-prefix (cadr slot-pair)))))
-                 ((member (convert-to-lisp-type language-prefix slot-pair)
-                          child-types
-                          :test #'subtypep)
-                  ;; TODO: note returning the correct thing here.
-                  (collect (convert-to-lisp-type language-prefix slot-pair))))))
+             ;; TODO: this likely won't be needed.
+             (remove-if
+              {typep _ 'comment-ast}
+              (iter
+                (for child in (caddr parse-tree))
+                (for slot-pair = (car child))
+                (for child-type = (unless (listp slot-pair)
+                                    (convert-to-lisp-type
+                                     language-prefix slot-pair)))
+                (cond
+                  (child-type
+                   (collect
+                       (list
+                        (convert-to-lisp-type
+                         language-prefix (car slot-pair))
+                        (convert-to-lisp-type
+                         language-prefix (cadr slot-pair)))))
+                  ((typep child-type 'comment-ast))
+                  ((member child-type child-types :test #'typep)
+                   ;; TODO: note returning the correct thing here.
+                   (collect
+                       (convert-to-lisp-type language-prefix slot-pair)))))))
            (handle-child (rule child-stack)
              (when (member (pop child-stack) (cdr rule)
-                           :test #'subtypep)
+                           :test #'typep)
                (values child-stack t)))
            (handle-field (rule child-stack)
              (let ((child (pop child-stack)))
                (when (and (eql (cadr rule) (car child))
                           (member (cadr child) (cddr rule)
-                                  :test #'subtypep))
+                                  :test #'typep))
                  (values child-stack t))))
            (handle-choice (rule child-stack)
              ;; NOTE: since this doesn't back track it won't work on certain
@@ -5342,8 +5356,6 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
               And drop their annotations."
              ;; TODO: at some point, refactor this.
              ;;       It's a bit of a hack to reuse existing code.
-
-             ;; TODO: this isn't working correctly for string literals.
              (iter
                (for child in children)
                (for previous-child previous child)
@@ -5391,6 +5403,7 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
              (iter
                (for field in (caddr spec))
                (for slot-info = (car field))
+               (for i upfrom 0)
                (when (skip-terminal-field-p field slot-info)
                  (next-iteration))
                (for converted-field =
@@ -5400,11 +5413,15 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
                ;; cl-tree-sitter appears to put the
                ;; slot name first unless the list goes
                ;; into the children slot.
-               (if (and (listp slot-info) (not error-p))
-                   (collect (list (car slot-info)
-                                  converted-field)
-                     into fields)
-                   (collect converted-field into children))
+               (cond
+                 ((and (listp slot-info) (not error-p))
+                  (collect (list (car slot-info)
+                                 converted-field)
+                    into fields))
+                 ((typep converted-field 'comment-ast)
+                  ;; TODO: handle comments
+                  (push (cons converted-field i) (comments instance)))
+                 (t (collect converted-field into children)))
                (finally
                 (return
                   (if children
@@ -5650,6 +5667,15 @@ correct class name for subclasses of SUPERCLASS."
                     string :produce-cst t))
      :superclass superclass
      :string-pass-through string)))
+
+#+structured-text
+(defmethod output-transformation :around ((ast structured-text))
+  (let ((output-transformation (call-next-method))
+        (comment-pairs (sort (comments ast) #'> :key #'cdr)))
+    ;; Inserts comments from the back of the list to the front.
+    (reduce (lambda (result comment-pair)
+              (insert result (1+ (cdr comment-pair)) (car comment-pair)))
+            comment-pairs :initial-value output-transformation)))
 
 ;;; TODO: add in indentation. This is an initial implementation.
 #+structured-text
