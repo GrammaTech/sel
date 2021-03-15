@@ -794,7 +794,7 @@ extra initarg with that prefix.")
 
   ;; TODO: let over a basic string for empty strings?
   (defclass structured-text ()
-    ((structured-before-text
+    ((before-text
       :accessor before-text
       :initarg :before-text
       :initform ""
@@ -804,14 +804,14 @@ extra initarg with that prefix.")
      ;;       may end up being the case with some literals.
      ;; NOTE: the primary usage of this slot is for AST text, like
      ;;       identifiers, which doesn't belong in the before or after slot.
-     (structured-variable-text
+     (variable-text
       :accessor variable-text
       :initarg :variable-text
       :initform nil
       :documentation "The text that can vary between ASTs of the same class.
 This should be stored as a list of interleaved text. This should ideally only be
 used for leaf nodes.")
-     (structured-after-text
+     (after-text
       :accessor after-text
       :initarg :after-text
       :initform ""
@@ -2047,7 +2047,7 @@ any slot usages in JSON-SUBTREE."
                   ;; the full thing.
                   (add-slot-to-class-definition
                    class-name class-name->class-definition
-                   `(structured-variable-text
+                   `(variable-text
                      :accessor variable-text
                      :initarg :variable-text
                      :allocation :class
@@ -2219,7 +2219,7 @@ subclass based on the order of the children were read in."
                ;; destructively modify the class definition.
                (add-slot-to-class-definition
                 class-name class-name->class-definition
-                `(structured-variable-text
+                `(variable-text
                   :accessor variable-text
                   :initarg :variable-text
                   :allocation :class
