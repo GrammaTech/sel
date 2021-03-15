@@ -1901,6 +1901,12 @@ the rebinding"
                (get-parent-asts* obj ast))
       (genome obj)))
 
+(defun ensure-children (value)
+  (etypecase value
+    (ast (values (children value)
+                 value))
+    (list value)))
+
 (defgeneric statements-in-scope (obj scope ast)
   (:documentation "Return all child statements of SCOPE prior to AST.")
   (:method (obj (scope ast) (ast ast))
@@ -1914,10 +1920,16 @@ the rebinding"
     (collect-if {typep _ 'identifier-ast} ast)))
 
 (defgeneric call-arguments (ast)
-  (:documentation "Return the arguments of AST."))
+  (:documentation "Return the arguments of AST.")
+  (:method-combination standard/context)
+  (:method :context ((ast t))
+    (ensure-children (call-next-method))))
 
 (defgeneric function-parameters (ast)
-  (:documentation "Return the parameters of AST."))
+  (:documentation "Return the parameters of AST.")
+  (:method-combination standard/context)
+  (:method :context ((ast t))
+    (ensure-children (call-next-method))))
 
 (defgeneric parameter-type (parameter-ast)
   (:documentation "Return a representation of the TYPE of PARAMETER-AST."))
@@ -2368,15 +2380,14 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
                      ;; Free function call
                      (list (list (source-text callee)
                                  nil nil
-                                 (length (python-children
-                                          (call-arguments ast))))))
+                                 (length (call-arguments ast)))))
                     ((typep callee 'python-attribute)
                      ;; Member Function call
                      ;;
                      (list (list (source-text (python-attribute callee))
                                  nil nil
                                  (length
-                                  (python-children (call-arguments ast))))))
+                                  (call-arguments ast)))))
                     (t nil)))
             (mapcar {get-unbound-funs obj} children))
      :test #'equal))
@@ -2521,7 +2532,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
                         mapping))))))
       (let* ((parameters (python-children (python-parameters function)))
              (parameters-alist (get-parameter-alist parameters))
-             (args-list (python-children (call-arguments funcall))))
+             (args-list (call-arguments funcall)))
         ;; NOTE: all default parameters are returned by get-default-parameters.
         ;;       The defaults that are actually used need to be removed here.
         (remove-duplicates
