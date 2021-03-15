@@ -35,7 +35,7 @@ class AST:
         """Parse source-code string source of language and return the root of the resulting AST.
 Language must be an sel language enum value."""
         if handle == None:
-            self.handle = lib.convert(language, source.encode('ascii'))
+            self.handle = lib.convert(language, source.encode('utf-8'))
         else:
             self.handle = handle
         if lib.null(self.handle): raise Exception("Failed to create AST")
@@ -94,9 +94,9 @@ The type is a member of the TYPE enumeration."""
         if arity == None:
             return None
         elif arity == 1:
-            return AST(handle=lib.slot(self.handle, slot.encode('ascii')))
+            return AST(handle=lib.slot(self.handle, slot.encode('utf-8')))
         else:
-            return ecl_mapcar(lambda child: AST(handle=child), lib.slot(self.handle, slot.encode('ascii')))
+            return ecl_mapcar(lambda child: AST(handle=child), lib.slot(self.handle, slot.encode('utf-8')))
 
 
     def parent(self, root):
