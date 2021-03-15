@@ -5473,6 +5473,8 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
                                (ranges children from to))
                        ;; Else set it to everything in the range.
                        (list (safe-subseq from to)))))))
+    (when error-p
+      (error "Convert failed to parse without errors"))
     (set-slot-values
      (merge-same-fields (get-converted-fields)))
     (set-surrounding-text)
