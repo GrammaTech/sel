@@ -11,6 +11,18 @@ char *package = "SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/TREE-SITTER";
 
 /* Utility and debug functions. */
 
+/* From ecl-devel mailing list */
+cl_object utf8_encode_base_string(cl_object string) {
+  cl_object output = ecl_alloc_adjustable_base_string(ecl_length(string));
+  /* See https://common-lisp.net/project/ecl/static/manual/Streams.html#Sequence-Streams */
+  cl_object stream = si_make_sequence_output_stream(3, output,
+                                                    ecl_make_keyword("EXTERNAL-FORMAT"),
+                                                    ecl_make_keyword("UTF-8"));
+  cl_write_sequence(2, string, stream);
+  ecl_write_char(0, stream); /* write null terminator */
+  return output;
+}
+
 /*
  * 5:59:00 jackdaniel eschulte: ecl_base_string_pointer_safe takes a
  *                    common lisp object and if it is a base string, it
@@ -21,7 +33,7 @@ char *package = "SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/TREE-SITTER";
  *                    try to coerce it
  */
 char* get_string(cl_object cl_object){
-  return ecl_base_string_pointer_safe(ecl_null_terminated_base_string(cl_object));
+  return ecl_base_string_pointer_safe(utf8_encode_base_string(ecl_null_terminated_base_string(cl_object)));
 }
 
 char* to_string(cl_object cl_object){
