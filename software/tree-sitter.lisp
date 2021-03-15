@@ -5273,37 +5273,32 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
   ;;       though this shouldn't be problematic.
   (labels ((get-children ()
              "Get the children slots and their types from parse-tree."
-             ;; TODO: this likely won't be needed.
-             (remove-if
-              {typep _ 'comment-ast}
-              (iter
-                (for child in (caddr parse-tree))
-                (for slot-pair = (car child))
-                (for child-type = (unless (listp slot-pair)
-                                    (convert-to-lisp-type
-                                     language-prefix slot-pair)))
-                (cond
-                  (child-type
-                   (collect
-                       (list
-                        (convert-to-lisp-type
-                         language-prefix (car slot-pair))
-                        (convert-to-lisp-type
-                         language-prefix (cadr slot-pair)))))
-                  ((typep child-type 'comment-ast))
-                  ((member child-type child-types :test #'typep)
-                   ;; TODO: note returning the correct thing here.
-                   (collect
-                       (convert-to-lisp-type language-prefix slot-pair)))))))
+             (iter
+               (for child in (caddr parse-tree))
+               (for slot-pair = (car child))
+               (for child-type = (unless (listp slot-pair)
+                                   (convert-to-lisp-type
+                                    language-prefix slot-pair)))
+               (cond
+                 ((not child-type)
+                  (collect
+                      (list
+                       (convert-to-lisp-type
+                        language-prefix (car slot-pair))
+                       (convert-to-lisp-type
+                        language-prefix (cadr slot-pair)))))
+                 ((subtypep child-type 'comment-ast))
+                 ((member child-type child-types :test #'subtypep)
+                  (collect (convert-to-lisp-type language-prefix slot-pair))))))
            (handle-child (rule child-stack)
              (when (member (pop child-stack) (cdr rule)
-                           :test #'typep)
+                           :test #'subtypep)
                (values child-stack t)))
            (handle-field (rule child-stack)
              (let ((child (pop child-stack)))
                (when (and (eql (cadr rule) (car child))
                           (member (cadr child) (cddr rule)
-                                  :test #'typep))
+                                  :test #'subtypep))
                  (values child-stack t))))
            (handle-choice (rule child-stack)
              ;; NOTE: since this doesn't back track it won't work on certain
@@ -5345,17 +5340,6 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
 ;;; TODO: add *correcting rules* use a hash table that has a "fixup" function
 ;;;       to fixup things? Need the function to run on the tree-sitter parse
 ;;;       tree.
-
-;;; TODO: use interleaved text on nodes that have variable text but also have
-;;;       children. This doesn't happen often and string literals appear to be
-;;;       the only instance of this happening that has been found.
-
-;;; TODO: Like Roger mentioned, maybe keep a list of where comments go before or
-;;;       after ASTs; just throw it out when the AST is mutated since there's no
-;;;       reason to maintain it. Languages like Python should have a slot for
-;;;       comments that are interesting. This same approach could possibly be
-;;;       taken for errors? Errors can't be thrown out though, and it will
-;;;       essentially be interleaved text at that point.
 
 #+structured-text
 (defun convert-initializer
