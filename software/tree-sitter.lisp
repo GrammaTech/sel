@@ -1160,49 +1160,140 @@ of fields needs to be determined at parse-time."
   ;; and generates a string representation of it. This is used for reproducing
   ;; the interleaved text. It prioritizes "BLANK" rules with "CHOICE" branches
   ;; and doesn't take any "REPEAT" rules.
+  (defun map-json (map-fun tree &key (traversal :postorder))
+    "Maps MAP-FUN over TREE as if it were a list representation of JSON
+and returns the result."
+    (map-tree
+     (lambda (subtree)
+       (cond
+         ;; first five clauses filter out anything that can't
+         ;; be used as an alist. This is assumed based on the
+         ;; structure of the json read in. NOTE that we may get
+         ;; a non-alist still, but it should prevent any errors
+         ;; that may occur from using something like #'aget.
+         ((atom subtree) subtree)
+         ((atom (cdr subtree)) subtree)
+         ((not (listp (car subtree))) subtree)
+         ((eql (car subtree) :members) subtree)
+         ((eql (car subtree) :content) subtree)
+         ((funcall map-fun subtree))))
+     tree :tag 'prune :traversal traversal))
+
+  (defun walk-json (function tree &key (traversal :preorder))
+    "Walks FUNCTION over TREE as if it were a list representation of JSON."
+    (walk-tree
+     (lambda (subtree)
+       (cond
+         ;; first five clauses filter out anything that can't
+         ;; be used as an alist. This is assumed based on the
+         ;; structure of the json read in. NOTE that we may get
+         ;; a non-alist still, but it should prevent any errors
+         ;; that may occur from using something like #'aget.
+         ((atom subtree))
+         ((atom (cdr subtree)))
+         ((not (listp (car subtree))))
+         ((eql (car subtree) :members))
+         ((eql (car subtree) :content))
+         ((funcall function subtree))))
+     tree :tag 'prune :traversal traversal))
+
+  (defun add-aliased-rules
+      (rules
+       &aux (rule-name-set
+             (alist-hash-table (mapcar (op (cons (car _) t))
+                                       rules))))
+    "Add rules for named types which are only used as aliases in RULES.
+This is to prevent certain classes from being seen as terminal symbols."
+    (labels ((superset-alias-p
+                 (subset superset &aux (subtype (aget :type subset))
+                                    (supertype (aget :type superset)))
+               "RETURN T if SUPERSET is a superset of SUBSET."
+               ;; NOTE: this only considers supersets that start with a "CHOICE".
+               (cond
+                 ((and (equal subtype "CHOICE") (equal subtype supertype))
+                  (iter
+                    (for branch in (aget :members subset))
+                    (always
+                     (find-if (op (equal _ branch)) (aget :members superset)))))
+                 ((equal supertype "CHOICE")
+                  (find-if (op (equal _ subset)) (aget :members superset)))))
+             (collect-strictly-aliased-types
+                 (&aux (alias->content (make-hash-table :test #'equal)))
+               "Collects all named aliases that have a :VALUE which
+                doesn't exist as a rule."
+               (walk-json
+                (lambda (alist &aux (content (aget :content alist)))
+                  (when (and
+                         (aget :named alist)
+                         (equal "ALIAS" (aget :type alist))
+                         (not
+                          (gethash
+                           (make-keyword (convert-name (aget :value alist)))
+                           rule-name-set)))
+                    (symbol-macrolet
+                        ((hash-value (gethash (aget :value alist) alias->content)))
+                      (cond
+                        ((or (not hash-value)
+                             (superset-alias-p hash-value content))
+                         ;; add if it is the first time seeing this.
+                         ;; NOTE: that it is updated if hash-value is a
+                         ;;       subset or equal to content.
+                         (setf hash-value content))
+                        ;; do nothing when a superset is already stored.
+                        ((superset-alias-p content hash-value))
+                        ;; when there isn't a super set, a new choice needs
+                        ;; created.
+                        ;; NOTE: there's a possibility that the choice will be
+                        ;;       misordered, but if there's the generated choice
+                        ;;       is seen later in the rules, it will be updated
+                        ;;       by the first clause to be in the order seen
+                        ;;       in the rules.
+                        (t
+                         (let ((previous (if (equal (aget :type hash-value)
+                                                    "CHOICE")
+                                             (aget :members hash-value)
+                                             (list hash-value)))
+                               (current (if (equal (aget :type content)
+                                                   "CHOICE")
+                                            (aget :members content)
+                                            (list content))))
+                           (setf hash-value
+                                 `((:type . "CHOICE")
+                                   (:members
+                                    ,@(filter-map
+                                       (distinct :test #'equal)
+                                       (append previous current)))))))))))
+                rules)
+               alias->content)
+             (expand-alias-content (content)
+               "Expands CONTENT into a rule."
+               (map-json
+                (lambda (alist)
+                  ;;TODO: only interested in symbols. Shouldn't follow nested
+                  ;;      aliases; just prune. Sould only expand once.
+                  (if (aget :type alist)
+                      (string-case (aget :type alist)
+                        ;; TODO: check prune here. nil may be incorrect.
+                        ("ALIAS"
+                         (throw 'prune alist))
+                        ("SYMBOL"
+                         (aget (make-keyword (convert-name (aget :name alist)))
+                               rules))
+                        (t alist))
+                      alist))
+                content))
+             (create-aliased-rules (alias->content)
+               "Create rules for every alias in ALIAS->CONTENT."
+               (maphash-return
+                (lambda (name content)
+                  (cons (make-keyword (convert-name name))
+                        (expand-alias-content content)))
+                alias->content)))
+      (append rules (create-aliased-rules (collect-strictly-aliased-types)))))
+
   (defun transform-json-rule (rule grammar)
     "Expand inline rules base on GRAMMAR and :repeat1's in RULE."
-    (labels ((map-json (map-fun tree)
-               "Maps MAP-FUN over TREE as if it were a list representation of JSON
-                and returns the result."
-               (map-tree (lambda (subtree)
-                           (cond
-                             ;; first five clauses filter out anything that can't
-                             ;; be used as an alist. This is assumed based on the
-                             ;; structure of the json read in. NOTE that we may get
-                             ;; a non-alist still, but it should prevent any errors
-                             ;; that may occur from using something like #'aget.
-                             ;;
-                             ;; The next one filters out cases that happen due
-                             ;; to modifications from this function.
-                             ((atom subtree) subtree)
-                             ((atom (cdr subtree)) subtree)
-                             ((not (listp (car subtree))) subtree)
-                             ((eql (car subtree) :members) subtree)
-                             ((eql (car subtree) :content) subtree)
-                             ((funcall map-fun subtree))))
-                         tree :traversal :postorder))
-             ;; TODO: this is copied from below. Create a top-level function for
-             ;;       it.
-             (walk-json (function tree)
-               "Maps MAP-FUN over TREE as if it were a list representation of JSON
-                and returns the result."
-               (walk-tree
-                (lambda (subtree)
-                  (cond
-                    ;; first five clauses filter out anything that can't
-                    ;; be used as an alist. This is assumed based on the
-                    ;; structure of the json read in. NOTE that we may get
-                    ;; a non-alist still, but it should prevent any errors
-                    ;; that may occur from using something like #'aget.
-                    ((atom subtree))
-                    ((atom (cdr subtree)))
-                    ((not (listp (car subtree))))
-                    ((eql (car subtree) :members))
-                    ((eql (car subtree) :content))
-                    ((funcall function subtree))))
-                tree :tag 'prune :traversal :postorder))
-             (expand-repeat1s (tree)
+    (labels ((expand-repeat1s (tree)
                "Expand all :REPEAT1 rules in an equivalent :SEQ and :REPEAT."
                (map-json (lambda (alist)
                            (if-let ((content (and (equal (aget :type alist)
@@ -1217,7 +1308,6 @@ of fields needs to be determined at parse-time."
                          tree))
              (expand-inline-rules (tree)
                "Expand all inline rules."
-               ;; TODO: there can be nested inline rules?
                (map-json
                 (lambda (alist)
                   (let ((name-string (aget :name alist)))
@@ -1289,11 +1379,12 @@ of fields needs to be determined at parse-time."
                           (aget :named alist))
                      (push (aget :value alist) type-stack))
                     (t alist)))
-                branch)
+                branch :traversal :postorder)
                (reverse type-stack))
              (merge-choice-branch (similar-branches)
                "Merge SIMILAR-BRANCHES into one branch by
-                adding multiple types onto "
+                adding multiple types onto the end of the relevant
+                cons in the alist."
                (if (< 1 (length similar-branches))
                    (let ((types-stack
                            ;; NOTE: creating a stack of types that can
@@ -1340,22 +1431,8 @@ of fields needs to be determined at parse-time."
                                 :test #'branch-similar-p))
                 subtree))
              (merge-similar-choice-branches (tree)
-               ;; TODO: it would make sense to do a "CHOICE" merge here.
-               ;;       What this would do is check a "CHOICE" and for each
-               ;;       branch that had identical children and field orderings
-               ;;       excepting their types, it would merge them on each
-               ;;       other by adding the type to one of the branches. Note
-               ;;       that this could potential cause some ordering issues if
-               ;;       types needed to be strictly followed for some of these,
-               ;;       so maybe it isn't a good idea or in practice this
-               ;;       wouldn't really matter since everything should be more or
-               ;;       less well-formed coming in from the parser?
-
-               ;; TODO: we'll want a custom tree-equal. It needs to compare
-               ;;       everything except the actual types.
-               ;;       NOTE: we can turn the actual content into a list?
-               ;;       or add another thing? We'll need to modify several
-               ;;       functions to account for this.
+               "Merge choice branches with identical output transformations in
+                TREE."
                (map-json
                 (lambda (alist)
                   (if (equal "CHOICE" (aget :type alist))
@@ -1363,9 +1440,7 @@ of fields needs to be determined at parse-time."
                       alist))
                 tree)))
       (merge-similar-choice-branches
-       (expand-repeat1s (remove-prec-rules (expand-inline-rules rule))))
-      #+nil
-      (expand-repeat1s (remove-prec-rules (expand-inline-rules rule)))))
+       (expand-repeat1s (remove-prec-rules (expand-inline-rules rule))))))
 
   (defun prune-rule-tree (transformed-json-rule)
     (labels ((gather-field-types (content)
@@ -1753,51 +1828,35 @@ outside of repeats."
 
   (defun variable-text-ast-p (json-rule)
     "Return T if JSON-RULE and TYPE represent an AST that contains variable text."
-    (labels ((walk-json (predicate tree)
-               "Maps MAP-FUN over TREE as if it were a list representation of JSON
-                and returns the result."
-               (walk-tree (lambda (subtree)
-                            (cond
-                              ;; first five clauses filter out anything that can't
-                              ;; be used as an alist. This is assumed based on the
-                              ;; structure of the json read in. NOTE that we may get
-                              ;; a non-alist still, but it should prevent any errors
-                              ;; that may occur from using something like #'aget.
-                              ((atom subtree))
-                              ((atom (cdr subtree)))
-                              ((not (listp (car subtree))))
-                              ((eql (car subtree) :members))
-                              ((eql (car subtree) :content))
-                              ((funcall predicate subtree))))
-                          tree :tag 'prune)))
-      (walk-json
-       (lambda (subtree)
-         (when-let (type (aget :type subtree))
-           (string-case type
-             (("PATTERN" "TOKEN" "IMMEDIATE_TOKEN")
-              ;; PATTERN indicates that there
-              ;; is variable text.
-              ;; TOKEN and IMMEDIATE_TOKEN don't
-              ;; necessarily indicate variable text,
-              ;; but they generally have a CHOICE that
-              ;; selects from some default values, and
-              ;; since this isn't stored in a slot, it's
-              ;; generally a good idea to store it since
-              ;; things break otherwise. An example of this
-              ;; can be seen with language-provided types in
-              ;; C.
-              (return-from variable-text-ast-p t))
-             ("ALIAS"
-              ;; Aliases can have patterns in them,
-              ;; but they are recast to something else,
-              ;; so they do not need to be stored.
-              (throw 'prune nil)))))
-       json-rule)))
+    (walk-json
+     (lambda (subtree)
+       (when-let (type (aget :type subtree))
+         (string-case type
+           (("PATTERN" "TOKEN" "IMMEDIATE_TOKEN")
+            ;; PATTERN indicates that there
+            ;; is variable text.
+            ;; TOKEN and IMMEDIATE_TOKEN don't
+            ;; necessarily indicate variable text,
+            ;; but they generally have a CHOICE that
+            ;; selects from some default values, and
+            ;; since this isn't stored in a slot, it's
+            ;; generally a good idea to store it since
+            ;; things break otherwise. An example of this
+            ;; can be seen with language-provided types in
+            ;; C.
+            (return-from variable-text-ast-p t))
+           ("ALIAS"
+            ;; Aliases can have patterns in them,
+            ;; but they are recast to something else,
+            ;; so they do not need to be stored.
+            (throw 'prune nil)))))
+     json-rule))
 
-  (defun generate-variable-text-method (transformed-json-rule class-name)
+  (defun generate-variable-text-method
+      (transformed-json-rule class-name &key skip-checking-json)
     "Generate an input transformation method for RULE if one is needed.
 CLASS-NAME is used as the specialization for the generated method."
-    (when (variable-text-ast-p transformed-json-rule)
+    (when (or skip-checking-json (variable-text-ast-p transformed-json-rule))
       ;; TODO: NOTE: create a generic and default for this somewhere.
       `(defmethod variable-text-node-p ((instance ,class-name)) t)))
 
@@ -1901,11 +1960,7 @@ any slot usages in JSON-SUBTREE."
                  ("CHOICE" (handle-choice rule))
                  ("REPEAT" (handle-repeat))
                  ("SEQ" (handle-seq rule))
-                 ("STRING" (handle-string rule))
-                 ;; TODO: determine if SYMBOL needs to be handled.
-                 ;;       It's unlikely that it does.
-                 #+nil
-                 ("SYMBOL" ))))
+                 ("STRING" (handle-string rule)))))
       (apply #'string+ (flatten (rule-handler json-subtree)))))
 
   (defmethod output-transformation ((ast structured-text))
@@ -2175,7 +2230,7 @@ subclass based on the order of the children were read in."
                 (mapcar (lambda (rule)
                           (list (car rule)
                                 (transform-json-rule (cdr rule) grammar)))
-                        (aget :rules grammar))))
+                        (add-aliased-rules (aget :rules grammar)))))
              (get-superclasses-set ()
                "Get a hash set containing the names of superclasses for the
                 language."
@@ -2194,6 +2249,7 @@ subclass based on the order of the children were read in."
                                language-prefix converted-type))
              (for terminal-lisp-type = (format-symbol 'sel/sw/ts "~a-~a"
                                                       lisp-type 'terminal))
+             (for named? = (aget :named type))
              (cond-let result
                ;; skip superclass interfaces.
                ;; TODO: at some point, the interfaces will always be at the top,
@@ -2210,16 +2266,19 @@ subclass based on the order of the children were read in."
                 ;; name-clash for terminal symbols.
                 (setf (gethash converted-type type-set) t)
                 (collect (generate-code (car result) type)))
+               ((aget :named type)
+                ;; If a type is named and doesn't have a rule present assume
+                ;; that it is a variable text node. This is an edge case
+                ;; that shouldn't happen often and should cover external
+                ;; named nodes.
+                (generate-variable-text-method
+                 nil lisp-type :skip-checking-json t))
                (t
-                ;; If a type doesn't have a rule, it is considered
+                ;; If a type doesn't have a rule and is unnamed, it is considered
                 ;; a terminal symbol.
-                ;; TODO: there's one case where a class doesn't exist without
-                ;;       '-terminal but is exported with it. Need to pass in
-                ;;
                 (generate-terminal-code
                  type-string
-                 (if (gethash terminal-lisp-type
-                              class-name->class-definition)
+                 (if (gethash terminal-lisp-type class-name->class-definition)
                      terminal-lisp-type
                      lisp-type)))))
          ;; TODO: make these generics and add other ones that are needed here.
@@ -2483,10 +2542,6 @@ Unlike the `children` methods which collects all children of an AST from any slo
                 ,(format nil "AST for ~A from input via tree-sitter."
                          name-prefix)))
 
-             ,@(iter (for (nil definition) in-hashtable
-                          class-name->class-definition)
-                 (collect definition))
-
              ;; NOTE: the following are to handle results returned from
              ;;       cl-tree-sitter.
              (defclass ,(make-class-name "comment")
@@ -2508,6 +2563,10 @@ Unlike the `children` methods which collects all children of an AST from any slo
                 (child-slots :initform '((children . 0))
                              :allocation :class))
                (:documentation "Generated for parsing errors."))
+
+             ,@(iter (for (nil definition) in-hashtable
+                          class-name->class-definition)
+                 (collect definition))
 
              (define-mutation ,(make-class-name "mutation") (parseable-mutation)
                ()
