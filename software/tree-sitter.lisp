@@ -799,18 +799,18 @@ extra initarg with that prefix.")
       :initarg :before-text
       :initform ""
       :documentation "The text before the first token of an AST.")
-     ;; TODO: find a better name. This could potentially need to
-     ;;       be a list if there's more than one variable part which
-     ;;       may end up being the case with some literals.
      ;; NOTE: the primary usage of this slot is for AST text, like
      ;;       identifiers, which doesn't belong in the before or after slot.
-     (variable-text
-      :accessor variable-text
-      :initarg :variable-text
+     (computed-text
+      :accessor computed-text
+      :initarg :computed-text
       :initform nil
-      :documentation "The text that can vary between ASTs of the same class.
-This should be stored as a list of interleaved text. This should ideally only be
-used for leaf nodes.")
+      ;; NOTE: it's hard to name this slot descriptively such that its usage
+      ;;       is obvious.
+      :documentation "The text that can vary between ASTs of the same class. It
+stores the part that is computed from the variable definition. This should be
+stored as a list of interleaved text. This should ideally only be used for leaf
+ nodes.")
      (after-text
       :accessor after-text
       :initarg :after-text
@@ -1078,8 +1078,8 @@ of fields needs to be determined at parse-time."
   ;;
   ;; The structured-text class has 3 slots--before-text stores text that comes
   ;; before the node, after-text stores text that comes after the node, and
-  ;; variable-text stores any text that can vary between different instances
-  ;; of a class. The variable-text slots will also contain the text for any
+  ;; computed-text stores any text that can vary between different instances
+  ;; of a class. The computed-text slots will also contain the text for any
   ;; class that doesn't have any slot usages. This allows for classes, such as
   ;; primitive_type in C, that don't store anything but have variable text to
   ;; still produce something meaningful.
@@ -1144,7 +1144,7 @@ of fields needs to be determined at parse-time."
   ;; be implicit based on the AST subclass. There are currently some major
   ;; performance issues with this function on some languages.
   ;;
-  ;; generate-variable-text-method determines if an AST class is largely variable
+  ;; generate-computed-text-method determines if an AST class is largely variable
   ;; text, such as identifiers or literals, and generates a predicate method that
   ;; indicates whether the node should be read in specially--the variable text is
   ;; stored when read in.
@@ -1826,7 +1826,7 @@ outside of repeats."
                                expansion-stack json-expansion-stack)))))))
       (expand-choices pruned-rule transformed-json)))
 
-  (defun variable-text-ast-p (json-rule)
+  (defun computed-text-ast-p (json-rule)
     "Return T if JSON-RULE and TYPE represent an AST that contains variable text."
     (walk-json
      (lambda (subtree)
@@ -1844,7 +1844,7 @@ outside of repeats."
             ;; things break otherwise. An example of this
             ;; can be seen with language-provided types in
             ;; C.
-            (return-from variable-text-ast-p t))
+            (return-from computed-text-ast-p t))
            ("ALIAS"
             ;; Aliases can have patterns in them,
             ;; but they are recast to something else,
@@ -1852,13 +1852,13 @@ outside of repeats."
             (throw 'prune nil)))))
      json-rule))
 
-  (defun generate-variable-text-method
+  (defun generate-computed-text-method
       (transformed-json-rule class-name &key skip-checking-json)
     "Generate an input transformation method for RULE if one is needed.
 CLASS-NAME is used as the specialization for the generated method."
-    (when (or skip-checking-json (variable-text-ast-p transformed-json-rule))
+    (when (or skip-checking-json (computed-text-ast-p transformed-json-rule))
       ;; TODO: NOTE: create a generic and default for this somewhere.
-      `(defmethod variable-text-node-p ((instance ,class-name)) t)))
+      `(defmethod computed-text-node-p ((instance ,class-name)) t)))
 
 
   (defun add-slot-to-class-definition
@@ -1922,7 +1922,7 @@ any slot usages in JSON-SUBTREE."
     ;; NOTE: assume that token, immediate_token, and pattern automatically
     ;;       mean that a node has variable text. Thus, if any subtree has one of
     ;;       these rules, the AST itself should be printed specially using the
-    ;;       variable-text slot.
+    ;;       computed-text slot.
     (labels ((handle-alias (rule)
                ;; NOTE: only consider unnamed nodes unless it becomes problematic
                ;;       to not be considering the named ones.
@@ -1968,7 +1968,7 @@ any slot usages in JSON-SUBTREE."
      (list
       (before-text ast)
       ;; Expand all rules here.
-      (variable-text-output-transformation ast)
+      (computed-text-output-transformation ast)
       (after-text ast))))
 
   (defun generate-output-transformation
@@ -2028,8 +2028,8 @@ any slot usages in JSON-SUBTREE."
                    (get-json-subtree-string json-rule)))
              (generate-ast-list (json-rule pruned-rule)
                "Generate the form that creates a list of ASTs and strings."
-               (if (variable-text-ast-p json-rule)
-                   '(variable-text-output-transformation ast)
+               (if (computed-text-ast-p json-rule)
+                   '(computed-text-output-transformation ast)
                    (generate-rule-handler json-rule pruned-rule)))
              (generate-body (transformed-json-rule pruned-rule)
                "Generate the body of the output transformation method."
@@ -2041,15 +2041,15 @@ any slot usages in JSON-SUBTREE."
              (generate-method (transformed-json-rule pruned-rule)
                "Generate the output transformation method."
                (cond
-                 ((variable-text-ast-p transformed-json-rule))
+                 ((computed-text-ast-p transformed-json-rule))
                  ((every #'null (cdr pruned-rule))
                   ;; This is the case where we have a string representation for
                   ;; the full thing.
                   (add-slot-to-class-definition
                    class-name class-name->class-definition
-                   `(variable-text
-                     :accessor variable-text
-                     :initarg :variable-text
+                   `(computed-text
+                     :accessor computed-text
+                     :initarg :computed-text
                      :allocation :class
                      :initform
                      ',(list (get-json-subtree-string transformed-json-rule))))
@@ -2142,11 +2142,11 @@ subclass based on the order of the children were read in."
                            ',(cadr subclass-pair) child-types parse-tree)
                           ',(car subclass-pair)))
                       subclass-pairs))))
-             (generate-variable-text-methods (json-expansions subclass-pairs)
+             (generate-computed-text-methods (json-expansions subclass-pairs)
                "Generate the variable text methods for the rules in
                 JSON-EXPANSION."
                (mapcar
-                (op (generate-variable-text-method _ (car _)))
+                (op (generate-computed-text-method _ (car _)))
                 json-expansions subclass-pairs))
              (generate-output-transformations
                  (pruned-expansions json-expansions subclass-pairs)
@@ -2181,7 +2181,7 @@ subclass based on the order of the children were read in."
         (generate-children-methods subclass-pairs)
         `(progn
            ,(and expansions? (generate-input-subclass-dispatch subclass-pairs))
-           ,@(generate-variable-text-methods json-expansions subclass-pairs)
+           ,@(generate-computed-text-methods json-expansions subclass-pairs)
            ,@(generate-output-transformations
               pruned-rule-expansions json-expansions subclass-pairs)))))
 
@@ -2219,9 +2219,9 @@ subclass based on the order of the children were read in."
                ;; destructively modify the class definition.
                (add-slot-to-class-definition
                 class-name class-name->class-definition
-                `(variable-text
-                  :accessor variable-text
-                  :initarg :variable-text
+                `(computed-text
+                  :accessor computed-text
+                  :initarg :computed-text
                   :allocation :class
                   :initform ',(list type-string))))
              (get-transformed-json-table ()
@@ -2271,7 +2271,7 @@ subclass based on the order of the children were read in."
                 ;; that it is a variable text node. This is an edge case
                 ;; that shouldn't happen often and should cover external
                 ;; named nodes.
-                (generate-variable-text-method
+                (generate-computed-text-method
                  nil lisp-type :skip-checking-json t))
                (t
                 ;; If a type doesn't have a rule and is unnamed, it is considered
@@ -2289,7 +2289,7 @@ that specify which CHOICE branches are taken and how many times a REPEAT rule
 repeats.")
            (:method (ast) nil))
 
-         (defmethod variable-text-node-p (ast) nil)
+         (defmethod computed-text-node-p (ast) nil)
          (defmethod get-choice-expansion-subclass (class spec)
            (declare (ignorable spec))
            class))))
@@ -2615,12 +2615,12 @@ Unlike the `children` methods which collects all children of an AST from any slo
 
            (defmethod convert ((to-type (eql ',ast-superclass)) (spec list)
                                &key string-pass-through
-                                 variable-text-parent-p
+                                 computed-text-parent-p
                                &allow-other-keys)
              (convert 'tree-sitter-ast spec
                       :superclass to-type
                       :string-pass-through string-pass-through
-                      :variable-text-parent-p variable-text-parent-p))
+                      :computed-text-parent-p computed-text-parent-p))
 
            (defmethod convert ((to-type (eql ',ast-superclass)) (string string)
                                &rest args &key &allow-other-keys)
@@ -5273,13 +5273,13 @@ which slots are expected to be used."
       ;;       modify this somehow.
       (mapcar {slot-value ast} slots))))
 
-(defun variable-text-output-transformation (ast)
+(defun computed-text-output-transformation (ast)
   "Gives the variable text output transformation for AST. This
 representation is interleaved text though it's unlikely to
 be more than one string outside of string literals."
   ;; TODO: test this
   (iter
-    (iter:with interleaved-text = (variable-text ast))
+    (iter:with interleaved-text = (computed-text ast))
     (iter:with children = (children ast))
     (while (and interleaved-text children))
     (collect (pop interleaved-text) into result at beginning)
@@ -5378,7 +5378,7 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
 
 #+structured-text
 (defun convert-initializer
-    (spec prefix superclass string &key variable-text-parent-p
+    (spec prefix superclass string &key computed-text-parent-p
      &aux (*package* (symbol-package superclass))
        (class (symbolicate prefix '-
                            (let ((type (car spec)))
@@ -5391,7 +5391,7 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
        (instance (make-instance
                   (get-choice-expansion-subclass class spec)
                   :annotations
-                  (when variable-text-parent-p
+                  (when computed-text-parent-p
                     `((:range-start ,(caadr spec))
                       (:range-end . ,(cdadr spec))))))
        (error-p (eql class (symbolicate prefix '-error)))
@@ -5399,7 +5399,7 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
                      'vector
                      #'string-to-octets
                      (serapeum:lines string :keep-eols t)))
-       (variable-text-p (variable-text-node-p instance)))
+       (computed-text-p (computed-text-node-p instance)))
   "Initialize an instance of SUPERCLASS with SPEC."
   (labels ((safe-subseq
                (start end
@@ -5428,7 +5428,7 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
            (end (ast)
              "Return the end offset into STRING from the AST representation."
              (car (ast-annotation ast :range-end)))
-           ;; NOTE: this may be useful for variable-text ASTs.
+           ;; NOTE: this may be useful for computed-text ASTs.
            (ranges (children from to)
              "Return the offsets of the source text ranges between CHILDREN.
               And drop their annotations."
@@ -5487,7 +5487,7 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
                (for converted-field =
                     (convert superclass field
                              :string-pass-through string
-                             :variable-text-parent-p variable-text-p))
+                             :computed-text-parent-p computed-text-p))
                ;; cl-tree-sitter appears to put the
                ;; slot name first unless the list goes
                ;; into the children slot.
@@ -5526,7 +5526,7 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
               slot-values))
            (set-surrounding-text ()
              "Set the before and after slots of instance."
-             (unless variable-text-parent-p
+             (unless computed-text-parent-p
                (let* ((before (car (cadddr spec)))
                       (after (cadr (cadddr spec)))
                       (start (car (cadr spec)))
@@ -5539,11 +5539,11 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
                    (setf (after-text instance) after-text)))))
            ;; TODO: this may be useful for variable text as a reference.
            ;; TODO: maybe reformat it to use the spec instead of annotations?
-           (set-variable-text (&aux (from (car (cadr spec)))
+           (set-computed-text (&aux (from (car (cadr spec)))
                                  (to (cadr (cadr spec))))
-             "Set the variable-text slot in instance if it needs set."
-             (when variable-text-p
-               (setf (variable-text instance)
+             "Set the computed-text slot in instance if it needs set."
+             (when computed-text-p
+               (setf (computed-text instance)
                      (if-let ((children (children instance)))
                        (mapcar (lambda (range)
                                  (destructuring-bind (from . to) range
@@ -5556,7 +5556,7 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
     (set-slot-values
      (merge-same-fields (get-converted-fields)))
     (set-surrounding-text)
-    (set-variable-text)
+    (set-computed-text)
     instance))
 
 #+structured-text
@@ -5608,13 +5608,13 @@ correct class name for subclasses of SUPERCLASS."
 
 #+structured-text
 (defmethod convert ((to-type (eql 'tree-sitter-ast)) (spec list)
-                     &key superclass string-pass-through variable-text-parent-p
+                     &key superclass string-pass-through computed-text-parent-p
                      &allow-other-keys)
   "Create a TO-TYPE AST from the SPEC (specification) list."
   (if string-pass-through
       (convert-initializer
        spec (get-language-from-superclass superclass) superclass
-       string-pass-through :variable-text-parent-p variable-text-parent-p)
+       string-pass-through :computed-text-parent-p computed-text-parent-p)
       (convert-spec
        spec (get-language-from-superclass superclass) superclass)))
 
@@ -5623,9 +5623,9 @@ correct class name for subclasses of SUPERCLASS."
 
 ;;; TODO: we need to handle variable text. It's wholly possible that,
 ;;;       coming in, the fields are correctly populated by #'convert.
-;;;       By first checking if the AST is a variable-text node, we can
+;;;       By first checking if the AST is a computed-text node, we can
 ;;;       generate a different method.
-;;;       Yes, we want to populate the variable-text slot when #'convert
+;;;       Yes, we want to populate the computed-text slot when #'convert
 ;;;       runs.
 
 
