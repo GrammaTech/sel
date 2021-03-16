@@ -50,6 +50,3 @@ Dockerfile
 
 # Ignore the wiki
 wiki/
-
-# Python package build cruft
-__pycache__/
