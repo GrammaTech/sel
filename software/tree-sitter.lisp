@@ -1871,7 +1871,10 @@ CLASS-NAME->CLASS-DEFINITION."
           (setf slots (cons slot-spec slots))))))
 
   (defmethod parse-order ((ast structured-text))
-    (if-let ((rule (and (slot-exists-p ast 'rule) (rule ast)))
+    (if-let ((rule (or (and (slot-exists-p ast 'rule) (rule ast))
+                       ;; This is a bit of a hack.
+                       (and (slot-exists-p ast 'pruned-rule)
+                            (collapse-rule-tree (pruned-rule ast)))))
              (slots (and (slot-exists-p ast 'slot-usage) (slot-usage ast))))
       (children-parser ast rule slots)
       (call-next-method)))
