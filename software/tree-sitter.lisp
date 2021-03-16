@@ -1461,9 +1461,7 @@ This is to prevent certain classes from being seen as terminal symbols."
                 (make-keyword (aget :type rule))
                 (if-let ((members (aget :members rule)))
                   ;; seq and choice
-                  (iter
-                    (for member in members)
-                    (collect (handle-rule member)))
+                  (mapcar #'handle-rule members)
                   ;; repeat and repeat1
                   (list (handle-rule (aget :content rule))))))
              (handle-field (rule)
@@ -1870,14 +1868,7 @@ CLASS-NAME->CLASS-DEFINITION."
         (unless (aget (car slot-spec) slots)
           (setf slots (cons slot-spec slots))))))
 
-  (defmethod parse-order ((ast structured-text))
-    (if-let ((rule (or (and (slot-exists-p ast 'pruned-rule) (pruned-rule ast))))
-             (slots (and (slot-exists-p ast 'slot-usage) (slot-usage ast))))
-      (children-parser ast rule slots)
-      (call-next-method)))
 
-  (defmethod children ((ast structured-text))
-    (remove-if #'listp (parse-order ast)))
 
   (defun generate-children-method
       (collapsed-rule pruned-rule class-name class-name->class-definition)
@@ -1963,14 +1954,6 @@ any slot usages in JSON-SUBTREE."
                  ("STRING" (handle-string rule)))))
       (apply #'string+ (flatten (rule-handler json-subtree)))))
 
-  (defmethod output-transformation ((ast structured-text))
-    (flatten
-     (list
-      (before-text ast)
-      ;; Expand all rules here.
-      (computed-text-output-transformation ast)
-      (after-text ast))))
-
   (defun generate-output-transformation
       (pruned-rule transformed-json-rule class-name class-name->class-definition)
     ;; TODO: there's a whole lot of noise in the subclassing.
@@ -2055,8 +2038,8 @@ any slot usages in JSON-SUBTREE."
                      ',(list (get-json-subtree-string transformed-json-rule))))
                   nil)
                  (t `(defmethod output-transformation
-                       ((ast ,class-name) &aux (parse-stack (parse-order ast)))
-                     (declare (ignorable parse-stack) (optimize (debug 3)))
+                       ((ast ,class-name)&rest rest &key &aux (parse-stack (parse-order ast)))
+                     (declare (ignorable parse-stack rest))
                      (flatten ,(generate-body transformed-json-rule pruned-rule)))))))
       (generate-method transformed-json-rule pruned-rule)))
 
@@ -2283,13 +2266,39 @@ subclass based on the order of the children were read in."
                      lisp-type)))))
          ;; TODO: make these generics and add other ones that are needed here.
 
-         (defgeneric parse-order (ast)
+         (defgeneric parse-order (ast &key &allow-other-keys)
            (:documentation "Return a list of children intermixed with keywords
 that specify which CHOICE branches are taken and how many times a REPEAT rule
 repeats.")
+           (:method (ast &key) nil)
+           (:method ((ast structured-text) &key)
+             (if-let ((rule (or (and (slot-exists-p ast 'pruned-rule) (pruned-rule ast))))
+                      (slots (and (slot-exists-p ast 'slot-usage) (slot-usage ast))))
+               (children-parser ast rule slots)
+               (call-next-method))))
+
+         (defgeneric output-transformation
+             (ast &rest rest &key &allow-other-keys)
+           (:documentation "Return a list of strings and AST objects that
+are ordered for reproduction as source text.")
+           (:method ((ast structured-text) &rest rest &key &allow-other-keys)
+             (declare (ignorable rest))
+             (flatten
+              (list
+               (before-text ast)
+               ;; Expand all rules here.
+               (computed-text-output-transformation ast)
+               (after-text ast)))))
+
+         (defmethod children ((ast structured-text))
+           (remove-if #'listp (parse-order ast)))
+
+         (defgeneric computed-text-node-p (ast)
+           (:documentation "Return T if AST is a computed-text node. This is a
+node where part of the input will need to be computed and stored to reproduce
+the source-text.")
            (:method (ast) nil))
 
-         (defmethod computed-text-node-p (ast) nil)
          (defmethod get-choice-expansion-subclass (class spec)
            (declare (ignorable spec))
            class))))
@@ -2439,13 +2448,9 @@ their slots."
                ;; NOTE: there is a small possibility for name overlaps when
                ;;       generating these slots.
                (mapcar {create-slot type} fields))
-             (create-supertype-class (type subtypes
+             (create-supertype-class (type
                                       &aux (class-name (make-class-name type)))
                "Create a new class for subtypes to inherit from."
-               ;; TODO: this isn't correctly initializing the super types for
-               ;;       a type. Will likely need a first pass through the super
-               ;;       types to initialize the supertype-to-subtype information.
-               ;;(add-supertype-to-subtypes type subtypes)
                `(defclass ,class-name
                     (,@(or (get-supertypes-for-type type)
                            `(,ast-superclass)))
@@ -2503,7 +2508,7 @@ their slots."
                "Create a class for  NODE-TYPE."
                (let ((class-definition
                        (cond
-                         (subtypes (create-supertype-class type subtypes))
+                         (subtypes (create-supertype-class type))
                          (named-p
                           (create-type-class
                            type
@@ -5151,10 +5156,11 @@ If NODE is not a function node, return nil.")
 #+nil
 (setf collapsed (mapcar (op (list (car _) (collapse-rule-tree (cadr _1))))  pruned))
 
+;;; TODO: this needs to be added into the code generation process and printed out
+;;;       to *error-output* so that these issues are apparent.
 #+nil
 (mapcar (lambda (rule)
-          ;; This will print out which rules are problematic.
-          (format t "~a with ~a~%" (car rule) (cadr rule))
+          ;; This will map rules to whether they're problematic or not.
           (list (car rule) (structured-rule-p (cadr rule))))
         collapsed)
 
@@ -5749,7 +5755,9 @@ correct class name for subclasses of SUPERCLASS."
      :string-pass-through string)))
 
 #+structured-text
-(defmethod output-transformation :around ((ast structured-text))
+(defmethod output-transformation :around
+    ((ast structured-text)
+     &rest rest &key &allow-other-keys)
   (let ((output-transformation (call-next-method))
         (comment-pairs (sort (comments ast) #'> :key #'cdr)))
     ;; Inserts comments from the back of the list to the front.
@@ -5759,5 +5767,6 @@ correct class name for subclasses of SUPERCLASS."
 
 ;;; TODO: add in indentation. This is an initial implementation.
 #+structured-text
-(defmethod source-text ((ast structured-text) &key stream)
-  (mapc {source-text _ :stream stream} (output-transformation ast)))
+(defmethod source-text ((ast structured-text) &key stream trim-surrounding-text)
+  (mapc {source-text _ :stream stream}
+        (output-transformation ast)))
