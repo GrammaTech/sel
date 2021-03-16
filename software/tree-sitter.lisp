@@ -1871,7 +1871,7 @@ CLASS-NAME->CLASS-DEFINITION."
           (setf slots (cons slot-spec slots))))))
 
   (defmethod parse-order ((ast structured-text))
-    (if-let ((rule (and (slot-exists-p ast 'pruned-rule) (pruned-rule ast)))
+    (if-let ((rule (and (slot-exists-p ast 'rule) (rule ast)))
              (slots (and (slot-exists-p ast 'slot-usage) (slot-usage ast))))
       (children-parser ast rule slots)
       (call-next-method)))
@@ -2306,7 +2306,13 @@ repeats.")
                           name-prefix
                           "-"
                           (convert-name "ast")))
-         (class-name->class-definition (make-hash-table)))
+         (class-name->class-definition (make-hash-table))
+         (*json-identifier-name-to-lisp* #'convert-name)
+         (node-types (decode-json-from-string
+                      (file-to-string node-types-file)))
+         (grammar (decode-json-from-string (file-to-string grammar-file)))
+         ;; TODO: consider turning this into a hash table.
+         (grammar-rules (aget :rules grammar)))
     "Create the classes for a tree-sitter language.
 
 Creates one class for a software object (named NAME-PREFIX) and many
@@ -2351,6 +2357,20 @@ their slots."
                      (setf (gethash class class->extra-slot-options) fields))
                ;; Return for easier debugging.
                class->extra-slot-options)
+             (populate-supertypes ()
+               "Populate the subtypes to supertypes with supertypes. This is
+                to have the information available if the definition occurs after
+                its first usage."
+               (mapc
+                (lambda
+                    (supertype
+                     &aux (type (find-if (op (equal supertype (aget :type _)))
+                                         node-types)))
+                  ;; TODO: add error output if type is nil.
+                  (when type
+                    (add-supertype-to-subtypes
+                     (aget :type type) (aget :subtypes type))))
+                (aget :supertypes grammar)))
              (make-class-name (&optional name-string)
                "Create a class name based on NAME-STRING and add it to the
                 symbols that need exported."
@@ -2422,7 +2442,10 @@ their slots."
              (create-supertype-class (type subtypes
                                       &aux (class-name (make-class-name type)))
                "Create a new class for subtypes to inherit from."
-               (add-supertype-to-subtypes type subtypes)
+               ;; TODO: this isn't correctly initializing the super types for
+               ;;       a type. Will likely need a first pass through the super
+               ;;       types to initialize the supertype-to-subtype information.
+               ;;(add-supertype-to-subtypes type subtypes)
                `(defclass ,class-name
                     (,@(or (get-supertypes-for-type type)
                            `(,ast-superclass)))
@@ -2490,15 +2513,18 @@ their slots."
                          (t (create-terminal-symbol-class type)))))
                  (setf (gethash (cadr class-definition)
                                 class-name->class-definition)
-                       class-definition))))
+                       class-definition)))
+             (create-external-class (name)
+               "Create a class for an external rule."
+               `(defclass ,(make-class-name name) (,ast-superclass) ()))
+             (create-external-classes (grammar)
+               "Create classes for the external rules for the grammar file."
+               (mapcar (op (create-external-class (aget :name _)))
+                       (aget :externals grammar))))
       (initialize-subtype->supertypes)
       (initialize-class->extra-slot-options)
-      (let* ((*json-identifier-name-to-lisp* #'convert-name)
-             (node-types (decode-json-from-string
-                          (file-to-string node-types-file)))
-             (grammar (decode-json-from-string (file-to-string grammar-file)))
-             (grammar-rules (aget :rules grammar))
-             (tree-sitter-classes
+      (populate-supertypes)
+      (let* ((tree-sitter-classes
                (map nil {create-node-class grammar-rules} node-types))
              #+structured-text
              (structured-text-code
@@ -2542,6 +2568,8 @@ Unlike the `children` methods which collects all children of an AST from any slo
                 ,(format nil "AST for ~A from input via tree-sitter."
                          name-prefix)))
 
+             ;; TODO: the error and comment classes may be created by some
+             ;;       languages?
              ;; NOTE: the following are to handle results returned from
              ;;       cl-tree-sitter.
              (defclass ,(make-class-name "comment")
@@ -2563,6 +2591,8 @@ Unlike the `children` methods which collects all children of an AST from any slo
                 (child-slots :initform '((children . 0))
                              :allocation :class))
                (:documentation "Generated for parsing errors."))
+
+             ,@(create-external-classes grammar)
 
              ,@(iter (for (nil definition) in-hashtable
                           class-name->class-definition)
@@ -5136,13 +5166,13 @@ If NODE is not a function node, return nil.")
 #+nil
 (defmacro defthings () (generate-structured-text-methods grammar types :c (make-hash-table)))
 
-(defun children-parser (ast full-rule slots &aux (child-stack-key '#.(gensym)))
-  "Return the children of AST in order based on FULL-RULE. SLOTS specifies
+(defun children-parser (ast collapsed-rule slots &aux (child-stack-key '#.(gensym)))
+  "Return the children of AST in order based on COLLAPSED-RULE. SLOTS specifies
 which slots are expected to be used."
   ;; TODO: NOTE: this currently breaks on comments and errors in the children
   ;;             slot.
 
-  ;; TODO: assume that the full-rule has converted the names for the slots.
+  ;; TODO: assume that the collapsed-rule has converted the names for the slots.
 
   ;; TODO: quit copying hash tables and use indices into them or find a
   ;;       different way altogether if this method performs poorly since
@@ -5224,18 +5254,16 @@ which slots are expected to be used."
                (always sub-slot->stack)))
            (rule-handler (rule slot->stack)
              "Handles dispatching RULE to its relevant rule handler."
-             (if rule
-                 (ecase (car rule)
-                   (:CHOICE (handle-choice rule slot->stack))
-                   (:REPEAT (handle-repeat rule slot->stack))
-                   (:FIELD (handle-field rule slot->stack))
-                   (:CHILD (handle-child rule slot->stack))
-                   (:SEQ (handle-seq rule slot->stack)))
-                 slot->stack)))
+             (ecase (car rule)
+               (:CHOICE (handle-choice rule slot->stack))
+               (:REPEAT (handle-repeat rule slot->stack))
+               (:FIELD (handle-field rule slot->stack))
+               (:CHILD (handle-child rule slot->stack))
+               (:SEQ (handle-seq rule slot->stack)))))
     ;; TODO: need to ensure that the returned hash table doesn't still have
     ;;       ASTs stored in it. If it does, figure out a way to add them in
     ;;       some how?
-    (if-let ((result (rule-handler full-rule (populate-slot->stack))))
+    (if-let ((result (rule-handler collapsed-rule (populate-slot->stack))))
       (reverse (gethash child-stack-key result))
       ;; One failure, just return everything in whatever order.
       ;; TODO: this will break output-transformation, so either
@@ -5290,9 +5318,8 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
                  ((subtypep child-type 'comment-ast))
                  ((member child-type child-types :test #'subtypep)
                   (collect (convert-to-lisp-type language-prefix slot-pair))))))
-           (handle-child (rule child-stack)
-             (when (member (pop child-stack) (cdr rule)
-                           :test #'subtypep)
+           (handle-child (rule child-stack &aux (top (pop child-stack)))
+             (when (and top (member top (cdr rule) :test #'subtypep))
                (values child-stack t)))
            (handle-field (rule child-stack)
              (let ((child (pop child-stack)))
@@ -5329,13 +5356,19 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
                (finally (return (values stack t)))))
            (rule-handler (rule child-stack)
              "Handles dispatching RULE to its relevant rule handler."
-             (ecase (car rule)
-               (:CHOICE (handle-choice rule child-stack))
-               (:REPEAT (handle-repeat rule child-stack))
-               (:FIELD (handle-field rule child-stack))
-               (:CHILD (handle-child rule child-stack))
-               (:SEQ (handle-seq rule child-stack)))))
-    (nth-value 1 (rule-handler collapsed-rule (get-children)))))
+             (when rule
+               (ecase (car rule)
+                 (:CHOICE (handle-choice rule child-stack))
+                 (:REPEAT (handle-repeat rule child-stack))
+                 (:FIELD (handle-field rule child-stack))
+                 (:CHILD (handle-child rule child-stack))
+                 (:SEQ (handle-seq rule child-stack))))))
+    (cond
+      ((or (not collapsed-rule)
+           (= 1 (length collapsed-rule)))
+       t)
+      (collapsed-rule
+       (nth-value 1 (rule-handler collapsed-rule (get-children)))))))
 
 ;;; TODO: add *correcting rules* use a hash table that has a "fixup" function
 ;;;       to fixup things? Need the function to run on the tree-sitter parse
