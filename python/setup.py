@@ -170,9 +170,4 @@ setup(
         'Bug Reports': 'https://github.com/grammatech/sel/issues',
         'Source': 'https://github.com/grammatech/sel/',
     },
-
-    # Build and include the CFFI bindings.
-    setup_requires=["cffi>=1.0.0"],
-    cffi_modules=["software/tree-sitter_build.py:ffibuilder"], # "filename:global"
-    install_requires=["cffi>=1.0.0"],
 )
