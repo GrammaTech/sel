@@ -1871,10 +1871,7 @@ CLASS-NAME->CLASS-DEFINITION."
           (setf slots (cons slot-spec slots))))))
 
   (defmethod parse-order ((ast structured-text))
-    (if-let ((rule (or (and (slot-exists-p ast 'rule) (rule ast))
-                       ;; This is a bit of a hack.
-                       (and (slot-exists-p ast 'pruned-rule)
-                            (collapse-rule-tree (pruned-rule ast)))))
+    (if-let ((rule (or (and (slot-exists-p ast 'pruned-rule) (pruned-rule ast))))
              (slots (and (slot-exists-p ast 'slot-usage) (slot-usage ast))))
       (children-parser ast rule slots)
       (call-next-method)))
@@ -2059,7 +2056,7 @@ any slot usages in JSON-SUBTREE."
                   nil)
                  (t `(defmethod output-transformation
                        ((ast ,class-name) &aux (parse-stack (parse-order ast)))
-                     (declare (ignorable parse-stack))
+                     (declare (ignorable parse-stack) (optimize (debug 3)))
                      (flatten ,(generate-body transformed-json-rule pruned-rule)))))))
       (generate-method transformed-json-rule pruned-rule)))
 
@@ -5169,13 +5166,13 @@ If NODE is not a function node, return nil.")
 #+nil
 (defmacro defthings () (generate-structured-text-methods grammar types :c (make-hash-table)))
 
-(defun children-parser (ast collapsed-rule slots &aux (child-stack-key '#.(gensym)))
-  "Return the children of AST in order based on COLLAPSED-RULE. SLOTS specifies
+(defun children-parser (ast pruned-rule slots &aux (child-stack-key '#.(gensym)))
+  "Return the children of AST in order based on PRUNED-RULE. SLOTS specifies
 which slots are expected to be used."
   ;; TODO: NOTE: this currently breaks on comments and errors in the children
   ;;             slot.
 
-  ;; TODO: assume that the collapsed-rule has converted the names for the slots.
+  ;; TODO: assume that the pruned-rule has converted the names for the slots.
 
   ;; TODO: quit copying hash tables and use indices into them or find a
   ;;       different way altogether if this method performs poorly since
@@ -5185,7 +5182,7 @@ which slots are expected to be used."
   ;;       but there aren't any rules that obviously require it--this may
   ;;       be the case if a rule is a subtype of another.
   ;; NOTE: esrap or smug may be useful if needed in the future.
-  (labels ((populate-slot->stack ()
+  (labels+ ((populate-slot->stack ()
              "Create a hash table that maps a slot name to its
               corresponding stack."
              (alist-hash-table
@@ -5222,6 +5219,7 @@ which slots are expected to be used."
              (iter
                (for branch in (cdr rule))
                (for i upfrom 0)
+               (unless branch (next-iteration))
                (for copy = (copy-hash-table slot->stack))
                (push-child-stack `(:choice ,i) copy)
                (thereis (rule-handler branch copy))))
@@ -5252,6 +5250,7 @@ which slots are expected to be used."
            (handle-seq (rule slot->stack)
              (iter
                (for subrule in (cdr rule))
+               (unless subrule (next-iteration))
                (for sub-slot->stack first (rule-handler subrule slot->stack)
                     then (rule-handler subrule sub-slot->stack))
                (always sub-slot->stack)))
@@ -5266,7 +5265,7 @@ which slots are expected to be used."
     ;; TODO: need to ensure that the returned hash table doesn't still have
     ;;       ASTs stored in it. If it does, figure out a way to add them in
     ;;       some how?
-    (if-let ((result (rule-handler collapsed-rule (populate-slot->stack))))
+    (if-let ((result (rule-handler pruned-rule (populate-slot->stack))))
       (reverse (gethash child-stack-key result))
       ;; One failure, just return everything in whatever order.
       ;; TODO: this will break output-transformation, so either
