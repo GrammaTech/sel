@@ -824,13 +824,11 @@ stored as a list of interleaved text. This should ideally only be used for leaf
 where the should be inserted in regards to another AST in current subtree."))
     (:documentation "Mix-in for structured text ASTs."))
 
-  (defclass tree-sitter-ast (#-structured-text
+  (defclass tree-sitter-ast (#+nil
                              ;; TODO: re-enable this once it's implemented.
                              indentation
-                             #+structured-text structured-text
-                             functional-tree-ast
-                             #-structured-text
-                             interleaved-text)
+                             structured-text
+                             functional-tree-ast)
     ()
     (:documentation "AST for input from tree-sitter."))
 
@@ -2531,7 +2529,6 @@ their slots."
       (populate-supertypes)
       (let* ((tree-sitter-classes
                (map nil {create-node-class grammar-rules} node-types))
-             #+structured-text
              (structured-text-code
                (generate-structured-text-methods
                 grammar node-types name-prefix class-name->class-definition)))
@@ -2635,7 +2632,6 @@ Unlike the `children` methods which collects all children of an AST from any slo
                                   &optional (source (genome-string obj)))
              (convert ',(make-class-name "ast") source))
 
-           #+structured-text
            ,structured-text-code)))))
 
 (defmacro define-and-export-all-mixin-classes ()
@@ -5382,7 +5378,6 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
 ;;;       to fixup things? Need the function to run on the tree-sitter parse
 ;;;       tree.
 
-#+structured-text
 (defun convert-initializer
     (spec prefix superclass string &key computed-text-parent-p
      &aux (*package* (symbol-package superclass))
@@ -5565,7 +5560,6 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
     (set-computed-text)
     instance))
 
-#+structured-text
 (defun convert-spec (spec prefix superclass
                      &aux (package (symbol-package superclass)))
   "Convert SPEC into an ast of type SUPERCLASS. PREFIX is used to find the
@@ -5606,13 +5600,11 @@ correct class name for subclasses of SUPERCLASS."
        (with-slots ((annotations-slot annotations)) instance
          (setf annotations-slot (append annotations annotations-slot)))))))
 
-#+structured-text
 (defmethod convert ((to-type (eql 'tree-sitter-ast)) (spec tree-sitter-ast)
                      &key &allow-other-keys)
   "Pass thru an existing tree-sitter AST. This useful in manual AST creation."
   spec)
 
-#+structured-text
 (defmethod convert ((to-type (eql 'tree-sitter-ast)) (spec list)
                      &key superclass string-pass-through computed-text-parent-p
                      &allow-other-keys)
@@ -5642,7 +5634,6 @@ correct class name for subclasses of SUPERCLASS."
 ;;;       Paul D. brought up this potential problem at some point.
 ;;;       Finding two unnamed nodes in a row probably isn't common across
 ;;;       AST types.
-#+structured-text
 (defmethod convert ((to-type (eql 'tree-sitter-ast)) (string string)
                      &key superclass &allow-other-keys
                      &aux (prefix (get-language-from-superclass superclass)))
@@ -5754,7 +5745,6 @@ correct class name for subclasses of SUPERCLASS."
      :superclass superclass
      :string-pass-through string)))
 
-#+structured-text
 (defmethod output-transformation :around
     ((ast structured-text)
      &rest rest &key &allow-other-keys)
@@ -5766,7 +5756,6 @@ correct class name for subclasses of SUPERCLASS."
             comment-pairs :initial-value output-transformation)))
 
 ;;; TODO: add in indentation. This is an initial implementation.
-#+structured-text
 (defmethod source-text ((ast structured-text) &key stream trim-surrounding-text)
   (mapc {source-text _ :stream stream}
         (output-transformation ast)))
