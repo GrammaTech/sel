@@ -5757,5 +5757,9 @@ correct class name for subclasses of SUPERCLASS."
 
 ;;; TODO: add in indentation. This is an initial implementation.
 (defmethod source-text ((ast structured-text) &key stream trim-surrounding-text)
-  (mapc {source-text _ :stream stream}
-        (output-transformation ast)))
+  ;; trim-surrounding-text removes the before and after text from the output.
+  (let ((transformation (output-transformation ast)))
+    (mapc {source-text _ :stream stream}
+          (if trim-surrounding-text
+              (butlast (cdr transformation))
+              transformation))))
