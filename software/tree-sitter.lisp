@@ -303,8 +303,6 @@
            :definition-name
            :declarator-name
            :enclosing-definition
-           :outer-declarations
-           :inner-declarations
            :imports
            :provided-by))
 (in-package :software-evolution-library/software/tree-sitter)

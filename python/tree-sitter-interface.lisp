@@ -137,7 +137,8 @@ arguments."
 
 (-> int/defined-functions (ast) list)
 (defun int/defined-functions (ast)
-  (remove-if-not {typep _ 'function-ast} (outer-declarations ast)))
+  (remove-if-not [{typep _ 'function-ast}{aget :scope}]
+                 (apply #'append (scopes ast))))
 
 (-> int/callsites (ast ast) list)
 (defun int/callsites (root ast)
