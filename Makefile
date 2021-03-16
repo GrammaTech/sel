@@ -1,4 +1,4 @@
-.PHONY: doc api python-build python-check
+.PHONY: doc api python-check
 
 # Set personal or machine-local flags in a file named local.mk
 ifneq ("$(wildcard local.mk)","")
