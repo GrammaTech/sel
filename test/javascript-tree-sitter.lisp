@@ -64,6 +64,7 @@
   (with-fixture hello-world-javascript
     (is (not (null *soft*)))))
 
+;;; TODO: lack of stored information.
 (deftest (javascript-can-parse-a-software-object :long-running) ()
   (with-fixture hello-world-javascript
     (is (= 7 (size *soft*)))
@@ -81,6 +82,7 @@
                 (genome-string *soft*)
                 (source-text (genome *soft*))))))
 
+;;; TODO: lack of stored information
 (deftest javascript-can-handle-surrogate-characters ()
   (with-fixture surrogate-javascript
     (is (equal* (file-to-string (original-path *soft*))
@@ -133,6 +135,7 @@
       (is (= (size variant)
              (size *soft*))))))
 
+;;; TODO: lack of information
 ;;;(deftest javascript-copies-are-independent ()
 (deftest js-copies-are-independent ()
   (with-fixture fib-javascript
@@ -163,6 +166,7 @@
       (is (equal? (stmt-with-text *soft* "num--;")
                   (stmt-with-text variant "num--;"))))))
 
+;;; TODO: lack of information
 ;;;(deftest javascript-convert-source-snippet-works ()
 (deftest js-convert-source-snippet-works ()
   (let ((ast (convert 'javascript-ast "j = 0")))
@@ -171,6 +175,7 @@
     (is (equal "j = 0" (source-text ast)))
     (is (find-if {typep _ 'javascript-expression-statement} ast))))
 
+;;; TODO: lack of information
 (deftest (javascript-can-format-a-software-object :long-running) ()
   (with-fixture fib-javascript
     (is (not (string= (genome-string (copy *soft*))
@@ -229,6 +234,7 @@
                      (get-vars-in-scope soft)
                      (stmt-starting-with-text soft "console.log("))))))
 
+;;; TODO: lack of information
 (deftest javascript-object-destructuring-get-vars-in-scope-test ()
   (let ((soft (from-file (make-instance 'javascript)
                          (javascript-dir #P"parsing/object-destructuring.js"))))
@@ -237,6 +243,7 @@
                      (get-vars-in-scope soft)
                      (stmt-starting-with-text soft "console.log("))))))
 
+;;; TODO: lack of information
 (deftest javascript-for-in-loop-get-vars-in-scope-test ()
   (let ((soft (from-file (make-instance 'javascript)
                          (javascript-dir #P"parsing/loops.js"))))
@@ -338,12 +345,12 @@
                   2 0 javascript-left)))
       (with *soft* path
             (make-instance 'javascript-identifier
-                           :interleaved-text (list "RIGHT")))
+                           :computed-text (list "RIGHT")))
       (is (typep (@ *soft* path) 'javascript-identifier))
       (is (equalp "RIGHT" (source-text (@ *soft* path))))
       (with *soft* path
             (make-instance 'javascript-identifier
-                           :interleaved-text (list "LEFT")))
+                           :computed-text (list "LEFT")))
       (is (typep (@ *soft* path) 'javascript-identifier))
       (is (equalp "LEFT" (source-text (@ *soft* path)))))))
 
@@ -378,6 +385,7 @@
     (test-ast-source-ranges-for-files
      'javascript js-files :ignore-indentation t)))
 
+;;; TODO: lack of information
 (deftest (javascript-tree-sitter-parsing-test :long-running) ()
   (labels ((parsing-test-dir (path)
              (merge-pathnames-as-file (nest (make-pathname :directory)
