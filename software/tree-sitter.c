@@ -116,42 +116,12 @@ void stop(){
   cl_shutdown();
 }
 
-/* From https://gitlab.com/spaghettisalat/ecl/-/blob/pathname-encoding/src/c/string.d#L899 */
-cl_object octets_to_string(cl_object source){
-  cl_object output;
-  cl_object input_stream;
-  cl_object ret;
-  cl_index output_size;
-  output = si_get_buffer_string();
-  input_stream = si_make_sequence_input_stream(7, source,
-                                               ecl_make_keyword("EXTERNAL-FORMAT"),
-                                               ecl_make_keyword("UTF-8"),
-                                               ecl_make_keyword("START"), ecl_make_fixnum(0),
-                                               ecl_make_keyword("END"), ECL_NIL);
-  do {
-    output->string.fillp = output->string.dim;
-    output_size +=
-      ecl_to_unsigned_integer(si_do_read_sequence(output, input_stream,
-                                                  ecl_make_fixnum(output_size),
-                                                  ecl_make_fixnum(output->string.dim)));
-    if (output_size < output->string.dim){
-      break;
-    }
-  } while (1);
-  output->string.fillp = output_size;
-  if (ecl_fits_in_base_string(output)){
-    ret = si_copy_to_simple_base_string(output);
-  } else {
-    ret = cl_copy_seq(output);
-  }
-  si_put_buffer_string(output);
-  return ret;
-}
-
 cl_object convert(language language, char* source){
   return cl_funcall(3, ecl_make_symbol("CONVERT", package),
                     language_symbol(language),
-                    octets_to_string(ecl_cstring_to_base_string_or_nil(source)));
+                    ecl_cstring_to_base_string_or_nil(source));
+                    /* ecl_make_constant_base_string(source, strlen(source))); */
+                    /* ecl_make_simple_base_string(source, strlen(source))); */
 }
 
 cl_object get_type(cl_object cl_object){
