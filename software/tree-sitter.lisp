@@ -5203,7 +5203,13 @@ which slots are expected to be used."
   ;;       but there aren't any rules that obviously require it--this may
   ;;       be the case if a rule is a subtype of another.
   ;; NOTE: esrap or smug may be useful if needed in the future.
-  (labels+ ((populate-slot->stack ()
+
+  ;; TODO:
+  ;;     Paul R.'s suggestion:
+  ;;     I think FSet maps would be a good match for what you're doing here.
+  ;;     Possibly in concert with box if you don't want to be bothered passing
+  ;;     the map around.
+  (labels ((populate-slot->stack ()
              "Create a hash table that maps a slot name to its
               corresponding stack."
              (alist-hash-table
