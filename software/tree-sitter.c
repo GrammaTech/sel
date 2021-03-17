@@ -37,10 +37,9 @@ char* get_string(cl_object cl_object){
 }
 
 char* to_string(cl_object cl_object){
-  return get_string(cl_funcall(4, c_string_to_object("format"),
-                               c_string_to_object("nil"),
-                               c_string_to_object("\"~&~S\""),
-                               cl_object));
+  return cl_format(3, ECL_NIL,
+                   c_string_to_object("\"~&~S\""),
+                   cl_object);
 }
 
 short to_short(cl_object cl_object){
@@ -48,10 +47,9 @@ short to_short(cl_object cl_object){
 }
 
 void show(cl_object cl_object){
-  cl_funcall(4, c_string_to_object("format"),
-             c_string_to_object("t"),
-             c_string_to_object("\"~&; ~S~%\""),
-             cl_object);
+  cl_format(3, ECL_T,
+            c_string_to_object("\"~&; ~S~%\""),
+            cl_object);
 }
 
 cl_object eval(char* source){
@@ -123,7 +121,7 @@ void stop(){
 }
 
 cl_object convert(language language, char* source){
-  return cl_funcall(3, c_string_to_object("convert"),
+  return cl_funcall(3, ecl_make_symbol("CONVERT", package),
                     language_symbol(language),
                     ecl_cstring_to_base_string_or_nil(source));
                     /* ecl_make_constant_base_string(source, strlen(source))); */
@@ -135,11 +133,11 @@ cl_object get_type(cl_object cl_object){
 }
 
 cl_object get_class(cl_object cl_object){
-  return cl_funcall(2, c_string_to_object("class-name"), (cl_class_of(cl_object)));
+  return cl_funcall(2, ecl_make_symbol("CLASS-NAME", package), (cl_class_of(cl_object)));
 }
 
 char* symbol_name(cl_object cl_object){
-  return to_string(cl_funcall(2, c_string_to_object("symbol-name"), cl_object));
+  return to_string(cl_funcall(2, ecl_make_symbol("SYMBOL-NAME", package), cl_object));
 }
 
 /* // Alternate implementation taking a single position offset into the text string.
@@ -151,24 +149,26 @@ char* symbol_name(cl_object cl_object){
 */
 
 cl_object ast_at_point(cl_object ast, int line, int column){
-  return cl_car(cl_last(1, cl_funcall(3, c_string_to_object("asts-containing-source-location"),
+  return cl_car(cl_last(1, cl_funcall(3,
+                                      ecl_make_symbol("ASTS-CONTAINING-SOURCE-LOCATION", package),
                                       ast,
-                                      cl_funcall(6, c_string_to_object("make-instance"),
+                                      cl_funcall(6,
+                                                 ecl_make_symbol("MAKE-INSTANCE", package),
                                                  ecl_make_symbol("SOURCE-LOCATION", package),
                                                  ecl_make_keyword("LINE"), line,
                                                  ecl_make_keyword("COLUMN"), column))));
 }
 
 char* source_text(cl_object ast){
-  return get_string(cl_funcall(2, c_string_to_object("source-text"), ast));
+  return get_string(cl_funcall(2, ecl_make_symbol("SOURCE-TEXT", package), ast));
 }
 
 cl_object children(cl_object ast){
-  return(cl_funcall(2, c_string_to_object("children"), ast));
+  return(cl_funcall(2, ecl_make_symbol("CHILDREN", package), ast));
 }
 
 cl_object child_slots(cl_object ast){
-  return cl_funcall(2, c_string_to_object("child-slots"), ast);
+  return cl_funcall(2, ecl_make_symbol("CHILD-SLOTS", package), ast);
 }
 
 cl_object slot(cl_object ast, const char* slot_name){
@@ -176,11 +176,12 @@ cl_object slot(cl_object ast, const char* slot_name){
 }
 
 cl_object parent(cl_object root, cl_object ast){
-  return cl_funcall(4, c_string_to_object("get-parent-ast"), root, ast);
+  return cl_funcall(4, ecl_make_symbol("GET-PARENT-AST", package), root, ast);
 }
 
-#define type_check(NAME) if(! null(cl_funcall(3, c_string_to_object("subtypep"), \
-                       cl_funcall(2, c_string_to_object("type-of"), ast), \
+#define type_check(NAME) if(! null(cl_funcall(3, ecl_make_symbol("SUBTYPEP", package), \
+                                              cl_funcall(2, ecl_make_symbol("TYPE-OF", package), \
+                                                         ast),          \
                        ecl_make_symbol( #NAME "-AST", package)))) \
     return NAME
 
@@ -227,37 +228,37 @@ bool subtypep(cl_object ast, char* type_name){
 
 /* General methods */
 cl_object function_asts(cl_object ast){
-  return cl_funcall(3, c_string_to_object("remove-if-not"),
+  return cl_funcall(3, ecl_make_symbol("REMOVE-IF-NOT", package),
                     c_string_to_object("{typep _ 'function-ast}"),
                     ast);
 }
 
 char* function_name(cl_object ast){
-  return get_string(cl_funcall(2, c_string_to_object("function-name"), ast));
+  return get_string(cl_funcall(2, ecl_make_symbol("FUNCTION-NAME", package), ast));
 }
 
 cl_object function_parameters(cl_object ast){
-  return cl_funcall(2, c_string_to_object("function-parameters"), ast);
+  return cl_funcall(2, ecl_make_symbol("FUNCTION-PARAMETERS", package), ast);
 }
 
 cl_object function_body(cl_object ast){
-  return cl_funcall(2, c_string_to_object("function-body"), ast);
+  return cl_funcall(2, ecl_make_symbol("FUNCTION-BODY", package), ast);
 }
 
 cl_object call_asts(cl_object ast){
-  return cl_funcall(3, c_string_to_object("remove-if-not"),
+  return cl_funcall(3, ecl_make_symbol("REMOVE-IF-NOT", package),
                     c_string_to_object("{typep _ 'call-ast}"),
                     ast);
 }
 
 cl_object call_arguments(cl_object ast){
-  return cl_funcall(2, c_string_to_object("call-arguments"), ast);
+  return cl_funcall(2, ecl_make_symbol("CALL-ARGUMENTS", package), ast);
 }
 
 cl_object call_module(cl_object ast){
-  return cl_funcall(2, c_string_to_object("call-module"), ast);
+  return cl_funcall(2, ecl_make_symbol("CALL-MODULE", package), ast);
 }
 
 cl_object call_function(cl_object ast){
-  return cl_funcall(2, c_string_to_object("call-function"), ast);
+  return cl_funcall(2, ecl_make_symbol("CALL-FUNCTION", package), ast);
 }
