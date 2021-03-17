@@ -1468,13 +1468,13 @@ This is to prevent certain classes from being seen as terminal symbols."
                   (list 'null))))
              (handle-seq (rule)
                "Handle RULE as a 'SEQ', 'REPEAT', 'REPEAT1', or 'CHOICE' rule."
-               (cons
-                (make-keyword (aget :type rule))
-                (if-let ((members (aget :members rule)))
-                  ;; seq and choice
-                  (mapcar #'handle-rule members)
-                  ;; repeat and repeat1
-                  (list (handle-rule (aget :content rule))))))
+               (let ((children (if-let ((members (aget :members rule)))
+                                 ;; seq and choice
+                                 (mapcar #'handle-rule members)
+                                 ;; repeat and repeat1
+                                 (list (handle-rule (aget :content rule))))))
+                 (unless (every #'null children)
+                   (cons (make-keyword (aget :type rule)) children))))
              (handle-field (rule)
                "Handle RULE as a 'FIELD' rule."
                `(:field
@@ -1945,7 +1945,7 @@ any slot usages in JSON-SUBTREE."
                ;; Prefer blank branches
                (if (find-if
                     (lambda (branch)
-                      (eql :blank (aget :type branch)))
+                      (equal "BLANK" (aget :type branch)))
                     branches)
                    ""
                    ;; Take the first branch if no blanks are available.
