@@ -5278,7 +5278,10 @@ which slots are expected to be used."
                (unless subrule (next-iteration))
                (for sub-slot->stack first (rule-handler subrule slot->stack)
                     then (rule-handler subrule sub-slot->stack))
-               (always sub-slot->stack)))
+               (always sub-slot->stack)
+               (finally (return (if (eql t sub-slot->stack)
+                                    slot->stack
+                                    sub-slot->stack)))))
            (rule-handler (rule slot->stack)
              "Handles dispatching RULE to its relevant rule handler."
              (ecase (car rule)
