@@ -1463,7 +1463,9 @@ This is to prevent certain classes from being seen as terminal symbols."
                   (when (aget :named content)
                     (list (aget :value content))))
                  ("CHOICE"
-                  (mappend #'gather-field-types (aget :members content)))))
+                  (mappend #'gather-field-types (aget :members content)))
+                 ("BLANK"
+                  (list 'null))))
              (handle-seq (rule)
                "Handle RULE as a 'SEQ', 'REPEAT', 'REPEAT1', or 'CHOICE' rule."
                (cons
