@@ -37,9 +37,7 @@ char* get_string(cl_object cl_object){
 }
 
 char* to_string(cl_object cl_object){
-  return cl_format(3, ECL_NIL,
-                   c_string_to_object("\"~&~S\""),
-                   cl_object);
+  return get_string(cl_format(3, c_string_to_object("nil"), c_string_to_object("\"~&~S\""), cl_object));
 }
 
 short to_short(cl_object cl_object){
@@ -47,9 +45,7 @@ short to_short(cl_object cl_object){
 }
 
 void show(cl_object cl_object){
-  cl_format(3, ECL_T,
-            c_string_to_object("\"~&; ~S~%\""),
-            cl_object);
+  cl_format(3, c_string_to_object("t"), c_string_to_object("\"~&; ~S~%\""), cl_object);
 }
 
 cl_object eval(char* source){
