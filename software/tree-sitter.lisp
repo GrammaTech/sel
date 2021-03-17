@@ -688,7 +688,6 @@ Note that mixins used here will be automatically exported later, and
 those that do not have separate class definitions will be given stub
 definitions.")
 
-  ;; TODO: find a better name for this.
   (defvar *choice-expansion-subclasses*
     '((:c
        ;; TODO: this should be moved over to using the pruned-rule before
@@ -3332,7 +3331,7 @@ should be rebound.")
   (:method (ast) nil)
   (:method ((ast identifier-ast)) t))
 
-(defmethod rebind-vars ((ast tree-sitter-ast)
+(defmethod rebind-vars ((ast interleaved-text)
                         var-replacements fun-replacements)
   "Replace variable and function references, returning a new AST.
 * AST node to rebind variables and function references for
@@ -3686,7 +3685,8 @@ AST ast to return the scopes for"
                       (when (and
                              (find-if
                               (lambda (identifier)
-                                (equal name (source-text identifier)))
+                                (equal name
+                                       (source-text identifier :trim t)))
                               (remove-if-not {typep _ 'python-identifier}
                                              (python-children ast)))
                              (not (eq enclosing-scope (genome obj))))
@@ -3767,7 +3767,7 @@ AST ast to return the scopes for"
                            {find-nonlocal-binding
                             _ (enclosing-scope obj enclosing-scope)}
                            (mapcar
-                            #'source-text
+                            (op (source-text _ :trim t))
                             (remove-if-not {typep _ 'python-identifier}
                                            (python-children ast)))))
                         (remove-if-not
@@ -5367,12 +5367,14 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
                  (:FIELD (handle-field rule child-stack))
                  (:CHILD (handle-child rule child-stack))
                  (:SEQ (handle-seq rule child-stack))))))
-    (cond
-      ((or (not collapsed-rule)
-           (= 1 (length collapsed-rule)))
-       t)
-      (collapsed-rule
-       (nth-value 1 (rule-handler collapsed-rule (get-children)))))))
+    (let ((children (get-children)))
+      (cond
+        ;; Prevent matching on an empty rule when there are children.
+        ((or (not collapsed-rule)
+             (= 1 (length collapsed-rule)))
+         (not children))
+        (collapsed-rule
+         (nth-value 1 (rule-handler collapsed-rule children)))))))
 
 ;;; TODO: add *correcting rules* use a hash table that has a "fixup" function
 ;;;       to fixup things? Need the function to run on the tree-sitter parse
@@ -5756,10 +5758,42 @@ correct class name for subclasses of SUPERCLASS."
             comment-pairs :initial-value output-transformation)))
 
 ;;; TODO: add in indentation. This is an initial implementation.
-(defmethod source-text ((ast structured-text) &key stream trim-surrounding-text)
-  ;; trim-surrounding-text removes the before and after text from the output.
+(defmethod source-text ((ast structured-text) &key stream (trim t))
+  ;; trim removes the before and after text from the output.
+  ;; Note that it will always trim with the first AST it sees since
+  ;; the top most AST shouldn't have any before or after text this
+  ;; should maintain previous functionality while still being able to
+  ;; reproduce the source-text at the top-level.
   (let ((transformation (output-transformation ast)))
-    (mapc {source-text _ :stream stream}
-          (if trim-surrounding-text
+    (mapc {source-text _ :stream stream :trim nil}
+          (if trim
               (butlast (cdr transformation))
               transformation))))
+
+(defmethod rebind-vars ((ast tree-sitter-ast)
+                        var-replacements fun-replacements)
+  "Replace variable and function references, returning a new AST.
+* AST node to rebind variables and function references for
+* VAR-REPLACEMENTS list of old-name, new-name pairs defining the rebinding
+* FUN-REPLACEMENTS list of old-function-info, new-function-info pairs defining
+the rebinding"
+  (if (ast-type-to-rebind-p ast)
+      (copy ast :computed-text (mapcar {rebind-vars _ var-replacements
+                                                       fun-replacements}
+                                          (computed-text ast)))
+      (apply #'copy ast
+             (mappend (lambda (child-slot)
+                        (destructuring-bind (name . arity) child-slot
+                          (list (make-keyword name)
+                                (cond ((= arity 0)
+                                       (mapcar {rebind-vars _ var-replacements
+                                                            fun-replacements}
+                                               (slot-value ast name)))
+                                      ((slot-value ast name)
+                                       (rebind-vars (slot-value ast name)
+                                                    var-replacements
+                                                    fun-replacements))))))
+                      (child-slots ast)))))
+
+;;; TODO: the strictly aliased rules aren't being set as computed-text-node-p
+;;;       particularly javascript-shorthand-property-identifier
