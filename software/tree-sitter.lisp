@@ -724,6 +724,12 @@ definitions.")
 For every extra prefix, every slot will get an extra reader and an
 extra initarg with that prefix.")
 
+  (defparameter *tree-sitter-computed-text-asts*
+    '((:python python-string))
+    "Alist of languages and their classes which should be computed-text ASTs
+but aren't detected as such. This is usually due to insufficient information
+stored on the AST or external rules.")
+
   (defun tree-sitter-ast-classes (name grammar-file node-types-file)
     (nest
      (flet ((alternate-class-name (name)
@@ -1311,18 +1317,24 @@ This is to prevent certain classes from being seen as terminal symbols."
                     ;; NOTE: it appears that all "SYMBOL"s that start with
                     ;;       an underscore are inlined.
                     ;;       DON'T inline the supertype rules.
-                    (if-let ((name
-                              (and (equal (aget :type alist)
-                                          "SYMBOL")
-                                   (eql #\_ (aref name-string 0))
-                                   (not (member name-string
-                                                (aget :supertypes grammar)
-                                                :test #'equal))
-                                   (aget (make-keyword
-                                          (convert-name name-string))
-                                         (aget :rules grammar)))))
-                      (transform-json-rule name grammar)
-                      alist)))
+                    (cond-let result
+                      ((not (and (equal (aget :type alist)
+                                       "SYMBOL")
+                                 (eql #\_ (aref name-string 0))
+                                 (not (member name-string
+                                              (aget :supertypes grammar)
+                                              :test #'equal))))
+                       alist)
+                      ((aget (make-keyword (convert-name name-string))
+                             (aget :rules grammar))
+                       ;; Transform it again before inlining.
+                       (transform-json-rule result grammar))
+                      ((member name-string (aget :externals grammar)
+                               :test #'equal
+                               :key {aget :name})
+                       ;; Remove it from consideration.
+                       `((:type . "BLANK")))
+                      (t alist))))
                 tree))
              (remove-prec-rules (tree)
                "Removes all precedent rules from TREE, replacing them with
@@ -1821,37 +1833,41 @@ outside of repeats."
                                expansion-stack json-expansion-stack)))))))
       (expand-choices pruned-rule transformed-json)))
 
-  (defun computed-text-ast-p (json-rule)
+  (defun computed-text-ast-p (language class-name json-rule)
     "Return T if JSON-RULE and TYPE represent an AST that contains variable text."
-    (walk-json
-     (lambda (subtree)
-       (when-let (type (aget :type subtree))
-         (string-case type
-           (("PATTERN" "TOKEN" "IMMEDIATE_TOKEN")
-            ;; PATTERN indicates that there
-            ;; is variable text.
-            ;; TOKEN and IMMEDIATE_TOKEN don't
-            ;; necessarily indicate variable text,
-            ;; but they generally have a CHOICE that
-            ;; selects from some default values, and
-            ;; since this isn't stored in a slot, it's
-            ;; generally a good idea to store it since
-            ;; things break otherwise. An example of this
-            ;; can be seen with language-provided types in
-            ;; C.
-            (return-from computed-text-ast-p t))
-           ("ALIAS"
-            ;; Aliases can have patterns in them,
-            ;; but they are recast to something else,
-            ;; so they do not need to be stored.
-            (throw 'prune nil)))))
-     json-rule))
+    (or
+     (member class-name
+             (aget (make-keyword language) *tree-sitter-computed-text-asts*))
+     (walk-json
+      (lambda (subtree)
+        (when-let (type (aget :type subtree))
+          (string-case type
+            (("PATTERN" "TOKEN" "IMMEDIATE_TOKEN")
+             ;; PATTERN indicates that there
+             ;; is variable text.
+             ;; TOKEN and IMMEDIATE_TOKEN don't
+             ;; necessarily indicate variable text,
+             ;; but they generally have a CHOICE that
+             ;; selects from some default values, and
+             ;; since this isn't stored in a slot, it's
+             ;; generally a good idea to store it since
+             ;; things break otherwise. An example of this
+             ;; can be seen with language-provided types in
+             ;; C.
+             (return-from computed-text-ast-p t))
+            ("ALIAS"
+             ;; Aliases can have patterns in them,
+             ;; but they are recast to something else,
+             ;; so they do not need to be stored.
+             (throw 'prune nil)))))
+      json-rule)))
 
   (defun generate-computed-text-method
-      (transformed-json-rule class-name &key skip-checking-json)
+      (transformed-json-rule class-name language &key skip-checking-json)
     "Generate an input transformation method for RULE if one is needed.
 CLASS-NAME is used as the specialization for the generated method."
-    (when (or skip-checking-json (computed-text-ast-p transformed-json-rule))
+    (when (or skip-checking-json
+              (computed-text-ast-p language class-name transformed-json-rule))
       ;; TODO: NOTE: create a generic and default for this somewhere.
       `(defmethod computed-text-node-p ((instance ,class-name)) t)))
 
@@ -1952,7 +1968,8 @@ any slot usages in JSON-SUBTREE."
       (apply #'string+ (flatten (rule-handler json-subtree)))))
 
   (defun generate-output-transformation
-      (pruned-rule transformed-json-rule class-name class-name->class-definition)
+      (pruned-rule transformed-json-rule language class-name
+       class-name->class-definition)
     ;; TODO: there's a whole lot of noise in the subclassing.
     ;;       Maybe there's a way to leverage some of the structured-rule-p
     ;;       logic to prevent subclassing when the output-transformation is
@@ -2008,9 +2025,7 @@ any slot usages in JSON-SUBTREE."
                    (get-json-subtree-string json-rule)))
              (generate-ast-list (json-rule pruned-rule)
                "Generate the form that creates a list of ASTs and strings."
-               (if (computed-text-ast-p json-rule)
-                   '(computed-text-output-transformation ast)
-                   (generate-rule-handler json-rule pruned-rule)))
+               (generate-rule-handler json-rule pruned-rule))
              (generate-body (transformed-json-rule pruned-rule)
                "Generate the body of the output transformation method."
                `(list
@@ -2021,7 +2036,9 @@ any slot usages in JSON-SUBTREE."
              (generate-method (transformed-json-rule pruned-rule)
                "Generate the output transformation method."
                (cond
-                 ((computed-text-ast-p transformed-json-rule))
+                 ((computed-text-ast-p
+                   language class-name transformed-json-rule)
+                  nil)
                  ((every #'null (cdr pruned-rule))
                   ;; This is the case where we have a string representation for
                   ;; the full thing.
@@ -2126,14 +2143,14 @@ subclass based on the order of the children were read in."
                "Generate the variable text methods for the rules in
                 JSON-EXPANSION."
                (mapcar
-                (op (generate-computed-text-method _ (car _)))
+                (op (generate-computed-text-method _ (car _) language-prefix))
                 json-expansions subclass-pairs))
              (generate-output-transformations
                  (pruned-expansions json-expansions subclass-pairs)
                "Generate the output transformations for each subclass."
                (mapcar (lambda (pruned-rule json-rule class-name)
                          (generate-output-transformation
-                          pruned-rule json-rule class-name
+                          pruned-rule json-rule language-prefix class-name
                           class-name->class-definition))
                        pruned-expansions json-expansions
                        (mapcar #'car subclass-pairs))))
@@ -2252,7 +2269,7 @@ subclass based on the order of the children were read in."
                 ;; that shouldn't happen often and should cover external
                 ;; named nodes.
                 (generate-computed-text-method
-                 nil lisp-type :skip-checking-json t))
+                 nil lisp-type language-prefix :skip-checking-json t))
                (t
                 ;; If a type doesn't have a rule and is unnamed, it is considered
                 ;; a terminal symbol.
@@ -5218,13 +5235,17 @@ which slots are expected to be used."
 
              ;; NOTE: this marks which branch was taken by adding a
              ;;       list of (:choice branch-num) into the children list.
-             (iter
-               (for branch in (cdr rule))
-               (for i upfrom 0)
-               (unless branch (next-iteration))
-               (for copy = (copy-hash-table slot->stack))
-               (push-child-stack `(:choice ,i) copy)
-               (thereis (rule-handler branch copy))))
+             (if (every #'null (cdr rule))
+                 ;; If every branch is nil, assume a match on the first one.
+                 (lret ((copy (copy-hash-table slot->stack)))
+                   (push-child-stack `(:choice 0) copy))
+                 (iter
+                   (for branch in (cdr rule))
+                   (for i upfrom 0)
+                   (unless branch (next-iteration))
+                   (for copy = (copy-hash-table slot->stack))
+                   (push-child-stack `(:choice ,i) copy)
+                   (thereis (rule-handler branch copy)))))
            (handle-repeat (rule slot->stack
                            &optional continuation?
                            &aux (copy (copy-hash-table slot->stack)))
