@@ -19,7 +19,7 @@
   '("h" "cpp" "cp" "cc")
   "List of extensions we will consider for evolving.")
 
-(define-software cpp-project (parseable-project compilable)
+(define-software cpp-project (parseable-project compilable include-paths-mixin)
   ()
   (:documentation "Project specialization for c++ software objects."))
 

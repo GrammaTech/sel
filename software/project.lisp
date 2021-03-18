@@ -24,7 +24,10 @@
            :collect-evolve-files
            :collect-other-files
            :all-files
-           :pick-file))
+           :pick-file
+           :include-paths
+           :include-paths-mixin
+           :find-include-files))
 (in-package :software-evolution-library/software/project)
 (in-readtable :curry-compose-reader-macros)
 
@@ -462,18 +465,31 @@ making a directory."
 ;;; some sort of standard-conforming stub.  This method does not
 ;;; yet search for such include files.
 
+(defclass include-paths-mixin ()
+  ;; May want a second set of paths for system include files
+  ((include-paths :initarg :include-paths
+                  :initform (list (make-pathname :directory nil))
+                  :accessor include-paths
+                  :documentation "List of pathnames (either absolute
+or relative to the root of the project) in which include files are
+to be searched"))
+  (:documentation "Mixin for finding include files.  This can be combined
+with a project class or a class for specific files."))
+
 (defgeneric find-include-files (project file include-name)
   (:documentation "Locate the include file(s) for inclusion of include-name."))
 
 (defmethod find-include-files ((proj project) (file t) (include-name string))
-  (let* ((include-pathname (merge-pathnames (pathname include-name) (make-pathname :type "h")))
-         (dir-length (length (pathname-directory include-pathname))))
-    (iter (for (s . c) in (all-files proj))
-          (let ((p (pathname s)))
-            (when (and (equal (pathname-type include-pathname) (pathname-type p))
-                       (equal (pathname-name include-pathname) (pathname-name p))
-                       (let ((p-dir-length (length (pathname-directory p))))
-                         (and (<= dir-length p-dir-length)
-                              (equal (subseq (pathname-directory p) (- p-dir-length dir-length))
-                                     (pathname-directory include-pathname)))))
-              (collecting c))))))
+  (find-include-files proj file (merge-pathnames (pathname include-name)
+                                                 (make-pathname :type "h"))))
+
+(defmethod find-include-files ((proj project) (file t) (include-pathname pathname))
+  (let* ((include-paths (include-paths proj)))
+    (iter (for path in include-paths)
+          (assert (typep path 'pathname))
+          (let ((full-path (merge-pathnames* include-pathname path)))
+            (when-let ((p (find full-path (all-files proj) :key (lambda (p) (pathname (car p)))
+                                                           :test #'equal)))
+                      (collecting (cdr p)))))))
+
+;;; Also needed: compute closure of includes
