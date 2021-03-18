@@ -5809,12 +5809,23 @@ correct class name for subclasses of SUPERCLASS."
 (defmethod output-transformation :around
     ((ast structured-text)
      &rest rest &key &allow-other-keys)
-  (let ((output-transformation (call-next-method))
-        (comment-pairs (sort (comments ast) #'> :key #'cdr)))
+  (declare (ignorable rest))
+  (let* ((output-transformation (call-next-method))
+         (comment-pairs (sort (comments ast) #'> :key #'cdr))
+         (before-text (car output-transformation))
+         (after-text (lastcar output-transformation)))
+    ;; NOTE: we want to remove any empty string from consideration
+    ;;       that isn't the before or after text.
     ;; Inserts comments from the back of the list to the front.
-    (reduce (lambda (result comment-pair)
-              (insert result (1+ (cdr comment-pair)) (car comment-pair)))
-            comment-pairs :initial-value output-transformation)))
+    `(,before-text
+      ,@(reduce (lambda (result comment-pair)
+                  (insert result (cdr comment-pair) (car comment-pair)))
+                comment-pairs
+                :initial-value
+                (remove-if
+                 (op (and (stringp _1) (emptyp _1)))
+                 (butlast (cdr output-transformation))))
+      ,after-text)))
 
 ;;; TODO: add in indentation. This is an initial implementation.
 (defmethod source-text ((ast structured-text) &key stream (trim t))
