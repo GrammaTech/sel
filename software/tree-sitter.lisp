@@ -5217,6 +5217,13 @@ which slots are expected to be used."
                (lambda (slot &aux (value (slot-value ast slot)))
                  (cons slot (ensure-cons value)))
                slots)))
+           (identical-slot-stacks-p (slot->stack1 slot->stack2)
+             "Return T if the slot stacks in slot->stack are identical
+              except the child stack."
+             (iter
+               (for (slot stack) in-hashtable slot->stack1)
+               (always (or (eql slot child-stack-key)
+                           (eq stack (gethash slot slot->stack2))))))
            (push-child-stack (value slot->stack)
              "Push VALUE onto the child stack in SLOT->STACK."
              (push value (gethash child-stack-key slot->stack)))
@@ -5260,6 +5267,7 @@ which slots are expected to be used."
                      (t (setf empty-match? i)))
                    (finally
                     (return
+                      ;; Handles the case where it matched on an empty branch.
                       (when-let ((copy (and empty-match?
                                             (copy-hash-table slot->stack))))
 
@@ -5284,7 +5292,10 @@ which slots are expected to be used."
                (cond
                  ((and repeat-slot->stack
                        ;; Prevent infinite recursion on a nested, empty repeat.
-                       (not (eq copy repeat-slot->stack)))
+                       (not (eq copy repeat-slot->stack))
+                       ;; Check if they are the same except the child-stack.
+                       (not (identical-slot-stacks-p
+                             slot->stack repeat-slot->stack)))
                   (handle-repeat rule repeat-slot->stack t))
                  (t
                   ;; NOTE: this should only triggered once when the
