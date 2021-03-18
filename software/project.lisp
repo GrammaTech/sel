@@ -484,12 +484,21 @@ with a project class or a class for specific files."))
                                                  (make-pathname :type "h"))))
 
 (defmethod find-include-files ((proj project) (file t) (include-pathname pathname))
-  (let* ((include-paths (include-paths proj)))
-    (iter (for path in include-paths)
-          (assert (typep path 'pathname))
-          (let ((full-path (merge-pathnames* include-pathname path)))
-            (when-let ((p (find full-path (all-files proj) :key (lambda (p) (pathname (car p)))
-                                                           :test #'equal)))
-                      (collecting (cdr p)))))))
+  (include-files-in-files proj (include-paths proj) include-pathname))
+
+(defmethod find-include-files ((proj project) (file include-paths-mixin) (include-path pathname))
+  (if-let ((include-paths (include-paths file)))
+    (include-files-in-files proj include-path include-path)
+    (call-next-method)))
+
+(defgeneric include-files-in-files (proj include-paths include-pathname)
+  (:method ((proj project) (include-paths list) (include-pathname pathname))
+    (let ((all-files (all-files proj)))
+      (iter (for path in include-paths)
+            (assert (typep path 'pathname))
+            (let ((full-path (merge-pathnames* include-pathname path)))
+              (when-let ((p (find full-path all-files :key [#'pathname #'car]
+                                                      :test #'equal)))
+                (collecting (cdr p))))))))
 
 ;;; Also needed: compute closure of includes

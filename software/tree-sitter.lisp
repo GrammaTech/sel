@@ -218,6 +218,8 @@
         :software-evolution-library/components/file
         :software-evolution-library/components/formatting)
   (:import-from :uiop)
+  (:import-from :software-evolution-library/software/project
+        :find-include-files :include-paths :include-paths-mixin)
   (:import-from :cffi :translate-camelcase-name :load-foreign-library-error)
   #.(if (asdf:find-system :cl-tree-sitter nil)
         '(:import-from :cl-tree-sitter :register-language)
@@ -350,9 +352,10 @@ searched to populate `*tree-sitter-language-files*'.")
     "Files defining tree sitter languages.")
 
 
-  (define-software c/cpp ()
+  (define-software c/cpp (include-paths-mixin)
     ()
-    (:documentation "Mix-in class for tree-sitter c and cpp classes"))
+    (:documentation "Mix-in class for tree-sitter c and cpp classes")
+    (:default-initargs :include-paths nil))
 
   (define-software ecma ()
     ()
