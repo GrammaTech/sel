@@ -5248,12 +5248,25 @@ which slots are expected to be used."
                  (lret ((copy (copy-hash-table slot->stack)))
                    (push-child-stack `(:choice 0) copy))
                  (iter
+                   (iter:with empty-match?)
                    (for branch in (cdr rule))
                    (for i upfrom 0)
-                   (unless branch (next-iteration))
-                   (for copy = (copy-hash-table slot->stack))
-                   (push-child-stack `(:choice ,i) copy)
-                   (thereis (rule-handler branch copy)))))
+                   (cond
+                     (branch
+                      (for copy = (copy-hash-table slot->stack))
+                      (push-child-stack `(:choice ,i) copy)
+                      (when-let ((matched? (rule-handler branch copy)))
+                        (leave matched?)))
+                     (t (setf empty-match? i)))
+                   (finally
+                    (return
+                      (when-let ((copy (and empty-match?
+                                            (copy-hash-table slot->stack))))
+
+                        ;; TODO: add the choice onto the stack
+                        (push-child-stack `(:choice ,empty-match?)
+                                          copy)
+                        copy))))))
            (handle-repeat (rule slot->stack
                            &optional continuation?
                            &aux (copy (copy-hash-table slot->stack)))
