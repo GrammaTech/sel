@@ -28,7 +28,7 @@ no spaces, quotes or newlines.")
     (format nil "~d" hash))
   (:method ((it string)) (string-to-base64-string it))
   (:method ((it integer)) (format nil "~d" it))
-  (:method ((it list)) (string-join (mapcar #'encode-interface it) #\Comma)))
+  (:method ((it list)) (string-join (mapcar #'encode-interface it) #\,)))
 
 (defmethod encode-interface :around (it)
   ;; The first three characters of every encoded string gives it's type.
@@ -49,7 +49,7 @@ no spaces, quotes or newlines.")
     (string-case key
       ("STR" (base64-string-to-string payload))
       ("AST" (gethash (parse-integer payload) external-asts))
-      ("LST" (mapcar #'decode-interface (split-sequence #\Comma payload)))
+      ("LST" (mapcar #'decode-interface (split-sequence #\, payload)))
       ("INT" (parse-integer payload)))))
 
 (-> handle-interface (string) string)
