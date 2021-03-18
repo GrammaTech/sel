@@ -1,67 +1,50 @@
 (defpackage :software-evolution-library/python/tree-sitter-interface
   (:nicknames :sel/py/ts-int)
   (:use :gt/full
-        :cl-base64
+        :cl-json
         :software-evolution-library
         :software-evolution-library/command-line
         :software-evolution-library/software/parseable
         :software-evolution-library/software/tree-sitter
-        :stefil+)
+        :software-evolution-library/utility/range)
   (:export :run-tree-sitter-interface))
 (in-package :software-evolution-library/python/tree-sitter-interface)
 (in-readtable :curry-compose-reader-macros)
 
+
+;;;; Command line interface:
 (defvar external-asts (make-hash-table)
   "Hold onto ASTs which might be referenced externally.")
 
 (declaim (inline safe-intern))
 (defun safe-intern (string) (intern (string-upcase string) *package*))
 
-;; (-> encode-interface ((or ast integer string list)) string)
-(defgeneric encode-interface (it)
-  (:documentation "Encode IT for passing through the text interface.
-The resulting string will start with three characters giving the type,
-followed by a colon followed by a payload.  The payload will contain
-no spaces, quotes or newlines.")
+;; (-> serialize (t) t)
+(defgeneric serialize (it)
+  (:documentation "Serialize IT to a form for use with the JSON text interface.")
   (:method ((it ast) &aux (hash (ast-hash it)))
     (setf (gethash hash external-asts) it)
-    (format nil "~d" hash))
-  (:method ((it string)) (string-to-base64-string it))
-  (:method ((it integer)) (format nil "~d" it))
-  (:method ((it list)) (string-join (mapcar #'encode-interface it) #\,)))
+    `((:type . :ast) (:hash . ,hash)))
+  (:method ((it list)) (mapcar #'serialize it))
+  (:method ((it t)) it))
 
-(defmethod encode-interface :around (it)
-  ;; The first three characters of every encoded string gives it's type.
-  (concatenate 'string
-               (etypecase it
-                 (ast "AST")
-                 (string "STR")
-                 (list "LST")
-                 (integer "INT"))
-               ":"
-               (call-next-method)))
+;; (-> deserialize (t) t)
+(defgeneric deserialize (it)
+  (:documentation "Deserialize IT from a form used with the JSON text interface.")
+  (:method ((it list))
+    (if (aget :hash it)
+        (gethash (aget :hash it) external-asts)
+        (mapcar #'deserialize it)))
+  (:method ((it t)) it))
 
-(-> decode-interface (string) (or ast number string list))
-(defun decode-interface (string)
-  "Decode an interface STRING back to a common lisp object."
-  (let ((key (subseq string 0 3))    ; The first three characters are the type,
-        (payload (subseq string 4))) ; then a colon, then the payload.
-    (string-case key
-      ("STR" (base64-string-to-string payload))
-      ("AST" (gethash (parse-integer payload) external-asts))
-      ("LST" (mapcar #'decode-interface (split-sequence #\, payload)))
-      ("INT" (parse-integer payload)))))
-
-(-> handle-interface (string) string)
-(defun handle-interface (line)
-  "Handle a line of input from the INTERFACE.
-The line should start with a function name from the API followed by a
-space followed by a space-delimited series of string-encoded
-arguments."
-  (destructuring-bind (function-str . argument-strs) (split-sequence #\Space line)
-    (encode-interface
+(-> handle-interface (list) t)
+(defun handle-interface (json)
+  "Handle a JSON input from the INTERFACE.  The JSON list should start with a
+function name from the API followed by the arguments."
+  (destructuring-bind (function-str . arguments) json
+    (serialize
      (apply (safe-intern (concatenate 'string "INT/" function-str))
-            (mapcar #'decode-interface argument-strs)))))
+            (mapcar #'deserialize arguments)))))
 
 (define-command tree-sitter-interface (&spec (append +common-command-line-options+
                                                      +interactive-command-line-options+))
@@ -72,15 +55,23 @@ arguments."
             (lisp-implementation-type) (lisp-implementation-version))
   (declare (ignorable quiet verbose load eval language manual))
   (when help (show-help-for-tree-sitter-interface) (exit-command tree-sitter-interface 0))
-  (loop :for line := (read-line) :until (string= line "QUIT")
-     :do (princ (handle-interface line))))
+  (loop :for line := (read-line) :until (equalp line "QUIT")
+     :do (format *standard-output* "~a~%"
+                 (nest (encode-json-to-string)
+                       (handle-interface)
+                       (decode-json-from-string line)))))
 
 
 ;;;; API:
 (-> int/ast (string string) ast)
 (defun int/ast (language source-text)
-  (convert (safe-intern (concatenate 'string (string-upcase language) "-AST"))
-           source-text))
+  (handler-case
+      (convert (safe-intern (concatenate 'string (string-upcase language) "-AST"))
+               source-text)
+    (condition (c) (declare (ignorable c)) nil)))
+
+(-> int/parent (ast ast) ast)
+(defun int/parent (root ast) (get-parent-ast root ast))
 
 (-> int/children (ast) list)
 (defun int/children (ast) (children ast))
@@ -88,20 +79,31 @@ arguments."
 (-> int/source-text (ast) string)
 (defun int/source-text (ast) (source-text ast))
 
-(-> int/ast-at-point (ast integer integer) ast)
-(defun int/ast-at-point (ast column row)
-  (car (asts-containing-source-location ast
-                                        (make-instance 'source-location
-                                          :column column :line row ))))
-
-(-> int/child-slots (ast) list)
-(defun int/child-slots (ast) (mapcar «list #'car #'cdr» (child-slots ast)))
+(defun int/child-slots (ast)
+  (mapcar «list [#'symbol-name #'car] #'cdr» (child-slots ast)))
 
 (-> int/child-slot (ast string) (or list ast))
 (defun int/child-slot (ast slot-name) (slot-value ast (safe-intern slot-name)))
 
+(-> int/ast-at-point (ast integer integer) ast)
+(defun int/ast-at-point (ast line column)
+  (lastcar (asts-containing-source-location ast
+                                            (make-instance 'source-location
+                                              :line line :column column))))
+
+(-> int/child-slots (ast) list)
 (-> int/ast-type (ast) string)
 (defun int/ast-type (ast) (symbol-name (type-of ast)))
+
+(-> int/ast-types (ast) list)
+(defun int/ast-types (ast)
+  (labels ((int/ast-types-helper (clazz)
+             (unless (eq (class-name clazz) t)
+               (cons (symbol-name (class-name clazz))
+                     (mappend #'int/ast-types-helper
+                              (class-direct-superclasses clazz))))))
+    (remove-duplicates (int/ast-types-helper (find-class (type-of ast)))
+                       :test #'equal)))
 
 (-> int/ast-language (ast) string)
 (defun int/ast-language (ast)
@@ -110,6 +112,14 @@ arguments."
     (sel/sw/ts::javascript-ast "JAVASCRIPT")
     (sel/sw/ts::c-ast "C")
     (sel/sw/ts::cpp-ast "CPP")))
+
+(-> int/function-asts (ast) list)
+(defun int/function-asts (ast)
+  (remove-if-not {typep _ 'function-ast} (convert 'list ast)))
+
+(-> int/call-asts (ast) list)
+(defun int/call-asts (ast)
+  (remove-if-not {typep _ 'call-ast} (convert 'list ast)))
 
 (-> int/function-name (ast) string)
 (defun int/function-name (ast) (function-name ast))
@@ -120,60 +130,11 @@ arguments."
 (-> int/function-body (ast) ast)
 (defun int/function-body (ast) (function-body ast))
 
-(-> int/call-arguments (ast) list)
-(defun int/call-arguments (ast) (call-arguments ast))
-
 (-> int/call-function (ast) ast)
 (defun int/call-function (ast) (call-function ast))
 
-(-> int/ast-parent (ast ast) ast)
-(defun int/ast-parent (root ast) (get-parent-ast root ast))
+(-> int/call-module (ast ast) string)
+(defun int/call-module (root ast) (provided-by root ast))
 
-(-> int/enclosing-function (ast ast) ast)
-(defun int/enclosing-function (root ast) (enclosing-definition root ast))
-
-(-> int/in-scope-names (ast ast) list)
-(defun int/in-scope-names (root ast) (mapcar {aget :name} (get-vars-in-scope root ast)))
-
-(-> int/defined-functions (ast) list)
-(defun int/defined-functions (ast)
-  (remove-if-not [{typep _ 'function-ast}{aget :scope}]
-                 (apply #'append (scopes ast))))
-
-(-> int/callsites (ast ast) list)
-(defun int/callsites (root ast)
-  (remove-if-not [{equalp (function-name ast)} #'call-name]
-                 (remove-if-not {typep _ 'call-ast} root)))
-
-(-> int/callsite-signatures (ast) list)
-(defun int/callsite-signatures (root)
-  (mapcar «cons #'call-name [{mapcar #'variable-name} #'call-arguments]»
-          (remove-if-not {typep _ 'call-ast} root)))
-
-(-> int/callsite-module (ast ast) string)
-(defun int/callsite-module (root ast) (provided-by root ast))
-
-
-;;;; Test
-(defroot test)
-(defsuite test "Tree sitter interface tests")
-
-(deftest encode-decode-int ()
-  (dotimes (n 10)
-    (let ((it (random 10)))
-      (is (= it (decode-interface (encode-interface it)))))))
-
-(deftest encode-decode-string ()
-  (let ((it "Tree sitter interface tests"))
-    (is (string= it (decode-interface (encode-interface it))))))
-
-(deftest encode-decode-list ()
-  (let ((it (list 10 "Tree sitter interface tests" 0)))
-    (is (equalp it (decode-interface (encode-interface it))))))
-
-(deftest create-an-ast ()
-  (let ((result (handle-interface (format nil "AST ~a ~a"
-                                          (encode-interface "PYTHON")
-                                          (encode-interface "x + 88")))))
-    (is (stringp result))
-    (is (zerop (search "AST" result)))))
+(-> int/call-arguments (ast) list)
+(defun int/call-arguments (ast) (call-arguments ast))

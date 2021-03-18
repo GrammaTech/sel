@@ -5,6 +5,7 @@ ifneq ("$(wildcard local.mk)","")
 include local.mk
 endif
 
+ROOT_DIR = $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 PACKAGE_NAME = software-evolution-library
 PACKAGE_NICKNAME = sel
 API_TITLE = "Software Evolution Library Index"
@@ -109,4 +110,4 @@ test/etc/gcd/gcd.s: test/etc/gcd/gcd.c
 	$(CC) $< -S -masm=intel -o $@
 
 python-check: bin/tree-sitter-interface
-	python3 python/test.py
+	PATH=$(ROOT_DIR)/bin:$$PATH pytest python

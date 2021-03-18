@@ -1,0 +1,90 @@
+SEL exports a Python library which exposes functionality for parsing,
+traversing, and inspecting source code from multiple languages.
+Specifically, this library exposes SEL's tree-sitter based asts (see
+@ref{Source Code with @code{tree-sitter}}) and the generic functions
+defined upon those ASTs.  The ultimate Python library then has two
+large sources of functionality, (i) the tree-sitter libraries which
+provide the ability to parse a large number of programming languages
+into ASTs and (ii) the SEL machinery leveraging Common Lisp's object
+system (CLOS) and generic functions to build a large multi-language
+API for software analysis and transformation over these ASTs.
+
+The remainder of this section walks through building, running, and
+troubleshooting this Python Library.
+
+@menu
+* Building the SEL Python Library::
+* Running the SEL Python Library::
+* Troubleshooting the SEL Python Library::
+@end menu
+
+@node Building the SEL Python Library, Running the SEL Python Library, Python Library, Python Library
+@section Building the SEL Python Library
+@cindex building the sel python library
+
+There are two pieces to the SEL Python Library; the LISP interface thru which
+the python library interacts with SEL and the python library itself.
+
+To begin, we will start with the LISP interface.  From the base of the SEL
+repository, the following is sufficient to build the interface and place
+it on your @code{$PATH}:
+
+@example
+make bin/tree-sitter-interface
+export PATH=$(pwd)/bin:$PATH
+@end example
+
+Now that we have built the LISP interface, we can build the python library.
+First, enter the @code{python/} directory of this repository.  From there,
+build and install the library as follows:
+
+@example
+python3 setup.py bdist_wheel
+pip3 install dist/*
+@end example
+
+@node Running the SEL Python Library, Troubleshooting the SEL Python Library, Building the SEL Python Library, Python Library
+@section Running the SEL Python Library
+@cindex running the sel python library
+
+The actual Python interface is defined in @code{sel.py}.  The following
+demonstrates usage of this library.
+
+@example
+sel$ python3
+Python 3.9.2 (default, Feb 19 2021, 17:43:04)
+[Clang 12.0.0 (clang-1200.0.32.29)] on darwin
+Type "help", "copyright", "credits" or "license" for more information.
+>>> import sel
+>>> it = sel.AST("python", "x + 88")
+>>> it.children()
+[<sel.AST object at 0x1048bd460>]
+>>> it.children()[0].children()
+[<sel.AST object at 0x1048f7b50>]
+>>> it.children()[0].children()[0].children()
+[<sel.AST object at 0x104845790>, <sel.AST object at 0x1048bf280>, <sel.AST object at 0x104904cd0>]
+>>> it.children()[0].children()[0].children()[1].source_text()
+'+'
+>>> it.children()[0].children()[0].children()[0].source_text()
+'x'
+>>> it.children()[0].children()[0].children()[2].source_text()
+'88'
+>>> it.children()[0].children()[0].source_text()
+'x + 88'
+>>> it.children()[0].children()[0].child_slots()
+[['PYTHON-LEFT', 1], ['PYTHON-OPERATOR', 1], ['PYTHON-RIGHT', 1], ['CHILDREN', 0]]
+>>> list(map(lambda x:x.source_text(), it.children()[0].children()[0].children()))
+['x', '+', '88']
+@end example
+
+@node Troubleshooting the SEL Python Library, , Running the SEL Python Library, Python Library
+@section Troubleshooting the SEL Python Library
+@cindex troubleshooting the sel python library
+
+@enumerate
+@item
+If you see the error @code{"tree-sitter-interface binary must be on your $PATH."},
+then the @code{tree-sitter-interface} binary has not been built and placed on your
+@code{$PATH} environment variable as described in @ref{Building the SEL Python Library}.
+
+@end enumerate
