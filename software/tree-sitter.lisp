@@ -5404,7 +5404,7 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
              (mvlet ((repeat-stack
                       matched?
                       (rule-handler (cadr rule) child-stack)))
-               (if (and matched? repeat-stack)
+               (if matched?
                    (handle-repeat rule repeat-stack)
                    (values child-stack t))))
            (handle-seq (rule child-stack)
@@ -5431,7 +5431,9 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
              (= 1 (length collapsed-rule)))
          (not children))
         (collapsed-rule
-         (nth-value 1 (rule-handler collapsed-rule children)))))))
+         (mvlet ((stack success? (rule-handler collapsed-rule children)))
+           ;; Avoid matching a rule if children still exist.
+           (and (not stack) success?)))))))
 
 ;;; TODO: add *correcting rules* use a hash table that has a "fixup" function
 ;;;       to fixup things? Need the function to run on the tree-sitter parse
