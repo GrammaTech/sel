@@ -447,3 +447,33 @@ making a directory."
 
 (defmethod convert ((to-type (eql 'list)) (project project) &key &allow-other-keys)
   (mappend [{convert 'list} #'cdr] (evolve-files project)))
+
+;;; Include file processing
+
+;;; In order to associate identifiers with definitions in C and C++,
+;;; we need to be able to find include files.  This function is a simple
+;;; stab at that.  It assumes no two include files have the same name
+;;; in a project (this is true of magma).  If this is not true, we will
+;;; need to associate lookup paths with each file.
+;;;
+;;; The method here does not use the FILE argument.  It also doesn't
+;;; necessarily handle <...> includes as in C++.   I assume library
+;;; include files will not be handled directly, but instead will use
+;;; some sort of standard-conforming stub.  This method does not
+;;; yet search for such include files.
+
+(defgeneric find-include-files (project file include-name)
+  (:documentation "Locate the include file(s) for inclusion of include-name."))
+
+(defmethod find-include-files ((proj project) (file t) (include-name string))
+  (let* ((include-pathname (merge-pathnames (pathname include-name) (make-pathname :type "h")))
+         (dir-length (length (pathname-directory include-pathname))))
+    (iter (for (s . c) in (all-files proj))
+          (let ((p (pathname s)))
+            (when (and (equal (pathname-type include-pathname) (pathname-type p))
+                       (equal (pathname-name include-pathname) (pathname-name p))
+                       (let ((p-dir-length (length (pathname-directory p))))
+                         (and (<= dir-length p-dir-length)
+                              (equal (subseq (pathname-directory p) (- p-dir-length dir-length))
+                                     (pathname-directory include-pathname)))))
+              (collecting c))))))
