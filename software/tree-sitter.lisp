@@ -1309,7 +1309,8 @@ This is to prevent certain classes from being seen as terminal symbols."
                                  (:content ,@content))))
                              alist))
                          tree))
-             (expand-inline-rules (tree)
+             (expand-inline-rules
+                 (tree &aux (inline-rules (aget :inline grammar)))
                "Expand all inline rules."
                (map-json
                 (lambda (alist)
@@ -1320,7 +1321,11 @@ This is to prevent certain classes from being seen as terminal symbols."
                     (cond-let result
                       ((not (and (equal (aget :type alist)
                                        "SYMBOL")
-                                 (eql #\_ (aref name-string 0))
+                                 (or (eql #\_ (aref name-string 0))
+                                     ;; Python has one inline rule without
+                                     ;; an underscore.
+                                     (member name-string inline-rules
+                                             :test #'equal))
                                  (not (member name-string
                                               (aget :supertypes grammar)
                                               :test #'equal))))
