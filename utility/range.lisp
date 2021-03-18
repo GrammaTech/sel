@@ -37,11 +37,13 @@
    (column :initarg :column :accessor column :type fixnum)))
 
 (defclass source-range ()
-  ((begin :initarg :begin :accessor begin :type source-location)
+  ((begin :initarg :begin :accessor begin :type source-location
+          :initarg :start)
    (end   :initarg :end   :accessor end   :type source-location)))
 
 (defclass range ()
-  ((begin :initarg :begin :accessor begin :type fixnum)
+  ((begin :initarg :begin :accessor begin :type fixnum
+          :initarg :start)
    (end   :initarg :end   :accessor end   :type fixnum)))
 
 (defmethod print-object ((obj source-location) stream)
