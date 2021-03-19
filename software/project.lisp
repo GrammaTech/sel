@@ -488,7 +488,6 @@ languages, such as C or C++."))
   (include-files-in-files proj (include-paths proj) include-pathname))
 
 (defmethod find-include-files ((proj project) (file include-paths-mixin) (include-path pathname))
-  ;; TODO: make this also look locally
   (if-let ((include-paths (include-paths file)))
     (include-files-in-files proj include-path include-path)
     (call-next-method)))
@@ -496,9 +495,9 @@ languages, such as C or C++."))
 (defgeneric include-files-in-files (proj include-paths include-pathname)
   (:documentation "Given a list of include paths, and a pathname for a
 specific include, returns a list of sw objects for the matching include
-files.   For example, if PROJ has include paths ("include/" "other-include/"),
+files.   For example, if PROJ has include paths (\"include/\" \"other-include/\"),
 and there is a sw object for the file include/lib/foo.h, then when
-include-pathname is #p"lib/foo.h" this will return the list containing
+include-pathname is #p\"lib/foo.h\" this will return the list containing
 the sw object for include/lib/foo.h")
   ;; This has been broken out into a separate function because it was
   ;; needed for two methods of find-include-files: one where include-paths
