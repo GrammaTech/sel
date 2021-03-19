@@ -688,7 +688,7 @@ Note that mixins used here will be automatically exported later, and
 those that do not have separate class definitions will be given stub
 definitions.")
 
-  (defvar *choice-expansion-subclasses*
+  (defparameter *choice-expansion-subclasses*
     '((:c
        ;; TODO: this should be moved over to using the pruned-rule before
        ;;       merging into master.
@@ -697,7 +697,24 @@ definitions.")
         (c-update-expression-prefix
          (:seq (:field c-operator c--- c-++) (:field c-argument c--expression)))
         (c-update-expression-postfix
-         (:seq (:field c-argument c--expression) (:field c-operator c--- c-++)))))))
+         (:seq (:field c-argument c--expression) (:field c-operator c--- c-++)))))
+      (:python
+       (python-tuple
+        ;; TODO: think of an actual name for this? The trailing hyphen seems
+        ;;       reasonable though.
+        (python-tuple-
+         (:seq
+          (:child python-expression python-yield
+           python-list-splat
+           python-parenthesized-list-splat)
+          (:repeat
+           (:seq
+            (:choice
+             (:child python-expression python-yield
+                     python-list-splat
+                     python-parenthesized-list-splat))))))
+        (python-empty-tuple
+         (:seq))))))
 
   (defparameter *tree-sitter-ast-superclass-table*
     (lret ((table (make-hash-table)))
@@ -2076,7 +2093,8 @@ any slot usages in JSON-SUBTREE."
        class-name->class-definition
        &aux (subclasses
              (aget super-class
-                   (aget language-prefix *choice-expansion-subclasses*))))
+                   (aget (make-keyword language-prefix)
+                         *choice-expansion-subclasses*))))
     "Generate a method for a type of AST that returns a choice expansion
 subclass based on the order of the children were read in."
     ;; TODO: at some point, it probably makes sense to use the pruned rules over
@@ -3727,7 +3745,7 @@ AST ast to return the scopes for"
                 name enclosing-scope))
              (find-global-binding
                  (identifier &aux (genome (genome obj))
-                               (name (car (interleaved-text identifier))))
+                               (name (car (computed-text identifier))))
                "Find the global binding for NAME in ENCLOSING-SCOPE."
                (build-alist
                 (find-declaration
@@ -4007,7 +4025,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
                    (convert
                     'python-ast
                     `((:class . :string)
-                      (:interleaved-text
+                      (:computed-text
                        ,(format nil "\"~a\""
                                 (source-text
                                  (python-name arg)))))))
@@ -4515,17 +4533,10 @@ in the same namespace."
                         (path-later-p obj ast2 ast1))))))
 
   (-> create-tuple (list) (values python-ast &optional))
-  (defun create-tuple (values &aux (length (length values)))
+  (defun create-tuple (values)
     "Create a new tuple AST that contains values."
     (convert 'python-ast
-             `((:class . :tuple)
-               (:interleaved-text
-                ,@(cond
-                    ((= 0 length) '("()"))
-                    ((= 1 length) '("(" ",)"))
-                    (t (append '("(")
-                               (repeat-sequence '(", ") (1- length))
-                               '(")")))))
+             `((:class . ,(if values :tuple- :empty-tuple))
                (:children . ,values))))
 
   (-> create-dictionary (list list) (values (or python-ast null) &optional))
@@ -4678,7 +4689,7 @@ AST ast to return the enclosing scope for"
       ((javascript-call-expression
         :javascript-function
         (javascript-identifier
-         :interleaved-text (list name)))
+         :computed-text (list name)))
        (enclosing-find-function obj callexpr name))))
 
   (defmethod function-name ((node javascript-function-declaration))
@@ -4715,7 +4726,7 @@ scope of START-AST."
                ((javascript-function-declaration
                  :javascript-name
                  (javascript-identifier
-                  :interleaved-text (list name)))
+                  :computed-text (list name)))
                 (equal name function-name)))))
       (find-if-in-scope #'target-function obj start-ast)))
 
