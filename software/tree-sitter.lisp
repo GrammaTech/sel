@@ -3257,9 +3257,9 @@ scope of START-AST."
 
   (defmethod initialize-instance :after ((c c)
                                          &key &allow-other-keys)
-    "If no compiler was specified, default to cc."
-    (unless (compiler c)
-      (setf (compiler c) "cc")))
+             "If no compiler was specified, default to cc."
+             (unless (compiler c)
+               (setf (compiler c) "cc")))
 
   (defmethod ext :around ((obj c)) (or (call-next-method) "c"))
 
@@ -3289,8 +3289,8 @@ scope of START-AST."
 
   (defmethod type-in ((c c) (ast c-ast))
     (when-let ((decl (find-if «or {typep _ 'c-declaration}
-                                  {typep _ 'c-parameter-declaration}»
-                              (get-parent-asts c ast))))
+                               {typep _ 'c-parameter-declaration}»
+                               (get-parent-asts c ast))))
       (if (typep (c-declarator decl) 'c-pointer-declarator)
           :pointer
           (make-keyword (string-upcase (source-text (c-type decl)))))))
@@ -3330,8 +3330,35 @@ scope of START-AST."
 
   ;; Implement the generic format-genome method for C objects.
   (defmethod format-genome ((obj c) &key)
-    (clang-format obj)))
+    (clang-format obj))
 
+  (defmethod get-function-from-function-call
+      ((obj c) (callexpr c-ast))
+    (match callexpr
+      ((c-call-expression
+        :c-function
+        (c-identifier
+         :interleaved-text (list name)))
+       (enclosing-find-c-function obj callexpr name))))
+
+  (defun c-functions (c-soft)
+    "Returns the list of c functions in the C software object.
+ Each returned function is a cons of the form (<function-name> . <ast>)
+ where <function-name> is a string, and <ast> is a c-function-definition."
+    (let ((funcs '()))
+      (mapc (lambda (x)
+              (if (typep x 'c-function-definition)
+                  (when-let* ((declarator (c-declarator x))
+                              (identifier (c-declarator declarator)))
+                    (push (cons (source-text identifier) x) funcs))))
+            c-soft)
+      funcs))
+  
+  (defun enclosing-find-c-function (obj start-ast function-name)
+    "Find the C function with the name FUNCTION-NAME in OBJ that is in
+     scope of START-AST."
+    (declare (ignore start-ast))
+    (cdr (find function-name (c-functions obj) :test 'equal :key 'car))))
 
 ;;;; CPP
 (when-class-defined (cpp)
