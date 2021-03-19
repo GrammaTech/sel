@@ -1234,7 +1234,8 @@ This is to prevent certain classes from being seen as terminal symbols."
                            (make-keyword (convert-name (aget :value alist)))
                            rule-name-set)))
                     (symbol-macrolet
-                        ((hash-value (gethash (aget :value alist) alias->content)))
+                        ((hash-value (gethash (aget :value alist)
+                                              alias->content)))
                       (cond
                         ((or (not hash-value)
                              (superset-alias-p hash-value content))
@@ -5617,13 +5618,25 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
                                    (safe-subseq from to)))
                                (ranges children from to))
                        ;; Else set it to everything in the range.
-                       (list (safe-subseq from to)))))))
+                       (list (safe-subseq from to))))))
+           (update-slots-based-on-arity ()
+             "Update any slot in instance that needs to be converted to a list
+              to match its arity. This is primarily for #'sorted-children."
+             (mapc
+              (lambda (slot-arity
+                       &aux (slot (car slot-arity)))
+                (symbol-macrolet ((slot-value (slot-value instance slot)))
+                  (unless (listp slot-value)
+                    (setf slot-value (list slot-value)))))
+              (remove-if-not {eql 0} (slot-value instance 'child-slots)
+                             :key #'cdr))))
     (when error-p
       (error "Convert failed to parse without errors"))
     (set-slot-values
      (merge-same-fields (get-converted-fields)))
     (set-surrounding-text)
     (set-computed-text)
+    (update-slots-based-on-arity)
     instance))
 
 (defun convert-spec (spec prefix superclass
@@ -5869,6 +5882,3 @@ the rebinding"
                                                     var-replacements
                                                     fun-replacements))))))
                       (child-slots ast)))))
-
-;;; TODO: the strictly aliased rules aren't being set as computed-text-node-p
-;;;       particularly javascript-shorthand-property-identifier
