@@ -3353,7 +3353,7 @@ scope of START-AST."
                     (push (cons (source-text identifier) x) funcs))))
             c-soft)
       funcs))
-  
+
   (defun enclosing-find-c-function (obj start-ast function-name)
     "Find the C function with the name FUNCTION-NAME in OBJ that is in
      scope of START-AST."
