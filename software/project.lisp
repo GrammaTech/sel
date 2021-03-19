@@ -474,7 +474,8 @@ making a directory."
 or relative to the root of the project) in which include files are
 to be searched"))
   (:documentation "Mixin for finding include files.  This can be combined
-with a project class or a class for specific files."))
+with a project class or a class for software objects for files of specific
+languages, such as C or C++."))
 
 (defgeneric find-include-files (project file include-name)
   (:documentation "Locate the include file(s) for inclusion of include-name."))
@@ -487,11 +488,24 @@ with a project class or a class for specific files."))
   (include-files-in-files proj (include-paths proj) include-pathname))
 
 (defmethod find-include-files ((proj project) (file include-paths-mixin) (include-path pathname))
+  ;; TODO: make this also look locally
   (if-let ((include-paths (include-paths file)))
     (include-files-in-files proj include-path include-path)
     (call-next-method)))
 
 (defgeneric include-files-in-files (proj include-paths include-pathname)
+  (:documentation "Given a list of include paths, and a pathname for a
+specific include, returns a list of sw objects for the matching include
+files.   For example, if PROJ has include paths ("include/" "other-include/"),
+and there is a sw object for the file include/lib/foo.h, then when
+include-pathname is #p"lib/foo.h" this will return the list containing
+the sw object for include/lib/foo.h")
+  ;; This has been broken out into a separate function because it was
+  ;; needed for two methods of find-include-files: one where include-paths
+  ;; comes from the file,  and the other where it comes from the project.
+  ;;
+  ;;  TODO:  add separate consideration of "system include files" and
+  ;;   "user include files"
   (:method ((proj project) (include-paths list) (include-pathname pathname))
     (let ((all-files (all-files proj)))
       (iter (for path in include-paths)
