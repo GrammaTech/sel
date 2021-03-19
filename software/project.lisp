@@ -485,12 +485,24 @@ languages, such as C or C++."))
                                                  (make-pathname :type "h"))))
 
 (defmethod find-include-files ((proj project) (file t) (include-pathname pathname))
+  (format t "Enter find-include-files method 2~%")
   (include-files-in-files proj (include-paths proj) include-pathname))
 
 (defmethod find-include-files ((proj project) (file include-paths-mixin) (include-path pathname))
-  (if-let ((include-paths (include-paths file)))
-    (include-files-in-files proj include-path include-path)
-    (call-next-method)))
+  (let ((all-files (all-files proj)))
+    (block nil
+      (format t "Enter find-include-files method 1~%")
+      (let ((file-name (rassocar file all-files)))
+        (if file-name
+            (let ((include-file-pathname (merge-pathnames* include-path (pathname file-name))))
+              (if-let ((p (assoc include-file-pathname all-files
+                                 :test (lambda (x y) (equal x (pathname y))))))
+                (return (list (cdr p)))))
+          (progn (warn "File object ~a not found in project ~a" file proj)
+                 nil)))
+      (if-let ((include-paths (include-paths file)))
+        (include-files-in-files proj include-path include-path)
+        (call-next-method)))))
 
 (defgeneric include-files-in-files (proj include-paths include-pathname)
   (:documentation "Given a list of include paths, and a pathname for a
