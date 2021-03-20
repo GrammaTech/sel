@@ -524,6 +524,30 @@ the sw object for include/lib/foo.h")
             (let ((full-path (merge-pathnames* include-pathname path)))
               (when-let ((p (find full-path all-files :key [#'pathname #'car]
                                                       :test #'equal)))
-                (collecting (cdr p))))))))
+                        (collecting (cdr p))))))))
+
+(defgeneric directories-of-header-files (project &key types)
+  (:documentation "Return a list of the pathnames of directories
+that contain header files.   TYPES is a list of strings of the
+types of files to loeok for (defaults to (\"h\")).  Names are
+sorted into shortlex order by namestring.")
+  (:method ((project include-paths-mixin) &key (types '("h")))
+    (let ((pathnames nil))
+      (iter
+       (for (p . c) in (all-files project))
+       (let ((pn (pathname p)))
+         (when (member (pathname-type pn) types :test #'equal)
+           (pushnew (make-pathname :name nil :type nil :defaults pn)
+                    pathnames
+                    :test #'equal))))
+      (sort pathnames
+            (lambda (p1 p2)
+              (let* ((s1 (namestring p1))
+                     (s2 (namestring p2))
+                     (l1 (length s1))
+                     (l2 (length s2)))
+                (or (< l1 l2)
+                    (and (= l1 l2)
+                         (string< s1 s2)))))))))
 
 ;;; Also needed: compute closure of includes
