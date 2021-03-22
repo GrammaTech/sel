@@ -247,6 +247,9 @@
            :interleaved-text
            :check-interleaved-text
            ;; Cross-language Mix-ins
+           :c/cpp
+           :ecma
+           :typescript
            :parse-error-ast
            :comment-ast
            :definition-ast
