@@ -302,6 +302,7 @@
            :type-in
            :find-enclosing
            :find-preceding
+           :find-following
            :comments-for
            :definition-name
            :declarator-name
@@ -2029,6 +2030,17 @@ the rebinding"
             (until (eql child ast))
             (when (typep child type)
               (collect child))))))
+
+(defgeneric find-following (type software ast)
+  (:documentation "Return the instance(s) of TYPE following AST in SOFTWARE.")
+  (:method ((type t) (software tree-sitter) (ast tree-sitter-ast))
+    ;; (assert (typep type '(or symbol (cons symbol t) class)))
+    (when-let ((parent (get-parent-ast software ast)))
+      (nest
+       (filter (of-type type))
+       (rest)
+       (drop-until (eqls ast))
+       (sorted-children parent)))))
 
 (defgeneric comments-for (software ast)
   (:documentation "Return the comments for AST in SOFTWARE.")
