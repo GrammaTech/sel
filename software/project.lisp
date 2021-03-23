@@ -477,7 +477,22 @@ making a directory."
 ;;;
 ;;; Alternately, we could have a separate syntax for stub files that
 ;;; that allows extra information to be added, and not overload the
-;;; language like that.   TBD!
+;;; language like that.   And also alternately, just read the system
+;;; header files.  This last approach would require adding the
+;;; system include paths as another slot in the mixin.  Instead of
+;;; searching ALL-FILES, the actual directories there would be searched,
+;;; and if an include file were found it would be read and parsed and
+;;; a component created (although not put into ALL-FILES).   TBD
+;;;
+;;; #ifdef processing for symbol tables:
+;;;
+;;;    The approach will be to simply leave ifdefs unexpanded.
+;;;    Internal ifdefs will be part of the AST.   Ifdefs that affect
+;;;    the names of objects will leave the names unfindable in
+;;;    a symbol table.   If more than one definition is found
+;;;    then store them all.  We may want to record the preprocessor
+;;;    conditions in force while traversing an AST so we can record
+;;;    that for each definition (why not).
 ;;;
 
 (defclass include-paths-mixin ()
