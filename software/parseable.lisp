@@ -64,6 +64,7 @@
            :asts-containing-source-location
            :asts-contained-in-source-range
            :asts-intersecting-source-range
+           :ast-start+end :ast-start :ast-end
            :good-asts
            :bad-asts
            :good-mutation-targets
