@@ -2594,13 +2594,13 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
     (ematch function-node
       ((python-function-definition
         :python-parameters (and parameters (type node)))
-       (ematch (node-end software parameters)
+       (ematch (ast-end software parameters)
          ((source-location :line line :column column)
           (make 'source-location :line line :column column))))
       ((python-lambda :python-parameters (and parameters (type node)))
-       (node-end software parameters))
+       (ast-end software parameters))
       ((python-lambda :python-parameters nil)
-       (ematch (node-start software function-node)
+       (ematch (ast-start software function-node)
          ((source-location :line line :column column)
           (make 'source-location
                 :line line
@@ -3206,9 +3206,9 @@ AST ast to return the enclosing scope for"
       ((or (javascript-function-declaration :javascript-parameters params)
            (javascript-arrow-function
             :javascript-parameters (and params (type node))))
-       (node-end software params))
+       (ast-end software params))
       ((javascript-arrow-function :javascript-parameter (and param (type node)))
-       (node-end software param))))
+       (ast-end software param))))
 
   (defmethod lhs ((decl javascript-variable-declarator)) (javascript-name decl))
 

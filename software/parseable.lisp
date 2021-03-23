@@ -1631,19 +1631,19 @@ is useful for ASTs that may have newline literals.")
                     (position->source-location text end
                                                newline-offsets))))))))
 
-(defun node-start+end (software node)
-  "Return the start and end of NODE in SOFTWARE (if any) as source
+(defun ast-start+end (software ast)
+  "Return the start and end of AST in SOFTWARE (if any) as source
 locations."
   (let* ((ranges (ast-source-ranges software))
-         (range (assocdr node ranges)))
+         (range (assocdr ast ranges)))
     (and range
          (values (begin range)
                  (end range)))))
 
-(defun node-start (software node)
-  "Return the start of NODE in software, as a source location."
-  (values (node-start+end software node)))
+(defun ast-start (software ast)
+  "Return the start of AST in software, as a source location."
+  (values (ast-start+end software ast)))
 
-(defun node-end (software node)
-  "Return the end of NODE in software, as a source location."
-  (nth-value 1 (node-start+end software node)))
+(defun ast-end (software ast)
+  "Return the end of AST in software, as a source location."
+  (nth-value 1 (ast-start+end software ast)))
