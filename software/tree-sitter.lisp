@@ -688,7 +688,7 @@ Note that mixins used here will be automatically exported later, and
 those that do not have separate class definitions will be given stub
 definitions.")
 
-  (defparameter *choice-expansion-subclasses*
+  (defparameter *tree-sitter-choice-expansion-subclasses*
     '((:c
        ;; TODO: this should be moved over to using the pruned-rule before
        ;;       merging into master.
@@ -715,6 +715,14 @@ definitions.")
                      python-parenthesized-list-splat))))))
         (python-empty-tuple
          (:seq))))))
+
+  (defparameter *tree-sitter-json-rule-substitutions*
+    '((:python
+       ;; NOTE: this removes semicolons. This can be further amended if it
+       ;;       becomes problematic.
+       (:-SIMPLE-STATEMENTS (:TYPE . "SYMBOL") (:NAME . "_simple_statement"))))
+    "A mapping of JSON rule substitutions to be performed on the JSON file
+before class generation and analysis.")
 
   (defparameter *tree-sitter-ast-superclass-table*
     (lret ((table (make-hash-table)))
@@ -1216,6 +1224,16 @@ and returns the result."
          ((eql (car subtree) :content))
          ((funcall function subtree))))
      tree :tag 'prune :traversal traversal))
+
+  (defun substitute-json-rules (language rules)
+    "Substitute rules in RULES based on mappings found for LANGUAGE."
+    (let ((substitutions
+            (aget (make-keyword language)
+                  *tree-sitter-json-rule-substitutions*)))
+      (reduce
+       (lambda (rules substitution)
+         (areplace (car substitution) (cdr substitution) rules))
+       substitutions :initial-value rules)))
 
   (defun add-aliased-rules
       (rules
@@ -2094,7 +2112,7 @@ any slot usages in JSON-SUBTREE."
        &aux (subclasses
              (aget super-class
                    (aget (make-keyword language-prefix)
-                         *choice-expansion-subclasses*))))
+                         *tree-sitter-choice-expansion-subclasses*))))
     "Generate a method for a type of AST that returns a choice expansion
 subclass based on the order of the children were read in."
     ;; TODO: at some point, it probably makes sense to use the pruned rules over
@@ -2249,11 +2267,17 @@ subclass based on the order of the children were read in."
                   :initform ',(list type-string))))
              (get-transformed-json-table ()
                "Get a hash table containing transformed JSON rules."
-               (alist-hash-table
-                (mapcar (lambda (rule)
-                          (list (car rule)
-                                (transform-json-rule (cdr rule) grammar)))
-                        (add-aliased-rules (aget :rules grammar)))))
+               (let ((rules (add-aliased-rules
+                             (substitute-json-rules
+                              language-prefix
+                              (aget :rules grammar)))))
+                 (alist-hash-table
+                  (mapcar (lambda (rule)
+                            (list (car rule)
+                                  (transform-json-rule
+                                   (cdr rule)
+                                   (areplace :rules rules grammar))))
+                          rules))))
              (get-superclasses-set ()
                "Get a hash set containing the names of superclasses for the
                 language."
@@ -2303,45 +2327,7 @@ subclass based on the order of the children were read in."
                  type-string
                  (if (gethash terminal-lisp-type class-name->class-definition)
                      terminal-lisp-type
-                     lisp-type)))))
-         ;; TODO: make these generics and add other ones that are needed here.
-
-         (defgeneric parse-order (ast &key &allow-other-keys)
-           (:documentation "Return a list of children intermixed with keywords
-that specify which CHOICE branches are taken and how many times a REPEAT rule
-repeats.")
-           (:method (ast &key) nil)
-           (:method ((ast structured-text) &key)
-             (if-let ((rule (or (and (slot-exists-p ast 'pruned-rule) (pruned-rule ast))))
-                      (slots (and (slot-exists-p ast 'slot-usage) (slot-usage ast))))
-               (children-parser ast rule slots)
-               (call-next-method))))
-
-         (defgeneric output-transformation
-             (ast &rest rest &key &allow-other-keys)
-           (:documentation "Return a list of strings and AST objects that
-are ordered for reproduction as source text.")
-           (:method ((ast structured-text) &rest rest &key &allow-other-keys)
-             (declare (ignorable rest))
-             (flatten
-              (list
-               (before-text ast)
-               ;; Expand all rules here.
-               (computed-text-output-transformation ast)
-               (after-text ast)))))
-
-         (defmethod children ((ast structured-text))
-           (remove-if #'listp (parse-order ast)))
-
-         (defgeneric computed-text-node-p (ast)
-           (:documentation "Return T if AST is a computed-text node. This is a
-node where part of the input will need to be computed and stored to reproduce
-the source-text.")
-           (:method (ast) nil))
-
-         (defmethod get-choice-expansion-subclass (class spec)
-           (declare (ignorable spec))
-           class))))
+                     lisp-type))))))))
 
   (defun create-tree-sitter-classes
       (node-types-file grammar-file name-prefix
@@ -2674,6 +2660,69 @@ Unlike the `children` methods which collects all children of an AST from any slo
                                   &optional (source (genome-string obj)))
              (convert ',(make-class-name "ast") source))
 
+           (defgeneric parse-order (ast &key &allow-other-keys)
+             (:documentation "Return a list of children intermixed with keywords
+that specify which CHOICE branches are taken and how many times a REPEAT rule
+repeats.")
+             (:method (ast &key) nil)
+             (:method ((ast structured-text) &key)
+               (if-let ((rule (or (and (slot-exists-p ast 'pruned-rule)
+                                       (pruned-rule ast))))
+                        (slots (and (slot-exists-p ast 'slot-usage)
+                                    (slot-usage ast))))
+                 (children-parser ast rule slots)
+                 (call-next-method))))
+
+           (defgeneric output-transformation
+               (ast &rest rest &key &allow-other-keys)
+             (:documentation "Return a list of strings and AST objects that
+are ordered for reproduction as source text.")
+             (:method ((ast structured-text) &rest rest &key &allow-other-keys)
+               (declare (ignorable rest))
+               (flatten
+                (list
+                 (before-text ast)
+                 ;; Expand all rules here.
+                 (computed-text-output-transformation ast)
+                 (after-text ast)))))
+
+           (defmethod children ((ast structured-text))
+             (remove-if #'listp (parse-order ast)))
+
+           (defgeneric computed-text-node-p (ast)
+             (:documentation "Return T if AST is a computed-text node. This is a
+node where part of the input will need to be computed and stored to reproduce
+the source-text.")
+             (:method (ast) nil))
+
+           (defgeneric get-choice-expansion-subclass (class spec)
+             (:documentation "Get the subclass of CLASS associated with SPEC.")
+             (:method (class spec)
+               (declare (ignorable spec))
+               class))
+
+           (defgeneric transform-parse-tree (language class parse-tree)
+             (:documentation "Transform PARSE-TREE based on LANGUAGE and CLASS.")
+             (:method (language class parse-tree
+                       &aux (descriptor (and (listp parse-tree)
+                                             (car parse-tree))))
+               (cond
+                 (class parse-tree)
+                 ;; :class
+                 ((keywordp descriptor)
+                  (transform-parse-tree
+                   language
+                   (convert-to-lisp-type language descriptor)
+                   parse-tree))
+                 ;; :slot, :class list
+                 ((and (listp descriptor)
+                       (keywordp (cadr descriptor)))
+                  (transform-parse-tree
+                   language
+                   (convert-to-lisp-type language (cadr descriptor))
+                   parse-tree))
+                 (t parse-tree))))
+
            ,structured-text-code)))))
 
 (defmacro define-and-export-all-mixin-classes ()
@@ -2733,157 +2782,6 @@ they should produce the same ordering."
       (unless (duplicate-exists-p order)
         (check-order order (consolidate-runs expected-order))))))
 
-(defun convert-initializer
-    (spec prefix superclass
-     &aux (*package* (symbol-package superclass))
-       (class (symbolicate prefix '-
-                           (let ((type (car spec)))
-                             ;; The form can either be
-                             ;; - :type
-                             ;; - (:slot-name :type)
-                             (if (listp type)
-                                 (cadr type)
-                                 type))))
-       (instance (make-instance
-                  class
-                  :annotations
-                  `((:range-start ,(caadr spec))
-                    (:range-end . ,(cdadr spec)))))
-       (error-p (eql class (symbolicate prefix '-error))))
-  "Initialize an instance of SUPERCLASS with SPEC."
-  (labels ((find-terminal-symbol-class (class-name)
-             ;; Check for a '-terminal first in case there's a name overlap.
-             (let ((terminal-with
-                     (format-symbol
-                      'sel/sw/ts "~a-~a-TERMINAL" prefix class-name))
-                   (terminal-without
-                     (format-symbol
-                      'sel/sw/ts "~a-~a" prefix class-name)))
-               (cond
-                 ((find-class terminal-with nil) terminal-with)
-                 ((find-class terminal-without nil) terminal-without))))
-           (terminal-symbol-class-p (class-name)
-             "Return true if CLASS inherits from the terminal symbol
-              mix-in."
-             (when-let ((class (find-terminal-symbol-class class-name)))
-               (subtypep class 'terminal-symbol)))
-           (skip-terminal-field-p (field-spec slot-info)
-             "Return T if FIELD-SPEC represents a terminal symbol that shouldn't
-              appear in the resulting AST."
-             (cond
-               ;; Has an associated slot or has children
-               ((or (listp slot-info) (caddr field-spec)) nil)
-               (t (terminal-symbol-class-p slot-info))))
-           (get-child-order ()
-             "Get the child order of instance."
-             (or (ast-annotation instance :child-order)
-                 (slot-value instance 'child-slots)))
-           (get-converted-fields ()
-             "Get the value of each field after it's been converted
-              into an AST."
-             (iter
-               (for field in (caddr spec))
-               (for slot-info = (car field))
-               (when (skip-terminal-field-p field slot-info)
-                 (next-iteration))
-               (for converted-field = (convert superclass field
-                                               :string-pass-through t))
-               ;; cl-tree-sitter appears to put the
-               ;; slot name first unless the list goes
-               ;; into the children slot.
-               (if (and (listp slot-info) (not error-p))
-                   (collect (list (car slot-info)
-                                  converted-field)
-                     into fields)
-                   (collect converted-field into children))
-               (finally
-                (return
-                  (if children
-                      (push `(:children ,children) fields)
-                      fields)))))
-           (move-excess-fields (field-list)
-             "tree-sitter can return multiple ASTs for a field that
-              is specified as a single AST. This is likely an error
-              in the parser but should be handled regardless."
-             ;; NOTE: excess fields are moved from their field into
-             ;;       the children slot.
-             (let (used-fields
-                   (relevant-fields
-                     (mapcar #'car (remove-if-not {= 1} (get-child-order)
-                                                  :key #'cdr))))
-               (mapcar
-                (lambda (field-pair &aux (field (car field-pair))
-                                      (slot-name (translate-to-slot-name field prefix)))
-                  (cond
-                    ((member slot-name used-fields)
-                     (cons :children (cdr field-pair)))
-                    ((member slot-name relevant-fields)
-                     (push slot-name used-fields)
-                     field-pair)
-                    (t field-pair)))
-                field-list)))
-           (merge-same-fields (field-list)
-             "Merge all fields that belong to the same slot.
-              This is used for setting slots with an arity of 0."
-             (mapcar
-              (lambda (grouping)
-                (apply #'append
-                       (list (caar grouping))
-                       (mapcar #'cdr grouping)))
-              (assort field-list :key #'car)))
-           (set-slot-values (slot-values)
-             "Set the slots in instance to correspond to SLOT-VALUES."
-             (mapc
-              (lambda (list)
-                (setf (slot-value
-                       instance (translate-to-slot-name (car list) prefix))
-                      (if (null (cddr list))
-                          (cadr list)
-                          (cdr list))))
-              slot-values))
-           (update-slots-based-on-arity ()
-             "Update any slot in instance that needs to be converted to a list
-              to match its arity. This is primarily for #'sorted-children."
-             (mapc
-              (lambda (slot-arity
-                       &aux (slot (car slot-arity)))
-                (symbol-macrolet ((slot-value (slot-value instance slot)))
-                  (unless (listp slot-value)
-                    (setf slot-value (list slot-value)))))
-              (remove-if-not {eql 0} (get-child-order) :key #'cdr)))
-           (set-child-order-annotation ()
-             "Set the child-order annotation of instance. This
-              is currently set on every AST as some ASTs store
-              things in the children slot instead of making a
-              slot for it."
-             (let* ((sorted-children
-                      (sort (remove nil (children instance))
-                            (lambda (start end)
-                              (source-<
-                               (make-instance
-                                'source-location
-                                :line (cadr start)
-                                :column (car start))
-                               (make-instance
-                                'source-location
-                                :line (cadr end)
-                                :column (car end))))
-                            :key
-                            (lambda (child)
-                              (car
-                               (ast-annotation child :range-start)))))
-                    (order (mapcar {child-position _ instance}
-                                   sorted-children)))
-               (unless (expected-slot-order-p order (child-slots instance))
-                 (setf (slot-value instance 'annotations)
-                       (cons (cons :child-order order)
-                             (ast-annotations instance)))))))
-    (set-slot-values
-     (merge-same-fields (move-excess-fields (get-converted-fields))))
-    (update-slots-based-on-arity)
-    (set-child-order-annotation)
-    instance))
-
 (defun position-after-leading-newline (str &aux (pos 0))
   "Returns 1+ the position of the first newline in STR,
 assuming it can be reached only by skipping over whitespace
@@ -2897,170 +2795,10 @@ or comments.  NIL if no such newline exists."
          (incf pos))
         (t (return nil))))))
 
-(defun move-newlines-down (ast)
-  "Destructively modify AST, pushing newlines down into child ASTs for
-statement AST types."
-  (iter
-    (for child in (sorted-children ast))
-    (for after-text in (cdr (interleaved-text ast)))
-    (for i upfrom 1)
-    (when-let ((pos (and (typep child 'statement-ast)
-                         (position-after-leading-newline after-text))))
-      ;; Move the [0, pos) prefix of after-text containing the newline
-      ;; down into the child node.
-      (setf (slot-value child 'interleaved-text)
-            (append (butlast (interleaved-text child))
-                    (list (concatenate 'string
-                                       (lastcar (interleaved-text child))
-                                       (subseq after-text 0 pos)))))
-      (setf (nth i (slot-value ast 'interleaved-text))
-            (subseq after-text pos)))
-    (finally (return ast))))
-
-(defun fix-newlines (ast)
-  "Fix newlines in ASTs by pushing newlines down into child
-statements.  This allows for mutation operations to insert and
-replace statements with newlines already present in the new
-ASTs, obviating the need for fixups to add missing newlines.
-This method is destructive and, therefore, can only be utilized
-during AST creation to respect functional trees invariants."
-  (mapcar #'move-newlines-down ast))
-
-;; Make inline to save stack space.
-(declaim (inline convert-spec))
-(defun convert-spec (spec prefix superclass
-                     &aux (package (symbol-package superclass)))
-  "Convert SPEC into an ast of type SUPERCLASS. PREFIX is used to find the
-correct class name for subclasses of SUPERCLASS."
-  (lret ((instance
-          (make-instance
-           (symbol-cat-in-package
-            package
-            prefix
-            (let ((class (aget :class spec)))
-              (if (stringp class)
-                  (nest (make-keyword)
-                        (string-upcase)
-                        (translate-camelcase-name)
-                        class)
-                  class))))))
-    (iter
-      (iter:with child-types = (child-slots instance))
-      (iter:with annotations = nil)
-      (for (slot . value) in (adrop '(:class) spec))
-      (for key = (format-symbol package "~a" slot))
-      (for translated-key = (translate-to-slot-name key prefix))
-      (cond
-        ((slot-exists-p instance translated-key)
-         (setf (slot-value instance translated-key)
-               (if-let ((spec (find translated-key child-types :key #'car)))
-                 (ematch spec
-                   ;; (cons key arity)
-                   ((cons _ 1) (convert superclass value))
-                   ((cons _ 0) (iter (for item in value)
-                                 (collect (convert superclass item)))))
-                 value)))
-        ;; Account for slots in superclasses.
-        ((slot-exists-p instance key) (setf (slot-value instance key) value))
-        (t (push (cons slot value) annotations)))
-      (finally
-       (with-slots ((annotations-slot annotations)) instance
-         (setf annotations-slot (append annotations annotations-slot)))))))
-
 (defun get-language-from-superclass (superclass)
   "Get the tree-sitter  language associated with SUPERCLASS."
   (or (gethash superclass *superclass->language*)
       (error "No tree-sitter language known for ~a." superclass)))
-
-(defmethod convert ((to-type (eql 'tree-sitter-ast)) (spec tree-sitter-ast)
-                    &key &allow-other-keys)
-  "Pass thru an existing tree-sitter AST. This useful in manual AST creation."
-  spec)
-
-(defmethod convert ((to-type (eql 'tree-sitter-ast)) (spec list)
-                    &key superclass string-pass-through &allow-other-keys)
-  "Create a c-tree-sitter AST from the SPEC (specification) list."
-  (if string-pass-through
-      (convert-initializer
-       spec (get-language-from-superclass superclass) superclass)
-      (convert-spec
-       spec (get-language-from-superclass superclass) superclass)))
-
-(defmethod convert ((to-type (eql 'tree-sitter-ast)) (string string)
-                    &key superclass &allow-other-keys
-                    &aux (line-octets
-                          (map
-                           'vector
-                           #'string-to-octets
-                           (serapeum:lines string :keep-eols t))))
-  (labels
-      ((safe-subseq
-           (start end
-            &aux (start-loc
-                  (make-instance
-                   'source-location
-                   :line (cadr start) :column (car start)))
-              (end-loc
-               (make-instance
-                'source-location
-                :line (cadr end) :column (car end))))
-         "Return STRING in the range [START, END) or an empty string if
-         the offsets are invalid."
-         (if (source-< start-loc end-loc)
-             (octets-to-string
-              (source-range-subseq
-               line-octets
-               (make-instance 'source-range :begin start-loc :end end-loc)))
-             ""))
-       (start (ast)
-         "Return the start offset into STRING from the AST representation."
-         (car (ast-annotation ast :range-start)))
-       (end (ast)
-         "Return the end offset into STRING from the AST representation."
-         (car (ast-annotation ast :range-end)))
-       (ranges (children from to)
-         "Return the offsets of the source text ranges between CHILDREN."
-         (iter
-           (for child in children)
-           (for prev previous child)
-           (collect (cons (if prev (end prev) from) (start child))
-             into ranges)
-           (finally
-            (return (append ranges (list (cons (end child) to)))))))
-       (w/interleaved-text (ast from to
-                            &aux (children (sorted-children ast)))
-         "Destructively modify AST to populate the INTERLEAVED-TEXT
-         field with the source text to be interleaved between the
-         children of AST."
-         (if children
-             (progn
-               (setf (slot-value ast 'interleaved-text)
-                     (mapcar (lambda (range)
-                               (destructuring-bind (from . to) range
-                                 (safe-subseq from to)))
-                             (ranges children from to)))
-               (mapc (lambda (child)
-                       (w/interleaved-text child (start child) (end child)))
-                     children))
-             (setf (slot-value ast 'interleaved-text)
-                   (list (safe-subseq (start ast) (end ast)))))
-         (setf (slot-value ast 'annotations)
-               (adrop '(:range-start :range-end) (slot-value ast 'annotations)))
-         ast))
-    (nest
-     (process-indentation)
-     (fix-newlines)
-     (w/interleaved-text
-      (convert to-type
-               (parse-string (get-language-from-superclass superclass) string
-                             :produce-cst t)
-               :superclass superclass
-               :string-pass-through t)
-      '(0 0)
-      (if (emptyp line-octets)
-          '(0 0)
-          (list (length (last-elt line-octets))
-                (1- (length line-octets))))))))
 
 (defmethod convert :around ((to-type (eql 'tree-sitter-ast)) (string string)
                             &key deepest &allow-other-keys)
@@ -5650,6 +5388,8 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
     (update-slots-based-on-arity)
     instance))
 
+;; Make inline to save stack space.
+(declaim (inline convert-spec))
 (defun convert-spec (spec prefix superclass
                      &aux (package (symbol-package superclass)))
   "Convert SPEC into an ast of type SUPERCLASS. PREFIX is used to find the
@@ -5728,7 +5468,13 @@ correct class name for subclasses of SUPERCLASS."
                      &key superclass &allow-other-keys
                      &aux (prefix (get-language-from-superclass superclass)))
   (labels
-      ((start (ast)
+      ((transform-tree (parse-tree)
+         "Map transform-parse-tree over PARSE-TREE."
+         ;; NOTE: it might make sense not to use map-tree here and
+         ;;       write a custom function instead.
+         (map-tree {transform-parse-tree superclass nil} parse-tree
+                   :traversal :postorder))
+       (start (ast)
          "Return the start offset into STRING from the AST representation."
          (car (cadr ast)))
        (end (ast)
@@ -5830,8 +5576,9 @@ correct class name for subclasses of SUPERCLASS."
     (convert
      to-type
      (annotate-surrounding-text
-      (parse-string (get-language-from-superclass superclass)
-                    string :produce-cst t))
+      (transform-tree
+       (parse-string (get-language-from-superclass superclass) string
+                     :produce-cst t)))
      :superclass superclass
      :string-pass-through string)))
 
