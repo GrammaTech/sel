@@ -211,4 +211,8 @@
       (is (equal (find-include-files *project* f1c "f1.h")
                  (list f1h)))
       (is (equal (find-include-files *project* lib/f1c "f1.h")
-                 (list lib/f1h))))))
+                 (list lib/f1h)))
+      (is (equal
+           (let ((include-ast (second (convert 'list f1c))))
+             (find-include-files *project* f1c include-ast))
+           (list f1h))))))

@@ -455,16 +455,30 @@ making a directory."
 ;;; Include file processing
 
 ;;; In order to associate identifiers with definitions in C and C++,
-;;; we need to be able to find include files.  This function is a simple
-;;; stab at that.  It assumes no two include files have the same name
-;;; in a project (this is true of magma).  If this is not true, we will
-;;; need to associate lookup paths with each file.
+;;; we need to be able to find include files.  This code is a simple
+;;; stab at that.
 ;;;
-;;; The method here does not use the FILE argument.  It also doesn't
-;;; necessarily handle <...> includes as in C++.   I assume library
+;;; The method here does not require a FILE argument, but if it is
+;;; present it looks for the include file in that file's directory
+;;; before searching the include paths.
+
+;;; We do not yet have machinery for handling system includes,
+;;; those specified with <...> in C and C++.  I assume library
 ;;; include files will not be handled directly, but instead will use
 ;;; some sort of standard-conforming stub.  This method does not
-;;; yet search for such include files.
+;;; yet search for such include files.  Stubs will contain abbreviated
+;;; definitions that still parse (in tree-sitter) but that do not commit
+;;; to some implementation.  Exactly what these look like will need
+;;; to be defined explicitly.  Some possible examples:
+;;;
+;;;    typedef foo_t foo_t;    /* self referential def */
+;;;    typedef struct bar_tag bar_t;
+;;;    #define XYZ XYZ        /* Self expanding macro */
+;;;
+;;; Alternately, we could have a separate syntax for stub files that
+;;; that allows extra information to be added, and not overload the
+;;; language like that.   TBD!
+;;;
 
 (defclass include-paths-mixin ()
   ;; May want a second set of paths for system include files
@@ -487,6 +501,10 @@ languages, such as C or C++."))
 
 (defmethod find-include-files ((proj project) (file t) (include-pathname pathname))
   (include-files-in-files proj (include-paths proj) include-pathname))
+
+;;; I find myself traversing the entire all-files list here.
+;;; This isn't scalable.  There should (also?) be a hash table from file namestrings
+;;; to component objects.
 
 (defmethod find-include-files ((proj project) (file include-paths-mixin) (include-path pathname))
   (let ((all-files (all-files proj)))

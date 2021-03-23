@@ -49,3 +49,14 @@
                     (member (pathname-type file) *c-extensions*
                             :test 'equal)))))
     result))
+
+(defmethod find-include-files ((proj project) (file t) (include c-preproc-include))
+  (let ((path (c-path include)))
+    (match (source-text path)
+      ((ppcre "\"(.*)\"" s) (find-include-files proj file s))
+      ((ppcre "<(.*)>" s)
+       (warn "Processing of system includes not yet implemented: ~a" include)
+       (find-include-files proj file s))
+      (_
+       (warn "Could not understand include AST: ~a" include)
+       nil))))
