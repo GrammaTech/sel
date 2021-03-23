@@ -27,7 +27,8 @@
            :pick-file
            :include-paths
            :include-paths-mixin
-           :find-include-files))
+           :find-include-files
+           :directories-of-header-files))
 (in-package :software-evolution-library/software/project)
 (in-readtable :curry-compose-reader-macros)
 
@@ -485,13 +486,11 @@ languages, such as C or C++."))
                                                  (make-pathname :type "h"))))
 
 (defmethod find-include-files ((proj project) (file t) (include-pathname pathname))
-  (format t "Enter find-include-files method 2~%")
   (include-files-in-files proj (include-paths proj) include-pathname))
 
 (defmethod find-include-files ((proj project) (file include-paths-mixin) (include-path pathname))
   (let ((all-files (all-files proj)))
     (block nil
-      (format t "Enter find-include-files method 1~%")
       (let ((file-name (rassocar file all-files)))
         (if file-name
             (let ((include-file-pathname (merge-pathnames* include-path (pathname file-name))))
