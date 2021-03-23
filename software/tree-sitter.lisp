@@ -3613,22 +3613,3 @@ If NODE is not a function node, return nil.")
   (:documentation "Return the type of AST in SOFTWARE."))
 
 (defmethod is-stmt-p ((ast statement-ast)) t)
-
-
-;;;; Utility
-(defun node-start+end (software node)
-  "Return the start and end of NODE in SOFTWARE (if any) as source
-locations."
-  (let* ((ranges (ast-source-ranges software))
-         (range (assocdr node ranges)))
-    (and range
-         (values (begin range)
-                 (end range)))))
-
-(defun node-start (software node)
-  "Return the start of NODE in software, as a source location."
-  (values (node-start+end software node)))
-
-(defun node-end (software node)
-  "Return the end of NODE in software, as a source location."
-  (nth-value 1 (node-start+end software node)))

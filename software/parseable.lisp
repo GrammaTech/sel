@@ -1630,3 +1630,20 @@ is useful for ASTs that may have newline literals.")
                                                newline-offsets)
                     (position->source-location text end
                                                newline-offsets))))))))
+
+(defun node-start+end (software node)
+  "Return the start and end of NODE in SOFTWARE (if any) as source
+locations."
+  (let* ((ranges (ast-source-ranges software))
+         (range (assocdr node ranges)))
+    (and range
+         (values (begin range)
+                 (end range)))))
+
+(defun node-start (software node)
+  "Return the start of NODE in software, as a source location."
+  (values (node-start+end software node)))
+
+(defun node-end (software node)
+  "Return the end of NODE in software, as a source location."
+  (nth-value 1 (node-start+end software node)))
