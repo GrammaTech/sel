@@ -68,6 +68,16 @@
   (:teardown (setf *project* nil
                    *mutation-stats* nil)))
 
+(defixture include-processing
+  (:setup
+   (setf *project*
+         (from-file
+          (make-instance 'c-project)
+          (make-pathname :directory +include-processing-dir+))
+         (include-paths *project*)
+         (directories-of-header-files *project*)))
+  (:teardown (setf *project* nil)))
+
 (defmethod test-method ((obj simple) value)
   value)
 
@@ -188,3 +198,17 @@
 (deftest c-project-can-build ()
   (with-fixture grep-project
     (is (phenome *project*))))
+
+(deftest c-include-processing ()
+  (with-fixture include-processing
+    (let* ((all-files (all-files *project*))
+           (f1h (cdr (assoc "f1.h" all-files :test #'equal)))
+           (f1c (cdr (assoc "f1.c" all-files :test #'equal)))
+           (lib/f1c (cdr (assoc "lib/f1.c" all-files :test #'equal)))
+           (lib/f1h (cdr (assoc "lib/f1.h" all-files :test #'equal))))
+      (is (equal (find-include-files *project* nil "f1.h")
+                 (list f1h lib/f1h)))
+      (is (equal (find-include-files *project* f1c "f1.h")
+                 (list f1h)))
+      (is (equal (find-include-files *project* lib/f1c "f1.h")
+                 (list lib/f1h))))))

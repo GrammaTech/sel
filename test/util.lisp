@@ -20,6 +20,7 @@
            :+java-dir+
            :+python-dir+
            :+python-utility-dir+
+           :+include-processing-dir+
            ;; Other functions
            :acorn-available-p
            :c-tree-sitter-available-p
@@ -87,6 +88,11 @@
   :test #'equalp
   :documentation "Path to directory holding the grep project.")
 
+(define-constant +include-processing-dir+
+    (append +etc-dir+ (list "include-processing"))
+  :test #'equalp
+  :documentation "Path to directory holding include processing test project.")
+
 (define-constant +cpp-sample-dir+ (append +etc-dir+ (list "cpp-sample"))
   :test #'equalp
   :documentation "Path to directory holding the c++ sample project.")
@@ -99,8 +105,7 @@
   :test #'equalp
   :documentation "Location of the clang-format example directory")
 
-(define-constant +fib-dir+
-    (append +etc-dir+ (list "fib"))
+(define-constant +fib-dir+ (append +etc-dir+ (list "fib"))
   :test #'equalp
   :documentation "Location of the fib example dir")
 
@@ -126,8 +131,7 @@
   :documentation
   "Path to directory holding a project which produces multiple artifacts.")
 
-(define-constant +lisp-scopes-dir+
-    (append +etc-dir+ (list "lisp-scopes"))
+(define-constant +lisp-scopes-dir+ (append +etc-dir+ (list "lisp-scopes"))
   :test #'equalp
   :documentation
   "Path to directory holding lisp code to test scopes.")
