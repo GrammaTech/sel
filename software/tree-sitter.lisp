@@ -308,7 +308,8 @@
            :declarator-name
            :enclosing-definition
            :imports
-           :provided-by))
+           :provided-by
+           :comparisonp))
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 
@@ -2077,10 +2078,17 @@ Every element in the list has the following form:
   (:documentation
    "Return the library, package, or system in SOFTWARE providing AST."))
 
+(defgeneric comparisonp (ast)
+  (:documentation "Is AST a comparison?")
+  (:method ((ast t)) nil))
+
 
 ;;;; Python
 ;;; Move this to its own file?
 (when-class-defined (python)
+
+  (defmethod comparisonp ((ast python-comparison-operator))
+    t)
 
   ;; Methods common to all software objects
   (defmethod imports ((software python))
