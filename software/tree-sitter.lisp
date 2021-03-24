@@ -714,6 +714,15 @@ definitions.")
                      python-list-splat
                      python-parenthesized-list-splat))))))
         (python-empty-tuple
+         (:seq)))
+       (python-dictionary
+        (python-dictionary-
+         (:seq (:child python-pair python-dictionary-splat)
+          (:repeat
+           (:seq
+            (:choice
+             (:child python-pair python-dictionary-splat))))))
+        (python-empty-dictionary
          (:seq))))))
 
   (defparameter *tree-sitter-json-rule-substitutions*
@@ -2984,7 +2993,7 @@ the rebinding"
   (:method ((type t) (software tree-sitter) (ast tree-sitter-ast))
     ;; (assert (typep type '(or symbol (cons symbol t) class)))
     (when-let ((parent (get-parent-ast software ast)))
-      (iter (for child in (sorted-children parent))
+      (iter (for child in (children parent))
             (until (eql child ast))
             (when (typep child type)
               (collect child))))))
@@ -4004,20 +4013,13 @@ in the same namespace."
 Returns nil if the length of KEYS is not the same as VALUES'."
     (when (= length (length values))
       (convert 'python-ast
-               `((:class . :dictionary)
-                 (:interleaved-text
-                  ,@(cond
-                      ((= 0 length) '("{}"))
-                      (t (append '("{")
-                                 (repeat-sequence '(", ") (1- length))
-                                 '("}")))))
+               `((:class . ,(if values :dictionary- :empty-dictionary))
                  (:children
                   ,@(mapcar
                      (lambda (key value)
                        (convert
                         'python-ast
                         `((:class . :pair)
-                          (:interleaved-text "" " : " "")
                           (:key . ,key)
                           (:value . ,value))))
                      keys values))))))
