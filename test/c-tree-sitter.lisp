@@ -246,15 +246,6 @@
     (is (= 3 (length (comments-for *soft* (find-if {typep _ 'c-while-statement} *soft*)))))
     (is (= 1 (length (comments-for *soft* (stmt-starting-with-text *soft* "printf")))))))
 
-(deftest c-can-parse-incorrect-number-of-values-for-slot ()
-  "A regression test to ensure that ASTs can be created from a tree-sitter parse
-tree that has the incorrect number of values for single-value slot."
-  ;; NOTE: this will cease to be a regression test if the c grammar changes
-  ;;       upstream for the relevant rule.
-  (is (convert 'c-ast "void f() {​​​​​​​
-  foo_t a = {​​​​​​​.x.y = {​​​​​​​0}​​​​​​​ }​​​​​​​;
-}​​​​​​​")))
-
 (deftest test-scopes ()
   (let* ((c (sel:from-string (make 'c) (fmt "~
 int main () {
