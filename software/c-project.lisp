@@ -56,10 +56,8 @@
       ((ppcre "\"(.*)\"" s) (find-include-files proj file s))
       ((ppcre "<(.*)>" s)
        (warn "Processing of system includes not yet implemented: ~a" include)
-       (unless (and (>= (length s) 2)
-                    (string= s ".h" :start1 (- (length s) 2)))
-         (setf s (concatenate 'string s ".h")))
-       (find-include-files proj file s))
+       (let ((s (ensure-suffix s ".h")))
+         (find-include-files proj file s)))
       (_
        (warn "Could not understand include AST: ~a" include)
        nil))))
