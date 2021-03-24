@@ -382,7 +382,7 @@ searched to populate `*tree-sitter-language-files*'.")
     `c'.")
 
   (defparameter *tree-sitter-base-ast-superclasses* '()
-    "Aslist of superclasses for the base class of a language (e.g.
+    "Alist of superclasses for the base class of a language (e.g.
     `python-ast').")
 
   (defparameter *tree-sitter-ast-extra-slot-options*
@@ -686,6 +686,8 @@ Note that mixins used here will be automatically exported later, and
 those that do not have separate class definitions will be given stub
 definitions.")
 
+  ;; TODO: it may make sense to have a way to 'rebind' a subclass when
+  ;;       the subclass no longer applies after a mutation.
   (defparameter *tree-sitter-choice-expansion-subclasses*
     '((:c
        ;; TODO: this should be moved over to using the pruned-rule before
@@ -724,7 +726,30 @@ definitions.")
          (:seq))))))
 
   (defparameter *tree-sitter-json-rule-substitutions*
-    '((:python
+    '((:c
+       (:STRUCT-SPECIFIER (:TYPE . "SEQ")
+        (:MEMBERS ((:TYPE . "STRING") (:VALUE . "struct"))
+         ((:TYPE . "CHOICE")
+          (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "ms_declspec_modifier"))
+           ((:TYPE . "BLANK"))))
+         ((:TYPE . "CHOICE")
+          (:MEMBERS
+           ((:TYPE . "SEQ")
+            (:MEMBERS
+             ((:TYPE . "FIELD")
+              (:NAME . "name")
+              (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_type_identifier")))
+             ((:TYPE . "CHOICE")
+              (:MEMBERS
+               ((:TYPE . "FIELD")
+                (:NAME . "body")
+                (:CONTENT (:TYPE . "SYMBOL") (:NAME . "field_declaration_list")))
+               ((:TYPE . "BLANK"))))))
+           ((:TYPE . "FIELD")
+            (:NAME . "body")
+            (:CONTENT
+             (:TYPE . "SYMBOL") (:NAME . "field_declaration_list"))))))))
+      (:python
        ;; NOTE: this removes semicolons. This can be further amended if it
        ;;       becomes problematic.
        (:-SIMPLE-STATEMENTS (:TYPE . "SYMBOL") (:NAME . "_simple_statement"))))
@@ -1501,6 +1526,10 @@ This is to prevent certain classes from being seen as terminal symbols."
     (labels ((gather-field-types (content)
                "Return a list of symbols that CONTENT could be for a field."
                (string-case (aget :type content)
+                 ;; TODO: may need to add more things here.
+                 ;;       It also might make sense to use walk-json here
+                 ;;       since it wasn't available when this was originally
+                 ;;       written.
                  ("STRING"
                   (list (aget :value content)))
                  ("SYMBOL"
@@ -1508,8 +1537,10 @@ This is to prevent certain classes from being seen as terminal symbols."
                  ("ALIAS"
                   (when (aget :named content)
                     (list (aget :value content))))
-                 ("CHOICE"
+                 (("CHOICE" "SEQ")
                   (mappend #'gather-field-types (aget :members content)))
+                 ("REPEAT"
+                  (gather-field-types (aget :content content)))
                  ("BLANK"
                   (list 'null))))
              (handle-seq (rule)
@@ -1624,7 +1655,7 @@ expands :REPEAT1 rules, and collapses contiguous, nested
      tree))
 
   ;; TODO: run this at before code gen to print out problematic rules.
-  (defun structured-rule-p (rule)
+  (defun structured-rule-p (collapsed-rule)
     ;; NOTE: this will only operate on fields and children.
     ;;       There may be potential for interleaved text to have their own issues,
     ;;       but if they don't have their own field then it's an issue with the
@@ -1681,7 +1712,7 @@ expands :REPEAT1 rules, and collapses contiguous, nested
                       (every comparison-func slots-2)
                       ;; NOTE: this maintains the same order otherwise.
                       (equal slots-1 slots-2)))))
-             (incompatible-choice-in-repeat-p ()
+             (incompatible-choice-in-repeat-p (rule)
                "Return T if there is an incompatible choice in a repeat."
                ;; NOTE: this should only consider a choice in a repeat problematic
                ;;       if the choice has two separate slots in two separate
@@ -1763,8 +1794,8 @@ expands :REPEAT1 rules, and collapses contiguous, nested
                          (append (mapcar {cons _ in-repeat?} types)
                                  repeat-alist))
                         (t repeat-alist))))))))
-      (not (or (incompatible-choice-in-repeat-p)
-               (nth-value 1 (use-after-repeat-p rule))))))
+      (not (or (incompatible-choice-in-repeat-p collapsed-rule)
+               (nth-value 1 (use-after-repeat-p collapsed-rule))))))
 
   (defun expand-choice-branches (pruned-rule transformed-json)
     "Expand the choice branches the PRUNED-RULE for NODE-TYPE has
@@ -2018,10 +2049,6 @@ any slot usages in JSON-SUBTREE."
   (defun generate-output-transformation
       (pruned-rule transformed-json-rule language class-name
        class-name->class-definition)
-    ;; TODO: there's a whole lot of noise in the subclassing.
-    ;;       Maybe there's a way to leverage some of the structured-rule-p
-    ;;       logic to prevent subclassing when the output-transformation is
-    ;;       identical.
     (labels ((generate-choice (json-rule pruned-rule)
                "Generate a quoted form which handles choices."
                ;; NOTE: coming in, the in-order children stack should have a
@@ -2132,7 +2159,11 @@ subclass based on the order of the children were read in."
     ;;       types.
     ;;       It's likely that we'll have the collapsed rules coming in since
     ;;       we need them in more than one place.
-    (labels ((get-subclass-name (collapsed-rule)
+    (labels ((report-problematic-rule ()
+               "Reports 'unstructured' rules to *error-output*."
+               (unless (structured-rule-p (collapse-rule-tree pruned-rule))
+                 (format *error-output* "Problematic Rule: ~a~%" super-class)))
+             (get-subclass-name (collapsed-rule)
                "Get the subclass name for COLLAPSED-RULE. If one isn't in
                 subclasses, generate a new name."
                ;;NOTE: the types should not be strings but lisp types.
@@ -2203,6 +2234,7 @@ subclass based on the order of the children were read in."
                           class-name->class-definition))
                        pruned-expansions json-expansions
                        (mapcar #'car subclass-pairs))))
+      (report-problematic-rule)
       ;; TODO: refactor this and children-parser as it accepts a
       ;;       pruned rule and wasn't before.
       (mvlet* ((pruned-rule-expansions
@@ -2560,22 +2592,12 @@ their slots."
       (initialize-subtype->supertypes)
       (initialize-class->extra-slot-options)
       (populate-supertypes)
-      (let* ((tree-sitter-classes
-               (map nil {create-node-class grammar-rules} node-types))
-             (structured-text-code
-               (generate-structured-text-methods
-                grammar node-types name-prefix class-name->class-definition)))
-        ;; TODO: figure out a better way to do this.
-        (declare (ignorable tree-sitter-classes))
+      ;; populate hash table of tree-sitter classes.
+      (map nil {create-node-class grammar-rules} node-types)
+      (let ((structured-text-code
+              (generate-structured-text-methods
+               grammar node-types name-prefix class-name->class-definition)))
         `(progn
-           ;; TODO: store every form that defines a class into the
-           ;;       class definitions table and pass it to the structured text
-           ;;       generation function so it can have a say in what classes
-           ;;       look like. To help with this, there needs to be an easy way
-           ;;       to reinsert these classes, so create a list without the progn
-           ;;       and eval always and push the classes to the front of it after
-           ;;       structured-text has modified them. At which point, the progn
-           ;;       and eval-always can be added back before returning.
            (eval-always
              (define-software ,(make-class-name) (tree-sitter
                                                   ,@software-superclasses)
