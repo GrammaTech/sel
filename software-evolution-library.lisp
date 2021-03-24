@@ -592,10 +592,14 @@ Define an :around method on this function to record crossovers."))
   (:documentation "Crossover between two points."))
 
 (defgeneric from-string (software string)
-  (:documentation "Initialize SOFTWARE with contents of STRING."))
+  (:documentation "Initialize SOFTWARE with contents of STRING.")
+  (:method ((class symbol) string)
+    (from-string (make-instance class) string)))
 
 (defgeneric from-file (software file)
-  (:documentation "Initialize SOFTWARE with contents of FILE."))
+  (:documentation "Initialize SOFTWARE with contents of FILE.")
+  (:method ((class symbol) file)
+    (from-file (make-instance class) file)))
 
 (defgeneric apply-config (software config-file)
   (:documentation "Parse CONFIG-FILE and use to configure SOFTWARE."))
