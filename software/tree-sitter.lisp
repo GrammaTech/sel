@@ -444,9 +444,7 @@ searched to populate `*tree-sitter-language-files*'.")
         c-field-declaration c-enum-specifier c-preproc-def
         c-preproc-function-def)
        (:statement-ast c--statement c-function-definition)
-       (:expression-ast c-expression-statement c-call-expression c-update-expression
-        c-assignment-expression c-binary-expression c-parenthesized-expression c-cast-expression
-        c-field-expression c-pointer-expression c-unary-expression)
+       (:expression-ast c--expression)
        (:parenthesized-expression-ast c-parenthesized-expression)
        (:compound-ast c-compound-statement)
        (:control-flow-ast c-switch-statement c-case-statement)
