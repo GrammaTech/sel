@@ -1,0 +1,6 @@
+# Settings are chosen to be compatible with black:
+#   https://black.readthedocs.io/en/stable/the_black_code_style.html#line-length
+[flake8]
+max-line-length=79
+extend-ignore = E203
+select = F, E4, E7, E9, W6
