@@ -453,7 +453,7 @@ making a directory."
   (mappend [{convert 'list} #'cdr] (evolve-files project)))
 
 ;;; Include file processing
-
+;;;
 ;;; In order to associate identifiers with definitions in C and C++,
 ;;; we need to be able to find include files.  This code is a simple
 ;;; stab at that.
@@ -461,15 +461,17 @@ making a directory."
 ;;; The method here does not require a FILE argument, but if it is
 ;;; present it looks for the include file in that file's directory
 ;;; before searching the include paths.
-
+;;;
 ;;; We do not yet have machinery for handling system includes,
-;;; those specified with <...> in C and C++.  I assume library
-;;; include files will not be handled directly, but instead will use
-;;; some sort of standard-conforming stub.  This method does not
-;;; yet search for such include files.  Stubs will contain abbreviated
-;;; definitions that still parse (in tree-sitter) but that do not commit
-;;; to some implementation.  Exactly what these look like will need
-;;; to be defined explicitly.  Some possible examples:
+;;; those specified with <...> in C and C++.
+;;;
+;;; One option would be for library include files to not be handled
+;;; directly, but instead use some sort of standard-conforming stub.
+;;; This method does not yet search for such include files.  Stubs
+;;; will contain abbreviated definitions that still parse (in
+;;; tree-sitter) but that do not commit to some implementation.
+;;; Exactly what these look like will need to be defined explicitly.
+;;; Some possible examples:
 ;;;
 ;;;    typedef foo_t foo_t;    /* self referential def */
 ;;;    typedef struct bar_tag bar_t;
@@ -477,12 +479,16 @@ making a directory."
 ;;;
 ;;; Alternately, we could have a separate syntax for stub files that
 ;;; that allows extra information to be added, and not overload the
-;;; language like that.   And also alternately, just read the system
-;;; header files.  This last approach would require adding the
-;;; system include paths as another slot in the mixin.  Instead of
-;;; searching ALL-FILES, the actual directories there would be searched,
-;;; and if an include file were found it would be read and parsed and
-;;; a component created (although not put into ALL-FILES).   TBD
+;;; language like that.
+;;;
+;;; Alternately, we could just read the system header files.  This
+;;; last approach would require adding the system include paths as
+;;; another slot in the mixin.  Instead of searching ALL-FILES, the
+;;; actual directories there would be searched, and if an include file
+;;; were found it would be read and parsed and a component created
+;;; (although not put into ALL-FILES).
+;;;
+;;; TBD.
 ;;;
 ;;; #ifdef processing for symbol tables:
 ;;;
@@ -494,7 +500,6 @@ making a directory."
 ;;;    conditions in force while traversing an AST so we can record
 ;;;    that for each definition (why not).
 ;;;
-
 (defclass include-paths-mixin ()
   ;; May want a second set of paths for system include files
   ((include-paths :initarg :include-paths
