@@ -10,6 +10,7 @@ Dockerfile
 *.dll
 *.dylib
 *.so
+*.pyc
 
 # Documentation cruft
 *-sb-texinfo.texi
