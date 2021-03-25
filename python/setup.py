@@ -50,6 +50,10 @@ setup(
     # above.
     author_email='sel@grammatech.com',  # Optional
 
+    # This should be the abbreviated license type corresponding to the value
+    # listed in classifiers.
+    license="GPLv3+",
+
     # Classifiers help users find your project by categorizing it.
     #
     # For a list of valid classifiers, see https://pypi.org/classifiers/
