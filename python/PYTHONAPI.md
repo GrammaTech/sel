@@ -72,7 +72,7 @@ usage.
 
     For the leaf nodes of simplified ASTs, we store trailing non-code text as
     a "trailing" field on the node.  We should be able to reconstruct the
-    full text of the AST from the simplified form.  See also [1]
+    full text of the AST from the simplified form.  See also [1].
 
     > This one will also need a pointer to the root of the tree in
     > which to try to find the parent.
@@ -86,7 +86,7 @@ usage.
 
     For the leaf nodes of simplified ASTs, we store the source text as a
     "token" field on the node.  We should be able to reconstruct the full
-    the text of the AST from the simplified form.  See also [1]. 
+    the text of the AST from the simplified form.  See also [1].
 
 - `hash`(node: Node) -> int:
     Return a hashcode for the given AST.
