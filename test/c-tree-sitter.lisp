@@ -91,16 +91,16 @@
                  ((:class . :init-declarator)
                   (:declarator
                    (:class . :identifier)
-                   (:variable-text "a")
+                   (:computed-text "a")
                    (:before-text . " ")
                    (:after-text . " "))
                   (:value
                    (:class . :number-literal)
-                   (:variable-text "0")
+                   (:computed-text "0")
                    (:before-text . " "))))
                 (:type
                  (:class . :primitive-type)
-                 (:variable-text "int"))))))
+                 (:computed-text "int"))))))
     (is (find-if {typep _ 'c-declaration} ast))
     (is (find-if {typep _ 'c-init-declarator} ast))
     (is (find-if {typep _ 'c-identifier} ast))
@@ -115,6 +115,7 @@
     (is (stmt-starting-with-text *soft* "int y = 1"))
     (is (not (find-if {typep _ 'c-error} (genome *soft*))))))
 
+;;; TODO: figure out what needs fixed here.
 (deftest test-c-source-ranges ()
   ;; There are a lot of C source files and parsing them is slow
   ;; so set a limit. Note the files actually tested are chosen at

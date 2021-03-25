@@ -216,7 +216,8 @@
 
 (deftest python-can-handle-multibyte-characters ()
   (with-fixture multibyte-python1
-    (is (= 17 (size *soft*)))
+    ;; NOTE: the comment isn't accounted for in structured-text.
+    (is (= 16 (size *soft*)))
     (is (equal (file-to-string (original-path *soft*))
                (genome-string *soft*))))
   (with-fixture multibyte-python2
@@ -235,8 +236,7 @@
                (genome-string *soft*)))))
 
 (deftest python-can-copy-tree ()
-  (let* ((text "
-(a + b) / 2
+  (let* ((text "(a + b) / 2
 ")
          (new-source-text
            (source-text (tree-copy (convert 'python-ast text)))))
@@ -657,7 +657,7 @@ and keyword parameters with defaults."
       (find-if {typep _ 'python-call} genome))
      '(("1" . "a")
        ("2" . "b")
-       ("(3, 4, 5)" . "args")))))
+       ("( 3, 4, 5)" . "args")))))
 
 ;;;(deftest python-map-arguments-to-parameters-4 ()
 (deftest py-map-arguments-to-parameters-4 ()
@@ -670,7 +670,7 @@ and keyword parameters with defaults."
      '(("1" . "a")
        ("2" . "required")
        ("3" . "b")
-       ("{\"d\" : 5, \"c\" : 4}" . "args")))))
+       ("{\"d\":5,\"c\":4}" . "args")))))
 
 (deftest (test-python-source-ranges :long-running t) ()
   (let ((py-files (remove "empty" (expand-wildcard #p"python/*/*.py")
