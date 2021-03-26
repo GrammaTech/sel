@@ -425,6 +425,9 @@ searched to populate `*tree-sitter-language-files*'.")
         (python-operator :initarg :operator :reader operator))
        (python-function-definition
         (python-body :reader body))
+       (python-keyword-argument
+        (python-name :initarg :lhs :reader lhs)
+        (python-value :initarg :rhs :reader rhs))
        (python-unary-operator
         (python-operator :initarg :operator :reader operator))
        (python-while-statement
