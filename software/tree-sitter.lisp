@@ -751,19 +751,19 @@ Superclass of every generated LANGUAGE-error class."))
   (defclass float-ast (number-ast) ()
     (:documentation "Mix-in for AST classes that are literal floats."))
 
-  (defclass call-ast (ast) ()
+  (defclass call-ast (expression-ast) ()
     (:documentation "Mix-in for AST classes that are calls."))
 
-  (defclass unary-ast (ast) ()
-    (:documentation "Mix-in for AST classes that are unary operators."))
+  (defclass unary-ast (expression-ast) ()
+    (:documentation "Mix-in for AST classes that are unary expressions."))
 
-  (defclass binary-ast (ast) ()
-    (:documentation "Mix-in for AST classes that are binary operators."))
+  (defclass binary-ast (expression-ast) ()
+    (:documentation "Mix-in for AST classes that are binary expressions."))
 
-  (defclass return-ast (ast) ()
+  (defclass return-ast (statement-ast) ()
     (:documentation "Mix-in for AST classes that are return statements."))
 
-  (defclass goto-ast (ast) ()
+  (defclass goto-ast (statement-ast) ()
     (:documentation "Mix-in for AST classes that are goto statements."))
 
   (defclass terminal-symbol ()
