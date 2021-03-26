@@ -565,7 +565,7 @@ searched to populate `*tree-sitter-language-files*'.")
        (:unary-ast python-unary-operator python-not-operator)
        (:binary-ast python-binary-operator python-boolean-operator)
        (:return-ast python-return-statement)
-       (:variable-declaration-ast python-assignment))
+       (:variable-declaration-ast python-assignment python-keyword-argument))
       (:typescript-tsx
        (:ecma-comment typescript-tsx-comment)
        (:ecma-error typescript-tsx-error))
