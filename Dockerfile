@@ -5,10 +5,11 @@ RUN export DEBIAN_FRONTEND=noninteractive
 RUN ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime
 RUN apt-get -y --fix-missing update \
     && apt-get -y --fix-missing install autoconf build-essential \
-    texinfo graphviz python-is-python3 python3-pip git curl sshpass wget expect time \
+    texinfo graphviz python-is-python3 python3-pip python3-pytest git curl sshpass wget expect time \
     clang clang-format clang-tidy bear astyle \
     sbcl emacs-nox elpa-paredit slime jq \
     pkg-config libboost-iostreams-dev libboost-system-dev libboost-serialization-dev
+RUN update-alternatives --install /usr/bin/pytest pytest /usr/bin/pytest-3 1
 # Install NPM
 RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -y nodejs
 RUN npm install --global acorn
