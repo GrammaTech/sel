@@ -40,6 +40,13 @@ test-ccl:
     LISP: 'ccl'
   <<: *test
 
+test-python:
+  stage: test
+  script:
+    - LISP=sbcl GT=yes make python-check
+  except:
+    - schedules
+
 dependent-genpatcher:
   stage: deploy
   only: [master]
