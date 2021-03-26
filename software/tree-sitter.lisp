@@ -2595,16 +2595,16 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
 
   ;; NB There is no single "operator" for a chained comparison.
   (defmethod lhs ((ast python-comparison-operator))
-    (if (length= 2 (children ast))
-        (first (children ast))
+    (if (length= 3 (children ast))
+        (first (sorted-children ast))
         (call-next-method)))
   (defmethod rhs ((ast python-comparison-operator))
-    (if (length= 2 (children ast))
-        (second (children ast))
+    (if (length= 3 (children ast))
+        (third (sorted-children ast))
         (call-next-method)))
   (defmethod operator ((ast python-comparison-operator))
-    (if (length= 2 (children ast))
-        (second (interleaved-text ast))
+    (if (length= 3 (children ast))
+        (second (sorted-children ast))
         (call-next-method)))
 
   (defmethod operator ((ast python-not))
