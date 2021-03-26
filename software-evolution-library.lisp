@@ -542,7 +542,9 @@ These may often be safely ignored.  A common restart is
    (operation :initarg :operation :initform nil :reader operation))
   (:report (lambda (condition stream)
              (format stream "No targets error ~a ~:[on~;~:*applying ~S to~] ~S"
-                     (text condition) (op condition) (obj condition))))
+                     (text condition)
+                     (operation condition)
+                     (obj condition))))
   (:documentation
    "This is a particularly benign form of mutation error.
 A common restart is `ignore-failed-mutation'."))
