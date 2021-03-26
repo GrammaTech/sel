@@ -748,7 +748,26 @@ definitions.")
            ((:TYPE . "FIELD")
             (:NAME . "body")
             (:CONTENT
-             (:TYPE . "SYMBOL") (:NAME . "field_declaration_list"))))))))
+             (:TYPE . "SYMBOL") (:NAME . "field_declaration_list")))))))
+       (:POINTER-DECLARATOR (:TYPE . "PREC_DYNAMIC") (:VALUE . 1)
+        (:CONTENT (:TYPE . "PREC_RIGHT") (:VALUE . 0)
+         (:CONTENT (:TYPE . "SEQ")
+          (:MEMBERS
+           ((:TYPE . "CHOICE")
+            (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "ms_based_modifier"))
+                      ((:TYPE . "BLANK"))))
+           ((:TYPE . "STRING") (:VALUE . "*"))
+           ((:TYPE . "REPEAT")
+            (:CONTENT (:TYPE . "SYMBOL") (:NAME . "ms_pointer_modifier")))
+           ((:TYPE . "REPEAT")
+            (:CONTENT (:TYPE . "SYMBOL") (:NAME . "type_qualifier")))
+           ((:TYPE . "FIELD")
+            (:NAME . "declarator")
+            (:CONTENT
+             (:TYPE . "CHOICE")
+             (:MEMBERS
+              ((:TYPE . "SYMBOL") (:NAME . "_declarator"))
+              ((:TYPE . "SYMBOL") (:NAME . "_field_declarator"))))))))))
       (:python
        ;; NOTE: this removes semicolons. This can be further amended if it
        ;;       becomes problematic.
