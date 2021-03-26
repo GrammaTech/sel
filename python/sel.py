@@ -214,7 +214,11 @@ class _interface:
             _interface._proc.stdin.write(json.dumps(inpt).encode("ascii"))
             _interface._proc.stdin.write(b"\n")
             _interface._proc.stdin.flush()
-            stdout = _interface._proc.stdout.readline().decode("ascii")
+            # Large files can take a bit to process, so wait for a line with content.
+            for line in _interface._proc.stdout:
+                stdout = line.decode("ascii")
+                if stdout:
+                    break
             return deserialize(json.loads(stdout))
 
 
