@@ -3334,6 +3334,8 @@ scope of START-AST."
 
   (defmethod get-function-from-function-call
       ((obj c) (callexpr c-ast))
+      "Given a c software object and a call-expression, return the
+ function definition."
     (match callexpr
       ((c-call-expression
         :c-function
@@ -3348,15 +3350,12 @@ scope of START-AST."
     (let ((funcs '()))
       (mapc (lambda (x)
               (if (typep x 'c-function-definition)
-                  (when-let* ((declarator (c-declarator x))
-                              (identifier (c-declarator declarator)))
-                    (push (cons (source-text identifier) x) funcs))))
+                  (push (cons (function-name x) x) funcs)))
             c-soft)
       funcs))
 
   (defun enclosing-find-c-function (obj start-ast function-name)
-    "Find the C function with the name FUNCTION-NAME in OBJ that is in
-     scope of START-AST."
+    "Find the C function with the name FUNCTION-NAME in OBJ."
     (declare (ignore start-ast))
     (cdr (find function-name (c-functions obj) :test 'equal :key 'car))))
 
