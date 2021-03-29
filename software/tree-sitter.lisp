@@ -319,6 +319,10 @@
 
 ;;; Shared object set-up
 (eval-always
+  ;; TODO: REMOVE THIS BEFORE MERGE
+  (unless (member :sel/structured-text *features*)
+    (push :sel/structured-text *features*))
+
   (defvar *superclass->language* (make-hash-table)
     "Maps an AST superclass to its tree-sitter language. When
 convert is called, the superclass can then be used to look up
