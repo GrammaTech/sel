@@ -767,7 +767,28 @@ definitions.")
              (:TYPE . "CHOICE")
              (:MEMBERS
               ((:TYPE . "SYMBOL") (:NAME . "_declarator"))
-              ((:TYPE . "SYMBOL") (:NAME . "_field_declarator"))))))))))
+              ((:TYPE . "SYMBOL") (:NAME . "_field_declarator")))))))))
+       (:ARRAY-DECLARATOR (:TYPE . "PREC") (:VALUE . 1)
+        (:CONTENT (:TYPE . "SEQ")
+         (:MEMBERS
+          ((:TYPE . "FIELD") (:NAME . "declarator")
+           (:CONTENT
+             (:TYPE . "CHOICE")
+             (:MEMBERS
+              ((:TYPE . "SYMBOL") (:NAME . "_declarator"))
+              ((:TYPE . "SYMBOL") (:NAME . "_field_declarator")))))
+          ((:TYPE . "STRING") (:VALUE . "["))
+          ((:TYPE . "REPEAT")
+           (:CONTENT (:TYPE . "SYMBOL") (:NAME . "type_qualifier")))
+          ((:TYPE . "FIELD") (:NAME . "size")
+           (:CONTENT
+            (:TYPE . "CHOICE")
+            (:MEMBERS
+             ((:TYPE . "CHOICE")
+              (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "_expression"))
+                        ((:TYPE . "STRING") (:VALUE . "*"))))
+             ((:TYPE . "BLANK")))))
+          ((:TYPE . "STRING") (:VALUE . "]"))))))
       (:python
        ;; NOTE: this removes semicolons. This can be further amended if it
        ;;       becomes problematic.
