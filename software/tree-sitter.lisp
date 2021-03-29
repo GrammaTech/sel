@@ -5499,7 +5499,7 @@ correct class name for subclasses of SUPERCLASS."
      &rest rest &key &allow-other-keys)
   (declare (ignorable rest))
   (let* ((output-transformation (call-next-method))
-         (comment-pairs (sort (comments ast) #'> :key #'cdr))
+         (comment-pairs (sort (comments ast) #'< :key #'cdr))
          (before-text (car output-transformation))
          (after-text (lastcar output-transformation)))
     ;; NOTE: we want to remove any empty string from consideration
@@ -5511,6 +5511,7 @@ correct class name for subclasses of SUPERCLASS."
                 comment-pairs
                 :initial-value
                 (remove-if
+                 ;; Remove empty strings caused by "BLANK"
                  (op (and (stringp _1) (emptyp _1)))
                  (butlast (cdr output-transformation))))
       ,after-text)))

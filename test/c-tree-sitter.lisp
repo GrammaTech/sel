@@ -267,3 +267,9 @@ int main () {
     (is x-binding)
     (is z-binding)
     (is (equal "1" (source-text (rhs (assocdr :decl x-binding)))))))
+
+(deftest c-tree-sitter-inserts-comments-in-correct-order ()
+  (let ((source "/* */ /* */"))
+    (is (equal
+         source
+         (source-text (genome (from-string (make-instance 'c) source)))))))
