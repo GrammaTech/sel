@@ -235,7 +235,7 @@ If NEWLINES is provided it should be the value returned for STRING by
               (end (end source-range)))
     "Get the subsequence of LINE-OCTETS corresponding to SOURCE-RANGE."
     (declare (ignore newlines))
-    (let ((max-line (1- (length line-octets))))
+    (let ((max-line (length line-octets)))
       (with-slots ((start-column column) (start-line line)) start
         (with-slots ((end-column column) (end-line line)) end
           (coerce
