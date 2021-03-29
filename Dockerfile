@@ -60,24 +60,25 @@ RUN git clone https://github.com/tree-sitter/tree-sitter
 WORKDIR /tree-sitter
 RUN PREFIX=/usr make all install
 WORKDIR /
-RUN for language in agda bash c c-sharp cpp css go html java javascript jsdoc json julia ocaml/ocaml ocaml/interface php python ql regex ruby rust scala typescript/tsx typescript/typescript;do \
-        [ -d tree-sitter-${language%/*} ] || git clone --depth=1 https://github.com/tree-sitter/tree-sitter-${language%/*};                                                                      \
-        cd /tree-sitter-${language}/src;                                                                                                                                                         \
-        if test -f "scanner.cc"; then                                                                                                                                                            \
-            clang++ -fPIC scanner.cc -c -lstdc++;                                                                                                                                                \
-            clang -std=c99 -fPIC parser.c -c;                                                                                                                                                    \
-            clang++ -shared scanner.o parser.o -o /usr/lib/tree-sitter-$(echo ${language}|sed 's|/|-|').so;                                                                                      \
-        elif test -f "scanner.c"; then                                                                                                                                                           \
-            clang -std=c99 -fPIC scanner.c -c;                                                                                                                                                   \
-            clang -std=c99 -fPIC parser.c -c;                                                                                                                                                    \
-            clang -shared scanner.o parser.o -o /usr/lib/tree-sitter-$(echo ${language}|sed 's|/|-|').so;                                                                                        \
-        else                                                                                                                                                                                     \
-            clang -std=c99 -fPIC parser.c -c;                                                                                                                                                    \
-            clang -shared parser.o -o /usr/lib/tree-sitter-$(echo ${language}|sed 's|/|-|').so;                                                                                                  \
-        fi;                                                                                                                                                                                      \
-        mkdir -p /usr/share/tree-sitter/${language}/;                                                                                                                                            \
-        cp grammar.json node-types.json /usr/share/tree-sitter/${language};                                                                                                                      \
-        cd -;                                                                                                                                                                                    \
+# Withheld languages: agda c-sharp julia ocaml/interface ocaml/ocaml php ql ruby scala
+RUN for language in bash c cpp css go html java javascript jsdoc json python regex rust typescript/tsx typescript/typescript;do \
+        [ -d tree-sitter-${language%/*} ] || git clone --depth=1 https://github.com/tree-sitter/tree-sitter-${language%/*};     \
+        cd /tree-sitter-${language}/src;                                                                                        \
+        if test -f "scanner.cc"; then                                                                                           \
+            clang++ -fPIC scanner.cc -c -lstdc++;                                                                               \
+            clang -std=c99 -fPIC parser.c -c;                                                                                   \
+            clang++ -shared scanner.o parser.o -o /usr/lib/tree-sitter-$(echo ${language}|sed 's|/|-|').so;                     \
+        elif test -f "scanner.c"; then                                                                                          \
+            clang -std=c99 -fPIC scanner.c -c;                                                                                  \
+            clang -std=c99 -fPIC parser.c -c;                                                                                   \
+            clang -shared scanner.o parser.o -o /usr/lib/tree-sitter-$(echo ${language}|sed 's|/|-|').so;                       \
+        else                                                                                                                    \
+            clang -std=c99 -fPIC parser.c -c;                                                                                   \
+            clang -shared parser.o -o /usr/lib/tree-sitter-$(echo ${language}|sed 's|/|-|').so;                                 \
+        fi;                                                                                                                     \
+        mkdir -p /usr/share/tree-sitter/${language}/;                                                                           \
+        cp grammar.json node-types.json /usr/share/tree-sitter/${language};                                                     \
+        cd -;                                                                                                                   \
     done
 RUN git clone https://github.com/death/cl-tree-sitter /root/quicklisp/local-projects/cl-tree-sitter
 # Work around bug in cl-unicode in quicklisp.
