@@ -4842,11 +4842,7 @@ which slots are expected to be used."
     ;;       some how?
     (if-let ((result (rule-handler pruned-rule (populate-slot->stack))))
       (reverse (gethash child-stack-key result))
-      ;; One failure, just return everything in whatever order.
-      ;; TODO: this will break output-transformation, so either
-      ;;       find a better way to handle this in output-transformation or
-      ;;       modify this somehow.
-      (mapcar {slot-value ast} slots))))
+      (error "Unable to match~%~a~%on~%~a" pruned-rule ast))))
 
 (defun computed-text-output-transformation (ast)
   "Gives the variable text output transformation for AST. This
