@@ -771,6 +771,11 @@ definitions.")
              (:TYPE . "CHOICE")
              (:MEMBERS
               ((:TYPE . "SYMBOL") (:NAME . "_declarator"))
+              ;; TODO: instead of patching this rule, maybe look into using the
+              ;;       node types file and adding in every possible type a field
+              ;;       allows to the rule. Need to consider whether this could
+              ;;       break anything.
+              ;; Workaround for field declaration issues.
               ((:TYPE . "SYMBOL") (:NAME . "_field_declarator")))))))))
        (:ARRAY-DECLARATOR (:TYPE . "PREC") (:VALUE . 1)
         (:CONTENT (:TYPE . "SEQ")
@@ -1620,9 +1625,6 @@ This is to prevent certain classes from being seen as terminal symbols."
                  (("CHOICE" "SEQ" "REPEAT" "REPEAT1")
                   (handle-seq rule))
                  ("FIELD" (handle-field rule))
-                 (("PREC" "PREC_DYNAMIC" "PREC_LEFT" "PREC_RIGHT")
-                  ;; pass-through
-                  (handle-rule (aget :content rule)))
                  ("SYMBOL"
                   ;; NOTE: this assumes that all 'SYMBOL's that are seen
                   ;;       going into the children slot. Also NOTE that
@@ -1658,17 +1660,6 @@ expands :REPEAT1 rules, and collapses contiguous, nested
              (collapse-choices (tree)
                "Collapse nested choices into a single choice."
                (collapse-on tree :choice))
-             (expand-repeat1 (tree)
-               "Expand all :REPEAT1 rules in an equivalent :SEQ and :REPEAT."
-               ;; TODO: remove this once expand-rule-json/transform-json-rule
-               ;;       is in use.
-               (map-tree (lambda (child)
-                           (cond
-                             ((atom child) child)
-                             ((eql (car child) :repeat1)
-                              `(:seq ,@(cdr child) (:repeat ,@(cdr child))))
-                             (t child)))
-                         tree))
              (prune-empty-subtrees (tree)
                "Remove subtrees without :field's or :child's."
                (prune-if (lambda (node)
@@ -1678,8 +1669,7 @@ expands :REPEAT1 rules, and collapses contiguous, nested
                          tree)))
       (collapse-sequences
        (collapse-choices
-        (expand-repeat1
-         (prune-empty-subtrees rule-tree))))))
+        (prune-empty-subtrees rule-tree)))))
 
   (defun collect-rule-tree (predicate tree &aux accumulator)
     "Collect every subtree in TREE that satisfies PREDICATE."
@@ -2249,7 +2239,7 @@ subclass based on the order of the children were read in."
                 (op (generate-children-method
                      (cadr _) (caddr _1) (car _1) class-name->class-definition))
                 subclass-pairs))
-             (generate-input-subclass-dispatch (subclass-pairs)
+             (generate-input-subclass-dispatch (json-expansions subclass-pairs)
                "Generate a method to return the name of the subclass
                 to be used by the parse-tree returned by tree-sitter."
                `(defmethod get-choice-expansion-subclass
@@ -2257,11 +2247,13 @@ subclass based on the order of the children were read in."
                      &aux (child-types ',child-types))
                   (econd
                    ,@(mapcar
-                      (lambda (subclass-pair)
+                      (lambda (json-rule subclass-pair)
                         `((match-parsed-children
                            ,language-prefix
-                           ',(cadr subclass-pair) child-types parse-tree)
+                           ',json-rule
+                           ',(caddr subclass-pair) child-types parse-tree)
                           ',(car subclass-pair)))
+                      json-expansions
                       subclass-pairs))))
              (generate-computed-text-methods (json-expansions subclass-pairs)
                "Generate the variable text methods for the rules in
@@ -2292,6 +2284,7 @@ subclass based on the order of the children were read in."
                 (if expansions?
                     (mapcar (lambda (collapsed-rule pruned-rule)
                               (list (get-subclass-name collapsed-rule)
+                                    ;; TODO: get rid of this?
                                     collapsed-rule
                                     pruned-rule))
                             collapsed-rule-expansions
@@ -2302,7 +2295,8 @@ subclass based on the order of the children were read in."
         (when expansions? (generate-subclasses subclass-pairs))
         (generate-children-methods subclass-pairs)
         `(progn
-           ,(and expansions? (generate-input-subclass-dispatch subclass-pairs))
+           ,(and expansions? (generate-input-subclass-dispatch
+                              json-expansions subclass-pairs))
            ,@(generate-computed-text-methods json-expansions subclass-pairs)
            ,@(generate-output-transformations
               pruned-rule-expansions json-expansions subclass-pairs)))))
@@ -4873,7 +4867,6 @@ which slots are expected to be used."
   "Gives the variable text output transformation for AST. This
 representation is interleaved text though it's unlikely to
 be more than one string outside of string literals."
-  ;; TODO: test this
   (iter
     (iter:with interleaved-text = (computed-text ast))
     (iter:with children = (children ast))
@@ -4888,17 +4881,86 @@ be more than one string outside of string literals."
           (children (append children result))
           (t result)))))))
 
-;;; NOTE: the collapsed rule needs to have it's strings turned to types.
+(defun match-parsed-children-json (json-rule parse-tree)
+  "Match a cl-tree-sitter PARSE-TREE as a JSON-RULE if possible."
+  ;; NOTE: this could be expanded to match on the string too
+  ;;       though the current representation of transformed json
+  ;;       rules and pruned rules likely wouldn't benefit from it.
+  (labels ((handle-alias (rule tree &aux (alias (car tree)))
+             (cond
+               ((aget :named rule)
+                (and (string-equal (car alias) (aget :value rule))
+                     (values (cdr tree) t)))
+               ;; Named aliases are unhandled by #'match-parsed-children-json.
+               (t (error "Named alias in JSON subtree"))))
+           (handle-blank (tree) (values tree t))
+           (handle-choice (rule tree)
+             (iter
+               (for branch in (aget :members rule))
+               (for (values result matched?) = (rule-handler branch tree))
+               (when matched?
+                 (leave (values result t)))))
+           (handle-repeat (rule tree)
+             ;; NOTE: since this doesn't back track it won't work on certain
+             ;;       rules. Currently, I'm not aware of any rules that
+             ;;       need back tracking, so I'm ignoring this for now.
+             (mvlet ((result matched? (rule-handler (aget :content rule) tree)))
+               (cond
+                 ((and matched?
+                       ;; Prevent infinite recursion. This will probably
+                       ;; never be an issue for JSON matching.
+                       (not (eq tree result)))
+                  (handle-repeat rule result))
+                 (t (values tree t)))))
+           (handle-seq (rule tree)
+             (iter
+               (for child in (aget :members rule))
+               (for (values result matched?)
+                    first (rule-handler child tree)
+                    then (rule-handler child result))
+               (unless matched?
+                 (leave))
+               (finally (return (values result t)))))
+           (handle-string (rule tree &aux (token (car tree)))
+             (when (and (consp token)
+                        (atom (car token))
+                        (string-equal (car token) (aget :value rule)))
+               (values (cdr tree) t)))
+           (handle-token (rule tree &aux (content (aget :content rule)))
+             ;; TODO: in certain cases, an unnamed node will be produced.
+             ;;       Need to figure out what these cases are and account for
+             ;;       them. The following is a simple stopgap in the meantime.
+             (cond
+               ((equal "STRING" (aget :type content))
+                (rule-handler content tree))
+               (t (values tree t))))
+           (rule-handler (rule tree)
+             "Handles dispatching RULE to its relevant rule handler."
+             ;; NOTE: this will throw an error if an unexpected rule is
+             ;;       encountered.
+             (string-ecase (aget :type rule)
+               ("ALIAS" (handle-alias rule tree))
+               ("BLANK" (handle-blank tree))
+               ("CHOICE" (handle-choice rule tree))
+               ;; TODO: token rules are handled differently if they only
+               ;;       produce one token.
+               (("IMMEDIATE_TOKEN" "TOKEN") (handle-token rule tree))
+               ;; NOTE: shouldn't ever reach a pattern?
+               #+nil
+               ("PATTERN" (handle-pattern rule tree))
+               ("REPEAT" (handle-repeat rule tree))
+               ("SEQ" (handle-seq rule tree))
+               ("STRING" (handle-string rule tree)))))
+    (rule-handler json-rule parse-tree)))
+
 (defun match-parsed-children
-    (language-prefix collapsed-rule child-types parse-tree)
-  "Match a cl-tree-sitter PARSE-TREE as a COLLAPSED-RULE in LANGUGE-PREFIX.
+    (language-prefix json-rule pruned-rule child-types parse-tree)
+  "Match a cl-tree-sitter PARSE-TREE as a PRUNED-RULE in LANGUGE-PREFIX.
 CHILD-TYPES is a list of lisp types that the children slot can contain."
-  ;; TODO: at some point, it will be worth using the pruned rule + json here
-  ;;       since there's a chance of a collapsed rule collision here.
-  ;;       This will require more code to handle all of the rule types,
-  ;;       though this shouldn't be problematic.
   (labels ((get-children ()
              "Get the children slots and their types from parse-tree."
+             ;; TODO: work off the parse-tree exclusively and only use this
+             ;;       for a preliminary check.
              (iter
                (for child in (caddr parse-tree))
                (for slot-pair = (car child))
@@ -4916,67 +4978,86 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
                  ((subtypep child-type 'comment-ast))
                  ((member child-type child-types :test #'subtypep)
                   (collect (convert-to-lisp-type language-prefix slot-pair))))))
-           (handle-child (rule child-stack &aux (top (car child-stack)))
-             (cond
-               ((and top (member top (cdr rule) :test #'subtypep))
-                (values (cdr child-stack) t))
-               ((member 'null (cdr rule))
-                (values child-stack t))))
-           (handle-field (rule child-stack &aux (child (car child-stack)))
-             (cond
-               ((and (listp child)
-                     (eql (cadr rule) (car child))
-                     (member (cadr child) (cddr rule)
-                             :test #'subtypep))
-                (values (cdr child-stack) t))
-               ((member 'null (cdr rule))
-                (values child-stack t))))
-           (handle-choice (rule child-stack)
+           (handle-child (rule parse-stack
+                          &aux (child (car (pop parse-stack))))
+             (when (and (atom child)
+                        ;; Confirm tree is the relevant thing on the stack.
+                        (member (convert-to-lisp-type language-prefix child)
+                                (cdr rule)
+                                :test #'subtypep))
+               (values parse-stack t)))
+           (handle-field (rule parse-stack
+                          &aux (parsed-field (pop parse-stack))
+                            (field-pair (and (consp parsed-field)
+                                             (car parsed-field))))
+             (when (and (consp field-pair)
+                        (eql (cadr rule)
+                             (convert-to-lisp-type
+                              language-prefix (car field-pair)))
+                        (member
+                         (convert-to-lisp-type
+                          language-prefix (cadr field-pair))
+                         (cddr rule)
+                         :test #'subtypep))
+               (values parse-stack t)))
+           (handle-choice (rule json parse-stack)
              ;; NOTE: since this doesn't back track it won't work on certain
              ;;       rules. Currently, I'm not aware of any rules that
              ;;       need back tracking, so I'm ignoring this for now.
              (iter
                (for branch in (cdr rule))
-               (for (values stack matched?) = (rule-handler branch child-stack))
+               (for json-branch in (aget :members json))
+               (for (values stack matched?) =
+                    (rule-handler branch json-branch parse-stack))
                (when matched?
                  (return (values stack t)))))
-           (handle-repeat (rule child-stack)
+           (handle-repeat (rule json parse-stack)
              ;; NOTE: since this doesn't back track it won't work on certain
              ;;       rules. Currently, I'm not aware of any rules that
              ;;       need back tracking, so I'm ignoring this for now.
-             (mvlet ((repeat-stack
+             (mvlet ((stack
                       matched?
-                      (rule-handler (cadr rule) child-stack)))
+                      (rule-handler
+                       (cadr rule) (aget :content json) parse-stack)))
                (if matched?
-                   (handle-repeat rule repeat-stack)
-                   (values child-stack t))))
-           (handle-seq (rule child-stack)
+                   (handle-repeat rule json stack)
+                   (values parse-stack t))))
+           (handle-seq (rule json parse-stack)
              (iter
                (for subrule in (cdr rule))
+               (for json-subrule in (aget :members json))
                (for (values stack matched?)
-                    first (rule-handler subrule child-stack)
-                    then (rule-handler subrule stack))
+                    first (rule-handler subrule json-subrule parse-stack)
+                    then (rule-handler subrule json-subrule stack))
                (always matched?)
                (finally (return (values stack t)))))
-           (rule-handler (rule child-stack)
+           (rule-handler (rule json parse-stack)
              "Handles dispatching RULE to its relevant rule handler."
-             (when rule
-               (ecase (car rule)
-                 (:CHOICE (handle-choice rule child-stack))
-                 (:REPEAT (handle-repeat rule child-stack))
-                 (:FIELD (handle-field rule child-stack))
-                 (:CHILD (handle-child rule child-stack))
-                 (:SEQ (handle-seq rule child-stack))))))
-    (let ((children (get-children)))
-      (cond
-        ;; Prevent matching on an empty rule when there are children.
-        ((or (not collapsed-rule)
-             (= 1 (length collapsed-rule)))
-         (not children))
-        (collapsed-rule
-         (mvlet ((stack success? (rule-handler collapsed-rule children)))
-           ;; Avoid matching a rule if children still exist.
-           (and (not stack) success?)))))))
+             (ecase (car rule)
+               (:CHOICE (handle-choice rule json parse-stack))
+               (:REPEAT (handle-repeat rule json parse-stack))
+               (:FIELD (handle-field rule parse-stack))
+               (:CHILD (handle-child rule parse-stack))
+               (:SEQ (handle-seq rule json parse-stack))
+               ((nil)
+                (mvlet ((stack
+                         matched?
+                         (match-parsed-children-json json parse-stack)))
+                  (when matched?
+                    (values stack t)))))))
+    (cond
+      ;; Prevent matching on an empty rule when there are children.
+      ;; TODO: should probably update this to check if the parse-tree
+      ;;       matches.
+      ((or (not pruned-rule)
+           (= 1 (length pruned-rule)))
+       (not (get-children)))
+      (pruned-rule
+       (mvlet ((parse-stack
+                success?
+                (rule-handler pruned-rule json-rule (caddr parse-tree))))
+         ;; Avoid matching a rule if parse tree tokens still exist.
+         (and (not parse-stack) success?))))))
 
 (defun process-indentation (root &aux indentation-carryover indentation-ast)
   "Process the indentation of ROOT such that indentation information is stored in
@@ -5503,10 +5584,11 @@ correct class name for subclasses of SUPERCLASS."
                (cadr subtree-spec)
                (reverse
                 (append
-                 (when (and child (not terminal-child-p))
-                   (list
-                    (annotate-surrounding-text
-                     child :parent-from from :parent-to (end subtree-spec))))
+                 (if (and child (not terminal-child-p))
+                     (list
+                      (annotate-surrounding-text
+                       child :parent-from from :parent-to (end subtree-spec)))
+                     (and child (list child)))
                  annotated-children))
                ;; If either is nil, it means that there isn't text for that slot.
                (list parent-from parent-to)))))))
