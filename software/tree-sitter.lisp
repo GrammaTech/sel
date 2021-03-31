@@ -806,7 +806,30 @@ definitions.")
               (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "_expression"))
                         ((:TYPE . "STRING") (:VALUE . "*"))))
              ((:TYPE . "BLANK")))))
-          ((:TYPE . "STRING") (:VALUE . "]"))))))
+          ((:TYPE . "STRING") (:VALUE . "]")))))
+       (:SIZED-TYPE-SPECIFIER (:TYPE . "SEQ")
+        (:MEMBERS
+         ((:TYPE . "REPEAT1")
+          (:CONTENT
+           (:TYPE . "FIELD") (:NAME . "modifiers")
+           (:CONTENT
+            (:TYPE . "CHOICE")
+            (:MEMBERS
+             ((:TYPE . "STRING") (:VALUE . "signed"))
+             ((:TYPE . "STRING") (:VALUE . "unsigned"))
+             ((:TYPE . "STRING") (:VALUE . "long"))
+             ((:TYPE . "STRING") (:VALUE . "short"))))))
+          ((:TYPE . "FIELD") (:NAME . "type")
+           (:CONTENT
+            (:TYPE . "CHOICE")
+            (:MEMBERS
+             ((:TYPE . "CHOICE")
+              (:MEMBERS
+               ((:TYPE . "PREC_DYNAMIC")
+                (:VALUE . -1)
+                (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_type_identifier")))
+               ((:TYPE . "SYMBOL") (:NAME . "primitive_type"))))
+             ((:TYPE . "BLANK"))))))))
       (:python
        ;; NOTE: this removes semicolons. This can be further amended if it
        ;;       becomes problematic.
@@ -2795,6 +2818,8 @@ the source-text.")
                                              (car parse-tree))))
                (cond
                  (class parse-tree)
+                 ((and descriptor (not (= 3 (length parse-tree))))
+                  parse-tree)
                  ;; :class
                  ((keywordp descriptor)
                   (transform-parse-tree
@@ -2802,7 +2827,7 @@ the source-text.")
                    (convert-to-lisp-type language descriptor)
                    parse-tree))
                  ;; :slot, :class list
-                 ((and (listp descriptor)
+                 ((and (consp descriptor)
                        (keywordp (cadr descriptor)))
                   (transform-parse-tree
                    language
@@ -4350,6 +4375,21 @@ scope of START-AST."
 
   (defmethod ext :around ((obj c)) (or (call-next-method) "c"))
 
+  (defmethod transform-parse-tree
+      ((language (eql ':c)) (class (eql 'c-sized-type-specifier)) parse-tree)
+    "Transform PARSE-TREE such that all modifiers are stored in the :modifiers
+field."
+    (append
+     (butlast parse-tree)
+     (list
+      (mapcar
+       (lambda (child-tree &aux (node-type (car child-tree)))
+         (cond
+           ((consp node-type) child-tree)
+           ((member node-type '(:error :comment)) child-tree)
+           (t (cons (list :modifiers node-type) (cdr child-tree)))))
+       (lastcar parse-tree)))))
+
   (defgeneric pointers (c-declarator)
     (:documentation "Return the number of pointers around C-DECLARATOR.")
     (:method ((ast c-parameter-declaration)) (pointers (c-declarator ast)))
@@ -5520,7 +5560,7 @@ correct class name for subclasses of SUPERCLASS."
          "Map transform-parse-tree over PARSE-TREE."
          ;; NOTE: it might make sense not to use map-tree here and
          ;;       write a custom function instead.
-         (map-tree {transform-parse-tree superclass nil} parse-tree
+         (map-tree {transform-parse-tree prefix nil} parse-tree
                    :traversal :postorder))
        (start (ast)
          "Return the start offset into STRING from the AST representation."
