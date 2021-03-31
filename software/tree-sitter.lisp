@@ -389,6 +389,15 @@ searched to populate `*tree-sitter-language-files*'.")
     "Alist of superclasses for the base class of a language (e.g.
     `python-ast').")
 
+  (defparameter *tree-sitter-ast-extra-slots*
+    '((:c
+       (c-sized-type-specifier
+        (c-modifiers
+         :accessor c-modifiers
+         :initarg :c-modifiers
+         :initform nil))))
+    "Alist from languages to classes with extra slots.")
+
   (defparameter *tree-sitter-ast-extra-slot-options*
     '((:c
        (c-init-declarator
@@ -863,7 +872,9 @@ stored on the AST or external rules.")
          :software-direct-slots
          (aget class-keyword *tree-sitter-software-direct-slots*)
          :ast-extra-slot-options
-         (aget class-keyword *tree-sitter-ast-extra-slot-options*))))))
+         (aget class-keyword *tree-sitter-ast-extra-slot-options*)
+         :ast-extra-slots
+         (aget class-keyword *tree-sitter-ast-extra-slots*))))))
 
 (-> ast-mixin-subclasses ((or symbol class) (or symbol class)) list)
 (defun ast-mixin-subclasses (class language)
@@ -2409,9 +2420,11 @@ subclass based on the order of the children were read in."
        &key ast-superclasses base-ast-superclasses
          software-superclasses software-direct-slots
          ast-extra-slot-options
+         ast-extra-slots
        &aux (subtype->supertypes (make-hash-table))
          (symbols-to-export (make-hash-table))
          (class->extra-slot-options (make-hash-table))
+         (class->extra-slots (make-hash-table))
          (ast-superclass (symbolicate
                           name-prefix
                           "-"
@@ -2441,7 +2454,9 @@ SOFTWARE-DIRECT-SLOTS is a list of slots to be added to the created
 sofware class.
 
 AST-EXTRA-SLOT-OPTIONS is an alist from classes to extra options for
-their slots."
+their slots.
+
+AST-EXTRA-SLOTS is an alist from classes to extra slots."
     (labels ((initialize-subtype->supertypes ()
                "Initialize subtype->supertypes with the super types that
                 aren't parsed from the json files."
@@ -2467,6 +2482,11 @@ their slots."
                      (setf (gethash class class->extra-slot-options) fields))
                ;; Return for easier debugging.
                class->extra-slot-options)
+             (initialize-class->extra-slots ()
+               (iter (for (class . slots) in ast-extra-slots)
+                 (setf (gethash class class->extra-slots) slots))
+               ;; Return for easier debugging.
+               class->extra-slots)
              (populate-supertypes ()
                "Populate the subtypes to supertypes with supertypes. This is
                 to have the information available if the definition occurs after
@@ -2580,7 +2600,8 @@ their slots."
                     (child-slots
                      :initform
                      ',(append child-slot-order '((children . 0)))
-                     :allocation :class))
+                     :allocation :class)
+                    ,@(gethash class-name class->extra-slots))
                    ;; NOTE: this is primarily for determing which rule this
                    ;;       was generated for.
                    (:documentation ,(format nil "Generated for ~a." type)))))
@@ -2629,6 +2650,7 @@ their slots."
                        (aget :externals grammar))))
       (initialize-subtype->supertypes)
       (initialize-class->extra-slot-options)
+      (initialize-class->extra-slots)
       (populate-supertypes)
       ;; populate hash table of tree-sitter classes.
       (map nil {create-node-class grammar-rules} node-types)
@@ -5265,10 +5287,10 @@ the indentation slots."
                    line-octets
                    (make-instance 'source-range :begin start-loc :end end-loc)))
                  ""))
-           (start (ast)
+           (get-start (ast)
              "Return the start offset into STRING from the AST representation."
              (car (ast-annotation ast :range-start)))
-           (end (ast)
+           (get-end (ast)
              "Return the end offset into STRING from the AST representation."
              (car (ast-annotation ast :range-end)))
            ;; NOTE: this may be useful for computed-text ASTs.
@@ -5280,7 +5302,7 @@ the indentation slots."
              (iter
                (for child in children)
                (for previous-child previous child)
-               (collect (cons (if previous-child (end previous-child) from) (start child))
+               (collect (cons (if previous-child (get-end previous-child) from) (get-start child))
                  into ranges)
                (when previous-child
                  (setf (slot-value previous-child 'annotations)
@@ -5289,7 +5311,7 @@ the indentation slots."
                (finally
                 (return
                   (prog1
-                      (append ranges (list (cons (end child) to)))
+                      (append ranges (list (cons (get-end child) to)))
                     (setf (slot-value child 'annotations)
                           (adrop '(:range-start :range-end)
                                  (slot-value child 'annotations))))))))
