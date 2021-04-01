@@ -961,12 +961,18 @@ stored as a list of interleaved text. This should ideally only be used for leaf
       :initarg :after-text
       :initform ""
       :documentation "The text after the last token of an AST.")
-     (structured-comments
-      :accessor comments
-      :initarg :comments
+     (before-comments
+      :accessor before-comments
+      :initarg :before-comments
       :initform nil
-      :documentation "A list that contains pairs of comment ASTs and
-where the should be inserted in regards to another AST in current subtree."))
+      :documentation
+      "A list of comments the precede the before text of an AST.")
+     (after-comments
+      :accessor after-comments
+      :initarg :after-comments
+      :initform nil
+      :documentation
+      "A list of comments the procede the after text of an AST."))
     (:documentation "Mix-in for structured text ASTs."))
 
   (defclass tree-sitter-ast (indentation
@@ -5251,7 +5257,8 @@ the indentation slots."
                ast)))
            (process-indentation*
                (ast &optional parents
-                &aux (output-transformation (output-transformation ast)))
+                &aux (output-transformation
+                      (output-transformation ast :surrounding-comments nil)))
              "Process the text of AST such that its indentation
               is in the indentation slots."
              ;; TODO: there will need to be a separate function for computed text
@@ -5259,17 +5266,6 @@ the indentation slots."
              ;;       sequences. It's possible that this doesn't matter.
              (setf (before-text ast)
                    (patch-text (car output-transformation) ast parents))
-             ;; TODO: determine if a special case for computed-text is needed.
-             #+nil
-             (mapl (lambda (child-list text-list &aux (child (car child-list)))
-                     ;; this prevents patching literals that have
-                     ;; multiple newlines.
-                     (unless (not (indentablep child))
-                       (process-indentation* child (cons ast parents)))
-                     (setf (car text-list)
-                           (patch-text (car text-list) ast parents)))
-                   (sorted-children ast)
-                   (cdr interleaved-text))
              (mapc (lambda (output)
                      (cond
                        ((stringp output)
@@ -5384,10 +5380,21 @@ the indentation slots."
              "Get the value of each field after it's been converted
               into an AST."
              (iter
+               (iter:with comment-stack)
+               ;; Keep track of the last non-comment AST seen. It is used for
+               ;; populating 'after'comments.
+               (iter:with previous-field)
                (for field in (caddr spec))
                (for slot-info = (car field))
                (for i upfrom 0)
                (when (skip-terminal-field-p field slot-info)
+                 (when (and previous-field comment-stack)
+                   (setf (after-comments previous-field) comment-stack))
+                 ;; Reset the converted-field so that comments aren't pushed back
+                 ;; to the last AST that wasn't a terminal symbol which could
+                 ;; have been proceded by terminal symbols.
+                 (setf previous-field nil
+                       comment-stack nil)
                  (next-iteration))
                (for converted-field =
                     (convert superclass field
@@ -5398,14 +5405,26 @@ the indentation slots."
                ;; into the children slot.
                (cond
                  ((and (listp slot-info) (not error-p))
+                  (setf (before-comments converted-field) comment-stack
+                        comment-stack nil
+                        previous-field converted-field)
                   (collect (list (car slot-info)
                                  converted-field)
                     into fields))
                  ((typep converted-field 'comment-ast)
-                  ;; TODO: handle comments
-                  (push (cons converted-field i) (comments instance)))
-                 (t (collect converted-field into children)))
+                  ;; NOTE: this won't put the comment in the children slot
+                  ;;       when it's allowed. There may need to be a function
+                  ;;       that signals their ability to be stored there if
+                  ;;       that functionality is ever desired.
+                  (push converted-field comment-stack))
+                 (t
+                  (setf (before-comments converted-field) comment-stack
+                        comment-stack nil
+                        previous-field converted-field)
+                  (collect converted-field into children)))
                (finally
+                (when (and comment-stack previous-field)
+                  (setf (after-comments previous-field) comment-stack))
                 (return
                   (if children
                       (push `(:children ,children) fields)
@@ -5666,25 +5685,16 @@ correct class name for subclasses of SUPERCLASS."
 
 (defmethod output-transformation :around
     ((ast structured-text)
-     &rest rest &key &allow-other-keys)
+     &rest rest &key (surrounding-comments t)
+     &allow-other-keys
+     &aux (output-transformation (call-next-method)))
   (declare (ignorable rest))
-  (let* ((output-transformation (call-next-method))
-         (comment-pairs (sort (comments ast) #'< :key #'cdr))
-         (before-text (car output-transformation))
-         (after-text (lastcar output-transformation)))
-    ;; NOTE: we want to remove any empty string from consideration
-    ;;       that isn't the before or after text.
-    ;; Inserts comments from the back of the list to the front.
-    `(,before-text
-      ,@(reduce (lambda (result comment-pair)
-                  (insert result (cdr comment-pair) (car comment-pair)))
-                comment-pairs
-                :initial-value
-                (remove-if
-                 ;; Remove empty strings caused by "BLANK"
-                 (op (and (stringp _1) (emptyp _1)))
-                 (butlast (cdr output-transformation))))
-      ,after-text)))
+  "Inserts before and after comments into the output transformation."
+  (if surrounding-comments
+      (append (before-comments ast)
+              output-transformation
+              (after-comments ast))
+      output-transformation))
 
 (defmethod source-text ((ast indentation)
                         &key stream parents
@@ -5804,22 +5814,32 @@ correct class name for subclasses of SUPERCLASS."
              (unless trim
                (write-string
                 (patch-inner-indentation text ast parents)
-                stream))))
+                stream)))
+           (handle-ast (output &key (ast-parents (cons ast parents)))
+             "Handle the source text of AST."
+             (source-text output
+                          :stream stream
+                          :parents ast-parents
+                          :indent-p indent-p
+                          :indentation-ast indentation-ast
+                          :trim nil))
+           (handle-comments (asts)
+             "Handle the source text of ASTS."
+             ;; The parents of the current AST are the came for comments.
+             (mapc #'handle-ast asts :ast-parents parents)))
     (let ((indentablep (indentablep ast)))
+      (handle-comments (before-comments ast))
       (handle-text (before-text ast) ast indentablep parents)
       (mapc (lambda (output &aux trim)
               (declare (special trim))
               (if (stringp output)
                   (handle-text output ast indentablep parents
                                :ancestor-check t)
-                  (source-text output
-                               :stream stream
-                               :parents (cons ast parents)
-                               :indent-p indent-p
-                               :indentation-ast indentation-ast
-                               :trim trim)))
-            (cdr (butlast (output-transformation ast))))
-      (handle-text (after-text ast) ast indentablep parents))))
+                  (handle-ast output)))
+            (cdr (butlast (output-transformation
+                           ast :surrounding-comments nil))))
+      (handle-text (after-text ast) ast indentablep parents)
+      (handle-comments (after-comments ast)))))
 
 (defmethod rebind-vars ((ast tree-sitter-ast)
                         var-replacements fun-replacements)
