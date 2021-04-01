@@ -1986,13 +1986,15 @@ outside of repeats."
                                expansion-stack json-expansion-stack)))))))
       (expand-choices pruned-rule transformed-json)))
 
-  (defun computed-text-ast-p (language class-name json-rule)
+  (defun computed-text-ast-p (language class-name json-rule &aux children?)
     "Return T if JSON-RULE and TYPE represent an AST that contains variable text."
     (or
      (member class-name
              (aget (make-keyword language) *tree-sitter-computed-text-asts*))
      (walk-json
       (lambda (subtree)
+        ;; TODO: maybe also look at node types to see if it has any children
+        ;;       default to computed text node p if it doesn't?
         (when-let (type (aget :type subtree))
           (string-case type
             (("PATTERN" "TOKEN" "IMMEDIATE_TOKEN")
@@ -2009,11 +2011,19 @@ outside of repeats."
              ;; C.
              (return-from computed-text-ast-p t))
             ("ALIAS"
-             ;; Aliases can have patterns in them,
-             ;; but they are recast to something else,
-             ;; so they do not need to be stored.
-             (throw 'prune nil)))))
-      json-rule)))
+             (if (aget :named subtree)
+                 ;; A named alias should be treated like a symbol.
+                 (setf children? t)
+                 ;; Aliases can have patterns in them,
+                 ;; but they are recast to something else,
+                 ;; so they do not need to be stored.
+                 (throw 'prune nil)))
+            (("FIELD" "SYMBOL")
+             ;; The presence of either of these indicate that there are
+             ;; children.
+             (setf children? t)))))
+      json-rule)
+     (not children?)))
 
   (defun generate-computed-text-method
       (transformed-json-rule class-name language &key skip-checking-json)
@@ -2430,7 +2440,7 @@ subclass based on the order of the children were read in."
                 (collect (generate-code (car result) type)))
                ((aget :named type)
                 ;; If a type is named and doesn't have a rule present assume
-                ;; that it is a variable text node. This is an edge case
+                ;; that it is a computed text node. This is an edge case
                 ;; that shouldn't happen often and should cover external
                 ;; named nodes.
                 (generate-computed-text-method
