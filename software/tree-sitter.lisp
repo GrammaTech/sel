@@ -5399,7 +5399,8 @@ the indentation slots."
                (for i upfrom 0)
                (when (skip-terminal-field-p field slot-info)
                  (when (and previous-field comment-stack)
-                   (setf (after-comments previous-field) comment-stack))
+                   (setf (after-comments previous-field)
+                         (reverse comment-stack)))
                  ;; Reset the converted-field so that comments aren't pushed back
                  ;; to the last AST that wasn't a terminal symbol which could
                  ;; have been proceded by terminal symbols.
@@ -5415,7 +5416,7 @@ the indentation slots."
                ;; into the children slot.
                (cond
                  ((and (listp slot-info) (not error-p))
-                  (setf (before-comments converted-field) comment-stack
+                  (setf (before-comments converted-field) (reverse comment-stack)
                         comment-stack nil
                         previous-field converted-field)
                   (collect (list (car slot-info)
@@ -5428,13 +5429,13 @@ the indentation slots."
                   ;;       that functionality is ever desired.
                   (push converted-field comment-stack))
                  (t
-                  (setf (before-comments converted-field) comment-stack
+                  (setf (before-comments converted-field) (reverse comment-stack)
                         comment-stack nil
                         previous-field converted-field)
                   (collect converted-field into children)))
                (finally
                 (when (and comment-stack previous-field)
-                  (setf (after-comments previous-field) comment-stack))
+                  (setf (after-comments previous-field) (reverse comment-stack)))
                 (return
                   (if children
                       (push `(:children ,children) fields)
@@ -5836,7 +5837,7 @@ correct class name for subclasses of SUPERCLASS."
            (handle-comments (asts)
              "Handle the source text of ASTS."
              ;; The parents of the current AST are the came for comments.
-             (mapc #'handle-ast asts :ast-parents parents)))
+             (mapc {handle-ast _ :ast-parents parents} asts)))
     (let ((indentablep (indentablep ast)))
       (handle-comments (before-comments ast))
       (handle-text (before-text ast) ast indentablep parents)
