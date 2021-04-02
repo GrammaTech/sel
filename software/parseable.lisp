@@ -1635,11 +1635,9 @@ is useful for ASTs that may have newline literals.")
 (defun ast-start+end (software ast)
   "Return the start and end of AST in SOFTWARE (if any) as source
 locations."
-  (let* ((ranges (ast-source-ranges software))
-         (range (assocdr ast ranges)))
-    (and range
-         (values (begin range)
-                 (end range)))))
+  (when-let (range (assocdr ast (ast-source-ranges software)))
+    (values (begin range)
+            (end range))))
 
 (defun ast-start (software ast)
   "Return the start of AST in software, as a source location."
