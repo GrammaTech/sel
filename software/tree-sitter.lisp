@@ -5715,8 +5715,9 @@ correct class name for subclasses of SUPERCLASS."
                           (indent-p (box nil))
                           (indentation-ast (box nil))
                           (trim t)
+                          (ignore-initial-comments t)
                         &aux (root ast))
-  ;; trim removes the before and after text from the output.
+  ;; Trim removes the before and after text from the output and the comments.
   ;; Note that it will always trim with the first AST it sees since
   ;; the top most AST shouldn't have any before or after text this
   ;; should maintain previous functionality while still being able to
@@ -5839,7 +5840,8 @@ correct class name for subclasses of SUPERCLASS."
              ;; The parents of the current AST are the came for comments.
              (mapc {handle-ast _ :ast-parents parents} asts)))
     (let ((indentablep (indentablep ast)))
-      (handle-comments (before-comments ast))
+      (unless ignore-initial-comments
+        (handle-comments (before-comments ast)))
       (handle-text (before-text ast) ast indentablep parents)
       (mapc (lambda (output &aux trim)
               (declare (special trim))
@@ -5850,7 +5852,8 @@ correct class name for subclasses of SUPERCLASS."
             (cdr (butlast (output-transformation
                            ast :surrounding-comments nil))))
       (handle-text (after-text ast) ast indentablep parents)
-      (handle-comments (after-comments ast)))))
+      (unless ignore-initial-comments
+        (handle-comments (after-comments ast))))))
 
 (defmethod rebind-vars ((ast tree-sitter-ast)
                         var-replacements fun-replacements)
