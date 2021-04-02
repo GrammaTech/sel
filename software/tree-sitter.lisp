@@ -2026,7 +2026,7 @@ the rebinding"
     (find-if {typep _ type} (get-parent-asts software ast))))
 
 (defgeneric find-preceding (type software ast)
-  (:documentation "Return the instance(s) of TYPE preceding AST in SOFTWARE.")
+  (:documentation "Return any siblings of TYPE preceding AST in SOFTWARE.")
   (:method ((type t) (software tree-sitter) (ast tree-sitter-ast))
     ;; (assert (typep type '(or symbol (cons symbol t) class)))
     (when-let ((parent (get-parent-ast software ast)))
@@ -2036,7 +2036,7 @@ the rebinding"
               (collect child))))))
 
 (defgeneric find-following (type software ast)
-  (:documentation "Return the instance(s) of TYPE following AST in SOFTWARE.")
+  (:documentation "Return any siblings of TYPE following AST in SOFTWARE.")
   (:method ((type t) (software tree-sitter) (ast tree-sitter-ast))
     ;; (assert (typep type '(or symbol (cons symbol t) class)))
     (when-let ((parent (get-parent-ast software ast)))
