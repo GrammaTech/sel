@@ -5150,7 +5150,7 @@ the indentation slots."
              "If STRING starts with indentation, return
               the first position without indentation."
              (when indentation-carryover
-               (mvlet ((start end (scan "^[ \\t]*" string)))
+               (mvlet ((start end (scan "^[ \\t]+" string)))
                  (declare (ignorable start))
                  end)))
            (ends-with-newline-p (string)
@@ -5220,13 +5220,10 @@ the indentation slots."
                          (adjusted-spaces-from-tabs
                           (subseq text 0 indentation))))
                 "")
-               ;; This prevents weird indentation caused by
-               ;; missing the indentation that occurs after the newline.
                ((and not-empty-string-p
                      (eql #\newline (first text)))
-                (setf indentation-carryover nil
-                      indentation-ast nil)
-                text)
+                ;; Treat it like trailing indentation.
+                (patch-trailing-indentation text ast))
                ((or indentation
                     ;; NOTE: check if text exists here so that
                     ;;       the inherited indentation can be
@@ -5275,7 +5272,9 @@ the indentation slots."
              ;;       ASTs? Test this with a string literal with escape
              ;;       sequences. It's possible that this doesn't matter.
              (setf (before-text ast)
-                   (patch-text (car output-transformation) ast parents))
+                   (patch-internal-indentation
+                    (patch-leading-indentation (car output-transformation)
+                                               ast parents)))
              (mapc (lambda (output)
                      (cond
                        ((stringp output)
@@ -5284,7 +5283,8 @@ the indentation slots."
                         (process-indentation* output (cons ast parents)))))
                    (cdr (butlast output-transformation)))
              (setf (after-text ast)
-                   (patch-text (lastcar output-transformation) ast parents))))
+                   (patch-internal-indentation
+                    (patch-trailing-indentation (lastcar output-transformation) ast)))))
     (process-indentation* root)
     root))
 
