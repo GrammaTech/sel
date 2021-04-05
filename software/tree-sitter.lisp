@@ -5586,7 +5586,12 @@ correct class name for subclasses of SUPERCLASS."
                     &key superclass &allow-other-keys
                     &aux (prefix (get-language-from-superclass superclass)))
   (labels
-      ((transform-tree (parse-tree)
+      ((ensure-beginning-bound (parse-tree)
+         "Desctructively ensures that the beginning bound of PARSE-TREE is the
+          beginning of the string."
+         (setf (cadr (car (cadr parse-tree))) 0)
+         parse-tree)
+       (transform-tree (parse-tree)
          "Map transform-parse-tree over PARSE-TREE."
          ;; NOTE: it might make sense not to use map-tree here and
          ;;       write a custom function instead.
@@ -5689,8 +5694,9 @@ correct class name for subclasses of SUPERCLASS."
       to-type
       (annotate-surrounding-text
        (transform-tree
-        (parse-string (get-language-from-superclass superclass) string
-                      :produce-cst t)))
+        (ensure-beginning-bound
+         (parse-string (get-language-from-superclass superclass) string
+                       :produce-cst t))))
       :superclass superclass
       :string-pass-through string))))
 
