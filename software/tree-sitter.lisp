@@ -5592,10 +5592,10 @@ correct class name for subclasses of SUPERCLASS."
          ;;       write a custom function instead.
          (map-tree {transform-parse-tree prefix nil} parse-tree
                    :traversal :postorder))
-       (start (ast)
+       (get-start (ast)
          "Return the start offset into STRING from the AST representation."
          (car (cadr ast)))
-       (end (ast)
+       (get-end (ast)
          "Return the end offset into STRING from the AST representation."
          (cadr (cadr ast)))
        (find-terminal-symbol-class (class-name)
@@ -5641,7 +5641,7 @@ correct class name for subclasses of SUPERCLASS."
            (cond
              ((not (or previous-child terminal-child-p))
               ;; Set to the start of the current node passed in as an argument.
-              (setf from (start subtree-spec)))
+              (setf from (get-start subtree-spec)))
              ((and (not previous-child) terminal-child-p))
              ;; NOTE: (not previous-child) should be covered by the
              ;;       previous two conditions.
@@ -5649,7 +5649,7 @@ correct class name for subclasses of SUPERCLASS."
               ;; Send the before text to the after of the previous child.
               (collect
                   (annotate-surrounding-text
-                   previous-child :parent-from from :parent-to (start child))
+                   previous-child :parent-from from :parent-to (get-start child))
                 into annotated-children at beginning)
               (setf from nil))
              ((and (not terminal-previous-child-p) (not terminal-child-p))
@@ -5657,11 +5657,11 @@ correct class name for subclasses of SUPERCLASS."
                   (annotate-surrounding-text previous-child :parent-from from)
                 into annotated-children at beginning)
               ;; Prefer storing text in the before-text slot.
-              (setf from (end previous-child)))
+              (setf from (get-end previous-child)))
              ((and terminal-previous-child-p (not terminal-child-p))
               (collect previous-child into annotated-children at beginning)
               ;; Store the text in the before-text of child.
-              (setf from (end previous-child)))
+              (setf from (get-end previous-child)))
              ((and terminal-previous-child-p terminal-child-p)
               ;; Text is lost in this case. This might not happen
               ;; very often.
@@ -5679,7 +5679,7 @@ correct class name for subclasses of SUPERCLASS."
                  (if (and child (not terminal-child-p))
                      (list
                       (annotate-surrounding-text
-                       child :parent-from from :parent-to (end subtree-spec)))
+                       child :parent-from from :parent-to (get-end subtree-spec)))
                      (and child (list child)))
                  annotated-children))
                ;; If either is nil, it means that there isn't text for that slot.
