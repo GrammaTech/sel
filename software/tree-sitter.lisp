@@ -5059,27 +5059,38 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
                  ((member child-type child-types :test #'subtypep)
                   (collect (convert-to-lisp-type language-prefix slot-pair))))))
            (handle-child (rule parse-stack
-                          &aux (child (car (pop parse-stack))))
-             (when (and (atom child)
-                        ;; Confirm tree is the relevant thing on the stack.
-                        (member (convert-to-lisp-type language-prefix child)
-                                (cdr rule)
-                                :test #'subtypep))
-               (values parse-stack t)))
+                          &aux (child (car (car parse-stack))))
+             (cond
+               ((and (null child)
+                     (member child (cdr rule) :test #'subtypep))
+                ;; This is an edge case for rules that allow null children.
+                (values parse-stack t))
+               ((and (atom child)
+                     ;; Confirm tree is the relevant thing on the stack.
+                     (member (convert-to-lisp-type language-prefix child)
+                             (cdr rule)
+                             :test #'subtypep))
+                (values (cdr parse-stack) t))))
            (handle-field (rule parse-stack
-                          &aux (parsed-field (pop parse-stack))
+                          &aux (parsed-field (car parse-stack))
                             (field-pair (and (consp parsed-field)
                                              (car parsed-field))))
-             (when (and (consp field-pair)
-                        (eql (cadr rule)
-                             (convert-to-lisp-type
-                              language-prefix (car field-pair)))
-                        (member
-                         (convert-to-lisp-type
-                          language-prefix (cadr field-pair))
-                         (cddr rule)
-                         :test #'subtypep))
-               (values parse-stack t)))
+             ;; Must handle field that isn't provided but has null.
+             (cond
+               ((and (null field-pair)
+                     (member field-pair (cddr rule) :test #'subtypep))
+                ;; This is an edge case for a field that allows nil.
+                (values parse-stack t))
+               ((and (consp field-pair)
+                     (eql (cadr rule)
+                          (convert-to-lisp-type
+                           language-prefix (car field-pair)))
+                     (member
+                      (convert-to-lisp-type
+                       language-prefix (cadr field-pair))
+                      (cddr rule)
+                      :test #'subtypep))
+                (values (cdr parse-stack) t))))
            (handle-choice (rule json parse-stack)
              ;; NOTE: since this doesn't back track it won't work on certain
              ;;       rules. Currently, I'm not aware of any rules that
@@ -5099,7 +5110,7 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
                       matched?
                       (rule-handler
                        (cadr rule) (aget :content json) parse-stack)))
-               (if matched?
+               (if (and matched? (not (equal parse-stack stack)))
                    (handle-repeat rule json stack)
                    (values parse-stack t))))
            (handle-seq (rule json parse-stack)
