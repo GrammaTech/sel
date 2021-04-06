@@ -2643,7 +2643,9 @@ AST-EXTRA-SLOTS is an alist from classes to extra slots."
                     ,@(gethash class-name class->extra-slots))
                    ;; NOTE: this is primarily for determing which rule this
                    ;;       was generated for.
-                   (:documentation ,(format nil "Generated for ~a." type)))))
+                   (:documentation ,(format nil "Generated for ~a." type))
+                   ,@(when (eq definer 'define-node-class)
+                       `((:method-options :skip-children-definition))))))
              (create-terminal-symbol-class (type)
                "Create a new class that represents a terminal symbol.
                 In the case that there's a non-terminal with the same name,
