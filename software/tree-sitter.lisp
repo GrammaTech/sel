@@ -2638,7 +2638,10 @@ AST-EXTRA-SLOTS is an alist from classes to extra slots."
                    (,@(create-slots class-name fields)
                     (child-slots
                      :initform
-                     ',(append child-slot-order '((children . 0)))
+                     ',(append '((before-comments . 0))
+                               child-slot-order
+                               '((children . 0))
+                               '((after-comments . 0)))
                      :allocation :class)
                     ,@(gethash class-name class->extra-slots))
                    ;; NOTE: this is primarily for determing which rule this
@@ -2886,32 +2889,6 @@ the source-text.")
 
 
 ;;; tree-sitter parsing
-(defun expected-slot-order-p (parsed-order expected-order)
-  "Compare ORDER with child-slots of instance to see if
-they should produce the same ordering."
-  (labels ((consolidate-key (cons &aux (car (car cons)))
-             "Access the key used for consolidating runs."
-             (etypecase car
-               (cons (car car))
-               (symbol car)
-               (integer 'children)))
-           (consolidate-runs (order)
-             "Consolidate all runs of the same slot into just one
-              instance of the symbol that represents that slot, and
-              flatten into a list of slots."
-             (mapcar #'consolidate-key
-                     (collapse-duplicates order :key #'consolidate-key)))
-           (duplicate-exists-p (order)
-             "Return T if a duplicate exists in ORDER."
-             (not (equal order (remove-duplicates order))))
-           (check-order (order expected-order)
-             "Return T if ORDER is equivalent to EXPECTED-ORDER."
-             (unless (set-difference order expected-order)
-               (equal order (sort order (ordering expected-order))))))
-    (let ((order (consolidate-runs parsed-order)))
-      (unless (duplicate-exists-p order)
-        (check-order order (consolidate-runs expected-order))))))
-
 (defun position-after-leading-newline (str &aux (pos 0))
   "Returns 1+ the position of the first newline in STR,
 assuming it can be reached only by skipping over whitespace
