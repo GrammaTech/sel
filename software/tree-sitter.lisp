@@ -5011,6 +5011,9 @@ field."
   (defmethod format-genome ((obj c) &key)
     (clang-format obj))
 
+  (defmethod equal? ((a c-identifier) (b c-identifier))
+    (equal (first (computed-text a)) (first (computed-text b))))
+
   (defmethod get-function-from-function-call
       ((obj c) (callexpr c-ast))
       "Given a c software object and a call-expression, return the
