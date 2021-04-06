@@ -2815,7 +2815,21 @@ are ordered for reproduction as source text.")
                  (before-text ast)
                  ;; Expand all rules here.
                  (computed-text-output-transformation ast)
-                 (after-text ast)))))
+                 (after-text ast))))
+             (:method :around ((ast structured-text)
+                               &rest rest &key &allow-other-keys)
+               (declare (ignorable rest))
+               ;; TODO: go through the list and grab the comments around each
+               ;;       AST, reinserting them.
+               (mappend
+                (lambda (output)
+                  (cond
+                    ((typep output 'structured-text)
+                     (append (before-comments output)
+                             (list output)
+                             (after-comments output)))
+                    (t (list output))))
+                (call-next-method))))
 
            (defmethod children ((ast structured-text))
              (remove-if #'listp (parse-order ast)))
@@ -5256,8 +5270,7 @@ the indentation slots."
                ast)))
            (process-indentation*
                (ast &optional parents
-                &aux (output-transformation
-                      (output-transformation ast :surrounding-comments nil)))
+                &aux (output-transformation (output-transformation ast)))
              "Process the text of AST such that its indentation
               is in the indentation slots."
              ;; TODO: there will need to be a separate function for computed text
@@ -5692,19 +5705,6 @@ correct class name for subclasses of SUPERCLASS."
       :superclass superclass
       :string-pass-through string))))
 
-(defmethod output-transformation :around
-    ((ast structured-text)
-     &rest rest &key (surrounding-comments t)
-     &allow-other-keys
-     &aux (output-transformation (call-next-method)))
-  (declare (ignorable rest))
-  "Inserts before and after comments into the output transformation."
-  (if surrounding-comments
-      (append (before-comments ast)
-              output-transformation
-              (after-comments ast))
-      output-transformation))
-
 (defmethod source-text ((ast indentation)
                         &key stream parents
                           ;; These are "boxed" values since they have
@@ -5713,7 +5713,6 @@ correct class name for subclasses of SUPERCLASS."
                           (indent-p (box nil))
                           (indentation-ast (box nil))
                           (trim t)
-                          (ignore-initial-comments t)
                         &aux (root ast))
   ;; Trim removes the before and after text from the output and the comments.
   ;; Note that it will always trim with the first AST it sees since
@@ -5832,15 +5831,8 @@ correct class name for subclasses of SUPERCLASS."
                           :parents ast-parents
                           :indent-p indent-p
                           :indentation-ast indentation-ast
-                          :ignore-initial-comments nil
-                          :trim nil))
-           (handle-comments (asts)
-             "Handle the source text of ASTS."
-             ;; The parents of the current AST are the came for comments.
-             (mapc {handle-ast _ :ast-parents parents} asts)))
+                          :trim nil)))
     (let ((indentablep (indentablep ast)))
-      (unless ignore-initial-comments
-        (handle-comments (before-comments ast)))
       (handle-text (before-text ast) ast indentablep parents)
       (mapc (lambda (output &aux trim)
               (declare (special trim))
@@ -5848,11 +5840,8 @@ correct class name for subclasses of SUPERCLASS."
                   (handle-text output ast indentablep parents
                                :ancestor-check t)
                   (handle-ast output)))
-            (cdr (butlast (output-transformation
-                           ast :surrounding-comments nil))))
-      (handle-text (after-text ast) ast indentablep parents)
-      (unless ignore-initial-comments
-        (handle-comments (after-comments ast))))))
+            (cdr (butlast (output-transformation ast))))
+      (handle-text (after-text ast) ast indentablep parents))))
 
 (defmethod rebind-vars ((ast tree-sitter-ast)
                         var-replacements fun-replacements)
