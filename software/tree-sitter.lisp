@@ -5087,6 +5087,8 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
                       matched?
                       (rule-handler
                        (cadr rule) (aget :content json) parse-stack)))
+               ;; Prevent infinite recursion when the parse-stack is never
+               ;; used.
                (if (and matched? (not (equal parse-stack stack)))
                    (handle-repeat rule json stack)
                    (values parse-stack t))))
@@ -5830,6 +5832,7 @@ correct class name for subclasses of SUPERCLASS."
                           :parents ast-parents
                           :indent-p indent-p
                           :indentation-ast indentation-ast
+                          :ignore-initial-comments nil
                           :trim nil))
            (handle-comments (asts)
              "Handle the source text of ASTS."
