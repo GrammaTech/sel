@@ -5016,9 +5016,6 @@ be more than one string outside of string literals."
                ;; TODO: token rules are handled differently if they only
                ;;       produce one token.
                (("IMMEDIATE_TOKEN" "TOKEN") (handle-token rule tree))
-               ;; NOTE: shouldn't ever reach a pattern?
-               #+nil
-               ("PATTERN" (handle-pattern rule tree))
                ("REPEAT" (handle-repeat rule tree))
                ("SEQ" (handle-seq rule tree))
                ("STRING" (handle-string rule tree)))))
@@ -5028,7 +5025,15 @@ be more than one string outside of string literals."
     (language-prefix json-rule pruned-rule child-types parse-tree)
   "Match a cl-tree-sitter PARSE-TREE as a PRUNED-RULE in LANGUGE-PREFIX.
 CHILD-TYPES is a list of lisp types that the children slot can contain."
-  (labels ((get-children ()
+  (labels ((remove-comments (tree)
+             "Remove comments from PARSE-TREE."
+             (when tree
+               `(,(car tree)
+                 ,(cadr tree)
+                 ,(mapcar #'remove-comments
+                          (remove-if (op (eq :comment (car _)))
+                                     (caddr tree))))))
+           (get-children ()
              "Get the children slots and their types from parse-tree."
              ;; TODO: work off the parse-tree exclusively and only use this
              ;;       for a preliminary check.
@@ -5137,7 +5142,8 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
       (pruned-rule
        (mvlet ((parse-stack
                 success?
-                (rule-handler pruned-rule json-rule (caddr parse-tree))))
+                (rule-handler
+                 pruned-rule json-rule (caddr (remove-comments parse-tree)))))
          ;; Avoid matching a rule if parse tree tokens still exist.
          (and (not parse-stack) success?))))))
 

@@ -269,7 +269,7 @@ int main () {
     (is (equal "1" (source-text (rhs (assocdr :decl x-binding)))))))
 
 (deftest c-tree-sitter-inserts-comments-in-correct-order ()
-  (let ((source "{ a; /*  */ /* */}"))
+  (let ((source "{ a /*  */ /* */ ;}"))
     (is (equal
          source
          (source-text (genome (from-string (make-instance 'c) source)))))))
