@@ -2584,7 +2584,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
       ((python-assignment
         :python-left lhs)
        (typecase lhs
-         (python-identifier (identical-name-p identifier lhs) lhs)
+         (python-identifier (and (identical-name-p identifier lhs) lhs))
          (python-pattern-list
           (find-if {identical-name-p identifier} (python-children lhs)))))))
 

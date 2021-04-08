@@ -756,6 +756,19 @@ and keyword parameters with defaults."
 (deftest test-python-call-name ()
   (is (string= (call-name (convert 'python-ast "foo(1, 2, 3)" :deepest t)) "foo")))
 
+(deftest test-python-assign-to-var-p ()
+  (let* ((ast (convert 'python-ast (fmt "~
+x = 1
+y = 2
+x"
+                                        :deepest t)))
+         (assignments
+          (reverse (collect-if (of-type 'python-assignment) ast)))
+         (identifiers
+          (reverse (collect-if (of-type 'python-identifier) ast))))
+    (is (assign-to-var-p (second assignments) (first identifiers)))
+    (is (not (assign-to-var-p (first assignments) (first identifiers))))))
+
 (deftest (python-tree-sitter-parsing-test :long-running) ()
   (labels ((parsing-test-dir (path)
              (merge-pathnames-as-file
