@@ -1997,6 +1997,7 @@ outside of repeats."
         ;;       default to computed text node p if it doesn't?
         (when-let (type (aget :type subtree))
           (string-case type
+            ;; TODO: figure out a way to remove the token rules from this.
             (("PATTERN" "TOKEN" "IMMEDIATE_TOKEN")
              ;; PATTERN indicates that there
              ;; is variable text.
@@ -2727,7 +2728,8 @@ Unlike the `children` methods which collects all children of an AST from any slo
                              :initform '((children . 0))))
                (:documentation
                 ,(format nil "AST for ~A from input via tree-sitter."
-                         name-prefix)))
+                         name-prefix))
+               (:method-options :skip-children-definition))
 
              ;; TODO: the error and comment classes may be created by some
              ;;       languages?
@@ -2832,7 +2834,7 @@ are ordered for reproduction as source text.")
                 (call-next-method))))
 
            (defmethod children ((ast structured-text))
-             (remove-if #'listp (parse-order ast)))
+             (remove-if-not {typep _ 'ast} (output-transformation ast)))
 
            (defgeneric computed-text-node-p (ast)
              (:documentation "Return T if AST is a computed-text node. This is a
@@ -4940,17 +4942,16 @@ representation is interleaved text though it's unlikely to
 be more than one string outside of string literals."
   (iter
     (iter:with interleaved-text = (computed-text ast))
-    (iter:with children = (children ast))
+    (iter:with children = (slot-value ast 'children))
     (while (and interleaved-text children))
-    (collect (pop interleaved-text) into result at beginning)
-    (collect (pop children) into result at beginning)
+    (collect (pop interleaved-text) into result)
+    (collect (pop children) into result)
     (finally
      (return
-       (reverse
         (cond
-          (interleaved-text (append interleaved-text result))
-          (children (append children result))
-          (t result)))))))
+          (interleaved-text (append result interleaved-text))
+          (children (append result children))
+          (t result))))))
 
 (defun match-parsed-children-json (json-rule parse-tree)
   "Match a cl-tree-sitter PARSE-TREE as a JSON-RULE if possible."
@@ -5438,7 +5439,8 @@ the indentation slots."
                   ;;       that functionality is ever desired.
                   (push converted-field comment-stack))
                  (t
-                  (setf (before-comments converted-field) (reverse comment-stack)
+                  (setf (slot-value converted-field 'before-comments)
+                        (reverse comment-stack)
                         comment-stack nil
                         previous-field converted-field)
                   (collect converted-field into children)))
