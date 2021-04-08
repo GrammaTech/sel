@@ -854,9 +854,29 @@ definitions.")
       (:python
        ;; NOTE: this removes semicolons. This can be further amended if it
        ;;       becomes problematic.
-       (:-SIMPLE-STATEMENTS (:TYPE . "SYMBOL") (:NAME . "_simple_statement"))))
+       (:-SIMPLE-STATEMENTS (:TYPE . "SYMBOL") (:NAME . "_simple_statement")))
+      (:javascript
+       (:-SEMICOLON (:TYPE . "CHOICE")
+        (:MEMBERS
+         ((:TYPE . "STRING") (:VALUE . ";"))
+         ((:TYPE . "SYMBOL") (:NAME . "_automatic_semicolon"))))))
     "A mapping of JSON rule substitutions to be performed on the JSON file
 before class generation and analysis.")
+
+  (defparameter *tree-sitter-json-subtree-choice-resolver*
+    `((:javascript
+       ;; Work around automatic semicolon preference.
+       ,(lambda (branches)
+          (find-if
+           (lambda (branch)
+             (or
+              ;; Prefer semi-colons over blanks.
+              (and (equal "STRING" (aget :type branch))
+                   (equal ";" (aget :value branch)))
+              (equal "BLANK" (aget :type branch))))
+           branches))))
+    "A mapping of functions for resolving which choice branch should be
+chosen when gathering a string representation of a JSON subtree.")
 
   (defparameter *tree-sitter-ast-superclass-table*
     (lret ((table (make-hash-table)))
@@ -918,7 +938,10 @@ stored on the AST or external rules.")
          :ast-extra-slot-options
          (aget class-keyword *tree-sitter-ast-extra-slot-options*)
          :ast-extra-slots
-         (aget class-keyword *tree-sitter-ast-extra-slots*))))))
+         (aget class-keyword *tree-sitter-ast-extra-slots*)
+         :json-subtree-choice-resolver
+         (car (aget class-keyword
+                    *tree-sitter-json-subtree-choice-resolver*)))))))
 
 (-> ast-mixin-subclasses ((or symbol class) (or symbol class)) list)
 (defun ast-mixin-subclasses (class language)
@@ -2104,7 +2127,7 @@ CLASS-NAME->CLASS-DEFINITION."
                  :documentation
                  "A set of slots that are used in the pruned-rule."))))))
 
-  (defun get-json-subtree-string (json-subtree)
+  (defun get-json-subtree-string (json-subtree choice-resolver)
     "Get the string representation of JSON-SUBTREE. This assumes that there aren't
 any slot usages in JSON-SUBTREE."
     ;; TODO: test this function.
@@ -2126,13 +2149,15 @@ any slot usages in JSON-SUBTREE."
                "")
              (handle-choice (rule &aux (branches (aget :members rule)))
                ;; Prefer blank branches
-               (if (find-if
-                    (lambda (branch)
-                      (equal "BLANK" (aget :type branch)))
-                    branches)
-                   ""
-                   ;; Take the first branch if no blanks are available.
-                   (rule-handler (car branches))))
+               (cond
+                 (choice-resolver
+                  (rule-handler (or (funcall choice-resolver branches)
+                                    (car branches))))
+                 (t (rule-handler (or (find-if
+                                       (lambda (branch)
+                                         (equal "BLANK" (aget :type branch)))
+                                       branches)
+                                      (car branches))))))
              (handle-repeat ()
                "")
              (handle-seq (rule)
@@ -2154,7 +2179,7 @@ any slot usages in JSON-SUBTREE."
 
   (defun generate-output-transformation
       (pruned-rule transformed-json-rule language class-name
-       class-name->class-definition)
+       class-name->class-definition choice-resolver)
     (labels ((generate-choice (json-rule pruned-rule)
                "Generate a quoted form which handles choices."
                ;; NOTE: coming in, the in-order children stack should have a
@@ -2203,7 +2228,7 @@ any slot usages in JSON-SUBTREE."
                      ("FIELD" (generate-field))
                      ("SEQ" (generate-seq json-rule pruned-rule))
                      ("SYMBOL" (generate-symbol)))
-                   (get-json-subtree-string json-rule)))
+                   (get-json-subtree-string json-rule choice-resolver)))
              (generate-ast-list (json-rule pruned-rule)
                "Generate the form that creates a list of ASTs and strings."
                (generate-rule-handler json-rule pruned-rule))
@@ -2246,7 +2271,7 @@ any slot usages in JSON-SUBTREE."
 
   (defun generate-input/output-handling
       (pruned-rule json-rule super-class language-prefix child-types
-       class-name->class-definition
+       class-name->class-definition choice-resolver
        &aux (subclasses
              (aget super-class
                    (aget (make-keyword language-prefix)
@@ -2339,7 +2364,7 @@ subclass based on the order of the children were read in."
                (mapcar (lambda (pruned-rule json-rule class-name)
                          (generate-output-transformation
                           pruned-rule json-rule language-prefix class-name
-                          class-name->class-definition))
+                          class-name->class-definition choice-resolver))
                        pruned-expansions json-expansions
                        (mapcar #'car subclass-pairs))))
       (report-problematic-rule)
@@ -2374,7 +2399,8 @@ subclass based on the order of the children were read in."
               pruned-rule-expansions json-expansions subclass-pairs)))))
 
   (defun generate-structured-text-methods
-      (grammar types language-prefix class-name->class-definition)
+      (grammar types language-prefix
+       class-name->class-definition choice-resolver)
     ;; NOTE: it might make sense to integrate the loop into
     ;;       the class generation above at some point.
 
@@ -2400,7 +2426,8 @@ subclass based on the order of the children were read in."
                 (mapcar [{convert-to-lisp-type language-prefix}
                          {aget :type}]
                         (aget :types (aget :children type-json)))
-                class-name->class-definition))
+                class-name->class-definition
+                choice-resolver))
              (generate-terminal-code (type-string class-name)
                "Generate the code for a terminal symbol."
                ;; TODO: rename this function
@@ -2482,6 +2509,7 @@ subclass based on the order of the children were read in."
          software-superclasses software-direct-slots
          ast-extra-slot-options
          ast-extra-slots
+         json-subtree-choice-resolver
        &aux (subtype->supertypes (make-hash-table))
          (symbols-to-export (make-hash-table))
          (class->extra-slot-options (make-hash-table))
@@ -2722,7 +2750,8 @@ AST-EXTRA-SLOTS is an alist from classes to extra slots."
       (map nil {create-node-class grammar-rules} node-types)
       (let ((structured-text-code
               (generate-structured-text-methods
-               grammar node-types name-prefix class-name->class-definition)))
+               grammar node-types name-prefix class-name->class-definition
+               json-subtree-choice-resolver)))
         `(progn
            (eval-always
              (define-software ,(make-class-name) (tree-sitter
