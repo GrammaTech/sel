@@ -829,7 +829,28 @@ definitions.")
                 (:VALUE . -1)
                 (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_type_identifier")))
                ((:TYPE . "SYMBOL") (:NAME . "primitive_type"))))
-             ((:TYPE . "BLANK"))))))))
+             ((:TYPE . "BLANK")))))))
+       (:PREPROC-PARAMS (:TYPE . "SEQ")
+        (:MEMBERS ((:TYPE . "STRING") (:VALUE . "("))
+         ((:TYPE . "CHOICE")
+          (:MEMBERS
+           ((:TYPE . "SEQ")
+            (:MEMBERS
+             ((:TYPE . "CHOICE")
+              (:MEMBERS
+               ((:TYPE . "SYMBOL") (:NAME . "identifier"))
+               ((:TYPE . "STRING") (:VALUE . "..."))))
+             ((:TYPE . "REPEAT")
+              (:CONTENT
+               (:TYPE . "SEQ")
+               (:MEMBERS
+                ((:TYPE . "STRING") (:VALUE . ","))
+                ((:TYPE . "CHOICE")
+                 (:MEMBERS
+                  ((:TYPE . "SYMBOL") (:NAME . "identifier"))
+                  ((:TYPE . "STRING") (:VALUE . "...")))))))))
+           ((:TYPE . "BLANK"))))
+         ((:TYPE . "STRING") (:VALUE . ")")))))
       (:python
        ;; NOTE: this removes semicolons. This can be further amended if it
        ;;       becomes problematic.
