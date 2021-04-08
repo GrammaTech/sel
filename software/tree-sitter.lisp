@@ -5238,6 +5238,7 @@ the indentation slots."
                           indentation-ast nil)))))
            (patch-leading-indentation
                (text ast parents
+                &key before-text
                 &aux (indentation (starts-with-indentation-p text))
                   (not-empty-string-p (not (emptyp text))))
              "Return TEXT with the leading indentation removed and
@@ -5253,9 +5254,19 @@ the indentation slots."
                           (subseq text 0 indentation))))
                 "")
                ((and not-empty-string-p
-                     (eql #\newline (first text)))
-                ;; Treat it like trailing indentation.
-                (patch-trailing-indentation text ast))
+                     (or (eql #\newline (first text))
+                         ;; Assume the second is a newline in this case.
+                         (eql #\return (first text))))
+                (prog1
+                    ;; Treat it like trailing indentation.
+                    (patch-trailing-indentation text ast)
+                  ;; But update it if it's before-text.
+                  (when before-text
+                    (update-indentation-slots
+                     ast parents (adjusted-spaces-from-tabs
+                                  (subseq
+                                   text (position #\newline text :from-end t)))
+                     text))))
                ((or indentation
                     ;; NOTE: check if text exists here so that
                     ;;       the inherited indentation can be
@@ -5290,10 +5301,9 @@ the indentation slots."
            (patch-text (text ast parents)
              "Patch TEXT such that it useable for inherited indentation.
               Updates AST and PARENTS slots if necessary."
-             (patch-internal-indentation
-              (patch-trailing-indentation
-               (patch-leading-indentation text ast parents)
-               ast)))
+             (patch-trailing-indentation
+              (patch-leading-indentation text ast parents)
+              ast))
            (process-indentation*
                (ast &optional parents
                 &aux (output-transformation (output-transformation ast)))
@@ -5305,7 +5315,7 @@ the indentation slots."
              (setf (before-text ast)
                    (patch-internal-indentation
                     (patch-leading-indentation (car output-transformation)
-                                               ast parents)))
+                                               ast parents :before-text t)))
              (mapc (lambda (output)
                      (cond
                        ((stringp output)
