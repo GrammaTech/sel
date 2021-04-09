@@ -859,7 +859,46 @@ definitions.")
        (:-SEMICOLON (:TYPE . "CHOICE")
         (:MEMBERS
          ((:TYPE . "STRING") (:VALUE . ";"))
-         ((:TYPE . "SYMBOL") (:NAME . "_automatic_semicolon"))))))
+         ((:TYPE . "SYMBOL") (:NAME . "_automatic_semicolon"))))
+       (:EXPORT-STATEMENT (:TYPE . "CHOICE")
+        (:MEMBERS
+         ((:TYPE . "SEQ")
+          (:MEMBERS ((:TYPE . "STRING") (:VALUE . "export"))
+           ((:TYPE . "CHOICE")
+            (:MEMBERS
+             ((:TYPE . "SEQ")
+              (:MEMBERS
+               ((:TYPE . "SYMBOL") (:NAME . "export_clause"))
+               ((:TYPE . "SYMBOL") (:NAME . "_from_clause"))
+               ((:TYPE . "SYMBOL") (:NAME . "_semicolon"))))
+             ((:TYPE . "SEQ")
+              (:MEMBERS
+               ((:TYPE . "STRING") (:VALUE . "*"))
+               ((:TYPE . "SYMBOL") (:NAME . "_from_clause"))
+               ((:TYPE . "SYMBOL") (:NAME . "_semicolon"))))
+             ((:TYPE . "SEQ")
+              (:MEMBERS
+               ((:TYPE . "SYMBOL") (:NAME . "export_clause"))
+               ((:TYPE . "SYMBOL") (:NAME . "_semicolon"))))))))
+         ((:TYPE . "SEQ")
+          (:MEMBERS
+           ((:TYPE . "REPEAT")
+            (:CONTENT
+             (:TYPE . "FIELD") (:NAME . "decorator")
+             (:CONTENT (:TYPE . "SYMBOL") (:NAME . "decorator"))))
+           ((:TYPE . "STRING") (:VALUE . "export"))
+           ((:TYPE . "CHOICE")
+            (:MEMBERS
+             ((:TYPE . "FIELD")
+              (:NAME . "declaration")
+              (:CONTENT (:TYPE . "SYMBOL") (:NAME . "declaration")))
+             ((:TYPE . "SEQ")
+              (:MEMBERS
+               ((:TYPE . "STRING") (:VALUE . "default"))
+               ((:TYPE . "FIELD")
+                (:NAME . "value")
+                (:CONTENT (:TYPE . "SYMBOL") (:NAME . "expression")))
+               ((:TYPE . "SYMBOL") (:NAME . "_semicolon"))))))))))))
     "A mapping of JSON rule substitutions to be performed on the JSON file
 before class generation and analysis.")
 
