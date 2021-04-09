@@ -4461,7 +4461,9 @@ field."
     "Return format is (BASE-TYPE POINTER-DEPTH . QUALIFIERS)."
     (list* (source-text (c-type ast))
            (pointers ast)
-           (mapcar #'source-text (drop 2 (children ast)))))
+           ;; This assumes that ordering doesn't matter for
+           ;; _declaration_specifiers.
+           (mapcar #'source-text (slot-value ast 'children))))
 
   (defmethod parameter-name ((ast c-parameter-declaration)) (parameter-name (c-declarator ast)))
   (defmethod parameter-name ((ast c-pointer-declarator)) (parameter-name (c-declarator ast)))
