@@ -125,7 +125,12 @@
          ;;        (at least on CCL maybe SBCL as well) so we remove
          ;;        the largest C source files.
          (large-c-files '("obstack" "search" "getopt" "kwset" "grep" "dfa" "regex"))
-         (c-files (remove-if [{member _ large-c-files :test #'string=} #'pathname-name]
+         ;; NOTE: these are files which have parse errors due to unsupported
+         ;;       features in the tree-sitter parser.
+         (error-files '("typeof" "typeof2" "bug8" "varargs2" "variety" "variety2" "nested"))
+         (c-files (remove-if [{member _ (append large-c-files error-files)
+                                      :test #'string=}
+                              #'pathname-name]
                              c-files)))
     (test-ast-source-ranges-for-files
      'c c-files :limit 10 :ignore-indentation t)))

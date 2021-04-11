@@ -1,1 +1,1 @@
-typedef a b
+typedef a b;
