@@ -785,7 +785,8 @@ definitions.")
               ;;       allows to the rule. Need to consider whether this could
               ;;       break anything.
               ;; Workaround for field declaration issues.
-              ((:TYPE . "SYMBOL") (:NAME . "_field_declarator")))))))))
+              ((:TYPE . "SYMBOL") (:NAME . "_field_declarator"))
+              ((:TYPE . "SYMBOL") (:NAME . "_type_declarator")))))))))
        (:ARRAY-DECLARATOR (:TYPE . "PREC") (:VALUE . 1)
         (:CONTENT (:TYPE . "SEQ")
          (:MEMBERS
