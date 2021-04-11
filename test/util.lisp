@@ -303,14 +303,14 @@ That is, test that the result of calling `source-text' on an AST is the same as 
   (ignore-some-conditions (mutate)
     (let* ((sw (from-file (make class) file))
            (ranges (ast-source-ranges sw))
-           (text (source-text (genome sw)))
+           (text (source-text (genome sw) :trim nil))
            (newline-offsets (precompute-newline-offsets text)))
       (is (not (emptyp ranges)))
       (iter (for (ast . range) in ranges)
             (let ((reference-text1 (source-range-subseq text range))
                   (reference-text2 (source-range-subseq text range
                                                         newline-offsets))
-                  (output-text (source-text ast)))
+                  (output-text (source-text ast :trim nil)))
               ;; Also test that source-range-subseq works properly
               ;; with newline offsets.
               (is (equal reference-text1 reference-text2))
