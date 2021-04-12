@@ -769,6 +769,22 @@ x"
     (is (assign-to-var-p (second assignments) (first identifiers)))
     (is (not (assign-to-var-p (first assignments) (first identifiers))))))
 
+(deftest test-python-comparison-operator-accessors ()
+  "Test that non-chained comparisons are treated as binary."
+  (let* ((ast (convert 'python-ast "x<1" :deepest t))
+         (lhs (find-if (of-type 'identifier-ast) ast))
+         (rhs (find-if (of-type 'number-ast) ast)))
+    (is (eq lhs (lhs ast)))
+    (is (eq rhs (rhs ast)))
+    (is (eql :< (operator ast)))))
+
+(deftest test-python-chained-comparison ()
+  "Test that chained comparisons are not treated as binary."
+  (let ((ast (convert 'python-ast "x<y>=z")))
+    (signals error (lhs ast))
+    (signals error (rhs ast))
+    (signals error (operator ast))))
+
 (deftest (python-tree-sitter-parsing-test :long-running) ()
   (labels ((parsing-test-dir (path)
              (merge-pathnames-as-file
