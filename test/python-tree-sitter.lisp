@@ -216,8 +216,7 @@
 
 (deftest python-can-handle-multibyte-characters ()
   (with-fixture multibyte-python1
-    ;; NOTE: the comment isn't accounted for in structured-text.
-    (is (= 16 (size *soft*)))
+    (is (= 17 (size *soft*)))
     (is (equal (file-to-string (original-path *soft*))
                (genome-string *soft*))))
   (with-fixture multibyte-python2

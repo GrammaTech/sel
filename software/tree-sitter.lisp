@@ -395,6 +395,12 @@ searched to populate `*tree-sitter-language-files*'.")
         (c-modifiers
          :accessor c-modifiers
          :initarg :c-modifiers
+         :initform nil)))
+      (:python
+       (python-function-definition
+        (python-async
+         :accessor python-async
+         :initarg python-async
          :initform nil))))
     "Alist from languages to classes with extra slots.")
 
@@ -852,10 +858,33 @@ definitions.")
                   ((:TYPE . "STRING") (:VALUE . "...")))))))))
            ((:TYPE . "BLANK"))))
          ((:TYPE . "STRING") (:VALUE . ")")))))
+      ;; TODO: add in substitutions and parse tree transformations for 'async'
+      ;;       classes.
       (:python
        ;; NOTE: this removes semicolons. This can be further amended if it
        ;;       becomes problematic.
-       (:-SIMPLE-STATEMENTS (:TYPE . "SYMBOL") (:NAME . "_simple_statement")))
+       (:-SIMPLE-STATEMENTS (:TYPE . "SYMBOL") (:NAME . "_simple_statement"))
+       (:FUNCTION-DEFINITION (:TYPE . "SEQ")
+        (:MEMBERS
+         ((:TYPE . "FIELD") (:NAME . "async")
+          (:CONTENT
+           (:TYPE . "CHOICE")
+           (:MEMBERS ((:TYPE . "STRING") (:VALUE . "async")) ((:TYPE . "BLANK")))))
+         ((:TYPE . "STRING") (:VALUE . "def"))
+         ((:TYPE . "FIELD") (:NAME . "name")
+          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "identifier")))
+         ((:TYPE . "FIELD") (:NAME . "parameters")
+          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "parameters")))
+         ((:TYPE . "CHOICE")
+          (:MEMBERS
+           ((:TYPE . "SEQ")
+            (:MEMBERS ((:TYPE . "STRING") (:VALUE . "->"))
+                      ((:TYPE . "FIELD") (:NAME . "return_type")
+                                         (:CONTENT (:TYPE . "SYMBOL") (:NAME . "type")))))
+           ((:TYPE . "BLANK"))))
+         ((:TYPE . "STRING") (:VALUE . ":"))
+         ((:TYPE . "FIELD") (:NAME . "body")
+          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_suite"))))))
       (:javascript
        (:-SEMICOLON (:TYPE . "CHOICE")
         (:MEMBERS
@@ -3257,6 +3286,22 @@ Every element in the list has the following form:
 ;;;; Python
 ;;; Move this to its own file?
 (when-class-defined (python)
+
+  (defmethod transform-parse-tree
+      ((language (eql ':python)) (class (eql 'python-function-definition))
+       parse-tree)
+    "Transform PARSE-TREE such that an asyn field is present for 'async'
+identifiers."
+    (append
+     (butlast parse-tree)
+     (list
+      (mapcar
+       (lambda (child-tree)
+         (cond
+           ((equal (car child-tree) :async)
+            (cons (list :async :async) (cdr child-tree)))
+           (t child-tree)))
+       (lastcar parse-tree)))))
 
   (defmethod comparisonp ((ast python-comparison-operator))
     t)
