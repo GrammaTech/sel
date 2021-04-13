@@ -5315,16 +5315,24 @@ the indentation slots."
                 &aux (parent (car parents))
                   (total-indentation (+ indentation indentation-carryover))
                   (inherited-indentation
-                   (get-indentation-at ast parents)))
+                   (get-indentation-at ast parents))
+                  (only-indentation? (not (scan "[^ \\t\\n]" text)))
+                  ;; A set of classes that prefer their indentation
+                  ;; be attached to their indent-children slot as opposed
+                  ;; to their parent's. This is primarily for working around
+                  ;; python-block which is a unique edge case.
+                  (prefer-child-indentation-set '(python-block)))
              "Patch either AST or PARENT to have INDENTATION for the
               relevant line or lines."
              (symbol-macrolet ((indent-children-parent (indent-children parent))
                                (indent-adjustment (indent-adjustment ast))
                                (indent-children-current (indent-children ast)))
                (cond
-                 ;; Avoid wasting the newline on empty text before
-                 ;; reaching a child.
-                 ((and (emptyp text) (ancestor-of-p root indentation-ast ast)))
+                 ;; Avoid wasting the newline on empty text or indentation
+                 ;; before reaching a child.
+                 ((and only-indentation?
+                       indentation-ast
+                       (ancestor-of-p root indentation-ast ast)))
                  ;; Don't indent if the current AST already has an
                  ;; indentation slot assigned as this will result in
                  ;; back-propogation of indentation.
@@ -5340,9 +5348,14 @@ the indentation slots."
                   ;;       way around this besides having ASTs that represent the
                   ;;       individual tokens or adding another list to keep track
                   ;;       of indentation at the interleaved-text level.
-                  (when (scan "[^ \\t\\n]" text)
+                  (unless only-indentation?
                     (setf indentation-carryover nil
                           indentation-ast nil)))
+                 ((find-if {typep ast} prefer-child-indentation-set)
+                  (setf indent-children-current (- total-indentation
+                                                   inherited-indentation)
+                        indentation-carryover nil
+                        indentation-ast nil))
                  ((and parent (not indent-children-parent))
                   (setf indent-children-parent (- total-indentation
                                                   inherited-indentation)
