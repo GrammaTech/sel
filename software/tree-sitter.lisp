@@ -401,6 +401,16 @@ searched to populate `*tree-sitter-language-files*'.")
         (python-async
          :accessor python-async
          :initarg python-async
+         :initform nil))
+       (python-for-statement
+        (python-async
+         :accessor python-async
+         :initarg python-async
+         :initform nil))
+       (python-with-statement
+        (python-async
+         :accessor python-async
+         :initarg python-async
          :initform nil))))
     "Alist from languages to classes with extra slots.")
 
@@ -869,7 +879,8 @@ definitions.")
          ((:TYPE . "FIELD") (:NAME . "async")
           (:CONTENT
            (:TYPE . "CHOICE")
-           (:MEMBERS ((:TYPE . "STRING") (:VALUE . "async")) ((:TYPE . "BLANK")))))
+           (:MEMBERS
+            ((:TYPE . "STRING") (:VALUE . "async")) ((:TYPE . "BLANK")))))
          ((:TYPE . "STRING") (:VALUE . "def"))
          ((:TYPE . "FIELD") (:NAME . "name")
           (:CONTENT (:TYPE . "SYMBOL") (:NAME . "identifier")))
@@ -879,12 +890,45 @@ definitions.")
           (:MEMBERS
            ((:TYPE . "SEQ")
             (:MEMBERS ((:TYPE . "STRING") (:VALUE . "->"))
-                      ((:TYPE . "FIELD") (:NAME . "return_type")
-                                         (:CONTENT (:TYPE . "SYMBOL") (:NAME . "type")))))
+                      ((:TYPE . "FIELD")
+                       (:NAME . "return_type")
+                       (:CONTENT (:TYPE . "SYMBOL") (:NAME . "type")))))
            ((:TYPE . "BLANK"))))
          ((:TYPE . "STRING") (:VALUE . ":"))
          ((:TYPE . "FIELD") (:NAME . "body")
-          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_suite"))))))
+          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_suite")))))
+       (:FOR-STATEMENT (:TYPE . "SEQ")
+        (:MEMBERS
+         ((:TYPE . "FIELD") (:NAME . "async")
+          (:CONTENT
+           (:TYPE . "CHOICE")
+           (:MEMBERS
+            ((:TYPE . "STRING") (:VALUE . "async")) ((:TYPE . "BLANK")))))
+         ((:TYPE . "STRING") (:VALUE . "for"))
+         ((:TYPE . "FIELD") (:NAME . "left")
+          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_left_hand_side")))
+         ((:TYPE . "STRING") (:VALUE . "in"))
+         ((:TYPE . "FIELD") (:NAME . "right")
+          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_expressions")))
+         ((:TYPE . "STRING") (:VALUE . ":"))
+         ((:TYPE . "FIELD") (:NAME . "body")
+          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_suite")))
+         ((:TYPE . "FIELD") (:NAME . "alternative")
+          (:CONTENT (:TYPE . "CHOICE")
+           (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "else_clause"))
+                     ((:TYPE . "BLANK")))))))
+       (:WITH-STATEMENT (:TYPE . "SEQ")
+         (:MEMBERS
+         ((:TYPE . "FIELD") (:NAME . "async")
+          (:CONTENT
+           (:TYPE . "CHOICE")
+           (:MEMBERS
+            ((:TYPE . "STRING") (:VALUE . "async")) ((:TYPE . "BLANK")))))
+          ((:TYPE . "STRING") (:VALUE . "with"))
+          ((:TYPE . "SYMBOL") (:NAME . "with_clause"))
+          ((:TYPE . "STRING") (:VALUE . ":"))
+          ((:TYPE . "FIELD") (:NAME . "body")
+           (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_suite"))))))
       (:javascript
        (:-SEMICOLON (:TYPE . "CHOICE")
         (:MEMBERS
@@ -3287,10 +3331,8 @@ Every element in the list has the following form:
 ;;; Move this to its own file?
 (when-class-defined (python)
 
-  (defmethod transform-parse-tree
-      ((language (eql ':python)) (class (eql 'python-function-definition))
-       parse-tree)
-    "Transform PARSE-TREE such that an asyn field is present for 'async'
+  (defun modify-async-parse-tree (parse-tree)
+    "Transform PARSE-TREE such that an async field is present for 'async'
 identifiers."
     (append
      (butlast parse-tree)
@@ -3302,6 +3344,21 @@ identifiers."
             (cons (list :async :async) (cdr child-tree)))
            (t child-tree)))
        (lastcar parse-tree)))))
+
+  (defmethod transform-parse-tree
+      ((language (eql ':python)) (class (eql 'python-function-definition))
+       parse-tree)
+    (modify-async-parse-tree parse-tree))
+
+  (defmethod transform-parse-tree
+      ((language (eql ':python)) (class (eql 'python-for-statement))
+       parse-tree)
+    (modify-async-parse-tree parse-tree))
+
+  (defmethod transform-parse-tree
+      ((language (eql ':python)) (class (eql 'python-with-statement))
+       parse-tree)
+    (modify-async-parse-tree parse-tree))
 
   (defmethod comparisonp ((ast python-comparison-operator))
     t)
