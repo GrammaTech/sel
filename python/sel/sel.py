@@ -4,6 +4,7 @@ import multiprocessing
 import shutil
 import subprocess
 import os
+import pkg_resources
 
 from typing import Any, List, Optional, Tuple, TypeVar
 
@@ -138,9 +139,15 @@ class _interface:
     """
 
     _cmd = "tree-sitter-interface"
-    _local_cmd = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", _cmd)
-    if os.exists(_local_cmd):
+    _local_cmd = pkg_resources.resource_filename(__name__, _cmd)
+    if os.path.exists(_local_cmd):
         _cmd = _local_cmd
+    else:
+        _weird_path = '../../../tree-sitter-interface'
+        _weird_local_cmd = pkg_resources.resource_filename(__name__, _weird_path)
+        if os.path.exists(_weird_local_cmd):
+            print(f"Strange that {_local_cmd} doesn't exist but {_weird_local_cmd} does.")
+            _cmd = _weird_local_cmd
     _proc = None
     _lock = multiprocessing.Lock()
 

@@ -47,6 +47,19 @@ test-python:
   except:
     - schedules
 
+deploy-python-package:
+  stage: deploy
+  image: python:3.7-slim
+  script:
+    - cd python/
+    - pip install -r requirements-dev.txt
+    - python3 setup.py bdist_wheel --dist-dir=$CI_PROJECT_DIR/python/dist
+    - python3 -m twine upload --verbose $CI_PROJECT_DIR/python/dist/*.whl -u __token__ -p $PYPI_API_KEY
+  tags:
+    - kubernetes
+  rules:
+    - if: '$CI_COMMIT_REF_NAME =~ /^r.*/'
+
 dependent-genpatcher:
   stage: deploy
   only: [master]

@@ -1,0 +1,8 @@
+flake8
+isort
+pkginfo
+pre-commit
+pytest
+pytest-cov
+requests
+twine
