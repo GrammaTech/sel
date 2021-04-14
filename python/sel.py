@@ -3,6 +3,7 @@ import json
 import multiprocessing
 import shutil
 import subprocess
+import os
 
 from typing import Any, List, Optional, Tuple, TypeVar
 
@@ -137,6 +138,9 @@ class _interface:
     """
 
     _cmd = "tree-sitter-interface"
+    _local_cmd = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", _cmd)
+    if os.exists(_local_cmd):
+        _cmd = _local_cmd
     _proc = None
     _lock = multiprocessing.Lock()
 

@@ -25,6 +25,7 @@ setup(
     ],
     keywords='software-engineering, source, program-synthesis',
     py_modules=["sel"],
+    data_files=["../bin/tree-sitter-interface"],
     python_requires='>=3.6',
     project_urls={
         'Bug Reports': 'https://github.com/grammatech/sel/issues',
