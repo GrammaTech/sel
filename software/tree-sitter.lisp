@@ -928,7 +928,9 @@ definitions.")
           ((:TYPE . "SYMBOL") (:NAME . "with_clause"))
           ((:TYPE . "STRING") (:VALUE . ":"))
           ((:TYPE . "FIELD") (:NAME . "body")
-           (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_suite"))))))
+           (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_suite")))))
+       (:POSITIONAL-ONLY-SEPARATOR (:TYPE . "STRING") (:VALUE . "/"))
+       (:KEYWORD-ONLY-SEPARATOR (:TYPE . "STRING") (:VALUE . "*")))
       (:javascript
        (:-SEMICOLON (:TYPE . "CHOICE")
         (:MEMBERS
@@ -975,6 +977,25 @@ definitions.")
                ((:TYPE . "SYMBOL") (:NAME . "_semicolon"))))))))))))
     "A mapping of JSON rule substitutions to be performed on the JSON file
 before class generation and analysis.")
+
+  (defparameter *tree-sitter-json-node-type-substitutions*
+    '((:python
+       ((:TYPE . "positional_only_separator") (:NAMED . T))
+       ((:TYPE . "keyword_only_separator") (:NAMED . T))
+       ((:TYPE . "parameter") (:NAMED . T)
+        (:SUBTYPES
+         ((:TYPE . "positional_only_separator") (:NAMED . T))
+         ((:TYPE . "keyword_only_separator") (:NAMED . T))
+         ((:TYPE . "default_parameter") (:NAMED . T))
+         ((:TYPE . "dictionary_splat_pattern") (:NAMED . T))
+         ((:TYPE . "identifier") (:NAMED . T))
+         ((:TYPE . "list_splat_pattern") (:NAMED . T))
+         ((:TYPE . "tuple_pattern") (:NAMED . T))
+         ((:TYPE . "typed_default_parameter") (:NAMED . T))
+         ((:TYPE . "typed_parameter") (:NAMED . T))))))
+    "A mapping of JSON node type substitutions to be performed on the JSON file
+before class generation and analysis. This effectively allows the definition
+of new classes.")
 
   (defparameter *tree-sitter-json-subtree-choice-resolver*
     `((:javascript
@@ -1052,6 +1073,8 @@ stored on the AST or external rules.")
          (aget class-keyword *tree-sitter-ast-extra-slot-options*)
          :ast-extra-slots
          (aget class-keyword *tree-sitter-ast-extra-slots*)
+         :node-type-substitutions
+         (aget class-keyword *tree-sitter-json-node-type-substitutions*)
          :json-subtree-choice-resolver
          (car (aget class-keyword
                     *tree-sitter-json-subtree-choice-resolver*)))))))
@@ -1503,6 +1526,8 @@ and returns the result."
 
   (defun substitute-json-rules (language rules)
     "Substitute rules in RULES based on mappings found for LANGUAGE."
+    ;; NOTE: this will become inefficient with a lot of rule
+    ;;       substitutions.
     (let ((substitutions
             (aget (make-keyword language)
                   *tree-sitter-json-rule-substitutions*)))
@@ -1510,6 +1535,16 @@ and returns the result."
        (lambda (rules substitution)
          (areplace (car substitution) (cdr substitution) rules))
        substitutions :initial-value rules)))
+
+  (defun substitute-json-node-types (substitutions node-types)
+    "Substitute types in NODE-TYPES based on mappings found for LANGUAGE."
+    ;; NOTE: this will become inefficient with a lot of node type
+    ;;       substitutions.
+    (reduce
+     (lambda (node-types substitution)
+       (cons substitution (remove (cdar substitution) node-types
+                                  :key #'cdar :test #'equal)))
+     substitutions :initial-value node-types))
 
   (defun add-aliased-rules
       (rules
@@ -2622,6 +2657,7 @@ subclass based on the order of the children were read in."
          software-superclasses software-direct-slots
          ast-extra-slot-options
          ast-extra-slots
+         node-type-substitutions
          json-subtree-choice-resolver
        &aux (subtype->supertypes (make-hash-table))
          (symbols-to-export (make-hash-table))
@@ -2633,8 +2669,11 @@ subclass based on the order of the children were read in."
                           (convert-name "ast")))
          (class-name->class-definition (make-hash-table))
          (*json-identifier-name-to-lisp* #'convert-name)
-         (node-types (decode-json-from-string
-                      (file-to-string node-types-file)))
+         (node-types
+          (substitute-json-node-types
+           node-type-substitutions
+           (decode-json-from-string
+            (file-to-string node-types-file))))
          (grammar (decode-json-from-string (file-to-string grammar-file)))
          ;; TODO: consider turning this into a hash table.
          (grammar-rules (aget :rules grammar)))
@@ -3359,6 +3398,34 @@ identifiers."
       ((language (eql ':python)) (class (eql 'python-with-statement))
        parse-tree)
     (modify-async-parse-tree parse-tree))
+
+  (defmethod transform-parse-tree
+      ((language (eql ':python)) (class (eql 'python-parameters))
+       parse-tree)
+    "Transform PARSE-TREE such that positional-only and keyword-only classes
+are created if they're present in PARSE-TREE."
+    (labels ((positional-only-p (subtree &aux (children (lastcar subtree)))
+               "Return true if subtree represents a positional only separator."
+               (and (eql :error (car subtree))
+                    (eql :/ (caar children))
+                    (eql :|,| (caadr children))))
+             (keyword-only-p (subtree)
+               "Return true if subtree represents a keyword only separator."
+               (and (eql :list-splat-pattern (car subtree))
+                    (not (caddr subtree)))))
+      (append
+       (butlast parse-tree)
+       (list
+        (iter
+          (for child-tree in (lastcar parse-tree))
+          (cond
+            ((positional-only-p child-tree)
+             (let ((children (lastcar child-tree)))
+               (collect (cons :positional-only-separator (cdar children)))
+               (collect (cadr children))))
+            ((keyword-only-p child-tree)
+             (collect (cons :keyword-only-separator (cdr child-tree))))
+            (t (collect child-tree))))))))
 
   (defmethod comparisonp ((ast python-comparison-operator))
     t)
