@@ -1,7 +1,7 @@
 FROM quay.io/pypa/manylinux2010_x86_64
 
 # Install required system packages
-RUN yum install -y autoconf build-essential git curl wget sbcl libffi libffi-devel
+RUN yum install -y autoconf build-essential git curl wget sbcl libffi libffi-devel zlib-devel
 
 # Install QuickLisp
 RUN curl -O https://beta.quicklisp.org/quicklisp.lisp
@@ -14,7 +14,8 @@ WORKDIR /
 RUN git clone --branch sbcl-2.1.3 https://github.com/sbcl/sbcl
 WORKDIR /sbcl
 RUN find src/runtime -type f -exec sed -i 's/-ldl/-ldl -lrt/' {} \+
-RUN sh make.sh --dynamic-space-size=4Gb
+# RUN sh make.sh --dynamic-space-size=4Gb
+RUN sh make.sh --dynamic-space-size=4Gb --fancy --with-sb-linkable-runtime --with-sb-dynamic-core
 RUN sh install.sh
 
 # Install tree-sitter
