@@ -34,7 +34,7 @@ class AST:
 
     def __eq__(self, other: AST_Type) -> AST_Type:
         """Return true if AST is equal to OTHER."""
-        return isinstance(other, AST) and self.handle == other.handle
+        return isinstance(other, AST) and _interface.dispatch(self, other)
 
     def ast_at_point(self, line: int, column: int) -> AST_Type:
         """Return the most specific AST covering LINE and COLUMN."""
@@ -176,8 +176,8 @@ class _interface:
             # This may be too cute, but we assume here the
             # name of the function to call matches the name
             # of the method being called on the AST class
-            # (modulo some exceptions for constructors and
-            # underscores instead of hyphens).  This enforces
+            # (modulo some exceptions for constructors, equality,
+            # and underscores instead of hyphens).  This enforces
             # a correspondence in names between the methods
             # on ASTs and the tree-sitter-interface.
             # Additionally, it helps protect against minor
@@ -185,7 +185,9 @@ class _interface:
             # name is passed in.
             name = inspect.stack()[2].function
             if name == "__init__":
-                return "AST"
+                return "ast"
+            elif name == "__eq__":
+                return "eq"
             else:
                 return name.replace("_", "-")
 

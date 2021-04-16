@@ -43,7 +43,7 @@
 function name from the API followed by the arguments."
   (destructuring-bind (function-str . arguments) json
     (serialize
-     (apply (safe-intern (concatenate 'string "INT/" function-str))
+     (apply (safe-intern (concatenate 'string "INT/" (string-upcase function-str)))
             (mapcar #'deserialize arguments)))))
 
 (define-command tree-sitter-interface (&spec (append +common-command-line-options+
@@ -69,6 +69,10 @@ function name from the API followed by the arguments."
       (convert (safe-intern (concatenate 'string (string-upcase language) "-AST"))
                source-text)
     (condition (c) (declare (ignorable c)) nil)))
+
+(-> int/eq (ast ast) boolean)
+(defun int/eq (ast1 ast2)
+  (equal? ast1 ast2))
 
 (-> int/parent (ast ast) ast)
 (defun int/parent (root ast) (get-parent-ast root ast))
