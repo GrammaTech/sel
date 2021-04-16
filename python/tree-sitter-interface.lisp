@@ -13,7 +13,7 @@
 
 
 ;;;; Command line interface:
-(defvar external-asts (make-hash-table)
+(defvar *external-asts* (make-hash-table)
   "Hold onto ASTs which might be referenced externally.")
 
 (declaim (inline safe-intern))
@@ -23,7 +23,7 @@
 (defgeneric serialize (it)
   (:documentation "Serialize IT to a form for use with the JSON text interface.")
   (:method ((it ast) &aux (hash (ast-hash it)))
-    (setf (gethash hash external-asts) it)
+    (setf (gethash hash *external-asts*) it)
     `((:type . :ast) (:hash . ,hash)))
   (:method ((it list)) (mapcar #'serialize it))
   (:method ((it t)) it))
@@ -33,7 +33,7 @@
   (:documentation "Deserialize IT from a form used with the JSON text interface.")
   (:method ((it list))
     (if (aget :hash it)
-        (gethash (aget :hash it) external-asts)
+        (gethash (aget :hash it) *external-asts*)
         (mapcar #'deserialize it)))
   (:method ((it t)) it))
 
