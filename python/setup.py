@@ -25,7 +25,7 @@ setup(
     ],
     keywords='software-engineering, source, program-synthesis',
     packages=find_packages(),
-    package_data={'sel': ['tree-sitter-interface']},
+    package_data={'sel': ['lib*', 'tree-sitter*']},
     setup_requires=['wheel'],
     python_requires='>=3.6',
     project_urls={

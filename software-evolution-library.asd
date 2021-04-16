@@ -52,9 +52,10 @@ techniques."
   :licence "GPL V3"
   :description "Calculate difference between two programs."
   :version "0.0.0"
+  :defsystem-depends-on (:deploy)
   :depends-on (software-evolution-library/python/tree-sitter-interface)
-  :build-operation "asdf:static-program-op"
-  :build-pathname "bin/tree-sitter-interface"
+  :build-operation "deploy-op"
+  :build-pathname "../python/sel/tree-sitter-interface"
   :entry-point "software-evolution-library/python/tree-sitter-interface:run-tree-sitter-interface")
 
 (defsystem "software-evolution-library/run-rest-server"
