@@ -572,6 +572,7 @@ sorted into shortlex order by namestring.")
     (let ((pathnames nil))
       (iter
        (for (p . c) in (all-files project))
+       (declare (ignorable c))
        (let ((pn (pathname p)))
          (when (member (pathname-type pn) types :test #'equal)
            (pushnew (make-pathname :name nil :type nil :defaults pn)
