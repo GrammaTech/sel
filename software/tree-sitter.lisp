@@ -649,7 +649,14 @@ extra initarg with that prefix.")
        (handler-case
            (progn
              (when ,register-language
-               (register-language ,language ,lib-name))
+               (handler-case
+                   (progn
+                     (when ,register-language
+                       (register-language ,language ,lib-name))
+                     (setf (gethash ,ast-superclass *superclass->language*) ,language))
+                 ;; Try again with an augmented library search path.
+                 (load-foreign-library-error ()
+                   (register-language ,language ,(concatenate 'string "/usr/lib/" lib-name)))))
              (setf (gethash ,ast-superclass *superclass->language*) ,language))
          (load-foreign-library-error ()
            (format *error-output*
