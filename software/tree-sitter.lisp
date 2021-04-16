@@ -1104,9 +1104,10 @@ stored on the AST or external rules.")
                    (register-language ,language ,(concatenate 'string "/usr/lib/" lib-name)))))
              (setf (gethash ,ast-superclass *superclass->language*) ,language))
          (load-foreign-library-error ()
-           (format *error-output*
-                   "Failed to load '~a'. Support for '~a' will not be available."
-                   ,lib-name ,language))))))
+           (format
+            *error-output*
+            "Failed to load '~a'. Support for '~a' will not be available.~%"
+            ,lib-name ,language))))))
 
 
 ;;; Defining tree-sitter classes
