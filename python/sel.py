@@ -21,12 +21,15 @@ class AST:
         of the resulting AST.
         """
         if handle is None:
-            ast = _interface.dispatch(language, source)
-            self.handle = ast.handle if ast else None
+            self.handle = _interface.dispatch(language, source)
         else:
             self.handle = handle
         if not self.handle:
             raise Exception("Failed to create AST")
+
+    def __del__(self) -> None:
+        _interface.dispatch(self)
+        self.handle = None
 
     def __hash__(self) -> int:
         """Return the hashcode for the AST."""
@@ -176,20 +179,15 @@ class _interface:
             # This may be too cute, but we assume here the
             # name of the function to call matches the name
             # of the method being called on the AST class
-            # (modulo some exceptions for constructors, equality,
-            # and underscores instead of hyphens).  This enforces
-            # a correspondence in names between the methods
-            # on ASTs and the tree-sitter-interface.
-            # Additionally, it helps protect against minor
-            # programming errors where the wrong function
-            # name is passed in.
+            # (modulo some exceptions for leading/trailing
+            # double underscores and underscores instead of
+            # hyphens).  This enforces a correspondence in
+            # names between the method on ASTs and the
+            # tree-sitter-interface.  Additionally, it helps
+            # protect against minor programming errors where
+            # the wrong function name is passed in.
             name = inspect.stack()[2].function
-            if name == "__init__":
-                return "ast"
-            elif name == "__eq__":
-                return "eq"
-            else:
-                return name.replace("_", "-")
+            return name.replace("__", "").replace("_", "-")
 
         def serialize(v: Any) -> Any:
             """Serialize V to a form for passing thru the JSON text interface."""

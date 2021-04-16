@@ -14,16 +14,35 @@
 
 ;;;; Command line interface:
 (defvar *external-asts* (make-hash-table)
-  "Hold onto ASTs which might be referenced externally.")
+  "Mapping of hashes to (AST . refcount) pairs for externally referenced ASTs.")
 
 (declaim (inline safe-intern))
 (defun safe-intern (string) (intern (string-upcase string) *package*))
 
+(-> allocate-ast (ast) fixnum)
+(defun allocate-ast (ast &aux (hash (ast-hash ast)))
+  "Allocate AST to the *external-asts* hashtable and increment the reference
+counter to allow for its use externally without garbage collection."
+  (when (not (gethash hash *external-asts*))
+    (setf (gethash hash *external-asts*) (cons ast 0)))
+  (incf (cdr (gethash hash *external-asts*)))
+  hash)
+
+(-> deallocate-ast (ast) boolean)
+(defun deallocate-ast (ast &aux (hash (ast-hash ast)))
+  "Deallocate the AST from the *external-asts* hashtable if its reference
+counter reaches zero."
+  (when (gethash hash *external-asts*)
+    (let ((ref-count (decf (cdr (gethash hash *external-asts*)))))
+      (when (zerop ref-count)
+        (remhash hash *external-asts*)))))
+
 ;; (-> serialize (t) t)
 (defgeneric serialize (it)
   (:documentation "Serialize IT to a form for use with the JSON text interface.")
+  (:method :before ((it ast))
+    (allocate-ast it))
   (:method ((it ast) &aux (hash (ast-hash it)))
-    (setf (gethash hash *external-asts*) it)
     `((:type . :ast) (:hash . ,hash)))
   (:method ((it list)) (mapcar #'serialize it))
   (:method ((it t)) it))
@@ -33,7 +52,7 @@
   (:documentation "Deserialize IT from a form used with the JSON text interface.")
   (:method ((it list))
     (if (aget :hash it)
-        (gethash (aget :hash it) *external-asts*)
+        (car (gethash (aget :hash it) *external-asts*))
         (mapcar #'deserialize it)))
   (:method ((it t)) it))
 
@@ -63,12 +82,21 @@ function name from the API followed by the arguments."
 
 
 ;;;; API:
-(-> int/ast (string string) ast)
+(-> int/ast (string string) (or ast nil))
 (defun int/ast (language source-text)
   (handler-case
       (convert (safe-intern (concatenate 'string (string-upcase language) "-AST"))
                source-text)
     (condition (c) (declare (ignorable c)) nil)))
+
+(-> int/init (list) (or fixnum nil))
+(defun int/init (&rest args)
+  (when-let ((ast (apply #'int/ast args)))
+    (allocate-ast ast)))
+
+(-> int/del (ast) boolean)
+(defun int/del (ast)
+  (deallocate-ast ast))
 
 (-> int/eq (ast ast) boolean)
 (defun int/eq (ast1 ast2)
