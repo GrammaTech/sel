@@ -415,6 +415,9 @@ searched to populate `*tree-sitter-language-files*'.")
        (python-assignment
         (python-left :initarg :lhs :reader lhs)
         (python-right :initarg :rhs :reader rhs))
+       (python-augmented-assignment
+        (python-left :initarg :lhs :reader lhs)
+        (python-right :initarg :rhs :reader rhs))
        (python-binary-operator
         (python-left :initarg :lhs :reader lhs)
         (python-right :initarg :rhs :reader rhs)
