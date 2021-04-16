@@ -52,6 +52,16 @@ techniques."
   :licence "GPL V3"
   :description "Calculate difference between two programs."
   :version "0.0.0"
+  :depends-on (software-evolution-library/python/tree-sitter-interface)
+  :build-operation "asdf:program-op"
+  :build-pathname "bin/tree-sitter-interface"
+  :entry-point "software-evolution-library/python/tree-sitter-interface:run-tree-sitter-interface")
+
+(defsystem "software-evolution-library/deploy-tree-sitter-interface"
+  :author "Eric Schulte and GrammaTech"
+  :licence "GPL V3"
+  :description "Calculate difference between two programs."
+  :version "0.0.0"
   :defsystem-depends-on (:deploy)
   :depends-on (software-evolution-library/python/tree-sitter-interface)
   :build-operation "deploy-op"

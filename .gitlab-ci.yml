@@ -52,8 +52,8 @@ build-python-libraries:
   image: $DOCKER_REGISTRY/$CI_PROJECT_PATH/python
   script: >-
     sbcl --load "/root/quicklisp/setup.lisp" \
-         --eval '(ql:quickload :software-evolution-library/run-tree-sitter-interface)' \
-         --eval '(asdf:make :software-evolution-library/run-tree-sitter-interface)' \
+         --eval '(ql:quickload :software-evolution-library/deploy-tree-sitter-interface)' \
+         --eval '(asdf:make :software-evolution-library/deploy-tree-sitter-interface)' \
          --eval '(quit)'
   artifacts:
     paths:

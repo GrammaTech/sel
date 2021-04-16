@@ -138,16 +138,8 @@ class _interface:
     interface between python and the sel process
     """
 
+    _pkg = False
     _cmd = "tree-sitter-interface"
-    _local_cmd = pkg_resources.resource_filename(__name__, _cmd)
-    if os.path.exists(_local_cmd):
-        _cmd = _local_cmd
-    else:
-        _weird_path = '../../../tree-sitter-interface'
-        _weird_local_cmd = pkg_resources.resource_filename(__name__, _weird_path)
-        if os.path.exists(_weird_local_cmd):
-            print(f"Strange that {_local_cmd} doesn't exist but {_weird_local_cmd} does.")
-            _cmd = _weird_local_cmd
     _proc = None
     _lock = multiprocessing.Lock()
 
@@ -161,9 +153,13 @@ class _interface:
         """Start the tree-sitter-interface LISP process."""
         with _interface._lock:
             if not _interface.is_process_running():
-                assert shutil.which(
-                    _interface._cmd
-                ), f"{_interface._cmd} binary must be on your $PATH."
+                if not shutil.which(_interface._cmd):
+                    _local_cmd = pkg_resources.resource_filename(__name__, _interface._cmd)
+                    if os.path.exists(_local_cmd):
+                        _interface._cmd = _local_cmd
+                        _interface._pkg = True
+                    else:
+                        Error(f"{_interface._cmd} binary must be on your $PATH.")
 
                 _interface._proc = subprocess.Popen(
                     [_interface._cmd],
@@ -171,6 +167,12 @@ class _interface:
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                 )
+
+                if _interface._pkg:
+                    for line in _interface._proc.stdout:
+                        stdout = line.decode("ascii")
+                        if stdout.strip() == "==> Launching application.":
+                            break
 
     @staticmethod
     def stop() -> None:
@@ -226,10 +228,13 @@ class _interface:
             _interface._proc.stdin.write(b"\n")
             _interface._proc.stdin.flush()
 
+            # input = json.dumps(inpt).encode("ascii")
+            # print(f"< {input}")
             # Large files can take a bit to process, so wait for a line with content.
             stdout = None
             for line in _interface._proc.stdout:
                 stdout = line.decode("ascii")
+                # print(f"> {stdout}")
                 if stdout:
                     break
 

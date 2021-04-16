@@ -53,6 +53,10 @@ COPY . /root/quicklisp/local-projects/sel
 RUN sed -i 's|(:default "libtree-sitter")|(:default "libtree-sitter") (:default "/usr/lib/libtree-sitter")|' /root/quicklisp/local-projects/cl-tree-sitter/low-level.lisp
 RUN make -C /root/quicklisp/local-projects/sel dependencies
 RUN sbcl --load "/root/quicklisp/setup.lisp" \
+         --eval '(ql:quickload :software-evolution-library/deploy-tree-sitter-interface)' \
+         --eval '(asdf:make :software-evolution-library/deploy-tree-sitter-interface)' \
+         --eval '(quit)'
+RUN sbcl --load "/root/quicklisp/setup.lisp" \
          --eval '(ql:quickload :software-evolution-library/run-tree-sitter-interface)' \
          --eval '(asdf:make :software-evolution-library/run-tree-sitter-interface)' \
          --eval '(quit)'

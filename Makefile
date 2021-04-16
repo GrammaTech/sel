@@ -1,4 +1,4 @@
-.PHONY: doc api python-check
+.PHONY: doc api python-check python
 
 # Set personal or machine-local flags in a file named local.mk
 ifneq ("$(wildcard local.mk)","")
@@ -111,3 +111,9 @@ test/etc/gcd/gcd.s: test/etc/gcd/gcd.c
 
 python-check: bin/tree-sitter-interface
 	PATH=$(ROOT_DIR)/bin:$$PATH pytest python
+
+python:
+	docker build . -f python/Dockerfile -t docker.grammatech.com/synthesis/sel/python
+	docker run --rm -it -v $(shell pwd)/python/sel:/host docker.grammatech.com/synthesis/sel/python sh -c "cp /root/quicklisp/local-projects/sel/python/sel/lib* /root/quicklisp/local-projects/sel/python/sel/tree-sitter* /host/"
+	cd python;python3 setup.py bdist_wheel --dist-dir=dist;cd -
+# pip3 install --user --force-reinstall python/dist/sel-0.1.3.dev0-py3-none-any.whl
