@@ -47,9 +47,23 @@ test-python:
   except:
     - schedules
 
+build-python-libraries:
+  stage: build
+  image: $DOCKER_REGISTRY/$CI_PROJECT_PATH/python
+  script: >-
+    sbcl --load "/root/quicklisp/setup.lisp" \
+         --eval '(ql:quickload :software-evolution-library/run-tree-sitter-interface)' \
+         --eval '(asdf:make :software-evolution-library/run-tree-sitter-interface)' \
+         --eval '(quit)'
+  artifacts:
+    paths:
+      - /root/quicklisp/local-projects/sel/python/sel/lib*
+      - /root/quicklisp/local-projects/sel/python/sel/tree-sitter*
+
 deploy-python-package:
   stage: deploy
   image: python:3.7-slim
+  needs: [build-python-libraries]
   script:
     - cd python/
     - pip install -r requirements-dev.txt
