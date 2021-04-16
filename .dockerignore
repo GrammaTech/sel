@@ -1,5 +1,6 @@
 .git/
 Dockerfile
+python/Dockerfile
 
 # Compiled files
 *.fas

@@ -51,6 +51,10 @@ RUN git clone https://github.com/edicl/cl-unicode.git /root/quicklisp/local-proj
 # Pre-download and compile a number of dependency packages.
 COPY . /root/quicklisp/local-projects/sel
 RUN sed -i 's|(:default "libtree-sitter")|(:default "libtree-sitter") (:default "/usr/lib/libtree-sitter")|' /root/quicklisp/local-projects/cl-tree-sitter/low-level.lisp
-RUN make -C /root/quicklisp/local-projects/sel dependencies bin/tree-sitter-interface
+RUN make -C /root/quicklisp/local-projects/sel dependencies
 
-WORKDIR /root/quicklisp/local-projects
+RUN git clone https://gitlab.common-lisp.net/xcvb/cl-launch.git
+RUN make -C /cl-launch
+RUN /cl-launch/cl-launch.sh -Q -s software-evolution-library/run-tree-sitter-interface -E software-evolution-library/python/tree-sitter-interface:run-tree-sitter-interface -o /root/quicklisp/local-projects/sel/bin/tree-sitter-interface -d /root/quicklisp/local-projects/sel/bin/tree-sitter-interface
+
+WORKDIR /root/quicklisp/local-projects/sel
