@@ -642,26 +642,25 @@ extra initarg with that prefix.")
     (when-let (language-table (gethash language table))
       (gethash class language-table))))
 
-(defmacro register-tree-sitter-language (lib-name language ast-superclass)
-  "Setup LANGUAGE to map to AST-SUPERCLASS and use LIB-NAME for parsing."
-  (let ((register-language #.(when (asdf:find-system :cl-tree-sitter nil) t)))
-    `(eval-always
-       (handler-case
-           (progn
-             (when ,register-language
-               (handler-case
-                   (progn
-                     (when ,register-language
-                       (register-language ,language ,lib-name))
-                     (setf (gethash ,ast-superclass *superclass->language*) ,language))
-                 ;; Try again with an augmented library search path.
-                 (load-foreign-library-error ()
-                   (register-language ,language ,(concatenate 'string "/usr/lib/" lib-name)))))
-             (setf (gethash ,ast-superclass *superclass->language*) ,language))
+(defun expand-ts-attempt (lib-name language prefixes)
+  (if prefixes
+      `(handler-case
+           (register-language ,language ,(concatenate 'string (car prefixes) lib-name))
+         (load-foreign-library-error ()
+           ,(expand-ts-attempt lib-name language (cdr prefixes))))
+      `(handler-case
+           (register-language ,language ,(concatenate 'string prefixes lib-name))
          (load-foreign-library-error ()
            (format *error-output*
                    "Failed to load '~a'. Support for '~a' will not be available."
-                   ,lib-name ,language))))))
+                   ,lib-name ,language)))))
+
+(defmacro register-tree-sitter-language (lib-name language ast-superclass)
+  "Setup LANGUAGE to map to AST-SUPERCLASS and use LIB-NAME for parsing."
+  (let ((register-language #.(when (asdf:find-system :cl-tree-sitter nil) t)))
+    (if register-language
+        `(progn )
+        `(expand-ts-attempt lib-name language '("/usr/lib/" "/usr/local/lib/")))))
 
 
 ;;; Defining tree-sitter classes
