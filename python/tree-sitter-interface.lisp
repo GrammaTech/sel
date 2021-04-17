@@ -19,31 +19,37 @@
 (declaim (inline safe-intern))
 (defun safe-intern (string) (intern (string-upcase string) *package*))
 
+(-> address-of (t) number)
+(defun address-of (it)
+  #+sbcl (sb-kernel:get-lisp-obj-address it)
+  #+ccl (ccl:%address-of it)
+  #-(or sbcl ccl) (error "address-of not implemented for current LISP runtime."))
+
 (-> allocate-ast (ast) fixnum)
-(defun allocate-ast (ast &aux (hash (ast-hash ast)))
+(defun allocate-ast (ast &aux (addr (address-of ast)))
   "Allocate AST to the *external-asts* hashtable and increment the reference
 counter to allow for its use externally without garbage collection."
-  (when (not (gethash hash *external-asts*))
-    (setf (gethash hash *external-asts*) (cons ast 0)))
-  (incf (cdr (gethash hash *external-asts*)))
-  hash)
+  (when (not (gethash addr *external-asts*))
+    (setf (gethash addr *external-asts*) (cons ast 0)))
+  (incf (cdr (gethash addr *external-asts*)))
+  addr)
 
 (-> deallocate-ast (ast) boolean)
-(defun deallocate-ast (ast &aux (hash (ast-hash ast)))
+(defun deallocate-ast (ast &aux (addr (address-of ast)))
   "Deallocate the AST from the *external-asts* hashtable if its reference
 counter reaches zero."
-  (when (gethash hash *external-asts*)
-    (let ((ref-count (decf (cdr (gethash hash *external-asts*)))))
+  (when (gethash addr *external-asts*)
+    (let ((ref-count (decf (cdr (gethash addr *external-asts*)))))
       (when (zerop ref-count)
-        (remhash hash *external-asts*)))))
+        (remhash addr *external-asts*)))))
 
 ;; (-> serialize (t) t)
 (defgeneric serialize (it)
   (:documentation "Serialize IT to a form for use with the JSON text interface.")
   (:method :before ((it ast))
     (allocate-ast it))
-  (:method ((it ast) &aux (hash (ast-hash it)))
-    `((:type . :ast) (:hash . ,hash)))
+  (:method ((it ast))
+    `((:type . :ast) (:addr . ,(address-of it))))
   (:method ((it list)) (mapcar #'serialize it))
   (:method ((it t)) it))
 
@@ -51,8 +57,8 @@ counter reaches zero."
 (defgeneric deserialize (it)
   (:documentation "Deserialize IT from a form used with the JSON text interface.")
   (:method ((it list))
-    (if (aget :hash it)
-        (car (gethash (aget :hash it) *external-asts*))
+    (if (aget :addr it)
+        (car (gethash (aget :addr it) *external-asts*))
         (mapcar #'deserialize it)))
   (:method ((it t)) it))
 
