@@ -33,7 +33,7 @@ class AST:
 
     def __hash__(self) -> int:
         """Return the hashcode for the AST."""
-        return self.handle
+        return _interface.dispatch(self)
 
     def __eq__(self, other: AST_Type) -> AST_Type:
         """Return true if AST is equal to OTHER."""

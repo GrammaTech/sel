@@ -104,6 +104,10 @@ function name from the API followed by the arguments."
 (defun int/del (ast)
   (deallocate-ast ast))
 
+(-> int/hash (ast) number)
+(defun int/hash (ast)
+  (ast-hash ast))
+
 (-> int/eq (ast ast) boolean)
 (defun int/eq (ast1 ast2)
   (equal? ast1 ast2))
