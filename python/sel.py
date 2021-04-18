@@ -214,11 +214,20 @@ class _interface:
             _interface._proc.stdin.write(json.dumps(inpt).encode("ascii"))
             _interface._proc.stdin.write(b"\n")
             _interface._proc.stdin.flush()
+
             # Large files can take a bit to process, so wait for a line with content.
+            stdout = None
             for line in _interface._proc.stdout:
                 stdout = line.decode("ascii")
                 if stdout:
                     break
+
+            # If standard output is not populated, the process crashed.
+            # Raise a runtime error with the error message.
+            if not stdout:
+                stderr = _interface._proc.stderr.read().decode("ascii")
+                raise RuntimeError(f"{_interface._cmd} crashed with:\n\n{stderr}")
+
             return deserialize(json.loads(stdout))
 
 
