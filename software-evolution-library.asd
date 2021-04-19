@@ -50,7 +50,7 @@ techniques."
 (defsystem "software-evolution-library/run-tree-sitter-interface"
   :author "Eric Schulte and GrammaTech"
   :licence "GPL V3"
-  :description "Calculate difference between two programs."
+  :description "Command-line interface to SEL's tree-sitter ASTs."
   :version "0.0.0"
   :depends-on (software-evolution-library/python/tree-sitter-interface)
   :build-operation "asdf:program-op"
@@ -60,7 +60,9 @@ techniques."
 (defsystem "software-evolution-library/deploy-tree-sitter-interface"
   :author "Eric Schulte and GrammaTech"
   :licence "GPL V3"
-  :description "Calculate difference between two programs."
+  :description "Command-line interface to SEL's tree-sitter ASTs.
+Deployed as a stand-alone bundle with all libraries required by the
+executable including the including all tree-sitter libraries."
   :version "0.0.0"
   :defsystem-depends-on (:deploy)
   :depends-on (software-evolution-library/python/tree-sitter-interface)
@@ -71,7 +73,7 @@ techniques."
 (defsystem "software-evolution-library/run-rest-server"
   :author "Eric Schulte and GrammaTech"
   :licence "GPL V3"
-  :description "Calculate difference between two programs."
+  :description "Run a REST server exposing SEL APIs."
   :version "0.0.0"
   :depends-on (software-evolution-library/rest)
   :build-operation "asdf:program-op"
