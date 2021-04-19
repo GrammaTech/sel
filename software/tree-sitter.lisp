@@ -726,7 +726,12 @@ definitions.")
         (c-update-expression-prefix
          (:seq (:field c-operator c--- c-++) (:field c-argument c--expression)))
         (c-update-expression-postfix
-         (:seq (:field c-argument c--expression) (:field c-operator c--- c-++)))))
+         (:seq (:field c-argument c--expression) (:field c-operator c--- c-++))))
+       (c-expression-statement
+        (c-expression-statement-
+         (:seq (:child c--expression c-comma-expression)))
+        (c-empty-expression-statement
+         (:seq))))
       (:python
        (python-tuple
         ;; TODO: think of an actual name for this? The trailing hyphen seems
