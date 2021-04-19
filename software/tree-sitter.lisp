@@ -5018,7 +5018,9 @@ field."
       ((obj c) (callexpr c-ast))
       "Given a c software object and a call-expression, return the
  function definition."
-    (match callexpr
+      (if (typep callexpr 'c-expression-statement)
+          (setf callexpr (first (children callexpr))))
+       (match callexpr
       ((c-call-expression
         :c-function
         (c-identifier computed-text))
