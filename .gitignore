@@ -56,7 +56,6 @@ seed
 se-test
 test/etc/cpp-sample/sample
 builds/
-python/sel/*.so*
 
 # User-specific Makefile customization
 local.mk

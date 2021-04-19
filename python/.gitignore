@@ -2,3 +2,4 @@ build/
 dist/
 sel.egg-info/
 sel/tree-sitter-interface
+sel/*.so*

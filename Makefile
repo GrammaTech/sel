@@ -116,4 +116,3 @@ python:
 	docker build . -f python/Dockerfile -t docker.grammatech.com/synthesis/sel/python
 	docker run --rm -it -v $(shell pwd)/python/sel:/host docker.grammatech.com/synthesis/sel/python sh -c "cp /root/quicklisp/local-projects/sel/python/sel/lib* /root/quicklisp/local-projects/sel/python/sel/tree-sitter* /host/"
 	cd python;python3 setup.py bdist_wheel --dist-dir=dist;cd -
-# pip3 install --user --force-reinstall python/dist/sel-0.1.3.dev0-py3-none-any.whl

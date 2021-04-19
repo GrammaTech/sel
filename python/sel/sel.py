@@ -228,13 +228,10 @@ class _interface:
             _interface._proc.stdin.write(b"\n")
             _interface._proc.stdin.flush()
 
-            # input = json.dumps(inpt).encode("ascii")
-            # print(f"< {input}")
             # Large files can take a bit to process, so wait for a line with content.
             stdout = None
             for line in _interface._proc.stdout:
                 stdout = line.decode("ascii")
-                # print(f"> {stdout}")
                 if stdout:
                     break
 
