@@ -3,11 +3,18 @@
 See: https://grammatech.github.io/sel
 """
 from setuptools import find_packages, setup
+from os import path
+
+this_directory = path.abspath(path.dirname(__file__))
+with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
+    long_description = f.read()
 
 setup(
     name='asts',
     version='0.1.3.dev0',
     description='A library for programmatic software modification',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     url='https://github.com/grammatech/sel',
     author='Eric Schulte and GrammaTech',
     author_email='sel@grammatech.com',

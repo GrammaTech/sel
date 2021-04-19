@@ -9,8 +9,11 @@ into ASTs and (ii) the SEL machinery leveraging Common Lisp's object
 system (CLOS) and generic functions to build a large multi-language
 API for software analysis and transformation over these ASTs.
 
-The remainder of this section walks through building, running, and
-troubleshooting this Python Library.
+This library is available on PyPi with pre-packaged tree-sitter
+libraries for use on any Linux system (see
+@url{https://pypi.org/project/asts/}).  The remainder of this section
+walks through building the library locally, running, and
+troubleshooting local builds of this Python Library.
 
 @menu
 * Building the SEL Python Library::
@@ -47,26 +50,25 @@ pip3 install dist/*
 @section Running the SEL Python Library
 @cindex running the sel python library
 
-The actual Python interface is defined in @code{sel.py}.  The following
-demonstrates usage of this library.
+The actual Python interface is defined in @code{python/asts/asts.py}.
+The following demonstrates usage of this library.
 
 @example
-sel$ python3
-Python 3.9.2 (default, Feb 19 2021, 17:43:04)
-[Clang 12.0.0 (clang-1200.0.32.29)] on darwin
+$ python3
+Python 3.8.5
 Type "help", "copyright", "credits" or "license" for more information.
->>> import sel
->>> it = sel.AST("python", "x + 88")
+>>> import asts
+>>> it = asts.AST("python", "x + 88")
 >>> it.children()
-[<sel.AST object at 0x1048bd460>]
+[<asts.asts.AST object at 0x7f8e91fb52b0>]
 >>> it.children()[0].children()
-[<sel.AST object at 0x1048f7b50>]
+[<asts.asts.AST object at 0x7f8e918b7100>]
 >>> it.children()[0].children()[0].children()
-[<sel.AST object at 0x104845790>, <sel.AST object at 0x1048bf280>, <sel.AST object at 0x104904cd0>]
->>> it.children()[0].children()[0].children()[1].source_text()
-'+'
+[<asts.asts.AST object at 0x7f8e918b7490>, <asts.asts.AST object at 0x7f8e918b73a0>, <asts.asts.AST object at 0x7f8e918b73d0>]
 >>> it.children()[0].children()[0].children()[0].source_text()
 'x'
+>>> it.children()[0].children()[0].children()[1].source_text()
+'+'
 >>> it.children()[0].children()[0].children()[2].source_text()
 '88'
 >>> it.children()[0].children()[0].source_text()
@@ -75,6 +77,8 @@ Type "help", "copyright", "credits" or "license" for more information.
 [['PYTHON-LEFT', 1], ['PYTHON-OPERATOR', 1], ['PYTHON-RIGHT', 1], ['CHILDREN', 0]]
 >>> list(map(lambda x:x.source_text(), it.children()[0].children()[0].children()))
 ['x', '+', '88']
+>>> list(map(lambda x:x.ast_type(), it.children()[0].children()[0].children()))
+['PYTHON-IDENTIFIER', 'PYTHON-+', 'PYTHON-INTEGER']
 @end example
 
 @node Troubleshooting the SEL Python Library, , Running the SEL Python Library, Python Library
