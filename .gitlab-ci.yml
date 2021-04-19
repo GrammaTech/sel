@@ -48,7 +48,6 @@ test-python:
     - schedules
 
 build-python-libraries:
-  stage: build
   image: $DOCKER_REGISTRY/$CI_PROJECT_PATH/python
   script: >-
     sbcl --load "/root/quicklisp/setup.lisp" \
