@@ -411,6 +411,12 @@ searched to populate `*tree-sitter-language-files*'.")
         (python-async
          :accessor python-async
          :initarg python-async
+         :initform nil)))
+      (:javascript
+       (javascript-lexical-declaration
+        (javascript-declaration-kind
+         :accessor javascript-declaration-kind
+         :initarg :javascript-declaration-kind
          :initform nil))))
     "Alist from languages to classes with extra slots.")
 
@@ -873,8 +879,6 @@ definitions.")
                   ((:TYPE . "STRING") (:VALUE . "...")))))))))
            ((:TYPE . "BLANK"))))
          ((:TYPE . "STRING") (:VALUE . ")")))))
-      ;; TODO: add in substitutions and parse tree transformations for 'async'
-      ;;       classes.
       (:python
        ;; NOTE: this removes semicolons. This can be further amended if it
        ;;       becomes problematic.
@@ -937,6 +941,25 @@ definitions.")
        (:POSITIONAL-ONLY-SEPARATOR (:TYPE . "STRING") (:VALUE . "/"))
        (:KEYWORD-ONLY-SEPARATOR (:TYPE . "STRING") (:VALUE . "*")))
       (:javascript
+       (:LEXICAL-DECLARATION
+        (:TYPE . "SEQ")
+        (:MEMBERS
+         ((:TYPE . "FIELD") (:NAME . "declaration_kind")
+          (:CONTENT
+           (:TYPE . "CHOICE")
+           (:MEMBERS
+            ((:TYPE . "STRING") (:VALUE . "let"))
+            ((:TYPE . "STRING") (:VALUE . "const")))))
+         ((:TYPE . "SEQ")
+          (:MEMBERS
+           ((:TYPE . "SYMBOL") (:NAME . "variable_declarator"))
+           ((:TYPE . "REPEAT")
+            (:CONTENT
+             (:TYPE . "SEQ")
+             (:MEMBERS
+              ((:TYPE . "STRING") (:VALUE . ","))
+              ((:TYPE . "SYMBOL") (:NAME . "variable_declarator")))))))
+         ((:TYPE . "SYMBOL") (:NAME . "_semicolon"))))
        (:-SEMICOLON (:TYPE . "CHOICE")
         (:MEMBERS
          ((:TYPE . "STRING") (:VALUE . ";"))
@@ -4422,6 +4445,21 @@ Returns nil if the length of KEYS is not the same as VALUES'."
 
 ;;;; Javascript
 (when-class-defined (javascript)
+
+  (defmethod transform-parse-tree
+      ((language (eql ':javascript))
+       (class (eql 'javascript-lexical-declaration))
+       parse-tree)
+    (append
+     (butlast parse-tree)
+     (list
+      (mapcar
+       (lambda (child-tree)
+         (cond
+           ((member (car child-tree) '(:let :const))
+            (cons (list :declaration-kind (car child-tree)) (cdr child-tree)))
+           (t child-tree)))
+       (lastcar parse-tree)))))
 
   ;; Methods common to all software objects
   (defmethod phenome ((obj javascript) &key (bin (temp-file-name)))
