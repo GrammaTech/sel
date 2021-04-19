@@ -323,6 +323,30 @@
   (unless (member :sel/structured-text *features*)
     (push :sel/structured-text *features*))
 
+  (define-condition parsing-error (error)
+    ((range :initarg :parsing-error-range :initform nil
+            :reader parsing-error-range))
+    (:documentation "Error thrown when a tree-sitter parser fails to parse a
+ string without errors.")
+    (:report
+     (lambda (condition stream
+              &aux (range (parsing-error-range condition))
+                (start (car range))
+                (end (cadr range)))
+       (format stream "Failed to parse from ~a to ~a~%" start end))))
+
+  (define-condition rule-matching-error (error)
+    ((rule :initarg :rule-matching-error-rule :initform nil
+           :reader rule-matching-error-rule)
+     (ast :initarg :rule-matching-error-ast :initform nil
+          :reader rule-matching-error-ast))
+    (:documentation "Error thrown when a rule fails to match on an AST.")
+    (:report
+     (lambda (condition stream)
+       (format stream "Unable to match~%~a~%on~%~a"
+               (rule-matching-error-rule condition)
+               (rule-matching-error-ast condition)))))
+
   (defvar *superclass->language* (make-hash-table)
     "Maps an AST superclass to its tree-sitter language. When
 convert is called, the superclass can then be used to look up
@@ -5248,7 +5272,9 @@ which slots are expected to be used."
     ;;       some how?
     (if-let ((result (rule-handler pruned-rule (populate-slot->stack))))
       (reverse (gethash child-stack-key result))
-      (error "Unable to match~%~a~%on~%~a" pruned-rule ast))))
+      (error 'rule-matching-error
+             :rule-matching-error-rule pruned-rule
+             :rule-matching-error-ast ast))))
 
 (defun computed-text-output-transformation (ast)
   "Gives the variable text output transformation for AST. This
@@ -5846,7 +5872,7 @@ the indentation slots."
               (remove-if-not {eql 0} (slot-value instance 'child-slots)
                              :key #'cdr))))
     (when error-p
-      (error "Convert failed to parse without errors"))
+      (error 'parsing-error :parsing-error-range (cadr spec)))
     (set-slot-values
      (merge-same-fields (get-converted-fields)))
     (set-surrounding-text)
