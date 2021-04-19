@@ -114,5 +114,5 @@ python-check: bin/tree-sitter-interface
 
 python:
 	docker build . -f python/Dockerfile -t docker.grammatech.com/synthesis/sel/python
-	docker run --rm -it -v $(shell pwd)/python/asts:/host docker.grammatech.com/synthesis/sel/python sh -c "cp /root/quicklisp/local-projects/sel/python/asts/lib* /root/quicklisp/local-projects/sel/python/asts/tree-sitter* /host/"
+	docker run --rm -v $(shell pwd)/python/asts:/host docker.grammatech.com/synthesis/sel/python sh -c "cp /root/quicklisp/local-projects/sel/python/asts/lib* /root/quicklisp/local-projects/sel/python/asts/tree-sitter* /host/"
 	cd python;python3 setup.py bdist_wheel --dist-dir=dist;cd -
