@@ -1,5 +1,5 @@
 import unittest
-import sel
+import asts
 
 
 class BinaryOperationTestDriver(unittest.TestCase):
@@ -7,7 +7,7 @@ class BinaryOperationTestDriver(unittest.TestCase):
     binop = None
 
     def setUp(self):
-        self.root = sel.AST("python", "x + 88")
+        self.root = asts.AST("python", "x + 88")
         self.binop = self.root.children()[0].children()[0]
         return
 
@@ -59,7 +59,7 @@ class SelfReferentialTestDriver(unittest.TestCase):
     def setUp(self):
         with open(__file__, "r") as f:
             self.source = f.read()
-            self.root = sel.AST("python", self.source)
+            self.root = asts.AST("python", self.source)
 
     # AST creation
     # AST source text
@@ -74,11 +74,11 @@ class FunctionTestDriver(unittest.TestCase):
     # Function body
 
     def test_no_functions(self):
-        ast = sel.AST("python", "")
+        ast = asts.AST("python", "")
         self.assertEqual([], ast.function_asts())
 
     def test_no_params(self):
-        ast = sel.AST("python", "def foo(): return None")
+        ast = asts.AST("python", "def foo(): return None")
         self.assertEqual(1, len(ast.function_asts()))
 
         function = ast.function_asts()[0]
@@ -87,7 +87,7 @@ class FunctionTestDriver(unittest.TestCase):
         self.assertEqual("return None", function.function_body().source_text())
 
     def test_multiple_parameters(self):
-        ast = sel.AST("python", "def bar(a, b): return a*b")
+        ast = asts.AST("python", "def bar(a, b): return a*b")
         self.assertEqual(1, len(ast.function_asts()))
 
         function = ast.function_asts()[0]
@@ -104,11 +104,11 @@ class CallsiteTestDriver(unittest.TestCase):
     # Callsite arguments
 
     def test_no_calls(self):
-        root = sel.AST("python", "")
+        root = asts.AST("python", "")
         self.assertEqual([], root.call_asts())
 
     def test_no_arguments(self):
-        root = sel.AST("python", "foo()")
+        root = asts.AST("python", "foo()")
         self.assertEqual(1, len(root.call_asts()))
 
         call = root.call_asts()[0]
@@ -117,7 +117,7 @@ class CallsiteTestDriver(unittest.TestCase):
         self.assertEqual([], call.call_arguments())
 
     def test_multiple_arguments(self):
-        root = sel.AST("python", "bar(a, b)")
+        root = asts.AST("python", "bar(a, b)")
         self.assertEqual(1, len(root.call_asts()))
 
         call = root.call_asts()[0]
@@ -127,7 +127,7 @@ class CallsiteTestDriver(unittest.TestCase):
         self.assertEqual(["a", "b"], args)
 
     def test_module(self):
-        root = sel.AST("python", "os.path.join(a, b)")
+        root = asts.AST("python", "os.path.join(a, b)")
         self.assertEqual(1, len(root.call_asts()))
 
         call = root.call_asts()[0]

@@ -1,5 +1,5 @@
 build/
 dist/
-sel.egg-info/
-sel/tree-sitter-interface
-sel/*.so*
+asts.egg-info/
+asts/tree-sitter-interface
+asts/*.so*

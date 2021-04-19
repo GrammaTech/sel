@@ -5,7 +5,7 @@ See: https://grammatech.github.io/sel
 from setuptools import find_packages, setup
 
 setup(
-    name='sel',
+    name='asts',
     version='0.1.3.dev0',
     description='A library for programmatic software modification',
     url='https://github.com/grammatech/sel',
@@ -24,7 +24,7 @@ setup(
     ],
     keywords='software-engineering, source, program-synthesis',
     packages=find_packages(),
-    package_data={'sel': ['lib*', 'tree-sitter*']},
+    package_data={'asts': ['lib*', 'tree-sitter*']},
     setup_requires=['wheel'],
     python_requires='>=3.6',
     project_urls={

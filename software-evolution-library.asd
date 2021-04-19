@@ -65,7 +65,7 @@ techniques."
   :defsystem-depends-on (:deploy)
   :depends-on (software-evolution-library/python/tree-sitter-interface)
   :build-operation "deploy-op"
-  :build-pathname "../python/sel/tree-sitter-interface"
+  :build-pathname "../python/asts/tree-sitter-interface"
   :entry-point "software-evolution-library/python/tree-sitter-interface:run-tree-sitter-interface")
 
 (defsystem "software-evolution-library/run-rest-server"
