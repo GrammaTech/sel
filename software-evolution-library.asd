@@ -70,6 +70,15 @@ executable including the including all tree-sitter libraries."
   :build-pathname "../python/asts/tree-sitter-interface"
   :entry-point "software-evolution-library/python/tree-sitter-interface:run-tree-sitter-interface")
 
+(defsystem "software-evolution-library/run-test-parse"
+  :author "Paul Diet and GrammaTech"
+  :license "GPL V3"
+  :description "Test CLI for use with creduce"
+  :depends-on (software-evolution-library/components/test-parse)
+  :build-operation "asdf:program-op"
+  :build-pathname "bin/test-parse"
+  :entry-point "software-evolution-library/components/test-parse:run-test-parse")
+
 (defsystem "software-evolution-library/run-rest-server"
   :author "Eric Schulte and GrammaTech"
   :licence "GPL V3"
