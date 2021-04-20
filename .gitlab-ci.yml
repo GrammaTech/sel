@@ -42,6 +42,8 @@ test-ccl:
 
 test-python:
   stage: test
+  variables:
+    GIT_STRATEGY: clone
   script:
     - LISP=sbcl GT=yes make python-check
   except:
