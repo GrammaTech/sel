@@ -309,7 +309,8 @@
            :enclosing-definition
            :imports
            :provided-by
-           :comparisonp))
+           :comparisonp
+           :c-functions))
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 
