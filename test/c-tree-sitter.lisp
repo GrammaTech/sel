@@ -115,12 +115,13 @@
     (is (stmt-starting-with-text *soft* "int y = 1"))
     (is (not (find-if {typep _ 'c-error} (genome *soft*))))))
 
-;;; TODO: figure out what needs fixed here.
-#+TODO
+#+TODO ;;; TODO: figure out what needs fixed here.
 (deftest test-c-source-ranges ()
   ;; There are a lot of C source files and parsing them is slow
   ;; so set a limit. Note the files actually tested are chosen at
   ;; random from the set of all files.
+  (uiop::chdir
+   (asdf:system-relative-pathname :software-evolution-library "test/etc/"))
   (let* ((c-files (expand-wildcard #p"*/*.c"))
          ;; FIXME: There is a performance issue in `ast-source-ranges'
          ;;        (at least on CCL maybe SBCL as well) so we remove
