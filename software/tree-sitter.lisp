@@ -1705,6 +1705,8 @@ and returns the result."
          ((not (listp (car subtree))))
          ((eql (car subtree) :members))
          ((eql (car subtree) :content))
+         ((not (every 'consp subtree))) ; all list elements must be conses
+                                        ; in alist
          ((funcall function subtree))))
      tree :tag 'prune :traversal traversal))
 
@@ -1990,24 +1992,25 @@ This is to prevent certain classes from being seen as terminal symbols."
   (defun prune-rule-tree (transformed-json-rule)
     (labels ((gather-field-types (content)
                "Return a list of symbols that CONTENT could be for a field."
-               (string-case (aget :type content)
-                 ;; TODO: may need to add more things here.
-                 ;;       It also might make sense to use walk-json here
-                 ;;       since it wasn't available when this was originally
-                 ;;       written.
-                 ("STRING"
-                  (list (aget :value content)))
-                 ("SYMBOL"
-                  (list (aget :name content)))
-                 ("ALIAS"
-                  (when (aget :named content)
-                    (list (aget :value content))))
-                 (("CHOICE" "SEQ")
-                  (mappend #'gather-field-types (aget :members content)))
-                 ("REPEAT"
-                  (gather-field-types (aget :content content)))
-                 ("BLANK"
-                  (list 'null))))
+               (if (listp content) ; ignore if not a list
+                   (string-case (aget :type content)
+                     ;; TODO: may need to add more things here.
+                     ;;       It also might make sense to use walk-json here
+                     ;;       since it wasn't available when this was originally
+                     ;;       written.
+                     ("STRING"
+                      (list (aget :value content)))
+                     ("SYMBOL"
+                      (list (aget :name content)))
+                     ("ALIAS"
+                      (when (aget :named content)
+                        (list (aget :value content))))
+                     (("CHOICE" "SEQ")
+                      (mappend #'gather-field-types (aget :members content)))
+                     ("REPEAT"
+                      (gather-field-types (aget :content content)))
+                     ("BLANK"
+                      (list 'null)))))
              (handle-seq (rule)
                "Handle RULE as a 'SEQ', 'REPEAT', 'REPEAT1', or 'CHOICE' rule."
                (let ((children (if-let ((members (aget :members rule)))
@@ -2035,19 +2038,21 @@ This is to prevent certain classes from being seen as terminal symbols."
                "Handles dispatching RULE to its relevant rule handler."
                ;; NOTE: this will throw an error if the json schema for
                ;;       the grammar.json files has changed.
-               (string-ecase (aget :type rule)
-                 ("ALIAS" (handle-alias rule))
-                 (("BLANK" "IMMEDIATE_TOKEN" "TOKEN" "PATTERN" "STRING"))
-                 (("CHOICE" "SEQ" "REPEAT" "REPEAT1")
-                  (handle-seq rule))
-                 ("FIELD" (handle-field rule))
-                 ("SYMBOL"
-                  ;; NOTE: this assumes that all 'SYMBOL's that are seen
-                  ;;       going into the children slot. Also NOTE that
-                  ;;       the inline rules should be inlined before entering
-                  ;;       this function.
-                  (handle-symbol rule)))))
-      (handle-rule transformed-json-rule)))
+               (if rule
+                   (string-ecase (aget :type rule)
+                     ("ALIAS" (handle-alias rule))
+                     (("BLANK" "IMMEDIATE_TOKEN" "TOKEN" "PATTERN" "STRING"))
+                     (("CHOICE" "SEQ" "REPEAT" "REPEAT1")
+                      (handle-seq rule))
+                     ("FIELD" (handle-field rule))
+                     ("SYMBOL"
+                      ;; NOTE: this assumes that all 'SYMBOL's that are seen
+                      ;;       going into the children slot. Also NOTE that
+                      ;;       the inline rules should be inlined before entering
+                      ;;       this function.
+                      (handle-symbol rule))))))
+      (if transformed-json-rule ; watch for null rule
+          (handle-rule transformed-json-rule))))
 
   ;; TODO: update doc string
   (defun collapse-rule-tree (rule-tree)
@@ -2369,36 +2374,38 @@ outside of repeats."
              (aget (make-keyword language) *tree-sitter-computed-text-asts*))
      (walk-json
       (lambda (subtree)
+        ;(format t "subtree: ~A~%" subtree)
         ;; TODO: maybe also look at node types to see if it has any children
         ;;       default to computed text node p if it doesn't?
-        (when-let (type (aget :type subtree))
-          (string-case type
-            ;; TODO: figure out a way to remove the token rules from this.
-            (("PATTERN" "TOKEN" "IMMEDIATE_TOKEN")
-             ;; PATTERN indicates that there
-             ;; is variable text.
-             ;; TOKEN and IMMEDIATE_TOKEN don't
-             ;; necessarily indicate variable text,
-             ;; but they generally have a CHOICE that
-             ;; selects from some default values, and
-             ;; since this isn't stored in a slot, it's
-             ;; generally a good idea to store it since
-             ;; things break otherwise. An example of this
-             ;; can be seen with language-provided types in
-             ;; C.
-             (return-from computed-text-ast-p t))
-            ("ALIAS"
-             (if (aget :named subtree)
-                 ;; A named alias should be treated like a symbol.
-                 (setf children? t)
-                 ;; Aliases can have patterns in them,
-                 ;; but they are recast to something else,
-                 ;; so they do not need to be stored.
-                 (throw 'prune nil)))
-            (("FIELD" "SYMBOL")
-             ;; The presence of either of these indicate that there are
-             ;; children.
-             (setf children? t)))))
+        (when-let (type (and (listp subtree) (aget :type subtree)))
+          (if (stringp type)
+              (string-case type
+                ;; TODO: figure out a way to remove the token rules from this.
+                (("PATTERN" "TOKEN" "IMMEDIATE_TOKEN")
+                 ;; PATTERN indicates that there
+                 ;; is variable text.
+                 ;; TOKEN and IMMEDIATE_TOKEN don't
+                 ;; necessarily indicate variable text,
+                 ;; but they generally have a CHOICE that
+                 ;; selects from some default values, and
+                 ;; since this isn't stored in a slot, it's
+                 ;; generally a good idea to store it since
+                 ;; things break otherwise. An example of this
+                 ;; can be seen with language-provided types in
+                 ;; C.
+                 (return-from computed-text-ast-p t))
+                ("ALIAS"
+                 (if (and (listp subtree) (aget :named subtree))
+                     ;; A named alias should be treated like a symbol.
+                     (setf children? t)
+                     ;; Aliases can have patterns in them,
+                     ;; but they are recast to something else,
+                     ;; so they do not need to be stored.
+                     (throw 'prune nil)))
+                (("FIELD" "SYMBOL")
+                 ;; The presence of either of these indicate that there are
+                 ;; children.
+                 (setf children? t))))))
       json-rule)
      (not children?)))
 
