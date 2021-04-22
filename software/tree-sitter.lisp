@@ -3143,6 +3143,9 @@ Unlike the `children` methods which collects all children of an AST from any slo
 
              ,@(create-external-classes grammar)
 
+             ;; TODO: the class definitions can be reinserted in the incorrect
+             ;;       order due to the use of a hashtable. This can cause
+             ;;       problems when finalizing classes.
              ,@(iter (for (nil definition) in-hashtable
                           class-name->class-definition)
                  (collect definition))
