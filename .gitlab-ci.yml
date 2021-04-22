@@ -60,7 +60,7 @@ build-python-libraries:
     paths:
       - python/asts
   rules:
-    - if: '$CI_COMMIT_REF_NAME =~ /^r.*/'
+    - if: '$CI_COMMIT_REF_NAME =~ /^r\d\d\d\d\.\d\d\.\d\d/'
 
 deploy-python-package:
   inherit:
@@ -77,7 +77,7 @@ deploy-python-package:
   tags:
     - kubernetes
   rules:
-    - if: '$CI_COMMIT_REF_NAME =~ /^r.*/'
+    - if: '$CI_COMMIT_REF_NAME =~ /^r\d\d\d\d\.\d\d\.\d\d/'
 
 dependent-genpatcher:
   stage: deploy
