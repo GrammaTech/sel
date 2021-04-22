@@ -441,6 +441,20 @@ searched to populate `*tree-sitter-language-files*'.")
         (javascript-declaration-kind
          :accessor javascript-declaration-kind
          :initarg :javascript-declaration-kind
+         :initform nil))
+       (javascript-function-declaration
+        (javascript-async
+         :accessor javascript-async
+         :initarg :javascript-async
+         :initform nil))
+       (javascript-for-in-statement
+        (javascript-declaration-type
+         :accessor javascript-declaration-type
+         :initarg :javascript-declaration-type
+         :initform nil)
+        (javascript-iteration-type
+         :accessor javascript-iteration-type
+         :initarg :javascript-iteration-type
          :initform nil))))
     "Alist from languages to classes with extra slots.")
 
@@ -787,7 +801,33 @@ definitions.")
             (:choice
              (:child python-pair python-dictionary-splat))))))
         (python-empty-dictionary
-         (:seq))))))
+         (:seq))))
+      (:javascript
+       ;; TODO: these will be wrong.
+       (javascript-for-in-statement
+        (javascript-for-in-statement-
+         '(:seq
+           (:field javascript-left javascript-member-expression
+            javascript-subscript-expression javascript-identifier
+            javascript-identifier javascript-object-pattern
+            javascript-array-pattern
+            javascript-parenthesized-expression)
+           (:field javascript-iteration-type javascript-in
+            javascript-of)
+           (:field javascript-right javascript-expression
+            javascript-sequence-expression)
+           (:field javascript-body javascript-statement)))
+        (javascript-for-of-statement
+         '(:seq
+           (:field javascript-declaration-type javascript-var
+            javascript-let javascript-const)
+           (:field javascript-left javascript-identifier
+            javascript-object-pattern javascript-array-pattern)
+           (:field javascript-iteration-type javascript-in
+            javascript-of)
+           (:field javascript-right javascript-expression
+            javascript-sequence-expression)
+           (:field javascript-body javascript-statement)))))))
 
   (defparameter *tree-sitter-json-rule-substitutions*
     '((:c
@@ -965,6 +1005,96 @@ definitions.")
        (:POSITIONAL-ONLY-SEPARATOR (:TYPE . "STRING") (:VALUE . "/"))
        (:KEYWORD-ONLY-SEPARATOR (:TYPE . "STRING") (:VALUE . "*")))
       (:javascript
+       (:-FOR-HEADER (:TYPE . "SEQ")
+        (:MEMBERS ((:TYPE . "STRING") (:VALUE . "("))
+         ((:TYPE . "CHOICE")
+          (:MEMBERS
+           ((:TYPE . "FIELD")
+            (:NAME . "left")
+            (:CONTENT
+             (:TYPE . "CHOICE")
+             (:MEMBERS
+              ((:TYPE . "SYMBOL") (:NAME . "_lhs_expression"))
+              ((:TYPE . "SYMBOL") (:NAME . "parenthesized_expression")))))
+           ((:TYPE . "SEQ")
+            (:MEMBERS
+             ;; TODO: add slots
+             ((:TYPE . "FIELD")
+              (:NAME . "declaration_type")
+              (:CONTENT
+               (:TYPE . "CHOICE")
+               (:MEMBERS
+                ((:TYPE . "STRING") (:VALUE . "var"))
+                ((:TYPE . "STRING") (:VALUE . "let"))
+                ((:TYPE . "STRING") (:VALUE . "const")))))
+             ((:TYPE . "FIELD")
+              (:NAME . "left")
+              (:CONTENT
+               (:TYPE . "CHOICE")
+               (:MEMBERS
+                ((:TYPE . "SYMBOL") (:NAME . "identifier"))
+                ((:TYPE . "SYMBOL") (:NAME . "_destructuring_pattern")))))))))
+         ;; TODO: add slots
+         ((:TYPE . "FIELD")
+          (:NAME . "iteration_type")
+          (:CONTENT
+           (:TYPE . "CHOICE")
+           (:MEMBERS
+            ((:TYPE . "STRING") (:VALUE . "in"))
+            ((:TYPE . "STRING") (:VALUE . "of")))))
+          ((:TYPE . "FIELD") (:NAME . "right")
+           (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_expressions")))
+          ((:TYPE . "STRING") (:VALUE . ")"))))
+       (:FUNCTION-DECLARATION
+        (:TYPE . "PREC_RIGHT") (:VALUE . "declaration")
+        (:CONTENT
+         (:TYPE . "SEQ")
+         (:MEMBERS
+          ((:TYPE . "FIELD") (:NAME . "async")
+           (:CONTENT
+            (:TYPE . "CHOICE")
+            (:MEMBERS
+             ((:TYPE . "STRING") (:VALUE . "async"))
+             ((:TYPE . "BLANK")))))
+          ((:TYPE . "STRING") (:VALUE . "function"))
+          ((:TYPE . "FIELD") (:NAME . "name")
+           (:CONTENT
+            (:TYPE . "SYMBOL") (:NAME . "identifier")))
+          ((:TYPE . "SYMBOL") (:NAME . "_call_signature"))
+          ((:TYPE . "FIELD") (:NAME . "body")
+           (:CONTENT
+            (:TYPE . "SYMBOL") (:NAME . "statement_block")))
+          ((:TYPE . "CHOICE")
+           (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "_automatic_semicolon"))
+                     ((:TYPE . "BLANK")))))))
+       (:STRING
+        (:TYPE . "CHOICE")
+        (:MEMBERS
+         ((:TYPE . "SEQ")
+          (:MEMBERS
+           ((:TYPE . "STRING") (:VALUE . "\""))
+           ((:TYPE . "REPEAT")
+            (:CONTENT
+             (:TYPE . "CHOICE")
+             (:MEMBERS
+              ((:TYPE . "SYMBOL") (:NAME . "escape_sequence"))
+              ((:TYPE . "IMMEDIATE_TOKEN")
+               (:CONTENT
+                (:TYPE . "PREC") (:VALUE . 1)
+                (:CONTENT (:TYPE . "PATTERN") (:VALUE . "[^\"\\\\]+")))))))
+           ((:TYPE . "STRING") (:VALUE . "\""))))
+         ((:TYPE . "SEQ")
+          (:MEMBERS ((:TYPE . "STRING") (:VALUE . "'"))
+           ((:TYPE . "REPEAT")
+            (:CONTENT
+             (:TYPE . "CHOICE")
+             (:MEMBERS
+              ((:TYPE . "SYMBOL") (:NAME . "escape_sequence"))
+              ((:TYPE . "IMMEDIATE_TOKEN")
+               (:CONTENT
+                (:TYPE . "PREC") (:VALUE . 1)
+                (:CONTENT (:TYPE . "PATTERN") (:VALUE . "[^'\\\\]+")))))))
+           ((:TYPE . "STRING") (:VALUE . "'"))))))
        (:LEXICAL-DECLARATION
         (:TYPE . "SEQ")
         (:MEMBERS
@@ -4482,6 +4612,38 @@ Returns nil if the length of KEYS is not the same as VALUES'."
          (cond
            ((member (car child-tree) '(:let :const))
             (cons (list :declaration-kind (car child-tree)) (cdr child-tree)))
+           (t child-tree)))
+       (lastcar parse-tree)))))
+
+  (defmethod transform-parse-tree
+      ((language (eql ':javascript))
+       (class (eql 'javascript-function-declaration))
+       parse-tree)
+    (append
+     (butlast parse-tree)
+     (list
+      (mapcar
+       (lambda (child-tree)
+         (cond
+           ((equal (car child-tree) :async)
+            (cons (list :async :async) (cdr child-tree)))
+           (t child-tree)))
+       (lastcar parse-tree)))))
+
+  (defmethod transform-parse-tree
+      ((language (eql ':javascript))
+       (class (eql 'javascript-for-in-statement))
+       parse-tree)
+    (append
+     (butlast parse-tree)
+     (list
+      (mapcar
+       (lambda (child-tree &aux (child-car (car child-tree)))
+         (cond
+           ((member child-car '(:var :let :const))
+            (cons (list :declaration-type child-car) (cdr child-tree)))
+           ((member child-car '(:in :of))
+            (cons (list :iteration-type child-car) (cdr child-tree)))
            (t child-tree)))
        (lastcar parse-tree)))))
 
