@@ -292,7 +292,7 @@ of the same length"
                                          &key (limit 1000)
                                            ignore-indentation)
   (iter (for file in-vector (take limit (reshuffle files)))
-        (ignore-some-conditions (error) ;Ignore unparseable files.
+        (ignore-some-conditions (simple-error)      ;Ignore unparseable files.
          (test-single-ast-source-ranges
           class file
           :ignore-indentation ignore-indentation))))
