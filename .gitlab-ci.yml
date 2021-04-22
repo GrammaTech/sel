@@ -56,8 +56,7 @@ build-python-libraries:
          --eval '(quit)'
   artifacts:
     paths:
-      - /root/quicklisp/local-projects/sel/python/asts/lib*
-      - /root/quicklisp/local-projects/sel/python/asts/tree-sitter*
+      - python/asts
 
 deploy-python-package:
   stage: deploy
