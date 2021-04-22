@@ -67,6 +67,7 @@ deploy-python-package:
   stage: deploy
   image: python:3.7-slim
   needs: [build-python-libraries]
+  dependencies: [build-python-libraries]
   script:
     - cd python/
     - pip install -r requirements-dev.txt
