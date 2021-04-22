@@ -2594,7 +2594,8 @@ any slot usages in JSON-SUBTREE."
                      :initarg :computed-text
                      :allocation :class
                      :initform
-                     ',(list (get-json-subtree-string transformed-json-rule))))
+                     ',(list (get-json-subtree-string transformed-json-rule
+                                                      choice-resolver))))
                   nil)
                  (t `(defmethod output-transformation
                        ((ast ,class-name)&rest rest &key &aux (parse-stack (parse-order ast)))
@@ -3335,8 +3336,10 @@ or comments.  NIL if no such newline exists."
 
 ;;;; Tree-sitter language definitions.
 
-(progn #.`(progn ,@(mappend {apply #'tree-sitter-ast-classes}
-                            *tree-sitter-language-files*)))
+(progn
+  #.`(progn
+       ,@(mappend {apply #'tree-sitter-ast-classes}
+                  *tree-sitter-language-files*)))
 
 (defmacro when-class-defined ((software-class) &body body)
   "Checks if SOFTWARE-CLASS is defined at compile-time. If so,
