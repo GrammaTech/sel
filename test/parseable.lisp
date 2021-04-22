@@ -75,6 +75,7 @@
   "For test purposes, choose pre-selected crossover point."
   *preselected-crossover-point*)
   
+#+TODO
 (deftest crossover-test ()
   (when-let* ((soft1 (from-file (make-instance 'test-parseable)
                       (merge-pathnames "parseable/variety2.c"

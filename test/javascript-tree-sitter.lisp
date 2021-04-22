@@ -65,6 +65,7 @@
     (is (not (null *soft*)))))
 
 ;;; TODO: lack of stored information.
+#+TODO
 (deftest (javascript-can-parse-a-software-object :long-running) ()
   (with-fixture hello-world-javascript
     (is (= 7 (size *soft*)))
@@ -89,6 +90,7 @@
                 (genome-string *soft*)
                 (source-text (genome *soft*))))))
 
+#+TODO
 (deftest javascript-json-lone-surrogate-round-trip ()
   (let* ((json "a = { \"test\" : \"\\ud800-\\udbff\"};")
          (json-ast (convert 'javascript-ast json)))
@@ -168,6 +170,7 @@
 
 ;;; TODO: lack of information
 ;;;(deftest javascript-convert-source-snippet-works ()
+#+TODO
 (deftest js-convert-source-snippet-works ()
   (let ((ast (convert 'javascript-ast "j = 0")))
     (is (typep (ast-hash ast) '(integer 0)))
@@ -176,6 +179,7 @@
     (is (find-if {typep _ 'javascript-expression-statement} ast))))
 
 ;;; TODO: lack of information
+#+TODO
 (deftest (javascript-can-format-a-software-object :long-running) ()
   (with-fixture fib-javascript
     (is (not (string= (genome-string (copy *soft*))
@@ -298,6 +302,7 @@
                 (format nil "return 0~%")
                 (format nil "yield 0~%")))))
 
+#+TODO
 (defixture javascript-ast-w-conflict
   (:setup
    (setf *soft*
@@ -318,6 +323,7 @@
   (:teardown
    (setf *soft* nil)))
 
+#+TODO
 (deftest javascript-and-conflict-basic-parseable-ast-functionality ()
   (with-fixture javascript-ast-w-conflict
     ;; We actually have ASTs.
@@ -354,6 +360,7 @@
       (is (typep (@ *soft* path) 'javascript-identifier))
       (is (equalp "LEFT" (source-text (@ *soft* path)))))))
 
+#+TODO
 (deftest javascript-and-conflict-replace-ast ()
   (with-fixture javascript-ast-w-conflict
     (let ((cnf (find-if {typep _ 'conflict-ast} *soft*)))
@@ -386,6 +393,7 @@
      'javascript js-files :ignore-indentation t)))
 
 ;;; TODO: lack of information
+#+TODO
 (deftest (javascript-tree-sitter-parsing-test :long-running) ()
   (labels ((parsing-test-dir (path)
              (merge-pathnames-as-file (nest (make-pathname :directory)

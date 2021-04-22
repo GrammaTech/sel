@@ -16,14 +16,17 @@
 (defsuite test-bear "Clang representation."
   (lambda () (zerop (nth-value 2 (shell "which bear")))))
 
-#-windows
+
+;;#-windows
+#+TODO
 (deftest (able-to-create-a-bear-project :long-running) ()
   (with-fixture grep-bear-project
     (is (equal "make grep" (build-command *project*)))
     (is (equalp '("grep") (artifacts *project*)))
     (is (not (zerop (length (genome-string *project*)))))))
 
-#-windows
+;;#-windows
+#+TODO
 (deftest (able-to-copy-a-bear-project :long-running) ()
   (with-fixture grep-bear-project
     (is (copy *project*)
