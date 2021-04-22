@@ -62,6 +62,8 @@ build-python-libraries:
     - if: '$CI_COMMIT_REF_NAME =~ /^r.*/'
 
 deploy-python-package:
+  inherit:
+    default: false
   stage: deploy
   image: python:3.7-slim
   needs: [build-python-libraries]
