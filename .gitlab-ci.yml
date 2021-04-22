@@ -48,6 +48,7 @@ test-python:
     - schedules
 
 build-python-libraries:
+  stage: build
   image: $DOCKER_REGISTRY/$CI_PROJECT_PATH/python
   script: >-
     sbcl --load "/root/quicklisp/setup.lisp" \
@@ -57,6 +58,8 @@ build-python-libraries:
   artifacts:
     paths:
       - python/asts
+  rules:
+    - if: '$CI_COMMIT_REF_NAME =~ /^r.*/'
 
 deploy-python-package:
   stage: deploy
