@@ -55,6 +55,7 @@ build-python-libraries:
          --eval '(ql:quickload :software-evolution-library/deploy-tree-sitter-interface)' \
          --eval '(asdf:make :software-evolution-library/deploy-tree-sitter-interface)' \
          --eval '(quit)'
+    cp python/asts/* ${CI_PROJECT_DIR}/python/asts/
   artifacts:
     paths:
       - python/asts
