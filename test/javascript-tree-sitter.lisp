@@ -248,6 +248,7 @@
                      (stmt-starting-with-text soft "console.log("))))))
 
 ;;; TODO: lack of information
+#+TODO
 (deftest javascript-for-in-loop-get-vars-in-scope-test ()
   (let ((soft (from-file (make-instance 'javascript)
                          (javascript-dir #P"parsing/loops.js"))))
@@ -256,6 +257,7 @@
                         (stmt-with-text soft "console.log(arr[i]);"))
               :test #'equal))))
 
+#+TODO
 (deftest javascript-for-of-loop-get-vars-in-scope-test ()
   (let ((soft (from-file (make-instance 'javascript)
                          (javascript-dir #P"parsing/loops.js"))))
