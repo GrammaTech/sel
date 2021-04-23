@@ -6023,8 +6023,9 @@ the indentation slots."
                       (after (cadr (cadddr spec)))
                       (start (car (cadr spec)))
                       (end (cadr (cadr spec)))
-                      (before-text (safe-subseq before start))
-                      (after-text (safe-subseq end after)))
+                      (before-text
+                        (and before start (safe-subseq before start)))
+                      (after-text (and end after (safe-subseq end after))))
                  (unless (emptyp before-text)
                    (setf (before-text instance) before-text))
                  (unless (emptyp after-text)
