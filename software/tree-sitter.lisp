@@ -1702,9 +1702,6 @@ and returns the result."
          ;; that may occur from using something like #'aget.
          ((atom subtree))
          ((atom (cdr subtree)))
-         ((not (listp (car subtree))))
-         ((eql (car subtree) :members))
-         ((eql (car subtree) :content))
          ((not (every 'consp subtree))) ; all list elements must be conses
                                         ; in alist
          ((funcall function subtree))))
@@ -1992,7 +1989,8 @@ This is to prevent certain classes from being seen as terminal symbols."
   (defun prune-rule-tree (transformed-json-rule)
     (labels ((gather-field-types (content)
                "Return a list of symbols that CONTENT could be for a field."
-               (if (listp content) ; ignore if not a list
+               ;; TODO: this WHEN check should not be necessary
+               (when (listp content) ; ignore if not a list
                    (string-case (aget :type content)
                      ;; TODO: may need to add more things here.
                      ;;       It also might make sense to use walk-json here
@@ -2038,7 +2036,8 @@ This is to prevent certain classes from being seen as terminal symbols."
                "Handles dispatching RULE to its relevant rule handler."
                ;; NOTE: this will throw an error if the json schema for
                ;;       the grammar.json files has changed.
-               (if rule
+               ;; TODO: this WHEN check of the rule should not be necessary
+               (when rule
                    (string-ecase (aget :type rule)
                      ("ALIAS" (handle-alias rule))
                      (("BLANK" "IMMEDIATE_TOKEN" "TOKEN" "PATTERN" "STRING"))
@@ -2378,7 +2377,9 @@ outside of repeats."
         ;; TODO: maybe also look at node types to see if it has any children
         ;;       default to computed text node p if it doesn't?
         (when-let (type (and (listp subtree) (aget :type subtree)))
-          (if (stringp type)
+          ;; TODO: this WHEN check shouldn't be necessary as type should always
+          ;; be a string if it is found at all.
+          (when (stringp type)
               (string-case type
                 ;; TODO: figure out a way to remove the token rules from this.
                 (("PATTERN" "TOKEN" "IMMEDIATE_TOKEN")
