@@ -2649,6 +2649,8 @@ subclass based on the order of the children were read in."
                ;; TODO: add this to the class-definition table.
                ;; TODO: should also consider adding support for mixins
                ;;       and additional slot options.
+               (push class-name
+                     (gethash 'class-order class-name->class-definition))
                (setf (gethash class-name class-name->class-definition)
                      `(defclass ,class-name (,super-class)
                         ((rule :initform ',(cadr subclass-pair)
@@ -3058,18 +3060,20 @@ AST-EXTRA-SLOTS is an alist from classes to extra slots."
                     (subtypes (aget :subtypes node-type))
                     (named-p (aget :named node-type)))
                "Create a class for  NODE-TYPE."
-               (let ((class-definition
-                       (cond
-                         (subtypes (create-supertype-class type))
-                         (named-p
-                          (create-type-class
-                           type
-                           (aget :fields node-type)
-                           grammar-rules))
-                         ;; Terminal Symbol
-                         (t (create-terminal-symbol-class type)))))
-                 (setf (gethash (cadr class-definition)
-                                class-name->class-definition)
+               (let* ((class-definition
+                        (cond
+                          (subtypes (create-supertype-class type))
+                          (named-p
+                           (create-type-class
+                            type
+                            (aget :fields node-type)
+                            grammar-rules))
+                          ;; Terminal Symbol
+                          (t (create-terminal-symbol-class type))))
+                      (class-name (cadr class-definition)))
+                 (push class-name
+                       (gethash 'class-order class-name->class-definition))
+                 (setf (gethash class-name class-name->class-definition)
                        class-definition)))
              (create-external-class (name)
                "Create a class for an external rule."
@@ -3143,12 +3147,15 @@ Unlike the `children` methods which collects all children of an AST from any slo
 
              ,@(create-external-classes grammar)
 
-             ;; TODO: the class definitions can be reinserted in the incorrect
-             ;;       order due to the use of a hashtable. This can cause
-             ;;       problems when finalizing classes.
-             ,@(iter (for (nil definition) in-hashtable
-                          class-name->class-definition)
-                 (collect definition))
+             ;; NOTE: we want to maintain the order of the classes as they
+             ;;       were created. Since hash tables are unordered, a stack
+             ;;       is kept at the key 'class-order so that they can be
+             ;;       retrieved in order.
+             ,@(iter
+                 (for
+                  class-name in
+                  (reverse (gethash 'class-order class-name->class-definition)))
+                 (collect (gethash class-name class-name->class-definition)))
 
              (define-mutation ,(make-class-name "mutation") (parseable-mutation)
                ()
