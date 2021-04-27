@@ -5485,10 +5485,11 @@ be more than one string outside of string literals."
   (labels ((handle-alias (rule tree &aux (alias (car tree)))
              (cond
                ((aget :named rule)
+                ;; Named aliases are unhandled by #'match-parsed-children-json.
+                (error "Named alias in JSON subtree"))
+               (t
                 (and (string-equal (car alias) (aget :value rule))
-                     (values (cdr tree) t)))
-               ;; Named aliases are unhandled by #'match-parsed-children-json.
-               (t (error "Named alias in JSON subtree"))))
+                     (values (cdr tree) t)))))
            (handle-blank (tree) (values tree t))
            (handle-choice (rule tree)
              (iter
