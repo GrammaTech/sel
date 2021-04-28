@@ -13,6 +13,11 @@
   (:export test-parse run-test-parse))
 (in-package :software-evolution-library/components/test-parse)
 
+;;; Usage examples:
+;;;
+;;;  test-parse --error-type="serapeum::econd-failure" foo.c
+;;;  test-parse --error-pattern="unknown type specifier" --language=cpp bar.cpp
+
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defparameter +command-line-options+
     '((("help" #\h #\?) :type boolean :optional t
