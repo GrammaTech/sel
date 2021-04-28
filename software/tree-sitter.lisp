@@ -853,53 +853,6 @@ definitions.")
             (:NAME . "body")
             (:CONTENT
              (:TYPE . "SYMBOL") (:NAME . "field_declaration_list")))))))
-       (:POINTER-DECLARATOR (:TYPE . "PREC_DYNAMIC") (:VALUE . 1)
-        (:CONTENT (:TYPE . "PREC_RIGHT") (:VALUE . 0)
-         (:CONTENT (:TYPE . "SEQ")
-          (:MEMBERS
-           ((:TYPE . "CHOICE")
-            (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "ms_based_modifier"))
-                      ((:TYPE . "BLANK"))))
-           ((:TYPE . "STRING") (:VALUE . "*"))
-           ((:TYPE . "REPEAT")
-            (:CONTENT (:TYPE . "SYMBOL") (:NAME . "ms_pointer_modifier")))
-           ((:TYPE . "REPEAT")
-            (:CONTENT (:TYPE . "SYMBOL") (:NAME . "type_qualifier")))
-           ((:TYPE . "FIELD")
-            (:NAME . "declarator")
-            (:CONTENT
-             (:TYPE . "CHOICE")
-             (:MEMBERS
-              ((:TYPE . "SYMBOL") (:NAME . "_declarator"))
-              ;; TODO: instead of patching this rule, maybe look into using the
-              ;;       node types file and adding in every possible type a field
-              ;;       allows to the rule. Need to consider whether this could
-              ;;       break anything.
-              ;; Workaround for field declaration issues.
-              ((:TYPE . "SYMBOL") (:NAME . "_field_declarator"))
-              ((:TYPE . "SYMBOL") (:NAME . "_type_declarator")))))))))
-       (:ARRAY-DECLARATOR (:TYPE . "PREC") (:VALUE . 1)
-        (:CONTENT (:TYPE . "SEQ")
-         (:MEMBERS
-          ((:TYPE . "FIELD") (:NAME . "declarator")
-           (:CONTENT
-             (:TYPE . "CHOICE")
-             (:MEMBERS
-              ((:TYPE . "SYMBOL") (:NAME . "_declarator"))
-              ((:TYPE . "SYMBOL") (:NAME . "_field_declarator"))
-              ((:TYPE . "SYMBOL") (:NAME . "type_identifier")))))
-          ((:TYPE . "STRING") (:VALUE . "["))
-          ((:TYPE . "REPEAT")
-           (:CONTENT (:TYPE . "SYMBOL") (:NAME . "type_qualifier")))
-          ((:TYPE . "FIELD") (:NAME . "size")
-           (:CONTENT
-            (:TYPE . "CHOICE")
-            (:MEMBERS
-             ((:TYPE . "CHOICE")
-              (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "_expression"))
-                        ((:TYPE . "STRING") (:VALUE . "*"))))
-             ((:TYPE . "BLANK")))))
-          ((:TYPE . "STRING") (:VALUE . "]")))))
        (:SIZED-TYPE-SPECIFIER (:TYPE . "SEQ")
         (:MEMBERS
          ((:TYPE . "REPEAT1")
@@ -1019,7 +972,6 @@ definitions.")
               ((:TYPE . "SYMBOL") (:NAME . "parenthesized_expression")))))
            ((:TYPE . "SEQ")
             (:MEMBERS
-             ;; TODO: add slots
              ((:TYPE . "FIELD")
               (:NAME . "declaration_type")
               (:CONTENT
@@ -1035,7 +987,6 @@ definitions.")
                (:MEMBERS
                 ((:TYPE . "SYMBOL") (:NAME . "identifier"))
                 ((:TYPE . "SYMBOL") (:NAME . "_destructuring_pattern")))))))))
-         ;; TODO: add slots
          ((:TYPE . "FIELD")
           (:NAME . "iteration_type")
           (:CONTENT
@@ -1824,6 +1775,59 @@ This is to prevent certain classes from being seen as terminal symbols."
                 alias->content)))
       (append rules (create-aliased-rules (collect-strictly-aliased-types)))))
 
+  (defun combine-aliased-rules (rule-table)
+    "Search each rule for aliases. When an alias is found, add a 'CHOICE'
+around the relevant rule and have a choice branch for the original rule and
+a branch for the alias. This should help get around several issues that come
+up due to aliases."
+    (labels ((ensure-choice (rule)
+               "Ensure that RULE begins with a 'CHOICE'."
+               (if (string= "CHOICE" (aget :type rule))
+                   rule
+                   `((:TYPE . "CHOICE") (:MEMBERS ,@rule))))
+             (add-aliases (rule aliased-content)
+               ;; NOTE: an error here indicates a case that hasn't
+               ;;       been considered yet.
+               ;; TODO: this is a hack. string-ecase should be used.
+               (string-case (aget :type aliased-content)
+                 (("BLANK" "STRING" "PATTERN")
+                  `((:TYPE . "CHOICE")
+                    (:MEMBERS
+                     ,@(aget :members rule)
+                     ,aliased-content)))
+                 ("SYMBOL"
+                  `((:TYPE . "CHOICE")
+                    (:MEMBERS
+                     ,@(aget :members rule)
+                     ,@(gethash
+                        (make-keyword
+                         (convert-name (aget :name aliased-content)))
+                        rule-table))))
+                 ("CHOICE"
+                  (reduce #'add-aliases (aget :members aliased-content)
+                          :initial-value rule))))
+             (update-rule
+                 (rule-name aliased-content
+                  &aux (rule-key (make-keyword (convert-name rule-name))))
+               "Update the rule specified by RULE-NAME such that it considers
+                ALIASED-CONTENT to be a valid, match-able state of the rule."
+               (symbol-macrolet ((rule (gethash rule-key rule-table)))
+                 (let ((result (add-aliases
+                                (ensure-choice rule) aliased-content)))
+                   ;; NOTE: this is working around using string-case above
+                   ;;       and is purposefully avoiding certain alias content.
+                   (unless (find nil result)
+                     (setf rule (list result)))))))
+      (iter
+        (for (nil rule) in-hashtable rule-table)
+        (walk-json (lambda (subtree)
+                     (when (and (string= "ALIAS" (aget :type subtree))
+                                (aget :named subtree))
+                       (update-rule
+                        (aget :value subtree) (aget :content subtree))))
+                   rule))
+      rule-table))
+
   (defun transform-json-rule (rule grammar)
     "Expand inline rules base on GRAMMAR and :repeat1's in RULE."
     (labels ((expand-repeat1s (tree)
@@ -1918,12 +1922,14 @@ This is to prevent certain classes from being seen as terminal symbols."
                     ((equal (aget :type alist) "FIELD")
                      ;; NOTE: this should be expanded into a
                      ;;       choice inside the field content.
-                     (push (aget :content alist) type-stack))
+                     (push (aget :content alist) type-stack)
+                     (throw 'prune nil))
                     ((and (equal (aget :type alist) "ALIAS")
                           (aget :named alist))
-                     (push (aget :value alist) type-stack))
+                     (push (aget :value alist) type-stack)
+                     (throw 'prune nil))
                     (t alist)))
-                branch :traversal :postorder)
+                branch :traversal :preorder)
                (reverse type-stack))
              (merge-choice-branch (similar-branches)
                "Merge SIMILAR-BRANCHES into one branch by
@@ -1942,28 +1948,38 @@ This is to prevent certain classes from being seen as terminal symbols."
                       (lambda (alist)
                         (cond
                           ((equal (aget :type alist) "SYMBOL")
-                           (areplace
-                            :name
-                            (cons (aget :name alist) (pop types-stack))
-                            alist))
+                           (throw 'prune
+                             (areplace
+                              :name
+                              (append (ensure-cons (aget :name alist))
+                                      ;; This flatten is a bit of a hack.
+                                      (flatten (pop types-stack)))
+                              alist)))
                           ((equal (aget :type alist) "FIELD")
                            ;; NOTE: this should be expanded into a
                            ;;       choice inside the field content.
-                           (areplace
-                            :content
-                            `((:type . "CHOICE")
-                              (:members
-                               ,(aget :content alist)
-                               ,@(pop types-stack)))
-                            alist))
+                           (throw 'prune
+                             (areplace
+                              :content
+                              ;; TODO: don't create a new CHOICE every time,
+                              ;;       only create it if it is needed.
+                              `((:type . "CHOICE")
+                                (:members
+                                 ,(aget :content alist)
+                                 ,@(pop types-stack)))
+                              alist)))
                           ((and (equal (aget :type alist) "ALIAS")
                                 (aget :named alist))
-                           (areplace
-                            :value
-                            (cons (aget :value alist) (pop types-stack))
-                            alist))
+                           (throw 'prune
+                             (areplace
+                              :value
+                              (append (ensure-cons (aget :value alist))
+                                      ;; This flatten is a bit of a hack.
+                                      (flatten (pop types-stack)))
+                              alist)))
                           (t alist)))
-                      (car similar-branches)))
+                      (car similar-branches)
+                      :traversal :preorder))
                    ;; Just return the only branch.
                    (car similar-branches)))
              (merge-choice-branches (subtree)
@@ -2416,7 +2432,6 @@ outside of repeats."
 CLASS-NAME is used as the specialization for the generated method."
     (when (or skip-checking-json
               (computed-text-ast-p language class-name transformed-json-rule))
-      ;; TODO: NOTE: create a generic and default for this somewhere.
       `(defmethod computed-text-node-p ((instance ,class-name)) t)))
 
 
@@ -2784,17 +2799,21 @@ subclass based on the order of the children were read in."
                   :initform ',(list type-string))))
              (get-transformed-json-table ()
                "Get a hash table containing transformed JSON rules."
-               (let ((rules (add-aliased-rules
-                             (substitute-json-rules
-                              language-prefix
-                              (aget :rules grammar)))))
-                 (alist-hash-table
-                  (mapcar (lambda (rule)
-                            (list (car rule)
-                                  (transform-json-rule
-                                   (cdr rule)
-                                   (areplace :rules rules grammar))))
-                          rules))))
+               (let* ((rules (add-aliased-rules
+                              (substitute-json-rules
+                               language-prefix
+                               (aget :rules grammar))))
+                      (new-grammar (areplace :rules rules grammar))
+                      (rule-table (alist-hash-table
+                                   (mapcar (lambda (rule)
+                                             (list (car rule) (cdr rule)))
+                                           rules))))
+                 (iter
+                   (for (key value) in-hashtable
+                        (combine-aliased-rules rule-table))
+                   (setf (gethash key rule-table)
+                         (transform-json-rule value new-grammar)))
+                 rule-table))
              (get-superclasses-set ()
                "Get a hash set containing the names of superclasses for the
                 language."
@@ -2813,7 +2832,6 @@ subclass based on the order of the children were read in."
                                language-prefix converted-type))
              (for terminal-lisp-type = (format-symbol 'sel/sw/ts "~a-~a"
                                                       lisp-type 'terminal))
-             (for named? = (aget :named type))
              (cond-let result
                ;; skip superclass interfaces.
                ;; TODO: at some point, the interfaces will always be at the top,
@@ -3241,6 +3259,8 @@ are ordered for reproduction as source text.")
            (defmethod children ((ast structured-text))
              (remove-if-not {typep _ 'ast} (output-transformation ast)))
 
+           ;; TODO: a lot of these defgenerics should be moved out of this form
+           ;;       to the top-level.
            (defgeneric computed-text-node-p (ast)
              (:documentation "Return T if AST is a computed-text node. This is a
 node where part of the input will need to be computed and stored to reproduce
