@@ -93,7 +93,7 @@ function name from the API followed by the arguments."
   (handler-case
       (convert (safe-intern (concatenate 'string (string-upcase language) "-AST"))
                source-text)
-    (condition (c) (declare (ignorable c)) nil)))
+    (error (e) (declare (ignorable e)) nil)))
 
 (-> int/init (list) (or fixnum nil))
 (defun int/init (&rest args)
