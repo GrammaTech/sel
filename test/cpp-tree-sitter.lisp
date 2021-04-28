@@ -37,3 +37,15 @@ int main () {
     (is x-binding)
     (is z-binding)
     (is (equal "1" (source-text (rhs (assocdr :decl x-binding)))))))
+
+(deftest test-reference-return ()
+  (is (equal "foo"
+             (function-name
+              (convert 'cpp-ast "int& foo() {}" :deepest t))))
+  (let* ((file (asdf:system-relative-pathname
+                "software-evolution-library"
+                "test/etc/cpp-tree-sitter/reference.cc"))
+         (software (sel:from-file 'cpp file))
+         (fn (find-if (of-type 'function-ast) (genome software))))
+    (is (equal "FileDescriptorTables::GetEmptyInstance"
+               (function-name fn)))))

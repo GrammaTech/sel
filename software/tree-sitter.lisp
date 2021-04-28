@@ -3543,6 +3543,14 @@ scope of START-AST."
 
   (defmethod function-body ((ast cpp-function-definition)) (cpp-body ast))
 
+  (defmethod cpp-declarator ((ast cpp-reference-declarator))
+    (if (single (children ast))
+        (cpp-declarator (first (children ast)))
+        (call-next-method)))
+
+  (defmethod c/cpp-declarator ((ast cpp-reference-declarator))
+    (cpp-declarator ast))
+
   (defmethod definition-name ((ast cpp-class-specifier))
     (source-text (cpp-name ast)))
   )
