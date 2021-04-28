@@ -36,7 +36,10 @@
 is an error, exit with code 0, otherwise, exit with code 1.
 These codes are chosen to work with creduce."
     #.(format nil
-              "Usage examples:~%      test-parse --error-type=\"serapeum::econd-failure\" foo.c~%      test-parse --error-pattern=\"unknown type specifier\" --language=cpp bar.cpp~%~%Built from SEL ~a, and ~a ~a.~%"
+              "Usage examples:~
+               ~&   test-parse --error-type=\"serapeum::econd-failure\" foo.c~
+               ~&   test-parse --error-pattern=\"unknown type specifier\" --language=cpp bar.cpp~%~%~
+               Built from SEL ~a, and ~a ~a.~%"
               +software-evolution-library-version+
               (lisp-implementation-type) (lisp-implementation-version))
   (declare (ignorable load eval))
