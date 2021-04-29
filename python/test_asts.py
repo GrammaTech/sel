@@ -28,10 +28,14 @@ class BinaryOperationTestDriver(unittest.TestCase):
     # AST children-slots
     def test_child_slots(self):
         child_slots = self.binop.child_slots()
-        # NOTE: Currently ((PYTHON-LEFT . 1) (PYTHON-OPERATOR . 1)
-        #                  (PYTHON-RIGHT . 1) (CHILDREN . 0))
-        #       I think the last should probably be removed.
-        self.assertEqual(4, len(child_slots))
+        # NOTE: Currently ((BEFORE-COMMENTS . 0)
+        #                  (PYTHON-LEFT . 1)
+        #                  (PYTHON-OPERATOR . 1)
+        #                  (PYTHON-RIGHT . 1)
+        #                  (CHILDREN . 0)
+        #                  (AFTER-COMMENTS . 0))
+        #       Consider removing CHILDREN.
+        self.assertEqual(6, len(child_slots))
         self.assertTrue("PYTHON-OPERATOR" in (list(map(lambda x: x[0], child_slots))))
 
     # AST child-slot-arity
