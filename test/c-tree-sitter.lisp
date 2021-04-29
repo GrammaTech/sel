@@ -120,22 +120,22 @@
   ;; There are a lot of C source files and parsing them is slow
   ;; so set a limit. Note the files actually tested are chosen at
   ;; random from the set of all files.
-  (uiop::chdir
-   (asdf:system-relative-pathname :software-evolution-library "test/etc/"))
-  (let* ((c-files (expand-wildcard #p"*/*.c"))
-         ;; FIXME: There is a performance issue in `ast-source-ranges'
-         ;;        (at least on CCL maybe SBCL as well) so we remove
-         ;;        the largest C source files.
-         (large-c-files '("obstack" "search" "getopt" "kwset" "grep" "dfa" "regex"))
-         ;; NOTE: these are files which have parse errors due to unsupported
-         ;;       features in the tree-sitter parser.
-         (error-files '("typeof" "typeof2" "bug8" "varargs2" "variety" "variety2" "nested"))
-         (c-files (remove-if [{member _ (append large-c-files error-files)
-                                      :test #'string=}
-                              #'pathname-name]
-                             c-files)))
-    (test-ast-source-ranges-for-files
-     'c c-files :limit 10 :ignore-indentation t)))
+  (uiop::with-current-directory
+      ((asdf:system-relative-pathname :software-evolution-library "test/etc/"))
+    (let* ((c-files (expand-wildcard #p"*/*.c"))
+           ;; FIXME: There is a performance issue in `ast-source-ranges'
+           ;;        (at least on CCL maybe SBCL as well) so we remove
+           ;;        the largest C source files.
+           (large-c-files '("obstack" "search" "getopt" "kwset" "grep" "dfa" "regex"))
+           ;; NOTE: these are files which have parse errors due to unsupported
+           ;;       features in the tree-sitter parser.
+           (error-files '("typeof" "typeof2" "bug8" "varargs2" "variety" "variety2" "nested"))
+           (c-files (remove-if [{member _ (append large-c-files error-files)
+                               :test #'string=}
+                               #'pathname-name]
+                               c-files)))
+      (test-ast-source-ranges-for-files
+       'c c-files :limit 10 :ignore-indentation t))))
 
 (deftest tree-sitter-shows-source-text-for-a-while ()
   (with-fixture w/while
