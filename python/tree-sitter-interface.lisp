@@ -19,29 +19,38 @@
 (declaim (inline safe-intern))
 (defun safe-intern (string) (intern (string-upcase string) *package*))
 
-(-> address-of (t) number)
-(defun address-of (it)
-  #+sbcl (sb-kernel:get-lisp-obj-address it)
-  #+ccl (ccl:%address-of it)
-  #-(or sbcl ccl) (error "address-of not implemented for current LISP runtime."))
+(-> ast-key (functional-tree-ast) fixnum)
+(defun ast-key (ast)
+  "Return a hash key (non-negative fixnum) for the functional-tree-ast. 
+ This differs from ast-hash, in that two distinct asts which are 
+ equal?, but not equal, will get distinct hash keys.
+ Example: (let* ((ast1 (make-instance 'functional-tree-ast))
+                      (ast2 (copy ast1)))
+                 (values (= (ast-key ast1) (ast-key ast2))
+                         (= (ast-hash ast1) (ast-hash ast2)))) => NIL, T"
+  (sxhash ast))
 
 (-> allocate-ast (ast) fixnum)
-(defun allocate-ast (ast &aux (addr (address-of ast)))
+(defun allocate-ast (ast &aux (key (ast-key ast)))
   "Allocate AST to the *external-asts* hashtable and increment the reference
 counter to allow for its use externally without garbage collection."
-  (when (not (gethash addr *external-asts*))
-    (setf (gethash addr *external-asts*) (cons ast 0)))
-  (incf (cdr (gethash addr *external-asts*)))
-  addr)
+  (when (not (gethash key *external-asts*))
+    (setf (gethash key *external-asts*) (cons ast 0)))
+  (incf (cdr (gethash key *external-asts*)))
+  key)
 
 (-> deallocate-ast (ast) boolean)
-(defun deallocate-ast (ast &aux (addr (address-of ast)))
+(defun deallocate-ast (ast &aux (key (ast-key ast)))
   "Deallocate the AST from the *external-asts* hashtable if its reference
 counter reaches zero."
-  (when (gethash addr *external-asts*)
-    (let ((ref-count (decf (cdr (gethash addr *external-asts*)))))
+  (when (gethash key *external-asts*)
+    (let ((ref-count (decf (cdr (gethash key *external-asts*)))))
       (when (zerop ref-count)
-        (remhash addr *external-asts*)))))
+        (remhash key *external-asts*)))))
+
+(defun refcount (ast)
+  "Return the reference count of the ast, or 0 if not found."
+  (or (cdr (gethash (ast-key ast) *external-asts*)) 0))
 
 ;; (-> serialize (t) t)
 (defgeneric serialize (it)
@@ -49,7 +58,7 @@ counter reaches zero."
   (:method :before ((it ast))
     (allocate-ast it))
   (:method ((it ast))
-    `((:type . :ast) (:addr . ,(address-of it))))
+    `((:type . :ast) (:addr . ,(ast-key it))))
   (:method ((it list)) (mapcar #'serialize it))
   (:method ((it t)) it))
 
@@ -180,3 +189,7 @@ function name from the API followed by the arguments."
 
 (-> int/call-arguments (ast) list)
 (defun int/call-arguments (ast) (call-arguments ast))
+
+(-> int/ast-refcount (ast) string)
+(defun int/ast-refcount (ast)
+  (format nil "~D" (refcount ast)))
