@@ -283,7 +283,7 @@ input is not positive."
                   (("JSON") json)
                   (("C") ,(find-c))
                   (("GO" "GOLANG") golang)
-                  (("PY") python)
+                  (("PY" "PYTHON") python)
                   (("CPP" "C++" "C-PLUS-PLUS" "C PLUS PLUS") ,(find-cpp))
                   (("LISP" "CL" "COMMON LISP") lisp)
                   (("TEXT") simple)))))
