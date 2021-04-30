@@ -324,18 +324,6 @@
   (unless (member :sel/structured-text *features*)
     (push :sel/structured-text *features*))
 
-  (define-condition parsing-error (error)
-    ((range :initarg :parsing-error-range :initform nil
-            :reader parsing-error-range))
-    (:documentation "Error thrown when a tree-sitter parser fails to parse a
- string without errors.")
-    (:report
-     (lambda (condition stream
-              &aux (range (parsing-error-range condition))
-                (start (car range))
-                (end (cadr range)))
-       (format stream "Failed to parse from ~a to ~a~%" start end))))
-
   (define-condition rule-matching-error (error)
     ((rule :initarg :rule-matching-error-rule :initform nil
            :reader rule-matching-error-rule)
@@ -1277,18 +1265,18 @@ stored as a list of interleaved text. This should ideally only be used for leaf
       :initarg :after-text
       :initform ""
       :documentation "The text after the last token of an AST.")
-     (before-comments
-      :accessor before-comments
-      :initarg :before-comments
+     (before-asts
+      :accessor before-asts
+      :initarg :before-asts
       :initform nil
       :documentation
-      "A list of comments the precede the before text of an AST.")
-     (after-comments
-      :accessor after-comments
-      :initarg :after-comments
+      "A list of comments and errors that precede the before text of an AST.")
+     (after-asts
+      :accessor after-asts
+      :initarg :after-asts
       :initform nil
       :documentation
-      "A list of comments the procede the after text of an AST."))
+      "A list of comments and errors that procede the after text of an AST."))
     (:documentation "Mix-in for structured text ASTs."))
 
   (defclass tree-sitter-ast (indentation
@@ -3054,10 +3042,10 @@ AST-EXTRA-SLOTS is an alist from classes to extra slots."
                    (,@(create-slots class-name fields)
                     (child-slots
                      :initform
-                     ',(append '((before-comments . 0))
+                     ',(append '((before-asts . 0))
                                child-slot-order
                                '((children . 0))
-                               '((after-comments . 0)))
+                               '((after-asts . 0)))
                      :allocation :class)
                     ,@(gethash class-name class->extra-slots))
                    ;; NOTE: this is primarily for determing which rule this
@@ -3251,9 +3239,9 @@ are ordered for reproduction as source text.")
                 (lambda (output)
                   (cond
                     ((typep output 'structured-text)
-                     (append (before-comments output)
+                     (append (before-asts output)
                              (list output)
-                             (after-comments output)))
+                             (after-asts output)))
                     (t (list output))))
                 (call-next-method))))
 
@@ -3267,6 +3255,9 @@ are ordered for reproduction as source text.")
 node where part of the input will need to be computed and stored to reproduce
 the source-text.")
              (:method (ast) nil))
+
+           (defmethod computed-text-node-p ((ast ,(make-class-name "error")))
+             t)
 
            (defgeneric get-choice-expansion-subclass (class spec)
              (:documentation "Get the subclass of CLASS associated with SPEC.")
@@ -5576,13 +5567,14 @@ be more than one string outside of string literals."
     (language-prefix json-rule pruned-rule child-types parse-tree)
   "Match a cl-tree-sitter PARSE-TREE as a PRUNED-RULE in LANGUGE-PREFIX.
 CHILD-TYPES is a list of lisp types that the children slot can contain."
-  (labels ((remove-comments (tree)
+  (labels ((remove-comments-and-errors (tree)
              "Remove comments from PARSE-TREE."
              (when tree
                `(,(car tree)
                  ,(cadr tree)
-                 ,(mapcar #'remove-comments
-                          (remove-if (op (eq :comment (car _)))
+                 ,(mapcar #'remove-comments-and-errors
+                          (remove-if (op (or (eq :comment (car _1))
+                                             (eq :error (car _1))))
                                      (caddr tree))))))
            (get-children ()
              "Get the children slots and their types from parse-tree."
@@ -5694,7 +5686,8 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
        (mvlet ((parse-stack
                 success?
                 (rule-handler
-                 pruned-rule json-rule (caddr (remove-comments parse-tree)))))
+                 pruned-rule json-rule (caddr (remove-comments-and-errors
+                                               parse-tree)))))
          ;; Avoid matching a rule if parse tree tokens still exist.
          (and (not parse-stack) success?))))))
 
@@ -5973,22 +5966,22 @@ the indentation slots."
              "Get the value of each field after it's been converted
               into an AST."
              (iter
-               (iter:with comment-stack)
-               ;; Keep track of the last non-comment AST seen. It is used for
-               ;; populating 'after'comments.
+               (iter:with comment-and-error-stack)
+               ;; Keep track of the last non-comment/error AST seen. It is used
+               ;; for populating 'after' comments.
                (iter:with previous-field)
                (for field in (caddr spec))
                (for slot-info = (car field))
                (for i upfrom 0)
                (when (skip-terminal-field-p field slot-info)
-                 (when (and previous-field comment-stack)
-                   (setf (after-comments previous-field)
-                         (reverse comment-stack)))
+                 (when (and previous-field comment-and-error-stack)
+                   (setf (slot-value previous-field 'after-asts)
+                         (reverse comment-and-error-stack)))
                  ;; Reset the converted-field so that comments aren't pushed back
                  ;; to the last AST that wasn't a terminal symbol which could
                  ;; have been proceded by terminal symbols.
                  (setf previous-field nil
-                       comment-stack nil)
+                       comment-and-error-stack nil)
                  (next-iteration))
                (for converted-field =
                     (convert superclass field
@@ -5999,8 +5992,9 @@ the indentation slots."
                ;; into the children slot.
                (cond
                  ((and (listp slot-info) (not error-p))
-                  (setf (before-comments converted-field) (reverse comment-stack)
-                        comment-stack nil
+                  (setf (slot-value converted-field 'before-asts)
+                        (reverse comment-and-error-stack)
+                        comment-and-error-stack nil
                         previous-field converted-field)
                   (collect (list (car slot-info)
                                  converted-field)
@@ -6010,16 +6004,19 @@ the indentation slots."
                   ;;       when it's allowed. There may need to be a function
                   ;;       that signals their ability to be stored there if
                   ;;       that functionality is ever desired.
-                  (push converted-field comment-stack))
+                  (push converted-field comment-and-error-stack))
+                 ((typep converted-field 'parse-error-ast)
+                  (push converted-field comment-and-error-stack))
                  (t
-                  (setf (slot-value converted-field 'before-comments)
-                        (reverse comment-stack)
-                        comment-stack nil
+                  (setf (slot-value converted-field 'before-asts)
+                        (reverse comment-and-error-stack)
+                        comment-and-error-stack nil
                         previous-field converted-field)
                   (collect converted-field into children)))
                (finally
-                (when (and comment-stack previous-field)
-                  (setf (after-comments previous-field) (reverse comment-stack)))
+                (when previous-field
+                  (setf (slot-value previous-field 'after-asts)
+                        (reverse comment-and-error-stack)))
                 (return
                   (if children
                       (push `(:children ,children) fields)
@@ -6082,10 +6079,10 @@ the indentation slots."
                     (setf slot-value (list slot-value)))))
               (remove-if-not {eql 0} (slot-value instance 'child-slots)
                              :key #'cdr))))
-    (when error-p
-      (error 'parsing-error :parsing-error-range (cadr spec)))
-    (set-slot-values
-     (merge-same-fields (get-converted-fields)))
+    ;; Don't store the ASTs inside errors since they're likely not useful.
+    (unless error-p
+      (set-slot-values
+       (merge-same-fields (get-converted-fields))))
     (set-surrounding-text)
     (set-computed-text)
     (update-slots-based-on-arity)
