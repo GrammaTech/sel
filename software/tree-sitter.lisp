@@ -671,6 +671,8 @@ searched to populate `*tree-sitter-language-files*'.")
        (:c/cpp-type-identifier cpp-type-identifier)
        (:c/cpp-union-specifier cpp-union-specifier)
        (:c/cpp-while-statement cpp-while-statement))
+      (:golang
+       (:comment-ast golang-comment))
       (:java
        (:statement-ast java-statement)
        (:return-ast java-return-statement))
