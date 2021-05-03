@@ -5449,16 +5449,19 @@ which slots are expected to be used."
                   ;;       repeat can't procede.
                   (push-child-stack '(:end-repeat) slot->stack)
                   slot->stack))))
-           (handle-seq (rule slot->stack)
+           (handle-seq (rule slot->stack &aux (seq (cdr rule)))
              (iter
-               (for subrule in (cdr rule))
+               (for subrule in seq)
                (unless subrule (next-iteration))
                (for sub-slot->stack first (rule-handler subrule slot->stack)
                     then (rule-handler subrule sub-slot->stack))
                (always sub-slot->stack)
-               (finally (return (if (eql t sub-slot->stack)
-                                    slot->stack
-                                    sub-slot->stack)))))
+               (finally
+                (return
+                  (cond
+                    ((eql t sub-slot->stack) slot->stack)
+                    (sub-slot->stack)
+                    (t slot->stack))))))
            (rule-handler (rule slot->stack)
              "Handles dispatching RULE to its relevant rule handler."
              (ecase (car rule)
