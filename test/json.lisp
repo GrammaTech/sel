@@ -38,7 +38,7 @@
          (json (make-instance 'json :genome genome)))
     (is (string$= ws (genome-string json)))))
 
-#+TODO
+#+TODO ;; json-ast conversion fails
 (deftest json-lone-surrogate-round-trip ()
   (let* ((json "\"\\ud800-\\udbff\"")
          (json-ast (convert 'json-ast json)))

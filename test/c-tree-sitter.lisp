@@ -115,7 +115,6 @@
     (is (stmt-starting-with-text *soft* "int y = 1"))
     (is (not (find-if {typep _ 'c-error} (genome *soft*))))))
 
-#+TODO ;;; TODO: figure out what needs fixed here.
 (deftest test-c-source-ranges ()
   ;; There are a lot of C source files and parsing them is slow
   ;; so set a limit. Note the files actually tested are chosen at

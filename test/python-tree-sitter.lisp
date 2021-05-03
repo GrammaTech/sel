@@ -243,9 +243,9 @@
     (is (not (emptyp (trim-whitespace new-source-text))))
     (is (search text new-source-text))))
 
-#+TODO
+#+TODO ;; PYTHON-OPERATORS is undefined
 (deftest python-lhs-rhs-and-operator-tests ()
-  (match (convert 'python-ast "x <= y" :deepest t)
+  (match (convert 'python-ast "x <= y")
     ((ast (lhs lhs) (operator operator) (rhs rhs))
      (is (string= "x" (source-text lhs)))
      (is (eq :<= operator))
@@ -281,7 +281,7 @@
     (is (equal "j = 0" (source-text ast)))
     (is (find-if {typep _ 'python-assignment} ast))))
 
-#+TODO
+;; requires "yapf" package
 (deftest (python-can-format-a-software-object :long-running) ()
   (with-fixture formatting-python
     (when (which "yapf")
@@ -309,7 +309,6 @@
     (is (null (stmt-with-text *soft* "return b" :no-error t))
         "'return b' was not removed from the program.")))
 
-#+TODO
 (deftest python-get-unbound-vals-works ()
   (with-fixture unbound-python
     (is (equal `((:name . "i") (:name . "j"))
@@ -324,13 +323,14 @@
                (nest (get-unbound-vals *soft*)
                      (stmt-with-text *soft*)
                      (format nil "return x * y~%"))))
-    (is (equal `((:name . "__name__") (:name . "obj")
+     ; missing GET-UNBOUND-VALS applicable method
+    #+TODO (is (equal `((:name . "__name__") (:name . "obj")
                  (:name . "i") (:name . "j"))
                (nest (get-unbound-vals *soft*)
                      (stmt-starting-with-text *soft*)
-                     (format nil "if __name__ == '__main__':~%"))))))
+                     (format nil "if __name__ == '__main__':~%"))))
+    ))
 
-#+TODO
 (deftest python-get-unbound-funs-works ()
   (with-fixture unbound-python
     (is (equal `(("f" nil nil 2))
@@ -345,10 +345,12 @@
                (nest (get-unbound-funs *soft*)
                      (stmt-with-text *soft*)
                      (format nil "obj = Obj()~%"))))
-    (is (equal `(("Obj" nil nil 0) ("function" nil nil 2) ("f" nil nil 2))
+     ; missing GET-UNBOUND-FUNS applicable method
+    #+TODO (is (equal `(("Obj" nil nil 0) ("function" nil nil 2) ("f" nil nil 2))
                (nest (get-unbound-funs *soft*)
                      (stmt-starting-with-text *soft*)
-                     (format nil "if __name__ == '__main__':~%"))))))
+                     (format nil "if __name__ == '__main__':~%"))))
+    ))
 
 (deftest python-scopes-1 ()
   "scopes gets the initial binding of a global statement."
@@ -772,7 +774,7 @@ x"
     (is (assign-to-var-p (second assignments) (first identifiers)))
     (is (not (assign-to-var-p (first assignments) (first identifiers))))))
 
-#+TODO
+#+TODO ;; PYTHON-OPERATORS is undefined
 (deftest test-python-comparison-operator-accessors ()
   "Test that non-chained comparisons are treated as binary."
   (let* ((ast (convert 'python-ast "x<1" :deepest t))
@@ -782,7 +784,6 @@ x"
     (is (eq rhs (rhs ast)))
     (is (eql :< (operator ast)))))
 
-#+TODO
 (deftest test-python-chained-comparison ()
   "Test that chained comparisons are not treated as binary."
   (let ((ast (convert 'python-ast "x<y>=z")))
@@ -790,7 +791,6 @@ x"
     (signals error (rhs ast))
     (signals error (operator ast))))
 
-#+TODO ; Disable failing tests related to structured-text.
 (deftest (python-tree-sitter-parsing-test :long-running) ()
   (labels ((parsing-test-dir (path)
              (merge-pathnames-as-file
@@ -823,7 +823,7 @@ x"
             ;; NOTE: async is in interleaved text.
             (#P"async-for.py" python-for-statement)
             (#P"while.py" python-while-statement)
-            (#P"if.py" python-if-statement)
+            #+TODO (#P"if.py" python-if-statement)
             (#P"with.py" python-with-statement)
             ;; NOTE: async is in interleaved text.
             (#P"async-with.py" python-with-statement)
@@ -842,7 +842,7 @@ x"
             (#P"bin-op.py" python-binary-operator)
             (#P"unary-op.py" python-unary-operator)
             (#P"lambda.py" python-lambda)
-            (#P"if-exp.py" python-conditional-expression)
+            #+TODO (#P"if-exp.py" python-conditional-expression)
             (#P"dict.py" python-dictionary)
             (#P"set.py" python-set)
             (#P"list-comp.py" python-list-comprehension)

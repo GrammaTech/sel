@@ -64,13 +64,13 @@
   (with-fixture hello-world-javascript
     (is (not (null *soft*)))))
 
-;;; TODO: lack of stored information.
-#+TODO
 (deftest (javascript-can-parse-a-software-object :long-running) ()
   (with-fixture hello-world-javascript
     (is (= 7 (size *soft*)))
-    (is (equal (file-to-string (javascript-dir #P"hello-world/hello-world.js"))
-               (genome-string *soft*))))
+    #+TODO (is (equal (file-to-string
+                       (javascript-dir #P"hello-world/hello-world.js"))
+                     (genome-string *soft*))) ; javascript semicolon known issue
+    )
   (with-fixture fib-javascript
     (is (= 47 (size *soft*)))
     (is (equal (file-to-string (javascript-dir #P"fib/fib.js"))
@@ -90,7 +90,6 @@
                 (genome-string *soft*)
                 (source-text (genome *soft*))))))
 
-#+TODO
 (deftest javascript-json-lone-surrogate-round-trip ()
   (let* ((json "a = { \"test\" : \"\\ud800-\\udbff\"};")
          (json-ast (convert 'javascript-ast json)))
@@ -138,7 +137,6 @@
              (size *soft*))))))
 
 ;;; TODO: lack of information
-;;;(deftest javascript-copies-are-independent ()
 (deftest js-copies-are-independent ()
   (with-fixture fib-javascript
     (let ((orig-genome-string (genome-string *soft*))
@@ -150,14 +148,12 @@
       (is (string= (genome-string *soft*) orig-genome-string))
       (is (not (string= (genome-string variant) orig-genome-string))))))
 
-;;;(deftest javascript-copies-share-asts ()
 (deftest js-copies-share-asts ()
   (with-fixture fib-javascript
     (let ((variant (copy *soft*)))
       (is (eq (genome *soft*) (genome variant)))
       (is (> (size variant) 0)))))
 
-;;;(deftest javascript-mutation-preserves-unmodified-subtrees ()
 (deftest js-mutation-preserves-unmodified-subtrees ()
   (with-fixture fib-javascript
     (let ((variant (copy *soft*))
@@ -169,17 +165,14 @@
                   (stmt-with-text variant "num--;"))))))
 
 ;;; TODO: lack of information
-;;;(deftest javascript-convert-source-snippet-works ()
-#+TODO
 (deftest js-convert-source-snippet-works ()
   (let ((ast (convert 'javascript-ast "j = 0")))
     (is (typep (ast-hash ast) '(integer 0)))
     (is (equal 5 (size ast)))
-    (is (equal "j = 0" (source-text ast)))
+    #+TODO (is (equal "j = 0" (source-text ast))) ; semicolon known issue
     (is (find-if {typep _ 'javascript-expression-statement} ast))))
 
 ;;; TODO: lack of information
-#+TODO
 (deftest (javascript-can-format-a-software-object :long-running) ()
   (with-fixture fib-javascript
     (is (not (string= (genome-string (copy *soft*))
@@ -248,7 +241,7 @@
                      (stmt-starting-with-text soft "console.log("))))))
 
 ;;; TODO: lack of information
-#+TODO
+#+TODO ;; error in SCOPES call
 (deftest javascript-for-in-loop-get-vars-in-scope-test ()
   (let ((soft (from-file (make-instance 'javascript)
                          (javascript-dir #P"parsing/loops.js"))))
@@ -257,7 +250,7 @@
                         (stmt-with-text soft "console.log(arr[i]);"))
               :test #'equal))))
 
-#+TODO
+#+TODO ;; error in SCOPES call
 (deftest javascript-for-of-loop-get-vars-in-scope-test ()
   (let ((soft (from-file (make-instance 'javascript)
                          (javascript-dir #P"parsing/loops.js"))))
@@ -395,7 +388,7 @@
      'javascript js-files :ignore-indentation t)))
 
 ;;; TODO: lack of information
-#+TODO
+
 (deftest (javascript-tree-sitter-parsing-test :long-running) ()
   (labels ((parsing-test-dir (path)
              (merge-pathnames-as-file (nest (make-pathname :directory)
@@ -406,8 +399,8 @@
              (let ((soft (from-file (make-instance 'javascript)
                                     (parsing-test-dir path))))
                (is (not (zerop (size soft))))
-               (is (equal (genome-string soft)
-                          (file-to-string (original-path soft))))
+               #+TODO (is (equal (genome-string soft)
+                          (file-to-string (original-path soft)))) ; semicolon issue
                (is (not (find-if {typep _ 'javascript-error} (genome soft))))
                (iter (for ast-type in ast-types)
                      (is (find-if {typep _ ast-type} (genome soft)))))))
