@@ -1618,6 +1618,8 @@ of fields needs to be determined at parse-time."
 and returns the result."
     (map-tree
      (lambda (subtree)
+       ;; TODO: this appears to call map-fun with the cdr of :members
+       ;;       which isn't an alist that is use-able.
        (cond
          ;; first five clauses filter out anything that can't
          ;; be used as an alist. This is assumed based on the
@@ -1821,7 +1823,46 @@ up due to aliases."
 
   (defun transform-json-rule (rule grammar)
     "Expand inline rules base on GRAMMAR and :repeat1's in RULE."
-    (labels ((expand-repeat1s (tree)
+    (labels ((propagate-field (tree &aux (field-name (aget :name tree)))
+               "Return a modified version of TREE such that its field is
+                propagated to its relevant subtrees and remove the enclosing
+                field."
+               (map-json
+                (lambda (subtree &aux (type (aget :type subtree)))
+                  (if type
+                    (string-case type
+                      (("STRING" "SYMBOL" "ALIAS" "BLANK")
+                       (throw 'prune `((:TYPE . "FIELD")
+                                       (:NAME . ,field-name)
+                                       (:CONTENT ,@subtree))))
+                      (t subtree))
+                    subtree))
+                (aget :content tree)
+                :traversal :preorder))
+             (propagate-field-p (tree)
+               "Return T if TREE is a field rule that should be replaced
+                with a transformed version of its content that transfers
+                the field rule to the relevant subtrees."
+               (when (equal "FIELD" (aget :type tree))
+                 (walk-json
+                  (lambda (subtree)
+                    ;; TODO: determine if anything else would cause this.
+                    (when (member (aget :type subtree) '("REPEAT" "SEQ")
+                                  :test #'equal)
+                      (return-from propagate-field-p t)))
+                  tree)))
+             (propagate-and-collapse-fields (tree)
+               "Return a modified version of TREE with every field that
+                satisfies propagate-field-p removed and replaced with
+                a propagated version of its content."
+               (map-json
+                (lambda (subtree)
+                  (if (propagate-field-p subtree)
+                      (throw 'prune (propagate-field subtree))
+                      subtree))
+                tree
+                :traversal :preorder))
+             (expand-repeat1s (tree)
                "Expand all :REPEAT1 rules in an equivalent :SEQ and :REPEAT."
                (map-json (lambda (alist)
                            (if-let ((content (and (equal (aget :type alist)
@@ -1845,7 +1886,7 @@ up due to aliases."
                     ;;       DON'T inline the supertype rules.
                     (cond-let result
                       ((not (and (equal (aget :type alist)
-                                       "SYMBOL")
+                                        "SYMBOL")
                                  (or (eql #\_ (aref name-string 0))
                                      ;; Python has one inline rule without
                                      ;; an underscore.
@@ -1990,8 +2031,11 @@ up due to aliases."
                       (merge-choice-branches alist)
                       alist))
                 tree)))
-      (merge-similar-choice-branches
-       (expand-repeat1s (remove-prec-rules (expand-inline-rules rule))))))
+      (propagate-and-collapse-fields
+       (merge-similar-choice-branches
+        (expand-repeat1s
+         (remove-prec-rules
+          (expand-inline-rules rule)))))))
 
   (defun prune-rule-tree (transformed-json-rule)
     (labels ((gather-field-types (content)
