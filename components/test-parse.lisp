@@ -9,7 +9,7 @@
         :cl-ppcre
         :software-evolution-library/software/parseable)
   (:import-from :software-evolution-library/software/tree-sitter
-                :parsing-error :rule-matching-error)
+        :rule-matching-error)
   (:export test-parse run-test-parse))
 (in-package :software-evolution-library/components/test-parse)
 
@@ -51,7 +51,6 @@ Built from SEL ~a, and ~a ~a.~%"
     (handler-case
         (progn (genome (create-software source :language language))
                (exit-command test-parse 1 nil))
-      (parsing-error (e) (exit-command test-parse 1 e))
       (error (e) (if (interesting? e)
                      (exit-command test-parse 0 e)
                      (exit-command test-parse 1 e))))))
