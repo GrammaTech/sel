@@ -6225,7 +6225,7 @@ correct class name for subclasses of SUPERCLASS."
       ((ensure-beginning-bound (parse-tree)
          "Desctructively ensures that the beginning bound of PARSE-TREE is the
           beginning of the string."
-         (setf (cadr (car (cadr parse-tree))) 0)
+         (setf (car (cadr parse-tree)) '(0 0))
          parse-tree)
        (transform-tree (parse-tree)
          "Map transform-parse-tree over PARSE-TREE."
