@@ -1821,7 +1821,7 @@ up due to aliases."
                    rule))
       rule-table))
 
-  (defun transform-json-rule (rule grammar)
+  (defun transform-json-rule (rule grammar rule-name-key)
     "Expand inline rules base on GRAMMAR and :repeat1's in RULE."
     (labels ((propagate-field (tree &aux (field-name (aget :name tree)))
                "Return a modified version of TREE such that its field is
@@ -1880,14 +1880,20 @@ up due to aliases."
                "Expand all inline rules."
                (map-json
                 (lambda (alist)
-                  (let ((name-string (aget :name alist)))
+                  (let* ((name-string (aget :name alist))
+                         (name-key (make-keyword (convert-name name-string))))
                     ;; NOTE: it appears that all "SYMBOL"s that start with
                     ;;       an underscore are inlined.
                     ;;       DON'T inline the supertype rules.
                     (cond-let result
                       ((not (and (equal (aget :type alist)
                                         "SYMBOL")
-                                 (or (eql #\_ (aref name-string 0))
+                                 (or
+                                  (and (eql #\_ (aref name-string 0))
+                                       ;; Prevent infinite recursion.
+                                       (not (equal (make-keyword
+                                                    (convert-name name-string))
+                                                   rule-name-key)))
                                      ;; Python has one inline rule without
                                      ;; an underscore.
                                      (member name-string inline-rules
@@ -1896,10 +1902,9 @@ up due to aliases."
                                               (aget :supertypes grammar)
                                               :test #'equal))))
                        alist)
-                      ((aget (make-keyword (convert-name name-string))
-                             (aget :rules grammar))
+                      ((aget name-key (aget :rules grammar))
                        ;; Transform it again before inlining.
-                       (transform-json-rule result grammar))
+                       (transform-json-rule result grammar name-key))
                       ((member name-string (aget :externals grammar)
                                :test #'equal
                                :key {aget :name})
@@ -2847,7 +2852,7 @@ subclass based on the order of the children were read in."
                    (for (key value) in-hashtable
                         (combine-aliased-rules rule-table))
                    (setf (gethash key rule-table)
-                         (transform-json-rule value new-grammar)))
+                         (transform-json-rule value new-grammar key)))
                  rule-table))
              (get-superclasses-set ()
                "Get a hash set containing the names of superclasses for the
