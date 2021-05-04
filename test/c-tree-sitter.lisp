@@ -91,16 +91,16 @@
                  ((:class . :init-declarator)
                   (:declarator
                    (:class . :identifier)
-                   (:computed-text "a")
+                   (:text "a")
                    (:before-text . " ")
                    (:after-text . " "))
                   (:value
                    (:class . :number-literal)
-                   (:computed-text "0")
+                   (:text "0")
                    (:before-text . " "))))
                 (:type
                  (:class . :primitive-type)
-                 (:computed-text "int"))))))
+                 (:text "int"))))))
     (is (find-if {typep _ 'c-declaration} ast))
     (is (find-if {typep _ 'c-init-declarator} ast))
     (is (find-if {typep _ 'c-identifier} ast))

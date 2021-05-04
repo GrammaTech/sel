@@ -1252,9 +1252,9 @@ stored on the AST or external rules.")
       :documentation "The text before the first token of an AST.")
      ;; NOTE: the primary usage of this slot is for AST text, like
      ;;       identifiers, which doesn't belong in the before or after slot.
-     (computed-text
-      :accessor computed-text
-      :initarg :computed-text
+     (text
+      :accessor text
+      :initarg :text
       :initform nil
       ;; NOTE: it's hard to name this slot descriptively such that its usage
       ;;       is obvious.
@@ -1531,8 +1531,8 @@ of fields needs to be determined at parse-time."
   ;;
   ;; The structured-text class has 3 slots--before-text stores text that comes
   ;; before the node, after-text stores text that comes after the node, and
-  ;; computed-text stores any text that can vary between different instances
-  ;; of a class. The computed-text slots will also contain the text for any
+  ;; 'text' stores any text that can vary between different instances
+  ;; of a class. The text slot will also contain the text for any
   ;; class that doesn't have any slot usages. This allows for classes, such as
   ;; primitive_type in C, that don't store anything but have variable text to
   ;; still produce something meaningful.
@@ -2529,7 +2529,7 @@ any slot usages in JSON-SUBTREE."
     ;; NOTE: assume that token, immediate_token, and pattern automatically
     ;;       mean that a node has variable text. Thus, if any subtree has one of
     ;;       these rules, the AST itself should be printed specially using the
-    ;;       computed-text slot.
+    ;;       computed-text ('text') slot.
     (labels ((handle-alias (rule)
                ;; NOTE: only consider unnamed nodes unless it becomes problematic
                ;;       to not be considering the named ones.
@@ -2645,9 +2645,9 @@ any slot usages in JSON-SUBTREE."
                   ;; the full thing.
                   (add-slot-to-class-definition
                    class-name class-name->class-definition
-                   `(computed-text
-                     :accessor computed-text
-                     :initarg :computed-text
+                   `(text ; computed-text
+                     :accessor text
+                     :initarg :text
                      :allocation :class
                      :initform
                      ',(list (get-json-subtree-string transformed-json-rule
@@ -2832,9 +2832,9 @@ subclass based on the order of the children were read in."
                ;; destructively modify the class definition.
                (add-slot-to-class-definition
                 class-name class-name->class-definition
-                `(computed-text
-                  :accessor computed-text
-                  :initarg :computed-text
+                `(text
+                  :accessor text
+                  :initarg :text
                   :allocation :class
                   :initform ',(list type-string))))
              (get-transformed-json-table ()
@@ -3865,7 +3865,7 @@ AST ast to return the scopes for"
                 name enclosing-scope))
              (find-global-binding
                  (identifier &aux (genome (genome obj))
-                               (name (car (computed-text identifier))))
+                               (name (car (text identifier))))
                "Find the global binding for NAME in ENCLOSING-SCOPE."
                (build-alist
                 (find-declaration
@@ -4145,7 +4145,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
                    (convert
                     'python-ast
                     `((:class . :string)
-                      (:computed-text
+                      (:text
                        ,(format nil "\"~a\""
                                 (source-text
                                  (python-name arg)))))))
@@ -4849,7 +4849,7 @@ AST ast to return the enclosing scope for"
       ((javascript-call-expression
         :javascript-function
         (javascript-identifier
-         :computed-text (list name)))
+         :text (list name)))
        (enclosing-find-function obj callexpr name))))
 
   (defmethod function-name ((node javascript-function-declaration))
@@ -4886,7 +4886,7 @@ scope of START-AST."
                ((javascript-function-declaration
                  :javascript-name
                  (javascript-identifier
-                  :computed-text (list name)))
+                  :text (list name)))
                 (equal name function-name)))))
       (find-if-in-scope #'target-function obj start-ast)))
 
@@ -5055,7 +5055,7 @@ field."
     (clang-format obj))
 
   (defmethod equal? ((a c-identifier) (b c-identifier))
-    (equal (first (computed-text a)) (first (computed-text b))))
+    (equal (first (text a)) (first (text b))))
 
   (defmethod get-function-from-function-call
       ((obj c) (callexpr c-ast))
@@ -5066,8 +5066,8 @@ field."
        (match callexpr
       ((c-call-expression
         :c-function
-        (c-identifier computed-text))
-       (enclosing-find-c-function obj callexpr (first computed-text)))))
+        (c-identifier text))
+       (enclosing-find-c-function obj callexpr (first text)))))
 
   (defun c-functions (c-soft)
     "Returns the list of c functions in the C software object.
@@ -5535,7 +5535,7 @@ which slots are expected to be used."
 representation is interleaved text though it's unlikely to
 be more than one string outside of string literals."
   (iter
-    (iter:with interleaved-text = (computed-text ast))
+    (iter:with interleaved-text = (text ast))
     (iter:with children = (slot-value ast 'children))
     (while (and interleaved-text children))
     (collect (pop interleaved-text) into result)
@@ -6110,11 +6110,11 @@ the indentation slots."
                    (setf (after-text instance) after-text)))))
            ;; TODO: this may be useful for variable text as a reference.
            ;; TODO: maybe reformat it to use the spec instead of annotations?
-           (set-computed-text (&aux (from (car (cadr spec)))
+           (set-text (&aux (from (car (cadr spec)))
                                  (to (cadr (cadr spec))))
-             "Set the computed-text slot in instance if it needs set."
+             "Set the text slot in instance if it needs set."
              (when computed-text-p
-               (setf (computed-text instance)
+               (setf (text instance)
                      (if-let ((children (children instance)))
                        (mapcar (lambda (range)
                                  (destructuring-bind (from . to) range
@@ -6138,7 +6138,7 @@ the indentation slots."
       (set-slot-values
        (merge-same-fields (get-converted-fields))))
     (set-surrounding-text)
-    (set-computed-text)
+    (set-text)
     (update-slots-based-on-arity)
     instance))
 
@@ -6207,7 +6207,7 @@ correct class name for subclasses of SUPERCLASS."
 ;;;       coming in, the fields are correctly populated by #'convert.
 ;;;       By first checking if the AST is a computed-text node, we can
 ;;;       generate a different method.
-;;;       Yes, we want to populate the computed-text slot when #'convert
+;;;       Yes, we want to populate the "text" (computed-text) slot when #'convert
 ;;;       runs.
 
 
@@ -6482,9 +6482,9 @@ correct class name for subclasses of SUPERCLASS."
 * FUN-REPLACEMENTS list of old-function-info, new-function-info pairs defining
 the rebinding"
   (if (ast-type-to-rebind-p ast)
-      (copy ast :computed-text (mapcar {rebind-vars _ var-replacements
+      (copy ast :text (mapcar {rebind-vars _ var-replacements
                                                        fun-replacements}
-                                          (computed-text ast)))
+                                          (text ast)))
       (apply #'copy ast
              (mappend (lambda (child-slot)
                         (destructuring-bind (name . arity) child-slot
