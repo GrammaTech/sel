@@ -5770,12 +5770,27 @@ the indentation slots."
                (when (eql character #\newline)
                  (return i))
                (while (member character '(#\space #\tab)))))
+           (backpatch-children-indentation-slots (ast indentation)
+             "Backpatch any child of AST that already has a value in the
+              indent-children slot such that its value is INDENTATION less
+              than its current."
+             ;; NOTE: this function is necessary for erratic indentation that
+             ;;       is heavily nested in an AST.
+             (mapc
+              (lambda (child)
+                (symbol-macrolet ((indent-children (indent-children child)))
+                  (cond
+                    ((eq child ast))
+                    (indent-children
+                     (setf indent-children (- indent-children indentation))))))
+              ast))
            (update-indentation-slots
                (ast parents indentation text
                 &aux (parent (car parents))
-                  (total-indentation (+ indentation indentation-carryover))
-                  (inherited-indentation
-                   (get-indentation-at ast parents))
+                  (adjusted-indentation
+                   ;; total - inherited
+                   (- (+ indentation indentation-carryover)
+                      (get-indentation-at ast parents)))
                   (only-indentation? (not (scan "[^ \\t\\n]" text)))
                   ;; A set of classes that prefer their indentation
                   ;; be attached to their indent-children slot as opposed
@@ -5795,7 +5810,7 @@ the indentation slots."
                        (ancestor-of-p root indentation-ast ast)))
                  ;; Don't indent if the current AST already has an
                  ;; indentation slot assigned as this will result in
-                 ;; back-propogation of indentation.
+                 ;; back-propagation of indentation.
                  (indent-children-current
                   ;; In this case, we need to reset the indentation if
                   ;; any non-indentation is in this string since the reset
@@ -5812,17 +5827,18 @@ the indentation slots."
                     (setf indentation-carryover nil
                           indentation-ast nil)))
                  ((find-if {typep ast} prefer-child-indentation-set)
-                  (setf indent-children-current (- total-indentation
-                                                   inherited-indentation)
+                  (backpatch-children-indentation-slots ast adjusted-indentation)
+                  (setf indent-children-current adjusted-indentation
                         indentation-carryover nil
                         indentation-ast nil))
                  ((and parent (not indent-children-parent))
-                  (setf indent-children-parent (- total-indentation
-                                                  inherited-indentation)
+                  (backpatch-children-indentation-slots
+                   parent adjusted-indentation)
+                  (setf indent-children-parent adjusted-indentation
                         indentation-carryover nil
                         indentation-ast nil))
-                 (t (setf indent-adjustment (- total-indentation
-                                               inherited-indentation)
+                 ;; Backpatching shouldn't be needed for the following.
+                 (t (setf indent-adjustment adjusted-indentation
                           indentation-carryover nil
                           indentation-ast nil)))))
            (patch-leading-indentation
@@ -5859,7 +5875,7 @@ the indentation slots."
                ((or indentation
                     ;; NOTE: check if text exists here so that
                     ;;       the inherited indentation can be
-                    ;;       set to 0. This prevents back-propogation
+                    ;;       set to 0. This prevents back-propagation
                     ;;       of indentation to previous siblings.
                     (and indentation-carryover
                          ;; TODO: add carriage return here?
@@ -5898,9 +5914,6 @@ the indentation slots."
                 &aux (output-transformation (output-transformation ast)))
              "Process the text of AST such that its indentation
               is in the indentation slots."
-             ;; TODO: there will need to be a separate function for computed text
-             ;;       ASTs? Test this with a string literal with escape
-             ;;       sequences. It's possible that this doesn't matter.
              (setf (before-text ast)
                    (patch-internal-indentation
                     (patch-leading-indentation (car output-transformation)
