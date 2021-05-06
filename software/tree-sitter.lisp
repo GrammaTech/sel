@@ -1393,7 +1393,7 @@ Superclass of every generated LANGUAGE-error class."))
 cover every terminal symbol, only the ones that aren't named."))
 
   (defun convert-name (name-string)
-    (simplified-camel-case-to-lisp (substitute #\- #\_  (string name-string))))
+    (substitute #\- #\_  (string-upcase (string name-string))))
 
   (defun translate-to-slot-name (name prefix)
     "Translate NAME into a slot name that is unlikely
@@ -3110,7 +3110,7 @@ AST-EXTRA-SLOTS is an alist from classes to extra slots."
                `(defclass ,(if (gethash
                                 (format-symbol 'sel/sw/ts "~a-~a"
                                                name-prefix
-                                               (string-upcase type))
+                                               (convert-name type))
                                 symbols-to-export)
                                (make-class-name
                                 (format-symbol 'sel/sw/ts "~a-~a"
