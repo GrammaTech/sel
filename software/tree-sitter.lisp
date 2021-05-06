@@ -1886,10 +1886,12 @@ up due to aliases."
                     ;;       an underscore are inlined.
                     ;;       DON'T inline the supertype rules.
                     (cond-let result
+                      ;; Not inlineable
                       ((not (and (equal (aget :type alist) "SYMBOL")
                                  (or
                                   (and (eql #\_ (aref name-string 0))
-                                       ;; Prevent infinite recursion.
+                                       ;; Prevent infinite recursion on
+                                       ;; rules already expanded.
                                        (not (member name-key rule-key-stack)))
                                   ;; Python has one inline rule without
                                   ;; an underscore.
@@ -2046,24 +2048,27 @@ up due to aliases."
                "Return a list of symbols that CONTENT could be for a field."
                ;; TODO: this WHEN check should not be necessary
                (when (listp content) ; ignore if not a list
-                   (string-case (aget :type content)
-                     ;; TODO: may need to add more things here.
-                     ;;       It also might make sense to use walk-json here
-                     ;;       since it wasn't available when this was originally
-                     ;;       written.
-                     ("STRING"
-                      (list (aget :value content)))
-                     ("SYMBOL"
-                      (list (aget :name content)))
-                     ("ALIAS"
-                      (when (aget :named content)
-                        (list (aget :value content))))
-                     (("CHOICE" "SEQ")
-                      (mappend #'gather-field-types (aget :members content)))
-                     ("REPEAT"
-                      (gather-field-types (aget :content content)))
-                     ("BLANK"
-                      (list 'null)))))
+                 ;; TODO: remove duplicates from the gathered field types.
+                 (remove-duplicates
+                  (string-case (aget :type content)
+                    ;; TODO: may need to add more things here.
+                    ;;       It also might make sense to use walk-json here
+                    ;;       since it wasn't available when this was originally
+                    ;;       written.
+                    ("STRING"
+                     (list (aget :value content)))
+                    ("SYMBOL"
+                     (list (aget :name content)))
+                    ("ALIAS"
+                     (when (aget :named content)
+                       (list (aget :value content))))
+                    (("CHOICE" "SEQ")
+                     (mappend #'gather-field-types (aget :members content)))
+                    ("REPEAT"
+                     (gather-field-types (aget :content content)))
+                    ("BLANK"
+                     (list 'null)))
+                  :test #'equal)))
              (handle-seq (rule)
                "Handle RULE as a 'SEQ', 'REPEAT', 'REPEAT1', or 'CHOICE' rule."
                (let ((children (if-let ((members (aget :members rule)))
