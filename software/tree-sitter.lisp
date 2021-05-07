@@ -6353,6 +6353,10 @@ correct class name for subclasses of SUPERCLASS."
       :superclass superclass
       :string-pass-through string))))
 
+;;; By default, don't indent comments or parsing errors.
+(defmethod indentablep ((ast comment-ast)) nil)
+(defmethod indentablep ((ast parse-error-ast)) nil)
+
 (defmethod source-text ((ast indentation)
                         &key stream parents
                           ;; These are "boxed" values since they have
