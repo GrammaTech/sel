@@ -3078,18 +3078,23 @@ AST-EXTRA-SLOTS is an alist from classes to extra slots."
              (create-type-class (type fields grammar-rules
                                  &aux (class-name (make-class-name type)))
                "Create a new class for TYPE using FIELDS and CHILDREN for slots."
-               (let* ((child-slot-order
-                       (when fields
-                         (mapcar
-                          (lambda (slot-keyword)
-                            (cons
-                             (translate-to-slot-name slot-keyword name-prefix)
-                             (if (aget :multiple (aget slot-keyword fields))
-                                 0
-                                 1)))
-                          (slot-order type fields grammar-rules))))
+               (let* ((extra-slots (gethash class-name class->extra-slots))
+                      (child-slot-order
+                        (append
+                         (when fields
+                           (mapcar
+                            (lambda (slot-keyword)
+                              (cons
+                               (translate-to-slot-name slot-keyword name-prefix)
+                               (if (aget :multiple (aget slot-keyword fields))
+                                   0
+                                   1)))
+                            (slot-order type fields grammar-rules)))
+                         (when extra-slots
+                           ;; Assume an arity of 0 for now.
+                           (mapcar (op (cons (car _) 0)) extra-slots))))
                       (definer
-                       (if fields 'define-node-class 'defclass)))
+                        (if fields 'define-node-class 'defclass)))
                  `(,definer
                    ,class-name
                    (,@(or (get-supertypes-for-type type)
@@ -3102,7 +3107,7 @@ AST-EXTRA-SLOTS is an alist from classes to extra slots."
                                '((children . 0))
                                '((after-asts . 0)))
                      :allocation :class)
-                    ,@(gethash class-name class->extra-slots))
+                    ,@extra-slots)
                    ;; NOTE: this is primarily for determing which rule this
                    ;;       was generated for.
                    (:documentation ,(format nil "Generated for ~a." type))
