@@ -5421,9 +5421,21 @@ which slots are expected to be used."
               corresponding stack."
              (alist-hash-table
               (mapcar
-               (lambda (slot &aux (value (slot-value ast slot)))
-                 (cons slot (ensure-cons value)))
-               slots)))
+               (lambda (slot)
+                 (let* ((slot-value (slot-value ast slot))
+                        (value
+                          (cond
+                            ;; This is a hack to support conflict ASTs. If more
+                            ;; types need added here, it would make more sense to
+                            ;; use a generic instead.
+                            ((typep slot-value 'conflict-ast)
+                             (cadr
+                              (find-if
+                               #'cadr
+                               (conflict-ast-child-alist slot-value))))
+                            (t slot-value))))
+                   (cons slot (ensure-cons value))))
+                 slots)))
            (identical-slot-stacks-p (slot->stack1 slot->stack2)
              "Return T if the slot stacks in slot->stack are identical
               except the child stack."
