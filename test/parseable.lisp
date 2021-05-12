@@ -75,7 +75,6 @@
   "For test purposes, choose pre-selected crossover point."
   *preselected-crossover-point*)
 
-#+TODO ;; (GENOME soft1) generates error)
 (deftest crossover-test ()
   (when-let* ((soft1 (from-file (make-instance 'test-parseable)
                       (merge-pathnames "parseable/variety2.c"

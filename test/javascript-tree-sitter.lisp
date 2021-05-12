@@ -83,7 +83,6 @@
                 (genome-string *soft*)
                 (source-text (genome *soft*))))))
 
-;;; TODO: lack of stored information
 (deftest javascript-can-handle-surrogate-characters ()
   (with-fixture surrogate-javascript
     (is (equal* (file-to-string (original-path *soft*))
@@ -136,7 +135,6 @@
       (is (= (size variant)
              (size *soft*))))))
 
-;;; TODO: lack of information
 (deftest js-copies-are-independent ()
   (with-fixture fib-javascript
     (let ((orig-genome-string (genome-string *soft*))
@@ -164,7 +162,6 @@
       (is (equal? (stmt-with-text *soft* "num--;")
                   (stmt-with-text variant "num--;"))))))
 
-;;; TODO: lack of information
 (deftest js-convert-source-snippet-works ()
   (let ((ast (convert 'javascript-ast "j = 0")))
     (is (typep (ast-hash ast) '(integer 0)))
@@ -172,7 +169,6 @@
     #+TODO (is (equal "j = 0" (source-text ast))) ; semicolon known issue
     (is (find-if {typep _ 'javascript-expression-statement} ast))))
 
-;;; TODO: lack of information
 (deftest (javascript-can-format-a-software-object :long-running) ()
   (with-fixture fib-javascript
     (is (not (string= (genome-string (copy *soft*))
@@ -231,7 +227,6 @@
                      (get-vars-in-scope soft)
                      (stmt-starting-with-text soft "console.log("))))))
 
-;;; TODO: lack of information
 (deftest javascript-object-destructuring-get-vars-in-scope-test ()
   (let ((soft (from-file (make-instance 'javascript)
                          (javascript-dir #P"parsing/object-destructuring.js"))))
@@ -240,8 +235,6 @@
                      (get-vars-in-scope soft)
                      (stmt-starting-with-text soft "console.log("))))))
 
-;;; TODO: lack of information
-#+TODO ;; error in SCOPES call
 (deftest javascript-for-in-loop-get-vars-in-scope-test ()
   (let ((soft (from-file (make-instance 'javascript)
                          (javascript-dir #P"parsing/loops.js"))))
@@ -250,7 +243,6 @@
                         (stmt-with-text soft "console.log(arr[i]);"))
               :test #'equal))))
 
-#+TODO ;; error in SCOPES call
 (deftest javascript-for-of-loop-get-vars-in-scope-test ()
   (let ((soft (from-file (make-instance 'javascript)
                          (javascript-dir #P"parsing/loops.js"))))
@@ -268,7 +260,6 @@
 ;;;(deftest javascript-ast-source-ranges ()
 (deftest js-ast-source-ranges ()
   (with-fixture hello-world-javascript
-    ;; TODO: confirm that this is correct.
     (is (set-equal (mapcar [#'range-to-list #'cdr] (ast-source-ranges *soft*))
                    '(((1 . 1) (2 . 1))
                      ((1 . 1) (1 . 27))
@@ -297,7 +288,6 @@
                 (format nil "return 0~%")
                 (format nil "yield 0~%")))))
 
-#+TODO
 (defixture javascript-ast-w-conflict
   (:setup
    (setf *soft*
@@ -310,7 +300,7 @@
                  javascript-right)
                (flet ((js-identifier (name)
                         (make-instance 'javascript-identifier
-                                       :interleaved-text (list name))))
+                                       :text (list name))))
                  (make-instance 'conflict-ast :child-alist
                  `((:old . nil)
                    (:my . (,(js-identifier "temp")))
@@ -318,7 +308,6 @@
   (:teardown
    (setf *soft* nil)))
 
-#+TODO
 (deftest javascript-and-conflict-basic-parseable-ast-functionality ()
   (with-fixture javascript-ast-w-conflict
     ;; We actually have ASTs.
@@ -355,7 +344,6 @@
       (is (typep (@ *soft* path) 'javascript-identifier))
       (is (equalp "LEFT" (source-text (@ *soft* path)))))))
 
-#+TODO
 (deftest javascript-and-conflict-replace-ast ()
   (with-fixture javascript-ast-w-conflict
     (let ((cnf (find-if {typep _ 'conflict-ast} *soft*)))
@@ -367,7 +355,8 @@
     (is (string= (source-text (@ *soft* '(0 javascript-body
                                           1 javascript-body
                                           1 0 )))
-                 "a = a + temp"))))
+                 ;; The before-text is not set for temp.
+                 "a = a +temp"))))
 
 ;;; Test case for BI failure
 ;;;(deftest javascript-insert-test ()
@@ -386,8 +375,6 @@
   (let ((js-files (expand-wildcard #p"javascript/*/*.js")))
     (test-ast-source-ranges-for-files
      'javascript js-files :ignore-indentation t)))
-
-;;; TODO: lack of information
 
 (deftest (javascript-tree-sitter-parsing-test :long-running) ()
   (labels ((parsing-test-dir (path)

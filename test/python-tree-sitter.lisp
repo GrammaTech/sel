@@ -243,9 +243,8 @@
     (is (not (emptyp (trim-whitespace new-source-text))))
     (is (search text new-source-text))))
 
-#+TODO ;; PYTHON-OPERATORS is undefined
 (deftest python-lhs-rhs-and-operator-tests ()
-  (match (convert 'python-ast "x <= y")
+  (match (convert 'python-ast "x <= y" :deepest t)
     ((ast (lhs lhs) (operator operator) (rhs rhs))
      (is (string= "x" (source-text lhs)))
      (is (eq :<= operator))
@@ -323,13 +322,11 @@
                (nest (get-unbound-vals *soft*)
                      (stmt-with-text *soft*)
                      (format nil "return x * y~%"))))
-     ; missing GET-UNBOUND-VALS applicable method
-    #+TODO (is (equal `((:name . "__name__") (:name . "obj")
+    (is (equal `((:name . "__name__") (:name . "obj")
                  (:name . "i") (:name . "j"))
                (nest (get-unbound-vals *soft*)
                      (stmt-starting-with-text *soft*)
-                     (format nil "if __name__ == '__main__':~%"))))
-    ))
+                     (format nil "if __name__ == '__main__':~%"))))))
 
 (deftest python-get-unbound-funs-works ()
   (with-fixture unbound-python
@@ -345,12 +342,10 @@
                (nest (get-unbound-funs *soft*)
                      (stmt-with-text *soft*)
                      (format nil "obj = Obj()~%"))))
-     ; missing GET-UNBOUND-FUNS applicable method
-    #+TODO (is (equal `(("Obj" nil nil 0) ("function" nil nil 2) ("f" nil nil 2))
+    (is (equal `(("Obj" nil nil 0) ("function" nil nil 2) ("f" nil nil 2))
                (nest (get-unbound-funs *soft*)
                      (stmt-starting-with-text *soft*)
-                     (format nil "if __name__ == '__main__':~%"))))
-    ))
+                     (format nil "if __name__ == '__main__':~%"))))))
 
 (deftest python-scopes-1 ()
   "scopes gets the initial binding of a global statement."
@@ -774,7 +769,6 @@ x"
     (is (assign-to-var-p (second assignments) (first identifiers)))
     (is (not (assign-to-var-p (first assignments) (first identifiers))))))
 
-#+TODO ;; PYTHON-OPERATORS is undefined
 (deftest test-python-comparison-operator-accessors ()
   "Test that non-chained comparisons are treated as binary."
   (let* ((ast (convert 'python-ast "x<1" :deepest t))
@@ -806,26 +800,19 @@ x"
                (iter (for ast-type in ast-types)
                      (is (find-if {typep _ ast-type} (genome soft)))))))
     (mapc {apply #'parse-test}
-          '(#+nil
-            ;; NOTE: positional-only parameters appear to be
-            ;;       unsupported by tree-sitter currently.
-            (#P"function-def.py" python-function-definition)
-            ;; NOTE: async is in interleaved text.
+          '((#P"function-def.py" python-function-definition)
             (#P"async-function-def.py" python-function-definition)
             (#P"class-def.py" python-class-definition)
             (#P"return.py" python-return-statement)
             (#P"delete.py" python-delete-statement)
             (#P"assign.py" python-assignment)
             (#P"aug-assign.py" python-augmented-assignment)
-            ;; NOTE: stores annotation in the type slot.
             (#P"ann-assign.py" python-type)
             (#P"for.py" python-for-statement)
-            ;; NOTE: async is in interleaved text.
             (#P"async-for.py" python-for-statement)
             (#P"while.py" python-while-statement)
-            #+TODO (#P"if.py" python-if-statement)
+            (#P"if.py" python-if-statement)
             (#P"with.py" python-with-statement)
-            ;; NOTE: async is in interleaved text.
             (#P"async-with.py" python-with-statement)
             (#P"raise.py" python-raise-statement)
             (#P"try.py" python-try-statement)
@@ -842,7 +829,7 @@ x"
             (#P"bin-op.py" python-binary-operator)
             (#P"unary-op.py" python-unary-operator)
             (#P"lambda.py" python-lambda)
-            #+TODO (#P"if-exp.py" python-conditional-expression)
+            (#P"if-exp.py" python-conditional-expression)
             (#P"dict.py" python-dictionary)
             (#P"set.py" python-set)
             (#P"list-comp.py" python-list-comprehension)
@@ -851,7 +838,6 @@ x"
             (#P"generator-exp.py" python-generator-expression)
             (#P"await.py" python-await)
             (#P"yield.py" python-yield)
-            ;; NOTE: from is in interleaved text.
             (#P"yield-from.py" python-yield)
             (#P"compare.py" python-comparison-operator)
             (#P"call.py" python-call)
