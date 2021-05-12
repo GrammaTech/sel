@@ -2428,6 +2428,8 @@ outside of repeats."
 
   (defun computed-text-ast-p (language class-name json-rule &aux children?)
     "Return T if JSON-RULE and TYPE represent an AST that contains variable text."
+    ;; TODO: update this to be more intelligent and not mark everything without
+    ;;       children as a computed-text node.
     (or
      (member class-name
              (aget (make-keyword language) *tree-sitter-computed-text-asts*))
@@ -2670,10 +2672,10 @@ any slot usages in JSON-SUBTREE."
 ;;; TODO: name this something more descriptive?
 
   (defun generate-input/output-handling
-      (pruned-rule json-rule super-class language-prefix child-types
+      (pruned-rule json-rule superclass language-prefix child-types
        class-name->class-definition choice-resolver
        &aux (subclasses
-             (aget super-class
+             (aget superclass
                    (aget (make-keyword language-prefix)
                          *tree-sitter-choice-expansion-subclasses*))))
     "Generate a method for a type of AST that returns a choice expansion
@@ -2693,7 +2695,7 @@ subclass based on the order of the children were read in."
     (labels ((report-problematic-rule ()
                "Reports 'unstructured' rules to *error-output*."
                (unless (structured-rule-p (collapse-rule-tree pruned-rule))
-                 (format *error-output* "Problematic Rule: ~a~%" super-class)))
+                 (format *error-output* "Problematic Rule: ~a~%" superclass)))
              (get-subclass-name (collapsed-rule)
                "Get the subclass name for COLLAPSED-RULE. If one isn't in
                 subclasses, generate a new name."
@@ -2702,7 +2704,7 @@ subclass based on the order of the children were read in."
                 (car (find-if (lambda (pair)
                                 (equal collapsed-rule (cadr pair)))
                               subclasses))
-                (format-symbol :sel/sw/ts "~a" (string-gensym super-class))))
+                (format-symbol :sel/sw/ts "~a" (string-gensym superclass))))
              (convert-to-lisp-types (rule)
                "Converts all strings in RULE to lisp types."
                (map-tree
@@ -2720,7 +2722,7 @@ subclass based on the order of the children were read in."
                (push class-name
                      (gethash 'class-order class-name->class-definition))
                (setf (gethash class-name class-name->class-definition)
-                     `(defclass ,class-name (,super-class)
+                     `(defclass ,class-name (,superclass)
                         ((rule :initform ',(cadr subclass-pair)
                                :reader rule
                                :allocation :class)))))
@@ -2742,7 +2744,7 @@ subclass based on the order of the children were read in."
                "Generate a method to return the name of the subclass
                 to be used by the parse-tree returned by tree-sitter."
                `(defmethod get-choice-expansion-subclass
-                    ((class (eql ',super-class)) parse-tree
+                    ((class (eql ',superclass)) parse-tree
                      &aux (child-types ',child-types))
                   (econd
                    ,@(mapcar
@@ -2772,33 +2774,41 @@ subclass based on the order of the children were read in."
       (report-problematic-rule)
       ;; TODO: refactor this and children-parser as it accepts a
       ;;       pruned rule and wasn't before.
-      (mvlet* ((pruned-rule-expansions
-                json-expansions
-                (expand-choice-branches pruned-rule json-rule))
-               (expansions? (not (= 1 (length pruned-rule-expansions))))
-               (collapsed-rule-expansions
-                (mapcar [#'convert-to-lisp-types #'collapse-rule-tree]
-                        pruned-rule-expansions))
-               (subclass-pairs
-                (if expansions?
-                    (mapcar (lambda (collapsed-rule pruned-rule)
-                              (list (get-subclass-name collapsed-rule)
-                                    ;; TODO: get rid of this?
-                                    collapsed-rule
-                                    pruned-rule))
-                            collapsed-rule-expansions
-                            (mapcar #'convert-to-lisp-types pruned-rule-expansions))
-                    `((,super-class
-                       ,(car collapsed-rule-expansions)
-                       ,(convert-to-lisp-types (car pruned-rule-expansions)))))))
-        (when expansions? (generate-subclasses subclass-pairs))
-        (generate-children-methods subclass-pairs)
-        `(progn
-           ,(and expansions? (generate-input-subclass-dispatch
-                              json-expansions subclass-pairs))
-           ,@(generate-computed-text-methods json-expansions subclass-pairs)
-           ,@(generate-output-transformations
-              pruned-rule-expansions json-expansions subclass-pairs)))))
+      (if (computed-text-ast-p language-prefix superclass json-rule)
+          ;; Don't expand choices if the super class is computed text.
+          `(progn
+             ,(generate-computed-text-method
+               json-rule superclass language-prefix))
+          (mvlet* ((pruned-rule-expansions
+                    json-expansions
+                    (expand-choice-branches pruned-rule json-rule))
+                   (expansions? (not (= 1 (length pruned-rule-expansions))))
+                   (collapsed-rule-expansions
+                    (mapcar [#'convert-to-lisp-types #'collapse-rule-tree]
+                            pruned-rule-expansions))
+                   (subclass-pairs
+                    (if expansions?
+                        (mapcar (lambda (collapsed-rule pruned-rule)
+                                  (list (get-subclass-name collapsed-rule)
+                                        ;; TODO: get rid of this?
+                                        collapsed-rule
+                                        pruned-rule))
+                                collapsed-rule-expansions
+                                (mapcar
+                                 #'convert-to-lisp-types pruned-rule-expansions))
+                        `((,superclass
+                           ,(car collapsed-rule-expansions)
+                           ,(convert-to-lisp-types
+                             (car pruned-rule-expansions)))))))
+            (when expansions? (generate-subclasses subclass-pairs))
+            (generate-children-methods subclass-pairs)
+            `(progn
+               ,(and expansions? (generate-input-subclass-dispatch
+                                  json-expansions subclass-pairs))
+               ;; TODO: at some point, determine how to remove this.
+               ,@(generate-computed-text-methods json-expansions subclass-pairs)
+               ,@(generate-output-transformations
+                  pruned-rule-expansions json-expansions subclass-pairs))))))
 
   (defun generate-structured-text-methods
       (grammar types language-prefix
