@@ -3265,89 +3265,8 @@ Unlike the `children` methods which collects all children of an AST from any slo
                                   &optional (source (genome-string obj)))
              (convert ',(make-class-name "ast") source))
 
-           (defgeneric parse-order (ast &key &allow-other-keys)
-             (:documentation "Return a list of children intermixed with keywords
-that specify which CHOICE branches are taken and how many times a REPEAT rule
-repeats.")
-             (:method (ast &key) nil)
-             (:method ((ast structured-text) &key)
-               (if-let ((rule (or (and (slot-exists-p ast 'pruned-rule)
-                                       (pruned-rule ast))))
-                        (slots (and (slot-exists-p ast 'slot-usage)
-                                    (slot-usage ast))))
-                 (children-parser ast rule slots)
-                 (call-next-method))))
-
-           (defgeneric output-transformation
-               (ast &rest rest &key &allow-other-keys)
-             (:documentation "Return a list of strings and AST objects that
-are ordered for reproduction as source text.")
-             (:method ((ast structured-text) &rest rest &key &allow-other-keys)
-               (declare (ignorable rest))
-               (flatten
-                (list
-                 (before-text ast)
-                 ;; Expand all rules here.
-                 (computed-text-output-transformation ast)
-                 (after-text ast))))
-             (:method :around ((ast structured-text)
-                               &rest rest &key &allow-other-keys)
-               (declare (ignorable rest))
-               ;; TODO: go through the list and grab the comments around each
-               ;;       AST, reinserting them.
-               (mappend
-                (lambda (output)
-                  (cond
-                    ((typep output 'structured-text)
-                     (append (before-asts output)
-                             (list output)
-                             (after-asts output)))
-                    (t (list output))))
-                (call-next-method))))
-
-           (defmethod children ((ast structured-text))
-             (remove-if-not {typep _ 'ast} (output-transformation ast)))
-
-           ;; TODO: a lot of these defgenerics should be moved out of this form
-           ;;       to the top-level.
-           (defgeneric computed-text-node-p (ast)
-             (:documentation "Return T if AST is a computed-text node. This is a
-node where part of the input will need to be computed and stored to reproduce
-the source-text.")
-             (:method (ast) nil))
-
            (defmethod computed-text-node-p ((ast ,(make-class-name "error")))
              t)
-
-           (defgeneric get-choice-expansion-subclass (class spec)
-             (:documentation "Get the subclass of CLASS associated with SPEC.")
-             (:method (class spec)
-               (declare (ignorable spec))
-               class))
-
-           (defgeneric transform-parse-tree (language class parse-tree)
-             (:documentation "Transform PARSE-TREE based on LANGUAGE and CLASS.")
-             (:method (language class parse-tree
-                       &aux (descriptor (and (listp parse-tree)
-                                             (car parse-tree))))
-               (cond
-                 (class parse-tree)
-                 ((and descriptor (not (= 3 (length parse-tree))))
-                  parse-tree)
-                 ;; :class
-                 ((keywordp descriptor)
-                  (transform-parse-tree
-                   language
-                   (convert-to-lisp-type language descriptor)
-                   parse-tree))
-                 ;; :slot, :class list
-                 ((and (consp descriptor)
-                       (keywordp (cadr descriptor)))
-                  (transform-parse-tree
-                   language
-                   (convert-to-lisp-type language (cadr descriptor))
-                   parse-tree))
-                 (t parse-tree))))
 
            ,structured-text-code)))))
 
@@ -3379,6 +3298,83 @@ the source-text.")
 
 (eval-always
  (define-and-export-all-mixin-classes))
+
+(defgeneric parse-order (ast &key &allow-other-keys)
+  (:documentation "Return a list of children intermixed with keywords
+that specify which CHOICE branches are taken and how many times a REPEAT rule
+repeats.")
+  (:method (ast &key) nil)
+  (:method ((ast structured-text) &key)
+    (if-let ((rule (or (and (slot-exists-p ast 'pruned-rule)
+                            (pruned-rule ast))))
+             (slots (and (slot-exists-p ast 'slot-usage)
+                         (slot-usage ast))))
+      (children-parser ast rule slots)
+      (call-next-method))))
+
+(defgeneric output-transformation
+    (ast &rest rest &key &allow-other-keys)
+  (:documentation "Return a list of strings and AST objects that
+are ordered for reproduction as source text.")
+  (:method ((ast structured-text) &rest rest &key &allow-other-keys)
+    (declare (ignorable rest))
+    (flatten
+     (list
+      (before-text ast)
+      ;; Expand all rules here.
+      (computed-text-output-transformation ast)
+      (after-text ast))))
+  (:method :around ((ast structured-text)
+                    &rest rest &key &allow-other-keys)
+    (declare (ignorable rest))
+    (mappend
+     (lambda (output)
+       (cond
+         ((typep output 'structured-text)
+          (append (before-asts output)
+                  (list output)
+                  (after-asts output)))
+         (t (list output))))
+     (call-next-method))))
+
+(defgeneric computed-text-node-p (ast)
+  (:documentation "Return T if AST is a computed-text node. This is a
+node where part of the input will need to be computed and stored to reproduce
+the source-text.")
+  (:method (ast) nil))
+
+(defgeneric get-choice-expansion-subclass (class spec)
+  (:documentation "Get the subclass of CLASS associated with SPEC.")
+  (:method (class spec)
+    (declare (ignorable spec))
+    class))
+
+(defgeneric transform-parse-tree (language class parse-tree)
+  (:documentation "Transform PARSE-TREE based on LANGUAGE and CLASS.")
+  (:method (language class parse-tree
+            &aux (descriptor (and (listp parse-tree)
+                                  (car parse-tree))))
+    (cond
+      (class parse-tree)
+      ((and descriptor (not (= 3 (length parse-tree))))
+       parse-tree)
+      ;; :class
+      ((keywordp descriptor)
+       (transform-parse-tree
+        language
+        (convert-to-lisp-type language descriptor)
+        parse-tree))
+      ;; :slot, :class list
+      ((and (consp descriptor)
+            (keywordp (cadr descriptor)))
+       (transform-parse-tree
+        language
+        (convert-to-lisp-type language (cadr descriptor))
+        parse-tree))
+      (t parse-tree))))
+
+(defmethod children ((ast structured-text))
+  (remove-if-not {typep _ 'ast} (output-transformation ast)))
 
 
 ;;; tree-sitter parsing
