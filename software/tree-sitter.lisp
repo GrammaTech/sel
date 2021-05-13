@@ -2673,10 +2673,11 @@ any slot usages in JSON-SUBTREE."
   (defun generate-input/output-handling
       (pruned-rule json-rule superclass language-prefix child-types
        class-name->class-definition choice-resolver
-       &aux (subclasses
-             (aget superclass
-                   (aget (make-keyword language-prefix)
-                         *tree-sitter-choice-expansion-subclasses*))))
+       &aux (subclass-counter -1)
+         (subclasses
+          (aget superclass
+                (aget (make-keyword language-prefix)
+                      *tree-sitter-choice-expansion-subclasses*))))
     "Generate a method for a type of AST that returns a choice expansion
 subclass based on the order of the children were read in."
     ;; TODO: at some point, it probably makes sense to use the pruned rules over
@@ -2703,7 +2704,10 @@ subclass based on the order of the children were read in."
                 (car (find-if (lambda (pair)
                                 (equal collapsed-rule (cadr pair)))
                               subclasses))
-                (format-symbol :sel/sw/ts "~a" (string-gensym superclass))))
+                (format-symbol :sel/sw/ts "~a-~a"
+                               ;; If there are name collisions from the counter,
+                               ;; move back to the gensym-based approach.
+                               superclass (incf subclass-counter))))
              (convert-to-lisp-types (rule)
                "Converts all strings in RULE to lisp types."
                (map-tree
