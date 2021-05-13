@@ -5481,7 +5481,8 @@ using the clang front-end.
         (when (or (starts-with-subseq "-fcxx-exceptions" f)
                   (starts-with-subseq "-fgnuc-version" f)
                   (starts-with-subseq "-Wno-everything" f)
-                  (starts-with-subseq "-std" f))
+                  (starts-with-subseq "-std" f)
+                  (starts-with-subseq "-ansi" f))
           (appending (list f)))))
 
 (defun dump-preprocessor-macros (obj)
