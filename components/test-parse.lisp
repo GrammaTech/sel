@@ -9,9 +9,11 @@
         :cl-ppcre
         :software-evolution-library/software/parseable)
   (:import-from :software-evolution-library/software/tree-sitter
-        :rule-matching-error)
+   :rule-matching-error :parse-error-ast)
+  (:import-from :fset :convert)
   (:export test-parse run-test-parse))
 (in-package :software-evolution-library/components/test-parse)
+(in-readtable :curry-compose-reader-macros)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defparameter +command-line-options+
@@ -27,6 +29,10 @@
                           :documentation "type of errors to be recognized as interesting")
       (("error-pattern" #\P) :type string :action #'identity
                              :documentation "CL-PPCRE pattern for errors to be considered interesting")
+      (("round-trip" #\r) :type boolean :optional t
+                          :documentation "Attempt round trip comparison (ignoring whitespace)")
+      (("idempotent" #\I) :type boolean :optional t
+                          :documentation "Attempt to print, reread, then print, and confirm these are the same")
       (("language" #\L) :type string :initial-value "c"
                         :documentation
        "language of input files (e.g. c, c++, lisp, or javascript)"))))
@@ -49,8 +55,25 @@ Built from SEL ~a, and ~a ~a.~%"
                (and error-pattern (cl-ppcre:scan error-pattern (format nil "~s" e)))
                (and (not error-type) (not error-pattern)))))
     (handler-case
-        (progn (genome (create-software source :language language))
-               (exit-command test-parse 1 nil))
-      (error (e) (if (interesting? e)
-                     (exit-command test-parse 0 e)
-                     (exit-command test-parse 1 e))))))
+        (let ((g (genome (create-software source :language language))))
+          (when round-trip
+            (unless (eql (search (remove-if #'whitespacep (source-text g))
+                                 (remove-if #'whitespacep (read-file-into-string source)))
+                         0)
+              (exit-command test-parse 0 nil)))
+          (when idempotent
+            (when (member-if {typep _ 'parse-error-ast} (convert 'list g))
+              (exit-command test-parse 1 nil))
+            (let* ((s (source-text g))
+                   (g2 (genome (from-string
+                                (make-instance (resolve-language-from-language-and-source language))
+                                s)))
+                   (s2 (source-text g2)))
+              (unless (equal s s2)
+                (exit-command test-parse 0 nil))))
+          (exit-command test-parse 1 nil))
+      (error (e)
+        (format t "~s~%" e)
+        (if (interesting? e)
+            (exit-command test-parse 0 e)
+            (exit-command test-parse 1 e))))))
