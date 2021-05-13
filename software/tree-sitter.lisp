@@ -2653,7 +2653,6 @@ any slot usages in JSON-SUBTREE."
                    class-name class-name->class-definition
                    `(text ; computed-text
                      :accessor text
-                     :initarg :text
                      :allocation :class
                      :initform
                      ',(list (get-json-subtree-string transformed-json-rule
@@ -2731,7 +2730,7 @@ subclass based on the order of the children were read in."
                ;; TODO: rename this function since it doesn't generate anything
                ;;       internal to this function anymmore.
                (map nil #'generate-subclass subclass-pairs))
-             (generate-children-methods (subclass-pairs)
+             (generate-children-methods (subclass-pairs expansions?)
                "Generate the methods for handling children for
                 every subclass pair in SUBCLASS-PAIRS."
                ;; TODO: rename this function since it doesn't generate anything
@@ -2739,7 +2738,13 @@ subclass based on the order of the children were read in."
                (mapc
                 (op (generate-children-method
                      (cadr _) (caddr _1) (car _1) class-name->class-definition))
-                subclass-pairs))
+                (if expansions?
+                    ;; Generate a children information for the superclass so it
+                    ;; can be used as a default class.
+                    (cons
+                     (cons superclass (cdr (car subclass-pairs)))
+                     subclass-pairs)
+                    subclass-pairs)))
              (generate-input-subclass-dispatch (json-expansions subclass-pairs)
                "Generate a method to return the name of the subclass
                 to be used by the parse-tree returned by tree-sitter."
@@ -2769,8 +2774,11 @@ subclass based on the order of the children were read in."
                          (generate-output-transformation
                           pruned-rule json-rule language-prefix class-name
                           class-name->class-definition choice-resolver))
-                       pruned-expansions json-expansions
-                       (mapcar #'car subclass-pairs))))
+                       ;; Duplicate the first expansion and use it as the
+                       ;; default output transformation for the superclass.
+                       (cons (car pruned-expansions) pruned-expansions)
+                       (cons (car json-expansions) json-expansions)
+                       (cons superclass (mapcar #'car subclass-pairs)))))
       (report-problematic-rule)
       ;; TODO: refactor this and children-parser as it accepts a
       ;;       pruned rule and wasn't before.
@@ -2800,8 +2808,9 @@ subclass based on the order of the children were read in."
                            ,(car collapsed-rule-expansions)
                            ,(convert-to-lisp-types
                              (car pruned-rule-expansions)))))))
-            (when expansions? (generate-subclasses subclass-pairs))
-            (generate-children-methods subclass-pairs)
+            (when expansions?
+              (generate-subclasses subclass-pairs))
+            (generate-children-methods subclass-pairs expansions?)
             `(progn
                ,(and expansions? (generate-input-subclass-dispatch
                                   json-expansions subclass-pairs))
@@ -2848,7 +2857,6 @@ subclass based on the order of the children were read in."
                 class-name class-name->class-definition
                 `(text
                   :accessor text
-                  :initarg :text
                   :allocation :class
                   :initform ',(list type-string))))
              (get-transformed-json-table ()
@@ -3328,12 +3336,7 @@ repeats.")
 are ordered for reproduction as source text.")
   (:method ((ast structured-text) &rest rest &key &allow-other-keys)
     (declare (ignorable rest))
-    (flatten
-     (list
-      (before-text ast)
-      ;; Expand all rules here.
-      (computed-text-output-transformation ast)
-      (after-text ast))))
+    (computed-text-output-transformation ast))
   (:method :around ((ast structured-text)
                     &rest rest &key &allow-other-keys)
     (declare (ignorable rest))
@@ -3345,7 +3348,9 @@ are ordered for reproduction as source text.")
                   (list output)
                   (after-asts output)))
          (t (list output))))
-     (call-next-method))))
+     (if (computed-text-node-p ast)
+         (computed-text-output-transformation ast)
+         (call-next-method)))))
 
 (defgeneric computed-text-node-p (ast)
   (:documentation "Return T if AST is a computed-text node. This is a
@@ -5561,18 +5566,23 @@ which slots are expected to be used."
   "Gives the variable text output transformation for AST. This
 representation is interleaved text though it's unlikely to
 be more than one string outside of string literals."
-  (iter
-    (iter:with interleaved-text = (text ast))
-    (iter:with children = (slot-value ast 'children))
-    (while (and interleaved-text children))
-    (collect (pop interleaved-text) into result)
-    (collect (pop children) into result)
-    (finally
-     (return
-        (cond
-          (interleaved-text (append result interleaved-text))
-          (children (append result children))
-          (t result))))))
+  (flatten
+   (list
+    (before-text ast)
+    ;; Expand all rules here.
+    (iter
+      (iter:with interleaved-text = (text ast))
+      (iter:with children = (slot-value ast 'children))
+      (while (and interleaved-text children))
+      (collect (pop interleaved-text) into result)
+      (collect (pop children) into result)
+      (finally
+       (return
+         (cond
+           (interleaved-text (append result interleaved-text))
+           (children (append result children))
+           (t result)))))
+    (after-text ast))))
 
 (defun match-parsed-children-json (json-rule parse-tree)
   "Match a cl-tree-sitter PARSE-TREE as a JSON-RULE if possible."
