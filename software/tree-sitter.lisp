@@ -311,6 +311,8 @@
            :provided-by
            :comparisonp
            :c-functions
+           :c
+           :cpp
            :json
            :json-ast))
 (in-package :software-evolution-library/software/tree-sitter)
