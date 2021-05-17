@@ -315,7 +315,10 @@
            :cpp
            :c-path
            :json
-           :json-ast))
+           :json-ast
+           :golang
+           :bash
+           :java))
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 
