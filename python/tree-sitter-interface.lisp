@@ -6,6 +6,8 @@
         :software-evolution-library/command-line
         :software-evolution-library/software/parseable
         :software-evolution-library/software/tree-sitter
+        :software-evolution-library/software/python
+        :software-evolution-library/software/json
         :software-evolution-library/utility/range)
   (:export :run-tree-sitter-interface))
 (in-package :software-evolution-library/python/tree-sitter-interface)

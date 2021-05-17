@@ -186,7 +186,7 @@
                 (error (e) (declare (ignorable e)) nil)))
 
 (defun cpp-tree-sitter-available-p ()
-  (handler-case (progn (make-instance 'sel/sw/tree-sitter::pp))
+  (handler-case (progn (make-instance 'sel/sw/tree-sitter::cpp))
     (error (e) (declare (ignorable e)) nil)))
 
 (defun java-tree-sitter-available-p ()

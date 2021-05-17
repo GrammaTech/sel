@@ -8,6 +8,7 @@
    :software-evolution-library
    :software-evolution-library/software/parseable
    :software-evolution-library/software/tree-sitter
+   :software-evolution-library/software/json
    :software-evolution-library/components/file
    :software-evolution-library/components/formatting)
   (:export :test-json))
