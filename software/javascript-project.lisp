@@ -19,6 +19,9 @@
         :cl-json
         :software-evolution-library
         :software-evolution-library/software/tree-sitter
+        :software-evolution-library/software/python
+        :software-evolution-library/software/javascript
+        :software-evolution-library/software/json
         :software-evolution-library/software/parseable-project
         :software-evolution-library/software/project)
   (:export :javascript-project))
@@ -31,8 +34,7 @@
 (defun find-json ()
   (let ((package
          (some #'find-package
-               '(:software-evolution-library/software/json
-                 :software-evolution-library/software/tree-sitter))))
+               '(:software-evolution-library/software/tree-sitter))))
     (or (and package
              (find-external-symbol (string 'json) package))
         (error "No available representation for JSON ASTs."))))

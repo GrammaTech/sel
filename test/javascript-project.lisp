@@ -8,20 +8,22 @@
    :stefil+
    :software-evolution-library
    :software-evolution-library/software/parseable
+   :software-evolution-library/software/javascript
+   :software-evolution-library/software/json
    :software-evolution-library/software/project
    :software-evolution-library/software/javascript-project
-   :software-evolution-library/software/tree-sitter
    :software-evolution-library/components/test-suite)
   (:export :test-javascript-project))
 (in-package :software-evolution-library/test/javascript-project)
 (in-readtable :curry-compose-reader-macros)
-(defsuite test-javascript-project "Javascript representation." (acorn-available-p))
+(defsuite test-javascript-project "Javascript representation."
+    (acorn-available-p))
 
 (defixture fib-project-javascript
   (:setup
    (setf *soft*
          (from-file (make-instance 'javascript-project
-                      :component-class 'javascript)
+                      :component-class 'sel/sw/ts:javascript)
                     (javascript-dir #P"fib-project/"))))
   (:teardown
    (setf *soft* nil)))

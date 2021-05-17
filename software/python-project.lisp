@@ -15,7 +15,8 @@
         :software-evolution-library
         :software-evolution-library/software/project
         :software-evolution-library/software/parseable-project
-        :software-evolution-library/software/tree-sitter)
+        :software-evolution-library/software/tree-sitter
+        :software-evolution-library/software/python)
   #-windows (:shadowing-import-from :osicat :file-permissions)
   (:export :python-project))
 (in-package :software-evolution-library/software/python-project)
