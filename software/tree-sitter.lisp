@@ -313,6 +313,7 @@
            :c-functions
            :c
            :cpp
+           :c-path
            :json
            :json-ast))
 (in-package :software-evolution-library/software/tree-sitter)
