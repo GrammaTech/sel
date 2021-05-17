@@ -20,7 +20,7 @@
 (in-readtable :curry-compose-reader-macros)
 
 (defun c-available-p ()
-  "Returns true is the c tree-sitter parser is loaded."
+  "Returns true if the c tree-sitter parser is loaded."
   (let* ((p (find-package :sel/sw/tree-sitter))
          (s (and p (find-symbol "C" p))))
     (and s (find-class s))))

@@ -66,6 +66,11 @@ DOC_PACKAGES =								\
 	software-evolution-library/software/super-mutant-clang		\
 	software-evolution-library/software/super-mutant-project	\
 	software-evolution-library/software/tree-sitter			\
+	software-evolution-library/software/c				\
+	software-evolution-library/software/cpp				\
+	software-evolution-library/software/python			\
+	software-evolution-library/software/javascript			\
+	software-evolution-library/software/json			\
 	software-evolution-library/software/with-exe			\
 	software-evolution-library/utility/debug			\
 	software-evolution-library/utility/git				\
