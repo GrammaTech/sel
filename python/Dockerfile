@@ -56,9 +56,5 @@ RUN sbcl --load "/root/quicklisp/setup.lisp" \
          --eval '(ql:quickload :software-evolution-library/deploy-tree-sitter-interface)' \
          --eval '(asdf:make :software-evolution-library/deploy-tree-sitter-interface)' \
          --eval '(quit)'
-RUN sbcl --load "/root/quicklisp/setup.lisp" \
-         --eval '(ql:quickload :software-evolution-library/run-tree-sitter-interface)' \
-         --eval '(asdf:make :software-evolution-library/run-tree-sitter-interface)' \
-         --eval '(quit)'
 
 WORKDIR /root/quicklisp/local-projects/sel
