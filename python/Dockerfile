@@ -48,7 +48,7 @@ RUN git clone https://github.com/death/cl-tree-sitter /root/quicklisp/local-proj
 # Work around bug in cl-unicode in quicklisp.
 RUN git clone https://github.com/edicl/cl-unicode.git /root/quicklisp/local-projects/cl-unicode
 
-# Pre-download and compile a number of dependency packages.
+# Build the tree-sitter-interface for python packaging.
 COPY . /root/quicklisp/local-projects/sel
 RUN sed -i 's|(:default "libtree-sitter")|(:default "libtree-sitter") (:default "/usr/lib/libtree-sitter")|' /root/quicklisp/local-projects/cl-tree-sitter/low-level.lisp
 RUN make -C /root/quicklisp/local-projects/sel dependencies
