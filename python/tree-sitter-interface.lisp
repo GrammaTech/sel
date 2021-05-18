@@ -23,13 +23,13 @@
 
 (-> ast-key (functional-tree-ast) fixnum)
 (defun ast-key (ast)
-  "Return a hash key (non-negative fixnum) for the functional-tree-ast. 
- This differs from ast-hash, in that two distinct asts which are 
+  "Return a hash key (non-negative fixnum) for the functional-tree-ast.
+ This differs from ast-hash, in that two distinct asts which are
  equal?, but not equal, will get distinct hash keys.
  Example: (let* ((ast1 (make-instance 'functional-tree-ast))
-                      (ast2 (copy ast1)))
-                 (values (= (ast-key ast1) (ast-key ast2))
-                         (= (ast-hash ast1) (ast-hash ast2)))) => NIL, T"
+                 (ast2 (copy ast1)))
+            (values (= (ast-key ast1) (ast-key ast2))
+                    (= (ast-hash ast1) (ast-hash ast2)))) => NIL, T"
   (sxhash ast))
 
 (-> allocate-ast (ast) fixnum)
