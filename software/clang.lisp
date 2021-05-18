@@ -5461,6 +5461,15 @@ and the given I-FILE where the macro definition may be found."
                             :name name
                             :i-file i-file))))))
 
+(defparameter *clang-frontend-flags-whitelist*
+    (list "-fcxx-exceptions"
+          "-fgnuc-version"
+          "-Wno-everything"
+          "-Wno-return-type"
+          "-std"
+          "-ansi")
+  "Whitelist of compiler flags to pass thru to the clang frontend.")
+
 (defun clang-frontend-flags (flags)
   "Return the subset of flags required for parsing a source file
 using the clang front-end.
@@ -5478,11 +5487,8 @@ using the clang front-end.
                        (starts-with-subseq "\"-D" f)))
           (appending (list f)))
         ;; Special cases
-        (when (or (starts-with-subseq "-fcxx-exceptions" f)
-                  (starts-with-subseq "-fgnuc-version" f)
-                  (starts-with-subseq "-Wno-everything" f)
-                  (starts-with-subseq "-std" f)
-                  (starts-with-subseq "-ansi" f))
+        (when (member f *clang-frontend-flags-whitelist*
+                      :test (flip #'starts-with-subseq))
           (appending (list f)))))
 
 (defun dump-preprocessor-macros (obj)
