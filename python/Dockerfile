@@ -50,11 +50,10 @@ RUN git clone https://github.com/edicl/cl-unicode.git /root/quicklisp/local-proj
 
 # Build the tree-sitter-interface for python packaging.
 COPY . /root/quicklisp/local-projects/sel
+WORKDIR /root/quicklisp/local-projects/sel
 RUN sed -i 's|(:default "libtree-sitter")|(:default "libtree-sitter") (:default "/usr/lib/libtree-sitter")|' /root/quicklisp/local-projects/cl-tree-sitter/low-level.lisp
-RUN make -C /root/quicklisp/local-projects/sel dependencies
+RUN make dependencies
 RUN sbcl --load "/root/quicklisp/setup.lisp" \
          --eval '(ql:quickload :software-evolution-library/deploy-tree-sitter-interface)' \
          --eval '(asdf:make :software-evolution-library/deploy-tree-sitter-interface)' \
          --eval '(quit)'
-
-WORKDIR /root/quicklisp/local-projects/sel
