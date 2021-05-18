@@ -140,3 +140,9 @@ class CallsiteTestDriver(unittest.TestCase):
 
         call = root.call_asts()[0]
         self.assertEqual("os.path", call.call_module(root))
+
+
+class ErrorTestDriver(unittest.TestCase):
+    def test_error_handling(self):
+        with self.assertRaises(asts.ASTException):
+            asts.AST("foo", "foo()")

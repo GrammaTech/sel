@@ -3,6 +3,7 @@
   (:use :gt/full
         :cl-json
         :cl-store
+        :trivial-backtrace
         :software-evolution-library
         :software-evolution-library/command-line
         :software-evolution-library/software/parseable
@@ -21,6 +22,30 @@
 ;;;; Command line interface:
 (defvar *external-asts* (make-hash-table)
   "Mapping of hashes to (AST . refcount) pairs for externally referenced ASTs.")
+
+(defmacro with-muffled-warnings (&body body)
+  "Execute BODY in an environment where warnings are muffled."
+  `(handler-bind ((warning #'muffle-warning))
+     ,@body))
+
+(defmacro with-suppressed-output (&body body)
+  "Execute BODY while suppressing output to standard output and standard error."
+  `(with-muffled-warnings
+     (let ((*standard-output* (make-string-output-stream))
+           (*error-output* (make-string-output-stream)))
+       ,@body)))
+
+(defmacro with-error-logging (&body body)
+  "Execute BODY in an environment where errors are caught and
+reported back to the client in JSON form over standard output."
+  `(handler-case
+       ,@body
+     (condition (c)
+       (format *standard-output* "~a~%"
+               (nest (encode-json-to-string)
+                     (list (cons :error
+                                 (with-output-to-string (s)
+                                   (print-condition c s)))))))))
 
 (declaim (inline safe-intern))
 (defun safe-intern (string) (intern (string-upcase string) *package*))
@@ -92,8 +117,9 @@ counter reaches zero."
 function name from the API followed by the arguments."
   (destructuring-bind (function-str . arguments) json
     (serialize
-     (apply (safe-intern (concatenate 'string "INT/" (string-upcase function-str)))
-            (mapcar #'deserialize arguments)))))
+     (with-suppressed-output
+      (apply (safe-intern (concatenate 'string "INT/" (string-upcase function-str)))
+             (mapcar #'deserialize arguments))))))
 
 (define-command tree-sitter-interface (&spec (append +common-command-line-options+
                                                      +interactive-command-line-options+))
@@ -105,23 +131,21 @@ function name from the API followed by the arguments."
   (declare (ignorable quiet verbose load eval language manual))
   (when help (show-help-for-tree-sitter-interface) (exit-command tree-sitter-interface 0))
   (loop :for line := (read-line) :until (equalp line "QUIT")
-     :do (format *standard-output* "~a~%"
-                 (nest (encode-json-to-string)
-                       (handle-interface)
-                       (decode-json-from-string line)))))
+     :do (with-error-logging
+           (format *standard-output* "~a~%"
+                   (nest (encode-json-to-string)
+                         (handle-interface)
+                         (decode-json-from-string line))))))
 
 ;;;; API:
 (-> int/ast (string string) (or ast nil))
 (defun int/ast (language source-text)
-  (handler-case
-      (convert (safe-intern (concatenate 'string (string-upcase language) "-AST"))
-               source-text)
-    (error (e) (declare (ignorable e)) nil)))
+  (convert (safe-intern (concatenate 'string (string-upcase language) "-AST"))
+           source-text))
 
 (-> int/init (list) (or fixnum nil))
 (defun int/init (&rest args)
-  (when-let ((ast (apply #'int/ast args)))
-    (allocate-ast ast)))
+  (allocate-ast (apply #'int/ast args)))
 
 (-> int/del (ast) boolean)
 (defun int/del (ast)

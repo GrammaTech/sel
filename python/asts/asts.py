@@ -24,12 +24,11 @@ class AST:
             self.handle = _interface.dispatch(language, source)
         else:
             self.handle = handle
-        if not self.handle:
-            raise Exception("Failed to create AST")
 
     def __del__(self) -> None:
-        _interface.dispatch(self)
-        self.handle = None
+        if hasattr(self, "handle") and self.handle is not None:
+            _interface.dispatch(self)
+            self.handle = None
 
     def __hash__(self) -> int:
         """Return the hashcode for the AST."""
@@ -135,6 +134,12 @@ class AST:
         return _interface.dispatch(self) or []
 
 
+class ASTException(Exception):
+    """specialization for exceptions in the AST tree-sitter interface"""
+
+    pass
+
+
 class _interface:
     """
     interface between python and the sel process
@@ -205,6 +210,13 @@ class _interface:
             name = inspect.stack()[2].function
             return name.replace("__", "").replace("_", "-")
 
+        def handle_errors(data: Any) -> Any:
+            """Check for errors in the subprocess reported in the JSON output."""
+            if isinstance(data, dict) and data.get("error", None):
+                raise ASTException(data["error"])
+
+            return data
+
         def serialize(v: Any) -> Any:
             """Serialize V to a form for passing thru the JSON text interface."""
             if isinstance(v, AST):
@@ -247,7 +259,7 @@ class _interface:
                 raise RuntimeError(msg)
 
             # Load the response from the LISP subprocess.
-            return deserialize(json.loads(stdout))
+            return deserialize(handle_errors(json.loads(stdout)))
 
 
 _interface.start()
