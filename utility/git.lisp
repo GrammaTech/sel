@@ -43,10 +43,10 @@
             (shell "~a git ~{~a~^ ~}"
                    prefix (cons command arguments))))
       (unless (zerop errno)
-        (error (make-instance 'git-error :description (format nil
-                                                              "stdout: ~a ~%stderr: ~a"
-                                                              stdout
-                                                              stderr))))
+        (error 'git-error :description (format nil
+                                               "stdout: ~a ~%stderr: ~a"
+                                               stdout
+                                               stderr)))
       stdout)))
 
 (defun git-from-directory (directory) ; NOTE: Currently an internal function.
@@ -108,9 +108,9 @@ be specified as part of the REMOTE URL.  E.g. as
    (if (directory-exists-p (ensure-directory-pathname local-directory))
        local-directory)
    (if (not remote)
-       (error (make-instance 'git-error
-                :description
-                "local-directory does not exist and no remote was specified")))
+       (error 'git-error
+              :description
+              "local-directory does not exist and no remote was specified"))
    (let ((clone-cmd (format nil "git clone ~{~a~^ ~} ~a ~a"
                             clone-args remote local-directory)))
      (when ssh-key
@@ -119,7 +119,7 @@ be specified as part of the REMOTE URL.  E.g. as
      (multiple-value-bind (stdout stderr errno) (shell clone-cmd)
        (declare (ignorable stdout))
        (if (not (zerop errno))
-           (error (make-instance 'git-error :description stderr))
+           (error 'git-error :description stderr)
            local-directory)))))
 
 (defgeneric current-git-status (directory)
