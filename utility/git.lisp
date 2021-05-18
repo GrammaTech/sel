@@ -168,10 +168,19 @@ These commands don't actually have to invoke git commands directly."
   (with-open-file (git-head-in (merge-pathnames "HEAD" git-dir))
     (let ((git-head (read-line git-head-in)))
       (if (scan "ref:" git-head)
-          (with-open-file (ref-in (merge-pathnames
-                                   (second (split-sequence #\Space git-head))
-                                   git-dir))
-            (subseq (read-line ref-in) 0 7)) ; attached head
+          (let ((ref (second (split-sequence #\Space git-head)))
+                (packed-refs-file (path-join git-dir "packed-refs")))
+            (or
+             ;; Look for a packed ref (the repository has been
+             ;; garbage-collected.)
+             (when (file-exists-p packed-refs-file)
+               (with-input-from-file (refs-in packed-refs-file)
+                 (iter (for line = (read-line refs-in nil))
+                       (while line)
+                       (when (string$= ref line)
+                         (return (take 7 line))))))
+             (with-open-file (ref-in (merge-pathnames ref git-dir))
+               (subseq (read-line ref-in) 0 7)))) ; attached head
           (subseq git-head 0 7)))))          ; detached head
 
 (define-direct-git-command branch (git-dir)
