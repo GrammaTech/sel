@@ -43,6 +43,9 @@ test-ccl:
 test-python:
   stage: test
   script:
+    - pip install -r python/requirements-dev.txt
+    - pre-commit install
+    - pre-commit run --all-files
     - LISP=sbcl GT=yes make python-check
   except:
     - schedules

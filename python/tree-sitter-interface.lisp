@@ -13,7 +13,6 @@
 (in-package :software-evolution-library/python/tree-sitter-interface)
 (in-readtable :curry-compose-reader-macros)
 
-
 ;;;; Command line interface:
 (defvar *external-asts* (make-hash-table)
   "Mapping of hashes to (AST . refcount) pairs for externally referenced ASTs.")
@@ -97,7 +96,6 @@ function name from the API followed by the arguments."
                        (handle-interface)
                        (decode-json-from-string line)))))
 
-
 ;;;; API:
 (-> int/ast (string string) (or ast nil))
 (defun int/ast (language source-text)
