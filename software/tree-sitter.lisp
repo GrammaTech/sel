@@ -4407,7 +4407,12 @@ the indentation slots."
                   (unless only-indentation?
                     (setf indentation-carryover nil
                           indentation-ast nil)))
-                 ((find-if {typep ast} prefer-child-indentation-set)
+                 ((find-if
+                   (lambda (type)
+                     ;; Use #'subtypep to avoid matching types that haven't been
+                     ;; loaded into the package.
+                     (subtypep (type-of ast) type))
+                   prefer-child-indentation-set)
                   (backpatch-children-indentation-slots ast adjusted-indentation)
                   (setf indent-children-current adjusted-indentation
                         indentation-carryover nil
