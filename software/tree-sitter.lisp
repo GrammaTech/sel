@@ -4770,13 +4770,15 @@ the indentation slots."
                   (collect (list (car slot-info)
                                  converted-field)
                     into fields))
-                 ((typep converted-field 'comment-ast)
+                 ((and (typep converted-field 'comment-ast)
+                       (not computed-text-p))
                   ;; NOTE: this won't put the comment in the children slot
                   ;;       when it's allowed. There may need to be a function
                   ;;       that signals their ability to be stored there if
                   ;;       that functionality is ever desired.
                   (push converted-field comment-and-error-stack))
-                 ((typep converted-field 'parse-error-ast)
+                 ((and (typep converted-field 'parse-error-ast)
+                       (not computed-text-p))
                   (push converted-field comment-and-error-stack))
                  (t
                   (setf (slot-value converted-field 'before-asts)
