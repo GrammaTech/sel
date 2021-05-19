@@ -1315,6 +1315,13 @@ stored as a list of interleaved text. This should ideally only be used for leaf
     ()
     (:documentation "AST for input from tree-sitter."))
 
+  (defclass text-fragment (tree-sitter-ast)
+    ((text
+      :accessor text
+      :initarg :text
+      :initform nil))
+    (:documentation "A wrapper class for text fragments in computed text ASTs."))
+
   (defclass definition-ast (ast) ()
     (:documentation "AST for something that associates a name with a thing.
 The name string is obtained by by DEFINITION-NAME"))
@@ -3477,6 +3484,9 @@ are ordered for reproduction as source text.")
   (:method ((ast structured-text) &rest rest &key &allow-other-keys)
     (declare (ignorable rest))
     (computed-text-output-transformation ast))
+  (:method ((ast text-fragment) &rest rest &key &allow-other-keys)
+    (declare (ignorable rest))
+    (list (before-text ast) (text ast) (after-text ast)))
   (:method :around ((ast structured-text)
                     &rest rest &key finalized-type &allow-other-keys)
     (declare (ignorable rest))
@@ -4276,19 +4286,8 @@ be more than one string outside of string literals."
   (flatten
    (list
     (before-text ast)
-    ;; Expand all rules here.
-    (iter
-      (iter:with interleaved-text = (text ast))
-      (iter:with children = (slot-value ast 'children))
-      (while (and interleaved-text children))
-      (collect (pop interleaved-text) into result)
-      (collect (pop children) into result)
-      (finally
-       (return
-         (cond
-           (interleaved-text (append result interleaved-text))
-           (children (append result children))
-           (t result)))))
+    (or (slot-value ast 'children)
+        (text ast))
     (after-text ast))))
 
 (defun match-parsed-children-json (json-rule parse-tree)
@@ -4776,7 +4775,8 @@ the indentation slots."
              (iter
                (for child in children)
                (for previous-child previous child)
-               (collect (cons (if previous-child (get-end previous-child) from) (get-start child))
+               (collect (cons (if previous-child (get-end previous-child) from)
+                              (get-start child))
                  into ranges)
                (when previous-child
                  (setf (slot-value previous-child 'annotations)
@@ -4911,17 +4911,25 @@ the indentation slots."
            ;; TODO: this may be useful for variable text as a reference.
            ;; TODO: maybe reformat it to use the spec instead of annotations?
            (set-text (&aux (from (car (cadr spec)))
-                                 (to (cadr (cadr spec))))
+                        (to (cadr (cadr spec))))
              "Set the text slot in instance if it needs set."
              (when computed-text-p
-               (setf (text instance)
-                     (if-let ((children (children instance)))
-                       (mapcar (lambda (range)
-                                 (destructuring-bind (from . to) range
-                                   (safe-subseq from to)))
-                               (ranges children from to))
-                       ;; Else set it to everything in the range.
-                       (list (safe-subseq from to))))))
+               (if-let* ((children (children instance))
+                         (text-fragments
+                          (mapcar (lambda (range)
+                                    (destructuring-bind (from . to) range
+                                      (make-instance
+                                       'text-fragment
+                                       :text (safe-subseq from to))))
+                                  (ranges children from to))))
+                 (setf (slot-value instance 'children)
+                       (iter
+                         (while (and children text-fragments))
+                         (collect (pop text-fragments) into result)
+                         (collect (pop children) into result)
+                         (finally (return (append result text-fragments)))))
+                 ;; Else set it to everything in the range.
+                 (setf (text instance) (safe-subseq from to)))))
            (update-slots-based-on-arity ()
              "Update any slot in instance that needs to be converted to a list
               to match its arity. This is primarily for #'sorted-children."
@@ -5006,17 +5014,6 @@ correct class name for subclasses of SUPERCLASS."
        string-pass-through :computed-text-parent-p computed-text-parent-p)
       (convert-spec
        spec (get-language-from-superclass superclass) superclass)))
-
-;;; TODO: when reading in, only consider the before and after text between an
-;;;       unnamed and named node or a named and named node.
-
-;;; TODO: we need to handle variable text. It's wholly possible that,
-;;;       coming in, the fields are correctly populated by #'convert.
-;;;       By first checking if the AST is a computed-text node, we can
-;;;       generate a different method.
-;;;       Yes, we want to populate the "text" (computed-text) slot when #'convert
-;;;       runs.
-
 
 ;;; TODO: we're going to run into an issue with figuring out how much white
 ;;;       space is between unnamed nodes. Some of it could be assumed, but
@@ -5145,9 +5142,10 @@ correct class name for subclasses of SUPERCLASS."
       :superclass superclass
       :string-pass-through string))))
 
-;;; By default, don't indent comments or parsing errors.
+;;; By default, don't indent comments, text fragments or parsing errors.
 (defmethod indentablep ((ast comment-ast)) nil)
 (defmethod indentablep ((ast parse-error-ast)) nil)
+(defmethod indentablep ((ast text-fragment)) nil)
 
 (defmethod source-text ((ast indentation)
                         &key stream parents
@@ -5295,9 +5293,7 @@ correct class name for subclasses of SUPERCLASS."
 * FUN-REPLACEMENTS list of old-function-info, new-function-info pairs defining
 the rebinding"
   (if (ast-type-to-rebind-p ast)
-      (copy ast :text (mapcar {rebind-vars _ var-replacements
-                                                       fun-replacements}
-                                          (text ast)))
+      (copy ast :text (rebind-vars (text ast) var-replacements fun-replacements))
       (apply #'copy ast
              (mappend (lambda (child-slot)
                         (destructuring-bind (name . arity) child-slot

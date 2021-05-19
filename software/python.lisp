@@ -241,7 +241,7 @@ AST ast to return the scopes for"
               name enclosing-scope))
            (find-global-binding
                (identifier &aux (genome (genome obj))
-                             (name (car (text identifier))))
+                             (name (source-text identifier)))
              "Find the global binding for NAME in ENCLOSING-SCOPE."
              (build-alist
               (find-declaration

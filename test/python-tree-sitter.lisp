@@ -225,7 +225,7 @@
     (is (equal (file-to-string (original-path *soft*))
                (genome-string *soft*))))
   (with-fixture multibyte-python3
-    (is (= 5 (size *soft*)))
+    (is (= 7 (size *soft*)))
     (is (equal (file-to-string (original-path *soft*))
                (genome-string *soft*)))))
 
