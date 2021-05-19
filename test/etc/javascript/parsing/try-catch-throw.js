@@ -1,5 +1,5 @@
 try {
     throw "HI";
-} catch (err) {
+} catch(err) {
     console.error(err);
 }

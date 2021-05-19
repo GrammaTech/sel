@@ -4,16 +4,16 @@ function* foo() {
     yield 3;
 }
 
-for (var i = 1; i <= 3; i++) {
+for(var i = 1; i <= 3; i++) {
     console.log(i);
 }
 
 var arr = [1, 2, 3];
-for (var i in arr) {
+for(var i in arr) {
     console.log(arr[i]);
 }
 
-for (let val of foo()) {
+for(let val of foo()) {
     console.log(val);
 }
 

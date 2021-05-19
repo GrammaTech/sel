@@ -68,10 +68,9 @@
 (deftest (javascript-can-parse-a-software-object :long-running) ()
   (with-fixture hello-world-javascript
     (is (= 7 (size *soft*)))
-    #+TODO (is (equal (file-to-string
-                       (javascript-dir #P"hello-world/hello-world.js"))
-                     (genome-string *soft*))) ; javascript semicolon known issue
-    )
+    (is (equal (file-to-string
+                (javascript-dir #P"hello-world/hello-world.js"))
+               (genome-string *soft*))))
   (with-fixture fib-javascript
     (is (= 47 (size *soft*)))
     (is (equal (file-to-string (javascript-dir #P"fib/fib.js"))
@@ -167,7 +166,7 @@
   (let ((ast (convert 'javascript-ast "j = 0")))
     (is (typep (ast-hash ast) '(integer 0)))
     (is (equal 5 (size ast)))
-    #+TODO (is (equal "j = 0" (source-text ast))) ; semicolon known issue
+    (is (equal "j = 0" (source-text ast)))
     (is (find-if {typep _ 'javascript-expression-statement} ast))))
 
 (deftest (javascript-can-format-a-software-object :long-running) ()
@@ -181,6 +180,8 @@
 
 ;;;(deftest javascript-can-rebind-vars ()
 (deftest js-can-rebind-vars ()
+  ;; TODO: this test doesn't seem correct especially the G19 symbol.
+  ;;       Where was this originally written?
   (with-fixture fib-javascript
     (let ((rebound (rebind-vars (stmt-with-text *soft* "temp = a;")
                                 (list (list "a" "b"))
@@ -387,7 +388,7 @@
              (let ((soft (from-file (make-instance 'javascript)
                                     (parsing-test-dir path))))
                (is (not (zerop (size soft))))
-               #+TODO (is (equal (genome-string soft)
+               (is (equal (genome-string soft)
                           (file-to-string (original-path soft)))) ; semicolon issue
                (is (not (find-if {typep _ 'javascript-error} (genome soft))))
                (iter (for ast-type in ast-types)

@@ -1130,20 +1130,37 @@ before class generation and analysis.")
 before class generation and analysis. This effectively allows the definition
 of new classes.")
 
-  (defparameter *tree-sitter-json-subtree-choice-resolver*
-    `((:javascript
-       ;; Work around automatic semicolon preference.
-       ,(lambda (branches)
-          (find-if
-           (lambda (branch)
-             (or
-              ;; Prefer semi-colons over blanks.
-              (and (equal "STRING" (aget :type branch))
-                   (equal ";" (aget :value branch)))
-              (equal "BLANK" (aget :type branch))))
-           branches))))
+  (defparameter *tree-sitter-json-subtree-choice-resolver* nil
+    ;; Currently unused.
     "A mapping of functions for resolving which choice branch should be
 chosen when gathering a string representation of a JSON subtree.")
+
+  (defparameter *tree-sitter-json-field-transformations*
+    `((:javascript
+       ;; symbol name
+       ("_semicolon"
+        ;; slot name
+        "semicolon"
+        ;; predicate--determines whether to make the replacement.
+        ,(lambda (rule-name rule subtree)
+          (declare (ignorable rule-name rule subtree))
+          t)
+        ;; parse tree transform.
+        (lambda (parse-tree)
+          (append
+           (butlast parse-tree)
+           (list
+            (mapcar
+             (lambda (child-tree &aux (child-car (car child-tree)))
+               (cond
+                 ((eql child-car :|;|)
+                  (cons (list :semicolon child-car) (cdr child-tree)))
+                 (t child-tree)))
+             (lastcar parse-tree))))))))
+    "A mapping of tree-sitter symbol names that should have fields wrapped
+around them. It is also followed by the slot that should be added to the relevant
+class, a predicate that determines whether a subtree should be encapsulated and
+the body of a parse tree transformation for each class that uses it.")
 
   (defparameter *tree-sitter-ast-superclass-table*
     (lret ((table (make-hash-table)))
@@ -1209,8 +1226,9 @@ stored on the AST or external rules.")
          :node-type-substitutions
          (aget class-keyword *tree-sitter-json-node-type-substitutions*)
          :json-subtree-choice-resolver
-         (car (aget class-keyword
-                    *tree-sitter-json-subtree-choice-resolver*)))))))
+         (car (aget class-keyword *tree-sitter-json-subtree-choice-resolver*))
+         :json-field-transformations
+         (aget class-keyword *tree-sitter-json-field-transformations*))))))
 
 (-> ast-mixin-subclasses ((or symbol class) (or symbol class)) list)
 (defun ast-mixin-subclasses (class language)
@@ -1830,7 +1848,9 @@ up due to aliases."
       rule-table))
 
   (defun transform-json-rule (rule grammar rule-key-stack)
-    "Expand inline rules base on GRAMMAR and :repeat1's in RULE."
+    "Expand inline rules base on GRAMMAR and :repeat1's in RULE.
+RULE-KEY-STACK is a stack of rules that have already been visited in the
+recursive calls for this function. Returns a transformed version of RULE."
     (labels ((propagate-field (tree &aux (field-name (aget :name tree)))
                "Return a modified version of TREE such that its field is
                 propagated to its relevant subtrees and remove the enclosing
@@ -2050,6 +2070,61 @@ up due to aliases."
         (expand-repeat1s
          (remove-prec-rules
           (expand-inline-rules rule)))))))
+
+  (defun substitute-field-symbols
+      (json-rule class-name language-prefix symbol-substitutions
+       class-name->class-definition class-name->parse-tree-transforms)
+    "Substitute symbols in TRANSFORMED-JSON that should be treated as fields.
+A slot is added to the relevant definition in CLASS-NAME->CLASS-DEFINITION and
+the list of parse tree transforms is updated for the relevant class in
+CLASS-NAME->PARSE-TREE-TRANSFORMS."
+    (labels ((update-class-definition
+                 (symbol-substitution
+                  &aux (slot-name (format-symbol
+                                   'sel/sw/ts "~a-~a"
+                                   language-prefix
+                                   (convert-name (cadr symbol-substitution)))))
+               "Update class-name->class-definition with information from
+                SYMBOL-SUBSTITUTION."
+               ;; TODO: add support for updating child-slots?
+               (add-slot-to-class-definition
+                (format-symbol 'sel/sw/ts "~a-~a" language-prefix class-name)
+                class-name->class-definition
+                `(,slot-name :accessor ,slot-name
+                             :initarg ,(make-keyword slot-name)
+                             :initform nil)))
+             (update-class-transforms (symbol-substitution)
+               "Update class-name->parse-tree-transforms with a cons of
+                slot name and the function used for transforming the parse tree."
+               (symbol-macrolet ((class-transforms
+                                   (gethash class-name
+                                            class-name->parse-tree-transforms)))
+                 (setf class-transforms
+                       (cons (cadddr symbol-substitution)
+                             class-transforms))))
+             (encapsulate-symbol (subtree symbol-substitution)
+               "Encapsulates SUBTREE with a field and updates the relevant
+                hash tables."
+               (update-class-definition symbol-substitution)
+               (update-class-transforms symbol-substitution)
+               `((:TYPE . "FIELD")
+                 (:NAME . ,(cadr symbol-substitution))
+                 (:CONTENT
+                  ,@subtree))))
+      (if symbol-substitutions
+          (map-json
+           (lambda (subtree)
+             (cond-let substitution
+               ((not (equal (aget :type subtree) "SYMBOL")) subtree)
+               ((find-if {equal (aget :name subtree)}
+                         symbol-substitutions :key #'car)
+                ;; Check if the filter function passes.
+                (if (funcall (caddr substitution) class-name json-rule subtree)
+                    (encapsulate-symbol subtree substitution)
+                    subtree))
+               (t subtree)))
+           json-rule)
+          json-rule)))
 
   (defun prune-rule-tree (transformed-json-rule)
     (labels ((gather-field-types (content)
@@ -2688,18 +2763,6 @@ any slot usages in JSON-SUBTREE."
                       *tree-sitter-choice-expansion-subclasses*))))
     "Generate a method for a type of AST that returns a choice expansion
 subclass based on the order of the children were read in."
-    ;; TODO: at some point, it probably makes sense to use the pruned rules over
-    ;;       the collapsed rules for the key due to potential collisions.
-    ;;       This will require being able to parse the full json rule and
-    ;;       relating it back to the cl-tree-sitter return value.
-
-    ;; TODO: language-prefix should be a keyword.
-
-    ;; TODO: child-types needs to be actual lisp types.
-    ;;       collapsed-rule needs to have its strings also converted to lisp
-    ;;       types.
-    ;;       It's likely that we'll have the collapsed rules coming in since
-    ;;       we need them in more than one place.
     (labels ((report-problematic-rule ()
                "Reports 'unstructured' rules to *error-output*."
                (unless (structured-rule-p (collapse-rule-tree pruned-rule))
@@ -2833,7 +2896,9 @@ subclass based on the order of the children were read in."
 
   (defun generate-structured-text-methods
       (grammar types language-prefix
-       class-name->class-definition choice-resolver)
+       class-name->class-definition choice-resolver
+       json-field-transformations
+       &aux (class-name->parse-tree-transforms (make-hash-table)))
     ;; NOTE: it might make sense to integrate the loop into
     ;;       the class generation above at some point.
 
@@ -2871,6 +2936,19 @@ subclass based on the order of the children were read in."
                   :accessor text
                   :allocation :class
                   :initform ',(list type-string))))
+             (generate-parse-tree-transform (class-name transforms)
+               "Generate a method for generated-transform-parse-tree based on
+                class-name and transforms."
+               `(defmethod generated-transform-parse-tree
+                    ((language (eql ',(make-keyword language-prefix)))
+                     (class (eql ',(format-symbol :sel/sw/ts "~a-~a"
+                                    language-prefix class-name)))
+                     parse-tree)
+                  (reduce
+                   (lambda (tree transform)
+                     (funcall transform tree))
+                   ,(cons 'list transforms)
+                   :initial-value parse-tree)))
              (get-transformed-json-table ()
                "Get a hash table containing transformed JSON rules."
                (let* ((rules (add-aliased-rules
@@ -2886,14 +2964,26 @@ subclass based on the order of the children were read in."
                    (for (key value) in-hashtable
                         (combine-aliased-rules rule-table))
                    (setf (gethash key rule-table)
-                         (transform-json-rule value new-grammar (list key))))
+                         (transform-json-rule
+                          (substitute-field-symbols
+                           value
+                           key language-prefix
+                           json-field-transformations
+                           class-name->class-definition
+                           class-name->parse-tree-transforms)
+                          new-grammar (list key))))
                  rule-table))
              (get-superclasses-set ()
                "Get a hash set containing the names of superclasses for the
                 language."
                (alist-hash-table
                 (mapcar {cons _ t} (aget :supertypes grammar))
-                :test #'equal)))
+                :test #'equal))
+             (get-parse-tree-transforms ()
+               "Get a list of generated-transform-parse-tree methods based on
+                values in class-name->class-definition."
+               (maphash-return #'generate-parse-tree-transform
+                               class-name->parse-tree-transforms)))
       `(progn
          ,@(iter
              (iter:with super-classes-set = (get-superclasses-set))
@@ -2936,7 +3026,8 @@ subclass based on the order of the children were read in."
                  type-string
                  (if (gethash terminal-lisp-type class-name->class-definition)
                      terminal-lisp-type
-                     lisp-type))))))))
+                     lisp-type)))))
+         ,@(get-parse-tree-transforms))))
 
   (defun create-tree-sitter-classes
       (node-types-file grammar-file name-prefix
@@ -2946,6 +3037,7 @@ subclass based on the order of the children were read in."
          ast-extra-slots
          node-type-substitutions
          json-subtree-choice-resolver
+         json-field-transformations
        &aux (subtype->supertypes (make-hash-table))
          (symbols-to-export (make-hash-table))
          (class->extra-slot-options (make-hash-table))
@@ -3197,7 +3289,7 @@ AST-EXTRA-SLOTS is an alist from classes to extra slots."
       (let ((structured-text-code
               (generate-structured-text-methods
                grammar node-types name-prefix class-name->class-definition
-               json-subtree-choice-resolver)))
+               json-subtree-choice-resolver json-field-transformations)))
         `(progn
            (eval-always
              (define-software ,(make-class-name) (tree-sitter
@@ -3395,6 +3487,32 @@ the source-text.")
       ((and (consp descriptor)
             (keywordp (cadr descriptor)))
        (transform-parse-tree
+        language
+        (convert-to-lisp-type language (cadr descriptor))
+        parse-tree))
+      (t parse-tree))))
+
+(defgeneric generated-transform-parse-tree (language class parse-tree)
+  (:documentation "Transform PARSE-TREE based on LANGUAGE with SPEC.
+This is generated while creating tree-sitter code while transform-parse-tree
+is hand-written.")
+  (:method (language class parse-tree
+            &aux (descriptor (and (listp parse-tree)
+                                  (car parse-tree))))
+    (cond
+      (class parse-tree)
+      ((and descriptor (not (= 3 (length parse-tree))))
+       parse-tree)
+      ;; :class
+      ((keywordp descriptor)
+       (generated-transform-parse-tree
+        language
+        (convert-to-lisp-type language descriptor)
+        parse-tree))
+      ;; :slot, :class list
+      ((and (consp descriptor)
+            (keywordp (cadr descriptor)))
+       (generated-transform-parse-tree
         language
         (convert-to-lisp-type language (cadr descriptor))
         parse-tree))
@@ -4830,7 +4948,9 @@ correct class name for subclasses of SUPERCLASS."
          "Map transform-parse-tree over PARSE-TREE."
          ;; NOTE: it might make sense not to use map-tree here and
          ;;       write a custom function instead.
-         (map-tree {transform-parse-tree prefix nil} parse-tree
+         (map-tree {generated-transform-parse-tree prefix nil}
+                   (map-tree {transform-parse-tree prefix nil}
+                             parse-tree :traversal :postorder)
                    :traversal :postorder))
        (get-start (ast)
          "Return the start offset into STRING from the AST representation."
