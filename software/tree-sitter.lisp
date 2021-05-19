@@ -318,7 +318,9 @@
            :json-ast
            :golang
            :bash
-           :java))
+           :java
+           ;; Functions
+           :patch-whitespace))
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 
@@ -3373,8 +3375,10 @@ Unlike the `children` methods which collects all children of an AST from any slo
            (defmethod convert ((to-type (eql ',ast-superclass)) (spec list)
                                &key string-pass-through
                                  computed-text-parent-p
+                                 patch-whitespace
                                &allow-other-keys)
              (convert 'tree-sitter-ast spec
+                      :patch-whitespace patch-whitespace
                       :superclass to-type
                       :string-pass-through string-pass-through
                       :computed-text-parent-p computed-text-parent-p))
@@ -4444,6 +4448,23 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
          ;; Avoid matching a rule if parse tree tokens still exist.
          (and (not parse-stack) success?))))))
 
+(defun patch-whitespace (ast)
+  "Destructively patch whitespace on AST by adding a space to the before-text and
+after-text slots that need it."
+  (iter
+    (for item in (cdr (butlast (output-transformation ast))))
+    (for previous-item previous item)
+    (for ast? = (typep item 'tree-sitter-ast))
+    (for previous-ast? previous ast?)
+    (when (and ast? (not (computed-text-node-p ast)))
+      (patch-whitespace item))
+    (cond
+      ((and ast? previous-item (emptyp (before-text item)))
+       (setf (before-text item) " "))
+      ((and previous-ast? (emptyp (after-text previous-item)))
+       (setf (after-text previous-item) " ")))
+    (finally (return ast))))
+
 (defun process-indentation (root &aux indentation-carryover indentation-ast)
   "Process the indentation of ROOT such that indentation information is stored in
 the indentation slots."
@@ -4908,9 +4929,16 @@ correct class name for subclasses of SUPERCLASS."
   "Pass thru an existing tree-sitter AST. This useful in manual AST creation."
   spec)
 
+(defmethod convert :around
+    ((to-type (eql 'tree-sitter-ast)) (spec list)
+     &key patch-whitespace &allow-other-keys)
+  (lret ((ast (call-next-method)))
+    (when patch-whitespace
+      (patch-whitespace ast))))
+
 (defmethod convert ((to-type (eql 'tree-sitter-ast)) (spec list)
-                     &key superclass string-pass-through computed-text-parent-p
-                     &allow-other-keys)
+                    &key superclass string-pass-through computed-text-parent-p
+                    &allow-other-keys)
   "Create a TO-TYPE AST from the SPEC (specification) list."
   (if string-pass-through
       (convert-initializer
