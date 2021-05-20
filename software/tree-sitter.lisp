@@ -2744,7 +2744,7 @@ any slot usages in JSON-SUBTREE."
                                                       choice-resolver))))
                   nil)
                  (t `(defmethod output-transformation
-                       ((ast ,class-name)&rest rest &key &aux (parse-stack (parse-order ast)))
+                       ((ast ,class-name) &rest rest &key &aux (parse-stack (parse-order ast)))
                      (declare (ignorable parse-stack rest))
                      (flatten ,(generate-body transformed-json-rule pruned-rule)))))))
       (generate-method transformed-json-rule pruned-rule)))
@@ -2789,6 +2789,16 @@ subclass based on the order of the children were read in."
                       (convert-to-lisp-type language-prefix node)
                       node))
                 rule))
+             (add-subclass-list-slot (subclass-pairs)
+               "Add a slot to superclass which contains a list of subclasses
+                based on SUBCLASS-PAIRS."
+               (add-slot-to-class-definition
+                superclass
+                class-name->class-definition
+                `(choice-subclasses
+                  :initform ',(mapcar #'car subclass-pairs)
+                  :reader choice-subclasses
+                  :allocation :class)))
              (generate-subclass
                  (subclass-pair &aux (class-name (car subclass-pair)))
                "Generate a defclass form for SUBCLASS-PAIR."
@@ -2799,9 +2809,14 @@ subclass based on the order of the children were read in."
                      (gethash 'class-order class-name->class-definition))
                (setf (gethash class-name class-name->class-definition)
                      `(defclass ,class-name (,superclass)
-                        ((rule :initform ',(cadr subclass-pair)
-                               :reader rule
-                               :allocation :class)))))
+                        ((rule
+                          :initform ',(cadr subclass-pair)
+                          :reader rule
+                          :allocation :class)
+                         (choice-subclasses
+                          :initform nil
+                          :reader choice-subclasses
+                          :allocation :class)))))
              (generate-subclasses (subclass-pairs)
                "Generate a defclass forms for SUBCLASS-PAIRS."
                ;; TODO: rename this function since it doesn't generate anything
@@ -2851,11 +2866,9 @@ subclass based on the order of the children were read in."
                          (generate-output-transformation
                           pruned-rule json-rule language-prefix class-name
                           class-name->class-definition choice-resolver))
-                       ;; Duplicate the first expansion and use it as the
-                       ;; default output transformation for the superclass.
-                       (cons (car pruned-expansions) pruned-expansions)
-                       (cons (car json-expansions) json-expansions)
-                       (cons superclass (mapcar #'car subclass-pairs)))))
+                       pruned-expansions
+                       json-expansions
+                       (mapcar #'car subclass-pairs))))
       (report-problematic-rule)
       ;; TODO: refactor this and children-parser as it accepts a
       ;;       pruned rule and wasn't before.
@@ -2886,7 +2899,8 @@ subclass based on the order of the children were read in."
                            ,(convert-to-lisp-types
                              (car pruned-rule-expansions)))))))
             (when expansions?
-              (generate-subclasses subclass-pairs))
+              (generate-subclasses subclass-pairs)
+              (add-subclass-list-slot subclass-pairs))
             (generate-children-methods subclass-pairs expansions?)
             `(progn
                ,(and expansions? (generate-input-subclass-dispatch
@@ -3438,6 +3452,24 @@ repeats.")
       (children-parser ast rule slots)
       (call-next-method))))
 
+(defun change-to-subclass (ast subclasses)
+"Dynamically change the class until a subclass matches on a rule.
+This is only used when a superclass instance is manually created.
+Note that this won't always pick the correct subclass."
+  (iter
+    (iter:with superclass = (type-of ast))
+    (for subclass in subclasses)
+    (change-class ast subclass)
+    (for result = (handler-case (parse-order ast)
+                    (rule-matching-error ()
+                      (next-iteration))))
+    (return result)
+    (finally
+     (change-class ast superclass)
+     (error 'rule-matching-error
+            :rule-matching-error-rule (pruned-rule ast)
+            :rule-matching-error-ast ast))))
+
 (defgeneric output-transformation
     (ast &rest rest &key &allow-other-keys)
   (:documentation "Return a list of strings and AST objects that
@@ -3446,19 +3478,28 @@ are ordered for reproduction as source text.")
     (declare (ignorable rest))
     (computed-text-output-transformation ast))
   (:method :around ((ast structured-text)
-                    &rest rest &key &allow-other-keys)
+                    &rest rest &key finalized-type &allow-other-keys)
     (declare (ignorable rest))
-    (mappend
-     (lambda (output)
-       (cond
-         ((typep output 'structured-text)
-          (append (before-asts output)
-                  (list output)
-                  (after-asts output)))
-         (t (list output))))
-     (if (computed-text-node-p ast)
-         (computed-text-output-transformation ast)
-         (call-next-method)))))
+    (cond-let subclasses
+      ((and (not finalized-type)
+            (slot-exists-p ast 'choice-subclasses)
+            (choice-subclasses ast))
+       ;; This allows instances of ASTs to be created from their superclass.
+       ;; A subclass with a matching rule is assigned here.
+       (change-to-subclass ast subclasses)
+       (output-transformation ast :finalized-type t))
+      (t
+       (mappend
+        (lambda (output)
+          (cond
+            ((typep output 'structured-text)
+             (append (before-asts output)
+                     (list output)
+                     (after-asts output)))
+            (t (list output))))
+        (if (computed-text-node-p ast)
+            (computed-text-output-transformation ast)
+            (call-next-method)))))))
 
 (defgeneric computed-text-node-p (ast)
   (:documentation "Return T if AST is a computed-text node. This is a
