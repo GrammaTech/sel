@@ -6,9 +6,7 @@ import subprocess
 import os
 import pkg_resources
 
-from typing import Any, List, Optional, Tuple, TypeVar
-
-AST_Type = TypeVar("AST_Type", bound="AST")
+from typing import Any, List, Optional, Tuple
 
 
 class AST:
@@ -37,11 +35,11 @@ class AST:
         """Return the hashcode for the AST."""
         return _interface.dispatch(self)
 
-    def __eq__(self, other: AST_Type) -> AST_Type:
+    def __eq__(self, other: "AST") -> bool:
         """Return true if AST is equal to OTHER."""
         return isinstance(other, AST) and _interface.dispatch(self, other)
 
-    def ast_at_point(self, line: int, column: int) -> AST_Type:
+    def ast_at_point(self, line: int, column: int) -> "AST":
         """Return the most specific AST covering LINE and COLUMN."""
         return _interface.dispatch(self, line, column)
 
@@ -61,7 +59,7 @@ class AST:
         """Return a string of the AST's source text."""
         return _interface.dispatch(self)
 
-    def children(self) -> List[AST_Type]:
+    def children(self) -> List["AST"]:
         """Return a list of the AST's children."""
         return _interface.dispatch(self) or []
 
@@ -69,9 +67,13 @@ class AST:
         """Return a list of the AST's child slots."""
         return _interface.dispatch(self) or []
 
-    def child_slot_arity(self, slot: str) -> int:
+    def child_slot_arity(self, slot: str) -> Optional[int]:
         """Return the arity of the AST's child slot."""
-        pairs = [pair for pair in self.child_slots() if pair[0].lower() == slot.lower()]
+        pairs = [
+            pair
+            for pair in self.child_slots()
+            if pair[0].lower() == slot.lower()
+        ]
         if pairs:
             return pairs[0][1]
         else:
@@ -85,15 +87,15 @@ class AST:
         else:
             return _interface.dispatch(self, slot)
 
-    def parent(self, root: AST_Type) -> AST_Type:
+    def parent(self, root: "AST") -> "AST":
         """Return AST's parent under ROOT."""
         return _interface.dispatch(root, self)
 
-    def function_asts(self) -> List[AST_Type]:
+    def function_asts(self) -> List["AST"]:
         """Return any function ASTs under AST."""
         return _interface.dispatch(self) or []
 
-    def call_asts(self) -> List[AST_Type]:
+    def call_asts(self) -> List["AST"]:
         """Return any call ASTs under AST."""
         return _interface.dispatch(self) or []
 
@@ -107,27 +109,27 @@ class AST:
         self.ensure_type("FUNCTION-AST")
         return _interface.dispatch(self)
 
-    def function_parameters(self) -> List[AST_Type]:
+    def function_parameters(self) -> List["AST"]:
         """Return AST's parameters.  AST must be of type function."""
         self.ensure_type("FUNCTION-AST")
         return _interface.dispatch(self) or []
 
-    def function_body(self) -> AST_Type:
+    def function_body(self) -> "AST":
         """Return AST's body.  AST must be of type function."""
         self.ensure_type("FUNCTION-AST")
         return _interface.dispatch(self)
 
-    def call_module(self, root: AST_Type) -> Optional[str]:
+    def call_module(self, root: "AST") -> Optional[str]:
         """Return AST's module.  AST must be of type call."""
         self.ensure_type("CALL-AST")
         return _interface.dispatch(root, self)
 
-    def call_function(self) -> AST_Type:
+    def call_function(self) -> "AST":
         """Return AST's function.  AST must be of type call."""
         self.ensure_type("CALL-AST")
         return _interface.dispatch(self)
 
-    def call_arguments(self) -> List[AST_Type]:
+    def call_arguments(self) -> List["AST"]:
         """Return AST's arguments.  AST must be of type call."""
         self.ensure_type("CALL-AST")
         return _interface.dispatch(self) or []
@@ -140,7 +142,7 @@ class _interface:
 
     _pkg = False
     _cmd = "tree-sitter-interface"
-    _proc = None
+    _proc: Optional[subprocess.Popen] = None
     _lock = multiprocessing.Lock()
 
     @staticmethod
@@ -154,12 +156,16 @@ class _interface:
         with _interface._lock:
             if not _interface.is_process_running():
                 if not shutil.which(_interface._cmd):
-                    _local_cmd = pkg_resources.resource_filename(__name__, _interface._cmd)
+                    _local_cmd = pkg_resources.resource_filename(
+                        __name__, _interface._cmd
+                    )
                     if os.path.exists(_local_cmd):
                         _interface._cmd = _local_cmd
                         _interface._pkg = True
                     else:
-                        Error(f"{_interface._cmd} binary must be on your $PATH.")
+                        raise RuntimeError(
+                            f"{_interface._cmd} binary must be on your $PATH."
+                        )
 
                 _interface._proc = subprocess.Popen(
                     [_interface._cmd],
@@ -183,7 +189,7 @@ class _interface:
                 _interface._proc.stdin.flush()
 
     @staticmethod
-    def dispatch(*args: List[Any]) -> Any:
+    def dispatch(*args: Any) -> Any:
         """Dispatch processing to the tree-sitter-interface."""
 
         def fn() -> str:
@@ -239,7 +245,9 @@ class _interface:
             # Raise a runtime error with the error message.
             if not stdout:
                 stderr = _interface._proc.stderr.read().decode("ascii")
-                raise RuntimeError(f"{_interface._cmd} crashed with:\n\n{stderr}")
+                raise RuntimeError(
+                    f"{_interface._cmd} crashed with:\n\n{stderr}"
+                )
 
             return deserialize(json.loads(stdout))
 
