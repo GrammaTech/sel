@@ -50,35 +50,18 @@ test-python:
   except:
     - schedules
 
-build-python-libraries:
-  stage: build
-  image: $DOCKER_REGISTRY/$CI_PROJECT_PATH/python
-  script: >-
-    sbcl --load "/root/quicklisp/setup.lisp" \
-         --eval '(ql:quickload :software-evolution-library/deploy-tree-sitter-interface)' \
-         --eval '(asdf:make :software-evolution-library/deploy-tree-sitter-interface)' \
-         --eval '(quit)'
-    cp python/asts/* ${CI_PROJECT_DIR}/python/asts/
-  artifacts:
-    paths:
-      - python/asts
-  rules:
-    - if: '$CI_COMMIT_REF_NAME =~ /^r\d\d\d\d\.\d\d\.\d\d/'
-
 deploy-python-package:
-  inherit:
-    default: false
   stage: deploy
-  image: python:3.7-slim
-  needs: [build-python-libraries]
-  dependencies: [build-python-libraries]
+  image: $DOCKER_REGISTRY/$CI_PROJECT_PATH/python
   script:
+    - sbcl --load "/root/quicklisp/setup.lisp"
+           --eval '(ql:quickload :software-evolution-library/deploy-tree-sitter-interface)'
+           --eval '(asdf:make :software-evolution-library/deploy-tree-sitter-interface)'
+           --eval '(quit)'
     - cd python/
-    - pip install -r requirements-dev.txt
-    - python3 setup.py bdist_wheel --dist-dir=$CI_PROJECT_DIR/python/dist
-    - python3 -m twine upload --verbose $CI_PROJECT_DIR/python/dist/*.whl -u __token__ -p $PYPI_API_KEY
-  tags:
-    - kubernetes
+    - pip3.8 install -r requirements-dev.txt
+    - python3.8 setup.py bdist_wheel --dist-dir=$CI_PROJECT_DIR/python/dist
+    - python3.8 -m twine upload --verbose $CI_PROJECT_DIR/python/dist/*.whl -u __token__ -p $PYPI_API_KEY
   rules:
     - if: '$CI_COMMIT_REF_NAME =~ /^r\d\d\d\d\.\d\d\.\d\d/'
 
