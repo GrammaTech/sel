@@ -4448,21 +4448,40 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
          ;; Avoid matching a rule if parse tree tokens still exist.
          (and (not parse-stack) success?))))))
 
+(defgeneric whitespace-between (ast1 ast2)
+  (:method (ast1 ast2) "")
+  (:method ((ast1 (eql 'nil)) ast2) "")
+  (:method (ast1 (ast2 (eql 'nil))) "")
+  (:method ((ast1 structured-text) (ast2 string))
+    (if (scan "[^ \\t\\n]" ast2)
+        (whitespace-between ast1 (make-keyword ast2))
+        ""))
+  (:method ((ast1 string) (ast2 structured-text))
+    (if (scan "[^ \\t\\n]" ast1)
+        (whitespace-between (make-keyword ast1) ast2)
+        ""))
+  (:method ((ast1 symbol) (ast2 structured-text)) " ")
+  (:method ((ast1 structured-text) (ast2 symbol)) " ")
+  (:method ((ast1 structured-text) (ast2 structured-text)) " ")
+  (:documentation "Return a string of whitespace that should occur between
+AST1 and AST2."))
+
 (defun patch-whitespace (ast)
   "Destructively patch whitespace on AST by adding a space to the before-text and
 after-text slots that need it."
   (iter
     (for item in (cdr (butlast (output-transformation ast))))
     (for previous-item previous item)
-    (for ast? = (typep item 'tree-sitter-ast))
-    (for previous-ast? previous ast?)
-    (when (and ast? (not (computed-text-node-p ast)))
+    (for white-space = (whitespace-between previous-item item))
+    (when (and (typep item 'tree-sitter-ast)
+               (not (computed-text-node-p ast)))
       (patch-whitespace item))
     (cond
-      ((and ast? previous-item (emptyp (before-text item)))
-       (setf (before-text item) " "))
-      ((and previous-ast? (emptyp (after-text previous-item)))
-       (setf (after-text previous-item) " ")))
+      ((emptyp white-space))
+      ((typep item 'structured-text)
+       (setf (before-text item) white-space))
+      ((typep previous-item 'structured-text)
+       (setf (after-text previous-item) white-space)))
     (finally (return ast))))
 
 (defun process-indentation (root &aux indentation-carryover indentation-ast)
