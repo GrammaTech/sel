@@ -48,12 +48,14 @@ RUN git clone https://github.com/death/cl-tree-sitter /root/quicklisp/local-proj
 # Work around bug in cl-unicode in quicklisp.
 RUN git clone https://github.com/edicl/cl-unicode.git /root/quicklisp/local-projects/cl-unicode
 
-# Build the tree-sitter-interface for python packaging.
-COPY . /root/quicklisp/local-projects/sel
-WORKDIR /root/quicklisp/local-projects/sel
+# Pre-download and compile a number of dependency packages.
+COPY .cl-make /root/quicklisp/local-projects/sel/.cl-make
+COPY Makefile /root/quicklisp/local-projects/sel/Makefile
+COPY .qlfile.external /root/quicklisp/local-projects/sel/.qlfile.external
+COPY .qlfile.grammatech /root/quicklisp/local-projects/sel/.qlfile.grammatech
 RUN sed -i 's|(:default "libtree-sitter")|(:default "libtree-sitter") (:default "/usr/lib/libtree-sitter")|' /root/quicklisp/local-projects/cl-tree-sitter/low-level.lisp
-RUN make dependencies
-RUN sbcl --load "/root/quicklisp/setup.lisp" \
-         --eval '(ql:quickload :software-evolution-library/deploy-tree-sitter-interface)' \
-         --eval '(asdf:make :software-evolution-library/deploy-tree-sitter-interface)' \
-         --eval '(quit)'
+RUN make -C /root/quicklisp/local-projects/sel dependencies
+RUN rm -rf /root/quicklisp/local-projects/sel
+RUN rm /root/quicklisp/local-projects/system-index.txt
+
+WORKDIR /root/quicklisp/local-projects
