@@ -73,11 +73,7 @@ class AST:
 
     def child_slot_arity(self, slot: str) -> Optional[int]:
         """Return the arity of the AST's child slot."""
-        pairs = [
-            pair
-            for pair in self.child_slots()
-            if pair[0].lower() == slot.lower()
-        ]
+        pairs = [pair for pair in self.child_slots() if pair[0].lower() == slot.lower()]
         if pairs:
             return pairs[0][1]
         else:
@@ -249,9 +245,7 @@ class _interface:
             # Raise a runtime error with the error message.
             if not stdout:
                 stderr = _interface._proc.stderr.read().decode("ascii")
-                raise RuntimeError(
-                    f"{_interface._cmd} crashed with:\n\n{stderr}"
-                )
+                raise RuntimeError(f"{_interface._cmd} crashed with:\n\n{stderr}")
 
             return deserialize(json.loads(stdout))
 
