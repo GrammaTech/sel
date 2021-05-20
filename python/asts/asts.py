@@ -140,10 +140,9 @@ class _interface:
     interface between python and the sel process
     """
 
-    _pkg = False
-    _cmd = "tree-sitter-interface"
+    _DEFAULT_CMD_NAME: str = "tree-sitter-interface"
     _proc: Optional[subprocess.Popen] = None
-    _lock = multiprocessing.Lock()
+    _lock: multiprocessing.Lock = multiprocessing.Lock()
 
     @staticmethod
     def is_process_running() -> bool:
@@ -155,26 +154,24 @@ class _interface:
         """Start the tree-sitter-interface LISP process."""
         with _interface._lock:
             if not _interface.is_process_running():
-                if not shutil.which(_interface._cmd):
-                    _local_cmd = pkg_resources.resource_filename(
-                        __name__, _interface._cmd
+                cmd = _interface._DEFAULT_CMD_NAME
+                if not shutil.which(cmd):
+                    cmd = pkg_resources.resource_filename(
+                        __name__, _interface._DEFAULT_CMD_NAME
                     )
-                    if os.path.exists(_local_cmd):
-                        _interface._cmd = _local_cmd
-                        _interface._pkg = True
-                    else:
+                    if not os.path.exists(cmd):
                         raise RuntimeError(
-                            f"{_interface._cmd} binary must be on your $PATH."
+                            f"{_interface._DEFAULT_CMD_NAME} binary must be on your $PATH."
                         )
 
                 _interface._proc = subprocess.Popen(
-                    [_interface._cmd],
+                    [cmd],
                     stdin=subprocess.PIPE,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                 )
 
-                if _interface._pkg:
+                if cmd != _interface._DEFAULT_CMD_NAME:
                     for line in _interface._proc.stdout:
                         stdout = line.decode("ascii")
                         if stdout.strip() == "==> Launching application.":
@@ -225,9 +222,10 @@ class _interface:
                 return v
 
         with _interface._lock:
-            assert (
-                _interface.is_process_running()
-            ), f"{_interface._cmd} process not running."
+            if not _interface.is_process_running():
+                raise RuntimeError(
+                    f"{_interface._DEFAULT_CMD_NAME} process not running."
+                )
 
             inpt = [fn()] + [serialize(arg) for arg in args]
             _interface._proc.stdin.write(json.dumps(inpt).encode("ascii"))
@@ -244,8 +242,12 @@ class _interface:
             # If standard output is not populated, the process crashed.
             # Raise a runtime error with the error message.
             if not stdout:
-                stderr = _interface._proc.stderr.read().decode("ascii")
-                raise RuntimeError(f"{_interface._cmd} crashed with:\n\n{stderr}")
+                stderr = _interface._proc.stderr.read().decode("ascii").strip()
+                if stderr:
+                    msg = f"{_interface._DEFAULT_CMD_NAME} crashed with:\n\n{stderr}"
+                else:
+                    msg = f"{_interface._DEFAULT_CMD_NAME} crashed."
+                raise RuntimeError(msg)
 
             return deserialize(json.loads(stdout))
 
