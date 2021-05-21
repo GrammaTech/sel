@@ -78,9 +78,7 @@ The default delimiters are {{}}, but this can vary by language."
                                            template
                                            (name-placeholder name)))
                      names
-                     :initial-value template))
-            (template
-             (string-left-trim '(#\Newline) template)))
+                     :initial-value template)))
      (values template names placeholders subtrees))))
 
 ;;; TODO Signal different warnings for each of these.
@@ -137,6 +135,16 @@ The default delimiters are {{}}, but this can vary by language."
                             ast)))))
    ;; Replace the identifiers with subtrees, taking care to copy
    ;; before and after text.
+   (let* ((template-stripped
+           (string-left-trim whitespace template))
+          (leading-whitespace
+           (take (- (length template)
+                    (length template-stripped))
+                 template))
+          (ast
+           (assure ast
+             (convert class template :deepest t))))
+     (setf (before-text ast) leading-whitespace))
    (reduce (lambda (ast name)
              (let* ((targets (name-targets name ast))
                     (subtrees
@@ -165,7 +173,7 @@ The default delimiters are {{}}, but this can vary by language."
                        (mapcar #'cons targets subtrees)
                        :initial-value ast)))
            names
-           :initial-value (convert class template :deepest t))))
+           :initial-value ast)))
 
 (define-compiler-macro ast-template (&whole call template class &rest kwargs)
   (match (list template class)
