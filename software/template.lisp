@@ -36,7 +36,7 @@
 
 ;;; TODO Verify at compile time that the AST with placeholders is valid.
 
-(defun ast-template (template class &rest kwargs &key &allow-other-keys)
+(defun parse-ast-template (template class kwargs)
   "Create an AST of CLASS from TEMPLATE.
 
 For each of the keyword arguments, looks for a delimited occurrence of
@@ -51,23 +51,15 @@ The default delimiters are {{}}, but this can vary by language."
           (subs
            (iter (for (name . value) in subs)
                  (collect (cons (string-invert-case name)
-                                (template-subtree dummy value)))))
+                                value))))
           (names (mapcar #'car subs))
+          (subtrees (mapcar #'cdr subs))
           (placeholders
            (mapcar (op (template-placeholder dummy _)) names))
           (temp-subs (mapcar #'cons placeholders names))))
    ;; Wrap the tables with convenience accessors.
    (labels ((name-placeholder (name)
-              (rassocar name temp-subs :test #'string=))
-            (name-subtree (name)
-              (assocdr name subs :test #'string=))
-            (name-target (name ast)
-              (let ((placeholder (name-placeholder name)))
-                (find-if (lambda (n)
-                           (and (typep n 'identifier-ast)
-                                (string= (source-text n)
-                                         placeholder)))
-                         ast)))))
+              (rassocar name temp-subs :test #'string=))))
    ;; Substitute the parseable placeholders for the original names.
    ;; (This may be necessary when, say, using a name like
    ;; `read-function` in Python; we need to substitute it with
@@ -81,7 +73,46 @@ The default delimiters are {{}}, but this can vary by language."
                                        template
                                        (name-placeholder name)))
                      names
-                     :initial-value template))))
+                     :initial-value template)))
+     (values template names placeholders subtrees))))
+
+(defun validate-ast-template (template class kwargs)
+  (let ((template (parse-ast-template template class kwargs)))
+    (not (find-if (of-type 'parse-error-ast)
+                  (convert class template)))))
+
+(defun ast-template (template class &rest kwargs &key &allow-other-keys)
+  "Create an AST of CLASS from TEMPLATE.
+
+For each of the keyword arguments, looks for a delimited occurrence of
+the name of the keyword argument, and substitutes the given
+subtree.
+
+The default delimiters are {{}}, but this can vary by language."
+  (nest
+   ;; Build tables between names, placeholders, and subtrees.
+   (mvlet* ((template names placeholders subtrees
+             (parse-ast-template template class kwargs))
+            (dummy (make class))
+            (subs (mapcar #'cons names subtrees))
+            (subs
+             (iter (for (name . value) in subs)
+                   (collect (cons name
+                                  (template-subtree dummy value)))))
+            (names (mapcar #'car subs))
+            (temp-subs (mapcar #'cons placeholders names))))
+   ;; Wrap the tables with convenience accessors.
+   (labels ((name-placeholder (name)
+              (rassocar name temp-subs :test #'string=))
+            (name-subtree (name)
+              (assocdr name subs :test #'string=))
+            (name-target (name ast)
+              (let ((placeholder (name-placeholder name)))
+                (find-if (lambda (n)
+                           (and (typep n 'identifier-ast)
+                                (string= (source-text n)
+                                         placeholder)))
+                         ast)))))
    ;; Replace the identifiers with subtrees, taking care to copy
    ;; before and after text.
    (reduce (lambda (ast name)
@@ -95,3 +126,10 @@ The default delimiters are {{}}, but this can vary by language."
                      subtree)))
            names
            :initial-value (convert class template :deepest t))))
+
+(define-compiler-macro ast-template (&whole call template class &rest kwargs)
+  (match (list template class)
+    ((list (type string) (list 'quote class))
+     (unless (validate-ast-template template class kwargs)
+       (warn "Template for ~a contains parse errors: ~%~a" class template))))
+  call)

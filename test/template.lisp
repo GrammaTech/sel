@@ -9,7 +9,7 @@
   (:export))
 (in-package :software-evolution-library/test/template)
 (in-readtable :curry-compose-reader-macros)
-(defsuite test-tree-sitter "tree-sitter representations.")
+(defsuite test-template "tree-sitter representations.")
 
 (deftest test-substitute-names ()
   (equal "foo = bar"
