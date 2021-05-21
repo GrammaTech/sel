@@ -232,12 +232,8 @@ class _interface:
             _interface._proc.stdin.write(b"\n")
             _interface._proc.stdin.flush()
 
-            # Large files can take a bit to process, so wait for a line with content.
-            stdout = None
-            for line in _interface._proc.stdout:
-                stdout = line.decode("ascii")
-                if stdout:
-                    break
+            # Read the response from stdout.
+            stdout = _interface._proc.stdout.readline().decode("ascii").strip()
 
             # If standard output is not populated, the process crashed.
             # Raise a runtime error with the error message.
