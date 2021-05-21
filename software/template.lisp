@@ -19,6 +19,11 @@
     ;; characters a symbol can begin with.
     (string+ #\_ (substitute #\_ #\- (string name)))))
 
+(defun template-placeholder* (ast name)
+  "Append a random number to the end of the placeholder."
+  (let ((placeholder (template-placeholder ast name)))
+    (string+ placeholder (fmt "~x" (random 1000000)))))
+
 (defgeneric template-delimiters (ast)
   (:documentation "Generic so a different syntax can be used per-language.")
   (:method ((ast t))
@@ -55,7 +60,7 @@ The default delimiters are {{}}, but this can vary by language."
           (names (mapcar #'car subs))
           (subtrees (mapcar #'cdr subs))
           (placeholders
-           (mapcar (op (template-placeholder dummy _)) names))
+           (mapcar (op (template-placeholder* dummy _)) names))
           (temp-subs (mapcar #'cons placeholders names))))
    ;; Wrap the tables with convenience accessors.
    (labels ((name-placeholder (name)
