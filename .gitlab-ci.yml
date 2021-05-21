@@ -40,15 +40,25 @@ test-ccl:
     LISP: 'ccl'
   <<: *test
 
-test-python:
+.test-python-template: &test-python
   stage: test
+  except:
+    - schedules
   script:
     - pip install -r python/requirements-dev.txt
     - pre-commit install
     - pre-commit run --all-files
-    - LISP=sbcl GT=yes make python-check
-  except:
-    - schedules
+    - LISP=$LISP GT=yes make python-check
+
+test-python-sbcl:
+  variables:
+    LISP: 'sbcl'
+  <<: *test-python
+
+test-python-ccl:
+  variables:
+    LISP: 'ccl'
+  <<: *test-python
 
 deploy-python-package:
   stage: deploy
