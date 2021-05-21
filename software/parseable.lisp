@@ -1642,26 +1642,37 @@ This can be set to modify the behavior of #'source-text and #'convert")
 is useful for ASTs that may have newline literals.")
   (:method (ast) t))
 
+(defparameter *is-computing-ast-source-ranges* nil
+  "Global indicating if we are AST computing source ranges.")
+
 (define-condition node-location ()
   ((ast :initarg :ast :reader node-location-ast)))
 
 (defmethod source-text :around ((ast indentation) &key stream)
   (declare (ignore stream))
-  (signal 'node-location :ast ast)
-  (multiple-value-prog1 (call-next-method)
-    (signal 'node-location :ast ast)))
+  (if *is-computing-ast-source-ranges*
+      (macrolet ((with-continue-restart (&body body)
+                   `(restart-case
+                        ,@body
+                      (continue () nil))))
+        (with-continue-restart (signal 'node-location :ast ast))
+        (multiple-value-prog1 (call-next-method)
+          (with-continue-restart (signal 'node-location :ast ast))))
+      (call-next-method)))
 
 (defmethod ast-source-ranges ((ast indentation))
   (flet ((source-range (begin end)
            (make 'source-range :begin begin :end end)))
-    (let* ((string-stream (make-string-output-stream))
+    (let* ((*is-computing-ast-source-ranges* t)
+           (string-stream (make-string-output-stream))
            (positions
             (serapeum:collecting
              (handler-bind ((node-location
                              (lambda (c)
                                (collect
                                 (cons (node-location-ast c)
-                                      (file-position string-stream))))))
+                                      (file-position string-stream)))
+                               (invoke-restart 'continue))))
                (source-text ast :stream string-stream))))
            (text (get-output-stream-string string-stream))
            (assorted (assort positions :key [#'serial-number #'car] :hash t))
