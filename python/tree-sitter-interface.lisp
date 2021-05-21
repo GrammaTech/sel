@@ -62,6 +62,7 @@ counter reaches zero."
       (when (zerop ref-count)
         (remhash key *external-asts*)))))
 
+(-> refcount (ast) fixnum)
 (defun refcount (ast)
   "Return the reference count of the ast, or 0 if not found."
   (or (cdr (gethash (ast-key ast) *external-asts*)) 0))
@@ -143,6 +144,7 @@ function name from the API followed by the arguments."
 (-> int/source-text (ast) string)
 (defun int/source-text (ast) (source-text ast))
 
+(-> int/child-slots (ast) list)
 (defun int/child-slots (ast)
   (mapcar «list [#'symbol-name #'car] #'cdr» (child-slots ast)))
 
@@ -155,7 +157,6 @@ function name from the API followed by the arguments."
                                             (make-instance 'source-location
                                               :line line :column column))))
 
-(-> int/child-slots (ast) list)
 (-> int/ast-type (ast) string)
 (defun int/ast-type (ast) (symbol-name (type-of ast)))
 
