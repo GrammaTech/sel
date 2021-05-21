@@ -3672,7 +3672,10 @@ or comments.  NIL if no such newline exists."
 (defmethod convert :around ((to-type (eql 'tree-sitter-ast)) (string string)
                             &key deepest &allow-other-keys)
   (if deepest
-      (find-deepest [{string= string} #'source-text] (call-next-method))
+      (let* ((ast (call-next-method))
+             (ranges (ast-source-ranges ast))
+             (runs (runs ranges :test #'equal? :key #'cdr :count 1)))
+        (car (lastcar (first runs))))
       (call-next-method)))
 
 ;;;

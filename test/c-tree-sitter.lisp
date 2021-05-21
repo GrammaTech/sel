@@ -42,6 +42,9 @@
 
 
 ;;; Tests
+(deftest test-deepest-sans-semicolon ()
+  (is (typep (convert 'c-ast "int x = y" :deepest t) 'c-ast)))
+
 (deftest function-name-on-c-tree-sitter ()
   (with-fixture w/while
     (string= "main" (function-name (find-if {typep _ 'function-ast} *soft*)))))
