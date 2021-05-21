@@ -237,6 +237,7 @@
            :collect-fun-uses
            :javascript
            :python
+           :ast-template                ;Exported here but defined elsewhere.
            ;; Python
            :find-if-in-scopes
            :get-asts-in-namespace
@@ -1679,6 +1680,18 @@ stored on the AST or external rules.")
 
 
 ;;; Defining tree-sitter classes
+
+(defmacro define-template-builder (class ast-class)
+  `(progn
+     (defun ,class
+         (template &rest kwargs &key &allow-other-keys)
+       (apply #'ast-template template ',ast-class kwargs))
+
+     ;; Define compiler macro so the template can be
+     ;; statically checked.
+     (define-compiler-macro ,class (template &rest args)
+       (list* 'ast-template template '',ast-class args))))
+
 (eval-always
   (defclass interleaved-text ()
     ((interleaved-text :initarg :interleaved-text :initform nil :type list
@@ -3773,6 +3786,9 @@ AST-EXTRA-SLOTS is an alist from classes to extra slots."
                (:documentation
                 ,(format nil "~a tree-sitter software representation."
                          name-prefix)))
+
+             (define-template-builder ,(make-class-name)
+                 ,(make-class-name "ast"))
 
              (define-node-class ,(make-class-name "ast")
                  (tree-sitter-ast ,@(mapcar [#'car #'ensure-list]

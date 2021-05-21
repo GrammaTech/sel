@@ -9,19 +9,16 @@
   (:export))
 (in-package :software-evolution-library/test/template)
 (in-readtable :curry-compose-reader-macros)
-(defsuite test-template "tree-sitter representations.")
+(defsuite test-templates "tree-sitter representations.")
 
 (deftest test-substitute-names ()
   (equal "foo = bar"
          (source-text
-          (ast-template "{{x}} = {{y}}"
-                        'python-ast
-                        :x "foo"
-                        :y "bar"))))
+          (python "{{x}} = {{y}}" :x "foo" :y "bar"))))
 
 (deftest test-substitute-tree-rhs ()
   (equal "four = 2 + 2"
          (nest
           (source-text)
-          (ast-template "{{x}} = {{y}}" 'python-ast :x "four" :y)
-          (ast-template "{{x}} + {{y}}" 'python-ast :x 2 :y 2))))
+          (python "{{x}} = {{y}}" :x "four" :y)
+          (python "{{x}} + {{y}}" :x 2 :y 2))))
