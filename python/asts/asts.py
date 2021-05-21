@@ -227,6 +227,7 @@ class _interface:
                     f"{_interface._DEFAULT_CMD_NAME} process not running."
                 )
 
+            # Write the function and arguments to the LISP subprocess.
             inpt = [fn()] + [serialize(arg) for arg in args]
             _interface._proc.stdin.write(json.dumps(inpt).encode("ascii"))
             _interface._proc.stdin.write(b"\n")
@@ -245,6 +246,7 @@ class _interface:
                     msg = f"{_interface._DEFAULT_CMD_NAME} crashed."
                 raise RuntimeError(msg)
 
+            # Load the response from the LISP subprocess.
             return deserialize(json.loads(stdout))
 
 
