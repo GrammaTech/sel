@@ -1690,7 +1690,10 @@ stored on the AST or external rules.")
      ;; Define compiler macro so the template can be
      ;; statically checked.
      (define-compiler-macro ,class (template &rest args)
-       (list* 'ast-template template '',ast-class args))))
+       (list* 'ast-template template '',ast-class args))
+
+     (defpattern ,class (template &rest args)
+       (list* 'ast-template template ',ast-class args))))
 
 (eval-always
   (defclass interleaved-text ()
