@@ -211,14 +211,14 @@ class _interface:
         def serialize(v: Any) -> Any:
             """Serialize V to a form for passing thru the JSON text interface."""
             if isinstance(v, AST):
-                return {"type": "AST", "addr": v.handle}
+                return {"type": "AST", "handle": v.handle}
             else:
                 return v
 
         def deserialize(v: Any) -> Any:
             """Deserialize V from the form used with the JSON text interface."""
-            if isinstance(v, dict) and v.get("addr", None):
-                return AST(handle=v["addr"])
+            if isinstance(v, dict) and v.get("handle", None):
+                return AST(handle=v["handle"])
             elif isinstance(v, list):
                 return [deserialize(e) for e in v]
             else:

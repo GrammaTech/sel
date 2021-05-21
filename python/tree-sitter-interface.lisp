@@ -72,7 +72,7 @@ counter reaches zero."
   (:method :before ((it ast))
     (allocate-ast it))
   (:method ((it ast))
-    `((:type . :ast) (:addr . ,(ast-key it))))
+    `((:type . :ast) (:handle . ,(ast-key it))))
   (:method ((it list)) (mapcar #'serialize it))
   (:method ((it t)) it))
 
@@ -80,8 +80,8 @@ counter reaches zero."
 (defgeneric deserialize (it)
   (:documentation "Deserialize IT from a form used with the JSON text interface.")
   (:method ((it list))
-    (if (aget :addr it)
-        (car (gethash (aget :addr it) *external-asts*))
+    (if (aget :handle it)
+        (car (gethash (aget :handle it) *external-asts*))
         (mapcar #'deserialize it)))
   (:method ((it t)) it))
 
