@@ -2,6 +2,7 @@
   (:nicknames :sel/py/ts-int)
   (:use :gt/full
         :cl-json
+        :cl-store
         :software-evolution-library
         :software-evolution-library/command-line
         :software-evolution-library/software/parseable
@@ -9,6 +10,10 @@
         :software-evolution-library/software/python
         :software-evolution-library/software/json
         :software-evolution-library/utility/range)
+  (:import-from :flexi-streams
+                :make-in-memory-output-stream
+                :octets-to-string
+                :get-output-stream-sequence)
   (:export :run-tree-sitter-interface))
 (in-package :software-evolution-library/python/tree-sitter-interface)
 (in-readtable :curry-compose-reader-macros)
@@ -20,6 +25,14 @@
 (declaim (inline safe-intern))
 (defun safe-intern (string) (intern (string-upcase string) *package*))
 
+(-> sxhash-global (t) fixnum)
+(defun sxhash-global (el)
+  "A version of sxhash which should work for arbitrary data structures.
+Uses `cl-store:store' to hash objects.  Maybe slow for big arguments."
+  (let ((out (make-in-memory-output-stream)))
+    (store el out)
+    (sxhash (octets-to-string (get-output-stream-sequence out)))))
+
 (-> ast-key (functional-tree-ast) fixnum)
 (defun ast-key (ast)
   "Return a hash key (non-negative fixnum) for the functional-tree-ast.
@@ -29,7 +42,7 @@
                  (ast2 (copy ast1)))
             (values (= (ast-key ast1) (ast-key ast2))
                     (= (ast-hash ast1) (ast-hash ast2)))) => NIL, T"
-  (sxhash ast))
+  (sxhash-global ast))
 
 (-> allocate-ast (ast) fixnum)
 (defun allocate-ast (ast &aux (key (ast-key ast)))
