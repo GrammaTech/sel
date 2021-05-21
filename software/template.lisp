@@ -51,7 +51,7 @@ subtree.
 The default delimiters are {{}}, but this can vary by language."
   (nest
    ;; Build tables between names, placeholders, and subtrees.
-   (let* ((dummy (make class))
+   (let* ((dummy (allocate-instance (find-class class)))
           (subs (plist-alist kwargs))
           (subs
            (iter (for (name . value) in subs)
@@ -74,17 +74,34 @@ The default delimiters are {{}}, but this can vary by language."
                (template-delimiters dummy)))
             (template
              (reduce (lambda (template name)
-                       (string-replace (string+ start name end)
-                                       template
-                                       (name-placeholder name)))
+                       (string-replace-all (string+ start name end)
+                                           template
+                                           (name-placeholder name)))
                      names
-                     :initial-value template)))
+                     :initial-value template))
+            (template
+             (string-left-trim '(#\Newline) template)))
      (values template names placeholders subtrees))))
 
+;;; TODO Signal different warnings for each of these.
 (defun validate-ast-template (template class kwargs)
-  (let ((template (parse-ast-template template class kwargs)))
-    (not (find-if (of-type 'parse-error-ast)
-                  (convert class template)))))
+  (mvlet* ((template names placeholders
+            (parse-ast-template template class kwargs))
+           (ast (convert class template)))
+    (and
+     ;; Check that there are no parse errors.
+     (not (find-if (of-type 'parse-error-ast) ast))
+     ;; Check that the AST can be printed.
+     (ignore-errors (source-text ast))
+     (length= names placeholders)
+     ;; Check that the placeholders are parsed as identifiers.
+     (every (lambda (p)
+              (find-if (lambda (n)
+                         (and (typep n 'identifier-ast)
+                              (string= (source-text n) p)))
+                       ast))
+            placeholders)
+     t)))
 
 (defun ast-template (template class &rest kwargs &key &allow-other-keys)
   "Create an AST of CLASS from TEMPLATE.
@@ -111,24 +128,42 @@ The default delimiters are {{}}, but this can vary by language."
               (rassocar name temp-subs :test #'string=))
             (name-subtree (name)
               (assocdr name subs :test #'string=))
-            (name-target (name ast)
+            (name-targets (name ast)
               (let ((placeholder (name-placeholder name)))
-                (find-if (lambda (n)
-                           (and (typep n 'identifier-ast)
-                                (string= (source-text n)
-                                         placeholder)))
-                         ast)))))
+                (collect-if (lambda (n)
+                              (and (typep n 'identifier-ast)
+                                   (string= (source-text n)
+                                            placeholder)))
+                            ast)))))
    ;; Replace the identifiers with subtrees, taking care to copy
    ;; before and after text.
    (reduce (lambda (ast name)
-             (let* ((target (name-target name ast))
-                    (subtree
-                     (copy (name-subtree name)
-                           :before-text (before-text target)
-                           :after-text (after-text target))))
-               (with ast
-                     (ast-path ast target)
-                     subtree)))
+             (let* ((targets (name-targets name ast))
+                    (subtrees
+                     (let ((subtree (name-subtree name)))
+                       (iter (for target in targets)
+                             (collect
+                              ;; Use tree-copy to force a new SN.
+                              ;; Is there some more idiomatic way
+                              ;; to do this?
+                              (tree-copy
+                               (copy subtree
+                                     :before-text
+                                     (before-text target)
+                                     :after-text
+                                     (after-text target))))))))
+               ;; TODO Handle lists of subtrees as follows: iff the
+               ;; path of the target AST ends with a number, find the
+               ;; parent and splice into its children. But: how to
+               ;; synthesize the "interleaved text" reliably?
+               (reduce (lambda (ast target.subtree)
+                         (destructuring-bind (target . subtree)
+                             target.subtree
+                           (with ast
+                                 (ast-path ast target)
+                                 subtree)))
+                       (mapcar #'cons targets subtrees)
+                       :initial-value ast)))
            names
            :initial-value (convert class template :deepest t))))
 
@@ -136,5 +171,9 @@ The default delimiters are {{}}, but this can vary by language."
   (match (list template class)
     ((list (type string) (list 'quote class))
      (unless (validate-ast-template template class kwargs)
-       (warn "Template for ~a contains parse errors: ~%~a" class template))))
+       (warn "Template for ~a is invalid: ~%~a" class template))))
   call)
+
+(defpattern ast-template (template class &rest kwargs)
+  (declare (ignore template class kwargs))
+  (error "Pattern matching on AST templates is not yet supported."))
