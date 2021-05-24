@@ -27,14 +27,30 @@ def x(): x")
 (deftest test-substitute-names ()
   (is (equal "foo = bar"
              (source-text
-              (python "{{x}} = {{y}}" :x "foo" :y "bar")))))
+              (python "$X = $Y" :x "foo" :y "bar")))))
+
+(deftest test-extract-names ()
+  (is (equal (list "foo" "bar")
+             (mapcar #'source-text
+                     (match (python "foo = bar")
+                       ((python "$X = $Y" :x x :y y)
+                        (list x y)))))))
 
 (deftest test-substitute-tree-rhs ()
   (is (equal "four = 2 + 2"
              (nest
               (source-text)
-              (python "{{x}} = {{y}}" :x "four" :y)
-              (python "{{x}} + {{y}}" :x 2 :y 2)))))
+              (python "$X = $Y" :x "four" :y)
+              (python "$X + $Y" :x 2 :y 2)))))
+
+(deftest test-extract-tree-rhs ()
+  (is (equal (list "four" "2" "2")
+             (mapcar #'source-text
+                     (match (python "four = 2 + 2")
+                       ((python "$VAR = $EXPR"
+                                :var var
+                                :expr (python "$X + $Y" :x x :y y))
+                        (list var x y)))))))
 
 (deftest test-duplication ()
   (is (equal
@@ -44,8 +60,24 @@ def read_foo():
     return foo")
        (source-text
         (python "
-def {{read-name}}():
-    global {{name}}
-    return {{name}}"
+def $READ_NAME():
+    global $NAME
+    return $NAME"
                 :read-name "read_foo"
                 :name "foo")))))
+
+(deftest test-extract-duplicates ()
+  (match (python (fmt "~
+def read_foo():
+    global foo
+    return foo"))
+    ((python "
+def $READ_NAME():
+    global $NAME1
+    return $NAME2"
+             :read-name read-name
+             :name1 name1
+             :name2 name2)
+     (is (equal? name1 name2))
+     (is (equal (source-text read-name) "read_foo"))
+     (is (equal (source-text name1) "foo")))))

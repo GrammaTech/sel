@@ -6,13 +6,17 @@
         :software-evolution-library/software/parseable)
   (:import-from :software-evolution-library/software/tree-sitter
                 :before-text :after-text)
+  (:import-from :ssr/string-clauses)
   (:export :ast-template
            :template-placeholder
-           :template-delimiters))
+           :template-metavariable))
 (in-package :software-evolution-library/software/template)
 
 (defgeneric template-placeholder (ast name)
-  (:documentation "Generic so a different syntax can be used per-language.")
+  (:documentation "Generate a placeholder for NAME that AST's language
+  can parse as a valid identifier.
+
+Generic so a different syntax can be used per-language.")
   (:method ((ast t) name)
     ;; A reasonable default for most programming languages. Add a
     ;; leading underscore to avoid having to worry about what
@@ -24,10 +28,17 @@
   (let ((placeholder (template-placeholder ast name)))
     (string+ placeholder (fmt "~x" (random 1000000)))))
 
-(defgeneric template-delimiters (ast)
-  (:documentation "Generic so a different syntax can be used per-language.")
-  (:method ((ast t))
-    (values "{{" "}}")))
+(defgeneric template-metavariable (ast name)
+  (:documentation "Generate the corresponding metavariable for NAME, a
+  Lispy symbol.
+
+Generic so a different syntax can be used per-language.")
+  (:method (ast name)
+    (template-metavariable ast (string name)))
+  (:method ((ast t) (name string))
+    (let ((name (substitute #\_ #\- (string name))))
+      (assert (scan "^[A-Z0-9_]+$" name) () "Invalid metavariable: ~a" name)
+      (fmt "$~a" name))))
 
 (defgeneric template-subtree (ast thing)
   (:documentation "Convert THING into a subtree.")
@@ -41,22 +52,16 @@
 
 ;;; TODO Verify at compile time that the AST with placeholders is valid.
 
+(-> parse-ast-template (string symbol list)
+    (values string list list list &optional))
 (defun parse-ast-template (template class kwargs)
-  "Create an AST of CLASS from TEMPLATE.
-
-For each of the keyword arguments, looks for a delimited occurrence of
-the name of the keyword argument, and substitutes the given
-subtree.
-
-The default delimiters are {{}}, but this can vary by language."
   (nest
    ;; Build tables between names, placeholders, and subtrees.
    (let* ((dummy (allocate-instance (find-class class)))
           (subs (plist-alist kwargs))
           (subs
            (iter (for (name . value) in subs)
-                 (collect (cons (string-invert-case name)
-                                value))))
+                 (collect (cons name value))))
           (names (mapcar #'car subs))
           (subtrees (mapcar #'cdr subs))
           (placeholders
@@ -69,16 +74,13 @@ The default delimiters are {{}}, but this can vary by language."
    ;; (This may be necessary when, say, using a name like
    ;; `read-function` in Python; we need to substitute it with
    ;; something that Python will treat as a single identifier.
-   (mvlet* ((start end
-             (assure (values string string &optional)
-               (template-delimiters dummy)))
-            (template
-             (reduce (lambda (template name)
-                       (string-replace-all (string+ start name end)
-                                           template
-                                           (name-placeholder name)))
-                     names
-                     :initial-value template)))
+   (let* ((template
+           (reduce (lambda (template name)
+                     (string-replace-all (template-metavariable dummy name)
+                                         template
+                                         (name-placeholder name)))
+                   names
+                   :initial-value template)))
      (values template names placeholders subtrees))))
 
 (defun check-ast-template (template class kwargs)
@@ -94,25 +96,30 @@ The default delimiters are {{}}, but this can vary by language."
         (error "Template cannot be printed because: ~a" e)))
     (unless (length= names placeholders)
       (error "Length mismatch in template arguments."))
-    (unless
-        ;; Check that the placeholders are parsed as identifiers.
-        (every (lambda (p)
-                 (find-if (lambda (n)
-                            (and (typep n 'identifier-ast)
-                                 (string= (source-text n) p)))
-                          ast))
-               placeholders)
-      (error "Some placeholders in template cannot be parsed as identifiers."))
+    (unless (length= placeholders (nub placeholders))
+      (error "Duplicate placeholders: ~a" placeholders))
+    (let ((found
+           (filter (lambda (p)
+                     (find-if (lambda (n)
+                                (and (typep n 'identifier-ast)
+                                     (string= (source-text n) p)))
+                              ast))
+                   placeholders)))
+      (when-let (diff (set-difference placeholders found :test #'equal))
+        (error
+         "Some placeholders in template were not parsed as identifiers: ~a"
+         diff)))
     nil))
 
 (defun ast-template (template class &rest kwargs &key &allow-other-keys)
   "Create an AST of CLASS from TEMPLATE.
 
-For each of the keyword arguments, looks for a delimited occurrence of
-the name of the keyword argument, and substitutes the given
-subtree.
+For each of the keyword arguments, looks for corresponding
+metavariable, and substitutes the given subtree.
 
-The default delimiters are {{}}, but this can vary by language."
+By default metavariables look like `$X', where the name can contain
+only uppercase characters, digits, or an underscore. Metavariable
+syntax can vary by language."
   (nest
    ;; Build tables between names, placeholders, and subtrees.
    (mvlet* ((template names placeholders subtrees
@@ -124,7 +131,7 @@ The default delimiters are {{}}, but this can vary by language."
                    (collect (cons name
                                   (template-subtree dummy value)))))
             (names (mapcar #'car subs))
-            (temp-subs (mapcar #'cons placeholders names))))
+            (temp-subs (pairlis placeholders names))))
    ;; Wrap the tables with convenience accessors.
    (labels ((name-placeholder (name)
               (rassocar name temp-subs :test #'string=))
@@ -174,7 +181,7 @@ The default delimiters are {{}}, but this can vary by language."
                            (with ast
                                  (ast-path ast target)
                                  subtree)))
-                       (mapcar #'cons targets subtrees)
+                       (pairlis targets subtrees)
                        :initial-value ast)))
            names
            :initial-value ast)))
@@ -185,6 +192,35 @@ The default delimiters are {{}}, but this can vary by language."
      (check-ast-template template class kwargs)))
   call)
 
+(defun ssr-wildcard? (node)
+  (and (symbolp node)
+       (eql (find-package :ssr/string-clauses)
+            (symbol-package node))
+       (string^= 'wild- node)))
+
 (defpattern ast-template (template class &rest kwargs)
-  (declare (ignore template class kwargs))
-  (error "Pattern matching on AST templates is not yet supported."))
+  (check-ast-template template class kwargs)
+  (mvlet* ((class
+            (match class
+              ((list 'quote class) class)
+              (otherwise class)))
+           (language
+            (find-external-symbol (drop-suffix "-AST" (string class))
+                                  :sel/sw/ts))
+           (pattern
+            (convert 'match template :language language))
+           (template names placeholders subtrees
+            (parse-ast-template template class kwargs))
+           (dummy (allocate-instance (find-class class)))
+           (metavars
+            (mapcar (op (template-metavariable dummy _))
+                    names))
+           (metavar-subtrees (pairlis metavars subtrees)))
+    (declare (ignore placeholders template))
+    (map-tree (lambda (node)
+                (if (ssr-wildcard? node)
+                    (assocdr (string+ "$" (drop-prefix "WILD-" (string node)))
+                             metavar-subtrees
+                             :test #'equal)
+                    node))
+              pattern)))
