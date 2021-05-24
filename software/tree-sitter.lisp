@@ -420,6 +420,17 @@ searched to populate `*tree-sitter-language-files*'.")
         (c-modifiers
          :accessor c-modifiers
          :initarg :c-modifiers
+         :initform nil))
+       (c-preproc-ifdef
+        (c-operation
+         :accessor c-operation
+         :initarg :c-operation
+         :initform nil)))
+      (:cpp
+       (cpp-preproc-ifdef
+        (cpp-operation
+         :accessor cpp-operation
+         :initarg :cpp-operation
          :initform nil)))
       (:python
        (python-function-definition
@@ -834,6 +845,34 @@ definitions.")
 
   (defparameter *tree-sitter-json-rule-substitutions*
     '((:c
+       (:PREPROC-IFDEF (:TYPE . "SEQ")
+        (:MEMBERS
+         ((:TYPE . "FIELD")
+          (:NAME . "operation")
+          (:CONTENT
+           (:TYPE . "CHOICE")
+           (:MEMBERS
+            ((:TYPE . "ALIAS")
+             (:CONTENT (:TYPE . "PATTERN") (:VALUE . "#[ 	]*ifdef"))
+             (:NAMED) (:VALUE . "#ifdef"))
+            ((:TYPE . "ALIAS")
+             (:CONTENT (:TYPE . "PATTERN") (:VALUE . "#[ 	]*ifndef"))
+             (:NAMED) (:VALUE . "#ifndef")))))
+         ((:TYPE . "FIELD") (:NAME . "name")
+          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "identifier")))
+         ((:TYPE . "REPEAT")
+          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_top_level_item")))
+         ((:TYPE . "FIELD") (:NAME . "alternative")
+          (:CONTENT (:TYPE . "CHOICE")
+           (:MEMBERS
+            ((:TYPE . "CHOICE")
+             (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "preproc_else"))
+                       ((:TYPE . "SYMBOL") (:NAME . "preproc_elif"))))
+            ((:TYPE . "BLANK")))))
+         ((:TYPE . "ALIAS")
+          (:CONTENT (:TYPE . "PATTERN")
+           (:VALUE . "#[ 	]*endif"))
+          (:NAMED) (:VALUE . "#endif"))))
        (:STRUCT-SPECIFIER (:TYPE . "SEQ")
         (:MEMBERS ((:TYPE . "STRING") (:VALUE . "struct"))
          ((:TYPE . "CHOICE")
@@ -900,6 +939,35 @@ definitions.")
                   ((:TYPE . "STRING") (:VALUE . "...")))))))))
            ((:TYPE . "BLANK"))))
          ((:TYPE . "STRING") (:VALUE . ")")))))
+      (:cpp
+       (:PREPROC-IFDEF (:TYPE . "SEQ")
+        (:MEMBERS
+         ((:TYPE . "FIELD")
+          (:NAME . "operation")
+          (:CONTENT
+           (:TYPE . "CHOICE")
+           (:MEMBERS
+            ((:TYPE . "ALIAS")
+             (:CONTENT (:TYPE . "PATTERN") (:VALUE . "#[ 	]*ifdef"))
+             (:NAMED) (:VALUE . "#ifdef"))
+            ((:TYPE . "ALIAS")
+             (:CONTENT (:TYPE . "PATTERN") (:VALUE . "#[ 	]*ifndef"))
+             (:NAMED) (:VALUE . "#ifndef")))))
+         ((:TYPE . "FIELD") (:NAME . "name")
+          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "identifier")))
+         ((:TYPE . "REPEAT")
+          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_top_level_item")))
+         ((:TYPE . "FIELD") (:NAME . "alternative")
+          (:CONTENT (:TYPE . "CHOICE")
+           (:MEMBERS
+            ((:TYPE . "CHOICE")
+             (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "preproc_else"))
+                       ((:TYPE . "SYMBOL") (:NAME . "preproc_elif"))))
+            ((:TYPE . "BLANK")))))
+         ((:TYPE . "ALIAS")
+          (:CONTENT (:TYPE . "PATTERN")
+           (:VALUE . "#[ 	]*endif"))
+          (:NAMED) (:VALUE . "#endif")))))
       (:python
        ;; NOTE: this removes semicolons. This can be further amended if it
        ;;       becomes problematic.
@@ -2154,8 +2222,7 @@ CLASS-NAME->PARSE-TREE-TRANSFORMS."
                     ("SYMBOL"
                      (list (aget :name content)))
                     ("ALIAS"
-                     (when (aget :named content)
-                       (list (aget :value content))))
+                     (list (aget :value content)))
                     (("CHOICE" "SEQ")
                      (mappend #'gather-field-types (aget :members content)))
                     ("REPEAT"

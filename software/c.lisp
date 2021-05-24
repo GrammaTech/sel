@@ -38,6 +38,21 @@ field."
          (t (cons (list :modifiers node-type) (cdr child-tree)))))
      (lastcar parse-tree)))))
 
+(defmethod transform-parse-tree
+    ((language (eql ':c)) (class (eql 'c-preproc-ifdef)) parse-tree)
+  "Transform PARSE-TREE such that all modifiers are stored in the :modifiers
+field."
+  (append
+   (butlast parse-tree)
+   (list
+    (mapcar
+     (lambda (child-tree)
+       (cond
+         ((member (car child-tree) '(:|#IFDEF| :|#IFNDEF|))
+          (cons (list :operation (car child-tree)) (cdr child-tree)))
+         (t child-tree)))
+     (lastcar parse-tree)))))
+
 (defgeneric pointers (c-declarator)
   (:documentation "Return the number of pointers around C-DECLARATOR.")
   (:method ((ast c-parameter-declaration)) (pointers (c-declarator ast)))
