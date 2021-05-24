@@ -2820,6 +2820,10 @@ subclass based on the order of the children were read in."
                           :initform ',(cadr subclass-pair)
                           :reader rule
                           :allocation :class)
+                         (choice-superclass
+                          :initform ',superclass
+                          :reader choice-superclass
+                          :allocation :class)
                          (choice-subclasses
                           :initform nil
                           :reader choice-subclasses
