@@ -319,6 +319,7 @@
            :golang
            :bash
            :java
+           :text-fragment
            ;; Functions
            :patch-whitespace))
 (in-package :software-evolution-library/software/tree-sitter)
