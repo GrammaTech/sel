@@ -81,25 +81,29 @@ The default delimiters are {{}}, but this can vary by language."
                      :initial-value template)))
      (values template names placeholders subtrees))))
 
-;;; TODO Signal different warnings for each of these.
-(defun validate-ast-template (template class kwargs)
+(defun check-ast-template (template class kwargs)
+  "Compile-time validity checking for templates."
   (mvlet* ((template names placeholders
             (parse-ast-template template class kwargs))
            (ast (convert class template)))
-    (and
-     ;; Check that there are no parse errors.
-     (not (find-if (of-type 'parse-error-ast) ast))
-     ;; Check that the AST can be printed.
-     (ignore-errors (source-text ast))
-     (length= names placeholders)
-     ;; Check that the placeholders are parsed as identifiers.
-     (every (lambda (p)
-              (find-if (lambda (n)
-                         (and (typep n 'identifier-ast)
-                              (string= (source-text n) p)))
-                       ast))
-            placeholders)
-     t)))
+    ;; Check that there are no parse errors.
+    (when (find-if (of-type 'parse-error-ast) ast)
+      (error "Template contains parse errors:~%~a" template))
+    (handler-case (source-text ast)
+      (error (e)
+        (error "Template cannot be printed because: ~a" e)))
+    (unless (length= names placeholders)
+      (error "Length mismatch in template arguments."))
+    (unless
+        ;; Check that the placeholders are parsed as identifiers.
+        (every (lambda (p)
+                 (find-if (lambda (n)
+                            (and (typep n 'identifier-ast)
+                                 (string= (source-text n) p)))
+                          ast))
+               placeholders)
+      (error "Some placeholders in template cannot be parsed as identifiers."))
+    nil))
 
 (defun ast-template (template class &rest kwargs &key &allow-other-keys)
   "Create an AST of CLASS from TEMPLATE.
@@ -178,8 +182,7 @@ The default delimiters are {{}}, but this can vary by language."
 (define-compiler-macro ast-template (&whole call template class &rest kwargs)
   (match (list template class)
     ((list (type string) (list 'quote class))
-     (unless (validate-ast-template template class kwargs)
-       (warn "Template for ~a is invalid: ~%~a" class template))))
+     (check-ast-template template class kwargs)))
   call)
 
 (defpattern ast-template (template class &rest kwargs)

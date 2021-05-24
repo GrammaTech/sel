@@ -20,21 +20,21 @@
               (python "return x"))))
 
 (deftest test-leading-newline ()
-  (equal? (python "
+  (is (equal? (python "
 def x(): x")
-          (python "def x(): x")))
+              (python "def x(): x"))))
 
 (deftest test-substitute-names ()
-  (equal "foo = bar"
-         (source-text
-          (python "{{x}} = {{y}}" :x "foo" :y "bar"))))
+  (is (equal "foo = bar"
+             (source-text
+              (python "{{x}} = {{y}}" :x "foo" :y "bar")))))
 
 (deftest test-substitute-tree-rhs ()
-  (equal "four = 2 + 2"
-         (nest
-          (source-text)
-          (python "{{x}} = {{y}}" :x "four" :y)
-          (python "{{x}} + {{y}}" :x 2 :y 2))))
+  (is (equal "four = 2 + 2"
+             (nest
+              (source-text)
+              (python "{{x}} = {{y}}" :x "four" :y)
+              (python "{{x}} + {{y}}" :x 2 :y 2)))))
 
 (deftest test-duplication ()
   (is (equal
