@@ -320,6 +320,7 @@
            :bash
            :java
            :text-fragment
+           :choice-superclass
            ;; Functions
            :patch-whitespace))
 (in-package :software-evolution-library/software/tree-sitter)
