@@ -47,7 +47,7 @@ class AST:
         return _interface.dispatch(self)
 
     def ast_refcount(self) -> int:
-        """Return the AST's language."""
+        """Return the AST's reference count."""
         return _interface.dispatch(self)
 
     def ast_type(self) -> str:

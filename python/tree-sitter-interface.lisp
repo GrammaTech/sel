@@ -228,6 +228,6 @@ function name from the API followed by the arguments."
 (-> int/call-arguments (ast) list)
 (defun int/call-arguments (ast) (call-arguments ast))
 
-(-> int/ast-refcount (ast) string)
+(-> int/ast-refcount (ast) fixnum)
 (defun int/ast-refcount (ast)
-  (format nil "~D" (refcount ast)))
+  (refcount ast))

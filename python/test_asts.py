@@ -57,7 +57,7 @@ class BinaryOperationTestDriver(unittest.TestCase):
 
     # Reference count
     def test_ast_refcount(self):
-        self.assertEqual("1", asts.AST.ast_refcount(self.root))
+        self.assertEqual(1, asts.AST.ast_refcount(self.root))
 
 
 class SelfReferentialTestDriver(unittest.TestCase):
