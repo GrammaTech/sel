@@ -4471,6 +4471,7 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
                           &aux (child (car (car parse-stack))))
              (cond
                ((and (atom child)
+                     (not (null child))
                      ;; Confirm tree is the relevant thing on the stack.
                      (member (convert-to-lisp-type language-prefix child)
                              (cdr rule)
