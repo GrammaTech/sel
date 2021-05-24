@@ -20,7 +20,16 @@
    :software-evolution-library/software/jsdoc
    :software-evolution-library/software/regex
    :software-evolution-library/software/rust
-   :software-evolution-library/software/typescript))
+   :software-evolution-library/software/typescript
+   ;; :software-evolution-library/software/agda
+   ;; :software-evolution-library/software/c-sharp
+   ;; :software-evolution-library/software/julia
+   ;; :software-evolution-library/software/ocaml
+   ;; :software-evolution-library/software/php
+   ;; :software-evolution-library/software/ql
+   ;; :software-evolution-library/software/ruby
+   ;; :software-evolution-library/software/scala
+   ))
 
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
