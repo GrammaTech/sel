@@ -56,6 +56,7 @@
         :software-evolution-library/test/sexp
         :software-evolution-library/test/style-features
         :software-evolution-library/test/task-runner
+        :software-evolution-library/test/template
         :software-evolution-library/test/tree-sitter
         :software-evolution-library/test/type-traces
         :software-evolution-library/test/utility)
