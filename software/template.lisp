@@ -26,7 +26,7 @@ Generic so a different syntax can be used per-language.")
 (defun template-placeholder* (ast name)
   "Append a random number to the end of the placeholder."
   (let ((placeholder (template-placeholder ast name)))
-    (string+ placeholder (fmt "~x" (random 1000000)))))
+    (fmt "~a~x" placeholder (random 1000000))))
 
 (defgeneric template-metavariable (ast name)
   (:documentation "Generate the corresponding metavariable for NAME, a
