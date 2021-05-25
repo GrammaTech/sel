@@ -53,6 +53,22 @@ field."
          (t child-tree)))
      (lastcar parse-tree)))))
 
+(defmethod transform-parse-tree
+    ((language (eql ':c)) (class (eql 'c-assignment-expression)) parse-tree)
+  "Transform PARSE-TREE such that all modifiers are stored in the :modifiers
+field."
+  (append
+   (butlast parse-tree)
+   (list
+    (mapcar
+     (lambda (child-tree &aux (car (car child-tree)))
+       (cond
+         ((consp car) child-tree)
+         ((member car '(:error :comment)) child-tree)
+         (t (cons (list :operation (car child-tree))
+                  (cdr child-tree)))))
+     (lastcar parse-tree)))))
+
 (defgeneric pointers (c-declarator)
   (:documentation "Return the number of pointers around C-DECLARATOR.")
   (:method ((ast c-parameter-declaration)) (pointers (c-declarator ast)))

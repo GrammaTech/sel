@@ -36,6 +36,22 @@ field."
          (t child-tree)))
      (lastcar parse-tree)))))
 
+(defmethod transform-parse-tree
+    ((language (eql ':cpp)) (class (eql 'cpp-assignment-expression)) parse-tree)
+  "Transform PARSE-TREE such that all modifiers are stored in the :modifiers
+field."
+  (append
+   (butlast parse-tree)
+   (list
+    (mapcar
+     (lambda (child-tree &aux (car (car child-tree)))
+       (cond
+         ((consp car) child-tree)
+         ((member car '(:error :comment)) child-tree)
+         (t (cons (list :operation (car child-tree))
+                  (cdr child-tree)))))
+     (lastcar parse-tree)))))
+
 (defmethod ext :around ((obj cpp)) (or (call-next-method) "cpp"))
 
 (defmethod function-body ((ast cpp-function-definition)) (cpp-body ast))

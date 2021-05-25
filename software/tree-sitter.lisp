@@ -416,6 +416,11 @@ searched to populate `*tree-sitter-language-files*'.")
 
   (defparameter *tree-sitter-ast-extra-slots*
     '((:c
+       (c-assignment-expression
+        (c-operation
+         :accessor c-operation
+         :initarg :c-operation
+         :initform nil))
        (c-sized-type-specifier
         (c-modifiers
          :accessor c-modifiers
@@ -427,6 +432,11 @@ searched to populate `*tree-sitter-language-files*'.")
          :initarg :c-operation
          :initform nil)))
       (:cpp
+       (cpp-assignment-expression
+        (cpp-operation
+         :accessor cpp-operation
+         :initarg :cpp-operation
+         :initform nil))
        (cpp-preproc-ifdef
         (cpp-operation
          :accessor cpp-operation
@@ -845,6 +855,30 @@ definitions.")
 
   (defparameter *tree-sitter-json-rule-substitutions*
     '((:c
+       ;; NOTE: remove this and cpp's substitution if this is patched
+       ;;       upstream.
+       (:ASSIGNMENT-EXPRESSION (:TYPE . "PREC_RIGHT") (:VALUE . -1)
+        (:CONTENT (:TYPE . "SEQ")
+         (:MEMBERS
+          ((:TYPE . "FIELD") (:NAME . "left")
+           (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_assignment_left_expression")))
+          ((:TYPE . "FIELD") (:NAME . "operation")
+           (:CONTENT
+            (:TYPE . "CHOICE")
+            (:MEMBERS
+             ((:TYPE . "STRING") (:VALUE . "="))
+             ((:TYPE . "STRING") (:VALUE . "*="))
+             ((:TYPE . "STRING") (:VALUE . "/="))
+             ((:TYPE . "STRING") (:VALUE . "%="))
+             ((:TYPE . "STRING") (:VALUE . "+="))
+             ((:TYPE . "STRING") (:VALUE . "-="))
+             ((:TYPE . "STRING") (:VALUE . "<<="))
+             ((:TYPE . "STRING") (:VALUE . ">>="))
+             ((:TYPE . "STRING") (:VALUE . "&="))
+             ((:TYPE . "STRING") (:VALUE . "^="))
+             ((:TYPE . "STRING") (:VALUE . "|=")))))
+          ((:TYPE . "FIELD") (:NAME . "right")
+           (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_expression"))))))
        (:PREPROC-IFDEF (:TYPE . "SEQ")
         (:MEMBERS
          ((:TYPE . "FIELD")
@@ -940,6 +974,28 @@ definitions.")
            ((:TYPE . "BLANK"))))
          ((:TYPE . "STRING") (:VALUE . ")")))))
       (:cpp
+       (:ASSIGNMENT-EXPRESSION (:TYPE . "PREC_RIGHT") (:VALUE . -1)
+        (:CONTENT (:TYPE . "SEQ")
+         (:MEMBERS
+          ((:TYPE . "FIELD") (:NAME . "left")
+           (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_assignment_left_expression")))
+          ((:TYPE . "FIELD") (:NAME . "operation")
+           (:CONTENT
+            (:TYPE . "CHOICE")
+            (:MEMBERS
+             ((:TYPE . "STRING") (:VALUE . "="))
+             ((:TYPE . "STRING") (:VALUE . "*="))
+             ((:TYPE . "STRING") (:VALUE . "/="))
+             ((:TYPE . "STRING") (:VALUE . "%="))
+             ((:TYPE . "STRING") (:VALUE . "+="))
+             ((:TYPE . "STRING") (:VALUE . "-="))
+             ((:TYPE . "STRING") (:VALUE . "<<="))
+             ((:TYPE . "STRING") (:VALUE . ">>="))
+             ((:TYPE . "STRING") (:VALUE . "&="))
+             ((:TYPE . "STRING") (:VALUE . "^="))
+             ((:TYPE . "STRING") (:VALUE . "|=")))))
+          ((:TYPE . "FIELD") (:NAME . "right")
+           (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_expression"))))))
        (:PREPROC-IFDEF (:TYPE . "SEQ")
         (:MEMBERS
          ((:TYPE . "FIELD")
