@@ -1316,7 +1316,8 @@ For every extra prefix, every slot will get an extra reader and an
 extra initarg with that prefix.")
 
   (defparameter *tree-sitter-computed-text-asts*
-    '((:python python-string))
+    '((:python python-string)
+      (:javascript javascript-template-string))
     "Alist of languages and their classes which should be computed-text ASTs
 but aren't detected as such. This is usually due to insufficient information
 stored on the AST or external rules.")
