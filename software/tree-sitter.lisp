@@ -3525,13 +3525,15 @@ Unlike the `children` methods which collects all children of an AST from any slo
            (defmethod convert ((to-type (eql ',ast-superclass)) (spec list)
                                &key string-pass-through
                                  computed-text-parent-p
+                                 line-octets-cache
                                  patch-whitespace
                                &allow-other-keys)
              (convert 'tree-sitter-ast spec
                       :patch-whitespace patch-whitespace
                       :superclass to-type
                       :string-pass-through string-pass-through
-                      :computed-text-parent-p computed-text-parent-p))
+                      :computed-text-parent-p computed-text-parent-p
+                      :line-octets-cache line-octets-cache))
 
            (defmethod convert ((to-type (eql ',ast-superclass)) (string string)
                                &rest args &key &allow-other-keys)
@@ -4849,7 +4851,8 @@ the indentation slots."
     root))
 
 (defun convert-initializer
-    (spec prefix superclass string &key computed-text-parent-p
+    (spec prefix superclass string
+     &key computed-text-parent-p line-octets-cache
      &aux (*package* (symbol-package superclass))
        (class (symbolicate prefix '-
                            (let ((type (car spec)))
@@ -4866,10 +4869,12 @@ the indentation slots."
                     `((:range-start ,(caadr spec))
                       (:range-end . ,(cdadr spec))))))
        (error-p (eql class (symbolicate prefix '-error)))
-       (line-octets (map
-                     'vector
-                     #'string-to-octets
-                     (serapeum:lines string :keep-eols t)))
+       (line-octets
+        (or line-octets-cache
+            (map
+             'vector
+             #'string-to-octets
+             (serapeum:lines string :keep-eols t))))
        (computed-text-p (computed-text-node-p instance)))
   "Initialize an instance of SUPERCLASS with SPEC."
   (labels ((safe-subseq
@@ -4971,7 +4976,8 @@ the indentation slots."
                (for converted-field =
                     (convert superclass field
                              :string-pass-through string
-                             :computed-text-parent-p computed-text-p))
+                             :computed-text-parent-p computed-text-p
+                             :line-octets-cache line-octets))
                ;; cl-tree-sitter appears to put the
                ;; slot name first unless the list goes
                ;; into the children slot.
@@ -5139,12 +5145,15 @@ correct class name for subclasses of SUPERCLASS."
 
 (defmethod convert ((to-type (eql 'tree-sitter-ast)) (spec list)
                     &key superclass string-pass-through computed-text-parent-p
+                      line-octets-cache
                     &allow-other-keys)
   "Create a TO-TYPE AST from the SPEC (specification) list."
   (if string-pass-through
       (convert-initializer
        spec (get-language-from-superclass superclass) superclass
-       string-pass-through :computed-text-parent-p computed-text-parent-p)
+       string-pass-through
+       :computed-text-parent-p computed-text-parent-p
+       :line-octets-cache line-octets-cache)
       (convert-spec
        spec (get-language-from-superclass superclass) superclass)))
 
