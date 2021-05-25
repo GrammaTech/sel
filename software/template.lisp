@@ -10,7 +10,8 @@
   (:export :ast-template
            :template-placeholder
            :template-metavariable
-           :template-subtree))
+           :template-subtree
+           :ast-from-template))
 (in-package :software-evolution-library/software/template)
 
 (defgeneric template-placeholder (ast name)
@@ -288,3 +289,17 @@ languages allow you to use a pattern with the same name as shorthand:
                              :test #'equal)
                     node))
               pattern)))
+
+(defmacro ast-from-template (template class &rest args)
+  "In one step, build and destructure a template.
+
+Can be used to build a node that can only be parsed in some kind of
+context.
+
+Must use the positional syntax of `ast-template'."
+  (let ((temps (make-gensym-list (length args))))
+    (ematch class
+      ((list 'quote class)
+       `(ematch (ast-template ,template ',class ,@args)
+          ((ast-template ,template ,class ,@temps)
+           (values ,@temps)))))))
