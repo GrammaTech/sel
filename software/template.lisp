@@ -52,10 +52,18 @@ Generic so a different syntax can be used per-language.")
 
 ;;; TODO Verify at compile time that the AST with placeholders is valid.
 
-(-> parse-ast-template (string symbol list)
+(-> parse-ast-template (string symbol list &key (:recursive boolean))
     (values string list list list &optional))
-(defun parse-ast-template (template class kwargs)
+(defun parse-ast-template (template class kwargs &key recursive)
   (nest
+   (if (nor recursive (keywordp (car kwargs)))
+       (parse-ast-template
+        template class
+        (iter (for arg in kwargs)
+              (for i from 1)
+              (collect (make-keyword (princ-to-string i)))
+              (collect arg))
+        :recursive t))
    ;; Build tables between names, placeholders, and subtrees.
    (let* ((dummy (allocate-instance (find-class class)))
           (subs (plist-alist kwargs))
@@ -111,7 +119,7 @@ Generic so a different syntax can be used per-language.")
          diff)))
     nil))
 
-(defun ast-template (template class &rest kwargs &key &allow-other-keys)
+(defun ast-template (template class &rest args)
   "Create an AST of CLASS from TEMPLATE.
 
 For each of the keyword arguments, looks for corresponding
@@ -123,7 +131,7 @@ syntax can vary by language."
   (nest
    ;; Build tables between names, placeholders, and subtrees.
    (mvlet* ((template names placeholders subtrees
-             (parse-ast-template template class kwargs))
+             (parse-ast-template template class args))
             (dummy (make class))
             (subs (mapcar #'cons names subtrees))
             (subs
@@ -206,7 +214,8 @@ syntax can vary by language."
               (otherwise class)))
            (language
             (find-external-symbol (drop-suffix "-AST" (string class))
-                                  :sel/sw/ts))
+                                  :sel/sw/ts
+                                  :error t))
            (pattern
             (convert 'match template :language language))
            (template names placeholders subtrees

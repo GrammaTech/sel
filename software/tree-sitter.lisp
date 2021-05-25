@@ -1684,8 +1684,8 @@ stored on the AST or external rules.")
 (defmacro define-template-builder (class ast-class)
   `(progn
      (defun ,class
-         (template &rest kwargs &key &allow-other-keys)
-       (apply #'ast-template template ',ast-class kwargs))
+         (template &rest args)
+       (apply #'ast-template template ',ast-class args))
 
      ;; Define compiler macro so the template can be
      ;; statically checked.
