@@ -105,3 +105,7 @@ def $READ_NAME():
     (is (equal? name1 name2))
     (is (equal (source-text read-name) "read_foo"))
     (is (equal (source-text name1) "foo"))))
+
+(deftest test-ast-from-template ()
+  (is (typep (ast-from-template "$1;" 'cpp-ast "\"Foo: %d\"")
+             'cpp-string-literal)))

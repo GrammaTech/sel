@@ -52,9 +52,9 @@ Generic so a different syntax can be used per-language.")
 (defgeneric template-subtree (ast thing)
   (:documentation "Convert THING into a subtree.")
   (:method (ast (x integer))
-    (template-subtree ast (princ-to-string x)))
+    (princ-to-string x))
   (:method ((ast ast) (x string))
-    (convert (type-of ast) x :deepest t))
+    x)
   (:method ((class t) (x ast))
     x))
 
@@ -167,10 +167,11 @@ metavariables must be numbered (`$1', `$2', etc.):
     (ast-template \"$1 = $2\" 'python-ast \"x\" 1)
     ≡ (ast-template \"$1 = $2\" 'python-ast :1 \"x\" :2 1)
 
-Values in ARGS that are not ASTs are converted into ASTs using
-`template-subtree', a generic functon. By default this recursively
-calls `convert' on strings (or values with trivial string equivalents,
-like integers).
+Values in ARGS must be either ASTs or strings. Values that are not
+ASTs or strings are converted into ASTs using `template-subtree', a
+generic function. Values that are ASTs are copied into the resulting
+tree. Values that are strings are inlined into the string and parsed
+in place.
 
     (ast-template \"$1 = value\" 'python-ast \"x\")
     ≡ (ast-template \"$1 = value\" 'python-ast
@@ -192,6 +193,7 @@ Both syntaxes can also be used as Trivia patterns for destructuring.
              (iter (for name in names)
                    (for subtree in subtrees)
                    (collect (cons name (template-subtree dummy subtree)))))
+            (subtrees (mapcar #'cdr subs))
             (names (mapcar #'car subs))
             (temp-subs (pairlis placeholders names))))
    ;; Wrap the tables with convenience accessors.
@@ -199,13 +201,12 @@ Both syntaxes can also be used as Trivia patterns for destructuring.
               (rassocar name temp-subs :test #'string=))
             (name-subtree (name)
               (assocdr name subs :test #'string=))
-            (name-targets (name ast)
-              (let ((placeholder (name-placeholder name)))
-                (collect-if (lambda (n)
-                              (and (typep n 'identifier-ast)
-                                   (string= (source-text n)
-                                            placeholder)))
-                            ast)))))
+            (placeholder-targets (placeholder ast)
+              (collect-if (lambda (n)
+                            (and (typep n 'identifier-ast)
+                                 (string= (source-text n)
+                                          placeholder)))
+                          ast))))
    ;; Replace the identifiers with subtrees, taking care to copy
    ;; before and after text.
    (let* ((template-stripped
@@ -216,10 +217,38 @@ Both syntaxes can also be used as Trivia patterns for destructuring.
                  template))
           (ast
            (assure ast
-             (convert class template :deepest t))))
+             (convert class template :deepest t)))
+          (placeholder-paths
+           (iter (for p in placeholders)
+                 (for targets = (placeholder-targets p ast))
+                 (collect
+                  (cons p (mapcar (op (ast-path ast _)) targets))))))
      (setf (before-text ast) leading-whitespace))
+   (labels ((placeholder-paths (placeholder)
+              (assocdr placeholder placeholder-paths :test #'equal))
+            (name-paths (name)
+              (placeholder-paths (name-placeholder name)))))
+   (let* ((ast
+           (if (notany #'stringp subtrees)
+               ast
+               (let ((template
+                      (reduce (lambda (template name)
+                                (let ((subtree (name-subtree name)))
+                                  (if (stringp subtree)
+                                      (string-replace-all
+                                       (name-placeholder name)
+                                       template
+                                       subtree)
+                                      template)))
+                              names
+                              :initial-value template)))
+                 (assure ast
+                   (convert class template :deepest t)))))))
    (reduce (lambda (ast name)
-             (let* ((targets (name-targets name ast))
+             (let* ((paths (name-paths name))
+                    (targets
+                     (iter (for path in paths)
+                           (collect (lookup ast path))))
                     (subtrees
                      (let ((subtree (name-subtree name)))
                        (iter (for target in targets)
@@ -237,13 +266,13 @@ Both syntaxes can also be used as Trivia patterns for destructuring.
                ;; path of the target AST ends with a number, find the
                ;; parent and splice into its children. But: how to
                ;; synthesize the "interleaved text" reliably?
-               (reduce (lambda (ast target.subtree)
-                         (destructuring-bind (target . subtree)
-                             target.subtree
-                           (with ast
-                                 (ast-path ast target)
-                                 subtree)))
-                       (pairlis targets subtrees)
+               (reduce (lambda (ast path.subtree)
+                         (destructuring-bind (path . subtree)
+                             path.subtree
+                           (if (stringp subtree)
+                               ast
+                               (with ast path subtree))))
+                       (pairlis paths subtrees)
                        :initial-value ast)))
            names
            :initial-value ast)))
