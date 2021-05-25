@@ -66,40 +66,36 @@ Generic so a different syntax can be used per-language.")
 3. A list of placeholders.
 4. A list of subtrees."
   (nest
-   (if (nor recursive (keywordp (car kwargs)))
+   (if (nor recursive (keywordp (car args)))
+       ;; Handle the positional syntax.
        (parse-ast-template
         template class
-        (iter (for arg in kwargs)
+        (iter (for arg in args)
               (for i from 1)
               (collect (make-keyword (princ-to-string i)))
               (collect arg))
         :recursive t))
    ;; Build tables between names, placeholders, and subtrees.
    (let* ((dummy (allocate-instance (find-class class)))
-          (subs (plist-alist kwargs))
-          (subs
-           (iter (for (name . value) in subs)
-                 (collect (cons name value))))
+          (subs (plist-alist args))
           (names (mapcar #'car subs))
           (subtrees (mapcar #'cdr subs))
           (placeholders
            (mapcar (op (template-placeholder* dummy _)) names))
-          (temp-subs (mapcar #'cons placeholders names))))
+          (temp-subs (pairlis placeholders names))))
    ;; Wrap the tables with convenience accessors.
    (labels ((name-placeholder (name)
               (rassocar name temp-subs :test #'string=))))
-   ;; Substitute the parseable placeholders for the original names.
-   ;; (This may be necessary when, say, using a name like
-   ;; `read-function` in Python; we need to substitute it with
-   ;; something that Python will treat as a single identifier.
-   (let* ((template
-           (reduce (lambda (template name)
-                     (string-replace-all (template-metavariable dummy name)
-                                         template
-                                         (name-placeholder name)))
-                   names
-                   :initial-value template)))
-     (values template names placeholders subtrees))))
+   (values
+    ;; Substitute the parseable placeholders for the original names so
+    ;; the AST parses correctly.
+    (reduce (lambda (template name)
+              (string-replace-all (template-metavariable dummy name)
+                                  template
+                                  (name-placeholder name)))
+            names
+            :initial-value template)
+    names placeholders subtrees)))
 
 (defun check-ast-template (template class kwargs)
   "Compile-time validity checking for templates."
@@ -133,12 +129,19 @@ Generic so a different syntax can be used per-language.")
          diff)))
     nil))
 
-(defun ast-template (template class &rest args)
-  "Create an AST of CLASS from TEMPLATE, filling in metavariables from ARGS.
+(define-compiler-macro ast-template (&whole call template class &rest kwargs)
+  "Compile-time validity checking for AST templates."
+  (match (list template class)
+    ((list (type string) (list 'quote class))
+     (check-ast-template template class kwargs)))
+  call)
 
-You probably don't want to use this function directly; most languages
-allow you to use a function with the same name as shorthand for
-creating a template:
+(defun ast-template (template class &rest args)
+  "Create an AST of CLASS from TEMPLATE usings ARGS.
+
+You probably don't want to use this function directly; supported
+languages allow you to use a function with the same name as shorthand
+for creating a template:
 
     (python \"$ID = 1\" :id \"x\")
     ≡ (ast-template \"$ID = 1\" 'python-ast :id \"x\")
@@ -183,12 +186,11 @@ Both syntaxes can also be used as Trivia patterns for destructuring.
    ;; Build tables between names, placeholders, and subtrees.
    (mvlet* ((template names placeholders subtrees
              (parse-ast-template template class args))
-            (dummy (make class))
-            (subs (mapcar #'cons names subtrees))
+            (dummy (allocate-instance (find-class class)))
             (subs
-             (iter (for (name . value) in subs)
-                   (collect (cons name
-                                  (template-subtree dummy value)))))
+             (iter (for name in names)
+                   (for subtree in subtrees)
+                   (collect (cons name (template-subtree dummy subtree)))))
             (names (mapcar #'car subs))
             (temp-subs (pairlis placeholders names))))
    ;; Wrap the tables with convenience accessors.
@@ -245,12 +247,6 @@ Both syntaxes can also be used as Trivia patterns for destructuring.
            names
            :initial-value ast)))
 
-(define-compiler-macro ast-template (&whole call template class &rest kwargs)
-  (match (list template class)
-    ((list (type string) (list 'quote class))
-     (check-ast-template template class kwargs)))
-  call)
-
 (defun ssr-wildcard? (node)
   "Is NODE an SSR wildcard (symbol that starts with WILD_)?"
   (and (symbolp node)
@@ -278,7 +274,7 @@ languages allow you to use a pattern with the same name as shorthand:
            (pattern
             (convert 'match template :language language))
            (template names placeholders subtrees
-            (parse-ast-template template class kwargs))
+            (parse-ast-template template class args))
            (dummy (allocate-instance (find-class class)))
            (metavars
             (mapcar (op (template-metavariable dummy _))
