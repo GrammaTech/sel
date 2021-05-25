@@ -9,28 +9,36 @@
   (:import-from :ssr/string-clauses)
   (:export :ast-template
            :template-placeholder
-           :template-metavariable))
+           :template-metavariable
+           :template-subtree))
 (in-package :software-evolution-library/software/template)
 
 (defgeneric template-placeholder (ast name)
-  (:documentation "Generate a placeholder for NAME that AST's language
-  can parse as a valid identifier.
+  (:documentation "Generate a placeholder for NAME.
+
+The user should never see the placeholder; it is simply a string that
+AST's language can parse as a valid identifier.
 
 Generic so a different syntax can be used per-language.")
   (:method ((ast t) name)
     ;; A reasonable default for most programming languages. Add a
     ;; leading underscore to avoid having to worry about what
-    ;; characters a symbol can begin with.
+    ;; characters a symbol can begin with. (E.g. Python variables
+    ;; cannot begin with a number.)
     (string+ #\_ (substitute #\_ #\- (string name)))))
 
 (defun template-placeholder* (ast name)
-  "Append a random number to the end of the placeholder."
+  "Append a random number to the end of the placeholder.
+
+Just in case of a conflict with another binding in the template."
   (let ((placeholder (template-placeholder ast name)))
     (fmt "~a~x" placeholder (random 1000000))))
 
-(defgeneric template-metavariable (ast name)
-  (:documentation "Generate the corresponding metavariable for NAME, a
-  Lispy symbol.
+(defgeneric template-metavariable (ast symbol)
+  (:documentation "Generate the corresponding valid metavariable for SYMBOL.
+
+By default this substitutes underscores for dashes and prepends a
+sigil.
 
 Generic so a different syntax can be used per-language.")
   (:method (ast name)
@@ -42,7 +50,6 @@ Generic so a different syntax can be used per-language.")
 
 (defgeneric template-subtree (ast thing)
   (:documentation "Convert THING into a subtree.")
-  ;; TODO Handle single/double floats.
   (:method (ast (x integer))
     (template-subtree ast (princ-to-string x)))
   (:method ((ast ast) (x string))
@@ -50,11 +57,14 @@ Generic so a different syntax can be used per-language.")
   (:method ((class t) (x ast))
     x))
 
-;;; TODO Verify at compile time that the AST with placeholders is valid.
-
 (-> parse-ast-template (string symbol list &key (:recursive boolean))
     (values string list list list &optional))
-(defun parse-ast-template (template class kwargs &key recursive)
+(defun parse-ast-template (template class args &key recursive)
+  "Parse TEMPLATE and return four values:
+1. The template with placeholders substituted for metavariables.
+2. A list of the original metavariable names.
+3. A list of placeholders.
+4. A list of subtrees."
   (nest
    (if (nor recursive (keywordp (car kwargs)))
        (parse-ast-template
@@ -99,13 +109,17 @@ Generic so a different syntax can be used per-language.")
     ;; Check that there are no parse errors.
     (when (find-if (of-type 'parse-error-ast) ast)
       (error "Template contains parse errors:~%~a" template))
+    ;; Check that the AST is printable.
     (handler-case (source-text ast)
       (error (e)
         (error "Template cannot be printed because: ~a" e)))
+    ;; Check that there names and placeholders are the same length.
     (unless (length= names placeholders)
       (error "Length mismatch in template arguments."))
+    ;; Check that there are no duplicate placeholders.
     (unless (length= placeholders (nub placeholders))
       (error "Duplicate placeholders: ~a" placeholders))
+    ;; Check that all the placeholders are used.
     (let ((found
            (filter (lambda (p)
                      (find-if (lambda (n)
@@ -120,14 +134,51 @@ Generic so a different syntax can be used per-language.")
     nil))
 
 (defun ast-template (template class &rest args)
-  "Create an AST of CLASS from TEMPLATE.
+  "Create an AST of CLASS from TEMPLATE, filling in metavariables from ARGS.
 
-For each of the keyword arguments, looks for corresponding
-metavariable, and substitutes the given subtree.
+You probably don't want to use this function directly; most languages
+allow you to use a function with the same name as shorthand for
+creating a template:
+
+    (python \"$ID = 1\" :id \"x\")
+    ≡ (ast-template \"$ID = 1\" 'python-ast :id \"x\")
 
 By default metavariables look like `$X', where the name can contain
-only uppercase characters, digits, or an underscore. Metavariable
-syntax can vary by language."
+only uppercase characters, digits, or underscores. \(Syntax can vary
+by language; see `template-metavariable'.)
+
+There are two syntaxes for ARGS.
+
+ARGS can be keyword arguments, defaults for the corresponding
+metavariables (converting dashes to underscores):
+
+    (ast-template \"$LEFT_HAND_SIDE = $RIGHT_HAND_SIDE\" 'python-ast
+                  :left-hand-side \"x\"
+                  :right-hand-side 1)
+    => <python-assignment \"x = 1\">
+
+ARGS can be positional (keywords not allowed!). In this case
+metavariables must be numbered (`$1', `$2', etc.):
+
+    (ast-template \"$1 = $2\" 'python-ast \"x\" 1)
+    ≡ (ast-template \"$1 = $2\" 'python-ast :1 \"x\" :2 1)
+
+Values in ARGS that are not ASTs are converted into ASTs using
+`template-subtree', a generic functon. By default this recursively
+calls `convert' on strings (or values with trivial string equivalents,
+like integers).
+
+    (ast-template \"$1 = value\" 'python-ast \"x\")
+    ≡ (ast-template \"$1 = value\" 'python-ast
+                    (convert \"x\" 'python-ast :deepest t)
+
+Both syntaxes can also be used as Trivia patterns for destructuring.
+
+    (match (python \"x = 2 + 2\")
+      ((python \"$1 = $2\" var (python \"$X + $Y\" :x x :y y))
+       (list x y)))
+    => (#<python-identifier \"x\"> #<python-integer \"2\">
+        #<python-integer \"2\">)"
   (nest
    ;; Build tables between names, placeholders, and subtrees.
    (mvlet* ((template names placeholders subtrees
@@ -201,13 +252,21 @@ syntax can vary by language."
   call)
 
 (defun ssr-wildcard? (node)
+  "Is NODE an SSR wildcard (symbol that starts with WILD_)?"
   (and (symbolp node)
        (eql (find-package :ssr/string-clauses)
             (symbol-package node))
        (string^= 'wild- node)))
 
-(defpattern ast-template (template class &rest kwargs)
-  (check-ast-template template class kwargs)
+(defpattern ast-template (template class &rest args)
+  "Match TEMPLATE as a pattern using CLASS and ARGS.
+
+You probably don't want to use this pattern directly; supported
+languages allow you to use a pattern with the same name as shorthand:
+
+    (match x ((python \"$ID = 1\" :id \"x\") ...))
+    ≡ (match x ((ast-template \"$ID = 1\" 'python-ast :id \"x\") ...))"
+  (check-ast-template template class args)
   (mvlet* ((class
             (match class
               ((list 'quote class) class)

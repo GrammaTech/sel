@@ -1685,6 +1685,7 @@ stored on the AST or external rules.")
   `(progn
      (defun ,class
          (template &rest args)
+       "Short for (ast-template TEMPLATE python-ast ARGS...)."
        (apply #'ast-template template ',ast-class args))
 
      ;; Define compiler macro so the template can be
