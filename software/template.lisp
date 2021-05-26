@@ -1,4 +1,4 @@
-;;; parseable.lisp --- Software which may be parsed into ASTs
+;;; template.lisp --- Templates for de/constructing ASTs
 (defpackage :software-evolution-library/software/template
   (:nicknames :sel/software/template :sel/sw/template)
   (:use :gt/full
