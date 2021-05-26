@@ -1080,12 +1080,13 @@ top level.")
 (defmethod whitespace-between ((style pep8)
                                (x python-expression-statement)
                                (y python-expression-statement))
+  "A newline between expression statements."
   (fmt "~%"))
 
 (defmethod whitespace-between ((style pep8)
                                (x python-class-definition)
                                (y python-ast))
-  ;; PEP 8: two blank lines around class definitions.
+  "Surround class definitions with two newlines."
   #.(fmt "~3%"))
 
 (defmethod whitespace-between ((style pep8)
@@ -1096,7 +1097,7 @@ top level.")
 (defmethod whitespace-between ((style pep8)
                                (x python-function-definition)
                                (y python-ast))
-  ;; Per PEP 8: one blank line for methods, two for functions.
+  "Per PEP 8: one blank line for methods, two for functions."
   (if (and *python-software*
            (typep (get-parent-ast *python-software* x)
                   '(or null python-module)))

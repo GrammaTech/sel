@@ -4698,8 +4698,10 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
         ""))
   ;; Sensible defaults for most (all?) programming languages.
   (:method (s (ast1 symbol) (ast2 structured-text))
+    "No whitespace after an opening delimiter."
     (if (some (op (string$= _ ast1)) "([{") "" " "))
   (:method (s (ast1 structured-text) (ast2 symbol))
+    "No whitespace before a closing delimiter or a comma."
     (if (some (op (string^= _ ast2)) ")]},") "" " "))
   (:method (s (ast1 structured-text) (ast2 structured-text)) " ")
   (:documentation "Return a string of whitespace that should occur between
