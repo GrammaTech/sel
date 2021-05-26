@@ -264,6 +264,7 @@
            :loop-ast
            :class-ast
            :function-ast
+           :parameters-ast
            :variable-declaration-ast
            :identifier-ast
            :lambda-ast
@@ -274,6 +275,7 @@
            :string-ast
            :char-ast
            :call-ast
+           :arguments-ast
            :boolean-ast
            :boolean-true-ast
            :boolean-false-ast
@@ -736,6 +738,7 @@ searched to populate `*tree-sitter-language-files*'.")
        (:function-ast
         javascript-function javascript-function-declaration
         javascript-arrow-function)
+       (:parameters-ast javascript-formal-parameters)
        (:variable-declaration-ast javascript-variable-declaration-ast)
        (:identifier-ast
         javascript-identifier javascript-property-identifier
@@ -748,6 +751,7 @@ searched to populate `*tree-sitter-language-files*'.")
         javascript-while-statement)
        (:statement-ast javascript--statement)
        (:call-ast javascript-call-expression)
+       (:arguments-ast javascript-arguments)
        (:unary-ast javascript-unary-expression)
        (:binary-ast javascript-binary-expression)
        (:return-ast javascript-return-statement))
@@ -764,6 +768,7 @@ searched to populate `*tree-sitter-language-files*'.")
        (:parenthesized-expression-ast python-parenthesized-expression)
        (:function-ast
         python-function-definition python-lambda)
+       (:parameters-ast python-parameters python-lambda-parameters)
        (:boolean-true-ast python-true)
        (:boolean-false-ast python-false)
        (:identifier-ast python-identifier)
@@ -775,6 +780,7 @@ searched to populate `*tree-sitter-language-files*'.")
         python-while-statement python-for-statement python-for-in-clause)
        (:statement-ast python--compound-statement python--simple-statement)
        (:call-ast python-call)
+       (:arguments-ast python-argument-list)
        (:unary-ast python-unary-operator python-not-operator)
        (:binary-ast python-binary-operator python-boolean-operator)
        (:return-ast python-return-statement)
@@ -1543,6 +1549,9 @@ Superclass of every generated LANGUAGE-error class."))
   (defclass function-ast (ast) ()
     (:documentation "Mix-in for AST classes that are functions."))
 
+  (defclass parameters-ast (ast) ()
+    (:documentation "Mix-in for AST classes that are parameter lists."))
+
   (defclass variable-declaration-ast (ast) ()
     (:documentation "Mix-in for AST classes that are variable declarations."))
 
@@ -1581,6 +1590,9 @@ Superclass of every generated LANGUAGE-error class."))
 
   (defclass call-ast (expression-ast) ()
     (:documentation "Mix-in for AST classes that are calls."))
+
+  (defclass arguments-ast (ast) ()
+    (:documentation "Mix-in for AST classes that are lists of arguments."))
 
   (defclass unary-ast (expression-ast) ()
     (:documentation "Mix-in for AST classes that are unary expressions."))
