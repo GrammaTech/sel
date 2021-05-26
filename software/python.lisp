@@ -1057,39 +1057,49 @@ Returns nil if the length of KEYS is not the same as VALUES'."
   "Format the genome of OBJ using YAPF (Yet Another Python Formatter)."
   (yapf obj))
 
-(defclass pep8 () ())
+(defvar *python-software* nil
+  "The software object for calculating whitespace.
+We need this since PEP 8 defines different rules for whitespace at the
+top level.")
+
+(defmethod patch-whitespace :around ((ast python-ast) &key software)
+  (let ((*python-software* software))
+    (call-next-method)))
+
+(defclass pep8 () ()
+  (:documentation "PEP 8 style."))
 
 (def +pep8+ (make 'pep8))
 
-(defmethod whitespace-between ((style null) (software python) x y)
-  "Default to PEP-8."
-  (whitespace-between +pep8+ software x y))
+;;; Default to PEP8.
+(defmethod whitespace-between ((style null) (x python-ast) y)
+  (whitespace-between +pep8+ x y))
+(defmethod whitespace-between ((style null) x (y python-ast))
+  (whitespace-between +pep8+ x y))
 
 (defmethod whitespace-between ((style pep8)
-                               (sw python)
                                (x python-expression-statement)
                                (y python-expression-statement))
   (fmt "~%"))
 
 (defmethod whitespace-between ((style pep8)
-                               (sw python)
                                (x python-class-definition)
                                (y python-ast))
   ;; PEP 8: two blank lines around class definitions.
   #.(fmt "~3%"))
 
 (defmethod whitespace-between ((style pep8)
-                               (sw python)
                                (x python-ast)
                                (y python-class-definition))
-  (whitespace-between style sw y x))
+  (whitespace-between style y x))
 
 (defmethod whitespace-between ((style pep8)
-                               (sw python)
                                (x python-function-definition)
                                (y python-ast))
   ;; Per PEP 8: one blank line for methods, two for functions.
-  (if (typep (get-parent-ast sw x) '(or null python-module))
+  (if (and *python-software*
+           (typep (get-parent-ast *python-software* x)
+                  '(or null python-module)))
       (fmt "~2%")
       (fmt "~3%")))
 

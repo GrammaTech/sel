@@ -4684,47 +4684,56 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
          ;; Avoid matching a rule if parse tree tokens still exist.
          (and (not parse-stack) success?))))))
 
-(defgeneric whitespace-between (style software ast1 ast2)
-  (:method (s sw ast1 ast2) "")
-  (:method (s sw (ast1 null) ast2) "")
-  (:method (s sw ast1 (ast2 null)) "")
-  (:method (s sw (ast1 structured-text) (ast2 string))
-    (if (scan "[^ \\t\\n]" ast2)
-        (whitespace-between s sw ast1 (make-keyword ast2))
+(defgeneric whitespace-between (style ast1 ast2)
+  (:method (s ast1 ast2) "")
+  (:method (s (ast1 null) ast2) "")
+  (:method (s ast1 (ast2 null)) "")
+  (:method (s (ast1 structured-text) (ast2 string))
+    (if (notevery #'whitespacep ast2)
+        (whitespace-between s ast1 (make-keyword ast2))
         ""))
-  (:method (s sw (ast1 string) (ast2 structured-text))
-    (if (scan "[^ \\t\\n]" ast1)
-        (whitespace-between s sw (make-keyword ast1) ast2)
+  (:method (s (ast1 string) (ast2 structured-text))
+    (if (notevery #'whitespacep ast1)
+        (whitespace-between s (make-keyword ast1) ast2)
         ""))
-  (:method (s sw (ast1 symbol) (ast2 structured-text)) " ")
-  (:method (s sw (ast1 structured-text) (ast2 symbol)) " ")
-  (:method (s sw (ast1 structured-text) (ast2 structured-text)) " ")
+  ;; Sensible defaults for most (all?) programming languages.
+  (:method (s (ast1 symbol) (ast2 structured-text))
+    (if (some (op (string$= _ ast1)) "([{") "" " "))
+  (:method (s (ast1 structured-text) (ast2 symbol))
+    (if (some (op (string^= _ ast2)) ")]},") "" " "))
+  (:method (s (ast1 structured-text) (ast2 structured-text)) " ")
   (:documentation "Return a string of whitespace that should occur between
-AST1 and AST2 in SOFTWARE.
+AST1 and AST2.
 
 STYLE can be used to control whitespace based on a standard format or
 on the calculated format of a particular file."))
 
-(defun patch-whitespace (ast &key software style (recursive t))
-  "Destructively patch whitespace on AST by adding a space to the before-text and
-after-text slots that need it."
-  (iter
-    (for item in (cdr (butlast (output-transformation ast))))
-    (for previous-item previous item)
-    (for white-space = (whitespace-between style software previous-item item))
-    (when (and recursive
-               (typep item 'tree-sitter-ast)
-               (not (computed-text-node-p ast)))
-      (patch-whitespace item :software software :style style))
-    (cond
-      ((emptyp white-space))
-      ((typep item 'structured-text)
-       (when (emptyp (before-text item))
-         (setf (before-text item) white-space)))
-      ((typep previous-item 'structured-text)
-       (when (emptyp (after-text previous-item))
-         (setf (after-text previous-item) white-space))))
-    (finally (return ast))))
+(defgeneric patch-whitespace (ast &key)
+  (:documentation "Destructively patch whitespace on AST by adding a
+  space to the before-text and after-text slots that need it.")
+  (:method ((ast t) &key) ast)
+  (:method ((ast structured-text) &key style (recursive t))
+    (labels ((patch-whitespace (ast)
+               (iter
+                (for item in (cdr (butlast (output-transformation ast))))
+                (for previous-item previous item)
+                (for white-space =
+                     (whitespace-between style previous-item item))
+                (when (and recursive
+                           (typep item 'tree-sitter-ast)
+                           (not (computed-text-node-p ast)))
+                  (patch-whitespace item))
+                (cond
+                  ((emptyp white-space))
+                  ((typep item 'structured-text)
+                   (when (emptyp (before-text item))
+                     (setf (before-text item) white-space)))
+                  ((typep previous-item 'structured-text)
+                   (when (emptyp (after-text previous-item))
+                     (setf (after-text previous-item) white-space))))
+                (finally (return ast)))))
+      (declare (dynamic-extent #'patch-whitespace))
+      (patch-whitespace ast))))
 
 (defun process-indentation (root &aux indentation-carryover indentation-ast)
   "Process the indentation of ROOT such that indentation information is stored in
