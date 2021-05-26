@@ -1056,3 +1056,63 @@ Returns nil if the length of KEYS is not the same as VALUES'."
 (defmethod format-genome ((obj python) &key)
   "Format the genome of OBJ using YAPF (Yet Another Python Formatter)."
   (yapf obj))
+
+(defclass pep8 () ())
+
+(def +pep8+ (make 'pep8))
+
+(defmethod whitespace-between ((style null) (software python) x y)
+  "Default to PEP-8."
+  (whitespace-between +pep8+ software x y))
+
+(defmethod whitespace-between ((style pep8)
+                               (sw python)
+                               (x python-expression-statement)
+                               (y python-expression-statement))
+  (fmt "~%"))
+
+(defmethod whitespace-between ((style pep8)
+                               (sw python)
+                               (x python-class-definition)
+                               (y python-ast))
+  ;; PEP 8: two blank lines around class definitions.
+  #.(fmt "~3%"))
+
+(defmethod whitespace-between ((style pep8)
+                               (sw python)
+                               (x python-ast)
+                               (y python-class-definition))
+  (whitespace-between style sw y x))
+
+(defmethod whitespace-between ((style pep8)
+                               (sw python)
+                               (x python-function-definition)
+                               (y python-ast))
+  ;; Per PEP 8: one blank line for methods, two for functions.
+  (if (typep (get-parent-ast sw x) '(or null python-module))
+      (fmt "~2%")
+      (fmt "~3%")))
+
+(defmethod whitespace-between ((style pep8)
+                               (sw python)
+                               (x python-ast)
+                               (y python-function-definition))
+  (whitespace-between style sw y x))
+
+(defmethod whitespace-between ((style pep8)
+                               (sw python)
+                               (x python-identifier)
+                               (y python-parameters))
+  "")
+
+(defmethod whitespace-between ((style pep8)
+                               (sw python)
+                               (x python-identifier)
+                               (y python-argument-list))
+  "")
+
+(defmethod whitespace-between ((style pep8)
+                               (sw python)
+                               (x (eql :|(|))
+                               (y python-ast))
+  "")
