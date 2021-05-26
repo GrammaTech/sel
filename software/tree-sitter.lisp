@@ -4430,13 +4430,16 @@ be more than one string outside of string literals."
   ;; NOTE: this could be expanded to match on the string too
   ;;       though the current representation of transformed json
   ;;       rules and pruned rules likely wouldn't benefit from it.
-  (labels ((handle-alias (rule tree &aux (alias (car tree)))
+  (labels ((handle-alias (rule tree &aux (alias (car (car tree))))
              (cond
                ((aget :named rule)
                 ;; Named aliases are unhandled by #'match-parsed-children-json.
                 (error "Named alias in JSON subtree"))
                (t
-                (and (string-equal (car alias) (aget :value rule))
+                (and (string-equal (if (consp alias)
+                                       (cadr alias)
+                                       alias)
+                                   (aget :value rule))
                      (values (cdr tree) t)))))
            (handle-blank (tree) (values tree t))
            (handle-choice (rule tree)
