@@ -223,6 +223,9 @@ scope of START-AST."
 (defmethod format-genome ((obj javascript) &key)
   (prettier obj))
 
+
+;;; Whitespace rules
+
 (define-empty-whitespace-methods ()
   javascript-ast javascript---
   javascript--- javascript-ast

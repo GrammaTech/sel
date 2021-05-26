@@ -1057,6 +1057,9 @@ Returns nil if the length of KEYS is not the same as VALUES'."
   "Format the genome of OBJ using YAPF (Yet Another Python Formatter)."
   (yapf obj))
 
+
+;;; Whitespace rules
+
 (defvar *python-software* nil
   "The software object for calculating whitespace.
 We need this since PEP 8 defines different rules for whitespace at the
