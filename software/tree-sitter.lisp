@@ -4703,9 +4703,11 @@ after-text slots that need it."
     (cond
       ((emptyp white-space))
       ((typep item 'structured-text)
-       (setf (before-text item) white-space))
+       (when (emptyp (before-text item))
+         (setf (before-text item) white-space)))
       ((typep previous-item 'structured-text)
-       (setf (after-text previous-item) white-space)))
+       (when (emptyp (after-text previous-item))
+         (setf (after-text previous-item) white-space))))
     (finally (return ast))))
 
 (defun process-indentation (root &aux indentation-carryover indentation-ast)
