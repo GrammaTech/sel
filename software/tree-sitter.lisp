@@ -5466,7 +5466,8 @@ correct class name for subclasses of SUPERCLASS."
                           :indentation-ast indentation-ast
                           :trim nil)))
     (let ((indentablep (indentablep ast)))
-      (handle-text (before-text ast) ast indentablep parents)
+      ;; before and after text is always considered indentable.
+      (handle-text (before-text ast) ast t parents)
       (mapc (lambda (output &aux trim)
               (declare (special trim))
               (if (stringp output)
@@ -5474,7 +5475,7 @@ correct class name for subclasses of SUPERCLASS."
                                :ancestor-check t)
                   (handle-ast output)))
             (cdr (butlast (output-transformation ast))))
-      (handle-text (after-text ast) ast indentablep parents))))
+      (handle-text (after-text ast) ast t parents))))
 
 (defmethod rebind-vars ((ast tree-sitter-ast)
                         var-replacements fun-replacements)
