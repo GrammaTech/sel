@@ -61,7 +61,9 @@
          (t child-tree)))
      (lastcar parse-tree)))))
 
-;; Methods common to all software objects
+
+;;; Methods common to all software objects
+
 (defmethod phenome ((obj javascript) &key (bin (temp-file-name)))
   (interpreted-phenome obj bin))
 
@@ -202,7 +204,9 @@ AST ast to return the enclosing scope for"
 
 (defmethod rhs ((decl javascript-variable-declarator)) (javascript-value decl))
 
-;; Helper Functions.
+
+;;; Helper Functions.
+
 (-> enclosing-find-function (javascript javascript-ast string)
   (values (or null javascript-ast) &optional))
 (defun enclosing-find-function (obj start-ast function-name)

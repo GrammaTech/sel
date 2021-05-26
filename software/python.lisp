@@ -83,7 +83,9 @@ are created if they're present in PARSE-TREE."
 (defmethod comparisonp ((ast python-comparison-operator))
   t)
 
-;; Methods common to all software objects
+
+;;; Methods common to all software objects
+
 (defmethod imports ((software python))
   (imports (genome software)))
 
@@ -630,7 +632,9 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
 (defmethod control-flow-condition ((ast python-if-statement)) (car (children ast)))
 (defmethod control-flow-condition ((ast python-while-statement)) (car (children ast)))
 
-;; Indentation
+
+;;; Indentation
+
 (defmethod indentablep ((ast python-string)) nil)
 
 (defmethod get-default-indentation ((ast python-ast) (parents list))
@@ -651,7 +655,9 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
       (indent-children indented-obj)
       (call-next-method))))
 
-;; Helper functions
+
+;;; Helper functions
+
 (-> collect-var-uses (python python-ast) (values list &optional))
 (defun collect-var-uses (obj ast)
   "Collect uses of AST in OBJ."
