@@ -4701,7 +4701,7 @@ the indentation slots."
                     ((eq child ast))
                     (indent-children
                      (setf indent-children (- indent-children indentation))))))
-              ast))
+              (children ast)))
            (update-indentation-slots
                (ast parents indentation text
                 &aux (parent (car parents))
