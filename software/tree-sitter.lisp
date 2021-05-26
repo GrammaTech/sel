@@ -416,10 +416,15 @@ searched to populate `*tree-sitter-language-files*'.")
 
   (defparameter *tree-sitter-ast-extra-slots*
     '((:c
+       (c-field-expression
+        (c-operator
+         :accessor c-operator
+         :initarg :c-operator
+         :initform nil))
        (c-assignment-expression
-        (c-operation
-         :accessor c-operation
-         :initarg :c-operation
+        (c-operator
+         :accessor c-operator
+         :initarg :c-operator
          :initform nil))
        (c-sized-type-specifier
         (c-modifiers
@@ -432,10 +437,15 @@ searched to populate `*tree-sitter-language-files*'.")
          :initarg :c-operation
          :initform nil)))
       (:cpp
+       (cpp-field-expression
+        (cpp-operator
+         :accessor cpp-operator
+         :initarg :cpp-operator
+         :initform nil))
        (cpp-assignment-expression
-        (cpp-operation
-         :accessor cpp-operation
-         :initarg :cpp-operation
+        (cpp-operator
+         :accessor cpp-operator
+         :initarg :cpp-operator
          :initform nil))
        (cpp-preproc-ifdef
         (cpp-operation
@@ -857,12 +867,31 @@ definitions.")
     '((:c
        ;; NOTE: remove this and cpp's substitution if this is patched
        ;;       upstream.
+       (:FIELD-EXPRESSION (:TYPE . "SEQ")
+        (:MEMBERS
+         ((:TYPE . "PREC") (:VALUE . 15)
+          (:CONTENT (:TYPE . "SEQ")
+           (:MEMBERS
+            ((:TYPE . "FIELD")
+             (:NAME . "argument")
+             (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_expression")))
+            ((:TYPE . "FIELD")
+             (:NAME . "operator")
+             (:CONTENT
+              (:TYPE . "CHOICE")
+              (:MEMBERS ((:TYPE . "STRING") (:VALUE . "."))
+                        ((:TYPE . "STRING") (:VALUE . "->"))))))))
+         ((:TYPE . "FIELD") (:NAME . "field")
+          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_field_identifier")))))
+       ;; TODO: when the docker image is updated,
+       ;;       remove this and cpp's substitution, add slot, and parse tree
+       ;;       transform as it has been patched upstream.
        (:ASSIGNMENT-EXPRESSION (:TYPE . "PREC_RIGHT") (:VALUE . -1)
         (:CONTENT (:TYPE . "SEQ")
          (:MEMBERS
           ((:TYPE . "FIELD") (:NAME . "left")
            (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_assignment_left_expression")))
-          ((:TYPE . "FIELD") (:NAME . "operation")
+          ((:TYPE . "FIELD") (:NAME . "operator")
            (:CONTENT
             (:TYPE . "CHOICE")
             (:MEMBERS
@@ -974,12 +1003,28 @@ definitions.")
            ((:TYPE . "BLANK"))))
          ((:TYPE . "STRING") (:VALUE . ")")))))
       (:cpp
+       (:FIELD-EXPRESSION (:TYPE . "SEQ")
+        (:MEMBERS
+         ((:TYPE . "PREC") (:VALUE . 15)
+          (:CONTENT (:TYPE . "SEQ")
+           (:MEMBERS
+            ((:TYPE . "FIELD")
+             (:NAME . "argument")
+             (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_expression")))
+            ((:TYPE . "FIELD")
+             (:NAME . "operator")
+             (:CONTENT
+              (:TYPE . "CHOICE")
+              (:MEMBERS ((:TYPE . "STRING") (:VALUE . "."))
+                        ((:TYPE . "STRING") (:VALUE . "->"))))))))
+         ((:TYPE . "FIELD") (:NAME . "field")
+          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_field_identifier")))))
        (:ASSIGNMENT-EXPRESSION (:TYPE . "PREC_RIGHT") (:VALUE . -1)
         (:CONTENT (:TYPE . "SEQ")
          (:MEMBERS
           ((:TYPE . "FIELD") (:NAME . "left")
            (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_assignment_left_expression")))
-          ((:TYPE . "FIELD") (:NAME . "operation")
+          ((:TYPE . "FIELD") (:NAME . "operator")
            (:CONTENT
             (:TYPE . "CHOICE")
             (:MEMBERS

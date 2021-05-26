@@ -53,10 +53,9 @@ field."
          (t child-tree)))
      (lastcar parse-tree)))))
 
-(defmethod transform-parse-tree
-    ((language (eql ':c)) (class (eql 'c-assignment-expression)) parse-tree)
-  "Transform PARSE-TREE such that all modifiers are stored in the :modifiers
-field."
+(defun add-operator-to-binary-operation (parse-tree)
+  "Adds modifies the operator in a binary operation such that it is
+stored in :operator."
   (append
    (butlast parse-tree)
    (list
@@ -65,9 +64,19 @@ field."
        (cond
          ((consp car) child-tree)
          ((member car '(:error :comment)) child-tree)
-         (t (cons (list :operation (car child-tree))
+         (t (cons (list :operator (car child-tree))
                   (cdr child-tree)))))
      (lastcar parse-tree)))))
+
+(defmethod transform-parse-tree
+    ((language (eql ':c)) (class (eql 'c-assignment-expression)) parse-tree)
+  "Transform PARSE-TREE such that the operator is stored in the :operator field."
+  (add-operator-to-binary-operation parse-tree))
+
+(defmethod transform-parse-tree
+    ((language (eql ':c)) (class (eql 'c-field-expression)) parse-tree)
+  "Transform PARSE-TREE such that the operator is stored in the :operator field."
+  (add-operator-to-binary-operation parse-tree))
 
 (defgeneric pointers (c-declarator)
   (:documentation "Return the number of pointers around C-DECLARATOR.")
