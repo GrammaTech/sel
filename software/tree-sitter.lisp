@@ -4690,14 +4690,15 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
   (:documentation "Return a string of whitespace that should occur between
 AST1 and AST2."))
 
-(defun patch-whitespace (ast)
+(defun patch-whitespace (ast &key (recursive t))
   "Destructively patch whitespace on AST by adding a space to the before-text and
 after-text slots that need it."
   (iter
     (for item in (cdr (butlast (output-transformation ast))))
     (for previous-item previous item)
     (for white-space = (whitespace-between previous-item item))
-    (when (and (typep item 'tree-sitter-ast)
+    (when (and recursive
+               (typep item 'tree-sitter-ast)
                (not (computed-text-node-p ast)))
       (patch-whitespace item))
     (cond
