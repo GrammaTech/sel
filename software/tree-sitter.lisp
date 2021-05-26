@@ -4735,6 +4735,19 @@ on the calculated format of a particular file."))
       (declare (dynamic-extent #'patch-whitespace))
       (patch-whitespace ast))))
 
+(defmacro define-empty-whitespace-methods ((&optional (style t))
+                                           &body pairs)
+  `(progn
+     ,@(iter (for (x y) in (batches pairs 2 :even t))
+             (collect `(defmethod whitespace-between ((style ,style)
+                                                      (x ,x)
+                                                      (y ,y))
+                         "")))))
+
+(define-empty-whitespace-methods (t)
+  identifier-ast parameters-ast
+  identifier-ast arguments-ast)
+
 (defun process-indentation (root &aux indentation-carryover indentation-ast)
   "Process the indentation of ROOT such that indentation information is stored in
 the indentation slots."

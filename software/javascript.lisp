@@ -222,3 +222,10 @@ scope of START-AST."
 ;; Implement the generic format-genome method for Javascript objects.
 (defmethod format-genome ((obj javascript) &key)
   (prettier obj))
+
+(define-empty-whitespace-methods ()
+  javascript-ast javascript---
+  javascript--- javascript-ast
+  javascript-++ javascript-ast
+  javascript-ast javascript-++
+  javascript-ast javascript-\;)
