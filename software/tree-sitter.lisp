@@ -2954,6 +2954,7 @@ any slot usages in JSON-SUBTREE."
   (defun generate-input/output-handling
       (pruned-rule json-rule superclass language-prefix child-types
        class-name->class-definition choice-resolver
+       &key symbols-to-export
        &aux (subclass-counter -1)
          (subclasses
           (aget superclass
@@ -2968,15 +2969,18 @@ subclass based on the order of the children were read in."
              (get-subclass-name (collapsed-rule)
                "Get the subclass name for COLLAPSED-RULE. If one isn't in
                 subclasses, generate a new name."
-               ;;NOTE: the types should not be strings but lisp types.
-               (or
-                (car (find-if (lambda (pair)
-                                (equal collapsed-rule (cadr pair)))
-                              subclasses))
-                (format-symbol :sel/sw/ts "~a-~a"
-                               ;; If there are name collisions from the counter,
-                               ;; move back to the gensym-based approach.
-                               superclass (incf subclass-counter))))
+               (assure (and symbol (not null))
+                 (or
+                  (lret ((name
+                          (car (find-if (lambda (pair)
+                                          (equal collapsed-rule (cadr pair)))
+                                        subclasses))))
+                    (when name
+                      (ensure-gethash name symbols-to-export t)))
+                  (format-symbol :sel/sw/ts "~a-~a"
+                                 ;; If there are name collisions from the counter,
+                                 ;; move back to the gensym-based approach.
+                                 superclass (incf subclass-counter)))))
              (convert-to-lisp-types (rule)
                "Converts all strings in RULE to lisp types."
                (map-tree
@@ -3114,6 +3118,7 @@ subclass based on the order of the children were read in."
       (grammar types language-prefix
        class-name->class-definition choice-resolver
        json-field-transformations
+       &key symbols-to-export
        &aux (class-name->parse-tree-transforms (make-hash-table)))
     ;; NOTE: it might make sense to integrate the loop into
     ;;       the class generation above at some point.
@@ -3141,7 +3146,8 @@ subclass based on the order of the children were read in."
                          {aget :type}]
                         (aget :types (aget :children type-json)))
                 class-name->class-definition
-                choice-resolver))
+                choice-resolver
+                :symbols-to-export symbols-to-export))
              (generate-terminal-code (type-string class-name)
                "Generate the code for a terminal symbol."
                ;; TODO: rename this function
@@ -3505,7 +3511,8 @@ AST-EXTRA-SLOTS is an alist from classes to extra slots."
       (let ((structured-text-code
               (generate-structured-text-methods
                grammar node-types name-prefix class-name->class-definition
-               json-subtree-choice-resolver json-field-transformations)))
+               json-subtree-choice-resolver json-field-transformations
+               :symbols-to-export symbols-to-export)))
         `(progn
            (eval-always
              (define-software ,(make-class-name) (tree-sitter
