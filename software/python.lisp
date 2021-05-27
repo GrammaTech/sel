@@ -1117,3 +1117,8 @@ top level.")
                                (x python-ast)
                                (y python-function-definition))
   (whitespace-between style y x))
+
+(defmethod whitespace-between ((style pep8)
+                               (x (eql :|:|))
+                               (y python-block))
+  #.(fmt "~%"))
