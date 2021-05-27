@@ -86,6 +86,12 @@ are created if they're present in PARSE-TREE."
 
 ;;; Methods common to all software objects
 
+(defmethod initialize-instance :after ((self python-empty-argument-list) &key)
+  (setf (text self) "()"))
+
+(defmethod initialize-instance :after ((self python-empty-parameters) &key)
+  (setf (text self) "()"))
+
 (defmethod imports ((software python))
   (imports (genome software)))
 
