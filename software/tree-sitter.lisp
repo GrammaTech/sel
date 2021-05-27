@@ -2448,8 +2448,7 @@ expands :REPEAT1 rules, and collapses contiguous, nested
        (member (car subtree) '(:field :child)))
      tree))
 
-  ;; TODO: run this at before code gen to print out problematic rules.
-  (defun structured-rule-p (collapsed-rule)
+  (defun structured-rule-p (collapsed-rule pruned-rule)
     ;; NOTE: this will only operate on fields and children.
     ;;       There may be potential for interleaved text to have their own issues,
     ;;       but if they don't have their own field then it's an issue with the
@@ -2510,7 +2509,8 @@ expands :REPEAT1 rules, and collapses contiguous, nested
                "Return T if there is an incompatible choice in a repeat."
                ;; NOTE: this should only consider a choice in a repeat problematic
                ;;       if the choice has two separate slots in two separate
-               ;;       branches or there are multiple slots in a different order.
+               ;;       branches, there are multiple slots in a different order,
+               ;;       or a branch has a slot while another only has terminals.
                ;;       This causes an issue trying to reproduce the ordering.
                (iter
                  (for choice in (mappend #'collect-choices (collect-repeats rule)))
@@ -2518,8 +2518,10 @@ expands :REPEAT1 rules, and collapses contiguous, nested
                  ;; NOTE: compare all branches to the first branch. If one
                  ;;       matches the first, then it should be the same as
                  ;;       comparing to the first again.
-                 (thereis (some {incompatible-choice-p (car slots-in-branches)}
-                                slots-in-branches))))
+                 (thereis (or
+                           (and slots-in-branches (some #'null choice))
+                           (some {incompatible-choice-p (car slots-in-branches)}
+                                 slots-in-branches)))))
              (use-after-repeat-p (tree &key in-repeat? repeat-alist)
                "Return non-NIL if TREE contains a problematic usage of a slot after
                 a repeat on that slot."
@@ -2588,7 +2590,7 @@ expands :REPEAT1 rules, and collapses contiguous, nested
                          (append (mapcar {cons _ in-repeat?} types)
                                  repeat-alist))
                         (t repeat-alist))))))))
-      (not (or (incompatible-choice-in-repeat-p collapsed-rule)
+      (not (or (incompatible-choice-in-repeat-p pruned-rule)
                (nth-value 1 (use-after-repeat-p collapsed-rule))))))
 
   (defun expand-choice-branches (pruned-rule transformed-json)
@@ -2952,7 +2954,7 @@ any slot usages in JSON-SUBTREE."
 
   (defun generate-input/output-handling
       (pruned-rule json-rule superclass language-prefix child-types
-       class-name->class-definition choice-resolver
+       class-name->class-definition choice-resolver computed-text-ast?
        &key symbols-to-export
        &aux (subclass-counter -1)
          (subclasses
@@ -2963,7 +2965,9 @@ any slot usages in JSON-SUBTREE."
 subclass based on the order of the children were read in."
     (labels ((report-problematic-rule ()
                "Reports 'unstructured' rules to *error-output*."
-               (unless (structured-rule-p (collapse-rule-tree pruned-rule))
+               (unless (or computed-text-ast?
+                           (structured-rule-p
+                            (collapse-rule-tree pruned-rule) pruned-rule))
                  (format *error-output* "Problematic Rule: ~a~%" superclass)))
              (get-subclass-name (collapsed-rule)
                "Get the subclass name for COLLAPSED-RULE. If one isn't in
@@ -3132,13 +3136,16 @@ subclass based on the order of the children were read in."
     ;;        - If a choice occurs in a repeat, all branches share the same slots.
     ;;        - Choices outside of repeats will be expanded if any of the branches
     ;;          contain different slots or ordering of slots.
-    (labels ((generate-code (transformed-json type-json)
+    (labels ((generate-code
+                 (transformed-json type-json
+                  &aux (class-name (convert-to-lisp-type
+                                    language-prefix (aget :type type-json))))
                "Generate the code for TRANSFORMED-JSON that is of the type
                 specified by TYPE-JSON."
                (generate-input/output-handling
                 (prune-rule-tree transformed-json)
                 transformed-json
-                (convert-to-lisp-type language-prefix (aget :type type-json))
+                class-name
                 ;; NOTE: this should be a keyword.
                 language-prefix
                 (mapcar [{convert-to-lisp-type language-prefix}
@@ -3146,6 +3153,8 @@ subclass based on the order of the children were read in."
                         (aget :types (aget :children type-json)))
                 class-name->class-definition
                 choice-resolver
+                (computed-text-ast-p
+                 language-prefix class-name transformed-json)
                 :symbols-to-export symbols-to-export))
              (generate-terminal-code (type-string class-name)
                "Generate the code for a terminal symbol."
