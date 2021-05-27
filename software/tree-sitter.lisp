@@ -841,6 +841,12 @@ definitions.")
             (:choice
              (:child python-pair python-dictionary-splat))))))
         (python-empty-dictionary
+         (:seq)))
+       (python-parameters
+        (python-empty-parameters
+         (:seq)))
+       (python-argument-list
+        (python-empty-argument-list
          (:seq))))
       (:javascript
        ;; TODO: these will be wrong.
