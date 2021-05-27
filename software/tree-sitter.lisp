@@ -4688,22 +4688,22 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
   (:method (s ast1 ast2) "")
   (:method (s (ast1 null) ast2) "")
   (:method (s ast1 (ast2 null)) "")
-  (:method (s (ast1 structured-text) (ast2 string))
+  (:method (s (ast1 ast) (ast2 string))
     (if (notevery #'whitespacep ast2)
         (whitespace-between s ast1 (make-keyword ast2))
         ""))
-  (:method (s (ast1 string) (ast2 structured-text))
+  (:method (s (ast1 string) (ast2 ast))
     (if (notevery #'whitespacep ast1)
         (whitespace-between s (make-keyword ast1) ast2)
         ""))
   ;; Sensible defaults for most (all?) programming languages.
-  (:method (s (ast1 symbol) (ast2 structured-text))
+  (:method (s (ast1 symbol) (ast2 ast))
     "No whitespace after an opening delimiter."
     (if (some (op (string$= _ ast1)) "([{") "" " "))
-  (:method (s (ast1 structured-text) (ast2 symbol))
+  (:method (s (ast1 ast) (ast2 symbol))
     "No whitespace before a closing delimiter or a comma."
     (if (some (op (string^= _ ast2)) ")]},") "" " "))
-  (:method (s (ast1 structured-text) (ast2 structured-text)) " ")
+  (:method (s (ast1 ast) (ast2 ast)) " ")
   (:documentation "Return a string of whitespace that should occur between
 AST1 and AST2.
 
