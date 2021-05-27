@@ -144,14 +144,88 @@
   (with-fixture w/while
     (is (stringp (source-text (find-if {typep _ 'c-while-statement} *soft*))))))
 
-(deftest tree-sitter-parses-when-newlines-are-tokens ()
-  ;; A regression test for ensuring the non-inclusive upper bound
-  ;; returned by tree-sitter still works when newlines are treated
-  ;; as tokens (produced when cl-tree-sitter:parse-string is passed
-  ;; :produce-cst t ).
-  (convert 'c-ast "#define a 10
-"))
+(deftest preprocessor-test-1 () ;; address sel issue 136
+  "Ensure that #ifndef is not converted to #ifdef"
+  (let ((*soft* (from-string (make-instance 'c) 
+"#ifndef BSD4_1
+#define HAVE_GETPAGESIZE
+#endif
+")))
+    (is (typep *soft* 'c))
+    (is (typep (genome *soft*) 'c-translation-unit))
+    (is (typep (elt (children (genome *soft*)) 0) 'c-preproc-ifdef))
+    (is (starts-with-subseq
+         "#ifndef" (source-text (elt (children (genome *soft*)) 0))))))
 
+(deftest preprocessor-test-2 () ;; address sel issue 136
+  "Ensure that #ifdef is not converted to #ifndef"
+  (let ((*soft* (from-string (make-instance 'c) 
+"#ifdef BSD4_1
+#define HAVE_GETPAGESIZE
+#endif
+")))
+    (is (typep *soft* 'c))
+    (is (typep (genome *soft*) 'c-translation-unit))
+    (is (typep (elt (children (genome *soft*)) 0) 'c-preproc-ifdef))
+    (is (starts-with-subseq
+         "#ifdef" (source-text (elt (children (genome *soft*)) 0))))))
+
+(deftest compound-operator-test-1 () ;; sel issue #137
+  (let ((*soft* (from-string (make-instance 'c) 
+"{ int x = 1; 
+   x *= 4; 
+   x += 2; 
+   x -= 1; 
+   x /= 5; }")))
+    (is (typep *soft* 'c))
+    (let ((g (genome *soft*)))
+      (is (typep g 'c-translation-unit))
+      (is (typep (@ g 0) 'c-compound-statement))
+      (is (typep (@ (@ g 0) 1) 'c-expression-statement))
+      (is (typep (@ (@ (@ g 0) 1) 0) 'c-assignment-expression))
+      (is (string-equal
+           (source-text (@ (@ (@ (@ g 0) 1) 0) 1))
+           "*="))
+      (is (string-equal
+           (source-text (@ (@ (@ (@ g 0) 2) 0) 1))
+           "+="))
+      (is (string-equal
+           (source-text (@ (@ (@ (@ g 0) 3) 0) 1))
+           "-="))
+      (is (string-equal
+           (source-text (@ (@ (@ (@ g 0) 4) 0) 1))
+           "/=")))))
+      
+(deftest field-expression-test-1 () ;; sel issue #142
+  "Ensure that '.' and '->' are handled correctly"
+  (let ((*soft* (from-string (make-instance 'c) 
+"int main ()
+{
+    typedef struct { int f1; int f2; } X;
+    X a[3];
+    int i;
+    X *p = a;
+    p->f1 = 1;
+    i = p->f1;
+    return i;
+}
+")))
+    (is (typep *soft* 'c))
+    (let ((g (genome *soft*)))
+      (is (typep g 'c-translation-unit))
+      (is (typep (@ g 0) 'c-function-definition))
+      (is (typep (@ (@ g 0) 2) 'c-compound-statement))
+      (is (typep (@ (@ (@ g 0) 2) 4) 'c-expression-statement))
+      (is (typep (@ (@ (@ (@ g 0) 2) 4) 0) 'c-assignment-expression))
+      (is (typep (@ (@ (@ (@ (@ g 0) 2) 4) 0) 0) 'c-field-expression))
+      (is (string-equal (source-text  (@ (@ (@ (@ (@ (@ g 0) 2) 4) 0) 0) 1))
+                        "->"))
+      (is (typep (@ (@ (@ g 0) 2) 5) 'c-expression-statement))
+      (is (typep (@ (@ (@ (@ g 0) 2) 5) 0) 'c-assignment-expression))
+      (is (typep (@ (@ (@ (@ (@ g 0) 2) 5) 0) 2) 'c-field-expression))
+      (is (string-equal (source-text  (@ (@ (@ (@ (@ (@ g 0) 2) 5) 0) 2) 1))
+                        "->")))))
+  
 (defun parsing-test-dir (path)
   (merge-pathnames-as-file
    (make-pathname :directory (append +c-tree-sitter-dir+
