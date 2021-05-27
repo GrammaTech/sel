@@ -805,7 +805,6 @@ definitions.")
     '((:c
        ;; TODO: this should be moved over to using the pruned-rule before
        ;;       merging into master.
-       ;; TODO: at some point, subclasses should be exported automatically.
        (c-update-expression
         (c-update-expression-prefix
          (:seq (:field c-operator c--- c-++) (:field c-argument c--expression)))
