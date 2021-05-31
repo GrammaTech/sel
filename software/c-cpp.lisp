@@ -77,3 +77,6 @@
   (declarator-name (c/cpp-declarator ast)))
 (defmethod declarator-name ((ast c/cpp-function-declarator))
   (declarator-name (c/cpp-declarator ast)))
+
+(defmethod computed-text-node-p ((instance source-text-fragment)) t)
+(defmethod indentablep ((instance source-text-fragment)) nil)

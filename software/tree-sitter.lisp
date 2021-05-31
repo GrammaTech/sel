@@ -1505,6 +1505,16 @@ stored as a list of interleaved text. This should ideally only be used for leaf
       :initform nil))
     (:documentation "A wrapper class for text fragments in computed text ASTs."))
 
+  (defclass source-text-fragment ()
+    ((text :accessor text
+           :initform ""
+           :initarg :text)
+     (choice-subclasses
+      :initform nil
+      :reader choice-subclasses
+      :allocation :class))
+    (:documentation "A mixin for ASTs that represent fragments of source text."))
+
   (defclass definition-ast (ast) ()
     (:documentation "AST for something that associates a name with a thing.
 The name string is obtained by by DEFINITION-NAME"))
@@ -2935,10 +2945,11 @@ any slot usages in JSON-SUBTREE."
                    class-name class-name->class-definition
                    `(text ; computed-text
                      :accessor text
+                     :initarg :text
                      :allocation :class
                      :initform
-                     ',(list (get-json-subtree-string transformed-json-rule
-                                                      choice-resolver))))
+                     ',(get-json-subtree-string transformed-json-rule
+                                                 choice-resolver)))
                   nil)
                  (t `(defmethod output-transformation
                        ((ast ,class-name) &rest rest &key &aux (parse-stack (parse-order ast)))
@@ -3164,8 +3175,9 @@ subclass based on the order of the children were read in."
                 class-name class-name->class-definition
                 `(text
                   :accessor text
+                  :initarg :text
                   :allocation :class
-                  :initform ',(list type-string))))
+                  :initform ',type-string)))
              (generate-parse-tree-transform (class-name transforms)
                "Generate a method for generated-transform-parse-tree based on
                 class-name and transforms."
@@ -5562,3 +5574,45 @@ the rebinding"
                                                     var-replacements
                                                     fun-replacements))))))
                       (child-slots ast)))))
+
+
+;;;; Parse Tree Util
+(defun add-operator-to-binary-operation (parse-tree)
+  "Adds the operator in a binary operation to the :operator slot."
+  (append
+   (butlast parse-tree)
+   (list
+    (mapcar
+     (lambda (child-tree &aux (car (car child-tree)))
+       (cond
+         ((consp car) child-tree)
+         ((member car '(:error :comment)) child-tree)
+         (t (cons (list :operator (car child-tree))
+                  (cdr child-tree)))))
+     (lastcar parse-tree)))))
+
+(defun transform-malformed-parse-tree (parse-tree)
+  "Return a modified version of PARSE-TREE if it is malformed.
+This occurs when the source text is not accurately represented by the parse tree
+which is caused by dropped tokens or added zero-width tokens.
+Otherwise, returns PARSE-TREE."
+  (labels ((walk-parse-tree (function parse-tree)
+             (funcall function parse-tree)
+             (map nil {walk-parse-tree function} (caddr parse-tree)))
+           (zero-width-p (subtree &aux (range (cadr subtree)))
+             (when (listp range)
+               (equal (car range) (cadr range))))
+           (error-p (subtree)
+             (eq (car subtree) :error))
+           (problematic-p (tree)
+             (walk-parse-tree
+              (lambda (subtree)
+                (when (and (listp subtree)
+                           (or
+                            (zero-width-p subtree)
+                            (error-p subtree)))
+                  (return-from problematic-p t)))
+              tree)))
+    (if (problematic-p parse-tree)
+        `(:source-text-fragment ,(cadr parse-tree) nil)
+        parse-tree)))

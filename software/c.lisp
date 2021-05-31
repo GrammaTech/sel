@@ -23,6 +23,16 @@
 
 (defmethod ext :around ((obj c)) (or (call-next-method) "c"))
 
+(defclass c-source-text-fragment
+    (source-text-fragment c-preproc-if c-preproc-ifdef)
+  ())
+
+
+(defmethod transform-parse-tree ((language (eql ':c))
+                                 (class (eql 'c-preproc-if))
+                                 parse-tree)
+  (transform-malformed-parse-tree parse-tree))
+
 (defmethod transform-parse-tree
     ((language (eql ':c)) (class (eql 'c-sized-type-specifier)) parse-tree)
   "Transform PARSE-TREE such that all modifiers are stored in the :modifiers
@@ -42,31 +52,17 @@ field."
     ((language (eql ':c)) (class (eql 'c-preproc-ifdef)) parse-tree)
   "Transform PARSE-TREE such that all modifiers are stored in the :modifiers
 field."
-  (append
-   (butlast parse-tree)
-   (list
-    (mapcar
-     (lambda (child-tree)
-       (cond
-         ((member (car child-tree) '(:|#IFDEF| :|#IFNDEF|))
-          (cons (list :operation (car child-tree)) (cdr child-tree)))
-         (t child-tree)))
-     (lastcar parse-tree)))))
-
-(defun add-operator-to-binary-operation (parse-tree)
-  "Adds modifies the operator in a binary operation such that it is
-stored in :operator."
-  (append
-   (butlast parse-tree)
-   (list
-    (mapcar
-     (lambda (child-tree &aux (car (car child-tree)))
-       (cond
-         ((consp car) child-tree)
-         ((member car '(:error :comment)) child-tree)
-         (t (cons (list :operator (car child-tree))
-                  (cdr child-tree)))))
-     (lastcar parse-tree)))))
+  (transform-malformed-parse-tree
+   (append
+    (butlast parse-tree)
+    (list
+     (mapcar
+      (lambda (child-tree)
+        (cond
+          ((member (car child-tree) '(:|#IFDEF| :|#IFNDEF|))
+           (cons (list :operation (car child-tree)) (cdr child-tree)))
+          (t child-tree)))
+      (lastcar parse-tree))))))
 
 (defmethod transform-parse-tree
     ((language (eql ':c)) (class (eql 'c-assignment-expression)) parse-tree)

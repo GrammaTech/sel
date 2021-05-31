@@ -529,10 +529,9 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
                  (convert
                   'python-ast
                   `((:class . :string)
-                    (:text
-                     ,(format nil "\"~a\""
-                              (source-text
-                               (python-name arg)))))))
+                    (:text . ,(format nil "\"~a\""
+                                      (source-text
+                                       (python-name arg)))))))
                keyword-args)
               (mapcar #'python-value keyword-args)))
            (get-keyword-args-to-parameters (parameters-alist args-list)
