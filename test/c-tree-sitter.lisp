@@ -225,7 +225,7 @@
       (is (typep (@ (@ (@ (@ (@ g 0) 2) 5) 0) 2) 'c-field-expression))
       (is (string-equal (source-text  (@ (@ (@ (@ (@ (@ g 0) 2) 5) 0) 2) 1))
                         "->")))))
-  
+
 (defun parsing-test-dir (path)
   (merge-pathnames-as-file
    (make-pathname :directory (append +c-tree-sitter-dir+
@@ -357,3 +357,18 @@ int main () {
     (is (equal
          source
          (source-text (genome (from-string (make-instance 'c) source)))))))
+
+(deftest c-source-text-fragments-are-created ()
+  (let* ((source
+           "
+if (x == 1)
+    return 1;
+#ifdef CHECK2
+else if (x == 2)
+    return 2;
+#endif;
+return 0;
+")
+         (ast (convert 'c-ast source)))
+    (is (equal source (source-text ast)))
+    (is (find-if (of-type 'c-source-text-fragment) ast))))

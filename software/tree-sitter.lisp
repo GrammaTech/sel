@@ -243,6 +243,12 @@
            :get-vars
            :identical-name-p
            :in-class-def-p
+           ;; C/Cpp
+           :source-text-fragment
+           ;; C
+           :c-source-text-fragment
+           ;; Cpp
+           :cpp-source-text-fragment
            ;; Interleaved text
            :interleaved-text
            :check-interleaved-text
