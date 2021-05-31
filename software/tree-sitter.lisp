@@ -5466,7 +5466,14 @@ correct class name for subclasses of SUPERCLASS."
             This assumes that the indentation should be the same
             as the parent."
              (cond
-               ((not (indentablep ast)) text)
+               ((not (indentablep ast))
+                ;; NOTE: this won't correctly handle source-text fragments that
+                ;;       end with newlines. This should only be a problem with
+                ;;       ASTs that have an implicit newline.
+                (when (notevery #'whitespacep (text ast))
+                  (setf (unbox indent-p) nil
+                        (unbox indentation-ast) nil))
+                text)
                ((< 1 (length split-text))
                 (with-output-to-string (s)
                   (write-string (car split-text) s)
