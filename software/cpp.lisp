@@ -79,6 +79,22 @@ field."
   "Transform PARSE-TREE such that the operator is stored in the :operator field."
   (transform-c-style-variadic-parameter parse-tree))
 
+(defmethod transform-parse-tree
+    ((language (eql ':cpp)) (class (eql 'cpp-function-definition)) parse-tree)
+  (transform-c-declaration-specifiers parse-tree))
+
+(defmethod transform-parse-tree
+    ((language (eql ':cpp)) (class (eql 'cpp-declaration)) parse-tree)
+  (transform-c-declaration-specifiers parse-tree))
+
+(defmethod transform-parse-tree
+    ((language (eql ':cpp)) (class (eql 'cpp-field-declaration)) parse-tree)
+  (transform-c-declaration-specifiers parse-tree))
+
+(defmethod transform-parse-tree
+    ((language (eql ':cpp)) (class (eql 'cpp-parameter-declaration)) parse-tree)
+  (transform-c-declaration-specifiers parse-tree))
+
 (defmethod ext :around ((obj cpp)) (or (call-next-method) "cpp"))
 
 (defmethod function-body ((ast cpp-function-definition)) (cpp-body ast))

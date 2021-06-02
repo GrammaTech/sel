@@ -426,6 +426,42 @@ searched to populate `*tree-sitter-language-files*'.")
 
   (defparameter *tree-sitter-ast-extra-slots*
     '((:c
+       (c-parameter-declaration
+        (c-pre-specifiers
+         :accessor c-pre-specifiers
+         :initarg c-pre-specifiers
+         :initform nil)
+        (c-post-specifiers
+         :accessor c-post-specifiers
+         :initarg c-post-specifiers
+         :initform nil))
+       (c-field-declaration
+        (c-pre-specifiers
+         :accessor c-pre-specifiers
+         :initarg c-pre-specifiers
+         :initform nil)
+        (c-post-specifiers
+         :accessor c-post-specifiers
+         :initarg c-post-specifiers
+         :initform nil))
+       (c-declaration
+        (c-pre-specifiers
+         :accessor c-pre-specifiers
+         :initarg c-pre-specifiers
+         :initform nil)
+        (c-post-specifiers
+         :accessor c-post-specifiers
+         :initarg c-post-specifiers
+         :initform nil))
+       (c-function-definition
+        (c-pre-specifiers
+         :accessor c-pre-specifiers
+         :initarg c-pre-specifiers
+         :initform nil)
+        (c-post-specifiers
+         :accessor c-post-specifiers
+         :initarg c-post-specifiers
+         :initform nil))
        (c-field-expression
         (c-operator
          :accessor c-operator
@@ -447,6 +483,42 @@ searched to populate `*tree-sitter-language-files*'.")
          :initarg :c-operation
          :initform nil)))
       (:cpp
+       (cpp-parameter-declaration
+        (cpp-pre-specifiers
+         :accessor cpp-pre-specifiers
+         :initarg cpp-pre-specifiers
+         :initform nil)
+        (cpp-post-specifiers
+         :accessor cpp-post-specifiers
+         :initarg cpp-post-specifiers
+         :initform nil))
+       (cpp-field-declaration
+        (cpp-pre-specifiers
+         :accessor cpp-pre-specifiers
+         :initarg cpp-pre-specifiers
+         :initform nil)
+        (cpp-post-specifiers
+         :accessor cpp-post-specifiers
+         :initarg cpp-post-specifiers
+         :initform nil))
+       (cpp-declaration
+        (cpp-pre-specifiers
+         :accessor cpp-pre-specifiers
+         :initarg cpp-pre-specifiers
+         :initform nil)
+        (cpp-post-specifiers
+         :accessor cpp-post-specifiers
+         :initarg cpp-post-specifiers
+         :initform nil))
+       (cpp-function-definition
+        (cpp-pre-specifiers
+         :accessor cpp-pre-specifiers
+         :initarg cpp-pre-specifiers
+         :initform nil)
+        (cpp-post-specifiers
+         :accessor cpp-post-specifiers
+         :initarg cpp-post-specifiers
+         :initform nil))
        (cpp-field-expression
         (cpp-operator
          :accessor cpp-operator
@@ -884,6 +956,30 @@ definitions.")
 
   (defparameter *tree-sitter-json-rule-substitutions*
     '((:c
+       (:-DECLARATION-SPECIFIERS (:TYPE . "SEQ")
+        (:MEMBERS
+         ((:TYPE . "FIELD") (:NAME . "pre-specifiers")
+          (:CONTENT
+           (:TYPE . "REPEAT")
+           (:CONTENT
+            (:TYPE . "CHOICE")
+            (:MEMBERS
+             ((:TYPE . "SYMBOL") (:NAME . "storage_class_specifier"))
+             ((:TYPE . "SYMBOL") (:NAME . "type_qualifier"))
+             ((:TYPE . "SYMBOL") (:NAME . "attribute_specifier"))
+             ((:TYPE . "SYMBOL") (:NAME . "ms_declspec_modifier"))))))
+         ((:TYPE . "FIELD") (:NAME . "type")
+          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_type_specifier")))
+         ((:TYPE . "FIELD") (:NAME . "post-specifiers")
+          (:CONTENT
+           (:TYPE . "REPEAT")
+           (:CONTENT
+            (:TYPE . "CHOICE")
+            (:MEMBERS
+             ((:TYPE . "SYMBOL") (:NAME . "storage_class_specifier"))
+             ((:TYPE . "SYMBOL") (:NAME . "type_qualifier"))
+             ((:TYPE . "SYMBOL") (:NAME . "attribute_specifier"))
+             ((:TYPE . "SYMBOL") (:NAME . "ms_declspec_modifier"))))))))
        ;; NOTE: remove this and cpp's substitution if this is patched
        ;;       upstream.
        (:PARAMETER-LIST (:TYPE . "SEQ")
@@ -1073,6 +1169,30 @@ definitions.")
            ((:TYPE . "BLANK"))))
          ((:TYPE . "STRING") (:VALUE . ")")))))
       (:cpp
+       (:-DECLARATION-SPECIFIERS (:TYPE . "SEQ")
+        (:MEMBERS
+         ((:TYPE . "FIELD") (:NAME . "pre-specifiers")
+          (:CONTENT
+           (:TYPE . "REPEAT")
+           (:CONTENT
+            (:TYPE . "CHOICE")
+            (:MEMBERS
+             ((:TYPE . "SYMBOL") (:NAME . "storage_class_specifier"))
+             ((:TYPE . "SYMBOL") (:NAME . "type_qualifier"))
+             ((:TYPE . "SYMBOL") (:NAME . "attribute_specifier"))
+             ((:TYPE . "SYMBOL") (:NAME . "ms_declspec_modifier"))))))
+         ((:TYPE . "FIELD") (:NAME . "type")
+          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_type_specifier")))
+         ((:TYPE . "FIELD") (:NAME . "post-specifiers")
+          (:CONTENT
+           (:TYPE . "REPEAT")
+           (:CONTENT
+            (:TYPE . "CHOICE")
+            (:MEMBERS
+             ((:TYPE . "SYMBOL") (:NAME . "storage_class_specifier"))
+             ((:TYPE . "SYMBOL") (:NAME . "type_qualifier"))
+             ((:TYPE . "SYMBOL") (:NAME . "attribute_specifier"))
+             ((:TYPE . "SYMBOL") (:NAME . "ms_declspec_modifier"))))))))
        ;; NOTE: remove this and cpp's substitution if this is patched
        ;;       upstream.
        (:PARAMETER-LIST (:TYPE . "SEQ")

@@ -80,3 +80,23 @@
 
 (defmethod computed-text-node-p ((instance source-text-fragment)) t)
 (defmethod indentablep ((instance source-text-fragment)) nil)
+
+(defun transform-c-declaration-specifiers
+    (parse-tree &aux (position-slot :pre-specifiers))
+  "Transform PARSE-TREE such that any specifiers are placed in relevants slots."
+  (append
+   (butlast parse-tree)
+   (list
+    (mapcar
+     (lambda (child-tree &aux (car (car child-tree)))
+       (cond
+         ((and (consp car)
+               (eql (car car) :type))
+          (setf position-slot :post-specifiers)
+          child-tree)
+         ((member car '(:storage-class-specifier :type-qualifier
+                        :attribute-specifier :ms-declspec-modifier))
+          (cons (list position-slot (car child-tree))
+                (cdr child-tree)))
+         (t child-tree)))
+     (lastcar parse-tree)))))

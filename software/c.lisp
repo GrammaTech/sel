@@ -93,6 +93,22 @@ field."
     ((language (eql ':c)) (class (eql 'c-preproc-params)) parse-tree)
   (transform-c-style-variadic-parameter parse-tree))
 
+(defmethod transform-parse-tree
+    ((language (eql ':c)) (class (eql 'c-function-definition)) parse-tree)
+  (transform-c-declaration-specifiers parse-tree))
+
+(defmethod transform-parse-tree
+    ((language (eql ':c)) (class (eql 'c-declaration)) parse-tree)
+  (transform-c-declaration-specifiers parse-tree))
+
+(defmethod transform-parse-tree
+    ((language (eql ':c)) (class (eql 'c-field-declaration)) parse-tree)
+  (transform-c-declaration-specifiers parse-tree))
+
+(defmethod transform-parse-tree
+    ((language (eql ':c)) (class (eql 'c-parameter-declaration)) parse-tree)
+  (transform-c-declaration-specifiers parse-tree))
+
 (defgeneric pointers (c-declarator)
   (:documentation "Return the number of pointers around C-DECLARATOR.")
   (:method ((ast c-parameter-declaration)) (pointers (c-declarator ast)))
@@ -105,7 +121,9 @@ field."
          (pointers ast)
          ;; This assumes that ordering doesn't matter for
          ;; _declaration_specifiers.
-         (mapcar #'source-text (slot-value ast 'children))))
+         (mapcar
+          #'source-text
+          (append (c-pre-specifiers ast) (c-post-specifiers ast)))))
 
 (defmethod parameter-name ((ast c-parameter-declaration))
   (parameter-name (c-declarator ast)))

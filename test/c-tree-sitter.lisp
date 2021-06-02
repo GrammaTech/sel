@@ -319,7 +319,9 @@
           (#P"update-expression.c" c-update-expression)
           (#P"continue-statement.c" c-while-statement statement-ast)
           (#P"variadic-function.c" c-parameter-declaration)
-          (#P"variadic-macro.c" c-parameter-declaration))))
+          (#P"variadic-macro.c" c-parameter-declaration)
+          ;; NOTE: round trip.
+          (#P"declaration-specifiers.c"))))
 
 (defixture factorial.c
   (:setup (setf *soft* (from-file (make-instance 'c)
