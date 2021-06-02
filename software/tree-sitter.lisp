@@ -247,8 +247,10 @@
            :source-text-fragment
            ;; C
            :c-source-text-fragment
+           :c-parameter-declaration
            ;; Cpp
            :cpp-source-text-fragment
+           :cpp-parameter-declaration
            ;; Interleaved text
            :interleaved-text
            :check-interleaved-text
@@ -884,6 +886,57 @@ definitions.")
     '((:c
        ;; NOTE: remove this and cpp's substitution if this is patched
        ;;       upstream.
+       (:PARAMETER-LIST (:TYPE . "SEQ")
+        (:MEMBERS ((:TYPE . "STRING") (:VALUE . "("))
+         ((:TYPE . "CHOICE")
+          (:MEMBERS
+           ((:TYPE . "SEQ")
+            (:MEMBERS
+             ((:TYPE . "CHOICE")
+              (:MEMBERS
+               ((:TYPE . "SYMBOL") (:NAME . "parameter_declaration"))
+               ((:TYPE . "SYMBOL") (:NAME . "variadic_declaration"))))
+             ((:TYPE . "REPEAT")
+              (:CONTENT
+               (:TYPE . "SEQ")
+               (:MEMBERS
+                ((:TYPE . "STRING") (:VALUE . ","))
+                ((:TYPE . "CHOICE")
+                 (:MEMBERS
+                  ((:TYPE . "SYMBOL") (:NAME . "parameter_declaration"))
+                  ((:TYPE . "SYMBOL")
+                   (:NAME . "variadic_declaration")))))))))
+           ((:TYPE . "BLANK"))))
+         ((:TYPE . "STRING") (:VALUE . ")"))))
+       ;; NOTE: remove this and cpp's substitution if this is patched
+       ;;       upstream.
+       (:PREPROC-PARAMS (:TYPE . "SEQ")
+        (:MEMBERS
+         ((:TYPE . "IMMEDIATE_TOKEN")
+          (:CONTENT (:TYPE . "STRING") (:VALUE . "(")))
+         ((:TYPE . "CHOICE")
+          (:MEMBERS
+           ((:TYPE . "SEQ")
+            (:MEMBERS
+             ((:TYPE . "CHOICE")
+              (:MEMBERS
+               ((:TYPE . "SYMBOL") (:NAME . "identifier"))
+               ((:TYPE . "SYMBOL") (:NAME . "variadic_parameter_declaration"))))
+             ((:TYPE . "REPEAT")
+              (:CONTENT
+               (:TYPE . "SEQ")
+               (:MEMBERS
+                ((:TYPE . "STRING") (:VALUE . ","))
+                ((:TYPE . "CHOICE")
+                 (:MEMBERS
+                  ((:TYPE . "SYMBOL") (:NAME . "identifier"))
+                  ((:TYPE . "SYMBOL")
+                   (:NAME . "variadic_parameter_declaration")))))))))
+           ((:TYPE . "BLANK"))))
+         ((:TYPE . "STRING") (:VALUE . ")"))))
+       ;; TODO: when the docker image is updated,
+       ;;       remove this and cpp's substitution, add slot, and parse tree
+       ;;       transform as it has been patched upstream.
        (:FIELD-EXPRESSION (:TYPE . "SEQ")
         (:MEMBERS
          ((:TYPE . "PREC") (:VALUE . 15)
@@ -1020,6 +1073,59 @@ definitions.")
            ((:TYPE . "BLANK"))))
          ((:TYPE . "STRING") (:VALUE . ")")))))
       (:cpp
+       ;; NOTE: remove this and cpp's substitution if this is patched
+       ;;       upstream.
+       (:PARAMETER-LIST (:TYPE . "SEQ")
+        (:MEMBERS ((:TYPE . "STRING") (:VALUE . "("))
+         ((:TYPE . "CHOICE")
+          (:MEMBERS
+           ((:TYPE . "SEQ")
+            (:MEMBERS
+             ((:TYPE . "CHOICE")
+              (:MEMBERS
+               ((:TYPE . "SYMBOL") (:NAME . "parameter_declaration"))
+               ((:TYPE . "SYMBOL") (:NAME . "optional_parameter_declaration"))
+               ((:TYPE . "SYMBOL") (:NAME . "variadic_parameter_declaration"))
+               ((:TYPE . "SYMBOL") (:NAME . "variadic_declaration"))))
+             ((:TYPE . "REPEAT")
+              (:CONTENT
+               (:TYPE . "SEQ")
+               (:MEMBERS
+                ((:TYPE . "STRING") (:VALUE . ","))
+                ((:TYPE . "CHOICE")
+                 (:MEMBERS
+                  ((:TYPE . "SYMBOL") (:NAME . "parameter_declaration"))
+                  ((:TYPE . "SYMBOL") (:NAME . "optional_parameter_declaration"))
+                  ((:TYPE . "SYMBOL") (:NAME . "variadic_parameter_declaration"))
+                  ((:TYPE . "SYMBOL") (:NAME . "variadic_declaration")))))))))
+           ((:TYPE . "BLANK"))))
+         ((:TYPE . "STRING") (:VALUE . ")"))))
+       ;; NOTE: remove this and cpp's substitution if this is patched
+       ;;       upstream.
+       (:PREPROC-PARAMS (:TYPE . "SEQ")
+        (:MEMBERS
+         ((:TYPE . "IMMEDIATE_TOKEN")
+          (:CONTENT (:TYPE . "STRING") (:VALUE . "(")))
+         ((:TYPE . "CHOICE")
+          (:MEMBERS
+           ((:TYPE . "SEQ")
+            (:MEMBERS
+             ((:TYPE . "CHOICE")
+              (:MEMBERS
+               ((:TYPE . "SYMBOL") (:NAME . "identifier"))
+               ((:TYPE . "SYMBOL") (:NAME . "variadic_declaration"))))
+             ((:TYPE . "REPEAT")
+              (:CONTENT
+               (:TYPE . "SEQ")
+               (:MEMBERS
+                ((:TYPE . "STRING") (:VALUE . ","))
+                ((:TYPE . "CHOICE")
+                 (:MEMBERS
+                  ((:TYPE . "SYMBOL") (:NAME . "identifier"))
+                  ((:TYPE . "SYMBOL")
+                   (:NAME . "variadic_declaration")))))))))
+           ((:TYPE . "BLANK"))))
+         ((:TYPE . "STRING") (:VALUE . ")"))))
        (:FIELD-EXPRESSION (:TYPE . "SEQ")
         (:MEMBERS
          ((:TYPE . "PREC") (:VALUE . 15)
@@ -5629,3 +5735,17 @@ Otherwise, returns PARSE-TREE."
     (if (problematic-p parse-tree)
         `(:source-text-fragment ,(cadr parse-tree) nil)
         parse-tree)))
+
+(defun transform-c-style-variadic-parameter (parse-tree)
+  "If PARSE-TREE represents a variadic function, return a modified version of it.
+Otherwise, return PARSE-TREE."
+  (append
+   (butlast parse-tree)
+   (list
+    (mapcar
+     (lambda (child-tree &aux (car (car child-tree)))
+       (cond
+         ((eql car :|...|)
+          (cons :variadic-declaration (cdr child-tree)))
+         (t child-tree)))
+     (lastcar parse-tree)))))

@@ -25,6 +25,19 @@
     (source-text-fragment cpp-preproc-if cpp-preproc-ifdef)
   ())
 
+(defclass cpp-variadic-declaration
+    (cpp-parameter-declaration cpp-identifier)
+  ((text :accessor text
+         :initform "..."
+         :initarg :text
+         :allocation :class)
+   (choice-subclasses
+    :initform nil
+    :reader choice-subclasses
+    :allocation :class)))
+
+(defmethod computed-text-node-p ((ast cpp-variadic-declaration)) t)
+
 (defmethod transform-parse-tree ((language (eql ':cpp))
                                  (class (eql 'cpp-preproc-if))
                                  parse-tree)
@@ -55,6 +68,16 @@ field."
     ((language (eql ':cpp)) (class (eql 'cpp-field-expression)) parse-tree)
   "Transform PARSE-TREE such that the operator is stored in the :operator field."
   (add-operator-to-binary-operation parse-tree))
+
+(defmethod transform-parse-tree
+    ((language (eql ':cpp)) (class (eql 'cpp-parameter-list)) parse-tree)
+  "Transform PARSE-TREE such that the operator is stored in the :operator field."
+  (transform-c-style-variadic-parameter parse-tree))
+
+(defmethod transform-parse-tree
+    ((language (eql ':cpp)) (class (eql 'cpp-preproc-params)) parse-tree)
+  "Transform PARSE-TREE such that the operator is stored in the :operator field."
+  (transform-c-style-variadic-parameter parse-tree))
 
 (defmethod ext :around ((obj cpp)) (or (call-next-method) "cpp"))
 

@@ -27,6 +27,17 @@
     (source-text-fragment c-preproc-if c-preproc-ifdef)
   ())
 
+(defclass c-variadic-declaration (c-parameter-declaration c-identifier)
+  ((text :accessor text
+         :initform "..."
+         :initarg :text
+         :allocation :class)
+   (choice-subclasses
+    :initform nil
+    :reader choice-subclasses
+    :allocation :class)))
+
+(defmethod computed-text-node-p ((ast c-variadic-declaration)) t)
 
 (defmethod transform-parse-tree ((language (eql ':c))
                                  (class (eql 'c-preproc-if))
@@ -73,6 +84,14 @@ field."
     ((language (eql ':c)) (class (eql 'c-field-expression)) parse-tree)
   "Transform PARSE-TREE such that the operator is stored in the :operator field."
   (add-operator-to-binary-operation parse-tree))
+
+(defmethod transform-parse-tree
+    ((language (eql ':c)) (class (eql 'c-parameter-list)) parse-tree)
+  (transform-c-style-variadic-parameter parse-tree))
+
+(defmethod transform-parse-tree
+    ((language (eql ':c)) (class (eql 'c-preproc-params)) parse-tree)
+  (transform-c-style-variadic-parameter parse-tree))
 
 (defgeneric pointers (c-declarator)
   (:documentation "Return the number of pointers around C-DECLARATOR.")

@@ -317,7 +317,9 @@
           (#P"unary-expression.c" c-unary-expression)
           (#P"union-specifier.c" c-union-specifier)
           (#P"update-expression.c" c-update-expression)
-          (#P"continue-statement.c" c-while-statement statement-ast))))
+          (#P"continue-statement.c" c-while-statement statement-ast)
+          (#P"variadic-function.c" c-parameter-declaration)
+          (#P"variadic-macro.c" c-parameter-declaration))))
 
 (defixture factorial.c
   (:setup (setf *soft* (from-file (make-instance 'c)
