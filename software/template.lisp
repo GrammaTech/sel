@@ -6,7 +6,7 @@
         :software-evolution-library/software/parseable)
   (:import-from :software-evolution-library/software/tree-sitter
                 :before-text :after-text)
-  (:import-from :ssr/string-clauses)
+  (:import-from :software-evolution-library/software/string-clauses)
   (:export :ast-template
            :template-placeholder
            :template-metavariable
@@ -110,7 +110,7 @@ Generic so a different syntax can be used per-language.")
     (handler-case (source-text ast)
       (error (e)
         (error "Template cannot be printed because: ~a" e)))
-    ;; Check that there names and placeholders are the same length.
+    ;; Check that the names and placeholders are the same length.
     (unless (length= names placeholders)
       (error "Length mismatch in template arguments."))
     ;; Check that there are no duplicate placeholders.
@@ -277,10 +277,10 @@ Both syntaxes can also be used as Trivia patterns for destructuring.
            names
            :initial-value ast)))
 
-(defun ssr-wildcard? (node)
-  "Is NODE an SSR wildcard (symbol that starts with WILD_)?"
+(defun wildcard? (node)
+  "Is NODE a wildcard (symbol that starts with WILD_)?"
   (and (symbolp node)
-       (eql (find-package :ssr/string-clauses)
+       (eql (find-package :software-evolution-library/software/string-clauses)
             (symbol-package node))
        (string^= 'wild- node)))
 
@@ -312,7 +312,7 @@ languages allow you to use a pattern with the same name as shorthand:
            (metavar-subtrees (pairlis metavars subtrees)))
     (declare (ignore placeholders template))
     (map-tree (lambda (node)
-                (if (ssr-wildcard? node)
+                (if (wildcard? node)
                     (assocdr (string+ "$" (drop-prefix "WILD-" (string node)))
                              metavar-subtrees
                              :test #'equal)

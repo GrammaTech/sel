@@ -1,5 +1,6 @@
-;;;; string-clauses.lisp -- Support for string SSR search/replace clauses
-(defpackage :ssr/string-clauses
+;;;; string-clauses.lisp -- Support for string AST clauses
+(defpackage :software-evolution-library/software/string-clauses
+  (:nicknames :sel/software/string-clauses :sel/sw/string-clauses)
   (:use :gt/full
         :software-evolution-library
         :software-evolution-library/software/parseable
@@ -8,14 +9,10 @@
         :software-evolution-library/software/javascript
         :software-evolution-library/software/c
         :software-evolution-library/software/cpp
-        :software-evolution-library/utility/range
-        :ssr/core)
+        :software-evolution-library/utility/range)
   (:import-from :functional-trees :map-children)
-  (:export :top-level-text
-           :ellipsis-match
-           :batch-apply-string-clauses
-           :string-clauses->pattern))
-(in-package :ssr/string-clauses)
+  (:export :ast-for-match))
+(in-package :software-evolution-library/software/string-clauses)
 (in-readtable :curry-compose-reader-macros)
 
 (defparameter *slots-excluded*
@@ -39,7 +36,7 @@
 (defparameter *match-refinement-functions* nil)
 
 (defconst +metavariable-prefix+
-  "ssr_metavar_")
+  "string_clause_metavar_")
 
 (defvar-unbound *annotation-number*
   "Used to generate unique identifiers for annotation slots.")
@@ -61,7 +58,7 @@ similar matches, and elipses for matching series of ASTs."
                             "?$")
                  wildcard-name _ type))
      (let ((wild-symbol
-            (intern (format nil "WILD-~a" wildcard-name) (find-package :ssr/string-clauses))))
+            (intern (format nil "WILD-~a" wildcard-name) (find-package :sel/sw/string-clauses))))
        (if type
            (list (intern (string-join (list (string-upcase type) "AST") #\-)
                          (find-package :sel/sw/ts))
@@ -94,7 +91,7 @@ similar matches, and elipses for matching series of ASTs."
                 ;; Preserve the child-order annotation.
                 (if (aget :child-order val)
                     ;; TODO Just the child order?
-                    (push (format-symbol :ssr/string-clauses
+                    (push (format-symbol :sel/sw/string-clauses
                                          "annot~a"
                                          (finc *annotation-number*))
                           result)
@@ -193,7 +190,6 @@ in context."
     ((to-type (eql 'replace)) (clause string)
      &key language software context &allow-other-keys)
   (cond
-    ((emptyp clause) '*ast*)
     (language (convert 'replace (ast-for-match clause language software context)))
     (t (call-next-method))))
 
@@ -224,25 +220,3 @@ different surface syntax for languages that use sigils (Bash, Perl).")
     (regex-replace-all "\\$([_A-Z0-9]+)"
                        string
                        #.(string+ +metavariable-prefix+ "\\1"))))
-
-(defun string-clauses->pattern (object from to context)
-  (let* ((language (type-of object))
-         (from-pattern (convert 'match from
-                                :language language
-                                :context context
-                                :software object))
-         (to-form (convert 'replace to :language language
-                                       :context context
-                                       :software object))
-         (to-pattern (convert 'match to :language language
-                                        :software object
-                                        :context context)))
-    (when (occurs from-pattern to-pattern :test #'equal)
-      (error "Recursion: `~a` contains `~a`" to from))
-    (list from-pattern to-form)))
-
-(defun batch-apply-string-clauses (object from to
-                                   &key context)
-  "Convert FROM and TO to a clause and apply to OBJECT."
-  (let ((pattern (string-clauses->pattern object from to context)))
-    (batch-apply-clauses object (list pattern) :error t)))
