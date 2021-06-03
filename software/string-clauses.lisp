@@ -53,7 +53,7 @@ similar matches, and elipses for matching series of ASTs."
     ((ast :text (ppcre
                  #.(string+ "^"
                             +metavariable-prefix+
-                            "([A-Z0-9]+)"
+                            "([A-Z0-9_]+)"
                             "(_(call|class|function|string|number|comment))"
                             "?$")
                  wildcard-name _ type))
