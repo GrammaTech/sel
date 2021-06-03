@@ -245,7 +245,11 @@ fillbuf(save)
   char *nbuffer, *dp, *sp;
   int cc;
 #if defined(HAVE_WORKING_MMAP)
+#if defined(__APPLE__)
+  caddr_t maddr;
+#else
   __caddr_t maddr;
+#endif
 #endif
   static int pagesize;
 
@@ -282,7 +286,11 @@ fillbuf(save)
       maddr = buffer + bufsalloc;
       maddr = mmap(maddr, bufalloc - bufsalloc, PROT_READ | PROT_WRITE,
 		   MAP_PRIVATE | MAP_FIXED, bufdesc, bufoffset);
+#if defined(__APPLE__)
+      if (maddr == (caddr_t) -1)
+#else
       if (maddr == (__caddr_t) -1)
+#endif
 	{
 	  fprintf(stderr, "%s: warning: %s: %s\n", filename,
 		  strerror(errno));
