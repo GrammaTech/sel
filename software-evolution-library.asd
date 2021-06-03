@@ -71,7 +71,7 @@ executable including the including all tree-sitter libraries."
   :entry-point "software-evolution-library/python/tree-sitter-interface:run-tree-sitter-interface")
 
 (defsystem "software-evolution-library/run-test-parse"
-  :author "Paul Diet and GrammaTech"
+  :author "Eric Schulte and GrammaTech"
   :license "GPL V3"
   :description "Test CLI for use with creduce"
   :depends-on (software-evolution-library/components/test-parse)
