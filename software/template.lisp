@@ -252,9 +252,6 @@ Both syntaxes can also be used as Trivia patterns for destructuring.
                      (let ((subtree (name-subtree name)))
                        (iter (for target in targets)
                              (collect
-                              ;; Use tree-copy to force a new SN.
-                              ;; Is there some more idiomatic way
-                              ;; to do this?
                               (tree-copy
                                (copy subtree
                                      :before-text
