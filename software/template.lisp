@@ -58,24 +58,23 @@ Generic so a different syntax can be used per-language.")
   (:method ((class t) (x ast))
     x))
 
-(-> parse-ast-template (string symbol list &key (:recursive boolean))
+(-> parse-ast-template (string symbol list)
     (values string list list list &optional))
-(defun parse-ast-template (template class args &key recursive)
+(defun parse-ast-template (template class args)
   "Parse TEMPLATE and return four values:
 1. The template with placeholders substituted for metavariables.
 2. A list of the original metavariable names.
 3. A list of placeholders.
 4. A list of subtrees."
   (nest
-   (if (nor recursive (keywordp (car args)))
+   (if (and args (not (keywordp (car args))))
        ;; Handle the positional syntax.
        (parse-ast-template
         template class
         (iter (for arg in args)
               (for i from 1)
               (collect (make-keyword (princ-to-string i)))
-              (collect arg))
-        :recursive t))
+              (collect arg))))
    ;; Build tables between names, placeholders, and subtrees.
    (let* ((dummy (allocate-instance (find-class class)))
           (subs (plist-alist args))
