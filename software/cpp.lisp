@@ -38,6 +38,13 @@
 
 (defmethod computed-text-node-p ((ast cpp-variadic-declaration)) t)
 
+(defmethod transform-parse-tree :around ((language (eql ':cpp))
+                                         (class symbol)
+                                         parse-tree)
+  (if class
+    (transform-malformed-parse-tree (call-next-method) :recursive nil)
+    (call-next-method)))
+
 (defmethod transform-parse-tree ((language (eql ':cpp))
                                  (class (eql 'cpp-preproc-if))
                                  parse-tree)

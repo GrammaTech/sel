@@ -4662,11 +4662,12 @@ which slots are expected to be used."
                  copy)))
            (handle-child (rule slot->stack)
              (when (typep (car (gethash 'children slot->stack))
-                          (cons 'or (cdr rule)))
+                          ;; Treat source-text-fragment as a wild card.
+                          (append '(or source-text-fragment) (cdr rule)))
                (trim-slot-stack 'children slot->stack)))
            (handle-field (rule slot->stack &aux (slot (cadr rule)))
              (when (typep (car (gethash slot slot->stack))
-                          (cons 'or (cddr rule)))
+                          (append '(or source-text-fragment) (cddr rule)))
                (trim-slot-stack slot slot->stack)))
            (handle-choice (rule slot->stack)
              ;; NOTE: since this doesn't back track it won't work on certain
@@ -4882,7 +4883,9 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
                      (not (null child))
                      ;; Confirm tree is the relevant thing on the stack.
                      (member (convert-to-lisp-type language-prefix child)
-                             (cdr rule)
+                             ;; Treat source-text-fragment as a wild card.
+                             (cons 'source-text-fragment
+                                   (cdr rule))
                              :test #'subtypep))
                 (values (cdr parse-stack) t))
                ;; This is an edge case for rules that allow null children.
@@ -4901,7 +4904,9 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
                      (member
                       (convert-to-lisp-type
                        language-prefix (cadr field-pair))
-                      (cddr rule)
+                      ;; Treat source-text-fragment as a wild card.
+                      (cons 'source-text-fragment
+                            (cddr rule))
                       :test #'subtypep))
                 (values (cdr parse-stack) t))
                ;; This is an edge case for a field that allows nil.
@@ -5061,7 +5066,19 @@ the indentation slots."
                (when (eql character #\newline)
                  (return i))
                (while (member character '(#\space #\tab)))))
-           (backpatch-children-indentation-slots (ast indentation)
+           (backpatch-indent-adjustment-slots (asts indentation current-ast)
+             "Backpatch items in ASTS such that any item before CURRENT-AST
+              has its indent-adjustment slot set to INDENTATION less than its
+              current value."
+             ;; NOTE: this function is necessary for erratic indentation that
+             ;;       is heavily nested in an AST.
+             (mapc
+              (lambda (ast)
+                (symbol-macrolet ((indent-adjustment (indent-adjustment ast)))
+                  (setf indent-adjustment (- (or indent-adjustment 0)
+                                              indentation))))
+              (subseq asts 0 (position current-ast asts))))
+           (backpatch-indent-children-slots (ast indentation)
              "Backpatch any child of AST that already has a value in the
               indent-children slot such that its value is INDENTATION less
               than its current."
@@ -5070,10 +5087,8 @@ the indentation slots."
              (mapc
               (lambda (child)
                 (symbol-macrolet ((indent-children (indent-children child)))
-                  (cond
-                    ((eq child ast))
-                    (indent-children
-                     (setf indent-children (- indent-children indentation))))))
+                  (when indent-children
+                    (setf indent-children (- indent-children indentation)))))
               (children ast)))
            (update-indentation-slots
                (ast parents indentation text
@@ -5123,13 +5138,13 @@ the indentation slots."
                      ;; loaded into the package.
                      (subtypep (type-of ast) type))
                    prefer-child-indentation-set)
-                  (backpatch-children-indentation-slots ast adjusted-indentation)
+                  (backpatch-indent-children-slots ast adjusted-indentation)
                   (setf indent-children-current adjusted-indentation
                         indentation-carryover nil
                         indentation-ast nil))
                  ((and parent (not indent-children-parent))
-                  (backpatch-children-indentation-slots
-                   parent adjusted-indentation)
+                  (backpatch-indent-adjustment-slots
+                   (children parent) adjusted-indentation ast)
                   (setf indent-children-parent adjusted-indentation
                         indentation-carryover nil
                         indentation-ast nil))
@@ -5552,12 +5567,14 @@ correct class name for subclasses of SUPERCLASS."
          parse-tree)
        (transform-tree (parse-tree)
          "Map transform-parse-tree over PARSE-TREE."
-         ;; NOTE: it might make sense not to use map-tree here and
-         ;;       write a custom function instead.
-         (map-tree {generated-transform-parse-tree prefix nil}
-                   (map-tree {transform-parse-tree prefix nil}
-                             parse-tree :traversal :postorder)
-                   :traversal :postorder))
+         ;; TODO: at some point, don't cons if nothing has changed.
+         (generated-transform-parse-tree
+          prefix nil
+          (transform-parse-tree
+           prefix nil
+           `(,(car parse-tree)
+             ,(cadr parse-tree)
+             ,(mapcar #'transform-tree (caddr parse-tree))))))
        (get-start (ast)
          "Return the start offset into STRING from the AST representation."
          (car (cadr ast)))
@@ -5851,7 +5868,7 @@ the rebinding"
                   (cdr child-tree)))))
      (lastcar parse-tree)))))
 
-(defun transform-malformed-parse-tree (parse-tree)
+(defun transform-malformed-parse-tree (parse-tree &key (recursive t))
   "Return a modified version of PARSE-TREE if it is malformed.
 This occurs when the source text is not accurately represented by the parse tree
 which is caused by dropped tokens or added zero-width tokens.
@@ -5865,14 +5882,21 @@ Otherwise, returns PARSE-TREE."
            (error-p (subtree)
              (eq (car subtree) :error))
            (problematic-p (tree)
-             (walk-parse-tree
-              (lambda (subtree)
-                (when (and (listp subtree)
-                           (or
-                            (zero-width-p subtree)
-                            (error-p subtree)))
-                  (return-from problematic-p t)))
-              tree)))
+             (if recursive
+                 (walk-parse-tree
+                  (lambda (subtree)
+                    (when (and (listp subtree)
+                               (or
+                                (zero-width-p subtree)
+                                (error-p subtree)))
+                      (return-from problematic-p t)))
+                  tree)
+                 (find-if
+                  (lambda (subtree)
+                    (and (listp subtree)
+                         (or (zero-width-p subtree)
+                             (error-p subtree))))
+                  (caddr tree)))))
     (if (problematic-p parse-tree)
         `(:source-text-fragment ,(cadr parse-tree) nil)
         parse-tree)))

@@ -321,7 +321,9 @@
           (#P"variadic-function.c" c-parameter-declaration)
           (#P"variadic-macro.c" c-parameter-declaration)
           ;; NOTE: round trip.
-          (#P"declaration-specifiers.c"))))
+          (#P"declaration-specifiers.c")
+          ;; NOTE: round trip.
+          (#P"language-redefining-macro.c"))))
 
 (defixture factorial.c
   (:setup (setf *soft* (from-file (make-instance 'c)
