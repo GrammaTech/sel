@@ -20,6 +20,7 @@
     sel/software/tree-sitter::rule
     sel/software/tree-sitter::pruned-rule
     sel/software/tree-sitter::slot-usage
+    sel/software/tree-sitter:choice-superclass
     fset::serial-number
     ;; The next two are specific to CCL.
     fset::next-serial-number
