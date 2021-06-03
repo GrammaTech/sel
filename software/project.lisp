@@ -227,11 +227,17 @@ non-symlink text files that don't end in \"~\" and are not ignored by
   (when (and (project-dir project)
              (probe-file (project-dir project))
              (not (equalp path (canonical-pathname (project-dir project)))))
-    (multiple-value-bind (stdout stderr errno)
-        (shell "cp -pnr ~a/. ~a/" (project-dir project) path)
-      (declare (ignorable stdout))
-      (assert (zerop errno) (path)
-              "Population of output directory failed with: ~a" stderr))))
+    (flet ((ensure/ (path)
+             (when (pathnamep path)
+               (setf path (namestring path)))
+             (if (string$= #\/ path)
+                 path
+                 (string+ path #\/))))
+      (multiple-value-bind (stdout stderr errno)
+          (shell "cp -pnRf ~a. ~a" (ensure/ (project-dir project)) (ensure/ path))
+        (declare (ignorable stdout))
+        (assert (zerop errno) (path)
+                "Population of output directory failed with: ~a" stderr)))))
 
 (defmethod size ((obj project))
   "Return summed size across all `evolve-files'."
@@ -358,7 +364,7 @@ making a directory."
                                             (ensure-directory-pathname bin)
                                             artifact)))
              (multiple-value-bind (stdout stderr exit)
-                 (shell "mkdir -p ~a && cp -rL ~a ~a"
+                 (shell "mkdir -p ~a && cp -RL ~a ~a"
                         target-dir
                         (namestring (merge-pathnames-as-file
                                      (ensure-directory-pathname build-dir)
@@ -372,7 +378,7 @@ making a directory."
       ((car artifacts)
        ;; Copy artifact to BIN.
        (multiple-value-bind (stdout stderr exit)
-           (shell "cp -rL ~a ~a"
+           (shell "cp -RL ~a ~a"
                   (namestring (merge-pathnames-as-file
                                (ensure-directory-pathname build-dir)
                                (car artifacts)))
