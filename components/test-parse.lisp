@@ -10,8 +10,7 @@
         :software-evolution-library/software/parseable)
   (:import-from :software-evolution-library/software/tree-sitter
    :rule-matching-error :parse-error-ast)
-  (:import-from :fset :convert)
-  (:export test-parse run-test-parse))
+  (:export :test-parse :run-test-parse))
 (in-package :software-evolution-library/components/test-parse)
 (in-readtable :curry-compose-reader-macros)
 
@@ -51,7 +50,7 @@ Built from SEL ~a, and ~a ~a.~%"
             (lisp-implementation-type) (lisp-implementation-version))
   (declare (ignorable load eval))
   (flet ((interesting? (e)
-           (or (and error-type (typep e error-type))
+           (or (typep e error-type)
                (and error-pattern (cl-ppcre:scan error-pattern (format nil "~s" e)))
                (and (not error-type) (not error-pattern)))))
     (handler-case
@@ -75,5 +74,9 @@ Built from SEL ~a, and ~a ~a.~%"
       (error (e)
         (format t "~s~%" e)
         (if (interesting? e)
+            ;; A return value of 0 indicates that a partially reduced file is
+            ;; interesting to creduce.
             (exit-command test-parse 0 e)
+            ;; A return value that isn't 0 indicates that a partially reduced
+            ;; file is not interesting to creduce.
             (exit-command test-parse 1 e))))))
