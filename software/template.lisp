@@ -319,12 +319,18 @@ languages allow you to use a pattern with the same name as shorthand:
               pattern)))
 
 (defmacro ast-from-template (template class &rest args)
-  "In one step, build and destructure a template.
+  "In one step, build and destructure a template into ASTs.
 
-Can be used to build a node that can only be parsed in some kind of
-context.
+Must use the positional syntax of `ast-template'. Returns one value
+per metavariable, in numeric order (`$1', `$2', etc.).
 
-Must use the positional syntax of `ast-template'."
+Not every kind of AST node can be parsed directly as a template. E.g.
+in Python a tuple, an argument list, and a parameter list all use the
+same syntax and can only be distinguished in context. Or (at the time
+of writing) the C and C++ parsers for tree-sitter cannot correctly
+parse unterminated statements. Using `ast-from-template' lets you
+provide throwaway context to the parser while pulling out only the
+particular nodes that you want."
   (let ((temps (make-gensym-list (length args))))
     (ematch class
       ((list 'quote class)
