@@ -238,20 +238,19 @@
            :javascript
            :python
            :ast-template                ;Exported here but defined elsewhere.
+           :source-text-fragment
            ;; Python
            :find-if-in-scopes
            :get-asts-in-namespace
            :get-vars
            :identical-name-p
            :in-class-def-p
-           ;; C/Cpp
-           :source-text-fragment
            ;; C
            :c-source-text-fragment
-           :c-parameter-declaration
+           :c-variadic-declaration
            ;; Cpp
            :cpp-source-text-fragment
-           :cpp-parameter-declaration
+           :cpp-variadic-declaration
            ;; Interleaved text
            :interleaved-text
            :check-interleaved-text
@@ -1019,7 +1018,7 @@ definitions.")
              ((:TYPE . "CHOICE")
               (:MEMBERS
                ((:TYPE . "SYMBOL") (:NAME . "identifier"))
-               ((:TYPE . "SYMBOL") (:NAME . "variadic_parameter_declaration"))))
+               ((:TYPE . "SYMBOL") (:NAME . "variadic_declaration"))))
              ((:TYPE . "REPEAT")
               (:CONTENT
                (:TYPE . "SEQ")
@@ -1029,7 +1028,7 @@ definitions.")
                  (:MEMBERS
                   ((:TYPE . "SYMBOL") (:NAME . "identifier"))
                   ((:TYPE . "SYMBOL")
-                   (:NAME . "variadic_parameter_declaration")))))))))
+                   (:NAME . "variadic_declaration")))))))))
            ((:TYPE . "BLANK"))))
          ((:TYPE . "STRING") (:VALUE . ")"))))
        ;; TODO: when the docker image is updated,
@@ -3990,7 +3989,8 @@ are ordered for reproduction as source text.")
   (:documentation "Return T if AST is a computed-text node. This is a
 node where part of the input will need to be computed and stored to reproduce
 the source-text.")
-  (:method (ast) nil))
+  (:method (ast) nil)
+  (:method ((ast source-text-fragment)) t))
 
 (defgeneric get-choice-expansion-subclass (class spec)
   (:documentation "Get the subclass of CLASS associated with SPEC.")
@@ -4567,7 +4567,7 @@ If NODE is not a function node, return nil.")
 (let ((*json-identifier-name-to-lisp* #'convert-name))
   (setf rules
         (aget :rules
-              (setf grammar (decode-json-from-string (file-to-string "~/Programs/tree-sitter-c/src/grammar.json"))))))
+              (setf grammar (decode-json-from-string (file-to-string "/usr/share/tree-sitter/c/grammar.json"))))))
 
 #+nil
 (setf transformed-json
@@ -4576,7 +4576,7 @@ If NODE is not a function node, return nil.")
               rules))
 
 #+nil
-(setf types (decode-json-from-string (file-to-string "~/Programs/tree-sitter-c/src/node-types.json")))
+(setf types (decode-json-from-string (file-to-string "/usr/share/tree-sitter/c/node-types.json")))
 
 #+nil
 (setf pruned (mapcar (op (list (car _) (prune-rule-tree (cdr _1))))  transformed-json))
