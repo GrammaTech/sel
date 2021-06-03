@@ -251,9 +251,6 @@
            ;; Cpp
            :cpp-source-text-fragment
            :cpp-variadic-declaration
-           ;; Interleaved text
-           :interleaved-text
-           :check-interleaved-text
            ;; Cross-language Mix-ins
            :c/cpp
            :ecma
@@ -1697,12 +1694,6 @@ stored on the AST or external rules.")
        (list* 'ast-template template ',ast-class args))))
 
 (eval-always
-  (defclass interleaved-text ()
-    ((interleaved-text :initarg :interleaved-text :initform nil :type list
-                       :reader interleaved-text
-                       :documentation "Interleaved text between children."))
-    (:documentation "Mixin for interleaved-text slot"))
-
   ;; TODO: let over a basic string for empty strings?
   (defclass structured-text ()
     ((before-text
@@ -4120,31 +4111,6 @@ should be rebound.")
   (:method (ast) nil)
   (:method ((ast identifier-ast)) t))
 
-(defmethod rebind-vars ((ast interleaved-text)
-                        var-replacements fun-replacements)
-  "Replace variable and function references, returning a new AST.
-* AST node to rebind variables and function references for
-* VAR-REPLACEMENTS list of old-name, new-name pairs defining the rebinding
-* FUN-REPLACEMENTS list of old-function-info, new-function-info pairs defining
-the rebinding"
-  (if (ast-type-to-rebind-p ast)
-      (copy ast :interleaved-text (mapcar {rebind-vars _ var-replacements
-                                                         fun-replacements}
-                                          (interleaved-text ast)))
-      (apply #'copy ast
-             (mappend (lambda (child-slot)
-                        (destructuring-bind (name . arity) child-slot
-                          (list (make-keyword name)
-                                (cond ((= arity 0)
-                                       (mapcar {rebind-vars _ var-replacements
-                                                              fun-replacements}
-                                               (slot-value ast name)))
-                                      ((slot-value ast name)
-                                       (rebind-vars (slot-value ast name)
-                                                    var-replacements
-                                                    fun-replacements))))))
-                      (child-slots ast)))))
-
 (defmethod enclosing-scope ((obj tree-sitter) (ast ast))
   "Return the enclosing scope of AST in OBJ.
 - OBJ tree-sitter software object
@@ -4325,211 +4291,6 @@ Every element in the list has the following form:
 (defgeneric comparisonp (ast)
   (:documentation "Is AST a comparison?")
   (:method ((ast t)) nil))
-
-;;;; Interleaved text
-(defmethod initialize-instance :after ((ast interleaved-text)
-                                       &key &allow-other-keys)
-  "Wrapper around AST creation to populate the interleaved text field
-with empty strings between each child if the field is not populated."
-  (setf (slot-value ast 'interleaved-text)
-        (or (interleaved-text ast)
-            (nest (repeat-sequence '(""))
-                  (1+)(length)
-                  (remove nil)
-                  (children ast)))))
-
-(defmethod ast-hash ast-combine-hash-values ((ast interleaved-text))
-  (ast-hash (interleaved-text ast)))
-
-(defmethod equal? :around ((ast-a interleaved-text) (ast-b interleaved-text))
-  (when (call-next-method)
-    (let ((hash1 (slot-value ast-a 'stored-hash))
-          (hash2 (slot-value ast-b 'stored-hash)))
-      (if (and hash1 hash2 (not (eql hash1 hash2)))
-          nil
-          (and (eq (type-of ast-a) (type-of ast-b))
-               (equal? (interleaved-text ast-a)
-                       (interleaved-text ast-b))
-               (length= (children ast-a)
-                        (children ast-b))
-               (every #'equal? (children ast-a) (children ast-b)))))))
-
-(defgeneric check-interleaved-text (ast)
-  (:documentation "Assert that AST's interleaved text is valid.
-
-Interleaved text is valid when the number of interleaved strings is
-one greater than the number of children.")
-  (:method ((ast interleaved-text))
-    (let ((children (sorted-children ast)))
-      (assert (= (1+ (length children)) (length (interleaved-text ast))) (ast)
-              "The ~a to be printed has ~d children and ~d element(s) of ~
-          interleaved text.  The AST must have interleaved text between ~
-          each child, ~d element(s) total."
-              (type-of ast)
-              (length children) (length (interleaved-text ast))
-              (1+ (length children)))))
-  (:method (ast) nil))
-
-(defmethod source-text :before ((ast interleaved-text)
-                                &key stream)
-  (declare (ignorable stream))
-  (check-interleaved-text ast))
-
-(defmethod copy :around ((ast interleaved-text) &key &allow-other-keys)
-  "Wrapper around copy to perform various fixups to the interleaved-text field
-and child-order annotations of the copied AST in response to child AST
-insertions or removals.  These fixups exist to mimic the behavior of ASTs when
-child ASTs were stored in a flat list of children and not in named children
-slots."
-  (let* ((copy (call-next-method))
-         (old-children (remove nil (children ast)))
-         (new-children (remove nil (children copy)))
-         (old-children-length (length old-children))
-         (new-children-length (length new-children)))
-    (labels ((text-changed ()
-               "Return T if the interleaved-text field changed between
-               the old and new ASTs."
-               (not (equal (interleaved-text copy) (interleaved-text ast))))
-             (child-order-changed ()
-               "Return T if the :child-order field is populated and has
-               changed after the AST copy."
-               (let ((old-child-order (ast-annotation ast :child-order))
-                     (new-child-order (ast-annotation copy :child-order)))
-                 (and old-child-order new-child-order
-                      (not (equal old-child-order new-child-order)))))
-             (ast-additions ()
-               "Return a list of new AST children in COPY."
-               (set-difference new-children old-children :key #'serial-number))
-             (ast-removals ()
-               "Return a list of AST children removed in COPY."
-               (set-difference old-children new-children :key #'serial-number))
-             (ast-in-difference-p (ast difference)
-               "Return T if AST is a member of DIFFERENCE."
-               (member (serial-number ast) difference :key #'serial-number))
-             (fixup-child-order (difference)
-               "Return a new child order annotation after adjusting for AST
-               removals in DIFFERENCE."
-               (iter (for child in (sorted-children ast))
-                 (unless (ast-in-difference-p child difference)
-                   (collect (position child copy)))))
-             (ith-in-difference-p (i children difference)
-               "Return T if the Ith AST in CHILDREN is a member of DIFFERENCE."
-               (when-let ((ith-child (nth i children)))
-                 (ast-in-difference-p ith-child difference)))
-             (fixup-interleaved-text (difference)
-               "Return new interleaved text after adjusting for AST insertions
-               or removals in DIFFERENCE."
-               ;; This mimics the behavior of JS and python ASTs when child
-               ;; ASTs were stored in a flat list of children and not in
-               ;; named child slots.  For AST deletions, the interleaved text
-               ;; is concatenated into a single value; for AST insertions,
-               ;; an empty string is added.  There are issues with this
-               ;; approach which may be addressed in a different changeset;
-               ;; this simply preserves existing behavior.
-               ;;
-               ;; TODO: This is C-style code; refactor to use LISP idioms.
-               (let ((text (interleaved-text copy))
-                     (children (if (< new-children-length old-children-length)
-                                   (sorted-children ast)
-                                   (sorted-children copy)))
-                     (child-i 0)
-                     (text-i 0))
-                 (iter (while (< child-i (length children)))
-                   (if (ith-in-difference-p child-i children difference)
-                       (if (< new-children-length old-children-length)
-                           ;; cut operation, concatenate the text in the cut
-                           (collect
-                               (iter (while (ith-in-difference-p child-i
-                                                                 children
-                                                                 difference))
-                                 (collect (nth text-i text) into rslt)
-                                 (incf text-i)
-                                 (unless (first-iteration-p)
-                                   (incf child-i))
-                                 (finally
-                                  (return (apply #'concatenate 'string
-                                                 (remove nil rslt))))))
-                           ;; insert operation, pad "" for the insertions
-                           (appending
-                            (iter (while (ith-in-difference-p child-i
-                                                              children
-                                                              difference))
-                              (when (first-iteration-p)
-                                (collect (nth text-i text))
-                                (incf text-i))
-                              (incf child-i)
-                              (collect ""))))
-                       (prog1
-                           (collect (nth text-i text))
-                         (incf child-i)
-                         (incf text-i)))))))
-
-      ;; Determine which ASTs were added or removed, if any.
-      (when-let ((difference (cond ((< old-children-length new-children-length)
-                                    (ast-additions))
-                                   ((> old-children-length new-children-length)
-                                    (ast-removals))
-                                   (t nil))))
-        ;; Assertions to force the client to provide more information when
-        ;; we cannot clearly ascertain intent within this method.
-        ;; This occurs when ASTs are both added and removed or when
-        ;; inserting into an AST with an explicitly defined child order.
-        (assert (or (text-changed) (not (and (ast-additions) (ast-removals))))
-          (ast)
-          "When creating an AST copy with both child AST additions and ~
-                removals, the interleaved-text field must also be explicity ~
-                set.")
-        (assert (or (null (ast-annotation copy :child-order))
-                    (and (child-order-changed)
-                         (= new-children-length
-                            (length (ast-annotation copy :child-order)))))
-          (ast)
-          "When creating an AST copy with an explicit child order ~
-                annotation, child AST additions are not allowed without ~
-                explicitly setting a matching :child-order annotation.")
-
-        ;; Update the :child-order annotation and interleaved-text field to
-        ;; reflect the AST changes.
-        (setf (slot-value copy 'annotations)
-              (if (or (null (ast-annotation copy :child-order))
-                      (child-order-changed))
-                  (ast-annotations copy)
-                  (cons (cons :child-order (fixup-child-order difference))
-                        (adrop '(:child-order) (ast-annotations copy)))))
-        (setf (slot-value copy 'interleaved-text)
-              (if (text-changed)
-                  (interleaved-text copy)
-                  (fixup-interleaved-text difference)))))
-    copy))
-
-
-;;; Overrides for parseable representations with interleaved-text.
-(defmethod prepend-text-to-genome ((obj tree-sitter) (text string)
-                                   &aux (root (genome obj)))
-  "Prepend non-AST TEXT to OBJ's genome."
-  (setf (genome obj)
-        (nest (copy root :interleaved-text)
-              (cons (concatenate 'string text (car (interleaved-text root)))
-                    (cdr (interleaved-text root))))))
-
-(defmethod append-text-to-genome-preamble ((obj tree-sitter)
-                                           (text string)
-                                          &aux (root (genome obj)))
-  "Append non-AST TEXT to OBJ's genome preamble."
-  (setf (genome obj)
-        (nest (copy root :interleaved-text)
-              (cons (concatenate 'string (car (interleaved-text root)) text)
-                    (cdr (interleaved-text root))))))
-
-(defmethod append-text-to-genome ((obj tree-sitter) (text string)
-                                  &aux (root (genome obj)))
-  "Prepend non-AST TEXT to OBJ's genome."
-  (setf (genome obj)
-        (nest (copy root :interleaved-text)
-              (append (butlast (interleaved-text root)))
-              (list)
-              (concatenate 'string text)
-              (lastcar (interleaved-text root)))))
 
 
 ;;;; Cross-language generics and methods

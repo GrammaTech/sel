@@ -631,9 +631,6 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
       (first (python-operators ast))
       (call-next-method)))
 
-(defmethod operator ((ast python-not))
-  (first (interleaved-text ast)))
-
 (defmethod control-flow-condition ((ast python-if-statement)) (car (children ast)))
 (defmethod control-flow-condition ((ast python-while-statement)) (car (children ast)))
 
@@ -643,8 +640,8 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
 (defmethod indentablep ((ast python-string)) nil)
 
 (defmethod get-default-indentation ((ast python-ast) (parents list))
-  ;; Search for the first AST with a colon in the interleaved-text and
-  ;; uses its indent-children value. If none are found, call-next-method.
+  ;; Search for the first AST which has a colon in its source-text and
+  ;; use its indent-children value. If none are found, call-next-method.
   (labels ((indented-obj-p (ast &aux (indent-children (indent-children ast)))
              "Return T if AST is an obj that should have indented children."
              (and
