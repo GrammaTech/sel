@@ -6,8 +6,6 @@
         :software-evolution-library/software/parseable
         :software-evolution-library/software/tree-sitter
         :software-evolution-library/software/python
-        :software-evolution-library/software/javascript
-        :software-evolution-library/software/c
         :software-evolution-library/software/cpp
         :software-evolution-library/utility/range)
   (:import-from :functional-trees :map-children)
