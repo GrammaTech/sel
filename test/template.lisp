@@ -87,6 +87,12 @@ def $1():
                 "read_foo"
                 "foo")))))
 
+(deftest test-duplicate-with-asts ()
+  (equal
+   (source-text
+    (python "$X = fn($X)" :x (make 'python-identifier :text "var")))
+   "var = fn(var)"))
+
 (deftest test-extract-duplicates ()
   (multiple-value-bind (matched? read-name name1 name2)
       (match (python "
