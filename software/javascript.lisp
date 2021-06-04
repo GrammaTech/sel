@@ -180,7 +180,7 @@ AST ast to return the enclosing scope for"
     ((javascript-call-expression
       :javascript-function
       (javascript-identifier
-       :text (list name)))
+       :text name))
      (enclosing-find-function obj callexpr name))))
 
 (defmethod function-name ((node javascript-function-declaration))
@@ -219,7 +219,7 @@ scope of START-AST."
              ((javascript-function-declaration
                :javascript-name
                (javascript-identifier
-                :text (list name)))
+                :text name))
               (equal name function-name)))))
     (find-if-in-scope #'target-function obj start-ast)))
 
