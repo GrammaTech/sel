@@ -202,8 +202,8 @@ field."
   (match callexpr
     ((c-call-expression
       :c-function
-      (c-identifier text))
-     (enclosing-find-c-function obj callexpr (first text)))))
+      (c-identifier :text text))
+     (enclosing-find-c-function obj callexpr text))))
 
 (defun c-functions (c-soft)
   "Returns the list of c functions in the C software object.
