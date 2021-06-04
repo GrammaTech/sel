@@ -2530,13 +2530,14 @@ CLASS-NAME->PARSE-TREE-TRANSFORMS."
                                    (convert-name (cadr symbol-substitution)))))
                "Update class-name->class-definition with information from
                 SYMBOL-SUBSTITUTION."
-               ;; TODO: add support for updating child-slots?
+               ;; TODO: add slot name to symbols that need exported.
                (add-slot-to-class-definition
                 (format-symbol 'sel/sw/ts "~a-~a" language-prefix class-name)
                 class-name->class-definition
                 `(,slot-name :accessor ,slot-name
                              :initarg ,(make-keyword slot-name)
-                             :initform nil)))
+                             :initform nil)
+                :add-to-child-slots t))
              (update-class-transforms (symbol-substitution)
                "Update class-name->parse-tree-transforms with a cons of
                 slot name and the function used for transforming the parse tree."
@@ -3010,13 +3011,31 @@ CLASS-NAME is used as the specialization for the generated method."
 
 
   (defun add-slot-to-class-definition
-      (class-name class-name->class-definition slot-spec)
+      (class-name class-name->class-definition slot-spec &key add-to-child-slots)
     "Destructively add SLOT-SPEC to CLASS-NAME's definition in
 CLASS-NAME->CLASS-DEFINITION."
-    (let ((class-definition (gethash class-name class-name->class-definition)))
-      (symbol-macrolet ((slots (cadddr class-definition)))
-        (unless (aget (car slot-spec) slots)
-          (setf slots (cons slot-spec slots))))))
+    (labels ((update-child-slots (slots)
+               "Update SLOTS such that child-slots contains the new
+                slot-spec."
+               (let* ((child-slots (assoc 'child-slots slots))
+                      (slot-list (lastcar (getf (cdr child-slots) :initform))))
+                 (acons
+                  'child-slots
+                  `(:initform
+                    ',(append (butlast slot-list)
+                              ;; Assume arity of 0.
+                              `((,(car slot-spec) . 0))
+                              (last slot-list))
+                    :allocation :class)
+                  (remove child-slots slots)))))
+      (let ((class-definition (gethash class-name class-name->class-definition)))
+        (symbol-macrolet ((slots (cadddr class-definition)))
+          (unless (aget (car slot-spec) slots)
+            (setf slots
+                  (cons slot-spec
+                        (if add-to-child-slots
+                            (update-child-slots slots)
+                            slots))))))))
 
 
 

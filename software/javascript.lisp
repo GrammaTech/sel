@@ -14,9 +14,6 @@
 (create-tree-sitter-language "javascript")
 ;;;===================================================
 
-(defmethod children ((ast javascript-ast))
-  (remove-if (of-type 'javascript-\;) (call-next-method)))
-
 (defmethod transform-parse-tree
     ((language (eql ':javascript))
      (class (eql 'javascript-lexical-declaration))

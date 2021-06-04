@@ -72,13 +72,13 @@
                 (javascript-dir #P"hello-world/hello-world.js"))
                (genome-string *soft*))))
   (with-fixture fib-javascript
-    (is (= 47 (size *soft*)))
+    (is (= 54 (size *soft*)))
     (is (equal (file-to-string (javascript-dir #P"fib/fib.js"))
                (genome-string *soft*)))))
 
 (deftest javascript-can-handle-multibyte-characters ()
   (with-fixture multibyte-javascript
-    (is (= 7 (size *soft*)))
+    (is (= 8 (size *soft*)))
     (is (equal* (file-to-string (original-path *soft*))
                 (genome-string *soft*)
                 (source-text (genome *soft*))))))
