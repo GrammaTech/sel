@@ -823,7 +823,7 @@ searched to populate `*tree-sitter-language-files*'.")
        (:loop-ast
         javascript-for-statement javascript-do-statement
         javascript-while-statement)
-       (:statement-ast javascript--statement)
+       (:statement-ast javascript--statement javascript-statement)
        (:call-ast javascript-call-expression)
        (:arguments-ast javascript-arguments)
        (:unary-ast javascript-unary-expression)
