@@ -235,4 +235,6 @@ scope of START-AST."
   javascript--- javascript-ast
   javascript-++ javascript-ast
   javascript-ast javascript-++
-  javascript-ast javascript-\;)
+  javascript-ast javascript-\;
+  ;; No whitespace before the arguments of an IIFE.
+  javascript-parenthesized-expression javascript-arguments)
