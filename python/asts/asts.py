@@ -98,6 +98,10 @@ class AST:
         """Return any call ASTs under AST."""
         return _interface.dispatch(self) or []
 
+    def get_vars_in_scope(self, root: "AST", keep_globals: bool = True) -> "AST":
+        """Return all variables in enclosing scopes, optionally including globals."""
+        return _interface.dispatch(root, self, keep_globals) or []
+
     # AST slot accessors
     def ensure_type(self, desired_type: str) -> None:
         if desired_type not in self.ast_types():

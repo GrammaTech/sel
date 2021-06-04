@@ -8,8 +8,10 @@
         :software-evolution-library/command-line
         :software-evolution-library/software/parseable
         :software-evolution-library/software/tree-sitter
+        :software-evolution-library/software/c
+        :software-evolution-library/software/cpp
         :software-evolution-library/software/python
-        :software-evolution-library/software/json
+        :software-evolution-library/software/javascript
         :software-evolution-library/utility/range)
   (:import-from :flexi-streams
                 :make-in-memory-output-stream
@@ -231,3 +233,11 @@ function name from the API followed by the arguments."
 (-> int/ast-refcount (ast) fixnum)
 (defun int/ast-refcount (ast)
   (refcount ast))
+
+(-> int/get-vars-in-scope (ast ast boolean) list)
+(defun int/get-vars-in-scope (root ast keep-globals)
+  (nest (mapcar {aget :name})
+        (get-vars-in-scope (make-instance (safe-intern (int/ast-language ast))
+                                          :genome root)
+                           ast
+                           keep-globals)))

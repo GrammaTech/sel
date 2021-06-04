@@ -146,3 +146,14 @@ class ErrorTestDriver(unittest.TestCase):
     def test_error_handling(self):
         with self.assertRaises(asts.ASTException):
             asts.AST("foo", "foo()")
+
+
+class VarsInScopeTestDriver(unittest.TestCase):
+    def test_no_vars_in_scope(self):
+        root = asts.AST("python", "")
+        self.assertEqual([], root.get_vars_in_scope(root))
+
+    def test_vars_in_scope(self):
+        root = asts.AST("python", "def bar(a, b): return a*b")
+        ast = root.children()[-1].children()[-1].children()[-1]
+        self.assertEqual(["bar", "a", "b"], ast.get_vars_in_scope(root))
