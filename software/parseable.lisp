@@ -964,7 +964,7 @@ the `genome' of the software object."
   (:method ((obj parseable) (location integer))
     (asts-containing-source-location
      obj
-     (position->source-location (genome-string ast) location)))
+     (position->source-location (genome-string obj) location)))
   (:method ((ast ast) (location integer))
     (asts-containing-source-location
      ast
@@ -1650,15 +1650,12 @@ is useful for ASTs that may have newline literals.")
 
 (defmethod source-text :around ((ast indentation) &key stream)
   (declare (ignore stream))
-  (if *is-computing-ast-source-ranges*
-      (macrolet ((with-continue-restart (&body body)
-                   `(restart-case
-                        ,@body
-                      (continue () nil))))
-        (with-continue-restart (signal 'node-location :ast ast))
-        (multiple-value-prog1 (call-next-method)
-          (with-continue-restart (signal 'node-location :ast ast))))
-      (call-next-method)))
+  (cond
+    (*is-computing-ast-source-ranges*
+     (with-simple-restart (continue "") (signal 'node-location :ast ast))
+     (multiple-value-prog1 (call-next-method)
+       (with-simple-restart (continue "") (signal 'node-location :ast ast))))
+    (t (call-next-method))))
 
 (defmethod ast-source-ranges ((ast indentation))
   (flet ((source-range (begin end)

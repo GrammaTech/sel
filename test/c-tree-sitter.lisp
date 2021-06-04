@@ -181,19 +181,20 @@
     (let ((g (genome *soft*)))
       (is (typep g 'c-translation-unit))
       (is (typep (@ g 0) 'c-compound-statement))
-      (is (typep (@ (@ g 0) 1) 'c-expression-statement))
-      (is (typep (@ (@ (@ g 0) 1) 0) 'c-assignment-expression))
+      (is (typep (@ g '(0 1)) 'c-expression-statement))
+      (is (typep (@ g '(0 1 0)) 'c-assignment-expression))
       (is (string-equal
-           (source-text (@ (@ (@ (@ g 0) 1) 0) 1))
+           (source-text (@ g '(0 1 0 1)))
            "*="))
       (is (string-equal
-           (source-text (@ (@ (@ (@ g 0) 2) 0) 1))
+           (source-text (@ g '(0 2 0 1)))
            "+="))
       (is (string-equal
-           (source-text (@ (@ (@ (@ g 0) 3) 0) 1))
+           (source-text (@ g '(0 3 0 1)))
            "-="))
       (is (string-equal
-           (source-text (@ (@ (@ (@ g 0) 4) 0) 1))
+           ; 0 4 0 1
+           (source-text (@ g '(0 4 0 1)))
            "/=")))))
       
 (deftest field-expression-test-1 () ;; sel issue #142
@@ -214,16 +215,16 @@
     (let ((g (genome *soft*)))
       (is (typep g 'c-translation-unit))
       (is (typep (@ g 0) 'c-function-definition))
-      (is (typep (@ (@ g 0) 2) 'c-compound-statement))
-      (is (typep (@ (@ (@ g 0) 2) 4) 'c-expression-statement))
-      (is (typep (@ (@ (@ (@ g 0) 2) 4) 0) 'c-assignment-expression))
-      (is (typep (@ (@ (@ (@ (@ g 0) 2) 4) 0) 0) 'c-field-expression))
-      (is (string-equal (source-text  (@ (@ (@ (@ (@ (@ g 0) 2) 4) 0) 0) 1))
+      (is (typep (@ g '(0 2)) 'c-compound-statement))
+      (is (typep (@ g '(0 2 4)) 'c-expression-statement))
+      (is (typep (@ g '(0 2 4 0)) 'c-assignment-expression))
+      (is (typep (@ g '(0 2 4 0 0)) 'c-field-expression))
+      (is (string-equal (source-text  (@ g '(0 2 4 0 0 1)))
                         "->"))
-      (is (typep (@ (@ (@ g 0) 2) 5) 'c-expression-statement))
-      (is (typep (@ (@ (@ (@ g 0) 2) 5) 0) 'c-assignment-expression))
-      (is (typep (@ (@ (@ (@ (@ g 0) 2) 5) 0) 2) 'c-field-expression))
-      (is (string-equal (source-text  (@ (@ (@ (@ (@ (@ g 0) 2) 5) 0) 2) 1))
+      (is (typep (@ g '(0 2 5)) 'c-expression-statement))
+      (is (typep (@ g '(0 2 5 0)) 'c-assignment-expression))
+      (is (typep (@ g '(0 2 5 0 2)) 'c-field-expression))
+      (is (string-equal (source-text  (@ g '(0 2 5 0 2 1)))
                         "->")))))
 
 (defun parsing-test-dir (path)
