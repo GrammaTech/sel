@@ -15,6 +15,16 @@ class BinaryOperationTestDriver(unittest.TestCase):
     def test_ast_at_point(self):
         self.assertEqual("88", self.root.ast_at_point(1, 5).source_text())
 
+    # AST source ranges
+    def test_ast_source_ranges(self):
+        ranges = [rnge for ast, rnge in self.root.ast_source_ranges()]
+        self.assertEqual([[1, 1], [1, 7]], ranges[0])
+        self.assertEqual([[1, 1], [1, 7]], ranges[1])
+        self.assertEqual([[1, 1], [1, 7]], ranges[2])
+        self.assertEqual([[1, 1], [1, 2]], ranges[3])
+        self.assertEqual([[1, 2], [1, 4]], ranges[4])
+        self.assertEqual([[1, 4], [1, 7]], ranges[5])
+
     # AST children
     def test_children(self):
         self.assertEqual(3, len(self.binop.children()))

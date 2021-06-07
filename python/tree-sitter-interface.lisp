@@ -241,3 +241,12 @@ function name from the API followed by the arguments."
                                           :genome root)
                            ast
                            keep-globals)))
+
+(-> int/ast-source-ranges (ast) list)
+(defun int/ast-source-ranges (root)
+  (iter (for (ast . range) in (ast-source-ranges root))
+        (collect (list ast
+                       (list (list (line (begin range))
+                                   (column (begin range)))
+                             (list (line (end range))
+                                   (column (end range))))))))

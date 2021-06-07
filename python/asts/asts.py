@@ -44,6 +44,12 @@ class AST:
         """Return the most specific AST covering LINE and COLUMN."""
         return _interface.dispatch(AST.ast_at_point.__name__, self, line, column)
 
+    def ast_source_ranges(
+        self,
+    ) -> List[Tuple["AST", Tuple[Tuple[int, int], Tuple[int, int]]]]:
+        """Return the source ranges (line, col) for AST its recursive children"""
+        return _interface.dispatch(AST.ast_source_ranges.__name__, self)
+
     def ast_language(self) -> str:
         """Return the AST's language."""
         return _interface.dispatch(AST.ast_language.__name__, self)
