@@ -1,3 +1,4 @@
+import atexit
 import json
 import multiprocessing
 import shutil
@@ -270,3 +271,4 @@ class _interface:
 
 
 _interface.start()
+atexit.register(_interface.stop)
