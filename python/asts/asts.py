@@ -1,4 +1,3 @@
-import inspect
 import json
 import multiprocessing
 import shutil
@@ -21,54 +20,56 @@ class AST:
         of the resulting AST.
         """
         if handle is None:
-            self.handle = _interface.dispatch(language, source)
+            self.handle = _interface.dispatch(AST.__init__.__name__, language, source)
         else:
             self.handle = handle
 
     def __del__(self) -> None:
         if hasattr(self, "handle") and self.handle is not None:
-            _interface.dispatch(self)
+            _interface.dispatch(AST.__del__.__name__, self)
             self.handle = None
 
     def __hash__(self) -> int:
         """Return the hashcode for the AST."""
-        return _interface.dispatch(self)
+        return _interface.dispatch(AST.__hash__.__name__, self)
 
     def __eq__(self, other: "AST") -> bool:
         """Return true if AST is equal to OTHER."""
-        return isinstance(other, AST) and _interface.dispatch(self, other)
+        if isinstance(other, AST):
+            return _interface.dispatch(AST.__eq__.__name__, self, other)
+        return False
 
     def ast_at_point(self, line: int, column: int) -> "AST":
         """Return the most specific AST covering LINE and COLUMN."""
-        return _interface.dispatch(self, line, column)
+        return _interface.dispatch(AST.ast_at_point.__name__, self, line, column)
 
     def ast_language(self) -> str:
         """Return the AST's language."""
-        return _interface.dispatch(self)
+        return _interface.dispatch(AST.ast_language.__name__, self)
 
     def ast_refcount(self) -> int:
         """Return the AST's reference count."""
-        return _interface.dispatch(self)
+        return _interface.dispatch(AST.ast_refcount.__name__, self)
 
     def ast_type(self) -> str:
         """Return the AST's type."""
-        return _interface.dispatch(self)
+        return _interface.dispatch(AST.ast_type.__name__, self)
 
     def ast_types(self) -> List[str]:
         """Return the AST's type hierarchy."""
-        return _interface.dispatch(self)
+        return _interface.dispatch(AST.ast_types.__name__, self)
 
     def source_text(self) -> str:
         """Return a string of the AST's source text."""
-        return _interface.dispatch(self)
+        return _interface.dispatch(AST.source_text.__name__, self)
 
     def children(self) -> List["AST"]:
         """Return a list of the AST's children."""
-        return _interface.dispatch(self) or []
+        return _interface.dispatch(AST.children.__name__, self) or []
 
     def child_slots(self) -> List[Tuple[str, int]]:
         """Return a list of the AST's child slots."""
-        return _interface.dispatch(self) or []
+        return _interface.dispatch(AST.child_slots.__name__, self) or []
 
     def child_slot_arity(self, slot: str) -> Optional[int]:
         """Return the arity of the AST's child slot."""
@@ -84,23 +85,29 @@ class AST:
         if arity is None:
             return None
         else:
-            return _interface.dispatch(self, slot)
+            return _interface.dispatch(AST.child_slot.__name__, self, slot)
 
     def parent(self, root: "AST") -> "AST":
         """Return AST's parent under ROOT."""
-        return _interface.dispatch(root, self)
+        return _interface.dispatch(AST.parent.__name__, root, self)
 
     def function_asts(self) -> List["AST"]:
         """Return any function ASTs under AST."""
-        return _interface.dispatch(self) or []
+        return _interface.dispatch(AST.function_asts.__name__, self) or []
 
     def call_asts(self) -> List["AST"]:
         """Return any call ASTs under AST."""
-        return _interface.dispatch(self) or []
+        return _interface.dispatch(AST.call_asts.__name__, self) or []
 
     def get_vars_in_scope(self, root: "AST", keep_globals: bool = True) -> "AST":
         """Return all variables in enclosing scopes, optionally including globals."""
-        return _interface.dispatch(root, self, keep_globals) or []
+        names = _interface.dispatch(
+            AST.get_vars_in_scope.__name__,
+            root,
+            self,
+            keep_globals,
+        )
+        return names or []
 
     # AST slot accessors
     def ensure_type(self, desired_type: str) -> None:
@@ -110,32 +117,32 @@ class AST:
     def function_name(self) -> str:
         """Return AST's name.  AST must be of type function."""
         self.ensure_type("FUNCTION-AST")
-        return _interface.dispatch(self)
+        return _interface.dispatch(AST.function_name.__name__, self)
 
     def function_parameters(self) -> List["AST"]:
         """Return AST's parameters.  AST must be of type function."""
         self.ensure_type("FUNCTION-AST")
-        return _interface.dispatch(self) or []
+        return _interface.dispatch(AST.function_parameters.__name__, self) or []
 
     def function_body(self) -> "AST":
         """Return AST's body.  AST must be of type function."""
         self.ensure_type("FUNCTION-AST")
-        return _interface.dispatch(self)
+        return _interface.dispatch(AST.function_body.__name__, self)
 
     def call_module(self, root: "AST") -> Optional[str]:
         """Return AST's module.  AST must be of type call."""
         self.ensure_type("CALL-AST")
-        return _interface.dispatch(root, self)
+        return _interface.dispatch(AST.call_module.__name__, root, self)
 
     def call_function(self) -> "AST":
         """Return AST's function.  AST must be of type call."""
         self.ensure_type("CALL-AST")
-        return _interface.dispatch(self)
+        return _interface.dispatch(AST.call_function.__name__, self)
 
     def call_arguments(self) -> List["AST"]:
         """Return AST's arguments.  AST must be of type call."""
         self.ensure_type("CALL-AST")
-        return _interface.dispatch(self) or []
+        return _interface.dispatch(AST.call_arguments.__name__, self) or []
 
 
 class ASTException(Exception):
@@ -195,24 +202,8 @@ class _interface:
                 _interface._proc.stdin.flush()
 
     @staticmethod
-    def dispatch(*args: Any) -> Any:
+    def dispatch(fn: str, *args: Any) -> Any:
         """Dispatch processing to the tree-sitter-interface."""
-
-        def fn() -> str:
-            """Return the name of the function to call."""
-
-            # This may be too cute, but we assume here the
-            # name of the function to call matches the name
-            # of the method being called on the AST class
-            # (modulo some exceptions for leading/trailing
-            # double underscores and underscores instead of
-            # hyphens).  This enforces a correspondence in
-            # names between the method on ASTs and the
-            # tree-sitter-interface.  Additionally, it helps
-            # protect against minor programming errors where
-            # the wrong function name is passed in.
-            name = inspect.stack()[2].function
-            return name.replace("__", "").replace("_", "-")
 
         def handle_errors(data: Any) -> Any:
             """Check for errors in the subprocess reported in the JSON output."""
@@ -243,8 +234,20 @@ class _interface:
                     f"{_interface._DEFAULT_CMD_NAME} process not running."
                 )
 
+            # This may be too cute, but we assume here the
+            # name of the function to call matches the name
+            # of the method being called on the AST class
+            # (modulo some exceptions for leading/trailing
+            # double underscores and underscores instead of
+            # hyphens).  This enforces a correspondence in
+            # names between the methods on ASTs and the
+            # tree-sitter-interface.  Additionally, it helps
+            # protect against minor programming errors where
+            # the wrong function name is passed in.
+            fn = fn.replace("__", "").replace("_", "-")
+
             # Write the function and arguments to the LISP subprocess.
-            inpt = [fn()] + [serialize(arg) for arg in args]
+            inpt = [fn] + [serialize(arg) for arg in args]
             _interface._proc.stdin.write(json.dumps(inpt).encode("ascii"))
             _interface._proc.stdin.write(b"\n")
             _interface._proc.stdin.flush()
