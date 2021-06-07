@@ -151,21 +151,21 @@ list."))
   "Maximum number of characters to print for TEXT in
 PRINT-OBJECT method on AST structures.")
 
+(def +print-object-source-text+ t
+  "Flag to control whether to print source text for an object.
+
+Provided to make it easier to debug problems with AST printing.")
+
 (defmethod print-object ((obj functional-tree-ast) stream
                          &aux (cutoff *ast-print-cutoff*))
   (if *print-readably*
       (call-next-method)
       (print-unreadable-object (obj stream :type t)
-        (format stream "~a :TEXT ~s"
+        (format stream "~a~@[ :TEXT ~s~]"
                 (serial-number obj)
-                (let* ((text (source-text obj))
-                       (truncated
-                        (if (> (length text) cutoff)
-                            (concatenate 'string (subseq text 0 cutoff) "...")
-                            text)))
-                  (if-let ((position (search (string #\Newline) truncated)))
-                    (concatenate 'string (subseq truncated 0 position) "...")
-                    truncated))))))
+                (and +print-object-source-text+
+                     (ellipsize (first (lines (source-text obj) :count 1))
+                                cutoff))))))
 
 (defmethod print-object ((obj conflict-ast) stream)
   (if *print-readably*
