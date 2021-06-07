@@ -249,8 +249,7 @@ class _interface:
 
             # Write the function and arguments to the LISP subprocess.
             inpt = [fn] + [serialize(arg) for arg in args]
-            _interface._proc.stdin.write(json.dumps(inpt).encode("ascii"))
-            _interface._proc.stdin.write(b"\n")
+            _interface._proc.stdin.write(f"{json.dumps(inpt)}\n".encode("ascii"))
             _interface._proc.stdin.flush()
 
             # Read the response from stdout.
