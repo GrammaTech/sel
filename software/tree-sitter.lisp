@@ -4751,18 +4751,28 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
          ;; Avoid matching a rule if parse tree tokens still exist.
          (and (not parse-stack) success?))))))
 
+(defgeneric whitespace-between/parent (parent style ast1 ast2)
+  (:method ((parent t) style ast1 ast2)
+    (whitespace-between style ast1 ast2))
+  ;; No whitespace inside a terminal symbol.
+  (:method ((parent terminal-symbol) s ast1 ast2)
+    "")
+  ;; No whitespace after a terminal symbol in a unary AST.
+  (:method ((parent unary-ast) s (ast1 terminal-symbol) ast2)
+    "")
+  (:method (p s (ast1 ast) (ast2 string))
+    (if (notevery #'whitespacep ast2)
+        (whitespace-between/parent p s ast1 (make-keyword ast2))
+        ""))
+  (:method (p s (ast1 string) (ast2 ast))
+    (if (notevery #'whitespacep ast1)
+        (whitespace-between/parent p s (make-keyword ast1) ast2)
+        "")))
+
 (defgeneric whitespace-between (style ast1 ast2)
   (:method (s ast1 ast2) "")
   (:method (s (ast1 null) ast2) "")
   (:method (s ast1 (ast2 null)) "")
-  (:method (s (ast1 ast) (ast2 string))
-    (if (notevery #'whitespacep ast2)
-        (whitespace-between s ast1 (make-keyword ast2))
-        ""))
-  (:method (s (ast1 string) (ast2 ast))
-    (if (notevery #'whitespacep ast1)
-        (whitespace-between s (make-keyword ast1) ast2)
-        ""))
   ;; Sensible defaults for most (all?) programming languages.
   (:method (s (ast1 symbol) (ast2 ast))
     "No whitespace after an opening delimiter."
@@ -4781,15 +4791,19 @@ on the calculated format of a particular file."))
   (:documentation "Destructively patch whitespace on AST by adding a
   space to the before-text and after-text slots that need it.")
   (:method ((ast t) &key) ast)
+  (:method ((ast terminal-symbol) &key) ast)
   (:method ((ast structured-text) &key style (recursive t))
     (labels ((patch-whitespace (ast)
                (iter
                 (for item in (cdr (butlast (output-transformation ast))))
                 (for previous-item previous item)
                 (for white-space =
-                     (whitespace-between style previous-item item))
+                     (whitespace-between/parent ast
+                                                style
+                                                previous-item item))
                 (when (and recursive
-                           (typep item 'tree-sitter-ast)
+                           (typep item '(and tree-sitter-ast
+                                         (not terminal-symbol)))
                            (not (computed-text-node-p ast)))
                   (patch-whitespace item))
                 (cond

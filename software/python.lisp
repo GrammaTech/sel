@@ -1068,15 +1068,6 @@ Returns nil if the length of KEYS is not the same as VALUES'."
 
 ;;; Whitespace rules
 
-(defvar *python-software* nil
-  "The software object for calculating whitespace.
-We need this since PEP 8 defines different rules for whitespace at the
-top level.")
-
-(defmethod patch-whitespace :around ((ast python-ast) &key software)
-  (let ((*python-software* software))
-    (call-next-method)))
-
 (defclass pep8 () ()
   (:documentation "PEP 8 style."))
 
@@ -1087,6 +1078,14 @@ top level.")
   (whitespace-between +pep8+ x y))
 (defmethod whitespace-between ((style null) x (y python-ast))
   (whitespace-between +pep8+ x y))
+
+(define-empty-whitespace-methods (pep8)
+  python-lambda-parameters (eql :|:|)
+  python-** python-ast
+  python-ast python-**
+  (eql :|.|) python-ast
+  python-ast (eql :|.|)
+  python-ast (eql :|:|))
 
 (defmethod whitespace-between ((style pep8)
                                (x python-expression-statement)
@@ -1105,15 +1104,25 @@ top level.")
                                (y python-class-definition))
   (whitespace-between style y x))
 
+(defmethod whitespace-between/parent ((parent null)
+                                      (style pep8)
+                                      (x python-function-definition)
+                                      (y python-ast))
+  "Per PEP 8: one blank line for methods, two for functions."
+  (fmt "~3%"))
+
+(defmethod whitespace-between/parent ((parent python-module)
+                                      (style pep8)
+                                      (x python-function-definition)
+                                      (y python-ast))
+  "Per PEP 8: one blank line for methods, two for functions."
+  (fmt "~3%"))
+
 (defmethod whitespace-between ((style pep8)
                                (x python-function-definition)
                                (y python-ast))
   "Per PEP 8: one blank line for methods, two for functions."
-  (if (and *python-software*
-           (typep (get-parent-ast *python-software* x)
-                  '(or null python-module)))
-      (fmt "~2%")
-      (fmt "~3%")))
+  (fmt "~2%"))
 
 (defmethod whitespace-between ((style pep8)
                                (x python-ast)
