@@ -231,9 +231,18 @@ class _interface:
 
         with _interface._lock:
             if not _interface.is_process_running():
-                raise RuntimeError(
-                    f"{_interface._DEFAULT_CMD_NAME} process not running."
-                )
+                if fn == "__del__":
+                    # Special case: When the python process is terminating,
+                    # AST finalizers may be called after the interface is
+                    # stopped.  In this case, since the process has been
+                    # deallocated, simply return.
+                    return None
+                else:
+                    # If this is not the special case, throw an error as the
+                    # interface must be running for commands to be dispatched.
+                    raise RuntimeError(
+                        f"{_interface._DEFAULT_CMD_NAME} process not running."
+                    )
 
             # This may be too cute, but we assume here the
             # name of the function to call matches the name
