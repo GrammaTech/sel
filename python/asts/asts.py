@@ -256,18 +256,18 @@ class _interface:
             # Read the response from stdout.
             stdout = _interface._proc.stdout.readline().decode("ascii").strip()
 
-            # If standard output is not populated, the process crashed.
-            # Raise a runtime error with the error message.
-            if not stdout:
-                stderr = _interface._proc.stderr.read().decode("ascii").strip()
-                if stderr:
-                    msg = f"{_interface._DEFAULT_CMD_NAME} crashed with:\n\n{stderr}"
-                else:
-                    msg = f"{_interface._DEFAULT_CMD_NAME} crashed."
-                raise RuntimeError(msg)
+        # If standard output is not populated, the process crashed.
+        # Raise a runtime error with the error message.
+        if not stdout:
+            stderr = _interface._proc.stderr.read().decode("ascii").strip()
+            if stderr:
+                msg = f"{_interface._DEFAULT_CMD_NAME} crashed with:\n\n{stderr}"
+            else:
+                msg = f"{_interface._DEFAULT_CMD_NAME} crashed."
+            raise RuntimeError(msg)
 
-            # Load the response from the LISP subprocess.
-            return deserialize(handle_errors(json.loads(stdout)))
+        # Load the response from the LISP subprocess.
+        return deserialize(handle_errors(json.loads(stdout)))
 
 
 _interface.start()
