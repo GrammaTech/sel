@@ -235,35 +235,38 @@ class _interface:
             else:
                 return v
 
+        # Ensure the interface is running before sending data.
+        if not _interface.is_process_running():
+            if fn == "__del__":
+                # Special case: When the python process is terminating,
+                # AST finalizers may be called after the interface is
+                # stopped.  In this case, since the process has been
+                # deallocated, simply return.
+                return None
+            else:
+                # If this is not the special case, throw an error as the
+                # interface must be running for commands to be dispatched.
+                raise RuntimeError(
+                    f"{_interface._DEFAULT_CMD_NAME} process not running."
+                )
+
+        # Build the input JSON to send to the subprocess.
+        #
+        # This may be too cute, but we assume here the
+        # name of the function to call matches the name
+        # of the method being called on the AST class
+        # (modulo some exceptions for leading/trailing
+        # double underscores and underscores instead of
+        # hyphens).  This enforces a correspondence in
+        # names between the methods on ASTs and the
+        # tree-sitter-interface.  Additionally, it helps
+        # protect against minor programming errors where
+        # the wrong function name is passed in.
+        fn = fn.replace("__", "").replace("_", "-")
+        inpt = [fn] + [serialize(arg) for arg in args]
+
         with _interface._lock:
-            if not _interface.is_process_running():
-                if fn == "__del__":
-                    # Special case: When the python process is terminating,
-                    # AST finalizers may be called after the interface is
-                    # stopped.  In this case, since the process has been
-                    # deallocated, simply return.
-                    return None
-                else:
-                    # If this is not the special case, throw an error as the
-                    # interface must be running for commands to be dispatched.
-                    raise RuntimeError(
-                        f"{_interface._DEFAULT_CMD_NAME} process not running."
-                    )
-
-            # This may be too cute, but we assume here the
-            # name of the function to call matches the name
-            # of the method being called on the AST class
-            # (modulo some exceptions for leading/trailing
-            # double underscores and underscores instead of
-            # hyphens).  This enforces a correspondence in
-            # names between the methods on ASTs and the
-            # tree-sitter-interface.  Additionally, it helps
-            # protect against minor programming errors where
-            # the wrong function name is passed in.
-            fn = fn.replace("__", "").replace("_", "-")
-
             # Write the function and arguments to the LISP subprocess.
-            inpt = [fn] + [serialize(arg) for arg in args]
             _interface._proc.stdin.write(f"{json.dumps(inpt)}\n".encode("ascii"))
             _interface._proc.stdin.flush()
 
