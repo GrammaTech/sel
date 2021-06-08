@@ -7,6 +7,7 @@
         #+gt :testbot
         :stefil+
         :software-evolution-library/test/adaptive-mutation
+        :software-evolution-library/test/all-tree-sitter
         :software-evolution-library/test/asm-super-mutant
         :software-evolution-library/test/asm
         :software-evolution-library/test/bear

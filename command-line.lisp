@@ -29,6 +29,7 @@
         :software-evolution-library/software/lisp
         :software-evolution-library/software/simple
         :software-evolution-library/software/tree-sitter
+        :software-evolution-library/software/all-tree-sitter
         :software-evolution-library/software/javascript
         :software-evolution-library/software/c
         :software-evolution-library/software/cpp
