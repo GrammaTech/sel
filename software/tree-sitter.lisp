@@ -4777,9 +4777,11 @@ CHILD-TYPES is a list of lisp types that the children slot can contain."
   (:method (s (ast1 symbol) (ast2 ast))
     "No whitespace after an opening delimiter."
     (if (some (op (string$= _ ast1)) "([{") "" " "))
+  (:method (s (ast1 null) (ast2 ast)) "")
   (:method (s (ast1 ast) (ast2 symbol))
     "No whitespace before a closing delimiter or a comma."
     (if (some (op (string^= _ ast2)) ")]},") "" " "))
+  (:method (s (ast1 ast) (ast2 null)) "")
   (:method (s (ast1 ast) (ast2 ast)) " ")
   (:documentation "Return a string of whitespace that should occur between
 AST1 and AST2.
