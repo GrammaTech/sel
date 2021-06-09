@@ -5694,7 +5694,10 @@ Otherwise, returns PARSE-TREE."
                              (error-p subtree))))
                   (caddr tree)))))
     (if (problematic-p parse-tree)
-        `(:source-text-fragment ,(cadr parse-tree) nil)
+        `(,(if (consp (car parse-tree))
+               (list (caar parse-tree) :source-text-fragment)
+               :source-text-fragment)
+          ,(cadr parse-tree) nil)
         parse-tree)))
 
 (defun transform-c-style-variadic-parameter (parse-tree)
