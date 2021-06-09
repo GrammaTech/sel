@@ -56,7 +56,12 @@ Generic so a different syntax can be used per-language.")
   (:method ((ast ast) (x string))
     x)
   (:method ((class t) (x ast))
-    x))
+    x)
+  (:method ((ast t) (list list))
+    (lret ((result (mapcar (op (template-subtree ast _)) list)))
+      (when (some #'listp result)
+        (error "Nested lists are not allowed as template arguments:~%~a"
+               result)))))
 
 (-> parse-ast-template (string symbol list)
     (values string list list list &optional))
@@ -68,13 +73,21 @@ Generic so a different syntax can be used per-language.")
 4. A list of subtrees."
   (nest
    (if (and args (not (keywordp (car args))))
-       ;; Handle the positional syntax.
-       (parse-ast-template
-        template class
-        (iter (for arg in args)
-              (for i from 1)
-              (collect (make-keyword (princ-to-string i)))
-              (collect arg))))
+       (parse-ast-template/positional template class args)
+       (parse-ast-template/keywords template class args))))
+
+(defun parse-ast-template/positional (template class args)
+  (assert (not (keywordp (first args))))
+  (parse-ast-template/keywords
+   template class
+   (iter (for arg in args)
+         (for i from 1)
+         (collect (make-keyword (princ-to-string i)))
+         (collect arg))))
+
+(defun parse-ast-template/keywords (template class args)
+  (assert (or (null args) (keywordp (first args))))
+  (nest
    ;; Build tables between names, placeholders, and subtrees.
    (let* ((dummy (allocate-instance (find-class class)))
           (subs (plist-alist args))
@@ -251,25 +264,51 @@ Both syntaxes can also be used as Trivia patterns for destructuring.
                     (subtrees
                      (let ((subtree (name-subtree name)))
                        (iter (for target in targets)
-                             (collect
-                              (tree-copy
-                               (copy subtree
-                                     :before-text
-                                     (before-text target)
-                                     :after-text
-                                     (after-text target))))))))
-               ;; TODO Handle lists of subtrees as follows: iff the
-               ;; path of the target AST ends with a number, find the
-               ;; parent and splice into its children. But: how to
-               ;; synthesize the "interleaved text" reliably?
-               (reduce (lambda (ast path.subtree)
-                         (destructuring-bind (path . subtree)
-                             path.subtree
-                           (if (stringp subtree)
-                               ast
-                               (with ast path subtree))))
-                       (pairlis paths subtrees)
-                       :initial-value ast)))
+                             (flet ((cp (subtree)
+                                      (tree-copy
+                                       (copy subtree
+                                             :before-text
+                                             (before-text target)
+                                             :after-text
+                                             (after-text target)))))
+                               (collect (if (listp subtree)
+                                            (cp subtree)
+                                            (mapcar #'cp subtree))))))))
+               (reduce
+                (lambda (ast path.subtree)
+                  (destructuring-bind (path . subtree)
+                      path.subtree
+                    (cond
+                      ((stringp subtree)
+                       ;; If the subtree is a string it was
+                       ;; already inlined during the
+                       ;; parsing phase.
+                       ast)
+                      ((listp subtree)
+                       (multiple-value-bind (slot offset)
+                           (match (lastcar path)
+                             ((and offset (type number))
+                              (values 'children offset))
+                             ((cons slot (and offset (type number)))
+                              (values slot offset)))
+                         (if slot
+                             (nest
+                              (let ((parent (lookup ast (butlast path)))))
+                              (symbol-macrolet ((orig (slot-value parent slot)))
+                                (setf orig
+                                      (append
+                                       (take offset orig)
+                                       subtree
+                                       (drop (1+ offset) orig)))
+                                ;; Change the class if necessary.
+                                (sel/sw/ts::output-transformation parent)
+                                ast))
+                             (error "Attempt to insert a list into a non-list location: ~a"
+                                    path))))
+                      (t
+                       (with ast path subtree)))))
+                (pairlis paths subtrees)
+                :initial-value ast)))
            names
            :initial-value ast)))
 
