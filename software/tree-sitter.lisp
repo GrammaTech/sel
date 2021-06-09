@@ -339,6 +339,10 @@
 
 ;;; Shared object set-up
 (eval-always
+  ;; TODO: REMOVE THIS AFTER ALL DOWNSTREAM CIs HAVE BEEN UPDATED
+  (unless (member :sel/structured-text *features*)
+    (push :sel/structured-text *features*))
+
   (define-condition rule-matching-error (error)
     ((rule :initarg :rule-matching-error-rule :initform nil
            :reader rule-matching-error-rule)
