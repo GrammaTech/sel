@@ -165,7 +165,7 @@ class _interface:
 
     _DEFAULT_CMD_NAME: str = "tree-sitter-interface"
     _proc: Optional[subprocess.Popen] = None
-    _lock: multiprocessing.Lock = multiprocessing.Lock()
+    _lock: multiprocessing.RLock = multiprocessing.RLock()
 
     @staticmethod
     def is_process_running() -> bool:
