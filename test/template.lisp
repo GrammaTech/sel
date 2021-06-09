@@ -115,3 +115,15 @@ def $READ_NAME():
 (deftest test-ast-from-template ()
   (is (typep (ast-from-template "$1;" 'cpp-ast "\"Foo: %d\"")
              'cpp-string-literal)))
+
+(deftest test-ellipsis-match ()
+  (is (equal "fn"
+             (source-text
+              (match (python "fn(1)")
+                ((python "$FN(...)" :fn fn)
+                 fn)))))
+  (is (equal "fn"
+             (source-text
+              (match (python "fn(1, 2, 3)")
+                ((python "$FN(...)" :fn fn)
+                 fn))))))

@@ -6,7 +6,8 @@
         :software-evolution-library/software/parseable)
   (:import-from :software-evolution-library/software/tree-sitter
                 :before-text :after-text)
-  (:import-from :software-evolution-library/software/string-clauses)
+  (:import-from :software-evolution-library/software/string-clauses
+                :ellipsis-match)
   (:export :ast-template
            :template-placeholder
            :template-metavariable
@@ -344,15 +345,18 @@ languages allow you to use a pattern with the same name as shorthand:
            (metavars
             (mapcar (op (template-metavariable dummy _))
                     names))
-           (metavar-subtrees (pairlis metavars subtrees)))
+           (metavar-subtrees (pairlis metavars subtrees))
+           (tree
+            (map-tree
+             (lambda (node)
+               (if (wildcard? node)
+                   (assocdr (string+ "$" (drop-prefix "WILD-" (string node)))
+                            metavar-subtrees
+                            :test #'equal)
+                   node))
+             pattern)))
     (declare (ignore placeholders template))
-    (map-tree (lambda (node)
-                (if (wildcard? node)
-                    (assocdr (string+ "$" (drop-prefix "WILD-" (string node)))
-                             metavar-subtrees
-                             :test #'equal)
-                    node))
-              pattern)))
+    (sublis '((ellipsis-match . _)) tree)))
 
 (defmacro ast-from-template (template class &rest args)
   "In one step, build and destructure a template into ASTs.
