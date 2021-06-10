@@ -303,6 +303,7 @@ Both syntaxes can also be used as Trivia patterns for destructuring.
                                        (drop (1+ offset) orig)))
                                 ;; Change the class if necessary.
                                 (sel/sw/ts::output-transformation parent)
+                                (patch-whitespace parent)
                                 ast))
                              (error "Attempt to insert a list into a non-list location: ~a"
                                     path))))
