@@ -99,11 +99,40 @@ Nested lists are not allowed as template arguments:~%~a"
          (collect (make-keyword (princ-to-string i)))
          (collect arg))))
 
+(defun template-scalar-metavariable (ast symbol)
+  (template-metavariable ast (drop-prefix "@" (string symbol))))
+
+(defun template-list-metavariable (ast symbol)
+  (template-metavariable ast (ensure-prefix "@" (string symbol))))
+
+(defun canonicalize-kwargs (template class args)
+  (with-collectors (out)
+    (doplist (kw value args)
+      (assert (keywordp kw))
+      (let* ((scalar (template-scalar-metavariable class kw))
+             (list (template-list-metavariable class kw))
+             ;; Need to do a terminated scan since one keyword might
+             ;; be a prefix of another.
+             (scalar?
+              (scan `(:sequence ,scalar (:regex "[^A-Z0-9_]|$"))
+                    template))
+             (list?
+              (scan `(:sequence ,list (:regex "[^A-Z0-9_]|$"))
+                    template)))
+        (cond ((and scalar? list?)
+               (error "~a is used as both a scalar and a list" kw))
+              (scalar? (out kw))
+              (list? (out (make-keyword (fmt "@~a" kw))))
+              (t (error "~a does not occur in template" kw))
+              ))
+      (out value))))
+
 (defun parse-ast-template/keywords (template class args)
   (assert (or (null args) (keywordp (first args))))
   (nest
    ;; Build tables between names, placeholders, and subtrees.
-   (let* ((dummy (allocate-instance (find-class class)))
+   (let* ((args (canonicalize-kwargs template class args))
+          (dummy (allocate-instance (find-class class)))
           (subs (plist-alist args))
           (names (mapcar #'car subs))
           (subtrees (mapcar #'cdr subs))
@@ -303,6 +332,9 @@ Both syntaxes can also be used as Trivia patterns for destructuring.
                        (multiple-value-bind (slot offset)
                            (match (lastcar path)
                              ((and offset (type number))
+                              ;; TODO This may no longer be valid if
+                              ;; functional-trees stops giving the
+                              ;; children slot special treatment..
                               (values 'children offset))
                              ((cons slot (and offset (type number)))
                               (values slot offset)))

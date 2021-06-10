@@ -141,34 +141,34 @@ def $READ_NAME():
 (deftest test-list-match ()
   (is (equal '("fn" "1")
              (match (python "fn(1)")
-               ((python "$FN(@ARGS)" :fn fn :@args args)
+               ((python "$FN(@ARGS)" :fn fn :args args)
                 (mapcar #'source-text (cons fn args))))))
   (is (equal '("fn" "1" "2" "3")
              (match (python "fn(1, 2, 3)")
-               ((python "$FN(@ARGS)" :fn fn :@args args)
+               ((python "$FN(@ARGS)" :fn fn :args args)
                 (mapcar #'source-text (cons fn args))))))
   (is (equal '("fn" "1" "2" "3")
              (match (python "fn(1, 2, 3)")
-               ((python "$FN($ARG, @ARGS)" :fn fn :arg arg :@args args)
+               ((python "$FN($ARG, @ARGS)" :fn fn :arg arg :args args)
                 (mapcar #'source-text (list* fn arg args))))))
   (is (equal '("fn" "1" "2" "3")
              (match (python "fn(1, 2, 3)")
                ((python "$FN($ARG1, $ARG2, @ARGS)" :fn fn :arg1 arg1
                                                    :arg2 arg2
-                                                   :@args args)
+                                                   :args args)
                 (mapcar #'source-text (list* fn arg1 arg2 args))))))
   (is (equal '("fn" "1" "2" "3")
              (match (javascript "fn(1, 2, 3)")
-               ((javascript "$FN(@ARGS)" :fn fn :@args args)
+               ((javascript "$FN(@ARGS)" :fn fn :args args)
                 (mapcar #'source-text (cons fn args)))))))
 
 (deftest test-insert-list ()
   (is (equal*
        "fn(1, 2, 3)"
-       (source-text (python "fn(@ARGS)" :@args '(1 2 3)))
+       (source-text (python "fn(@ARGS)" :args '(1 2 3)))
        (source-text
         (python "fn(@ARGS)"
-                :@args
+                :args
                 (mapcar (op (make 'sel/sw/ts::python-integer
                                   :text (princ-to-string _)))
                         '(1 2 3)))))))
