@@ -70,17 +70,7 @@ field."
     ((language (eql ':c)) (class (eql 'c-preproc-ifdef)) parse-tree)
   "Transform PARSE-TREE such that all modifiers are stored in the :modifiers
 field."
-  (transform-malformed-parse-tree
-   (append
-    (butlast parse-tree)
-    (list
-     (mapcar
-      (lambda (child-tree)
-        (cond
-          ((member (car child-tree) '(:|#IFDEF| :|#IFNDEF|))
-           (cons (list :operation (car child-tree)) (cdr child-tree)))
-          (t child-tree)))
-      (lastcar parse-tree))))))
+  (transform-malformed-parse-tree parse-tree))
 
 (defmethod transform-parse-tree
     ((language (eql ':c)) (class (eql 'c-parameter-list)) parse-tree)

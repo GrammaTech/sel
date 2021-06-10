@@ -463,11 +463,6 @@ searched to populate `*tree-sitter-language-files*'.")
         (c-modifiers
          :accessor c-modifiers
          :initarg :c-modifiers
-         :initform nil))
-       (c-preproc-ifdef
-        (c-operation
-         :accessor c-operation
-         :initarg :c-operation
          :initform nil)))
       (:cpp
        (cpp-parameter-declaration
@@ -515,11 +510,6 @@ searched to populate `*tree-sitter-language-files*'.")
         (cpp-operator
          :accessor cpp-operator
          :initarg :cpp-operator
-         :initform nil))
-       (cpp-preproc-ifdef
-        (cpp-operation
-         :accessor cpp-operation
-         :initarg :cpp-operation
          :initform nil)))
       (:python
        (python-function-definition
@@ -1018,34 +1008,6 @@ definitions.")
                    (:NAME . "variadic_declaration")))))))))
            ((:TYPE . "BLANK"))))
          ((:TYPE . "STRING") (:VALUE . ")"))))
-       (:PREPROC-IFDEF (:TYPE . "SEQ")
-        (:MEMBERS
-         ((:TYPE . "FIELD")
-          (:NAME . "operation")
-          (:CONTENT
-           (:TYPE . "CHOICE")
-           (:MEMBERS
-            ((:TYPE . "ALIAS")
-             (:CONTENT (:TYPE . "PATTERN") (:VALUE . "#[ 	]*ifdef"))
-             (:NAMED) (:VALUE . "#ifdef"))
-            ((:TYPE . "ALIAS")
-             (:CONTENT (:TYPE . "PATTERN") (:VALUE . "#[ 	]*ifndef"))
-             (:NAMED) (:VALUE . "#ifndef")))))
-         ((:TYPE . "FIELD") (:NAME . "name")
-          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "identifier")))
-         ((:TYPE . "REPEAT")
-          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_top_level_item")))
-         ((:TYPE . "FIELD") (:NAME . "alternative")
-          (:CONTENT (:TYPE . "CHOICE")
-           (:MEMBERS
-            ((:TYPE . "CHOICE")
-             (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "preproc_else"))
-                       ((:TYPE . "SYMBOL") (:NAME . "preproc_elif"))))
-            ((:TYPE . "BLANK")))))
-         ((:TYPE . "ALIAS")
-          (:CONTENT (:TYPE . "PATTERN")
-           (:VALUE . "#[ 	]*endif"))
-          (:NAMED) (:VALUE . "#endif"))))
        (:STRUCT-SPECIFIER (:TYPE . "SEQ")
         (:MEMBERS ((:TYPE . "STRING") (:VALUE . "struct"))
          ((:TYPE . "CHOICE")
@@ -1233,35 +1195,7 @@ definitions.")
              ((:TYPE . "STRING") (:VALUE . "^="))
              ((:TYPE . "STRING") (:VALUE . "|=")))))
           ((:TYPE . "FIELD") (:NAME . "right")
-           (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_expression"))))))
-       (:PREPROC-IFDEF (:TYPE . "SEQ")
-        (:MEMBERS
-         ((:TYPE . "FIELD")
-          (:NAME . "operation")
-          (:CONTENT
-           (:TYPE . "CHOICE")
-           (:MEMBERS
-            ((:TYPE . "ALIAS")
-             (:CONTENT (:TYPE . "PATTERN") (:VALUE . "#[ 	]*ifdef"))
-             (:NAMED) (:VALUE . "#ifdef"))
-            ((:TYPE . "ALIAS")
-             (:CONTENT (:TYPE . "PATTERN") (:VALUE . "#[ 	]*ifndef"))
-             (:NAMED) (:VALUE . "#ifndef")))))
-         ((:TYPE . "FIELD") (:NAME . "name")
-          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "identifier")))
-         ((:TYPE . "REPEAT")
-          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_top_level_item")))
-         ((:TYPE . "FIELD") (:NAME . "alternative")
-          (:CONTENT (:TYPE . "CHOICE")
-           (:MEMBERS
-            ((:TYPE . "CHOICE")
-             (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "preproc_else"))
-                       ((:TYPE . "SYMBOL") (:NAME . "preproc_elif"))))
-            ((:TYPE . "BLANK")))))
-         ((:TYPE . "ALIAS")
-          (:CONTENT (:TYPE . "PATTERN")
-           (:VALUE . "#[ 	]*endif"))
-          (:NAMED) (:VALUE . "#endif")))))
+           (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_expression")))))))
       (:python
        ;; NOTE: this removes semicolons. This can be further amended if it
        ;;       becomes problematic.
@@ -1502,7 +1436,49 @@ of new classes.")
 chosen when gathering a string representation of a JSON subtree.")
 
   (defparameter *tree-sitter-json-field-transformations*
-    `((:javascript
+    `((:c
+       ;; symbol name
+       (("#ifdef" "#ifndef")
+        ;; slot name
+        "operator" ; Find a better name for this slot.
+        ;; predicate--determines whether to make the replacement.
+        ,(lambda (rule-name rule subtree)
+           (declare (ignorable rule-name rule subtree))
+           t)
+        ;; parse tree transform.
+        (lambda (parse-tree)
+          (append
+           (butlast parse-tree)
+           (list
+            (mapcar
+             (lambda (child-tree &aux (child-car (car child-tree)))
+               (cond
+                 ((member child-car '(:|#IFDEF| :|#IFNDEF|))
+                  (cons (list :operator child-car) (cdr child-tree)))
+                 (t child-tree)))
+             (lastcar parse-tree)))))))
+      (:cpp
+       ;; symbol name
+       (("#ifdef" "#ifndef")
+        ;; slot name
+        "operator" ; Find a better name for this slot.
+        ;; predicate--determines whether to make the replacement.
+        ,(lambda (rule-name rule subtree)
+           (declare (ignorable rule-name rule subtree))
+           t)
+        ;; parse tree transform.
+        (lambda (parse-tree)
+          (append
+           (butlast parse-tree)
+           (list
+            (mapcar
+             (lambda (child-tree &aux (child-car (car child-tree)))
+               (cond
+                 ((member child-car '(:|#IFDEF| :|#IFNDEF|))
+                  (cons (list :operator child-car) (cdr child-tree)))
+                 (t child-tree)))
+             (lastcar parse-tree)))))))
+      (:javascript
        ;; symbol name
        ("_semicolon"
         ;; slot name
