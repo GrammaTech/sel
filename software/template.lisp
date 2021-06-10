@@ -59,10 +59,20 @@ Generic so a different syntax can be used per-language.")
   (:method ((class t) (x ast))
     x)
   (:method ((ast t) (list list))
-    (lret ((result (mapcar (op (template-subtree ast _)) list)))
-      (when (some #'listp result)
-        (error "Nested lists are not allowed as template arguments:~%~a"
-               result)))))
+    ;; It doesn't make sense to try to parse strings in list inline,
+    ;; since we need the nodes to be in the AST to know how to
+    ;; interleave them. (Or does it?)
+    (iter (for item in list)
+          (for subtree = (template-subtree ast item))
+          (collect
+           (cond
+             ((listp subtree)
+              (error "~
+Nested lists are not allowed as template arguments:~%~a"
+                     subtree))
+             ((stringp subtree)
+              (convert (type-of ast) subtree :deepest t))
+             (t subtree))))))
 
 (-> parse-ast-template (string symbol list)
     (values string list list list &optional))
