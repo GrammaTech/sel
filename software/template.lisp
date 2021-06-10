@@ -259,22 +259,22 @@ Both syntaxes can also be used as Trivia patterns for destructuring.
                    (convert class template :deepest t)))))))
    (reduce (lambda (ast name)
              (let* ((paths (name-paths name))
-                    (targets
-                     (iter (for path in paths)
-                           (collect (lookup ast path))))
+                    (targets (mapcar (op (lookup ast _)) paths))
                     (subtrees
-                     (let ((subtree (name-subtree name)))
-                       (iter (for target in targets)
-                             (flet ((cp (subtree)
-                                      (tree-copy
-                                       (copy subtree
-                                             :before-text
-                                             (before-text target)
-                                             :after-text
-                                             (after-text target)))))
-                               (collect (if (listp subtree)
-                                            (cp subtree)
-                                            (mapcar #'cp subtree))))))))
+                     (nest
+                      (let ((subtree (name-subtree name))))
+                      (iter (for target in targets))
+                      (flet ((cp (subtree)
+                               (tree-copy
+                                (copy subtree
+                                      :before-text
+                                      (before-text target)
+                                      :after-text
+                                      (after-text target))))))
+                      (collect)
+                      (if (listp subtree)
+                          (mapcar #'cp subtree))
+                      (cp subtree))))
                (reduce
                 (lambda (ast path.subtree)
                   (destructuring-bind (path . subtree)
