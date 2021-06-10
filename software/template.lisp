@@ -28,7 +28,9 @@ Generic so a different syntax can be used per-language.")
     ;; leading underscore to avoid having to worry about what
     ;; characters a symbol can begin with. (E.g. Python variables
     ;; cannot begin with a number.)
-    (string+ #\_ (substitute #\_ #\- (string name)))))
+    (string-replace "@"
+                    (string+ #\_ (substitute #\_ #\- (string name)))
+                    "LIST_")))
 
 (defun template-placeholder* (ast name)
   "Append a random number to the end of the placeholder.
@@ -48,8 +50,8 @@ Generic so a different syntax can be used per-language.")
     (template-metavariable ast (string name)))
   (:method ((ast t) (name string))
     (let ((name (substitute #\_ #\- (string name))))
-      (assert (scan "^[A-Z0-9_]+$" name) () "Invalid metavariable: ~a" name)
-      (fmt "$~a" name))))
+      (assert (scan "^@?[A-Z0-9_]+$" name) () "Invalid metavariable: ~a" name)
+      (if (string^= "@" name) name (fmt "$~a" name)))))
 
 (defgeneric template-subtree (ast thing)
   (:documentation "Convert THING into a subtree.")
@@ -326,13 +328,6 @@ Both syntaxes can also be used as Trivia patterns for destructuring.
            names
            :initial-value ast)))
 
-(defun wildcard? (node)
-  "Is NODE a wildcard (symbol that starts with WILD_)?"
-  (and (symbolp node)
-       (eql (find-package :software-evolution-library/software/string-clauses)
-            (symbol-package node))
-       (string^= 'wild- node)))
-
 (defpattern ast-template (template class &rest args)
   "Match TEMPLATE as a pattern using CLASS and ARGS.
 
@@ -363,9 +358,14 @@ languages allow you to use a pattern with the same name as shorthand:
             (map-tree
              (lambda (node)
                (if (wildcard? node)
-                   (assocdr (string+ "$" (drop-prefix "WILD-" (string node)))
-                            metavar-subtrees
-                            :test #'equal)
+                   (let* ((suffix (drop-prefix "WILD-" (string node)))
+                          (key
+                           (if (string^= "LIST_" suffix)
+                               (string+ "@" (drop-prefix "LIST_" suffix))
+                               (string+ "$" suffix))))
+                     (assocdr key
+                              metavar-subtrees
+                              :test #'equal))
                    node))
              pattern)))
     (declare (ignore placeholders template))

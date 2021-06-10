@@ -133,13 +133,27 @@ def $READ_NAME():
                 ((javascript "$FN(...)" :fn fn)
                  fn))))))
 
+(deftest test-list-match ()
+  (is (equal '("fn" "1")
+             (match (python "fn(1)")
+               ((python "$FN(@ARGS)" :fn fn :@args args)
+                (mapcar #'source-text (cons fn args))))))
+  (is (equal '("fn" "1" "2" "3")
+             (match (python "fn(1, 2, 3)")
+               ((python "$FN(@ARGS)" :fn fn :@args args)
+                (mapcar #'source-text (cons fn args))))))
+  (is (equal '("fn" "1" "2" "3")
+             (match (javascript "fn(1, 2, 3)")
+               ((javascript "$FN(@ARGS)" :fn fn :@args args)
+                (mapcar #'source-text (cons fn args)))))))
+
 (deftest test-insert-list ()
   (is (equal*
        "fn(1, 2, 3)"
-       (source-text (python "fn($ARGS)" :args '(1 2 3)))
+       (source-text (python "fn(@ARGS)" :@args '(1 2 3)))
        (source-text
-        (python "fn($ARGS)"
-                :args
+        (python "fn(@ARGS)"
+                :@args
                 (mapcar (op (make 'sel/sw/ts::python-integer
                                   :text (princ-to-string _)))
                         '(1 2 3)))))))

@@ -118,7 +118,12 @@ similar matches, and elipses for matching series of ASTs."
                                 (otherwise nil)))
                           val)
                     (push 'ellipsis-match result)
-                    (push (cons 'list (mapcar {convert 'match} val)) result)))
+                    (let ((rec (mapcar {convert 'match} val)))
+                      (if (and (single rec)
+                               (wildcard? (car rec))
+                               (string*= "LIST_" (car rec)))
+                          (push (car rec) result)
+                          (push (cons 'list rec) result)))))
                (t (push (convert 'match val) result))))))
        (nreverse result)))))
 
@@ -226,6 +231,12 @@ different surface syntax for languages that use sigils (Bash, Perl).")
   (:method ((language class) string)
     (disarm-metavariables (make language) string))
   (:method ((software software) (string string))
-    (regex-replace-all "\\$([_A-Z0-9]+)"
-                       string
-                       #.(string+ +metavariable-prefix+ "\\1"))))
+    (setf string
+          (regex-replace-all "\\@([_A-Z0-9]+)"
+                             string
+                             #.(string+ +metavariable-prefix+ "LIST_" "\\1"))
+          string
+          (regex-replace-all "\\$([_A-Z0-9]+)"
+                             string
+                             #.(string+ +metavariable-prefix+ "\\1")))
+    string))
