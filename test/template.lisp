@@ -126,6 +126,11 @@ def $READ_NAME():
              (source-text
               (match (python "fn(1, 2, 3)")
                 ((python "$FN(...)" :fn fn)
+                 fn)))))
+  (is (equal "fn"
+             (source-text
+              (match (javascript "fn(1, 2, 3)")
+                ((javascript "$FN(...)" :fn fn)
                  fn))))))
 
 (deftest test-insert-list ()
