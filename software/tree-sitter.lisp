@@ -459,16 +459,6 @@ searched to populate `*tree-sitter-language-files*'.")
          :accessor c-post-specifiers
          :initarg c-post-specifiers
          :initform nil))
-       (c-field-expression
-        (c-operator
-         :accessor c-operator
-         :initarg :c-operator
-         :initform nil))
-       (c-assignment-expression
-        (c-operator
-         :accessor c-operator
-         :initarg :c-operator
-         :initform nil))
        (c-sized-type-specifier
         (c-modifiers
          :accessor c-modifiers
@@ -1028,50 +1018,6 @@ definitions.")
                    (:NAME . "variadic_declaration")))))))))
            ((:TYPE . "BLANK"))))
          ((:TYPE . "STRING") (:VALUE . ")"))))
-       ;; TODO: when the docker image is updated,
-       ;;       remove this and cpp's substitution, add slot, and parse tree
-       ;;       transform as it has been patched upstream.
-       (:FIELD-EXPRESSION (:TYPE . "SEQ")
-        (:MEMBERS
-         ((:TYPE . "PREC") (:VALUE . 15)
-          (:CONTENT (:TYPE . "SEQ")
-           (:MEMBERS
-            ((:TYPE . "FIELD")
-             (:NAME . "argument")
-             (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_expression")))
-            ((:TYPE . "FIELD")
-             (:NAME . "operator")
-             (:CONTENT
-              (:TYPE . "CHOICE")
-              (:MEMBERS ((:TYPE . "STRING") (:VALUE . "."))
-                        ((:TYPE . "STRING") (:VALUE . "->"))))))))
-         ((:TYPE . "FIELD") (:NAME . "field")
-          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_field_identifier")))))
-       ;; TODO: when the docker image is updated,
-       ;;       remove this and cpp's substitution, add slot, and parse tree
-       ;;       transform as it has been patched upstream.
-       (:ASSIGNMENT-EXPRESSION (:TYPE . "PREC_RIGHT") (:VALUE . -1)
-        (:CONTENT (:TYPE . "SEQ")
-         (:MEMBERS
-          ((:TYPE . "FIELD") (:NAME . "left")
-           (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_assignment_left_expression")))
-          ((:TYPE . "FIELD") (:NAME . "operator")
-           (:CONTENT
-            (:TYPE . "CHOICE")
-            (:MEMBERS
-             ((:TYPE . "STRING") (:VALUE . "="))
-             ((:TYPE . "STRING") (:VALUE . "*="))
-             ((:TYPE . "STRING") (:VALUE . "/="))
-             ((:TYPE . "STRING") (:VALUE . "%="))
-             ((:TYPE . "STRING") (:VALUE . "+="))
-             ((:TYPE . "STRING") (:VALUE . "-="))
-             ((:TYPE . "STRING") (:VALUE . "<<="))
-             ((:TYPE . "STRING") (:VALUE . ">>="))
-             ((:TYPE . "STRING") (:VALUE . "&="))
-             ((:TYPE . "STRING") (:VALUE . "^="))
-             ((:TYPE . "STRING") (:VALUE . "|=")))))
-          ((:TYPE . "FIELD") (:NAME . "right")
-           (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_expression"))))))
        (:PREPROC-IFDEF (:TYPE . "SEQ")
         (:MEMBERS
          ((:TYPE . "FIELD")
@@ -1244,6 +1190,9 @@ definitions.")
                    (:NAME . "variadic_declaration")))))))))
            ((:TYPE . "BLANK"))))
          ((:TYPE . "STRING") (:VALUE . ")"))))
+       ;; TODO: when the docker image is updated,
+       ;;       remove this and c's substitution, add slot, and parse tree
+       ;;       transform as it has been patched upstream.
        (:FIELD-EXPRESSION (:TYPE . "SEQ")
         (:MEMBERS
          ((:TYPE . "PREC") (:VALUE . 15)
@@ -1260,6 +1209,9 @@ definitions.")
                         ((:TYPE . "STRING") (:VALUE . "->"))))))))
          ((:TYPE . "FIELD") (:NAME . "field")
           (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_field_identifier")))))
+       ;; TODO: when the docker image is updated,
+       ;;       remove this and c's substitution, add slot, and parse tree
+       ;;       transform as it has been patched upstream.
        (:ASSIGNMENT-EXPRESSION (:TYPE . "PREC_RIGHT") (:VALUE . -1)
         (:CONTENT (:TYPE . "SEQ")
          (:MEMBERS

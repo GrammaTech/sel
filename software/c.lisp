@@ -83,16 +83,6 @@ field."
       (lastcar parse-tree))))))
 
 (defmethod transform-parse-tree
-    ((language (eql ':c)) (class (eql 'c-assignment-expression)) parse-tree)
-  "Transform PARSE-TREE such that the operator is stored in the :operator field."
-  (add-operator-to-binary-operation parse-tree))
-
-(defmethod transform-parse-tree
-    ((language (eql ':c)) (class (eql 'c-field-expression)) parse-tree)
-  "Transform PARSE-TREE such that the operator is stored in the :operator field."
-  (add-operator-to-binary-operation parse-tree))
-
-(defmethod transform-parse-tree
     ((language (eql ':c)) (class (eql 'c-parameter-list)) parse-tree)
   (transform-c-style-variadic-parameter parse-tree))
 
