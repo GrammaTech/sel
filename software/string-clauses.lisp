@@ -9,7 +9,7 @@
         :software-evolution-library/software/cpp
         :software-evolution-library/utility/range)
   (:import-from :functional-trees :map-children)
-  (:export :ast-for-match))
+  (:export :ast-for-match :wildcard? :ellipsis-match))
 (in-package :software-evolution-library/software/string-clauses)
 (in-readtable :curry-compose-reader-macros)
 
@@ -40,6 +40,16 @@
 (defvar-unbound *annotation-number*
   "Used to generate unique identifiers for annotation slots.")
 
+(defun wildcard? (node)
+  "Is NODE a wildcard (symbol that starts with WILD_)?"
+  (and (symbolp node)
+       (eql (find-package :software-evolution-library/software/string-clauses)
+            (symbol-package node))
+       (string^= 'wild- node)))
+
+(defun make-wild-symbol (wildcard-name)
+  (format-symbol :sel/sw/string-clauses "WILD-~a" wildcard-name))
+
 (defmethod convert ((to-type (eql 'match)) (not-ast t) &key &allow-other-keys) not-ast)
 (defmethod convert ((to-type (eql 'match)) (ast ast) &key &allow-other-keys)
   "Convert an AST into a trivia MATCH clause.
@@ -57,7 +67,7 @@ similar matches, and elipses for matching series of ASTs."
                             "?$")
                  wildcard-name _ type))
      (let ((wild-symbol
-            (intern (format nil "WILD-~a" wildcard-name) (find-package :sel/sw/string-clauses))))
+            (make-wild-symbol wildcard-name)))
        (if type
            (list (intern (string-join (list (string-upcase type) "AST") #\-)
                          (find-package :sel/sw/ts))

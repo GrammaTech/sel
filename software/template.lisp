@@ -7,7 +7,8 @@
   (:import-from :software-evolution-library/software/tree-sitter
                 :before-text :after-text)
   (:import-from :software-evolution-library/software/string-clauses
-                :ellipsis-match)
+                :ellipsis-match
+                :wildcard?)
   (:export :ast-template
            :template-placeholder
            :template-metavariable
