@@ -133,6 +133,11 @@ def $READ_NAME():
                 ((javascript "$FN(...)" :fn fn)
                  fn))))))
 
+(deftest test-longer-name-first ()
+  (is (equal "x = y"
+             (source-text
+              (python "$ARG1 = $ARG" :arg "y" :arg1 "x")))))
+
 (deftest test-list-match ()
   (is (equal '("fn" "1")
              (match (python "fn(1)")

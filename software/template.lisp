@@ -120,7 +120,7 @@ Nested lists are not allowed as template arguments:~%~a"
               (string-replace-all (template-metavariable dummy name)
                                   template
                                   (name-placeholder name)))
-            names
+            (sort names #'length> :key #'string)
             :initial-value template)
     names placeholders subtrees)))
 
