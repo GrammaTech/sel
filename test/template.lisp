@@ -127,3 +127,14 @@ def $READ_NAME():
               (match (python "fn(1, 2, 3)")
                 ((python "$FN(...)" :fn fn)
                  fn))))))
+
+(deftest test-insert-list ()
+  (is (equal*
+       "fn(1, 2, 3)"
+       (source-text (python "fn($ARGS)" :args '(1 2 3)))
+       (source-text
+        (python "fn($ARGS)"
+                :args
+                (mapcar (op (make 'sel/sw/ts::python-integer
+                                  :text (princ-to-string _)))
+                        '(1 2 3)))))))
