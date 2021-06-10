@@ -62,20 +62,24 @@ Generic so a different syntax can be used per-language.")
   (:method ((class t) (x ast))
     x)
   (:method ((ast t) (list list))
-    ;; It doesn't make sense to try to parse strings in list inline,
-    ;; since we need the nodes to be in the AST to know how to
-    ;; interleave them. (Or does it?)
-    (iter (for item in list)
-          (for subtree = (template-subtree ast item))
-          (collect
-           (cond
-             ((listp subtree)
-              (error "~
+    ;; Treat an empty list as equivalent to an empty string. This is
+    ;; helpful since an "empty" whatever usually parses as a distinct
+    ;; class.
+    (if (null list) ""
+        ;; It doesn't make sense to try to inline strings in lists,
+        ;; since we need the nodes to be in the AST to know how to
+        ;; interleave them. (Or does it?)
+        (iter (for item in list)
+              (for subtree = (template-subtree ast item))
+              (collect
+               (cond
+                 ((listp subtree)
+                  (error "~
 Nested lists are not allowed as template arguments:~%~a"
-                     subtree))
-             ((stringp subtree)
-              (convert (type-of ast) subtree :deepest t))
-             (t subtree))))))
+                         subtree))
+                 ((stringp subtree)
+                  (convert (type-of ast) subtree :deepest t))
+                 (t subtree)))))))
 
 (-> parse-ast-template (string symbol list)
     (values string list list list &optional))
@@ -123,8 +127,7 @@ Nested lists are not allowed as template arguments:~%~a"
                (error "~a is used as both a scalar and a list" kw))
               (scalar? (out kw))
               (list? (out (make-keyword (fmt "@~a" kw))))
-              (t (error "~a does not occur in template" kw))
-              ))
+              (t (error "~a does not occur in template" kw))))
       (out value))))
 
 (defun parse-ast-template/keywords (template class args)
@@ -301,62 +304,65 @@ Both syntaxes can also be used as Trivia patterns for destructuring.
                  (assure ast
                    (convert class template :deepest t)))))))
    (reduce (lambda (ast name)
-             (let* ((paths (name-paths name))
-                    (targets (mapcar (op (lookup ast _)) paths))
-                    (subtrees
-                     (nest
-                      (let ((subtree (name-subtree name))))
-                      (iter (for target in targets))
-                      (flet ((cp (subtree)
-                               (tree-copy
-                                (copy subtree
-                                      :before-text
-                                      (before-text target)
-                                      :after-text
-                                      (after-text target))))))
-                      (collect)
-                      (if (listp subtree)
-                          (mapcar #'cp subtree))
-                      (cp subtree))))
-               (reduce
-                (lambda (ast path.subtree)
-                  (destructuring-bind (path . subtree)
-                      path.subtree
-                    (cond
-                      ((stringp subtree)
-                       ;; If the subtree is a string it was
-                       ;; already inlined during the
-                       ;; parsing phase.
-                       ast)
-                      ((listp subtree)
-                       (multiple-value-bind (slot offset)
-                           (match (lastcar path)
-                             ((and offset (type number))
-                              ;; TODO This may no longer be valid if
-                              ;; functional-trees stops giving the
-                              ;; children slot special treatment..
-                              (values 'children offset))
-                             ((cons slot (and offset (type number)))
-                              (values slot offset)))
-                         (if slot
-                             (nest
-                              (let ((parent (lookup ast (butlast path)))))
-                              (symbol-macrolet ((orig (slot-value parent slot)))
-                                (setf orig
-                                      (append
-                                       (take offset orig)
-                                       subtree
-                                       (drop (1+ offset) orig)))
-                                ;; Change the class if necessary.
-                                (sel/sw/ts::output-transformation parent)
-                                (patch-whitespace parent)
-                                ast))
-                             (error "Attempt to insert a list into a non-list location: ~a"
-                                    path))))
-                      (t
-                       (with ast path subtree)))))
-                (pairlis paths subtrees)
-                :initial-value ast)))
+             "Insert subtrees for NAME into AST."
+             (nest
+              ;; String have already been inlined.
+              (if (stringp (name-subtree name)) ast)
+              (let* ((paths (name-paths name))
+                     (targets (mapcar (op (lookup ast _)) paths))
+                     (subtrees
+                      (nest
+                       (let ((subtree (name-subtree name))))
+                       (iter (for target in targets))
+                       (flet ((cp (subtree)
+                                (tree-copy
+                                 (copy subtree
+                                       :before-text
+                                       (before-text target)
+                                       :after-text
+                                       (after-text target))))))
+                       (collect)
+                       (if (listp subtree)
+                           (mapcar #'cp subtree))
+                       (cp subtree)))))
+              (reduce
+               (lambda (ast path.subtree)
+                 "Insert SUBTREE into AST at PATH."
+                 (destructuring-bind (path . subtree) path.subtree
+                   (cond
+                     ((stringp subtree)
+                      ;; If the subtree is a string it was
+                      ;; already inlined during the
+                      ;; parsing phase.
+                      ast)
+                     ((listp subtree)
+                      (multiple-value-bind (slot offset)
+                          (match (lastcar path)
+                            ((and offset (type number))
+                             ;; TODO This may no longer be valid if
+                             ;; functional-trees stops giving the
+                             ;; children slot special treatment.
+                             (values 'children offset))
+                            ((cons slot (and offset (type number)))
+                             (values slot offset)))
+                        (if slot
+                            (nest
+                             (let ((parent (lookup ast (butlast path)))))
+                             (symbol-macrolet ((orig (slot-value parent slot)))
+                               (setf orig
+                                     (append
+                                      (take offset orig)
+                                      subtree
+                                      (drop (1+ offset) orig)))
+                               ;; Change the class if necessary.
+                               (sel/sw/ts::output-transformation parent)
+                               (patch-whitespace parent)
+                               ast))
+                            (error "Attempt to insert a list into a non-list location: ~a"
+                                   path))))
+                     (t (with ast path subtree)))))
+               (pairlis paths subtrees)
+               :initial-value ast)))
            names
            :initial-value ast)))
 

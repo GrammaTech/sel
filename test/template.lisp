@@ -172,3 +172,6 @@ def $READ_NAME():
                 (mapcar (op (make 'sel/sw/ts::python-integer
                                   :text (princ-to-string _)))
                         '(1 2 3)))))))
+
+(deftest test-insert-empty-list ()
+  (is (equal "foo()" (source-text (python "$1(@2)" "foo" nil)))))
