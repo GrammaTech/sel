@@ -143,6 +143,16 @@ def $READ_NAME():
                ((python "$FN(@ARGS)" :fn fn :@args args)
                 (mapcar #'source-text (cons fn args))))))
   (is (equal '("fn" "1" "2" "3")
+             (match (python "fn(1, 2, 3)")
+               ((python "$FN($ARG, @ARGS)" :fn fn :arg arg :@args args)
+                (mapcar #'source-text (list* fn arg args))))))
+  (is (equal '("fn" "1" "2" "3")
+             (match (python "fn(1, 2, 3)")
+               ((python "$FN($ARG1, $ARG2, @ARGS)" :fn fn :arg1 arg1
+                                                   :arg2 arg2
+                                                   :@args args)
+                (mapcar #'source-text (list* fn arg1 arg2 args))))))
+  (is (equal '("fn" "1" "2" "3")
              (match (javascript "fn(1, 2, 3)")
                ((javascript "$FN(@ARGS)" :fn fn :@args args)
                 (mapcar #'source-text (cons fn args)))))))
