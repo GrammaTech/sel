@@ -2506,8 +2506,10 @@ CLASS-NAME->PARSE-TREE-TRANSFORMS."
              (encapsulate-symbol (subtree symbol-substitution)
                "Encapsulates SUBTREE with a field and updates the relevant
                 hash tables."
-               (update-class-definition symbol-substitution)
-               (update-class-transforms symbol-substitution)
+               ;; Some rules don't have a corresponding class if they are
+               ;; aliased.
+               (when (update-class-definition symbol-substitution)
+                 (update-class-transforms symbol-substitution))
                `((:TYPE . "FIELD")
                  (:NAME . ,(cadr symbol-substitution))
                  (:CONTENT
@@ -2516,9 +2518,17 @@ CLASS-NAME->PARSE-TREE-TRANSFORMS."
           (map-json
            (lambda (subtree)
              (cond-let substitution
-               ((not (equal (aget :type subtree) "SYMBOL")) subtree)
-               ((find-if {equal (aget :name subtree)}
-                         symbol-substitutions :key #'car)
+               ((not (member (aget :type subtree) '("SYMBOL" "ALIAS" "STRING")
+                             :test #'equal))
+                subtree)
+               ((find-if
+                 (lambda (symbol-substitution
+                          &aux (symbol-name (or (aget :name subtree)
+                                                (aget :value subtree))))
+                   (if (consp symbol-substitution)
+                       (member symbol-name symbol-substitution :test #'equal)
+                       (equal symbol-substitution symbol-name)))
+                 symbol-substitutions :key #'car)
                 ;; Check if the filter function passes.
                 (if (funcall (caddr substitution) class-name json-rule subtree)
                     (encapsulate-symbol subtree substitution)
@@ -2969,7 +2979,7 @@ CLASS-NAME is used as the specialization for the generated method."
   (defun add-slot-to-class-definition
       (class-name class-name->class-definition slot-spec &key add-to-child-slots)
     "Destructively add SLOT-SPEC to CLASS-NAME's definition in
-CLASS-NAME->CLASS-DEFINITION."
+CLASS-NAME->CLASS-DEFINITION. Return NIL on failure and non-NIL on success."
     (labels ((update-child-slots (slots)
                "Update SLOTS such that child-slots contains the new
                 slot-spec."
@@ -2984,7 +2994,7 @@ CLASS-NAME->CLASS-DEFINITION."
                               (last slot-list))
                     :allocation :class)
                   (remove child-slots slots)))))
-      (let ((class-definition (gethash class-name class-name->class-definition)))
+      (when-let ((class-definition (gethash class-name class-name->class-definition)))
         (symbol-macrolet ((slots (cadddr class-definition)))
           (unless (aget (car slot-spec) slots)
             (setf slots
