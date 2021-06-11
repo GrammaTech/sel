@@ -5,7 +5,8 @@
         :software-evolution-library/software/tree-sitter
         :software-evolution-library/software/parseable)
   (:import-from :software-evolution-library/software/tree-sitter
-                :before-text :after-text)
+                :before-text :after-text
+                :output-transformation)
   (:import-from :software-evolution-library/software/string-clauses
                 :ellipsis-match
                 :wildcard?)
@@ -339,7 +340,7 @@ Both syntaxes can also be used as Trivia patterns for destructuring.
                           subtree
                           (drop (1+ offset) orig)))
                    ;; Change the class if necessary.
-                   (sel/sw/ts::output-transformation parent)
+                   (output-transformation parent)
                    (patch-whitespace parent)
                    ast))))
             (t (with ast path subtree))))
