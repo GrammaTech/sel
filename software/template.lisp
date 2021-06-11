@@ -255,7 +255,6 @@ Both syntaxes can also be used as Trivia patterns for destructuring.
              (iter (for name in names)
                    (for subtree in subtrees)
                    (collect (cons name (template-subtree dummy subtree)))))
-            (subtrees (mapcar #'cdr subs))
             (names (mapcar #'car subs))
             (temp-subs (pairlis placeholders names))))
    ;; Wrap the tables with convenience accessors.
@@ -271,12 +270,22 @@ Both syntaxes can also be used as Trivia patterns for destructuring.
                           ast))))
    ;; Replace the identifiers with subtrees, taking care to copy
    ;; before and after text.
-   (let* ((template-stripped
-           (string-left-trim whitespace template))
-          (leading-whitespace
-           (take (- (length template)
-                    (length template-stripped))
-                 template))
+   (let* ((leading-whitespace
+           (take-while #'whitespacep template))
+          (template
+           ;; Insert subtrees that are strings into the template
+           ;; before parsing. This lets us use templates to get ASTs
+           ;; can only be parsed in the right context.
+           (reduce (lambda (template name)
+                     (let ((subtree (name-subtree name)))
+                       (if (stringp subtree)
+                           (string-replace-all
+                            (name-placeholder name)
+                            template
+                            subtree)
+                           template)))
+                   (sort names #'length> :key #'string)
+                   :initial-value template))
           (ast
            (assure ast
              (convert class template :deepest t)))
@@ -290,24 +299,6 @@ Both syntaxes can also be used as Trivia patterns for destructuring.
               (assocdr placeholder placeholder-paths :test #'equal))
             (name-paths (name)
               (placeholder-paths (name-placeholder name)))))
-   ;; Insert subtrees that are strings into the template (not the
-   ;; AST!) and parse it again. This lets us use templates to get ASTs
-   ;; can only be parsed in the right context.
-   (let ((ast
-          (if (notany #'stringp subtrees) ast
-               (let ((template
-                      (reduce (lambda (template name)
-                                (let ((subtree (name-subtree name)))
-                                  (if (stringp subtree)
-                                      (string-replace-all
-                                       (name-placeholder name)
-                                       template
-                                       subtree)
-                                      template)))
-                              names
-                              :initial-value template)))
-                 (assure ast
-                   (convert class template :deepest t)))))))
    (labels
        ((slot+offset (step)
           "Return the slot and the offset for STEP, a step in a path."
