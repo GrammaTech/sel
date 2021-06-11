@@ -73,8 +73,8 @@ similar matches, and elipses for matching series of ASTs."
                          (find-package :sel/sw/ts))
                  wild-symbol)
            wild-symbol)))
-    ((string-ast :text (ppcre "^[\"']=~/(.+)/[\"']$" regex))
-     `(ast :text (ppcre ,regex)))
+    ((string-ast :text (ppcre "^[\"']=~/(.+)/[\"']$" re))
+     `(ast :text (ppcre ,re)))
     (otherwise
      (let ((result '())
            (slot-names
