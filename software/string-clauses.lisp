@@ -118,6 +118,8 @@ similar matches, and elipses for matching series of ASTs."
                                 (otherwise nil)))
                           val)
                     (push 'ellipsis-match result)
+                    ;; Handle a list match whether it is the sole item
+                    ;; or it occurs at the end of the list context.
                     (let ((rec (mapcar {convert 'match} val)))
                       (if (and (wildcard? (lastcar rec))
                                (string*= "LIST_" (lastcar rec)))

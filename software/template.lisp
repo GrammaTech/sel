@@ -110,6 +110,7 @@ Nested lists are not allowed as template arguments:~%~a"
   (template-metavariable ast (ensure-prefix "@" (string symbol))))
 
 (defun canonicalize-kwargs (template class args)
+  "Prefix keywords for arguments that should be used as lists with @."
   (with-collectors (out)
     (doplist (kw value args)
       (assert (keywordp kw))
@@ -152,6 +153,8 @@ Nested lists are not allowed as template arguments:~%~a"
               (string-replace-all (template-metavariable dummy name)
                                   template
                                   (name-placeholder name)))
+            ;; Replace the metavariables in descending order of length
+            ;; (in case one is a prefix of another).
             (sort names #'length> :key #'string)
             :initial-value template)
     names placeholders subtrees)))
@@ -288,8 +291,8 @@ Both syntaxes can also be used as Trivia patterns for destructuring.
             (name-paths (name)
               (placeholder-paths (name-placeholder name)))))
    ;; Insert subtrees that are strings into the template (not the
-   ;; AST!) and parse it again. This is necessary to give us a way to
-   ;; parse things that can only be parsed in the right context.
+   ;; AST!) and parse it again. This lets us use templates to get ASTs
+   ;; can only be parsed in the right context.
    (let ((ast
           (if (notany #'stringp subtrees) ast
                (let ((template
@@ -355,7 +358,7 @@ If SUBTREE is a list do the same for each element."
                 (mapcar #'cp subtree)
                 (cp subtree))))
         (insert-name-subtrees (ast name)
-          ;; String have already been inlined.
+          ;; Strings have already been inlined.
           (if (stringp (name-subtree name)) ast
               (let* ((paths (name-paths name))
                      (subtree (name-subtree name))
