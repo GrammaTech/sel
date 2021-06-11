@@ -66,9 +66,17 @@ Generic so a different syntax can be used per-language.")
     ;; helpful since an "empty" whatever usually parses as a distinct
     ;; class.
     (if (null list) ""
-        ;; It doesn't make sense to try to inline strings in lists,
-        ;; since we need the nodes to be in the AST to know how to
-        ;; interleave them. (Or does it?)
+        ;; For individual subtrees that are strings, rather than
+        ;; parsing them on their own we insert them into the template
+        ;; (not the AST) so they get parsed in place. But doing the
+        ;; same for lists of strings is impractical, since we don't
+        ;; know in advance how the items should be separated. (Commas?
+        ;; Semicolons? Newlines?) On the other hand, it might turn out
+        ;; that for a given language the only places where the grammar
+        ;; allows us to splice or match lists of nodes are always
+        ;; separated by, say, commas. In that case it would be better
+        ;; to insert lists of strings into the template instead of the
+        ;; AST.
         (iter (for item in list)
               (for subtree = (template-subtree ast item))
               (collect
