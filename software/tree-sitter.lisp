@@ -5613,23 +5613,16 @@ Otherwise, returns PARSE-TREE."
            (zero-width-p (subtree &aux (range (cadr subtree)))
              (when (listp range)
                (equal (car range) (cadr range))))
-           (error-p (subtree)
-             (eq (car subtree) :error))
            (problematic-p (tree)
              (if recursive
                  (walk-parse-tree
                   (lambda (subtree)
-                    (when (and (listp subtree)
-                               (or
-                                (zero-width-p subtree)
-                                (error-p subtree)))
+                    (when (and (listp subtree) (zero-width-p subtree))
                       (return-from problematic-p t)))
                   tree)
                  (find-if
                   (lambda (subtree)
-                    (and (listp subtree)
-                         (or (zero-width-p subtree)
-                             (error-p subtree))))
+                    (and (listp subtree) (zero-width-p subtree)))
                   (caddr tree)))))
     (if (problematic-p parse-tree)
         `(,(if (consp (car parse-tree))

@@ -12,6 +12,7 @@
    :software-evolution-library/test/util-clang
    :software-evolution-library/components/file
    :software-evolution-library/components/formatting)
+  (:shadowing-import-from :cl-tree-sitter :parse-string)
   (:export :test-c-tree-sitter))
 (in-package :software-evolution-library/test/c-tree-sitter)
 (in-readtable :curry-compose-reader-macros)
@@ -379,3 +380,23 @@ return 0;
          (ast (convert 'c-ast source)))
     (is (equal source (source-text ast)))
     (is (find-if (of-type 'c-source-text-fragment) ast))))
+
+(deftest c-source-text-fragments-nested-errors ()
+  "source-text-fragments should successfully be created for nested error nodes."
+  ;; NOTE: this will become an invalid test if the parser is changed such that
+  ;;       the parse tree doesn't have nested errors.
+  (labels ((has-nested-error-p (parse-tree)
+             "Return T if PARSE-TREE contains a nested error node."
+             (walk-tree
+              (lambda (subtree)
+                (and (consp subtree)
+                     (eql (car subtree) :error)
+                     (find :error (caddr subtree) :key #'car)
+                     (return-from has-nested-error-p t)))
+              parse-tree)))
+    (let* ((source "a b :, c AmfServiceClient {")
+           (parse-tree (parse-string :c source :produce-cst t))
+           (ast (convert 'c-ast source)))
+      (is (has-nested-error-p parse-tree))
+      (is (equal source (source-text ast)))
+      (is (find-if (of-type 'c-source-text-fragment) ast)))))
