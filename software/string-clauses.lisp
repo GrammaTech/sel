@@ -120,11 +120,11 @@ similar matches, and elipses for matching series of ASTs."
                     (push 'ellipsis-match result)
                     ;; Handle a list match whether it is the sole item
                     ;; or it occurs at the end of the list context.
-                    (let ((rec (mapcar {convert 'match} val)))
-                      (if (and (wildcard? (lastcar rec))
-                               (string*= "LIST_" (lastcar rec)))
-                          (push (cons 'list* rec) result)
-                          (push (cons 'list rec) result)))))
+                    (let ((subpattern (mapcar {convert 'match} val)))
+                      (if (and (wildcard? (lastcar subpattern))
+                               (string*= "LIST_" (lastcar subpattern)))
+                          (push (cons 'list* subpattern) result)
+                          (push (cons 'list subpattern) result)))))
                (t (push (convert 'match val) result))))))
        (nreverse result)))))
 
