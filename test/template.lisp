@@ -206,3 +206,11 @@ def $READ_NAME():
   (is (equal "foo()" (source-text (python "$1(@2)" "foo" nil))))
   (is (equal "foo()" (source-text (javascript "$1(@2)" "foo" nil))))
   (is (equal "lambda: 1" (source-text (python "lambda @PARAMS: 1" :params nil)))))
+
+(deftest test-string-parsing-behavior ()
+  (is (find-if (of-type 'python-default-parameter)
+               (python "def fn(@ARGS): " :args "x=1")))
+  (is (find-if (of-type 'python-default-parameter)
+               (python "def fn($ARG1, $ARG2): " :arg1 "x=1" :arg2 "y=2")))
+  (signals error
+           (python "def fn(@ARGS): " :args '("x=1" "y=2"))))
