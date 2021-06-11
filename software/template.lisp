@@ -66,29 +66,32 @@ Generic so a different syntax can be used per-language.")
     ;; Treat an empty list as equivalent to an empty string. This is
     ;; helpful since an "empty" whatever usually parses as a distinct
     ;; class.
-    (if (null list) ""
-        ;; For individual subtrees that are strings, rather than
-        ;; parsing them on their own we insert them into the template
-        ;; (not the AST) so they get parsed in place. But doing the
-        ;; same for lists of strings is impractical, since we don't
-        ;; know in advance how the items should be separated. (Commas?
-        ;; Semicolons? Newlines?) On the other hand, it might turn out
-        ;; that for a given language the only places where the grammar
-        ;; allows us to splice or match lists of nodes are always
-        ;; separated by, say, commas. In that case it would be better
-        ;; to insert lists of strings into the template instead of the
-        ;; AST.
-        (iter (for item in list)
-              (for subtree = (template-subtree ast item))
-              (collect
-               (cond
-                 ((listp subtree)
-                  (error "~
+    (cond ((null list) "")
+          ((single list)
+           (template-subtree ast (car list)))
+          ;; For individual subtrees that are strings, rather than
+          ;; parsing them on their own we insert them into the template
+          ;; (not the AST) so they get parsed in place. But doing the
+          ;; same for lists of strings is impractical, since we don't
+          ;; know in advance how the items should be separated. (Commas?
+          ;; Semicolons? Newlines?) On the other hand, it might turn out
+          ;; that for a given language the only places where the grammar
+          ;; allows us to splice or match lists of nodes are always
+          ;; separated by, say, commas. In that case it would be better
+          ;; to insert lists of strings into the template instead of the
+          ;; AST.
+          (t
+           (iter (for item in list)
+                 (for subtree = (template-subtree ast item))
+                 (collect
+                  (cond
+                    ((listp subtree)
+                     (error "~
 Nested lists are not allowed as template arguments:~%~a"
-                         subtree))
-                 ((stringp subtree)
-                  (convert (type-of ast) subtree :deepest t))
-                 (t subtree)))))))
+                            subtree))
+                    ((stringp subtree)
+                     (convert (type-of ast) subtree :deepest t))
+                    (t subtree))))))))
 
 (-> parse-ast-template (string symbol list)
     (values string list list list &optional))
