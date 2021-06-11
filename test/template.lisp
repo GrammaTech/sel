@@ -160,18 +160,49 @@ def $READ_NAME():
   (is (equal '("fn" "1" "2" "3")
              (match (javascript "fn(1, 2, 3)")
                ((javascript "$FN(@ARGS)" :fn fn :args args)
-                (mapcar #'source-text (cons fn args)))))))
+                (mapcar #'source-text (cons fn args))))))
+  (is (equal '("x" "y" "z" "z" "y" "x")
+             (mapcar #'source-text
+                     (match (python "lambda x, y, z: fn(z, y, x)")
+                       ((python "lambda @PARAMS: fn(@ITEMS)"
+                                :params params :items items)
+                        (append params items)))))))
 
 (deftest test-insert-list ()
   (is (equal*
        "fn(1, 2, 3)"
        (source-text (python "fn(@ARGS)" :args '(1 2 3)))
+       (source-text (python "fn(1, @ARGS)" :args '(2 3)))
+       (source-text (python "fn(1, 2, @ARGS)" :args '(3)))
        (source-text
         (python "fn(@ARGS)"
                 :args
-                (mapcar (op (make 'sel/sw/ts::python-integer
+                (mapcar (op (make 'python-integer
                                   :text (princ-to-string _)))
-                        '(1 2 3)))))))
+                        '(1 2 3))))))
+
+  (is (equal*
+       "fn(1, 2, 3)"
+       (source-text (javascript "fn(@ARGS)" :args '(1 2 3)))
+       (source-text (javascript "fn(1, @ARGS)" :args '(2 3)))
+       (source-text (javascript "fn(1, 2, @ARGS)" :args '(3)))
+       (source-text
+        (javascript "fn(@ARGS)"
+                    :args
+                    (mapcar (op (make 'javascript-number
+                                      :text (princ-to-string _)))
+                            '(1 2 3))))))
+
+  (is (equal? (python "lambda x, y, z: fn(x, y, z)")
+              (python "lambda @PARAMS: fn(@ITEMS)"
+                      :params '("x" "y" "z")
+                      :items '("z" "y" "x"))))
+
+  (is (equal* (source-text (javascript "[x, y, z]"))
+              (source-text (javascript "[@ITEMS]" :items (list "x" "y" "z")))
+              (source-text (javascript "[x, @ITEMS]" :items (list "y" "z"))))))
 
 (deftest test-insert-empty-list ()
-  (is (equal "foo()" (source-text (python "$1(@2)" "foo" nil)))))
+  (is (equal "foo()" (source-text (python "$1(@2)" "foo" nil))))
+  (is (equal "foo()" (source-text (javascript "$1(@2)" "foo" nil))))
+  (is (equal "lambda: 1" (source-text (python "lambda @PARAMS: 1" :params nil)))))
