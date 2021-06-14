@@ -6,7 +6,7 @@ import pkg_resources
 import shutil
 import subprocess
 
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 
 class AST:
@@ -106,15 +106,15 @@ class AST:
         """Return any call ASTs under AST."""
         return _interface.dispatch(AST.call_asts.__name__, self) or []
 
-    def get_vars_in_scope(self, root: "AST", keep_globals: bool = True) -> "AST":
+    def get_vars_in_scope(self, root: "AST", keep_globals: bool = True) -> Dict:
         """Return all variables in enclosing scopes, optionally including globals."""
-        names = _interface.dispatch(
+        vars_in_scope = _interface.dispatch(
             AST.get_vars_in_scope.__name__,
             root,
             self,
             keep_globals,
         )
-        return names or []
+        return vars_in_scope or []
 
     # AST slot accessors
     def ensure_type(self, desired_type: str) -> None:
@@ -223,6 +223,10 @@ class _interface:
             """Serialize V to a form for passing thru the JSON text interface."""
             if isinstance(v, AST):
                 return {"type": "AST", "handle": v.handle}
+            elif isinstance(v, dict):
+                return {serialize(key): serialize(val) for key, val in v.items()}
+            elif isinstance(v, list):
+                return [serialize(i) for i in v]
             else:
                 return v
 
@@ -230,8 +234,10 @@ class _interface:
             """Deserialize V from the form used with the JSON text interface."""
             if isinstance(v, dict) and v.get("handle", None):
                 return AST(handle=v["handle"])
+            elif isinstance(v, dict):
+                return {deserialize(key): deserialize(val) for key, val in v.items()}
             elif isinstance(v, list):
-                return [deserialize(e) for e in v]
+                return [deserialize(i) for i in v]
             else:
                 return v
 

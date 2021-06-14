@@ -101,7 +101,7 @@ counter reaches zero."
     (allocate-ast it))
   (:method ((it ast))
     `((:type . :ast) (:handle . ,(ast-key it))))
-  (:method ((it list)) (mapcar #'serialize it))
+  (:method ((it list)) (mapcar-improper-list #'serialize it))
   (:method ((it t)) it))
 
 ;; (-> deserialize (t) t)
@@ -110,7 +110,7 @@ counter reaches zero."
   (:method ((it list))
     (if (aget :handle it)
         (car (gethash (aget :handle it) *external-asts*))
-        (mapcar #'deserialize it)))
+        (mapcar-improper-list #'deserialize it)))
   (:method ((it t)) it))
 
 (-> handle-interface (list) t)
@@ -149,9 +149,9 @@ function name from the API followed by the arguments."
 (defun int/init (&rest args)
   (allocate-ast (apply #'int/ast args)))
 
-(-> int/del (ast) boolean)
+(-> int/del ((or ast nil)) boolean)
 (defun int/del (ast)
-  (deallocate-ast ast))
+  (when ast (deallocate-ast ast)))
 
 (-> int/hash (ast) number)
 (defun int/hash (ast)
@@ -236,11 +236,10 @@ function name from the API followed by the arguments."
 
 (-> int/get-vars-in-scope (ast ast boolean) list)
 (defun int/get-vars-in-scope (root ast keep-globals)
-  (nest (mapcar {aget :name})
-        (get-vars-in-scope (make-instance (safe-intern (int/ast-language ast))
-                                          :genome root)
-                           ast
-                           keep-globals)))
+  (get-vars-in-scope (make-instance (safe-intern (int/ast-language ast))
+                                    :genome root)
+                     ast
+                     keep-globals))
 
 (-> int/ast-source-ranges (ast) list)
 (defun int/ast-source-ranges (root)
