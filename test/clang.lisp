@@ -313,9 +313,9 @@
               (ast-class (stmt-with-text var "b = b - a;"))))
       ;; Wrap children and ensure changes are made.
 
-      (setf var (wrap-child var (stmt-starting-with-text var "if (a > b)")
+      (setf var (wrap-child var (stmt-with-text var "if (a > b)" :at-start t)
                             1))
-      (setf var (wrap-child var (stmt-starting-with-text var "if (a > b)")
+      (setf var (wrap-child var (stmt-with-text var "if (a > b)" :at-start t)
                             2))
       (is (eq :BinaryOperator     ; Guard
               (ast-class (stmt-with-text var "a > b"))))
@@ -585,7 +585,7 @@ is not to be found"
 
 (deftest typedef-workaround ()
   (with-fixture typedef
-    (let ((typedef (stmt-starting-with-text *soft* "typedef")))
+    (let ((typedef (stmt-with-text *soft* "typedef" :at-start t)))
       (is typedef)
       (is (not (null (child-asts typedef))))
       (is (equal '(:Record)
@@ -610,7 +610,7 @@ is not to be found"
   (with-fixture switch-macros-clang
     (let ((overlapping-children
            (nest (child-asts)
-                 (stmt-starting-with-text *soft* "case 'F'"))))
+                 (stmt-with-text *soft* "case 'F'" :at-start t))))
       (is (= 2 (length overlapping-children)))
       (is (member :MacroExpansion
                   (mapcar #'ast-class overlapping-children))))))
@@ -678,8 +678,8 @@ int x = CHARSIZE;")))
                            (declare (ignorable c))
                            (invoke-restart 'use-encoding :utf-8))))
     (with-fixture unicode-clang
-      (is (stmt-starting-with-text *soft* "int x = 0"))
-      (is (stmt-starting-with-text *soft* "\"2 bytes: Δ\""))
-      (is (stmt-starting-with-text *soft* "int y = 1"))
+      (is (stmt-with-text *soft* "int x = 0" :at-start t))
+      (is (stmt-with-text *soft* "\"2 bytes: Δ\"" :at-start t))
+      (is (stmt-with-text *soft* "int y = 1" :at-start t))
       (is (string= (genome-string *soft*)
                    (file-to-string (unicode-dir "unicode.c")))))))

@@ -18,7 +18,7 @@
 
 (deftest (case-tokens :long-running) ()
   (with-fixture variety-clang
-    (let* ((root (stmt-starting-with-text *variety* "case 1"))
+    (let* ((root (stmt-with-text *variety* "case 1" :at-start t))
            (tokens (clang-tokens *variety* (list root)))
            (switch-tokens
             (mapcar #'make-keyword
@@ -32,7 +32,7 @@
 
 (deftest (do-while-tokens :long-running) ()
   (with-fixture variety-clang
-    (let* ((root (stmt-starting-with-text *variety* "do {"))
+    (let* ((root (stmt-with-text *variety* "do {" :at-start t))
            (tokens (clang-tokens *variety* (list root))))
       (is (equal tokens
                  ;; do {
@@ -47,7 +47,7 @@
 
 (deftest (function-tokens :long-running) ()
   (with-fixture variety-clang
-    (let* ((root (stmt-starting-with-text *variety* "int add3"))
+    (let* ((root (stmt-with-text *variety* "int add3" :at-start t))
            (tokens (clang-tokens *variety* (list root))))
       (is (equal
            tokens
@@ -62,7 +62,7 @@
 
 (deftest (mixed-tokens :long-running) ()
   (with-fixture variety-clang
-    (let* ((root (stmt-starting-with-text *variety* "tun->foo"))
+    (let* ((root (stmt-with-text *variety* "tun->foo" :at-start t))
            (tokens (clang-tokens *variety* (list root))))
       (is
        (equal

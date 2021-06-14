@@ -297,7 +297,7 @@
     (is (string= "b = 0"
                  (nest (trim-whitespace)
                        (source-text)
-                       (rebind-vars (stmt-starting-with-text *soft* "a = 0")
+                       (rebind-vars (stmt-with-text *soft* "a = 0" :at-start t)
                                     (list (list "a" "b"))
                                     nil))))))
 
@@ -325,9 +325,10 @@
                      (format nil "return x * y~%"))))
     (is (equal `((:name . "__name__") (:name . "obj")
                  (:name . "i") (:name . "j"))
-               (nest (get-unbound-vals *soft*)
-                     (stmt-starting-with-text *soft*)
-                     (format nil "if __name__ == '__main__':~%"))))))
+               (get-unbound-vals *soft*
+                                 (stmt-with-text *soft*
+                                                 (format nil "if __name__ == '__main__':~%")
+                                                 :at-start t))))))
 
 (deftest python-get-unbound-funs-works ()
   (with-fixture unbound-python
@@ -345,8 +346,9 @@
                      (format nil "obj = Obj()~%"))))
     (is (equal `(("Obj" nil nil 0) ("function" nil nil 2) ("f" nil nil 2))
                (nest (get-unbound-funs *soft*)
-                     (stmt-starting-with-text *soft*)
-                     (format nil "if __name__ == '__main__':~%"))))))
+                     (stmt-with-text *soft*
+                                     (format nil "if __name__ == '__main__':~%")
+                                     :at-start t))))))
 
 (deftest python-has-print-built-in ()
   (with-fixture unbound-python
@@ -735,10 +737,13 @@ and keyword parameters with defaults."
 (deftest python-provided-by ()
   (with-fixture python-import
     ;; Explicitly imported at the top and called without a namespace chain.
-    (is (string= "sys" (provided-by *soft* (stmt-starting-with-text *soft* "byteorder()"))))
+    (is (string= "sys" (provided-by *soft* (stmt-with-text *soft* "byteorder()"
+                                                           :at-start t))))
     ;; Called with a namespace chain.
-    (is (string= "os.path" (provided-by *soft* (stmt-starting-with-text *soft* "os.path.exists"))))
-    (is (string= "os.path" (provided-by *soft* (@ (stmt-starting-with-text *soft* "os.path.exists")
+    (is (string= "os.path" (provided-by *soft* (stmt-with-text *soft* "os.path.exists"
+                                                               :at-start t))))
+    (is (string= "os.path" (provided-by *soft* (@ (stmt-with-text *soft* "os.path.exists"
+                                                                  :at-start t)
                                                   '(0 python-function)))))))
 
 (deftest test-python-types-parameter-name ()

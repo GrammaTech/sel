@@ -30,7 +30,6 @@
            :javascript-tree-sitter-available-p
            :json-tree-sitter-available-p
            :stmt-with-text
-           :stmt-starting-with-text
            :fully-every
            :different-asts
            :range-to-list
@@ -205,27 +204,32 @@
   (handler-case (progn (make-instance 'sel/sw/tree-sitter::json))
                 (error (e) (declare (ignorable e)) nil)))
 
-(defun stmt-with-text (obj text &key no-error (trim t))
-  "Return the AST in OBJ holding TEXT.
-Unless optional argument NO-ERROR is non-nil an error is raised if no
-AST holding STMT is found."
-  (when trim
-    (setf text (trim-whitespace text)))
-  (or (let ((result
-             (find-if [{string= text} (if trim #'trim-whitespace #'identity)
-                       #'source-text]
-                      (asts obj))))
-        result)
-      (if no-error
-          nil
-          (error "`stmt-with-text' failed to find ~S in ~S"
-                 text
-                 (mapcar #'source-text (asts obj))))))
+(defun stmt-with-text- (asts text trim at-start)
+  (find-if [(if at-start [{equal 0} {search text}] {string= text})
+            (if trim #'trim-whitespace #'identity)
+            #'source-text]
+           asts))
 
-(defun stmt-starting-with-text (obj text)
-  (find-if (lambda (ast)
-             (and ast (equal 0 (search text (source-text ast)))))
-           (asts obj)))
+(defgeneric stmt-with-text (obj text &key no-error trim at-start &allow-other-keys)
+  (:documentation "Return the AST in OBJ holding TEXT.
+Unless optional argument NO-ERROR is non-nil an error is raised if no
+AST holding STMT is found.")
+  (:method :around (obj (text string) &key no-error trim &allow-other-keys)
+           (when trim (setf text (trim-whitespace text)))
+           (or (call-next-method)
+               (if no-error
+                   nil
+                   (error "`stmt-with-text' failed to find ~S in ~S"
+                          text
+                          (etypecase obj
+                            (software (genome-string obj))
+                            (ast (source-text obj)))))))
+  (:method ((obj software) (text string) &rest rest)
+    (apply #'stmt-with-text (asts obj) text :no-error t rest))
+  (:method ((asts sequence) (text string) &key trim at-start &allow-other-keys)
+    (stmt-with-text- asts text trim at-start))
+  (:method ((asts ast) (text string) &key trim at-start &allow-other-keys)
+    (stmt-with-text- asts text trim at-start)))
 
 
 ;;; Software.

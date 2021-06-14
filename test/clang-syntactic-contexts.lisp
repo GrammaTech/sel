@@ -103,7 +103,7 @@
 (deftest insert-non-full-stmt-into-fullstmt-context-makes-full ()
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "int x"))
-          (location (stmt-starting-with-text *contexts* "if (1)")))
+          (location (stmt-with-text *contexts* "if (1)" :at-start t)))
       (apply-mutation-ops *contexts*
                           `((:insert (:stmt1 . ,location)
                                      (:value1 . ,target))))
@@ -212,7 +212,7 @@
             (nest (ast-class)           ; Was some->>
                   (second)
                   (child-asts)
-                  (stmt-starting-with-text *contexts* "if (2)"))))))
+                  (stmt-with-text *contexts* "if (2)" :at-start t))))))
 
 (deftest cut-braced-body-adds-nullstmt ()
   (with-fixture contexts
@@ -228,7 +228,7 @@
             (nest (ast-class)           ; Was some->>
                   (second)
                   (child-asts)
-                  (stmt-starting-with-text *contexts* "if (1)"))))))
+                  (stmt-with-text *contexts* "if (1)" :at-start t))))))
 
 (deftest replace-unbraced-body-keeps-semicolon ()
   (with-fixture contexts
@@ -258,7 +258,7 @@
     (let ((target (stmt-with-text *contexts* "int f1;")))
       (apply-mutation-ops *contexts*
                           `((:cut (:stmt1 . ,target)))))
-    (let ((struct (stmt-starting-with-text *contexts* "struct")))
+    (let ((struct (stmt-with-text *contexts* "struct" :at-start t)))
       (is (eq 2
               (count-matching-chars-in-stmt #\; struct))))))
 
@@ -268,7 +268,7 @@
       (apply-mutation-ops *contexts*
                           `((:insert (:stmt1 . ,target)
                                      (:value1 . ,target)))))
-    (let ((struct (stmt-starting-with-text *contexts* "struct")))
+    (let ((struct (stmt-with-text *contexts* "struct" :at-start t)))
       (is (eq 4
               (count-matching-chars-in-stmt #\; struct))))))
 
@@ -279,13 +279,13 @@
       (apply-mutation-ops *contexts*
                           `((:set (:stmt1 . ,target)
                                   (:value1 . ,replacement)))))
-    (let ((struct (stmt-starting-with-text *contexts* "struct")))
+    (let ((struct (stmt-with-text *contexts* "struct" :at-start t)))
       (is (eq 3
               (count-matching-chars-in-stmt #\; struct))))))
 
 (deftest insert-toplevel-adds-semicolon ()
   (with-fixture contexts
-    (let ((location (stmt-starting-with-text *contexts* "struct"))
+    (let ((location (stmt-with-text *contexts* "struct" :at-start t))
           (inserted (stmt-with-text *contexts* "int x = 0;"))
           (semicolons (count-if {eq #\;} (genome-string *contexts*))))
       (apply-mutation-ops *contexts*
@@ -296,8 +296,8 @@
 
 (deftest insert-toplevel-braced ()
   (with-fixture contexts
-    (let ((location (stmt-starting-with-text *contexts* "struct"))
-          (inserted (stmt-starting-with-text *contexts* "void list"))
+    (let ((location (stmt-with-text *contexts* "struct" :at-start t))
+          (inserted (stmt-with-text *contexts* "void list" :at-start t))
           (semicolons (count-if {eq #\;} (genome-string *contexts*))))
       (apply-mutation-ops *contexts*
                           `((:insert (:stmt1 . ,location)
@@ -309,8 +309,8 @@
   (with-fixture contexts
     (let ((location (stmt-with-text *contexts* "int x = 0;"))
           (inserted (list (format nil "/*comment 1*/~%")
-                          (stmt-starting-with-text *contexts*
-                                                   "int x = 1")
+                          (stmt-with-text *contexts*
+                                          "int x = 1" :at-start t)
                           (format nil ";~%/*comment 2*/~%"))))
       (apply-mutation-ops *contexts*
                           `((:splice (:stmt1 . ,location)
@@ -323,7 +323,7 @@
                     (remove-if-not (function ast-full-stmt))
                     (child-asts)
                     (function-body)
-                    (stmt-starting-with-text *contexts* "void full_stmt"))))
+                    (stmt-with-text *contexts* "void full_stmt" :at-start t))))
       (is (search "comment 1" (genome-string *contexts*)))
       (is (search "comment 2" (genome-string *contexts*))))))
 
@@ -337,7 +337,7 @@
 
 (deftest replace-removes-trailing-semicolon-with-whitespace ()
   (with-fixture contexts
-    (let ((location (stmt-starting-with-text *contexts* "MACRO"))
+    (let ((location (stmt-with-text *contexts* "MACRO" :at-start t))
           (replacement (nest (first)
                              (child-asts)
                              (find-function *contexts* "unbraced_body"))))

@@ -115,9 +115,9 @@
 (deftest c-tree-sitter-handles-unicode ()
   "c-ast successfully parses unicode."
   (with-fixture unicode
-    (is (stmt-starting-with-text *soft* "int x = 0"))
-    (is (stmt-starting-with-text *soft* "\"2 bytes: Δ\""))
-    (is (stmt-starting-with-text *soft* "int y = 1"))
+    (is (stmt-with-text *soft* "int x = 0" :at-start t))
+    (is (stmt-with-text *soft* "\"2 bytes: Δ\"" :at-start t))
+    (is (stmt-with-text *soft* "int y = 1" :at-start t))
     (is (not (find-if {typep _ 'c-error} (genome *soft*))))))
 
 (deftest test-c-source-ranges ()
@@ -337,7 +337,7 @@
 (deftest test-comments-for ()
   (with-fixture factorial.c
     (is (= 3 (length (comments-for *soft* (find-if {typep _ 'c-while-statement} *soft*)))))
-    (is (= 1 (length (comments-for *soft* (stmt-starting-with-text *soft* "printf")))))))
+    (is (= 1 (length (comments-for *soft* (stmt-with-text *soft* "printf" :at-start t)))))))
 
 (deftest test-scopes ()
   (let* ((c (sel:from-string (make 'c) (fmt "~

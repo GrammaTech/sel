@@ -36,8 +36,8 @@
     (is (numberp (fitness *hello-world*)))
     (let* ((variant (copy *hello-world*))
            (op (make-instance 'clang-insert
-                 :targets `((:stmt1 . ,(stmt-starting-with-text variant
-                                                                "printf"))
+                 :targets `((:stmt1 . ,(stmt-with-text variant
+                                                       "printf" :at-start t))
                             (:literal1 . ,(make-literal 0))))))
       (apply-mutation variant op)
       (is (null (fitness variant))
@@ -56,8 +56,8 @@
            (op (cons "grep.c"
                      (make-instance 'clang-cut
                        :object variant
-                       :targets `((:stmt1 . ,(stmt-starting-with-text variant
-                                                                      "status =")))))))
+                       :targets `((:stmt1 . ,(stmt-with-text variant
+                                                             "status =" :at-start t)))))))
       (apply-mutation variant op)
       (setf (fitness variant) 0) ; arbitrary, just needs to exist
       (let ((packed-op (append (list (object (cdr op))
@@ -75,8 +75,8 @@
     (is (numberp (fitness *hello-world*)))
     (let* ((variant (copy *hello-world*))
            (op (make-instance 'clang-cut
-                 :targets `((:stmt1 . ,(stmt-starting-with-text variant
-                                                                "printf"))))))
+                 :targets `((:stmt1 . ,(stmt-with-text variant
+                                                       "printf" :at-start t))))))
       (apply-mutation variant op)
       (analyze-mutation variant (list op nil nil *hello-world* nil nil) *test*)
       (is (equal :worse (first (second (first (hash-table-alist
@@ -88,7 +88,7 @@
     (evaluate *test* *hello-world*)
     (is (numberp (fitness *hello-world*)))
     (let* ((variant (copy *hello-world*))
-           (target (stmt-starting-with-text variant "printf"))
+           (target (stmt-with-text variant "printf" :at-start t))
            (op (make-instance 'clang-swap
                  :targets `((:stmt1 . ,target) (:stmt2 . ,target)))))
       (setf (fitness variant) nil)

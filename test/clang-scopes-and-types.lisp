@@ -122,8 +122,8 @@
                '("char")))
     (is (equal (mapcar [#'type-name {find-type *scopes*}]
                        (get-ast-types *scopes*
-                                      (stmt-starting-with-text *scopes*
-                                                               "void foo")))
+                                      (stmt-with-text *scopes*
+                                                      "void foo" :at-start t)))
                '("char" "int")))))
 
 (deftest unbound-vals-are-correct ()
@@ -141,18 +141,17 @@
       (is (null (get-unbound-vals *scopes*
                                   (stmt-with-text *scopes* "int global;"))))
       (compare-vals (get-unbound-vals *scopes*
-                                      (stmt-starting-with-text *scopes* "c ="))
+                                      (stmt-with-text *scopes* "c =" :at-start t))
                     '("global" "b" "a" "c"))
       (compare-vals (get-unbound-vals *scopes*
-                                      (stmt-starting-with-text *scopes* "b ="))
+                                      (stmt-with-text *scopes* "b =" :at-start t))
                     '("b"))
       (compare-vals (get-unbound-vals *scopes*
-                                      (stmt-starting-with-text *scopes* "d ="))
+                                      (stmt-with-text *scopes* "d =" :at-start t))
                     '("d"))
 
       (compare-vals (get-unbound-vals *scopes*
-                                      (nest (stmt-starting-with-text *scopes* )
-                                            "void foo"))
+                                      (stmt-with-text *scopes* "void foo" :at-start t))
                     '("global")))))
 
 (defun unbound-funs-equal (result expected)
@@ -178,7 +177,7 @@
          '(("bar" t nil 0))))
     (is (unbound-funs-equal
          (get-unbound-funs *scopes*
-                           (stmt-starting-with-text *scopes* "void bar"))
+                           (stmt-with-text *scopes* "void bar" :at-start t))
          '(("foo" t nil 1)
            ("bar" t nil 0))))))
 
@@ -220,7 +219,7 @@
       (apply-mutation *scopes*
                       `(clang-swap (:stmt1 . ,(stmt-with-text *scopes* "int c;"))
                                    (:stmt2 . ,(stmt-with-text *scopes* "b = 0;")))))
-    (compare-scopes (scopes *scopes* (stmt-starting-with-text *scopes* "b ="))
+    (compare-scopes (scopes *scopes* (stmt-with-text *scopes* "b =" :at-start t))
                     '(("b")
                       ("a")
                       ("global")))))
@@ -229,7 +228,7 @@
   (with-fixture scopes2-clang
     (apply-mutation *scopes*
                     `(clang-cut (:stmt1 . ,(stmt-with-text *scopes* "int global;"))))
-    (compare-scopes (scopes *scopes* (stmt-starting-with-text *scopes* "b ="))
+    (compare-scopes (scopes *scopes* (stmt-with-text *scopes* "b =" :at-start t))
                     '(("c" "b")
                       ("a")
                       nil))))
@@ -241,8 +240,8 @@
                                    (:stmt2 . ,(stmt-with-text *scopes* "int b;"))))
     (is (equal (mapcar [#'type-name {find-type *scopes*}]
                        (get-ast-types *scopes*
-                                      (stmt-starting-with-text *scopes*
-                                                               "void bar")))
+                                      (stmt-with-text *scopes*
+                                                      "void bar" :at-start t)))
                '("int")))))
 
 (deftest cut-statement-updates-unbound-funs ()
@@ -251,7 +250,7 @@
                     `(clang-cut (:stmt1 . ,(stmt-with-text *scopes* "foo(0);"))))
     (is (unbound-funs-equal
          (get-unbound-funs *scopes*
-                           (stmt-starting-with-text *scopes* "void bar"))
+                           (stmt-with-text *scopes* "void bar" :at-start t))
          '(("bar" t nil 0))))))
 
 (deftest insert-statement-updates-unbound-funs ()
@@ -262,25 +261,25 @@
                                                               "bar();"))))
     (is (unbound-funs-equal
          (get-unbound-funs *scopes*
-                           (stmt-starting-with-text *scopes* "void foo"))
+                           (stmt-with-text *scopes* "void foo" :at-start t))
          '(("bar" t nil 0))))))
 
 (deftest cut-statement-updates-unbound-vals ()
   (with-fixture scopes2-clang
     (apply-mutation *scopes*
-                    `(clang-cut (:stmt1 . ,(stmt-starting-with-text *scopes*
-                                                                    "c ="))))
+                    `(clang-cut (:stmt1 . ,(stmt-with-text *scopes*
+                                                           "c =" :at-start t))))
     (is (null (get-unbound-vals *scopes*
-                                (stmt-starting-with-text *scopes*
-                                                         "void foo"))))))
+                                (stmt-with-text *scopes*
+                                                "void foo" :at-start t))))))
 
 (deftest cut-decl-updates-unbound-vals ()
   (with-fixture scopes2-clang
     (apply-mutation *scopes*
                     `(clang-cut (:stmt1 . ,(stmt-with-text *scopes* "int b;"))))
     (let ((unbound (get-unbound-vals *scopes*
-                                     (stmt-starting-with-text *scopes*
-                                                              "void foo"))))
+                                     (stmt-with-text *scopes*
+                                                     "void foo" :at-start t))))
       (is (fully-every #'name= (mapcar {aget :name} unbound) '("global" "b")))
       (is (aget :decl (find-if [{name= "global"} {aget :name}] unbound)))
       ;; b is now undeclared
@@ -295,8 +294,8 @@
                                                               "b = 0;"))))
     ;; "b" is not defined in this context so it will be rebound
     (let ((unbound (get-unbound-vals *scopes*
-                                     (stmt-starting-with-text *scopes*
-                                                              "void bar"))))
+                                     (stmt-with-text *scopes*
+                                                     "void bar" :at-start t))))
       (is (eq 1 (length unbound)))
       (is (name= "global" (aget :name (car unbound))))
       (is (equalp (stmt-with-text *scopes* "int global;")

@@ -79,7 +79,7 @@
           (*clang-mutation-types* '((clang-insert . 1)))
           (variant (copy *hello-world*)))
       (mutate variant)
-      (is (stmt-starting-with-text variant "printfprintf")))))
+      (is (stmt-with-text variant "printfprintf" :at-start t)))))
 
 (deftest insert-same-adds-same-class ()
   (with-fixture hello-world-clang-control-picks
@@ -348,7 +348,7 @@
                 (apply-mutation copy
                                 (make-instance 'clang-promote-guarded
                                   :object copy
-                                  :targets (stmt-starting-with-text *gcd* "if (a == 0)")))))))
+                                  :targets (stmt-with-text *gcd* "if (a == 0)" :at-start t)))))))
         (is (and (subsequent-lines-p genome-string
                                      "printf(\"%g\\n\", b);"
                                      "while (b != 0)"))

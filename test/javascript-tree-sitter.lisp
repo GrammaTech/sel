@@ -227,7 +227,7 @@
     (is (equal (list "d" "c" "b" "a" "arr")
                (nest (mapcar {aget :name})
                      (get-vars-in-scope soft)
-                     (stmt-starting-with-text soft "console.log("))))))
+                     (stmt-with-text soft "console.log(" :at-start t))))))
 
 (deftest javascript-object-destructuring-get-vars-in-scope-test ()
   (let ((soft (from-file (make-instance 'javascript)
@@ -235,7 +235,7 @@
     (is (equal (list "q" "p" "o")
                (nest (mapcar {aget :name})
                      (get-vars-in-scope soft)
-                     (stmt-starting-with-text soft "console.log("))))))
+                     (stmt-with-text soft "console.log(" :at-start t))))))
 
 (deftest javascript-for-in-loop-get-vars-in-scope-test ()
   (let ((soft (from-file (make-instance 'javascript)
