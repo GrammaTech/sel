@@ -348,6 +348,10 @@
                      (stmt-starting-with-text *soft*)
                      (format nil "if __name__ == '__main__':~%"))))))
 
+(deftest python-has-print-built-in ()
+  (with-fixture unbound-python
+    (is (member "print" (built-ins *soft*) :test #'string=))))
+
 (deftest python-scopes-1 ()
   "scopes gets the initial binding of a global statement."
   (with-util-file ("nested-global" soft genome)

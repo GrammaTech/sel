@@ -57,6 +57,7 @@
            :enclosing-scope
            :find-if-in-scope
            :find-if-in-parents
+           :built-ins
            :scopes
            :get-vars-in-scope
            :parse-asts
@@ -660,6 +661,9 @@ an AST that satisfies PREDICATE that occurs before REFERENCE-AST.")
 satisfies PREDICATE.")
   (:method (predicate (obj parseable) ast)
     (find-if predicate (get-parent-asts* obj ast))))
+
+(defgeneric built-ins (software)
+  (:documentation "Return a list of built-in identifiers available in SOFTWARE."))
 
 (defgeneric scopes (software ast)
   (:documentation "Return lists of variables in each enclosing scope.
