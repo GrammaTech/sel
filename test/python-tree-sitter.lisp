@@ -306,6 +306,19 @@
     (is (null (stmt-with-text *soft* "return b" :no-error t))
         "'return b' was not removed from the program.")))
 
+(deftest python-preserve-before-text-on-replacement-with-with ()
+  (nest
+   (let ((orig (python "def main():
+    foo = 5
+    bar = 7
+    baz = foo + fuzz
+    if foo > bar:
+        print(foo + baz)"))))
+   (is)
+   (search "foo + bar")
+   (source-text)
+   (with orig (stmt-with-text orig "fuzz") (python "bar"))))
+
 (deftest python-get-unbound-vals-works ()
   (with-fixture unbound-python
     (is (equal `((:name . "i") (:name . "j"))
