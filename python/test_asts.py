@@ -169,16 +169,33 @@ class VarsInScopeTestDriver(unittest.TestCase):
         vars_in_scope = ast.get_vars_in_scope(root)
 
         names = [var["name"] for var in vars_in_scope]
-        self.assertEqual(names[0], "bar")
-        self.assertEqual(names[1], "a")
-        self.assertEqual(names[2], "b")
+        self.assertEqual(names[0], "a")
+        self.assertEqual(names[1], "b")
+        self.assertEqual(names[2], "bar")
 
         scopes = [var["scope"].ast_type() for var in vars_in_scope]
-        self.assertEqual(scopes[0], "PYTHON-MODULE")
+        self.assertEqual(scopes[0], "PYTHON-FUNCTION-DEFINITION-2")
         self.assertEqual(scopes[1], "PYTHON-FUNCTION-DEFINITION-2")
-        self.assertEqual(scopes[2], "PYTHON-FUNCTION-DEFINITION-2")
+        self.assertEqual(scopes[2], "PYTHON-MODULE")
 
         decls = [var["decl"].ast_type() for var in vars_in_scope]
-        self.assertEqual(decls[0], "PYTHON-FUNCTION-DEFINITION-2")
+        self.assertEqual(decls[0], "PYTHON-IDENTIFIER")
         self.assertEqual(decls[1], "PYTHON-IDENTIFIER")
-        self.assertEqual(decls[2], "PYTHON-IDENTIFIER")
+        self.assertEqual(decls[2], "PYTHON-FUNCTION-DEFINITION-2")
+
+    def test_vars_in_scope_no_globals(self):
+        root = asts.AST("python", "def bar(a, b): return a*b")
+        ast = root.children()[-1].children()[-1].children()[-1]
+        vars_in_scope = ast.get_vars_in_scope(root, keep_globals=False)
+
+        names = [var["name"] for var in vars_in_scope]
+        self.assertEqual(names[0], "a")
+        self.assertEqual(names[1], "b")
+
+        scopes = [var["scope"].ast_type() for var in vars_in_scope]
+        self.assertEqual(scopes[0], "PYTHON-FUNCTION-DEFINITION-2")
+        self.assertEqual(scopes[1], "PYTHON-FUNCTION-DEFINITION-2")
+
+        decls = [var["decl"].ast_type() for var in vars_in_scope]
+        self.assertEqual(decls[0], "PYTHON-IDENTIFIER")
+        self.assertEqual(decls[1], "PYTHON-IDENTIFIER")

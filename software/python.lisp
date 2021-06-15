@@ -499,14 +499,14 @@ AST ast to return the scopes for"
            (group-by-scope (bindings)
              "Group BINDINGS by scope."
              (assort bindings :key (lambda (alist) (aget :scope alist))))
-           (sort-top->down (scopes)
+           (sort-bottom->up (scopes)
              "Sort SCOPES from the top-most to the bottom-most."
              (sort scopes
                    (lambda (ast1 ast2)
-                     (path-later-p obj ast2 ast1))
+                     (path-later-p obj ast1 ast2))
                    :key (lambda (list)
                           (aget :scope (car list))))))
-    (sort-top->down
+    (sort-bottom->up
      (group-by-scope
       (remove-duplicates
        (remove-if
