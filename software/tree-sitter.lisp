@@ -4191,9 +4191,11 @@ should be rebound.")
 
 (defgeneric find-preceding (type software ast)
   (:documentation "Return any siblings of TYPE preceding AST in SOFTWARE.")
-  (:method ((type t) (software tree-sitter) (ast tree-sitter-ast))
+  (:method ((type t) (software software) (ast tree-sitter-ast))
+    (find-preceding type (genome software) ast))
+  (:method ((type t) (root ast) (ast tree-sitter-ast))
     ;; (assert (typep type '(or symbol (cons symbol t) class)))
-    (when-let ((parent (get-parent-ast software ast)))
+    (when-let ((parent (get-parent-ast root ast)))
       (iter (for child in (children parent))
             (until (eql child ast))
             (when (typep child type)
@@ -4730,6 +4732,13 @@ AST1 and AST2.
 
 STYLE can be used to control whitespace based on a standard format or
 on the calculated format of a particular file."))
+
+(defmethod with :around ((ast tree-sitter-ast) (value1 tree-sitter-ast) &optional value2)
+  (if-let ((siblings (find-preceding t ast value1)))
+    (nest (call-next-method ast value1)
+          (copy value2 :before-text)
+          (whitespace-between t (lastcar siblings) value1))
+    (call-next-method)))
 
 (defgeneric patch-whitespace (ast &key)
   (:documentation "Destructively patch whitespace on AST by adding a

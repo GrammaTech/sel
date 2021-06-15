@@ -86,13 +86,6 @@ are created if they're present in PARSE-TREE."
 
 ;;; Methods common to all software objects
 
-(defmethod with :around ((ast python-ast) (value1 python-identifier) &optional value2)
-  (typecase value2
-    (python-identifier (call-next-method ast value1 (copy value2
-                                                          :before-text (before-text value1)
-                                                          :after-text (after-text value1))))
-    (t (call-next-method))))
-
 (defmethod initialize-instance :after ((self python-empty-argument-list) &key)
   (setf (text self) "()"))
 
