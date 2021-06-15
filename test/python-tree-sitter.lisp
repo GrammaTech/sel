@@ -462,6 +462,14 @@
                      (stmt-with-text soft)
                      (format nil "b = 1"))))))
 
+(deftest python-scopes-9 ()
+  "scopes returns an empty global scope."
+  (with-scopes-file ("hello-world" soft genome)
+    (is (equal '(())
+               (nest (scopes soft)
+                     (stmt-with-text soft)
+                     (format nil "'Hello world!'"))))))
+
 (deftest python-get-vars-assignment-1 ()
   "get-vars gets variables from python-assignment."
   (is-get-vars-test "assign-1" 'python-assignment '("a" "b" "c")))

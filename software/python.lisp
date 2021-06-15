@@ -505,21 +505,28 @@ AST ast to return the scopes for"
                    (lambda (ast1 ast2)
                      (path-later-p obj ast1 ast2))
                    :key (lambda (list)
-                          (aget :scope (car list))))))
-    (sort-bottom->up
-     (group-by-scope
-      (remove-duplicates
-       (remove-if
-        #'null
-        ;; NOTE: order of the append matters here for get-except-binding and
-        ;;       get-local-bindings.
-        (append (get-global-bindings)
-                (get-nonlocal-bindings)
-                (get-enclosing-bindings enclosing-scope)
-                (get-local-bindings)))
-       :test (lambda (alist1 alist2)
-               (equal (aget :name alist1) (aget :name alist2)))
-       :from-end t)))))
+                          (aget :scope (car list)))))
+           (ensure-global-scope (scopes)
+             "Ensure a global scope exists in SCOPES."
+             (if (eq (aget :scope (first (lastcar scopes))) (genome obj))
+                 scopes
+                 (append scopes '(())))))
+
+    (ensure-global-scope
+     (sort-bottom->up
+      (group-by-scope
+       (remove-duplicates
+        (remove-if
+         #'null
+         ;; NOTE: order of the append matters here for get-except-binding and
+         ;;       get-local-bindings.
+         (append (get-global-bindings)
+                 (get-nonlocal-bindings)
+                 (get-enclosing-bindings enclosing-scope)
+                 (get-local-bindings)))
+        :test (lambda (alist1 alist2)
+                (equal (aget :name alist1) (aget :name alist2)))
+        :from-end t))))))
 
 (defmethod get-unbound-vals ((obj python) (ast python-ast))
   "Return all variables used (but not defined) within AST.
