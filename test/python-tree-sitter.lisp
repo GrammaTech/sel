@@ -251,16 +251,6 @@
      (is (eq :<= operator))
      (is (string= "y" (source-text rhs))))))
 
-;;;(deftest python-stmt-ast-has-newline ()
-(deftest py-stmt-ast-has-newline ()
-  (with-fixture fib-python
-    (is (typep (stmt-with-text *soft* "return b")
-               'python-return-statement)))
-  (with-fixture dos-python
-    (is (typep (stmt-with-text *soft* "return b")
-               'python-return-statement))))
-
-;;;(deftest python-ast-source-ranges ()
 (deftest py-ast-source-ranges ()
   (with-fixture hello-world-python
     (is (equalp (mapcar [#'range-to-list #'cdr] (ast-source-ranges *soft*))
@@ -271,7 +261,6 @@
                   ((1 . 6) (1 . 22))
                   ((1 . 7) (1 . 21)))))))
 
-;;;(deftest python-convert-source-snippet-works ()
 (deftest py-convert-source-snippet-works ()
   (let ((ast (convert 'python-ast "j = 0")))
     (is (equal 5 (size ast)))
