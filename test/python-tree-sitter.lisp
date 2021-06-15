@@ -470,6 +470,15 @@
                      (stmt-with-text soft)
                      (format nil "'Hello world!'"))))))
 
+(deftest python-scopes-10 ()
+  "scopes returns an the variable under the target ast."
+  (with-scopes-file ("for" soft genome)
+    (is (equal '("a" "i" "foo")
+               (nest (mapcar {aget :name})
+                     (apply #'append)
+                     (scopes soft)
+                     (stmt-with-text soft "i"))))))
+
 (deftest python-get-vars-assignment-1 ()
   "get-vars gets variables from python-assignment."
   (is-get-vars-test "assign-1" 'python-assignment '("a" "b" "c")))

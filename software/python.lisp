@@ -491,9 +491,9 @@ AST ast to return the scopes for"
            (get-local-bindings ()
              "Get the local bindings available in scope."
              ;; Remove bindings after
-             (remove-if-not
+             (remove-if
               (lambda (binding-alist)
-                (path-later-p obj target-ast (aget :decl binding-alist)))
+                (path-later-p obj (aget :decl binding-alist) target-ast))
               ;; build-alist
               (mapcar #'build-alist* (find-local-bindings))))
            (group-by-scope (bindings)
