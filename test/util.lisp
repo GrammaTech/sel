@@ -207,7 +207,7 @@
 (defun stmt-with-text- (asts text trim at-start)
   (find-if [(if at-start [{equal 0} {search text}] {string= text})
             (if trim #'trim-whitespace #'identity)
-            {source-text _ :trim trim}]
+            #'source-text]
            asts))
 
 (defgeneric stmt-with-text (obj text &key no-error trim at-start &allow-other-keys)
