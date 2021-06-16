@@ -8,7 +8,9 @@ RUN apt-get -y --fix-missing update \
     texinfo graphviz python-is-python3 python3-pip python3-pytest git curl sshpass wget expect time \
     clang clang-format clang-tidy bear astyle \
     sbcl emacs-nox elpa-paredit slime jq \
-    pkg-config libboost-iostreams-dev libboost-system-dev libboost-serialization-dev
+    pkg-config libboost-iostreams-dev libboost-system-dev libboost-serialization-dev \
+    locales
+ENV LC_ALL=C.UTF-8 LANG=C.UTF-8
 RUN update-alternatives --install /usr/bin/pytest pytest /usr/bin/pytest-3 1
 # Install NPM
 RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -y nodejs
