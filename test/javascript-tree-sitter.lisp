@@ -169,14 +169,16 @@
     (is (equal "j = 0" (source-text ast)))
     (is (find-if {typep _ 'javascript-expression-statement} ast))))
 
+;; requires "prettier" package
 (deftest (javascript-can-format-a-software-object :long-running) ()
   (with-fixture fib-javascript
-    (is (not (string= (genome-string (copy *soft*))
-                      (genome-string (prettier (copy *soft*))))))
-    (is (not (string= (genome-string (copy *soft*))
-                      (genome-string (format-genome (copy *soft*))))))
-    (is (string= (genome-string (prettier (copy *soft*)))
-                 (genome-string (format-genome (copy *soft*)))))))
+    (when (which "prettier")
+      (is (not (string= (genome-string (copy *soft*))
+                        (genome-string (prettier (copy *soft*))))))
+      (is (not (string= (genome-string (copy *soft*))
+                        (genome-string (format-genome (copy *soft*))))))
+      (is (string= (genome-string (prettier (copy *soft*)))
+                   (genome-string (format-genome (copy *soft*))))))))
 
 ;;;(deftest javascript-can-rebind-vars ()
 (deftest js-can-rebind-vars ()
