@@ -351,9 +351,9 @@
     (:documentation "Error thrown when a rule fails to match on an AST.")
     (:report
      (lambda (condition stream)
-       (format stream "Unable to match~%~a~%on~%~a"
+       (format stream "Unable to match~%~a~%on AST of type ~%~a"
                (rule-matching-error-rule condition)
-               (rule-matching-error-ast condition)))))
+               (type-of (rule-matching-error-ast condition))))))
 
   (defvar *superclass->language* (make-hash-table)
     "Maps an AST superclass to its tree-sitter language. When
