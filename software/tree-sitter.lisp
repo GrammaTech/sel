@@ -4740,6 +4740,11 @@ STYLE can be used to control whitespace based on a standard format or
 on the calculated format of a particular file."))
 
 (defmethod with :around ((ast tree-sitter-ast) (value1 tree-sitter-ast) &optional value2)
+  ;; TODO: at some point, #'find-preceding isn't what should be used here as it
+  ;;       grabs the immediately previous AST, but that AST might not be what's
+  ;;       directly preceding it in the actual source text. A previous item in
+  ;;       #'output-transformation should instead be used so that implicit tokens
+  ;;       can be considered too.
   (if-let ((siblings (find-preceding t ast value1)))
     (nest (call-next-method ast value1)
           (copy value2 :before-text)
