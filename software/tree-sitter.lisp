@@ -4746,6 +4746,13 @@ on the calculated format of a particular file."))
           (whitespace-between t (lastcar siblings) value1))
     (call-next-method)))
 
+(defmethod with :around ((ast tree-sitter-ast) (value1 list) &optional value2)
+  (if-let ((siblings (find-preceding t ast (@ ast value1))))
+    (nest (call-next-method ast value1)
+          (copy value2 :before-text)
+          (whitespace-between t (lastcar siblings) (@ ast value1)))
+    (call-next-method)))
+
 (defgeneric patch-whitespace (ast &key)
   (:documentation "Destructively patch whitespace on AST by adding a
   space to the before-text and after-text slots that need it.")
