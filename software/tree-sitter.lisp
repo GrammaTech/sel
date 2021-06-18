@@ -2251,7 +2251,8 @@ up due to aliases."
                                 (ensure-choice rule) aliased-content)))
                    ;; NOTE: this is working around using string-case above
                    ;;       and is purposefully avoiding certain alias content.
-                   (unless (find nil result)
+                   (unless (or (find nil result)
+                               (eql nil result))
                      (setf rule (list result)))))))
       (iter
         (for (nil rule) in-hashtable rule-table)
