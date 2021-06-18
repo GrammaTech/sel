@@ -693,7 +693,7 @@ and keyword parameters with defaults."
      '(("1" . "a")
        ("2" . "required")
        ("3" . "b")
-       ("{\"d\":5,\"c\":4}" . "args")))))
+       ("{\"d\":5,\"c\":4,}" . "args")))))
 
 (deftest (test-python-source-ranges :long-running t) ()
   (let ((py-files (remove "empty" (expand-wildcard #p"python/*/*.py")

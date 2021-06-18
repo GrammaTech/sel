@@ -1205,7 +1205,7 @@ in the same namespace."
 (defun create-tuple (values)
   "Create a new tuple AST that contains values."
   (convert 'python-ast
-           `((:class . ,(if values :tuple- :empty-tuple))
+           `((:class . :tuple)
              (:children . ,values))))
 
 (-> create-dictionary (list list) (values (or python-ast null) &optional))
@@ -1214,7 +1214,7 @@ in the same namespace."
 Returns nil if the length of KEYS is not the same as VALUES'."
   (when (= length (length values))
     (convert 'python-ast
-             `((:class . ,(if values :dictionary- :empty-dictionary))
+             `((:class . :dictionary)
                (:children
                 ,@(mapcar
                    (lambda (key value)

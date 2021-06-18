@@ -889,29 +889,9 @@ definitions.")
          (:seq))))
       (:python
        (python-tuple
-        ;; TODO: think of an actual name for this? The trailing hyphen seems
-        ;;       reasonable though.
-        (python-tuple-
-         (:seq
-          (:child python-expression python-yield
-           python-list-splat python-parenthesized-list-splat)
-          (:repeat
-           (:seq
-            (:choice
-             (:child python-expression python-yield
-                     python-list-splat
-                     python-parenthesized-list-splat))))
-          (:slot python-internal-asts-0)))
         (python-empty-tuple
          (:seq (:slot python-internal-asts-0))))
        (python-dictionary
-        (python-dictionary-
-         (:seq (:child python-pair python-dictionary-splat)
-          (:repeat
-           (:seq
-            (:choice
-             (:child python-pair python-dictionary-splat))))
-          (:slot python-internal-asts-0)))
         (python-empty-dictionary
          (:seq (:slot python-internal-asts-0))))
        (python-parameters
