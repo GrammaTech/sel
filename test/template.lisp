@@ -205,7 +205,7 @@ def $READ_NAME():
 (deftest test-insert-empty-list ()
   (is (equal "foo()" (source-text (python "$1(@2)" "foo" nil))))
   (is (equal "foo()" (source-text (javascript "$1(@2)" "foo" nil))))
-  (is (equal "lambda: 1" (source-text (python "lambda @PARAMS: 1" :params nil)))))
+  (is (equal "lambda : 1" (source-text (python "lambda @PARAMS: 1" :params nil)))))
 
 (deftest test-string-parsing-behavior ()
   (is (find-if (of-type 'python-default-parameter)
