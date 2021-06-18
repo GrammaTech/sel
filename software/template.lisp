@@ -15,7 +15,7 @@
            :template-metavariable
            :template-subtree
            :ast-from-template))
-(in-package :software-evolution-library/software/template)
+(in-package :software-evolution-library/software/tree-sitter)
 
 (defgeneric template-placeholder (ast name)
   (:documentation "Generate a placeholder for NAME.

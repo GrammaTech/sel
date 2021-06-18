@@ -221,6 +221,7 @@
   (:import-from :software-evolution-library/software/project
         :find-include-files :include-paths :include-paths-mixin)
   (:import-from :cffi :translate-camelcase-name :load-foreign-library-error)
+  (:import-from :functional-trees :map-children)
   #.(if (asdf:find-system :cl-tree-sitter nil)
         '(:import-from :cl-tree-sitter :register-language)
         (values))
@@ -237,7 +238,6 @@
            :collect-fun-uses
            :javascript
            :python
-           :ast-template                ;Exported here but defined elsewhere.
            :source-text-fragment
            ;; Python
            :find-if-in-scopes
@@ -329,7 +329,17 @@
            :text-fragment
            :choice-superclass
            ;; Functions
-           :patch-whitespace))
+           :patch-whitespace
+           ;; string-clauses.lisp
+           :ast-for-match
+           :wildcard?
+           :ellipsis-match
+           ;; template.lisp
+           :ast-template
+           :template-placeholder
+           :template-metavariable
+           :template-subtree
+           :ast-from-template))
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 

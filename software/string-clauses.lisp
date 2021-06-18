@@ -10,7 +10,7 @@
         :software-evolution-library/utility/range)
   (:import-from :functional-trees :map-children)
   (:export :ast-for-match :wildcard? :ellipsis-match))
-(in-package :software-evolution-library/software/string-clauses)
+(in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 
 (defparameter *slots-excluded*
