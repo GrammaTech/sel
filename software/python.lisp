@@ -75,15 +75,6 @@ are created if they're present in PARSE-TREE."
            (collect (cons :keyword-only-separator (cdr child-tree))))
           (t (collect child-tree))))))))
 
-(defmethod output-transformation :around ((ast python-yield)
-                                          &rest rest &key &allow-other-keys)
-  (declare (ignorable rest))
-  (let ((transformation (call-next-method)))
-    (if-let ((position (position "from" transformation :test #'equal)))
-      ;; Add the space in between 'yield' and 'from'.
-      (replace transformation (list " from") :start1 position)
-      transformation)))
-
 (defmethod comparisonp ((ast python-comparison-operator))
   t)
 
