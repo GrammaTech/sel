@@ -2423,24 +2423,26 @@ added in between consecutive terminal symbols."
                 (aget :content rule)
                 (cons 0 path)
                 preceding-terminal?))
-             (handle-rule (rule path &optional preceding-terminal?)
+             (handle-rule (rule path &optional preceding-terminal?
+                           &aux (type (aget :type rule)))
                "Handles dispatching RULE to its relevant rule handler."
                ;; NOTE: this will throw an error if the json schema for
                ;;       the grammar.json files has changed.
-               (string-ecase (aget :type rule)
-                 ("ALIAS" (handle-alias rule path preceding-terminal?))
-                 ;; NOTE: immediate tokens shouldn't have internal-asts before them.
-                 ;;       Blanks will be surrounded by internal-asts slots if it
-                 ;;       is treated normally.
-                 ("BLANK" t)
-                 ("CHOICE" (handle-choice rule path preceding-terminal?))
-                 ("FIELD" (handle-field rule path preceding-terminal?))
-                 ("IMMEDIATE_TOKEN" (not in-field-flag))
-                 (("PATTERN" "STRING" "TOKEN")
-                  (handle-terminal path preceding-terminal?))
-                 ("REPEAT" (handle-repeat rule path preceding-terminal?))
-                 ("SEQ" (handle-seq rule path preceding-terminal?))
-                 ("SYMBOL"))))
+               (when type
+                 (string-ecase type
+                   ("ALIAS" (handle-alias rule path preceding-terminal?))
+                   ;; NOTE: immediate tokens shouldn't have internal-asts before them.
+                   ;;       Blanks will be surrounded by internal-asts slots if it
+                   ;;       is treated normally.
+                   ("BLANK" t)
+                   ("CHOICE" (handle-choice rule path preceding-terminal?))
+                   ("FIELD" (handle-field rule path preceding-terminal?))
+                   ("IMMEDIATE_TOKEN" (not in-field-flag))
+                   (("PATTERN" "STRING" "TOKEN")
+                    (handle-terminal path preceding-terminal?))
+                   ("REPEAT" (handle-repeat rule path preceding-terminal?))
+                   ("SEQ" (handle-seq rule path preceding-terminal?))
+                   ("SYMBOL")))))
       (handle-rule (car transformed-json-rule) nil)
       (list
        (insert-internal-ast-slots
