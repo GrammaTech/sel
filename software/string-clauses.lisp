@@ -15,6 +15,7 @@
     sel/software/parseable:stored-hash
     sel/software/tree-sitter::rule
     sel/software/tree-sitter::pruned-rule
+    sel/software/tree-sitter::json-rule
     sel/software/tree-sitter::slot-usage
     sel/software/tree-sitter:choice-superclass
     fset::serial-number
