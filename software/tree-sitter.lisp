@@ -919,7 +919,8 @@ definitions.")
          (:seq (:slot python-internal-asts-0))))
        (python-argument-list
         (python-empty-argument-list
-         (:seq (:slot python-internal-asts-0)))))
+         (:seq (:slot python-internal-asts-0)
+          (:slot python-internal-asts-1)))))
       (:javascript
        ;; TODO: these will be wrong.
        (javascript-for-in-statement
@@ -2251,8 +2252,8 @@ up due to aliases."
                                 (ensure-choice rule) aliased-content)))
                    ;; NOTE: this is working around using string-case above
                    ;;       and is purposefully avoiding certain alias content.
-                   (unless (or (find nil result)
-                               (eql nil result))
+                   (unless (or (member nil result)
+                               (null result))
                      (setf rule (list result)))))))
       (iter
         (for (nil rule) in-hashtable rule-table)
@@ -2339,12 +2340,12 @@ INSERT-PATHS."
              (handle-alias (rule paths)
                "Handle RULE as an 'ALIAS' rule."
                ;; NOTE: assume that internal-asts slots will only occur before this.
-               (if (find-if #'null paths)
+               (if (member nil paths)
                    (add-preceding-internal-asts-field rule)
                    rule))
              (handle-terminal (rule paths)
                "Handle RULE as a terminal."
-               (if (find-if #'null paths)
+               (if (member nil paths)
                    (add-preceding-internal-asts-field rule)
                    rule))
              (handle-rule (rule paths)
@@ -2364,19 +2365,17 @@ INSERT-PATHS."
 
   (defun add-internal-ast-slots
       (language-prefix transformed-json-rule class-name class-name->class-definition
-       &aux insert-paths in-field-flag)
+       &aux insert-paths in-field-flag*)
     "Return a modified version of TRANSFORMED-JSON-RULE with internal-asts slots
 added in between consecutive terminal symbols."
-    (declare (special in-field-flag))
+    (declare (special in-field-flag*))
     (labels ((handle-choice (rule path &optional preceding-terminal?)
                "Handle RULE as a 'CHOICE' rule."
-               (some
-                #'identity
-                (iter
-                  (for i upfrom 0)
-                  (for member in (aget :members rule))
-                  (collect
-                      (handle-rule member (cons i path) preceding-terminal?)))))
+               (iter
+                 (for i upfrom 0)
+                 (for member in (aget :members rule))
+                 (thereis
+                  (handle-rule member (cons i path) preceding-terminal?))))
              (handle-seq (rule path &optional preceding-terminal?)
                "Handle RULE as a 'SEQ' rule."
                (iter
@@ -2413,12 +2412,12 @@ added in between consecutive terminal symbols."
                ;; NOTE: when inside a the content of a FIELD,
                ;;       a BLANK is the only thing that will still be
                ;;       considered a terminal.
-               (when (and (not in-field-flag) preceding-terminal?)
+               (when (and (not in-field-flag*) preceding-terminal?)
                  (push (reverse path) insert-paths))
-               (not in-field-flag))
+               (not in-field-flag*))
              (handle-field (rule path &optional preceding-terminal?
-                            &aux (in-field-flag t))
-               (declare (special in-field-flag))
+                            &aux (in-field-flag* t))
+               (declare (special in-field-flag*))
                (handle-rule
                 (aget :content rule)
                 (cons 0 path)
@@ -2437,7 +2436,7 @@ added in between consecutive terminal symbols."
                    ("BLANK" t)
                    ("CHOICE" (handle-choice rule path preceding-terminal?))
                    ("FIELD" (handle-field rule path preceding-terminal?))
-                   ("IMMEDIATE_TOKEN" (not in-field-flag))
+                   ("IMMEDIATE_TOKEN" (not in-field-flag*))
                    (("PATTERN" "STRING" "TOKEN")
                     (handle-terminal path preceding-terminal?))
                    ("REPEAT" (handle-repeat rule path preceding-terminal?))
@@ -4879,7 +4878,7 @@ Returns as values whether the match succeeded and if so, returns a list
 specifying how to populate the inner-asts slots--symbols indicate a slot
 to store the next grouping of ASTs on the inner-asts stack while a number
 indicates the number of groupings to drop from the stack."
-  (labels((remove-ignorable-items (tree)
+  (labels ((remove-ignorable-items (tree)
              "Remove ignorable items from PARSE-TREE. This includes comments,
               errors, and internal ast slots."
              (when tree
@@ -5018,7 +5017,7 @@ indicates the number of groupings to drop from the stack."
                          parse-tree))
                  nil)))
          ;; Avoid matching a rule if parse tree tokens still exist.
-         (when (not parse-stack)
+         (unless parse-stack
            (values success? (reverse inner-asts-order))))))))
 
 (defgeneric whitespace-between/parent (parent style ast1 ast2)
@@ -5545,10 +5544,7 @@ the indentation slots."
                                     (make-instance 'inner-parent
                                                    :children (reverse grouping)))
                                    grouping)))
-                    (if slot-value
-                        (setf slot-value (append slot-value value))
-                        ;(appendf slot-value value)
-                        (setf slot-value value)))
+                    (setf slot-value (append slot-value value)))
                   (set-inner-ast-slots
                    (cdr inner-asts) (cdr stack-directives))))))
            (set-slot-values (slot-values inner-asts)
