@@ -23,6 +23,9 @@
 (create-tree-sitter-language "cpp")
 ;;;===================================================
 
+#+(or :tree-sitter-c :tree-sitter-cpp)
+(progn
+ 
 (defmethod function-name ((ast c/cpp-function-definition))
   (source-text (c/cpp-declarator (c/cpp-declarator ast))))
 
@@ -101,3 +104,5 @@
                 (cdr child-tree)))
          (t child-tree)))
      (lastcar parse-tree)))))
+
+ ) ; #+(or :tree-sitter-c :tree-sitter-cpp)
