@@ -3,18 +3,8 @@
   (:nicknames :sel/software/template :sel/sw/template)
   (:use :gt/full
         :software-evolution-library/software/tree-sitter
-        :software-evolution-library/software/parseable)
-  (:import-from :software-evolution-library/software/tree-sitter
-                :before-text :after-text
-                :output-transformation)
-  (:import-from :software-evolution-library/software/string-clauses
-                :ellipsis-match
-                :wildcard?)
-  (:export :ast-template
-           :template-placeholder
-           :template-metavariable
-           :template-subtree
-           :ast-from-template))
+        :software-evolution-library/software/string-clauses
+        :software-evolution-library/software/parseable))
 (in-package :software-evolution-library/software/tree-sitter)
 
 (defgeneric template-placeholder (ast name)

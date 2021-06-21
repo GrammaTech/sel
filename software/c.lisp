@@ -1,10 +1,11 @@
 (defpackage :software-evolution-library/software/c
   (:nicknames :sel/software/c :sel/sw/c)
   (:use :gt/full
-   :cl-json
-   :software-evolution-library
-   :software-evolution-library/software/tree-sitter
-   :software-evolution-library/software/c-cpp))
+        :cl-json
+        :software-evolution-library
+        :software-evolution-library/software/tree-sitter
+        :software-evolution-library/software/template
+        :software-evolution-library/software/c-cpp))
 
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
