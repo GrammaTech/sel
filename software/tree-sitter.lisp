@@ -5108,20 +5108,35 @@ AST1 and AST2.
 STYLE can be used to control whitespace based on a standard format or
 on the calculated format of a particular file."))
 
+(defmethod predecessor :around ((root tree-sitter-ast) (node tree-sitter-ast))
+  ;; Ensure fingers are populated on tree-sitter ASTs (not done by the parser currently).
+  (unless (finger node) (populate-fingers root))
+  (call-next-method))
+
+(defmethod successor :around ((root tree-sitter-ast) (node tree-sitter-ast))
+  ;; Ensure fingers are populated on tree-sitter ASTs (not done by the parser currently).
+  (unless (finger node) (populate-fingers root))
+  (call-next-method))
+
+(defmethod parent :around ((root tree-sitter-ast) (node tree-sitter-ast))
+  ;; Ensure fingers are populated on tree-sitter ASTs (not done by the parser currently).
+  (unless (finger node) (populate-fingers root))
+  (call-next-method))
+
 (defmethod with :around ((ast tree-sitter-ast) (value1 tree-sitter-ast) &optional value2)
   ;; TODO: at some point, #'find-preceding isn't what should be used here as it
   ;;       grabs the immediately previous AST, but that AST might not be what's
   ;;       directly preceding it in the actual source text. A previous item in
   ;;       #'output-transformation should instead be used so that implicit tokens
   ;;       can be considered too.
-  (if-let ((predecessor (ignore-errors (predecessor ast value1))))
+  (if-let ((predecessor (predecessor ast value1)))
     (nest (call-next-method ast value1)
           (copy value2 :before-text)
           (whitespace-between t predecessor value1))
     (call-next-method)))
 
 (defmethod with :around ((ast tree-sitter-ast) (value1 list) &optional value2)
-  (if-let ((predecessor (ignore-errors (predecessor ast (@ ast value1)))))
+  (if-let ((predecessor (predecessor ast (@ ast value1))))
     (nest (call-next-method ast value1)
           (copy value2 :before-text)
           (whitespace-between t predecessor (@ ast value1)))
