@@ -5,8 +5,6 @@
         :software-evolution-library
         :software-evolution-library/software/parseable
         :software-evolution-library/software/tree-sitter
-        :software-evolution-library/software/python
-        :software-evolution-library/software/cpp
         :software-evolution-library/utility/range)
   (:import-from :functional-trees :map-children)
   (:export :ast-for-match :wildcard? :ellipsis-match))
@@ -39,6 +37,22 @@
 
 (defvar-unbound *annotation-number*
   "Used to generate unique identifiers for annotation slots.")
+
+(defgeneric ellipsis-match-p (node result)
+  (:method ((node t) (result t)) nil)
+  (:method ((node parse-error-ast) (result list))
+    (equal (source-text node) "...")))
+
+(defgeneric ast-for-match (language string software context)
+  (:method :around (language string software context)
+    (let ((string (disarm-metavariables language string)))
+      (if (and software context)
+          (parse-in-context software context string)
+          (call-next-method language string software context))))
+  (:method (language string software context)
+    (convert (language-ast-class language)
+             string
+             :deepest t)))
 
 (defun wildcard? (node)
   "Is NODE a wildcard (symbol that starts with WILD_)?"
@@ -109,14 +123,7 @@ similar matches, and elipses for matching series of ASTs."
                ((and (listp val) (every «and #'stringp #'emptyp» val)) (pop result))
                ((and (stringp val) (emptyp val)) (pop result))
                ((consp val)
-                (if (some (op (match _1 ; Detect ellipsis clauses.
-                                ((parse-error-ast :text "...") t)
-                                ((python-ellipsis :text "...")
-                                 ;; Python ellipsis should only appear in a slice.
-                                 ;; Otherwise we can treat this as a wild ellipsis-matche.
-                                 (not (subtypep (lastcar result) 'python-slice)))
-                                (otherwise nil)))
-                          val)
+                (if (some (op (ellipsis-match-p _ result)) val)
                     (push 'ellipsis-match result)
                     ;; Handle a list match whether it is the sole item
                     ;; or it occurs at the end of the list context.
@@ -159,7 +166,7 @@ in context."
     ((to-type (eql 'match)) (clause string)
      &key language software context &allow-other-keys)
   (if language
-      (convert 'match (ast-for-match clause language software
+      (convert 'match (ast-for-match language clause software
                                      context))
       (call-next-method)))
 
@@ -205,22 +212,8 @@ in context."
     ((to-type (eql 'replace)) (clause string)
      &key language software context &allow-other-keys)
   (cond
-    (language (convert 'replace (ast-for-match clause language software context)))
+    (language (convert 'replace (ast-for-match language clause software context)))
     (t (call-next-method))))
-
-(defun ast-for-match (string language software context)
-  (let ((string (disarm-metavariables language string)))
-    (if (and software context)
-        (parse-in-context software context string)
-        (case language
-          (cpp ; Handle bug in tree-sitter CPP parser.  It can't a parse floating string literal.
-           (@ (convert (language-ast-class language)
-                       (concatenate 'string string ";")
-                       :deepest t)
-              '(0)))
-          (t (convert (language-ast-class language)
-                      string
-                      :deepest t))))))
 
 (defgeneric disarm-metavariables (language string)
   (:documentation "Disarm metavariables in STRING.

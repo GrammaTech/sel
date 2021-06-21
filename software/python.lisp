@@ -801,6 +801,9 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
 (defmethod control-flow-condition ((ast python-if-statement)) (car (children ast)))
 (defmethod control-flow-condition ((ast python-while-statement)) (car (children ast)))
 
+(defmethod ellipsis-match-p ((node python-ellipsis) (result list))
+  (not (subtypep (lastcar result) 'python-slice)))
+
 
 ;;; Indentation
 

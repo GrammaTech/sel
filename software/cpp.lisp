@@ -21,6 +21,13 @@
   (unless (compiler cpp)
     (setf (compiler cpp) "c++")))
 
+(defmethod ast-for-match ((language (eql 'cpp))
+                          string software context)
+  (@ (convert (language-ast-class language)
+              (concatenate 'string string ";")
+              :deepest t)
+     '(0)))
+
 (defclass cpp-source-text-fragment
     (source-text-fragment cpp-preproc-if cpp-preproc-ifdef)
   ())
