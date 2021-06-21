@@ -400,3 +400,20 @@ return 0;
       (is (has-nested-error-p parse-tree))
       (is (equal source (source-text ast)))
       (is (find-if (of-type 'c-source-text-fragment) ast)))))
+
+(deftest c-can-change-class-on-error ()
+  "ASTs can dynamically change their subclass to the first one that matches with
+the current state of the AST."
+  (let* ((source "if (x) {
+ return 0;
+} else {
+ return 1;
+}")
+         (if-statement (find-if (of-type 'c-if-statement)
+                                (convert 'c-ast source)))
+         (modified-if-statement (copy if-statement :c-alternative nil)))
+    (is (equal (source-text if-statement) source))
+    (is (equal (source-text modified-if-statement) "if (x) {
+ return 0;
+} "))
+    (is (not (equal (type-of if-statement) (type-of modified-if-statement))))))
