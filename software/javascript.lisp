@@ -15,6 +15,9 @@
 (create-tree-sitter-language "javascript")
 ;;;===================================================
 
+#+:TREE-SITTER-JAVASCRIPT
+(progn
+
 (defmethod transform-parse-tree
     ((language (eql ':javascript))
      (class (eql 'javascript-lexical-declaration))
@@ -239,3 +242,5 @@ scope of START-AST."
   javascript-ast javascript-\;
   ;; No whitespace before the arguments of an IIFE.
   javascript-parenthesized-expression javascript-arguments)
+
+) ; #+:TREE-SITTER-JAVASCRIPT

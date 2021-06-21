@@ -32,7 +32,7 @@
 (defmethod call-arguments ((node c/cpp-call-expression))
   (children (c/cpp-arguments node)))
 
-(defmethod function-body ((ast c-function-definition)) (c-body ast))
+(defmethod function-body ((ast c/cpp-function-definition)) (c-body ast))
 
 (defmethod no-fallthrough ((ast c/cpp-continue-statement)) t)
 (defmethod no-fallthrough ((ast c/cpp-break-statement)) t)

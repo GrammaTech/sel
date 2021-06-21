@@ -17,6 +17,9 @@
 ;;; !! Language generated in c-cpp !!
 ;;;===================================================
 
+#+:TREE-SITTER-CPP
+(progn
+
 (defmethod initialize-instance :after ((cpp cpp)
                                        &key &allow-other-keys)
   "If no compiler was specified, default to cc."
@@ -115,3 +118,5 @@ field."
 
 (defmethod definition-name ((ast cpp-class-specifier))
   (source-text (cpp-name ast)))
+
+) ; #+:TREE-SITTER-CPP

@@ -15,6 +15,9 @@
 (create-tree-sitter-language "python")
 ;;;===================================================
 
+#+:TREE-SITTER-PYTHON
+(progn
+
 (defun modify-async-parse-tree (parse-tree)
   "Transform PARSE-TREE such that an async field is present for 'async'
 identifiers."
@@ -1310,3 +1313,5 @@ Returns nil if the length of KEYS is not the same as VALUES'."
                                (x (eql :|:|))
                                (y python-block))
   #.(fmt "~%"))
+
+) ; #+:TREE-SITTER-PYTHON

@@ -4069,7 +4069,13 @@ or comments.  NIL if no such newline exists."
     `(eval-always
        (progn
        ,@(apply 'tree-sitter-ast-classes
-                tree-sitter-files)))))
+                tree-sitter-files)
+       ;; add the language :TREE-SITTER-<name> to the *FEATURES* list
+       (pushnew
+        (intern (concatenate 'string
+                             "TREE-SITTER-"
+                             (string-upcase ,name)) :keyword)
+        *features*)))))
 
 ;;; TODO We may not need this anymore with the language files
 ;;;      available for per-language customizations.

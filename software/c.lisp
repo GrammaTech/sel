@@ -16,6 +16,9 @@
 ;;; !! Language generated in c-cpp !!
 ;;;===================================================
 
+#+:TREE-SITTER-C
+(progn
+
 (defmethod initialize-instance :after ((c c)
                                        &key &allow-other-keys)
   "If no compiler was specified, default to cc."
@@ -201,3 +204,5 @@ field."
   "Find the C function with the name FUNCTION-NAME in OBJ."
   (declare (ignore start-ast))
   (cdr (find function-name (c-functions obj) :test 'equal :key 'car)))
+
+) ; #+:TREE-SITTER-C
