@@ -3928,26 +3928,38 @@ are ordered for reproduction as source text.")
   (:method :around ((ast structured-text)
                     &rest rest &key finalized-type &allow-other-keys)
     (declare (ignorable rest))
-    (cond-let subclasses
-      ((and (not finalized-type)
-            (slot-exists-p ast 'choice-subclasses)
-            (choice-subclasses ast))
-       ;; This allows instances of ASTs to be created from their superclass.
-       ;; A subclass with a matching rule is assigned here.
-       (change-to-subclass ast subclasses)
-       (output-transformation ast :finalized-type t))
-      (t
-       (mappend
-        (lambda (output)
-          (cond
-            ((typep output 'structured-text)
-             (append (before-asts output)
-                     (list output)
-                     (after-asts output)))
-            (t (list output))))
-        (if (computed-text-node-p ast)
-            (computed-text-output-transformation ast)
-            (call-next-method)))))))
+    (labels ((append-before-and-after-asts (output-transformation)
+               "Append before and after ASTs to OUTPUT-TRANSFORMATION."
+               (mappend
+                (lambda (output)
+                  (cond
+                    ((typep output 'structured-text)
+                     (append (before-asts output)
+                             (list output)
+                             (after-asts output)))
+                    (t (list output))))
+                output-transformation)))
+      (cond-let subclasses
+        ((and (not finalized-type)
+              (slot-exists-p ast 'choice-subclasses)
+              (choice-subclasses ast))
+         ;; This allows instances of ASTs to be created from their superclass.
+         ;; A subclass with a matching rule is assigned here.
+         (change-to-subclass ast subclasses)
+         (output-transformation ast :finalized-type t))
+        ((computed-text-node-p ast)
+         (append-before-and-after-asts
+          (computed-text-output-transformation ast)))
+        (t
+         (handler-case (append-before-and-after-asts (call-next-method))
+           (rule-matching-error (rule-error)
+             (if (and (not finalized-type)
+                      (slot-exists-p ast 'choice-superclass))
+                 ;; Try to find a relevant subclass if the current one does
+                 ;; not match.
+                 (output-transformation
+                  (change-class ast (slot-value ast 'choice-superclass)))
+                 (error rule-error)))))))))
 
 (defgeneric computed-text-node-p (ast)
   (:documentation "Return T if AST is a computed-text node. This is a
