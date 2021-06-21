@@ -5114,17 +5114,17 @@ on the calculated format of a particular file."))
   ;;       directly preceding it in the actual source text. A previous item in
   ;;       #'output-transformation should instead be used so that implicit tokens
   ;;       can be considered too.
-  (if-let ((siblings (find-preceding t ast value1)))
+  (if-let ((predecessor (ignore-errors (predecessor ast value1))))
     (nest (call-next-method ast value1)
           (copy value2 :before-text)
-          (whitespace-between t (lastcar siblings) value1))
+          (whitespace-between t predecessor value1))
     (call-next-method)))
 
 (defmethod with :around ((ast tree-sitter-ast) (value1 list) &optional value2)
-  (if-let ((siblings (find-preceding t ast (@ ast value1))))
+  (if-let ((predecessor (ignore-errors (predecessor ast (@ ast value1)))))
     (nest (call-next-method ast value1)
           (copy value2 :before-text)
-          (whitespace-between t (lastcar siblings) (@ ast value1)))
+          (whitespace-between t predecessor (@ ast value1)))
     (call-next-method)))
 
 (defgeneric patch-whitespace (ast &key)
