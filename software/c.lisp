@@ -203,4 +203,20 @@ field."
   (declare (ignore start-ast))
   (cdr (find function-name (c-functions obj) :test 'equal :key 'car)))
 
+
+;;; Whitespace rules
+
+(define-empty-whitespace-methods ()
+  c-ast (eql :|;|))
+
+(defmethod whitespace-between ((style t)
+                               (x c-preproc-include)
+                               (y c-ast))
+  (fmt "~%"))
+
+(defmethod whitespace-between ((style t)
+                               (y c-ast)
+                               (x c-preproc-include))
+  (whitespace-between style y x))
+
 ) ; #+:TREE-SITTER-C
