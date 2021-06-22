@@ -1262,7 +1262,9 @@ Returns nil if the length of KEYS is not the same as VALUES'."
   python-ast python-**
   (eql :|.|) python-ast
   python-ast (eql :|.|)
-  python-ast (eql :|:|))
+  python-ast (eql :|:|)
+  (eql :|@|) python-ast
+  t python-argument-list)
 
 (defmethod whitespace-between ((style pep8)
                                (x python-expression-statement)
