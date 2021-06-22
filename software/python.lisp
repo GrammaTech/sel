@@ -1279,6 +1279,12 @@ Returns nil if the length of KEYS is not the same as VALUES'."
   (fmt "~%"))
 
 (defmethod whitespace-between ((style pep8)
+                               (x (eql :|:|))
+                               (y python-block))
+  "A newline before a block."
+  (fmt "~%"))
+
+(defmethod whitespace-between ((style pep8)
                                (x python-class-definition)
                                (y python-ast))
   "Surround class definitions with two newlines."
