@@ -1695,7 +1695,8 @@ stored as a list of interleaved text. This should ideally only be used for leaf
       :initform nil
       :reader choice-subclasses
       :allocation :class))
-    (:documentation "A mixin for ASTs that represent fragments of source text."))
+    (:documentation "A mixin for ASTs that represent fragments of source text.")
+    (:default-initargs :indent-adjustment 0))
 
   (defclass definition-ast (ast) ()
     (:documentation "AST for something that associates a name with a thing.
@@ -1809,7 +1810,8 @@ Superclass of every generated LANGUAGE-error class."))
   (defclass terminal-symbol ()
     ()
     (:documentation "Mix-in for terminal symbols. Note that this won't fully
-cover every terminal symbol, only the ones that aren't named."))
+cover every terminal symbol, only the ones that aren't named.")
+    (:default-initargs :indent-adjustment 0))
 
   (defun convert-name (name-string)
     (substitute #\- #\_  (string-upcase (string name-string))))
