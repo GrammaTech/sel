@@ -234,13 +234,14 @@
                                      (list "parsing")))
    path))
 
-(defun parse-test (path &rest ast-types)
+(defun parse-test (path error-check? &rest ast-types)
   (let ((soft (from-file (make-instance 'c)
                          (parsing-test-dir path))))
     (is (not (zerop (size soft))))
     (is (equal (genome-string soft)
                (file-to-string (parsing-test-dir path))))
-    (is (not (find-if {typep _ 'c-error} (genome soft))))
+    (when error-check?
+      (is (not (find-if {typep _ 'c-error} (genome soft)))))
     (is (find-if
          (lambda (ast)
            (typep ast `(and ,@ast-types)))
@@ -249,7 +250,7 @@
     soft))
 
 (deftest (c-tree-sitter-parsing-test :long-running) ()
-  (mapc {apply #'parse-test}
+  (mapc {apply {parse-test _ t}}
         '((#P"abstract-array-declarator.c" c-abstract-array-declarator)
           (#P"abstract-pointer-declarator.c" c-abstract-pointer-declarator)
           (#P"argument-list.c" c-argument-list)
@@ -321,11 +322,19 @@
           (#P"update-expression.c" c-update-expression)
           (#P"continue-statement.c" c-while-statement statement-ast)
           (#P"variadic-function.c" c-parameter-declaration)
-          (#P"variadic-macro.c" c-parameter-declaration)
-          ;; NOTE: round trip.
-          (#P"declaration-specifiers.c")
-          ;; NOTE: round trip.
-          (#P"language-redefining-macro.c"))))
+          (#P"variadic-macro.c" c-parameter-declaration))))
+
+(deftest (c-tree-sitter-round-trip-parsing-test :long-running) ()
+  ;; Use this test when a round-trip could contain error ASTs.
+  (mapc {apply {parse-test _ nil}}
+        '((#P"language-redefining-macro.c")
+          ;; inner-asts round trip tests
+          ;;   These test that whitespace and comments aren't lost
+          ;;   between terminal tokens.
+          (#P"inner-asts-for-statement.c")
+          ;; TODO: figure out how to work around issues with the top-most rule.
+          (#P"inner-asts-enum.c")
+          (#P"inner-asts-if-defined.c"))))
 
 (defixture factorial.c
   (:setup (setf *soft* (from-file (make-instance 'c)

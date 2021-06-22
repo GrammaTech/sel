@@ -2248,9 +2248,13 @@ up due to aliases."
   (defun insert-internal-ast-slots
       (language-prefix transformed-json-rule insert-paths
        class-name class-name->class-definition
+       &key top-level-rule
        &aux (internal-asts-postfix -1))
     "Insert internal-asts slots into TRANSFORMED-JSON-RULE for each path in
-INSERT-PATHS."
+INSERT-PATHS.
+TOP-LEVEL-RULE indicates that TRANSFORMED-JSON-RULE is the rule that the parser
+matches as the root of the AST. Internal AST slots are added around the rule when
+it is true."
     ;; TODO: at some point, prevent the insertion of any internal-asts slots in
     ;;       in rules that represent computed text ASTs.
     (labels ((trim-paths (paths)
@@ -2277,6 +2281,22 @@ INSERT-PATHS."
                 :add-to-child-slots t)
                `((:TYPE . "SLOT")
                  (:NAME . ,slot-name)))
+             (add-top-level-slot (rule-tree)
+               "Add a proceding internal AST slot for RULE-TREE.
+                This is a special edge case."
+               ;; NOTE: at some point, there may need to be a preceding
+               ;;       slot too, but it will add more complexity to the
+               ;;       implementation. There aren't any examples where
+               ;;       it would be useful to do this at the moment.
+               (if (equal (aget :type rule-tree) "SEQ")
+                   `((:TYPE . "SEQ")
+                     (:MEMBERS
+                      ,@(aget :members rule-tree)
+                      ,(generate-internal-asts-slot)))
+                   `((:TYPE . "SEQ")
+                     (:MEMBERS
+                      ,rule-tree
+                      ,(generate-internal-asts-slot)))))
              (add-preceding-internal-asts-field (subtree)
                "Add a preceding internal-asts slot to SUBTREE and return
                 the result."
@@ -2339,15 +2359,22 @@ INSERT-PATHS."
                  ("SEQ" (handle-seq rule paths))
                  (("PATTERN" "STRING" "TOKEN")
                   (handle-terminal rule paths)))))
-      (if insert-paths
-          (handle-rule transformed-json-rule insert-paths)
-          transformed-json-rule)))
+      (let ((internal-asts-rule
+              (if insert-paths
+                  (handle-rule transformed-json-rule insert-paths)
+                  transformed-json-rule)))
+        (if top-level-rule
+            (add-top-level-slot internal-asts-rule)
+            internal-asts-rule))))
 
   (defun add-internal-ast-slots
       (language-prefix transformed-json-rule class-name class-name->class-definition
+       &key top-level-rule
        &aux insert-paths in-field-flag*)
     "Return a modified version of TRANSFORMED-JSON-RULE with internal-asts slots
-added in between consecutive terminal symbols."
+added in between consecutive terminal symbols.
+TOP-LEVEL-RULE indicates that TRANSFORMED-JSON-RULE is the rule that the parser
+matches as the root of the AST."
     (declare (special in-field-flag*))
     (labels ((handle-choice (rule path &optional preceding-terminal?)
                "Handle RULE as a 'CHOICE' rule."
@@ -2429,7 +2456,8 @@ added in between consecutive terminal symbols."
         (car transformed-json-rule)
         insert-paths
         class-name
-        class-name->class-definition))))
+        class-name->class-definition
+        :top-level-rule top-level-rule))))
 
   (defun transform-json-rule (rule grammar rule-key-stack)
     "Expand inline rules base on GRAMMAR and :repeat1's in RULE.
@@ -3642,6 +3670,7 @@ subclass based on the order of the children were read in."
                                              (list (car rule) (cdr rule)))
                                            rules))))
                  (iter
+                   (iter:with root-rule-name = (caar (aget :rules grammar)))
                    (for (key value) in-hashtable
                         (combine-aliased-rules rule-table))
                    (setf (gethash key rule-table)
@@ -3656,7 +3685,8 @@ subclass based on the order of the children were read in."
                             class-name->parse-tree-transforms)
                            new-grammar (list key))
                           (convert-to-lisp-type language-prefix key)
-                          class-name->class-definition)))
+                          class-name->class-definition
+                          :top-level-rule (eq root-rule-name key))))
                  rule-table))
              (get-superclasses-set ()
                "Get a hash set containing the names of superclasses for the
@@ -4101,6 +4131,10 @@ Unlike the `children` methods which collects all children of an AST from any slo
                ((ast ,(make-class-name "inner-whitespace")))
              t)
 
+           (defmethod root-rule-ast-p ((ast ,(make-class-name
+                                              (caar (aget :rules grammar)))))
+             t)
+
            ,structured-text-code)))))
 
 (defmacro define-and-export-all-mixin-classes ()
@@ -4215,6 +4249,11 @@ node where part of the input will need to be computed and stored to reproduce
 the source-text.")
   (:method (ast) nil)
   (:method ((ast source-text-fragment)) t))
+
+(defgeneric root-rule-ast-p (ast)
+  (:documentation "Return T if AST represents the root rule or entry point
+of a grammar.")
+  (:method (ast) nil))
 
 (defgeneric get-choice-expansion-subclass (class spec)
   (:documentation "Get the subclass of CLASS associated with SPEC.")
@@ -5479,9 +5518,12 @@ the indentation slots."
                         previous-field converted-field)
                   (collect converted-field into children)))
                (finally
-                (when previous-field
-                  (setf (slot-value previous-field 'after-asts)
-                        (reverse comment-error-and-whitespace-stack)))
+                (cond
+                  (previous-field
+                   (setf (slot-value previous-field 'after-asts)
+                         (reverse comment-error-and-whitespace-stack)))
+                  ((root-rule-ast-p instance)
+                   (push comment-error-and-whitespace-stack internal-asts-stack)))
                 (return
                   (values
                    (if children
