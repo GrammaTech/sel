@@ -1268,15 +1268,9 @@ Returns nil if the length of KEYS is not the same as VALUES'."
   python-ast :|[|)
 
 (defmethod whitespace-between ((style pep8)
-                               (x python-expression-statement)
-                               (y python-expression-statement))
-  "A newline between expression statements."
-  (fmt "~%"))
-
-(defmethod whitespace-between ((style pep8)
-                               (x python-ast)
-                               (y python-return-statement))
-  "A newline before a return statement."
+                               (x statement-ast)
+                               (y statement-ast))
+  "A newline between statements."
   (fmt "~%"))
 
 (defmethod whitespace-between ((style pep8)
