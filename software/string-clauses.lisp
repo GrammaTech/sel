@@ -95,15 +95,6 @@ similar matches, and elipses for matching series of ASTs."
                      (class-slots (class-of ast))))
            (class-name (class-name (class-of ast))))
        (push class-name result)
-       (when (subtypep class-name 'indentation)
-         (setf result
-               (revappend `(,@(when (indent-children ast)
-                                `(:indent-children
-                                  ,(indent-children ast)))
-                              ,@(when (indent-adjustment ast)
-                                  `(:indent-adjustment
-                                    ,(indent-adjustment ast))))
-                          result)))
        (dolist (slot-name slot-names)
          (unless (member slot-name *slots-excluded*)
            (let ((val (slot-value ast slot-name)))
