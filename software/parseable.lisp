@@ -1551,15 +1551,17 @@ to allow for successful mutation of SOFTWARE at PT."
 ;;;     A number that indicates how many spaces should be added after newlines
 ;;;     the precede a child of the AST. The value 'T can be provided,
 ;;;     and the slot's value will be populated lazily with its parent's value or
-;;;     a sane default based on the rest of the file. The initial form is 0.
+;;;     a sane default based on the rest of the file. The initial form is NIL.
 ;;;
-;;; * 'INDENT-ADJUSTMENT
-;;;     A number that indicates the difference in indentation provided by an
-;;;     AST's parents and the spaces on its current line. This value is also
-;;;     added to the indentation given to children. The value 'MATCH-PARENT
-;;;     can be provided, and a value will instead be used that will match the
-;;;     indentation of the current line with that of its parent. The initial
-;;;     form is 0.
+;;; * 'INDENT-ADJUSTMENT A number (possibly negative that indicates
+;;;     the difference in indentation provided by an AST's parents and
+;;;     the spaces on its current line. This value is also added to
+;;;     the indentation given to children. The value NIL can be
+;;;     provided, and a value will instead be used that will match the
+;;;     indentation of the current line with that of its parent. The
+;;;     initial form is NIL. Note that 0 and NIL are not the same: zero
+;;;     indentation adjustment means the node will rigidly retain its
+;;;     original indentation.
 ;;;
 ;;; @subsubheading Parsing
 ;;; When using the indentation mix-in for software, the parser for the
