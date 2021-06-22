@@ -75,6 +75,9 @@ result with RESULT-FILE."
   "Test that multiple newlines in a row are handled correctly."
   (is-round-trip "multiple-newlines"))
 
+(deftest indentation-parameters-regression-round-trip ()
+  (is-round-trip "indented-parameters"))
+
 
 ;;; Mutation Tests
 (deftest moveable-indentation-python-1 ()
