@@ -5180,10 +5180,12 @@ on the calculated format of a particular file."))
                                            &body pairs)
   `(progn
      ,@(iter (for (x y) in (batches pairs 2 :even t))
-             (collect `(defmethod whitespace-between ((style ,style)
-                                                      (x ,x)
-                                                      (y ,y))
-                         "")))))
+             (let ((x (if (keywordp x) `(eql ,x) x))
+                   (y (if (keywordp y) `(eql ,y) y)))
+               (collect `(defmethod whitespace-between ((style ,style)
+                                                        (x ,x)
+                                                        (y ,y))
+                           ""))))))
 
 (define-empty-whitespace-methods (t)
   identifier-ast parameters-ast

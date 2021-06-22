@@ -1257,14 +1257,15 @@ Returns nil if the length of KEYS is not the same as VALUES'."
   (whitespace-between/parent parent +pep8+ x y))
 
 (define-empty-whitespace-methods (pep8)
-  python-lambda-parameters (eql :|:|)
+  python-lambda-parameters :|:|
   python-** python-ast
   python-ast python-**
-  (eql :|.|) python-ast
-  python-ast (eql :|.|)
-  python-ast (eql :|:|)
-  (eql :|@|) python-ast
-  t python-argument-list)
+  :|.| python-ast
+  python-ast :|.|
+  python-ast :|:|
+  :|@| python-ast
+  t python-argument-list
+  python-ast :|[|)
 
 (defmethod whitespace-between ((style pep8)
                                (x python-expression-statement)
