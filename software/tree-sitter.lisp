@@ -290,6 +290,7 @@
            :goto-ast
            :terminal-symbol
            ;; Cross-language Generics
+           :direct-children
            :body
            :lhs
            :rhs
@@ -3766,10 +3767,12 @@ AST-EXTRA-SLOTS is an alist from classes to extra slots."
                ;;       it but can have comments mixed in.
                ((children ,@(mappend (op `(:accessor ,_))
                                      (make-accessor-names :children))
+                          :accessor direct-children
                           :documentation
                           "Returns all language-specific children.
 Unlike the `children` methods which collects all children of an AST from any slot."
                           :initarg :children
+                          :initarg :direct-children
                           :initform nil)
                 (child-slots :allocation :class
                              :initform '((children . 0))))
@@ -3797,7 +3800,10 @@ Unlike the `children` methods which collects all children of an AST from any slo
                      ,@(get-supertypes-for-type "error")
                      parse-error-ast)
                    :from-end t)
-               ((children :initarg :children :initform nil)
+               ((children
+                 :initarg :children
+                 :initarg :direct-children
+                 :initform nil)
                 (child-slots :initform '((children . 0))
                              :allocation :class))
                (:documentation "Generated for parsing errors."))
