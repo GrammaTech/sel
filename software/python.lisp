@@ -1319,4 +1319,27 @@ Returns nil if the length of KEYS is not the same as VALUES'."
                                (y python-block))
   #.(fmt "~%"))
 
+(defmethod whitespace-between/parent ((parent python-keyword-argument)
+                                      (style pep8)
+                                      (x (eql :=))
+                                      (y t))
+  "")
+
+(defmethod whitespace-between/parent ((parent python-keyword-argument)
+                                      (style pep8)
+                                      (y t)
+                                      (x (eql :=)))
+  "")
+
+(defmethod whitespace-between/parent ((parent python-default-parameter)
+                                      (style pep8)
+                                      (x (eql :=))
+                                      (y t))
+  "")
+(defmethod whitespace-between/parent ((parent python-default-parameter)
+                                      (style pep8)
+                                      (y t)
+                                      (x (eql :=)))
+  "")
+
 ) ; #+:TREE-SITTER-PYTHON
