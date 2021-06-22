@@ -4872,10 +4872,16 @@ the indentation slots."
              ;;       is heavily nested in an AST.
              (mapc
               (lambda (ast)
+                ;; The idea here is that, after we have transferred
+                ;; indentation *i* from the before-text of child *n*
+                ;; to the parent, we need to go back and remove *i*
+                ;; spaces of indentation from the children 0..n-1. But
+                ;; if there is no explicit indentation adjustment on a
+                ;; child we should leave it alone.
                 (symbol-macrolet ((indent-adjustment (indent-adjustment ast)))
-                  (setf indent-adjustment (- (or indent-adjustment 0)
-                                              indentation))))
-              (subseq asts 0 (position current-ast asts))))
+                  (when indent-adjustment
+                    (decf indent-adjustment indentation))))
+              (ldiff asts (member current-ast asts))))
            (backpatch-indent-children-slots (ast indentation)
              "Backpatch any child of AST that already has a value in the
               indent-children slot such that its value is INDENTATION less
