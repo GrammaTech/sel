@@ -1286,6 +1286,12 @@ Returns nil if the length of KEYS is not the same as VALUES'."
   "A newline before a block."
   (fmt "~%"))
 
+(defmethod whitespace-between (style
+                               (x python-ast)
+                               (y python-block))
+  "A newline before a block."
+  (fmt "~%"))
+
 (defmethod whitespace-between ((style pep8)
                                (x python-class-definition)
                                (y python-ast))
