@@ -25,6 +25,7 @@
            :acorn-available-p
            :c-tree-sitter-available-p
            :cpp-tree-sitter-available-p
+           :go-tree-sitter-available-p
            :java-tree-sitter-available-p
            :python-tree-sitter-available-p
            :javascript-tree-sitter-available-p
@@ -186,6 +187,10 @@
 
 (defun cpp-tree-sitter-available-p ()
   (handler-case (progn (make-instance 'sel/sw/tree-sitter::cpp))
+    (error (e) (declare (ignorable e)) nil)))
+
+(defun go-tree-sitter-available-p ()
+  (handler-case (progn (make-instance 'sel/sw/tree-sitter::golang))
     (error (e) (declare (ignorable e)) nil)))
 
 (defun java-tree-sitter-available-p ()

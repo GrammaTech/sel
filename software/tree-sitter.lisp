@@ -5863,6 +5863,19 @@ correct class name for subclasses of SUPERCLASS."
 (defmethod indentablep ((ast parse-error-ast)) nil)
 (defmethod indentablep ((ast text-fragment)) nil)
 
+(defmethod get-indentation-at ((ast inner-whitespace) (parents list)
+                               &aux (parent (car parents)))
+  "Get the indenation at AST when it is an inner-whitespace AST. This
+is handled differently than other ASTs because it should be considered part
+of the parent."
+  (reduce (lambda (total parent)
+            (+ total
+               (or (indent-adjustment parent) 0)
+               (or (indent-children parent) 0)))
+          (cdr parents)
+          :initial-value (or (and parent (indent-adjustment parent))
+                             0)))
+
 ;;; TODO: with unindentable ASTs, we still want to know if the last thing seen
 ;;;       was a newline or not.
 (defmethod source-text ((ast indentation)

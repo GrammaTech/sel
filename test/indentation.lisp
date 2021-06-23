@@ -12,12 +12,15 @@
    :software-evolution-library/software/parseable
    :software-evolution-library/software/tree-sitter
    :software-evolution-library/software/python
+   :software-evolution-library/software/go
    :software-evolution-library/components/file
    :software-evolution-library/components/formatting)
   (:export :test-indentation))
 (in-package :software-evolution-library/test/indentation)
 (in-readtable :curry-compose-reader-macros)
-(defsuite test-indentation "Indentation." (python-tree-sitter-available-p))
+(defsuite test-indentation "Indentation."
+    (and (python-tree-sitter-available-p)
+         (go-tree-sitter-available-p)))
 
 
 ;;; Utility
@@ -78,6 +81,16 @@ result with RESULT-FILE."
 
 (deftest indentation-parameters-regression-round-trip ()
   (is-round-trip "indented-parameters"))
+
+(deftest indentation-round-trip-inner-whitespace-1 ()
+  "inner-whitespace ASTs aren't considered children of their parent when
+calculating the whitespace before it."
+  (let ((source "
+const (
+             a
+)
+"))
+    (is (equal source (source-text (convert 'golang-ast source))))))
 
 
 ;;; Mutation Tests
