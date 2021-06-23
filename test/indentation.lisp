@@ -82,6 +82,7 @@ result with RESULT-FILE."
 (deftest indentation-parameters-regression-round-trip ()
   (is-round-trip "indented-parameters"))
 
+;;; TODO: at some point, refactor golang round trips into a function.
 (deftest indentation-round-trip-inner-whitespace-1 ()
   "inner-whitespace ASTs aren't considered children of their parent when
 calculating the whitespace before it."
@@ -89,6 +90,15 @@ calculating the whitespace before it."
 const (
              a
 )
+"))
+    (is (equal source (source-text (convert 'golang-ast source))))))
+
+(deftest indentation-round-trip-computed-text-1 ()
+  "Computed text ASTs' text field does not have indentation added to it."
+  (let ((source "
+
+                {
+            }
 "))
     (is (equal source (source-text (convert 'golang-ast source))))))
 

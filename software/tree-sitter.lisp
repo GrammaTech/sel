@@ -5940,7 +5940,8 @@ of the parent."
                   (setf (unbox indent-p) nil
                         (unbox indentation-ast) nil))
                 text)
-               ((< 1 (length split-text))
+               ((and (< 1 (length split-text))
+                     (not (computed-text-node-p ast)))
                 (with-output-to-string (s)
                   (write-string (car split-text) s)
                   (dolist (subseq (cdr split-text))
