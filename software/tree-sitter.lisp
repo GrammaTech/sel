@@ -4005,7 +4005,8 @@ AST-EXTRA-SLOTS is an alist from classes to extra slots."
               (generate-structured-text-methods
                grammar node-types name-prefix class-name->class-definition
                json-subtree-choice-resolver json-field-transformations
-               :symbols-to-export symbols-to-export)))
+               :symbols-to-export symbols-to-export))
+            (root-rule-name (caar (aget :rules grammar))))
         `(progn
            (eval-always
              (define-software ,(make-class-name) (tree-sitter
@@ -4131,8 +4132,11 @@ Unlike the `children` methods which collects all children of an AST from any slo
                ((ast ,(make-class-name "inner-whitespace")))
              t)
 
-           (defmethod root-rule-ast-p ((ast ,(make-class-name
-                                              (caar (aget :rules grammar)))))
+           (defmethod root-rule-ast-p ((ast ,(make-class-name root-rule-name)))
+             t)
+
+           (defmethod root-rule-ast-p
+               ((name (eql ,(make-keyword (convert-name root-rule-name)))))
              t)
 
            ,structured-text-code)))))
@@ -5826,11 +5830,20 @@ correct class name for subclasses of SUPERCLASS."
                (cadr subtree-spec)
                (reverse
                 (append
-                 (if (and child (not terminal-child-p))
-                     (list
-                      (annotate-surrounding-text
-                       child :parent-from from :parent-to (get-end subtree-spec)))
-                     (and child (list child)))
+                 (cond
+                   ((not child) nil)
+                   ((not terminal-child-p)
+                    (list
+                     (annotate-surrounding-text
+                      child :parent-from from
+                            :parent-to (get-end subtree-spec))))
+                   ((root-rule-ast-p (car subtree-spec))
+                    ;; This is an edge case where the after text won't be
+                    ;; handled without an inner whitespace AST.
+                    (list `(:inner-whitespace ,(list (get-end child)
+                                                     (get-end subtree-spec)))
+                          child))
+                   (child (list child)))
                  annotated-children))
                ;; If either is nil, it means that there isn't text for that slot.
                (list parent-from parent-to)))))))
