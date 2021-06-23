@@ -1253,8 +1253,15 @@ Returns nil if the length of KEYS is not the same as VALUES'."
 ;;; Default to PEP8.
 (defmethod whitespace-between/parent ((parent t) (style null) (x python-ast) y)
   (whitespace-between/parent parent +pep8+ x y))
+
 (defmethod whitespace-between/parent ((parent t) (style null) x (y python-ast))
   (whitespace-between/parent parent +pep8+ x y))
+
+(defmethod whitespace-between ((style null) x (y python-ast))
+  (whitespace-between +pep8+ x y))
+
+(defmethod whitespace-between ((style null) (x python-ast) y)
+  (whitespace-between +pep8+ x y))
 
 (define-empty-whitespace-methods (pep8)
   python-lambda-parameters :|:|
