@@ -1322,11 +1322,6 @@ Returns nil if the length of KEYS is not the same as VALUES'."
                                (y python-function-definition))
   (whitespace-between style y x))
 
-(defmethod whitespace-between ((style pep8)
-                               (x (eql :|:|))
-                               (y python-block))
-  #.(fmt "~%"))
-
 (defmethod whitespace-between/parent ((parent python-keyword-argument)
                                       (style pep8)
                                       (x (eql :=))
