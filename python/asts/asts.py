@@ -3,10 +3,13 @@ import json
 import multiprocessing
 import os
 import pkg_resources
+import random
 import shutil
+import socket
 import subprocess
+import time
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Text
 
 
 class AST:
@@ -167,7 +170,21 @@ class _interface:
     interface between python and the sel process
     """
 
+    def _get_free_port() -> int:
+        """Return a random free port in the ephemeral port range."""
+        for _ in range(5000):
+            port = random.Random().randint(49152, 65535)
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                if s.connect_ex(("localhost", port)):
+                    return port
+        raise RuntimeError("Could not find free port to listen on.")
+
     _DEFAULT_CMD_NAME: str = "tree-sitter-interface"
+    _DEFAULT_HOST: str = "localhost"
+    _DEFAULT_PORT: int = _get_free_port()
+    _DEFAULT_STARTUP_WAIT: int = 3
+    _DEFAULT_SOCKET_TIMEOUT: int = 300
+
     _proc: Optional[subprocess.Popen] = None
     _lock: multiprocessing.RLock = multiprocessing.RLock()
 
@@ -177,10 +194,23 @@ class _interface:
         return _interface._proc is not None and _interface._proc.poll() is None
 
     @staticmethod
+    def _check_for_process_crash() -> None:
+        """Check if the LISP subprocess has crashed and, if so, throw an error."""
+        if not _interface.is_process_running():
+            stderr = _interface._proc.stderr.read().decode("ascii").strip()
+            if stderr:
+                msg = f"{_interface._DEFAULT_CMD_NAME} crashed with:\n\n{stderr}"
+            else:
+                msg = f"{_interface._DEFAULT_CMD_NAME} crashed."
+            raise RuntimeError(msg)
+
+    @staticmethod
     def start() -> None:
         """Start the tree-sitter-interface LISP process."""
         with _interface._lock:
             if not _interface.is_process_running():
+                # Find the interface binary, either on the $PATH or in an
+                # installed python wheel.
                 cmd = _interface._DEFAULT_CMD_NAME
                 if not shutil.which(cmd):
                     cmd = pkg_resources.resource_filename(
@@ -191,29 +221,41 @@ class _interface:
                             f"{_interface._DEFAULT_CMD_NAME} binary must be on your $PATH."
                         )
 
+                # Startup the interface subprocess.
                 _interface._proc = subprocess.Popen(
-                    [cmd],
+                    [cmd, "--port", str(_interface._DEFAULT_PORT)],
                     stdin=subprocess.PIPE,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                 )
 
+                # If the interface was built using the deploy package for use
+                # in a python wheel file, read standard output waiting for the
+                # requisite tree-sitter libraries to be loaded and the launching
+                # application notification to be given.
                 if cmd != _interface._DEFAULT_CMD_NAME:
                     for line in _interface._proc.stdout:
                         stdout = line.decode("ascii")
                         if stdout.strip() == "==> Launching application.":
                             break
 
+                # Wait _DEFAULT_STARTUP_WAIT seconds for the interface to
+                # setup the socket for us to connect with.
+                for _ in range(_interface._DEFAULT_STARTUP_WAIT):
+                    _interface._check_for_process_crash()
+                    time.sleep(1.0)
+
     @staticmethod
     def stop() -> None:
         """Stop the tree-sitter-interface LISP process."""
         with _interface._lock:
             if _interface.is_process_running():
-                _interface._proc.stdin.write(b"QUIT\n")
-                _interface._proc.stdin.flush()
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.connect((_interface._DEFAULT_HOST, _interface._DEFAULT_PORT))
+                    s.sendall(b"QUIT\n")
 
     @staticmethod
-    def dispatch(fn: str, *args: Any) -> Any:
+    def dispatch(fn: str, *args: Any, **kwargs: Any) -> Any:
         """Dispatch processing to the tree-sitter-interface."""
 
         def handle_errors(data: Any) -> Any:
@@ -245,56 +287,45 @@ class _interface:
             else:
                 return v
 
-        # Ensure the interface is running before sending data.
-        if not _interface.is_process_running():
-            if fn == "__del__":
-                # Special case: When the python process is terminating,
-                # AST finalizers may be called after the interface is
-                # stopped.  In this case, since the process has been
-                # deallocated, simply return.
-                return None
-            else:
-                # If this is not the special case, throw an error as the
-                # interface must be running for commands to be dispatched.
-                raise RuntimeError(
-                    f"{_interface._DEFAULT_CMD_NAME} process not running."
-                )
+        def recvline(socket: socket.socket) -> Text:
+            """Read a single line from the socket."""
+            chunks = []
+            while True:
+                chunk = s.recv(1024).decode("ascii")
+                chunks.append(chunk)
+                if chunk.endswith("\n"):
+                    break
+
+            response = "".join(chunks)
+            return response.strip()
+
+        # Special case: When the python process is terminating,
+        # AST finalizers may be called after the interface is
+        # stopped.  In this case, since the process has been
+        # deallocated, simply return.
+        if not _interface.is_process_running() and fn == "__del__":
+            return None
 
         # Build the input JSON to send to the subprocess.
-        #
-        # This may be too cute, but we assume here the
-        # name of the function to call matches the name
-        # of the method being called on the AST class
-        # (modulo some exceptions for leading/trailing
-        # double underscores and underscores instead of
-        # hyphens).  This enforces a correspondence in
-        # names between the methods on ASTs and the
-        # tree-sitter-interface.  Additionally, it helps
-        # protect against minor programming errors where
-        # the wrong function name is passed in.
+        # We translate name of the function to call by
+        # removing leading/trailing double underscores
+        # and replacing underscores with hyphens.
         fn = fn.replace("__", "").replace("_", "-")
         inpt = [fn] + [serialize(arg) for arg in args]
 
+        # Send the input to the tree-sitter-interface over the socket
+        # and receive the response.
         with _interface._lock:
-            # Write the function and arguments to the LISP subprocess.
-            _interface._proc.stdin.write(f"{json.dumps(inpt)}\n".encode("ascii"))
-            _interface._proc.stdin.flush()
-
-            # Read the response from stdout.
-            stdout = _interface._proc.stdout.readline().decode("ascii").strip()
-
-        # If standard output is not populated, the process crashed.
-        # Raise a runtime error with the error message.
-        if not stdout:
-            stderr = _interface._proc.stderr.read().decode("ascii").strip()
-            if stderr:
-                msg = f"{_interface._DEFAULT_CMD_NAME} crashed with:\n\n{stderr}"
-            else:
-                msg = f"{_interface._DEFAULT_CMD_NAME} crashed."
-            raise RuntimeError(msg)
+            _interface._check_for_process_crash()
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.connect((_interface._DEFAULT_HOST, _interface._DEFAULT_PORT))
+                s.settimeout(kwargs.get("timeout", _interface._DEFAULT_SOCKET_TIMEOUT))
+                s.sendall(f"{json.dumps(inpt)}\n".encode("ascii"))
+                response = recvline(s)
+            _interface._check_for_process_crash()
 
         # Load the response from the LISP subprocess.
-        return deserialize(handle_errors(json.loads(stdout)))
+        return deserialize(handle_errors(json.loads(response)))
 
 
 _interface.start()

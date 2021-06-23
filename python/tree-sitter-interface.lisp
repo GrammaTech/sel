@@ -4,6 +4,7 @@
         :cl-json
         :cl-store
         :trivial-backtrace
+        :usocket
         :software-evolution-library
         :software-evolution-library/command-line
         :software-evolution-library/software/parseable
@@ -22,13 +23,21 @@
 (in-readtable :curry-compose-reader-macros)
 
 ;;;; Command line interface:
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defparameter +interface-command-line-options+
+    '((("stdio") :type boolean :optional t
+       :documentation "communicate over standard input/output")
+      (("port") :type integer :initial-value 4495
+       :documentation "port to listen for requests on"))
+    "tree-sitter-interface command line options."))
+
 (defvar *external-asts* (make-hash-table)
   "Mapping of hashes to (AST . refcount) pairs for externally referenced ASTs.")
 
 (defmacro with-muffled-warnings (&body body)
   "Execute BODY in an environment where warnings are muffled."
   `(handler-bind ((warning #'muffle-warning))
-     ,@body))
+     (progn ,@body)))
 
 (defmacro with-suppressed-output (&body body)
   "Execute BODY while suppressing output to standard output and standard error."
@@ -37,20 +46,20 @@
            (*error-output* (make-string-output-stream)))
        ,@body)))
 
-(defmacro with-error-logging (&body body)
+(defmacro with-error-logging (stream &body body)
   "Execute BODY in an environment where errors are caught and
-reported back to the client in JSON form over standard output."
+reported back to the client in JSON form over STREAM."
   `(handler-case
-       ,@body
+       (progn ,@body)
      (condition (c)
-       (format *standard-output* "~a~%"
+       (format ,stream "~a~%"
                (nest (encode-json-to-string)
                      (list (cons :error
                                  (with-output-to-string (s)
                                    (print-condition c s)))))))))
 
 (declaim (inline safe-intern))
-(defun safe-intern (string) (intern (string-upcase string) *package*))
+(defun safe-intern (string) (intern (string-upcase string) :sel/py/ts-int))
 
 (-> sxhash-global (t) fixnum)
 (defun sxhash-global (el)
@@ -123,8 +132,30 @@ function name from the API followed by the arguments."
       (apply (safe-intern (concatenate 'string "INT/" (string-upcase function-str)))
              (mapcar #'deserialize arguments))))))
 
+(defgeneric read-request (input)
+  (:documentation "Read a request from the given INPUT.")
+  (:method ((stream stream))
+    (read-line stream))
+  (:method ((socket usocket))
+    (read-request (socket-stream socket))))
+
+(defgeneric handle-request (request output)
+  (:documentation "Process the given REQUEST and write the response to OUTPUT.")
+  (:method ((request string) (stream stream))
+    (unwind-protect
+        (with-error-logging stream
+          (format stream "~a~%"
+                  (nest (encode-json-to-string)
+                        (handle-interface)
+                        (decode-json-from-string request))))
+      (finish-output stream)
+      (unless (eq stream *standard-output*) (close stream))))
+  (:method ((request string) (socket usocket))
+    (handle-request request (socket-stream socket))))
+
 (define-command tree-sitter-interface (&spec (append +common-command-line-options+
-                                                     +interactive-command-line-options+))
+                                                     +interactive-command-line-options+
+                                                     +interface-command-line-options+))
   "Tree-sitter command-line interface."
   #.(format nil
             "~%Built from SEL ~a, and ~a ~a.~%"
@@ -132,12 +163,17 @@ function name from the API followed by the arguments."
             (lisp-implementation-type) (lisp-implementation-version))
   (declare (ignorable quiet verbose load eval language manual))
   (when help (show-help-for-tree-sitter-interface) (exit-command tree-sitter-interface 0))
-  (loop :for line := (read-line) :until (equalp line "QUIT")
-     :do (with-error-logging
-           (format *standard-output* "~a~%"
-                   (nest (encode-json-to-string)
-                         (handle-interface)
-                         (decode-json-from-string line))))))
+  (if stdio
+      (iter (for request = (read-request *standard-input*))
+            (until (equalp request "quit"))
+            (handle-request request *standard-output*))
+      (with-socket-listener (socket "localhost" port)
+        (iter (for connection = (socket-accept socket))
+              (unwind-protect
+                  (let ((request (read-request connection)))
+                    (until (equalp request "quit"))
+                    (handle-request request connection))
+                (socket-close connection))))))
 
 ;;;; API:
 (-> int/ast (string string) (or ast nil))
