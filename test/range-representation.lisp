@@ -1,6 +1,7 @@
 ;;;; range-representation.lisp --- Range representation.
 (defpackage :software-evolution-library/test/range-representation
   (:nicknames :sel/test/range-representation)
+  (:shadow :range)                      ;Don't clobber fset:range.
   (:use
    :gt/full
    #+gt :testbot
