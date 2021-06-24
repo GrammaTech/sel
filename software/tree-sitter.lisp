@@ -5892,7 +5892,6 @@ of the parent."
   ;; the top most AST shouldn't have any before or after text this
   ;; should maintain previous functionality while still being able to
   ;; reproduce the source-text at the top-level.
-;;; TODO: when it becomes an issue, modify this to work with inner-asts.
   (declare (special trim))
   (labels ((ends-with-newline-p (string)
              "Return T if STRING ends with a newline."
@@ -5936,9 +5935,8 @@ of the parent."
                 ;; NOTE: this won't correctly handle source-text fragments that
                 ;;       end with newlines. This should only be a problem with
                 ;;       ASTs that have an implicit newline.
-                (when (notevery #'whitespacep (text ast))
-                  (setf (unbox indent-p) nil
-                        (unbox indentation-ast) nil))
+                (setf (unbox indent-p) nil
+                      (unbox indentation-ast) nil)
                 text)
                ((and (< 1 (length split-text))
                      (not (computed-text-node-p ast)))
@@ -5970,11 +5968,11 @@ of the parent."
                (setf (unbox indent-p) t
                      (unbox indentation-ast) ast)))
            (handle-indentation (text ast indentablep parents
-                                &key ancestor-check)
+                                &key ancestor-check
+                                &aux (empty? (emptyp text)))
              "If indentation to be written to stream, handle
             writing it."
              (when (and (unbox indent-p)
-                        indentablep
                         ;; Prevent indentation from being
                         ;; wasted on empty strings before it
                         ;; reaches a child. This is checking if
@@ -5983,12 +5981,13 @@ of the parent."
                         ;; which is checking if it should be
                         ;; skipped.
                         (not (and ancestor-check
-                                  (emptyp text)
+                                  empty?
                                   (ancestor-of-p
                                    root (unbox indentation-ast) ast))))
-               (setf (unbox indent-p) nil
-                     (unbox indentation-ast) nil)
-               (unless trim
+               (unless empty?
+                 (setf (unbox indent-p) nil
+                       (unbox indentation-ast) nil))
+               (unless (or empty? (not indentablep) trim)
                  (write-string
                   (make-indentation-string (indentation-length ast parents))
                   stream))))

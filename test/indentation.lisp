@@ -102,6 +102,16 @@ const (
 "))
     (is (equal source (source-text (convert 'golang-ast source))))))
 
+(deftest indentation-round-trip-empty-string-1 ()
+  "Empty text isn't indented after a newline occurs."
+  (let ((source "
+
+              {
+                ;
+              }
+"))
+    (is (equal source (source-text (convert 'golang-ast source))))))
+
 
 ;;; Mutation Tests
 (deftest moveable-indentation-python-1 ()
