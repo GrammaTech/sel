@@ -112,6 +112,12 @@ const (
 "))
     (is (equal source (source-text (convert 'golang-ast source))))))
 
+(deftest indentation-round-trip-trailing-newline-before-text ()
+  "Before text with trailing indentation after a newline is processed correctly."
+  (let ((source "import
+        \"\""))
+    (is (equal source (source-text (convert 'golang-ast source))))))
+
 
 ;;; Mutation Tests
 (deftest moveable-indentation-python-1 ()

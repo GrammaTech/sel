@@ -5279,9 +5279,7 @@ the indentation slots."
                           (subseq text 0 indentation))))
                 "")
                ((and not-empty-string-p
-                     (or (eql #\newline (first text))
-                         ;; Assume the second is a newline in this case.
-                         (eql #\return (first text))))
+                     (ends-with-newline-p text))
                 (prog1
                     ;; Treat it like trailing indentation.
                     (patch-trailing-indentation text ast)
