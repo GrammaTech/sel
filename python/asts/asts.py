@@ -268,7 +268,7 @@ class _interface:
         def serialize(v: Any) -> Any:
             """Serialize V to a form for passing thru the JSON text interface."""
             if isinstance(v, AST):
-                return {"type": "AST", "handle": v.handle}
+                return {"type": "ast", "handle": v.handle}
             elif isinstance(v, dict):
                 return {serialize(key): serialize(val) for key, val in v.items()}
             elif isinstance(v, list):
@@ -278,7 +278,7 @@ class _interface:
 
         def deserialize(v: Any) -> Any:
             """Deserialize V from the form used with the JSON text interface."""
-            if isinstance(v, dict) and v.get("handle", None):
+            if isinstance(v, dict) and v.get("type", None) == "ast":
                 return AST(handle=v["handle"])
             elif isinstance(v, dict):
                 return {deserialize(key): deserialize(val) for key, val in v.items()}

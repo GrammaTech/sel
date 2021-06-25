@@ -2,7 +2,6 @@
   (:nicknames :sel/py/ts-int)
   (:use :gt/full
         :cl-json
-        :cl-store
         :trivial-backtrace
         :usocket
         :software-evolution-library
@@ -14,10 +13,6 @@
         :software-evolution-library/software/python
         :software-evolution-library/software/javascript
         :software-evolution-library/utility/range)
-  (:import-from :flexi-streams
-                :make-in-memory-output-stream
-                :octets-to-string
-                :get-output-stream-sequence)
   (:export :run-tree-sitter-interface))
 (in-package :software-evolution-library/python/tree-sitter-interface)
 (in-readtable :curry-compose-reader-macros)
@@ -61,27 +56,8 @@ reported back to the client in JSON form over STREAM."
 (declaim (inline safe-intern))
 (defun safe-intern (string) (intern (string-upcase string) :sel/py/ts-int))
 
-(-> sxhash-global (t) fixnum)
-(defun sxhash-global (el)
-  "A version of sxhash which should work for arbitrary data structures.
-Uses `cl-store:store' to hash objects.  Maybe slow for big arguments."
-  (let ((out (make-in-memory-output-stream)))
-    (store el out)
-    (sxhash (octets-to-string (get-output-stream-sequence out)))))
-
-(-> ast-key (functional-tree-ast) fixnum)
-(defun ast-key (ast)
-  "Return a hash key (non-negative fixnum) for the functional-tree-ast.
- This differs from ast-hash, in that two distinct asts which are
- equal?, but not equal, will get distinct hash keys.
- Example: (let* ((ast1 (make-instance 'functional-tree-ast))
-                 (ast2 (copy ast1)))
-            (values (= (ast-key ast1) (ast-key ast2))
-                    (= (ast-hash ast1) (ast-hash ast2)))) => NIL, T"
-  (sxhash-global ast))
-
 (-> allocate-ast (ast) fixnum)
-(defun allocate-ast (ast &aux (key (ast-key ast)))
+(defun allocate-ast (ast &aux (key (serial-number ast)))
   "Allocate AST to the *external-asts* hashtable and increment the reference
 counter to allow for its use externally without garbage collection."
   (when (not (gethash key *external-asts*))
@@ -90,7 +66,7 @@ counter to allow for its use externally without garbage collection."
   key)
 
 (-> deallocate-ast (ast) boolean)
-(defun deallocate-ast (ast &aux (key (ast-key ast)))
+(defun deallocate-ast (ast &aux (key (serial-number ast)))
   "Deallocate the AST from the *external-asts* hashtable if its reference
 counter reaches zero."
   (when (gethash key *external-asts*)
@@ -101,7 +77,7 @@ counter reaches zero."
 (-> refcount (ast) fixnum)
 (defun refcount (ast)
   "Return the reference count of the ast, or 0 if not found."
-  (or (cdr (gethash (ast-key ast) *external-asts*)) 0))
+  (or (cdr (gethash (serial-number ast) *external-asts*)) 0))
 
 ;; (-> serialize (t) t)
 (defgeneric serialize (it)
@@ -109,7 +85,7 @@ counter reaches zero."
   (:method :before ((it ast))
     (allocate-ast it))
   (:method ((it ast))
-    `((:type . :ast) (:handle . ,(ast-key it))))
+    `((:type . :ast) (:handle . ,(serial-number it))))
   (:method ((it list)) (mapcar-improper-list #'serialize it))
   (:method ((it t)) it))
 
@@ -185,9 +161,9 @@ function name from the API followed by the arguments."
 (defun int/init (&rest args)
   (allocate-ast (apply #'int/ast args)))
 
-(-> int/del ((or ast nil)) boolean)
+(-> int/del (ast) boolean)
 (defun int/del (ast)
-  (when ast (deallocate-ast ast)))
+  (deallocate-ast ast))
 
 (-> int/hash (ast) number)
 (defun int/hash (ast)
