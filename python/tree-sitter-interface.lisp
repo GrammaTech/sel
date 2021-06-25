@@ -56,28 +56,37 @@ reported back to the client in JSON form over STREAM."
 (declaim (inline safe-intern))
 (defun safe-intern (string) (intern (string-upcase string) :sel/py/ts-int))
 
-(-> allocate-ast (ast) fixnum)
-(defun allocate-ast (ast &aux (key (serial-number ast)))
-  "Allocate AST to the *external-asts* hashtable and increment the reference
-counter to allow for its use externally without garbage collection."
-  (when (not (gethash key *external-asts*))
-    (setf (gethash key *external-asts*) (cons ast 0)))
-  (incf (cdr (gethash key *external-asts*)))
-  key)
+;; (-> refcount (or ast integer) integer)
+(defgeneric refcount (ast)
+  (:documentation "Return the reference count of the ast, or 0 if not found.")
+  (:method ((ast ast))
+    (refcount (serial-number ast)))
+  (:method ((handle integer))
+    (or (cdr (gethash handle *external-asts*)) 0)))
 
-(-> deallocate-ast (ast) boolean)
-(defun deallocate-ast (ast &aux (key (serial-number ast)))
-  "Deallocate the AST from the *external-asts* hashtable if its reference
-counter reaches zero."
-  (when (gethash key *external-asts*)
-    (let ((ref-count (decf (cdr (gethash key *external-asts*)))))
-      (when (zerop ref-count)
-        (remhash key *external-asts*)))))
+;; (-> allocate-ast (ast) integer)
+(defgeneric allocate-ast (ast)
+  (:documentation "Allocate AST to the *external-asts* hashtable and
+increment the reference counter to allow for its use externally without
+garbage collection, returning the key used in the *external-asts* hashtable.")
+  (:method ((ast ast) &aux (handle (serial-number ast)))
+    (when (not (gethash handle *external-asts*))
+      (setf (gethash handle *external-asts*) (cons ast 0)))
+    (incf (cdr (gethash handle *external-asts*)))
+    handle))
 
-(-> refcount (ast) fixnum)
-(defun refcount (ast)
-  "Return the reference count of the ast, or 0 if not found."
-  (or (cdr (gethash (serial-number ast) *external-asts*)) 0))
+;; (-> deallocate-ast (or ast integer) boolean)
+(defgeneric deallocate-ast (ast)
+  (:documentation "Deallocate the AST from the *external-asts* hashtable
+if its reference counter reaches zero, returning non-nil if a deallocation
+was performed.")
+  (:method ((ast ast))
+    (deallocate-ast (serial-number ast)))
+  (:method ((handle integer))
+    (when (gethash handle *external-asts*)
+      (let ((ref-count (decf (cdr (gethash handle *external-asts*)))))
+        (when (zerop ref-count)
+          (remhash handle *external-asts*))))))
 
 ;; (-> serialize (t) t)
 (defgeneric serialize (it)
@@ -93,7 +102,7 @@ counter reaches zero."
 (defgeneric deserialize (it)
   (:documentation "Deserialize IT from a form used with the JSON text interface.")
   (:method ((it list))
-    (if (aget :handle it)
+    (if (and (every #'consp it) (aget :handle it))
         (car (gethash (aget :handle it) *external-asts*))
         (mapcar-improper-list #'deserialize it)))
   (:method ((it t)) it))
