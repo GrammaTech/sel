@@ -4176,6 +4176,15 @@ Unlike the `children` methods which collects all children of an AST from any slo
                ()
                (:documentation "Generated for inner whitespace."))
 
+             (defclass ,(make-class-name "source-text-fragment")
+                 ,(remove-duplicates
+                   `(,ast-superclass
+                     ,@(get-supertypes-for-type "source-text-fragment")
+                     source-text-fragment)
+                   :from-end t)
+               ()
+               (:documentation "Generated for source text fragments."))
+
              ,@(create-external-classes grammar)
 
              ;; NOTE: we want to maintain the order of the classes as they
@@ -4403,7 +4412,7 @@ of a grammar.")
          language
          (convert-to-lisp-type language descriptor)
          parse-tree}
-         rest))
+        rest))
       ;; :slot, :class list
       ((and (consp descriptor)
             (keywordp (cadr descriptor)))
@@ -4413,7 +4422,12 @@ of a grammar.")
          (convert-to-lisp-type language (cadr descriptor))
          parse-tree}
         rest))
-      (t parse-tree))))
+      (t parse-tree)))
+  (:method :around (language class parse-tree &rest rest &key)
+    ;; Create source-text-fragments where they're needed.
+    (if class
+        (transform-malformed-parse-tree (call-next-method) :recursive nil)
+        (call-next-method))))
 
 (defgeneric generated-transform-parse-tree (language class parse-tree)
   (:documentation "Transform PARSE-TREE based on LANGUAGE with SPEC.

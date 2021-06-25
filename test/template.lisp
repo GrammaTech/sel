@@ -209,8 +209,8 @@ def $READ_NAME():
 
 (deftest test-string-parsing-behavior ()
   (is (find-if (of-type 'python-default-parameter)
-               (python "def fn(@ARGS): " :args "x=1")))
+               (python "def fn(@ARGS): pass" :args "x=1")))
   (is (find-if (of-type 'python-default-parameter)
-               (python "def fn($ARG1, $ARG2): " :arg1 "x=1" :arg2 "y=2")))
+               (python "def fn($ARG1, $ARG2): pass" :arg1 "x=1" :arg2 "y=2")))
   (signals error
-           (python "def fn(@ARGS): " :args '("x=1" "y=2"))))
+           (python "def fn(@ARGS): pass" :args '("x=1" "y=2"))))

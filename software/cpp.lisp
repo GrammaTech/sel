@@ -33,10 +33,6 @@
               :deepest t)
      '(0)))
 
-(defclass cpp-source-text-fragment
-    (source-text-fragment cpp-preproc-if cpp-preproc-ifdef)
-  ())
-
 (defclass cpp-variadic-declaration
     (cpp-parameter-declaration cpp-identifier)
   ((text :accessor text
@@ -49,22 +45,6 @@
     :allocation :class)))
 
 (defmethod computed-text-node-p ((ast cpp-variadic-declaration)) t)
-
-(defmethod transform-parse-tree :around
-    ((language (eql ':cpp)) (class symbol) parse-tree &key)
-  (if class
-    (transform-malformed-parse-tree (call-next-method) :recursive nil)
-    (call-next-method)))
-
-(defmethod transform-parse-tree
-    ((language (eql ':cpp)) (class (eql 'cpp-preproc-if)) parse-tree &key)
-  (transform-malformed-parse-tree parse-tree))
-
-(defmethod transform-parse-tree
-    ((language (eql ':cpp)) (class (eql 'cpp-preproc-ifdef)) parse-tree &key)
-  "Transform PARSE-TREE such that all modifiers are stored in the :modifiers
-field."
-  (transform-malformed-parse-tree parse-tree))
 
 (defmethod transform-parse-tree
     ((language (eql ':cpp)) (class (eql 'cpp-assignment-expression)) parse-tree

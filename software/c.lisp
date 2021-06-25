@@ -27,10 +27,6 @@
 
 (defmethod ext :around ((obj c)) (or (call-next-method) "c"))
 
-(defclass c-source-text-fragment
-    (source-text-fragment c-preproc-if c-preproc-ifdef)
-  ())
-
 (defclass c-variadic-declaration (c-parameter-declaration c-identifier)
   ((text :accessor text
          :initform "..."
@@ -42,16 +38,6 @@
     :allocation :class)))
 
 (defmethod computed-text-node-p ((ast c-variadic-declaration)) t)
-
-(defmethod transform-parse-tree :around
-    ((language (eql ':c)) (class symbol) parse-tree &key)
-  (if class
-    (transform-malformed-parse-tree (call-next-method) :recursive nil)
-    (call-next-method)))
-
-(defmethod transform-parse-tree
-    ((language (eql ':c)) (class (eql 'c-preproc-if)) parse-tree &key)
-  (transform-malformed-parse-tree parse-tree))
 
 (defmethod transform-parse-tree
     ((language (eql ':c)) (class (eql 'c-sized-type-specifier)) parse-tree &key)
@@ -67,12 +53,6 @@ field."
          ((member node-type '(:error :comment)) child-tree)
          (t (cons (list :modifiers node-type) (cdr child-tree)))))
      (lastcar parse-tree)))))
-
-(defmethod transform-parse-tree
-    ((language (eql ':c)) (class (eql 'c-preproc-ifdef)) parse-tree &key)
-  "Transform PARSE-TREE such that all modifiers are stored in the :modifiers
-field."
-  (transform-malformed-parse-tree parse-tree))
 
 (defmethod transform-parse-tree
     ((language (eql ':c)) (class (eql 'c-parameter-list)) parse-tree &key)
