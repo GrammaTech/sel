@@ -4265,9 +4265,10 @@ of a grammar.")
     (declare (ignorable spec))
     class))
 
-(defgeneric transform-parse-tree (language class parse-tree)
+(defgeneric transform-parse-tree
+    (language class parse-tree &rest rest &key &allow-other-keys)
   (:documentation "Transform PARSE-TREE based on LANGUAGE and CLASS.")
-  (:method (language class parse-tree
+  (:method (language class parse-tree &rest rest &key &allow-other-keys
             &aux (descriptor (and (listp parse-tree)
                                   (car parse-tree))))
     (cond
@@ -4276,17 +4277,21 @@ of a grammar.")
        parse-tree)
       ;; :class
       ((keywordp descriptor)
-       (transform-parse-tree
-        language
-        (convert-to-lisp-type language descriptor)
-        parse-tree))
+       (apply
+        {transform-parse-tree
+         language
+         (convert-to-lisp-type language descriptor)
+         parse-tree}
+         rest))
       ;; :slot, :class list
       ((and (consp descriptor)
             (keywordp (cadr descriptor)))
-       (transform-parse-tree
-        language
-        (convert-to-lisp-type language (cadr descriptor))
-        parse-tree))
+       (apply
+        {transform-parse-tree
+         language
+         (convert-to-lisp-type language (cadr descriptor))
+         parse-tree}
+        rest))
       (t parse-tree))))
 
 (defgeneric generated-transform-parse-tree (language class parse-tree)

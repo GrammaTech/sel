@@ -50,58 +50,78 @@
 
 (defmethod computed-text-node-p ((ast cpp-variadic-declaration)) t)
 
-(defmethod transform-parse-tree :around ((language (eql ':cpp))
-                                         (class symbol)
-                                         parse-tree)
+(defmethod transform-parse-tree :around
+    ((language (eql ':cpp)) (class symbol) parse-tree
+     &rest rest &key)
+  (declare (ignorable rest))
   (if class
     (transform-malformed-parse-tree (call-next-method) :recursive nil)
     (call-next-method)))
 
-(defmethod transform-parse-tree ((language (eql ':cpp))
-                                 (class (eql 'cpp-preproc-if))
-                                 parse-tree)
+(defmethod transform-parse-tree
+    ((language (eql ':cpp)) (class (eql 'cpp-preproc-if)) parse-tree
+     &rest rest &key)
+  (declare (ignorable rest))
   (transform-malformed-parse-tree parse-tree))
 
 (defmethod transform-parse-tree
-    ((language (eql ':cpp)) (class (eql 'cpp-preproc-ifdef)) parse-tree)
+    ((language (eql ':cpp)) (class (eql 'cpp-preproc-ifdef)) parse-tree
+     &rest rest &key)
+  (declare (ignorable rest))
   "Transform PARSE-TREE such that all modifiers are stored in the :modifiers
 field."
   (transform-malformed-parse-tree parse-tree))
 
 (defmethod transform-parse-tree
-    ((language (eql ':cpp)) (class (eql 'cpp-assignment-expression)) parse-tree)
+    ((language (eql ':cpp)) (class (eql 'cpp-assignment-expression)) parse-tree
+     &rest rest &key)
+  (declare (ignorable rest))
   "Transform PARSE-TREE such that the operator is stored in the :operator field."
   (add-operator-to-binary-operation parse-tree))
 
 (defmethod transform-parse-tree
-    ((language (eql ':cpp)) (class (eql 'cpp-field-expression)) parse-tree)
+    ((language (eql ':cpp)) (class (eql 'cpp-field-expression)) parse-tree
+     &rest rest &key)
+  (declare (ignorable rest))
   "Transform PARSE-TREE such that the operator is stored in the :operator field."
   (add-operator-to-binary-operation parse-tree))
 
 (defmethod transform-parse-tree
-    ((language (eql ':cpp)) (class (eql 'cpp-parameter-list)) parse-tree)
+    ((language (eql ':cpp)) (class (eql 'cpp-parameter-list)) parse-tree
+     &rest rest &key)
+  (declare (ignorable rest))
   "Transform PARSE-TREE such that the operator is stored in the :operator field."
   (transform-c-style-variadic-parameter parse-tree))
 
 (defmethod transform-parse-tree
-    ((language (eql ':cpp)) (class (eql 'cpp-preproc-params)) parse-tree)
+    ((language (eql ':cpp)) (class (eql 'cpp-preproc-params)) parse-tree
+     &rest rest &key)
+  (declare (ignorable rest))
   "Transform PARSE-TREE such that the operator is stored in the :operator field."
   (transform-c-style-variadic-parameter parse-tree))
 
 (defmethod transform-parse-tree
-    ((language (eql ':cpp)) (class (eql 'cpp-function-definition)) parse-tree)
+    ((language (eql ':cpp)) (class (eql 'cpp-function-definition)) parse-tree
+     &rest rest &key)
+  (declare (ignorable rest))
   (transform-c-declaration-specifiers parse-tree))
 
 (defmethod transform-parse-tree
-    ((language (eql ':cpp)) (class (eql 'cpp-declaration)) parse-tree)
+    ((language (eql ':cpp)) (class (eql 'cpp-declaration)) parse-tree
+     &rest rest &key)
+  (declare (ignorable rest))
   (transform-c-declaration-specifiers parse-tree))
 
 (defmethod transform-parse-tree
-    ((language (eql ':cpp)) (class (eql 'cpp-field-declaration)) parse-tree)
+    ((language (eql ':cpp)) (class (eql 'cpp-field-declaration)) parse-tree
+     &rest rest &key)
+  (declare (ignorable rest))
   (transform-c-declaration-specifiers parse-tree))
 
 (defmethod transform-parse-tree
-    ((language (eql ':cpp)) (class (eql 'cpp-parameter-declaration)) parse-tree)
+    ((language (eql ':cpp)) (class (eql 'cpp-parameter-declaration)) parse-tree
+     &rest rest &key)
+  (declare (ignorable rest))
   (transform-c-declaration-specifiers parse-tree))
 
 (defmethod ext :around ((obj cpp)) (or (call-next-method) "cpp"))

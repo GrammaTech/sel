@@ -34,22 +34,30 @@ identifiers."
 
 (defmethod transform-parse-tree
     ((language (eql ':python)) (class (eql 'python-function-definition))
-     parse-tree)
+     parse-tree
+     &rest rest &key)
+  (declare (ignorable rest))
   (modify-async-parse-tree parse-tree))
 
 (defmethod transform-parse-tree
     ((language (eql ':python)) (class (eql 'python-for-statement))
-     parse-tree)
+     parse-tree
+     &rest rest &key)
+  (declare (ignorable rest))
   (modify-async-parse-tree parse-tree))
 
 (defmethod transform-parse-tree
     ((language (eql ':python)) (class (eql 'python-with-statement))
-     parse-tree)
+     parse-tree
+     &rest rest &key)
+  (declare (ignorable rest))
   (modify-async-parse-tree parse-tree))
 
 (defmethod transform-parse-tree
     ((language (eql ':python)) (class (eql 'python-parameters))
-     parse-tree)
+     parse-tree
+     &rest rest &key)
+  (declare (ignorable rest))
   "Transform PARSE-TREE such that positional-only and keyword-only classes
 are created if they're present in PARSE-TREE."
   (labels ((positional-only-p (subtree &aux (children (lastcar subtree)))

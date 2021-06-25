@@ -21,7 +21,9 @@
 (defmethod transform-parse-tree
     ((language (eql ':javascript))
      (class (eql 'javascript-lexical-declaration))
-     parse-tree)
+     parse-tree
+     &rest rest &key)
+  (declare (ignorable rest))
   (append
    (butlast parse-tree)
    (list
@@ -36,7 +38,9 @@
 (defmethod transform-parse-tree
     ((language (eql ':javascript))
      (class (eql 'javascript-function-declaration))
-     parse-tree)
+     parse-tree
+     &rest rest &key)
+  (declare (ignorable rest))
   (append
    (butlast parse-tree)
    (list
@@ -51,7 +55,9 @@
 (defmethod transform-parse-tree
     ((language (eql ':javascript))
      (class (eql 'javascript-for-in-statement))
-     parse-tree)
+     parse-tree
+     &rest rest &key)
+  (declare (ignorable rest))
   (append
    (butlast parse-tree)
    (list
