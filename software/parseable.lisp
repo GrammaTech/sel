@@ -180,11 +180,23 @@ Provided to make it easier to debug problems with AST printing.")
   (:method ((ast ast) (annotation symbol))
     (aget annotation (ast-annotations ast))))
 
+(define-condition no-ast-path (error)
+  ((root :initarg :root)
+   (ast :initarg :ast))
+  (:report (lambda (c s)
+             (with-slots (root ast) c
+               (format s "There is no path from ~a to ~a" root ast)))))
+
 (defgeneric ast-path (obj ast)
   (:documentation "Return the PATH to AST in OBJ.")
   (:method :before ((root functional-tree-ast) (ast functional-tree-ast))
     ;; lazily populate fingers when paths are requested
-    (unless (finger ast) (populate-fingers root)))
+    (unless (finger ast)
+      (populate-fingers root)
+      (unless (finger ast)
+        (error 'no-ast-path
+               :root root
+               :ast ast))))
   (:method ((obj parseable) (ast functional-tree-ast))
     (ast-path (genome obj) ast))
   (:method ((root functional-tree-ast) (ast functional-tree-ast))
