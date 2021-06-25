@@ -426,3 +426,9 @@ the current state of the AST."
  return 0;
 } "))
     (is (not (equal (type-of if-statement) (type-of modified-if-statement))))))
+
+(deftest c-newlines-arent-dropped ()
+  "Rules which have newline tokens do not drop the newlines."
+  ;; This works around a bug in tree-sitter.
+  (let ((source (format nil "#define a ~%")))
+    (is (equal source (source-text (convert 'c-ast source))))))

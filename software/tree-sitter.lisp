@@ -4139,6 +4139,28 @@ Unlike the `children` methods which collects all children of an AST from any slo
                ((name (eql ,(make-keyword (convert-name root-rule-name)))))
              t)
 
+           ;; This works around a bug with ranges for newlines in tree-sitter
+           ;; and should be removed when fixed upstream.
+           (defmethod transform-parse-tree
+               ((language (eql ',(make-keyword name-prefix)))
+                (class (eql ',(format-symbol :sel/sw/ts "~a-~%" name-prefix)))
+                parse-tree
+                &rest rest &key lines
+                &aux (start-range (caadr parse-tree))
+                  (start-line (cadr start-range)))
+             (declare (ignorable rest))
+             (if (equal start-range (cadadr parse-tree))
+                 ;; Don't modify zero-width tokens.
+                 parse-tree
+                 `(,(car parse-tree)
+                   ,(list
+                     ;; TODO: will this become an issue with unicode?
+                     (list (position (char-code #\newline) (aref lines start-line)
+                                     :start (car start-range))
+                           start-line)
+                     (list 0 (1+ start-line)))
+                   ,(caddr parse-tree))))
+
            ,structured-text-code)))))
 
 (defmacro define-and-export-all-mixin-classes ()
@@ -5727,7 +5749,12 @@ correct class name for subclasses of SUPERCLASS."
 ;;;       AST types.
 (defmethod convert ((to-type (eql 'tree-sitter-ast)) (string string)
                     &key superclass &allow-other-keys
-                    &aux (prefix (get-language-from-superclass superclass)))
+                    &aux (prefix (get-language-from-superclass superclass))
+                      (line-octets-cache
+                       (map
+                        'vector
+                        #'string-to-octets
+                        (serapeum:lines string :keep-eols t))))
   (labels
       ((ensure-beginning-bound (parse-tree)
          "Desctructively ensures that the beginning bound of PARSE-TREE is the
@@ -5743,7 +5770,8 @@ correct class name for subclasses of SUPERCLASS."
            prefix nil
            `(,(car parse-tree)
              ,(cadr parse-tree)
-             ,(mapcar #'transform-tree (caddr parse-tree))))))
+             ,(mapcar #'transform-tree (caddr parse-tree)))
+           :lines line-octets-cache)))
        (get-start (ast)
          "Return the start offset into STRING from the AST representation."
          (car (cadr ast)))
@@ -5859,7 +5887,8 @@ correct class name for subclasses of SUPERCLASS."
          (parse-string (get-language-from-superclass superclass) string
                        :produce-cst t))))
       :superclass superclass
-      :string-pass-through string))))
+      :string-pass-through string
+      :line-octets-cache line-octets-cache))))
 
 ;;; By default, don't indent comments, text fragments or parsing errors.
 (defmethod indentablep ((ast comment-ast)) nil)
