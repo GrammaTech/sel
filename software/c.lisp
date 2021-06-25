@@ -44,25 +44,19 @@
 (defmethod computed-text-node-p ((ast c-variadic-declaration)) t)
 
 (defmethod transform-parse-tree :around
-    ((language (eql ':c)) (class symbol) parse-tree
-     &rest rest &key)
-  (declare (ignorable rest))
+    ((language (eql ':c)) (class symbol) parse-tree &key)
   (if class
     (transform-malformed-parse-tree (call-next-method) :recursive nil)
     (call-next-method)))
 
 (defmethod transform-parse-tree
-    ((language (eql ':c)) (class (eql 'c-preproc-if)) parse-tree
-     &rest rest &key)
-  (declare (ignorable rest))
+    ((language (eql ':c)) (class (eql 'c-preproc-if)) parse-tree &key)
   (transform-malformed-parse-tree parse-tree))
 
 (defmethod transform-parse-tree
-    ((language (eql ':c)) (class (eql 'c-sized-type-specifier)) parse-tree
-     &rest rest &key)
+    ((language (eql ':c)) (class (eql 'c-sized-type-specifier)) parse-tree &key)
   "Transform PARSE-TREE such that all modifiers are stored in the :modifiers
 field."
-  (declare (ignorable rest))
   (append
    (butlast parse-tree)
    (list
@@ -75,47 +69,33 @@ field."
      (lastcar parse-tree)))))
 
 (defmethod transform-parse-tree
-    ((language (eql ':c)) (class (eql 'c-preproc-ifdef)) parse-tree
-     &rest rest &key)
+    ((language (eql ':c)) (class (eql 'c-preproc-ifdef)) parse-tree &key)
   "Transform PARSE-TREE such that all modifiers are stored in the :modifiers
 field."
-  (declare (ignorable rest))
   (transform-malformed-parse-tree parse-tree))
 
 (defmethod transform-parse-tree
-    ((language (eql ':c)) (class (eql 'c-parameter-list)) parse-tree
-     &rest rest &key)
-  (declare (ignorable rest))
+    ((language (eql ':c)) (class (eql 'c-parameter-list)) parse-tree &key)
   (transform-c-style-variadic-parameter parse-tree))
 
 (defmethod transform-parse-tree
-    ((language (eql ':c)) (class (eql 'c-preproc-params)) parse-tree
-     &rest rest &key)
-  (declare (ignorable rest))
+    ((language (eql ':c)) (class (eql 'c-preproc-params)) parse-tree &key)
   (transform-c-style-variadic-parameter parse-tree))
 
 (defmethod transform-parse-tree
-    ((language (eql ':c)) (class (eql 'c-function-definition)) parse-tree
-     &rest rest &key)
-  (declare (ignorable rest))
+    ((language (eql ':c)) (class (eql 'c-function-definition)) parse-tree &key)
   (transform-c-declaration-specifiers parse-tree))
 
 (defmethod transform-parse-tree
-    ((language (eql ':c)) (class (eql 'c-declaration)) parse-tree
-     &rest rest &key)
-  (declare (ignorable rest))
+    ((language (eql ':c)) (class (eql 'c-declaration)) parse-tree &key)
   (transform-c-declaration-specifiers parse-tree))
 
 (defmethod transform-parse-tree
-    ((language (eql ':c)) (class (eql 'c-field-declaration)) parse-tree
-     &rest rest &key)
-  (declare (ignorable rest))
+    ((language (eql ':c)) (class (eql 'c-field-declaration)) parse-tree &key)
   (transform-c-declaration-specifiers parse-tree))
 
 (defmethod transform-parse-tree
-    ((language (eql ':c)) (class (eql 'c-parameter-declaration)) parse-tree
-     &rest rest &key)
-  (declare (ignorable rest))
+    ((language (eql ':c)) (class (eql 'c-parameter-declaration)) parse-tree &key)
   (transform-c-declaration-specifiers parse-tree))
 
 (defgeneric pointers (c-declarator)

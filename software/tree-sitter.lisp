@@ -5400,7 +5400,7 @@ the indentation slots."
             (map
              'vector
              #'string-to-octets
-             (serapeum:lines string :keep-eols t))))
+             (lines string :keep-eols t))))
        (computed-text-p (computed-text-node-p instance)))
   "Convert SPEC from a parse tree into an instance of SUPERCLASS."
   (labels ((safe-subseq
@@ -5580,7 +5580,7 @@ the indentation slots."
               due to IMMEDIATE_TOKENs."
              (symbol-macrolet ((slot-value
                                  (slot-value instance stack-directive)))
-               (typecase stack-directive
+               (etypecase stack-directive
                  (null)
                  (number
                   (set-inner-ast-slots (nthcdr stack-directive inner-asts)
@@ -5754,7 +5754,7 @@ correct class name for subclasses of SUPERCLASS."
                        (map
                         'vector
                         #'string-to-octets
-                        (serapeum:lines string :keep-eols t))))
+                        (lines string :keep-eols t))))
   (labels
       ((ensure-beginning-bound (parse-tree)
          "Desctructively ensures that the beginning bound of PARSE-TREE is the
@@ -5897,7 +5897,7 @@ correct class name for subclasses of SUPERCLASS."
 
 (defmethod get-indentation-at ((ast inner-whitespace) (parents list)
                                &aux (parent (car parents)))
-  "Get the indenation at AST when it is an inner-whitespace AST. This
+  "Get the indentation at AST when it is an inner-whitespace AST. This
 is handled differently than other ASTs because it should be considered part
 of the parent."
   (reduce (lambda (total parent)
