@@ -174,6 +174,9 @@ function name from the API followed by the arguments."
 (defun int/del (ast)
   (deallocate-ast ast))
 
+(-> int/gc (list) null)
+(defun int/gc (handles) (mapcar #'deallocate-ast handles) nil)
+
 (-> int/hash (ast) number)
 (defun int/hash (ast)
   (ast-hash ast))

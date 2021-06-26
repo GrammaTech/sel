@@ -30,7 +30,7 @@ class AST:
 
     def __del__(self) -> None:
         if hasattr(self, "handle") and self.handle is not None:
-            _interface.dispatch(AST.__del__.__name__, self)
+            _interface.dispatch(AST.__del__.__name__, self.handle)
             self.handle = None
 
     def __hash__(self) -> int:
@@ -184,9 +184,11 @@ class _interface:
     _DEFAULT_PORT: int = _get_free_port()
     _DEFAULT_STARTUP_WAIT: int = 3
     _DEFAULT_SOCKET_TIMEOUT: int = 300
+    _DEFAULT_GC_THRESHOLD: int = 128
 
     _proc: Optional[subprocess.Popen] = None
     _lock: multiprocessing.RLock = multiprocessing.RLock()
+    _gc_handles: List[int] = []
 
     @staticmethod
     def is_process_running() -> bool:
@@ -299,12 +301,15 @@ class _interface:
             response = "".join(chunks)
             return response.strip()
 
-        # Special case: When the python process is terminating,
-        # AST finalizers may be called after the interface is
-        # stopped.  In this case, since the process has been
-        # deallocated, simply return.
-        if not _interface.is_process_running() and fn == "__del__":
-            return None
+        # Special case: When garbage collection is occuring, place the
+        # AST handle to be garbage collected on a queue to later be
+        # flushed to the LISP subprocess.  This protects us against
+        # potential deadlocks in the locked section below if garbage
+        # collection is initiated while we are in it and is more efficient
+        # than pushing each handle to the LISP subprocess individually.
+        if fn == "__del__" and args[0] is not None:
+            _interface._gc_handles.append(args[0])
+            return
 
         # Build the input JSON to send to the subprocess.
         # We translate name of the function to call by
@@ -322,10 +327,29 @@ class _interface:
                 s.settimeout(kwargs.get("timeout", _interface._DEFAULT_SOCKET_TIMEOUT))
                 s.sendall(f"{json.dumps(inpt)}\n".encode("ascii"))
                 response = recvline(s)
+            _interface._gc()
             _interface._check_for_process_crash()
 
         # Load the response from the LISP subprocess.
         return deserialize(handle_errors(json.loads(response)))
+
+    @staticmethod
+    def _gc() -> None:
+        """Flush the queue of garbage collected AST handles to the LISP subprocess."""
+        if len(_interface._gc_handles) > _interface._DEFAULT_GC_THRESHOLD:
+            inpt = [
+                "gc",
+                [
+                    _interface._gc_handles.pop()
+                    for _ in range(len(_interface._gc_handles))
+                ],
+            ]
+
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.connect((_interface._DEFAULT_HOST, _interface._DEFAULT_PORT))
+                s.settimeout(_interface._DEFAULT_SOCKET_TIMEOUT)
+                s.sendall(f"{json.dumps(inpt)}\n".encode("ascii"))
+                s.recv(1024)
 
 
 _interface.start()
