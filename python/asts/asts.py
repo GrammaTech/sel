@@ -43,6 +43,14 @@ class AST:
             return _interface.dispatch(AST.__eq__.__name__, self, other)
         return False
 
+    def __copy__(self) -> "AST":
+        """Return a copy of AST conforming to copy.copy."""
+        return AST(handle=_interface.dispatch(AST.__copy__.__name__, self))
+
+    def __deepcopy__(self, memo) -> "AST":
+        """Return a deep copy of AST conforming to copy.deepcopy."""
+        return self.__copy__()
+
     def ast_at_point(self, line: int, column: int) -> "AST":
         """Return the most specific AST covering LINE and COLUMN."""
         return _interface.dispatch(AST.ast_at_point.__name__, self, line, column)

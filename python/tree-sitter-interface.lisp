@@ -170,6 +170,10 @@ function name from the API followed by the arguments."
 (defun int/init (&rest args)
   (allocate-ast (apply #'int/ast args)))
 
+(-> int/copy (ast) fixnum)
+(defun int/copy (ast)
+  (allocate-ast ast))
+
 (-> int/del (ast) boolean)
 (defun int/del (ast)
   (deallocate-ast ast))

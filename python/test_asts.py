@@ -1,5 +1,6 @@
 import unittest
 import asts
+import copy
 
 
 class BinaryOperationTestDriver(unittest.TestCase):
@@ -68,6 +69,16 @@ class BinaryOperationTestDriver(unittest.TestCase):
     # Reference count
     def test_ast_refcount(self):
         self.assertEqual(1, asts.AST.ast_refcount(self.root))
+
+    # AST copy
+    def test_ast_copy(self):
+        root_copy = copy.copy(self.root)
+        self.assertEqual(2, asts.AST.ast_refcount(root_copy))
+
+    # AST deep copy
+    def test_ast_deep_copy(self):
+        root_copy = copy.deepcopy(self.root)
+        self.assertEqual(2, asts.AST.ast_refcount(root_copy))
 
 
 class SelfReferentialTestDriver(unittest.TestCase):
