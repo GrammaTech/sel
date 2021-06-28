@@ -23,7 +23,9 @@
 ;;; Parsers} for full list.  The TREE-SITTER classes are generated at
 ;;; compile time. This is done by analyzing the @file{node-types.json}
 ;;; and @file{grammar.json} files that are located in tree-sitter
-;;; language modules.  The @env{SEL_TREE_SITTER_LANGUAGE_DIR}
+;;; language modules, of which the format can be found here:
+;;; @url{https://tree-sitter.github.io/tree-sitter/using-parsers#static-node-types}.
+;;; The @env{SEL_TREE_SITTER_LANGUAGE_DIR}
 ;;; environment variable can be set to modify where the JSON files are
 ;;; expected. By default,
 ;;; @file{/usr/share/tree-sitter/},@file{/usr/local/share/tree-sitter/},
