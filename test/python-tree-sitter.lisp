@@ -817,6 +817,13 @@ x"
     (signals error (rhs ast))
     (signals error (operator ast))))
 
+(deftest test-python-with-spacing-considers-parent ()
+  (is (equal "-y"
+             (source-text
+              (with (python "-x")
+                    '(python-argument)
+                    (make 'python-identifier :text "y"))))))
+
 (deftest (python-tree-sitter-parsing-test :long-running) ()
   (labels ((parsing-test-dir (path)
              (merge-pathnames-as-file
