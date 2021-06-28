@@ -203,6 +203,78 @@
 ;;; - @url{https://github.com/death/cl-tree-sitter}
 ;;; - @url{https://github.com/death/cffi}
 ;;;
+;;; @subsubheading Structured Text
+;;;
+;;; The classes generated for tree-sitter use the rules stored in each language's
+;;; JSON files for each language to attach implicit source text reproduction at
+;;; the class level. This makes working with and mutating the AST much simpler.
+;;; As an example, if an 'if' statement AST without an 'else' clause has an
+;;; 'else'clause added to it, the source text of the AST will reflect that an
+;;; 'else'clause has been added to it without needing to update anything other
+;;; than the slot that corresponds to the 'else' clause.
+;;;
+;;; Each class that is generated can have multiple subclasses which represent
+;;; the different representations of source text that the base class can take.
+;;; For example, the update expression in C represents both the pre-increment
+;;; and post-increment. Two subclasses are generated to disambiguate between the
+;;; source text representations--one for pre-increment and one for
+;;; post-increment.
+;;;
+;;; Frequently, these subclass ASTs can be copied with slight modifications to
+;;; their slot values. This can leave the AST copy in an invalid state for the
+;;; subclass it had been copied from. When this is detected, the AST's class
+;;; will be changed dynamically to the first subclass of the base class which can
+;;; successfully produce source text with the given slot values. This behavior
+;;; also applies to objects created with the base class, but it may choose a
+;;; subclass that's source text is not the desired representation, so it's best
+;;; to specify the exact subclass in case where this matters, such as update
+;;; expressions in C.
+;;;
+;;; Structured text ASTs contain at least 4 slots which help store information
+;;; that isn't implicit to the AST or its parent AST:
+;;;
+;;; - before-text :: stores text that directly precedes the AST but is not part
+;;;                  of the rule associated with the AST. This is generally
+;;;                  whitespace. This slot is preferred over the after-text
+;;;                  slot when creating ASTs from a string with #'convert.
+;;;
+;;; - after-text :: stores text that directly procedes the AST but is not part
+;;;                 of the rule associated with the AST. This is generally
+;;;                 whitespace. This slot is preferred when a terminal token
+;;;                 directly follows the AST which does not have a before-text
+;;;                 slot due to being implicit source text.
+;;;
+;;; - before-asts :: stores comment and error ASTs that occur before the AST
+;;;                  and before the contents of the before-text slot. The
+;;;                  contents of this slot are considered children of the parent
+;;;                  AST. This slot is preferred over the after-text slot when
+;;;                  creating ASTs from a string with #'convert.
+;;;
+;;; - after-asts :: stores comment and error ASTs that occur before the AST
+;;;                 and after the contents of the after-text slot. The
+;;;                 contents of this slot are considered children of the parent
+;;;                 AST. This slot is preferred when a terminal token
+;;;                 directly follows the AST which does not have a before-text
+;;;                 slot due to being implicit source text.
+;;;
+;;; - internal-asts-|#| :: store ASTs which are between two terminal tokens
+;;;                        which are implicit source text. This slot can contain
+;;;                        comment, error and inner-whitespace ASTs.
+;;;
+;;; The internal-asts slots are generated based on the rule associated with the
+;;; AST. Any possible place in the rule where two terminal tokens can appear
+;;; consecutively, an internal-asts slot is placed.
+;;;
+;;; When creating ASTs, patch-whitespace can be used to insert whitespace in
+;;; relevant places. This utilizes whitespace-between to determine how much
+;;; whitespace should be placed in each slot. This currently does not populate
+;;; inner-asts whitespace.
+;;;
+;;; @subsubheading Templates
+;;;
+;;; TODO: document templates. (describe #'ast-template) copy this here?
+;;; Templates can be used for constructing and deconstructing ASTs.
+;;;
 ;;; @texi{tree-sitter}
 (uiop:define-package :software-evolution-library/software/tree-sitter
     (:nicknames :sel/software/tree-sitter :sel/sw/tree-sitter
@@ -1943,22 +2015,28 @@ of fields needs to be determined at parse-time."
   ;; STRUCTURED TEXT
   ;;
   ;; structured-text uses the JSON files provided by tree-sitter to generate
-  ;; methods that reconstruct what the source code might look like for an AST.
+  ;; methods that reconstruct what the source code should look like for an AST.
   ;;
   ;; The methods primarily operate on a "transformed" JSON rule and its
   ;; equivalent "pruned" rule. The transformed JSON rule is an alist
-  ;; representation which has removed any precedence rules and inlined every
-  ;; rule starting with an underscore. The pruned rule transforms the transformed
-  ;; JSON rule by turning it into a list instead of an alist, and replaces any
-  ;; subtree that does not have a slot usage with a nil.
+  ;; representation which has removed any precedence rules, inlined every
+  ;; rule starting with an underscore that isn't a supertype, distributed fields
+  ;; such that they are less ambiguous, added choices for ambiguous alias rules,
+  ;; and added extra slots to store information between terminal tokens.
+  ;; The pruned rule transforms the transformed JSON rule by turning it into a
+  ;; list instead of an alist, and replaces any subtree that does not have a slot
+  ;; usage with a nil.
   ;;
-  ;; The structured-text class has 3 slots--before-text stores text that comes
-  ;; before the node, after-text stores text that comes after the node, and
+  ;; The structured-text class has 5 slots--before-text stores text that comes
+  ;; before the node, after-text stores text that comes after the node,
   ;; 'text' stores any text that can vary between different instances
-  ;; of a class. The text slot will also contain the text for any
+  ;; of a class, before-asts stores comment and error ASTs that occur before
+  ;; the before-text, and after-asts stores comment and error ASTs that occur
+  ;; after the after-text. The text slot will also contain the text for any
   ;; class that doesn't have any slot usages. This allows for classes, such as
   ;; primitive_type in C, that don't store anything but have variable text to
-  ;; still produce something meaningful.
+  ;; still produce something meaningful without needing to modify the rule for
+  ;; the AST.
   ;;
   ;; There are two main generated methods: output-transformation and parse-order.
   ;; output-transformation accepts an AST and returns a list of strings and its
@@ -1973,21 +2051,11 @@ of fields needs to be determined at parse-time."
   ;; and is what actually assembles its return value. match-parsed-children
   ;; matches a rule against a parse tree returned by cl-tree-sitter:parse-string.
   ;;
-  ;; There are some glaring issues at the moment:
-  ;;  - choice expansion takes way too long, so it might make sense to find
-  ;;    another way to do this or generate them at run-time while still limiting
-  ;;    which choices are expanded so that it doesn't expand indefinitely.
-  ;;    By not expanding choice branches with identical reproductions--i.e.,
-  ;;    slot usages come from the same slot and order but may differ in type--
-  ;;    there could be a meaningful reduction in the number of choice
-  ;;    expansion subclasses.
-  ;;
-  ;;  - method dispatch for output-transformation takes forever. When several
-  ;;    languages have their methods generated, it is unlikely to return.
-  ;;    This could potentially be alleviated by storing the function with
-  ;;    class allocation instead. If there's only one language used, it
-  ;;    performs reasonably.
-  ;;
+  ;; To disambiguate between different choice branches that a rule can take,
+  ;; several different 'CHOICE expansion' subclasses are generated. Each one of
+  ;; these expands a different branch in a 'CHOICE' present in the rule such that
+  ;; they have a unique output transformation. The subclasses have names
+  ;; generated based on the base class with a number added to the end of it.
   ;;
   ;; NOTE: these are some notes on the functions that may or may not be
   ;;       up-to-date
