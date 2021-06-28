@@ -1,5 +1,10 @@
 ;;;; tree-sitter.lisp --- software representations with a tree-sitter backend.
 ;;;
+;;; @menu
+;;; * Clang Super-Mutants:: Clang software object super-mutants
+;;; * ASM Super-Mutants:: Assembly software object super-mutants
+;;; @end menu
+;;;
 ;;; The @refapiclass{sel/sw/ts:tree-sitter} software object class is the primary
 ;;; base class for representing software source code which has been
 ;;; parsed into structured abstract syntax trees (ASTs) or more
@@ -51,7 +56,10 @@
 ;;; of CFFI it depends on. It also depends on libtree-sitter and
 ;;; tree-sitter language modules for every desired language.
 ;;;
-;;; @subsubheading Setting up libtree-sitter
+;;; @node Setting up libtree-sitter, Per-language Modules, Source Code with @code{tree-sitter}, Source Code with @code{tree-sitter}
+;;; @subsection Setting up libtree-sitter
+;;; @cindex setting-up-libtree-sitter
+;;;
 ;;; Clone the following repo: @url{https://github.com/tree-sitter/tree-sitter}.
 ;;;
 ;;; Run the following from its base directory:
@@ -62,7 +70,9 @@
 ;;;     # Move the shared object to a place where it can be found.
 ;;;     sudo mv libtree-sitter.so /usr/lib/
 ;;;
-;;; @subsubheading Per-language Modules
+;;; @node Per-language Modules, cl-tree-sitter Setup, Setting up libtree-sitter, Source Code with @code{tree-sitter}
+;;; @subsection Per-language Modules
+;;; @cindex pre-language-modules
 ;;;
 ;;; Each language has its own module that can be used with tree-sitter. All of
 ;;; the languages that are currently supported can be found here:
@@ -197,13 +207,17 @@
 ;;;     clone
 ;;;     package
 ;;;
-;;; @subsubheading cl-tree-sitter setup
+;;; @node cl-tree-sitter setup, Structured Text, Per-language Modules, Source Code with @code{tree-sitter}
+;;; @subsection cl-tree-sitter setup
+;;; @cindex cl-tree-sitter-setup
 ;;;
 ;;; Clone the following repositories to the local-projects directory for quicklisp:
 ;;; - @url{https://github.com/death/cl-tree-sitter}
 ;;; - @url{https://github.com/death/cffi}
 ;;;
-;;; @subsubheading Structured Text
+;;; @node Structured Text, Templates, cl-tree-sitter setup, Source Code with @code{tree-sitter}
+;;; @subsection Structured Text
+;;; @cindex structured-text
 ;;;
 ;;; The classes generated for tree-sitter use the rules stored in each language's
 ;;; JSON files to enable implicit source text reproduction at
@@ -271,7 +285,9 @@
 ;;; whitespace should be placed in each slot. This currently does not populate
 ;;; inner-asts whitespace.
 ;;;
-;;; @subsubheading Templates
+;;; @node Templates, , Structured Text, Source Code with @code{tree-sitter}
+;;; @subsection Templates
+;;; @cindex templates
 ;;;
 ;;; TODO: document templates. (describe #'ast-template) copy this here?
 ;;; Templates can be used for constructing and deconstructing ASTs.
