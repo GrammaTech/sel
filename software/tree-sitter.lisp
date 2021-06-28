@@ -206,12 +206,13 @@
 ;;; @subsubheading Structured Text
 ;;;
 ;;; The classes generated for tree-sitter use the rules stored in each language's
-;;; JSON files for each language to attach implicit source text reproduction at
+;;; JSON files to enable implicit source text reproduction at
 ;;; the class level. This makes working with and mutating the AST much simpler.
 ;;; As an example, if an 'if' statement AST without an 'else' clause has an
 ;;; 'else'clause added to it, the source text of the AST will reflect that an
-;;; 'else'clause has been added to it without needing to update anything other
-;;; than the slot that corresponds to the 'else' clause.
+;;; 'else'clause has been added to it without needing to make any other updates.
+;;; (Prior to structured text, slots holding connective white-space and punctuation
+;;; required manual updates to accompany most changes to the content of an AST.)
 ;;;
 ;;; Each class that is generated can have multiple subclasses which represent
 ;;; the different representations of source text that the base class can take.
@@ -236,7 +237,7 @@
 ;;; - before-text :: stores text that directly precedes the AST but is not part
 ;;;                  of the rule associated with the AST. This is generally
 ;;;                  whitespace. This slot is preferred over the after-text
-;;;                  slot when creating ASTs from a string with #'convert.
+;;;                  slot when creating ASTs from a string with @code{#'convert}.
 ;;;
 ;;; - after-text :: stores text that directly procedes the AST but is not part
 ;;;                 of the rule associated with the AST. This is generally
@@ -265,8 +266,8 @@
 ;;; AST. Any possible place in the rule where two terminal tokens can appear
 ;;; consecutively, an internal-asts slot is placed.
 ;;;
-;;; When creating ASTs, patch-whitespace can be used to insert whitespace in
-;;; relevant places. This utilizes whitespace-between to determine how much
+;;; When creating ASTs, @code{patch-whitespace} can be used to insert whitespace in
+;;; relevant places. This utilizes @code{whitespace-between} to determine how much
 ;;; whitespace should be placed in each slot. This currently does not populate
 ;;; inner-asts whitespace.
 ;;;
