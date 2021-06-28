@@ -126,7 +126,9 @@ are created if they're present in PARSE-TREE."
   (provided-by (genome software) ast))
 
 (defmethod provided-by ((root python-ast) (ast python-identifier))
-  (car (find-if [{equalp (source-text ast)} #'third] (imports root))))
+  (if (member (source-text ast) (built-ins root) :test #'equal)
+      "builtins"
+      (car (find-if [{equalp (source-text ast)} #'third] (imports root)))))
 
 (defmethod provided-by ((root python-ast) (ast python-attribute))
   (labels ((top-attribute (root ast)
@@ -187,12 +189,16 @@ AST ast to return the enclosing scope for"
       (genome obj)))
 
 (defmethod built-ins ((obj python))
+  (built-ins (genome obj)))
+
+(defmethod built-ins ((ast python-ast))
   ;; $ python3
   ;; Python 3.9.5 (default, May  4 2021, 03:36:27)
   ;; [Clang 12.0.0 (clang-1200.0.32.29)] on darwin
   ;; Type "help", "copyright", "credits" or "license" for more information.
   ;; >>> import builtins
   ;; >>> dir(builtins)
+  (declare (ignorable ast))
   '("ArithmeticError"
     "AssertionError"
     "AttributeError"

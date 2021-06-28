@@ -760,7 +760,10 @@ and keyword parameters with defaults."
                                                                :at-start t))))
     (is (string= "os.path" (provided-by *soft* (@ (stmt-with-text *soft* "os.path.exists"
                                                                   :at-start t)
-                                                  '(0 python-function)))))))
+                                                  '(0 python-function)))))
+
+    ;; Builtins.
+    (is (string= "builtins" (provided-by *soft* (stmt-with-text *soft* "abs(1.0)"))))))
 
 (deftest test-python-types-parameter-name ()
   (flet ((of-name (name)

@@ -9,3 +9,5 @@ os.path.exists("/")
 byteorder()
 
 h.foo()
+
+abs(1.0)
