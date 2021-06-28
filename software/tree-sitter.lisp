@@ -220,7 +220,7 @@
 ;;; @cindex structured-text
 ;;;
 ;;; The classes generated for tree-sitter use the rules stored in each language's
-;;; JSON files to enable implicit source text reproduction at
+;;; grammar file to enable implicit source text reproduction at
 ;;; the class level. This makes working with and mutating the AST much simpler.
 ;;; As an example, if an 'if' statement AST without an 'else' clause has an
 ;;; 'else'clause added to it, the source text of the AST will reflect that an
@@ -279,6 +279,11 @@
 ;;; The internal-asts slots are generated based on the rule associated with the
 ;;; AST. Any possible place in the rule where two terminal tokens can appear
 ;;; consecutively, an internal-asts slot is placed.
+;;;
+;;; A further 'text' slot is also used for a subset of ASTs that are known
+;;; computed-text ASTs. These ASTs hold information that is variable and must
+;;; be computed and stored when the AST is created. The ASTs that are computed
+;;; text can be identified by @code{computed-text-node-p}.
 ;;;
 ;;; When creating ASTs, @code{patch-whitespace} can be used to insert whitespace in
 ;;; relevant places. This utilizes @code{whitespace-between} to determine how much
