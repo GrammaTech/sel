@@ -1,8 +1,11 @@
 ;;;; tree-sitter.lisp --- software representations with a tree-sitter backend.
 ;;;
 ;;; @menu
-;;; * Clang Super-Mutants:: Clang software object super-mutants
-;;; * ASM Super-Mutants:: Assembly software object super-mutants
+;;; * Setting up libtree-sitter:: Install the main tree-sitter library
+;;; * Per-language Modules:: Install language-specific tree-sitter libraries
+;;; * cl-tree-sitter setup:: Install the Common Lisp tree-sitter bindings
+;;; * Structured Text:: Tree-sitter ASTs with implicit structured source text
+;;; * Templates:: Templates for easy AST creation and destructuring
 ;;; @end menu
 ;;;
 ;;; The @refapiclass{sel/sw/ts:tree-sitter} software object class is the primary
