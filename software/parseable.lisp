@@ -15,6 +15,7 @@
            :from-alist
            :child-asts
            :sorted-children
+           :no-ast-path
            :ast-path
            :ast-annotation
            :ast-annotations
