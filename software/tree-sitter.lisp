@@ -3,7 +3,7 @@
 ;;; @menu
 ;;; * Setting up libtree-sitter:: Install the main tree-sitter library
 ;;; * Per-language Modules:: Install language-specific tree-sitter libraries
-;;; * cl-tree-sitter setup:: Install the Common Lisp tree-sitter bindings
+;;; * cl-tree-sitter Setup:: Install the Common Lisp tree-sitter bindings
 ;;; * Structured Text:: Tree-sitter ASTs with implicit structured source text
 ;;; * Templates:: Templates for easy AST creation and destructuring
 ;;; @end menu
@@ -212,15 +212,15 @@
 ;;;     clone
 ;;;     package
 ;;;
-;;; @node cl-tree-sitter setup, Structured Text, Per-language Modules, Source Code with @code{tree-sitter}
-;;; @subsection cl-tree-sitter setup
+;;; @node cl-tree-sitter Setup, Structured Text, Per-language Modules, Source Code with @code{tree-sitter}
+;;; @subsection cl-tree-sitter Setup
 ;;; @cindex cl-tree-sitter-setup
 ;;;
 ;;; Clone the following repositories to the local-projects directory for quicklisp:
 ;;; - @url{https://github.com/death/cl-tree-sitter}
 ;;; - @url{https://github.com/death/cffi}
 ;;;
-;;; @node Structured Text, Templates, cl-tree-sitter setup, Source Code with @code{tree-sitter}
+;;; @node Structured Text, Templates, cl-tree-sitter Setup, Source Code with @code{tree-sitter}
 ;;; @subsection Structured Text
 ;;; @cindex structured-text
 ;;;
