@@ -136,7 +136,16 @@ are created if they're present in PARSE-TREE."
                (if (and parent (typep parent 'python-attribute))
                    (top-attribute root parent)
                    ast))))
-    (source-text (python-object (top-attribute root ast)))))
+    (let ((module (source-text (python-object (top-attribute root ast)))))
+      ;; Check to see if the module name is aliased in an import and, if so,
+      ;; unalias the module.  Otherwise, return the module name directly.
+      (iter (for i in (imports root))
+            (multiple-value-bind (unaliased matchp)
+                (regex-replace (format nil "^(~a)(\\.|$)" (second i))
+                               module
+                               (format nil "~a\\2" (first i)))
+              (when matchp (return unaliased)))
+            (finally (return module))))))
 
 (defmethod provided-by (root (ast python-expression-statement))
   (provided-by root (first (children ast))))

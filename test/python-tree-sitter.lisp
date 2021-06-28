@@ -762,6 +762,9 @@ and keyword parameters with defaults."
                                                                   :at-start t)
                                                   '(0 python-function)))))
 
+    ;; Aliased.
+    (is (string= "heapq" (provided-by *soft* (stmt-with-text *soft* "h.foo()"))))
+
     ;; Builtins.
     (is (string= "builtins" (provided-by *soft* (stmt-with-text *soft* "abs(1.0)"))))))
 
