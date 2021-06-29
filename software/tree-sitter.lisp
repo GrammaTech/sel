@@ -3060,12 +3060,13 @@ expands :REPEAT1 rules, and collapses contiguous, nested
      tree)
     accumulator)
 
-  (defun collect-rule-slots (tree)
+  (defun collect-rule-slots (tree &key include-slots)
     "Collect all slots used in TREE."
-    (collect-rule-tree
-     (lambda (subtree)
-       (member (car subtree) '(:field :child)))
-     tree))
+    (let ((slot-identifiers `(:field :child ,@(when include-slots '(:slot)))))
+      (collect-rule-tree
+       (lambda (subtree)
+         (member (car subtree) slot-identifiers))
+       tree)))
 
   ;; TODO: at some point, this may need to treat interal-asts slots as fields
   ;;       when considering whether they are problematic.
@@ -3368,8 +3369,8 @@ outside of repeats."
                      ;; but they are recast to something else,
                      ;; so they do not need to be stored.
                      (throw 'prune nil)))
-                (("FIELD" "SYMBOL")
-                 ;; The presence of either of these indicate that there are
+                (("FIELD" "SYMBOL" "SLOT")
+                 ;; The presence of any of these indicate that there are
                  ;; children.
                  (setf children? t))))))
       json-rule)
@@ -3412,47 +3413,24 @@ CLASS-NAME->CLASS-DEFINITION. Return NIL on failure and non-NIL on success."
                             slots))))))))
 
   (defun generate-children-method
-      (collapsed-rule pruned-rule json-rule
-       class-name class-name->class-definition)
+      (pruned-rule json-rule class-name class-name->class-definition)
     ;; TODO: rename this method now that it doesn't generate any methods.
-    ;; NOTE: passing the class name to handle the choice expansion subclassing
-    ;;       outside of this method.
-    ;; TODO: maybe grab the slots from the collapsed-rule here? If
-    ;;       possible make the collapsed-rule an argument.
-    ;; TODO: it may make sense to use the pruned rule here instead of the
-    ;;       collapsed since the input transformation stuff will ideally
-    ;;       be using the pruned rule too.
-    ;; TODO: It may also make sense to start storing these rules on the
-    ;;       class itself in general?
-    (let ((slots
-            (remove-duplicates
-             (mapcar
-              (lambda (cons)
-                (if (eql :field (car cons))
-                    (cadr cons)
-                    'children))
-              (collect-rule-slots collapsed-rule)))))
-      (when slots
-        (mapc {add-slot-to-class-definition
-               class-name class-name->class-definition}
-              `((pruned-rule
-                 :accessor pruned-rule
-                 :initform ',pruned-rule
-                 :allocation :class
-                 :documentation
-                 "A rule used to order the children of this class.")
-                (slot-usage
-                 :accessor slot-usage
-                 :initform ',slots
-                 :allocation :class
-                 :documentation
-                 "A set of slots that are used in the pruned-rule.")
-                (json-rule
-                 :initform ',json-rule
-                 :reader json-rule
-                 :allocation :class
-                 :documentation
-                 "A rule used to determine where inner ASTs are assigned."))))))
+    "Add slots for PRUNED-RULE and JSON-RULE to the definition of CLASS-NAME in
+CLASS-NAME->CLASS-DEFINITION."
+    (mapc {add-slot-to-class-definition
+           class-name class-name->class-definition}
+          `((pruned-rule
+             :accessor pruned-rule
+             :initform ',pruned-rule
+             :allocation :class
+             :documentation
+             "A rule used to order the children of this class.")
+            (json-rule
+             :initform ',json-rule
+             :reader json-rule
+             :allocation :class
+             :documentation
+             "A rule used to determine where inner ASTs are assigned."))))
 
   (defun get-json-subtree-string (json-subtree choice-resolver)
     "Get the string representation of JSON-SUBTREE. This assumes that there aren't
@@ -3686,13 +3664,12 @@ subclass based on the order of the children were read in."
                (mapc
                 (lambda (subclass-pair json-expansion)
                   (generate-children-method
-                   (cadr subclass-pair)
                    (caddr subclass-pair)
                    json-expansion
                    (car subclass-pair)
                    class-name->class-definition))
                 (if expansions?
-                    ;; Generate a children information for the superclass so it
+                    ;; Generate children information for the superclass so it
                     ;; can be used as a default class.
                     (cons
                      (cons superclass (cdr (car subclass-pairs)))
@@ -3732,7 +3709,32 @@ subclass based on the order of the children were read in."
                           class-name->class-definition choice-resolver))
                        pruned-expansions
                        json-expansions
-                       (mapcar #'car subclass-pairs))))
+                       (mapcar #'car subclass-pairs)))
+             (generate-superclass-slot-usage ()
+               "Generate the slot-usage slot for the superclass."
+               ;; NOTE: store slot usage at the superclass level so that
+               ;;       #'children-parser is able to tell when any slot that
+               ;;       a subclass could use hasn't been used.
+               (let ((slots
+                       (remove-duplicates
+                        (mapcar
+                         (lambda (cons)
+                           (if (member (car cons) '(:field :slot))
+                               (cadr cons)
+                               'children))
+                         (collect-rule-slots
+                          (convert-to-lisp-types
+                           (collapse-rule-tree pruned-rule))
+                          :include-slots t)))))
+                 (add-slot-to-class-definition
+                  superclass
+                  class-name->class-definition
+                  `(slot-usage
+                    :accessor slot-usage
+                    :initform ',slots
+                    :allocation :class
+                    :documentation
+                    "A set of slots that are used in the pruned-rule.")))))
       (report-problematic-rule)
       ;; TODO: refactor this and children-parser as it accepts a
       ;;       pruned rule and wasn't before.
@@ -3769,6 +3771,7 @@ subclass based on the order of the children were read in."
             (when expansions?
               (generate-subclasses subclass-pairs)
               (add-subclass-list-slot subclass-pairs))
+            (generate-superclass-slot-usage)
             (generate-children-methods
              subclass-pairs json-expansions expansions?)
             `(progn
@@ -4541,7 +4544,9 @@ is hand-written.")
       (t parse-tree))))
 
 (defmethod children ((ast structured-text))
-  (remove-if-not {typep _ 'ast} (output-transformation ast)))
+  (remove-if
+   (of-type 'inner-whitespace)
+   (remove-if-not (of-type 'ast) (output-transformation ast))))
 
 
 ;;; tree-sitter parsing
@@ -4908,7 +4913,7 @@ which slots are expected to be used."
                                #'cadr
                               (conflict-ast-child-alist slot-value))))
                             (t slot-value))))
-                   (cons slot (ensure-cons value))))
+                   (cons slot (and value (ensure-cons value)))))
                  slots)))
            (identical-slot-stacks-p (slot->stack1 slot->stack2)
              "Return T if the slot stacks in slot->stack are identical
@@ -5020,15 +5025,22 @@ which slots are expected to be used."
                (:FIELD (handle-field rule slot->stack))
                (:CHILD (handle-child rule slot->stack))
                (:SEQ (handle-seq rule slot->stack))
-               (:SLOT (handle-slot rule slot->stack)))))
-    ;; TODO: need to ensure that the returned hash table doesn't still have
-    ;;       ASTs stored in it. If it does, figure out a way to add them in
-    ;;       some how?
-    (if-let ((result (rule-handler pruned-rule (populate-slot->stack))))
-      (reverse (gethash child-stack-key result))
-      (error 'rule-matching-error
-             :rule-matching-error-rule pruned-rule
-             :rule-matching-error-ast ast))))
+               (:SLOT (handle-slot rule slot->stack))))
+           (slot-stacks-empty-p (slot->stack)
+             "Return T if SLOT->STACK doesn't have any slots that
+              map to a non-empty stack."
+             (every #'null
+                    (maphash-return
+                     (lambda (slot stack)
+                       (unless (eq slot child-stack-key)
+                         stack))
+                     slot->stack))))
+    (let ((slot->stack (rule-handler pruned-rule (populate-slot->stack))))
+      (if (and slot->stack (slot-stacks-empty-p slot->stack))
+          (reverse (gethash child-stack-key slot->stack))
+          (error 'rule-matching-error
+                 :rule-matching-error-rule pruned-rule
+                 :rule-matching-error-ast ast)))))
 
 (defun computed-text-output-transformation (ast)
   "Gives the variable text output transformation for AST. This

@@ -217,7 +217,7 @@
 
 (deftest python-can-handle-multibyte-characters ()
   (with-fixture multibyte-python1
-    (is (= 17 (size *soft*)))
+    (is (= 18 (size *soft*)))
     (is (equal (file-to-string (original-path *soft*))
                (genome-string *soft*))))
   (with-fixture multibyte-python2
