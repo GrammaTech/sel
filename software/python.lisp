@@ -147,11 +147,13 @@ are created if they're present in PARSE-TREE."
               (when matchp (return unaliased)))
             (finally (return module))))))
 
-(defmethod provided-by (root (ast python-expression-statement))
+(defmethod provided-by ((root python-ast) (ast python-expression-statement))
   (provided-by root (first (children ast))))
 
 (defmethod provided-by ((root python-ast) (ast python-call))
   (provided-by root (call-function ast)))
+
+(defmethod provided-by ((root python-ast) (ast python-ast)) nil)
 
 (defmethod phenome ((obj python) &key (bin (temp-file-name)))
   (interpreted-phenome obj bin))
