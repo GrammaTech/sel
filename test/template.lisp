@@ -184,6 +184,7 @@ def $READ_NAME():
   (is (equal*
        "fn(1, 2, 3)"
        (source-text (javascript "fn(@ARGS)" :args '(1 2 3)))
+       (source-text (javascript "fn(@1)" '(1 2 3)))
        (source-text (javascript "fn(1, @ARGS)" :args '(2 3)))
        (source-text (javascript "fn(1, 2, @ARGS)" :args '(3)))
        (source-text
