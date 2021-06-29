@@ -298,9 +298,94 @@
 ;;; @node Templates, , Structured Text, Source Code with @code{tree-sitter}
 ;;; @subsection Templates
 ;;; @cindex templates
+;;; @subsubsection Templates for building ASTs
 ;;;
-;;; TODO: document templates. (describe #'ast-template) copy this here?
-;;; Templates can be used for constructing and deconstructing ASTs.
+;;; The function that builds templates is called @code{ast-template}.
+;;; You probably don't want to use this function directly; supported
+;;; languages allow you to use a function with the same name as
+;;; shorthand for creating a template:
+;;;
+;;;     (python "$ID = 1" :id "x")
+;;;     ≡ (ast-template "$ID = 1" 'python-ast :id "x")
+;;;
+;;; By default metavariables look like @code{$X}, where the name can
+;;; contain only uppercase characters, digits, or underscores. (The
+;;; syntax of templates is inspired by
+;;; @url{https://semgrep.dev,Semgrep}, but syntax can vary by
+;;; language.)
+;;;
+;;; Metavariables can also look like @code{@ARGS}. In this case they stand for
+;;; a list of ASTs, rather than a single AST.
+;;;
+;;;     (ast-template "fn(@ARGS)" :args '(1 2 3))
+;;;     => <python-call "fn(1, 2, 3)">
+;;;
+;;; There are two syntaxes for the arguments to @code{ast-template}.
+;;;
+;;; The arguments can be keyword arguments, defaults for the
+;;; corresponding metavariables (converting dashes to underscores):
+;;;
+;;;     (ast-template "$LEFT_HAND_SIDE = $RIGHT_HAND_SIDE" 'python-ast
+;;;                   :left-hand-side "x"
+;;;                   :right-hand-side 1)
+;;;     => <python-assignment "x = 1">
+;;;
+;;; The arguments can be positional (keywords not allowed!). In this
+;;; case metavariables must be numbered (@code{$1}, @code{$2}, etc.):
+;;;
+;;;     (ast-template "$1 = $2" 'python-ast "x" 1)
+;;;     ≡ (ast-template "$1 = $2" 'python-ast :1 "x" :2 1)
+;;;
+;;;     ;; Also works for list arguments.
+;;;
+;;;     (ast-template "fn(@1)" '(1 2 3))
+;;;     => <python-call "fn(1, 2, 3)">
+;;;
+;;; Values in the arguments must be ASTs, literals, or lists. Lists
+;;; are processed recursively (but only to one level). Atoms that are
+;;; not ASTs or literals are converted into ASTs using
+;;; @code{template-subtree}, a generic function. Atoms that are ASTs
+;;; are copied into the resulting tree. Atoms that are literals (such
+;;; as strings or integers) are inlined into the string and parsed in
+;;; place. (This is necessary as the AST that corresponds to a string
+;;; may only be parseable in context.)
+;;;
+;;;     (ast-template "$1 = value" 'python-ast "x")
+;;;     ≡ (ast-template "$1 = value" 'python-ast
+;;;                     (convert "x" 'python-ast :deepest t))
+;;;
+;;; @subsubsection Templates for destructuring ASTs
+;;;
+;;; Both keyword and positional syntaxes (as well as list
+;;; metavariables with @code{@}) can also be used as
+;;; @url{https://github.com/guicho271828/trivia,Trivia} patterns for
+;;; destructuring.
+;;;
+;;;     (match (python "x = 2 + 2")
+;;;       ((python "$1 = $2" var (python "$X + $Y" :x x :y y))
+;;;        (list x y)))
+;;;     => (#<python-identifier "x"> #<python-integer "2">
+;;;         #<python-integer "2">)
+;;;
+;;; @subsubsection Templates that build and destructure
+;;;
+;;; You can combine building and destructuring into one step using
+;;; @code{ast-from-template}.
+;;;
+;;;     (ast-from-template "$1;" 'cpp-ast "\"Foo: %d\"")
+;;;     => #<cpp-string-literal "\"Foo: %d\"">
+;;;
+;;; Must use the positional syntax of @code{ast-template}. Returns one value
+;;; per metavariable, in numeric order (@code{$1}, @code{$2}, etc.).
+;;;
+;;; This is useful because not every kind of AST node can be parsed
+;;; directly as a template. E.g. in Python a tuple, an argument list,
+;;; and a parameter list all use the same syntax and can only be
+;;; distinguished in context. Or (at the time of writing) the C and
+;;; C++ parsers for tree-sitter cannot correctly parse unterminated
+;;; statements. Using @code{ast-from-template} lets you provide
+;;; throwaway context to the parser while pulling out only the
+;;; particular nodes that you want.
 ;;;
 ;;; @texi{tree-sitter}
 (uiop:define-package :software-evolution-library/software/tree-sitter
@@ -318,7 +403,7 @@
         :software-evolution-library/components/formatting)
   (:import-from :uiop)
   (:import-from :software-evolution-library/software/project
-        :find-include-files :include-paths :include-paths-mixin)
+                :find-include-files :include-paths :include-paths-mixin)
   (:import-from :cffi :translate-camelcase-name :load-foreign-library-error)
   (:import-from :functional-trees :map-children)
   #.(if (asdf:find-system :cl-tree-sitter nil)
