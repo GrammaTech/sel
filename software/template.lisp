@@ -215,6 +215,12 @@ By default metavariables look like `$X', where the name can contain
 only uppercase characters, digits, or underscores. \(Syntax can vary
 by language; see `template-metavariable'.)
 
+Metavariables can also look like `@ARGS'. In this case they stand for
+a list of ASTs, rather than a single AST.
+
+    (ast-template \"fn(@ARGS)\" :args '(1 2 3))
+    => <python-call \"fn(1, 2, 3)\">
+
 There are two syntaxes for ARGS.
 
 ARGS can be keyword arguments, defaults for the corresponding
@@ -231,17 +237,25 @@ metavariables must be numbered (`$1', `$2', etc.):
     (ast-template \"$1 = $2\" 'python-ast \"x\" 1)
     ≡ (ast-template \"$1 = $2\" 'python-ast :1 \"x\" :2 1)
 
-Values in ARGS must be either ASTs or strings. Values that are not
-ASTs or strings are converted into ASTs using `template-subtree', a
-generic function. Values that are ASTs are copied into the resulting
-tree. Values that are strings are inlined into the string and parsed
-in place.
+    ;; Also works for list arguments.
+
+    (ast-template \"fn(@1)\" '(1 2 3))
+    => <python-call \"fn(1, 2, 3)\">
+
+Values in ARGS must be ASTs, literals, or lists. Lists are processed
+recursively \(but only to one level). Atoms that are not ASTs or
+literals are converted into ASTs using `template-subtree', a generic
+function. Atoms that are ASTs are copied into the resulting tree.
+Atoms that are literals (such as strings or integers) are inlined into
+the string and parsed in place. \(This is necessary as the AST that
+corresponds to a string may only be parseable in context.)
 
     (ast-template \"$1 = value\" 'python-ast \"x\")
     ≡ (ast-template \"$1 = value\" 'python-ast
-                    (convert \"x\" 'python-ast :deepest t)
+                    (convert \"x\" 'python-ast :deepest t))
 
-Both syntaxes can also be used as Trivia patterns for destructuring.
+Both keyword and positional syntaxes (as well as list metavariables
+with `@') can also be used as Trivia patterns for destructuring.
 
     (match (python \"x = 2 + 2\")
       ((python \"$1 = $2\" var (python \"$X + $Y\" :x x :y y))
@@ -420,13 +434,13 @@ languages allow you to use a pattern with the same name as shorthand:
 Must use the positional syntax of `ast-template'. Returns one value
 per metavariable, in numeric order (`$1', `$2', etc.).
 
-Not every kind of AST node can be parsed directly as a template. E.g.
-in Python a tuple, an argument list, and a parameter list all use the
-same syntax and can only be distinguished in context. Or (at the time
-of writing) the C and C++ parsers for tree-sitter cannot correctly
-parse unterminated statements. Using `ast-from-template' lets you
-provide throwaway context to the parser while pulling out only the
-particular nodes that you want."
+This is useful because not every kind of AST node can be parsed
+directly as a template. E.g. in Python a tuple, an argument list, and
+a parameter list all use the same syntax and can only be distinguished
+in context. Or (at the time of writing) the C and C++ parsers for
+tree-sitter cannot correctly parse unterminated statements. Using
+`ast-from-template' lets you provide throwaway context to the parser
+while pulling out only the particular nodes that you want."
   (let ((temps (make-gensym-list (length args))))
     (ematch class
       ((list 'quote class)
