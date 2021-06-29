@@ -363,7 +363,7 @@
 ;;;
 ;;;     (match (python "x = 2 + 2")
 ;;;       ((python "$1 = $2" var (python "$X + $Y" :x x :y y))
-;;;        (list x y)))
+;;;        (list var x y)))
 ;;;     => (#<python-identifier "x"> #<python-integer "2">
 ;;;         #<python-integer "2">)
 ;;;
