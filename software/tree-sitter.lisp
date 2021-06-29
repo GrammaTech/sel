@@ -338,6 +338,10 @@
            :javascript
            :python
            :source-text-fragment
+           :before-text
+           :after-text
+           :before-asts
+           :after-asts
            ;; Python
            :find-if-in-scopes
            :get-asts-in-namespace
