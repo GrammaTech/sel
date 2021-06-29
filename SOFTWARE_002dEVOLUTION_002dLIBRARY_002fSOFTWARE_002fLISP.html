@@ -55,20 +55,6 @@ Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fLLVM.html" ac
 </div>
 <hr>
 <span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fLISP-1"></span><h3 class="section">A.43 SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/LISP</h3>
-<span id="Variable-sel_002fsw_002flisp_003a_002abindings_002dallows_002dmacros_002dp_002a"></span><dl>
-<dt id="index-_002abindings_002dallows_002dmacros_002dp_002a-_005bsel_002fsw_002flisp_005d">Variable: <strong>*bindings-allows-macros-p* [sel/sw/lisp]</strong></dt>
-<dd><p>A special variable that modifies the functionality
-of get-functions-from-binding-form. If set to a non-nil value,
-macros will be returned as if they were functions.
-</p></dd></dl>
-<span id="Generic_002dFunction-sel_002fsw_002flisp_003abindings"></span><dl>
-<dt id="index-bindings-_005bsel_002fsw_002flisp_005d">Generic Function: <strong>bindings [sel/sw/lisp]</strong> <em>obj ast &amp;key functions variables all</em></dt>
-<dd><p>Return bindings that are local to <code>obj</code> and
-in scope of AST. This method calls get-vars-from-binding-form
-and get-functions-from-binding-form. All of the special variables
-that modify the behavior of these methods can be utilized by
-this method.
-</p></dd></dl>
 <span id="Class-sel_002fsw_002flisp_003alisp"></span><dl>
 <dt id="index-lisp-_005bsel_002fsw_002flisp_005d">Class: <strong>lisp [sel/sw/lisp]</strong></dt>
 <dd><p>Class precedence list: <code>lisp, parseable, software, oid-object, file, standard-object, slot-object, t</code>
@@ -89,6 +75,12 @@ this method.
 
 <p>Class of Common Lisp ASTs.
 </p></dd></dl>
+<span id="Variable-sel_002fsw_002flisp_003a_002abindings_002dallows_002dmacros_002dp_002a"></span><dl>
+<dt id="index-_002abindings_002dallows_002dmacros_002dp_002a-_005bsel_002fsw_002flisp_005d">Variable: <strong>*bindings-allows-macros-p* [sel/sw/lisp]</strong></dt>
+<dd><p>A special variable that modifies the functionality
+of get-functions-from-binding-form. If set to a non-nil value,
+macros will be returned as if they were functions.
+</p></dd></dl>
 <span id="Variable-sel_002fsw_002flisp_003a_002abindings_002dallows_002dsymbol_002dmacros_002dp_002a"></span><dl>
 <dt id="index-_002abindings_002dallows_002dsymbol_002dmacros_002dp_002a-_005bsel_002fsw_002flisp_005d">Variable: <strong>*bindings-allows-symbol-macros-p* [sel/sw/lisp]</strong></dt>
 <dd><p>A special variable that modifies the functionality
@@ -106,6 +98,14 @@ definitions will be included.
 <dd><p>A special variable that modifies the functionality of
 functions that get bindings such that the returned information
 is marked as a macro.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002flisp_003abindings"></span><dl>
+<dt id="index-bindings-_005bsel_002fsw_002flisp_005d">Generic Function: <strong>bindings [sel/sw/lisp]</strong> <em>obj ast &amp;key functions variables all</em></dt>
+<dd><p>Return bindings that are local to <code>obj</code> and
+in scope of AST. This method calls get-vars-from-binding-form
+and get-functions-from-binding-form. All of the special variables
+that modify the behavior of these methods can be utilized by
+this method.
 </p></dd></dl>
 <span id="Macro-sel_002fsw_002flisp_003adefine_002dfun_002dbody_002dalias"></span><dl>
 <dt id="index-define_002dfun_002dbody_002dalias-_005bsel_002fsw_002flisp_005d">Macro: <strong>define-fun-body-alias [sel/sw/lisp]</strong> <em>car-of-form-alias car-of-form</em></dt>

@@ -1,0 +1,89 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- This file documents the Software Evolution library
+
+Copyright (C) 2014-2018 Eric Schulte and GrammaTech
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
+A copy of the license is included in the section entitled
+"GNU Free Documentation License." -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Python Library (Software Evolution Library)</title>
+
+<meta name="description" content="Python Library (Software Evolution Library)">
+<meta name="keywords" content="Python Library (Software Evolution Library)">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<link href="index.html" rel="start" title="Top">
+<link href="Combined-Index.html" rel="index" title="Combined Index">
+<link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
+<link href="index.html" rel="up" title="Top">
+<link href="Building-the-SEL-Python-Library.html" rel="next" title="Building the SEL Python Library">
+<link href="Troubleshooting.html" rel="prev" title="Troubleshooting">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<span id="Python-Library"></span><div class="header">
+<p>
+Next: <a href="Software-Evolution-Library-Index.html" accesskey="n" rel="next">Software Evolution Library Index</a>, Previous: <a href="Troubleshooting.html" accesskey="p" rel="prev">Troubleshooting</a>, Up: <a href="index.html" accesskey="u" rel="up">Top</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+<span id="Python-Library-1"></span><h2 class="chapter">7 Python Library</h2>
+<span id="index-python_002dlibrary"></span>
+<p>SEL exports a Python library which exposes functionality for parsing,
+traversing, and inspecting source code from multiple languages.
+Specifically, this library exposes SEL&rsquo;s tree-sitter based asts (see
+<a href="Source-Code-with-tree_002dsitter.html">Source Code with <code>tree-sitter</code></a>) and the generic functions
+defined upon those ASTs.  The ultimate Python library then has two
+large sources of functionality, (i) the tree-sitter libraries which
+provide the ability to parse a large number of programming languages
+into ASTs and (ii) the SEL machinery leveraging Common Lisp&rsquo;s object
+system (CLOS) and generic functions to build a large multi-language
+API for software analysis and transformation over these ASTs.
+</p>
+<p>This library is available on PyPi with pre-packaged tree-sitter
+libraries for use on any Linux system (see
+<a href="https://pypi.org/project/asts/">https://pypi.org/project/asts/</a>).  The remainder of this section
+walks through building the library locally, running, and
+troubleshooting local builds of this Python Library.
+</p>
+<table class="menu" border="0" cellspacing="0">
+<tr><td align="left" valign="top">&bull; <a href="Building-the-SEL-Python-Library.html" accesskey="1">Building the SEL Python Library</a></td><td>&nbsp;&nbsp;</td><td align="left" valign="top">
+</td></tr>
+<tr><td align="left" valign="top">&bull; <a href="Running-the-SEL-Python-Library.html" accesskey="2">Running the SEL Python Library</a></td><td>&nbsp;&nbsp;</td><td align="left" valign="top">
+</td></tr>
+<tr><td align="left" valign="top">&bull; <a href="Troubleshooting-the-SEL-Python-Library.html" accesskey="3">Troubleshooting the SEL Python Library</a></td><td>&nbsp;&nbsp;</td><td align="left" valign="top">
+</td></tr>
+</table>
+
+
+
+
+</body>
+</html>

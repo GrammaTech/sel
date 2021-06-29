@@ -83,6 +83,22 @@ Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fTEST_002dSU
 <dt id="index-_002asertop_002dpath_002a-_005bsel_002fcp_002fserapi_002dio_005d">Variable: <strong>*sertop-path* [sel/cp/serapi-io]</strong></dt>
 <dd><p>Path to sertop program.
 </p></dd></dl>
+<span id="Generic_002dFunction-sel_002fcp_002fserapi_002dio_003acheck_002dcoq_002dtype"></span><dl>
+<dt id="index-check_002dcoq_002dtype-_005bsel_002fcp_002fserapi_002dio_005d">Generic Function: <strong>check-coq-type [sel/cp/serapi-io]</strong> <em>coq-expr &amp;key qtag</em></dt>
+<dd><p>Look up and return the type of a Coq expression <code>coq-expr</code>.
+Optionally use <code>qtag</code> to tag the query.
+</p></dd></dl>
+<span id="Method-sel_002fcp_002fserapi_002dio_003acheck_002dcoq_002dtype-_0028coq_002dexpr-_0026key-_0028qtag-_0028gensym-q_0029_0029_0029"></span><dl>
+<dt id="index-check_002dcoq_002dtype-_005bsel_002fcp_002fserapi_002dio_005d-1">Method: <strong>check-coq-type [sel/cp/serapi-io]</strong> <em>coq-expr &amp;key (qtag (gensym q))</em></dt>
+<dd><p>Look up and return the type of a <code>coq-expr</code> using Coq&rsquo;s &lsquo;Check&rsquo;.
+<code>coq-expr</code> will be coerced to a string via the &lsquo;format&rsquo; ~a directive.
+</p></dd></dl>
+<span id="Macro-sel_002fcp_002fserapi_002dio_003awith_002dserapi"></span><dl>
+<dt id="index-with_002dserapi-_005bsel_002fcp_002fserapi_002dio_005d">Macro: <strong>with-serapi [sel/cp/serapi-io]</strong> <em>(&amp;optional process) &amp;body body</em></dt>
+<dd><p>Macro to create a serapi process bound to <code>serapi</code>.
+Uses default path and arguments for sertop (&lsquo;*sertop-path*&rsquo; and
+&lsquo;*sertop-args*&rsquo;).
+</p></dd></dl>
 <span id="Function-sel_002fcp_002fserapi_002dio_003aadd_002dcoq_002dlib"></span><dl>
 <dt id="index-add_002dcoq_002dlib-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>add-coq-lib [sel/cp/serapi-io]</strong> <em>path &amp;key lib-name has-ml qtag</em></dt>
 <dd><p>Add directory <code>path</code> to the Coq and, optionally, <code>ml</code> load paths in SerAPI.
@@ -107,16 +123,6 @@ the submission.
 Optionally, use <code>qtag</code> to tag the query. Canceling means that the ASTs will no
 longer be defined and other definitions added in the interim will also be
 removed.
-</p></dd></dl>
-<span id="Generic_002dFunction-sel_002fcp_002fserapi_002dio_003acheck_002dcoq_002dtype"></span><dl>
-<dt id="index-check_002dcoq_002dtype-_005bsel_002fcp_002fserapi_002dio_005d">Generic Function: <strong>check-coq-type [sel/cp/serapi-io]</strong> <em>coq-expr &amp;key qtag</em></dt>
-<dd><p>Look up and return the type of a Coq expression <code>coq-expr</code>.
-Optionally use <code>qtag</code> to tag the query.
-</p></dd></dl>
-<span id="Method-sel_002fcp_002fserapi_002dio_003acheck_002dcoq_002dtype-_0028coq_002dexpr-_0026key-_0028qtag-_0028gensym-q_0029_0029_0029"></span><dl>
-<dt id="index-check_002dcoq_002dtype-_005bsel_002fcp_002fserapi_002dio_005d-1">Method: <strong>check-coq-type [sel/cp/serapi-io]</strong> <em>coq-expr &amp;key (qtag (gensym q))</em></dt>
-<dd><p>Look up and return the type of a <code>coq-expr</code> using Coq&rsquo;s &lsquo;Check&rsquo;.
-<code>coq-expr</code> will be coerced to a string via the &lsquo;format&rsquo; ~a directive.
 </p></dd></dl>
 <span id="Function-sel_002fcp_002fserapi_002dio_003acoq_002dassumption_002dast_002dp"></span><dl>
 <dt id="index-coq_002dassumption_002dast_002dp-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>coq-assumption-ast-p [sel/cp/serapi-io]</strong> <em>sexpr</em></dt>
@@ -180,6 +186,10 @@ command or an invalid Coq command, <code>nil</code> otherwise.
 Errors may result from either an improperly formed SerAPI command or an invalid
 Coq command.
 </p></dd></dl>
+<span id="Function-sel_002fcp_002fserapi_002dio_003ais_002dloc_002dinfo"></span><dl>
+<dt id="index-is_002dloc_002dinfo-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>is-loc-info [sel/cp/serapi-io]</strong> <em>sexpr</em></dt>
+<dd><p>Return <code>t</code> if <code>sexpr</code> is a list of Coq location info, <code>nil</code> otherwise.
+</p></dd></dl>
 <span id="Generic_002dFunction-sel_002fcp_002fserapi_002dio_003ais_002dterminating"></span><dl>
 <dt id="index-is_002dterminating-_005bsel_002fcp_002fserapi_002dio_005d">Generic Function: <strong>is-terminating [sel/cp/serapi-io]</strong> <em>output</em></dt>
 <dd><p>Check if <code>output</code> is indicates the end of a SerAPI response.
@@ -195,16 +205,6 @@ for failed responses it will be tagged as an error.
 <dd><p>Check if <code>str</code> is the final message in a SerAPI response.
 For successful responses, the string will contain the word &quot;Completed&quot;, and
 for failed responses it will be an error string.
-</p></dd></dl>
-<span id="Macro-sel_002fcp_002fserapi_002dio_003awith_002dserapi"></span><dl>
-<dt id="index-with_002dserapi-_005bsel_002fcp_002fserapi_002dio_005d">Macro: <strong>with-serapi [sel/cp/serapi-io]</strong> <em>(&amp;optional process) &amp;body body</em></dt>
-<dd><p>Macro to create a serapi process bound to <code>serapi</code>.
-Uses default path and arguments for sertop (&lsquo;*sertop-path*&rsquo; and
-&lsquo;*sertop-args*&rsquo;).
-</p></dd></dl>
-<span id="Function-sel_002fcp_002fserapi_002dio_003ais_002dloc_002dinfo"></span><dl>
-<dt id="index-is_002dloc_002dinfo-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>is-loc-info [sel/cp/serapi-io]</strong> <em>sexpr</em></dt>
-<dd><p>Return <code>t</code> if <code>sexpr</code> is a list of Coq location info, <code>nil</code> otherwise.
 </p></dd></dl>
 <span id="Function-sel_002fcp_002fserapi_002dio_003aload_002dcoq_002dfile"></span><dl>
 <dt id="index-load_002dcoq_002dfile-_005bsel_002fcp_002fserapi_002dio_005d">Function: <strong>load-coq-file [sel/cp/serapi-io]</strong> <em>file-name &amp;key qtag</em></dt>

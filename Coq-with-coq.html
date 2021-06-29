@@ -55,10 +55,10 @@ Next: <a href="Ancestor-tracking-with-ancestral.html" accesskey="n" rel="next">A
 </div>
 <hr>
 
-<span id="Coq-with-coq-and-SerAPI"></span><h4 class="subsection">2.1.4 Coq with <code>coq</code> and <code>SerAPI</code></h4>
+<span id="Coq-with-coq-and-SerAPI"></span><h4 class="subsection">2.1.9 Coq with <code>coq</code> and <code>SerAPI</code></h4>
 
 
-<span id="Coq-Module-Organization"></span><h4 class="subsection">2.1.5 Coq Module Organization</h4>
+<span id="Coq-Module-Organization"></span><h4 class="subsection">2.1.10 Coq Module Organization</h4>
 
 <p>The &lsquo;coq&rsquo; module is split into two layers. The lower layer, implemented in
 &lsquo;serapi-io.lisp&rsquo;, is strictly responsible for serialization of Coq abstract
@@ -72,7 +72,7 @@ allows for querying of Coq documents and serializes ASTs to S-expressions.
 anduse API functions provided by &lsquo;coq.lisp&rsquo; or &lsquo;coq-project.lisp&rsquo; without
 having to worry about the lower-level functions.
 </p>
-<span id="Setting-up-SerAPI"></span><h4 class="subsection">2.1.6 Setting up SerAPI</h4>
+<span id="Setting-up-SerAPI"></span><h4 class="subsection">2.1.11 Setting up SerAPI</h4>
 
 <p>In order to construct a Coq software object, coq-serapi must be installed.
 Refer to its GitHub project page for instructions. The variables
@@ -90,7 +90,7 @@ also be added to &lsquo;*sertop-args*&rsquo;.
 </p>
 
 
-<span id="Coq-Module-Organization-1"></span><h4 class="subsection">2.1.7 Coq Module Organization</h4>
+<span id="Coq-Module-Organization-1"></span><h4 class="subsection">2.1.12 Coq Module Organization</h4>
 
 <p>The &lsquo;coq&rsquo; module is split into two layers. The lower layer, implemented in
 &lsquo;serapi-io.lisp&rsquo;, is strictly responsible for serialization of Coq abstract
@@ -102,7 +102,7 @@ syntax trees (ASTs) and is described in-depth in its own section.
  and use API functions provided by &lsquo;coq.lisp&rsquo; or &lsquo;coq-project.lisp&rsquo; without
  having to worry about the lower-level functions.
 </p>
-<span id="Creating-Coq-Objects"></span><h4 class="subsection">2.1.8 Creating Coq Objects</h4>
+<span id="Creating-Coq-Objects"></span><h4 class="subsection">2.1.13 Creating Coq Objects</h4>
 
 <p>Coq software objects have the following fields:
 </p>
@@ -143,7 +143,7 @@ do this with either &lsquo;set-load-paths&rsquo; (which only sets the load paths
 &lsquo;reset-and-load-imports&rsquo; (which in addition to setting load paths also
 executes import statements).
 </p>
-<span id="Usage-of-Coq-Objects"></span><h4 class="subsection">2.1.9 Usage of Coq Objects</h4>
+<span id="Usage-of-Coq-Objects"></span><h4 class="subsection">2.1.14 Usage of Coq Objects</h4>
 
 <p>The ASTs of a Coq genome are lists whose elements are lists, symbols, and
 strings. A &lsquo;type-safe-swap&rsquo; mutation selects two subtrees that have the same

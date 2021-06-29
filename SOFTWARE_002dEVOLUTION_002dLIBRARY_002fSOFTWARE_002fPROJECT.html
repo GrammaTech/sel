@@ -54,27 +54,7 @@ ul.no-bullet {list-style: none}
 Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fSEXP.html" accesskey="n" rel="next">SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/SEXP</a>, Previous: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fPARSEABLE_002dPROJECT.html" accesskey="p" rel="prev">SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/PARSEABLE-PROJECT</a>, Up: <a href="Software-Evolution-Library-Index.html" accesskey="u" rel="up">Software Evolution Library Index</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fPROJECT-1"></span><h3 class="section">A.48 SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/PROJECT</h3>
-<span id="Variable-sel_002fsw_002fproject_003a_002abuild_002ddir_002a"></span><dl>
-<dt id="index-_002abuild_002ddir_002a-_005bsel_002fsw_002fproject_005d">Variable: <strong>*build-dir* [sel/sw/project]</strong></dt>
-<dd><p>Directory in which to build projects with &lsquo;phenome&rsquo;.
-When non-nil &lsquo;phenome&rsquo; builds projects in this directory instead of
-the &lsquo;project-dir&rsquo; field of the software object.  Calling &lsquo;phenome&rsquo; on
-software objects sharing the same project-dir in multiple threads will
-lead to conflicts.  This may be avoided by giving each thread its own
-build directory.  To do this set <code>*build-dir*</code> to a different location
-in each thread and then initialize <code>*build-dir*</code> in each thread by
-calling &lsquo;{to-file _ *BUILD_DIR*}&rsquo; against a base software
-object (e.g., the original program).
-</p></dd></dl>
-<span id="Generic_002dFunction-sel_002fsw_002fproject_003acollect_002devolve_002dfiles"></span><dl>
-<dt id="index-collect_002devolve_002dfiles-_005bsel_002fsw_002fproject_005d">Generic Function: <strong>collect-evolve-files [sel/sw/project]</strong> <em>project</em></dt>
-<dd><p>Create the evolve files for <code>project</code>.
-</p></dd></dl>
-<span id="Method-sel_002fsw_002fproject_003acollect_002devolve_002dfiles-before-_0028_0028obj-clang_002dproject_0029_0029"></span><dl>
-<dt id="index-before-collect_002devolve_002dfiles-_005bsel_002fsw_002fproject_005d">Method: <strong>before collect-evolve-files [sel/sw/project]</strong> <em>(obj clang-project)</em></dt>
-<dd><p>Ensure <code>clang-project</code> has a compilation-database populated.
-</p></dd></dl>
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fPROJECT-1"></span><h3 class="section">A.47 SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/PROJECT</h3>
 <span id="Generic_002dFunction-sel_002fsw_002fproject_003acollect_002dother_002dfiles"></span><dl>
 <dt id="index-collect_002dother_002dfiles-_005bsel_002fsw_002fproject_005d">Generic Function: <strong>collect-other-files [sel/sw/project]</strong> <em>project</em></dt>
 <dd><p>Find parseable files in <code>project</code> that were not included in &lsquo;evolve-files&rsquo;.
@@ -87,18 +67,26 @@ non-symlink text files that don&rsquo;t end in &quot;~&quot; and are not ignored
 <dd><p>Wrapper to represent JSON files as JSON software objects instead of
 simple text software objects.
 </p></dd></dl>
-<span id="Generic_002dFunction-sel_002fsw_002fproject_003aignored_002devolve_002dpath_002dp"></span><dl>
-<dt id="index-ignored_002devolve_002dpath_002dp-_005bsel_002fsw_002fproject_005d">Generic Function: <strong>ignored-evolve-path-p [sel/sw/project]</strong> <em>software path</em></dt>
-<dd><p>Check if <code>path</code> is an ignored evolve path in <code>software</code>.
-</p></dd></dl>
 <span id="Generic_002dFunction-sel_002fsw_002fproject_003aignored_002dother_002dpath_002dp"></span><dl>
 <dt id="index-ignored_002dother_002dpath_002dp-_005bsel_002fsw_002fproject_005d">Generic Function: <strong>ignored-other-path-p [sel/sw/project]</strong> <em>software path</em></dt>
 <dd><p>Check if <code>path</code> is an ignored other path in <code>software</code>.
 </p></dd></dl>
-<span id="Generic_002dFunction-sel_002fsw_002fproject_003apick_002dfile"></span><dl>
-<dt id="index-pick_002dfile-_005bsel_002fsw_002fproject_005d">Generic Function: <strong>pick-file [sel/sw/project]</strong> <em>obj</em></dt>
-<dd><p>Randomly pick one evolve file. Return its index in
-the alist.
+<span id="Class-sel_002fsw_002fproject_003ainclude_002dpaths_002dmixin"></span><dl>
+<dt id="index-include_002dpaths_002dmixin-_005bsel_002fsw_002fproject_005d">Class: <strong>include-paths-mixin [sel/sw/project]</strong></dt>
+<dd><p>Class precedence list: <code>include-paths-mixin, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>include-paths</code> &mdash; initarg: <code><span class="nolinebreak">:include-paths</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/project:include-paths</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/project:include-paths)</span><!-- /@w --></code>
+
+<p>List of pathnames (either absolute
+or relative to the root of the project) in which include files are
+to be searched
+</p></li></ul>
+
+<p>Mixin for finding include files.  This can be combined
+with a project class or a class for software objects for files of specific
+languages, such as C or C++.
 </p></dd></dl>
 <span id="Class-sel_002fsw_002fproject_003aproject"></span><dl>
 <dt id="index-project-_005bsel_002fsw_002fproject_005d">Class: <strong>project [sel/sw/project]</strong></dt>
@@ -147,6 +135,46 @@ Paths may contain wildcards.
 <p>A project is composed of multiple component software objects.
 <code>e</code>.g., a multi-file C software project may include multiple clang
 software objects in it&rsquo;s &lsquo;evolve-files&rsquo;.
+</p></dd></dl>
+<span id="Variable-sel_002fsw_002fproject_003a_002abuild_002ddir_002a"></span><dl>
+<dt id="index-_002abuild_002ddir_002a-_005bsel_002fsw_002fproject_005d">Variable: <strong>*build-dir* [sel/sw/project]</strong></dt>
+<dd><p>Directory in which to build projects with &lsquo;phenome&rsquo;.
+When non-nil &lsquo;phenome&rsquo; builds projects in this directory instead of
+the &lsquo;project-dir&rsquo; field of the software object.  Calling &lsquo;phenome&rsquo; on
+software objects sharing the same project-dir in multiple threads will
+lead to conflicts.  This may be avoided by giving each thread its own
+build directory.  To do this set <code>*build-dir*</code> to a different location
+in each thread and then initialize <code>*build-dir*</code> in each thread by
+calling &lsquo;{to-file _ *BUILD_DIR*}&rsquo; against a base software
+object (e.g., the original program).
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fproject_003acollect_002devolve_002dfiles"></span><dl>
+<dt id="index-collect_002devolve_002dfiles-_005bsel_002fsw_002fproject_005d">Generic Function: <strong>collect-evolve-files [sel/sw/project]</strong> <em>project</em></dt>
+<dd><p>Create the evolve files for <code>project</code>.
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fproject_003acollect_002devolve_002dfiles-before-_0028_0028obj-clang_002dproject_0029_0029"></span><dl>
+<dt id="index-before-collect_002devolve_002dfiles-_005bsel_002fsw_002fproject_005d">Method: <strong>before collect-evolve-files [sel/sw/project]</strong> <em>(obj clang-project)</em></dt>
+<dd><p>Ensure <code>clang-project</code> has a compilation-database populated.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fproject_003adirectories_002dof_002dheader_002dfiles"></span><dl>
+<dt id="index-directories_002dof_002dheader_002dfiles-_005bsel_002fsw_002fproject_005d">Generic Function: <strong>directories-of-header-files [sel/sw/project]</strong> <em>project &amp;key types</em></dt>
+<dd><p>Return a list of the pathnames of directories
+that contain header files.   <code>types</code> is a list of strings of the
+types of files to loeok for (defaults to (&quot;h&quot;)).  Names are
+sorted into shortlex order by namestring.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fproject_003afind_002dinclude_002dfiles"></span><dl>
+<dt id="index-find_002dinclude_002dfiles-_005bsel_002fsw_002fproject_005d">Generic Function: <strong>find-include-files [sel/sw/project]</strong> <em>project file include-name</em></dt>
+<dd><p>Locate the include file(s) for inclusion of include-name.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fproject_003aignored_002devolve_002dpath_002dp"></span><dl>
+<dt id="index-ignored_002devolve_002dpath_002dp-_005bsel_002fsw_002fproject_005d">Generic Function: <strong>ignored-evolve-path-p [sel/sw/project]</strong> <em>software path</em></dt>
+<dd><p>Check if <code>path</code> is an ignored evolve path in <code>software</code>.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fproject_003apick_002dfile"></span><dl>
+<dt id="index-pick_002dfile-_005bsel_002fsw_002fproject_005d">Generic Function: <strong>pick-file [sel/sw/project]</strong> <em>obj</em></dt>
+<dd><p>Randomly pick one evolve file. Return its index in
+the alist.
 </p></dd></dl>
 
 <hr>

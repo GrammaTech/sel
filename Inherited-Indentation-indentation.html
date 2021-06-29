@@ -55,7 +55,7 @@ Previous: <a href="Lighter-asm-alternatives-light_002frange_002fdiff.html" acces
 </div>
 <hr>
 
-<span id="Inherited-Indentation"></span><h4 class="subsection">2.1.12 Inherited Indentation</h4>
+<span id="Inherited-Indentation"></span><h4 class="subsection">2.1.17 Inherited Indentation</h4>
 
 <p>The insertion and removal of ASTs in a software object often results
 in indentation that doesn&rsquo;t match the surrounding code. The indentation
@@ -90,15 +90,17 @@ It provided the following slots:
     A number that indicates how many spaces should be added after newlines
     the precede a child of the AST. The value <code>'t</code> can be provided,
     and the slot&rsquo;s value will be populated lazily with its parent&rsquo;s value or
-    a sane default based on the rest of the file. The initial form is 0.
+    a sane default based on the rest of the file. The initial form is <code>nil</code>.
 
-</li><li> <code>'indent-adjustment</code>
-    A number that indicates the difference in indentation provided by an
-    AST&rsquo;s parents and the spaces on its current line. This value is also
-    added to the indentation given to children. The value <code>'match-parent</code>
-    can be provided, and a value will instead be used that will match the
-    indentation of the current line with that of its parent. The initial
-    form is 0.
+</li><li> <code>'indent-adjustment</code> A number (possibly negative that indicates
+    the difference in indentation provided by an AST&rsquo;s parents and
+    the spaces on its current line. This value is also added to
+    the indentation given to children. The value <code>nil</code> can be
+    provided, and a value will instead be used that will match the
+    indentation of the current line with that of its parent. The
+    initial form is <code>nil</code>. Note that 0 and <code>nil</code> are not the same: zero
+    indentation adjustment means the node will rigidly retain its
+    original indentation.
 
 </li></ul>
 <span id="Parsing"></span><h4 class="subsubheading">Parsing</h4>

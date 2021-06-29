@@ -129,6 +129,23 @@ Ensure that the name of the inserted decl is used by
 <p>Insert a full statement fodder AST into a clang software
 object
 </p></dd></dl>
+<span id="Class-sel_002fsw_002fclang_002dw_002dfodder_003areplace_002dfodder_002dfull"></span><dl>
+<dt id="index-replace_002dfodder_002dfull-_005bsel_002fsw_002fclang_002dw_002dfodder_005d">Class: <strong>replace-fodder-full [sel/sw/clang-w-fodder]</strong></dt>
+<dd><p>Class precedence list: <code>replace-fodder-full, clang-replace, clang-mutation, parseable-replace, parseable-mutation, mutation, oid-object, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p>Replace an AST in a clang software object with a full
+statement fodder AST.
+</p></dd></dl>
 <span id="Class-sel_002fsw_002fclang_002dw_002dfodder_003areplace_002dfodder_002dsame"></span><dl>
 <dt id="index-replace_002dfodder_002dsame-_005bsel_002fsw_002fclang_002dw_002dfodder_005d">Class: <strong>replace-fodder-same [sel/sw/clang-w-fodder]</strong></dt>
 <dd><p>Class precedence list: <code>replace-fodder-same, clang-replace, clang-mutation, parseable-replace, parseable-mutation, mutation, oid-object, standard-object, slot-object, t</code>
@@ -155,6 +172,10 @@ total fraction of decl, swap, and cut mutations from
 and replace mutations are decreased precipitously to make room for the
 new fodder mutations.  Fodder mutations make up 2/5 of all
 mutations.
+</p></dd></dl>
+<span id="Variable-sel_002fsw_002fclang_002dw_002dfodder_003a_002aclang_002dw_002dfodder_002dnew_002dmutation_002dtypes_002a"></span><dl>
+<dt id="index-_002aclang_002dw_002dfodder_002dnew_002dmutation_002dtypes_002a-_005bsel_002fsw_002fclang_002dw_002dfodder_005d">Variable: <strong>*clang-w-fodder-new-mutation-types* [sel/sw/clang-w-fodder]</strong></dt>
+<dd><p>Fodder mutation types.
 </p></dd></dl>
 <span id="Variable-sel_002fsw_002fclang_002dw_002dfodder_003a_002adatabase_002a"></span><dl>
 <dt id="index-_002adatabase_002a-_005bsel_002fsw_002fclang_002dw_002dfodder_005d">Variable: <strong>*database* [sel/sw/clang-w-fodder]</strong></dt>
@@ -190,27 +211,6 @@ mutations.
 </li><li> <code>decl</code> select a decl AST if true
 </li></ul>
 </dd></dl>
-<span id="Class-sel_002fsw_002fclang_002dw_002dfodder_003areplace_002dfodder_002dfull"></span><dl>
-<dt id="index-replace_002dfodder_002dfull-_005bsel_002fsw_002fclang_002dw_002dfodder_005d">Class: <strong>replace-fodder-full [sel/sw/clang-w-fodder]</strong></dt>
-<dd><p>Class precedence list: <code>replace-fodder-full, clang-replace, clang-mutation, parseable-replace, parseable-mutation, mutation, oid-object, standard-object, slot-object, t</code>
-</p>
-<p>Slots:
-</p><ul>
-<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> targets.
-</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> random target.
-</p></li></ul>
-
-<p>Replace an AST in a clang software object with a full
-statement fodder AST.
-</p></dd></dl>
-<span id="Variable-sel_002fsw_002fclang_002dw_002dfodder_003a_002aclang_002dw_002dfodder_002dnew_002dmutation_002dtypes_002a"></span><dl>
-<dt id="index-_002aclang_002dw_002dfodder_002dnew_002dmutation_002dtypes_002a-_005bsel_002fsw_002fclang_002dw_002dfodder_005d">Variable: <strong>*clang-w-fodder-new-mutation-types* [sel/sw/clang-w-fodder]</strong></dt>
-<dd><p>Fodder mutation types.
-</p></dd></dl>
 <span id="Function-sel_002fsw_002fclang_002dw_002dfodder_003aprepare_002dfodder"></span><dl>
 <dt id="index-prepare_002dfodder-_005bsel_002fsw_002fclang_002dw_002dfodder_005d">Function: <strong>prepare-fodder [sel/sw/clang-w-fodder]</strong> <em>obj database snippet pt</em></dt>
 <dd><p>Prepare <code>snippet</code> for insertion into <code>obj</code> at <code>pt</code>.

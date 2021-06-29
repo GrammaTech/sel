@@ -55,6 +55,12 @@ Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fSERAPI_002d
 </div>
 <hr>
 <span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fCOMPONENTS_002fSEARCHABLE-1"></span><h3 class="section">A.14 SOFTWARE-EVOLUTION-LIBRARY/COMPONENTS/SEARCHABLE</h3>
+<span id="Class-sel_002fcp_002fsearchable_003asearchable"></span><dl>
+<dt id="index-searchable-_005bsel_002fcp_002fsearchable_005d">Class: <strong>searchable [sel/cp/searchable]</strong></dt>
+<dd><p>Class precedence list: <code>searchable, standard-object, slot-object, t</code>
+</p>
+<p><code>docfixme</code>
+</p></dd></dl>
 <span id="Function-sel_002fcp_002fsearchable_003adiff_002dscalar"></span><dl>
 <dt id="index-diff_002dscalar-_005bsel_002fcp_002fsearchable_005d">Function: <strong>diff-scalar [sel/cp/searchable]</strong> <em>original-seq modified-seq</em></dt>
 <dd><p>Return an integer representing the diff size of two sequences
@@ -103,12 +109,6 @@ property is true.
 </p>
 <p>Otherwise, consider all ASTs.
 </p></dd></dl>
-<span id="Class-sel_002fcp_002fsearchable_003asearchable"></span><dl>
-<dt id="index-searchable-_005bsel_002fcp_002fsearchable_005d">Class: <strong>searchable [sel/cp/searchable]</strong></dt>
-<dd><p>Class precedence list: <code>searchable, standard-object, slot-object, t</code>
-</p>
-<p><code>docfixme</code>
-</p></dd></dl>
 <span id="Generic_002dFunction-sel_002fcp_002fsearchable_003asimilar_002dsnippets"></span><dl>
 <dt id="index-similar_002dsnippets-_005bsel_002fcp_002fsearchable_005d">Generic Function: <strong>similar-snippets [sel/cp/searchable]</strong> <em>searchable target &amp;key predicate metric key limit ast-class limit-considered filter</em></dt>
 <dd><p>Return snippets from <code>searchable</code> similar to <code>target</code>
@@ -124,8 +124,12 @@ property is true.
 </li><li> <code>:filter</code> limit search to snippets for which <code>filter</code> returns false
 </li></ul>
 </dd></dl>
+<span id="Method-sel_002fcp_002fsearchable_003asimilar_002dsnippets-_0028_0028db-searchable_0029-target-_0026key-key-ast_002dclass--limit-_0028predicate-_0023_0027_003c_0029--_0028metric-_0023_0027diff_002dscalar_0029-_0028filter-_0023_0027null_0029--_0028limit_002dconsidered-infinity_0029_0029"></span><dl>
+<dt id="index-similar_002dsnippets-_005bsel_002fcp_002fsearchable_005d-1">Method: <strong>similar-snippets [sel/cp/searchable]</strong> <em>(db searchable) target &amp;key key ast-class limit (predicate (function &lt;)) (metric (function diff-scalar)) (filter (function null)) (limit-considered infinity)</em></dt>
+<dd><p><code>docfixme</code>
+</p></dd></dl>
 <span id="Method-sel_002fcp_002fsearchable_003asimilar_002dsnippets-_0028_0028obj-pliny_002ddatabase_0029-target-_0026key-predicate--metric-key-ast_002dclass-limit_002dconsidered--_0028limit-_0028_002d-_0028expt-2-32_0029-1_0029_0029-_0028filter-_0023_0027null_0029_0029"></span><dl>
-<dt id="index-similar_002dsnippets-_005bsel_002fcp_002fsearchable_005d-1">Method: <strong>similar-snippets [sel/cp/searchable]</strong> <em>(obj pliny-database) target &amp;key predicate metric key ast-class limit-considered (limit (- (expt 2 32) 1)) (filter (function null))</em></dt>
+<dt id="index-similar_002dsnippets-_005bsel_002fcp_002fsearchable_005d-2">Method: <strong>similar-snippets [sel/cp/searchable]</strong> <em>(obj pliny-database) target &amp;key predicate metric key ast-class limit-considered (limit (- (expt 2 32) 1)) (filter (function null))</em></dt>
 <dd><p><code>docfixme</code>
 </p>
 <ul>
@@ -139,10 +143,6 @@ property is true.
 </li><li> <code>filter</code> <code>docfixme</code>
 </li></ul>
 </dd></dl>
-<span id="Method-sel_002fcp_002fsearchable_003asimilar_002dsnippets-_0028_0028db-searchable_0029-target-_0026key-key-ast_002dclass--limit-_0028predicate-_0023_0027_003c_0029--_0028metric-_0023_0027diff_002dscalar_0029-_0028filter-_0023_0027null_0029--_0028limit_002dconsidered-infinity_0029_0029"></span><dl>
-<dt id="index-similar_002dsnippets-_005bsel_002fcp_002fsearchable_005d-2">Method: <strong>similar-snippets [sel/cp/searchable]</strong> <em>(db searchable) target &amp;key key ast-class limit (predicate (function &lt;)) (metric (function diff-scalar)) (filter (function null)) (limit-considered infinity)</em></dt>
-<dd><p><code>docfixme</code>
-</p></dd></dl>
 <span id="Generic_002dFunction-sel_002fcp_002fsearchable_003aweighted_002dpick"></span><dl>
 <dt id="index-weighted_002dpick-_005bsel_002fcp_002fsearchable_005d">Generic Function: <strong>weighted-pick [sel/cp/searchable]</strong> <em>searchable target weight &amp;key predicate metric key limit ast-class filter limit-considered</em></dt>
 <dd><p>Perform a random pick weighted by weight from &lsquo;similar-snippets&rsquo;.

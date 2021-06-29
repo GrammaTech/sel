@@ -24,7 +24,7 @@ A copy of the license is included in the section entitled
 <link href="Combined-Index.html" rel="index" title="Combined Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
 <link href="Software-Objects.html" rel="up" title="Software Objects">
-<link href="C_002fC_002b_002b-with-clang.html" rel="next" title="C/C++ with clang">
+<link href="Setting-up-libtree_002dsitter.html" rel="next" title="Setting up libtree-sitter">
 <link href="Software-Objects.html" rel="prev" title="Software Objects">
 <style type="text/css">
 <!--
@@ -58,6 +58,19 @@ Next: <a href="C_002fC_002b_002b-with-clang.html" accesskey="n" rel="next">C/C++
 <span id="Source-Code-with-tree_002dsitter-1"></span><h4 class="subsection">2.1.1 Source Code with <code>tree-sitter</code></h4>
 
 
+<table class="menu" border="0" cellspacing="0">
+<tr><td align="left" valign="top">&bull; <a href="Setting-up-libtree_002dsitter.html" accesskey="1">Setting up libtree-sitter</a></td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Install the main tree-sitter library
+</td></tr>
+<tr><td align="left" valign="top">&bull; <a href="Per_002dlanguage-Modules.html" accesskey="2">Per-language Modules</a></td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Install language-specific tree-sitter libraries
+</td></tr>
+<tr><td align="left" valign="top">&bull; <a href="cl_002dtree_002dsitter-Setup.html" accesskey="3">cl-tree-sitter Setup</a></td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Install the Common Lisp tree-sitter bindings
+</td></tr>
+<tr><td align="left" valign="top">&bull; <a href="Structured-Text.html" accesskey="4">Structured Text</a></td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Tree-sitter ASTs with implicit structured source text
+</td></tr>
+<tr><td align="left" valign="top">&bull; <a href="Templates.html" accesskey="5">Templates</a></td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Templates for easy AST creation and destructuring
+</td></tr>
+</table>
+
 <p>The <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fTREE_002dSITTER.html#Class-sel_002fsw_002fts_003atree_002dsitter"><code>sel/sw/ts:tree-sitter</code></a> software object class is the primary
 base class for representing software source code which has been
 parsed into structured abstract syntax trees (ASTs) or more
@@ -76,7 +89,9 @@ language module for libtree-sitter.
 Parsers</a> for full list.  The <code>tree-sitter</code> classes are generated at
 compile time. This is done by analyzing the <samp>node-types.json</samp>
 and <samp>grammar.json</samp> files that are located in tree-sitter
-language modules.  The <code>SEL_TREE_SITTER_LANGUAGE_DIR</code>
+language modules, of which the format can be found here:
+<a href="https://tree-sitter.github.io/tree-sitter/using-parsers#static-node-types">https://tree-sitter.github.io/tree-sitter/using-parsers#static-node-types</a>.
+The <code>SEL_TREE_SITTER_LANGUAGE_DIR</code>
 environment variable can be set to modify where the JSON files are
 expected. By default,
 <samp>/usr/share/tree-sitter/</samp>,<samp>/usr/local/share/tree-sitter/</samp>,
@@ -109,178 +124,6 @@ full complement of more sophisticated
 of <code>cffi</code> it depends on. It also depends on libtree-sitter and
 tree-sitter language modules for every desired language.
 </p>
-<span id="Setting-up-libtree_002dsitter"></span><h4 class="subsubheading">Setting up libtree-sitter</h4>
-<p>Clone the following repo: <a href="https://github.com/tree-sitter/tree-sitter">https://github.com/tree-sitter/tree-sitter</a>.
-</p>
-<p>Run the following from its base directory:
-</p>
-<table class="cartouche" border="1"><tr><td>
-<div class="example">
-<pre class="example">    # From tree-sitter/
-    # sudo make all install can run to do both of the following.
-    make
-    # Move the shared object to a place where it can be found.
-    sudo mv libtree-sitter.so /usr/lib/
-</pre></div>
-</td></tr></table>
-
-<span id="Per_002dlanguage-Modules"></span><h4 class="subsubheading">Per-language Modules</h4>
-
-<p>Each language has its own module that can be used with tree-sitter. All of
-the languages that are currently supported can be found here:
-<a href="https://github.com/tree-sitter">https://github.com/tree-sitter</a>.
-</p>
-<p>For convience:
-</p><ul>
-<li> <a href="https://github.com/tree-sitter/tree-sitter-c">https://github.com/tree-sitter/tree-sitter-c</a>
-</li><li> <a href="https://github.com/tree-sitter/tree-sitter-java">https://github.com/tree-sitter/tree-sitter-java</a>
-</li><li> <a href="https://github.com/tree-sitter/tree-sitter-javascript">https://github.com/tree-sitter/tree-sitter-javascript</a>
-</li><li> <a href="https://github.com/tree-sitter/tree-sitter-json">https://github.com/tree-sitter/tree-sitter-json</a>
-</li><li> <a href="https://github.com/tree-sitter/tree-sitter-python">https://github.com/tree-sitter/tree-sitter-python</a>
-
-</li></ul>
-<p>To set-up a language, the following script can be used from the base
-directory of the language module&rsquo;s directory:
-</p>
-<table class="cartouche" border="1"><tr><td>
-<div class="example">
-<pre class="example">    #!/bin/bash
-    language=$1
-
-    [ $# -eq 0 ] &amp;&amp; { echo &quot;Usage: $0 language_name&quot;; exit 1; }
-
-    cd src/
-
-    if test -f &quot;scanner.cc&quot;; then
-        clang++ -fPIC scanner.cc -c -lstdc++
-        clang -std=c99 -fPIC parser.c -c
-        clang++ -shared scanner.o parser.o -o /usr/lib/tree-sitter-$(echo ${language}|sed 's|/|-|').so
-    elif test -f &quot;scanner.c&quot;; then
-        clang -std=c99 -fPIC scanner.c -c
-        clang -std=c99 -fPIC parser.c -c
-        clang -shared scanner.o parser.o -o /usr/lib/tree-sitter-$(echo ${language}|sed 's|/|-|').so
-    else
-        clang -std=c99 -fPIC parser.c -c
-        clang -shared parser.o -o /usr/lib/tree-sitter-$(echo ${language}|sed 's|/|-|').so
-    fi
-
-    sudo mkdir -p /usr/share/tree-sitter/${language}/
-    sudo cp grammar.json node-types.json /usr/share/tree-sitter/${language}
-</pre></div>
-</td></tr></table>
-
-<p>If everything is desired, the following can be used:
-</p>
-<table class="cartouche" border="1"><tr><td>
-<div class="example">
-<pre class="example">    #!/bin/bash
-    for language in agda bash c c-sharp cpp css go html java javascript jsdoc json julia ocaml/ocaml ocaml/interface php python ql regex ruby rust scala typescript/tsx typescript/typescript;do
-        [ -d tree-sitter-${language%/*} ] || git clone --depth=1 https://github.com/tree-sitter/tree-sitter-${language%/*}
-        cd tree-sitter-${language}/src
-        if test -f &quot;scanner.cc&quot;; then
-            clang++ -fPIC scanner.cc -c -lstdc++
-            clang -std=c99 -fPIC parser.c -c
-            clang++ -shared scanner.o parser.o -o /usr/lib/tree-sitter-$(echo ${language}|sed 's|/|-|').so
-        elif test -f &quot;scanner.c&quot;; then
-            clang -std=c99 -fPIC scanner.c -c
-            clang -std=c99 -fPIC parser.c -c
-            clang -shared scanner.o parser.o -o /usr/lib/tree-sitter-$(echo ${language}|sed 's|/|-|').so
-        else
-            clang -std=c99 -fPIC parser.c -c
-            clang -shared parser.o -o /usr/lib/tree-sitter-$(echo ${language}|sed 's|/|-|').so
-        fi
-        mkdir -p /usr/share/tree-sitter/${language}/
-        cp grammar.json node-types.json /usr/share/tree-sitter/${language}
-        cd -
-    done
-</pre></div>
-</td></tr></table>
-
-<p>On Arch Linux the
-<a href="https://aur.archlinux.org/packages/tree-sitter-languages-git/">tree-sitter-languages-git</a> <code>aur</code> package may be used to install
-tree-sitter support for many languages.
-</p>
-<p>On MacOS the following shell script may be used to achieve similar
-results:
-</p>
-<table class="cartouche" border="1"><tr><td>
-<div class="example">
-<pre class="example">    #!/bin/bash
-
-    declare -a LANGUAGES
-    LANGUAGES=agda bash c c-sharp cpp css go html java javascript jsdoc json julia ocaml/ocaml ocaml/interface php python ql regex ruby rust scala typescript/tsx typescript/typescript
-
-    clone() {
-      for language in ${LANGUAGES};do
-        LANG=&quot;$(echo ${language}|sed 's|/|-|')&quot;
-        git clone https://github.com/tree-sitter/tree-sitter-${LANG} src/tree-sitter-${LANG}
-      done
-    }
-
-    package() {
-      for language in ${LANGUAGES};do
-        echo $language
-        LANG=&quot;$(echo ${language}|sed 's|/|-|')&quot;
-        BASE=&quot;tree-sitter-${LANG}&quot;
-        cd src/tree-sitter-${language}/src
-        if test -f &quot;scanner.cc&quot;; then
-            c++ -fPIC scanner.cc -c -lstdc++
-            cc -std=c99 -fPIC parser.c -c
-            ar rcs ${BASE}.a scanner.o parser.o
-            c++ -dynamiclib -Wl,-install_name,/usr/local/lib/${BASE}.0.dylib scanner.o parser.o -o ${BASE}.0.0.dylib
-            ln -sf ${BASE}.0.0.dylib ${BASE}.dylib        
-            ln -sf ${BASE}.0.0.dylib ${BASE}.0.dylib
-            sudo install -d &quot;/usr/local/lib/tree-sitter/$LANG&quot;
-            sudo install -m755 ${BASE}.a &quot;/usr/local/lib/tree-sitter/${BASE}&quot;.a
-            sudo install -m755 ${BASE}.0.0.dylib '/usr/local/lib'/${BASE}.0.0.dylib
-            ln -sf ${BASE}.0.0.dylib '/usr/local/lib'/${BASE}.0.dylib
-            ln -sf ${BASE}.0.0.dylib '/usr/local/lib'/${BASE}.dylib
-        elif test -f &quot;scanner.c&quot;; then
-            cc -std=c99 -fPIC scanner.c -c
-            cc -std=c99 -fPIC parser.c -c
-            ar rcs ${BASE}.a scanner.o parser.o
-            c++ -dynamiclib -Wl,-install_name,/usr/local/lib/${BASE}.0.dylib scanner.o parser.o -o ${BASE}.0.0.dylib
-            ln -sf ${BASE}.0.0.dylib ${BASE}.dylib        
-            ln -sf ${BASE}.0.0.dylib ${BASE}.0.dylib
-            sudo install -d &quot;/usr/local/lib/tree-sitter/$LANG&quot;
-            sudo install -m755 ${BASE}.a &quot;/usr/local/lib/tree-sitter/${BASE}&quot;.a
-            sudo install -m755 ${BASE}.0.0.dylib '/usr/local/lib'/${BASE}.0.0.dylib
-            ln -sf ${BASE}.0.0.dylib '/usr/local/lib'/${BASE}.0.dylib
-            ln -sf ${BASE}.0.0.dylib '/usr/local/lib'/${BASE}.dylib
-        else
-            cc -std=c99 -fPIC parser.c -c
-            ar rcs ${BASE}.a parser.o
-            c++ -dynamiclib -Wl,-install_name,/usr/local/lib/${BASE}.0.dylib parser.o -o ${BASE}.0.0.dylib
-            ln -sf ${BASE}.0.0.dylib ${BASE}.dylib        
-            ln -sf ${BASE}.0.0.dylib ${BASE}.0.dylib
-            sudo install -d &quot;/usr/local/lib/tree-sitter/$LANG&quot;
-            sudo install -m755 ${BASE}.a &quot;/usr/local/lib/tree-sitter/${BASE}&quot;.a
-            sudo install -m755 ${BASE}.0.0.dylib '/usr/local/lib'/${BASE}.0.0.dylib
-            ln -sf ${BASE}.0.0.dylib '/usr/local/lib'/${BASE}.0.dylib
-            ln -sf ${BASE}.0.0.dylib '/usr/local/lib'/${BASE}.dylib
-        fi
-        sudo install -d /usr/local/share/tree-sitter/${language}/
-        sudo install -m644 grammar.json node-types.json /usr/local/share/tree-sitter/${language}/
-        cd - &gt;/dev/null
-      done
-
-    }
-
-    mkdir -p src/
-    clone
-    package
-</pre></div>
-</td></tr></table>
-
-<span id="cl_002dtree_002dsitter-setup"></span><h4 class="subsubheading">cl-tree-sitter setup</h4>
-
-<p>Clone the following repositories to the local-projects directory for quicklisp:
-</p><ul>
-<li> <a href="https://github.com/death/cl-tree-sitter">https://github.com/death/cl-tree-sitter</a>
-</li><li> <a href="https://github.com/death/cffi">https://github.com/death/cffi</a>
-
-</li></ul>
-
 <hr>
 <div class="header">
 <p>

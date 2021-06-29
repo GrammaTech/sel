@@ -1,0 +1,85 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- This file documents the Software Evolution library
+
+Copyright (C) 2014-2018 Eric Schulte and GrammaTech
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
+A copy of the license is included in the section entitled
+"GNU Free Documentation License." -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Building the SEL Python Library (Software Evolution Library)</title>
+
+<meta name="description" content="Building the SEL Python Library (Software Evolution Library)">
+<meta name="keywords" content="Building the SEL Python Library (Software Evolution Library)">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<link href="index.html" rel="start" title="Top">
+<link href="Combined-Index.html" rel="index" title="Combined Index">
+<link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
+<link href="Python-Library.html" rel="up" title="Python Library">
+<link href="Running-the-SEL-Python-Library.html" rel="next" title="Running the SEL Python Library">
+<link href="Python-Library.html" rel="prev" title="Python Library">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<span id="Building-the-SEL-Python-Library"></span><div class="header">
+<p>
+Next: <a href="Running-the-SEL-Python-Library.html" accesskey="n" rel="next">Running the SEL Python Library</a>, Previous: <a href="Python-Library.html" accesskey="p" rel="prev">Python Library</a>, Up: <a href="Python-Library.html" accesskey="u" rel="up">Python Library</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+<span id="Building-the-SEL-Python-Library-1"></span><h3 class="section">7.1 Building the SEL Python Library</h3>
+<span id="index-building-the-sel-python-library"></span>
+
+<p>There are two pieces to the SEL Python Library; the LISP interface thru which
+the python library interacts with SEL and the python library itself.
+</p>
+<p>To begin, we will start with the LISP interface.  From the base of the SEL
+repository, the following is sufficient to build the interface and place
+it on your <code>$PATH</code>:
+</p>
+<div class="example">
+<pre class="example">make bin/tree-sitter-interface
+export PATH=$(pwd)/bin:$PATH
+</pre></div>
+
+<p>Now that we have built the LISP interface, we can build the python library.
+First, enter the <code>python/</code> directory of this repository.  From there,
+build and install the library as follows:
+</p>
+<div class="example">
+<pre class="example">python3 setup.py bdist_wheel
+pip3 install dist/*
+</pre></div>
+
+
+
+
+</body>
+</html>

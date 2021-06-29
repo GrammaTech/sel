@@ -54,7 +54,7 @@ ul.no-bullet {list-style: none}
 Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fUTILITY_002fTASK.html" accesskey="n" rel="next">SOFTWARE-EVOLUTION-LIBRARY/UTILITY/TASK</a>, Previous: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fUTILITY_002fJSON.html" accesskey="p" rel="prev">SOFTWARE-EVOLUTION-LIBRARY/UTILITY/JSON</a>, Up: <a href="Software-Evolution-Library-Index.html" accesskey="u" rel="up">Software Evolution Library Index</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fUTILITY_002fRANGE-1"></span><h3 class="section">A.60 SOFTWARE-EVOLUTION-LIBRARY/UTILITY/RANGE</h3>
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fUTILITY_002fRANGE-1"></span><h3 class="section">A.64 SOFTWARE-EVOLUTION-LIBRARY/UTILITY/RANGE</h3>
 <span id="Generic_002dFunction-sel_002futility_002frange_003acontains"></span><dl>
 <dt id="index-contains-_005bsel_002futility_002frange_005d">Generic Function: <strong>contains [sel/utility/range]</strong> <em>range location</em></dt>
 <dd><p>Return true if <code>range</code> fully subsumes <code>location</code>.
@@ -64,8 +64,16 @@ Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fUTILITY_002fTASK.html" acc
 <dd><p>Return true if <code>a-range</code> and <code>b-range</code> intersect.
 </p></dd></dl>
 <span id="Function-sel_002futility_002frange_003aposition_002d_003esource_002dlocation"></span><dl>
-<dt id="index-position_002d_003esource_002dlocation-_005bsel_002futility_002frange_005d">Function: <strong>position-&gt;source-location [sel/utility/range]</strong> <em>string pos</em></dt>
+<dt id="index-position_002d_003esource_002dlocation-_005bsel_002futility_002frange_005d">Function: <strong>position-&gt;source-location [sel/utility/range]</strong> <em>string pos &amp;optional newlines</em></dt>
 <dd><p>Translate <code>pos</code>, a position in <code>string</code>, into a source location object.
+If <code>newlines</code> is provided, it should be the value returned for <code>string</code> by
+&lsquo;precompute-newline-offsets&rsquo;.
+</p></dd></dl>
+<span id="Function-sel_002futility_002frange_003aprecompute_002dnewline_002doffsets"></span><dl>
+<dt id="index-precompute_002dnewline_002doffsets-_005bsel_002futility_002frange_005d">Function: <strong>precompute-newline-offsets [sel/utility/range]</strong> <em>string</em></dt>
+<dd><p>Precompute a cache of newline offsets in <code>string</code>.
+Can be used by &lsquo;position-&gt;source-location&rsquo; and
+&lsquo;source-location-&gt;position&rsquo;.
 </p></dd></dl>
 <span id="Generic_002dFunction-sel_002futility_002frange_003arange"></span><dl>
 <dt id="index-range-_005bsel_002futility_002frange_005d">Generic Function: <strong>range [sel/utility/range]</strong> <em>map</em></dt>
@@ -81,6 +89,10 @@ are mapped by the map.
 <dd><p>Return true if source location A is equal to or comes
 before <code>b</code>.
 </p></dd></dl>
+<span id="Generic_002dFunction-sel_002futility_002frange_003asource_002d_003d"></span><dl>
+<dt id="index-source_002d_003d-_005bsel_002futility_002frange_005d">Generic Function: <strong>source-= [sel/utility/range]</strong> <em>a b</em></dt>
+<dd><p>Return true if source location A is equal to <code>b</code>.
+</p></dd></dl>
 <span id="Generic_002dFunction-sel_002futility_002frange_003asource_002d_003e"></span><dl>
 <dt id="index-source_002d_003e-_005bsel_002futility_002frange_005d">Generic Function: <strong>source-&gt; [sel/utility/range]</strong> <em>a b</em></dt>
 <dd><p>Return true if source location A comes strictly after <code>b</code>.
@@ -91,18 +103,23 @@ before <code>b</code>.
 after <code>b</code>.
 </p></dd></dl>
 <span id="Function-sel_002futility_002frange_003asource_002dlocation_002d_003eposition"></span><dl>
-<dt id="index-source_002dlocation_002d_003eposition-_005bsel_002futility_002frange_005d">Function: <strong>source-location-&gt;position [sel/utility/range]</strong> <em>text location</em></dt>
+<dt id="index-source_002dlocation_002d_003eposition-_005bsel_002futility_002frange_005d">Function: <strong>source-location-&gt;position [sel/utility/range]</strong> <em>text location &amp;optional newlines</em></dt>
 <dd><p>Translate <code>location</code>, a source location, into a position in <code>text</code>.
 Note the position may actually point beyond <code>text</code> if the source
 location has an extra newline, which can happen because &lsquo;source-range&lsquo;
 addresses a node that ends in a newline as (n+1,1).
+</p>
+<p>If <code>newlines</code> is provided it should be the value returned for <code>text</code> by
+&lsquo;precompute-newline-offsets&rsquo;.
 </p></dd></dl>
 <span id="Generic_002dFunction-sel_002futility_002frange_003asource_002drange_002dsubseq"></span><dl>
-<dt id="index-source_002drange_002dsubseq-_005bsel_002futility_002frange_005d">Generic Function: <strong>source-range-subseq [sel/utility/range]</strong> <em>string source-range</em></dt>
+<dt id="index-source_002drange_002dsubseq-_005bsel_002futility_002frange_005d">Generic Function: <strong>source-range-subseq [sel/utility/range]</strong> <em>string source-range &amp;optional newlines</em></dt>
 <dd><p>Get the subsequence of <code>string</code> corresponding to <code>source-range</code>.
+If <code>newlines</code> is provided it should be the value returned for <code>string</code> by
+&lsquo;precompute-newline-offsets&rsquo;.
 </p></dd></dl>
-<span id="Method-sel_002futility_002frange_003asource_002drange_002dsubseq-_0028_0028line_002doctets-vector_0029-source_002drange-_0026aux--_0028start-_0028begin-source_002drange_0029_0029--_0028end-_0028end-source_002drange_0029_0029_0029"></span><dl>
-<dt id="index-source_002drange_002dsubseq-_005bsel_002futility_002frange_005d-1">Method: <strong>source-range-subseq [sel/utility/range]</strong> <em>(line-octets vector) source-range &amp;aux (start (begin source-range)) (end (end source-range))</em></dt>
+<span id="Method-sel_002futility_002frange_003asource_002drange_002dsubseq-_0028_0028line_002doctets-vector_0029-source_002drange--_0026optional-newlines-_0026aux--_0028start-_0028begin-source_002drange_0029_0029--_0028end-_0028end-source_002drange_0029_0029_0029"></span><dl>
+<dt id="index-source_002drange_002dsubseq-_005bsel_002futility_002frange_005d-1">Method: <strong>source-range-subseq [sel/utility/range]</strong> <em>(line-octets vector) source-range &amp;optional newlines &amp;aux (start (begin source-range)) (end (end source-range))</em></dt>
 <dd><p>Get the subsequence of <code>line-octets</code> corresponding to <code>source-range</code>.
 </p></dd></dl>
 

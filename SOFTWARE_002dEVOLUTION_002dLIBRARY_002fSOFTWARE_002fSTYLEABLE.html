@@ -54,7 +54,7 @@ ul.no-bullet {list-style: none}
 Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fSUPER_002dMUTANT.html" accesskey="n" rel="next">SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/SUPER-MUTANT</a>, Previous: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fSIMPLE.html" accesskey="p" rel="prev">SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/SIMPLE</a>, Up: <a href="Software-Evolution-Library-Index.html" accesskey="u" rel="up">Software Evolution Library Index</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fSTYLEABLE-1"></span><h3 class="section">A.51 SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/STYLEABLE</h3>
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fSTYLEABLE-1"></span><h3 class="section">A.50 SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/STYLEABLE</h3>
 <span id="Variable-sel_002fsw_002fstyleable_003a_002aclang_002dc_002dast_002dclasses_002a"></span><dl>
 <dt id="index-_002aclang_002dc_002dast_002dclasses_002a-_005bsel_002fsw_002fstyleable_005d">Variable: <strong>*clang-c-ast-classes* [sel/sw/styleable]</strong></dt>
 <dd><p>List of clang C ast-class types.
@@ -225,68 +225,6 @@ also &lsquo;*clang-c-ast-keywords-auto-count*&rsquo;.
 <dt id="index-avg_002ddepth_002dast_002dextractor-_005bsel_002fsw_002fstyleable_005d">Generic Function: <strong>avg-depth-ast-extractor [sel/sw/styleable]</strong> <em>software</em></dt>
 <dd><p>Return 1-element feature vector of the average depth of ASTs in <code>software</code>.
 </p></dd></dl>
-<span id="Generic_002dFunction-sel_002fsw_002fstyleable_003abi_002dgrams_002dhashtable_002dto_002dfeature"></span><dl>
-<dt id="index-bi_002dgrams_002dhashtable_002dto_002dfeature-_005bsel_002fsw_002fstyleable_005d">Generic Function: <strong>bi-grams-hashtable-to-feature [sel/sw/styleable]</strong> <em>software bi-grams</em></dt>
-<dd><p>Return a feature-vector containing counts of bi-grams in
-<code>software</code> stored in <code>bi-grams</code>.
-</p></dd></dl>
-<span id="Method-sel_002fsw_002fstyleable_003abi_002dgrams_002dhashtable_002dto_002dfeature-_0028_0028clang-clang_0029--_0028bi_002dgrams-hash_002dtable_0029_0029"></span><dl>
-<dt id="index-bi_002dgrams_002dhashtable_002dto_002dfeature-_005bsel_002fsw_002fstyleable_005d-1">Method: <strong>bi-grams-hashtable-to-feature [sel/sw/styleable]</strong> <em>(clang clang) (bi-grams hash-table)</em></dt>
-<dd><p>Return a feature-vector containing counts of bi-grams in <code>clang</code> stored in
-hash-table <code>bi-grams</code>.
-</p><ul>
-<li> <code>clang</code> a clang software object
-</li><li> <code>bi-grams</code> a hash-table containing bi-grams counts
-</li></ul>
-</dd></dl>
-<span id="Class-sel_002fsw_002fstyleable_003astyle_002dfeature"></span><dl>
-<dt id="index-style_002dfeature-_005bsel_002fsw_002fstyleable_005d">Class: <strong>style-feature [sel/sw/styleable]</strong></dt>
-<dd><p>Class precedence list: <code>style-feature, standard-object, slot-object, t</code>
-</p>
-<p>Slots:
-</p><ul>
-<li> <code>feature-name</code> &mdash; initarg: <code><span class="nolinebreak">:feature-name</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/styleable:feature-name</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/styleable:feature-name)</span><!-- /@w --></code>
-
-<p>Name of style feature.
-</p></li><li> <code>extractor-fn</code> &mdash; initarg: <code><span class="nolinebreak">:extractor-fn</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/styleable:extractor-fn</span><!-- /@w --></code>
-
-<p>Feature extractor function, takes a software object
-and returns a feature vector and metadata necessary to merge feature vectors.
-</p></li><li> <code>merge-fn</code> &mdash; initarg: <code><span class="nolinebreak">:merge-fn</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/styleable:merge-fn</span><!-- /@w --></code>
-
-<p>Function to merge two feature vectors. Takes as input a
-two feature vectors and their metadata (as returned by the extractor) and
-returns a new feature vector and updated metadata.
-</p></li></ul>
-
-<p>Type of style feature, including a feature extractor and an
-accompanying merge function for combining feature vectors.
-</p></dd></dl>
-<span id="Class-sel_002fsw_002fstyleable_003astyle_002dproject"></span><dl>
-<dt id="index-style_002dproject-_005bsel_002fsw_002fstyleable_005d">Class: <strong>style-project [sel/sw/styleable]</strong></dt>
-<dd><p>Class precedence list: <code>style-project, styleable, project, software, oid-object, standard-object, slot-object, t</code>
-</p>
-<p>A project with style-features.
-</p></dd></dl>
-<span id="Class-sel_002fsw_002fstyleable_003astyleable"></span><dl>
-<dt id="index-styleable-_005bsel_002fsw_002fstyleable_005d">Class: <strong>styleable [sel/sw/styleable]</strong></dt>
-<dd><p>Class precedence list: <code>styleable, software, oid-object, standard-object, slot-object, t</code>
-</p>
-<p>Slots:
-</p><ul>
-<li> <code>features</code> &mdash; initarg: <code>:features<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/styleable:features</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/styleable:features)</span><!-- /@w --></code>
-
-<p>Ordered list of style features.
-</p></li><li> <code>feature-vecs</code> &mdash; initarg: <code><span class="nolinebreak">:feature-vecs</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/styleable:feature-vecs</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/styleable:feature-vecs)</span><!-- /@w --></code>
-
-<p>Vector of feature vectors, same length as features list.
-</p></li><li> <code>feature-vec-meta</code> &mdash; initarg: <code><span class="nolinebreak">:feature-vec-meta</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/styleable:feature-vec-meta</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/styleable:feature-vec-meta)</span><!-- /@w --></code>
-
-<p>Vector of feature vector metadata.
-</p></li></ul>
-
-<p>Type of software objects that can have style features extracted.
-</p></dd></dl>
 <span id="Variable-sel_002fsw_002fstyleable_003aavg_002ddepth_002dast_002dfeature"></span><dl>
 <dt id="index-avg_002ddepth_002dast_002dfeature-_005bsel_002fsw_002fstyleable_005d">Variable: <strong>avg-depth-ast-feature [sel/sw/styleable]</strong></dt>
 <dd><p>Average depth of nodes in the AST.
@@ -309,25 +247,20 @@ which will be paired with another such value to create a key.
 <p>used as keys in the hash-table
 * <code>bi-grams-ht</code> a hash table mapping pairs of keys to numbers of occurrences
 </p></dd></dl>
-<span id="Macro-sel_002fsw_002fstyleable_003adefine_002dfeature"></span><dl>
-<dt id="index-define_002dfeature-_005bsel_002fsw_002fstyleable_005d">Macro: <strong>define-feature [sel/sw/styleable]</strong> <em>feature-name feature-desc (extractor-fn eargs extractor-desc &amp;rest ebody) (merge-fn &amp;optional margs &amp;rest mbody)</em></dt>
-<dd><p>A macro for defining feature extractors.
-</p><ul>
-<li> <code>feature-name</code> a new variable of this name will hold the style-feature object
-</li><li> <code>feature-desc</code> a docstring for the variable <code>feature-name</code>
-</li><li> <code>extractor-fn</code> the name for the function to perform feature extraction
-</li><li> <code>eargs</code> argument to <code>extractor-fn</code> (should just be one, a software object)
-</li><li> <code>extractor-desc</code> a docstring for <code>extractor-fn</code>
-</li><li> <code>ebody</code> function body of <code>extractor-fn</code>
-</li><li> <code>merge-fn</code> the merge function to merge two feature vectors for this feature.
-</li></ul>
-<p>If the function doesn&rsquo;t exist, <code>margs</code> and <code>mbody</code> should be provided. Otherwise,
-they should not be provided.
-* <code>margs</code> arguments to the merge function (should be 4: vector1, metadata1,
-vector2, metadata2). Not required if <code>merge-fn</code> is already a defined function.
-* <code>mbody</code> body of the merge function. Not required if <code>merge-fn</code> is already a
-defined function.
+<span id="Generic_002dFunction-sel_002fsw_002fstyleable_003abi_002dgrams_002dhashtable_002dto_002dfeature"></span><dl>
+<dt id="index-bi_002dgrams_002dhashtable_002dto_002dfeature-_005bsel_002fsw_002fstyleable_005d">Generic Function: <strong>bi-grams-hashtable-to-feature [sel/sw/styleable]</strong> <em>software bi-grams</em></dt>
+<dd><p>Return a feature-vector containing counts of bi-grams in
+<code>software</code> stored in <code>bi-grams</code>.
 </p></dd></dl>
+<span id="Method-sel_002fsw_002fstyleable_003abi_002dgrams_002dhashtable_002dto_002dfeature-_0028_0028clang-clang_0029--_0028bi_002dgrams-hash_002dtable_0029_0029"></span><dl>
+<dt id="index-bi_002dgrams_002dhashtable_002dto_002dfeature-_005bsel_002fsw_002fstyleable_005d-1">Method: <strong>bi-grams-hashtable-to-feature [sel/sw/styleable]</strong> <em>(clang clang) (bi-grams hash-table)</em></dt>
+<dd><p>Return a feature-vector containing counts of bi-grams in <code>clang</code> stored in
+hash-table <code>bi-grams</code>.
+</p><ul>
+<li> <code>clang</code> a clang software object
+</li><li> <code>bi-grams</code> a hash-table containing bi-grams counts
+</li></ul>
+</dd></dl>
 <span id="Function-sel_002fsw_002fstyleable_003adiff_002dfeature_002dvectors"></span><dl>
 <dt id="index-diff_002dfeature_002dvectors-_005bsel_002fsw_002fstyleable_005d">Function: <strong>diff-feature-vectors [sel/sw/styleable]</strong> <em>vec1 vec2</em></dt>
 <dd><p>Return a vector of the absolute differences between items in VEC1 and VEC2.
@@ -407,10 +340,6 @@ relative to elements in the list of ASTs).
 <dt id="index-max_002ddepth_002dast_002dextractor-_005bsel_002fsw_002fstyleable_005d">Generic Function: <strong>max-depth-ast-extractor [sel/sw/styleable]</strong> <em>software</em></dt>
 <dd><p>Return 1-element feature vector of the max depth of any AST in <code>software</code>.
 </p></dd></dl>
-<span id="Variable-sel_002fsw_002fstyleable_003amax_002ddepth_002dast_002dfeature"></span><dl>
-<dt id="index-max_002ddepth_002dast_002dfeature-_005bsel_002fsw_002fstyleable_005d">Variable: <strong>max-depth-ast-feature [sel/sw/styleable]</strong></dt>
-<dd><p>Maximum depth of any node in the AST.
-</p></dd></dl>
 <span id="Function-sel_002fsw_002fstyleable_003amerge_002dmax"></span><dl>
 <dt id="index-merge_002dmax-_005bsel_002fsw_002fstyleable_005d">Function: <strong>merge-max [sel/sw/styleable]</strong> <em>vec1 meta1 vec2 meta2</em></dt>
 <dd><p>Return a new vector of the pair-wise maximums for values in VEC1 and VEC2.
@@ -453,12 +382,6 @@ to be a &lsquo;styleable&rsquo; object containing the merged feature vectors and
 </li></ul>
 <p>&lsquo;eq&rsquo; to STYLE1 or STYLE2.
 </p></dd></dl>
-<span id="Function-sel_002fsw_002fstyleable_003anormalize_002dvector"></span><dl>
-<dt id="index-normalize_002dvector-_005bsel_002fsw_002fstyleable_005d">Function: <strong>normalize-vector [sel/sw/styleable]</strong> <em>vec</em></dt>
-<dd><p>Return a copy of <code>vec</code> whose elements have been normalized to sum to 1.
-</p>
-<p>* <code>vec</code> a vector of numeric values.
-</p></dd></dl>
 <span id="Generic_002dFunction-sel_002fsw_002fstyleable_003asearch_002dkeyword"></span><dl>
 <dt id="index-search_002dkeyword-_005bsel_002fsw_002fstyleable_005d">Generic Function: <strong>search-keyword [sel/sw/styleable]</strong> <em>keyword ast</em></dt>
 <dd><p>Return 1 if <code>keyword</code> occurs anywhere in the text of an AST in
@@ -474,6 +397,83 @@ otherwise. Only searches ASTs whose &lsquo;ast-class&rsquo; is in
 </li><li> AST an ast in <code>clang</code>
 </li></ul>
 </dd></dl>
+<span id="Class-sel_002fsw_002fstyleable_003astyle_002dfeature"></span><dl>
+<dt id="index-style_002dfeature-_005bsel_002fsw_002fstyleable_005d">Class: <strong>style-feature [sel/sw/styleable]</strong></dt>
+<dd><p>Class precedence list: <code>style-feature, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>feature-name</code> &mdash; initarg: <code><span class="nolinebreak">:feature-name</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/styleable:feature-name</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/styleable:feature-name)</span><!-- /@w --></code>
+
+<p>Name of style feature.
+</p></li><li> <code>extractor-fn</code> &mdash; initarg: <code><span class="nolinebreak">:extractor-fn</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/styleable:extractor-fn</span><!-- /@w --></code>
+
+<p>Feature extractor function, takes a software object
+and returns a feature vector and metadata necessary to merge feature vectors.
+</p></li><li> <code>merge-fn</code> &mdash; initarg: <code><span class="nolinebreak">:merge-fn</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/styleable:merge-fn</span><!-- /@w --></code>
+
+<p>Function to merge two feature vectors. Takes as input a
+two feature vectors and their metadata (as returned by the extractor) and
+returns a new feature vector and updated metadata.
+</p></li></ul>
+
+<p>Type of style feature, including a feature extractor and an
+accompanying merge function for combining feature vectors.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fstyleable_003astyle_002dproject"></span><dl>
+<dt id="index-style_002dproject-_005bsel_002fsw_002fstyleable_005d">Class: <strong>style-project [sel/sw/styleable]</strong></dt>
+<dd><p>Class precedence list: <code>style-project, styleable, project, software, oid-object, standard-object, slot-object, t</code>
+</p>
+<p>A project with style-features.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fstyleable_003astyleable"></span><dl>
+<dt id="index-styleable-_005bsel_002fsw_002fstyleable_005d">Class: <strong>styleable [sel/sw/styleable]</strong></dt>
+<dd><p>Class precedence list: <code>styleable, software, oid-object, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>features</code> &mdash; initarg: <code>:features<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/styleable:features</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/styleable:features)</span><!-- /@w --></code>
+
+<p>Ordered list of style features.
+</p></li><li> <code>feature-vecs</code> &mdash; initarg: <code><span class="nolinebreak">:feature-vecs</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/styleable:feature-vecs</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/styleable:feature-vecs)</span><!-- /@w --></code>
+
+<p>Vector of feature vectors, same length as features list.
+</p></li><li> <code>feature-vec-meta</code> &mdash; initarg: <code><span class="nolinebreak">:feature-vec-meta</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/styleable:feature-vec-meta</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/styleable:feature-vec-meta)</span><!-- /@w --></code>
+
+<p>Vector of feature vector metadata.
+</p></li></ul>
+
+<p>Type of software objects that can have style features extracted.
+</p></dd></dl>
+<span id="Variable-sel_002fsw_002fstyleable_003amax_002ddepth_002dast_002dfeature"></span><dl>
+<dt id="index-max_002ddepth_002dast_002dfeature-_005bsel_002fsw_002fstyleable_005d">Variable: <strong>max-depth-ast-feature [sel/sw/styleable]</strong></dt>
+<dd><p>Maximum depth of any node in the AST.
+</p></dd></dl>
+<span id="Macro-sel_002fsw_002fstyleable_003adefine_002dfeature"></span><dl>
+<dt id="index-define_002dfeature-_005bsel_002fsw_002fstyleable_005d">Macro: <strong>define-feature [sel/sw/styleable]</strong> <em>feature-name feature-desc (extractor-fn eargs extractor-desc &amp;rest ebody) (merge-fn &amp;optional margs &amp;rest mbody)</em></dt>
+<dd><p>A macro for defining feature extractors.
+</p><ul>
+<li> <code>feature-name</code> a new variable of this name will hold the style-feature object
+</li><li> <code>feature-desc</code> a docstring for the variable <code>feature-name</code>
+</li><li> <code>extractor-fn</code> the name for the function to perform feature extraction
+</li><li> <code>eargs</code> argument to <code>extractor-fn</code> (should just be one, a software object)
+</li><li> <code>extractor-desc</code> a docstring for <code>extractor-fn</code>
+</li><li> <code>ebody</code> function body of <code>extractor-fn</code>
+</li><li> <code>merge-fn</code> the merge function to merge two feature vectors for this feature.
+</li></ul>
+<p>If the function doesn&rsquo;t exist, <code>margs</code> and <code>mbody</code> should be provided. Otherwise,
+they should not be provided.
+* <code>margs</code> arguments to the merge function (should be 4: vector1, metadata1,
+vector2, metadata2). Not required if <code>merge-fn</code> is already a defined function.
+* <code>mbody</code> body of the merge function. Not required if <code>merge-fn</code> is already a
+defined function.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002fstyleable_003anormalize_002dvector"></span><dl>
+<dt id="index-normalize_002dvector-_005bsel_002fsw_002fstyleable_005d">Function: <strong>normalize-vector [sel/sw/styleable]</strong> <em>vec</em></dt>
+<dd><p>Return a copy of <code>vec</code> whose elements have been normalized to sum to 1.
+</p>
+<p>* <code>vec</code> a vector of numeric values.
+</p></dd></dl>
 <span id="Generic_002dFunction-sel_002fsw_002fstyleable_003ato_002dfeature_002dvector"></span><dl>
 <dt id="index-to_002dfeature_002dvector-_005bsel_002fsw_002fstyleable_005d">Generic Function: <strong>to-feature-vector [sel/sw/styleable]</strong> <em>feature-values sorted-keys</em></dt>
 <dd><p>Convert a set of <code>feature-values</code> into a feature vector.

@@ -24,7 +24,7 @@ A copy of the license is included in the section entitled
 <link href="Combined-Index.html" rel="index" title="Combined Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
 <link href="Software-Evolution-Library-Index.html" rel="up" title="Software Evolution Library Index">
-<link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fUTILITY_002fTERMINAL.html" rel="next" title="SOFTWARE-EVOLUTION-LIBRARY/UTILITY/TERMINAL">
+<link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fVIEW.html" rel="next" title="SOFTWARE-EVOLUTION-LIBRARY/VIEW">
 <link href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fUTILITY_002fRANGE.html" rel="prev" title="SOFTWARE-EVOLUTION-LIBRARY/UTILITY/RANGE">
 <style type="text/css">
 <!--
@@ -51,10 +51,10 @@ ul.no-bullet {list-style: none}
 <body lang="en">
 <span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fUTILITY_002fTASK"></span><div class="header">
 <p>
-Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fUTILITY_002fTERMINAL.html" accesskey="n" rel="next">SOFTWARE-EVOLUTION-LIBRARY/UTILITY/TERMINAL</a>, Previous: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fUTILITY_002fRANGE.html" accesskey="p" rel="prev">SOFTWARE-EVOLUTION-LIBRARY/UTILITY/RANGE</a>, Up: <a href="Software-Evolution-Library-Index.html" accesskey="u" rel="up">Software Evolution Library Index</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fVIEW.html" accesskey="n" rel="next">SOFTWARE-EVOLUTION-LIBRARY/VIEW</a>, Previous: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fUTILITY_002fRANGE.html" accesskey="p" rel="prev">SOFTWARE-EVOLUTION-LIBRARY/UTILITY/RANGE</a>, Up: <a href="Software-Evolution-Library-Index.html" accesskey="u" rel="up">Software Evolution Library Index</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fUTILITY_002fTASK-1"></span><h3 class="section">A.61 SOFTWARE-EVOLUTION-LIBRARY/UTILITY/TASK</h3>
+<span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fUTILITY_002fTASK-1"></span><h3 class="section">A.65 SOFTWARE-EVOLUTION-LIBRARY/UTILITY/TASK</h3>
 <span id="Generic_002dFunction-sel_002futility_002ftask_003aprocess_002dtask"></span><dl>
 <dt id="index-process_002dtask-_005bsel_002futility_002ftask_005d">Generic Function: <strong>process-task [sel/utility/task]</strong> <em>task runner</em></dt>
 <dd><p>Process the object, including evaluate fitness, push new Jobs, and
@@ -74,6 +74,22 @@ timing, it&rsquo;s possible that the result won&rsquo;t match that of &lsquo;som
 promises to find the first while &lsquo;some-task&rsquo; may return any element satisfying
 &lsquo;some-task-pred&rsquo;.
 </p></dd></dl>
+<span id="Structure-sel_002futility_002ftask_003atask_002drunner"></span><dl>
+<dt id="index-task_002drunner-_005bsel_002futility_002ftask_005d">Structure: <strong>task-runner [sel/utility/task]</strong></dt>
+<dd><p>Class precedence list: <code>task-runner, structure-object, slot-object, t</code>
+</p>
+<p>The state needed to run multi-threaded tasks and associated jobs.
+</p><ul>
+<li> jobs:         stack of current jobs to execute
+</li><li> workers:      list running worker threads
+</li><li> results:      result objects collected by worker threads
+</li><li> jobs-lock:    (internal) used to synchronize jobs stack
+</li><li> results-lock: (internal) used to synchronnize results list
+</li><li> workers-lock: (internal) used to synchronize worker list
+</li><li> completed-jobs: number of jobs that have been executed and finished
+</li><li> completed-tasks: number of tasks that have finished
+</li></ul>
+</dd></dl>
 <span id="Class-sel_002futility_002ftask_003asome_002dtask"></span><dl>
 <dt id="index-some_002dtask-_005bsel_002futility_002ftask_005d">Class: <strong>some-task [sel/utility/task]</strong></dt>
 <dd><p>Class precedence list: <code>some-task, task, standard-object, slot-object, t</code>
@@ -106,6 +122,16 @@ The <code>object</code> field is a list on whose elements <code>some-task-pred</
 <dd><p>Class precedence list: <code>task, standard-object, slot-object, t</code>
 </p>
 <p>Base class for all task classes.
+</p></dd></dl>
+<span id="Class-sel_002futility_002ftask_003atask_002dmap"></span><dl>
+<dt id="index-task_002dmap-_005bsel_002futility_002ftask_005d-1">Class: <strong>task-map [sel/utility/task]</strong></dt>
+<dd><p>Class precedence list: <code>task-map, task, standard-object, slot-object, t</code>
+</p>
+<p>Task object used to map a function over a sequence using workers.
+</p></dd></dl>
+<span id="Variable-sel_002futility_002ftask_003a_002atask_002drunner_002a"></span><dl>
+<dt id="index-_002atask_002drunner_002a-_005bsel_002futility_002ftask_005d">Variable: <strong>*task-runner* [sel/utility/task]</strong></dt>
+<dd><p>Bind <code>*task-runner*</code> for worker threads
 </p></dd></dl>
 <span id="Macro-sel_002futility_002ftask_003arun_002das_002dtask"></span><dl>
 <dt id="index-run_002das_002dtask-_005bsel_002futility_002ftask_005d">Macro: <strong>run-as-task [sel/utility/task]</strong> <em>(task runner) &amp;body body</em></dt>
@@ -142,32 +168,6 @@ Create new subtasks for each item in the list until either applying the
 predicate <code>some-task-pred</code> in <code>task</code> succeeds or there are no more items in the
 list.
 </p></dd></dl>
-<span id="Structure-sel_002futility_002ftask_003atask_002drunner"></span><dl>
-<dt id="index-task_002drunner-_005bsel_002futility_002ftask_005d">Structure: <strong>task-runner [sel/utility/task]</strong></dt>
-<dd><p>Class precedence list: <code>task-runner, structure-object, slot-object, t</code>
-</p>
-<p>The state needed to run multi-threaded tasks and associated jobs.
-</p><ul>
-<li> jobs:         stack of current jobs to execute
-</li><li> workers:      list running worker threads
-</li><li> results:      result objects collected by worker threads
-</li><li> jobs-lock:    (internal) used to synchronize jobs stack
-</li><li> results-lock: (internal) used to synchronnize results list
-</li><li> workers-lock: (internal) used to synchronize worker list
-</li><li> completed-jobs: number of jobs that have been executed and finished
-</li><li> completed-tasks: number of tasks that have finished
-</li></ul>
-</dd></dl>
-<span id="Class-sel_002futility_002ftask_003atask_002dmap"></span><dl>
-<dt id="index-task_002dmap-_005bsel_002futility_002ftask_005d-1">Class: <strong>task-map [sel/utility/task]</strong></dt>
-<dd><p>Class precedence list: <code>task-map, task, standard-object, slot-object, t</code>
-</p>
-<p>Task object used to map a function over a sequence using workers.
-</p></dd></dl>
-<span id="Variable-sel_002futility_002ftask_003a_002atask_002drunner_002a"></span><dl>
-<dt id="index-_002atask_002drunner_002a-_005bsel_002futility_002ftask_005d">Variable: <strong>*task-runner* [sel/utility/task]</strong></dt>
-<dd><p>Bind <code>*task-runner*</code> for worker threads
-</p></dd></dl>
 <span id="Function-sel_002futility_002ftask_003atask_002dmap"></span><dl>
 <dt id="index-task_002dmap-_005bsel_002futility_002ftask_005d">Function: <strong>task-map [sel/utility/task]</strong> <em>num-threads function objects</em></dt>
 <dd><p>Run <code>function</code> over <code>objects</code> using a &lsquo;simple-job&rsquo; &lsquo;task-job&rsquo;.
@@ -196,7 +196,7 @@ list.
 <hr>
 <div class="header">
 <p>
-Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fUTILITY_002fTERMINAL.html" accesskey="n" rel="next">SOFTWARE-EVOLUTION-LIBRARY/UTILITY/TERMINAL</a>, Previous: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fUTILITY_002fRANGE.html" accesskey="p" rel="prev">SOFTWARE-EVOLUTION-LIBRARY/UTILITY/RANGE</a>, Up: <a href="Software-Evolution-Library-Index.html" accesskey="u" rel="up">Software Evolution Library Index</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fVIEW.html" accesskey="n" rel="next">SOFTWARE-EVOLUTION-LIBRARY/VIEW</a>, Previous: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fUTILITY_002fRANGE.html" accesskey="p" rel="prev">SOFTWARE-EVOLUTION-LIBRARY/UTILITY/RANGE</a>, Up: <a href="Software-Evolution-Library-Index.html" accesskey="u" rel="up">Software Evolution Library Index</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
 </div>
 
 

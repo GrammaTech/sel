@@ -1,0 +1,78 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- This file documents the Software Evolution library
+
+Copyright (C) 2014-2018 Eric Schulte and GrammaTech
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
+A copy of the license is included in the section entitled
+"GNU Free Documentation License." -->
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Setting up libtree-sitter (Software Evolution Library)</title>
+
+<meta name="description" content="Setting up libtree-sitter (Software Evolution Library)">
+<meta name="keywords" content="Setting up libtree-sitter (Software Evolution Library)">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<link href="index.html" rel="start" title="Top">
+<link href="Combined-Index.html" rel="index" title="Combined Index">
+<link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
+<link href="Source-Code-with-tree_002dsitter.html" rel="up" title="Source Code with tree-sitter">
+<link href="Per_002dlanguage-Modules.html" rel="next" title="Per-language Modules">
+<link href="Source-Code-with-tree_002dsitter.html" rel="prev" title="Source Code with tree-sitter">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<span id="Setting-up-libtree_002dsitter"></span><div class="header">
+<p>
+Next: <a href="Per_002dlanguage-Modules.html" accesskey="n" rel="next">Per-language Modules</a>, Previous: <a href="Source-Code-with-tree_002dsitter.html" accesskey="p" rel="prev">Source Code with <code>tree-sitter</code></a>, Up: <a href="Source-Code-with-tree_002dsitter.html" accesskey="u" rel="up">Source Code with <code>tree-sitter</code></a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+<span id="Setting-up-libtree_002dsitter-1"></span><h4 class="subsection">2.1.2 Setting up libtree-sitter</h4>
+<span id="index-setting_002dup_002dlibtree_002dsitter"></span>
+
+<p>Clone the following repo: <a href="https://github.com/tree-sitter/tree-sitter">https://github.com/tree-sitter/tree-sitter</a>.
+</p>
+<p>Run the following from its base directory:
+</p>
+<table class="cartouche" border="1"><tr><td>
+<div class="example">
+<pre class="example">    # From tree-sitter/
+    # sudo make all install can run to do both of the following.
+    make
+    # Move the shared object to a place where it can be found.
+    sudo mv libtree-sitter.so /usr/lib/
+</pre></div>
+</td></tr></table>
+
+
+
+
+</body>
+</html>

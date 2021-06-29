@@ -55,6 +55,10 @@ Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fCLANG_002dEXP
 </div>
 <hr>
 <span id="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fCLANG-1"></span><h3 class="section">A.29 SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/CLANG</h3>
+<span id="Variable-sel_002fsw_002fclang_003a_002aclang_002dmutation_002dtypes_002a"></span><dl>
+<dt id="index-_002aclang_002dmutation_002dtypes_002a-_005bsel_002fsw_002fclang_005d">Variable: <strong>*clang-mutation-types* [sel/sw/clang]</strong></dt>
+<dd><p>Cumulative distribution of normalized probabilities of weighted mutations.
+</p></dd></dl>
 <span id="Constant-sel_002fsw_002fclang_003a_002bc_002darithmetic_002dassignment_002doperators_002b"></span><dl>
 <dt id="index-_002bc_002darithmetic_002dassignment_002doperators_002b-_005bsel_002fsw_002fclang_005d">Constant: <strong>+c-arithmetic-assignment-operators+ [sel/sw/clang]</strong></dt>
 <dd><p>C arithmetic assignment operators.
@@ -135,6 +139,14 @@ full statements
 <span id="Generic_002dFunction-sel_002fsw_002fclang_003aast_002dreferenceddecl"></span><dl>
 <dt id="index-ast_002dreferenceddecl-_005bsel_002fsw_002fclang_005d">Generic Function: <strong>ast-referenceddecl [sel/sw/clang]</strong> <em>ast</em></dt>
 <dd><p>The declaration referenced by AST.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fclang_003abad_002dstmts"></span><dl>
+<dt id="index-bad_002dstmts-_005bsel_002fsw_002fclang_005d">Generic Function: <strong>bad-stmts [sel/sw/clang]</strong> <em>software</em></dt>
+<dd><p>Return a list of all bad statement asts in <code>software</code>.
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fclang_003abad_002dstmts-_0028_0028clang-clang_0029_0029"></span><dl>
+<dt id="index-bad_002dstmts-_005bsel_002fsw_002fclang_005d-1">Method: <strong>bad-stmts [sel/sw/clang]</strong> <em>(clang clang)</em></dt>
+<dd><p>Return a list of all bad statement ASTs in <code>clang</code>.
 </p></dd></dl>
 <span id="Generic_002dFunction-sel_002fsw_002fclang_003abinding_002dfor_002dfunction"></span><dl>
 <dt id="index-binding_002dfor_002dfunction-_005bsel_002fsw_002fclang_005d">Generic Function: <strong>binding-for-function [sel/sw/clang]</strong> <em>obj functions name arity</em></dt>
@@ -555,60 +567,6 @@ This mutation will transform <code>'a</code>;while<code>(b)</code>;C&rsquo; into
 
 <p>Perform a cut operation on a DeclStmt AST in a clang software object.
 </p></dd></dl>
-<span id="Class-sel_002fsw_002fclang_003aexpand_002darithmatic_002dop"></span><dl>
-<dt id="index-expand_002darithmatic_002dop-_005bsel_002fsw_002fclang_005d">Class: <strong>expand-arithmatic-op [sel/sw/clang]</strong></dt>
-<dd><p>Class precedence list: <code>expand-arithmatic-op, clang-replace, clang-mutation, parseable-replace, parseable-mutation, mutation, oid-object, standard-object, slot-object, t</code>
-</p>
-<p>Slots:
-</p><ul>
-<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> targets.
-</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> random target.
-</p></li></ul>
-
-<p>Expand a compound assignment or increment/decrement operation
-in a clang software object.
-</p></dd></dl>
-<span id="Class-sel_002fsw_002fclang_003aexplode_002dfor_002dloop"></span><dl>
-<dt id="index-explode_002dfor_002dloop-_005bsel_002fsw_002fclang_005d">Class: <strong>explode-for-loop [sel/sw/clang]</strong></dt>
-<dd><p>Class precedence list: <code>explode-for-loop, clang-mutation, mutation, oid-object, standard-object, slot-object, t</code>
-</p>
-<p>Slots:
-</p><ul>
-<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> targets.
-</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> random target.
-</p></li></ul>
-
-<p>Select a &rsquo;for&rsquo; loop and explode it into it&rsquo;s component parts.
-This mutation will transform &rsquo;for(A;<code>b</code>;C)&rsquo; into <code>'a</code>;while<code>(b)</code>;C&rsquo;.
-</p></dd></dl>
-<span id="Class-sel_002fsw_002fclang_003arename_002dvariable"></span><dl>
-<dt id="index-rename_002dvariable-_005bsel_002fsw_002fclang_005d">Class: <strong>rename-variable [sel/sw/clang]</strong></dt>
-<dd><p>Class precedence list: <code>rename-variable, clang-mutation, mutation, oid-object, standard-object, slot-object, t</code>
-</p>
-<p>Slots:
-</p><ul>
-<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> targets.
-</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> random target.
-</p></li></ul>
-
-<p>Replace a variable in a statement with another in scope variable name.
-</p></dd></dl>
-<span id="Variable-sel_002fsw_002fclang_003a_002aclang_002dmutation_002dtypes_002a"></span><dl>
-<dt id="index-_002aclang_002dmutation_002dtypes_002a-_005bsel_002fsw_002fclang_005d">Variable: <strong>*clang-mutation-types* [sel/sw/clang]</strong></dt>
-<dd><p>Cumulative distribution of normalized probabilities of weighted mutations.
-</p></dd></dl>
 <span id="Variable-sel_002fsw_002fclang_003a_002afree_002dvar_002ddecay_002drate_002a"></span><dl>
 <dt id="index-_002afree_002dvar_002ddecay_002drate_002a-_005bsel_002fsw_002fclang_005d">Variable: <strong>*free-var-decay-rate* [sel/sw/clang]</strong></dt>
 <dd><p>The decay rate for choosing variable bindings.
@@ -631,18 +589,6 @@ already in scope, it will keep that name.
 <dt id="index-ast_002di_002dfile-_005bsel_002fsw_002fclang_005d">Function: <strong>ast-i-file [sel/sw/clang]</strong> <em>obj ast</em></dt>
 <dd><p>Return the file AST is located within in a format suitable for use
 in a #include.
-</p></dd></dl>
-<span id="Function-sel_002fsw_002fclang_003aast_002drange_002dstr"></span><dl>
-<dt id="index-ast_002drange_002dstr-_005bsel_002fsw_002fclang_005d">Function: <strong>ast-range-str [sel/sw/clang]</strong> <em>range</em></dt>
-<dd><p>Return a short string-rep for the supplied range.
-</p></dd></dl>
-<span id="Generic_002dFunction-sel_002fsw_002fclang_003abad_002dstmts"></span><dl>
-<dt id="index-bad_002dstmts-_005bsel_002fsw_002fclang_005d">Generic Function: <strong>bad-stmts [sel/sw/clang]</strong> <em>software</em></dt>
-<dd><p>Return a list of all bad statement asts in <code>software</code>.
-</p></dd></dl>
-<span id="Method-sel_002fsw_002fclang_003abad_002dstmts-_0028_0028clang-clang_0029_0029"></span><dl>
-<dt id="index-bad_002dstmts-_005bsel_002fsw_002fclang_005d-1">Method: <strong>bad-stmts [sel/sw/clang]</strong> <em>(clang clang)</em></dt>
-<dd><p>Return a list of all bad statement ASTs in <code>clang</code>.
 </p></dd></dl>
 <span id="Function-sel_002fsw_002fclang_003abinding_002dfor_002dvar"></span><dl>
 <dt id="index-binding_002dfor_002dvar-_005bsel_002fsw_002fclang_005d">Function: <strong>binding-for-var [sel/sw/clang]</strong> <em>obj in-scope name</em></dt>
@@ -701,6 +647,44 @@ variables to replace use of the variables declared in stmt <code>id</code>.
 </li><li> <code>stmt</code> <code>docfixme</code>
 </li></ul>
 </dd></dl>
+<span id="Class-sel_002fsw_002fclang_003aexpand_002darithmatic_002dop"></span><dl>
+<dt id="index-expand_002darithmatic_002dop-_005bsel_002fsw_002fclang_005d">Class: <strong>expand-arithmatic-op [sel/sw/clang]</strong></dt>
+<dd><p>Class precedence list: <code>expand-arithmatic-op, clang-replace, clang-mutation, parseable-replace, parseable-mutation, mutation, oid-object, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p>Expand a compound assignment or increment/decrement operation
+in a clang software object.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fclang_003aexplode_002dfor_002dloop"></span><dl>
+<dt id="index-explode_002dfor_002dloop-_005bsel_002fsw_002fclang_005d">Class: <strong>explode-for-loop [sel/sw/clang]</strong></dt>
+<dd><p>Class precedence list: <code>explode-for-loop, clang-mutation, mutation, oid-object, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p>Select a &rsquo;for&rsquo; loop and explode it into it&rsquo;s component parts.
+This mutation will transform &rsquo;for(A;<code>b</code>;C)&rsquo; into <code>'a</code>;while<code>(b)</code>;C&rsquo;.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002fclang_003aast_002drange_002dstr"></span><dl>
+<dt id="index-ast_002drange_002dstr-_005bsel_002fsw_002fclang_005d">Function: <strong>ast-range-str [sel/sw/clang]</strong> <em>range</em></dt>
+<dd><p>Return a short string-rep for the supplied range.
+</p></dd></dl>
 <span id="Generic_002dFunction-sel_002fsw_002fclang_003afind_002dor_002dadd_002dtype"></span><dl>
 <dt id="index-find_002dor_002dadd_002dtype-_005bsel_002fsw_002fclang_005d">Generic Function: <strong>find-or-add-type [sel/sw/clang]</strong> <em>obj trace-name &amp;rest args &amp;key &amp;allow-other-keys</em></dt>
 <dd><p>Find the type with the given <code>trace-name</code> representation in
@@ -761,6 +745,22 @@ or <code>nil</code> if there is no entry point.
 <dt id="index-good_002dstmts-_005bsel_002fsw_002fclang_005d-1">Method: <strong>good-stmts [sel/sw/clang]</strong> <em>(clang clang)</em></dt>
 <dd><p>Return a list of all good statement ASTs in <code>clang</code>.
 </p></dd></dl>
+<span id="Class-sel_002fsw_002fclang_003arename_002dvariable"></span><dl>
+<dt id="index-rename_002dvariable-_005bsel_002fsw_002fclang_005d">Class: <strong>rename-variable [sel/sw/clang]</strong></dt>
+<dd><p>Class precedence list: <code>rename-variable, clang-mutation, mutation, oid-object, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p>Replace a variable in a statement with another in scope variable name.
+</p></dd></dl>
 <span id="Function-sel_002fsw_002fclang_003amake_002darray_002dsubscript_002dexpr"></span><dl>
 <dt id="index-make_002darray_002dsubscript_002dexpr-_005bsel_002fsw_002fclang_005d">Function: <strong>make-array-subscript-expr [sel/sw/clang]</strong> <em>array-expr subscript-expr &amp;rest rest</em></dt>
 <dd><p>Create a array subscript expression AST.
@@ -815,16 +815,6 @@ or <code>nil</code> if there is no entry point.
 </li><li> REST additional arguments to &lsquo;make-statement&rsquo;
 </li></ul>
 </dd></dl>
-<span id="Function-sel_002fsw_002fclang_003amake_002dif_002dstmt"></span><dl>
-<dt id="index-make_002dif_002dstmt-_005bsel_002fsw_002fclang_005d">Function: <strong>make-if-stmt [sel/sw/clang]</strong> <em>condition then &amp;optional else &amp;rest rest</em></dt>
-<dd><p>Create an if statement AST.
-</p><ul>
-<li> <code>condition</code> ast for the if statement conditional
-</li><li> <code>then</code> ast for the if statement then body
-</li><li> <code>else</code> optional ast for the if statement else
-</li><li> REST optional additional arguments to &lsquo;make-statement&rsquo;&lsquo;
-</li></ul>
-</dd></dl>
 <span id="Function-sel_002fsw_002fclang_003amake_002dlabel"></span><dl>
 <dt id="index-make_002dlabel-_005bsel_002fsw_002fclang_005d">Function: <strong>make-label [sel/sw/clang]</strong> <em>name child &amp;rest rest</em></dt>
 <dd><p>Create a label AST.
@@ -842,6 +832,32 @@ or <code>nil</code> if there is no entry point.
   Defaults based on the type of value
 </li><li> <code>value</code> value for the literal AST to have
 </li><li> REST additional arguments to &lsquo;make-statement&rsquo;
+</li></ul>
+</dd></dl>
+<span id="Class-sel_002fsw_002fclang_003aswap_002ddecls"></span><dl>
+<dt id="index-swap_002ddecls-_005bsel_002fsw_002fclang_005d">Class: <strong>swap-decls [sel/sw/clang]</strong></dt>
+<dd><p>Class precedence list: <code>swap-decls, clang-swap, clang-mutation, parseable-swap, parseable-mutation, mutation, oid-object, standard-object, slot-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p>Swap two DeclStmt ASTs in a clang software object.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002fclang_003amake_002dif_002dstmt"></span><dl>
+<dt id="index-make_002dif_002dstmt-_005bsel_002fsw_002fclang_005d">Function: <strong>make-if-stmt [sel/sw/clang]</strong> <em>condition then &amp;optional else &amp;rest rest</em></dt>
+<dd><p>Create an if statement AST.
+</p><ul>
+<li> <code>condition</code> ast for the if statement conditional
+</li><li> <code>then</code> ast for the if statement then body
+</li><li> <code>else</code> optional ast for the if statement else
+</li><li> REST optional additional arguments to &lsquo;make-statement&rsquo;&lsquo;
 </li></ul>
 </dd></dl>
 <span id="Function-sel_002fsw_002fclang_003amake_002doperator"></span><dl>
@@ -963,6 +979,10 @@ expanded relative to <code>dir</code>.
 <dd><p>Return a guarded statement in <code>obj</code> from the &lsquo;bad-stmts&rsquo; pool.
 * <code>obj</code> software object to pick from
 </p></dd></dl>
+<span id="Function-sel_002fsw_002fclang_003apick_002drename_002dvariable"></span><dl>
+<dt id="index-pick_002drename_002dvariable-_005bsel_002fsw_002fclang_005d">Function: <strong>pick-rename-variable [sel/sw/clang]</strong> <em>clang</em></dt>
+<dd><p>Pick a statement in <code>clang</code> with a variable and replace with another in scope.
+</p></dd></dl>
 <span id="Function-sel_002fsw_002fclang_003apick_002dswap_002ddecls"></span><dl>
 <dt id="index-pick_002dswap_002ddecls-_005bsel_002fsw_002fclang_005d">Function: <strong>pick-swap-decls [sel/sw/clang]</strong> <em>clang</em></dt>
 <dd><p>Return two DeclStmt AST in <code>clang</code> from the &lsquo;bad-stmts&rsquo; pool.
@@ -1023,26 +1043,6 @@ within a function body, return null.
 <dd><p>The indices of the first and last statements in a function.
 Return as a list of (first-index last-index). Indices are positions in
 the list returned by (asts software).
-</p></dd></dl>
-<span id="Class-sel_002fsw_002fclang_003aswap_002ddecls"></span><dl>
-<dt id="index-swap_002ddecls-_005bsel_002fsw_002fclang_005d">Class: <strong>swap-decls [sel/sw/clang]</strong></dt>
-<dd><p>Class precedence list: <code>swap-decls, clang-swap, clang-mutation, parseable-swap, parseable-mutation, mutation, oid-object, standard-object, slot-object, t</code>
-</p>
-<p>Slots:
-</p><ul>
-<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> targets.
-</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> random target.
-</p></li></ul>
-
-<p>Swap two DeclStmt ASTs in a clang software object.
-</p></dd></dl>
-<span id="Function-sel_002fsw_002fclang_003apick_002drename_002dvariable"></span><dl>
-<dt id="index-pick_002drename_002dvariable-_005bsel_002fsw_002fclang_005d">Function: <strong>pick-rename-variable [sel/sw/clang]</strong> <em>clang</em></dt>
-<dd><p>Pick a statement in <code>clang</code> with a variable and replace with another in scope.
 </p></dd></dl>
 <span id="Generic_002dFunction-sel_002fsw_002fclang_003atype_002ddecl_002dstring"></span><dl>
 <dt id="index-type_002ddecl_002dstring-_005bsel_002fsw_002fclang_005d">Generic Function: <strong>type-decl-string [sel/sw/clang]</strong> <em>type</em></dt>
