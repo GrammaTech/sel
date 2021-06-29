@@ -204,6 +204,10 @@ function name from the API followed by the arguments."
     (sel/sw/ts::c-ast "C")
     (sel/sw/ts::cpp-ast "CPP")))
 
+(-> int/imports (ast) list)
+(defun int/imports (ast)
+  (imports ast))
+
 (-> int/function-asts (ast) list)
 (defun int/function-asts (ast)
   (remove-if-not {typep _ 'function-ast} (convert 'list ast)))

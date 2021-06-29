@@ -199,3 +199,13 @@ class VarsInScopeTestDriver(unittest.TestCase):
         decls = [var["decl"].ast_type() for var in vars_in_scope]
         self.assertEqual(decls[0], "PYTHON-IDENTIFIER")
         self.assertEqual(decls[1], "PYTHON-IDENTIFIER")
+
+
+class ImportsTestDriver(unittest.TestCase):
+    def test_no_imports(self):
+        root = asts.AST("python", "")
+        self.assertEqual([], root.imports())
+
+    def test_imports(self):
+        root = asts.AST("python", "import os\nimport sys as s\nfrom json import dump")
+        self.assertEqual([["os"], ["sys", "s"], ["json", None, "dump"]], root.imports())
