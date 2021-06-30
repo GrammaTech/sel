@@ -168,17 +168,9 @@ Nested lists are not allowed as template arguments:~%~a"
   (mvlet* ((template names placeholders
             (parse-ast-template template class kwargs))
            (ast (convert class template :deepest t)))
-    ;; Check that the AST isn't a source fragment.
-    (when (typep ast 'source-text-fragment)
-      (error "Template cannot be parsed: ~a" template))
-    ;; Check that there are no parse errors.
-    (when-let (errs (collect-if (of-type 'parse-error-ast) ast))
-      (let ((allowed-errors (cons "..." placeholders)))
-        (unless (subsetp (mapcar #'source-text errs)
-                         allowed-errors
-                         :test #'equal)
-          (simple-style-warning
-           "Template contains parse errors:~%~a" template))))
+    ;; Check that there are no source text fragments.
+    (when-let (fragments (collect-if (of-type 'source-text-fragment) ast))
+      (error "Template could not be parsed:~%~a" template))
     ;; Check that the AST is printable.
     (handler-case (source-text ast)
       (error (e)
