@@ -229,6 +229,10 @@
     (is (equal (file-to-string (original-path *soft*))
                (genome-string *soft*)))))
 
+(deftest python-can-handle-future-imports ()
+  (is (not (zerop (size (from-string (make-instance 'python)
+                                     "from __future__ import foo"))))))
+
 (deftest python-can-handle-dos-format ()
   (with-fixture dos-python
     (is (= 38 (size *soft*)))

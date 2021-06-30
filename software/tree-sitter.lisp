@@ -5110,7 +5110,7 @@ the number of immediate tokens encountered."
            (handle-string (rule tree &aux (token (car tree)))
              (when (and (consp token)
                         (atom (car token))
-                        (string-equal (car token) (aget :value rule)))
+                        (string-equal (car token) (convert-name (aget :value rule))))
                (values (cdr tree) t)))
            (handle-token (rule tree &aux (content (aget :content rule)))
              (when (equal (aget :type rule) "IMMEDIATE_TOKEN")
