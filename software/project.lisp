@@ -166,6 +166,16 @@ object (e.g., the original program).")
 (defgeneric collect-evolve-files (project)
   (:documentation "Create the evolve files for PROJECT."))
 
+(defun text-file-p (p)
+  "Given a path, returns true if the file appears to be a text file.
+ This is determined by a heuristic: if no 0 bytes are found in the first
+ 256 bytes, it presumes it is text (and not binary)."
+  (with-open-file (is p :direction :input :element-type 'unsigned-byte)
+    (dotimes (i 256 t)
+      (let ((b (read-byte is nil nil)))
+        (cond ((null b) (return t))
+              ((zerop b) (return nil)))))))
+
 (defgeneric collect-other-files (project)
   (:documentation
    "Find parseable files in PROJECT that were not included in `evolve-files'.
@@ -175,8 +185,7 @@ non-symlink text files that don't end in \"~\" and are not ignored by
   (:method ((project project))
     ;; Create software objects for these other files.
     (nest
-     (flet ((text-file-p (p) (eql :text (car (file-mime-type p))))
-            (ends-in-tilde (s)
+     (flet ((ends-in-tilde (s)
               (let ((len (length s)))
                 (and (> len 0) (eql (elt s (1- len)) #\~))))
             (pathname-has-symlink (p)
