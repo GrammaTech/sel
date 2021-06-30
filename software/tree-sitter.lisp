@@ -244,11 +244,19 @@
 ;;; their slot values. This can leave the AST copy in an invalid state for the
 ;;; subclass it had been copied from. When this is detected, the AST's class
 ;;; will be changed dynamically to the first subclass of the base class which can
-;;; successfully produce source text with the given slot values. This behavior
-;;; also applies to objects created with the base class, but it may choose a
-;;; subclass that's source text is not the desired representation, so it's best
-;;; to specify the exact subclass in case where this matters, such as update
-;;; expressions in C.
+;;; successfully produce source text with the given slot values:
+;;;
+;;; SEL/SW/TS> (find-if (of-type 'python-parameters) (convert 'python-ast "def x(): pass"))
+;;; #<PYTHON-EMPTY-PARAMETERS 847 :TEXT "()">
+;;; SEL/SW/TS> (copy * :children (convert 'python-ast "a" :deepest t))
+;;; #<PYTHON-PARAMETERS-0 847 :TEXT "(a)">
+;;; SEL/SW/TS> (copy * :children nil)
+;;; #<PYTHON-EMPTY-PARAMETERS 847 :TEXT "()">
+;;;
+;;; This behavior also applies to objects created with the base class, but it may
+;;; choose a subclass that's source text is not the desired representation, so
+;;; it's best to specify the exact subclass in case where this matters, such as
+;;; update expressions in C.
 ;;;
 ;;; Structured text ASTs contain at least 4 slots which help store information
 ;;; that isn't implicit to the AST or its parent AST:
