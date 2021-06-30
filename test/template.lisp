@@ -215,3 +215,16 @@ def $READ_NAME():
                (python "def fn($ARG1, $ARG2): pass" :arg1 "x=1" :arg2 "y=2")))
   (signals error
            (python "def fn(@ARGS): pass" :args '("x=1" "y=2"))))
+
+(deftest test-compile-source-fragment-signals-errors ()
+  (signals error
+    (expand-macro-recursively '(python "def foo(@1): " '(1 2 3)))))
+
+(deftest test-can-insert-declarator-as-node ()
+  (is (equal
+       "void name (int a, int b) { }"
+       (source-text
+        (c "void $FUN_NAME $PARAMS { }"
+           :fun-name "fun_x"
+           :params (find-if (of-type 'c-function-declarator)
+                            (convert 'c-ast "int name (int a, int b) {}")))))))
