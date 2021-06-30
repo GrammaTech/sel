@@ -824,6 +824,19 @@ x"
                     '(python-argument)
                     (make 'python-identifier :text "y"))))))
 
+(deftest test-python-dynamic-class-changing ()
+  "The class of an object that no longer matches with its rule is changed."
+  (let* ((no-parameters (find-if (of-type 'python-parameters)
+                                 (convert 'python-ast "def x(): pass")))
+         (one-parameter-copy
+           (copy no-parameters :children (convert 'python-ast "a" :deepest t)))
+         (no-parameters-copy
+           (copy one-parameter-copy :children nil)))
+    (is (equal "(a)" (source-text one-parameter-copy)))
+    (is (equal "()" (source-text no-parameters-copy)))
+    (is (not (equal (type-of one-parameter-copy)
+                    (type-of no-parameters-copy))))))
+
 (deftest (python-tree-sitter-parsing-test :long-running) ()
   (labels ((parsing-test-dir (path)
              (merge-pathnames-as-file
