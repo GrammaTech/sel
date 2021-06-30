@@ -168,8 +168,11 @@ Nested lists are not allowed as template arguments:~%~a"
            (ast (convert class template)))
     ;; Check that there are no parse errors.
     (when-let (errs (collect-if (of-type 'parse-error-ast) ast))
-      (unless (every (op (equal (source-text _) "...")) errs)
-        (error "Template contains parse errors:~%~a" template)))
+      (let ((allowed-errors (cons "..." placeholders)))
+        (unless (subsetp (mapcar #'source-text errs)
+                         allowed-errors
+                         :test #'equal)
+          (error "Template contains parse errors:~%~a" template))))
     ;; Check that the AST is printable.
     (handler-case (source-text ast)
       (error (e)
