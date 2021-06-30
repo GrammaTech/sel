@@ -165,7 +165,10 @@ Nested lists are not allowed as template arguments:~%~a"
   "Compile-time validity checking for templates."
   (mvlet* ((template names placeholders
             (parse-ast-template template class kwargs))
-           (ast (convert class template)))
+           (ast (convert class template :deepest t)))
+    ;; Check that the AST isn't a source fragment.
+    (when (typep ast 'source-text-fragment)
+      (error "Template cannot be parsed: ~a" template))
     ;; Check that there are no parse errors.
     (when-let (errs (collect-if (of-type 'parse-error-ast) ast))
       (let ((allowed-errors (cons "..." placeholders)))
