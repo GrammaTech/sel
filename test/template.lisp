@@ -220,3 +220,7 @@ def $READ_NAME():
   (signals error
     (expand-macro-recursively '(python "def foo(@1): " '(1 2 3)))))
 
+(deftest test-terminal-symbol-as-string ()
+  (let ((ast (c "1 $OP_ARG 2;" :op-arg (make-instance 'c-+))))
+    (is (find-if (of-type 'c-binary-expression) ast))
+    (is (equal (source-text ast) "1 + 2;"))))
