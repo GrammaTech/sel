@@ -61,6 +61,10 @@ Next: <a href="SOFTWARE_002dEVOLUTION_002dLIBRARY_002fSOFTWARE_002fC.html" acces
 </p>
 <p>Mix-in for AST classes that are lists of arguments.
 </p></dd></dl>
+<span id="Compiler_002dMacro-sel_002fsw_002fts_003aast_002dtemplate"></span><dl>
+<dt id="index-ast_002dtemplate-_005bsel_002fsw_002fts_005d">Compiler Macro: <strong>ast-template [sel/sw/ts]</strong> <em>template class &amp;rest args</em></dt>
+<dd><p>Compile-time validity checking for AST templates.
+</p></dd></dl>
 <span id="Generic_002dFunction-sel_002fsw_002fts_003aast_002dtype_002dto_002drebind_002dp"></span><dl>
 <dt id="index-ast_002dtype_002dto_002drebind_002dp-_005bsel_002fsw_002fts_005d">Generic Function: <strong>ast-type-to-rebind-p [sel/sw/ts]</strong> <em>ast</em></dt>
 <dd><p>Return <code>t</code> if AST is of a type where its variables/functions
@@ -101,6 +105,12 @@ should be rebound.
 <dd><p>Class precedence list: <code>c, tree-sitter, software-indentation, parseable, compilable, normal-scope, c-slash-cpp, include-paths-mixin, software, oid-object, file, standard-object, slot-object, t</code>
 </p>
 <p>C tree-sitter software representation.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fts_003ac_002dsource_002dtext_002dfragment"></span><dl>
+<dt id="index-c_002dsource_002dtext_002dfragment-_005bsel_002fsw_002fts_005d">Class: <strong>c-source-text-fragment [sel/sw/ts]</strong></dt>
+<dd><p>Class precedence list: <code>c-source-text-fragment, c-ast, tree-sitter-ast, indentation, structured-text, functional-tree-ast, node, identity-ordering-mixin, ast, stored-hash, source-text-fragment, standard-object, slot-object, t</code>
+</p>
+<p>Generated for source text fragments.
 </p></dd></dl>
 <span id="Class-sel_002fsw_002fts_003ac_002fcpp"></span><dl>
 <dt id="index-c_002fcpp-_005bsel_002fsw_002fts_005d">Class: <strong>c/cpp [sel/sw/ts]</strong></dt>
@@ -234,6 +244,12 @@ should be rebound.
 </p>
 <p>Mix-in for c/cpp break statement AST classes.
 </p></dd></dl>
+<span id="Class-sel_002fsw_002fts_003ac_002fcpp_002dcall_002dexpression"></span><dl>
+<dt id="index-c_002fcpp_002dcall_002dexpression-_005bsel_002fsw_002fts_005d">Class: <strong>c/cpp-call-expression [sel/sw/ts]</strong></dt>
+<dd><p>Class precedence list: <code>c-slash-cpp-call-expression, ast, standard-object, slot-object, t</code>
+</p>
+<p>Mix-in for c/cpp call expression AST classes.
+</p></dd></dl>
 <span id="Class-sel_002fsw_002fts_003ac_002fcpp_002dcase_002dstatement"></span><dl>
 <dt id="index-c_002fcpp_002dcase_002dstatement-_005bsel_002fsw_002fts_005d">Class: <strong>c/cpp-case-statement [sel/sw/ts]</strong></dt>
 <dd><p>Class precedence list: <code>c-slash-cpp-case-statement, ast, standard-object, slot-object, t</code>
@@ -263,6 +279,12 @@ should be rebound.
 <dd><p>Class precedence list: <code>c-slash-cpp-condition-clause, ast, standard-object, slot-object, t</code>
 </p>
 <p>Mix-in for c/cpp condition clause AST classes.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fts_003ac_002fcpp_002dcontinue_002dstatement"></span><dl>
+<dt id="index-c_002fcpp_002dcontinue_002dstatement-_005bsel_002fsw_002fts_005d">Class: <strong>c/cpp-continue-statement [sel/sw/ts]</strong></dt>
+<dd><p>Class precedence list: <code>c-slash-cpp-continue-statement, ast, standard-object, slot-object, t</code>
+</p>
+<p>Mix-in for c/cpp continue statement AST classes.
 </p></dd></dl>
 <span id="Class-sel_002fsw_002fts_003ac_002fcpp_002ddeclaration"></span><dl>
 <dt id="index-c_002fcpp_002ddeclaration-_005bsel_002fsw_002fts_005d">Class: <strong>c/cpp-declaration [sel/sw/ts]</strong></dt>
@@ -438,6 +460,12 @@ should be rebound.
 </p>
 <p>Mix-in for c/cpp union specifier AST classes.
 </p></dd></dl>
+<span id="Class-sel_002fsw_002fts_003ac_002fcpp_002dwhile_002dstatement"></span><dl>
+<dt id="index-c_002fcpp_002dwhile_002dstatement-_005bsel_002fsw_002fts_005d">Class: <strong>c/cpp-while-statement [sel/sw/ts]</strong></dt>
+<dd><p>Class precedence list: <code>c-slash-cpp-while-statement, ast, standard-object, slot-object, t</code>
+</p>
+<p>Mix-in for c/cpp while statement AST classes.
+</p></dd></dl>
 <span id="Class-sel_002fsw_002fts_003ac_002fcpp_002d_005e"></span><dl>
 <dt id="index-c_002fcpp_002d_005e-_005bsel_002fsw_002fts_005d">Class: <strong>c/cpp-^ [sel/sw/ts]</strong></dt>
 <dd><p>Class precedence list: <code>c-slash-cpp-^, ast, standard-object, slot-object, t</code>
@@ -524,11 +552,27 @@ should be rebound.
 </p>
 <p>Mix-in for AST classes that have control flow.
 </p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fts_003acontrol_002dflow_002dcondition"></span><dl>
+<dt id="index-control_002dflow_002dcondition-_005bsel_002fsw_002fts_005d">Generic Function: <strong>control-flow-condition [sel/sw/ts]</strong> <em>control-flow-ast</em></dt>
+<dd><p>Return the condition from a <code>control-flow-ast</code>.
+</p></dd></dl>
 <span id="Class-sel_002fsw_002fts_003acpp"></span><dl>
 <dt id="index-cpp-_005bsel_002fsw_002fts_005d-1">Class: <strong>cpp [sel/sw/ts]</strong></dt>
 <dd><p>Class precedence list: <code>cpp, tree-sitter, software-indentation, parseable, compilable, normal-scope, c-slash-cpp, include-paths-mixin, software, oid-object, file, standard-object, slot-object, t</code>
 </p>
 <p><code>cpp</code> tree-sitter software representation.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fts_003acpp_002dsource_002dtext_002dfragment"></span><dl>
+<dt id="index-cpp_002dsource_002dtext_002dfragment-_005bsel_002fsw_002fts_005d">Class: <strong>cpp-source-text-fragment [sel/sw/ts]</strong></dt>
+<dd><p>Class precedence list: <code>cpp-source-text-fragment, cpp-ast, tree-sitter-ast, indentation, structured-text, functional-tree-ast, node, identity-ordering-mixin, ast, stored-hash, source-text-fragment, standard-object, slot-object, t</code>
+</p>
+<p>Generated for source text fragments.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fts_003adeclarator_002dname"></span><dl>
+<dt id="index-declarator_002dname-_005bsel_002fsw_002fts_005d">Generic Function: <strong>declarator-name [sel/sw/ts]</strong> <em>ast</em></dt>
+<dd><p>Returns a string that is the name of a things
+declared in a declarator, or in the first element of a list of declarators.
+Return <code>nil</code> on the empty list.
 </p></dd></dl>
 <span id="Class-sel_002fsw_002fts_003adefinition_002dast"></span><dl>
 <dt id="index-definition_002dast-_005bsel_002fsw_002fts_005d">Class: <strong>definition-ast [sel/sw/ts]</strong></dt>
@@ -555,52 +599,6 @@ The name string is obtained by by <code>definition-name</code>
 </p>
 <p>Mix-in for ecma error AST classes.
 </p></dd></dl>
-<span id="Macro-sel_002fsw_002fts_003aast_002dfrom_002dtemplate"></span><dl>
-<dt id="index-ast_002dfrom_002dtemplate-_005bsel_002fsw_002fts_005d">Macro: <strong>ast-from-template [sel/sw/ts]</strong> <em>template class &amp;rest args</em></dt>
-<dd><p>In one step, build and destructure a template into ASTs.
-</p>
-<p>Must use the positional syntax of &lsquo;ast-template&rsquo;. Returns one value
-per metavariable, in numeric order (&lsquo;$1&rsquo;, &lsquo;$2&rsquo;, etc.).
-</p>
-<p>Not every kind of AST node can be parsed directly as a template. <code>e</code>.g.
-in Python a tuple, an argument list, and a parameter list all use the
-same syntax and can only be distinguished in context. Or (at the time
-of writing) the C and C++ parsers for tree-sitter cannot correctly
-parse unterminated statements. Using &lsquo;ast-from-template&rsquo; lets you
-provide throwaway context to the parser while pulling out only the
-particular nodes that you want.
-</p></dd></dl>
-<span id="Generic_002dFunction-sel_002fsw_002fts_003acall_002darguments"></span><dl>
-<dt id="index-call_002darguments-_005bsel_002fsw_002fts_005d">Generic Function: <strong>call-arguments [sel/sw/ts]</strong> <em>ast</em></dt>
-<dd><p>Return the arguments of AST.
-</p></dd></dl>
-<span id="Method-sel_002fsw_002fts_003acall_002darguments-_0028_0028python_002dcall-python_002dcall_0029_0029"></span><dl>
-<dt id="index-call_002darguments-_005bsel_002fsw_002fts_005d-1">Method: <strong>call-arguments [sel/sw/ts]</strong> <em>(python-call python-call)</em></dt>
-<dd><p>automatically generated reader method
-</p></dd></dl>
-<span id="Method-sel_002fsw_002fts_003acall_002darguments-_0028_0028cpp_002dcall_002dexpression-cpp_002dcall_002dexpression_0029_0029"></span><dl>
-<dt id="index-call_002darguments-_005bsel_002fsw_002fts_005d-2">Method: <strong>call-arguments [sel/sw/ts]</strong> <em>(cpp-call-expression cpp-call-expression)</em></dt>
-<dd><p>automatically generated reader method
-</p></dd></dl>
-<span id="Method-sel_002fsw_002fts_003acall_002darguments-_0028_0028c_002dcall_002dexpression-c_002dcall_002dexpression_0029_0029"></span><dl>
-<dt id="index-call_002darguments-_005bsel_002fsw_002fts_005d-3">Method: <strong>call-arguments [sel/sw/ts]</strong> <em>(c-call-expression c-call-expression)</em></dt>
-<dd><p>automatically generated reader method
-</p></dd></dl>
-<span id="Generic_002dFunction-sel_002fsw_002fts_003acontrol_002dflow_002dcondition"></span><dl>
-<dt id="index-control_002dflow_002dcondition-_005bsel_002fsw_002fts_005d">Generic Function: <strong>control-flow-condition [sel/sw/ts]</strong> <em>control-flow-ast</em></dt>
-<dd><p>Return the condition from a <code>control-flow-ast</code>.
-</p></dd></dl>
-<span id="Generic_002dFunction-sel_002fsw_002fts_003adeclarator_002dname"></span><dl>
-<dt id="index-declarator_002dname-_005bsel_002fsw_002fts_005d">Generic Function: <strong>declarator-name [sel/sw/ts]</strong> <em>ast</em></dt>
-<dd><p>Returns a string that is the name of a things
-declared in a declarator, or in the first element of a list of declarators.
-Return <code>nil</code> on the empty list.
-</p></dd></dl>
-<span id="Generic_002dFunction-sel_002fsw_002fts_003adefinition_002dname"></span><dl>
-<dt id="index-definition_002dname-_005bsel_002fsw_002fts_005d">Generic Function: <strong>definition-name [sel/sw/ts]</strong> <em>ast</em></dt>
-<dd><p>Return a string that is the name of the things
-defined by a definition.  Return <code>nil</code> if AST is not a definition.
-</p></dd></dl>
 <span id="Generic_002dFunction-sel_002fsw_002fts_003aenclosing_002ddefinition"></span><dl>
 <dt id="index-enclosing_002ddefinition-_005bsel_002fsw_002fts_005d">Generic Function: <strong>enclosing-definition [sel/sw/ts]</strong> <em>sw ast</em></dt>
 <dd><p>Find the enclosing definition AST in which AST resides,
@@ -616,15 +614,25 @@ or <code>nil</code> if none.
 </p>
 <p>Mix-in for AST classes that are expressions.
 </p></dd></dl>
-<span id="Generic_002dFunction-sel_002fsw_002fts_003afind_002denclosing"></span><dl>
-<dt id="index-find_002denclosing-_005bsel_002fsw_002fts_005d">Generic Function: <strong>find-enclosing [sel/sw/ts]</strong> <em>type software ast</em></dt>
-<dd><p>Return the nearest enclosing AST of <code>type</code> in <code>software</code>.
+<span id="Generic_002dFunction-sel_002fsw_002fts_003afind_002dfollowing"></span><dl>
+<dt id="index-find_002dfollowing-_005bsel_002fsw_002fts_005d">Generic Function: <strong>find-following [sel/sw/ts]</strong> <em>type software ast</em></dt>
+<dd><p>Return any siblings of <code>type</code> following AST in <code>software</code>.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fts_003afind_002dpreceding"></span><dl>
+<dt id="index-find_002dpreceding-_005bsel_002fsw_002fts_005d">Generic Function: <strong>find-preceding [sel/sw/ts]</strong> <em>type software ast</em></dt>
+<dd><p>Return any siblings of <code>type</code> preceding AST in <code>software</code>.
 </p></dd></dl>
 <span id="Class-sel_002fsw_002fts_003afloat_002dast"></span><dl>
 <dt id="index-float_002dast-_005bsel_002fsw_002fts_005d">Class: <strong>float-ast [sel/sw/ts]</strong></dt>
 <dd><p>Class precedence list: <code>float-ast, number-ast, literal-ast, ast, standard-object, slot-object, t</code>
 </p>
 <p>Mix-in for AST classes that are literal floats.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fts_003afunction_002dast"></span><dl>
+<dt id="index-function_002dast-_005bsel_002fsw_002fts_005d">Class: <strong>function-ast [sel/sw/ts]</strong></dt>
+<dd><p>Class precedence list: <code>function-ast, ast, standard-object, slot-object, t</code>
+</p>
+<p>Mix-in for AST classes that are functions.
 </p></dd></dl>
 <span id="Generic_002dFunction-sel_002fsw_002fts_003afunction_002dbody"></span><dl>
 <dt id="index-function_002dbody-_005bsel_002fsw_002fts_005d">Generic Function: <strong>function-body [sel/sw/ts]</strong> <em>ast</em></dt>
@@ -634,10 +642,6 @@ or <code>nil</code> if none.
 <dt id="index-function_002dname-_005bsel_002fsw_002fts_005d">Generic Function: <strong>function-name [sel/sw/ts]</strong> <em>node</em></dt>
 <dd><p>Extract the name of the function from <code>node</code>.
 If <code>node</code> is not a function node, return nil.
-</p></dd></dl>
-<span id="Generic_002dFunction-sel_002fsw_002fts_003afunction_002dparameters"></span><dl>
-<dt id="index-function_002dparameters-_005bsel_002fsw_002fts_005d">Generic Function: <strong>function-parameters [sel/sw/ts]</strong> <em>ast</em></dt>
-<dd><p>Return the parameters of AST.
 </p></dd></dl>
 <span id="Generic_002dFunction-sel_002fsw_002fts_003aget_002dvars"></span><dl>
 <dt id="index-get_002dvars-_005bsel_002fsw_002fts_005d">Generic Function: <strong>get-vars [sel/sw/ts]</strong> <em>obj ast</em></dt>
@@ -685,6 +689,12 @@ Every element in the list has the following form:
 </p>
 <p><code>java</code> tree-sitter software representation.
 </p></dd></dl>
+<span id="Class-sel_002fsw_002fts_003ajavascript"></span><dl>
+<dt id="index-javascript-_005bsel_002fsw_002fts_005d-1">Class: <strong>javascript [sel/sw/ts]</strong></dt>
+<dd><p>Class precedence list: <code>javascript, tree-sitter, software-indentation, parseable, normal-scope, ecma, software, oid-object, file, standard-object, slot-object, t</code>
+</p>
+<p><code>javascript</code> tree-sitter software representation.
+</p></dd></dl>
 <span id="Class-sel_002fsw_002fts_003ajson"></span><dl>
 <dt id="index-json-_005bsel_002fsw_002fts_005d-1">Class: <strong>json [sel/sw/ts]</strong></dt>
 <dd><p>Class precedence list: <code>json, tree-sitter, software-indentation, parseable, software, oid-object, file, standard-object, slot-object, t</code>
@@ -696,6 +706,18 @@ Every element in the list has the following form:
 <dd><p>Class precedence list: <code>json-doublequote, json-ast, tree-sitter-ast, indentation, structured-text, functional-tree-ast, node, identity-ordering-mixin, ast, stored-hash, terminal-symbol, standard-object, slot-object, t</code>
 </p>
 <p>Generated for terminal symbol &rsquo;&quot;&rsquo;
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fts_003ajson_002d_002c"></span><dl>
+<dt id="index-json_002d_002c-_005bsel_002fsw_002fts_005d">Class: <strong>json-, [sel/sw/ts]</strong></dt>
+<dd><p>Class precedence list: <code>json-,, json-ast, tree-sitter-ast, indentation, structured-text, functional-tree-ast, node, identity-ordering-mixin, ast, stored-hash, terminal-symbol, standard-object, slot-object, t</code>
+</p>
+<p>Generated for terminal symbol <code>'</code>,<code>'</code>
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fts_003ajson_002d_005f_002dvalue"></span><dl>
+<dt id="index-json_002d_005f_002dvalue-_005bsel_002fsw_002fts_005d">Class: <strong>json-_-value [sel/sw/ts]</strong></dt>
+<dd><p>Class precedence list: <code>json-_-value, json-ast, tree-sitter-ast, indentation, structured-text, functional-tree-ast, node, identity-ordering-mixin, ast, stored-hash, standard-object, slot-object, t</code>
+</p>
+<p>Generated for _value.
 </p></dd></dl>
 <span id="Class-sel_002fsw_002fts_003ajson_002d_003a"></span><dl>
 <dt id="index-json_002d_003a-_005bsel_002fsw_002fts_005d">Class: <strong>json-: [sel/sw/ts]</strong></dt>
@@ -801,12 +823,6 @@ Unlike the &lsquo;children&lsquo; methods which collects all children of an AST 
 
 <p>Mutation interface for JSON software objects.
 </p></dd></dl>
-<span id="Class-sel_002fsw_002fts_003ajson_002dnull"></span><dl>
-<dt id="index-json_002dnull-_005bsel_002fsw_002fts_005d">Class: <strong>json-null [sel/sw/ts]</strong></dt>
-<dd><p>Class precedence list: <code>json-null, json-_-value, json-ast, tree-sitter-ast, indentation, structured-text, functional-tree-ast, node, identity-ordering-mixin, ast, stored-hash, standard-object, slot-object, t</code>
-</p>
-<p>Generated for null.
-</p></dd></dl>
 <span id="Class-sel_002fsw_002fts_003ajson_002dnumber"></span><dl>
 <dt id="index-json_002dnumber-_005bsel_002fsw_002fts_005d">Class: <strong>json-number [sel/sw/ts]</strong></dt>
 <dd><p>Class precedence list: <code>json-number, json-_-value, json-ast, tree-sitter-ast, indentation, structured-text, functional-tree-ast, node, identity-ordering-mixin, ast, stored-hash, standard-object, slot-object, t</code>
@@ -850,6 +866,12 @@ Unlike the &lsquo;children&lsquo; methods which collects all children of an AST 
 </p></li></ul>
 
 <p>Generated for pair.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fts_003ajson_002dsource_002dtext_002dfragment"></span><dl>
+<dt id="index-json_002dsource_002dtext_002dfragment-_005bsel_002fsw_002fts_005d">Class: <strong>json-source-text-fragment [sel/sw/ts]</strong></dt>
+<dd><p>Class precedence list: <code>json-source-text-fragment, json-ast, tree-sitter-ast, indentation, structured-text, functional-tree-ast, node, identity-ordering-mixin, ast, stored-hash, source-text-fragment, standard-object, slot-object, t</code>
+</p>
+<p>Generated for source text fragments.
 </p></dd></dl>
 <span id="Class-sel_002fsw_002fts_003ajson_002dstring"></span><dl>
 <dt id="index-json_002dstring-_005bsel_002fsw_002fts_005d">Class: <strong>json-string [sel/sw/ts]</strong></dt>
@@ -899,18 +921,277 @@ Unlike the &lsquo;children&lsquo; methods which collects all children of an AST 
 </p>
 <p>Mix-in for AST classes that are lambdas.
 </p></dd></dl>
+<span id="Class-sel_002fsw_002fts_003aliteral_002dast"></span><dl>
+<dt id="index-literal_002dast-_005bsel_002fsw_002fts_005d">Class: <strong>literal-ast [sel/sw/ts]</strong></dt>
+<dd><p>Class precedence list: <code>literal-ast, ast, standard-object, slot-object, t</code>
+</p>
+<p>Mix-in for AST classes that are literals.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fts_003aloop_002dast"></span><dl>
+<dt id="index-loop_002dast-_005bsel_002fsw_002fts_005d">Class: <strong>loop-ast [sel/sw/ts]</strong></dt>
+<dd><p>Class precedence list: <code>loop-ast, control-flow-ast, ast, standard-object, slot-object, t</code>
+</p>
+<p>Mix-in for AST classes that are loops.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fts_003anumber_002dast"></span><dl>
+<dt id="index-number_002dast-_005bsel_002fsw_002fts_005d">Class: <strong>number-ast [sel/sw/ts]</strong></dt>
+<dd><p>Class precedence list: <code>number-ast, literal-ast, ast, standard-object, slot-object, t</code>
+</p>
+<p>Mix-in for AST classes that are literal numbers.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fts_003aparameters_002dast"></span><dl>
+<dt id="index-parameters_002dast-_005bsel_002fsw_002fts_005d">Class: <strong>parameters-ast [sel/sw/ts]</strong></dt>
+<dd><p>Class precedence list: <code>parameters-ast, ast, standard-object, slot-object, t</code>
+</p>
+<p>Mix-in for AST classes that are parameter lists.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fts_003aparenthesized_002dexpression_002dast"></span><dl>
+<dt id="index-parenthesized_002dexpression_002dast-_005bsel_002fsw_002fts_005d">Class: <strong>parenthesized-expression-ast [sel/sw/ts]</strong></dt>
+<dd><p>Class precedence list: <code>parenthesized-expression-ast, ast, standard-object, slot-object, t</code>
+</p>
+<p>Mix-in for AST classes that are parenthesized
+    expressions.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fts_003aparse_002derror_002dast"></span><dl>
+<dt id="index-parse_002derror_002dast-_005bsel_002fsw_002fts_005d">Class: <strong>parse-error-ast [sel/sw/ts]</strong></dt>
+<dd><p>Class precedence list: <code>parse-error-ast, ast, standard-object, slot-object, t</code>
+</p>
+<p>Mix-in for AST classes that represent tree-sitter parsing errors.
+</p>
+<p>Superclass of every generated LANGUAGE-error class.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fts_003apython"></span><dl>
+<dt id="index-python-_005bsel_002fsw_002fts_005d-1">Class: <strong>python [sel/sw/ts]</strong></dt>
+<dd><p>Class precedence list: <code>python, tree-sitter, software-indentation, parseable, software, oid-object, file, standard-object, slot-object, t</code>
+</p>
+<p><code>python</code> tree-sitter software representation.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fts_003areturn_002dast"></span><dl>
+<dt id="index-return_002dast-_005bsel_002fsw_002fts_005d">Class: <strong>return-ast [sel/sw/ts]</strong></dt>
+<dd><p>Class precedence list: <code>return-ast, statement-ast, ast, standard-object, slot-object, t</code>
+</p>
+<p>Mix-in for AST classes that are return statements.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fts_003astring_002dast"></span><dl>
+<dt id="index-string_002dast-_005bsel_002fsw_002fts_005d">Class: <strong>string-ast [sel/sw/ts]</strong></dt>
+<dd><p>Class precedence list: <code>string-ast, literal-ast, ast, standard-object, slot-object, t</code>
+</p>
+<p>Mix-in for AST classes that are literal strings.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fts_003atypescript"></span><dl>
+<dt id="index-typescript-_005bsel_002fsw_002fts_005d">Class: <strong>typescript [sel/sw/ts]</strong></dt>
+<dd><p>Class precedence list: <code>typescript, ecma, software, oid-object, standard-object, slot-object, t</code>
+</p>
+<p>Mix-in class for tree-sitter TypeScript variants.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fts_003aunary_002dast"></span><dl>
+<dt id="index-unary_002dast-_005bsel_002fsw_002fts_005d">Class: <strong>unary-ast [sel/sw/ts]</strong></dt>
+<dd><p>Class precedence list: <code>unary-ast, expression-ast, ast, standard-object, slot-object, t</code>
+</p>
+<p>Mix-in for AST classes that are unary expressions.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fts_003awhile_002dast"></span><dl>
+<dt id="index-while_002dast-_005bsel_002fsw_002fts_005d">Class: <strong>while-ast [sel/sw/ts]</strong></dt>
+<dd><p>Class precedence list: <code>while-ast, control-flow-ast, conditional-ast, ast, standard-object, slot-object, t</code>
+</p>
+<p>Mix-in for AST classes that are whiles.
+</p></dd></dl>
 <span id="Variable-sel_002fsw_002fts_003a_002atree_002dsitter_002dlanguage_002ddirectories_002a"></span><dl>
 <dt id="index-_002atree_002dsitter_002dlanguage_002ddirectories_002a-_005bsel_002fsw_002fts_005d">Variable: <strong>*tree-sitter-language-directories* [sel/sw/ts]</strong></dt>
 <dd><p>A list of directories that hold directories of json files
 defining supported tree-sitter languages.  These directories are
 searched to populate &lsquo;*tree-sitter-language-files*&rsquo;.
 </p></dd></dl>
+<span id="Variable-sel_002fsw_002fts_003a_002atree_002dsitter_002dlanguage_002dfiles_002a"></span><dl>
+<dt id="index-_002atree_002dsitter_002dlanguage_002dfiles_002a-_005bsel_002fsw_002fts_005d">Variable: <strong>*tree-sitter-language-files* [sel/sw/ts]</strong></dt>
+<dd><p>Files defining tree sitter languages.
+</p></dd></dl>
+<span id="Macro-sel_002fsw_002fts_003aast_002dfrom_002dtemplate"></span><dl>
+<dt id="index-ast_002dfrom_002dtemplate-_005bsel_002fsw_002fts_005d">Macro: <strong>ast-from-template [sel/sw/ts]</strong> <em>template class &amp;rest args</em></dt>
+<dd><p>In one step, build and destructure a template into ASTs.
+</p>
+<p>Must use the positional syntax of &lsquo;ast-template&rsquo;. Returns one value
+per metavariable, in numeric order (&lsquo;$1&rsquo;, &lsquo;$2&rsquo;, etc.).
+</p>
+<p>This is useful because not every kind of AST node can be parsed
+directly as a template. <code>e</code>.g. in Python a tuple, an argument list, and
+a parameter list all use the same syntax and can only be distinguished
+in context. Or (at the time of writing) the C and C++ parsers for
+tree-sitter cannot correctly parse unterminated statements. Using
+&lsquo;ast-from-template&rsquo; lets you provide throwaway context to the parser
+while pulling out only the particular nodes that you want.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002fts_003aast_002dmixin_002dsubclasses"></span><dl>
+<dt id="index-ast_002dmixin_002dsubclasses-_005bsel_002fsw_002fts_005d">Function: <strong>ast-mixin-subclasses [sel/sw/ts]</strong> <em>class language</em></dt>
+<dd><p>Return a list of AST classes for <code>language</code> that inherit from <code>class</code>.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002fts_003aast_002dtemplate"></span><dl>
+<dt id="index-ast_002dtemplate-_005bsel_002fsw_002fts_005d-1">Function: <strong>ast-template [sel/sw/ts]</strong> <em>template class &amp;rest args</em></dt>
+<dd><p>Create an AST of <code>class</code> from <code>template</code> usings <code>args</code>.
+</p>
+<p>You probably don&rsquo;t want to use this function directly; supported
+languages allow you to use a function with the same name as shorthand
+for creating a template:
+</p>
+<table class="cartouche" border="1"><tr><td>
+<div class="example">
+<pre class="example">    (python &quot;$ID = 1&quot; :id &quot;x&quot;)
+    ≡ (ast-template &quot;$ID = 1&quot; 'python-ast :id &quot;x&quot;)
+</pre></div>
+</td></tr></table>
+
+<p>By default metavariables look like &lsquo;$X&rsquo;, where the name can contain
+only uppercase characters, digits, or underscores. (Syntax can vary
+by language; see &lsquo;template-metavariable&rsquo;.)
+</p>
+<p>Metavariables can also look like &lsquo;@ARGS&rsquo;. In this case they stand for
+a list of ASTs, rather than a single AST.
+</p>
+<table class="cartouche" border="1"><tr><td>
+<div class="example">
+<pre class="example">    (ast-template &quot;fn(@ARGS)&quot; :args '(1 2 3))
+    =&gt; &lt;python-call &quot;fn(1, 2, 3)&quot;&gt;
+</pre></div>
+</td></tr></table>
+
+<p>There are two syntaxes for <code>args</code>.
+</p>
+<p><code>args</code> can be keyword arguments, defaults for the corresponding
+metavariables (converting dashes to underscores):
+</p>
+<table class="cartouche" border="1"><tr><td>
+<div class="example">
+<pre class="example">    (ast-template &quot;$LEFT_HAND_SIDE = $RIGHT_HAND_SIDE&quot; 'python-ast
+                  :left-hand-side &quot;x&quot;
+                  :right-hand-side 1)
+    =&gt; &lt;python-assignment &quot;x = 1&quot;&gt;
+</pre></div>
+</td></tr></table>
+
+<p><code>args</code> can be positional (keywords not allowed!). In this case
+metavariables must be numbered (&lsquo;$1&rsquo;, &lsquo;$2&rsquo;, etc.):
+</p>
+<table class="cartouche" border="1"><tr><td>
+<div class="example">
+<pre class="example">    (ast-template &quot;$1 = $2&quot; 'python-ast &quot;x&quot; 1)
+    ≡ (ast-template &quot;$1 = $2&quot; 'python-ast :1 &quot;x&quot; :2 1)
+
+    ;; Also works for list arguments.
+
+    (ast-template &quot;fn(@1)&quot; '(1 2 3))
+    =&gt; &lt;python-call &quot;fn(1, 2, 3)&quot;&gt;
+</pre></div>
+</td></tr></table>
+
+<p>Values in <code>args</code> must be ASTs, literals, or lists. Lists are processed
+recursively (but only to one level). Atoms that are not ASTs or
+literals are converted into ASTs using &lsquo;template-subtree&rsquo;, a generic
+function. Atoms that are ASTs are copied into the resulting tree.
+Atoms that are literals (such as strings or integers) are inlined into
+the string and parsed in place. (This is necessary as the AST that
+corresponds to a string may only be parseable in context.)
+</p>
+<table class="cartouche" border="1"><tr><td>
+<div class="example">
+<pre class="example">    (ast-template &quot;$1 = value&quot; 'python-ast &quot;x&quot;)
+    ≡ (ast-template &quot;$1 = value&quot; 'python-ast
+                    (convert &quot;x&quot; 'python-ast :deepest t))
+</pre></div>
+</td></tr></table>
+
+<p>Both keyword and positional syntaxes (as well as list metavariables
+with &lsquo;@&rsquo;) can also be used as Trivia patterns for destructuring.
+</p>
+<table class="cartouche" border="1"><tr><td>
+<div class="example">
+<pre class="example">    (match (python &quot;x = 2 + 2&quot;)
+      ((python &quot;$1 = $2&quot; var (python &quot;$X + $Y&quot; :x x :y y))
+       (list x y)))
+    =&gt; (#&lt;python-identifier &quot;x&quot;&gt; #&lt;python-integer &quot;2&quot;&gt;
+        #&lt;python-integer &quot;2&quot;&gt;)
+</pre></div>
+</td></tr></table>
+</dd></dl>
 <span id="Function-sel_002fsw_002fts_003abash"></span><dl>
 <dt id="index-bash-_005bsel_002fsw_002fts_005d">Function: <strong>bash [sel/sw/ts]</strong> <em>template &amp;rest args</em></dt>
 <dd><p>Short for (ast-template <code>template</code> python-ast <code>args</code>...).
 </p></dd></dl>
+<span id="Function-sel_002fsw_002fts_003ac_002dfunctions"></span><dl>
+<dt id="index-c_002dfunctions-_005bsel_002fsw_002fts_005d">Function: <strong>c-functions [sel/sw/ts]</strong> <em>c-soft</em></dt>
+<dd><p>Returns the list of c functions in the C software object.
+ Each returned function is a cons of the form (&lt;function-name&gt; . &lt;ast&gt;)
+ where &lt;function-name&gt; is a string, and &lt;ast&gt; is a c-function-definition.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fts_003acall_002darguments"></span><dl>
+<dt id="index-call_002darguments-_005bsel_002fsw_002fts_005d">Generic Function: <strong>call-arguments [sel/sw/ts]</strong> <em>ast</em></dt>
+<dd><p>Return the arguments of AST.
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fts_003acall_002darguments-_0028_0028python_002dcall-python_002dcall_0029_0029"></span><dl>
+<dt id="index-call_002darguments-_005bsel_002fsw_002fts_005d-1">Method: <strong>call-arguments [sel/sw/ts]</strong> <em>(python-call python-call)</em></dt>
+<dd><p>automatically generated reader method
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fts_003acall_002darguments-_0028_0028cpp_002dcall_002dexpression-cpp_002dcall_002dexpression_0029_0029"></span><dl>
+<dt id="index-call_002darguments-_005bsel_002fsw_002fts_005d-2">Method: <strong>call-arguments [sel/sw/ts]</strong> <em>(cpp-call-expression cpp-call-expression)</em></dt>
+<dd><p>automatically generated reader method
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fts_003acall_002darguments-_0028_0028c_002dcall_002dexpression-c_002dcall_002dexpression_0029_0029"></span><dl>
+<dt id="index-call_002darguments-_005bsel_002fsw_002fts_005d-3">Method: <strong>call-arguments [sel/sw/ts]</strong> <em>(c-call-expression c-call-expression)</em></dt>
+<dd><p>automatically generated reader method
+</p></dd></dl>
+<span id="Function-sel_002fsw_002fts_003acollect_002dvar_002duses"></span><dl>
+<dt id="index-collect_002dvar_002duses-_005bsel_002fsw_002fts_005d">Function: <strong>collect-var-uses [sel/sw/ts]</strong> <em>obj ast</em></dt>
+<dd><p>Collect uses of AST in <code>obj</code>.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002fts_003acpp"></span><dl>
+<dt id="index-cpp-_005bsel_002fsw_002fts_005d">Function: <strong>cpp [sel/sw/ts]</strong> <em>template &amp;rest args</em></dt>
+<dd><p>Short for (ast-template <code>template</code> python-ast <code>args</code>...).
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fts_003adefinition_002dname"></span><dl>
+<dt id="index-definition_002dname-_005bsel_002fsw_002fts_005d">Generic Function: <strong>definition-name [sel/sw/ts]</strong> <em>ast</em></dt>
+<dd><p>Return a string that is the name of the things
+defined by a definition.  Return <code>nil</code> if AST is not a definition.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fts_003afind_002denclosing"></span><dl>
+<dt id="index-find_002denclosing-_005bsel_002fsw_002fts_005d">Generic Function: <strong>find-enclosing [sel/sw/ts]</strong> <em>type software ast</em></dt>
+<dd><p>Return the nearest enclosing AST of <code>type</code> in <code>software</code>.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002fts_003afind_002dif_002din_002dscopes"></span><dl>
+<dt id="index-find_002dif_002din_002dscopes-_005bsel_002fsw_002fts_005d">Function: <strong>find-if-in-scopes [sel/sw/ts]</strong> <em>predicate scopes</em></dt>
+<dd><p>Return the first binding in <code>scopes</code> that satisfies <code>predicate</code>.
+</p></dd></dl>
+<span id="Generic_002dFunction-sel_002fsw_002fts_003afunction_002dparameters"></span><dl>
+<dt id="index-function_002dparameters-_005bsel_002fsw_002fts_005d">Generic Function: <strong>function-parameters [sel/sw/ts]</strong> <em>ast</em></dt>
+<dd><p>Return the parameters of AST.
+</p></dd></dl>
+<span id="Class-sel_002fsw_002fts_003ajson_002dnull"></span><dl>
+<dt id="index-json_002dnull-_005bsel_002fsw_002fts_005d">Class: <strong>json-null [sel/sw/ts]</strong></dt>
+<dd><p>Class precedence list: <code>json-null, json-_-value, json-ast, tree-sitter-ast, indentation, structured-text, functional-tree-ast, node, identity-ordering-mixin, ast, stored-hash, standard-object, slot-object, t</code>
+</p>
+<p>Generated for null.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002fts_003aget_002dasts_002din_002dnamespace"></span><dl>
+<dt id="index-get_002dasts_002din_002dnamespace-_005bsel_002fsw_002fts_005d">Function: <strong>get-asts-in-namespace [sel/sw/ts]</strong> <em>obj ast</em></dt>
+<dd><p>Get all of the ASTs in AST which are considered to be
+in the same namespace.
+</p></dd></dl>
 <span id="Function-sel_002fsw_002fts_003agolang"></span><dl>
 <dt id="index-golang-_005bsel_002fsw_002fts_005d">Function: <strong>golang [sel/sw/ts]</strong> <em>template &amp;rest args</em></dt>
+<dd><p>Short for (ast-template <code>template</code> python-ast <code>args</code>...).
+</p></dd></dl>
+<span id="Function-sel_002fsw_002fts_003aidentical_002dname_002dp"></span><dl>
+<dt id="index-identical_002dname_002dp-_005bsel_002fsw_002fts_005d">Function: <strong>identical-name-p [sel/sw/ts]</strong> <em>name1 name2</em></dt>
+<dd><p>Return <code>t</code> if the IDs of NAME1 and NAME2 are the same.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002fts_003ain_002dclass_002ddef_002dp"></span><dl>
+<dt id="index-in_002dclass_002ddef_002dp-_005bsel_002fsw_002fts_005d">Function: <strong>in-class-def-p [sel/sw/ts]</strong> <em>obj ast</em></dt>
+<dd><p>Return the class definition if AST is inside one.
+</p></dd></dl>
+<span id="Function-sel_002fsw_002fts_003ajava"></span><dl>
+<dt id="index-java-_005bsel_002fsw_002fts_005d">Function: <strong>java [sel/sw/ts]</strong> <em>template &amp;rest args</em></dt>
+<dd><p>Short for (ast-template <code>template</code> python-ast <code>args</code>...).
+</p></dd></dl>
+<span id="Function-sel_002fsw_002fts_003ajavascript"></span><dl>
+<dt id="index-javascript-_005bsel_002fsw_002fts_005d">Function: <strong>javascript [sel/sw/ts]</strong> <em>template &amp;rest args</em></dt>
 <dd><p>Short for (ast-template <code>template</code> python-ast <code>args</code>...).
 </p></dd></dl>
 <span id="Generic_002dFunction-sel_002fsw_002fts_003alhs"></span><dl>
@@ -953,69 +1234,42 @@ searched to populate &lsquo;*tree-sitter-language-files*&rsquo;.
 <dt id="index-lhs-_005bsel_002fsw_002fts_005d-9">Method: <strong>lhs [sel/sw/ts]</strong> <em>(c-assignment-expression c-assignment-expression)</em></dt>
 <dd><p>automatically generated reader method
 </p></dd></dl>
-<span id="Class-sel_002fsw_002fts_003aliteral_002dast"></span><dl>
-<dt id="index-literal_002dast-_005bsel_002fsw_002fts_005d">Class: <strong>literal-ast [sel/sw/ts]</strong></dt>
-<dd><p>Class precedence list: <code>literal-ast, ast, standard-object, slot-object, t</code>
-</p>
-<p>Mix-in for AST classes that are literals.
-</p></dd></dl>
-<span id="Class-sel_002fsw_002fts_003aloop_002dast"></span><dl>
-<dt id="index-loop_002dast-_005bsel_002fsw_002fts_005d">Class: <strong>loop-ast [sel/sw/ts]</strong></dt>
-<dd><p>Class precedence list: <code>loop-ast, control-flow-ast, ast, standard-object, slot-object, t</code>
-</p>
-<p>Mix-in for AST classes that are loops.
-</p></dd></dl>
 <span id="Generic_002dFunction-sel_002fsw_002fts_003ano_002dfallthrough"></span><dl>
 <dt id="index-no_002dfallthrough-_005bsel_002fsw_002fts_005d">Generic Function: <strong>no-fallthrough [sel/sw/ts]</strong> <em>ast</em></dt>
 <dd><p>Return t if AST will never fall through.
 </p></dd></dl>
-<span id="Class-sel_002fsw_002fts_003anumber_002dast"></span><dl>
-<dt id="index-number_002dast-_005bsel_002fsw_002fts_005d">Class: <strong>number-ast [sel/sw/ts]</strong></dt>
-<dd><p>Class precedence list: <code>number-ast, literal-ast, ast, standard-object, slot-object, t</code>
-</p>
-<p>Mix-in for AST classes that are literal numbers.
+<span id="Generic_002dFunction-sel_002fsw_002fts_003aoperator"></span><dl>
+<dt id="index-operator-_005bsel_002fsw_002fts_005d">Generic Function: <strong>operator [sel/sw/ts]</strong> <em>ast</em></dt>
+<dd><p>Return the operator from an AST as a keyword.
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fts_003aoperator-_0028_0028python_002dunary_002doperator-python_002dunary_002doperator_0029_0029"></span><dl>
+<dt id="index-operator-_005bsel_002fsw_002fts_005d-1">Method: <strong>operator [sel/sw/ts]</strong> <em>(python-unary-operator python-unary-operator)</em></dt>
+<dd><p>automatically generated reader method
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fts_003aoperator-_0028_0028python_002dboolean_002doperator-python_002dboolean_002doperator_0029_0029"></span><dl>
+<dt id="index-operator-_005bsel_002fsw_002fts_005d-2">Method: <strong>operator [sel/sw/ts]</strong> <em>(python-boolean-operator python-boolean-operator)</em></dt>
+<dd><p>automatically generated reader method
+</p></dd></dl>
+<span id="Method-sel_002fsw_002fts_003aoperator-_0028_0028python_002dbinary_002doperator-python_002dbinary_002doperator_0029_0029"></span><dl>
+<dt id="index-operator-_005bsel_002fsw_002fts_005d-3">Method: <strong>operator [sel/sw/ts]</strong> <em>(python-binary-operator python-binary-operator)</em></dt>
+<dd><p>automatically generated reader method
 </p></dd></dl>
 <span id="Generic_002dFunction-sel_002fsw_002fts_003aparameter_002dname"></span><dl>
 <dt id="index-parameter_002dname-_005bsel_002fsw_002fts_005d">Generic Function: <strong>parameter-name [sel/sw/ts]</strong> <em>parameter-ast</em></dt>
 <dd><p>Return the name of <code>parameter-ast</code>.
 </p></dd></dl>
-<span id="Generic_002dFunction-sel_002fsw_002fts_003aparameter_002dtype"></span><dl>
-<dt id="index-parameter_002dtype-_005bsel_002fsw_002fts_005d">Generic Function: <strong>parameter-type [sel/sw/ts]</strong> <em>parameter-ast</em></dt>
-<dd><p>Return a representation of the <code>type</code> of <code>parameter-ast</code>.
-</p></dd></dl>
-<span id="Method-sel_002fsw_002fts_003aparameter_002dtype-_0028_0028ast-c_002dparameter_002ddeclaration_0029_0029"></span><dl>
-<dt id="index-parameter_002dtype-_005bsel_002fsw_002fts_005d-1">Method: <strong>parameter-type [sel/sw/ts]</strong> <em>(ast c-parameter-declaration)</em></dt>
-<dd><p>Return format is <code>(base-type pointer-depth . qualifiers)</code>.
-</p></dd></dl>
-<span id="Class-sel_002fsw_002fts_003aparameters_002dast"></span><dl>
-<dt id="index-parameters_002dast-_005bsel_002fsw_002fts_005d">Class: <strong>parameters-ast [sel/sw/ts]</strong></dt>
-<dd><p>Class precedence list: <code>parameters-ast, ast, standard-object, slot-object, t</code>
-</p>
-<p>Mix-in for AST classes that are parameter lists.
-</p></dd></dl>
-<span id="Class-sel_002fsw_002fts_003aparse_002derror_002dast"></span><dl>
-<dt id="index-parse_002derror_002dast-_005bsel_002fsw_002fts_005d">Class: <strong>parse-error-ast [sel/sw/ts]</strong></dt>
-<dd><p>Class precedence list: <code>parse-error-ast, ast, standard-object, slot-object, t</code>
-</p>
-<p>Mix-in for AST classes that represent tree-sitter parsing errors.
-</p>
-<p>Superclass of every generated LANGUAGE-error class.
+<span id="Generic_002dFunction-sel_002fsw_002fts_003apatch_002dwhitespace"></span><dl>
+<dt id="index-patch_002dwhitespace-_005bsel_002fsw_002fts_005d">Generic Function: <strong>patch-whitespace [sel/sw/ts]</strong> <em>ast &amp;key style recursive</em></dt>
+<dd><p>Destructively patch whitespace on AST by adding a
+  space to the before-text and after-text slots that need it.
 </p></dd></dl>
 <span id="Generic_002dFunction-sel_002fsw_002fts_003aprovided_002dby"></span><dl>
 <dt id="index-provided_002dby-_005bsel_002fsw_002fts_005d">Generic Function: <strong>provided-by [sel/sw/ts]</strong> <em>software ast</em></dt>
 <dd><p>Return the library, package, or system in <code>software</code> providing AST.
 </p></dd></dl>
-<span id="Class-sel_002fsw_002fts_003apython"></span><dl>
-<dt id="index-python-_005bsel_002fsw_002fts_005d-1">Class: <strong>python [sel/sw/ts]</strong></dt>
-<dd><p>Class precedence list: <code>python, tree-sitter, software-indentation, parseable, software, oid-object, file, standard-object, slot-object, t</code>
-</p>
-<p><code>python</code> tree-sitter software representation.
-</p></dd></dl>
-<span id="Class-sel_002fsw_002fts_003areturn_002dast"></span><dl>
-<dt id="index-return_002dast-_005bsel_002fsw_002fts_005d">Class: <strong>return-ast [sel/sw/ts]</strong></dt>
-<dd><p>Class precedence list: <code>return-ast, statement-ast, ast, standard-object, slot-object, t</code>
-</p>
-<p>Mix-in for AST classes that are return statements.
+<span id="Function-sel_002fsw_002fts_003apython"></span><dl>
+<dt id="index-python-_005bsel_002fsw_002fts_005d">Function: <strong>python [sel/sw/ts]</strong> <em>template &amp;rest args</em></dt>
+<dd><p>Short for (ast-template <code>template</code> python-ast <code>args</code>...).
 </p></dd></dl>
 <span id="Generic_002dFunction-sel_002fsw_002fts_003arhs"></span><dl>
 <dt id="index-rhs-_005bsel_002fsw_002fts_005d">Generic Function: <strong>rhs [sel/sw/ts]</strong> <em>ast</em></dt>
@@ -1069,18 +1323,12 @@ searched to populate &lsquo;*tree-sitter-language-files*&rsquo;.
 </p>
 <p>Mix-in for AST classes that are statements.
 </p></dd></dl>
-<span id="Class-sel_002fsw_002fts_003astring_002dast"></span><dl>
-<dt id="index-string_002dast-_005bsel_002fsw_002fts_005d">Class: <strong>string-ast [sel/sw/ts]</strong></dt>
-<dd><p>Class precedence list: <code>string-ast, literal-ast, ast, standard-object, slot-object, t</code>
+<span id="Generic_002dFunction-sel_002fsw_002fts_003atemplate_002dplaceholder"></span><dl>
+<dt id="index-template_002dplaceholder-_005bsel_002fsw_002fts_005d">Generic Function: <strong>template-placeholder [sel/sw/ts]</strong> <em>ast name</em></dt>
+<dd><p>Generate a placeholder for <code>name</code>.
 </p>
-<p>Mix-in for AST classes that are literal strings.
-</p></dd></dl>
-<span id="Generic_002dFunction-sel_002fsw_002fts_003atemplate_002dmetavariable"></span><dl>
-<dt id="index-template_002dmetavariable-_005bsel_002fsw_002fts_005d">Generic Function: <strong>template-metavariable [sel/sw/ts]</strong> <em>ast symbol</em></dt>
-<dd><p>Generate the corresponding valid metavariable for <code>symbol</code>.
-</p>
-<p>By default this substitutes underscores for dashes and prepends a
-sigil.
+<p>The user should never see the placeholder; it is simply a string that
+AST&rsquo;s language can parse as a valid identifier.
 </p>
 <p>Generic so a different syntax can be used per-language.
 </p></dd></dl>
@@ -1113,17 +1361,13 @@ cover every terminal symbol, only the ones that aren&rsquo;t named.
 </p>
 <p>AST for input from tree-sitter.
 </p></dd></dl>
-<span id="Class-sel_002fsw_002fts_003atypescript"></span><dl>
-<dt id="index-typescript-_005bsel_002fsw_002fts_005d">Class: <strong>typescript [sel/sw/ts]</strong></dt>
-<dd><p>Class precedence list: <code>typescript, ecma, software, oid-object, standard-object, slot-object, t</code>
-</p>
-<p>Mix-in class for tree-sitter TypeScript variants.
+<span id="Function-sel_002fsw_002fts_003ac"></span><dl>
+<dt id="index-c-_005bsel_002fsw_002fts_005d">Function: <strong>c [sel/sw/ts]</strong> <em>template &amp;rest args</em></dt>
+<dd><p>Short for (ast-template <code>template</code> python-ast <code>args</code>...).
 </p></dd></dl>
-<span id="Class-sel_002fsw_002fts_003aunary_002dast"></span><dl>
-<dt id="index-unary_002dast-_005bsel_002fsw_002fts_005d">Class: <strong>unary-ast [sel/sw/ts]</strong></dt>
-<dd><p>Class precedence list: <code>unary-ast, expression-ast, ast, standard-object, slot-object, t</code>
-</p>
-<p>Mix-in for AST classes that are unary expressions.
+<span id="Generic_002dFunction-sel_002fsw_002fts_003atype_002din"></span><dl>
+<dt id="index-type_002din-_005bsel_002fsw_002fts_005d">Generic Function: <strong>type-in [sel/sw/ts]</strong> <em>software ast</em></dt>
+<dd><p>Return the type of AST in <code>software</code>.
 </p></dd></dl>
 <span id="Class-sel_002fsw_002fts_003avariable_002ddeclaration_002dast"></span><dl>
 <dt id="index-variable_002ddeclaration_002dast-_005bsel_002fsw_002fts_005d">Class: <strong>variable-declaration-ast [sel/sw/ts]</strong></dt>
@@ -1131,238 +1375,30 @@ cover every terminal symbol, only the ones that aren&rsquo;t named.
 </p>
 <p>Mix-in for AST classes that are variable declarations.
 </p></dd></dl>
-<span id="Variable-sel_002fsw_002fts_003a_002atree_002dsitter_002dlanguage_002dfiles_002a"></span><dl>
-<dt id="index-_002atree_002dsitter_002dlanguage_002dfiles_002a-_005bsel_002fsw_002fts_005d">Variable: <strong>*tree-sitter-language-files* [sel/sw/ts]</strong></dt>
-<dd><p>Files defining tree sitter languages.
-</p></dd></dl>
-<span id="Function-sel_002fsw_002fts_003aast_002dmixin_002dsubclasses"></span><dl>
-<dt id="index-ast_002dmixin_002dsubclasses-_005bsel_002fsw_002fts_005d">Function: <strong>ast-mixin-subclasses [sel/sw/ts]</strong> <em>class language</em></dt>
-<dd><p>Return a list of AST classes for <code>language</code> that inherit from <code>class</code>.
-</p></dd></dl>
-<span id="Compiler_002dMacro-sel_002fsw_002fts_003aast_002dtemplate"></span><dl>
-<dt id="index-ast_002dtemplate-_005bsel_002fsw_002fts_005d">Compiler Macro: <strong>ast-template [sel/sw/ts]</strong> <em>template class &amp;rest args</em></dt>
-<dd><p>Compile-time validity checking for AST templates.
-</p></dd></dl>
-<span id="Class-sel_002fsw_002fts_003ac_002fcpp_002dcall_002dexpression"></span><dl>
-<dt id="index-c_002fcpp_002dcall_002dexpression-_005bsel_002fsw_002fts_005d">Class: <strong>c/cpp-call-expression [sel/sw/ts]</strong></dt>
-<dd><p>Class precedence list: <code>c-slash-cpp-call-expression, ast, standard-object, slot-object, t</code>
-</p>
-<p>Mix-in for c/cpp call expression AST classes.
-</p></dd></dl>
-<span id="Class-sel_002fsw_002fts_003ac_002fcpp_002dcontinue_002dstatement"></span><dl>
-<dt id="index-c_002fcpp_002dcontinue_002dstatement-_005bsel_002fsw_002fts_005d">Class: <strong>c/cpp-continue-statement [sel/sw/ts]</strong></dt>
-<dd><p>Class precedence list: <code>c-slash-cpp-continue-statement, ast, standard-object, slot-object, t</code>
-</p>
-<p>Mix-in for c/cpp continue statement AST classes.
-</p></dd></dl>
-<span id="Class-sel_002fsw_002fts_003ac_002fcpp_002dwhile_002dstatement"></span><dl>
-<dt id="index-c_002fcpp_002dwhile_002dstatement-_005bsel_002fsw_002fts_005d">Class: <strong>c/cpp-while-statement [sel/sw/ts]</strong></dt>
-<dd><p>Class precedence list: <code>c-slash-cpp-while-statement, ast, standard-object, slot-object, t</code>
-</p>
-<p>Mix-in for c/cpp while statement AST classes.
-</p></dd></dl>
-<span id="Function-sel_002fsw_002fts_003ac"></span><dl>
-<dt id="index-c-_005bsel_002fsw_002fts_005d">Function: <strong>c [sel/sw/ts]</strong> <em>template &amp;rest args</em></dt>
-<dd><p>Short for (ast-template <code>template</code> python-ast <code>args</code>...).
-</p></dd></dl>
-<span id="Function-sel_002fsw_002fts_003ac_002dfunctions"></span><dl>
-<dt id="index-c_002dfunctions-_005bsel_002fsw_002fts_005d">Function: <strong>c-functions [sel/sw/ts]</strong> <em>c-soft</em></dt>
-<dd><p>Returns the list of c functions in the C software object.
- Each returned function is a cons of the form (&lt;function-name&gt; . &lt;ast&gt;)
- where &lt;function-name&gt; is a string, and &lt;ast&gt; is a c-function-definition.
-</p></dd></dl>
-<span id="Function-sel_002fsw_002fts_003acollect_002dvar_002duses"></span><dl>
-<dt id="index-collect_002dvar_002duses-_005bsel_002fsw_002fts_005d">Function: <strong>collect-var-uses [sel/sw/ts]</strong> <em>obj ast</em></dt>
-<dd><p>Collect uses of AST in <code>obj</code>.
-</p></dd></dl>
-<span id="Function-sel_002fsw_002fts_003acpp"></span><dl>
-<dt id="index-cpp-_005bsel_002fsw_002fts_005d">Function: <strong>cpp [sel/sw/ts]</strong> <em>template &amp;rest args</em></dt>
-<dd><p>Short for (ast-template <code>template</code> python-ast <code>args</code>...).
-</p></dd></dl>
-<span id="Generic_002dFunction-sel_002fsw_002fts_003afind_002dfollowing"></span><dl>
-<dt id="index-find_002dfollowing-_005bsel_002fsw_002fts_005d">Generic Function: <strong>find-following [sel/sw/ts]</strong> <em>type software ast</em></dt>
-<dd><p>Return any siblings of <code>type</code> following AST in <code>software</code>.
-</p></dd></dl>
-<span id="Generic_002dFunction-sel_002fsw_002fts_003afind_002dpreceding"></span><dl>
-<dt id="index-find_002dpreceding-_005bsel_002fsw_002fts_005d">Generic Function: <strong>find-preceding [sel/sw/ts]</strong> <em>type software ast</em></dt>
-<dd><p>Return any siblings of <code>type</code> preceding AST in <code>software</code>.
-</p></dd></dl>
-<span id="Class-sel_002fsw_002fts_003afunction_002dast"></span><dl>
-<dt id="index-function_002dast-_005bsel_002fsw_002fts_005d">Class: <strong>function-ast [sel/sw/ts]</strong></dt>
-<dd><p>Class precedence list: <code>function-ast, ast, standard-object, slot-object, t</code>
-</p>
-<p>Mix-in for AST classes that are functions.
-</p></dd></dl>
-<span id="Class-sel_002fsw_002fts_003ajavascript"></span><dl>
-<dt id="index-javascript-_005bsel_002fsw_002fts_005d-1">Class: <strong>javascript [sel/sw/ts]</strong></dt>
-<dd><p>Class precedence list: <code>javascript, tree-sitter, software-indentation, parseable, normal-scope, ecma, software, oid-object, file, standard-object, slot-object, t</code>
-</p>
-<p><code>javascript</code> tree-sitter software representation.
-</p></dd></dl>
-<span id="Class-sel_002fsw_002fts_003ajson_002d_002c"></span><dl>
-<dt id="index-json_002d_002c-_005bsel_002fsw_002fts_005d">Class: <strong>json-, [sel/sw/ts]</strong></dt>
-<dd><p>Class precedence list: <code>json-,, json-ast, tree-sitter-ast, indentation, structured-text, functional-tree-ast, node, identity-ordering-mixin, ast, stored-hash, terminal-symbol, standard-object, slot-object, t</code>
-</p>
-<p>Generated for terminal symbol <code>'</code>,<code>'</code>
-</p></dd></dl>
-<span id="Class-sel_002fsw_002fts_003ajson_002d_005f_002dvalue"></span><dl>
-<dt id="index-json_002d_005f_002dvalue-_005bsel_002fsw_002fts_005d">Class: <strong>json-_-value [sel/sw/ts]</strong></dt>
-<dd><p>Class precedence list: <code>json-_-value, json-ast, tree-sitter-ast, indentation, structured-text, functional-tree-ast, node, identity-ordering-mixin, ast, stored-hash, standard-object, slot-object, t</code>
-</p>
-<p>Generated for _value.
-</p></dd></dl>
-<span id="Class-sel_002fsw_002fts_003aparenthesized_002dexpression_002dast"></span><dl>
-<dt id="index-parenthesized_002dexpression_002dast-_005bsel_002fsw_002fts_005d">Class: <strong>parenthesized-expression-ast [sel/sw/ts]</strong></dt>
-<dd><p>Class precedence list: <code>parenthesized-expression-ast, ast, standard-object, slot-object, t</code>
-</p>
-<p>Mix-in for AST classes that are parenthesized
-    expressions.
-</p></dd></dl>
-<span id="Function-sel_002fsw_002fts_003aast_002dtemplate"></span><dl>
-<dt id="index-ast_002dtemplate-_005bsel_002fsw_002fts_005d-1">Function: <strong>ast-template [sel/sw/ts]</strong> <em>template class &amp;rest args</em></dt>
-<dd><p>Create an AST of <code>class</code> from <code>template</code> usings <code>args</code>.
-</p>
-<p>You probably don&rsquo;t want to use this function directly; supported
-languages allow you to use a function with the same name as shorthand
-for creating a template:
-</p>
-<table class="cartouche" border="1"><tr><td>
-<div class="example">
-<pre class="example">    (python &quot;$ID = 1&quot; :id &quot;x&quot;)
-    ≡ (ast-template &quot;$ID = 1&quot; 'python-ast :id &quot;x&quot;)
-</pre></div>
-</td></tr></table>
-
-<p>By default metavariables look like &lsquo;$X&rsquo;, where the name can contain
-only uppercase characters, digits, or underscores. (Syntax can vary
-by language; see &lsquo;template-metavariable&rsquo;.)
-</p>
-<p>There are two syntaxes for <code>args</code>.
-</p>
-<p><code>args</code> can be keyword arguments, defaults for the corresponding
-metavariables (converting dashes to underscores):
-</p>
-<table class="cartouche" border="1"><tr><td>
-<div class="example">
-<pre class="example">    (ast-template &quot;$LEFT_HAND_SIDE = $RIGHT_HAND_SIDE&quot; 'python-ast
-                  :left-hand-side &quot;x&quot;
-                  :right-hand-side 1)
-    =&gt; &lt;python-assignment &quot;x = 1&quot;&gt;
-</pre></div>
-</td></tr></table>
-
-<p><code>args</code> can be positional (keywords not allowed!). In this case
-metavariables must be numbered (&lsquo;$1&rsquo;, &lsquo;$2&rsquo;, etc.):
-</p>
-<table class="cartouche" border="1"><tr><td>
-<div class="example">
-<pre class="example">    (ast-template &quot;$1 = $2&quot; 'python-ast &quot;x&quot; 1)
-    ≡ (ast-template &quot;$1 = $2&quot; 'python-ast :1 &quot;x&quot; :2 1)
-</pre></div>
-</td></tr></table>
-
-<p>Values in <code>args</code> must be either ASTs or strings. Values that are not
-ASTs or strings are converted into ASTs using &lsquo;template-subtree&rsquo;, a
-generic function. Values that are ASTs are copied into the resulting
-tree. Values that are strings are inlined into the string and parsed
-in place.
-</p>
-<table class="cartouche" border="1"><tr><td>
-<div class="example">
-<pre class="example">    (ast-template &quot;$1 = value&quot; 'python-ast &quot;x&quot;)
-    ≡ (ast-template &quot;$1 = value&quot; 'python-ast
-                    (convert &quot;x&quot; 'python-ast :deepest t)
-</pre></div>
-</td></tr></table>
-
-<p>Both syntaxes can also be used as Trivia patterns for destructuring.
-</p>
-<table class="cartouche" border="1"><tr><td>
-<div class="example">
-<pre class="example">    (match (python &quot;x = 2 + 2&quot;)
-      ((python &quot;$1 = $2&quot; var (python &quot;$X + $Y&quot; :x x :y y))
-       (list x y)))
-    =&gt; (#&lt;python-identifier &quot;x&quot;&gt; #&lt;python-integer &quot;2&quot;&gt;
-        #&lt;python-integer &quot;2&quot;&gt;)
-</pre></div>
-</td></tr></table>
-</dd></dl>
-<span id="Function-sel_002fsw_002fts_003afind_002dif_002din_002dscopes"></span><dl>
-<dt id="index-find_002dif_002din_002dscopes-_005bsel_002fsw_002fts_005d">Function: <strong>find-if-in-scopes [sel/sw/ts]</strong> <em>predicate scopes</em></dt>
-<dd><p>Return the first binding in <code>scopes</code> that satisfies <code>predicate</code>.
-</p></dd></dl>
-<span id="Function-sel_002fsw_002fts_003aget_002dasts_002din_002dnamespace"></span><dl>
-<dt id="index-get_002dasts_002din_002dnamespace-_005bsel_002fsw_002fts_005d">Function: <strong>get-asts-in-namespace [sel/sw/ts]</strong> <em>obj ast</em></dt>
-<dd><p>Get all of the ASTs in AST which are considered to be
-in the same namespace.
-</p></dd></dl>
-<span id="Function-sel_002fsw_002fts_003aidentical_002dname_002dp"></span><dl>
-<dt id="index-identical_002dname_002dp-_005bsel_002fsw_002fts_005d">Function: <strong>identical-name-p [sel/sw/ts]</strong> <em>name1 name2</em></dt>
-<dd><p>Return <code>t</code> if the IDs of NAME1 and NAME2 are the same.
-</p></dd></dl>
-<span id="Function-sel_002fsw_002fts_003ain_002dclass_002ddef_002dp"></span><dl>
-<dt id="index-in_002dclass_002ddef_002dp-_005bsel_002fsw_002fts_005d">Function: <strong>in-class-def-p [sel/sw/ts]</strong> <em>obj ast</em></dt>
-<dd><p>Return the class definition if AST is inside one.
-</p></dd></dl>
-<span id="Function-sel_002fsw_002fts_003ajava"></span><dl>
-<dt id="index-java-_005bsel_002fsw_002fts_005d">Function: <strong>java [sel/sw/ts]</strong> <em>template &amp;rest args</em></dt>
-<dd><p>Short for (ast-template <code>template</code> python-ast <code>args</code>...).
-</p></dd></dl>
-<span id="Function-sel_002fsw_002fts_003ajavascript"></span><dl>
-<dt id="index-javascript-_005bsel_002fsw_002fts_005d">Function: <strong>javascript [sel/sw/ts]</strong> <em>template &amp;rest args</em></dt>
-<dd><p>Short for (ast-template <code>template</code> python-ast <code>args</code>...).
-</p></dd></dl>
 <span id="Function-sel_002fsw_002fts_003ajson"></span><dl>
 <dt id="index-json-_005bsel_002fsw_002fts_005d">Function: <strong>json [sel/sw/ts]</strong> <em>template &amp;rest args</em></dt>
 <dd><p>Short for (ast-template <code>template</code> python-ast <code>args</code>...).
 </p></dd></dl>
-<span id="Generic_002dFunction-sel_002fsw_002fts_003aoperator"></span><dl>
-<dt id="index-operator-_005bsel_002fsw_002fts_005d">Generic Function: <strong>operator [sel/sw/ts]</strong> <em>ast</em></dt>
-<dd><p>Return the operator from an AST as a keyword.
+<span id="Generic_002dFunction-sel_002fsw_002fts_003aparameter_002dtype"></span><dl>
+<dt id="index-parameter_002dtype-_005bsel_002fsw_002fts_005d">Generic Function: <strong>parameter-type [sel/sw/ts]</strong> <em>parameter-ast</em></dt>
+<dd><p>Return a representation of the <code>type</code> of <code>parameter-ast</code>.
 </p></dd></dl>
-<span id="Method-sel_002fsw_002fts_003aoperator-_0028_0028python_002dunary_002doperator-python_002dunary_002doperator_0029_0029"></span><dl>
-<dt id="index-operator-_005bsel_002fsw_002fts_005d-1">Method: <strong>operator [sel/sw/ts]</strong> <em>(python-unary-operator python-unary-operator)</em></dt>
-<dd><p>automatically generated reader method
+<span id="Method-sel_002fsw_002fts_003aparameter_002dtype-_0028_0028ast-c_002dparameter_002ddeclaration_0029_0029"></span><dl>
+<dt id="index-parameter_002dtype-_005bsel_002fsw_002fts_005d-1">Method: <strong>parameter-type [sel/sw/ts]</strong> <em>(ast c-parameter-declaration)</em></dt>
+<dd><p>Return format is <code>(base-type pointer-depth . qualifiers)</code>.
 </p></dd></dl>
-<span id="Method-sel_002fsw_002fts_003aoperator-_0028_0028python_002dboolean_002doperator-python_002dboolean_002doperator_0029_0029"></span><dl>
-<dt id="index-operator-_005bsel_002fsw_002fts_005d-2">Method: <strong>operator [sel/sw/ts]</strong> <em>(python-boolean-operator python-boolean-operator)</em></dt>
-<dd><p>automatically generated reader method
-</p></dd></dl>
-<span id="Method-sel_002fsw_002fts_003aoperator-_0028_0028python_002dbinary_002doperator-python_002dbinary_002doperator_0029_0029"></span><dl>
-<dt id="index-operator-_005bsel_002fsw_002fts_005d-3">Method: <strong>operator [sel/sw/ts]</strong> <em>(python-binary-operator python-binary-operator)</em></dt>
-<dd><p>automatically generated reader method
-</p></dd></dl>
-<span id="Generic_002dFunction-sel_002fsw_002fts_003apatch_002dwhitespace"></span><dl>
-<dt id="index-patch_002dwhitespace-_005bsel_002fsw_002fts_005d">Generic Function: <strong>patch-whitespace [sel/sw/ts]</strong> <em>ast &amp;key style recursive</em></dt>
-<dd><p>Destructively patch whitespace on AST by adding a
-  space to the before-text and after-text slots that need it.
-</p></dd></dl>
-<span id="Function-sel_002fsw_002fts_003apython"></span><dl>
-<dt id="index-python-_005bsel_002fsw_002fts_005d">Function: <strong>python [sel/sw/ts]</strong> <em>template &amp;rest args</em></dt>
-<dd><p>Short for (ast-template <code>template</code> python-ast <code>args</code>...).
-</p></dd></dl>
-<span id="Generic_002dFunction-sel_002fsw_002fts_003atemplate_002dplaceholder"></span><dl>
-<dt id="index-template_002dplaceholder-_005bsel_002fsw_002fts_005d">Generic Function: <strong>template-placeholder [sel/sw/ts]</strong> <em>ast name</em></dt>
-<dd><p>Generate a placeholder for <code>name</code>.
+<span id="Generic_002dFunction-sel_002fsw_002fts_003atemplate_002dmetavariable"></span><dl>
+<dt id="index-template_002dmetavariable-_005bsel_002fsw_002fts_005d">Generic Function: <strong>template-metavariable [sel/sw/ts]</strong> <em>ast symbol</em></dt>
+<dd><p>Generate the corresponding valid metavariable for <code>symbol</code>.
 </p>
-<p>The user should never see the placeholder; it is simply a string that
-AST&rsquo;s language can parse as a valid identifier.
+<p>By default this substitutes underscores for dashes and prepends a
+sigil.
 </p>
 <p>Generic so a different syntax can be used per-language.
-</p></dd></dl>
-<span id="Generic_002dFunction-sel_002fsw_002fts_003atype_002din"></span><dl>
-<dt id="index-type_002din-_005bsel_002fsw_002fts_005d">Generic Function: <strong>type-in [sel/sw/ts]</strong> <em>software ast</em></dt>
-<dd><p>Return the type of AST in <code>software</code>.
 </p></dd></dl>
 <span id="Generic_002dFunction-sel_002fsw_002fts_003avariable_002dname"></span><dl>
 <dt id="index-variable_002dname-_005bsel_002fsw_002fts_005d">Generic Function: <strong>variable-name [sel/sw/ts]</strong> <em>variable-ast</em></dt>
 <dd><p>Return the name of <code>variable-ast</code>.
-</p></dd></dl>
-<span id="Class-sel_002fsw_002fts_003awhile_002dast"></span><dl>
-<dt id="index-while_002dast-_005bsel_002fsw_002fts_005d">Class: <strong>while-ast [sel/sw/ts]</strong></dt>
-<dd><p>Class precedence list: <code>while-ast, control-flow-ast, conditional-ast, ast, standard-object, slot-object, t</code>
-</p>
-<p>Mix-in for AST classes that are whiles.
 </p></dd></dl>
 <span id="Function-sel_002fsw_002fts_003awildcard_003f"></span><dl>
 <dt id="index-wildcard_003f-_005bsel_002fsw_002fts_005d">Function: <strong>wildcard? [sel/sw/ts]</strong> <em>node</em></dt>

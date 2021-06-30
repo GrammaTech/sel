@@ -56,11 +56,129 @@ Previous: <a href="Structured-Text.html" accesskey="p" rel="prev">Structured Tex
 <hr>
 <span id="Templates-1"></span><h4 class="subsection">2.1.6 Templates</h4>
 <span id="index-templates"></span>
+<span id="Templates-for-building-ASTs"></span><h4 class="subsubsection">2.1.6.1 Templates for building ASTs</h4>
 
-<p><code>todo:</code> document templates. (describe #&rsquo;ast-template) copy this here?
-Templates can be used for constructing and deconstructing ASTs.
+<p>The function that builds templates is called <code>ast-template</code>.
+You probably don&rsquo;t want to use this function directly; supported
+languages allow you to use a function with the same name as
+shorthand for creating a template:
+</p>
+<table class="cartouche" border="1"><tr><td>
+<div class="example">
+<pre class="example">    (python &quot;$ID = 1&quot; :id &quot;x&quot;)
+    ≡ (ast-template &quot;$ID = 1&quot; 'python-ast :id &quot;x&quot;)
+</pre></div>
+</td></tr></table>
+
+<p>By default metavariables look like <code>$X</code>, where the name can
+contain only uppercase characters, digits, or underscores. (The
+syntax of templates is inspired by
+<a href="https://semgrep.dev">Semgrep</a>, but syntax can vary by
+language.)
+</p>
+<p>Metavariables can also look like <code>@ARGS</code>. In this case they stand for
+a list of ASTs, rather than a single AST.
+</p>
+<table class="cartouche" border="1"><tr><td>
+<div class="example">
+<pre class="example">    (ast-template &quot;fn(@ARGS)&quot; :args '(1 2 3))
+    =&gt; &lt;python-call &quot;fn(1, 2, 3)&quot;&gt;
+</pre></div>
+</td></tr></table>
+
+<p>There are two syntaxes for the arguments to <code>ast-template</code>.
+</p>
+<p>The arguments can be keyword arguments, defaults for the
+corresponding metavariables (converting dashes to underscores):
+</p>
+<table class="cartouche" border="1"><tr><td>
+<div class="example">
+<pre class="example">    (ast-template &quot;$LEFT_HAND_SIDE = $RIGHT_HAND_SIDE&quot; 'python-ast
+                  :left-hand-side &quot;x&quot;
+                  :right-hand-side 1)
+    =&gt; &lt;python-assignment &quot;x = 1&quot;&gt;
+</pre></div>
+</td></tr></table>
+
+<p>The arguments can be positional (keywords not allowed!). In this
+case metavariables must be numbered (<code>$1</code>, <code>$2</code>, etc.):
+</p>
+<table class="cartouche" border="1"><tr><td>
+<div class="example">
+<pre class="example">    (ast-template &quot;$1 = $2&quot; 'python-ast &quot;x&quot; 1)
+    ≡ (ast-template &quot;$1 = $2&quot; 'python-ast :1 &quot;x&quot; :2 1)
+
+    ;; Also works for list arguments.
+
+    (ast-template &quot;fn(@1)&quot; '(1 2 3))
+    =&gt; &lt;python-call &quot;fn(1, 2, 3)&quot;&gt;
+</pre></div>
+</td></tr></table>
+
+<p>Values in the arguments must be ASTs, literals, or lists. Lists
+are processed recursively (but only to one level). Atoms that are
+not ASTs or literals are converted into ASTs using
+<code>template-subtree</code>, a generic function. Atoms that are ASTs
+are copied into the resulting tree. Atoms that are literals (such
+as strings or integers) are inlined into the string and parsed in
+place. (This is necessary as the AST that corresponds to a string
+may only be parseable in context.)
+</p>
+<table class="cartouche" border="1"><tr><td>
+<div class="example">
+<pre class="example">    (ast-template &quot;$1 = value&quot; 'python-ast &quot;x&quot;)
+    ≡ (ast-template &quot;$1 = value&quot; 'python-ast
+                    (convert &quot;x&quot; 'python-ast :deepest t))
+</pre></div>
+</td></tr></table>
+
+<span id="Templates-for-destructuring-ASTs"></span><h4 class="subsubsection">2.1.6.2 Templates for destructuring ASTs</h4>
+
+<p>Both keyword and positional syntaxes (as well as list
+metavariables with <code>@</code>) can also be used as
+<a href="https://github.com/guicho271828/trivia">Trivia</a> patterns for
+destructuring.
+</p>
+<table class="cartouche" border="1"><tr><td>
+<div class="example">
+<pre class="example">    (match (python &quot;x = 2 + 2&quot;)
+      ((python &quot;$1 = $2&quot; var (python &quot;$X + $Y&quot; :x x :y y))
+       (list var x y)))
+    =&gt; (#&lt;python-identifier &quot;x&quot;&gt; #&lt;python-integer &quot;2&quot;&gt;
+        #&lt;python-integer &quot;2&quot;&gt;)
+</pre></div>
+</td></tr></table>
+
+<span id="Templates-that-build-and-destructure"></span><h4 class="subsubsection">2.1.6.3 Templates that build and destructure</h4>
+
+<p>You can combine building and destructuring into one step using
+<code>ast-from-template</code>.
+</p>
+<table class="cartouche" border="1"><tr><td>
+<div class="example">
+<pre class="example">    (ast-from-template &quot;$1;&quot; 'cpp-ast &quot;\&quot;Foo: %d\&quot;&quot;)
+    =&gt; #&lt;cpp-string-literal &quot;\&quot;Foo: %d\&quot;&quot;&gt;
+</pre></div>
+</td></tr></table>
+
+<p>Must use the positional syntax of <code>ast-template</code>. Returns one value
+per metavariable, in numeric order (<code>$1</code>, <code>$2</code>, etc.).
+</p>
+<p>This is useful because not every kind of AST node can be parsed
+directly as a template. <code>e</code>.g. in Python a tuple, an argument list,
+and a parameter list all use the same syntax and can only be
+distinguished in context. Or (at the time of writing) the C and
+C++ parsers for tree-sitter cannot correctly parse unterminated
+statements. Using <code>ast-from-template</code> lets you provide
+throwaway context to the parser while pulling out only the
+particular nodes that you want.
 </p>
 
+<hr>
+<div class="header">
+<p>
+Previous: <a href="Structured-Text.html" accesskey="p" rel="prev">Structured Text</a>, Up: <a href="Source-Code-with-tree_002dsitter.html" accesskey="u" rel="up">Source Code with <code>tree-sitter</code></a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Combined-Index.html" title="Index" rel="index">Index</a>]</p>
+</div>
 
 
 
