@@ -1095,8 +1095,7 @@ definitions.")
          (:seq (:slot python-internal-asts-0))))
        (python-argument-list
         (python-empty-argument-list
-         (:seq (:slot python-internal-asts-0)
-          (:slot python-internal-asts-1)))))
+         (:seq (:slot python-internal-asts-1)))))
       (:javascript
        ;; TODO: these will be wrong.
        (javascript-for-in-statement
