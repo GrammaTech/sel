@@ -180,17 +180,17 @@ Nested lists are not allowed as template arguments:~%~a"
     ;; Check that there are no duplicate placeholders.
     (unless (length= placeholders (nub placeholders))
       (error "Duplicate placeholders: ~a" placeholders))
-    ;; Check that all the placeholders are used.
+    ;; Check that all the placeholders become actual ASTs.
     (let ((found
            (filter (lambda (p)
                      (find-if (lambda (n)
-                                (and (typep n 'identifier-ast)
+                                (and (null (children n))
                                      (string= (source-text n) p)))
                               ast))
                    placeholders)))
       (when-let (diff (set-difference placeholders found :test #'equal))
         (error
-         "Some placeholders in template were not parsed as identifiers: ~a"
+         "Some placeholders in template were not parsed as ASTs: ~a"
          diff)))
     nil))
 
@@ -280,9 +280,8 @@ with `@') can also be used as Trivia patterns for destructuring.
               (assocdr name subs :test #'string=))
             (placeholder-targets (placeholder ast)
               (collect-if (lambda (n)
-                            (and (typep n 'identifier-ast)
-                                 (string= (source-text n)
-                                          placeholder)))
+                            (and (null (children n))
+                                 (string= (source-text n) placeholder)))
                           ast))))
    ;; Replace the identifiers with subtrees, taking care to copy
    ;; before and after text.
