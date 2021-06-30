@@ -3,13 +3,12 @@ import json
 import multiprocessing
 import os
 import pkg_resources
-import random
 import shutil
 import socket
 import subprocess
 import time
 
-from typing import Any, Dict, List, Optional, Tuple, Text
+from typing import Any, ByteString, Dict, List, Optional, Tuple
 
 
 class AST:
@@ -178,18 +177,9 @@ class _interface:
     interface between python and the sel process
     """
 
-    def _get_free_port() -> int:
-        """Return a random free port in the ephemeral port range."""
-        for _ in range(5000):
-            port = random.Random().randint(49152, 65535)
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                if s.connect_ex(("localhost", port)):
-                    return port
-        raise RuntimeError("Could not find free port to listen on.")
-
     _DEFAULT_CMD_NAME: str = "tree-sitter-interface"
     _DEFAULT_HOST: str = "localhost"
-    _DEFAULT_PORT: int = _get_free_port()
+    _DEFAULT_PORT: Optional[int] = None
     _DEFAULT_STARTUP_WAIT: int = 3
     _DEFAULT_SOCKET_TIMEOUT: int = 300
     _DEFAULT_GC_THRESHOLD: int = 128
@@ -231,9 +221,16 @@ class _interface:
                             f"{_interface._DEFAULT_CMD_NAME} binary must be on your $PATH."
                         )
 
+                # Build the command line, listing on stdio or a port depending on
+                # if a DEFAULT_PORT has been specified.
+                if _interface._DEFAULT_PORT:
+                    cmdline = [cmd, "--port", str(_interface._DEFAULT_PORT)]
+                else:
+                    cmdline = [cmd, "--stdio"]
+
                 # Startup the interface subprocess.
                 _interface._proc = subprocess.Popen(
-                    [cmd, "--port", str(_interface._DEFAULT_PORT)],
+                    cmdline,
                     stdin=subprocess.PIPE,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
@@ -250,22 +247,20 @@ class _interface:
                             break
 
                 # Wait _DEFAULT_STARTUP_WAIT seconds for the interface to
-                # setup the socket for us to connect with.
-                for _ in range(_interface._DEFAULT_STARTUP_WAIT):
-                    _interface._check_for_process_crash()
-                    time.sleep(1.0)
+                # setup the socket for us to connect with if using ports.
+                if _interface._DEFAULT_PORT:
+                    for _ in range(_interface._DEFAULT_STARTUP_WAIT):
+                        _interface._check_for_process_crash()
+                        time.sleep(1.0)
 
     @staticmethod
     def stop() -> None:
         """Stop the tree-sitter-interface LISP process."""
-        with _interface._lock:
-            if _interface.is_process_running():
-                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                    s.connect((_interface._DEFAULT_HOST, _interface._DEFAULT_PORT))
-                    s.sendall(b"QUIT\n")
+        if _interface.is_process_running():
+            _interface._communicate(b"QUIT\n")
 
     @staticmethod
-    def dispatch(fn: str, *args: Any, **kwargs: Any) -> Any:
+    def dispatch(fn: str, *args: Any) -> Any:
         """Dispatch processing to the tree-sitter-interface."""
 
         def handle_errors(data: Any) -> Any:
@@ -297,18 +292,6 @@ class _interface:
             else:
                 return v
 
-        def recvline(socket: socket.socket) -> Text:
-            """Read a single line from the socket."""
-            chunks = []
-            while True:
-                chunk = s.recv(1024).decode("ascii")
-                chunks.append(chunk)
-                if chunk.endswith("\n"):
-                    break
-
-            response = "".join(chunks)
-            return response.strip()
-
         # Special case: When garbage collection is occuring, place the
         # AST handle to be garbage collected on a queue to later be
         # flushed to the LISP subprocess.  This protects us against
@@ -319,45 +302,76 @@ class _interface:
             _interface._gc_handles.append(args[0])
             return
 
-        # Build the input JSON to send to the subprocess.
+        # Build the request JSON to send to the subprocess.
         # We translate name of the function to call by
         # removing leading/trailing double underscores
         # and replacing underscores with hyphens.
         fn = fn.replace("__", "").replace("_", "-")
-        inpt = [fn] + [serialize(arg) for arg in args]
+        request = [fn] + [serialize(arg) for arg in args]
+        request = f"{json.dumps(request)}\n".encode("ascii")
 
-        # Send the input to the tree-sitter-interface over the socket
-        # and receive the response.
-        with _interface._lock:
-            _interface._check_for_process_crash()
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.connect((_interface._DEFAULT_HOST, _interface._DEFAULT_PORT))
-                s.settimeout(kwargs.get("timeout", _interface._DEFAULT_SOCKET_TIMEOUT))
-                s.sendall(f"{json.dumps(inpt)}\n".encode("ascii"))
-                response = recvline(s)
-            _interface._gc()
-            _interface._check_for_process_crash()
+        # Send the request to the tree-sitter-interface and receive the response.
+        response = _interface._communicate(request)
 
         # Load the response from the LISP subprocess.
-        return deserialize(handle_errors(json.loads(response)))
+        return deserialize(handle_errors(json.loads(response.decode("ascii"))))
 
     @staticmethod
     def _gc() -> None:
         """Flush the queue of garbage collected AST handles to the LISP subprocess."""
-        if len(_interface._gc_handles) > _interface._DEFAULT_GC_THRESHOLD:
-            inpt = [
+        if not _interface.is_process_running():
+            _interface._gc_handles = []
+        elif len(_interface._gc_handles) > _interface._DEFAULT_GC_THRESHOLD:
+            request = [
                 "gc",
                 [
                     _interface._gc_handles.pop()
                     for _ in range(len(_interface._gc_handles))
                 ],
             ]
+            request = f"{json.dumps(request)}\n".encode("ascii")
+            _interface._communicate(request)
 
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.connect((_interface._DEFAULT_HOST, _interface._DEFAULT_PORT))
-                s.settimeout(_interface._DEFAULT_SOCKET_TIMEOUT)
-                s.sendall(f"{json.dumps(inpt)}\n".encode("ascii"))
-                s.recv(1024)
+    @staticmethod
+    def _communicate(request: ByteString) -> ByteString:
+        """Communicate request to the LISP subprocess and receive response."""
+
+        def recvline(socket: socket.socket) -> ByteString:
+            """Read a single line from the socket."""
+            chunks = []
+            while True:
+                chunk = s.recv(1024)
+                chunks.append(chunk)
+                if chunk.endswith(b"\n"):
+                    break
+
+            response = "".join(chunks)
+            return response
+
+        # Send the request to the LISP subprocess, either over a socket or
+        # on standard input, and wait for a response.  This section is locked
+        # to prevent issues with multiple threads writing at the same time.
+        with _interface._lock:
+            # Preliminaries:
+            #  (1) Send list of handles to garbage collect to the LISP
+            #      subprocess, if applicable.  See comment above re: deadlocks.
+            #  (2) Check the process hasn't crashed before communicating with it.
+            _interface._gc()
+            _interface._check_for_process_crash()
+
+            # Send the request and receive the response.
+            if _interface._DEFAULT_PORT:
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.connect((_interface._DEFAULT_HOST, _interface._DEFAULT_PORT))
+                    s.settimeout(_interface._DEFAULT_SOCKET_TIMEOUT)
+                    s.sendall(request)
+                    response = recvline(s).strip()
+            else:
+                _interface._proc.stdin.write(request)
+                _interface._proc.stdin.flush()
+                response = _interface._proc.stdout.readline().strip()
+
+        return response
 
 
 _interface.start()
