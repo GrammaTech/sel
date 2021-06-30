@@ -181,12 +181,12 @@ Nested lists are not allowed as template arguments:~%~a"
     ;; Check that there are no duplicate placeholders.
     (unless (length= placeholders (nub placeholders))
       (error "Duplicate placeholders: ~a" placeholders))
-    ;; Check that all the placeholders become actual ASTs.
+    ;; Check that no placeholders are split between ASTs.
     (let ((found
            (filter (lambda (p)
                      (find-if (lambda (n)
                                 (and (null (children n))
-                                     (string= (source-text n) p)))
+                                     (string*= p (source-text n))))
                               ast))
                    placeholders)))
       (when-let (diff (set-difference placeholders found :test #'equal))
