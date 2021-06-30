@@ -177,7 +177,8 @@ Nested lists are not allowed as template arguments:~%~a"
         (unless (subsetp (mapcar #'source-text errs)
                          allowed-errors
                          :test #'equal)
-          (error "Template contains parse errors:~%~a" template))))
+          (simple-style-warning
+           "Template contains parse errors:~%~a" template))))
     ;; Check that the AST is printable.
     (handler-case (source-text ast)
       (error (e)
@@ -197,7 +198,7 @@ Nested lists are not allowed as template arguments:~%~a"
                               ast))
                    placeholders)))
       (when-let (diff (set-difference placeholders found :test #'equal))
-        (error
+        (simple-style-warning
          "Some placeholders in template were not parsed as ASTs: ~a"
          diff)))
     nil))
