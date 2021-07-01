@@ -161,12 +161,12 @@ function name from the API followed by the arguments."
                 (socket-close connection))))))
 
 ;;;; API:
-(-> int/ast (string string) (or ast nil))
+(-> int/ast (string string) (or ast null))
 (defun int/ast (language source-text)
   (convert (safe-intern (concatenate 'string (string-upcase language) "-AST"))
            source-text))
 
-(-> int/init (list) (or fixnum nil))
+(-> int/init (list) (or fixnum null))
 (defun int/init (&rest args)
   (allocate-ast (apply #'int/ast args)))
 
