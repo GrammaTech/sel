@@ -5355,7 +5355,7 @@ on the calculated format of a particular file."))
 
 (defmethod with :around ((ast tree-sitter-ast) (value1 list) &optional value2)
   (if-let* ((old (@ ast value1))
-            (predecessor (predecessor ast ast)))
+            (predecessor (predecessor ast old)))
     (nest (call-next-method ast value1)
           (copy value2 :before-text)
           (whitespace-between/parent (parent ast old)
