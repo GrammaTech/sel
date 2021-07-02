@@ -6134,6 +6134,7 @@ correct class name for subclasses of SUPERCLASS."
 (defmethod indentablep ((ast comment-ast)) nil)
 (defmethod indentablep ((ast parse-error-ast)) nil)
 (defmethod indentablep ((ast text-fragment)) nil)
+(defmethod indentablep ((ast source-text-fragment)) nil)
 
 (defmethod get-indentation-at ((ast inner-whitespace) (parents list)
                                &aux (parent (car parents)))
